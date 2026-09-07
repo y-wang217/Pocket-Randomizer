@@ -1,11 +1,14 @@
 /**
- * Browser smoke test: play one battle end to end in a real Chromium.
+ * Browser smoke test: play a whole run end to end in a real Chromium.
  *
- * Step 0 of the build spec exists to retire one risk — whether @pkmn/sim
- * bundles and runs in a browser. A passing Node test suite does not answer
- * that; only loading the built bundle in a browser does. This script serves
- * dist/, clicks the first move until the battle ends, and fails on any console
- * error or page exception along the way.
+ * A passing Node suite says the run logic is right. It does not say the built
+ * bundle loads, that the screens route, or that a click reaches a policy. Only
+ * loading dist/ in a browser answers that, so this script serves it, plays a
+ * full segment by clicking, and fails on any console error or page exception.
+ *
+ * It also checks the property the whole project rests on, in the place a player
+ * would meet it: the same seed played with the same clicks twice produces the
+ * same summary, in a browser, across a full restart of the run.
  *
  * Usage: npm run build && node scripts/smoke.mjs
  */
@@ -33,7 +36,19 @@ const server = createServer(async (req, res) => {
 });
 
 await new Promise((resolve) => server.listen(0, resolve));
-const url = `http://127.0.0.1:${server.address().port}/#seed=SMOKE001`;
+/*
+ * Fixed by default so the run is the same on every machine; overridable when
+ * hunting for a seed that exercises a particular path.
+ *
+ * SMOKE004 was chosen because the player below clears the gym on it, so one
+ * pass covers every screen and both endings: starter select, a map with
+ * completed, current and upcoming steps, battles, rest nodes, the gym, and the
+ * victory summary. If a balance change turns it into a defeat the run still
+ * smokes fine — the log says which ending it got — but re-pick a seed that
+ * wins, or the victory branch stops being exercised.
+ */
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE004';
+const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
 // build's expected revision, so point at it explicitly when it is present
@@ -48,10 +63,7 @@ page.on('console', (msg) => {
 });
 page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 
-const started = Date.now();
-await page.goto(url, { waitUntil: 'load' });
-await page.waitForSelector('.move:not(:disabled)', { timeout: 20_000 });
-const ready = Date.now() - started;
+const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
 
 const check = async (label, selector) => {
   const count = await page.locator(selector).count();
@@ -59,69 +71,202 @@ const check = async (label, selector) => {
   if (count === 0) problems.push(`missing: ${label}`);
 };
 
-console.log(`\nloaded and interactive in ${ready} ms\n`);
-console.log('required UI:');
-await check('four move buttons', '.move');
-await check('move type chip', '.move .type');
-await check('move category', '.move__category');
-await check('move base power', '.move__power');
-await check('move PP', '.move__pp');
-await check('both HP bars', '.hp__fill');
-await check('seed input', '.seedbar__input');
-await check('battle log entries', '.log-entry');
+const started = Date.now();
+await page.goto(url, { waitUntil: 'load' });
+await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
+console.log(`\nloaded and interactive in ${Date.now() - started} ms\n`);
+
+console.log('starter select:');
+const starterCount = await page.locator('.starter').count();
+console.log(`  ${starterCount === 3 ? 'ok  ' : 'FAIL'} three starters offered (x${starterCount})`);
+if (starterCount !== 3) problems.push(`expected 3 starters, saw ${starterCount}`);
+await check('starter types', '.starter .type');
+await check('starter movesets', '.starter__move');
+await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
 console.log(`\nseed shown: ${seed}`);
+if (seed !== SEED) problems.push(`seed from the URL was not used (saw ${seed})`);
 
-// Open with the boosting move so the stat-stage indicators get exercised,
-// then attack. Always clicking slot 1 would never render a stat stage and the
-// check below would pass vacuously.
-let turns = 0;
-const opener = page.locator('.move:not(:disabled)', { hasText: 'Curse' }).first();
-if (await opener.count()) {
-  await opener.click();
-  turns++;
-  await page.waitForTimeout(60);
+/**
+ * Play a run competently, reading the screen the way a player would.
+ *
+ * Competence matters here. A bot that always clicks the first move and the
+ * first node dies two nodes in, and a smoke test that never reaches a rest node
+ * or a gym is not smoking most of the app. So: hit the hardest move available,
+ * and take the rest when hurt. Both decisions are pure functions of what is on
+ * screen, which is what lets the second run be compared to the first.
+ */
+async function playRun(label) {
+  await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
+  await page.locator('.starter').first().click();
+
+  let battles = 0;
+  let nodes = 0;
+  let rests = 0;
+  let sawSavedLog = false;
+  let mapStructure = null;
+
+  for (let guard = 0; guard < 400; guard++) {
+    if (await page.locator(visible('summary')).count()) break;
+
+    if (await page.locator(visible('battle')).count()) {
+      const move = await hardestMove();
+      if (move) {
+        // One frame of a real fight, after the HP bar's 380ms transition has
+        // settled so the shot shows the state rather than the animation.
+        if (battles === 3) {
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: `stats/${label}-battle.png`, fullPage: true });
+        }
+        await move.click();
+        battles++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+      await page.waitForTimeout(40);
+      continue;
+    }
+
+    if (await page.locator(visible('map')).count()) {
+      // Mid-run the log must be on disk, or an interrupted run is lost. It is
+      // cleared when the run ends, so it has to be checked while playing.
+      if (!sawSavedLog) {
+        const stored = await page.evaluate(() => globalThis.localStorage.getItem('gymrun.lastRun'));
+        const log = stored ? JSON.parse(stored) : null;
+        if (log?.decisions?.length > 0) sawSavedLog = true;
+      }
+
+      const node = await chooseNode();
+      if (node) {
+        if (nodes === 1) {
+          mapStructure = await readMapStructure();
+          await page.screenshot({ path: `stats/${label}-map.png`, fullPage: true });
+        }
+        if (await node.evaluate((el) => el.classList.contains('node--rest'))) rests++;
+        await node.click();
+        nodes++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+    }
+    await page.waitForTimeout(40);
+  }
+
+  await page.waitForSelector(visible('summary'), { timeout: 20_000 });
+  return {
+    battles,
+    nodes,
+    rests,
+    sawSavedLog,
+    mapStructure,
+    outcome: await page.getAttribute(visible('summary'), 'data-outcome'),
+    title: await page.textContent('.summary__title'),
+    detail: await page.textContent('.summary__detail'),
+    seedLine: await page.textContent('.summary__seed'),
+    visits: await page.locator('.summary__node').allTextContents(),
+  };
 }
-const stagesAfterBoost = await page.locator('.badge--stage').count();
-await page.waitForTimeout(500);
-await page.screenshot({ path: 'stats/mid-battle.png', fullPage: true });
 
-while (turns < 200) {
-  if (await page.locator('.overlay:not([hidden])').count()) break;
-  const move = page.locator('.move:not(:disabled)').first();
-  if (!(await move.count())) break;
-  await move.click();
-  turns++;
-  await page.waitForTimeout(30);
+/** The usable move with the highest base power, ties to the lowest slot. */
+async function hardestMove() {
+  const buttons = page.locator(`${visible('battle')} .move:not(:disabled)`);
+  const count = await buttons.count();
+  if (count === 0) return null;
+
+  let best = 0;
+  let bestPower = -1;
+  for (let i = 0; i < count; i++) {
+    const text = (await buttons.nth(i).locator('.move__power').textContent()) ?? '';
+    const power = Number(/^(\d+)/.exec(text.trim())?.[1] ?? 0);
+    if (power > bestPower) {
+      bestPower = power;
+      best = i;
+    }
+  }
+  return buttons.nth(best);
 }
 
-await page.waitForSelector('.overlay:not([hidden])', { timeout: 10_000 });
-const outcome = await page.getAttribute('.overlay', 'data-outcome');
-const title = await page.textContent('.overlay__title');
-const detail = await page.textContent('.overlay__detail');
-console.log(`\nbattle finished after ${turns} clicks: ${title} (${outcome})\n  ${detail}`);
+/** Rest whenever hurt and a rest is offered; otherwise take the first node. */
+async function chooseNode() {
+  const options = page.locator(`${visible('map')} .node--current`);
+  if ((await options.count()) === 0) return null;
 
-// Curse moves three stats at once, so the indicator must show three chips.
-console.log(`\nstat-stage chips after Curse: ${stagesAfterBoost}`);
-if (stagesAfterBoost < 3) problems.push(`stat stages did not render (saw ${stagesAfterBoost}, expected 3)`);
-console.log(`status badges seen:           ${await page.locator('.badge--status:not([hidden])').count()}`);
-// Let the HP bar's 380 ms transition settle so the screenshot shows the
-// final state rather than a frame of the animation.
-await page.waitForTimeout(600);
-await page.screenshot({ path: 'stats/battle.png', fullPage: true });
+  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  const fraction = current && max ? Number(current) / Number(max) : 1;
 
-// The rematch button must re-run the same seed.
-await page.click('.overlay__actions .button--primary');
-await page.waitForSelector('.move:not(:disabled)', { timeout: 10_000 });
+  if (fraction < 0.95) {
+    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+    if (await rest.count()) return rest;
+  }
+  return options.first();
+}
+
+/** What the chain looked like partway through: done behind, current, upcoming ahead. */
+async function readMapStructure() {
+  return {
+    done: await page.locator(`${visible('map')} .step--done`).count(),
+    current: await page.locator(`${visible('map')} .step--current`).count(),
+    upcoming: await page.locator(`${visible('map')} .step--upcoming`).count(),
+    gym: await page.locator(`${visible('map')} .node--gym`).count(),
+  };
+}
+
+const first = await playRun('run1');
+console.log(`\nrun finished: ${first.title} (${first.outcome})`);
+console.log(`  ${first.detail}`);
+console.log(`  ${first.nodes} node choices (${first.rests} rests), ${first.battles} move clicks`);
+console.log(`  map partway through: ${JSON.stringify(first.mapStructure)}`);
+
+console.log('\nrequired UI:');
+await check('summary node list', '.summary__node');
+await check('summary actions', '.summary__actions .button');
+if (!first.seedLine?.includes(SEED)) problems.push('summary did not show the seed');
+if (first.nodes < 3) problems.push(`only ${first.nodes} node choices — the map is not being played`);
+if (first.battles < 3) problems.push(`only ${first.battles} move clicks — battles are not being played`);
+
+// The map has to show the whole chain, not just the step in front of you.
+const shape = first.mapStructure ?? {};
+if (!(shape.done >= 1)) problems.push('map showed no completed step');
+if (shape.current !== 1) problems.push(`map showed ${shape.current} current steps, expected exactly 1`);
+if (!(shape.upcoming >= 1)) problems.push('map showed no upcoming steps');
+if (!(shape.gym >= 1)) problems.push('map did not show the gym at the end of the chain');
+
+// The rest and gym paths are the two Stage 1 adds, so one pass must hit both.
+if (first.rests < 1) problems.push('no rest node was taken — the rest path is unsmoked');
+const reachedGym = first.visits.some((line) => /Gym|\(Rock\)|Garnet/.test(line));
+console.log(`  ${reachedGym ? 'ok  ' : 'FAIL'} run reached the gym`);
+if (!reachedGym) problems.push('the run never reached the gym');
+if (!['victory', 'defeat'].includes(first.outcome ?? '')) {
+  problems.push(`summary showed no outcome (saw ${first.outcome})`);
+}
+console.log(`  ${first.sawSavedLog ? 'ok  ' : 'FAIL'} run log saved mid-run`);
+if (!first.sawSavedLog) problems.push('no run log written to localStorage during the run');
+
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'stats/summary.png', fullPage: true });
+
+// The property everything rests on, checked where a player would meet it.
+console.log('\nsame seed, same clicks, again:');
+await page.click('.summary__actions .button--primary');
+const second = await playRun('run2');
+
+const same = (label, a, b) => {
+  const ok = JSON.stringify(a) === JSON.stringify(b);
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label}`);
+  if (!ok) problems.push(`replay differed: ${label}\n      first:  ${JSON.stringify(a)}\n      second: ${JSON.stringify(b)}`);
+};
+
+same('outcome', first.outcome, second.outcome);
+same('summary line', first.detail, second.detail);
+same('node-by-node history', first.visits, second.visits);
+same('node choices and move clicks', [first.nodes, first.battles], [second.nodes, second.battles]);
+same('map shape partway through', first.mapStructure, second.mapStructure);
+
 const rematchSeed = await page.inputValue('.seedbar__input');
 console.log(`\nrematch seed: ${rematchSeed} ${rematchSeed === seed ? '(same, ok)' : '(CHANGED — FAIL)'}`);
 if (rematchSeed !== seed) problems.push('rematch changed the seed');
-
-const stored = await page.evaluate(() => globalThis.localStorage.getItem('gymrun.lastRun'));
-const log = stored ? JSON.parse(stored) : null;
-console.log(`run log stored: ${log ? `seed ${log.seed}, ${log.decisions.length} decisions` : 'NONE'}`);
-if (!log || log.decisions.length === 0) problems.push('no run log written to localStorage');
 
 await browser.close();
 server.close();

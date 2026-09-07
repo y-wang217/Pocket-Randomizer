@@ -1,8 +1,8 @@
 # Architecture
 
-Stage 0 builds one battle. The point of this document is the parts that are
-*not* about one battle — the seams that exist so Stages 1-5 are additions
-rather than rewrites.
+Stage 0 built one battle. Stage 1 builds a run around it. The point of this
+document is the parts that are *not* about the current stage — the seams that
+exist so Stages 2-5 are additions rather than rewrites.
 
 ## The rules
 
@@ -25,13 +25,19 @@ TypeScript is strict, with `noUncheckedIndexedAccess` on and no `any` in
 ## Layers
 
 ```
-data/mons.ts          TeamSpec values. Stage 2 replaces this with a generator.
+data/                 A leaf. Values and balance numbers, no logic.
+  mons.ts             Curated species pools. Stage 2 replaces these with rolls.
+  starters.ts         getStarterPool(unlocked?) — a function, for Stage 5.
+  gyms.ts             Leader, type, segment index, team.
+  tuning.ts           EVERY balance number in the game, in one typed object.
+      ^
+      | read by
       |
-      v
 core/types.ts         The shared vocabulary. No DOM, no sim.
 core/rng.ts           Seeded streams: map, rewards, battle.
-      |
-      v
+core/party.ts         What persists between nodes, and the rules that change it.
+core/encounters.ts    Map and encounter generation. All of it eager.
+core/run.ts           RunState, resolveNode, RunPolicy, playRun.
 core/battle/
   format.ts           Generation, format id, clauses. The gen-lock lives here.
   driver.ts           THE ONLY ADAPTER OVER @pkmn/sim.
@@ -39,13 +45,22 @@ core/battle/
   ai.ts               Greedy damage-maximising policy over @smogon/calc.
       |
       v
-ui/                   A thin DOM layer. Reads BattleView, writes elements.
+ui/                   A thin DOM layer. Four screens and a router.
+  screens/            starter-select, run-map, battle, summary.
 ```
 
-Nothing points upward. `ui/` can be replaced wholesale without touching
-`core/`; `data/` can be replaced by a randomizer without touching either.
+`ui/` can be replaced wholesale without touching `core/`; `data/` can be
+replaced by a randomizer without touching either.
 
-## The four seams
+`data/` is a leaf that `core/` reads, and its only import is `core/types.ts`
+for the shape of the values it holds — a type-only import, so there is no
+runtime cycle. `Tuning` is the exception to "read freely": it is *passed into*
+generation and the run state machine, never imported from inside a function.
+Stage 2 sweeps those values programmatically, which only works if every one of
+them is reachable from a value the caller controls. `npm run sweep` overrides
+any of them from the command line, which is the proof.
+
+## The seams
 
 ### Named RNG streams
 
@@ -95,6 +110,57 @@ Pokémon in full, the opponent as species, level, HP, status and boosts, with
 `foe.ability` always `null`. A bot with hidden information would make a balance
 sweep measure the wrong thing.
 
+### The run policy
+
+```ts
+type RunPolicy = {
+  chooseStarter: (options: PokemonSpec[]) => Promise<number>;
+  chooseNode: (options: NodeSpec[]) => Promise<number>;
+  battle: Policy;
+};
+```
+
+The battle policy seam, one level up. A run is a sequence of three kinds of
+decision, and `playRun(seed, policy, tuning)` takes a function for each and
+cannot tell what is answering:
+
+- `src/ui/app.ts` is a run policy whose promises resolve on clicks
+- `scripts/sweep.ts` is a run policy that always takes the first option
+- `replayRunPolicy(log)` is a recorded log handed back as a policy
+
+The payoff is the same as Stage 0's: there is no separate interactive run loop
+to keep in sync with the headless one. `npm run sweep` plays two hundred runs
+through the exact function a player uses, with no DOM.
+
+### resolveNode, and where rewards will hang
+
+`resolveNode(state, result) -> RunState` is the only place anything happens
+between two nodes. The battle's damage is folded into the party, rest is
+applied, the run's end conditions are checked, and only then does the party
+clear status and revive.
+
+Stage 3's rewards hang off this function. That is why the battle screen hands
+back a `NodeResult` of plain facts — the outcome, and the party as the sim left
+it — rather than applying the rules itself. A screen that knew about rest,
+revival and wipe detection is a screen Stage 3 would have to teach about
+rewards too.
+
+The ordering inside it is load-bearing: **the wipe check runs before revival**,
+or `reviveFaintedBetweenNodes` would quietly resurrect a run that had already
+ended.
+
+### Lists, not singulars
+
+`RunState` holds `segments: Segment[]` and `party: PokemonState[]`. Stage 1
+generates one segment and puts one Pokémon in the party.
+
+Every function is written as though it were eight and six. `generateSegment`
+takes the segment index and uses it for level scaling and the gym lookup;
+`isWiped` is "every member fainted", never "the starter fainted". In Stage 1
+those read identically, which is exactly why the singular version has to be
+ruled out now — it would keep passing its tests right up until Stage 4 adds a
+slot and started ending runs early.
+
 ### The driver as an adapter
 
 `core/battle/driver.ts` translates in both directions — `TeamSpec` to
@@ -107,24 +173,59 @@ Disable, Choice lock, Encore, Torment, zero PP and the Struggle substitution.
 Rebuilding that from move slots is how a UI ends up offering a move the engine
 then rejects.
 
+Stage 1 added two things to it, both of which exploit the same fact: `Battle`
+does not start until *both* sides are set, so a side set first is fully
+constructed and not yet on the field.
+
+- **`describeSpec` / `describeSpecCard`** build a battle, set one player, and
+  never start it. That yields exact max HP and max PP straight from the engine
+  — the alternative is reimplementing the HP formula and the PP-Up rule and
+  being subtly wrong about Shedinja, `noPPBoosts` moves, and the gen-lock
+  forever. The starter-select screen needs types and base powers for Pokémon
+  that have never fought, and `ui/` may not import the sim, so the adapter
+  answers in `MoveView` — the same type the move buttons already take.
+- **`carryOver`** writes persisted HP, PP and status onto p1 in the gap between
+  the two `setPlayer` calls. It has to happen before switch-in is emitted:
+  applying it afterwards would leave the protocol announcing full HP for a
+  Pokémon that does not have it, and every log-derived damage percentage
+  measured against the wrong baseline. p1 gets the gap because p1 is set first;
+  opponents are generated fresh at full HP in every stage that exists.
+
 ## Run logs
 
 ```ts
-type RunLog = { seed: string; version: string; decisions: Decision[] };
+type RunDecision =
+  | { kind: 'starter'; index: number }
+  | { kind: 'node'; index: number }
+  | { kind: 'battle'; choice: Choice };
+
+type RunLog = { seed: string; version: string; decisions: RunDecision[] };
 ```
 
-The seed and the decision sequence, and nothing derived. No HP, no damage rolls,
-no protocol text — storing derived state is how replay logs silently drift out
-of agreement with the engine that produced them.
+The seed and the decision sequence, and nothing derived. No HP, no party, no
+map, no turn numbers — storing derived state is how replay logs silently drift
+out of agreement with the engine that produced them.
+`test/run-replay.test.ts` asserts the serialized log contains none of those
+words, so derived state cannot leak in without failing.
 
-`replayRunLog()` rebuilds the battle from the seed and feeds the decisions back.
-`test/replay.test.ts` round-trips through `JSON.stringify` and asserts the
-reconstructed protocol matches byte for byte. `version` exists so a log recorded
-against different data or a different `@pkmn/sim` is rejected rather than
-replayed wrongly.
+Note what else is absent: the opponent's choices. The AI is a deterministic
+policy over a view it is handed, so recording its answers would be recording
+the engine's output as though it were the player's input.
 
-Stage 0 writes one log to `localStorage`. That is the entire extent of
-persistence, by design.
+Replay is therefore small, because a run *is* a seed plus a sequence of
+decisions. `replayRunPolicy(log)` hands the log back as a `RunPolicy`; with a
+`live` policy it consumes the log and then hands over, which is the whole of
+resume. `test/run-replay.test.ts` resumes from a save taken after **every**
+decision in a run and asserts each one reproduces the original exactly.
+
+A single battle keeps its own record as `BattleLog`, which is the Stage 0 type
+under its old shape and its old version string. That version string is why a
+Stage 0 log is *rejected* rather than misread: `RUN_LOG_VERSION` embeds the
+engine version, because a decision sequence is only replayable against the
+mons, generation and sim it was recorded with.
+
+`localStorage` holds one run log, written after every decision and cleared when
+the run ends. That is the entire extent of persistence, by design.
 
 ## Deliberately absent
 

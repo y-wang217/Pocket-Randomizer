@@ -90,7 +90,26 @@ export interface SpecVitals {
   moves: MoveState[];
 }
 
-const vitalsCache = new Map<string, SpecVitals>();
+/**
+ * Everything a screen needs to show a Pokemon it cannot fight yet.
+ *
+ * The starter select has to render types, base powers and PP for three
+ * Pokemon that have never been in a battle, and `ui/` may not import the sim.
+ * So the adapter answers the question, in the display types `ui/` already
+ * speaks — `MoveView` is the same shape the move buttons take mid-battle, so
+ * a starter card and a move button read the same data.
+ */
+export interface SpecCard {
+  species: string;
+  name: string;
+  level: number;
+  ability: string;
+  types: string[];
+  maxHp: number;
+  moves: MoveView[];
+}
+
+const vitalsCache = new Map<string, SpecCard>();
 
 /** A fixed seed: nothing is ever rolled here, but Battle wants one. */
 const PROBE_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
@@ -108,6 +127,15 @@ const PROBE_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
  * building one is not free.
  */
 export function describeSpec(spec: PokemonSpec): SpecVitals {
+  const card = describeSpecCard(spec);
+  return {
+    maxHp: card.maxHp,
+    moves: card.moves.map((move) => ({ id: move.id, name: move.name, pp: move.pp, maxPp: move.maxPp })),
+  };
+}
+
+/** The full card. Same probe, same cache; `describeSpec` is the narrow view of it. */
+export function describeSpecCard(spec: PokemonSpec): SpecCard {
   const key = JSON.stringify([spec.species, spec.ability, spec.moves, spec.level, spec.item ?? '']);
   const cached = vitalsCache.get(key);
   if (cached) return cached;
@@ -118,13 +146,33 @@ export function describeSpec(spec: PokemonSpec): SpecVitals {
   const mon = battle.sides[0]?.pokemon[0];
   if (!mon) throw new Error(`Could not describe ${spec.species}`);
 
-  const vitals: SpecVitals = {
+  const dex = Dex.forGen(GYMRUN_GEN);
+  const card: SpecCard = {
+    species: mon.species.name,
+    name: mon.name,
+    level: mon.level,
+    ability: dex.abilities.get(mon.ability).name,
+    types: mon.getTypes(),
     maxHp: mon.maxhp,
-    moves: mon.moveSlots.map((slot) => ({ id: slot.id, name: slot.move, pp: slot.pp, maxPp: slot.maxpp })),
+    moves: mon.moveSlots.map((slot, index) => {
+      const data = dex.moves.get(slot.id);
+      return {
+        slot: index + 1,
+        id: slot.id,
+        name: slot.move,
+        type: data.type,
+        category: data.category,
+        basePower: data.basePower,
+        accuracy: data.accuracy,
+        pp: slot.pp,
+        maxPp: slot.maxpp,
+        usable: true,
+      };
+    }),
   };
   battle.destroy();
-  vitalsCache.set(key, vitals);
-  return vitals;
+  vitalsCache.set(key, card);
+  return card;
 }
 
 // ---------------------------------------------------------------------------

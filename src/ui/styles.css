@@ -378,6 +378,291 @@ body {
 
 .log-entry--turn:first-child { margin-top: 0; border-top: none; padding-top: 0; }
 
+/* ---------- screens ---------- */
+
+/*
+ * One screen visible at a time. All four stay mounted, so the battle log's
+ * scroll position and the HP bar's transition survive a switch.
+ */
+.screens { display: contents; }
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.screen[hidden] { display: none; }
+
+.screen__title {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+.screen__blurb {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* ---------- starter select ---------- */
+
+.starters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gap);
+}
+
+.starter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.starter:hover { border-color: var(--accent); transform: translateY(-1px); }
+.starter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.starter__header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.starter__name { font-weight: 600; font-size: 15px; }
+.starter__level { color: var(--text-faint); font-family: var(--mono); font-size: 12px; }
+.starter__meta { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+
+.starter__moves {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.starter__move { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.starter__move-name { font-size: 13px; }
+.starter__move-stats { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- run map ---------- */
+
+.screen--map {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  grid-template-areas: "heading heading" "chain party";
+  gap: var(--gap);
+  align-items: start;
+}
+
+.map__heading { grid-area: heading; display: flex; flex-direction: column; gap: 2px; }
+.chain { grid-area: chain; }
+.party { grid-area: party; }
+
+@media (max-width: 760px) {
+  .screen--map {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "heading" "party" "chain";
+  }
+}
+
+.chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.step__marker {
+  flex: 0 0 22px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.step--current .step__marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.step--done .step__marker { color: var(--text-dim); }
+
+.step__nodes {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+.node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 11px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+}
+
+.node--wild { border-left-color: var(--type-grass); }
+.node--trainer { border-left-color: var(--type-fire); }
+.node--rest { border-left-color: var(--hp-high); }
+.node--gym { border-left-color: var(--accent); }
+
+.node__label { font-weight: 600; font-size: 13px; }
+
+.node__detail {
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.node--current {
+  cursor: pointer;
+  border-color: var(--border-strong);
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.node--current:hover { border-color: var(--accent); transform: translateY(-1px); }
+.node--current:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Upcoming steps show the kind but never the contents: enough to plan around,
+   not enough to remove the encounter. */
+.node--upcoming { opacity: 0.5; }
+.node--done { opacity: 0.72; background: var(--bg-sunken); }
+
+/* ---------- party panel ---------- */
+
+.party {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.party__member {
+  padding: 12px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.party__moves {
+  margin: 8px 0 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.party__move {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+/* ---------- battle screen ---------- */
+
+.battle__header { display: flex; flex-direction: column; gap: 2px; }
+
+/* ---------- summary ---------- */
+
+.screen--summary { align-items: center; }
+
+.summary {
+  width: min(520px, 100%);
+  padding: 24px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.summary__title { margin: 0 0 6px; font-size: 26px; letter-spacing: 0.04em; }
+.screen--summary[data-outcome="victory"] .summary__title { color: var(--win); }
+.screen--summary[data-outcome="defeat"] .summary__title { color: var(--loss); }
+
+.summary__detail { margin: 0 0 4px; color: var(--text-dim); font-size: 13px; }
+
+.summary__seed {
+  margin: 0 0 16px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.summary__nodes {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* Tall enough that a full segment — eight steps plus the gym — fits without
+     scrolling. The gym is the last row and the one worth reading. */
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.summary__node {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--bg-sunken);
+  font-size: 12px;
+}
+
+.summary__node-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.summary__node-outcome,
+.summary__node-hp { color: var(--text-faint); font-family: var(--mono); font-size: 11px; }
+
+.summary__node-outcome[data-won="true"] { color: var(--win); }
+.summary__node-outcome[data-won="false"] { color: var(--loss); }
+
+.summary__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
 /* ---------- end-of-battle overlay ---------- */
 
 .overlay {
@@ -416,5 +701,5 @@ body {
 .overlay__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hp__fill, .move, .log { transition: none; scroll-behavior: auto; }
+  .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
 }

@@ -1,94 +1,131 @@
 /**
- * Wiring: turn clicks into policy decisions and battle updates into DOM.
+ * Wiring: turn clicks into run decisions and run state into screens.
  *
- * The whole app is one call to `runBattle` with a human policy on p1 and the
- * greedy AI on p2 — the same call test/headless.test.ts makes with two AIs.
- * That is the payoff of the policy seam: there is no separate "interactive
- * battle loop" to keep in sync with the headless one, because there is only
- * one loop.
+ * The whole app is one call to `playRun` with a `RunPolicy` whose three
+ * promises resolve on clicks — the same call `test/run.test.ts` makes with a
+ * scripted policy and `scripts/sweep.ts` makes two hundred times in a row. That
+ * is the payoff of the run-policy seam: there is no separate "interactive run
+ * loop" to keep in sync with the headless one, because there is only one loop.
+ *
+ * This file owns exactly two things core/ cannot: where the first seed comes
+ * from, and what a click means. Everything else it asks for.
  */
 import { greedyAiPolicy } from '../core/battle/ai';
-import { runBattle, type BattleSession } from '../core/battle/driver';
-import { GYMRUN_FORMAT, STRIPPED_CLAUSES } from '../core/battle/format';
-import { createHumanPolicy } from '../core/battle/policy';
+import type { BattleSession } from '../core/battle/driver';
+import { GYMRUN_FORMAT } from '../core/battle/format';
+import type { NodeSpec } from '../core/encounters';
 import { normalizeSeed } from '../core/rng';
-import { moveChoice, type BattleResult, type RunLog } from '../core/types';
-import { OPPONENT_TEAM, PLAYER_TEAM } from '../data/mons';
-import { createBattleLog } from './battle-log';
-import { createScene, el } from './scene';
+import {
+  isReplayable,
+  playRun,
+  resumeRun,
+  type RunPolicy,
+  type RunResult,
+  type RunState,
+} from '../core/run';
+import { moveChoice, type Choice, type PokemonSpec, type RunLog } from '../core/types';
+import { DEFAULT_TUNING } from '../data/tuning';
+import { createPending } from './pending';
+import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
-import { saveRunLog } from './storage';
-
-/**
- * A one-battle run log.
- *
- * Stage 1 replaces this screen entirely; until then the Stage 0 app records its
- * battle in the run-log format so persistence has one shape rather than two.
- */
-function asRunLog(log: { seed: string; version: string; decisions: { choice: { kind: 'move'; slot: number } }[] }): RunLog {
-  return {
-    seed: log.seed,
-    version: log.version,
-    decisions: log.decisions.map((decision) => ({ kind: 'battle' as const, choice: decision.choice })),
-  };
-}
+import { createBattleScreen } from './screens/battle';
+import { createRouter } from './screens/router';
+import { createRunMap } from './screens/run-map';
+import { createStarterSelect } from './screens/starter-select';
+import { createSummary } from './screens/summary';
+import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 
 export function mountApp(root: HTMLElement): void {
-  const scene = createScene();
-  const logPanel = el('div', 'log');
-  const battleLog = createBattleLog(logPanel);
-  const seedBar = createSeedBar();
-  const overlay = createOverlay();
+  const starterScreen = createStarterSelect();
+  const mapScreen = createRunMap();
+  const battleScreen = createBattleScreen();
+  const summaryScreen = createSummary();
 
+  const router = createRouter({
+    starter: starterScreen.root,
+    map: mapScreen.root,
+    battle: battleScreen.root,
+    summary: summaryScreen.root,
+  });
+
+  const seedBar = createSeedBar();
   const shell = el('main', 'shell');
-  const board = el('div', 'board');
-  board.append(scene.root, logPanel);
-  shell.append(createHeader(), seedBar.root, board, overlay.root);
+  shell.append(createHeader(), seedBar.root, router.root);
   root.replaceChildren(shell);
 
-  /** Cancels the in-flight battle's pending human decision, if any. */
+  /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;
 
-  async function start(seed: string): Promise<void> {
+  async function start(seed: string, resume?: RunLog): Promise<void> {
     abandon?.();
 
     seedBar.setSeed(seed);
     writeSeedToLocation(seed);
-    battleLog.clear();
-    overlay.hide();
 
-    const human = createHumanPolicy();
-    abandon = () => human.cancel();
-
-    let session: BattleSession | null = null;
-    const attach = (started: BattleSession): void => {
-      session = started;
-      battleLog.append(started.protocolFor('p1'));
-      render(started);
-      started.subscribe((update) => {
-        battleLog.append(update.protocol);
-        render(started);
-      });
+    const starterPick = createPending<number>();
+    const nodePick = createPending<number>();
+    const movePick = createPending<Choice>();
+    let detachBattle: (() => void) | null = null;
+    const releaseBattle = (): void => {
+      detachBattle?.();
+      detachBattle = null;
     };
 
-    const render = (active: BattleSession): void => {
-      scene.update(active.viewFor('p1'), (slot) => {
-        // A click that arrives when nothing is pending is a no-op, not a
-        // decision queued against the following turn.
-        human.submit(moveChoice(slot));
+    abandon = () => {
+      starterPick.cancel();
+      nodePick.cancel();
+      movePick.cancel();
+      releaseBattle();
+    };
+
+    const policy: RunPolicy = {
+      chooseStarter: (options: PokemonSpec[]) => {
+        starterScreen.render(options, (index) => starterPick.submit(index));
+        router.show('starter');
+        return starterPick.wait();
+      },
+      chooseNode: (options: NodeSpec[]) => {
+        // The map is already rendered by onState; this only arms the buttons.
+        void options;
+        router.show('map');
+        return nodePick.wait();
+      },
+      battle: () => movePick.wait(),
+    };
+
+    const onState = (state: RunState): void => {
+      // Rendering on every transition, not only when a choice is pending, is
+      // what makes a rest node visible: it resolves without a decision, so the
+      // only evidence it happened is the party panel refilling.
+      mapScreen.render(state, (index) => nodePick.submit(index));
+    };
+
+    const onBattle = (session: BattleSession, node: NodeSpec): void => {
+      releaseBattle();
+      detachBattle = battleScreen.attach(session, node, (slot) => {
+        // A click with nothing pending is a no-op, not a decision queued
+        // against the following turn.
+        movePick.submit(moveChoice(slot));
       });
+      router.show('battle');
     };
 
     try {
-      const run = await runBattle(PLAYER_TEAM, OPPONENT_TEAM, seed, human.policy, greedyAiPolicy, {
-        onStart: attach,
-      });
-      saveRunLog(asRunLog(run.battleLog));
-      if (session) render(session);
-      overlay.show(run.result, seed);
+      const options = { onState, onBattle, onDecision: saveRunLog, opponent: greedyAiPolicy };
+      const result: RunResult = resume
+        ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
+        : await playRun(seed, policy, DEFAULT_TUNING, options);
+
+      releaseBattle();
+      // Leave the map showing the run as it finished, behind the summary.
+      mapScreen.render(result.state, () => undefined);
+      summaryScreen.render(result);
+      router.show('summary');
+      // The run is over: a saved log now would resume into a finished run.
+      clearRunLog();
     } catch {
-      // The only way out of runBattle other than a finished battle is an
-      // abandoned human policy, which happens when the player restarts.
+      // The only way out of playRun other than a finished run is an abandoned
+      // pending decision, which happens when the player starts a different one.
     }
   }
 
@@ -98,14 +135,26 @@ export function mountApp(root: HTMLElement): void {
   seedBar.onReroll(() => {
     void start(newSeed());
   });
-  overlay.onRematch((seed) => {
+  seedBar.onResume(() => {
+    const saved = loadRunLog();
+    if (saved && isReplayable(saved)) void start(saved.seed, saved);
+  });
+  summaryScreen.onReplaySeed((seed) => {
     void start(seed);
   });
-  overlay.onNextSeed(() => {
+  summaryScreen.onNewSeed(() => {
     void start(newSeed());
   });
 
-  void start(seedFromLocation(globalThis.location.href) ?? newSeed());
+  const saved = loadRunLog();
+  seedBar.setResumable(Boolean(saved && isReplayable(saved)));
+
+  const fromUrl = seedFromLocation(globalThis.location.href);
+  // A seed in the URL is an explicit request for *that* run, so it wins over a
+  // save. Without one, an interrupted run is resumed where it left off.
+  if (fromUrl) void start(fromUrl);
+  else if (saved && isReplayable(saved)) void start(saved.seed, saved);
+  else void start(newSeed());
 }
 
 function createHeader(): HTMLElement {
@@ -113,8 +162,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  const clauses = STRIPPED_CLAUSES.length > 0 ? ` · no ${STRIPPED_CLAUSES.join(', ').toLowerCase()}` : '';
-  subtitle.textContent = `Stage 0 · ${GYMRUN_FORMAT}${clauses}`;
+  subtitle.textContent = `Stage 1 · ${GYMRUN_FORMAT} · one segment, one gym`;
   header.append(title, subtitle);
   return header;
 }
@@ -122,16 +170,18 @@ function createHeader(): HTMLElement {
 interface SeedBar {
   root: HTMLElement;
   setSeed(seed: string): void;
+  setResumable(resumable: boolean): void;
   onSubmit(handler: (seed: string) => void): void;
   onReroll(handler: () => void): void;
+  onResume(handler: () => void): void;
 }
 
 /**
- * The seed, displayed and editable.
+ * The seed, displayed and editable at run start.
  *
- * A tester who can type a seed and get the identical battle back is the
- * cheapest bug-reporting tool this project will ever have, which is why it is
- * in the UI at Stage 0 rather than behind a debug flag.
+ * A tester who can type a seed and get the identical run back is the cheapest
+ * bug-reporting tool this project will ever have, which is why it is in the UI
+ * rather than behind a debug flag.
  */
 function createSeedBar(): SeedBar {
   const root = el('form', 'seedbar');
@@ -149,19 +199,28 @@ function createSeedBar(): SeedBar {
   const apply = document.createElement('button');
   apply.type = 'submit';
   apply.className = 'button button--primary';
-  apply.textContent = 'Run seed';
+  apply.textContent = 'Start run';
 
   const reroll = document.createElement('button');
   reroll.type = 'button';
   reroll.className = 'button';
   reroll.textContent = 'New seed';
 
-  root.append(label, input, apply, reroll);
+  const resume = document.createElement('button');
+  resume.type = 'button';
+  resume.className = 'button';
+  resume.textContent = 'Resume saved run';
+  resume.hidden = true;
+
+  root.append(label, input, apply, reroll, resume);
 
   return {
     root,
     setSeed: (seed) => {
       input.value = seed;
+    },
+    setResumable: (resumable) => {
+      resume.hidden = !resumable;
     },
     onSubmit: (handler) =>
       root.addEventListener('submit', (event) => {
@@ -169,59 +228,6 @@ function createSeedBar(): SeedBar {
         handler(input.value);
       }),
     onReroll: (handler) => reroll.addEventListener('click', () => handler()),
-  };
-}
-
-interface Overlay {
-  root: HTMLElement;
-  show(result: BattleResult, seed: string): void;
-  hide(): void;
-  onRematch(handler: (seed: string) => void): void;
-  onNextSeed(handler: () => void): void;
-}
-
-function createOverlay(): Overlay {
-  const root = el('div', 'overlay');
-  root.hidden = true;
-
-  const card = el('div', 'overlay__card');
-  const title = el('h2', 'overlay__title');
-  const detail = el('p', 'overlay__detail');
-
-  const rematch = document.createElement('button');
-  rematch.type = 'button';
-  rematch.className = 'button button--primary';
-  rematch.textContent = 'Rematch (same seed)';
-
-  const next = document.createElement('button');
-  next.type = 'button';
-  next.className = 'button';
-  next.textContent = 'New seed';
-
-  const actions = el('div', 'overlay__actions');
-  actions.append(rematch, next);
-  card.append(title, detail, actions);
-  root.append(card);
-
-  let currentSeed = '';
-
-  return {
-    root,
-    show(result, seed) {
-      currentSeed = seed;
-      const won = result.winner === 'p1';
-      root.dataset['outcome'] = result.winner === null ? 'draw' : won ? 'win' : 'loss';
-      title.textContent = result.winner === null ? 'Draw' : won ? 'Victory' : 'Defeat';
-      detail.textContent =
-        `${result.turns} turn${result.turns === 1 ? '' : 's'} · ${result.cause} · seed ${seed}`;
-      root.hidden = false;
-    },
-    hide() {
-      root.hidden = true;
-    },
-    // Rematch replays the same seed. With the same choices it is the same
-    // battle, turn for turn — that is the property the whole game rests on.
-    onRematch: (handler) => rematch.addEventListener('click', () => handler(currentSeed)),
-    onNextSeed: (handler) => next.addEventListener('click', () => handler()),
+    onResume: (handler) => resume.addEventListener('click', () => handler()),
   };
 }
