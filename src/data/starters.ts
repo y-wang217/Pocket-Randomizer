@@ -34,17 +34,26 @@ const STARTERS: readonly MonEntry[] = [
 ];
 
 /**
+ * Species that exist but are not offered until unlocked.
+ *
+ * Empty in Stage 1, and that is the honest state of it: there is no unlock
+ * system yet, so there is nothing to unlock. Stage 5 fills this table and
+ * changes nothing else.
+ */
+const LOCKED: readonly MonEntry[] = [];
+
+/**
  * The species a run may offer as starters.
  *
- * @param unlocked Ids the player has unlocked. Stage 1 never passes it, and
- *   omitting it returns the base pool — which is what "unlocks are additive"
- *   has to mean if a seed recorded today is to keep working tomorrow.
+ * Unlocks are strictly **additive**, and appended after the base pool. Both
+ * halves matter for seed compatibility: an unlock that removed an entry, or one
+ * that inserted into the middle, would change what every previously recorded
+ * seed offers, because generation draws indices from this list.
+ *
+ * @param unlocked Ids the player has unlocked. Stage 1 never passes it.
  */
 export function getStarterPool(unlocked?: readonly string[]): readonly MonEntry[] {
   if (!unlocked || unlocked.length === 0) return STARTERS;
-  const extra = new Set(unlocked);
-  // Stage 5 will append unlocked entries from a wider table here. Until that
-  // table exists, an unlock can only ever narrow-to-known ids, so the base pool
-  // is returned unchanged rather than silently dropping what it does not know.
-  return STARTERS.filter((entry) => !extra.has(`-${entry.id}`));
+  const wanted = new Set(unlocked);
+  return [...STARTERS, ...LOCKED.filter((entry) => wanted.has(entry.id))];
 }

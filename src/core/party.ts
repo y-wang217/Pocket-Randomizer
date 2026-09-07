@@ -122,7 +122,11 @@ export function restParty(party: readonly PokemonState[], tuning: Tuning): Pokem
     hp: Math.min(member.maxHp, member.hp + Math.round(member.maxHp * tuning.restHpFraction)),
     moves: member.moves.map((move) => restoreMove(move, tuning.restPpFraction)),
     status: tuning.restClearsStatus ? null : member.status,
-    fainted: member.fainted && tuning.restHpFraction > 0 ? false : member.fainted,
+    // A rest that heals also revives. Unreachable in Stage 1 — `betweenNodes`
+    // has already revived, or the party was wiped and the run is over — but
+    // "restores HP without un-fainting" would be an incoherent state to leave
+    // reachable for Stage 4.
+    fainted: tuning.restHpFraction > 0 ? false : member.fainted,
   }));
 }
 

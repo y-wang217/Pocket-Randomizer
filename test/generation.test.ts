@@ -148,6 +148,17 @@ describe('generation rules', () => {
     expect(levelOf(later) - levelOf(first)).toBe(3 * DEFAULT_TUNING.levelPerSegment);
   });
 
+  it('keeps the starter pool additive, so unlocks cannot reshape a recorded seed', () => {
+    const base = getStarterPool();
+    // Generation draws indices from this list. An unlock that removed an entry
+    // or inserted into the middle would change what every seed recorded before
+    // it offers, so the base pool has to survive an unlock unchanged and in
+    // order. Stage 1 has nothing to add, which is the point: the seam is here
+    // and it is already the right shape.
+    expect(getStarterPool(['anything', 'at', 'all'])).toEqual(base);
+    expect(getStarterPool([]).map((entry) => entry.id)).toEqual(base.map((entry) => entry.id));
+  });
+
   it('offers distinct starters', () => {
     for (const seed of seeds) {
       const options = generateStarterOptions(createRng(seed), DEFAULT_TUNING);
