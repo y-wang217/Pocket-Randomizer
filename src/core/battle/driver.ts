@@ -23,9 +23,11 @@ import {
   type BattleView,
   type BoostName,
   type Choice,
+  type BattleLog,
   type Decision,
+  type MoveState,
   type MoveView,
-  type RunLog,
+  type PokemonState,
   type SideId,
   type StatStages,
   type StatusName,
@@ -76,6 +78,53 @@ export function toPokemonSet(spec: PokemonSpec): PokemonSet {
 
 function toTeam(spec: TeamSpec): PokemonSet[] {
   return spec.map(toPokemonSet);
+}
+
+// ---------------------------------------------------------------------------
+// Spec vitals: what a spec's HP and PP *are*, before a battle exists
+// ---------------------------------------------------------------------------
+
+/** The derived numbers a party member needs before it has ever fought. */
+export interface SpecVitals {
+  maxHp: number;
+  moves: MoveState[];
+}
+
+const vitalsCache = new Map<string, SpecVitals>();
+
+/** A fixed seed: nothing is ever rolled here, but Battle wants one. */
+const PROBE_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
+
+/**
+ * Max HP and max PP for a spec, asked of the engine rather than recomputed.
+ *
+ * The HP formula and the "x8/5 for three PP Ups" rule are both things this
+ * repo could reimplement in ten lines and be subtly wrong about forever
+ * (Shedinja, moves flagged `noPPBoosts`, a generation change when the gen-lock
+ * lands). So instead: build a `Battle`, hand it the team, and *never start it*.
+ * `setPlayer` fully constructs the side's Pokemon — stats, HP, move slots — and
+ * only starts the battle once both sides exist. Reading a half-built battle is
+ * the cheapest exact answer available, and the result is cached because
+ * building one is not free.
+ */
+export function describeSpec(spec: PokemonSpec): SpecVitals {
+  const key = JSON.stringify([spec.species, spec.ability, spec.moves, spec.level, spec.item ?? '']);
+  const cached = vitalsCache.get(key);
+  if (cached) return cached;
+
+  const format = gymrunFormat();
+  const battle = new Battle({ format, formatid: format.id, seed: PROBE_SEED, strictChoices: true });
+  battle.setPlayer('p1', { name: 'Probe', team: [toPokemonSet(spec)] });
+  const mon = battle.sides[0]?.pokemon[0];
+  if (!mon) throw new Error(`Could not describe ${spec.species}`);
+
+  const vitals: SpecVitals = {
+    maxHp: mon.maxhp,
+    moves: mon.moveSlots.map((slot) => ({ id: slot.id, name: slot.move, pp: slot.pp, maxPp: slot.maxpp })),
+  };
+  battle.destroy();
+  vitalsCache.set(key, vitals);
+  return vitals;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,16 +230,45 @@ export interface BattleSession {
   /** Submit a decision. Both sides must submit before the turn resolves. */
   submit(side: SideId, choice: Choice): void;
   subscribe(listener: (update: BattleUpdate) => void): () => void;
+  /**
+   * The side's whole team as carry-over state.
+   *
+   * This is what a run reads out of a finished battle: HP, PP and status for
+   * every member, mapped back onto the specs the battle was built from. It is
+   * the only thing that crosses a node boundary.
+   */
+  partyState(side: SideId): PokemonState[];
   /** The replayable record of this battle. */
-  toRunLog(): RunLog;
+  toBattleLog(): BattleLog;
 }
 
 export interface BattleOptions {
   teams: Record<SideId, TeamSpec>;
   /** The run seed. The sim's PRNG seed is derived from its `battle` stream. */
   seed: string;
-  /** Override the derived sim seed. Only used by replay. */
+  /**
+   * Override the derived sim seed.
+   *
+   * A run generates one of these per battle node at map-generation time, so
+   * two battles in the same run are different fights rather than the same one
+   * twice. Replay passes the recorded value.
+   */
   simSeed?: SimSeed;
+  /**
+   * HP, PP and status the player's side carries in from earlier nodes.
+   *
+   * Applied to p1 only, and that restriction is a real one. A `PokemonSet` has
+   * no place to put current HP, so the state has to be written onto the sim's
+   * Pokemon objects — and it has to happen *before* the switch-in protocol is
+   * emitted, or the log would announce full HP for a Pokemon that does not have
+   * it and the log-derived damage percentages would all be measured from the
+   * wrong baseline. The opening for that is between the two `setPlayer` calls:
+   * the side set first is fully built but not yet on the field, because the
+   * battle does not start until both sides exist. p1 is set first, so p1 gets
+   * the opening. Opponents are generated fresh at full HP in every stage that
+   * currently exists, so nothing needs the other half.
+   */
+  carryOver?: readonly PokemonState[];
 }
 
 /**
@@ -204,14 +282,12 @@ export function createBattle(options: BattleOptions): BattleSession {
   const simSeed = options.simSeed ?? battleStreamFor(options.seed).nextSimSeed();
   const format = gymrunFormat();
 
-  const battle = new Battle({
-    format,
-    formatid: format.id,
-    seed: simSeed,
-    strictChoices: true,
-    p1: { name: 'Player', team: toTeam(options.teams.p1) },
-    p2: { name: 'Opponent', team: toTeam(options.teams.p2) },
-  });
+  // Deferred player setup, not the one-shot constructor form: see
+  // `BattleOptions.carryOver` for why the gap between these two calls matters.
+  const battle = new Battle({ format, formatid: format.id, seed: simSeed, strictChoices: true });
+  battle.setPlayer('p1', { name: 'Player', team: toTeam(options.teams.p1) });
+  if (options.carryOver) applyCarryOver(battle, options.carryOver);
+  battle.setPlayer('p2', { name: 'Opponent', team: toTeam(options.teams.p2) });
 
   const protocol: Record<SideId, string[]> = { p1: [], p2: [] };
   const decisions: Decision[] = [];
@@ -310,10 +386,65 @@ export function createBattle(options: BattleOptions): BattleSession {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    toRunLog: () => ({ seed: options.seed, version: ENGINE_VERSION, decisions: [...decisions] }),
+    partyState: (side) => readPartyState(battle, side, options.teams[side]),
+    toBattleLog: () => ({ seed: options.seed, version: ENGINE_VERSION, decisions: [...decisions] }),
   };
 
   return session;
+}
+
+/**
+ * Write carried HP, PP and status onto a side that has been built but not yet
+ * sent out. Must run between the two `setPlayer` calls; see `BattleOptions`.
+ *
+ * HP is floored at 1. A fainted member never reaches a battle — the run either
+ * revives it between nodes or the party is wiped and the run is over — so a
+ * zero here would mean the run state machine let something through, and
+ * silently sending out a corpse is a worse way to find that out than the
+ * battle simply being winnable.
+ */
+function applyCarryOver(battle: Battle, party: readonly PokemonState[]): void {
+  const side = battle.sides[0];
+  if (!side) throw new Error('Cannot apply carry-over before p1 exists');
+
+  for (const [index, member] of party.entries()) {
+    const mon = side.pokemon[index];
+    if (!mon) continue;
+
+    mon.hp = Math.max(1, Math.min(member.hp, mon.maxhp));
+    for (const [slot, carried] of member.moves.entries()) {
+      const live = mon.moveSlots[slot];
+      const base = mon.baseMoveSlots[slot];
+      if (!live) continue;
+      const pp = Math.max(0, Math.min(carried.pp, live.maxpp));
+      live.pp = pp;
+      if (base) base.pp = pp;
+    }
+    // setStatus rather than assignment so the engine's own bookkeeping (sleep
+    // counters, toxic stages) is set up. It emits a `|-status|` line ahead of
+    // `|start|`, which is cosmetically odd but honest; status carry-over is off
+    // by default anyway (tuning.clearStatusBetweenNodes).
+    if (member.status) mon.setStatus(member.status);
+  }
+}
+
+/** Read a side's whole team back out of the sim as carry-over state. */
+function readPartyState(battle: Battle, side: SideId, specs: TeamSpec): PokemonState[] {
+  const simSide = battle.sides[sideIndex(side)];
+  if (!simSide) throw new Error(`No side ${side}`);
+
+  return specs.map((spec, index) => {
+    const mon = simSide.pokemon[index];
+    if (!mon) throw new Error(`No Pokemon at slot ${index} for ${side}`);
+    return {
+      spec,
+      maxHp: mon.maxhp,
+      hp: mon.hp,
+      moves: mon.moveSlots.map((slot) => ({ id: slot.id, name: slot.move, pp: slot.pp, maxPp: slot.maxpp })),
+      status: readStatus(mon),
+      fainted: mon.fainted,
+    };
+  });
 }
 
 function battleStreamFor(seed: string): RngStream {
@@ -331,7 +462,7 @@ export function encodeChoice(choice: Choice): string {
 
 export interface BattleRun {
   result: BattleResult;
-  runLog: RunLog;
+  battleLog: BattleLog;
   /** Full protocol from p1's perspective. */
   protocol: string[];
   session: BattleSession;
@@ -354,6 +485,8 @@ export async function runBattle(
   policyB: Policy,
   options: {
     simSeed?: SimSeed;
+    /** Player-side HP/PP/status carried in from an earlier node. */
+    carryOver?: readonly PokemonState[];
     /**
      * Called once, synchronously, with the session that is about to be played.
      * The UI needs the session before the battle resolves so it can subscribe
@@ -366,6 +499,7 @@ export async function runBattle(
     teams: { p1: teamA, p2: teamB },
     seed,
     ...(options.simSeed ? { simSeed: options.simSeed } : {}),
+    ...(options.carryOver ? { carryOver: options.carryOver } : {}),
   });
   options.onStart?.(session);
   const policies: Record<SideId, Policy> = { p1: policyA, p2: policyB };
@@ -384,11 +518,11 @@ export async function runBattle(
   }
 
   const result = session.result ?? { winner: null, turns: session.turn, cause: 'turn-limit' as const };
-  return { result, runLog: session.toRunLog(), protocol: [...session.protocolFor('p1')], session };
+  return { result, battleLog: session.toBattleLog(), protocol: [...session.protocolFor('p1')], session };
 }
 
 /**
- * Replay a `RunLog` against the teams it was recorded with.
+ * Replay a `BattleLog` against the teams it was recorded with.
  *
  * The log holds a seed and a decision sequence and nothing derived, so replay
  * is just: rebuild the battle from the seed, feed the decisions back in order.
@@ -396,11 +530,20 @@ export async function runBattle(
  * something unseeded leaked in — both are bugs we want loudly, which is why
  * test/replay.test.ts asserts the reconstructed protocol byte for byte.
  */
-export function replayRunLog(log: RunLog, teams: Record<SideId, TeamSpec>): BattleSession {
+export function replayBattleLog(
+  log: BattleLog,
+  teams: Record<SideId, TeamSpec>,
+  options: { simSeed?: SimSeed; carryOver?: readonly PokemonState[] } = {},
+): BattleSession {
   if (log.version !== ENGINE_VERSION) {
-    throw new Error(`RunLog was recorded on ${log.version}, this build is ${ENGINE_VERSION}`);
+    throw new Error(`BattleLog was recorded on ${log.version}, this build is ${ENGINE_VERSION}`);
   }
-  const session = createBattle({ teams, seed: log.seed });
+  const session = createBattle({
+    teams,
+    seed: log.seed,
+    ...(options.simSeed ? { simSeed: options.simSeed } : {}),
+    ...(options.carryOver ? { carryOver: options.carryOver } : {}),
+  });
   for (const decision of log.decisions) {
     if (session.ended) break;
     session.submit(decision.side, decision.choice);

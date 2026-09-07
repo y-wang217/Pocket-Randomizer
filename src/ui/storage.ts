@@ -1,10 +1,9 @@
 /**
  * RunLog persistence.
  *
- * Stage 0 keeps exactly one battle's log, and only the seed plus the decision
- * sequence go in — the same bytes `replayRunLog` needs, and nothing else. This
- * is the full extent of persistence in Stage 0 by design; saves, unlocks and
- * run history are later stages' problems.
+ * Exactly one run's log is kept, and only the seed plus the decision sequence
+ * go in — the same bytes a replay needs, and nothing else. Unlocks and run
+ * history are later stages' problems.
  *
  * Every access is guarded: localStorage throws outright in private-mode
  * Safari and in some embedded webviews, and a game that refuses to start
@@ -42,7 +41,15 @@ export function clearRunLog(): void {
   }
 }
 
-/** Parse defensively: a stored log is untrusted input like any other. */
+/**
+ * Parse defensively: a stored log is untrusted input like any other.
+ *
+ * This only checks the *shape*. Whether the log was recorded against a
+ * compatible build is a separate question, answered by comparing `version` at
+ * replay time — a Stage 0 log parses fine here and is rejected there, which is
+ * the explicit rejection the format change calls for rather than a silent
+ * misreplay.
+ */
 function isRunLog(value: unknown): value is RunLog {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Partial<RunLog>;
@@ -50,14 +57,16 @@ function isRunLog(value: unknown): value is RunLog {
     typeof candidate.seed === 'string' &&
     typeof candidate.version === 'string' &&
     Array.isArray(candidate.decisions) &&
-    candidate.decisions.every(
-      (d) =>
-        typeof d === 'object' &&
-        d !== null &&
-        typeof d.turn === 'number' &&
-        (d.side === 'p1' || d.side === 'p2') &&
-        d.choice?.kind === 'move' &&
-        typeof d.choice.slot === 'number',
-    )
+    candidate.decisions.every(isRunDecision)
   );
+}
+
+function isRunDecision(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  const decision = value as { kind?: unknown; index?: unknown; choice?: { kind?: unknown; slot?: unknown } };
+  if (decision.kind === 'starter' || decision.kind === 'node') return typeof decision.index === 'number';
+  if (decision.kind === 'battle') {
+    return decision.choice?.kind === 'move' && typeof decision.choice.slot === 'number';
+  }
+  return false;
 }

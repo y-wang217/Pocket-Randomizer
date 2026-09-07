@@ -22,7 +22,7 @@ describe('determinism', () => {
 
     expect(stripNondeterministic(second.protocol)).toEqual(stripNondeterministic(first.protocol));
     expect(second.result).toEqual(first.result);
-    expect(second.runLog.decisions).toEqual(first.runLog.decisions);
+    expect(second.battleLog.decisions).toEqual(first.battleLog.decisions);
   });
 
   it('produces an identical log with the AI on both sides', async () => {

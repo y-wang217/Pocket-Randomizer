@@ -161,19 +161,85 @@ export interface Decision {
 }
 
 /**
- * The replayable record of a run.
+ * The replayable record of a single battle.
  *
  * It stores the seed and the decision sequence and nothing else. No HP, no
  * damage rolls, no protocol text — every one of those is *derived*, and
  * storing derived state is how replay logs silently drift out of agreement
- * with the engine that produced them. Replaying decisions against the seed has
- * to reconstruct the battle exactly; test/replay.test.ts holds us to it.
+ * with the engine that produced them.
  *
  * `version` exists so a log recorded against different mons or a different
  * @pkmn/sim can be recognised as unreplayable rather than replayed wrongly.
  */
-export interface RunLog {
+export interface BattleLog {
   seed: string;
   version: string;
   decisions: Decision[];
+}
+
+// ---------------------------------------------------------------------------
+// Party state
+// ---------------------------------------------------------------------------
+
+/** Remaining PP for one move slot, carried between encounters. */
+export interface MoveState {
+  id: string;
+  name: string;
+  pp: number;
+  maxPp: number;
+}
+
+/**
+ * A party member between encounters.
+ *
+ * This is the *only* thing that persists across a node boundary, and it is
+ * deliberately small: identity plus the three resources a run spends — HP, PP
+ * and a status condition. Stat stages, volatiles, weather and everything else
+ * the sim tracks are per-battle by definition and are not carried, because
+ * carrying them would mean serializing a chunk of the engine's internal state
+ * and hoping it means the same thing in the next battle.
+ *
+ * `spec` is the unchanging identity. Everything else is the run's damage to it.
+ */
+export interface PokemonState {
+  spec: PokemonSpec;
+  maxHp: number;
+  hp: number;
+  moves: MoveState[];
+  status: StatusName | null;
+  fainted: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Run logs
+// ---------------------------------------------------------------------------
+
+/**
+ * One decision the player made, in the order they made it.
+ *
+ * Note what is absent: turn numbers on battle choices. A turn number is
+ * *derived* — replaying the decisions reproduces it — and the rule that a log
+ * holds nothing derived is what keeps replay from drifting. The battle side is
+ * absent for the same reason: the player is always p1 and the opponent is a
+ * deterministic policy, so recording the opponent's choices would be recording
+ * the engine's output rather than the player's input.
+ */
+export type RunDecision =
+  | { kind: 'starter'; index: number }
+  | { kind: 'node'; index: number }
+  | { kind: 'battle'; choice: Choice };
+
+/**
+ * The replayable record of a whole run: a seed and a decision sequence.
+ *
+ * Stage 0's version of this type held one battle's decisions. Stage 1 widens it
+ * to the full run — starter pick, node picks and battle choices interleaved in
+ * play order — which is a breaking change to the format, so `version` moves
+ * from `gymrun-0.1.0` to the run-log version and old logs are rejected
+ * explicitly rather than replayed as something they are not.
+ */
+export interface RunLog {
+  seed: string;
+  version: string;
+  decisions: RunDecision[];
 }

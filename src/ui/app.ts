@@ -12,12 +12,26 @@ import { runBattle, type BattleSession } from '../core/battle/driver';
 import { GYMRUN_FORMAT, STRIPPED_CLAUSES } from '../core/battle/format';
 import { createHumanPolicy } from '../core/battle/policy';
 import { normalizeSeed } from '../core/rng';
-import { moveChoice, type BattleResult } from '../core/types';
+import { moveChoice, type BattleResult, type RunLog } from '../core/types';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../data/mons';
 import { createBattleLog } from './battle-log';
 import { createScene, el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { saveRunLog } from './storage';
+
+/**
+ * A one-battle run log.
+ *
+ * Stage 1 replaces this screen entirely; until then the Stage 0 app records its
+ * battle in the run-log format so persistence has one shape rather than two.
+ */
+function asRunLog(log: { seed: string; version: string; decisions: { choice: { kind: 'move'; slot: number } }[] }): RunLog {
+  return {
+    seed: log.seed,
+    version: log.version,
+    decisions: log.decisions.map((decision) => ({ kind: 'battle' as const, choice: decision.choice })),
+  };
+}
 
 export function mountApp(root: HTMLElement): void {
   const scene = createScene();
@@ -69,7 +83,7 @@ export function mountApp(root: HTMLElement): void {
       const run = await runBattle(PLAYER_TEAM, OPPONENT_TEAM, seed, human.policy, greedyAiPolicy, {
         onStart: attach,
       });
-      saveRunLog(run.runLog);
+      saveRunLog(asRunLog(run.battleLog));
       if (session) render(session);
       overlay.show(run.result, seed);
     } catch {
