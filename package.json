@@ -11,12 +11,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "check": "npm run lint && tsc --noEmit && vitest run"
+    "check": "npm run lint && tsc --noEmit && vitest run && npm run test:trim-strict",
+    "test:trim-strict": "GYMRUN_TRIM_STRICT=1 vitest run",
+    "measure": "npm run build && node scripts/measure-bundle.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
-    "@pkmn/client": "^0.7.3",
-    "@pkmn/data": "^0.10.11",
-    "@pkmn/dex": "^0.10.11",
     "@pkmn/protocol": "^0.7.3",
     "@pkmn/sim": "^0.10.11",
     "@pkmn/view": "^0.7.3",
@@ -27,6 +27,7 @@
     "@types/node": "^22.19.4",
     "eslint": "^9.39.1",
     "jsdom": "^28.0.1",
+    "playwright": "^1.63.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.47.2",
     "vite": "^7.1.14",

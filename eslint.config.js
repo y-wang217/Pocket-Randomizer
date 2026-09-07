@@ -15,6 +15,11 @@ const noMathRandom = {
 
 export default tseslint.config(
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'stats/**'] },
+  {
+    // Build tooling runs in Node, not the browser.
+    files: ['scripts/**/*.mjs', 'build-config/**/*.ts', 'eslint.config.js', 'vite.config.ts'],
+    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

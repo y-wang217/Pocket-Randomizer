@@ -44,21 +44,34 @@ describe('headless battle', () => {
     const view = session.viewFor('p1');
 
     expect(view.awaitingChoice).toBe(true);
-    expect(view.me.species).toBe('Charizard');
-    expect(view.foe.species).toBe('Blastoise');
+    expect(view.me.species).toBe('Snorlax');
+    expect(view.foe.species).toBe('Milotic');
     expect(view.me.hpFraction).toBe(1);
     expect(view.moves).toHaveLength(4);
-    expect(view.moves.map((m) => m.name)).toContain('Flamethrower');
 
-    const flamethrower = view.moves.find((m) => m.name === 'Flamethrower');
-    expect(flamethrower).toMatchObject({ type: 'Fire', category: 'Special', basePower: 90, usable: true });
-    expect(flamethrower?.pp).toBe(24);
+    // Everything the move buttons need: type, category, power and PP.
+    expect(view.moves.find((m) => m.name === 'Body Slam')).toMatchObject({
+      slot: 1,
+      type: 'Normal',
+      category: 'Physical',
+      basePower: 85,
+      pp: 24,
+      maxPp: 24,
+      usable: true,
+    });
+    // Status moves must report zero power rather than a missing field, or the
+    // UI has to special-case them.
+    expect(view.moves.find((m) => m.name === 'Curse')).toMatchObject({
+      category: 'Status',
+      basePower: 0,
+      accuracy: true,
+    });
   });
 
   it('hides the opponent ability but reveals your own', () => {
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'VIEW' });
     const view = session.viewFor('p1');
-    expect(view.me.ability).toBe('Solar Power');
+    expect(view.me.ability).toBe('Thick Fat');
     expect(view.foe.ability).toBeNull();
   });
 
@@ -99,20 +112,22 @@ describe('greedy ai', () => {
     const evaluations = evaluateMoves(session.viewFor('p2'));
 
     const byName = new Map(evaluations.map((e) => [e.move.name, e]));
-    // Blastoise into Charizard: Surf is 4x, Ice Beam is neutral, and the two
-    // status moves do nothing. If this ordering breaks, the calc is not wired
-    // to the view correctly.
-    expect(byName.get('Surf')!.expectedDamage).toBeGreaterThan(byName.get('Ice Beam')!.expectedDamage);
-    expect(byName.get('Iron Defense')!.expectedDamage).toBe(0);
-    expect(byName.get('Yawn')!.expectedDamage).toBe(0);
+    // Milotic into Snorlax: both attacks are neutral, so STAB is the only thing
+    // separating Scald (80 BP, STAB) from Ice Beam (90 BP, none). If the AI
+    // ranks by raw base power this ordering flips, which is exactly the mistake
+    // a hand-rolled damage estimate would make and @smogon/calc does not.
+    expect(byName.get('Scald')!.expectedDamage).toBeGreaterThan(byName.get('Ice Beam')!.expectedDamage);
+    expect(byName.get('Recover')!.expectedDamage).toBe(0);
+    // Accuracy is folded into the score, so Dragon Tail (90%) is discounted.
+    expect(byName.get('Dragon Tail')!.score).toBeLessThan(byName.get('Dragon Tail')!.expectedDamage);
   });
 
   it('picks the winning move deterministically', async () => {
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'AI' });
     const view = session.viewFor('p2');
-    const surfSlot = view.moves.find((m) => m.name === 'Surf')!.slot;
+    const scaldSlot = view.moves.find((m) => m.name === 'Scald')!.slot;
 
-    expect(await greedyAiPolicy(view)).toEqual(moveChoice(surfSlot));
-    expect(await greedyAiPolicy(view)).toEqual(moveChoice(surfSlot));
+    expect(await greedyAiPolicy(view)).toEqual(moveChoice(scaldSlot));
+    expect(await greedyAiPolicy(view)).toEqual(moveChoice(scaldSlot));
   });
 });
