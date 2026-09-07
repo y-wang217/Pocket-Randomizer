@@ -14,15 +14,6 @@
 /** The kinds of node a step can offer. `gym` is never an option, only a cap. */
 export type NodeKind = 'wild' | 'trainer' | 'rest' | 'gym';
 
-/**
- * Difficulty tier, carried on every node.
- *
- * Stage 1 sets `normal` everywhere and never displays it. It exists now because
- * Stage 3 keys reward pools to it, and retrofitting a field onto generated map
- * data would invalidate every seed recorded before the change.
- */
-export type NodeTier = 'normal' | 'elite' | 'boss';
-
 /** An inclusive integer range, drawn uniformly. */
 export interface Range {
   min: number;
@@ -64,15 +55,6 @@ export interface Tuning {
    */
   minRestSteps: number;
 
-  // --- levels --------------------------------------------------------------
-
-  /** The level a starter enters the run at. */
-  starterLevel: number;
-  /** Added to every encounter level per segment index. Stage 1 passes 0. */
-  levelPerSegment: number;
-  /** Encounter level relative to the segment's base level, per node kind. */
-  levelOffset: Record<NodeKind, Range>;
-
   // --- persistence between nodes ------------------------------------------
 
   /**
@@ -112,21 +94,15 @@ export interface Tuning {
 }
 
 /**
- * The numbers Stage 1 ships with.
+ * The numbers the game ships with.
  *
- * The level spread was measured, not guessed. `npm run sweep` plays a few
- * hundred runs under three playstyles and reports what happened; these offsets
- * are the ones where the map does work:
+ * Levels and bands used to live here and now live in data/scaling.ts, which is
+ * a per-segment table rather than two numbers and a multiplication. What is
+ * left is the *shape of a segment*: how long it is, what it offers, and what
+ * survives a node boundary. Those are the same at segment 1 and segment 8, so
+ * they stay one object rather than eight rows.
  *
- *   playstyle          win   HP at gym   reached gym
- *   rest when offered  62%   94%         92%
- *   never rest         35%   35%         52%
- *   always trainers    17%   53%         27%
- *
- * Every encounter sits *below* the player, which sounds generous and is not:
- * the spread is what makes a fight winnable-but-not-free, and attrition rather
- * than any single fight is what ends a run. Narrower spreads were tried and
- * turned each node into a coin flip on the matchup — see docs/generation.md.
+ * Measured with `npm run sim`, not guessed; docs/balance.md carries the report.
  */
 export const DEFAULT_TUNING: Tuning = {
   stepsPerSegment: { min: 6, max: 8 },
@@ -135,15 +111,6 @@ export const DEFAULT_TUNING: Tuning = {
   restEarliestStep: 1,
   distinctKindsPerStep: true,
   minRestSteps: 2,
-
-  starterLevel: 30,
-  levelPerSegment: 6,
-  levelOffset: {
-    wild: { min: -8, max: -6 },
-    trainer: { min: -7, max: -5 },
-    rest: { min: 0, max: 0 },
-    gym: { min: -3, max: -3 },
-  },
 
   restHpFraction: 1,
   restPpFraction: 1,

@@ -32,6 +32,7 @@ import {
   type StatStages,
   type StatusName,
   type PokemonSpec,
+  type SwitchView,
   type TeamSpec,
 } from '../types';
 import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
@@ -242,6 +243,50 @@ function readMoves(battle: Battle, side: SideId): MoveView[] {
   });
 }
 
+/**
+ * The side's bench, as a policy may see it.
+ *
+ * Read off the live `side.pokemon` array rather than off the request, because
+ * `switch N` is an index into *that* array and the sim reorders it on every
+ * switch — the Pokemon that came in moves to index 0. Deriving the slot from
+ * anything else is a choice the sim will reject on the second switch of a
+ * battle and accept on the first, which is the worst kind of bug to find.
+ *
+ * `usable` means "the sim would accept `switch N` right now". Trapping
+ * abilities are honoured — a randomizer that rolls Arena Trap onto anything
+ * will produce trapped turns — but only outside a forced switch, where
+ * trapping does not apply.
+ */
+function readSwitches(battle: Battle, side: SideId): SwitchView[] {
+  const simSide = battle.sides[sideIndex(side)];
+  if (!simSide) return [];
+  const request = simSide.activeRequest;
+  const forced = Boolean(request && 'forceSwitch' in request && request.forceSwitch?.[0]);
+  const trapped = Boolean(
+    request && 'active' in request && request.active?.[0]?.trapped,
+  );
+  const dex = Dex.forGen(GYMRUN_GEN);
+
+  return simSide.pokemon.map((mon, index) => {
+    const maxHp = mon.maxhp || 1;
+    return {
+      slot: index + 1,
+      species: mon.species.name,
+      name: mon.name,
+      level: mon.level,
+      types: mon.getTypes(),
+      ability: dex.abilities.get(mon.ability).name,
+      moves: mon.moveSlots.map((slot) => slot.id),
+      hp: mon.hp,
+      maxHp: mon.maxhp,
+      hpFraction: Math.max(0, Math.min(1, mon.hp / maxHp)),
+      status: readStatus(mon),
+      fainted: mon.fainted,
+      usable: !mon.fainted && !mon.isActive && (forced || !trapped),
+    };
+  });
+}
+
 function sideIndex(side: SideId): number {
   return side === 'p1' ? 0 : 1;
 }
@@ -337,6 +382,20 @@ export function createBattle(options: BattleOptions): BattleSession {
   if (options.carryOver) applyCarryOver(battle, options.carryOver);
   battle.setPlayer('p2', { name: 'Opponent', team: toTeam(options.teams.p2) });
 
+  /*
+   * The team in the order it was *submitted*, captured before anything moves.
+   *
+   * `side.pokemon` is not a stable array: switching in a Pokemon moves it to
+   * index 0. Reading carry-over state back by index would therefore be correct
+   * for a party of one, correct until the first switch of a battle, and wrong
+   * afterwards — HP written onto the wrong spec, silently. Holding the object
+   * references is what makes `readPartyState` mean what it says.
+   */
+  const submitted: Record<SideId, SimPokemon[]> = {
+    p1: [...(battle.sides[0]?.pokemon ?? [])],
+    p2: [...(battle.sides[1]?.pokemon ?? [])],
+  };
+
   const protocol: Record<SideId, string[]> = { p1: [], p2: [] };
   const decisions: Decision[] = [];
   const listeners = new Set<(update: BattleUpdate) => void>();
@@ -389,6 +448,10 @@ export function createBattle(options: BattleOptions): BattleSession {
   function buildView(side: SideId): BattleView {
     const request = battle.sides[sideIndex(side)]?.activeRequest;
     const awaiting = !battle.ended && !!request && !('wait' in request && request.wait);
+    // A forced switch is a request with no `active` block. `moves` is empty on
+    // those turns, which is why `forceSwitch` is a flag a policy branches on
+    // rather than something it has to infer from an empty list.
+    const forceSwitch = awaiting && !!request && 'forceSwitch' in request && Boolean(request.forceSwitch?.[0]);
     return {
       side,
       turn: battle.turn,
@@ -396,6 +459,8 @@ export function createBattle(options: BattleOptions): BattleSession {
       me: toActiveView(activeOf(battle, side), true),
       foe: toActiveView(activeOf(battle, opposingSide(side)), false),
       moves: awaiting ? readMoves(battle, side) : [],
+      switches: awaiting ? readSwitches(battle, side) : [],
+      forceSwitch,
       awaitingChoice: awaiting,
     };
   }
@@ -434,7 +499,7 @@ export function createBattle(options: BattleOptions): BattleSession {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    partyState: (side) => readPartyState(battle, side, options.teams[side]),
+    partyState: (side) => readPartyState(submitted[side], options.teams[side]),
     toBattleLog: () => ({ seed: options.seed, version: ENGINE_VERSION, decisions: [...decisions] }),
   };
 
@@ -476,14 +541,17 @@ function applyCarryOver(battle: Battle, party: readonly PokemonState[]): void {
   }
 }
 
-/** Read a side's whole team back out of the sim as carry-over state. */
-function readPartyState(battle: Battle, side: SideId, specs: TeamSpec): PokemonState[] {
-  const simSide = battle.sides[sideIndex(side)];
-  if (!simSide) throw new Error(`No side ${side}`);
-
+/**
+ * Read a side's whole team back out of the sim as carry-over state.
+ *
+ * Takes the *submitted* order (see `createBattle`), not the live array, so a
+ * battle that switched still maps each spec to the Pokemon that was built from
+ * it.
+ */
+function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): PokemonState[] {
   return specs.map((spec, index) => {
-    const mon = simSide.pokemon[index];
-    if (!mon) throw new Error(`No Pokemon at slot ${index} for ${side}`);
+    const mon = order[index];
+    if (!mon) throw new Error(`No Pokemon at slot ${index} to read back`);
     return {
       spec,
       maxHp: mon.maxhp,
@@ -499,9 +567,9 @@ function battleStreamFor(seed: string): RngStream {
   return createRng(seed).battle;
 }
 
-/** `Choice` -> the sim's choice grammar. The only place that string is built. */
+/** `Choice` -> the sim's choice grammar. The only place those strings are built. */
 export function encodeChoice(choice: Choice): string {
-  return `move ${choice.slot}`;
+  return choice.kind === 'switch' ? `switch ${choice.slot}` : `move ${choice.slot}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -513,6 +581,8 @@ export interface BattleRun {
   battleLog: BattleLog;
   /** Full protocol from p1's perspective. */
   protocol: string[];
+  /** Every faint in the battle, with what caused it. Drives the run summary. */
+  casualties: Casualty[];
   session: BattleSession;
 }
 
@@ -566,7 +636,8 @@ export async function runBattle(
   }
 
   const result = session.result ?? { winner: null, turns: session.turn, cause: 'turn-limit' as const };
-  return { result, battleLog: session.toBattleLog(), protocol: [...session.protocolFor('p1')], session };
+  const protocol = [...session.protocolFor('p1')];
+  return { result, battleLog: session.toBattleLog(), protocol, casualties: readCasualties(protocol), session };
 }
 
 /**
@@ -597,6 +668,91 @@ export function replayBattleLog(
     session.submit(decision.side, decision.choice);
   }
   return session;
+}
+
+// ---------------------------------------------------------------------------
+// Reading a cause of death out of the protocol
+// ---------------------------------------------------------------------------
+
+/**
+ * One Pokemon fainting, and what did it.
+ *
+ * Protocol parsing belongs here for the same reason every other translation
+ * does: nothing above this file may see a protocol string. The run summary
+ * wants to say "Vesper's Gengar, Shadow Ball" rather than "you lost", and the
+ * only place that sentence exists is in the log the sim emitted.
+ */
+export interface Casualty {
+  /** The side that lost a Pokemon. */
+  side: SideId;
+  /** The Pokemon that fainted, by its battle name. */
+  name: string;
+  /** The opposing Pokemon that landed the blow, or null for indirect damage. */
+  bySpecies: string | null;
+  /** The move that landed it, or null when nothing did. */
+  byMove: string | null;
+  /**
+   * Indirect cause, when there is no killing move: `psn`, `brn`, `Recoil`,
+   * `Life Orb`, `Spikes`. Taken verbatim from the protocol's `[from]` tag.
+   */
+  indirect: string | null;
+}
+
+/**
+ * Walk a protocol and pair every faint with what caused it.
+ *
+ * Deliberately forgiving. The sim has many ways to remove a Pokemon and a
+ * parser that insisted on recognising all of them would report nothing at all
+ * the first time it met one it did not know; this reports what it can and null
+ * for the rest, because "died to something" is a better summary line than a
+ * crashed screen.
+ */
+export function readCasualties(protocol: readonly string[]): Casualty[] {
+  const casualties: Casualty[] = [];
+  let lastMove: { by: string; move: string; target: string } | null = null;
+  let lastIndirect: { target: string; from: string } | null = null;
+
+  for (const line of protocol) {
+    const parts = line.split('|');
+    const tag = parts[1];
+
+    if (tag === 'move') {
+      const by = parts[2] ?? '';
+      const move = parts[3] ?? '';
+      const target = parts[4] ?? '';
+      lastMove = { by: nameOf(by), move, target: nameOf(target) };
+      continue;
+    }
+    if (tag === '-damage' || tag === '-heal') {
+      const from = parts.find((part) => part.startsWith('[from]'));
+      lastIndirect = from
+        ? { target: nameOf(parts[2] ?? ''), from: from.slice('[from]'.length).trim() }
+        : null;
+      continue;
+    }
+    if (tag !== 'faint') continue;
+
+    const identifier = parts[2] ?? '';
+    const side: SideId = identifier.startsWith('p2') ? 'p2' : 'p1';
+    const name = nameOf(identifier);
+    // A killing move names its target; anything else is credited as indirect.
+    const killedByMove = lastMove && lastMove.target === name ? lastMove : null;
+
+    casualties.push({
+      side,
+      name,
+      bySpecies: killedByMove?.by ?? null,
+      byMove: killedByMove?.move ?? null,
+      indirect: killedByMove ? null : (lastIndirect?.target === name ? lastIndirect.from : null),
+    });
+  }
+  return casualties;
+}
+
+/** `p2a: Gengar` -> `Gengar`. Empty for a malformed or absent identifier. */
+function nameOf(identifier: string): string {
+  const split = identifier.indexOf(': ');
+  return split === -1 ? '' : identifier.slice(split + 2);
 }
 
 /**

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "GYMRUN \u2014 a browser-based seeded Pokemon roguelike. Stage 0.",
+  "description": "GYMRUN \u2014 a browser-based seeded Pokemon roguelike.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "check": "npm run lint && tsc --noEmit && vitest run && npm run test:trim-strict",
     "test:trim-strict": "GYMRUN_TRIM_STRICT=1 vitest run",
-    "sweep": "vite-node scripts/sweep.ts",
+    "sim": "vite-node scripts/sim.ts",
+    "gen:pools": "vite-node scripts/gen-pools.ts",
     "measure": "npm run build && node scripts/measure-bundle.mjs",
     "smoke": "node scripts/smoke.mjs"
   },

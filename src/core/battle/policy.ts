@@ -13,8 +13,8 @@
  * this file may touch the DOM: the human policy is driven by *events*, and it
  * is `ui/` that decides those events come from a click.
  */
-import type { BattleView, Choice } from '../types';
-import { moveChoice } from '../types';
+import type { BattleView, Choice, SwitchView } from '../types';
+import { moveChoice, switchChoice } from '../types';
 
 export type Policy = (view: BattleView) => Promise<Choice>;
 
@@ -26,8 +26,40 @@ export function usableMoves(view: BattleView): BattleView['moves'] {
   return usable.length > 0 ? usable : view.moves;
 }
 
+/**
+ * Bench members the sim would accept a switch to right now.
+ *
+ * Every policy must consult this when `view.forceSwitch` is set, because on
+ * those turns `usableMoves` is empty and the sim will not accept a move. A
+ * policy that reads `moves` unconditionally works perfectly until the first
+ * opponent with two Pokemon, which is exactly the sort of thing that used to be
+ * safe and stopped being safe in Stage 2.
+ */
+export function usableSwitches(view: BattleView): SwitchView[] {
+  return view.switches.filter((member) => member.usable);
+}
+
+/**
+ * The one legal answer to a forced switch, when there is nothing to think about.
+ *
+ * Returns null when the view is not a forced switch, so a policy can use it as
+ * a guard clause. Ties break toward the lower slot: an unspecified tie-break
+ * would make the choice depend on array order and a seed would stop reproducing
+ * the same battle.
+ */
+export function forcedSwitchFallback(view: BattleView): Choice | null {
+  if (!view.forceSwitch) return null;
+  const available = usableSwitches(view);
+  const first = available[0];
+  if (!first) throw new Error('Forced to switch with nothing to switch to');
+  return switchChoice(first.slot);
+}
+
 /** Always picks the first usable move. Deterministic; the baseline for tests. */
 export const firstUsableMovePolicy: Policy = async (view) => {
+  const forced = forcedSwitchFallback(view);
+  if (forced) return forced;
+
   const moves = usableMoves(view);
   const first = moves[0];
   if (!first) throw new Error('No move available to choose');

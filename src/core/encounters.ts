@@ -15,21 +15,32 @@
  *
  *   1. `map` stream: segment length, then per step the option count and the
  *      node kinds, then the rest-availability fix-up.
- *   2. `map` stream: encounter contents — species and level — for every node in
- *      index order, including options the player will never take.
+ *   2. `randomizer` stream: encounter contents — species, level, ability and
+ *      moves — for every node in index order, including options the player will
+ *      never take.
  *   3. `battle` stream: one sim seed per battle node, in the same index order.
  *
- * Pass 3 is separate so that changing what a node *contains* cannot shift the
- * damage rolls of a node earlier in the map. Pass 1 is separate from pass 2 so
- * that the rest fix-up, which rewrites a node's kind, happens before anything
- * has been drawn for that node's contents.
+ * Pass 2 moved from the `map` stream to the `randomizer` stream in Stage 2, and
+ * that is the change the whole stage rests on. A randomizer adds draws
+ * constantly — a fourth move slot, a tier modifier, a bigger gym team — and
+ * every one of them would otherwise have shifted the *shape* of every map
+ * generated after it. Now the shape is fixed by `map` and the contents by
+ * `randomizer`, and neither can move the other.
+ *
+ * Pass 3 is separate again so that changing what a node *contains* cannot shift
+ * the damage rolls of a node earlier in the map.
  */
-import { gymForSegment } from '../data/gyms';
-import { TRAINER_POOL, WILD_POOL, toSpec, type MonEntry } from '../data/mons';
-import { getStarterPool } from '../data/starters';
-import type { NodeKind, NodeTier, Range, Tuning } from '../data/tuning';
+import {
+  generateGymTeam,
+  generateStarters,
+  generateTrainerTeam,
+  generateWildTeam,
+} from './randomizer';
 import type { Rng, RngStream, SimSeed } from './rng';
-import type { PokemonSpec, TeamSpec } from './types';
+import type { PokemonSpec, TeamSpec, Tier } from './types';
+import { gymForSegment, type GymDefinition } from '../data/gyms';
+import { starterLevel } from '../data/scaling';
+import type { NodeKind, Range, Tuning } from '../data/tuning';
 
 /** What a battle node fights. Generated eagerly; see the header. */
 export interface EncounterSpec {
@@ -52,10 +63,10 @@ export interface NodeSpec {
   id: string;
   kind: NodeKind;
   /**
-   * Difficulty tier. Stage 1 writes `normal` everywhere and never shows it.
-   * Stage 3 populates it and keys reward pools to it.
+   * Difficulty tier. Stage 2 writes `normal` everywhere and never shows it.
+   * Stage 3 exposes it to the player and keys reward pools to it.
    */
-  tier: NodeTier;
+  tier: Tier;
   /** What the map shows. Deliberately says the kind and not the contents. */
   label: string;
   /** Null for nodes that are not a fight. */
@@ -72,6 +83,8 @@ export interface Segment {
   /** The gym that caps this segment, for display. */
   leader: string;
   type: string;
+  /** The full leader record, so a screen can show the blurb without a lookup. */
+  gymDefinition: GymDefinition;
   steps: Step[];
   /** Not an option: reaching the end of the steps means fighting this. */
   gym: NodeSpec;
@@ -137,40 +150,20 @@ function sampleKinds(
 }
 
 // ---------------------------------------------------------------------------
-// Levels
-// ---------------------------------------------------------------------------
-
-/** The level band a segment fights at. Stage 1 always passes index 0. */
-export function segmentBaseLevel(index: number, tuning: Tuning): number {
-  return tuning.starterLevel + index * tuning.levelPerSegment;
-}
-
-function encounterLevel(kind: NodeKind, segment: number, stream: RngStream, tuning: Tuning): number {
-  return Math.max(1, segmentBaseLevel(segment, tuning) + drawRange(stream, tuning.levelOffset[kind]));
-}
-
-// ---------------------------------------------------------------------------
 // Starters
 // ---------------------------------------------------------------------------
 
 /**
- * The species the starter screen offers.
+ * The Pokemon the starter screen offers.
  *
- * Drawn from the `map` stream and drawn *first*, before the map itself, so that
- * adding a starter to the pool does not reshape a recorded seed's map. Distinct
- * entries: three buttons showing the same Pokemon is not a choice.
+ * Drawn from the `randomizer` stream and drawn *first*, before the map, so that
+ * widening the starter pool does not reshape a recorded seed's map. Species,
+ * ability and moveset are all rolled — the player's Pokemon is randomized like
+ * everything else, which is the difference between a randomizer and a game
+ * about reacting to one.
  */
 export function generateStarterOptions(rng: Rng, tuning: Tuning, unlocked?: readonly string[]): PokemonSpec[] {
-  const pool = [...getStarterPool(unlocked)];
-  const count = Math.min(tuning.starterOptionCount, pool.length);
-  const picked: PokemonSpec[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const index = rng.map.nextInt(pool.length);
-    const [entry] = pool.splice(index, 1);
-    if (entry) picked.push(toSpec(entry, tuning.starterLevel));
-  }
-  return picked;
+  return generateStarters(tuning.starterOptionCount, starterLevel(), rng, unlocked);
 }
 
 // ---------------------------------------------------------------------------
@@ -180,15 +173,14 @@ export function generateStarterOptions(rng: Rng, tuning: Tuning, unlocked?: read
 /**
  * Generate one segment.
  *
- * Takes `index` and uses it — for the level band and for the gym lookup — even
- * though Stage 1 only ever passes 0. A `generateTheSegment()` that closed over
- * a constant would be a function Stage 2 has to rewrite rather than call in a
- * loop, which is the mistake this signature exists to prevent.
+ * Stage 1 called this once with `index: 0`; Stage 2 calls it eight times, and
+ * the signature did not change. That was the whole reason it took an index it
+ * did not yet need.
  */
 export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segment {
   const gymDef = gymForSegment(index);
 
-  // --- pass 1: shape ------------------------------------------------------
+  // --- pass 1: shape, from the `map` stream -------------------------------
   const stepCount = drawRange(rng.map, tuning.stepsPerSegment);
   const shape: Exclude<NodeKind, 'gym'>[][] = [];
 
@@ -201,12 +193,10 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
 
   ensureRests(shape, rng.map, tuning);
 
-  // --- pass 2: contents ---------------------------------------------------
+  // --- pass 2: contents, from the `randomizer` stream ---------------------
   const steps: Step[] = shape.map((kinds, step) => ({
     index: step,
-    options: kinds.map((kind, option) =>
-      buildNode(`s${index}-${step}-${option}`, kind, index, rng.map, tuning),
-    ),
+    options: kinds.map((kind, option) => buildNode(`s${index}-${step}-${option}`, kind, index, rng)),
   }));
 
   const gym: NodeSpec = {
@@ -215,18 +205,23 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     tier: 'normal',
     label: `${gymDef.leader}'s Gym`,
     encounter: {
-      team: gymDef.team.map((entry: MonEntry) =>
-        toSpec(entry, encounterLevel('gym', index, rng.map, tuning)),
-      ),
+      team: generateGymTeam(gymDef, index, rng),
       opponent: `${gymDef.leader} (${gymDef.type})`,
       // Filled by pass 3.
       simSeed: PLACEHOLDER_SEED,
     },
   };
 
-  const segment: Segment = { index, leader: gymDef.leader, type: gymDef.type, steps, gym };
+  const segment: Segment = {
+    index,
+    leader: gymDef.leader,
+    type: gymDef.type,
+    gymDefinition: gymDef,
+    steps,
+    gym,
+  };
 
-  // --- pass 3: sim seeds --------------------------------------------------
+  // --- pass 3: sim seeds, from the `battle` stream -------------------------
   for (const node of nodesOf(segment)) {
     if (node.encounter) node.encounter.simSeed = rng.battle.nextSimSeed();
   }
@@ -265,30 +260,45 @@ function ensureRests(
   }
 }
 
+/**
+ * One node's contents.
+ *
+ * The kind decides which randomizer entry point is called and nothing else.
+ * Note that a wild node asks for a *team* rather than a Pokemon: at the shipped
+ * curve that team has one member, and writing `[generateWildMon(...)]` here
+ * would be the single-mon assumption written down one more time in the one file
+ * whose job is to not do that.
+ */
 function buildNode(
   id: string,
   kind: Exclude<NodeKind, 'gym'>,
   segment: number,
-  stream: RngStream,
-  tuning: Tuning,
+  rng: Rng,
 ): NodeSpec {
   if (kind === 'rest') {
     return { id, kind, tier: 'normal', label: 'Rest site', encounter: null };
   }
 
-  const pool = kind === 'wild' ? WILD_POOL : TRAINER_POOL;
-  const entry = stream.pick(pool);
-  const level = encounterLevel(kind, segment, stream, tuning);
+  const tier: Tier = 'normal';
+  const team = kind === 'wild' ? generateWildTeam(segment, tier, rng) : generateTrainerTeam(segment, tier, rng);
+  const lead = team[0];
+  if (!lead) throw new Error(`Generated an empty ${kind} team at segment ${segment}`);
 
   return {
     id,
     kind,
-    tier: 'normal',
+    tier,
     label: kind === 'wild' ? 'Wild encounter' : 'Trainer battle',
     encounter: {
-      team: [toSpec(entry, level)],
-      opponent: kind === 'wild' ? `Wild ${entry.species}` : entry.species,
+      team,
+      opponent: describeOpponent(kind, team, lead),
       simSeed: PLACEHOLDER_SEED,
     },
   };
+}
+
+/** What the log and the summary call this opponent. */
+function describeOpponent(kind: Exclude<NodeKind, 'gym'>, team: TeamSpec, lead: PokemonSpec): string {
+  if (kind === 'wild') return `Wild ${lead.species}`;
+  return team.length === 1 ? `Trainer's ${lead.species}` : `Trainer (${team.length})`;
 }

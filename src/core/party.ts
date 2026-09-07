@@ -14,6 +14,7 @@
  */
 import { describeSpec } from './battle/driver';
 import type { MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
+import { PARTY_SIZE } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
 /** A fresh party member at full HP and PP. */
@@ -51,25 +52,31 @@ export function leadOf(party: readonly PokemonState[]): PokemonState | null {
 }
 
 /**
- * The team handed to the sim for the next battle.
+ * The members that go into the next battle, lead first.
  *
- * Stage 1 sends out the lead and only the lead. That is not laziness about the
- * party being length one: the driver has no `{ kind: 'switch' }` choice yet, so
- * a second Pokemon on the sim's side would produce a forced-switch request on
- * the first faint that no policy could answer. Stage 4 adds the choice kind and
- * this returns the whole party.
+ * Stage 1 sent the lead and only the lead, because the driver had no switch
+ * choice and a second Pokemon would have produced a forced-switch request no
+ * policy could answer. Stage 2 gave the driver that choice — gym leaders need
+ * it — so this now sends the party, capped at `PARTY_SIZE`.
+ *
+ * At `PARTY_SIZE = 1` that is the same one Pokemon it always was. The point is
+ * that it is the same *code path*: Stage 4 raising the constant changes what
+ * this returns without changing anything that calls it.
  */
+export function battleMembersFor(party: readonly PokemonState[]): PokemonState[] {
+  const available = party.filter((member) => !member.fainted);
+  if (available.length === 0) throw new Error('Cannot start a battle with a wiped party');
+  return available.slice(0, PARTY_SIZE);
+}
+
+/** The specs to hand the sim, in the order `battleMembersFor` chose. */
 export function battleTeamFor(party: readonly PokemonState[]): TeamSpec {
-  const lead = leadOf(party);
-  if (!lead) throw new Error('Cannot start a battle with a wiped party');
-  return [lead.spec];
+  return battleMembersFor(party).map((member) => member.spec);
 }
 
 /** The carry-over state for the members `battleTeamFor` selected, in the same order. */
 export function carryOverFor(party: readonly PokemonState[]): PokemonState[] {
-  const lead = leadOf(party);
-  if (!lead) throw new Error('Cannot start a battle with a wiped party');
-  return [lead];
+  return battleMembersFor(party);
 }
 
 /**
@@ -132,6 +139,48 @@ export function restParty(party: readonly PokemonState[], tuning: Tuning): Pokem
 
 function restoreMove(move: MoveState, fraction: number): MoveState {
   return { ...move, pp: Math.min(move.maxPp, move.pp + Math.round(move.maxPp * fraction)) };
+}
+
+/**
+ * Move the party to a new level.
+ *
+ * There is no XP system: the player's level is a function of segment index read
+ * from data/scaling.ts (design rule 2 — encounters chosen within a segment
+ * affect *what you get*, not *how strong you are*). So progression is this
+ * function, called once when a gym falls.
+ *
+ * HP and PP carry as **fractions**, not as absolutes. Max HP grows with level,
+ * and a party that levelled up while keeping its absolute HP would arrive at
+ * segment 8 on a smaller share of a bigger bar than it left segment 7 with —
+ * the run would get quietly harder for a reason no player could see. Carrying
+ * the fraction means a gym cleared at 40% is the next segment started at 40%.
+ *
+ * The spec object is rebuilt rather than mutated, because run state is replayed
+ * from a decision log and a shared mutable spec is the fastest way to make a
+ * replay disagree with the run it replays.
+ */
+export function levelParty(party: readonly PokemonState[], level: number): PokemonState[] {
+  return party.map((member) => {
+    if (member.spec.level === level) return member;
+
+    const spec: PokemonSpec = { ...member.spec, level };
+    const vitals = describeSpec(spec);
+    const hpShare = member.maxHp > 0 ? member.hp / member.maxHp : 1;
+
+    return {
+      ...member,
+      spec,
+      maxHp: vitals.maxHp,
+      hp: Math.max(1, Math.min(vitals.maxHp, Math.round(vitals.maxHp * hpShare))),
+      // Max PP is a function of the move, not the level, so the share is the
+      // same arithmetic applied to a constant denominator — which is to say the
+      // PP simply carries.
+      moves: vitals.moves.map((fresh, index) => {
+        const carried = member.moves[index];
+        return carried ? { ...fresh, pp: Math.min(fresh.maxPp, carried.pp) } : { ...fresh };
+      }),
+    };
+  });
 }
 
 /** 0..1, for a HP bar that never divides by a zero max. */

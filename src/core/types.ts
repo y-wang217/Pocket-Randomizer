@@ -45,16 +45,44 @@ export type TeamSpec = PokemonSpec[];
 /**
  * A decision a side can submit.
  *
- * Switching is out of scope for Stage 0, so the union has one member. It is a
- * discriminated union rather than a bare number specifically so that adding
- * `{ kind: 'switch' }` later is an additive change that the compiler will walk
- * us through, instead of a signature break.
+ * Stage 0 shipped this as a one-member union specifically so that adding
+ * `{ kind: 'switch' }` would be an additive change the compiler walks us
+ * through. Stage 2 is that change, and it arrives earlier than Stage 4 for a
+ * reason worth writing down: gym leaders now field more than one Pokemon, and
+ * a side with a bench gets a **forced switch request** from the sim the moment
+ * its active faints. A policy that can only answer `move N` cannot answer it.
+ *
+ * So the choice kind is here now, and it is deliberately only reachable on a
+ * forced switch. Voluntary mid-turn switching is still Stage 4: it changes what
+ * a turn *is*, and every balance number this stage produces assumes it does not
+ * exist.
  */
-export type Choice = { kind: 'move'; /** 1-based, matching the sim's `move N`. */ slot: number };
+export type Choice =
+  | { kind: 'move'; /** 1-based, matching the sim's `move N`. */ slot: number }
+  | { kind: 'switch'; /** 1-based index into the side's current team order. */ slot: number };
 
 export function moveChoice(slot: number): Choice {
   return { kind: 'move', slot };
 }
+
+export function switchChoice(slot: number): Choice {
+  return { kind: 'switch', slot };
+}
+
+// ---------------------------------------------------------------------------
+// Difficulty tiers
+// ---------------------------------------------------------------------------
+
+/**
+ * How hard a node is, carried on every node and passed to the randomizer.
+ *
+ * Stage 2 writes `normal` everywhere and never displays it. It exists now
+ * because Stage 3 exposes it to the player and keys reward pools to it, and
+ * retrofitting a field onto generated map data would invalidate every seed
+ * recorded before the change. `data/scaling.ts` holds what each tier actually
+ * does; at `normal` it does nothing at all, which is the honest state of it.
+ */
+export type Tier = 'normal' | 'hard' | 'elite';
 
 // ---------------------------------------------------------------------------
 // Battle view — what a policy is allowed to see
@@ -85,6 +113,33 @@ export interface MoveView {
   pp: number;
   maxPp: number;
   /** False when the move is disabled, out of PP, or otherwise unusable now. */
+  usable: boolean;
+}
+
+/**
+ * A benched Pokemon, as offered to a forced switch.
+ *
+ * Public only to its own side. The opponent's bench is not in `BattleView` at
+ * all: a policy that could read it would be estimating matchups with
+ * information no player has, and the balance sweep would then be measuring a
+ * bot that cheats.
+ */
+export interface SwitchView {
+  /** 1-based index into the side's *current* team order, for `switch N`. */
+  slot: number;
+  species: string;
+  name: string;
+  level: number;
+  types: string[];
+  ability: string;
+  /** Move ids, so a policy can estimate what this member would threaten with. */
+  moves: string[];
+  hp: number;
+  maxHp: number;
+  hpFraction: number;
+  status: StatusName | null;
+  fainted: boolean;
+  /** False when the sim will not accept a switch to it (fainted, or active). */
   usable: boolean;
 }
 
@@ -132,6 +187,15 @@ export interface BattleView {
   foe: ActiveView;
   /** The moves available this turn, or empty when no choice is pending. */
   moves: MoveView[];
+  /** This side's bench. Empty until a party is larger than one. */
+  switches: SwitchView[];
+  /**
+   * True when the sim wants a switch and will not accept a move.
+   *
+   * A policy must branch on this before it reads `moves`, which is empty here.
+   * `usableSwitches(view)` in battle/policy.ts is the intended way to answer.
+   */
+  forceSwitch: boolean;
   /** True when this side owes the sim a decision. */
   awaitingChoice: boolean;
 }
@@ -241,5 +305,17 @@ export type RunDecision =
 export interface RunLog {
   seed: string;
   version: string;
+  /**
+   * The randomizer's data-and-draw-order version.
+   *
+   * Separate from `version` on purpose. `version` moves when the *engine* or
+   * the log format changes; this moves when a tuning pass changes what a seed
+   * rolls — a species pool regenerated, a band window widened, a draw added in
+   * the middle of `rollMoveset`. Those changes leave the decision sequence
+   * perfectly replayable and quietly reinterpret it as a different run, which
+   * is the worst available outcome for a game whose whole promise is that a
+   * shared seed is a shared run. So it is checked, and a mismatch throws.
+   */
+  randomizerVersion: string;
   decisions: RunDecision[];
 }

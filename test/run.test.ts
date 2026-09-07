@@ -20,14 +20,17 @@ import {
   atGym,
   chooseStarter,
   createRun,
+  gymsCleared,
   nodeOptions,
   playRun,
   resolveNode,
   scriptedRunPolicy,
   segmentOf,
+  SEGMENTS_PER_RUN,
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
+import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 import { moveChoice, type PokemonState } from '../src/core/types';
 
@@ -185,17 +188,25 @@ describe('persistence between nodes', () => {
     // The carry-over path goes through the sim, so this is the assertion that
     // proves it lands: the view the policy sees on turn 1 of a later node is
     // not at full HP.
-    const openingHp: number[] = [];
-    const battle: Policy = async (view) => {
-      if (view.turn === 1) openingHp.push(view.me.hp);
-      return firstUsableMovePolicy(view);
-    };
+    //
+    // Scanned across seeds rather than pinned to one. A run that dies in its
+    // first fight has no second fight to carry HP into, and which seeds do that
+    // is a property of the current tuning — pinning one would make this test
+    // fail on every balance pass for a reason that has nothing to do with
+    // carry-over.
+    let carried = false;
+    for (let seed = 0; seed < 8 && !carried; seed++) {
+      const openingHp: number[] = [];
+      const battle: Policy = async (view) => {
+        if (view.turn === 1) openingHp.push(view.me.hp);
+        return firstUsableMovePolicy(view);
+      };
 
-    await playRun('RUN-CARRY', preferring('wild', battle));
-
-    expect(openingHp.length).toBeGreaterThan(1);
-    // At least one battle after the first opened on a damaged Pokemon.
-    expect(openingHp.slice(1).some((hp) => hp < (openingHp[0] ?? 0))).toBe(true);
+      await playRun(`RUN-CARRY-${seed}`, preferring('wild', battle));
+      carried =
+        openingHp.length > 1 && openingHp.slice(1).some((hp) => hp < (openingHp[0] ?? 0));
+    }
+    expect(carried, 'no run in the sample opened a later battle on a damaged Pokemon').toBe(true);
   });
 });
 
@@ -214,14 +225,43 @@ describe('run outcomes', () => {
     expect(isWiped(next.party)).toBe(true);
   });
 
-  it('ends in victory when the gym falls', () => {
+  it('advances a segment when a gym falls, and levels the party doing it', () => {
     const state = atTheGym(withStarter('RUN-WIN'));
     const next = resolveNode(state, {
       node: segmentOf(state).gym,
       battle: { result: { winner: 'p1', turns: 9, cause: 'faint' }, party: state.party },
     });
 
+    // Eight gyms: clearing the first advances rather than wins.
+    expect(next.outcome).toBeNull();
+    expect(next.currentSegment).toBe(1);
+    expect(next.position).toBe(0);
+    // The player's level is a function of segment index, and this is the only
+    // moment it moves. No XP, no grinding.
+    expect(next.party[0]?.spec.level).toBe(playerLevel(1));
+    expect(next.party[0]?.spec.level).toBeGreaterThan(state.party[0]!.spec.level);
+  });
+
+  it('ends in victory only when the last gym falls', () => {
+    let state = atTheGym(withStarter('RUN-WIN-LAST'));
+    // Walk to the final segment through the same transition a run uses, so this
+    // asserts the end condition rather than a hand-built state.
+    for (let segment = 0; segment < SEGMENTS_PER_RUN - 1; segment++) {
+      state = atTheGym(
+        resolveNode(state, {
+          node: segmentOf(state).gym,
+          battle: { result: { winner: 'p1', turns: 5, cause: 'faint' }, party: state.party },
+        }),
+      );
+    }
+    expect(state.currentSegment).toBe(SEGMENTS_PER_RUN - 1);
+
+    const next = resolveNode(state, {
+      node: segmentOf(state).gym,
+      battle: { result: { winner: 'p1', turns: 9, cause: 'faint' }, party: state.party },
+    });
     expect(next.outcome).toBe('victory');
+    expect(gymsCleared(next)).toBe(SEGMENTS_PER_RUN);
   });
 
   it('ends in defeat when the gym is not beaten, even without a wipe', () => {
@@ -264,7 +304,8 @@ describe('run shape', () => {
   it('holds segments, not a segment', () => {
     const state = createRun('RUN-SHAPE');
     expect(Array.isArray(state.segments)).toBe(true);
-    expect(state.segments).toHaveLength(1);
+    expect(state.segments).toHaveLength(SEGMENTS_PER_RUN);
+    expect(state.segments.map((segment) => segment.index)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(state.currentSegment).toBe(0);
   });
 

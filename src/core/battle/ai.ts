@@ -19,10 +19,10 @@
  */
 import { Generations, Move, Pokemon, calculate } from '@smogon/calc';
 
-import type { ActiveView, BattleView, Choice, MoveView, StatsTable } from '../types';
-import { moveChoice } from '../types';
+import type { ActiveView, BattleView, Choice, MoveView, StatsTable, SwitchView } from '../types';
+import { moveChoice, switchChoice } from '../types';
 import { GYMRUN_GEN } from './format';
-import { usableMoves, type Policy } from './policy';
+import { usableMoves, usableSwitches, type Policy } from './policy';
 
 const gen = Generations.get(GYMRUN_GEN);
 
@@ -117,6 +117,54 @@ export function evaluateMoves(view: BattleView): MoveEvaluation[] {
 }
 
 /**
+ * Which bench member to send out after a faint.
+ *
+ * Greedy in the same sense the move choice is: it asks what each candidate
+ * would *threaten* the current foe with, using the same damage calc, and sends
+ * the one with the best answer. It does not ask what the foe would do back,
+ * because it cannot — the foe's moves are not public information, and giving
+ * the AI a peek at them would make the balance sweep measure a bot that cheats.
+ *
+ * Ties break toward remaining HP, then toward the lower slot. Both tie-breaks
+ * are specified rather than incidental, for the same reason the move tie-break
+ * is: a choice that depended on array order would stop a seed reproducing.
+ */
+export function evaluateSwitches(view: BattleView): { member: SwitchView; score: number }[] {
+  const foeMaxHp = Math.max(1, view.foe.maxHp);
+
+  return usableSwitches(view).map((member) => {
+    let best = 0;
+    for (const id of member.moves) {
+      const move = new Move(gen, id);
+      if (move.category === 'Status') continue;
+      try {
+        const result = calculate(gen, toCalcSwitch(member), toCalcPokemon(view.foe), move);
+        const [low, high] = result.range();
+        best = Math.max(best, (low + high) / 2);
+      } catch {
+        best = Math.max(best, move.bp);
+      }
+    }
+    // Damage dealt is the term that matters; HP is a tie-break worth a
+    // hundredth of it, which keeps a healthy body from outranking a real threat.
+    return { member, score: best / foeMaxHp + member.hpFraction * 0.01 };
+  });
+}
+
+/** A benched member, in the calc's terms. The bench is our own, so this is exact. */
+function toCalcSwitch(member: SwitchView): Pokemon {
+  return new Pokemon(gen, member.species, {
+    level: member.level,
+    nature: 'Serious',
+    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+    curHP: Math.max(1, member.hp),
+    status: member.status ?? '',
+    ability: member.ability,
+  });
+}
+
+/**
  * The greedy policy.
  *
  * Ties break toward the lower move slot. That is not cosmetic: an unspecified
@@ -124,6 +172,17 @@ export function evaluateMoves(view: BattleView): MoveEvaluation[] {
  * seed would stop reproducing the same battle.
  */
 export const greedyAiPolicy: Policy = async (view: BattleView): Promise<Choice> => {
+  if (view.forceSwitch) {
+    const candidates = evaluateSwitches(view);
+    const first = candidates[0];
+    if (!first) throw new Error('AI is forced to switch with nothing to switch to');
+    let best = first;
+    for (const candidate of candidates) {
+      if (candidate.score > best.score) best = candidate;
+    }
+    return switchChoice(best.member.slot);
+  }
+
   const evaluations = evaluateMoves(view);
   const first = evaluations[0];
   if (!first) throw new Error('AI has no move to choose');

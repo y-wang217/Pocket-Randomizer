@@ -1,59 +1,58 @@
 /**
- * The starter whitelist.
+ * What the player may start a run as.
  *
- * Curated means no duds. The player picks one Pokemon and carries a whole
- * segment on it, so a bad roll here is not a bad turn, it is a lost run the
- * player never had a hand in. Every entry therefore has: usable bulk, a
- * reliable STAB move, one coverage move, and either recovery or setup. There
- * is no entry on this list that cannot beat the Stage 1 gym.
+ * Stage 1 shipped this as eleven hand-picked Pokemon with hand-picked kits, and
+ * the reasoning was sound at the time: the player carries one Pokemon through a
+ * whole segment, so a dud roll is a lost run they never had a hand in.
  *
- * Exposed as a *function* rather than a bare array on purpose. Stage 5 expands
- * the pool through unlocks, and `getStarterPool(unlocked)` is where that lands
- * — not in the run code, which only ever asks for a pool and draws from it.
+ * Stage 2 keeps the *guarantee* and drops the whitelist. The guarantee is now a
+ * **band window** over data/speciesPools.ts — fully evolved, roughly 490+ base
+ * stat total — while segment 0's opponents draw from bands 0 and 1. The player
+ * therefore starts meaningfully ahead of the first gym and the curve catches up
+ * around segment 4, which is the same promise the whitelist made with three
+ * hundred species instead of eleven and nothing to keep in sync.
+ *
+ * The ability and the moveset are rolled by the randomizer like everything
+ * else. That is not a detail: a randomizer where the *opponents* are randomized
+ * and the player's Pokemon is a curated set piece is a game about reacting to
+ * chaos rather than a game about playing it.
+ *
+ * `getStarterPool(unlocked)` survives unchanged in shape because it is Stage
+ * 5's seam, and unlocks are strictly **additive** — appended after the base
+ * pool, never inserted and never removed. Generation draws an index into this
+ * list, so an unlock that reordered it would change what every previously
+ * recorded seed offers.
  */
-import type { MonEntry } from './mons';
+import { isSpeciesBlacklisted } from './blacklists';
+import { SPECIES_POOL, type SpeciesEntry } from './speciesPools';
 
 /**
- * The pool as it stands, in a fixed order.
+ * The bands a starter is drawn from.
  *
- * Order matters: generation draws indices from a seeded stream, so reordering
- * this list changes what every recorded seed offers. Append, do not insert.
+ * The one place the randomizer deliberately favours the player, and the number
+ * to move if the simulator says gym 1 is either a formality or a wall.
  */
-const STARTERS: readonly MonEntry[] = [
-  { id: 'venusaur', species: 'Venusaur', ability: 'Overgrow', moves: ['Giga Drain', 'Sludge Bomb', 'Sleep Powder', 'Synthesis'] },
-  { id: 'blastoise', species: 'Blastoise', ability: 'Torrent', moves: ['Surf', 'Ice Beam', 'Dark Pulse', 'Rest'] },
-  { id: 'charizard', species: 'Charizard', ability: 'Blaze', moves: ['Flamethrower', 'Air Slash', 'Dragon Pulse', 'Roost'] },
-  { id: 'snorlax', species: 'Snorlax', ability: 'Thick Fat', moves: ['Body Slam', 'Crunch', 'Curse', 'Rest'] },
-  { id: 'gyarados', species: 'Gyarados', ability: 'Intimidate', moves: ['Waterfall', 'Crunch', 'Ice Fang', 'Dragon Dance'] },
-  { id: 'sylveon', species: 'Sylveon', ability: 'Pixilate', moves: ['Hyper Voice', 'Psyshock', 'Calm Mind', 'Draining Kiss'] },
-  { id: 'metagross', species: 'Metagross', ability: 'Clear Body', moves: ['Meteor Mash', 'Zen Headbutt', 'Earthquake', 'Bullet Punch'] },
-  { id: 'dragonite', species: 'Dragonite', ability: 'Multiscale', moves: ['Dragon Claw', 'Earthquake', 'Roost', 'Dragon Dance'] },
-  { id: 'arcanine', species: 'Arcanine', ability: 'Intimidate', moves: ['Flare Blitz', 'Extreme Speed', 'Wild Charge', 'Morning Sun'] },
-  { id: 'swampert', species: 'Swampert', ability: 'Torrent', moves: ['Earthquake', 'Waterfall', 'Ice Punch', 'Rest'] },
-  { id: 'clefable', species: 'Clefable', ability: 'Magic Guard', moves: ['Moonblast', 'Flamethrower', 'Calm Mind', 'Soft-Boiled'] },
-];
+export const STARTER_BANDS: readonly number[] = [3, 4];
+
+const BASE: readonly SpeciesEntry[] = SPECIES_POOL.filter(
+  (entry) => STARTER_BANDS.includes(entry.band) && !isSpeciesBlacklisted(entry.id),
+);
 
 /**
  * Species that exist but are not offered until unlocked.
  *
- * Empty in Stage 1, and that is the honest state of it: there is no unlock
- * system yet, so there is nothing to unlock. Stage 5 fills this table and
- * changes nothing else.
+ * Empty, and that is the honest state of it: there is no unlock system yet, so
+ * there is nothing to unlock. Stage 5 fills this and changes nothing else.
  */
-const LOCKED: readonly MonEntry[] = [];
+const LOCKED: readonly SpeciesEntry[] = [];
 
 /**
- * The species a run may offer as starters.
+ * The species a run may offer as starters, in a fixed draw order.
  *
- * Unlocks are strictly **additive**, and appended after the base pool. Both
- * halves matter for seed compatibility: an unlock that removed an entry, or one
- * that inserted into the middle, would change what every previously recorded
- * seed offers, because generation draws indices from this list.
- *
- * @param unlocked Ids the player has unlocked. Stage 1 never passes it.
+ * @param unlocked Ids the player has unlocked. Stage 2 never passes it.
  */
-export function getStarterPool(unlocked?: readonly string[]): readonly MonEntry[] {
-  if (!unlocked || unlocked.length === 0) return STARTERS;
+export function getStarterPool(unlocked?: readonly string[]): readonly SpeciesEntry[] {
+  if (!unlocked || unlocked.length === 0) return BASE;
   const wanted = new Set(unlocked);
-  return [...STARTERS, ...LOCKED.filter((entry) => wanted.has(entry.id))];
+  return [...BASE, ...LOCKED.filter((entry) => wanted.has(entry.id))];
 }

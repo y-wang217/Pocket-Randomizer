@@ -1,26 +1,22 @@
 /**
- * Generation has to be a pure function of the seed, and the curated pools have
- * to actually exist.
+ * Generation has to be a pure function of the seed.
  *
- * The first half is the Stage 1 restatement of Stage 0's central property: two
- * players who type the same seed get the same starters, the same map and the
- * same encounters, or the seed means nothing. The second half is cheaper and
- * just as load-bearing — "curated" is a promise that every entry in these pools
- * is a real Pokemon with real moves, and a typo in a move name is a promise
- * quietly broken in one node of one seed.
+ * This is Stage 0's central property restated at map scale: two players who
+ * type the same seed get the same starters, the same map and the same
+ * encounters, or the seed means nothing.
+ *
+ * Stage 1 also validated the curated pools here. There are no curated pools any
+ * more — the randomizer draws from generated tables — so that half moved to
+ * test/data-tables.test.ts, which validates them against the dex they came from.
  */
-import { Dex } from '@pkmn/sim';
 import { describe, expect, it } from 'vitest';
 
 import { describeSpec } from '../src/core/battle/driver';
 import { generateSegment, generateStarterOptions, nodesOf, type Segment } from '../src/core/encounters';
 import { createRng } from '../src/core/rng';
-import { TRAINER_POOL, WILD_POOL, type MonEntry } from '../src/data/mons';
-import { GYMS } from '../src/data/gyms';
+import { playerLevel, starterLevel } from '../src/data/scaling';
 import { getStarterPool } from '../src/data/starters';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
-
-const dex = Dex.forGen(9);
 
 function generate(seed: string, tuning = DEFAULT_TUNING): { starters: unknown; segment: Segment } {
   const rng = createRng(seed);
@@ -136,20 +132,22 @@ describe('generation rules', () => {
   });
 
   it('scales encounter levels with the segment index', () => {
-    // Stage 1 always passes 0. This asserts the index is actually used, which
-    // is the difference between a generator Stage 2 can call in a loop and one
-    // it has to rewrite.
-    const rngA = createRng('RULES-SCALE');
-    const rngB = createRng('RULES-SCALE');
-    const first = generateSegment(0, rngA, DEFAULT_TUNING);
-    const later = generateSegment(3, rngB, DEFAULT_TUNING);
-
-    const levelOf = (segment: Segment): number => segment.gym.encounter?.team[0]?.level ?? 0;
-    expect(levelOf(later) - levelOf(first)).toBe(3 * DEFAULT_TUNING.levelPerSegment);
+    // The generator takes an index and uses it, which is the difference between
+    // something Stage 2 could call in a loop and something it had to rewrite.
+    // Asserted against the curve table rather than against a multiplication,
+    // because the curve is a table now and is allowed to bend.
+    for (const index of [0, 3, 7]) {
+      const segment = generateSegment(index, createRng(`RULES-SCALE-${index}`), DEFAULT_TUNING);
+      for (const member of segment.gym.encounter?.team ?? []) {
+        expect(member.level).toBeLessThanOrEqual(playerLevel(index));
+        expect(member.level).toBeGreaterThan(playerLevel(index) - 8);
+      }
+    }
   });
 
   it('keeps the starter pool additive, so unlocks cannot reshape a recorded seed', () => {
     const base = getStarterPool();
+    expect(base.length).toBeGreaterThan(50);
     // Generation draws indices from this list. An unlock that removed an entry
     // or inserted into the middle would change what every seed recorded before
     // it offers, so the base pool has to survive an unlock unchanged and in
@@ -164,50 +162,12 @@ describe('generation rules', () => {
       const options = generateStarterOptions(createRng(seed), DEFAULT_TUNING);
       expect(options).toHaveLength(DEFAULT_TUNING.starterOptionCount);
       expect(new Set(options.map((o) => o.species)).size).toBe(options.length);
-      for (const option of options) expect(option.level).toBe(DEFAULT_TUNING.starterLevel);
+      for (const option of options) expect(option.level).toBe(starterLevel());
     }
   });
 });
 
-describe('curated pools', () => {
-  const pools: Record<string, readonly MonEntry[]> = {
-    starters: getStarterPool(),
-    wild: WILD_POOL,
-    trainer: TRAINER_POOL,
-    gyms: GYMS.flatMap((gym) => gym.team),
-  };
-
-  for (const [name, pool] of Object.entries(pools)) {
-    it(`${name}: every entry is a real Pokemon with real moves`, () => {
-      for (const entry of pool) {
-        expect(dex.species.get(entry.species).exists, `species ${entry.species}`).toBe(true);
-        expect(dex.abilities.get(entry.ability).exists, `${entry.species}: ability ${entry.ability}`).toBe(true);
-        expect(entry.moves, `${entry.species} moves`).toHaveLength(4);
-        for (const move of entry.moves) {
-          expect(dex.moves.get(move).exists, `${entry.species}: move ${move}`).toBe(true);
-        }
-      }
-    });
-
-    it(`${name}: no entry can lose a battle to itself`, () => {
-      // Self-KO ends a run on the opponent's turn rather than the player's
-      // play; switch moves silently do half of what they say until Stage 4
-      // gives the driver a switch choice.
-      const banned = new Set(['explosion', 'selfdestruct', 'finalgambit', 'memento', 'healingwish',
-        'uturn', 'voltswitch', 'flipturn', 'batonpass', 'teleport', 'partingshot']);
-      for (const entry of pool) {
-        for (const move of entry.moves) {
-          expect(banned.has(dex.moves.get(move).id), `${entry.species}: ${move}`).toBe(false);
-        }
-      }
-    });
-
-    it(`${name}: every id is unique`, () => {
-      const ids = pool.map((entry) => entry.id);
-      expect(new Set(ids).size).toBe(ids.length);
-    });
-  }
-
+describe('the engine, not our arithmetic', () => {
   it('asks the engine for max HP and PP rather than recomputing them', () => {
     const vitals = describeSpec({ species: 'Snorlax', ability: 'Thick Fat', moves: ['Body Slam', 'Rest'], level: 50 });
     // Snorlax at level 50 with 31 IVs and 0 EVs, and Body Slam with three PP

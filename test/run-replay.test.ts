@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
+import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { firstUsableMovePolicy } from '../src/core/battle/policy';
 import {
   RUN_LOG_VERSION,
@@ -65,7 +66,7 @@ describe('run log', () => {
   it('records only the seed, the version and the decisions', async () => {
     const run = await playRun('LOG-SHAPE', scriptedRunPolicy(greedyAiPolicy));
 
-    expect(Object.keys(run.log).sort()).toEqual(['decisions', 'seed', 'version']);
+    expect(Object.keys(run.log).sort()).toEqual(['decisions', 'randomizerVersion', 'seed', 'version']);
     expect(run.log.seed).toBe('LOG-SHAPE');
     expect(run.log.version).toBe(RUN_LOG_VERSION);
     // No turn numbers, no sides, no HP: all derived, none stored.
@@ -88,7 +89,7 @@ describe('run log', () => {
   });
 
   it('rejects a log from a different build rather than replaying it wrongly', () => {
-    const stale: RunLog = { seed: 'LOG-OLD', version: 'gymrun-0.1.0', decisions: [] };
+    const stale: RunLog = { seed: 'LOG-OLD', version: 'gymrun-0.1.0', randomizerVersion: RANDOMIZER_VERSION, decisions: [] };
 
     expect(isReplayable(stale)).toBe(false);
     expect(() => assertReplayable(stale)).toThrow(/recorded on gymrun-0\.1\.0/);
@@ -99,6 +100,7 @@ describe('run log', () => {
     const scrambled: RunLog = {
       seed: 'LOG-SCRAMBLED',
       version: RUN_LOG_VERSION,
+      randomizerVersion: RANDOMIZER_VERSION,
       decisions: [{ kind: 'node', index: 0 }],
     };
     // The run wants a starter first. A log that offers a node instead is
@@ -149,13 +151,18 @@ describe('save mid-run, reload, continue', () => {
       onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
     });
 
+    // Every save point, and there are now hundreds of them: eight segments of
+    // decisions, each replayed from the beginning. Quadratic and deliberately
+    // so — this is the test that would catch a resume that only works at node
+    // boundaries — but it needs a timeout that reflects the run length rather
+    // than the default five seconds sized for Stage 1's single segment.
     for (const save of saves) {
       const resumed = await resumeRun(save, wobbling());
       expect(fingerprint(resumed), `resuming after ${save.decisions.length} decisions`).toEqual(
         fingerprint(original),
       );
     }
-  });
+  }, 120_000);
 
   it('hands control over at exactly the point the log ends', async () => {
     const saves: RunLog[] = [];

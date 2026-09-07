@@ -16,8 +16,18 @@
  * later stages consume.
  */
 
-/** The streams a run is split into. Stage 0 uses `battle`; the rest are seams. */
-export const RNG_STREAMS = ['map', 'rewards', 'battle'] as const;
+/**
+ * The streams a run is split into.
+ *
+ * `randomizer` is Stage 2's addition and the reason the split earned its keep.
+ * Species, ability, moveset and level rolls all come from it, so adding a draw
+ * to the randomizer cannot shift a single map shape or damage roll for a seed
+ * recorded before the change — and equally, a Stage 3 reward draw cannot shift
+ * what a randomizer rolled. `policy` exists so a scripted policy (the balance
+ * simulator's `random` bot) can be reproducible without borrowing a stream that
+ * belongs to a game system.
+ */
+export const RNG_STREAMS = ['map', 'rewards', 'battle', 'randomizer', 'policy'] as const;
 
 export type RngStreamName = (typeof RNG_STREAMS)[number];
 
@@ -30,6 +40,8 @@ export interface RngStream {
   nextInt(max: number): number;
   /** Uniform pick from a non-empty array. */
   pick<T>(items: readonly T[]): T;
+  /** Inclusive integer from a range. The randomizer's level draws use it. */
+  inRange(range: { min: number; max: number }): number;
   /**
    * A Pokemon Showdown PRNG seed derived from this stream.
    *
@@ -122,6 +134,11 @@ function createStream(seed: string, name: RngStreamName): RngStream {
       if (chosen === undefined) throw new RangeError('pick() drew out of range');
       return chosen;
     },
+    inRange: (range: { min: number; max: number }): number => {
+      const span = range.max - range.min;
+      if (span < 0) throw new RangeError(`Invalid range ${range.min}..${range.max}`);
+      return range.min + stream.nextInt(span + 1);
+    },
     nextSimSeed: (): SimSeed => {
       // sodium seeds are 32 bytes of hex; 8 uint32 draws fill it exactly.
       let hex = '';
@@ -142,6 +159,8 @@ export function createRng(seed: string): Rng {
     map: createStream(seed, 'map'),
     rewards: createStream(seed, 'rewards'),
     battle: createStream(seed, 'battle'),
+    randomizer: createStream(seed, 'randomizer'),
+    policy: createStream(seed, 'policy'),
   };
 }
 
