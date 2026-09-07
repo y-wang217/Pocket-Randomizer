@@ -37,7 +37,12 @@ export function createBattleScreen(): BattleScreen {
     root,
     attach(session, node, onChoose) {
       title.textContent = node.label;
-      detail.textContent = node.encounter?.opponent ?? '';
+      // Team size on the header, because a gym with three Pokemon is a
+      // different fight from one with one and the player is about to budget PP
+      // against it.
+      const size = node.encounter?.team.length ?? 0;
+      detail.textContent =
+        (node.encounter?.opponent ?? '') + (size > 1 ? ` · ${size} Pokemon` : '');
 
       log.clear();
       log.append(session.protocolFor('p1'));

@@ -162,7 +162,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 1 · ${GYMRUN_FORMAT} · one segment, one gym`;
+  subtitle.textContent = `Stage 2 · ${GYMRUN_FORMAT} · eight gyms, randomized`;
   header.append(title, subtitle);
   return header;
 }

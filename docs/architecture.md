@@ -1,8 +1,15 @@
 # Architecture
 
-Stage 0 built one battle. Stage 1 builds a run around it. The point of this
-document is the parts that are *not* about the current stage — the seams that
-exist so Stages 2-5 are additions rather than rewrites.
+Stage 0 built one battle. Stage 1 built a run around it. Stage 2 made the run a
+randomizer and eight segments long. The point of this document is the parts that
+are *not* about the current stage — the seams that exist so the remaining stages
+are additions rather than rewrites.
+
+Two of those seams were cashed in during Stage 2 and are worth reading as
+evidence that the approach works: `Choice` gained `{ kind: 'switch' }` as a
+purely additive change the compiler walked us through, and `generateSegment`
+went from being called once to being called eight times with no change to its
+signature.
 
 ## The rules
 
@@ -49,30 +56,43 @@ ui/                   A thin DOM layer. Four screens and a router.
   screens/            starter-select, run-map, battle, summary.
 ```
 
-`ui/` can be replaced wholesale without touching `core/`; `data/` can be
-replaced by a randomizer without touching either.
+`ui/` can be replaced wholesale without touching `core/`; `data/` was replaced
+by a randomizer's tables in Stage 2 without touching either.
 
 `data/` is a leaf that `core/` reads, and its only import is `core/types.ts`
 for the shape of the values it holds — a type-only import, so there is no
 runtime cycle. `Tuning` is the exception to "read freely": it is *passed into*
 generation and the run state machine, never imported from inside a function.
-Stage 2 sweeps those values programmatically, which only works if every one of
-them is reachable from a value the caller controls. `npm run sweep` overrides
-any of them from the command line, which is the proof.
+The simulator sweeps those values programmatically, which only works if every
+one of them is reachable from a value the caller controls. `npm run sim -- --set
+stepsPerSegment.min=6` overrides any of them from the command line, which is the
+proof.
+
+Stage 2 added a second data file with a different rule: `data/scaling.ts` is a
+per-segment *table* rather than one object, and it is imported by
+`core/randomizer.ts` directly rather than threaded through as a parameter. That
+is a deliberate asymmetry. `Tuning` describes one segment's shape and a sweep
+wants to vary it; the curve describes all eight and varying it means editing the
+table, which is what a balance pass does anyway.
 
 ## The seams
 
 ### Named RNG streams
 
-`createRng(seed)` returns three independent streams: `map`, `rewards`, `battle`.
-Stage 0 only draws from `battle`.
+`createRng(seed)` returns five independent streams: `map`, `rewards`, `battle`,
+`randomizer` and `policy`. Stage 0 drew only from `battle`.
 
-The split has to exist now. Once Stage 2 generates a map, drawing map numbers
-from a shared sequence would shift every battle roll that follows, and every
-seed recorded before that change would replay as a different fight. Independent
-streams mean a seed's battles are fixed forever regardless of what later stages
-consume. `test/determinism.test.ts` drains 500 values from `map` and `rewards`
-and asserts `battle` is untouched.
+The split had to exist before it was needed, and Stage 2 is where it paid.
+Species, ability, moveset and level rolls all come from `randomizer`, so adding
+a draw there cannot shift a map shape or a damage roll for a seed recorded
+before the change — and a Stage 3 reward draw cannot shift what a species roll
+produced. `policy` exists so the simulator's `random` bot is reproducible
+without borrowing a stream that belongs to a game system.
+
+Streams are domain-separated by name in the hash, so the isolation is a property
+of the construction rather than of discipline. It is asserted anyway:
+`test/determinism.test.ts` drains 500 values and `test/randomizer.test.ts`
+drains 5,000 from every stream in turn and checks that none of the others moved.
 
 The sim's own PRNG is seeded *from* the `battle` stream, never from the run seed
 directly — same reason.
@@ -125,12 +145,14 @@ decision, and `playRun(seed, policy, tuning)` takes a function for each and
 cannot tell what is answering:
 
 - `src/ui/app.ts` is a run policy whose promises resolve on clicks
-- `scripts/sweep.ts` is a run policy that always takes the first option
+- `scripts/sim.ts` builds two of them, `greedy` and `random`
 - `replayRunPolicy(log)` is a recorded log handed back as a policy
 
 The payoff is the same as Stage 0's: there is no separate interactive run loop
-to keep in sync with the headless one. `npm run sweep` plays two hundred runs
-through the exact function a player uses, with no DOM.
+to keep in sync with the headless one. `npm run sim -- --seeds 1000` plays a
+thousand runs through the exact function a player uses, with no DOM — and the
+balance numbers it produces are therefore about the game rather than about a
+second implementation of it.
 
 ### resolveNode, and where rewards will hang
 
@@ -224,13 +246,28 @@ Stage 0 log is *rejected* rather than misread: `RUN_LOG_VERSION` embeds the
 engine version, because a decision sequence is only replayable against the
 mons, generation and sim it was recorded with.
 
+Stage 2 added a **second** version to `RunLog`, and the reason it is separate is
+the failure it catches. `version` moves when the engine or the log format
+changes. `randomizerVersion` moves when a tuning pass changes what a seed
+*rolls* — a band window widened, a pool regenerated. That kind of change leaves
+every recorded decision sequence perfectly replayable and quietly reinterprets
+it as a different run, which is the worst available outcome for a game whose
+whole promise is that a shared seed is a shared run. So it is checked
+separately, with its own message naming both versions.
+
 `localStorage` holds one run log, written after every decision and cleared when
 the run ends. That is the entire extent of persistence, by design.
 
 ## Deliberately absent
 
-No run map, nodes, encounters, rewards, shops, party management, switching,
-multiple Pokémon per side, randomization, gym leaders, unlocks, breeding, EVs,
-IVs or natures. `Choice` is a single-member discriminated union rather than a
-bare number *only* so that adding `{ kind: 'switch' }` later is an additive
-change the compiler walks you through — that is a seam, not a feature.
+As of Stage 2: no rewards, shops, event nodes or tier selection (Stage 3); no
+player party slots, voluntary switching, bench experience or party management
+(Stage 4); no unlocks, daily seed, run history or seed links (Stage 5); no EVs,
+IVs, natures or breeding at all.
+
+`Choice` stopped being a single-member union in Stage 2, and the way it did is
+the argument for the seam: gym leaders field more than one Pokémon, the sim
+issues a forced-switch request on a faint, and adding `{ kind: 'switch' }` was
+an additive change the compiler walked through file by file. Voluntary
+switching — which changes what a *turn is* — is still Stage 4, and every balance
+number this stage produced assumes it does not exist.

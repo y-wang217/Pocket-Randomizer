@@ -6,6 +6,10 @@ What the simulator measured, what it changed, and what is still wrong.
 policies and prints the report this document summarises. The JSON goes to
 `sim-reports/`, stamped with the randomizer version that produced it.
 
+Those JSON files are not committed, and do not need to be: the simulator is
+deterministic given a seed prefix, so that one command regenerates the exact
+report quoted below. The findings are what is worth keeping, and they are here.
+
 ---
 
 ## 1. Why this document exists before the UI does

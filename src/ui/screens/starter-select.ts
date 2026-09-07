@@ -1,11 +1,18 @@
 /**
- * Starter select: three curated Pokemon, one pick, no take-backs.
+ * Starter select: three randomized Pokemon, one pick, no take-backs.
  *
  * The screen shows everything the choice actually turns on — types, ability,
  * max HP, and all four moves with type, category, base power and PP — because
- * the player carries this Pokemon through a whole segment and a choice made
- * from three names is not a choice. All of it comes from `describeSpecCard`, so
- * this file never sees the sim.
+ * the player carries this Pokemon through the *whole run* and a choice made
+ * from three names is not a choice.
+ *
+ * That matters more in Stage 2 than it did in Stage 1. These three are no longer
+ * curated Pokemon with curated kits: the species comes from a band window, and
+ * the ability and every move are rolled. The ability in particular is not
+ * flavour — it is half of what the Pokemon is, it was not chosen by anyone, and
+ * it is the line on this card a player will read first.
+ *
+ * All of it comes from `describeSpecCard`, so this file never sees the sim.
  */
 import { describeSpecCard } from '../../core/battle/driver';
 import type { PokemonSpec } from '../../core/types';
@@ -21,7 +28,10 @@ export function createStarterSelect(): StarterSelect {
   const heading = el('h2', 'screen__title');
   heading.textContent = 'Choose your starter';
   const blurb = el('p', 'screen__blurb');
-  blurb.textContent = 'One Pokemon carries the whole segment. HP and PP persist between fights.';
+  blurb.textContent =
+    'One Pokemon carries the whole run, through eight gyms. Species, ability and ' +
+    'moves are all randomized. HP and PP persist between fights; a cleared gym ' +
+    'restores both.';
   const grid = el('div', 'starters');
 
   root.append(heading, blurb, grid);

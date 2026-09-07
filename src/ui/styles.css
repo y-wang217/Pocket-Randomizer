@@ -461,11 +461,12 @@ body {
 .screen--map {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  grid-template-areas: "heading heading" "chain party";
+  grid-template-areas: "rail rail" "heading heading" "chain party";
   gap: var(--gap);
   align-items: start;
 }
 
+.rail { grid-area: rail; }
 .map__heading { grid-area: heading; display: flex; flex-direction: column; gap: 2px; }
 .chain { grid-area: chain; }
 .party { grid-area: party; }
@@ -473,8 +474,96 @@ body {
 @media (max-width: 760px) {
   .screen--map {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "heading" "party" "chain";
+    grid-template-areas: "rail" "heading" "party" "chain";
   }
+}
+
+/* The eight-gym rail. Scrolls sideways rather than wrapping: it is a
+   progression and a wrapped progression stops reading as one. */
+.rail {
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.rail__gym {
+  /* Two rows per gym — number and leader above, type below — rather than one
+     row that has to truncate "Garnet" to "Gar..." to fit eight of them. The
+     leader's name and their type are the two things a player plans around, so
+     neither gets abbreviated. */
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.rail__gym .type {
+  flex-basis: 100%;
+  max-width: fit-content;
+  padding: 1px 5px;
+  font-size: 9px;
+}
+
+.rail__number {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.rail__label { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; }
+
+/* Below this the leaders' names and types stop fitting side by side, so the
+   rail becomes a scrolling strip of numbers and types — still a progression,
+   just a narrower one. */
+@media (max-width: 700px) {
+  .rail__gym { flex: 0 0 auto; }
+}
+
+.rail__gym--done { border-color: color-mix(in srgb, var(--win) 45%, var(--border)); }
+.rail__gym--done .rail__number { background: var(--win); color: #0d1117; }
+.rail__gym--done .rail__label { color: var(--text); }
+
+.rail__gym--current {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-sunken));
+}
+.rail__gym--current .rail__number { background: var(--accent); color: #0d1117; }
+.rail__gym--current .rail__label { color: var(--text); font-weight: 600; }
+
+.rail__gym--upcoming { opacity: 0.62; }
+
+.map__blurb {
+  margin: 2px 0 0;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.party__ability {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
 }
 
 .chain {
@@ -606,7 +695,7 @@ body {
 .screen--summary { align-items: center; }
 
 .summary {
-  width: min(520px, 100%);
+  width: min(680px, 100%);
   padding: 24px;
   background: var(--bg-raised);
   border: 1px solid var(--border-strong);
@@ -620,12 +709,106 @@ body {
 
 .summary__detail { margin: 0 0 4px; color: var(--text-dim); font-size: 13px; }
 
+/* The seed is the one thing that makes a run shareable, so it gets a row of
+   its own and a copy button rather than a line of small grey text. */
 .summary__seed {
-  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+}
+
+.summary__seed-label {
   color: var(--text-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summary__seed-value {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  color: var(--text);
   word-break: break-all;
+}
+
+.button--small { padding: 4px 10px; font-size: 11px; }
+
+.summary__progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.summary__count {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  margin-right: 4px;
+}
+
+.summary__badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+}
+
+.summary__badge--won {
+  background: color-mix(in srgb, var(--win) 20%, transparent);
+  border-color: color-mix(in srgb, var(--win) 45%, transparent);
+  color: var(--win);
+}
+
+.summary__badge--missed { color: var(--text-faint); opacity: 0.6; }
+
+.summary__cause {
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--loss);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: left;
+}
+
+.screen--summary[data-outcome="victory"] .summary__cause { border-left-color: var(--win); }
+.summary__cause[hidden] { display: none; }
+
+.summary__section {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  text-align: left;
+}
+
+.summary__team {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  text-align: left;
+}
+
+.summary__member {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .summary__nodes {
@@ -636,15 +819,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  /* Tall enough that a full segment — eight steps plus the gym — fits without
-     scrolling. The gym is the last row and the one worth reading. */
-  max-height: 380px;
+  /* A full run is now around forty nodes, so this scrolls by design. Capped
+     rather than uncapped so the actions and the final team stay reachable
+     without paging past the whole run first. */
+  max-height: 300px;
   overflow-y: auto;
 }
 
 .summary__node {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: baseline;
   padding: 5px 8px;
@@ -655,6 +839,21 @@ body {
 
 .summary__node-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Which segment a node belonged to. A forty-node list without this reads as
+   one undifferentiated run rather than eight. */
+.summary__node-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--border-strong);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
 .summary__node-outcome,
 .summary__node-hp { color: var(--text-faint); font-family: var(--mono); font-size: 11px; }
 
@@ -662,6 +861,7 @@ body {
 .summary__node-outcome[data-won="false"] { color: var(--loss); }
 
 .summary__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.summary__nodes { margin-bottom: 0; }
 
 /* ---------- end-of-battle overlay ---------- */
 

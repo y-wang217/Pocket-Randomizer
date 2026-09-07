@@ -3,4 +3,10 @@ dist/
 stats/
 *.local
 .DS_Store
+
+# Balance reports are generated artifacts, and they pile up: one per sim run.
+# They are not committed because they do not need to be — the simulator is
+# deterministic given a seed prefix, so `npm run sim -- --seeds 1000` regenerates
+# the exact report docs/balance.md quotes. The findings live in that document;
+# the JSON is the working copy.
 sim-reports/

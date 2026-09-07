@@ -40,14 +40,18 @@ await new Promise((resolve) => server.listen(0, resolve));
  * Fixed by default so the run is the same on every machine; overridable when
  * hunting for a seed that exercises a particular path.
  *
- * SMOKE004 was chosen because the player below clears the gym on it, so one
- * pass covers every screen and both endings: starter select, a map with
- * completed, current and upcoming steps, battles, rest nodes, the gym, and the
- * victory summary. If a balance change turns it into a defeat the run still
- * smokes fine — the log says which ending it got — but re-pick a seed that
- * wins, or the victory branch stops being exercised.
+ * SMOKE603 was chosen because the player below clears all eight gyms on it, so
+ * one pass covers every screen and the winning ending: starter select, the gym
+ * rail filling in, a map with completed, current and upcoming steps, forty-odd
+ * nodes of battles and rests, multi-Pokemon gyms, and the victory summary.
+ *
+ * Finding it took a scan of 1500 seeds, because the shipped completion rate is
+ * around 5% and this bot is weaker than the balance sim's `greedy` policy. If a
+ * balance change turns it into a defeat the run still smokes fine — the log
+ * says which ending it got — but re-scan for a seed that wins, or the victory
+ * branch stops being exercised.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE004';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE603';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
@@ -91,21 +95,29 @@ if (seed !== SEED) problems.push(`seed from the URL was not used (saw ${seed})`)
 /**
  * Play a run competently, reading the screen the way a player would.
  *
- * Competence matters here. A bot that always clicks the first move and the
- * first node dies two nodes in, and a smoke test that never reaches a rest node
- * or a gym is not smoking most of the app. So: hit the hardest move available,
- * and take the rest when hurt. Both decisions are pure functions of what is on
- * screen, which is what lets the second run be compared to the first.
+ * Competence matters here, and it matters more at eight segments than it did at
+ * one. A bot that always clicks the first move and the first node dies two nodes
+ * in, and a smoke test that never reaches a rest node or a gym is not smoking
+ * most of the app. So: take the bulkiest starter, hit the hardest move
+ * available, and take the rest when hurt.
+ *
+ * All three decisions are pure functions of what is on screen — including the
+ * starter's max HP, which the card prints — which is what lets the second run be
+ * compared to the first.
  */
 async function playRun(label) {
   await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
-  await page.locator('.starter').first().click();
+  await (await bulkiestStarter()).click();
 
   let battles = 0;
   let nodes = 0;
   let rests = 0;
   let sawSavedLog = false;
   let mapStructure = null;
+  // The furthest the eight-gym rail got. Read while playing, because the map
+  // screen is gone by the time the summary is up — and a rail that never
+  // advanced would be a progression indicator that does not indicate progress.
+  let railHigh = 0;
 
   for (let guard = 0; guard < 400; guard++) {
     if (await page.locator(visible('summary')).count()) break;
@@ -137,6 +149,8 @@ async function playRun(label) {
         if (log?.decisions?.length > 0) sawSavedLog = true;
       }
 
+      railHigh = Math.max(railHigh, await page.locator('.rail__gym--done').count());
+
       const node = await chooseNode();
       if (node) {
         if (nodes === 1) {
@@ -165,7 +179,37 @@ async function playRun(label) {
     detail: await page.textContent('.summary__detail'),
     seedLine: await page.textContent('.summary__seed'),
     visits: await page.locator('.summary__node').allTextContents(),
+    railHigh,
+    count: await page.textContent('.summary__count'),
+    cause: await page.textContent('.summary__cause'),
+    badgesWon: await page.locator('.summary__badge--won').count(),
+    teamCards: await page.locator('.summary__member').count(),
+    teamMoves: await page.locator('.summary__member .starter__move').count(),
   };
+}
+
+/**
+ * The starter with the most HP, ties to the leftmost card.
+ *
+ * At PARTY_SIZE 1 this one click is the largest decision in the run — it is the
+ * only Pokemon the player will ever have — so a bot that takes whichever card is
+ * first is not playing the game, it is sampling it.
+ */
+async function bulkiestStarter() {
+  const cards = page.locator('.starter');
+  const count = await cards.count();
+  let best = 0;
+  let bestHp = -1;
+  for (let i = 0; i < count; i++) {
+    // The card prints "<Ability> · <N> HP"; N is the number the choice turns on.
+    const meta = (await cards.nth(i).locator('.starter__meta').textContent()) ?? '';
+    const hp = Number(/(\d+)\s*HP/.exec(meta)?.[1] ?? 0);
+    if (hp > bestHp) {
+      bestHp = hp;
+      best = i;
+    }
+  }
+  return cards.nth(best);
 }
 
 /** The usable move with the highest base power, ties to the lowest slot. */
@@ -233,6 +277,30 @@ if (shape.current !== 1) problems.push(`map showed ${shape.current} current step
 if (!(shape.upcoming >= 1)) problems.push('map showed no upcoming steps');
 if (!(shape.gym >= 1)) problems.push('map did not show the gym at the end of the chain');
 
+// Stage 2's screens: the eight-gym rail, and a summary that answers "how far
+// did I get", "what was I" and "what killed me" rather than just "you lost".
+console.log('\nStage 2 UI:');
+await check('gym rail', '.rail__gym');
+console.log(`  ${first.railHigh >= 1 ? 'ok  ' : 'FAIL'} rail marked ${first.railHigh} gym(s) cleared during the run`);
+if (first.railHigh < 1) problems.push('the gym rail never marked a gym cleared');
+await check('summary progress badges', '.summary__badge');
+await check('summary final team', '.summary__member');
+if (!/\d+ \/ 8 gyms/.test(first.count ?? '')) {
+  problems.push(`summary did not report gyms cleared out of eight (saw "${first.count}")`);
+}
+if (first.teamCards < 1) problems.push('summary showed no final team');
+if (first.teamMoves < 4) problems.push(`summary team showed ${first.teamMoves} moves, expected at least 4`);
+if (!first.cause || first.cause.trim().length === 0) {
+  problems.push('summary showed no cause-of-death line');
+}
+if (first.outcome === 'defeat' && !/fainted/.test(first.cause ?? '')) {
+  problems.push(`a defeat did not name what killed the run (saw "${first.cause}")`);
+}
+if (first.outcome === 'victory' && first.badgesWon !== 8) {
+  problems.push(`a victory marked ${first.badgesWon} gym badges, expected 8`);
+}
+console.log(`  ok   cause of death: ${first.cause?.trim()}`);
+
 // The rest and gym paths are the two Stage 1 adds, so one pass must hit both.
 if (first.rests < 1) problems.push('no rest node was taken — the rest path is unsmoked');
 const reachedGym = first.visits.some((line) => /Gym|\(Rock\)|Garnet/.test(line));
@@ -263,6 +331,8 @@ same('summary line', first.detail, second.detail);
 same('node-by-node history', first.visits, second.visits);
 same('node choices and move clicks', [first.nodes, first.battles], [second.nodes, second.battles]);
 same('map shape partway through', first.mapStructure, second.mapStructure);
+same('gyms cleared', first.count, second.count);
+same('cause of death', first.cause, second.cause);
 
 const rematchSeed = await page.inputValue('.seedbar__input');
 console.log(`\nrematch seed: ${rematchSeed} ${rematchSeed === seed ? '(same, ok)' : '(CHANGED — FAIL)'}`);
