@@ -14,11 +14,20 @@
  * well as here:
  *
  *   1. `map` stream: segment length, then per step the option count and the
- *      node kinds, then the rest-availability fix-up.
+ *      node kinds, then the rest-availability fix-up, then per step the tiers
+ *      of that step's battle nodes.
  *   2. `randomizer` stream: encounter contents — species, level, ability and
  *      moves — for every node in index order, including options the player will
  *      never take.
  *   3. `battle` stream: one sim seed per battle node, in the same index order.
+ *
+ * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
+ * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
+ * drawn for a node that then became a rest would be a draw stranded in the
+ * middle of the sequence. Tier belongs to `map` and not to `randomizer` because
+ * it is part of the shape of the choice the player is offered — the map screen
+ * shows it before anything about the encounter is known — and because the
+ * randomizer must stay free to add draws without moving it.
  *
  * Pass 2 moved from the `map` stream to the `randomizer` stream in Stage 2, and
  * that is the change the whole stage rests on. A randomizer adds draws
@@ -40,7 +49,7 @@ import type { Rng, RngStream, SimSeed } from './rng';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import { starterLevel } from '../data/scaling';
-import type { NodeKind, Range, Tuning } from '../data/tuning';
+import { tierWeightsFor, type NodeKind, type Range, type Tuning } from '../data/tuning';
 
 /** What a battle node fights. Generated eagerly; see the header. */
 export interface EncounterSpec {
@@ -63,10 +72,21 @@ export interface NodeSpec {
   id: string;
   kind: NodeKind;
   /**
-   * Difficulty tier. Stage 2 writes `normal` everywhere and never shows it.
-   * Stage 3 exposes it to the player and keys reward pools to it.
+   * Difficulty tier, or **null for a node that does not have one**.
+   *
+   * Rest nodes and gyms are null, and that is a type decision rather than a
+   * data one. Stage 2 wrote `normal` on every node including those, which was
+   * harmless while nothing read the field and stops being harmless the moment
+   * Stage 3 keys a reward pool off it: `REWARD_POOLS[node.tier]` would then
+   * compile perfectly and quietly hand a rest node a normal-tier reward. Modelling
+   * "no tier" as absent rather than as a value makes that a type error at the
+   * call site instead of a bug on the reward screen.
+   *
+   * A gym is null for the second reason `generateGymTeam` takes no tier: a gym
+   * is the segment's difficulty statement, and a second dial on the same number
+   * is a dial the balance report cannot attribute.
    */
-  tier: Tier;
+  tier: Tier | null;
   /** What the map shows. Deliberately says the kind and not the contents. */
   label: string;
   /** Null for nodes that are not a fight. */
@@ -109,45 +129,63 @@ function drawRange(stream: RngStream, range: Range): number {
 const CHOOSABLE_KINDS: readonly Exclude<NodeKind, 'gym'>[] = ['wild', 'trainer', 'rest'];
 
 /**
- * Weighted sample without replacement.
+ * Weighted sample, optionally without replacement. One draw per item picked.
  *
- * Without replacement because a step offering "wild or wild" is not a choice —
- * the contents are hidden on the map, so two nodes of the same kind read as one
- * option printed twice. `tuning.distinctKindsPerStep` turns it off, and the
- * count is capped at the number of kinds available so the rule cannot fail
- * silently on an early step where rest is not yet allowed.
+ * Two callers, and both want the "without replacement" half for the same
+ * reason. A step offering "wild or wild" is not a choice — the contents are
+ * hidden on the map, so two nodes of the same kind read as one option printed
+ * twice — and a step offering "hard or hard" is not a choice either, because
+ * the tier is the whole of what the player can see about the trade. Stage 3
+ * generalised the Stage 2 kind sampler rather than writing the same loop a
+ * second time, because two copies of a weighted draw are two draw orders to
+ * keep in agreement forever.
+ *
+ * `count` is capped by the caller at the number of items available, so the rule
+ * cannot fail silently on an early step where rest is not yet allowed.
+ *
+ * The draw order is unchanged from Stage 2's `sampleKinds`: same loop, same one
+ * `nextFloat` per pick, same tie-breaking. That is deliberate — a refactor here
+ * that consumed a different number of draws would have reshuffled every
+ * recorded map on a stage that has quite enough of that already.
  */
-function sampleKinds(
+function sampleWeighted<T>(
   stream: RngStream,
-  allowed: readonly Exclude<NodeKind, 'gym'>[],
-  weights: Record<Exclude<NodeKind, 'gym'>, number>,
+  allowed: readonly T[],
+  weightOf: (item: T) => number,
   count: number,
   distinct: boolean,
-): Exclude<NodeKind, 'gym'>[] {
-  const picked: Exclude<NodeKind, 'gym'>[] = [];
+): T[] {
+  const picked: T[] = [];
   let pool = [...allowed];
 
   for (let i = 0; i < count; i++) {
     if (pool.length === 0) break;
-    const total = pool.reduce((sum, kind) => sum + Math.max(0, weights[kind]), 0);
+    const total = pool.reduce((sum, item) => sum + Math.max(0, weightOf(item)), 0);
     if (total <= 0) break;
     let roll = stream.nextFloat() * total;
-    // Falls back to the last entry only for floating-point residue at the very
-    // top of the range, never as an unweighted default.
-    let chosen = pool[pool.length - 1];
-    for (const kind of pool) {
-      roll -= Math.max(0, weights[kind]);
+    // Falls back to the last entry *with weight* only for floating-point
+    // residue at the very top of the range, never as an unweighted default.
+    // Reading `pool[pool.length - 1]` unconditionally, as Stage 2 did, was safe
+    // only because no kind had weight zero; a zero-weight tier is exactly what
+    // `tierBands` uses to keep elite out of the opening segments.
+    let chosen = pool.filter((item) => weightOf(item) > 0).at(-1);
+    for (const item of pool) {
+      roll -= Math.max(0, weightOf(item));
       if (roll < 0) {
-        chosen = kind;
+        chosen = item;
         break;
       }
     }
-    if (!chosen) break;
-    picked.push(chosen);
-    if (distinct) pool = pool.filter((kind) => kind !== chosen);
+    if (chosen === undefined) break;
+    const picked_ = chosen;
+    picked.push(picked_);
+    if (distinct) pool = pool.filter((item) => item !== picked_);
   }
   return picked;
 }
+
+/** The tiers a battle node may carry, in a fixed draw order. */
+const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
 
 // ---------------------------------------------------------------------------
 // Starters
@@ -188,21 +226,30 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     const allowed = CHOOSABLE_KINDS.filter((kind) => kind !== 'rest' || step >= tuning.restEarliestStep);
     const wanted = drawRange(rng.map, tuning.nodeChoiceCount);
     const count = tuning.distinctKindsPerStep ? Math.min(wanted, allowed.length) : wanted;
-    shape.push(sampleKinds(rng.map, allowed, tuning.nodeWeights, count, tuning.distinctKindsPerStep));
+    shape.push(
+      sampleWeighted(rng.map, allowed, (kind) => tuning.nodeWeights[kind], count, tuning.distinctKindsPerStep),
+    );
   }
 
   ensureRests(shape, rng.map, tuning);
 
+  // Tiers, still pass 1 and still the `map` stream, but only once the kinds are
+  // final. See the header: the rest fix-up rewrites kinds, so a tier drawn
+  // before it could belong to a node that is no longer a fight.
+  const tiers = shape.map((kinds) => assignTiers(kinds, index, rng.map, tuning));
+
   // --- pass 2: contents, from the `randomizer` stream ---------------------
   const steps: Step[] = shape.map((kinds, step) => ({
     index: step,
-    options: kinds.map((kind, option) => buildNode(`s${index}-${step}-${option}`, kind, index, rng)),
+    options: kinds.map((kind, option) =>
+      buildNode(`s${index}-${step}-${option}`, kind, tiers[step]?.[option] ?? null, index, rng),
+    ),
   }));
 
   const gym: NodeSpec = {
     id: `s${index}-gym`,
     kind: 'gym',
-    tier: 'normal',
+    tier: null,
     label: `${gymDef.leader}'s Gym`,
     encounter: {
       team: generateGymTeam(gymDef, index, rng),
@@ -261,6 +308,53 @@ function ensureRests(
 }
 
 /**
+ * The tiers for one step's options, aligned to the step's kind list.
+ *
+ * `null` at an index whose kind is a rest, a tier at every index that is a
+ * fight. The alignment is what lets `buildNode` take its tier by position
+ * rather than by a second lookup.
+ *
+ * **The draw count depends only on how many fights the step has, never on what
+ * was drawn.** That is the property the whole eager-generation contract rests
+ * on: a weighted re-roll loop here would make a segment's later map draws
+ * depend on its earlier ones, which is a dependency nobody can reason about
+ * and every recorded seed would rest on.
+ *
+ * Without replacement by default, so a step's two fights are two different
+ * trades rather than the same trade offered twice. See
+ * `tuning.distinctTiersPerStep` for why that is the rule and not the option.
+ */
+function assignTiers(
+  kinds: readonly Exclude<NodeKind, 'gym'>[],
+  segment: number,
+  stream: RngStream,
+  tuning: Tuning,
+): (Tier | null)[] {
+  const battleSlots = kinds.filter((kind) => kind !== 'rest').length;
+  if (battleSlots === 0) return kinds.map(() => null);
+
+  const weights = tierWeightsFor(tuning, segment);
+  const available = TIERS.filter((tier) => weights[tier] > 0);
+  const wanted = tuning.distinctTiersPerStep ? Math.min(battleSlots, available.length) : battleSlots;
+  const drawn = sampleWeighted(stream, available, (tier) => weights[tier], wanted, tuning.distinctTiersPerStep);
+
+  /*
+   * A step with more fights than the band has distinct tiers.
+   *
+   * Unreachable at the shipped tuning — `distinctKindsPerStep` caps a step at
+   * one wild and one trainer, so two fights at most against three tiers — but
+   * only unreachable *because of another knob*, which is not a guarantee. The
+   * fallback repeats the softest tier drawn rather than dropping a node or
+   * throwing: a map that refuses to generate because two dials disagree is a
+   * far worse failure than a step that briefly offers the same trade twice.
+   */
+  const fallback = drawn[drawn.length - 1] ?? 'normal';
+
+  let next = 0;
+  return kinds.map((kind) => (kind === 'rest' ? null : (drawn[next++] ?? fallback)));
+}
+
+/**
  * One node's contents.
  *
  * The kind decides which randomizer entry point is called and nothing else.
@@ -272,14 +366,15 @@ function ensureRests(
 function buildNode(
   id: string,
   kind: Exclude<NodeKind, 'gym'>,
+  tier: Tier | null,
   segment: number,
   rng: Rng,
 ): NodeSpec {
   if (kind === 'rest') {
-    return { id, kind, tier: 'normal', label: 'Rest site', encounter: null };
+    return { id, kind, tier: null, label: 'Rest site', encounter: null };
   }
+  if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
 
-  const tier: Tier = 'normal';
   const team = kind === 'wild' ? generateWildTeam(segment, tier, rng) : generateTrainerTeam(segment, tier, rng);
   const lead = team[0];
   if (!lead) throw new Error(`Generated an empty ${kind} team at segment ${segment}`);

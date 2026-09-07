@@ -21,7 +21,9 @@
  *     early is what buys a fight that lasts more than a turn.
  *   - **Team sizes**, as a function of PARTY_SIZE. See below.
  */
-import type { Tier } from '../core/types';
+import type { PokemonSpec, TeamSpec, Tier } from '../core/types';
+import { DAMAGING_MOVES } from './movePools';
+import { SPECIES_POOL } from './speciesPools';
 import type { NodeKind, Range } from './tuning';
 
 /**
@@ -178,21 +180,35 @@ export const SEGMENTS: readonly SegmentScaling[] = [
 ];
 
 /**
- * What a difficulty tier does to a generated encounter.
+ * What a difficulty tier does to a generated encounter. **This is the whole of
+ * tier logic, and it is deliberately three numbers in one table.**
  *
- * Stage 2 passes `normal` everywhere, so every number in that row is zero and
- * every seed this stage records is unaffected by the whole mechanism. The
- * parameter is built and the tier *UI* and reward pools are not: Stage 3 makes
- * the choice visible and keys rewards to it.
+ * The spec's rule for Stage 3 is that tier does exactly two things: it scales
+ * the encounter, and it selects a reward pool. The first of those is this
+ * table, and the reason it is here rather than scattered through
+ * `core/randomizer.ts` is that a difficulty lever the simulator cannot move
+ * without a code change is not a lever.
+ *
+ * The three columns are the three axes the spec names — level offset, stat
+ * quality, and team size — and they interact, which is why the numbers below
+ * are not simply "more of everything as you go up":
+ *
+ * **`hard` buys difficulty with levels and stat quality. `elite` buys it with
+ * a second Pokemon and pays for that with levels.** That is the Stage 2 finding
+ * applied at node scale: team size is the dominant lever at `PARTY_SIZE` 1, and
+ * a step up in team size that is *not* paid for with a step down in level is
+ * not a difficulty curve, it is a wall. An `elite` node fielding two Pokemon at
+ * `hard`'s level would be strictly harder than `hard` on every axis at once,
+ * and the report could not tell which axis was doing the work.
  *
  * Crucially, a tier shifts *values* and never consumes a draw. A `hard` node
  * and a `normal` node in the same map position roll the same number of times,
- * so turning tiers on in Stage 3 cannot reshuffle anything downstream of them.
+ * so the tier a node carries cannot reshuffle anything downstream of it.
  */
 export interface TierModifier {
   /** Added to the drawn opponent level. */
   level: number;
-  /** Added to every species and move band the segment allows. */
+  /** Added to every species and move band the segment allows. See `shift`. */
   band: number;
   /** Extra opponents, on top of the segment's own advantage. */
   team: number;
@@ -200,9 +216,19 @@ export interface TierModifier {
 
 export const TIER_MODIFIERS: Record<Tier, TierModifier> = {
   normal: { level: 0, band: 0, team: 0 },
-  hard: { level: 2, band: 1, team: 0 },
-  elite: { level: 4, band: 1, team: 1 },
+  hard: { level: 3, band: 1, team: 0 },
+  elite: { level: 1, band: 2, team: 1 },
 };
+
+/**
+ * The highest band each generated pool actually contains.
+ *
+ * Derived rather than written down, because both pools are generated files and
+ * a regenerated pool that added a band would otherwise leave a hardcoded
+ * ceiling silently wrong. It is the ceiling `shift` clamps to.
+ */
+export const MAX_SPECIES_BAND = SPECIES_POOL.reduce((top, entry) => Math.max(top, entry.band), 0);
+export const MAX_MOVE_BAND = DAMAGING_MOVES.reduce((top, move) => Math.max(top, move.band), 0);
 
 /**
  * How a generated moveset is shaped.
@@ -246,16 +272,45 @@ export function starterLevel(): number {
 
 /** Bands a segment may draw species from, shifted by tier. */
 export function speciesBandsFor(segment: number, tier: Tier): readonly number[] {
-  return shift(segmentScaling(segment).speciesBands, TIER_MODIFIERS[tier].band);
+  return shift(segmentScaling(segment).speciesBands, TIER_MODIFIERS[tier].band, MAX_SPECIES_BAND);
 }
 
 /** Bands a segment may draw damaging moves from, shifted by tier. */
 export function moveBandsFor(segment: number, tier: Tier): readonly number[] {
-  return shift(segmentScaling(segment).moveBands, TIER_MODIFIERS[tier].band);
+  return shift(segmentScaling(segment).moveBands, TIER_MODIFIERS[tier].band, MAX_MOVE_BAND);
 }
 
-function shift(bands: readonly number[], by: number): readonly number[] {
-  return by === 0 ? bands : bands.map((band) => band + by);
+/**
+ * Raise a band window by a tier's band modifier, without letting it run off the
+ * top of the table.
+ *
+ * The naive version — `bands.map((band) => band + by)` — is what Stage 2
+ * shipped, and it was safe only because every tier modifier was zero. Turning
+ * tiers on makes it wrong in two ways at once. At segment 7 the species window
+ * is `[3, 4]`, so an `elite` shift of +2 asks for bands 5 and 6, **neither of
+ * which exists**: the filtered pool comes back empty and `stream.pick` throws
+ * mid-generation. One band lower it does not throw and does something worse —
+ * `[4, 5]` collapses to the eighteen species in band 4, so the hardest nodes in
+ * the run would draw from the narrowest pool in the game and every elite
+ * encounter in segment 7 would start to look like the same fight.
+ *
+ * So: clamp to the real ceiling, then widen back downward to the window's
+ * original *width* wherever there is room. A tier that has run out of headroom
+ * therefore stops raising stat quality and keeps raising level and team size,
+ * which is a curve that flattens rather than one that crashes. Segments 6 and 7
+ * are where that bites, and it is the honest answer — the table has five
+ * species bands and the last segment already draws from the top two.
+ */
+function shift(bands: readonly number[], by: number, ceiling: number): readonly number[] {
+  if (by === 0) return bands;
+
+  const raised = [...new Set(bands.map((band) => Math.max(0, Math.min(ceiling, band + by))))].sort(
+    (a, b) => a - b,
+  );
+  while (raised.length < bands.length && (raised[0] ?? 0) > 0) {
+    raised.unshift((raised[0] ?? 0) - 1);
+  }
+  return raised;
 }
 
 /**
@@ -276,4 +331,48 @@ export function opponentLevel(kind: NodeKind, segment: number, tier: Tier): Rang
   const offset = row.levelOffset[kind];
   const bonus = TIER_MODIFIERS[tier].level;
   return { min: row.playerLevel + offset.min + bonus, max: row.playerLevel + offset.max + bonus };
+}
+
+// ---------------------------------------------------------------------------
+// The metric a tier is monotonic in
+// ---------------------------------------------------------------------------
+
+/**
+ * Base stat total by species name, for the metric below.
+ *
+ * Keyed by `species` rather than by id because that is what a `PokemonSpec`
+ * carries. Built once: the pool is a thousand entries and the simulator asks
+ * this question for every member of every team in a thousand runs.
+ */
+const BST_BY_SPECIES = new Map(SPECIES_POOL.map((entry) => [entry.species, entry.bst]));
+
+/**
+ * How strong a generated encounter is, as one number.
+ *
+ * **The point of this function is that "elite is harder than hard" is a claim
+ * that has to be falsifiable.** The spec asks for tier scaling to be monotonic,
+ * and monotonic in *what* is not a detail — a metric that read only level would
+ * report `elite` (+1 level, +1 Pokemon) as weaker than `hard` (+3 levels), and
+ * a metric that read only team size would report them as incomparable at every
+ * node where both field one.
+ *
+ * `level x base stat total`, summed over the team, is the smallest number that
+ * moves with all three columns of `TIER_MODIFIERS` at once: level directly,
+ * stat quality through the band window that decides which species are drawable,
+ * and team size through the sum. It is not a damage model and does not try to
+ * be one — a Pokemon's moves and ability matter enormously in a fight and not
+ * at all here. It is the *encounter budget*, and it is what
+ * test/tiers.test.ts asserts the ordering of across many seeds.
+ *
+ * Species outside the pool contribute their level alone rather than throwing:
+ * this is a measurement, and a measurement that crashes on an unexpected input
+ * is one nobody runs.
+ */
+export function encounterPower(team: TeamSpec): number {
+  return team.reduce((total, member) => total + specPower(member), 0);
+}
+
+/** One Pokemon's contribution to `encounterPower`. */
+export function specPower(spec: PokemonSpec): number {
+  return spec.level * (BST_BY_SPECIES.get(spec.species) ?? 1);
 }

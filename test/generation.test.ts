@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { describeSpec } from '../src/core/battle/driver';
 import { generateSegment, generateStarterOptions, nodesOf, type Segment } from '../src/core/encounters';
 import { createRng } from '../src/core/rng';
-import { playerLevel, segmentScaling, starterLevel } from '../src/data/scaling';
+import { playerLevel, SEGMENT_COUNT, segmentScaling, starterLevel } from '../src/data/scaling';
 import { getStarterPool } from '../src/data/starters';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
@@ -23,6 +23,19 @@ function generate(seed: string, tuning = DEFAULT_TUNING): { starters: unknown; s
   const starters = generateStarterOptions(rng, tuning);
   const segment = generateSegment(0, rng, tuning);
   return { starters, segment };
+}
+
+/**
+ * Every segment of a run, generated in the order `createRun` generates them.
+ *
+ * Tier weights vary by phase of the run, so a property about segment 7 cannot
+ * be checked from a segment 0 generated in isolation — and generating segment 7
+ * on a fresh `Rng` would read the right band off the wrong stream position.
+ */
+function wholeRun(seed: string, tuning = DEFAULT_TUNING): Segment[] {
+  const rng = createRng(seed);
+  generateStarterOptions(rng, tuning);
+  return Array.from({ length: SEGMENT_COUNT }, (_, index) => generateSegment(index, rng, tuning));
 }
 
 describe('generation determinism', () => {
@@ -126,9 +139,63 @@ describe('generation rules', () => {
     }
   });
 
-  it('tags every node with a tier so Stage 3 has somewhere to hang rewards', () => {
-    const { segment } = generate('RULES-TIER');
-    for (const node of nodesOf(segment)) expect(node.tier).toBe('normal');
+  it('gives every fight a tier and every non-fight none', () => {
+    // Stage 2 wrote `normal` on all four kinds. Stage 3 makes the absence
+    // structural: a rest node and a gym have no tier at all, so nothing can
+    // key a reward pool off one. The assertion is on both halves, because
+    // "every fight has a tier" alone would pass on a build that also tagged
+    // rest nodes, which is the bug the null exists to prevent.
+    for (const seed of seeds) {
+      const { segment } = generate(seed);
+      for (const node of nodesOf(segment)) {
+        if (node.kind === 'rest' || node.kind === 'gym') {
+          expect(node.tier, `${node.id} is a ${node.kind} and should carry no tier`).toBeNull();
+        } else {
+          expect(['normal', 'hard', 'elite']).toContain(node.tier);
+        }
+      }
+    }
+  });
+
+  it('offers a spread of tiers within a step rather than the same trade twice', () => {
+    // The rule that makes a step a decision. Two fights in one step must be two
+    // different risks; if they were not, the tier on the map would be a label
+    // rather than a choice.
+    let stepsWithTwoFights = 0;
+    for (const seed of seeds) {
+      for (const segment of wholeRun(`${seed}-SPREAD`)) {
+        for (const step of segment.steps) {
+          const tiers = step.options.map((option) => option.tier).filter((tier) => tier !== null);
+          if (tiers.length < 2) continue;
+          stepsWithTwoFights++;
+          expect(new Set(tiers).size, `step ${step.index} of segment ${segment.index} repeats a tier`).toBe(
+            tiers.length,
+          );
+        }
+      }
+    }
+    // Guard against the assertion above passing vacuously on a population where
+    // no step ever offered two fights.
+    expect(stepsWithTwoFights).toBeGreaterThan(50);
+  });
+
+  it('keeps elite out of the opening segments and weights it in later ones', () => {
+    // The tier distribution is per band of the run, so a segment-0 elite node
+    // would mean the band table is not being read. Asserted as a population
+    // property over many seeds rather than as one map, because a single seed
+    // says nothing about a weighted draw.
+    const seen = new Map<number, Set<string>>();
+    for (const seed of seeds) {
+      for (const segment of wholeRun(`${seed}-BANDS`)) {
+        const bucket = seen.get(segment.index) ?? new Set<string>();
+        for (const node of nodesOf(segment)) if (node.tier) bucket.add(node.tier);
+        seen.set(segment.index, bucket);
+      }
+    }
+    expect([...(seen.get(0) ?? [])].sort()).toEqual(['hard', 'normal']);
+    expect([...(seen.get(1) ?? [])].sort()).toEqual(['hard', 'normal']);
+    expect(seen.get(6)?.has('elite')).toBe(true);
+    expect(seen.get(7)?.has('elite')).toBe(true);
   });
 
   it('scales encounter levels with the segment index', () => {

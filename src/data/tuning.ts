@@ -11,8 +11,29 @@
  * If you find yourself writing a literal number in core/, it belongs here.
  */
 
+import type { Tier } from '../core/types';
+
 /** The kinds of node a step can offer. `gym` is never an option, only a cap. */
 export type NodeKind = 'wild' | 'trainer' | 'rest' | 'gym';
+
+/**
+ * How likely each tier is over a stretch of the run.
+ *
+ * A band rather than a per-segment row because the thing being described is a
+ * *phase* of the run — "the opening", "the middle", "the back half" — and eight
+ * rows of three numbers would be eight places to make the same edit and one
+ * place to get it wrong. `data/scaling.ts` is per segment because a level curve
+ * genuinely bends at one segment; a risk appetite does not.
+ */
+export interface TierBand {
+  /** The last segment index this row covers. Rows are read in order. */
+  throughSegment: number;
+  /**
+   * Relative frequency of each tier. Zero locks a tier out of the band
+   * entirely, which is what keeps `elite` off the opening segments.
+   */
+  weights: Record<Tier, number>;
+}
 
 /** An inclusive integer range, drawn uniformly. */
 export interface Range {
@@ -54,6 +75,29 @@ export interface Tuning {
    * had no hand in, so generation guarantees a floor.
    */
   minRestSteps: number;
+
+  // --- difficulty tiers ----------------------------------------------------
+
+  /**
+   * The tier distribution, by phase of the run. Read in order; the first row
+   * whose `throughSegment` covers the segment wins.
+   */
+  tierBands: readonly TierBand[];
+  /**
+   * Whether the battle nodes in one step must all carry different tiers.
+   *
+   * **On, and it is the single rule that makes Stage 3 a decision rather than a
+   * label.** A step is a choice, and a step whose two fights are both `hard` is
+   * a choice between two identical risks with two identical reward pools — the
+   * tier is then decoration printed twice. Drawing without replacement means
+   * every step that offers two fights offers two *different* trades, which is
+   * the same reasoning as `distinctKindsPerStep` applied one level down.
+   *
+   * Turning it off gives independent weighted draws per node, which is the
+   * honest comparison for a simulator run that wants to know whether the spread
+   * is doing any work.
+   */
+  distinctTiersPerStep: boolean;
 
   // --- persistence between nodes ------------------------------------------
 
@@ -137,6 +181,26 @@ export const DEFAULT_TUNING: Tuning = {
   distinctKindsPerStep: true,
   minRestSteps: 2,
 
+  /*
+   * Elite is locked out of segments 0-1 and the weight climbs from there.
+   *
+   * Not because an early elite node would be unfair — the player can decline it
+   * — but because it would be *illegible*. A player two steps into their first
+   * run has no baseline for what a normal fight costs, so a tier label they
+   * cannot price is a coin flip dressed as a decision. By segment 2 they have
+   * fought a dozen nodes and the word means something.
+   *
+   * The back half inverts the weights so that declining risk gets progressively
+   * harder to do: at segment 5+ a step is more likely than not to make the safe
+   * option the worse-paying one.
+   */
+  tierBands: [
+    { throughSegment: 1, weights: { normal: 6, hard: 3, elite: 0 } },
+    { throughSegment: 4, weights: { normal: 4, hard: 4, elite: 2 } },
+    { throughSegment: 7, weights: { normal: 3, hard: 4, elite: 4 } },
+  ],
+  distinctTiersPerStep: true,
+
   restHpFraction: 1,
   restPpFraction: 1,
   gymClearHealFraction: 1,
@@ -150,4 +214,18 @@ export const DEFAULT_TUNING: Tuning = {
 /** A tuning derived from the default. Stage 2's sweep builds variants this way. */
 export function withTuning(overrides: Partial<Tuning>): Tuning {
   return { ...DEFAULT_TUNING, ...overrides };
+}
+
+/**
+ * The tier weights that apply to a segment.
+ *
+ * Falls back to the last row rather than throwing, so a `SEGMENT_COUNT` raised
+ * without a matching band row keeps generating instead of crashing a run.
+ */
+export function tierWeightsFor(tuning: Tuning, segment: number): Record<Tier, number> {
+  const row =
+    tuning.tierBands.find((band) => segment <= band.throughSegment) ??
+    tuning.tierBands[tuning.tierBands.length - 1];
+  if (!row) throw new RangeError('Tuning has no tier bands');
+  return row.weights;
 }

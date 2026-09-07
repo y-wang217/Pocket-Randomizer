@@ -38,7 +38,7 @@ import { assertReplayable, createRun, isReplayable, RUN_LOG_VERSION } from '../s
 import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { opponentTeamSize, PARTY_SIZE, SEGMENTS, starterLevel } from '../src/data/scaling';
+import { opponentTeamSize, PARTY_SIZE, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
@@ -257,16 +257,21 @@ describe('4. moveset validity', () => {
     expect(stab / total).toBeGreaterThan(0.98);
   });
 
-  it('keeps levels inside the curve', () => {
+  it('keeps levels inside the curve, tier bonus included', () => {
+    // The window is the segment's offset *plus the node's tier bonus*. Asserting
+    // the bare offset would have been the Stage 2 test, and it is now wrong in
+    // the direction that matters least — it would fail on a correct build and
+    // pass on one that silently ignored tier.
     for (let seed = 0; seed < 10; seed++) {
       const state = createRun(`LEVELS-${seed}`);
       for (const segment of state.segments) {
         const row = SEGMENTS[segment.index]!;
         for (const node of nodesOf(segment)) {
+          const bonus = node.tier ? TIER_MODIFIERS[node.tier].level : 0;
           for (const member of node.encounter?.team ?? []) {
             const offset = row.levelOffset[node.kind];
-            expect(member.level).toBeGreaterThanOrEqual(row.playerLevel + offset.min);
-            expect(member.level).toBeLessThanOrEqual(row.playerLevel + offset.max);
+            expect(member.level).toBeGreaterThanOrEqual(row.playerLevel + offset.min + bonus);
+            expect(member.level).toBeLessThanOrEqual(row.playerLevel + offset.max + bonus);
           }
         }
       }

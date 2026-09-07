@@ -76,8 +76,16 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * curve in data/scaling.ts. Not one draw changed position; every seed rolled a
  * different team anyway, which is precisely the class of change this string
  * exists to catch.
+ *
+ * Went to 3 when Stage 3 turned tiers on. That change is worth spelling out
+ * because it is the mirror image of the last one: this time draws *did* move.
+ * `assignTiers` added draws to the `map` stream, so every seed's map shape
+ * moved, and the tiers those draws produce feed `speciesBandsFor` and
+ * `opponentLevel`, so every encounter moved with it. Despite living outside
+ * this file, it is the same failure this string guards — a recorded decision
+ * sequence that still replays cleanly and is no longer the run it recorded.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-2';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-3';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

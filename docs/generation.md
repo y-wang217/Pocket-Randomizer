@@ -46,11 +46,33 @@ to change later.
 2. For each step, in order: how many options (`tuning.nodeChoiceCount`), then
    which node *kinds* they are.
 3. The rest-availability fix-up (see §4), which may rewrite a kind.
+4. For each step, in order: the **tier** of each of that step's battle nodes.
 
 Kinds are sampled **without replacement** when `tuning.distinctKindsPerStep` is
 on, and the option count is capped at the number of kinds available. The map
 hides encounter contents, so two wild nodes side by side read as one option
 printed twice — that is not a choice, it is a choice-shaped rectangle.
+
+**Tiers are the Stage 3 addition, and their position in the sequence is the
+contract.** Three decisions are recorded in it:
+
+- **They come from `map`, not from `randomizer`.** A tier is part of the *shape
+  of the choice*: the map screen shows it before the player knows anything about
+  what the node contains. Putting it on `randomizer` — where the encounter it
+  scales is rolled — would also mean a randomizer change could reshuffle the
+  risk profile of a recorded seed's map.
+- **They come after the rest fix-up.** The fix-up rewrites node kinds, so a tier
+  drawn before it could belong to a node that is no longer a fight, which would
+  strand a draw in the middle of the sequence.
+- **One draw per fight, and none for anything else.** Rest nodes and gyms take
+  no tier draw and carry no tier. How many draws a step costs is therefore fixed
+  by pass 1 step 2, before any tier is known — so retuning `tuning.tierBands`
+  changes which tier every node carries and changes nothing at all about the
+  map's shape. `test/tiers.test.ts` asserts exactly that.
+
+Tiers within one step are sampled **without replacement** too
+(`tuning.distinctTiersPerStep`), for the same reason kinds are: a step offering
+two `hard` fights is one trade printed twice.
 
 ### Pass 2 — contents, from the `randomizer` stream
 
@@ -95,12 +117,53 @@ Pokemon is a curated set piece is a game about reacting to chaos rather than a
 game about playing it. The one concession is the band window in
 `data/starters.ts`, which is also Stage 5's unlock seam.
 
-## 3. Levels
+## 3. Levels and tiers
 
 ```
 player level    = scaling.SEGMENTS[segment].playerLevel
-encounter level = player level + draw(scaling.SEGMENTS[segment].levelOffset[kind])
+encounter level = player level
+                + draw(scaling.SEGMENTS[segment].levelOffset[kind])
+                + scaling.TIER_MODIFIERS[tier].level
 ```
+
+A tier does exactly two things, and `data/scaling.ts` owns the first of them:
+
+| axis | where | normal | hard | elite |
+|---|---|---|---|---|
+| level | `TIER_MODIFIERS[t].level` | +0 | +3 | +1 |
+| stat quality | `TIER_MODIFIERS[t].band`, applied to both band windows | +0 | +1 | +2 |
+| team size | `TIER_MODIFIERS[t].team`, on top of the segment's advantage | +0 | +0 | +1 |
+
+`hard` buys difficulty with levels and stat quality; `elite` buys it with a
+second Pokemon and *pays* for that with levels. That asymmetry is the Stage 2
+finding applied at node scale — team size is the dominant lever at `PARTY_SIZE`
+1, and a step up in team size not paid for elsewhere is a wall rather than a
+curve. It also keeps the axes attributable: an `elite` that exceeded `hard` on
+every column at once would leave the balance report unable to say which column
+moved a number.
+
+The second thing a tier does is select a reward pool, and that lives in
+`data/rewardPools.ts`.
+
+A tier **shifts values and never consumes a draw** inside the randomizer. A
+`hard` node and a `normal` node in the same map position roll the same number of
+times, so the tier a node carries cannot reshuffle anything downstream of it.
+
+### The band ceiling
+
+`speciesBandsFor` and `moveBandsFor` clamp the shifted window to the highest
+band the generated pool actually contains, then widen it back downward to its
+original width. Both halves are load-bearing. Without the clamp, segment 7's
+`elite` window asks for species band 6, the filtered pool comes back **empty**,
+and generation throws mid-map. With the clamp but without the widening, that
+same window collapses onto band 4 — the eighteen strongest species in the game —
+and every elite fight in the last segment would draw from the narrowest pool
+there is.
+
+The consequence is that a tier which has run out of headroom stops raising stat
+quality and keeps raising level and team size. That is a curve that flattens
+rather than one that crashes, and it is the honest answer: the table has five
+species bands and the last segment already draws from the top two.
 
 Stage 1 computed this as `starterLevel + segmentIndex * levelPerSegment`. It is
 an eight-row table now, because a multiplication is a straight line and a
@@ -121,7 +184,9 @@ The offsets that ship were measured, not guessed — see docs/balance.md.
 | At least `tuning.minRestSteps` steps offer a rest | Weighted draws can produce a segment with nowhere to heal. That is not a hard run, it is a run whose seed decided the outcome |
 | No two options in one step share a kind | The map hides contents, so a repeated kind is a duplicate button |
 | The gym is never an option | It is not a choice, so it must not reach `chooseNode` — a policy asked to pick from a list of one records a decision the player never made |
-| Every node carries a `tier` | Stage 1 writes `normal` and never displays it. Stage 3 keys reward pools to it, and retrofitting a field onto generated data would invalidate every seed recorded before the change |
+| Every *fight* carries a `tier`, and nothing else does | A rest node and a gym have `tier: null`, not `'normal'`. Stage 3 keys reward pools off the tier, and `REWARD_POOLS[node.tier]` on a `'normal'` rest node would compile perfectly and be wrong. Absence makes it a type error at the call site |
+| A step's fights carry different tiers | The tier is the whole of what the player can see about a node's trade. Two `hard` fights in one step is a decision-shaped rectangle |
+| `elite` never appears in segments 0-1 | Not for fairness — the player can decline it — but for legibility. A tier label is worthless to someone with no baseline for what a normal fight costs |
 
 ## 5. What a seed does *not* fix
 
