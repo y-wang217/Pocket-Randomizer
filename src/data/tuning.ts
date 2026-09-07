@@ -114,10 +114,19 @@ export interface Tuning {
 /**
  * The numbers Stage 1 ships with.
  *
- * The level spread is the part that was measured rather than guessed: wild and
- * trainer encounters sit *below* the player so a fight is normally winnable but
- * never free, which is what makes HP and PP attrition — and therefore the rest
- * node — mean anything. The gym sits above. See docs/generation.md.
+ * The level spread was measured, not guessed. `npm run sweep` plays a few
+ * hundred runs under three playstyles and reports what happened; these offsets
+ * are the ones where the map does work:
+ *
+ *   playstyle          win   HP at gym   reached gym
+ *   rest when offered  62%   94%         92%
+ *   never rest         35%   35%         52%
+ *   always trainers    17%   53%         27%
+ *
+ * Every encounter sits *below* the player, which sounds generous and is not:
+ * the spread is what makes a fight winnable-but-not-free, and attrition rather
+ * than any single fight is what ends a run. Narrower spreads were tried and
+ * turned each node into a coin flip on the matchup — see docs/generation.md.
  */
 export const DEFAULT_TUNING: Tuning = {
   stepsPerSegment: { min: 6, max: 8 },
@@ -130,10 +139,10 @@ export const DEFAULT_TUNING: Tuning = {
   starterLevel: 30,
   levelPerSegment: 6,
   levelOffset: {
-    wild: { min: -4, max: -2 },
-    trainer: { min: -3, max: -1 },
+    wild: { min: -8, max: -6 },
+    trainer: { min: -7, max: -5 },
     rest: { min: 0, max: 0 },
-    gym: { min: 1, max: 1 },
+    gym: { min: -3, max: -3 },
   },
 
   restHpFraction: 1,

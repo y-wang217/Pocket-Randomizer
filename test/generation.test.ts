@@ -69,7 +69,7 @@ describe('generation determinism', () => {
     const { segment } = generate('GEN-SEEDS');
     const seeds = nodesOf(segment)
       .map((node) => node.encounter?.simSeed)
-      .filter((seed): seed is string => Boolean(seed));
+      .filter((seed) => Boolean(seed));
 
     expect(seeds.length).toBeGreaterThan(4);
     expect(new Set(seeds).size).toBe(seeds.length);

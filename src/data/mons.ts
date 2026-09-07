@@ -47,41 +47,55 @@ export function toSpec(entry: MonEntry, level: number): PokemonSpec {
  * rather than to threaten a run. If a wild node reliably ends runs the offsets
  * in `tuning.levelOffset.wild` are the lever, not this list.
  */
+/**
+ * Wild encounters: the light end of the curve.
+ *
+ * Deliberately low base power. The first cut of this pool gave everything its
+ * best move — Crunch, Close Combat, Gunk Shot — and `npm run sweep` measured
+ * the result: fights lasted 1.5 turns whatever the levels were, because at
+ * level 30 with no EVs a fully evolved Pokemon's best move one-shots another
+ * one. Widening the level gap only changed *which* side did the one-shotting.
+ * Dropping the kits to 40-70 BP is what actually bought a fight that takes
+ * more than one turn, and therefore a run that is decided by attrition rather
+ * than by who moved first.
+ */
 export const WILD_POOL: readonly MonEntry[] = [
-  { id: 'raticate', species: 'Raticate', ability: 'Guts', moves: ['Crunch', 'Body Slam', 'Sucker Punch', 'Swords Dance'] },
-  { id: 'fearow', species: 'Fearow', ability: 'Keen Eye', moves: ['Drill Peck', 'Drill Run', 'Take Down', 'Agility'] },
-  { id: 'golbat', species: 'Golbat', ability: 'Inner Focus', moves: ['Air Slash', 'Poison Fang', 'Bite', 'Confuse Ray'] },
-  { id: 'arbok', species: 'Arbok', ability: 'Intimidate', moves: ['Poison Jab', 'Earthquake', 'Crunch', 'Glare'] },
-  { id: 'sandslash', species: 'Sandslash', ability: 'Sand Rush', moves: ['Earthquake', 'Rock Slide', 'Crush Claw', 'Swords Dance'] },
-  { id: 'marowak', species: 'Marowak', ability: 'Rock Head', moves: ['Bonemerang', 'Rock Slide', 'Double-Edge', 'Swords Dance'] },
-  { id: 'primeape', species: 'Primeape', ability: 'Vital Spirit', moves: ['Close Combat', 'Rock Slide', 'Night Slash', 'Bulk Up'] },
-  { id: 'tentacruel', species: 'Tentacruel', ability: 'Liquid Ooze', moves: ['Surf', 'Sludge Bomb', 'Ice Beam', 'Acid Spray'] },
-  { id: 'dodrio', species: 'Dodrio', ability: 'Early Bird', moves: ['Brave Bird', 'Drill Run', 'Knock Off', 'Swords Dance'] },
-  { id: 'weezing', species: 'Weezing', ability: 'Levitate', moves: ['Sludge Bomb', 'Flamethrower', 'Thunderbolt', 'Will-O-Wisp'] },
-  { id: 'kadabra', species: 'Kadabra', ability: 'Synchronize', moves: ['Psychic', 'Shadow Ball', 'Dazzling Gleam', 'Calm Mind'] },
-  { id: 'seaking', species: 'Seaking', ability: 'Lightning Rod', moves: ['Waterfall', 'Megahorn', 'Drill Run', 'Ice Beam'] },
+  { id: 'raticate', species: 'Raticate', ability: 'Guts', moves: ['Quick Attack', 'Bite', 'Take Down', 'Swords Dance'] },
+  { id: 'fearow', species: 'Fearow', ability: 'Keen Eye', moves: ['Wing Attack', 'Aerial Ace', 'Fury Attack', 'Agility'] },
+  { id: 'golbat', species: 'Golbat', ability: 'Inner Focus', moves: ['Wing Attack', 'Poison Fang', 'Bite', 'Confuse Ray'] },
+  { id: 'arbok', species: 'Arbok', ability: 'Intimidate', moves: ['Poison Fang', 'Bite', 'Rock Tomb', 'Glare'] },
+  { id: 'sandslash', species: 'Sandslash', ability: 'Sand Rush', moves: ['Dig', 'Rock Tomb', 'Fury Cutter', 'Swords Dance'] },
+  { id: 'marowak', species: 'Marowak', ability: 'Rock Head', moves: ['Bone Club', 'Rock Tomb', 'Headbutt', 'Swords Dance'] },
+  { id: 'primeape', species: 'Primeape', ability: 'Vital Spirit', moves: ['Karate Chop', 'Rock Tomb', 'Fury Swipes', 'Bulk Up'] },
+  { id: 'tentacruel', species: 'Tentacruel', ability: 'Liquid Ooze', moves: ['Water Pulse', 'Acid Spray', 'Bubble Beam', 'Poison Sting'] },
+  { id: 'dodrio', species: 'Dodrio', ability: 'Early Bird', moves: ['Aerial Ace', 'Fury Attack', 'Bite', 'Swords Dance'] },
+  { id: 'weezing', species: 'Weezing', ability: 'Levitate', moves: ['Sludge', 'Clear Smog', 'Venoshock', 'Will-O-Wisp'] },
+  { id: 'kadabra', species: 'Kadabra', ability: 'Synchronize', moves: ['Confusion', 'Psybeam', 'Dazzling Gleam', 'Calm Mind'] },
+  { id: 'seaking', species: 'Seaking', ability: 'Lightning Rod', moves: ['Water Pulse', 'Horn Attack', 'Icy Wind', 'Agility'] },
 ];
 
 /**
  * Trainer encounters: the heavy end.
  *
- * Bulkier, better coverage, and several with recovery, so a trainer node is a
- * real fight rather than a longer wild one. They sit one level band above the
- * wild pool by tuning, not by stat total.
+ * Better coverage, several with recovery or setup, and a level band above the
+ * wild pool. The sweep says a run that takes every trainer node reaches the gym
+ * 27% of the time against 52% for one that takes wild fights — so the choice
+ * between two fights is already a real one at Stage 1, before tiers and rewards
+ * exist to make it a loud one.
  */
 export const TRAINER_POOL: readonly MonEntry[] = [
-  { id: 'vileplume', species: 'Vileplume', ability: 'Effect Spore', moves: ['Giga Drain', 'Sludge Bomb', 'Moonblast', 'Synthesis'] },
-  { id: 'rapidash', species: 'Rapidash', ability: 'Flash Fire', moves: ['Flare Blitz', 'Wild Charge', 'High Horsepower', 'Morning Sun'] },
-  { id: 'poliwrath', species: 'Poliwrath', ability: 'Water Absorb', moves: ['Waterfall', 'Close Combat', 'Ice Punch', 'Bulk Up'] },
-  { id: 'machamp', species: 'Machamp', ability: 'No Guard', moves: ['Dynamic Punch', 'Knock Off', 'Stone Edge', 'Bulk Up'] },
-  { id: 'muk', species: 'Muk', ability: 'Poison Touch', moves: ['Gunk Shot', 'Shadow Sneak', 'Brick Break', 'Curse'] },
-  { id: 'starmie', species: 'Starmie', ability: 'Natural Cure', moves: ['Hydro Pump', 'Psychic', 'Ice Beam', 'Recover'] },
-  { id: 'ninetales', species: 'Ninetales', ability: 'Flash Fire', moves: ['Flamethrower', 'Dark Pulse', 'Nasty Plot', 'Will-O-Wisp'] },
-  { id: 'golem', species: 'Golem', ability: 'Sturdy', moves: ['Earthquake', 'Stone Edge', 'Heavy Slam', 'Curse'] },
-  { id: 'hypno', species: 'Hypno', ability: 'Insomnia', moves: ['Psychic', 'Shadow Ball', 'Nasty Plot', 'Thunder Wave'] },
-  { id: 'kingler', species: 'Kingler', ability: 'Sheer Force', moves: ['Crabhammer', 'Knock Off', 'X-Scissor', 'Swords Dance'] },
-  { id: 'victreebel', species: 'Victreebel', ability: 'Chlorophyll', moves: ['Leaf Blade', 'Sludge Bomb', 'Knock Off', 'Swords Dance'] },
-  { id: 'magneton', species: 'Magneton', ability: 'Analytic', moves: ['Thunderbolt', 'Flash Cannon', 'Thunder Wave', 'Tri Attack'] },
+  { id: 'vileplume', species: 'Vileplume', ability: 'Effect Spore', moves: ['Mega Drain', 'Sludge', 'Draining Kiss', 'Synthesis'] },
+  { id: 'rapidash', species: 'Rapidash', ability: 'Flash Fire', moves: ['Flame Wheel', 'Stomp', 'Bulldoze', 'Morning Sun'] },
+  { id: 'poliwrath', species: 'Poliwrath', ability: 'Water Absorb', moves: ['Bubble Beam', 'Brick Break', 'Ice Punch', 'Bulk Up'] },
+  { id: 'machamp', species: 'Machamp', ability: 'No Guard', moves: ['Brick Break', 'Knock Off', 'Rock Tomb', 'Bulk Up'] },
+  { id: 'muk', species: 'Muk', ability: 'Poison Touch', moves: ['Sludge', 'Shadow Sneak', 'Brick Break', 'Curse'] },
+  { id: 'starmie', species: 'Starmie', ability: 'Natural Cure', moves: ['Water Pulse', 'Psybeam', 'Icy Wind', 'Recover'] },
+  { id: 'ninetales', species: 'Ninetales', ability: 'Flash Fire', moves: ['Flame Wheel', 'Bite', 'Nasty Plot', 'Will-O-Wisp'] },
+  { id: 'golem', species: 'Golem', ability: 'Sturdy', moves: ['Bulldoze', 'Rock Tomb', 'Headbutt', 'Curse'] },
+  { id: 'hypno', species: 'Hypno', ability: 'Insomnia', moves: ['Psybeam', 'Shadow Ball', 'Nasty Plot', 'Thunder Wave'] },
+  { id: 'kingler', species: 'Kingler', ability: 'Sheer Force', moves: ['Bubble Beam', 'Knock Off', 'Rock Tomb', 'Swords Dance'] },
+  { id: 'victreebel', species: 'Victreebel', ability: 'Chlorophyll', moves: ['Mega Drain', 'Sludge', 'Knock Off', 'Swords Dance'] },
+  { id: 'magneton', species: 'Magneton', ability: 'Analytic', moves: ['Shock Wave', 'Mirror Shot', 'Thunder Wave', 'Tri Attack'] },
 ];
 
 // ---------------------------------------------------------------------------
