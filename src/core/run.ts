@@ -263,6 +263,14 @@ export interface RunPolicy {
 export interface PlayRunOptions {
   /** Fired after every transition, so a UI can render without owning the loop. */
   onState?: (state: RunState) => void;
+  /**
+   * Fired after every decision with the log as it stands.
+   *
+   * This is what makes a mid-run save possible without the caller
+   * reimplementing the loop: the log is complete and replayable at every point
+   * it fires, so writing it straight to storage is enough to resume.
+   */
+  onDecision?: (log: RunLog) => void;
   /** Fired synchronously with a live session the moment a battle starts. */
   onBattle?: (session: BattleSession, node: NodeSpec, state: RunState) => void;
   /** The opponent. Defaults to the greedy AI; a sweep may want something else. */
@@ -292,11 +300,16 @@ export async function playRun(
   const decisions: RunDecision[] = [];
   const opponent = options.opponent ?? greedyAiPolicy;
 
+  const record = (decision: RunDecision): void => {
+    decisions.push(decision);
+    options.onDecision?.({ seed, version: RUN_LOG_VERSION, decisions: [...decisions] });
+  };
+
   let state = createRun(seed, tuning);
   options.onState?.(state);
 
   const starterIndex = await policy.chooseStarter(state.starterOptions);
-  decisions.push({ kind: 'starter', index: starterIndex });
+  record({ kind: 'starter', index: starterIndex });
   state = chooseStarter(state, starterIndex);
   options.onState?.(state);
 
@@ -310,13 +323,12 @@ export async function playRun(
     if (atGym(state)) {
       node = segmentOf(state).gym;
     } else {
-      const options_ = nodeOptions(state);
-      const choice = await policy.chooseNode(options_);
-      decisions.push({ kind: 'node', index: choice });
+      const choice = await policy.chooseNode(nodeOptions(state));
+      record({ kind: 'node', index: choice });
       node = nextNode(state, choice);
     }
 
-    const result = await playNode(state, node, policy, decisions, opponent, options);
+    const result = await playNode(state, node, policy, record, opponent, options);
     state = resolveNode(state, result);
     options.onState?.(state);
   }
@@ -344,7 +356,7 @@ async function playNode(
   state: RunState,
   node: NodeSpec,
   policy: RunPolicy,
-  decisions: RunDecision[],
+  record: (decision: RunDecision) => void,
   opponent: Policy,
   options: PlayRunOptions,
 ): Promise<NodeResult> {
@@ -355,7 +367,7 @@ async function playNode(
   // its answers would be recording the engine's output as though it were input.
   const recording: Policy = async (view) => {
     const choice = await policy.battle(view);
-    decisions.push({ kind: 'battle', choice });
+    record({ kind: 'battle', choice });
     return choice;
   };
 
@@ -391,4 +403,109 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     chooseNode: async () => 0,
     battle,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Save, resume, replay
+// ---------------------------------------------------------------------------
+
+/** Whether a stored log was recorded against this build. */
+export function isReplayable(log: RunLog): boolean {
+  return log.version === RUN_LOG_VERSION;
+}
+
+/**
+ * Reject an incompatible log loudly.
+ *
+ * Stage 0's logs are a different format under a different version string, and
+ * a Stage 3 log will be different again. Replaying one of those against this
+ * build would not fail — it would produce a plausible run that is not the run
+ * the player recorded, which is the worst available outcome. So: refuse, and
+ * say what was found.
+ */
+export function assertReplayable(log: RunLog): void {
+  if (!isReplayable(log)) {
+    throw new Error(`RunLog was recorded on ${log.version}, this build replays ${RUN_LOG_VERSION}`);
+  }
+}
+
+/** A run policy backed by a recorded log, optionally handing over when it runs dry. */
+export interface ReplayRunPolicy extends RunPolicy {
+  /** Decisions not yet consumed. */
+  remaining(): number;
+}
+
+/**
+ * Turn a recorded log back into a policy.
+ *
+ * This is the whole of replay, and the reason it is this small is that a run
+ * *is* a seed plus a decision sequence. There is no saved state to restore and
+ * nothing derived to reconcile: replaying the decisions against the seed
+ * reconstructs the run, or the run was never a function of its inputs.
+ *
+ * `live` is what makes resume different from replay. With it, the log is
+ * consumed first and the player takes over at exactly the point they left off;
+ * without it, running past the end of the log is an error rather than a
+ * silently improvised continuation.
+ */
+export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy {
+  assertReplayable(log);
+  let cursor = 0;
+
+  const next = (kind: RunDecision['kind']): RunDecision | null => {
+    const decision = log.decisions[cursor];
+    if (!decision) return null;
+    if (decision.kind !== kind) {
+      throw new Error(`RunLog is out of step: expected a ${kind} decision at ${cursor}, found ${decision.kind}`);
+    }
+    cursor++;
+    return decision;
+  };
+
+  const exhausted = (kind: string): never => {
+    throw new Error(`RunLog ran out at decision ${cursor}, but the run wanted a ${kind}`);
+  };
+
+  return {
+    remaining: () => Math.max(0, log.decisions.length - cursor),
+    chooseStarter: async (options) => {
+      const decision = next('starter');
+      if (!decision) return live ? live.chooseStarter(options) : exhausted('starter');
+      return decision.kind === 'starter' ? decision.index : exhausted('starter');
+    },
+    chooseNode: async (options) => {
+      const decision = next('node');
+      if (!decision) return live ? live.chooseNode(options) : exhausted('node');
+      return decision.kind === 'node' ? decision.index : exhausted('node');
+    },
+    battle: async (view) => {
+      const decision = next('battle');
+      if (!decision) return live ? live.battle(view) : exhausted('battle');
+      return decision.kind === 'battle' ? decision.choice : exhausted('battle');
+    },
+  };
+}
+
+/** Replay a complete log. The result must match the run that produced it. */
+export function replayRun(
+  log: RunLog,
+  tuning: Tuning = DEFAULT_TUNING,
+  options: PlayRunOptions = {},
+): Promise<RunResult> {
+  return playRun(log.seed, replayRunPolicy(log), tuning, options);
+}
+
+/**
+ * Resume a partial log: replay what was recorded, then hand control to `live`.
+ *
+ * The returned log is the whole run, replayed part included, so saving it again
+ * is the same operation as saving during the original run.
+ */
+export function resumeRun(
+  log: RunLog,
+  live: RunPolicy,
+  tuning: Tuning = DEFAULT_TUNING,
+  options: PlayRunOptions = {},
+): Promise<RunResult> {
+  return playRun(log.seed, replayRunPolicy(log, live), tuning, options);
 }
