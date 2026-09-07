@@ -352,13 +352,22 @@ export async function runBattle(
   seed: string,
   policyA: Policy,
   policyB: Policy,
-  options: { simSeed?: SimSeed } = {},
+  options: {
+    simSeed?: SimSeed;
+    /**
+     * Called once, synchronously, with the session that is about to be played.
+     * The UI needs the session before the battle resolves so it can subscribe
+     * to updates; without this hook it would have to reimplement this loop.
+     */
+    onStart?: (session: BattleSession) => void;
+  } = {},
 ): Promise<BattleRun> {
   const session = createBattle({
     teams: { p1: teamA, p2: teamB },
     seed,
     ...(options.simSeed ? { simSeed: options.simSeed } : {}),
   });
+  options.onStart?.(session);
   const policies: Record<SideId, Policy> = { p1: policyA, p2: policyB };
 
   while (!session.ended) {
