@@ -1,0 +1,35 @@
+{
+  "name": "gymrun",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "GYMRUN — a browser-based seeded Pokemon roguelike. Stage 0.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "check": "npm run lint && tsc --noEmit && vitest run"
+  },
+  "dependencies": {
+    "@pkmn/client": "^0.7.3",
+    "@pkmn/data": "^0.10.11",
+    "@pkmn/dex": "^0.10.11",
+    "@pkmn/protocol": "^0.7.3",
+    "@pkmn/sim": "^0.10.11",
+    "@pkmn/view": "^0.7.3",
+    "@smogon/calc": "^0.11.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^22.19.4",
+    "eslint": "^9.39.1",
+    "jsdom": "^28.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.47.2",
+    "vite": "^7.1.14",
+    "vitest": "^3.2.4"
+  }
+}
