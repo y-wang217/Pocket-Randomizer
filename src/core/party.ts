@@ -124,16 +124,31 @@ const REVIVE_HP_FRACTION = 0.5;
 
 /** A rest node: restore HP and PP, and clear status if the tuning says so. */
 export function restParty(party: readonly PokemonState[], tuning: Tuning): PokemonState[] {
+  return recoverParty(party, tuning.restHpFraction, tuning.restPpFraction, tuning.restClearsStatus);
+}
+
+/**
+ * Restore a fraction of HP and PP. The one healing rule, used by both callers.
+ *
+ * A rest node and a cleared gym are the same operation with different numbers,
+ * and writing the arithmetic twice is how two healing rules quietly diverge.
+ */
+export function recoverParty(
+  party: readonly PokemonState[],
+  hpFraction: number,
+  ppFraction = hpFraction,
+  clearStatus = true,
+): PokemonState[] {
   return party.map((member) => ({
     ...member,
-    hp: Math.min(member.maxHp, member.hp + Math.round(member.maxHp * tuning.restHpFraction)),
-    moves: member.moves.map((move) => restoreMove(move, tuning.restPpFraction)),
-    status: tuning.restClearsStatus ? null : member.status,
-    // A rest that heals also revives. Unreachable in Stage 1 — `betweenNodes`
-    // has already revived, or the party was wiped and the run is over — but
+    hp: Math.min(member.maxHp, member.hp + Math.round(member.maxHp * hpFraction)),
+    moves: member.moves.map((move) => restoreMove(move, ppFraction)),
+    status: clearStatus ? null : member.status,
+    // Healing also revives. Unreachable at party size one — `betweenNodes` has
+    // already revived, or the party was wiped and the run is over — but
     // "restores HP without un-fainting" would be an incoherent state to leave
     // reachable for Stage 4.
-    fainted: tuning.restHpFraction > 0 ? false : member.fainted,
+    fainted: hpFraction > 0 ? false : member.fainted,
   }));
 }
 

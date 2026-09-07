@@ -27,12 +27,37 @@ import { isSpeciesBlacklisted } from './blacklists';
 import { SPECIES_POOL, type SpeciesEntry } from './speciesPools';
 
 /**
- * The bands a starter is drawn from.
+ * The species bands a starter is drawn from.
  *
  * The one place the randomizer deliberately favours the player, and the number
  * to move if the simulator says gym 1 is either a formality or a wall.
  */
 export const STARTER_BANDS: readonly number[] = [3, 4];
+
+/**
+ * The move bands a starter's kit is drawn from.
+ *
+ * **Not segment 0's bands, and the difference is the single largest balance
+ * finding of Stage 2.** The first cut rolled the starter's moves from the
+ * segment it appears in, which reads as obviously correct and is a trap: the
+ * player keeps that kit for the whole run, with no XP, no move relearner and
+ * no rewards until Stage 3, while every opponent's kit climbs to band 3 by
+ * segment 6. The player was fighting segment 8 with segment 1's moves.
+ *
+ * The simulator measured it as a 9% chance of losing *any given ordinary
+ * fight*, which compounds to a run that never sees gym 4 — and it read as a
+ * level-curve problem right up until the per-node death counts said two thirds
+ * of deaths happened at wild and trainer nodes rather than at gyms.
+ *
+ * So the starter's kit is drawn from the *whole run's* range instead. It is
+ * strong at segment 1 and ordinary by segment 8, which is the correct shape for
+ * a resource the player cannot upgrade.
+ *
+ * Stage 3 is where this stops being a constant: once rewards can hand out
+ * moves, the starting kit can be weak again because the player has a way to
+ * fix it.
+ */
+export const STARTER_MOVE_BANDS: readonly number[] = [1, 2, 3];
 
 const BASE: readonly SpeciesEntry[] = SPECIES_POOL.filter(
   (entry) => STARTER_BANDS.includes(entry.band) && !isSpeciesBlacklisted(entry.id),

@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { describeSpec } from '../src/core/battle/driver';
 import { generateSegment, generateStarterOptions, nodesOf, type Segment } from '../src/core/encounters';
 import { createRng } from '../src/core/rng';
-import { playerLevel, starterLevel } from '../src/data/scaling';
+import { playerLevel, segmentScaling, starterLevel } from '../src/data/scaling';
 import { getStarterPool } from '../src/data/starters';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
@@ -134,15 +134,26 @@ describe('generation rules', () => {
   it('scales encounter levels with the segment index', () => {
     // The generator takes an index and uses it, which is the difference between
     // something Stage 2 could call in a loop and something it had to rewrite.
-    // Asserted against the curve table rather than against a multiplication,
-    // because the curve is a table now and is allowed to bend.
+    //
+    // Asserted against the curve *table* rather than against a formula. The
+    // curve is eight hand-tuned rows now and is allowed to bend anywhere; a
+    // test that encoded "player level minus at most eight" would be a second,
+    // stale copy of the balance data, and would fail the next tuning pass for
+    // no reason.
+    const gymLevels: number[] = [];
     for (const index of [0, 3, 7]) {
+      const row = segmentScaling(index);
       const segment = generateSegment(index, createRng(`RULES-SCALE-${index}`), DEFAULT_TUNING);
       for (const member of segment.gym.encounter?.team ?? []) {
-        expect(member.level).toBeLessThanOrEqual(playerLevel(index));
-        expect(member.level).toBeGreaterThan(playerLevel(index) - 8);
+        expect(member.level).toBeGreaterThanOrEqual(row.playerLevel + row.levelOffset.gym.min);
+        expect(member.level).toBeLessThanOrEqual(row.playerLevel + row.levelOffset.gym.max);
       }
+      gymLevels.push(segment.gym.encounter?.team[0]?.level ?? 0);
+      expect(playerLevel(index)).toBe(row.playerLevel);
     }
+    // And the index genuinely moves the numbers rather than being accepted and
+    // ignored, which is what the Stage 1 version of this test was really for.
+    expect(new Set(gymLevels).size).toBe(gymLevels.length);
   });
 
   it('keeps the starter pool additive, so unlocks cannot reshape a recorded seed', () => {

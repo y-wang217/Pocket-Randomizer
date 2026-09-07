@@ -79,50 +79,74 @@ export interface SegmentScaling {
 }
 
 /**
- * The curve.
+ * The curve. Every number here is the output of `npm run sim`, not of taste.
  *
- * These numbers are the output of `npm run sim`, not of taste. The starting
- * hypothesis — gyms 1-3 fielding one or two, gyms 6-8 fielding three, with the
- * player healing between encounters — survived first contact; see
- * docs/balance.md for the report that moved the rest.
+ * The starting hypothesis was the right shape and the wrong numbers, which is
+ * what the simulator is for. What it measured, in the order the report found it:
+ *
+ * **Team size is the dominant lever at PARTY_SIZE 1, and it has to be paid
+ * for.** Gyms 1-3 at one or two Pokemon and 6-8 at three was the guess. It is
+ * still the shape below — but the first cut kept the gym's level offset flat
+ * across that step, and the clear rate fell 42 points at gym 3 and to zero at
+ * gym 6. A solo Pokemon beating three at its own level is not a difficulty
+ * curve. So each step up in team size is paid for with a step down in level:
+ * one Pokemon at the player's level, two around nine levels below, three around
+ * sixteen to twenty-one below. That turns team size into *texture* — more
+ * matchups, more PP spent, more turns — instead of a multiplier.
+ *
+ * **Offsets have to grow with level.** A flat -8 is 27% of the level at segment
+ * 1 and 11% of it at segment 8, so a flat curve gets harder for a reason nobody
+ * chose. Every offset column below widens as the run goes on, and that single
+ * change moved the per-fight death rate from 9% to 4%.
+ *
+ * **Move bands matter more than levels.** Stage 1 found that a fully evolved
+ * Pokemon's best move one-shots another one, so a level gap only decides who
+ * does the one-shotting. Capping opponent base power early is what buys a fight
+ * that lasts more than a turn; the shipped bands keep segments 1-2 under 55 BP
+ * and only let band 3 — the 100+ BP moves — into the last two segments, where
+ * the level gap is wide enough to absorb them.
+ *
+ * The two changes that were *not* in this table and mattered most are recorded
+ * where they live: `STARTER_MOVE_BANDS` in data/starters.ts and
+ * `gymClearHealFraction` in data/tuning.ts. docs/balance.md has the report.
  */
 export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 0,
     playerLevel: 30,
-    levelOffset: { wild: { min: -8, max: -6 }, trainer: { min: -7, max: -5 }, rest: { min: 0, max: 0 }, gym: { min: -4, max: -3 } },
+    levelOffset: { wild: { min: -8, max: -6 }, trainer: { min: -7, max: -5 }, rest: { min: 0, max: 0 }, gym: { min: -1, max: 0 } },
     speciesBands: [0, 1],
-    moveBands: [0, 1],
+    moveBands: [0],
     teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 0 },
   },
   {
     segment: 1,
     playerLevel: 36,
-    levelOffset: { wild: { min: -8, max: -6 }, trainer: { min: -7, max: -5 }, rest: { min: 0, max: 0 }, gym: { min: -4, max: -3 } },
+    levelOffset: { wild: { min: -10, max: -7 }, trainer: { min: -8, max: -6 }, rest: { min: 0, max: 0 }, gym: { min: -2, max: -1 } },
     speciesBands: [0, 1, 2],
-    moveBands: [0, 1],
+    moveBands: [0],
     teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 0 },
   },
   {
     segment: 2,
     playerLevel: 42,
-    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -6, max: -4 }, rest: { min: 0, max: 0 }, gym: { min: -3, max: -2 } },
+    levelOffset: { wild: { min: -12, max: -9 }, trainer: { min: -10, max: -7 }, rest: { min: 0, max: 0 }, gym: { min: -9, max: -7 } },
     speciesBands: [1, 2],
-    moveBands: [0, 1, 2],
+    moveBands: [0, 1],
     teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 1 },
   },
   {
     segment: 3,
     playerLevel: 48,
-    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -6, max: -4 }, rest: { min: 0, max: 0 }, gym: { min: -3, max: -2 } },
+    levelOffset: { wild: { min: -14, max: -10 }, trainer: { min: -11, max: -8 }, rest: { min: 0, max: 0 }, gym: { min: -10, max: -8 } },
     speciesBands: [1, 2],
-    moveBands: [1, 2],
+    moveBands: [0, 1],
     teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 1 },
   },
   {
     segment: 4,
     playerLevel: 54,
-    levelOffset: { wild: { min: -6, max: -4 }, trainer: { min: -5, max: -3 }, rest: { min: 0, max: 0 }, gym: { min: -2, max: -1 } },
+    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -13, max: -9 }, rest: { min: 0, max: 0 }, gym: { min: -16, max: -13 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
     teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 1 },
@@ -130,25 +154,25 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 5,
     playerLevel: 60,
-    levelOffset: { wild: { min: -6, max: -4 }, trainer: { min: -5, max: -3 }, rest: { min: 0, max: 0 }, gym: { min: -2, max: -1 } },
+    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -14, max: -10 }, rest: { min: 0, max: 0 }, gym: { min: -18, max: -14 } },
     speciesBands: [2, 3],
-    moveBands: [1, 2, 3],
+    moveBands: [1, 2],
     teamAdvantage: { wild: 0, trainer: 1, rest: 0, gym: 2 },
   },
   {
     segment: 6,
     playerLevel: 66,
-    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, rest: { min: 0, max: 0 }, gym: { min: -1, max: 0 } },
+    levelOffset: { wild: { min: -19, max: -14 }, trainer: { min: -16, max: -11 }, rest: { min: 0, max: 0 }, gym: { min: -19, max: -15 } },
     speciesBands: [3, 4],
-    moveBands: [2, 3],
+    moveBands: [1, 2, 3],
     teamAdvantage: { wild: 0, trainer: 1, rest: 0, gym: 2 },
   },
   {
     segment: 7,
     playerLevel: 72,
-    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, rest: { min: 0, max: 0 }, gym: { min: -1, max: 0 } },
+    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -12 }, rest: { min: 0, max: 0 }, gym: { min: -21, max: -16 } },
     speciesBands: [3, 4],
-    moveBands: [2, 3],
+    moveBands: [1, 2, 3],
     teamAdvantage: { wild: 0, trainer: 1, rest: 0, gym: 2 },
   },
 ];

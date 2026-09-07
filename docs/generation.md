@@ -52,14 +52,23 @@ on, and the option count is capped at the number of kinds available. The map
 hides encounter contents, so two wild nodes side by side read as one option
 printed twice — that is not a choice, it is a choice-shaped rectangle.
 
-### Pass 2 — contents, from the `map` stream
+### Pass 2 — contents, from the `randomizer` stream
 
 For each node, in index order (step 0 option 0, step 0 option 1, …, then the
-gym): the species, drawn from the pool for its kind, and the level.
+gym): the whole team, member by member. Within a member the order is species,
+level, ability, then moves in slot order.
 
 This runs after pass 1 completes, which is what lets the rest fix-up rewrite a
 node's kind: at the point the fix-up runs, nothing has yet been drawn for that
 node's contents, so changing its kind does not strand a draw.
+
+**The stream changed in Stage 2** — from `map` to `randomizer` — and that is the
+change the whole stage rests on. A randomizer adds draws constantly (a fourth
+move slot, a tier modifier, a bigger gym team), and every one of them would
+otherwise have shifted the *shape* of every map generated after it. The shape is
+now fixed by `map` and the contents by `randomizer`, and neither can move the
+other. `test/randomizer.test.ts` asserts it directly rather than trusting it to
+the construction.
 
 ### Pass 3 — sim seeds, from the `battle` stream
 
@@ -76,21 +85,33 @@ a distinct seed.
 
 ### Before all of it — starter options
 
-`generateStarterOptions` draws from the `map` stream **before** the first
-segment, so adding a starter to the pool changes what a recorded seed offers but
+`generateStarterOptions` draws from the `randomizer` stream **before** the first
+segment, so widening the starter pool changes what a recorded seed offers but
 does not reshape its map.
+
+The player's Pokemon is randomized like everything else — species, ability and
+moveset. A randomizer where the opponents are randomized and the player's
+Pokemon is a curated set piece is a game about reacting to chaos rather than a
+game about playing it. The one concession is the band window in
+`data/starters.ts`, which is also Stage 5's unlock seam.
 
 ## 3. Levels
 
 ```
-segment base level = tuning.starterLevel + segmentIndex * tuning.levelPerSegment
-encounter level    = segment base level + draw(tuning.levelOffset[kind])
+player level    = scaling.SEGMENTS[segment].playerLevel
+encounter level = player level + draw(scaling.SEGMENTS[segment].levelOffset[kind])
 ```
 
-`generateSegment` takes the segment index and uses it, even though Stage 1 only
-ever passes `0`. Stage 2 turns on eight segments by calling it in a loop.
+Stage 1 computed this as `starterLevel + segmentIndex * levelPerSegment`. It is
+an eight-row table now, because a multiplication is a straight line and a
+straight line is the one difficulty curve you cannot bend at the segment the
+report says is a cliff.
 
-The offsets that ship were measured, not guessed — see §6.
+There is no XP and no grinding. The player's level is a pure function of segment
+index and moves exactly once per segment, when a gym falls. Encounters chosen
+within a segment affect *what you get*, not *how strong you are*.
+
+The offsets that ship were measured, not guessed — see docs/balance.md.
 
 ## 4. Guarantees generation makes
 
@@ -124,50 +145,40 @@ so, rather than replayed into a plausible run the player never played.
 
 ## 6. The tuning, and how it was arrived at
 
-`npm run sweep` plays N runs headless under three playstyles and reports what
-happened. Any dotted `Tuning` path can be overridden on the command line:
+`npm run sim -- --seeds 1000` plays a thousand full runs headless under two
+policies and reports the distribution. **docs/balance.md carries the report and
+the four findings that moved the numbers**; this section says only where the
+numbers live.
 
-```sh
-npm run sweep                                        # 200 runs, shipped tuning
-npm run sweep -- 500 stepsPerSegment.min=4           # 500 runs, shorter segments
-npm run sweep -- 200 levelOffset.gym.min=0 levelOffset.gym.max=0
-```
+| file | holds |
+|---|---|
+| `data/scaling.ts` | the curve: eight rows of level, band window and team size |
+| `data/starters.ts` | what the player begins with, including the move band |
+| `data/tuning.ts` | map shape, rest, and recovery between segments |
+| `data/blacklists.ts` | the exceptions, each with the evidence that earned it |
+| `data/speciesPools.ts`, `data/movePools.ts`, `data/abilities.ts` | generated from the dex by `npm run gen:pools`; the inventory, not the levers |
 
-At the shipped tuning (60 runs per playstyle):
+If a balance pass ever requires editing `core/randomizer.ts`, the split between
+logic and data is wrong and that is the bug to fix first.
 
-| playstyle | win | turns/fight | rests | HP at gym | reached gym |
-|---|---|---|---|---|---|
-| rest whenever offered | 62% | 1.8 | 4.0 | 94% | 92% |
-| never rest | 35% | 1.6 | 0.2 | 35% | 52% |
-| always take the trainer | 17% | 1.7 | 0.2 | 53% | 27% |
+## 7. Versioning, and the thing that silently breaks a seed
 
-Read that as three claims: resting is worth a turn, attrition is what ends runs
-rather than any single fight, and the trainer/wild choice already has teeth.
+A `RunLog` carries three strings:
 
-### The finding that changed the data
+- `seed` — the run.
+- `version` — the log format and the engine. Moves when a decision sequence
+  would replay differently because the *engine* changed.
+- `randomizerVersion` — the data and the draw order. Moves when a tuning pass
+  changes what a seed *rolls*.
 
-The first encounter pools gave every Pokemon its best move — Crunch, Close
-Combat, Gunk Shot. The sweep measured fights lasting **1.5 turns at every level
-spread tried**, from near-parity to a ten-level gap. At level 30 with 31 IVs and
-no EVs, a fully evolved Pokemon's best move one-shots another fully evolved
-Pokemon, so widening the level gap only changed *which* side did the
-one-shotting.
+The second one is the interesting addition. A band window widened in
+`scaling.ts` leaves every recorded decision sequence perfectly replayable and
+quietly reinterprets it as a completely different run — the worst available
+outcome for a game whose whole promise is that a shared seed is a shared run.
+So it is checked separately, with its own message, and a mismatch throws rather
+than replaying.
 
-Dropping the encounter kits to 40–70 BP is what actually bought a fight longer
-than one turn. The level offsets then set the difficulty on top of that.
-
-### Still open after Stage 1
-
-**Fights are short.** 1.8 turns is better than 1.5 and it is not yet a fight
-with a shape — there is rarely a turn where the player is choosing between two
-plausible moves. The remaining causes are structural rather than tuneable: no EV
-or IV spreads (so bulk is at its floor), and one Pokemon a side (so there is no
-switch to make and no reason to set up). Stage 4's party slots address the
-second directly. Until then, the honest reading is that a Stage 1 node is a
-short exchange whose outcome is mostly decided by the matchup, and the *run* is
-the interesting unit rather than the battle.
-
-**Segment length.** 6–8 steps at the shipped tuning takes a run to roughly
-7 nodes and 12 turns of battle. That is short enough to replay and long enough
-for the HP bar to matter. Whether it is *too* short is the thing to watch in
-playtest; `stepsPerSegment` is one override away.
+Bump `RANDOMIZER_VERSION` in `core/randomizer.ts` for: a regenerated pool, a
+moved band window, a changed level curve, a new draw inside `rollMoveset`, a
+reordered data table. It went to `-2` on the first balance pass, where not one
+draw changed position and every seed rolled a different team anyway.

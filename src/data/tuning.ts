@@ -66,6 +66,27 @@ export interface Tuning {
   restHpFraction: number;
   /** Fraction of max PP a rest node restores. */
   restPpFraction: number;
+  /**
+   * Fraction of max HP and PP restored when a gym falls and a segment ends.
+   *
+   * The knob that made an eight-segment run survivable on one Pokemon, and the
+   * second-largest balance finding of Stage 2. The simulator's diagnosis was
+   * unambiguous: 80% of the runs that ended at an ordinary node entered that
+   * node already damaged, and half of those below 40% HP. Attrition was not
+   * pressure, it was a countdown — every segment started poorer than the last
+   * and the run was decided somewhere around segment 3 regardless of play.
+   *
+   * Healing at the gym makes each segment its own attrition budget instead of
+   * one eight-segment budget. That is also what the genre it is borrowing from
+   * does: you clear a gym, you visit the Pokemon Center. Rest nodes still carry
+   * the *within*-segment tension, which is where a choice between two nodes can
+   * actually be interesting.
+   *
+   * Set below 1 to make late segments start on a deficit; set to 0 for the
+   * original behaviour, which the simulator measured at a 2.5% completion rate
+   * against a 5-15% target.
+   */
+  gymClearHealFraction: number;
   /** Whether a rest node also clears status. */
   restClearsStatus: boolean;
   /**
@@ -105,7 +126,11 @@ export interface Tuning {
  * Measured with `npm run sim`, not guessed; docs/balance.md carries the report.
  */
 export const DEFAULT_TUNING: Tuning = {
-  stepsPerSegment: { min: 6, max: 8 },
+  // Six to eight steps was sized for Stage 1's *single* segment. Eight of those
+  // is a sixty-node run on one Pokemon, which the simulator measured as an
+  // attrition countdown rather than a curve. Four to five puts a full run at
+  // roughly forty nodes, which is the length the genre actually uses.
+  stepsPerSegment: { min: 4, max: 5 },
   nodeChoiceCount: { min: 2, max: 3 },
   nodeWeights: { wild: 5, trainer: 3, rest: 2 },
   restEarliestStep: 1,
@@ -114,6 +139,7 @@ export const DEFAULT_TUNING: Tuning = {
 
   restHpFraction: 1,
   restPpFraction: 1,
+  gymClearHealFraction: 1,
   restClearsStatus: true,
   clearStatusBetweenNodes: true,
   reviveFaintedBetweenNodes: true,

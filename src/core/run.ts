@@ -34,6 +34,7 @@ import {
   createParty,
   isWiped,
   levelParty,
+  recoverParty,
   restParty,
 } from './party';
 import { RANDOMIZER_VERSION } from './randomizer';
@@ -314,7 +315,14 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      */
     return {
       ...state,
-      party: levelParty(betweenNodes(party, state.tuning), playerLevel(nextSegment)),
+      // Order matters: fold in the node, then heal, then level. Healing before
+      // levelling means the fraction `levelParty` carries is the healed one, so
+      // a full heal at the gym really is full at the new level rather than
+      // full-at-the-old-max rounded down.
+      party: levelParty(
+        recoverParty(betweenNodes(party, state.tuning), state.tuning.gymClearHealFraction),
+        playerLevel(nextSegment),
+      ),
       history,
       currentSegment: nextSegment,
       position: 0,

@@ -57,7 +57,7 @@ import {
   speciesBandsFor,
 } from '../data/scaling';
 import { SPECIES_POOL, type SpeciesEntry } from '../data/speciesPools';
-import { getStarterPool } from '../data/starters';
+import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
 
 /**
  * The version of *what a seed rolls*.
@@ -71,8 +71,13 @@ import { getStarterPool } from '../data/starters';
  * It is deliberately *not* derived from a hash of the data files. A hash would
  * fire on a comment change and would not fire on a change to draw order in
  * this file, which is exactly backwards.
+ *
+ * Went to 2 when the first balance pass moved the band windows and the level
+ * curve in data/scaling.ts. Not one draw changed position; every seed rolled a
+ * different team anyway, which is precisely the class of change this string
+ * exists to catch.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-1';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-2';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -126,7 +131,11 @@ function gymSpeciesFor(gym: GymDefinition, segment: number, tier: Tier): Species
 }
 
 function damagingFor(segment: number, tier: Tier): MoveEntry[] {
-  const bands = new Set(moveBandsFor(segment, tier));
+  return damagingInBands(moveBandsFor(segment, tier));
+}
+
+function damagingInBands(allowed: readonly number[]): MoveEntry[] {
+  const bands = new Set(allowed);
   const inBand = DAMAGING_MOVES.filter((move) => bands.has(move.band) && !isMoveBlacklisted(move.id));
   // Every band has all eighteen types (asserted in test/randomizer.test.ts), so
   // this is a guard against a blacklist emptying a window rather than a
@@ -319,7 +328,10 @@ export function generateStarters(
   unlocked?: readonly string[],
 ): PokemonSpec[] {
   const pool = getStarterPool(unlocked);
-  const damaging = damagingFor(0, 'normal');
+  // The whole run's move range, not segment 0's. The player cannot upgrade this
+  // kit until Stage 3 adds rewards; see STARTER_MOVE_BANDS for the measurement
+  // that made this the largest single balance change of the stage.
+  const damaging = damagingInBands(STARTER_MOVE_BANDS);
   const stream = rng.randomizer;
   const picked: PokemonSpec[] = [];
   const seen = new Set<string>();
