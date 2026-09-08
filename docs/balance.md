@@ -402,40 +402,50 @@ they were.
 
 ### 7.5 The shipped numbers
 
-800-600 seeds, `switch-aware`, `rest` node policy, `PARTY_SIZE = 3`:
+`npm run sim -- --seeds 1000 --policy switching`, `rest` node policy,
+`PARTY_SIZE = 3`, `gymrun-ai-2-switching`:
 
 | gym | clear rate | drop |
 |---|---|---|
-| 1 | 94% | — |
-| 2 | 84% | -10pt |
-| 3 | 75% | -9pt |
-| 4 | 86% | +11pt |
-| 5 | 77% | -9pt |
-| 6 | 73% | -4pt |
-| 7 | 78% | +5pt |
-| 8 | 67% | -11pt |
+| 1 | 95% | — |
+| 2 | 83% | -12pt |
+| 3 | 76% | -7pt |
+| 4 | 85% | +9pt |
+| 5 | 74% | -11pt |
+| 6 | 72% | -2pt |
+| 7 | 74% | +2pt |
+| 8 | 72% | -2pt |
 
-**Run completion 10.0%**, mean 3.28 gyms of eight.
+**Run completion 9.7%**, mean 3.24 gyms of eight.
 
 | target | shipped |
 |---|---|
-| completion back inside 5-15% | 10.0% |
-| no gym drops more than ~25 points | worst drop 11pt |
-| players fill the party in most runs | 51% |
-| median switches per battle above 0, below ~1 | mean 0.34, median 0 |
+| completion back inside 5-15% | 9.7% |
+| no gym drops more than ~25 points | worst drop 12pt |
+| players fill the party in most runs | 55% |
+| median switches per battle above 0, below ~1 | mean 0.32, median 0, 22% of battles |
 | `switch-aware` beats `no-switch` by a visible margin | **not met — see §7.6** |
+
+Two of those deserve their caveat rather than a tick. **55% is "half", not
+"most"** — though a run that dies at gym 1 never had the nodes to fill anything,
+so the figure is part survivorship. And **the median is 0 rather than above
+it**: the mean sits in the band the spec asks for, but most individual battles
+contain no switch at all. Both are honest reads of a mechanic that, per §7.6,
+is not yet paying for itself.
 
 ### 7.6 Switching does not pay, and the honest answer is to say so
 
 This is the stage's headline done-condition and it is not met.
 
-| | completion | mean gyms |
+| 1000 seeds | completion | mean gyms |
 |---|---|---|
-| `switch-aware` | 10.0% | 3.28 |
-| `no-switch` | 11.2% | 3.34 |
+| `switch-aware` | 9.7% | 3.24 |
+| `no-switch` | 10.6% | 3.31 |
 
-A 1.2-point gap in the *wrong* direction, which at 600 seeds is inside noise.
-The honest summary is that switching is currently worth nothing to the player.
+A 0.9-point gap in the *wrong* direction, which at a thousand seeds is inside
+noise. The honest summary is that switching is currently worth nothing to the
+player — not that it is harmful, but that a run played with the bench visible
+and a run played without it end the same way.
 
 It was worth much less than nothing at first. The original scoring compared a
 switch against a move **on a one-turn horizon**, which a switch can never win —
