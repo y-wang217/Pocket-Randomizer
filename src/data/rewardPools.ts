@@ -214,6 +214,38 @@ const ELITE: readonly RewardBand[] = [
   },
 ];
 
+/**
+ * How often a wild node offers the species it just fielded, by tier.
+ *
+ * **Keyed to tier and not to segment, which is the same rule the reward pools
+ * follow.** The tier is what the player can see before they choose the node, so
+ * it is the only thing an acquisition rate may key off if the map is going to
+ * show the trade. A rate that climbed with segment index would make late wild
+ * nodes quietly better than early ones for a reason nothing on screen says.
+ *
+ * The gradient is steep on purpose. A `normal` wild node is the option you take
+ * when you cannot afford the fight beside it; an `elite` one is the option you
+ * take *for* this. That is the same shape as the reward pools — the higher
+ * tiers pay in things that do not saturate — and a party slot is the least
+ * saturating reward in the game while there are slots left.
+ *
+ * These are the Stage 4 starting numbers and the simulator is what settles
+ * them. The metric that judges them is the share of runs that ever fill the
+ * party: if players routinely reach gym 4 on one Pokemon, these are too low,
+ * and if the party is full by segment 1 the release choice never carries any
+ * weight.
+ */
+const ENCOUNTER_ACQUISITION_RATE: Record<Tier, number> = {
+  normal: 0.25,
+  hard: 0.4,
+  elite: 0.6,
+};
+
+/** The chance a won wild node of this tier offers its species. */
+export function encounterAcquisitionRate(tier: Tier): number {
+  return ENCOUNTER_ACQUISITION_RATE[tier];
+}
+
 export const REWARD_POOLS: Record<Tier, readonly RewardBand[]> = {
   normal: NORMAL,
   hard: HARD,

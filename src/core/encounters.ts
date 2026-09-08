@@ -23,6 +23,10 @@
  *   4. `rewards` stream: per node in index order — the three-card offer for a
  *      node with a tier, the stock for a shop, the resolved outcomes for an
  *      event. One sweep, so all three share one draw order.
+ *   5. `rewards` stream again: one roll per wild node, in index order, for
+ *      whether it offers its species. Always exactly one roll per wild node,
+ *      whether or not the offer appears — a check that only rolled when it
+ *      might succeed would make the draw count depend on the tier table.
  *
  * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
  * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
@@ -46,8 +50,18 @@
  * document exists. Drawing an offer when the node is *completed* would make the
  * roll depend on how the battle went — how many turns it ran, how many damage
  * rolls the sim consumed — and the reward a seed pays out would quietly become
- * a function of play. It is last because it is the newest: appending a pass
- * cannot move the three that came before it.
+ * a function of play.
+ *
+ * Pass 5 is Stage 4's: one roll per wild node for whether it offers the species
+ * it just fielded. Same rule as pass 4 and the same stream, and a *separate
+ * sweep* rather than a branch inside it — because appending is the only edit to
+ * this list that cannot move what came before it. Folding the roll into pass 4
+ * would produce identical output today and couple the two draw orders forever,
+ * so the next change to reward offers would silently reshuffle every
+ * acquisition in every recorded seed.
+ *
+ * Each new pass goes on the end for exactly that reason. That is the whole
+ * discipline: the list only ever grows downward.
  */
 import {
   generateGymTeam,
@@ -55,6 +69,7 @@ import {
   generateTrainerTeam,
   generateWildTeam,
 } from './randomizer';
+import { generateEncounterAcquisition, type AcquisitionOffer } from './acquisition';
 import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
 import { generateRewardOffer, type RewardOffer } from './rewards';
@@ -128,6 +143,17 @@ export interface NodeSpec {
    * same result.
    */
   event: EventInstance | null;
+  /**
+   * The Pokemon this node offers if the player wins, or null.
+   *
+   * Wild nodes only, and drawn at map generation like every other offer — see
+   * `core/acquisition.ts`. **Whether it appears cannot depend on how the battle
+   * went, only on whether it was won.** A rate check rolled at node completion
+   * would make the number of `rewards` draws a function of play, and every seed
+   * recorded before a change to battle length would replay with a different set
+   * of acquisitions.
+   */
+  acquisition: AcquisitionOffer | null;
 }
 
 export interface Step {
@@ -308,6 +334,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     reward: null,
     shop: null,
     event: null,
+    acquisition: null,
   };
 
   const segment: Segment = {
@@ -332,6 +359,24 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     if (node.tier) node.reward = generateRewardOffer(node.id, node.tier, index, rng, tuning);
     else if (node.kind === 'shop') node.shop = generateShopStock(node.id, index, rng, tuning);
     else if (node.kind === 'event') node.event = generateEvent(node.id, rng, tuning);
+  }
+
+  // --- pass 5: encounter acquisitions, also from the `rewards` stream -------
+  /*
+   * A fifth sweep rather than a branch inside pass 4, and appended rather than
+   * interleaved, for the reason the whole contract exists: appending a pass
+   * cannot move the four that came before it. Folding the roll into pass 4
+   * would be identical output today and would couple the two draw orders
+   * forever — the next change to reward offers would silently reshuffle every
+   * acquisition in every recorded seed.
+   *
+   * Wild nodes only: a trainer does not hand over their Pokemon, and a gym
+   * leader certainly does not.
+   */
+  for (const node of nodesOf(segment)) {
+    const lead = node.encounter?.team[0];
+    if (node.kind !== 'wild' || !node.tier || !lead) continue;
+    node.acquisition = generateEncounterAcquisition(node.id, lead, node.tier, index, rng.rewards);
   }
   return segment;
 }
@@ -435,7 +480,17 @@ function buildNode(
     // Contents for these are pass 4's job: a shop's shelf and an event's
     // outcomes both come off the `rewards` stream, and drawing them here would
     // interleave that stream with the `randomizer` draws around it.
-    return { id, kind, tier: null, label: NON_BATTLE_LABELS[kind], encounter: null, reward: null, shop: null, event: null };
+    return {
+      id,
+      kind,
+      tier: null,
+      label: NON_BATTLE_LABELS[kind],
+      encounter: null,
+      reward: null,
+      shop: null,
+      event: null,
+      acquisition: null,
+    };
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
 
@@ -457,6 +512,7 @@ function buildNode(
     reward: null,
     shop: null,
     event: null,
+    acquisition: null,
   };
 }
 

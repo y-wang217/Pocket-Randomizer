@@ -149,6 +149,35 @@ fixed index order, so a variable count inside one node shifts only that node's
 successors on that one stream. What it must never do is move `map`,
 `randomizer` or `battle`, and it cannot: it never touches them.
 
+### Pass 5 — encounter acquisitions, from the `rewards` stream again
+
+One roll per **wild** node, in node index order, deciding whether that node
+offers the Pokemon it just fielded. Trainers and gyms take no roll: a trainer
+does not hand over their team and a gym leader certainly does not.
+
+The offer is the node's own lead, re-levelled to `joinLevelFor(segment)` —
+**not a fresh roll**. That is what "no new species generation path" means
+concretely: the team was generated in pass 2 from `randomizer`, and this reads
+it back. A second path would be a second set of rules for what a wild Pokemon
+is, and the first divergence between them would be invisible.
+
+Two properties matter, and both are asserted in `test/party.test.ts`:
+
+- **Exactly one roll per wild node, whether or not the offer appears.** A check
+  that only rolled when it might succeed would make the draw *count* depend on
+  the tier table, so editing `ENCOUNTER_ACQUISITION_RATE` would shift every
+  later reward roll in every recorded seed.
+- **Whether an offer appears cannot depend on how the battle went** — only on
+  whether it was won. That is pass 4's rule one level down, and the reason
+  this is a generation pass rather than something `resolveNode` decides.
+
+It is a fifth *sweep* rather than a branch inside pass 4, even though both use
+the same stream. Folding it in would produce identical output today and couple
+the two draw orders forever: the next change to reward offers would silently
+reshuffle every acquisition in every recorded seed. Appending is the only edit
+to this list that cannot move what came before it, which is the whole
+discipline — **the list only ever grows downward.**
+
 ### Node kinds
 
 Stage 3 took the choosable kinds from three to five:
@@ -256,6 +285,9 @@ The offsets that ship were measured, not guessed — see docs/balance.md.
 | Every *fight* carries a `tier`, and nothing else does | A rest node and a gym have `tier: null`, not `'normal'`. Stage 3 keys reward pools off the tier, and `REWARD_POOLS[node.tier]` on a `'normal'` rest node would compile perfectly and be wrong. Absence makes it a type error at the call site |
 | A step's fights carry different tiers | The tier is the whole of what the player can see about a node's trade. Two `hard` fights in one step is a decision-shaped rectangle |
 | `elite` never appears in segments 0-1 | Not for fairness — the player can decline it — but for legibility. A tier label is worthless to someone with no baseline for what a normal fight costs |
+| Only wild nodes carry an `acquisition` | A trainer does not hand over their Pokemon, and the offer is the *defeated* species, so a node with no encounter has nothing to offer |
+| An acquisition offer is the node's own lead, re-levelled | One species generation path, not two. See pass 5 |
+| The party can never exceed `PARTY_SIZE` | Enforced in `acquisition.applyAcquisition`, which *refuses* an illegal decision rather than clamping it — a decision silently turned into a different decision is a log that replays into a different run |
 
 ## 5. What a seed does *not* fix
 

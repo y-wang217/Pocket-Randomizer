@@ -89,9 +89,17 @@ describe('reward offers', () => {
     }
   });
 
-  it('keeps species rewards off the table until the tuning says otherwise', () => {
-    // The gate is applied at the *draw*, not at the application. A card the
-    // player can pick that then does nothing is worse than one never dealt.
+  it('gates species rewards on the tuning flag, in both directions', () => {
+    /*
+     * The gate is applied at the *draw*, not at the application. A card the
+     * player can pick that then does nothing is worse than one never dealt.
+     *
+     * Both directions asserted against an explicit flag rather than against the
+     * default, which flipped to on in Stage 4 — a party is somewhere to put an
+     * acquired Pokemon, which is the condition Stage 3 said to wait for. A test
+     * written against the default would have gone quiet at that moment instead
+     * of failing.
+     */
     const kinds = (tuning: typeof DEFAULT_TUNING): Set<string> => {
       const seen = new Set<string>();
       for (const seed of seeds) {
@@ -99,8 +107,10 @@ describe('reward offers', () => {
       }
       return seen;
     };
-    expect(kinds(DEFAULT_TUNING).has('species')).toBe(false);
+    expect(kinds(withTuning({ allowSpeciesRewards: false })).has('species')).toBe(false);
     expect(kinds(withTuning({ allowSpeciesRewards: true })).has('species')).toBe(true);
+    // And the shipped default is on, which is the Stage 4 change itself.
+    expect(DEFAULT_TUNING.allowSpeciesRewards).toBe(true);
   });
 
   it('pays elite nodes from a strictly better table than normal ones', () => {

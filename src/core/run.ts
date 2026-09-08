@@ -37,10 +37,17 @@ import {
   recoverParty,
   restParty,
 } from './party';
+import {
+  applyAcquisition,
+  decisionRefusal,
+  hasRoom,
+  type AcquisitionDecision,
+  type AcquisitionOffer,
+} from './acquisition';
 import { RANDOMIZER_VERSION } from './randomizer';
 import { applyPurchases, nodePayout, type ShopStock } from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
-import { applyReward, type Reward, type RewardOffer } from './rewards';
+import { applyReward, isTargeted, type Reward, type RewardOffer, type TargetedReward } from './rewards';
 import { createRng } from './rng';
 import type { BattleResult, PokemonSpec, PokemonState, RunDecision, RunLog } from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
@@ -64,8 +71,23 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  *
  * Went to `-5` when `shop` and `event` decisions joined it, for the same
  * reason again.
+ *
+ * Went to `-6` in Stage 4, and this one is the largest break yet. Three things
+ * changed at once: a battle choice can now be a *switch*, so the same recorded
+ * sequence spends different turns and different battle rolls; a targeted reward
+ * asks a `target` question that a Stage 3 log has no answer for; and an
+ * acquisition asks another. A Stage 3 log replayed against this build would run
+ * out of step at the first item card — `replayRunPolicy` would find a `node`
+ * where the run wanted a `target` — and would do so several hundred decisions
+ * into a run it had already reconstructed wrongly. The guard refuses it up
+ * front and names both versions.
+ *
+ * `ENGINE_VERSION` moved too (0.1.0 -> 0.2.0), so the composite string differs
+ * twice over. That is not redundancy: the engine half says the *battle* would
+ * replay differently and this half says the *run* would, and a reader
+ * diagnosing a rejected log wants to know which.
  */
-export const RUN_LOG_VERSION = `gymrun-run-5/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-6/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -283,6 +305,23 @@ export interface NodeResult {
    * the same value before anything downstream can tell them apart.
    */
   reward?: Reward;
+  /**
+   * Which party slot a targeted reward lands on.
+   *
+   * Resolved by `playRun` before this is handed over, like `reward` itself —
+   * the log stores the index and the state change needs the slot, and keeping
+   * the resolution in one place is what makes a replayed answer and a clicked
+   * one the same value before anything downstream can tell them apart.
+   */
+  rewardTarget?: number;
+  /**
+   * What the player did with a Pokemon this node offered.
+   *
+   * Covers both routes: a `species` reward card and a wild node's post-battle
+   * offer are one decision with two sources (`core/acquisition.ts`), so they
+   * arrive here through one field rather than two.
+   */
+  acquisition?: { offer: AcquisitionOffer; decision: AcquisitionDecision };
   /** Shelf slots bought at a shop node, as indexes into its stock. */
   purchases?: number[];
   /** The event option taken, as an index into the instance's choices. */
@@ -424,7 +463,28 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * would bypass the seam, and the symptom would be a replay that reconstructs
    * a different run from the same log.
    */
-  return result.reward ? applyReward(advanced, result.reward) : advanced;
+  if (result.reward) advanced = applyReward(advanced, result.reward, result.rewardTarget ?? 0);
+
+  /*
+   * The acquisition, applied last of all.
+   *
+   * After the reward, because both can appear at one node — a `species` card
+   * *is* the acquisition, and a wild node can pay a card and offer its Pokemon
+   * — and a fixed order is what stops the two being a race. After the wipe
+   * check for the same reason every other payout is: a party gained after the
+   * run ended would be a run un-ending itself.
+   *
+   * `applyAcquisition` refuses a decision the party cannot take rather than
+   * clamping it, so a log that says "release slot 2" against a party of two is
+   * a loud failure instead of a quietly different run.
+   */
+  if (result.acquisition) {
+    advanced = {
+      ...advanced,
+      party: applyAcquisition(advanced.party, result.acquisition.offer, result.acquisition.decision),
+    };
+  }
+  return advanced;
 }
 
 // ---------------------------------------------------------------------------
@@ -474,6 +534,34 @@ export interface RunPolicy {
   chooseShopPurchases: (stock: ShopStock, state: RunState) => Promise<number[]>;
   /** Which event option to take. The outcome was drawn when the map was built. */
   chooseEventOption: (event: EventInstance, state: RunState) => Promise<number>;
+  /**
+   * Which party member gets an item, a TM or a tutor. A party slot.
+   *
+   * **Stage 4's question, and it did not exist before because there was nowhere
+   * to put it.** At one slot every card landed on the lead, which is why
+   * `rewards.withTarget` was a named function rather than `party[0]` written
+   * out five times.
+   *
+   * Takes the whole party rather than a list of legal targets, because "who
+   * should hold the Leftovers" is not a legality question — every member is
+   * legal — it is a question about typing, held items and who is doing the
+   * fighting, and a policy handed a filtered list could not tell.
+   */
+  chooseItemTarget: (reward: TargetedReward, party: readonly PokemonState[]) => Promise<number>;
+  /**
+   * Whether to take a Pokemon on offer, and who to release for it.
+   *
+   * Returns a decision rather than an index because the three answers are not a
+   * list: declining is always available, accepting is available only with room,
+   * and releasing is available only without. Flattening those into indexes
+   * would mean the *meaning* of index 0 changed with the size of the party,
+   * which is exactly the sort of thing a run log should never have to
+   * reconstruct.
+   */
+  chooseAcquisition: (
+    offer: AcquisitionOffer,
+    party: readonly PokemonState[],
+  ) => Promise<AcquisitionDecision>;
   battle: Policy;
 }
 
@@ -593,6 +681,48 @@ export async function playRun(
       const choice = offer.options[index];
       if (!choice) throw new RangeError(`Reward choice ${index} out of range (${offer.options.length} offered)`);
       result.reward = choice;
+
+      /*
+       * Which member gets it, asked only for the cards that land on one.
+       *
+       * **The condition has to be a property of the card and not of the
+       * player**, or replay runs out of step. `isTargeted` is the single
+       * definition of "this card needs a target", shared by the question here
+       * and the application in `applyReward`; asking for a heal, or skipping
+       * the question at a party of one, would put an entry in the log exactly
+       * when the replaying run does not expect one.
+       */
+      if (isTargeted(choice)) {
+        const target = await policy.chooseItemTarget(choice, state.party);
+        record({ kind: 'target', index: target });
+        if (!state.party[target]) {
+          throw new RangeError(`Item target ${target} out of range (party has ${state.party.length})`);
+        }
+        result.rewardTarget = target;
+      }
+    }
+
+    /*
+     * The Pokemon on offer, from either route, asked once.
+     *
+     * A `species` card and a wild node's post-battle offer are the same
+     * decision, so they go through one call. The card's offer is built here
+     * rather than at map generation because the *level* it joins at is the
+     * card's own (see `resolveRewardEntry`) while a wild offer's was fixed when
+     * the map was built — both are already resolved by the time this runs, and
+     * neither draws.
+     *
+     * Gated on winning, like the reward. A lost fight hands over nothing, and
+     * an offer the player can accept after losing would make the wild node's
+     * risk one-sided.
+     */
+    const offered = acquisitionOffered(result);
+    if (offered && result.battle?.result.winner === 'p1') {
+      const decision = await policy.chooseAcquisition(offered, state.party);
+      record({ kind: 'acquisition', decision });
+      const refusal = decisionRefusal(state.party, decision);
+      if (refusal) throw new RangeError(`Acquisition decision is not legal: ${refusal}`);
+      result.acquisition = { offer: offered, decision };
     }
 
     state = resolveNode(state, result);
@@ -605,6 +735,31 @@ export async function playRun(
     outcome: state.outcome,
     log: makeLog(seed, decisions),
   };
+}
+
+/**
+ * The Pokemon this node is offering, from whichever route, or null.
+ *
+ * Two sources, one decision — so the *choice* of which source is made here,
+ * once, rather than at both call sites. A node cannot offer both: a `species`
+ * card and an encounter offer would be two Pokemon and two decisions, and the
+ * card wins because it is the one the player chose by taking it.
+ */
+function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
+  if (result.reward?.kind === 'species') {
+    const card = result.reward;
+    return {
+      nodeId: result.node.id,
+      source: 'reward',
+      spec: {
+        species: card.species,
+        level: card.level,
+        ability: card.ability,
+        moves: [...card.moves],
+      },
+    };
+  }
+  return result.node.acquisition;
 }
 
 /** The one place a `RunLog` is built, so every stamp on it agrees. */
@@ -677,6 +832,20 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     // sweep it appears in a measurement of one shopping heuristic.
     chooseShopPurchases: async () => [],
     chooseEventOption: async () => 0,
+    // The lead, which is slot 0 and the member the Stage 3 code targeted
+    // implicitly. A baseline that spread items around would make every sweep it
+    // appears in a measurement of one targeting heuristic.
+    chooseItemTarget: async () => 0,
+    /*
+     * Fills the party, then declines.
+     *
+     * Not "always decline", which would measure a game with no acquisition in
+     * it, and not "always take", which at a full party means releasing someone
+     * on every offer and would measure a bot churning its own team. Taking
+     * while there is room is the floor on competent play, which is what a
+     * baseline wants.
+     */
+    chooseAcquisition: async (_offer, party) => (hasRoom(party) ? { kind: 'accept' } : { kind: 'decline' }),
     battle,
   };
 }
@@ -780,6 +949,16 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('event');
       if (!decision) return live ? live.chooseEventOption(event, state) : exhausted('event');
       return decision.kind === 'event' ? decision.index : exhausted('event');
+    },
+    chooseItemTarget: async (reward, party) => {
+      const decision = next('target');
+      if (!decision) return live ? live.chooseItemTarget(reward, party) : exhausted('target');
+      return decision.kind === 'target' ? decision.index : exhausted('target');
+    },
+    chooseAcquisition: async (offer, party) => {
+      const decision = next('acquisition');
+      if (!decision) return live ? live.chooseAcquisition(offer, party) : exhausted('acquisition');
+      return decision.kind === 'acquisition' ? decision.decision : exhausted('acquisition');
     },
     battle: async (view) => {
       const decision = next('battle');

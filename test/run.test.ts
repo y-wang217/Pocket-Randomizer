@@ -13,7 +13,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
-import { firstUsableMovePolicy, type Policy } from '../src/core/battle/policy';
+import { firstUsableMovePolicy, forcedSwitchFallback, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
 import { createParty, isWiped, restParty } from '../src/core/party';
 import {
@@ -45,6 +45,8 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
     chooseReward: async () => 0,
     chooseShopPurchases: async () => [],
     chooseEventOption: async () => 0,
+    chooseItemTarget: async () => 0,
+    chooseAcquisition: async () => ({ kind: 'decline' }),
     battle,
   };
 }
@@ -87,6 +89,8 @@ describe('headless run', () => {
       chooseReward: async () => 0,
       chooseShopPurchases: async () => [],
       chooseEventOption: async () => 0,
+      chooseItemTarget: async () => 0,
+      chooseAcquisition: async () => ({ kind: 'decline' }),
       battle: greedyAiPolicy,
     };
 
@@ -332,12 +336,31 @@ describe('run shape', () => {
     expect(nodeOptions(state)).toEqual([]);
   });
 
-  it('accepts a battle choice shaped exactly like Stage 0 s', async () => {
-    // The battle policy is the Stage 0 policy, unchanged.
-    const run = await playRun('RUN-CHOICE', scriptedRunPolicy(async () => moveChoice(1)));
+  it('accepts a bare move choice on every turn that is a move turn', async () => {
+    /*
+     * This used to say "shaped exactly like Stage 0" and hand `playRun` a
+     * policy that returned `move 1` unconditionally. Stage 4 broke it, and the
+     * break is the feature: the player's party can now hold more than one
+     * Pokemon, so *the player* meets forced switches too, and a policy that
+     * only knows how to pick a move can no longer finish a run. It failed with
+     * `the sim wants a switch and will not accept a move`, which is the driver
+     * refusing to desync rather than a bug.
+     *
+     * So the assertion narrows to what it was always really about: a move
+     * choice needs no wrapping, no turn number and no side — it is just
+     * `{kind, slot}`, and that shape still goes straight into the log.
+     */
+    const run = await playRun(
+      'RUN-CHOICE',
+      scriptedRunPolicy(async (view) => forcedSwitchFallback(view) ?? moveChoice(1)),
+    );
     const battleDecisions = run.log.decisions.filter((decision) => decision.kind === 'battle');
-    expect(battleDecisions.length).toBeGreaterThan(0);
-    for (const decision of battleDecisions) {
+    const moves = battleDecisions.filter(
+      (decision) => decision.kind === 'battle' && decision.choice.kind === 'move',
+    );
+
+    expect(moves.length).toBeGreaterThan(0);
+    for (const decision of moves) {
       expect(decision).toEqual({ kind: 'battle', choice: { kind: 'move', slot: 1 } });
     }
   });

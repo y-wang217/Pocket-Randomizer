@@ -203,6 +203,7 @@ describe('currency earned per node', () => {
       reward: null,
       shop: null,
       event: null,
+      acquisition: null,
     });
 
     expect(nodePayout(node('wild', 'hard'), 0)).toBeGreaterThan(nodePayout(node('wild', 'normal'), 0));

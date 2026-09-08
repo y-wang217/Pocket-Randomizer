@@ -27,19 +27,24 @@
  *
  * ## What a reward may be
  *
- * Five kinds ship and a sixth is typed and gated. The gate is deliberate: see
- * `species` below.
+ * Six kinds, and two of them do not finish inside `applyReward`. An `item`, a
+ * `tm` and a `tutor` land on one party member, so Stage 4 asks *which*; a
+ * `species` offer is a Pokemon joining the party, so Stage 4 asks whether to
+ * take it and who to release for it. Both questions are `playRun`'s to ask and
+ * both get their own entry in the run log — see `TargetedReward` below and
+ * `core/acquisition.ts`.
  */
+import { joinLevelFor } from './acquisition';
 import { generateRewardSpecies, damagingInBands } from './randomizer';
 import { giveItem } from './items';
-import { leadOf, recoverParty, replaceSpecies, teachMove } from './party';
+import { leadOf, recoverParty, teachMove } from './party';
 import type { Rng } from './rng';
 import type { RunState } from './run';
 import type { PokemonState, Tier } from './types';
 import { itemById } from '../data/items';
 import { rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
-import { playerLevel, rewardMoveBands, rewardSpeciesBands } from '../data/scaling';
+import { rewardMoveBands, rewardSpeciesBands } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
 /**
@@ -57,16 +62,21 @@ export type Reward =
   | { kind: 'tutor'; move: string }
   | { kind: 'heal'; fraction: number }
   /**
-   * Replace the party member's species outright.
+   * A Pokemon offered to the party.
    *
-   * **Typed now, gated off by `tuning.allowSpeciesRewards`.** At `PARTY_SIZE` 1
-   * this is not an addition, it is a forced swap of the run's only Pokemon —
-   * either the most interesting decision in the game or an instant run-ender,
-   * and there is no way to know which without playing it. The shape is built so
-   * that turning it on is a tuning flag rather than a refactor, and it stays off
-   * until it has been playtested deliberately and separately from everything
-   * else in this stage. Stage 4 is where a swap costs a party slot instead of
-   * the whole run, which may be the version that is actually fun.
+   * **Stage 3 typed this as a species *swap* and gated it off; Stage 4 turns it
+   * on and it is an *addition*.** That is the same card doing a different
+   * thing, and the difference is the party: at `PARTY_SIZE` 1 there was nowhere
+   * to put a new Pokemon except on top of the only one you had, which is either
+   * the most interesting decision in the game or an instant run-ender with no
+   * way to tell which. With slots it is an offer — take it into a free slot,
+   * take it and release someone, or decline — and declining is always legal.
+   *
+   * It is therefore the one reward kind that does not resolve inside
+   * `applyReward`. Taking it is a second question (*which member goes?*), and a
+   * question needs a policy call and a log entry of its own; `playRun` routes
+   * this card through `chooseAcquisition` exactly as it routes an encounter's
+   * offer. See `core/acquisition.ts`.
    */
   | { kind: 'species'; species: string; level: number; moves: string[]; ability: string };
 
@@ -213,9 +223,18 @@ export function resolveRewardEntry(
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
     case 'species': {
+      /*
+       * At the join level, not the player's own.
+       *
+       * The same discount an encounter acquisition arrives at, and it has to be
+       * the same one: two routes to a party member that arrived at different
+       * levels would make the reward card strictly better than the wild offer
+       * for a reason nothing on screen explains, and the simulator's
+       * acquisition metrics would be measuring the gap rather than the choice.
+       */
       const spec = generateRewardSpecies(
         rewardSpeciesBands(segment, tier, entry.bandOffset),
-        playerLevel(segment),
+        joinLevelFor(segment),
         rng,
       );
       return {
@@ -234,6 +253,28 @@ export function resolveRewardEntry(
 // ---------------------------------------------------------------------------
 
 /**
+ * Reward kinds that land on one specific party member.
+ *
+ * Named as a type rather than checked inline because three separate places have
+ * to agree on the answer — `playRun` decides whether to ask the target
+ * question, the log has to carry an answer exactly when one was asked, and
+ * `applyReward` has to use it. Three copies of "is it an item, a tm or a
+ * tutor?" is three places for the fourth kind to be forgotten.
+ */
+export type TargetedReward = Extract<Reward, { kind: 'item' } | { kind: 'tm' } | { kind: 'tutor' }>;
+
+/**
+ * Whether this card needs the player to pick who gets it.
+ *
+ * Currency and heals are party-wide. A species offer is not targeted either —
+ * it is a different question entirely (`chooseAcquisition`), because the member
+ * it affects is one that does not exist yet.
+ */
+export function isTargeted(reward: Reward): reward is TargetedReward {
+  return reward.kind === 'item' || reward.kind === 'tm' || reward.kind === 'tutor';
+}
+
+/**
  * Fold a chosen reward into the run. **The only path by which a reward changes
  * anything.**
  *
@@ -242,9 +283,20 @@ export function resolveRewardEntry(
  * stops reconstructing the run: the log records an *index*, and the only way an
  * index becomes a state change is through here.
  *
+ * `target` is the party slot a targeted card lands on, and it is passed in
+ * rather than chosen here for exactly the reason the reward index is: choosing
+ * is `playRun`'s job and applying is this file's, so a replayed choice and a
+ * clicked one become the same value before anything downstream can tell them
+ * apart.
+ *
+ * A `species` card is a no-op here. It is routed through `chooseAcquisition`
+ * before `resolveNode` is ever called, and reaching this branch with one means
+ * that routing was skipped — so it changes nothing rather than silently doing
+ * the Stage 3 thing and overwriting someone.
+ *
  * Returns new state, like every other transition.
  */
-export function applyReward(state: RunState, choice: Reward): RunState {
+export function applyReward(state: RunState, choice: Reward, target = 0): RunState {
   switch (choice.kind) {
     case 'currency':
       return { ...state, currency: state.currency + Math.max(0, choice.amount) };
@@ -253,39 +305,43 @@ export function applyReward(state: RunState, choice: Reward): RunState {
       return { ...state, party: recoverParty(state.party, choice.fraction) };
 
     case 'item':
-      return withTarget(state, (member) => giveItem(member, choice.item));
+      return withTarget(state, target, (member) => giveItem(member, choice.item));
 
     case 'tm':
     case 'tutor':
-      return withTarget(state, (member) => teachMove(member, choice.move));
+      return withTarget(state, target, (member) => teachMove(member, choice.move));
 
     case 'species':
-      return withTarget(state, (member) =>
-        replaceSpecies(member, {
-          species: choice.species,
-          level: choice.level,
-          ability: choice.ability,
-          moves: choice.moves,
-        }),
-      );
+      return state;
   }
 }
 
 /**
  * Apply a change to the party member a reward lands on.
  *
- * At `PARTY_SIZE` 1 that is the lead and there is nothing to decide, which is
- * exactly why it is a named function rather than `state.party[0]` written out
- * five times: Stage 4 makes "which member" a question, and this is the one
- * place that has to grow an answer.
+ * **The slot is the player's answer, and Stage 4 is where it became a
+ * question.** At `PARTY_SIZE` 1 this reached for the lead and there was nothing
+ * to decide, which is exactly why it was a named function rather than
+ * `state.party[0]` written out five times.
+ *
+ * An out-of-range slot falls back to the lead rather than throwing. That is not
+ * leniency about bad input — `playRun` validates the index when it records the
+ * decision — it is about a *fainted* target: a member can faint in the fight
+ * that paid the card, and a run that crashed rather than handing the Leftovers
+ * to someone else would be a run ended by its own reward screen.
  *
  * A wiped party is left alone rather than reaching for slot 0. `resolveNode`
  * applies rewards after the wipe check so this cannot happen today, and a
  * reward silently resurrecting a finished run is the failure worth being
  * unreachable twice over.
  */
-function withTarget(state: RunState, change: (member: PokemonState) => PokemonState): RunState {
-  const target = leadOf(state.party);
+function withTarget(
+  state: RunState,
+  slot: number,
+  change: (member: PokemonState) => PokemonState,
+): RunState {
+  const chosen = state.party[slot];
+  const target = chosen && !chosen.fainted ? chosen : leadOf(state.party);
   if (!target) return state;
   return { ...state, party: state.party.map((member) => (member === target ? change(member) : member)) };
 }
@@ -308,6 +364,6 @@ export function describeReward(reward: Reward): string {
     case 'heal':
       return reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
     case 'species':
-      return `${reward.species} (Lv${reward.level})`;
+      return `Recruit ${reward.species} (Lv${reward.level})`;
   }
 }

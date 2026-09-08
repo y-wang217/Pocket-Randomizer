@@ -27,6 +27,7 @@ import {
   type RunState,
 } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
+import { PARTY_SIZE } from '../src/data/partyTuning';
 
 /**
  * A policy that varies its answers but keeps no state of its own.
@@ -59,6 +60,15 @@ function wobbling(): RunPolicy {
       return affordable;
     },
     chooseEventOption: async (event) => event.choices.length - 1,
+    // The last member, for the same reason as the last card: a policy that
+    // always answered 0 would agree with the scripted default and prove
+    // nothing about whether the target is really replayed.
+    chooseItemTarget: async (_reward, party) => party.length - 1,
+    // Takes everything, releasing the lead once full. The most destructive
+    // legal answer, so a replay that reproduces it has reproduced the party
+    // churning rather than a party that only ever grew.
+    chooseAcquisition: async (_offer, party) =>
+      party.length < PARTY_SIZE ? { kind: 'accept' } : { kind: 'release', slot: 0 },
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -210,6 +220,14 @@ describe('save mid-run, reload, continue', () => {
       chooseEventOption: async () => {
         liveCalls++;
         return 0;
+      },
+      chooseItemTarget: async () => {
+        liveCalls++;
+        return 0;
+      },
+      chooseAcquisition: async () => {
+        liveCalls++;
+        return { kind: 'decline' as const };
       },
       battle: async (view) => {
         liveCalls++;

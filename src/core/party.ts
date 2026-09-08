@@ -2,11 +2,17 @@
  * The party: what persists between nodes, and the rules for changing it.
  *
  * Two things live here and nothing else does. First, the *shape* — a party is a
- * list, never a starter, even in Stage 1 where the list has one entry. Second,
- * the four rules that mutate it between encounters: wipe detection, revival,
- * status clearing and rest. Keeping those out of the battle screen is the whole
- * point; Stage 4 adds slots and switching by changing nothing in this file
- * except the length of the list it is handed.
+ * list, never a starter, even in Stage 1 where the list had one entry. Second,
+ * the rules that mutate it between encounters: wipe detection, revival, status
+ * clearing, rest, and from Stage 4 reordering and release.
+ *
+ * Stage 4 was meant to change nothing here but the length of the list, and
+ * nearly kept to it. `battleMembersFor`, `applyBattleState` and `isWiped` were
+ * all written against a list from the start and needed no edit at all. What did
+ * change is that two branches which were unreachable at one slot are now taken
+ * after most fights — revival, which is a real price now (see
+ * `data/partyTuning.ts`), and the send-order mapping, which only matters once a
+ * battle can end with the party in a different order than it started.
  *
  * Every function returns a new party rather than mutating one. Run state is
  * replayed from a decision log, and a shared mutable party is the fastest way
@@ -373,38 +379,65 @@ function movePower(moveName: string): number {
   return probe.moves[0]?.basePower ?? 0;
 }
 
-/**
- * Replace a party member's species outright, keeping its HP *fraction*.
+/*
+ * `replaceSpecies` lived here through Stage 3 and is gone.
  *
- * The species reward, and the reason it is gated off by default: at
- * `PARTY_SIZE` 1 this is not an addition, it is a forced swap of the run's only
- * Pokemon. `tuning.allowSpeciesRewards` decides whether the pools ever offer
- * it; this function is what happens if they do.
- *
- * The new Pokemon arrives at the same *share* of HP rather than at full, for
- * the same reason `levelParty` carries a fraction: a free full heal attached to
- * a species swap would make the card a heal with a species stapled on, and the
- * simulator could not tell which half a player was taking it for. The item and
- * the level carry; the moveset does not, because it belongs to the old species.
+ * It was the species reward's application: swap the run's only Pokemon for a
+ * new one, keeping its HP fraction. Stage 4 makes that card an *addition*
+ * instead — a species offer routes through `core/acquisition.ts`, where taking
+ * it costs a slot or costs a member you choose, and declining is legal. There
+ * is no longer any path in the game that overwrites a Pokemon in place, so a
+ * function that could do it is a loaded gun with no user: the next caller would
+ * be reintroducing a mechanic the party was built to replace.
  */
-export function replaceSpecies(member: PokemonState, spec: PokemonSpec): PokemonState {
-  const vitals = describeSpec(spec);
-  const share = member.maxHp > 0 ? member.hp / member.maxHp : 1;
-  return {
-    ...member,
-    spec,
-    maxHp: vitals.maxHp,
-    hp: Math.max(1, Math.min(vitals.maxHp, Math.round(vitals.maxHp * share))),
-    moves: vitals.moves.map((move) => ({ ...move })),
-    status: null,
-    fainted: false,
-  };
-}
 
 /** 0..1, for a HP bar that never divides by a zero max. */
 export function hpFraction(member: PokemonState): number {
   if (member.maxHp <= 0) return 0;
   return Math.max(0, Math.min(1, member.hp / member.maxHp));
+}
+
+// ---------------------------------------------------------------------------
+// Party management, between nodes
+// ---------------------------------------------------------------------------
+
+/**
+ * Move a member to a new position. **This is how the battle lead is set.**
+ *
+ * `battleMembersFor` sends the party in order, so slot 0 is the lead and
+ * reordering is the only way to change it. That makes this a real decision
+ * rather than cosmetics — leading with the member that answers the fight you
+ * can see on the map is most of what a party is for — and it is why the party
+ * screen has drag order at all.
+ *
+ * Out-of-range indexes return the party unchanged rather than throwing. A
+ * reorder is a UI gesture, and the failure mode of a fumbled drag should be
+ * nothing happening.
+ */
+export function reorderParty(
+  party: readonly PokemonState[],
+  from: number,
+  to: number,
+): PokemonState[] {
+  if (from === to) return [...party];
+  const moved = party[from];
+  if (!moved || to < 0 || to >= party.length) return [...party];
+
+  const rest = party.filter((_, index) => index !== from);
+  return [...rest.slice(0, to), moved, ...rest.slice(to)];
+}
+
+/**
+ * Drop a member. **Permanent for the run: there is no box.**
+ *
+ * Refuses to empty the party, which is the one guard that matters. A party of
+ * zero is not a wipe — `isWiped` reads `fainted` and an empty list is neither
+ * wiped nor alive — so it would be a run in a state no other code has an
+ * opinion about, reached by a button rather than by losing.
+ */
+export function releaseMember(party: readonly PokemonState[], slot: number): PokemonState[] {
+  if (party.length <= 1 || !party[slot]) return [...party];
+  return party.filter((_, index) => index !== slot);
 }
 
 /** Total remaining PP across a member's moves, and its ceiling. */

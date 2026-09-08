@@ -24,6 +24,7 @@ import {
   type RunState,
 } from '../core/run';
 import { moveChoice, type Choice, type PokemonSpec, type RunLog } from '../core/types';
+import { PARTY_SIZE } from '../data/partyTuning';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
 import { el } from './scene';
@@ -122,6 +123,13 @@ export function mountApp(root: HTMLElement): void {
         router.show('event');
         return eventPick.wait();
       },
+      // Stage 4's two new questions. Both are answered by a rule for now and
+      // get their screens in checkpoint 5; the seam is what matters here —
+      // `playRun` asks, and a promise resolved by a click is the same answer as
+      // a promise resolved by a rule.
+      chooseItemTarget: async () => 0,
+      chooseAcquisition: async (_offer, party) =>
+        party.length < PARTY_SIZE ? { kind: 'accept' as const } : { kind: 'decline' as const },
       battle: () => movePick.wait(),
     };
 

@@ -352,7 +352,35 @@ export type RunDecision =
    */
   | { kind: 'shop'; indexes: number[] }
   /** Which event option was taken. The outcome was drawn when the map was built. */
-  | { kind: 'event'; index: number };
+  | { kind: 'event'; index: number }
+  /**
+   * Which party member a targeted reward landed on, as a party slot.
+   *
+   * Recorded only when the card was actually targeted — an item, a TM or a
+   * tutor. A heal is party-wide and a currency card lands nowhere, so asking
+   * about those would put an entry in the log for a question nobody was asked,
+   * and replay would run out of step at the first one.
+   */
+  | { kind: 'target'; index: number }
+  /**
+   * What the player did with a Pokemon on offer.
+   *
+   * **The one decision stored as a value rather than an index, and the
+   * exception is principled.** Every other entry here is an index into
+   * something the seed reconstructs, because storing the reward itself would
+   * survive a pool edit and hand the player something their run never offered.
+   * An acquisition decision is not a selection from a generated list — it is
+   * "no", "yes", or "yes, and drop slot 2" — so the value *is* the input, and
+   * there is nothing derived in it to drift.
+   *
+   * Typed structurally here rather than imported from `core/acquisition.ts`,
+   * because core/types.ts is the bottom of the dependency graph and imports
+   * nothing.
+   */
+  | {
+      kind: 'acquisition';
+      decision: { kind: 'decline' } | { kind: 'accept' } | { kind: 'release'; slot: number };
+    };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

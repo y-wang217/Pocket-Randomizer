@@ -160,7 +160,16 @@ describe('tier stream isolation', () => {
       return { map: rng.map.draws, randomizer: rng.randomizer.draws, battle: rng.battle.draws, rewards: rng.rewards.draws };
     };
 
-    const off = positions(DEFAULT_TUNING);
+    /*
+     * Both sides named explicitly rather than leaning on the default.
+     *
+     * `off` used to be `DEFAULT_TUNING`, which was fine while the default *was*
+     * off — and silently stopped testing anything in Stage 4, when the flag
+     * flipped on and the two sides became the same tuning compared to itself.
+     * It failed loudly (`expected 413 to be greater than 413`) only because of
+     * the last assertion, which is exactly what that assertion is for.
+     */
+    const off = positions(withTuning({ allowSpeciesRewards: false }));
     const on = positions(withTuning({ allowSpeciesRewards: true }));
 
     expect(on.map).toBe(off.map);

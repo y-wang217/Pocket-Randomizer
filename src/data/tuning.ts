@@ -142,19 +142,22 @@ export interface Tuning {
   // --- rewards -------------------------------------------------------------
 
   /**
-   * Whether reward pools may offer a species swap.
+   * Whether reward pools may offer a Pokemon to add to the party.
    *
-   * **Off, and the shape is built anyway.** The spec lists rare species in the
-   * Stage 3 reward pools, but party size is still 1 until Stage 4, so a species
-   * reward is not an addition — it is a forced swap of the run's only Pokemon.
-   * That is either the most interesting decision in the game or an instant
-   * run-ender, and nothing short of playing it will say which.
+   * **On from Stage 4, and the flag stays because it is now a real lever
+   * rather than a gate.** Stage 3 typed the kind, wrote the pool entries, and
+   * left this false with a note: at party size 1 a species reward was not an
+   * addition, it was a forced swap of the run's only Pokemon — either the most
+   * interesting decision in the game or an instant run-ender, and nothing short
+   * of playing it would say which.
    *
-   * So: the kind is typed in `core/rewards.ts`, the entries are in
-   * `data/rewardPools.ts`, and this flag decides whether they are ever dealt.
-   * Flip it on once and playtest it deliberately, separately from everything
-   * else in this stage. If it is fun it becomes a Stage 3 feature; if it is not
-   * it waits for Stage 4, when a swap costs a slot instead of the whole run.
+   * A party is the condition that note was waiting for. Taking one now costs a
+   * slot, or costs a member if the party is full, and declining is always
+   * legal — so the card is a decision rather than a coin flip. It keeps the
+   * flag so the simulator can measure a run of the game *without* reward
+   * acquisitions against one with them, which is how the two routes get told
+   * apart: wild nodes offer members too, and if the reward pools are turned off
+   * and parties still fill, these cards are not the reason.
    */
   allowSpeciesRewards: boolean;
 
@@ -276,7 +279,7 @@ export const DEFAULT_TUNING: Tuning = {
   shopStockSize: { min: 3, max: 4 },
   eventDamageFloor: 0.05,
 
-  allowSpeciesRewards: false,
+  allowSpeciesRewards: true,
 
   restHpFraction: 1,
   restPpFraction: 1,

@@ -70,8 +70,9 @@ import {
 import { describeSpecCard } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
 import { itemSuitsTypes } from '../src/core/items';
-import type { Reward } from '../src/core/rewards';
-import { moveChoice, switchChoice, type PokemonSpec, type Tier } from '../src/core/types';
+import type { Reward, TargetedReward } from '../src/core/rewards';
+import { hasRoom } from '../src/core/acquisition';
+import { moveChoice, switchChoice, type PokemonSpec, type PokemonState, type Tier } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
 import { DAMAGING_MOVES } from '../src/data/movePools';
@@ -571,10 +572,59 @@ interface RunCollector {
   rewards: { kind: Reward['kind']; segment: number }[];
   shopVisits: { segment: number; balance: number; spent: number }[];
   itemsAcquired: string[];
+  /** How many Pokemon this run was offered, taken, and released for. */
+  acquisitionsOffered: number;
+  acquisitionsTaken: number;
+  releases: number;
 }
 
 function newCollector(): RunCollector {
-  return { rewards: [], shopVisits: [], itemsAcquired: [] };
+  return {
+    rewards: [],
+    shopVisits: [],
+    itemsAcquired: [],
+    acquisitionsOffered: 0,
+    acquisitionsTaken: 0,
+    releases: 0,
+  };
+}
+
+/**
+ * How good a party member looks, before context.
+ *
+ * Max HP times the best attack it has, which is the cheapest number that moves
+ * with both halves of what a Pokemon is for. Taste, not measurement — and it
+ * only ever decides *which* member a full party releases, so a bad guess here
+ * shows up in the report as churn rather than as a hidden difficulty change.
+ */
+function memberValue(card: ReturnType<typeof describeSpecCard>): number {
+  const power = Math.max(0, ...card.moves.map((move) => (move.category === 'Status' ? 0 : move.basePower)));
+  return card.maxHp * Math.max(20, power);
+}
+
+/**
+ * What a targeted card is worth on a particular member.
+ *
+ * The only real rule is the type match, which is the one targeting decision
+ * with an obviously right answer; past that it prefers a member holding
+ * nothing, since swapping destroys what was there.
+ */
+function valueOfTarget(reward: TargetedReward, member: PokemonState): number {
+  const card = describeSpecCard(member.spec);
+  if (member.fainted) return -100;
+
+  if (reward.kind === 'item') {
+    const entry = itemById(reward.item);
+    if (!entry) return 0;
+    if (entry.boostsType) return itemSuitsTypes(entry, card.types) ? 100 : 0;
+    return member.item ? 10 : 50;
+  }
+
+  // A move reward goes to whoever gains most from it, which is whoever has the
+  // weakest best-attack — the same reasoning `valueOfReward` uses to price it.
+  const attacks = card.moves.filter((move) => move.category !== 'Status');
+  const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
+  return 100 - strongest;
 }
 
 function buildPolicy(
@@ -665,6 +715,47 @@ function buildPolicy(
       const outcome = event.choices[best]?.outcome;
       if (outcome?.kind === 'item') collect.itemsAcquired.push(outcome.item);
       return best;
+    },
+
+    /*
+     * Who holds the item, scored the way a player would guess.
+     *
+     * Deliberately shallow, like every other valuation in this file: it puts a
+     * type item on a member of that type, and everything else on whoever is
+     * holding least. It has no plan and does not know which member will do the
+     * fighting. That is the floor on competent play, which is what a balance
+     * measurement wants — a targeting rule that only works when played
+     * perfectly is a rule the report cannot generalise from.
+     */
+    chooseItemTarget: async (reward, party) =>
+      bestBy(party, (member) => valueOfTarget(reward, member)),
+
+    /*
+     * Take a Pokemon while there is room; once full, take it only if it beats
+     * the worst member the party has.
+     *
+     * The second half is the whole reason acquisition is a decision. A bot that
+     * always accepted would churn its team on every offer and the release
+     * counts would measure the bot; one that always declined once full would
+     * report a party that fills at segment 1 and never changes again, and the
+     * "did the player ever fill the party" metric would be a constant.
+     */
+    chooseAcquisition: async (offer, party) => {
+      collect.acquisitionsOffered++;
+      if (hasRoom(party)) {
+        collect.acquisitionsTaken++;
+        return { kind: 'accept' };
+      }
+
+      const incoming = memberValue(describeSpecCard(offer.spec));
+      const worst = bestBy(party, (member) => -memberValue(describeSpecCard(member.spec)));
+      const outgoing = party[worst];
+      if (!outgoing || memberValue(describeSpecCard(outgoing.spec)) >= incoming) {
+        return { kind: 'decline' };
+      }
+      collect.acquisitionsTaken++;
+      collect.releases++;
+      return { kind: 'release', slot: worst };
     },
 
     battle: battlePolicy,
