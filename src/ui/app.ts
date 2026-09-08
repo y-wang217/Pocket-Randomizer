@@ -190,9 +190,19 @@ export function mountApp(root: HTMLElement): void {
       mapScreen.render(state, (index) => nodePick.submit(index), showParty);
     };
 
-    const onBattle = (session: BattleSession, node: NodeSpec): void => {
+    const onBattle = (session: BattleSession, node: NodeSpec, state: RunState): void => {
       releaseBattle();
-      detachBattle = battleScreen.attach(session, node, (choice) => {
+      /*
+       * The reveal policy comes off the run's own tuning, not off the module
+       * default, so a run started with a swept tuning shows what that run was
+       * configured to show. Two booleans rather than the whole object: see the
+       * header of screens/battle.ts.
+       */
+      const reveal = {
+        ability: state.tuning.revealOpponentAbility,
+        item: state.tuning.revealOpponentItem,
+      };
+      detachBattle = battleScreen.attach(session, node, reveal, (choice) => {
         // A click with nothing pending is a no-op, not a decision queued
         // against the following turn.
         movePick.submit(choice);

@@ -670,12 +670,19 @@ export function createBattle(options: BattleOptions): BattleSession {
       typeMultiplier: typeMultiplier(move.type, defenderTypes),
     }));
 
+    const forceSwitch =
+      awaiting && !!request && 'forceSwitch' in request && Boolean(request.forceSwitch?.[0]);
+
     return {
       turn: battle.turn,
       ended: battle.ended,
       player: toActiveFacts(me, true),
       opponent: toActiveFacts(foe, false),
       moves,
+      switches: awaiting ? readSwitches(battle, side) : [],
+      forceSwitch,
+      trapped: awaiting && !forceSwitch && readTrapping(request) !== null,
+      awaitingChoice: awaiting,
       // Trick Room inverts the comparison rather than the numbers, which is why
       // it is a flag on the facts rather than a modifier folded into a speed.
       invertedSpeed: 'trickroom' in battle.field.pseudoWeather,

@@ -244,12 +244,85 @@ body {
   font-size: 12px;
 }
 
-.stages {
+.panel__traits,
+.panel__volatiles {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
   margin-top: 6px;
 }
+
+/* ---------- the six-stat panel ---------- */
+
+/*
+ * Two columns on a narrow panel, so HP/Atk/Def and SpA/SpD/Spe read as the
+ * offensive and defensive halves they are. Stage 5 is the responsive pass; this
+ * collapses to one column below the breakpoint there rather than here.
+ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.stat__label {
+  color: var(--text-faint);
+  min-width: 26px;
+}
+
+.stat__value {
+  color: var(--text-dim);
+  /* Tabular figures: the numbers change every turn and a panel that reflows
+     under the reader is a panel they stop trusting to compare against. */
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * A boosted row is coloured; a neutral one is not.
+ *
+ * The panel is quiet by default on purpose — six rows shouting is six rows
+ * nobody reads, and the one that matters gets lost with them.
+ */
+.stat[data-stage="up"] .stat__value { color: var(--stage-up); font-weight: 600; }
+.stat[data-stage="down"] .stat__value { color: var(--stage-down); font-weight: 600; }
+
+/*
+ * The speed marker: the single highest-value readout on the screen.
+ *
+ * "Do I kill it before it kills me" is the whole of most turns, and until this
+ * stage there was no way to answer it short of losing the fight once.
+ */
+.stat__marker {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/*
+ * HP and Speed each take the full row.
+ *
+ * HP because it heads the panel and pairs with nothing, Speed because it is the
+ * row the speed marker hangs off and the marker needs room to sit beside the
+ * number rather than wrapping under it. Atk/Def and SpA/SpD pair up in between,
+ * which puts the physical and special halves of the split side by side — the
+ * comparison the move category badges are asking the player to make.
+ */
+.stat[data-stat="hp"] { grid-column: 1 / -1; }
+.stat[data-stat="spe"] { grid-column: 1 / -1; }
 
 .badge {
   padding: 1px 7px;
@@ -270,6 +343,83 @@ body {
 
 .badge--up { background: color-mix(in srgb, var(--stage-up) 22%, transparent); color: var(--stage-up); }
 .badge--down { background: color-mix(in srgb, var(--stage-down) 22%, transparent); color: var(--stage-down); }
+
+.badge--ability {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.badge--volatile {
+  background: color-mix(in srgb, var(--type-psychic) 18%, transparent);
+  color: var(--type-psychic);
+}
+
+/* A hidden trait is a placeholder, not an absence: "this Pokemon has no item"
+   and "it has one you have not been told about" are different facts. */
+.badge[data-hidden="true"] {
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  border: 1px dashed var(--border-strong);
+}
+
+/* ---------- move category and effectiveness ---------- */
+
+/*
+ * The category badge, and the reason this stage exists.
+ *
+ * Physical and special are given different colours rather than different words
+ * alone, because the decision they create is made at a glance across four
+ * buttons: a Pokemon with 150 Attack and 45 Sp. Atk has one good move on that
+ * bar, and reading four labels to find it is the friction this removes.
+ */
+.badge--category {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.badge--cat-physical {
+  background: color-mix(in srgb, var(--type-fighting) 26%, transparent);
+  color: #ff9a94;
+}
+
+.badge--cat-special {
+  background: color-mix(in srgb, var(--type-water) 26%, transparent);
+  color: #9dc0ff;
+}
+
+.badge--cat-status {
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+}
+
+.badge--effect {
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.badge--effect[data-band="super"] {
+  background: color-mix(in srgb, var(--stage-up) 26%, transparent);
+  color: var(--stage-up);
+}
+
+.badge--effect[data-band="resisted"] {
+  background: color-mix(in srgb, var(--text-faint) 26%, transparent);
+  color: var(--text-dim);
+}
+
+/* 0x is the one badge allowed to shout. A move that does literally nothing is
+   a wasted turn, and it is the case a new player most needs told. */
+.badge--effect[data-band="immune"] {
+  background: var(--hp-low);
+  color: #1a0505;
+}
+
+/* An effectiveness the type chart alone does not explain gets an outline, so
+   "this does nothing" arrives with "because of something on the field". */
+.badge--effect[data-ability="true"] {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
 
 .type {
   padding: 1px 7px;

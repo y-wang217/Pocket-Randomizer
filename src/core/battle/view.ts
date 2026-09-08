@@ -56,7 +56,7 @@ import {
   BOOSTABLE_STATS,
   statAtLevel,
 } from './stats';
-import type { StatName, StatStages, StatusName } from '../types';
+import type { StatName, StatStages, StatusName, SwitchView } from '../types';
 
 // ---------------------------------------------------------------------------
 // The input: a plain-data snapshot from the adapter
@@ -129,13 +129,35 @@ export interface MoveFacts {
   typeMultiplier: number;
 }
 
-/** Everything the adapter hands over for one turn. */
+/**
+ * Everything the adapter hands over for one turn.
+ *
+ * The switch panel and the three request flags are carried through unchanged
+ * from the policy view rather than re-derived, and they are here rather than
+ * left behind for one reason: **the battle screen reads this and nothing
+ * else.** A screen that got its stat panel from one projection and its bench
+ * from another would have two sources of truth about the same turn, and the
+ * boundary test could only ever police one of them.
+ *
+ * `SwitchView` is reused as-is. It is already display vocabulary — the bench
+ * rows have rendered from it since Stage 4, including the `block` reason that
+ * says *why* a switch is refused — and a parallel copy would be a second thing
+ * to keep in step with the sim's request for no gain.
+ */
 export interface BattleFacts {
   turn: number;
   ended: boolean;
   player: ActiveFacts;
   opponent: ActiveFacts;
   moves: MoveFacts[];
+  /** This side's bench, exactly as the policy view reports it. */
+  switches: SwitchView[];
+  /** The sim wants a switch and will not accept a move. */
+  forceSwitch: boolean;
+  /** The sim says the active Pokemon may not switch out. */
+  trapped: boolean;
+  /** This side owes the sim a decision. */
+  awaitingChoice: boolean;
   /** Trick Room is on, so the *slower* side moves first. */
   invertedSpeed: boolean;
 }
@@ -265,7 +287,19 @@ export interface BattleUiView {
   player: ActiveUiView;
   opponent: ActiveUiView;
   moves: MoveUiView[];
+  /**
+   * Which side moves first, given everything the player has been shown.
+   *
+   * Three states and no fourth. No percentage, no probability, and a genuine
+   * tie is reported as a tie rather than dressed up as a coin flip the UI can
+   * predict — the sim rolls it, and pretending otherwise would be the same
+   * category of lie as a 2x badge over a visible Levitate.
+   */
   fasterSide: 'player' | 'opponent' | 'tie';
+  switches: SwitchView[];
+  forceSwitch: boolean;
+  trapped: boolean;
+  awaitingChoice: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +377,10 @@ export function buildBattleUiView(
       toMoveUiView(move, facts.opponent, reveal, abilityEffects),
     ),
     fasterSide: fasterSide(facts, reveal),
+    switches: facts.switches,
+    forceSwitch: facts.forceSwitch,
+    trapped: facts.trapped,
+    awaitingChoice: facts.awaitingChoice,
   };
 }
 

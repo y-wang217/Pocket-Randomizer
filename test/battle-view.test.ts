@@ -82,6 +82,10 @@ function facts(overrides: Partial<BattleFacts> = {}): BattleFacts {
     player: active(),
     opponent: active(),
     moves: [],
+    switches: [],
+    forceSwitch: false,
+    trapped: false,
+    awaitingChoice: true,
     invertedSpeed: false,
     ...overrides,
   };

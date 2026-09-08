@@ -1,25 +1,33 @@
 /**
- * The battlefield: HP bars, status, stat stages, and the move buttons.
+ * The battlefield: HP bars, the stat panel, the speed readout, and the buttons.
  *
- * This is a thin DOM layer over `BattleView` and nothing else. It reads a
- * plain object and writes elements — no sim types, no game logic, no decisions.
+ * This is a thin DOM layer over `BattleUiView` and nothing else. It reads a
+ * plain object and writes elements — no sim types, no run state, no game logic.
  * Swapping it for a canvas renderer or a framework should not require touching
  * anything under core/.
  *
+ * Stage 4.5 is the first change here that is about *reading* rather than
+ * deciding. Everything it draws — categories, stat stages, effectiveness, turn
+ * order — has been resolving correctly in the engine since Stage 0, and none of
+ * it was on screen, so the decisions those mechanics create were invisible.
+ * `core/battle/view.ts` explains why the numbers arrive through one projection
+ * instead of being fished out of `RunState`.
+ *
  * Elements are created once and updated in place rather than re-rendered, so
  * the HP bar's CSS width transition actually animates instead of restarting
- * from scratch on every update.
+ * from scratch on every update. The stat rows follow the same rule for the same
+ * reason: a row that is replaced cannot pulse when its stage changes.
  */
+import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
-  BOOST_NAMES,
-  moveChoice,
-  switchChoice,
-  type ActiveView,
-  type BattleView,
-  type Choice,
-  type MoveView,
-  type SwitchView,
-} from '../core/types';
+  effectivenessBand,
+  formatEffectiveness,
+  formatStat,
+  type ActiveUiView,
+  type BattleUiView,
+  type MoveUiView,
+} from '../core/battle/view';
+import { moveChoice, switchChoice, type Choice, type StatName, type SwitchView } from '../core/types';
 
 const STATUS_LABELS: Record<string, string> = {
   brn: 'BRN',
@@ -30,6 +38,14 @@ const STATUS_LABELS: Record<string, string> = {
   tox: 'TOX',
 };
 
+/** A row in the six-stat panel. Held so it can be updated rather than rebuilt. */
+interface StatRow {
+  root: HTMLElement;
+  label: HTMLElement;
+  value: HTMLElement;
+  marker: HTMLElement;
+}
+
 interface SidePanel {
   root: HTMLElement;
   name: HTMLElement;
@@ -38,7 +54,10 @@ interface SidePanel {
   hpFill: HTMLElement;
   hpText: HTMLElement;
   status: HTMLElement;
-  stages: HTMLElement;
+  volatiles: HTMLElement;
+  traits: HTMLElement;
+  hpRow: StatRow;
+  rows: Record<StatName, StatRow>;
 }
 
 export interface Scene {
@@ -51,7 +70,7 @@ export interface Scene {
    * and passing the union through means the app never has to guess which panel
    * a number came from.
    */
-  update(view: BattleView, onChoose: (choice: Choice) => void): void;
+  update(view: BattleUiView, onChoose: (choice: Choice) => void): void;
 }
 
 export function createScene(): Scene {
@@ -66,8 +85,9 @@ export function createScene(): Scene {
   return {
     root,
     update(view, onChoose) {
-      updateSidePanel(foe, view.foe, true);
-      updateSidePanel(me, view.me, false);
+      updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent');
+      updateSidePanel(me, view.player, false, view.fasterSide === 'player');
+      root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
     },
@@ -91,6 +111,19 @@ const BLOCK_LABELS: Record<NonNullable<SwitchView['block']>, string> = {
   'maybe-trapped': 'Something is holding you',
 };
 
+function createStatRow(stat: string): StatRow {
+  const root = el('div', 'stat');
+  root.dataset['stat'] = stat;
+  const label = el('span', 'stat__label');
+  const value = el('span', 'stat__value');
+  // The speed marker lives on every row so the arrow can move without the
+  // layout shifting under it. Only the Speed row ever fills it in.
+  const marker = el('span', 'stat__marker');
+  marker.hidden = true;
+  root.append(label, value, marker);
+  return { root, label, value, marker };
+}
+
 function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const root = el('div', `panel panel--${kind}`);
   const header = el('div', 'panel__header');
@@ -108,51 +141,157 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const status = el('span', 'badge badge--status');
   meta.append(hpText, status);
 
-  const stages = el('div', 'stages');
+  // Ability and item, on their own line. Both are revealable, and the reveal
+  // flag is honoured here rather than upstream so one source decides it.
+  const traits = el('div', 'panel__traits');
+  const volatiles = el('div', 'panel__volatiles');
 
-  root.append(header, hpTrack, meta, stages);
-  return { root, name, level, types, hpFill, hpText, status, stages };
+  const statsRoot = el('div', 'stats');
+  const hpRow = createStatRow('hp');
+  const rows = {} as Record<StatName, StatRow>;
+  statsRoot.append(hpRow.root);
+  for (const stat of BOOSTABLE_STATS) {
+    const row = createStatRow(stat);
+    rows[stat] = row;
+    statsRoot.append(row.root);
+  }
+
+  root.append(header, hpTrack, meta, traits, volatiles, statsRoot);
+  return { root, name, level, types, hpFill, hpText, status, volatiles, traits, hpRow, rows };
 }
 
-function updateSidePanel(panel: SidePanel, active: ActiveView, isFoe: boolean): void {
+function updateSidePanel(
+  panel: SidePanel,
+  active: ActiveUiView,
+  isFoe: boolean,
+  isFaster: boolean,
+): void {
   panel.name.textContent = isFoe ? `Opposing ${active.name}` : active.name;
   panel.level.textContent = `Lv${active.level}`;
 
-  panel.types.replaceChildren(
-    ...active.types.map((type) => {
-      const chip = el('span', `type type--${type.toLowerCase()}`);
-      chip.textContent = type;
-      return chip;
-    }),
-  );
+  panel.types.replaceChildren(...active.types.map((type) => typeChip(type)));
 
-  const percent = Math.round(active.hpFraction * 100);
-  panel.hpFill.style.width = `${active.hpFraction * 100}%`;
-  panel.hpFill.dataset['band'] = hpBand(active.hpFraction);
-  // Foe HP is shown as a percentage: it is what a player can actually read off
-  // the bar, and showing exact HP would be information the view deliberately
-  // does not hand to a policy either.
-  panel.hpText.textContent = isFoe ? `${percent}%` : `${active.hp} / ${active.maxHp}`;
+  const percent = Math.round(active.hp.fraction * 100);
+  panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
+  panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
+  /*
+   * Both sides now show exact HP.
+   *
+   * The foe used to be a percentage, on the argument that exact HP was
+   * information the policy view deliberately withholds. That argument belonged
+   * to the *policy*, not to the screen: a bot reading exact foe HP would make
+   * the balance sweep measure a cheat, and a player reading it is doing the
+   * arithmetic a percentage was forcing them to do in their head. The stat
+   * panel next to it prints the opponent's Defence, so hiding the HP would have
+   * been the one coy number on a panel that answers everything else.
+   */
+  panel.hpText.textContent = `${active.hp.current} / ${active.hp.max} · ${percent}%`;
 
   if (active.status) {
-    panel.status.textContent = STATUS_LABELS[active.status] ?? active.status.toUpperCase();
-    panel.status.dataset['status'] = active.status;
+    panel.status.textContent = active.status.label;
+    panel.status.dataset['status'] = active.status.id;
+    panel.status.dataset['tip'] = `status:${active.status.id}`;
     panel.status.hidden = false;
   } else {
     panel.status.hidden = true;
     delete panel.status.dataset['status'];
   }
 
-  const boosted = BOOST_NAMES.filter((name) => active.statStages[name] !== 0);
-  panel.stages.replaceChildren(
-    ...boosted.map((name) => {
-      const stage = active.statStages[name];
-      const chip = el('span', `badge badge--stage badge--${stage > 0 ? 'up' : 'down'}`);
-      chip.textContent = `${name.slice(0, 3).toUpperCase()} ${stage > 0 ? '+' : ''}${stage}`;
+  renderTraits(panel.traits, active);
+
+  panel.volatiles.replaceChildren(
+    ...active.volatiles.map((volatile) => {
+      const chip = el('span', 'badge badge--volatile');
+      chip.textContent = volatile.label;
+      chip.dataset['tip'] = `volatile:${volatile.id}`;
       return chip;
     }),
   );
-  panel.stages.hidden = boosted.length === 0;
+  panel.volatiles.hidden = active.volatiles.length === 0;
+
+  /*
+   * The HP row shows **max** HP, not current.
+   *
+   * It is on the panel in Showdown order because a six-stat panel missing HP
+   * reads as an error, but the thing it is showing is HP-*the-stat* — the same
+   * kind of number as the Attack beside it, and the one that says whether this
+   * Pokemon is bulky. Current HP is a resource rather than a stat, and it is
+   * already on the bar and the line above. The first cut printed `103 / 115` in
+   * both places, which made the panel look like it was repeating itself and
+   * left the actual stat unstated.
+   *
+   * HP is not boostable, so the row never carries a stage.
+   */
+  panel.hpRow.label.textContent = STAT_LABELS.hp;
+  panel.hpRow.value.textContent = `${active.hp.max}`;
+  panel.hpRow.root.dataset['stage'] = 'flat';
+
+  for (const stat of BOOSTABLE_STATS) {
+    const row = panel.rows[stat];
+    const view = active.stats[stat];
+    row.label.textContent = STAT_LABELS[stat];
+    // `formatStat` prints the bare number at stage 0 and grows the stage and
+    // effective value only once something has changed them, so the panel stays
+    // quiet until it has something to say.
+    row.value.textContent = formatStat('', view).trim();
+    row.root.dataset['stage'] = view.stage === 0 ? 'flat' : view.stage > 0 ? 'up' : 'down';
+
+    const marksSpeed = stat === 'spe' && isFaster;
+    row.marker.hidden = !marksSpeed;
+    if (marksSpeed) {
+      row.marker.textContent = '▲ first';
+      row.marker.title = 'Moves first at this Speed';
+    }
+  }
+}
+
+/**
+ * Ability and item chips.
+ *
+ * A hidden trait renders as a placeholder rather than vanishing: an empty slot
+ * says "this Pokemon has no item", and a `?` says "it has one and you have not
+ * been told". Those are different facts and the difference is worth a decision.
+ * At the default tuning neither is hidden — see `tuning.revealOpponentAbility`.
+ */
+function renderTraits(container: HTMLElement, active: ActiveUiView): void {
+  const chips: HTMLElement[] = [];
+
+  if (active.ability) {
+    const chip = el('span', 'badge badge--ability');
+    if (active.ability.revealed) {
+      chip.textContent = active.ability.name;
+      chip.dataset['tip'] = `ability:${active.ability.id}`;
+    } else {
+      chip.textContent = 'Ability ?';
+      chip.dataset['hidden'] = 'true';
+    }
+    chips.push(chip);
+  }
+
+  if (active.item) {
+    const chip = el('span', 'badge badge--item');
+    if (active.item.revealed) {
+      chip.textContent = active.item.name;
+      chip.dataset['tip'] = `item:${active.item.id}`;
+    } else {
+      chip.textContent = 'Item ?';
+      chip.dataset['hidden'] = 'true';
+    }
+    chips.push(chip);
+  }
+
+  container.replaceChildren(...chips);
+  container.hidden = chips.length === 0;
+}
+
+function typeChip(type: string): HTMLElement {
+  const chip = el('span', `type type--${type.toLowerCase()}`);
+  chip.textContent = type;
+  // Every type badge is a door into the reference wheel. See ui/tooltips.ts.
+  chip.dataset['tip'] = `type:${type}`;
+  chip.tabIndex = 0;
+  chip.setAttribute('role', 'button');
+  return chip;
 }
 
 function hpBand(fraction: number): 'high' | 'mid' | 'low' {
@@ -160,7 +299,11 @@ function hpBand(fraction: number): 'high' | 'mid' | 'low' {
   return fraction > 0.2 ? 'mid' : 'low';
 }
 
-function renderMoves(container: HTMLElement, view: BattleView, onChoose: (choice: Choice) => void): void {
+function renderMoves(
+  container: HTMLElement,
+  view: BattleUiView,
+  onChoose: (choice: Choice) => void,
+): void {
   if (view.moves.length === 0) {
     /*
      * No moves are offered between turns, on a forced switch, or after the
@@ -188,7 +331,11 @@ function renderMoves(container: HTMLElement, view: BattleView, onChoose: (choice
  * turns where every row is disabled, because "you cannot switch right now" is
  * information and an absent panel is not.
  */
-function renderBench(container: HTMLElement, view: BattleView, onChoose: (choice: Choice) => void): void {
+function renderBench(
+  container: HTMLElement,
+  view: BattleUiView,
+  onChoose: (choice: Choice) => void,
+): void {
   const bench = view.switches.filter((member) => member.block !== 'active');
   if (bench.length === 0) {
     if (view.switches.length === 0) return;
@@ -210,7 +357,7 @@ function renderBench(container: HTMLElement, view: BattleView, onChoose: (choice
 
 function renderBenchMember(
   member: SwitchView,
-  view: BattleView,
+  view: BattleUiView,
   onChoose: (choice: Choice) => void,
 ): HTMLElement {
   const button = document.createElement('button');
@@ -224,13 +371,7 @@ function renderBenchMember(
   level.textContent = `Lv${member.level}`;
 
   const types = el('span', 'bench__types');
-  types.replaceChildren(
-    ...member.types.map((type) => {
-      const chip = el('span', `type type--${type.toLowerCase()}`);
-      chip.textContent = type;
-      return chip;
-    }),
-  );
+  types.replaceChildren(...member.types.map((type) => typeChip(type)));
 
   const track = el('div', 'hp hp--slim');
   const fill = el('div', 'hp__fill');
@@ -243,6 +384,7 @@ function renderBenchMember(
   if (member.status) {
     const status = el('span', 'badge badge--status');
     status.dataset['status'] = member.status;
+    status.dataset['tip'] = `status:${member.status}`;
     status.textContent = STATUS_LABELS[member.status] ?? member.status.toUpperCase();
     meta.append(' ', status);
   }
@@ -258,11 +400,16 @@ function renderBenchMember(
   return button;
 }
 
-function renderMove(move: MoveView, enabled: boolean, onChoose: (choice: Choice) => void): HTMLElement {
+function renderMove(
+  move: MoveUiView,
+  enabled: boolean,
+  onChoose: (choice: Choice) => void,
+): HTMLElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `move move--${move.type.toLowerCase()}`;
   button.disabled = !enabled || !move.usable;
+  button.dataset['category'] = move.category.toLowerCase();
 
   const name = el('span', 'move__name');
   name.textContent = move.name;
@@ -270,11 +417,44 @@ function renderMove(move: MoveView, enabled: boolean, onChoose: (choice: Choice)
   const meta = el('span', 'move__meta');
   const type = el('span', `type type--${move.type.toLowerCase()}`);
   type.textContent = move.type;
-  const category = el('span', 'move__category');
-  category.textContent = move.category;
+  type.dataset['tip'] = `type:${move.type}`;
+
+  /*
+   * The category badge, and the whole reason this stage exists.
+   *
+   * The physical/special split has been resolving correctly since Stage 0 —
+   * Choice Band has been finding Attack and Choice Specs Special Attack for two
+   * stages — and until now the only way to find out which side of it a move sat
+   * on was to use it. A Pokemon with 150 Attack and 45 Special Attack has one
+   * good move on that bar and three bad ones, and that was invisible.
+   */
+  // `badge--cat-status`, not `badge--status`: the latter is already the burn /
+  // paralysis chip, and a move category sharing a class with a condition would
+  // have been a colour bug waiting for the first status move on the bar.
+  const category = el('span', `badge badge--category badge--cat-${move.category.toLowerCase()}`);
+  category.textContent = CATEGORY_LABELS[move.category];
+  category.title = CATEGORY_TITLES[move.category];
+
   const power = el('span', 'move__power');
   power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
   meta.append(type, category, power);
+
+  // Effectiveness, computed live against whatever is actually standing there.
+  // Neutral prints nothing: a row where every button carries a badge is a row
+  // where the badges stop being read, and the 0x goes unread with them.
+  const label = formatEffectiveness(move.effectiveness);
+  if (label) {
+    const badge = el('span', 'badge badge--effect');
+    badge.textContent = label;
+    badge.dataset['band'] = effectivenessBand(move.effectiveness) ?? 'neutral';
+    if (move.abilityAffected) {
+      // A 0x with no reason attached reads as a bug. Naming the cause is what
+      // turns "this does nothing" into "this does nothing *because*".
+      badge.dataset['ability'] = 'true';
+      badge.title = 'Changed by the defender’s ability';
+    }
+    meta.append(badge);
+  }
 
   const pp = el('span', 'move__pp');
   pp.textContent = `PP ${move.pp}/${move.maxPp}`;
@@ -284,6 +464,19 @@ function renderMove(move: MoveView, enabled: boolean, onChoose: (choice: Choice)
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }
+
+/** Short enough for a button, unambiguous enough to learn from. */
+const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
+  Physical: 'PHYS',
+  Special: 'SPEC',
+  Status: 'STAT',
+};
+
+const CATEGORY_TITLES: Record<MoveUiView['category'], string> = {
+  Physical: 'Physical — uses your Attack against their Defence',
+  Special: 'Special — uses your Sp. Atk against their Sp. Def',
+  Status: 'Status — deals no damage',
+};
 
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
