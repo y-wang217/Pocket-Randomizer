@@ -29,6 +29,7 @@ import {
   type MoveView,
   type PokemonState,
   type SideId,
+  type StatName,
   type StatStages,
   type StatusName,
   type PokemonSpec,
@@ -37,7 +38,9 @@ import {
 } from '../types';
 import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
 import type { Policy } from './policy';
+import { statsAtLevel } from './stats';
 import { rejectionReason } from './switching';
+import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
 
 /**
  * Bumped whenever a change would make an older RunLog replay differently.
@@ -189,6 +192,19 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
 // sim -> BattleView
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether a dex effect implements a given event handler.
+ *
+ * `Ability` in @pkmn/sim's typings is the metadata half of the object — name,
+ * rating, flags — while the handlers arrive at runtime from `AbilityData`,
+ * which the class does not re-declare. So this is a narrow structural read
+ * rather than a property access, cast through `unknown` rather than `any`
+ * because core/ bans `any` and exactly one field is needed.
+ */
+function hasHandler(effect: object, handler: string): boolean {
+  return typeof (effect as Record<string, unknown>)[handler] === 'function';
+}
+
 function readStatStages(pokemon: SimPokemon): StatStages {
   const stages = emptyStatStages();
   for (const name of BOOST_NAMES) {
@@ -216,6 +232,95 @@ function toActiveView(pokemon: SimPokemon, revealAbility: boolean): ActiveView {
     statStages: readStatStages(pokemon),
     fainted: pokemon.fainted,
     ability: revealAbility ? Dex.forGen(GYMRUN_GEN).abilities.get(pokemon.ability).name : null,
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// sim -> BattleFacts (the battle screen's projection input)
+// ---------------------------------------------------------------------------
+
+/**
+ * One side's active Pokemon as the plain data `core/battle/view.ts` consumes.
+ *
+ * The split of responsibility is the point. This function reads the engine and
+ * emits numbers; `view.ts` decides what the player is allowed to see and how it
+ * reads. That is why the ability and item are reported *unconditionally* here
+ * and gated there — a projection that could not see the ability could not
+ * decide to hide it, and the `revealed` flag on the way out would have nothing
+ * behind it.
+ *
+ * `own` selects where the stat spread comes from, and the asymmetry is the one
+ * the protocol imposes:
+ *
+ *   - **Your side**: `storedStats`, which is byte-for-byte what the `|request|`
+ *     payload carries in `side.pokemon[].stats`. Read off the Pokemon rather
+ *     than off the request because the request is absent between turns and the
+ *     panel still has to render; `test/stats.test.ts` asserts the two agree.
+ *   - **The opponent**: computed by `stats.ts` from species base stats and
+ *     level. The protocol sends nothing, and in a game with one fixed spread
+ *     the computation is exact rather than an estimate. `test/stats.test.ts`
+ *     cross-checks it against the engine over a sweep of species and levels, so
+ *     the two paths cannot drift apart silently.
+ */
+function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
+  const dex = Dex.forGen(GYMRUN_GEN);
+  const base = pokemon.species.baseStats;
+  const level = pokemon.level;
+
+  const computed = statsAtLevel(base, level, pokemon.species.maxHP);
+  const stats: Record<StatName, number> = own
+    ? {
+        atk: pokemon.storedStats.atk,
+        def: pokemon.storedStats.def,
+        spa: pokemon.storedStats.spa,
+        spd: pokemon.storedStats.spd,
+        spe: pokemon.storedStats.spe,
+      }
+    : { atk: computed.atk, def: computed.def, spa: computed.spa, spd: computed.spd, spe: computed.spe };
+
+  const ability = pokemon.ability ? dex.abilities.get(pokemon.ability) : null;
+  const item = pokemon.item ? dex.items.get(pokemon.item) : null;
+
+  return {
+    species: pokemon.species.name,
+    name: pokemon.name,
+    level,
+    types: pokemon.getTypes(),
+    hp: pokemon.hp,
+    maxHp: pokemon.maxhp,
+    fainted: pokemon.fainted,
+    status: readStatus(pokemon),
+    stats,
+    baseStats: { atk: base.atk, def: base.def, spa: base.spa, spd: base.spd, spe: base.spe },
+    boosts: readStatStages(pokemon),
+    volatiles: Object.keys(pokemon.volatiles),
+    ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
+    item: item?.exists ? { id: item.id, name: item.name } : null,
+    speed: {
+      /*
+       * The engine's own answer, not a reimplementation.
+       *
+       * `getStat('spe')` runs the `ModifySpe` event, which is where paralysis,
+       * Choice Scarf, Swift Swim, Chlorophyll, Quick Feet, Unburden, Slow Start
+       * and every other speed modifier in the generation actually live. The
+       * speed readout is the highest-value thing on the battle screen and it is
+       * worthless the moment it disagrees with the turn order it describes, so
+       * it is asked rather than derived.
+       */
+      engine: pokemon.getStat('spe'),
+      /*
+       * Whether an ability is contributing to that number.
+       *
+       * Every speed-modifying ability in the generation implements
+       * `onModifySpe`, including Quick Feet — which cancels the paralysis cut
+       * from inside the same event — so one check covers the whole set. It
+       * exists only so `view.ts` can refuse to leak a hidden ability through
+       * the speed arrow; at the default tuning the ability is revealed and this
+       * flag is never read.
+       */
+      abilityModified: !!ability?.exists && hasHandler(ability, 'onModifySpe'),
+    },
   };
 }
 
@@ -370,6 +475,20 @@ export interface BattleSession {
    */
   readonly voluntarySwitches: Readonly<Record<SideId, number>>;
   viewFor(side: SideId): BattleView;
+  /**
+   * The battle screen's projection input, from `side`'s perspective.
+   *
+   * Separate from `viewFor` and deliberately so. `BattleView` is what a
+   * *policy* decides from — restricted to public information, with the foe's
+   * ability always null, because a bot that could read hidden state would make
+   * the balance sweep measure something that is not the game. `BattleFacts` is
+   * what a *screen* renders from, and a screen is allowed to know things a
+   * policy is not, because `data/tuning.ts` decides what it then shows.
+   *
+   * Keeping them apart is what stops this stage from moving a single number in
+   * the Stage 2 report: nothing the AI reads changed.
+   */
+  factsFor(side: SideId): BattleFacts;
   /** All protocol lines so far, from `side`'s perspective. */
   protocolFor(side: SideId): readonly string[];
   /** Submit a decision. Both sides must submit before the turn resolves. */
@@ -519,6 +638,50 @@ export function createBattle(options: BattleOptions): BattleSession {
     };
   }
 
+  /**
+   * The same turn, projected for the screen instead of for a policy.
+   *
+   * Move facts are read off the request exactly as `readMoves` does — the
+   * request is what the sim will accept, and rebuilding it from move slots is
+   * how a UI offers a move the engine then rejects. The only thing added is the
+   * naive type multiplier against the current defender, which is a dex lookup
+   * rather than a decision: `view.ts` layers abilities onto it under the
+   * visibility rule.
+   */
+  function buildFacts(side: SideId): BattleFacts {
+    const me = activeOf(battle, side);
+    const foe = activeOf(battle, opposingSide(side));
+    const request = battle.sides[sideIndex(side)]?.activeRequest;
+    const awaiting = !battle.ended && !!request && !('wait' in request && request.wait);
+    const defenderTypes = foe.getTypes();
+
+    const moves: MoveFacts[] = (awaiting ? readMoves(battle, side) : []).map((move) => ({
+      slot: move.slot,
+      id: move.id,
+      name: move.name,
+      type: move.type,
+      category: move.category,
+      basePower: move.basePower,
+      accuracy: move.accuracy,
+      pp: move.pp,
+      maxPp: move.maxPp,
+      usable: move.usable,
+      flags: Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(move.id).flags),
+      typeMultiplier: typeMultiplier(move.type, defenderTypes),
+    }));
+
+    return {
+      turn: battle.turn,
+      ended: battle.ended,
+      player: toActiveFacts(me, true),
+      opponent: toActiveFacts(foe, false),
+      moves,
+      // Trick Room inverts the comparison rather than the numbers, which is why
+      // it is a flag on the facts rather than a modifier folded into a speed.
+      invertedSpeed: 'trickroom' in battle.field.pseudoWeather,
+    };
+  }
+
   // Drain the opening protocol (team sizes, switch-ins, `|turn|1`) so a
   // subscriber attached after construction still sees a coherent log.
   drain();
@@ -541,6 +704,7 @@ export function createBattle(options: BattleOptions): BattleSession {
     decisions,
     voluntarySwitches,
     viewFor: buildView,
+    factsFor: buildFacts,
     protocolFor: (side) => protocol[side],
     /*
      * Submit a decision, checked against the view first.
@@ -644,6 +808,246 @@ function battleStreamFor(seed: string): RngStream {
 export function encodeChoice(choice: Choice): string {
   return choice.kind === 'switch' ? `switch ${choice.slot}` : `move ${choice.slot}`;
 }
+
+
+// ---------------------------------------------------------------------------
+// Stage 4.5: the dex reads the battle screen needs
+// ---------------------------------------------------------------------------
+
+/*
+ * Everything below answers a *display* question from the dex, and every one of
+ * them lives here for the same reason `describeSpecCard` does: `ui/` may not
+ * import @pkmn/sim, and this file is the one adapter that may. The alternative
+ * — a second module under core/battle/ with the sim import, and the allow-list
+ * in eslint.config.js and test/boundaries.test.ts widened to admit it — would
+ * loosen a load-bearing architecture rule to save one section header. Rule 4
+ * is unchanged by this stage, and that is deliberate.
+ *
+ * Nothing here draws from an RNG stream, mutates a battle, or is reachable from
+ * the run loop. These are lookups.
+ */
+
+/**
+ * The type chart, in both directions, for one type.
+ *
+ * Generated from the dex rather than hand-written. A hand-written chart is a
+ * table that can drift from the engine resolving the damage beside it, and the
+ * whole argument for showing effectiveness at all is that the number on the
+ * button is the number the turn will use.
+ */
+export interface TypeChartEntry {
+  type: string;
+  /** Attacking: deals 2x to these. */
+  strongAgainst: string[];
+  /** Attacking: deals 0.5x to these. */
+  weakAgainst: string[];
+  /** Attacking: deals nothing to these. */
+  noEffectAgainst: string[];
+  /** Defending: takes 2x from these. */
+  weakTo: string[];
+  /** Defending: takes 0.5x from these. */
+  resists: string[];
+  /** Defending: takes nothing from these. */
+  immuneTo: string[];
+}
+
+/**
+ * Every type the wheel shows.
+ *
+ * Stellar is excluded. It exists in gen 9 as a Terastal mechanic and is neutral
+ * against everything in both directions, so a row for it would be eighteen
+ * blanks and a lesson the player cannot use — GYMRUN never terastallizes.
+ */
+export const WHEEL_TYPES: readonly string[] = Dex.forGen(GYMRUN_GEN)
+  .types.all()
+  .map((type) => type.name)
+  .filter((name) => name !== 'Stellar')
+  .sort();
+
+let typeChartCache: TypeChartEntry[] | null = null;
+
+/** The full chart, built once. Both directions for every type. */
+export function typeChart(): readonly TypeChartEntry[] {
+  if (typeChartCache) return typeChartCache;
+  const dex = Dex.forGen(GYMRUN_GEN);
+
+  typeChartCache = WHEEL_TYPES.map((type) => {
+    const entry: TypeChartEntry = {
+      type,
+      strongAgainst: [],
+      weakAgainst: [],
+      noEffectAgainst: [],
+      weakTo: [],
+      resists: [],
+      immuneTo: [],
+    };
+    for (const other of WHEEL_TYPES) {
+      // Attacking: this type against `other`.
+      if (!dex.getImmunity(type, other)) entry.noEffectAgainst.push(other);
+      else {
+        const mod = dex.getEffectiveness(type, other);
+        if (mod > 0) entry.strongAgainst.push(other);
+        else if (mod < 0) entry.weakAgainst.push(other);
+      }
+      // Defending: `other` against this type.
+      if (!dex.getImmunity(other, type)) entry.immuneTo.push(other);
+      else {
+        const mod = dex.getEffectiveness(other, type);
+        if (mod > 0) entry.weakTo.push(other);
+        else if (mod < 0) entry.resists.push(other);
+      }
+    }
+    return entry;
+  });
+  return typeChartCache;
+}
+
+/**
+ * The naive type-chart multiplier, as a plain number rather than a log.
+ *
+ * `getEffectiveness` returns a base-2 exponent (`1` meaning 2x, `-2` meaning
+ * 0.25x) and says nothing about immunity, which is a separate call. Folding
+ * both into one number here means `view.ts` never has to know that, and the
+ * value it receives is the one the button prints.
+ */
+export function typeMultiplier(moveType: string, defenderTypes: readonly string[]): number {
+  const dex = Dex.forGen(GYMRUN_GEN);
+  const types = [...defenderTypes];
+  if (!dex.getImmunity(moveType, types)) return 0;
+  return 2 ** dex.getEffectiveness(moveType, types);
+}
+
+/** An ability, with the dex's one-line description. Null when the id is unknown. */
+export interface AbilityInfo {
+  id: string;
+  name: string;
+  shortDesc: string;
+}
+
+export function abilityInfo(id: string): AbilityInfo | null {
+  const ability = Dex.forGen(GYMRUN_GEN).abilities.get(id);
+  if (!ability.exists) return null;
+  return { id: ability.id, name: ability.name, shortDesc: ability.shortDesc ?? '' };
+}
+
+/** A move's dex flags — `bullet`, `sound`, `contact`, ... */
+export function moveFlags(id: string): string[] {
+  return Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(id).flags);
+}
+
+/** A move's one-line description, for the move tooltip. */
+export function moveShortDesc(id: string): string {
+  return Dex.forGen(GYMRUN_GEN).moves.get(id).shortDesc ?? '';
+}
+
+/**
+ * Ask the engine which types an ability makes its holder immune to.
+ *
+ * **For tests, not for the UI.** It builds a throwaway battle, which is far too
+ * expensive to run on a move button, and it exists so `data/abilityEffects.ts`
+ * can be checked against the engine over the whole generated ability pool
+ * rather than against somebody's memory of the game.
+ *
+ * Two mechanisms have to be checked because the engine uses two, and the
+ * difference is exactly the kind of gap this stage is about. Most absorbing
+ * abilities — Volt Absorb, Flash Fire, Sap Sipper — block in a `TryHit`
+ * handler that lives on the ability data. **Levitate has no handler at all**:
+ * its Ground immunity is a hardcoded branch in `Pokemon#isGrounded`, so
+ * introspecting ability data finds nothing, and a table built that way would
+ * have shipped a Levitate the UI could not see. `runImmunity` is what catches
+ * it.
+ *
+ * The probe defender is a **pure Fire type**, and the choice is load-bearing:
+ * Fire is immune to nothing on the type chart, so every immunity this reports
+ * comes from the ability rather than from the defender's typing. A Normal-type
+ * probe would report a Ghost immunity for all 300 abilities.
+ */
+export interface AbilityImmunityProbe {
+  /**
+   * The defender's types *after* switch-in.
+   *
+   * Not always the species' own typing, and that is the point of returning it.
+   * Imposter transforms its holder into the opposing Pokemon the moment it
+   * switches in, so a Fire-type probe becomes whatever it is facing — and the
+   * type-chart immunities that come with it are the *transformed* form's, not
+   * the ability's. A caller that assumed the species' typing would read that as
+   * a missing table entry. The battle screen has the same information for the
+   * same reason: it reads `pokemon.getTypes()` live.
+   */
+  types: string[];
+  /** Types the engine refuses to let through. */
+  blocked: string[];
+}
+
+export function probeAbilityImmunities(
+  abilityId: string,
+  defenderSpecies = 'Vulpix',
+): AbilityImmunityProbe {
+  const format = gymrunFormat();
+  const battle = new Battle({ format, formatid: format.id, seed: PROBE_SEED, strictChoices: true });
+  try {
+    const probe = (species: string, ability: string): PokemonSet =>
+      toPokemonSet({ species, ability, moves: ['Tackle'], level: 50 });
+    battle.setPlayer('p1', { name: 'A', team: [probe('Ditto', 'Limber')] });
+    battle.setPlayer('p2', { name: 'B', team: [probe(defenderSpecies, abilityId)] });
+
+    const target = battle.sides[1]?.active[0];
+    const source = battle.sides[0]?.active[0];
+    if (!target || !source) return { types: [], blocked: [] };
+
+    const dex = Dex.forGen(GYMRUN_GEN);
+    const ability = dex.abilities.get(abilityId);
+    const handled = hasHandler(ability, 'onTryHit');
+    const blocked: string[] = [];
+
+    for (const [type, moveName] of Object.entries(REPRESENTATIVE_MOVES)) {
+      // 1. Grounding and `onImmunity`. Message suppressed so nothing reaches
+      //    the log; this is the branch that finds Levitate.
+      if (!target.runImmunity(type, false)) {
+        blocked.push(type);
+        continue;
+      }
+      // 2. `TryHit` on the ability itself. A handler returning null is an
+      //    absorbing ability refusing the hit.
+      if (!handled) continue;
+      const move = dex.getActiveMove(moveName);
+      if (battle.singleEvent('TryHit', ability, target.abilityState, target, source, move) === null) {
+        blocked.push(type);
+      }
+    }
+    return { types: target.getTypes(), blocked };
+  } finally {
+    battle.destroy();
+  }
+}
+
+/**
+ * One ordinary damaging move per type, for the immunity probe.
+ *
+ * Plain single-target attacks with no secondary behaviour, so the probe
+ * measures the ability rather than the move. Each is the type's most
+ * unremarkable option on purpose.
+ */
+export const REPRESENTATIVE_MOVES: Record<string, string> = {
+  Bug: 'X-Scissor',
+  Dark: 'Crunch',
+  Dragon: 'Dragon Claw',
+  Electric: 'Thunderbolt',
+  Fairy: 'Moonblast',
+  Fighting: 'Brick Break',
+  Fire: 'Flamethrower',
+  Flying: 'Air Slash',
+  Ghost: 'Shadow Ball',
+  Grass: 'Energy Ball',
+  Ground: 'Earthquake',
+  Ice: 'Ice Beam',
+  Normal: 'Body Slam',
+  Poison: 'Sludge Bomb',
+  Psychic: 'Psychic',
+  Rock: 'Rock Slide',
+  Steel: 'Flash Cannon',
+  Water: 'Surf',
+};
 
 // ---------------------------------------------------------------------------
 // Running a battle to completion

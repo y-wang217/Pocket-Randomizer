@@ -236,6 +236,42 @@ export interface Tuning {
 
   /** How many species the starter screen offers. */
   starterOptionCount: number;
+
+  // --- what the battle screen may show ------------------------------------
+
+  /**
+   * Whether the opponent's ability is named on the battle screen.
+   *
+   * **On, and the reason is the randomizer rather than a preference for
+   * generosity.** In a normal Pokemon game a hidden ability is still something
+   * a player can reason about: a species has two or three legal abilities, the
+   * set is public, and narrowing it from what the opponent does is a skill.
+   * Stage 2 draws abilities from the *whole pool* off-species, so there is no
+   * set to narrow and no meta knowledge to infer from. Hiding it does not
+   * create a deduction, it converts a skill decision into a coin flip.
+   *
+   * That is the same reasoning Stage 1 used to clear status between encounters:
+   * a difficulty that comes from the player not being told the rules is not
+   * difficulty.
+   *
+   * It is a flag rather than a constant so the opposite can be playtested
+   * cheaply. `ActiveUiView.ability.revealed` carries the value through, so the
+   * effectiveness badge and the tooltip layer both respect it from one source
+   * — a UI that hid the ability in one place and leaked it through a `0x` in
+   * another would be worse than either choice made consistently.
+   */
+  revealOpponentAbility: boolean;
+
+  /**
+   * Whether the opponent's held item is named on the battle screen.
+   *
+   * Same argument, one step weaker: items come from a curated whitelist of
+   * about twenty rather than the whole item dex, so a player could in principle
+   * learn the list. But the list is *ours*, not the games', and Stage 3 hands
+   * items to opponents from reward-tier pools the player never sees drawn. On
+   * for the same reason, separable because the case is not identical.
+   */
+  revealOpponentItem: boolean;
 }
 
 /**
@@ -308,6 +344,9 @@ export const DEFAULT_TUNING: Tuning = {
   reviveFaintedBetweenNodes: true,
 
   starterOptionCount: 3,
+
+  revealOpponentAbility: true,
+  revealOpponentItem: true,
 };
 
 /** A tuning derived from the default. Stage 2's sweep builds variants this way. */
