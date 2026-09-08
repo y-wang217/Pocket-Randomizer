@@ -354,6 +354,21 @@ export interface BattleSession {
   readonly turn: number;
   /** Every decision submitted so far, in submission order. */
   readonly decisions: readonly Decision[];
+  /**
+   * Voluntary switches this battle, per side. **A statistic, not log content.**
+   *
+   * Counted here rather than derived from `decisions` afterwards because
+   * "was that switch forced?" is a question about the *request state at the
+   * moment it was submitted*, and that state is gone once the turn resolves.
+   * A reader handed only the decision list cannot tell a player leaving a bad
+   * matchup from a player replacing something that just fainted, and those are
+   * the two things the Stage 4 switch-rate metric exists to separate.
+   *
+   * Deliberately *not* on `Decision`, which goes into the battle log: the log
+   * holds a seed and a decision sequence and nothing derived, and this is
+   * derived. Replay reconstructs it by counting again.
+   */
+  readonly voluntarySwitches: Readonly<Record<SideId, number>>;
   viewFor(side: SideId): BattleView;
   /** All protocol lines so far, from `side`'s perspective. */
   protocolFor(side: SideId): readonly string[];
@@ -435,6 +450,7 @@ export function createBattle(options: BattleOptions): BattleSession {
 
   const protocol: Record<SideId, string[]> = { p1: [], p2: [] };
   const decisions: Decision[] = [];
+  const voluntarySwitches: Record<SideId, number> = { p1: 0, p2: 0 };
   const listeners = new Set<(update: BattleUpdate) => void>();
   let logCursor = 0;
   let result: BattleResult | null = null;
@@ -523,6 +539,7 @@ export function createBattle(options: BattleOptions): BattleSession {
       return battle.turn;
     },
     decisions,
+    voluntarySwitches,
     viewFor: buildView,
     protocolFor: (side) => protocol[side],
     /*
@@ -538,10 +555,14 @@ export function createBattle(options: BattleOptions): BattleSession {
      */
     submit(side, choice) {
       if (battle.ended) throw new Error('Battle has already ended');
-      const refusal = rejectionReason(buildView(side), choice);
+      const view = buildView(side);
+      const refusal = rejectionReason(view, choice);
       if (refusal) {
         throw new Error(`Illegal choice ${encodeChoice(choice)} for ${side}: ${refusal}`);
       }
+      // Counted here, while the request that would have forced it is still the
+      // current one. See `voluntarySwitches`.
+      if (choice.kind === 'switch' && !view.forceSwitch) voluntarySwitches[side]++;
       decisions.push({ turn: battle.turn, side, choice });
       battle.choose(side as SideID, encodeChoice(choice));
       const fresh = drain();

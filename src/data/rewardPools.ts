@@ -229,16 +229,28 @@ const ELITE: readonly RewardBand[] = [
  * tiers pay in things that do not saturate — and a party slot is the least
  * saturating reward in the game while there are slots left.
  *
- * These are the Stage 4 starting numbers and the simulator is what settles
- * them. The metric that judges them is the share of runs that ever fill the
- * party: if players routinely reach gym 4 on one Pokemon, these are too low,
- * and if the party is full by segment 1 the release choice never carries any
- * weight.
+ * **These started at 0.25/0.4/0.6 and the first Stage 4 baseline said they were
+ * far too low.** The measurement was not ambiguous: 0.78 offers per run against
+ * a party that needs two of them to fill, a 94.5% take rate — the bot was
+ * refusing almost nothing, so supply and not appetite was the constraint — and
+ * a mean party of 1.54 walking into fights sized for three. Runs that ever
+ * filled the party completed 68% of the time; runs that never did completed 2%.
+ *
+ * That is a death spiral rather than a difficulty curve: you need a party to
+ * survive, and you need to survive to be offered one. The rates below are set
+ * so the party fills during the first two segments, which is also what
+ * `EXPECTED_PARTY_SIZE` in `data/scaling.ts` promises the difficulty curve —
+ * and the simulator's `sizeBySegment` section is what holds the two to it.
+ *
+ * The metric that judges them is the share of runs that ever fill the party. If
+ * players routinely reach gym 4 on one Pokemon these are still too low; if the
+ * party is full before the first gym the release choice never carries any
+ * weight, because nothing has been lost yet to make room for.
  */
 const ENCOUNTER_ACQUISITION_RATE: Record<Tier, number> = {
-  normal: 0.25,
-  hard: 0.4,
-  elite: 0.6,
+  normal: 0.55,
+  hard: 0.7,
+  elite: 0.85,
 };
 
 /** The chance a won wild node of this tier offers its species. */

@@ -39,7 +39,7 @@ import { assertReplayable, createRun, isReplayable, RUN_LOG_VERSION } from '../s
 import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { opponentTeamSize, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
+import { expectedPartySize, opponentTeamSize, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -302,17 +302,45 @@ describe('5. gym identity', () => {
     }
   });
 
-  it('sizes gym teams from the curve, as a function of PARTY_SIZE', () => {
-    // The rule the spec is specific about: nothing hardcodes a gym's team size,
-    // so Stage 4 raising PARTY_SIZE moves the whole curve rather than leaving
-    // the back half trivial.
+  it('sizes gym teams from the curve, against the party the player actually has', () => {
+    /*
+     * The rule the spec is specific about: nothing hardcodes a gym's team size,
+     * so raising the party moves the whole curve rather than leaving the back
+     * half trivial.
+     *
+     * **This used to assert `>= PARTY_SIZE` at every gym, and that assertion
+     * was the single largest balance error of Stage 4 written down as a test.**
+     * A run does not start with a full party — it starts with one Pokemon and
+     * acquires the rest — so sizing gym 1 against three aimed the opening at a
+     * player who does not exist. The simulator measured the result as an
+     * inverted curve: 74% clear at gym 1 rising to 96% at gym 8.
+     *
+     * So the floor is the party the curve *expects* at that segment, and the
+     * back half is protected by its own assertion rather than by a premise that
+     * happens to be false early on.
+     */
     for (const gym of GYMS) {
       const expected = opponentTeamSize('gym', gym.segment, 'normal', gym.teamSize);
-      expect(expected).toBeGreaterThanOrEqual(PARTY_SIZE);
+      expect(expected, `${gym.leader}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
       for (let seed = 0; seed < 5; seed++) {
         const team = generateGymTeam(gym, gym.segment, createRng(`SIZE-${gym.id}-${seed}`));
         expect(team, `${gym.leader}`).toHaveLength(expected);
       }
+    }
+
+    // The back half is not trivial: once the player is expected to be at full
+    // strength, the gym outnumbers them.
+    const last = GYMS[GYMS.length - 1]!;
+    expect(expectedPartySize(last.segment)).toBe(PARTY_SIZE);
+    expect(opponentTeamSize('gym', last.segment, 'normal', last.teamSize)).toBeGreaterThan(PARTY_SIZE);
+  });
+
+  it('never outnumbers the player before they have had a chance to fill the party', () => {
+    // The other half of the same rule, and the one the inverted curve violated:
+    // an ordinary node in the opening segment must not field a full party
+    // against a lone starter.
+    for (const kind of ['wild', 'trainer'] as const) {
+      expect(opponentTeamSize(kind, 0, 'normal')).toBeLessThanOrEqual(expectedPartySize(0));
     }
   });
 

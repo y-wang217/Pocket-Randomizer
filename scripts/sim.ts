@@ -67,7 +67,7 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { describeSpecCard } from '../src/core/battle/driver';
+import { describeSpecCard, type BattleSession } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
 import { itemSuitsTypes } from '../src/core/items';
 import type { Reward, TargetedReward } from '../src/core/rewards';
@@ -76,7 +76,7 @@ import { moveChoice, switchChoice, type PokemonSpec, type PokemonState, type Tie
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { opponentTeamSize, SEGMENTS } from '../src/data/scaling';
+import { expectedPartySize, opponentTeamSize, SEGMENTS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
@@ -793,6 +793,61 @@ interface RunRecord {
   itemsAcquired: string[];
   /** Coins held when the run ended. */
   currency: number;
+
+  // --- Stage 4 ------------------------------------------------------------
+  /**
+   * Voluntary switches, per side, across the whole run.
+   *
+   * Counted separately because they answer different questions. The player's
+   * rate says whether switching is a decision worth making; the AI's says
+   * whether the scoring function weights switches at all — a rate of zero
+   * there means the term is not wired in, and no amount of tuning the switch
+   * *cost* would ever show up.
+   *
+   * Forced switches are excluded on both sides. They are not decisions.
+   */
+  playerSwitches: number;
+  aiSwitches: number;
+  /** Battles fought, so the two above can be reported per battle. */
+  battleCount: number;
+  /**
+   * The player's voluntary switches in each battle, in order.
+   *
+   * Kept per battle rather than only as a total because the two questions the
+   * spec asks are different: "median switches per battle" wants the
+   * distribution, and a mean hides the shape completely — a bot that switches
+   * four times in one fight and never again has the same mean as one that
+   * switches once in four fights, and only one of those is a game.
+   */
+  switchesPerBattle: number[];
+  /**
+   * Party size at the start of each battle, tagged with its segment.
+   *
+   * **The number that says whether the difficulty curve is aimed at the right
+   * target.** `scaling.opponentTeamSize` sizes every opponent against how big
+   * the player's party is *expected* to be at that point in the run, and an
+   * expectation nothing measures is a guess. This is the measurement.
+   */
+  partyBySegment: { segment: number; size: number }[];
+  /** Offers seen, taken, and members released to make room. */
+  acquisitionsOffered: number;
+  acquisitionsTaken: number;
+  releases: number;
+  /** Whether the party ever reached PARTY_SIZE. Splits the completion rate. */
+  everFilled: boolean;
+  /** Party size when the last battle of the run began. */
+  partyAtEnd: number;
+  /**
+   * Members still standing when the battle that ended the run began.
+   *
+   * **The number that decides whether party size is the binding constraint.**
+   * Losses at a full healthy bench mean the run was lost to a single wall and
+   * a fourth slot buys nothing; losses at zero or one alive with the bench
+   * chewed through are a depth signal worth testing 4 against.
+   */
+  aliveAtLastBattle: number;
+  /** Distinct types across the final party. A party of three sharing a weakness. */
+  typeCoverage: number;
 }
 
 async function playSample(
@@ -806,8 +861,55 @@ async function playSample(
   for (let index = 0; index < options.seeds; index++) {
     const seed = `${options.prefix}-${index}`;
     const collect = newCollector();
-    const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning);
+
+    /*
+     * Switch counts come off the live battle sessions, not off the run log.
+     *
+     * The log records the *player's* choices only — the opponent is a
+     * deterministic policy over a view it is handed, so recording its answers
+     * would be recording the engine's output as though it were input. The
+     * session holds both sides' decisions, which is exactly what a report
+     * comparing player and AI switch rates needs.
+     */
+    const sessions: BattleSession[] = [];
+    // Party state at the start of each battle, so a defeat can be read back to
+    // the party that walked into it. After the fight everyone is fainted, which
+    // is what a wipe *is* and therefore measures nothing.
+    let aliveAtLastBattle = 0;
+    let partyAtEnd = 0;
+    let everFilled = false;
+    const partyBySegment: { segment: number; size: number }[] = [];
+
+    const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning, {
+      onBattle: (session, _node, before) => {
+        sessions.push(session);
+        aliveAtLastBattle = before.party.filter((member) => !member.fainted).length;
+        partyAtEnd = before.party.length;
+        partyBySegment.push({ segment: before.currentSegment, size: before.party.length });
+      },
+      onState: (state) => {
+        if (state.party.length >= PARTY_SIZE) everFilled = true;
+      },
+    });
     const { state } = run;
+
+    /*
+     * Voluntary switches only — the session counts them as it plays.
+     *
+     * A forced switch is not a decision, and counting it would turn the metric
+     * into a measure of how often things fainted. Whether a switch was forced
+     * is a fact about the request at the moment it was submitted, which is gone
+     * by the time the log is read, so the driver records the count rather than
+     * this file reconstructing it.
+     */
+    let playerSwitches = 0;
+    let aiSwitches = 0;
+    const switchesPerBattle: number[] = [];
+    for (const session of sessions) {
+      playerSwitches += session.voluntarySwitches.p1;
+      aiSwitches += session.voluntarySwitches.p2;
+      switchesPerBattle.push(session.voluntarySwitches.p1);
+    }
 
     const battles = state.history
       .filter((visit) => visit.result)
@@ -837,6 +939,18 @@ async function playSample(
       shopVisits: collect.shopVisits,
       itemsAcquired: [...new Set(collect.itemsAcquired)],
       currency: state.currency,
+      playerSwitches,
+      aiSwitches,
+      battleCount: battles.length,
+      switchesPerBattle,
+      partyBySegment,
+      acquisitionsOffered: collect.acquisitionsOffered,
+      acquisitionsTaken: collect.acquisitionsTaken,
+      releases: collect.releases,
+      everFilled,
+      partyAtEnd,
+      aliveAtLastBattle,
+      typeCoverage: new Set(state.party.flatMap((member) => describeSpecCard(member.spec).types)).size,
     });
     onProgress(index + 1);
   }
@@ -927,6 +1041,48 @@ interface Sample {
     topSpeciesRunShare: number;
     topAbilityRunShare: number;
     distinctStarters: number;
+  };
+  /**
+   * Stage 4's section. Everything about the party, in one place.
+   *
+   * Every number here answers a question the earlier stages could not even
+   * ask, because at one slot the party was a Pokemon and not a party.
+   */
+  party: {
+    /** Voluntary switches per battle, both sides. */
+    playerSwitchesPerBattle: number;
+    aiSwitchesPerBattle: number;
+    medianPlayerSwitchesPerBattle: number;
+    /** Share of battles with at least one voluntary player switch. */
+    battlesWithASwitch: number;
+    /** Offers, takes and releases per run. */
+    offersPerRun: number;
+    takenPerRun: number;
+    releasesPerRun: number;
+    /** Share of offers accepted. Low means the join penalty reads as too harsh. */
+    takeRate: number;
+    /** Share of runs whose party ever reached PARTY_SIZE, and how they fared. */
+    everFilled: number;
+    completionWhenFilled: number;
+    completionWhenNotFilled: number;
+    /** Mean party size and members alive when the run's last battle began. */
+    meanPartyAtEnd: number;
+    meanAliveAtLastBattle: number;
+    /** How the losses distribute over "members still standing". */
+    aliveAtDeath: Tally[];
+    /**
+     * Mean party size walking into a battle, per segment, against what the
+     * difficulty curve assumed.
+     *
+     * The two columns have to agree or the curve is aimed at a player who does
+     * not exist — which is exactly the failure the first Stage 4 baseline hit:
+     * every opponent was sized for a party of three against a player carrying
+     * 1.54.
+     */
+    sizeBySegment: { segment: number; battles: number; meanSize: number; assumed: number }[];
+    /** Distinct types on the final party, and how completion splits on it. */
+    meanTypeCoverage: number;
+    completionByCoverage: { coverage: string; runs: number; completion: number }[];
   };
   durationMs: number;
 }
@@ -1121,8 +1277,82 @@ function summarize(
       topAbilityRunShare: runShare(records, (r) => r.encounters.map((e) => e.ability), topAbilities[0]?.label ?? ''),
       distinctStarters: new Set(records.map((record) => record.starter)).size,
     },
+    party: summarizeParty(records),
     durationMs,
   };
+}
+
+/**
+ * The party section of the report.
+ *
+ * Split out rather than inlined into `summarize` because it is the one section
+ * whose numbers are read *together* — a switch rate is meaningless without the
+ * party size that produced it, and "runs that filled the party" is meaningless
+ * without what happened to the ones that did not.
+ */
+function summarizeParty(records: RunRecord[]): Sample['party'] {
+  const runs = Math.max(1, records.length);
+  const battles = Math.max(1, sum(records.map((record) => record.battleCount)));
+  // Every battle in the sample, as one flat list of the player's voluntary
+  // switches in it. The median is taken over battles, not over runs: a run
+  // average would weight a three-node run the same as a forty-node one.
+  const perBattle = records.flatMap((record) => record.switchesPerBattle);
+  const filled = records.filter((record) => record.everFilled);
+  const unfilled = records.filter((record) => !record.everFilled);
+  const offers = sum(records.map((record) => record.acquisitionsOffered));
+
+  // Grouped by members still standing when the losing battle began, which is
+  // the number that says whether the party was the binding constraint.
+  const losses = records.filter((record) => record.outcome === 'defeat');
+  const aliveAtDeath = tally(
+    losses.map((record) => `${record.aliveAtLastBattle} alive`),
+    6,
+  );
+
+  const coverage = new Map<number, RunRecord[]>();
+  for (const record of records) {
+    coverage.set(record.typeCoverage, [...(coverage.get(record.typeCoverage) ?? []), record]);
+  }
+
+  return {
+    playerSwitchesPerBattle: sum(records.map((record) => record.playerSwitches)) / battles,
+    aiSwitchesPerBattle: sum(records.map((record) => record.aiSwitches)) / battles,
+    medianPlayerSwitchesPerBattle: median(perBattle),
+    battlesWithASwitch: perBattle.length === 0 ? 0 : perBattle.filter((count) => count > 0).length / perBattle.length,
+    offersPerRun: offers / runs,
+    takenPerRun: sum(records.map((record) => record.acquisitionsTaken)) / runs,
+    releasesPerRun: sum(records.map((record) => record.releases)) / runs,
+    takeRate: offers === 0 ? 0 : sum(records.map((record) => record.acquisitionsTaken)) / offers,
+    everFilled: filled.length / runs,
+    completionWhenFilled: completionOf(filled),
+    completionWhenNotFilled: completionOf(unfilled),
+    meanPartyAtEnd: sum(records.map((record) => record.partyAtEnd)) / runs,
+    meanAliveAtLastBattle: sum(records.map((record) => record.aliveAtLastBattle)) / runs,
+    aliveAtDeath,
+    sizeBySegment: Array.from({ length: SEGMENTS_PER_RUN }, (_, segment) => {
+      const rows = records.flatMap((record) =>
+        record.partyBySegment.filter((entry) => entry.segment === segment),
+      );
+      return {
+        segment,
+        battles: rows.length,
+        meanSize: rows.length === 0 ? 0 : sum(rows.map((row) => row.size)) / rows.length,
+        assumed: expectedPartySize(segment),
+      };
+    }),
+    meanTypeCoverage: sum(records.map((record) => record.typeCoverage)) / runs,
+    completionByCoverage: [...coverage]
+      .sort((a, b) => a[0] - b[0])
+      .map(([types, group]) => ({
+        coverage: `${types} types`,
+        runs: group.length,
+        completion: completionOf(group),
+      })),
+  };
+}
+
+function sum(values: readonly number[]): number {
+  return values.reduce((total, value) => total + value, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -1166,6 +1396,106 @@ function render(sample: Sample): string {
     '',
     `Run completion: ${pct(sample.completionRate)}   ·   mean gyms cleared: ${sample.meanGymsCleared.toFixed(2)} / ${SEGMENTS_PER_RUN}`,
   );
+
+  /*
+   * The party section, printed high because at Stage 4 it is the section that
+   * explains the rest. A completion rate at party size three is a fact about
+   * how big the party actually got, how often it was full, and whether
+   * switching was ever a decision — and reading the gym table without those
+   * numbers is how a tuning pass ends up moving levels to fix an acquisition
+   * rate.
+   */
+  const party = sample.party;
+  out.push('', 'Party — switching, acquisition, and what the run was carrying');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        [
+          'player switches / battle',
+          party.playerSwitchesPerBattle.toFixed(2),
+          party.playerSwitchesPerBattle > 1
+            ? 'too cheap — switching every turn'
+            : party.playerSwitchesPerBattle < 0.05
+              ? 'decorative — nobody switches'
+              : 'in band',
+        ],
+        [
+          'AI switches / battle',
+          party.aiSwitchesPerBattle.toFixed(2),
+          party.aiSwitchesPerBattle < 0.01 ? 'AI scoring ignores switches' : 'AI switches',
+        ],
+        ['median switches / battle', party.medianPlayerSwitchesPerBattle.toFixed(2), 'target 0 < x < ~1'],
+        ['battles with a switch', pct(party.battlesWithASwitch), ''],
+        ['offers / run', party.offersPerRun.toFixed(2), ''],
+        [
+          'offers taken',
+          pct(party.takeRate),
+          party.takeRate < 0.5 ? 'join penalty or release cost too harsh' : '',
+        ],
+        ['releases / run', party.releasesPerRun.toFixed(2), ''],
+        ['mean party at last battle', party.meanPartyAtEnd.toFixed(2), `of ${PARTY_SIZE}`],
+        ['mean type coverage', party.meanTypeCoverage.toFixed(2), 'distinct types on the final party'],
+      ],
+    ),
+  );
+
+  out.push('', 'Party size by segment — measured against what the curve assumes');
+  out.push(
+    table(
+      ['segment', 'battles', 'mean party', 'curve assumes', 'gap'],
+      party.sizeBySegment
+        .filter((row) => row.battles > 0)
+        .map((row) => [
+          String(row.segment + 1),
+          String(row.battles),
+          row.meanSize.toFixed(2),
+          String(row.assumed),
+          (row.meanSize - row.assumed).toFixed(2),
+        ]),
+    ),
+  );
+
+  out.push('', 'Did the party ever fill?');
+  out.push(
+    table(
+      ['', 'share of runs', 'completion'],
+      [
+        ['filled', pct(party.everFilled), pct(party.completionWhenFilled)],
+        ['never filled', pct(1 - party.everFilled), pct(party.completionWhenNotFilled)],
+      ],
+    ),
+  );
+
+  if (party.aliveAtDeath.length > 0) {
+    /*
+     * **The number that decides whether a fourth slot would help.**
+     *
+     * Losses at a full healthy bench mean the run was lost to a single wall and
+     * the party was never the binding constraint. Losses at zero or one alive,
+     * with the bench chewed through, are a real depth signal.
+     */
+    out.push('', 'Party composition at death — members standing when the last battle began');
+    out.push(
+      table(
+        ['alive', 'runs', 'share'],
+        party.aliveAtDeath.map((row) => [row.label, String(row.count), pct(row.share)]),
+      ),
+    );
+    out.push(`  mean alive at the losing battle: ${party.meanAliveAtLastBattle.toFixed(2)}`);
+  }
+
+  if (party.completionByCoverage.length > 1) {
+    out.push('', 'Type coverage of the final party, against completion');
+    out.push(
+      table(
+        ['coverage', 'runs', 'completion'],
+        party.completionByCoverage
+          .filter((row) => row.runs >= 10)
+          .map((row) => [row.coverage, String(row.runs), pct(row.completion)]),
+      ),
+    );
+  }
 
   out.push('', 'Turns per battle, by segment');
   out.push(

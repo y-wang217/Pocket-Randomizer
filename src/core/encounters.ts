@@ -376,7 +376,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
   for (const node of nodesOf(segment)) {
     const lead = node.encounter?.team[0];
     if (node.kind !== 'wild' || !node.tier || !lead) continue;
-    node.acquisition = generateEncounterAcquisition(node.id, lead, node.tier, index, rng.rewards);
+    node.acquisition = generateEncounterAcquisition(node.id, lead, node.tier, index, rng.rewards, tuning);
   }
   return segment;
 }

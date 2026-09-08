@@ -40,6 +40,7 @@ import type { PokemonSpec, PokemonState } from './types';
 import { PARTY_SIZE, PARTY_TUNING } from '../data/partyTuning';
 import { encounterAcquisitionRate } from '../data/rewardPools';
 import { playerLevel } from '../data/scaling';
+import type { Tuning } from '../data/tuning';
 import type { Tier } from './types';
 
 /** Where an offer came from. Display and metrics only; the decision is the same. */
@@ -115,8 +116,13 @@ export function generateEncounterAcquisition(
   tier: Tier,
   segment: number,
   stream: RngStream,
+  tuning: Tuning,
 ): AcquisitionOffer | null {
+  // Drawn *before* the flag is read, and deliberately. A flag that skipped the
+  // draw would shift every later reward roll in the seed, and the two
+  // configurations it exists to compare would stop being comparable.
   const roll = stream.nextFloat();
+  if (!tuning.allowEncounterAcquisitions) return null;
   if (roll >= encounterAcquisitionRate(tier)) return null;
   return {
     nodeId,

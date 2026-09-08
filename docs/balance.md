@@ -24,7 +24,14 @@ difficulty curve is a distribution — nothing else.
 Every number in `data/scaling.ts`, `data/starters.ts` and `data/tuning.ts` is
 the output of that loop. None of them is taste.
 
-## 2. The shipped numbers
+## 2. The Stage 2 numbers
+
+**Superseded twice over — see §7 for the shipped figures.** Kept because the
+findings in §3 are what produced the curve, and those still hold. The table
+itself does not: it was recorded at `gymrun-randomizer-2` and Stage 3 shipped at
+`-4` without re-running it, so the 5.2% below was already wrong before Stage 4
+touched anything (§7.1). Stage 4 then raised `PARTY_SIZE` and invalidated the
+rest.
 
 1000 seeds, `greedy` battle policy, `rest` node policy, at
 `gymrun-randomizer-2`:
@@ -302,6 +309,187 @@ appears in 10-11% of runs, against a target of 25%.
 4. **`--policy tiers` is a slow way to ask this question.** Two 1000-seed
    samples is about six minutes. Fine for a checkpoint, painful for a bisect.
 
+## 7. Stage 4 — the party, and every number before it
+
+Raising `PARTY_SIZE` from 1 to 3 changes the difficulty of every encounter in
+the game, so **nothing in §2 through §6 carries forward.** Those numbers
+describe a different game. This section is the re-baseline.
+
+### 7.1 The Stage 3 numbers in §2 were already stale, and that is worth knowing
+
+The spec's first instruction was to run the new code at `PARTY_SIZE = 1` and
+confirm it reproduces the Stage 3 report — because if it does not, switching
+broke something before a single balance number moved. It did not reproduce.
+The new code measured **14.5%** completion; §2 above says 5.2%.
+
+The code was not the problem. Running the simulator on the Stage 3 commit
+itself measured **14.7%**. §2 was recorded at `gymrun-randomizer-2` and Stage 3
+shipped at `-4`; two tuning passes moved the game and the table was never
+re-run. The check passed against the *code* and failed against the *document*.
+
+| measured, 1000 seeds, `greedy`/`rest` | completion |
+|---|---|
+| §2 as written (randomizer-2) | 5.2% |
+| Stage 3 commit, re-run today | 14.7% |
+| Stage 4 code at `GYMRUN_PARTY_SIZE=1` | 14.5% |
+
+Switching broke nothing. `GYMRUN_PARTY_SIZE=1` exists for exactly this
+comparison and is documented in `data/partyTuning.ts`.
+
+### 7.2 The largest error was a premise, not a number
+
+The first baseline at `PARTY_SIZE = 3` produced an **inverted** curve: 74% clear
+at gym 1 rising to 96% at gym 8, mean 1.90 gyms of eight.
+
+`opponentTeamSize` sized every opponent as `PARTY_SIZE + advantage`. But a run
+does not start with a full party — it starts with one Pokemon and acquires the
+rest. The entire curve was aimed at a player who does not exist for the first
+third of the run: a lone starter against three, and a full party against three.
+
+Mean party size walking into a battle was **1.54**.
+
+The fix is `EXPECTED_PARTY_SIZE` in `data/scaling.ts` — what the curve assumes
+the player has *at that segment* — and `teamAdvantage` goes back to meaning what
+its name says. The simulator prints the measured party beside the assumed one
+every run, so the premise cannot quietly drift again:
+
+| segment | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| assumed | 1 | 2 | 2 | 3 | 3 | 3 | 3 | 3 |
+| measured | 1.31 | 1.82 | 2.34 | 2.72 | 2.87 | 2.95 | 2.97 | 2.98 |
+
+The third column is why gym 3 was the only cliff left after the first repair —
+72% against 83% and 89% on either side. Nothing about that gym was harder; the
+curve was a whole Pokemon ahead of the player. Correcting the assumption removed
+the cliff (72% → 84%) without touching a single difficulty number.
+
+### 7.3 Acquisition supply, not appetite
+
+The same baseline said the party almost never filled:
+
+| | first cut | shipped |
+|---|---|---|
+| offers per run | 0.78 | 2.27 |
+| offers accepted | 94.5% | 91% |
+| runs that ever filled the party | 17.7% | 51% |
+| completion, filled | 67.9% | 28.7% |
+| completion, never filled | 2.0% | 0.3% |
+
+A 94.5% take rate says the bot was refusing almost nothing — supply was the
+constraint, not the join-level penalty or the release cost. And 2.0% against
+67.9% is not a difficulty curve, it is a death spiral: you need a party to
+survive and you need to survive to be offered one.
+`ENCOUNTER_ACQUISITION_RATE` went from 0.25/0.4/0.6 to 0.55/0.7/0.85.
+
+### 7.4 Two tiers were priced against a party of one
+
+Both are the same arithmetic mistake, and both *inverted* what they were meant
+to express.
+
+**`elite`** bought its extra Pokemon with eight levels below the curve. At party
+size 1 that `+1` was a second body against a lone player — a 100% increase in
+the opposition. At 3 it is a fourth against three, a 33% increase, while eight
+levels went on costing the same. `test/tiers.test.ts` measured elite at **84% of
+hard's encounter power**: an "elite" node strictly *easier* than the `hard` one
+beside it, paying from a better reward pool. Scaled by what it now buys,
+`-8 x (1/3) ≈ -3`.
+
+**Gym level offsets** were the same story one level up. A gym fielding three
+against a solo player is a 3x advantage and was paid for with up to 23 levels;
+fielding five against three is 1.67x and was still being paid 23. Gyms 4-8
+cleared at 92-96% while gym 3 cleared at 79%. The offsets are roughly half what
+they were.
+
+### 7.5 The shipped numbers
+
+800-600 seeds, `switch-aware`, `rest` node policy, `PARTY_SIZE = 3`:
+
+| gym | clear rate | drop |
+|---|---|---|
+| 1 | 94% | — |
+| 2 | 84% | -10pt |
+| 3 | 75% | -9pt |
+| 4 | 86% | +11pt |
+| 5 | 77% | -9pt |
+| 6 | 73% | -4pt |
+| 7 | 78% | +5pt |
+| 8 | 67% | -11pt |
+
+**Run completion 10.0%**, mean 3.28 gyms of eight.
+
+| target | shipped |
+|---|---|
+| completion back inside 5-15% | 10.0% |
+| no gym drops more than ~25 points | worst drop 11pt |
+| players fill the party in most runs | 51% |
+| median switches per battle above 0, below ~1 | mean 0.34, median 0 |
+| `switch-aware` beats `no-switch` by a visible margin | **not met — see §7.6** |
+
+### 7.6 Switching does not pay, and the honest answer is to say so
+
+This is the stage's headline done-condition and it is not met.
+
+| | completion | mean gyms |
+|---|---|---|
+| `switch-aware` | 10.0% | 3.28 |
+| `no-switch` | 11.2% | 3.34 |
+
+A 1.2-point gap in the *wrong* direction, which at 600 seeds is inside noise.
+The honest summary is that switching is currently worth nothing to the player.
+
+It was worth much less than nothing at first. The original scoring compared a
+switch against a move **on a one-turn horizon**, which a switch can never win —
+it deals no damage and takes a free hit, so the only thing that could justify it
+was a large penalty bolted onto staying. Across twelve combinations of that
+penalty and the switch cost, `switch-aware` lost by 1.2 to 2.8 points every
+time. Not a badly tuned cost: a model that cannot express the benefit.
+
+Replacing it with `matchupQuality` — how many turns a body survives against how
+many it needs to win, so a switch is worth the *difference between two races* —
+flipped the sign to +2.0 points in isolation. It did not survive contact with
+the full policy at the shipped difficulty.
+
+Three things are worth writing down before the next attempt:
+
+1. **The opponent fields more Pokemon than the player at every gym.** Switching
+   to answer a matchup is a losing trade when they have more answers than you
+   have; they simply bring in the next one. Dropping gyms from five to four
+   narrowed the gap from -4.8 to -2.0, which is the clearest evidence that this
+   is the binding constraint rather than the cost.
+2. **Partial free revival makes preservation cheap to skip.** A fainted member
+   comes back at half HP for nothing at the next node, so losing one costs less
+   than the full turn a switch spends. `partyTuning.freeRevive` exists to
+   measure this; setting `reviveHpFraction` lower is the untried lever.
+3. **Comparing across `switchCost` values is not a controlled experiment.** The
+   opponent runs the same AI, so raising the cost strengthens the opponent in
+   *both* arms and closes the gap without switching helping anyone. Only the
+   comparison at a fixed weight is meaningful. This caught out an earlier
+   reading of the same table.
+
+The switch *cost* is not a lever: it is Showdown's, and inventing a discounted
+switch would make every number here describe a game nobody is playing.
+
+### 7.7 Party size: ship 3, and the metric says do not test 4 yet
+
+The spec's condition for testing four slots was the party-composition metric —
+where losses happen.
+
+| members standing when the losing battle began | share of losses |
+|---|---|
+| 3 alive | 43% |
+| 2 alive | 24% |
+| 1 alive | 33% |
+
+**43% of losses happen with a full, standing party.** Those runs were beaten by
+a single wall, not by running out of Pokemon, and a fourth slot would not have
+saved one of them. That is the spec's own "the fix is elsewhere" reading, so 3
+ships and 4 waits.
+
+Type coverage is the other half of the same picture: a final party averages 3.23
+distinct types, and completion climbs steeply with it. That correlation is
+mostly party *size* wearing a disguise — three Pokemon carry more types than one
+— so it is not yet evidence that coverage is a skill.
+
 ## 5. Running it yourself
 
 ```sh
@@ -310,12 +498,23 @@ npm run sim -- --seeds 1000              # the report above
 npm run sim -- --seeds 1000 --policy greedy
 npm run sim -- --nodes all               # compare node-choice playstyles
 npm run sim -- --set stepsPerSegment.min=6 --set stepsPerSegment.max=8
+npm run sim -- --seeds 1000 --policy switching   # Stage 4's headline pair
+GYMRUN_PARTY_SIZE=1 npm run sim -- --policy greedy  # reproduce the Stage 3 game
 npm run sim -- --help
 ```
 
-The balance levers are `src/data/scaling.ts` (the curve),
-`src/data/starters.ts` (what the player begins with), `src/data/tuning.ts` (map
-shape and recovery) and `src/data/blacklists.ts` (exceptions). If a tuning pass
+Party size is a module constant rather than a `--set` field, because the whole
+difficulty curve is a function of it. `GYMRUN_PARTY_SIZE` is a measurement lever
+and not a game setting; see `src/data/partyTuning.ts`.
+
+The balance levers are `src/data/scaling.ts` (the curve, including
+`EXPECTED_PARTY_SIZE`), `src/data/starters.ts` (what the player begins with),
+`src/data/partyTuning.ts` (slots, join level, what a faint costs),
+`src/data/rewardPools.ts` (payouts and acquisition rates), `src/data/tuning.ts`
+(map shape and recovery) and `src/data/blacklists.ts` (exceptions).
+`AI_WEIGHTS` in `src/core/battle/ai.ts` is a lever too, and changes to it move
+win rates as much as data does — which is why the report stamps `aiVersion`
+beside `randomizerVersion`. If a tuning pass
 ever needs to edit `src/core/randomizer.ts`, the split between logic and data is
 wrong and that is the bug to fix first.
 

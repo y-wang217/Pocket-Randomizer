@@ -160,6 +160,24 @@ export interface Tuning {
    * and parties still fill, these cards are not the reason.
    */
   allowSpeciesRewards: boolean;
+  /**
+   * Whether a won wild node may offer the species it just fielded.
+   *
+   * The second acquisition route, with its own switch for the same reason the
+   * first has one: they are two sources of the same decision, and a report that
+   * cannot turn one off cannot say which of them fills a party. The rate itself
+   * is keyed to tier in `data/rewardPools.ts` — this is on or off, not a
+   * multiplier, because a multiplier here and a table there would be two dials
+   * on one number.
+   *
+   * **Turning it off does not skip the roll.** `generateEncounterAcquisition`
+   * draws first and discards, so a map generated with this off consumes exactly
+   * the same `rewards` draws as one with it on. A flag that skipped the draw
+   * would make every later reward in every seed depend on it, and the two
+   * configurations would no longer be comparable — which is the one thing this
+   * flag exists to make them.
+   */
+  allowEncounterAcquisitions: boolean;
 
   // --- persistence between nodes ------------------------------------------
 
@@ -280,6 +298,7 @@ export const DEFAULT_TUNING: Tuning = {
   eventDamageFloor: 0.05,
 
   allowSpeciesRewards: true,
+  allowEncounterAcquisitions: true,
 
   restHpFraction: 1,
   restPpFraction: 1,

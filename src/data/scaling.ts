@@ -138,7 +138,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 2,
     playerLevel: 42,
-    levelOffset: { wild: { min: -15, max: -12 }, trainer: { min: -13, max: -10 }, gym: { min: -9, max: -7 } },
+    levelOffset: { wild: { min: -15, max: -12 }, trainer: { min: -13, max: -10 }, gym: { min: -6, max: -4 } },
     speciesBands: [1, 2],
     moveBands: [0, 1],
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
@@ -146,7 +146,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 3,
     playerLevel: 48,
-    levelOffset: { wild: { min: -17, max: -13 }, trainer: { min: -14, max: -11 }, gym: { min: -10, max: -8 } },
+    levelOffset: { wild: { min: -17, max: -13 }, trainer: { min: -14, max: -11 }, gym: { min: -7, max: -5 } },
     speciesBands: [1, 2],
     moveBands: [0, 1],
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
@@ -154,7 +154,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 4,
     playerLevel: 54,
-    levelOffset: { wild: { min: -18, max: -14 }, trainer: { min: -16, max: -12 }, gym: { min: -16, max: -13 } },
+    levelOffset: { wild: { min: -18, max: -14 }, trainer: { min: -16, max: -12 }, gym: { min: -10, max: -8 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
@@ -162,7 +162,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 5,
     playerLevel: 60,
-    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -13 }, gym: { min: -20, max: -16 } },
+    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -13 }, gym: { min: -12, max: -9 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
     teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
@@ -170,7 +170,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 6,
     playerLevel: 66,
-    levelOffset: { wild: { min: -22, max: -17 }, trainer: { min: -19, max: -14 }, gym: { min: -21, max: -17 } },
+    levelOffset: { wild: { min: -22, max: -17 }, trainer: { min: -19, max: -14 }, gym: { min: -12, max: -9 } },
     speciesBands: [2, 3],
     moveBands: [1, 2, 3],
     teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
@@ -178,7 +178,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 7,
     playerLevel: 72,
-    levelOffset: { wild: { min: -23, max: -18 }, trainer: { min: -20, max: -15 }, gym: { min: -23, max: -18 } },
+    levelOffset: { wild: { min: -23, max: -18 }, trainer: { min: -20, max: -15 }, gym: { min: -13, max: -10 } },
     speciesBands: [2, 3],
     moveBands: [1, 2, 3],
     teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
@@ -376,15 +376,68 @@ function shift(bands: readonly number[], by: number, ceiling: number): readonly 
 }
 
 /**
+ * How big the player's party actually is at this point in the run.
+ *
+ * **Not `PARTY_SIZE`, and the difference is the largest single finding of the
+ * Stage 4 balance pass.** A run starts with one Pokemon and grows toward
+ * `PARTY_SIZE` by acquiring; it does not begin full. Sizing every opponent
+ * against `PARTY_SIZE` therefore aimed the entire difficulty curve at a player
+ * who does not exist for the first third of the run.
+ *
+ * The simulator was blunt about it. At `PARTY_SIZE` 3 the first baseline
+ * produced an *inverted* curve — 74% clear at gym 1 rising to 96% at gym 8 —
+ * because the opening was a solo Pokemon against three while the back half was
+ * a full party against three. Mean party size walking into a battle was 1.54.
+ * Runs that ever filled the party completed 68% of the time; runs that did not
+ * completed 2%. That is not a difficulty curve with a bad slope, it is a curve
+ * measured against the wrong quantity.
+ *
+ * So the curve reads *this* table, and `teamAdvantage` goes back to meaning
+ * what it says: Pokemon the opponent fields **beyond what the player has**.
+ *
+ * It is a table rather than a formula for the reason every other curve here is
+ * one: the growth is not linear and does not have to be. It is also a
+ * *claim*, and the simulator's `sizeBySegment` section is what holds it to
+ * account — it prints the measured party beside this column, segment by
+ * segment.
+ *
+ * **The third row is 2 because that is what the measurement said, and the first
+ * cut had it at 3.** With a 3 there, segment 2's opponents were sized for a
+ * full party against a real one of 2.34, and gym 3 was the only cliff left in
+ * the curve — 72% clear against 83% and 89% on either side of it. Nothing about
+ * that gym was harder; the curve was simply aimed a whole Pokemon ahead of the
+ * player. Fixing the assumption is the honest repair: difficulty belongs in the
+ * levels and the band windows, where a balance pass can see it, not in a
+ * mis-stated premise.
+ */
+const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 3, 3, 3, 3];
+
+/**
+ * The party size the curve assumes at a segment, capped at `PARTY_SIZE`.
+ *
+ * The cap is what keeps this honest when `PARTY_SIZE` moves: at 1 every row
+ * collapses to 1 and the Stage 3 curve is reproduced exactly, which is what
+ * makes `GYMRUN_PARTY_SIZE=1 npm run sim` a valid comparison rather than a
+ * different game.
+ */
+export function expectedPartySize(segment: number): number {
+  const row = EXPECTED_PARTY_SIZE[Math.min(segment, EXPECTED_PARTY_SIZE.length - 1)] ?? PARTY_SIZE;
+  return Math.max(1, Math.min(PARTY_SIZE, row));
+}
+
+/**
  * How many Pokemon an opponent fields.
  *
- * `PARTY_SIZE + advantage`, clamped to the sim's six. Read this rather than
- * writing a literal: a hardcoded team size is the single-mon assumption
- * wearing a different hat.
+ * `expectedPartySize(segment) + advantage`, clamped to the sim's six. Read this
+ * rather than writing a literal: a hardcoded team size is the single-mon
+ * assumption wearing a different hat.
+ *
+ * `override` is the gym's own `teamSize`, which is an absolute count rather
+ * than an advantage — a gym leader fields what the gym table says.
  */
 export function opponentTeamSize(kind: BattleKind, segment: number, tier: Tier, override?: number): number {
   const advantage = override ?? segmentScaling(segment).teamAdvantage[kind] + TIER_MODIFIERS[tier].team;
-  return Math.max(1, Math.min(MAX_TEAM_SIZE, PARTY_SIZE + advantage));
+  return Math.max(1, Math.min(MAX_TEAM_SIZE, expectedPartySize(segment) + advantage));
 }
 
 /** The opponent level band for a node kind in a segment, tier applied. */

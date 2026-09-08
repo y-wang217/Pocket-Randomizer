@@ -160,28 +160,40 @@ function expectedDamageOf(me: Pokemon, foe: Pokemon, move: MoveView): number {
  * than a prediction, and it is the same bound a person forms when they see a
  * Fire type across the field and decide not to send in their Grass type.
  *
- * One fixed physical and one fixed special probe per type, so a foe is assumed
- * to hit on whichever side hurts more. That is the pessimistic reading and the
- * right one: an AI that guessed wrong about the split would switch into the
- * kill it was trying to avoid.
+ * The category is chosen from the foe's own attacking stats rather than by
+ * taking the worse of the two, and **that changed after the first Stage 4
+ * balance run.** Assuming a foe hits on whichever side hurts more roughly
+ * doubles the estimated threat: a physically bulky Pokemon looks doomed to a
+ * special attacker it is actually walling. The AI then read almost every turn
+ * as lethal and switched out of matchups it was winning, and the simulator
+ * measured `switch-aware` completing *less* often than `no-switch` — switching
+ * was not a decision, it was a leak.
+ *
+ * Picking the side the foe is actually built to attack from is both more
+ * accurate and fair game: base stats are public information, and a player
+ * looking at a Gengar knows which number to worry about.
  */
-const PROBE_BY_TYPE = new Map<string, [Move, Move]>();
+const PROBE_BY_TYPE = new Map<string, Move>();
 
-function probesFor(type: string): [Move, Move] {
-  const cached = PROBE_BY_TYPE.get(type);
+function probeFor(type: string, category: 'Physical' | 'Special'): Move {
+  const key = `${type}/${category}`;
+  const cached = PROBE_BY_TYPE.get(key);
   if (cached) return cached;
   // Tackle overridden rather than a real move per type: the calc wants a move
   // it knows, and every property that matters here is being replaced anyway.
   // The cast is on `type`, which the view carries as a plain string and the
   // calc types as its own `TypeName` union — a foe's types come from the sim,
   // so they are always members of it.
-  const shape = { basePower: 80, type: type as never, ignoreDefensive: false };
-  const probes: [Move, Move] = [
-    new Move(gen, 'Tackle', { overrides: { ...shape, category: 'Physical' } }),
-    new Move(gen, 'Tackle', { overrides: { ...shape, category: 'Special' } }),
-  ];
-  PROBE_BY_TYPE.set(type, probes);
-  return probes;
+  const probe = new Move(gen, 'Tackle', {
+    overrides: { basePower: 65, type: type as never, category, ignoreDefensive: false },
+  });
+  PROBE_BY_TYPE.set(key, probe);
+  return probe;
+}
+
+/** Which side a Pokemon is built to attack from. Base stats are public. */
+function attackingSide(attacker: Pokemon): 'Physical' | 'Special' {
+  return attacker.stats.atk >= attacker.stats.spa ? 'Physical' : 'Special';
 }
 
 /**
@@ -195,11 +207,10 @@ function probesFor(type: string): [Move, Move] {
  * kills the incoming member, when that is calculable`.
  */
 function incomingDamage(attacker: Pokemon, types: readonly string[], target: Pokemon): number {
+  const category = attackingSide(attacker);
   let worst = 0;
   for (const type of types) {
-    for (const probe of probesFor(type)) {
-      worst = Math.max(worst, midpoint(attacker, target, probe, 0));
-    }
+    worst = Math.max(worst, midpoint(attacker, target, probeFor(type, category), 0));
   }
   return worst;
 }
@@ -236,45 +247,106 @@ export interface ChoiceEvaluation {
 /**
  * The weights, gathered so a tuning pass is an edit to one object.
  *
- * Every one of them is in **HP-fraction units**, which is what makes a move and
- * a switch comparable at all: "deals 40% of their bar" and "avoids taking 70%
- * of mine" are the same currency. A weight table in raw HP would rank a choice
- * differently against a Blissey than against a Gengar for no reason anybody
- * chose.
+ * Exported and mutable so the simulator can sweep them. That is the same
+ * reasoning `Tuning` rests on: a balance number the simulator cannot move
+ * without a code change is not a lever, and these decide how often a switch
+ * happens, which is the one behaviour this stage exists to price.
+ *
+ * Two currencies, and the conversion between them is `matchup`. `offense` and
+ * `switchCost` are in **HP fractions**; a matchup quality is in **turns of
+ * advantage**. Mixing them is the whole point — a move and a switch have to be
+ * comparable — and `matchup` is the exchange rate.
  */
-const WEIGHTS = {
+export const AI_WEIGHTS = {
   /** A kill outranks everything. Nothing else in this table can reach it. */
   kill: 100,
   /**
-   * What being knocked out next turn costs, subtracted from a move's score.
+   * What a turn of matchup advantage is worth, in fractions of a HP bar.
    *
-   * Below `kill` on purpose. **Do not switch on the turn a kill is available**
-   * is the spec's rule and this is how it is enforced: taking the kill scores
-   * at least 100, and no amount of incoming threat can drag it under a switch.
+   * **The term that makes switching a real option, and it was missing from the
+   * first cut.** That version scored a switch on one turn — what the incoming
+   * member would threaten, minus what it took on arrival — against a move
+   * scored on the same single turn. On a one-turn horizon a switch can never
+   * win: it deals no damage and takes a free hit, so the only thing that could
+   * ever justify it was a large penalty bolted onto staying.
+   *
+   * The simulator was unambiguous. Across every combination of that penalty and
+   * the switch cost — twelve of them, from 1 to 6 and 0.4 to 1.2 —
+   * `switch-aware` completed *fewer* runs than `no-switch`, by 1.2 to 2.8
+   * points. Not once did switching pay. That is not a badly tuned cost, it is a
+   * model that cannot express the benefit: a switch is an investment that pays
+   * over the rest of the fight, and a one-turn score has nowhere to put that.
+   *
+   * So a body is now scored by the *race* it is in — how many turns it survives
+   * against how many it needs to win — and a switch is worth the difference
+   * between the incoming member's race and the current one's.
    */
-  faintPenalty: 6,
+  matchup: 2,
   /** What a switch costs by definition: the turn, and the free hit. */
-  switchCost: 1.2,
-  /** How much the incoming member's own threat is worth on arrival. */
-  threat: 1,
+  switchCost: 3,
   /** A healthy body is worth a little; a real threat is worth more. */
   bulk: 0.35,
-} as const;
+};
+
+/*
+ * `faintPenalty` and `threat` used to live in this table and are gone.
+ *
+ * They were the one-turn model: `faintPenalty` docked a move for staying in
+ * when the active was about to be knocked out, and `threat` scaled what the
+ * incoming member would deal on the turn it arrived. Both existed to
+ * approximate a benefit the model could not represent, and neither worked — see
+ * the note on `matchup`. Removing them rather than zeroing them is deliberate:
+ * a weight left at zero is an invitation to turn it back on, and turning either
+ * of these back on is re-adopting the model the simulator rejected.
+ */
 
 /**
- * Score a move.
+ * The most turns of advantage a matchup is allowed to be worth.
  *
- * Damage times accuracy, plus the kill bonus, minus what staying in costs when
- * the foe is about to knock this body out. That last term is the only thing
- * that makes a switch ever win: a move scored purely on its own damage is
- * always at least as good as spending the turn moving, so an AI without a
- * `risk` term is an AI that never switches, and the simulator's switch-rate
- * metric exists precisely to catch that having happened by accident.
+ * A body the foe cannot damage at all races to `Infinity`, and a score of
+ * infinity is a score that cannot be compared or tie-broken. It is also a lie
+ * about a real fight, where a stall eventually ends on PP or the turn limit.
+ */
+const MATCHUP_CAP = 4;
+
+/**
+ * How well a body is doing in its race against the foe, in turns of advantage.
+ *
+ * Positive when it kills before it dies. **This is the number a switch trades
+ * one for another**, and it is what a player means by "bad matchup": not "I
+ * will take damage" but "I lose this race and something else wins it".
+ *
+ * Both halves are per-turn rates from the same calc, so a body that resists the
+ * foe and hits it hard scores twice — which is right, because that is exactly
+ * the Pokemon you want to bring in.
+ */
+function matchupQuality(outgoing: number, incoming: number, bodyHp: number, foeHp: number): number {
+  const turnsToKill = outgoing > 0 ? Math.max(1, foeHp) / outgoing : Number.POSITIVE_INFINITY;
+  const turnsToDie = incoming > 0 ? Math.max(1, bodyHp) / incoming : Number.POSITIVE_INFINITY;
+  if (!Number.isFinite(turnsToDie) && !Number.isFinite(turnsToKill)) return 0;
+  if (!Number.isFinite(turnsToDie)) return MATCHUP_CAP;
+  if (!Number.isFinite(turnsToKill)) return -MATCHUP_CAP;
+  return Math.max(-MATCHUP_CAP, Math.min(MATCHUP_CAP, turnsToDie - turnsToKill));
+}
+
+/**
+ * Score a move: progress made this turn, plus the matchup it keeps you in.
+ *
+ * The second half is what makes this comparable to a switch. Attacking is not
+ * only "deal damage now" — it is also "stay in this race", and a race you are
+ * losing is worth less than one you are winning. A switch replaces that term
+ * with a different body's race; the difference between them, minus the turn
+ * spent, is the whole of the decision.
+ *
+ * `stay` is identical across every move on the turn, so it never reorders them
+ * among themselves — it only ever moves moves as a block against switches,
+ * which is exactly the comparison it exists to make.
  */
 function scoreMove(
   view: BattleView,
   bodies: CalcBodies,
   move: MoveView,
+  stay: number,
   selfRisk: number,
 ): ChoiceEvaluation {
   const foeMaxHp = Math.max(1, view.foe.maxHp);
@@ -283,17 +355,13 @@ function scoreMove(
   const offense = (damage / foeMaxHp) * accuracy;
   const kills = damage >= Math.max(1, view.foe.hp);
 
-  // The threat only counts against a body that cannot absorb it. Being hit for
-  // 30% is not a reason to spend a turn; being knocked out is.
-  const lethal = selfRisk >= 1 ? selfRisk : 0;
-
   return {
     choice: moveChoice(move.slot),
     move,
     offense,
     risk: selfRisk,
     kills,
-    score: offense + (kills ? WEIGHTS.kill * accuracy : 0) - lethal * WEIGHTS.faintPenalty,
+    score: offense + (kills ? AI_WEIGHTS.kill * accuracy : 0) + stay * AI_WEIGHTS.matchup,
   };
 }
 
@@ -320,10 +388,20 @@ function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView): 
     best = Math.max(best, midpoint(body, bodies.foe, move, move.bp));
   }
   const offense = best / foeMaxHp;
-  const arriving = incomingDamage(bodies.foe, view.foe.types, body) / memberMaxHp;
-  // Fraction of the *member's current* bar, which is what decides whether it
-  // survives arriving — a body at 20% dies to a hit worth 25% of its maximum.
-  const survives = arriving < member.hp / memberMaxHp;
+  const arrivingHp = incomingDamage(bodies.foe, view.foe.types, body);
+  const arriving = arrivingHp / memberMaxHp;
+  // Measured in HP, not in fractions of the maximum: a body at 20% dies to a
+  // hit worth 25% of its bar, and the comparison that says so is against what
+  // it has left rather than against what it started with.
+  const survives = arrivingHp < member.hp;
+
+  /*
+   * The race the incoming member would be in, measured from the HP it will
+   * actually have — after the free hit it takes on the way in. Scoring it at
+   * full HP would price a switch as though arriving were free, which is the one
+   * thing about switching that definitely is not.
+   */
+  const quality = matchupQuality(best, arrivingHp, member.hp - arrivingHp, view.foe.hp);
 
   return {
     choice: switchChoice(member.slot),
@@ -332,8 +410,36 @@ function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView): 
     risk: arriving,
     kills: false,
     score: survives
-      ? offense * WEIGHTS.threat + member.hpFraction * WEIGHTS.bulk - arriving - WEIGHTS.switchCost
+      ? quality * AI_WEIGHTS.matchup + member.hpFraction * AI_WEIGHTS.bulk - AI_WEIGHTS.switchCost
       : Number.NEGATIVE_INFINITY,
+  };
+}
+
+/**
+ * The same candidate, scored for a forced switch.
+ *
+ * Three things differ, and each is a consequence of there being no alternative:
+ * no turn is being spent, so the switch cost comes off; there is no current
+ * matchup to trade away, because the active Pokemon is gone; and nothing may
+ * score `-Infinity` for dying on arrival, because the whole bench might, and a
+ * forced switch still has to produce an answer.
+ *
+ * What is left is "who is best against this foe", which is the right question.
+ * It is deliberately built from `scoreSwitch`'s own numbers rather than
+ * recomputed — the first cut called `matchupQuality` here with an incoming
+ * damage of zero, which makes every candidate race to infinity and score
+ * identically, quietly reducing the whole term to a constant.
+ */
+function scoreForcedSwitch(scored: ChoiceEvaluation, view: BattleView, member: SwitchView): ChoiceEvaluation {
+  const foeMaxHp = Math.max(1, view.foe.maxHp);
+  const memberMaxHp = Math.max(1, member.maxHp);
+  const outgoing = scored.offense * foeMaxHp;
+  const incoming = scored.risk * memberMaxHp;
+  const quality = matchupQuality(outgoing, incoming, member.hp, view.foe.hp);
+
+  return {
+    ...scored,
+    score: quality * AI_WEIGHTS.matchup + scored.offense + member.hpFraction * AI_WEIGHTS.bulk,
   };
 }
 
@@ -358,26 +464,29 @@ export function scoreChoices(view: BattleView): ChoiceEvaluation[] {
   const bodies: CalcBodies = { me: toCalcPokemon(view.me), foe: toCalcPokemon(view.foe) };
   // Likewise the question "am I about to be knocked out?" — one answer per
   // turn, shared by every move that has to be discounted by it.
-  const selfRisk = forced
+  const threat = forced ? 0 : incomingDamage(bodies.foe, view.foe.types, bodies.me);
+  const selfRisk = threat / Math.max(1, view.me.hp);
+  /*
+   * The race the active Pokemon is currently in — the term a switch trades
+   * away. Computed from its best available damage, which is the same number
+   * the best move will score with, so "stay" and "attack" agree about how the
+   * race is going.
+   */
+  const bestOutgoing = forced
     ? 0
-    : incomingDamage(bodies.foe, view.foe.types, bodies.me) / Math.max(1, view.me.hp);
+    : Math.max(0, ...view.moves.map((move) => expectedDamageOf(bodies.me, bodies.foe, move)));
+  const stay = forced ? 0 : matchupQuality(bestOutgoing, threat, view.me.hp, view.foe.hp);
 
   return legalChoices(view).map((choice) => {
     if (choice.kind === 'switch') {
       const member = view.switches.find((entry) => entry.slot === choice.slot);
       if (!member) throw new Error(`No bench member in slot ${choice.slot}`);
       const scored = scoreSwitch(view, bodies, member);
-      // On a forced switch there is no turn to spend and no alternative to
-      // compare against: every option is a switch, so the cost is a constant
-      // and subtracting it from all of them would only risk `-Infinity`
-      // everywhere when the whole bench dies on arrival.
-      return forced
-        ? { ...scored, score: scored.offense * WEIGHTS.threat + member.hpFraction * WEIGHTS.bulk - scored.risk }
-        : scored;
+      return forced ? scoreForcedSwitch(scored, view, member) : scored;
     }
     const move = view.moves.find((entry) => entry.slot === choice.slot);
     if (!move) throw new Error(`No move in slot ${choice.slot}`);
-    return scoreMove(view, bodies, move, selfRisk);
+    return scoreMove(view, bodies, move, stay, selfRisk);
   });
 }
 
