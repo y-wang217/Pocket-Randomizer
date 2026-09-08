@@ -500,6 +500,56 @@ distinct types, and completion climbs steeply with it. That correlation is
 mostly party *size* wearing a disguise — three Pokemon carry more types than one
 — so it is not yet evidence that coverage is a skill.
 
+## 8. Stage 4.5 — the non-result, and why it is in this document
+
+Stage 4.5 changed no balance number, and that is the finding rather than the
+absence of one. It is written down here because "we did not intend to change
+anything" and "nothing changed" are different claims, and only the second one
+is checkable.
+
+The stage put six things on screen that the engine had been resolving all along
+— move category, both sides' stats, stat stages, turn order, type
+effectiveness, and what every condition does. Nothing it added draws from an
+RNG stream, and the report is the proof:
+
+```
+npm run sim -- --seeds 1000     # before the stage, and again after it
+```
+
+**Every measured value is byte identical.** 47,802 bytes of results — clear
+rates per gym, completion, causes of death, turns per battle, outlier seeds,
+diversity, the whole risk gradient — match exactly. The 370-line human report
+matches line for line.
+
+Three things were normalised before comparing, and all three are named so the
+claim can be audited rather than taken:
+
+  - `generatedAt` and each sample's `durationMs`, which are wall-clock.
+  - The progress counters and the output path in stdout.
+  - Nothing else.
+
+The `tuning` block is the one part of the report that *did* move, and it is not
+a measurement — it is the report's echo of the configuration it ran with. It
+gained exactly two fields and changed none:
+
+```
+tuning echo: 2 added, 0 removed, 0 changed
+  + revealOpponentAbility = true
+  + revealOpponentItem = true
+```
+
+It is reported separately rather than normalised away on purpose. Excluding the
+tuning block quietly would have hidden a real balance change if one had crept
+in; a *changed* or *removed* value there fails the comparison, and only an
+addition passes.
+
+The structural reason this held is worth keeping. `BattleUiView` is a second
+projection, not a wider first one: the policy view in `core/types.ts` — the one
+the greedy AI decides from, with `foe.ability` null — was not touched. Had the
+stage taken the shorter route and widened it, the AI would have gained an
+ability it has never seen, and every number in §7 would have moved for a
+reason that had nothing to do with balance.
+
 ## 5. Running it yourself
 
 ```sh

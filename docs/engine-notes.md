@@ -82,7 +82,18 @@ two packages is not charged to both.
 | JS | 3309 kB | **696 kB** |
 | CSS | 7.6 kB | 2.3 kB |
 
-Those are Vite's own numbers from `npm run build`. `npm run measure` reports
+Those are Vite's own numbers from `npm run build`, taken at Stage 0. The curve
+since, at each stage that measured (same command, same units — Vite counts a kB
+as 1000 bytes):
+
+| Stage | JS gzipped | CSS gzipped |
+|---|---|---|
+| 4 | 731.62 kB | 4.74 kB |
+| 4.5, before the tooltip layer | 740.22 kB | 5.08 kB |
+| 4.5, shipped | 743.85 kB | 5.36 kB |
+
+Four stages of gameplay have cost 48 kB gzipped on top of Stage 0. The engine
+is still the bundle. `npm run measure` reports
 674 kB for the same JS because it compresses at gzip level 9 and Vite does not;
 the comparisons below are all level 9 and so are internally consistent.
 
@@ -150,6 +161,36 @@ hurt". `src/ui/battle-log.ts` implements the ~40 lines of that interface we
 actually use instead. The full tracker would additionally handle forme changes,
 Illusion and mid-battle type changes; when a later stage needs those, this is
 the trade to revisit — but at roughly double the bundle.
+
+**Stage 4.5 was that later stage, and the answer was still no — for a better
+reason than cost.** The stage needed live boosts, volatiles, status, abilities,
+items and exact stats on screen, which is precisely the state `@pkmn/client`
+reconstructs. It reconstructs it *from protocol text*, because that is all a
+real Showdown client ever receives. We run the engine in-process and the driver
+holds the authoritative `Battle`: every one of those fields is a property read
+away. Adding a package to re-derive state we already hold, at the cost of a
+second Pokédex, would have been worse than the bundle argument alone suggests.
+
+For the record, since the same question will come round again:
+`@pkmn/view` 0.7.3 exports exactly five things — `LogFormatter`,
+`ChoiceBuilder`, `toID`, and the `Tracker` and `Data` interfaces. It carries no
+battle state at all. There is nothing in it beyond the formatter, and `Tracker`
+is an interface you implement rather than one it provides.
+
+### Ability and status text: free, and worth knowing why
+
+Stage 4.5 put ability descriptions in tooltips and expected to pay for the
+dataset. It costs **nothing**. `@pkmn/sim`'s `Dex` statically imports its text
+tables (`data/text/abilities.mjs` is 163 kB unminified, 26 kB gzipped on its
+own) and `build-config/trim-sim-data.ts` only trims learnsets, legality and
+pokemongo — so every `shortDesc` in the generation was already in the Stage 4
+bundle before anything read one. Verified by building the Stage 4 commit and
+grepping its output for Levitate's description.
+
+The whole tooltip layer — the panel, the type wheel, the status data and the
+ability lookup — came to 3.6 kB gzipped, which is our own code. The lazy-loading
+contingency the stage brief called for does not apply, and would have added a
+loading state to buy back nothing.
 
 ### If ~700 kB becomes a problem
 

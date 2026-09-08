@@ -319,7 +319,12 @@ function renderMoves(
     for (const button of container.querySelectorAll('button')) button.disabled = true;
     return;
   }
-  container.replaceChildren(...view.moves.map((move) => renderMove(move, view.awaitingChoice, onChoose)));
+  // The defender's ability is passed down so an effectiveness the type chart
+  // does not explain can point at the thing that explains it.
+  const cause = view.opponent.ability?.revealed ? view.opponent.ability : null;
+  container.replaceChildren(
+    ...view.moves.map((move) => renderMove(move, view.awaitingChoice, cause, onChoose)),
+  );
 }
 
 /**
@@ -403,6 +408,7 @@ function renderBenchMember(
 function renderMove(
   move: MoveUiView,
   enabled: boolean,
+  cause: { id: string; name: string } | null,
   onChoose: (choice: Choice) => void,
 ): HTMLElement {
   const button = document.createElement('button');
@@ -433,7 +439,12 @@ function renderMove(
   // have been a colour bug waiting for the first status move on the bar.
   const category = el('span', `badge badge--category badge--cat-${move.category.toLowerCase()}`);
   category.textContent = CATEGORY_LABELS[move.category];
-  category.title = CATEGORY_TITLES[move.category];
+  // A tooltip trigger rather than a `title`: three letters are enough to
+  // compare four buttons and not enough to learn from, and `title` is invisible
+  // on the phone Stage 5 is about. Text lives in data/categoryInfo.ts.
+  category.dataset['tip'] = `category:${move.category.toLowerCase()}`;
+  category.tabIndex = 0;
+  category.setAttribute('role', 'button');
 
   const power = el('span', 'move__power');
   power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
@@ -447,11 +458,21 @@ function renderMove(
     const badge = el('span', 'badge badge--effect');
     badge.textContent = label;
     badge.dataset['band'] = effectivenessBand(move.effectiveness) ?? 'neutral';
-    if (move.abilityAffected) {
-      // A 0x with no reason attached reads as a bug. Naming the cause is what
-      // turns "this does nothing" into "this does nothing *because*".
+    if (move.abilityAffected && cause) {
+      /*
+       * A 0x with no reason attached reads as a bug.
+       *
+       * So the badge points its tooltip at the ability that caused it: tap the
+       * outlined `0x` on an Earthquake and the answer is Levitate, in the
+       * defender's own words. That turns "this does nothing" into "this does
+       * nothing *because*", which is the difference between a UI the player
+       * trusts and one they work around.
+       */
       badge.dataset['ability'] = 'true';
-      badge.title = 'Changed by the defender’s ability';
+      badge.dataset['tip'] = `ability:${cause.id}`;
+      badge.tabIndex = 0;
+      badge.setAttribute('role', 'button');
+      badge.setAttribute('aria-label', `${label} — from ${cause.name}`);
     }
     meta.append(badge);
   }
@@ -472,11 +493,6 @@ const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
   Status: 'STAT',
 };
 
-const CATEGORY_TITLES: Record<MoveUiView['category'], string> = {
-  Physical: 'Physical — uses your Attack against their Defence',
-  Special: 'Special — uses your Sp. Atk against their Sp. Def',
-  Status: 'Status — deals no damage',
-};
 
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,

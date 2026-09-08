@@ -13,9 +13,10 @@ signature.
 
 ## The rules
 
-Four constraints are enforced by both ESLint (`eslint.config.js`) and a test
-(`test/boundaries.test.ts`). Two enforcement mechanisms because lint is easy to
-disable inline and easy to skip in CI, and these are load-bearing:
+Five constraints are enforced by a test (`test/boundaries.test.ts`), and the
+first four by ESLint (`eslint.config.js`) as well. Two enforcement mechanisms
+because lint is easy to disable inline and easy to skip in CI, and these are
+load-bearing:
 
 1. **`core/` never imports from `ui/`.** A battle must be fully playable with no
    browser present.
@@ -25,6 +26,13 @@ disable inline and easy to skip in CI, and these are load-bearing:
 3. **`core/` is DOM-free** and runs headless under Node.
 4. **Only `core/battle/driver.ts` and `core/battle/format.ts` import
    `@pkmn/sim`.** Everything above the adapter speaks `core/types.ts`.
+5. **The battle UI reads `BattleUiView` and nothing else.** No `core/run`
+   import, no `RunState`, no `PokemonSpec`. Added in Stage 4.5, when putting
+   the opponent's ability on screen made reaching into the run for it the
+   obvious shortcut — see "The battle screen's projection" below. Test-only,
+   because it is a rule about which module a screen may name rather than about
+   a package, and the ESLint form of it would be a per-file override list that
+   the next screen quietly joins.
 
 TypeScript is strict, with `noUncheckedIndexedAccess` on and no `any` in
 `core/`.
@@ -48,12 +56,16 @@ core/run.ts           RunState, resolveNode, RunPolicy, playRun.
 core/battle/
   format.ts           Generation, format id, clauses. The gen-lock lives here.
   driver.ts           THE ONLY ADAPTER OVER @pkmn/sim.
+  stats.ts            The stat formula, pure. Checked against the engine.
+  view.ts             BattleUiView — what the battle screen renders, derived.
   policy.ts           (view) => Promise<Choice>. Human, AI, and bots alike.
   ai.ts               Greedy damage-maximising policy over @smogon/calc.
       |
       v
-ui/                   A thin DOM layer. Four screens and a router.
-  screens/            starter-select, run-map, battle, summary.
+ui/                   A thin DOM layer. Ten screens and a router.
+  screens/            starter-select, run-map, battle, summary, and six more.
+  scene.ts            The battlefield. Reads BattleUiView and nothing else.
+  tooltips.ts         One delegated tap-first layer. Content all from data/.
 ```
 
 `ui/` can be replaced wholesale without touching `core/`; `data/` was replaced
@@ -213,6 +225,92 @@ constructed and not yet on the field.
   measured against the wrong baseline. p1 gets the gap because p1 is set first;
   opponents are generated fresh at full HP in every stage that exists.
 
+### The battle screen's projection
+
+Stage 4.5 added a fifth seam, and it is the only one in the project that exists
+to keep a *screen* honest rather than to keep two layers apart.
+
+```ts
+// core/battle/view.ts
+buildBattleUiView(facts: BattleFacts, reveal: RevealPolicy, effects) -> BattleUiView
+```
+
+The stage put six numbers on screen that the engine had been resolving
+correctly since Stage 0 — move category, both sides' stats, stat stages, turn
+order, type effectiveness — and the obvious way to get them there was to hand
+the battle screen the run's own data. `RunState` is already in reach of
+`onBattle`, the opponent's `PokemonSpec` is a field on it, and three lines would
+have put an ability on screen in an afternoon.
+
+**That is the seam that rots.** It couples a pixel to a run-state field, it
+reads information the player has not been shown, and — the part that makes it
+dangerous rather than merely ugly — it would have passed every test in the
+suite, because nothing else asserts on where a screen got a number from. So
+`test/boundaries.test.ts` grew a fourth rule to sit beside the other three, and
+it was verified by injecting the violation it forbids.
+
+Three things about the shape are worth writing down.
+
+**It is not `BattleView`.** That name was taken, by the *policy* view in
+`core/types.ts` — the thing the greedy AI and the balance sweep decide from,
+with `foe.ability` deliberately null. Widening it would have handed the AI an
+ability no player has seen and moved every number in `docs/balance.md`. The
+Stage 4.5 brief asked for the name; the brief did not know it was taken. So the
+projection is `BattleUiView`, the policy view is untouched, and the two coexist.
+
+**The adapter emits facts, the projection decides what is shown.** `factsFor`
+reports the opponent's ability and item *unconditionally*; `view.ts` gates them
+on `tuning.revealOpponentAbility` and `revealOpponentItem` and carries the flag
+out as `revealed`. A projection that could not see the ability could not decide
+to hide it, and — more to the point — could not refuse to leak it through the
+effectiveness badge or the speed arrow. One source decides, and both readouts
+respect it.
+
+**It is derived, never stored.** Nothing here is serialized, held in `RunState`
+or written to a run log. It is a pure function of a plain-data snapshot, which
+is why `test/battle-view.test.ts` builds most of its cases by hand with no sim
+and no DOM.
+
+### Duplicating the engine on purpose
+
+`core/battle/stats.ts` reimplements `Battle#statModify`, which is exactly the
+kind of thing `describeSpecCard` exists to avoid — and the difference between
+the two cases is the argument for both.
+
+`describeSpecCard` asks the engine for max HP and max PP because the answer
+depends on rules with long tails (Shedinja, `noPPBoosts`, the gen-lock) and
+because it is asked rarely, at a screen boundary. `stats.ts` computes the stat
+spread instead, because the protocol *never sends the opponent's stats* — a
+Showdown client can only estimate them, since EVs, IVs and natures are not
+public. GYMRUN has none of those. Every Pokemon sits on one fixed spread, so
+the computation is exact rather than an estimate, and the opponent's Attack can
+be a number instead of a range.
+
+The duplication is only safe because it is checked: `test/stats.test.ts`
+cross-references the formula against the engine's own `storedStats` across ten
+species and seven levels, so a gen-lock change fails the suite rather than
+quietly mislabelling a panel.
+
+Speed goes the other way, and for the same reason inverted. `getStat('spe')`
+has already run the `ModifySpe` event, so paralysis, Choice Scarf, Swift Swim,
+Quick Feet and Slow Start are all folded in correctly and for free. That list
+is a long tail with no bound, and the speed readout is worthless the moment it
+disagrees with the turn order it describes — so it is asked, not derived.
+
+### Where the dex reads live
+
+Stage 4.5 needed four new things out of `@pkmn/sim`: ability descriptions, the
+type chart, move flags, and per-move effectiveness. All four went into
+`driver.ts`, in a section of their own, rather than into a new
+`core/battle/dex.ts` with the allow-list widened to admit it.
+
+That was a choice and not an oversight. Rule 4 above names two files, and it is
+enforced in two places precisely because it is the kind of rule that erodes one
+reasonable exception at a time. `describeSpecCard` set the precedent in Stage 1
+— a dex lookup answered in display types, inside the adapter — and this is the
+same shape of thing. The cost is that `driver.ts` is longer; the alternative was
+loosening a load-bearing rule to save a section header.
+
 ## Run logs
 
 ```ts
@@ -260,11 +358,21 @@ the run ends. That is the entire extent of persistence, by design.
 
 ## Deliberately absent
 
-As of Stage 4: no unlocks, daily seed, run history or seed links (Stage 5); no
+As of Stage 4.5: no unlocks, daily seed, run history or seed links (Stage 5); no
 bench experience — and that one is a *decision* rather than a gap, written down
 in `data/partyTuning.ts`: level is a pure function of segment index, so a
 benched member is never behind and there is nothing to model; no EVs,
 IVs, natures or breeding at all.
+
+That last one stopped being purely an absence in Stage 4.5. One fixed spread is
+what makes `core/battle/stats.ts` able to compute the *opponent's* stats
+exactly rather than estimate them — a real Showdown client cannot, because EVs,
+IVs and natures are private. The exclusion has become load-bearing for a
+feature, which is worth knowing before anyone adds a nature.
+
+Stage 4.5 itself added no mechanics, no state, no randomness and no balance
+change. It is a read layer: `docs/balance.md` §7 remains the current
+re-baseline, and the 1000-seed report is byte identical across the stage.
 
 `Choice` stopped being a single-member union in Stage 2, and the way it did is
 the argument for the seam: gym leaders field more than one Pokémon, the sim

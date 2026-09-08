@@ -34,14 +34,15 @@
  */
 import { abilityInfo, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
+import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { el } from './scene';
 
 /** What a `data-tip` attribute can name. */
-type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item';
+type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item' | 'category';
 
-const KINDS: readonly TipKind[] = ['type', 'status', 'volatile', 'ability', 'item'];
+const KINDS: readonly TipKind[] = ['type', 'status', 'volatile', 'ability', 'item', 'category'];
 
 export interface TooltipLayer {
   root: HTMLElement;
@@ -186,6 +187,8 @@ function render(tip: string): HTMLElement | null {
       return renderAbility(id);
     case 'item':
       return renderItem(id);
+    case 'category':
+      return renderCategory(id);
   }
 }
 
@@ -218,6 +221,23 @@ function renderItem(id: string): HTMLElement | null {
   if (!item) return null;
   const body = panel(item.name);
   body.append(line(item.blurb, 'tip__text'));
+  return body;
+}
+
+/**
+ * The move category, which is the one tooltip aimed squarely at someone who has
+ * never played Pokemon.
+ *
+ * `PHYS` is enough to compare four buttons and not enough to learn from, and
+ * the definition of done for this stage is a player who can find out what a
+ * category *is* without leaving the battle screen.
+ */
+function renderCategory(id: string): HTMLElement | null {
+  const info = categoryInfo(id);
+  if (!info) return null;
+  const body = panel(info.label);
+  body.append(line(info.mechanics, 'tip__text'));
+  body.append(line(info.advice, 'tip__advice'));
   return body;
 }
 

@@ -318,19 +318,26 @@ const STATUS_LABELS: Record<StatusName, string> = {
 /**
  * Volatiles worth a chip, and what to call them.
  *
- * A allowlist rather than everything in `pokemon.volatiles`, because the engine
+ * An allowlist rather than everything in `pokemon.volatiles`, because the engine
  * tracks a great many internal ones — `lockedmove`, `mustrecharge`,
  * `choicelock`, per-move counters — that are either already visible elsewhere
  * (a Choice lock shows as three disabled buttons) or are bookkeeping the player
- * has no decision to make about. Showing all of them would bury the four that
- * matter.
+ * has no decision to make about. Showing all of them would bury the handful
+ * that change a decision.
+ *
+ * Every id here needs an entry in `data/statusInfo.ts`, in both directions:
+ * `test/tooltips.test.ts` fails on a chip with no explanation behind it *and*
+ * on an explanation for a chip that can never appear.
  */
 const VOLATILE_LABELS: Record<string, string> = {
   confusion: 'Confused',
   substitute: 'Substitute',
   leechseed: 'Leech Seed',
   flinch: 'Flinched',
-  partiallytrapped: 'Trapped',
+  // Distinct labels because the two can be on a Pokemon at once, and two chips
+  // both reading "Trapped" would look like a bug rather than two conditions.
+  // `data/statusInfo.ts` uses the same two words.
+  partiallytrapped: 'Bound',
   trapped: 'Trapped',
   taunt: 'Taunt',
   encore: 'Encore',
