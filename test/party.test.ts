@@ -33,6 +33,7 @@ import { applyReward } from '../src/core/rewards';
 import {
   createRun,
   chooseStarter,
+  gymsCleared,
   playRun,
   replayRun,
   resolveNode,
@@ -521,5 +522,101 @@ describe('save during a forced switch', () => {
     expect(replayed.state.history.map((visit) => visit.hpAfter)).toEqual(
       original.state.history.map((visit) => visit.hpAfter),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The headless deliverable
+// ---------------------------------------------------------------------------
+
+describe('a full eight-gym run, headless', () => {
+  /**
+   * A scripted policy that does every Stage 4 thing there is to do.
+   *
+   * Walks into wild nodes (where encounter offers come from), rests when hurt,
+   * fills the party and then churns it, and targets the last member so a
+   * mis-wired target shows up as slot 0 holding everything.
+   */
+  function everything(): RunPolicy {
+    return {
+      ...scriptedRunPolicy(greedyAiPolicy),
+      chooseNode: async (options, state) => {
+        const hp = state.party.reduce((total, member) => total + member.hp, 0);
+        const max = state.party.reduce((total, member) => total + member.maxHp, 0);
+        if (max > 0 && hp / max < 0.7) {
+          const rest = options.findIndex((option) => option.kind === 'rest');
+          if (rest !== -1) return rest;
+        }
+        const wild = options.findIndex((option) => option.kind === 'wild');
+        return wild === -1 ? 0 : wild;
+      },
+      chooseItemTarget: async (_reward, party) => party.length - 1,
+      chooseAcquisition: async (_offer, party) =>
+        hasRoom(party) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
+    };
+  }
+
+  /*
+   * A seed the policy above actually *wins* on, found by scanning.
+   *
+   * A test that plays until it loses proves `playRun` terminates; it does not
+   * prove the eighth gym is reachable, that the victory branch of `resolveNode`
+   * runs, or that seven levellings and eight segment heals compose. Those only
+   * happen on a run that finishes, and at a ~10% completion rate a seed has to
+   * be chosen rather than assumed.
+   *
+   * If a balance pass moves the curve this may stop winning. That is not a
+   * regression in this test — rescan for a seed that does, or the victory path
+   * quietly stops being covered.
+   */
+  const WINNING_SEED = 'WIN-3';
+
+  it('completes eight gyms while switching, acquiring, releasing and targeting', async () => {
+    expect(typeof globalThis.document).toBe('undefined');
+
+    const run = await playRun(WINNING_SEED, everything());
+    const decisions = run.log.decisions;
+    const switches = decisions.filter(
+      (decision) => decision.kind === 'battle' && decision.choice.kind === 'switch',
+    );
+    const acquisitions = decisions.filter((decision) => decision.kind === 'acquisition');
+    const releases = acquisitions.filter(
+      (decision) => decision.kind === 'acquisition' && decision.decision.kind === 'release',
+    );
+    const targets = decisions.filter((decision) => decision.kind === 'target');
+
+    expect(run.outcome).toBe('victory');
+    expect(gymsCleared(run.state)).toBe(SEGMENTS_PER_RUN);
+    // Each of the four, or the run proved less than it looks like it did.
+    expect(switches.length, 'never switched').toBeGreaterThan(0);
+    expect(acquisitions.length, 'never acquired').toBeGreaterThan(0);
+    expect(releases.length, 'never released').toBeGreaterThan(0);
+    expect(targets.length, 'never targeted an item').toBeGreaterThan(0);
+    expect(run.state.party.length).toBe(PARTY_SIZE);
+  });
+
+  it('produces an identical run from the same seed and decisions, twice', async () => {
+    // The property everything else rests on, asserted on a run that switches:
+    // a switch consumes battle-stream rolls a move does not, so a seed that
+    // reproduced before Stage 4 could stop reproducing now without anything
+    // else failing.
+    const first = await playRun(WINNING_SEED, everything());
+    const second = await playRun(WINNING_SEED, everything());
+
+    expect(second.log.decisions).toEqual(first.log.decisions);
+    expect(second.outcome).toBe(first.outcome);
+    expect(second.state.party).toEqual(first.state.party);
+    expect(second.state.history.map((visit) => [visit.node.id, visit.hpAfter, visit.result])).toEqual(
+      first.state.history.map((visit) => [visit.node.id, visit.hpAfter, visit.result]),
+    );
+  });
+
+  it('replays that run from its log to the same eight-gym victory', async () => {
+    const original = await playRun(WINNING_SEED, everything());
+    const replayed = await replayRun(original.log);
+
+    expect(replayed.outcome).toBe('victory');
+    expect(replayed.state.party).toEqual(original.state.party);
+    expect(replayed.log.decisions).toEqual(original.log.decisions);
   });
 });
