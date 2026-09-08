@@ -38,6 +38,8 @@ import {
   restParty,
 } from './party';
 import { RANDOMIZER_VERSION } from './randomizer';
+import { applyPurchases, nodePayout, type ShopStock } from './economy';
+import { applyEventOutcome, type EventInstance } from './events';
 import { applyReward, type Reward, type RewardOffer } from './rewards';
 import { createRng } from './rng';
 import type { BattleResult, PokemonSpec, PokemonState, RunDecision, RunLog } from './types';
@@ -59,8 +61,11 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * partway through, after reconstructing a run that was never played. The
  * version guard refuses it up front and says which version it found, which is
  * the difference between a diagnosis and a crash.
+ *
+ * Went to `-5` when `shop` and `event` decisions joined it, for the same
+ * reason again.
  */
-export const RUN_LOG_VERSION = `gymrun-run-4/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-5/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -278,6 +283,10 @@ export interface NodeResult {
    * the same value before anything downstream can tell them apart.
    */
   reward?: Reward;
+  /** Shelf slots bought at a shop node, as indexes into its stock. */
+  purchases?: number[];
+  /** The event option taken, as an index into the instance's choices. */
+  eventChoice?: number;
   /** Present for battle nodes: the outcome, and the party as the sim left it. */
   battle?: {
     result: BattleResult;
@@ -310,6 +319,31 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (result.battle) party = applyBattleState(party, result.battle.party);
   if (result.node.kind === 'rest') party = restParty(party, state.tuning);
 
+  /*
+   * Winnings, and the event's outcome, folded in before the wipe check.
+   *
+   * The event especially: `applyEventOutcome` can take HP off the party, and
+   * running it after the death rule would mean an event could leave a party at
+   * zero that the run never noticed. It cannot today — damage is floored by
+   * `tuning.eventDamageFloor` — but the ordering makes that a consequence of
+   * the rule rather than of the clamp, which is the version that survives the
+   * next tuning pass.
+   */
+  let currency = state.currency;
+  if (result.battle?.result.winner === 'p1') currency += nodePayout(result.node, state.currentSegment);
+
+  if (result.eventChoice !== undefined && result.node.event) {
+    const choice = result.node.event.choices[result.eventChoice];
+    if (!choice) {
+      throw new RangeError(
+        `Event choice ${result.eventChoice} out of range (${result.node.event.choices.length} offered)`,
+      );
+    }
+    const after = applyEventOutcome({ ...state, party, currency }, choice.outcome, state.tuning);
+    party = after.party;
+    currency = after.currency;
+  }
+
   const history: NodeVisit[] = [
     ...state.history,
     {
@@ -322,7 +356,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   ];
 
   // The one death rule, checked before anything can undo it.
-  if (isWiped(party)) return { ...state, party, history, outcome: 'defeat' };
+  if (isWiped(party)) return { ...state, party, currency, history, outcome: 'defeat' };
 
   // A gym has no tier and therefore no offer (see `NodeSpec.reward`), so the
   // gym branch below never has a reward to fold in — the segment heal and the
@@ -331,11 +365,11 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
     // A gym that did not end in a win ends the run, wipe or not: a turn-limit
     // draw against a gym leader is a gym the player did not beat.
     if (result.battle?.result.winner !== 'p1') {
-      return { ...state, party, history, outcome: 'defeat' };
+      return { ...state, party, currency, history, outcome: 'defeat' };
     }
     const nextSegment = state.currentSegment + 1;
     if (nextSegment >= state.segments.length) {
-      return { ...state, party, history, outcome: 'victory' };
+      return { ...state, party, currency, history, outcome: 'victory' };
     }
     /*
      * Clearing a gym is the only thing that levels the party.
@@ -355,18 +389,27 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         recoverParty(betweenNodes(party, state.tuning), state.tuning.gymClearHealFraction),
         playerLevel(nextSegment),
       ),
+      currency,
       history,
       currentSegment: nextSegment,
       position: 0,
     };
   }
 
-  const advanced: RunState = {
+  let advanced: RunState = {
     ...state,
     party: betweenNodes(party, state.tuning),
+    currency,
     history,
     position: state.position + 1,
   };
+
+  // Shop purchases before the reward, because only one of them can be at this
+  // node — but the ordering is written down anyway so that a future node kind
+  // that could do both has an answer rather than an accident.
+  if (result.purchases && result.node.shop) {
+    advanced = applyPurchases(advanced, result.node.shop, result.purchases);
+  }
 
   /*
    * The reward, applied last and only here.
@@ -410,6 +453,17 @@ export interface RunPolicy {
    * bot playing a different game from the player.
    */
   chooseReward: (offer: RewardOffer, state: RunState) => Promise<number>;
+  /**
+   * Which shelf slots to buy. An array, because a shop visit is one decision.
+   *
+   * Not a sequence of buy-one calls: a player who picks three things and can
+   * afford two has not said which two, so the basket is committed whole or not
+   * at all (see `economy.applyPurchases`). Returning `[]` is leaving empty
+   * handed, which is a legitimate and often correct answer.
+   */
+  chooseShopPurchases: (stock: ShopStock, state: RunState) => Promise<number[]>;
+  /** Which event option to take. The outcome was drawn when the map was built. */
+  chooseEventOption: (event: EventInstance, state: RunState) => Promise<number>;
   battle: Policy;
 }
 
@@ -496,6 +550,32 @@ export async function playRun(
      * here: a side that won the battle has something left standing, so
      * `resolveNode` cannot end the run on a node that just paid out.
      */
+    /*
+     * A shop and an event are decisions with no fight attached, so they are
+     * asked for unconditionally — there is no win to gate them on.
+     *
+     * Both are asked *before* `resolveNode`, like the reward, because that
+     * function owns state transitions and this one owns talking to the policy.
+     * Keeping the split means a replayed decision and a clicked one become the
+     * same value before anything downstream can tell them apart.
+     */
+    if (result.node.shop) {
+      const stock = result.node.shop;
+      const indexes = await policy.chooseShopPurchases(stock, state);
+      record({ kind: 'shop', indexes: [...indexes] });
+      result.purchases = [...indexes];
+    }
+
+    if (result.node.event) {
+      const event = result.node.event;
+      const index = await policy.chooseEventOption(event, state);
+      record({ kind: 'event', index });
+      if (!event.choices[index]) {
+        throw new RangeError(`Event choice ${index} out of range (${event.choices.length} offered)`);
+      }
+      result.eventChoice = index;
+    }
+
     if (result.node.reward && result.battle?.result.winner === 'p1') {
       const offer = result.node.reward;
       const index = await policy.chooseReward(offer, state);
@@ -583,6 +663,10 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     chooseStarter: async () => 0,
     chooseNode: async () => 0,
     chooseReward: async () => 0,
+    // Buys nothing. A scripted baseline that spent money would make every
+    // sweep it appears in a measurement of one shopping heuristic.
+    chooseShopPurchases: async () => [],
+    chooseEventOption: async () => 0,
     battle,
   };
 }
@@ -676,6 +760,16 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('reward');
       if (!decision) return live ? live.chooseReward(offer, state) : exhausted('reward');
       return decision.kind === 'reward' ? decision.index : exhausted('reward');
+    },
+    chooseShopPurchases: async (stock, state) => {
+      const decision = next('shop');
+      if (!decision) return live ? live.chooseShopPurchases(stock, state) : exhausted('shop');
+      return decision.kind === 'shop' ? decision.indexes : exhausted('shop');
+    },
+    chooseEventOption: async (event, state) => {
+      const decision = next('event');
+      if (!decision) return live ? live.chooseEventOption(event, state) : exhausted('event');
+      return decision.kind === 'event' ? decision.index : exhausted('event');
     },
     battle: async (view) => {
       const decision = next('battle');

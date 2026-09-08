@@ -94,6 +94,8 @@ export function mountApp(root: HTMLElement): void {
       // takes the first card so the app still plays end to end — a placeholder
       // that is visibly a placeholder, rather than a screen that half exists.
       chooseReward: async () => 0,
+      chooseShopPurchases: async () => [],
+      chooseEventOption: async () => 0,
       battle: () => movePick.wait(),
     };
 

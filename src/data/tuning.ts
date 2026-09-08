@@ -13,8 +13,29 @@
 
 import type { Tier } from '../core/types';
 
-/** The kinds of node a step can offer. `gym` is never an option, only a cap. */
-export type NodeKind = 'wild' | 'trainer' | 'rest' | 'gym';
+/**
+ * The kinds of node a step can offer. `gym` is never an option, only a cap.
+ *
+ * Stage 3 added `shop` and `event`. Both are choosable, neither is a fight, and
+ * neither carries a tier — a tier scales an encounter and selects a reward
+ * pool, and a node with no encounter and no reward has nothing for one to do.
+ */
+export type NodeKind = 'wild' | 'trainer' | 'rest' | 'gym' | 'shop' | 'event';
+
+/**
+ * The kinds of node that are actually a fight.
+ *
+ * Introduced in Stage 3 to narrow the curve tables in `data/scaling.ts`. Those
+ * were `Record<NodeKind, …>`, which meant every non-battle kind carried a level
+ * offset and a team size that could never be read — `rest: { min: 0, max: 0 }`
+ * was already meaningless filler, and adding `shop` and `event` would have
+ * tripled it across eight rows. Narrowing the key is the version where the type
+ * system says which kinds have a difficulty and which do not.
+ */
+export type BattleKind = Extract<NodeKind, 'wild' | 'trainer' | 'gym'>;
+
+/** The kinds a step may actually offer as a choice. */
+export type ChoosableKind = Exclude<NodeKind, 'gym'>;
 
 /**
  * How likely each tier is over a stretch of the run.
@@ -49,7 +70,7 @@ export interface Tuning {
   /** How many nodes a step offers. The spec calls for 2 or 3. */
   nodeChoiceCount: Range;
   /** Relative frequency of each node kind when filling a step's options. */
-  nodeWeights: Record<Exclude<NodeKind, 'gym'>, number>;
+  nodeWeights: Record<ChoosableKind, number>;
   /**
    * First step index that may offer a rest.
    *
@@ -98,6 +119,25 @@ export interface Tuning {
    * is doing any work.
    */
   distinctTiersPerStep: boolean;
+
+  // --- shops and events ----------------------------------------------------
+
+  /** How many things a shop stocks. Drawn per shop at map generation. */
+  shopStockSize: Range;
+  /**
+   * Fraction of max HP an event may never take a party member below.
+   *
+   * **An event cannot end a run, and that is a rule rather than a tuning
+   * accident.** An event is a node with no battle in it; a player who loses a
+   * run to one has lost it to a coin flip they could see but not play. The risk
+   * an event carries is that you arrive at the *next* fight nearly dead, which
+   * is a cost the player can then make decisions about.
+   *
+   * It is also what keeps the death rule coherent: `isWiped` reads `fainted`,
+   * and HP driven to zero without a faint would be a party in a state no other
+   * code expects.
+   */
+  eventDamageFloor: number;
 
   // --- rewards -------------------------------------------------------------
 
@@ -195,7 +235,16 @@ export const DEFAULT_TUNING: Tuning = {
   // roughly forty nodes, which is the length the genre actually uses.
   stepsPerSegment: { min: 4, max: 5 },
   nodeChoiceCount: { min: 2, max: 3 },
-  nodeWeights: { wild: 5, trainer: 3, rest: 2 },
+  /*
+   * Shops and events are deliberately scarcer than fights.
+   *
+   * A run is a sequence of fights with pressure between them; a map where every
+   * other step is a shop is a map where the pressure never accumulates. These
+   * weights put a shop in roughly one step in six and an event in one in four,
+   * which is often enough to plan around and rare enough to be worth planning
+   * around.
+   */
+  nodeWeights: { wild: 5, trainer: 3, rest: 2, shop: 1.5, event: 2.5 },
   restEarliestStep: 1,
   distinctKindsPerStep: true,
   minRestSteps: 2,
@@ -219,6 +268,9 @@ export const DEFAULT_TUNING: Tuning = {
     { throughSegment: 7, weights: { normal: 3, hard: 4, elite: 4 } },
   ],
   distinctTiersPerStep: true,
+
+  shopStockSize: { min: 3, max: 4 },
+  eventDamageFloor: 0.05,
 
   allowSpeciesRewards: false,
 

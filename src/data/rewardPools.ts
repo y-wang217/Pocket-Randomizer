@@ -203,16 +203,8 @@ export function rewardEntriesFor(tier: Tier, segment: number): readonly RewardEn
   return row.entries;
 }
 
-/**
- * How reward currency scales with progress.
- *
- * A flat table rather than a formula on the entry ranges, so that the *shape*
- * of the payout curve is one thing to read. Multiplied into the drawn amount;
- * `data/shop.ts` holds the matching prices, and the two only mean anything
- * together.
+/*
+ * The currency scale used to live here and now lives in `data/shop.ts`, with
+ * the prices it has to agree with. A payout and a price are the two ends of one
+ * number, and keeping them in separate files is how an economy drifts.
  */
-export const CURRENCY_SCALE: readonly number[] = [1, 1.15, 1.35, 1.55, 1.8, 2.05, 2.3, 2.6];
-
-export function currencyScaleFor(segment: number): number {
-  return CURRENCY_SCALE[Math.min(segment, CURRENCY_SCALE.length - 1)] ?? 1;
-}

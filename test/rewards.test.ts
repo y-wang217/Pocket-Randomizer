@@ -399,7 +399,11 @@ describe('rewards in a played run', () => {
     return {
       ...scriptedRunPolicy(greedyAiPolicy),
       chooseNode: async (options) => {
-        const index = options.findIndex((option) => option.kind !== 'rest');
+        // A *fight*, specifically. "Not a rest" used to mean the same thing and
+        // stopped meaning it when shops and events arrived: a run that took
+        // every shop it saw would never win a battle and never be offered a
+        // card, which is a fact about the policy rather than about rewards.
+        const index = options.findIndex((option) => option.tier !== null);
         return index === -1 ? 0 : index;
       },
       chooseReward: async (offer) => {
@@ -411,7 +415,14 @@ describe('rewards in a played run', () => {
 
   it('plays headless, takes rewards, and records the choice in the log', async () => {
     expect(typeof globalThis.document).toBe('undefined');
-    const run = await playRun('REW-RUN', itemHungry());
+
+    // Over a population rather than one seed. A single seed can lose its first
+    // fight and pay out nothing, which is a fact about that seed and would make
+    // this assert nothing on the day it happens to hold.
+    const runs = await Promise.all(seeds.slice(0, 6).map((seed) => playRun(seed, itemHungry())));
+    const run = runs.find((candidate) => candidate.log.decisions.some((d) => d.kind === 'reward'));
+    expect(run, 'no seed in the sample ever won a fight').toBeDefined();
+    if (!run) return;
 
     const rewardDecisions = run.log.decisions.filter((d) => d.kind === 'reward');
     expect(rewardDecisions.length).toBeGreaterThan(0);

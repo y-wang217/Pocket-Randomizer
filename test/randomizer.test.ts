@@ -34,6 +34,7 @@ import {
   generateWildTeam,
 } from '../src/core/randomizer';
 import { createRng, RNG_STREAMS, type Rng } from '../src/core/rng';
+import { isBattleKind } from '../src/core/economy';
 import { assertReplayable, createRun, isReplayable, RUN_LOG_VERSION } from '../src/core/run';
 import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
@@ -267,6 +268,8 @@ describe('4. moveset validity', () => {
       for (const segment of state.segments) {
         const row = SEGMENTS[segment.index]!;
         for (const node of nodesOf(segment)) {
+          // Only fights have a level band; a shop has no opponent to bound.
+          if (!isBattleKind(node.kind)) continue;
           const bonus = node.tier ? TIER_MODIFIERS[node.tier].level : 0;
           for (const member of node.encounter?.team ?? []) {
             const offset = row.levelOffset[node.kind];

@@ -105,10 +105,18 @@ play the *same* damage rolls, crits and accuracy checks in every fight, eight
 nodes running. `test/generation.test.ts` asserts every battle in a segment gets
 a distinct seed.
 
-### Pass 4 — reward offers, from the `rewards` stream
+### Pass 4 — payouts and contents, from the `rewards` stream
 
-The three cards each battle node pays out, in the same index order. Nodes
-without a tier — rests and gyms — take no draw and carry no offer.
+One sweep in node index order, filling in whichever of three things the node
+needs:
+
+| node | drawn |
+|---|---|
+| has a tier (wild, trainer) | the three-card reward offer |
+| `shop` | the shelf: N items, each with a price |
+| `event` | the prompt, and **one resolved outcome per choice** |
+
+Rests and gyms take no draw at all.
 
 **This is the decision §1 was written for, one level down.** The build spec
 allows drawing an offer when the node is *completed*; this draws it when the map
@@ -125,6 +133,38 @@ nothing, which is what makes an elite node a risk rather than a slower payout.
 It is pass *four* — appended rather than inserted — because appending a pass
 cannot move the three before it. Every seed's map shape, encounter contents and
 battle PRNG seeds are the same with rewards as without.
+
+**An event's coin is flipped here, not when the player picks.** A choice in
+`data/events.ts` carries weighted outcomes; the instance on the map carries
+exactly one per choice. So an event that reads "might be a trap" has already
+resolved before the player sees it — reloading a save cannot reroll it, and two
+players on the same seed who make the same choice get the same result. Resolving
+at pick time would mean the seed stops fixing the run, which is the one promise
+the whole design exists to keep.
+
+The event draw is the only one in the codebase whose *count* depends on what it
+drew — different events have different numbers of choices. That is safe because
+it is the last thing a node consumes from `rewards`, and nodes are visited in a
+fixed index order, so a variable count inside one node shifts only that node's
+successors on that one stream. What it must never do is move `map`,
+`randomizer` or `battle`, and it cannot: it never touches them.
+
+### Node kinds
+
+Stage 3 took the choosable kinds from three to five:
+
+| kind | tier | encounter | pays currency |
+|---|---|---|---|
+| `wild`, `trainer` | yes | yes | yes |
+| `gym` | no — it is the segment's difficulty statement | yes | yes |
+| `rest` | no | no | no |
+| `shop` | no | no | no |
+| `event` | no | no | no |
+
+`BattleKind` in `data/tuning.ts` is the narrowed set of the three that fight,
+and the curve tables in `data/scaling.ts` are keyed by it. That replaced
+`Record<NodeKind, …>`, which had already accumulated a meaningless
+`rest: { min: 0, max: 0 }` row and would have grown two more.
 
 ### Before all of it — starter options
 
@@ -225,6 +265,26 @@ seed making the same choices get the same run, turn for turn. Two players on the
 same seed making different choices get different runs on the same map — which is
 the property the whole thing exists for.
 
+## 5b. Money
+
+Currency is a single scalar on `RunState` and **may never go below zero**. That
+is enforced in `core/economy.ts`, on the transition, not at the shop screen: the
+same purchase arrives from a replayed log and from the balance simulator, and
+neither has buttons to grey out.
+
+A basket is committed whole or refused whole. A player who selects three things
+and can afford two has not said *which* two, so a partial purchase would be a
+decision nobody made — and an unaffordable basket in a faithful replay is
+impossible, so a log that asks for one is corrupt and throws rather than
+quietly reconstructing a run that was never played.
+
+Every currency number — payouts, tier multipliers, prices, the segment scale —
+is in `data/shop.ts`. An economy is only ever balanced as a *ratio* between what
+a fight pays and what an item costs, and two numbers that have to agree should
+not live in two files.
+
+---
+
 A reward decision is an **index**, never the reward. The offer was drawn from
 the `rewards` stream when the map was built, so replaying the seed reconstructs
 all three cards; a log storing `{kind:'item', item:'leftovers'}` would keep
@@ -278,8 +338,8 @@ outcome for a game whose whole promise is that a shared seed is a shared run.
 So it is checked separately, with its own message, and a mismatch throws rather
 than replaying.
 
-`RUN_LOG_VERSION` went to `gymrun-run-4` in Stage 3, when `RunDecision` grew a
-`reward` member. A Stage 2 log replayed against this build would run out of step
+`RUN_LOG_VERSION` went to `gymrun-run-4` and then `-5` in Stage 3, as
+`RunDecision` grew a `reward` member and then `shop` and `event` members. A Stage 2 log replayed against this build would run out of step
 the first time a node paid out — the run asks for a reward decision and finds a
 battle one — but only *partway through*, after reconstructing several nodes of a
 run that was never played. The guard refuses it up front and names both

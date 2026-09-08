@@ -37,7 +37,8 @@ import type { Rng } from './rng';
 import type { RunState } from './run';
 import type { PokemonState, Tier } from './types';
 import { itemById } from '../data/items';
-import { currencyScaleFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
+import { rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
+import { currencyScaleFor } from '../data/shop';
 import { playerLevel, rewardMoveBands, rewardSpeciesBands } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
@@ -125,7 +126,7 @@ export function generateRewardOffer(
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
 
-    const reward = resolve(entry, segment, tier, rng, takenItems, takenMoves);
+    const reward = resolveRewardEntry(entry, segment, tier, rng, takenItems, takenMoves);
     if (reward) options.push(reward);
   }
 
@@ -169,8 +170,13 @@ function pickWeighted(entries: readonly RewardEntry[], stream: Rng['rewards']): 
  * cards can never be the same Leftovers. Returns null only when a pool is so
  * narrow that filtering emptied it, which `generateRewardOffer` reports as the
  * data bug it is.
+ *
+ * Exported for `core/economy.ts`, which resolves shop stock through it. A shop
+ * sells the same things a reward pays out, so it draws them the same way — a
+ * second resolver would be a second set of rules for what "an item" means, and
+ * the first divergence between them would be invisible.
  */
-function resolve(
+export function resolveRewardEntry(
   entry: RewardEntry,
   segment: number,
   tier: Tier,

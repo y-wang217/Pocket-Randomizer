@@ -274,9 +274,27 @@ function buildPolicy(policy: PolicyName, nodes: NodePolicyName, seed: string): R
     chooseStarter: async (options) =>
       policy === 'greedy' ? bestStarter(options) : stream.nextInt(Math.max(1, options.length)),
     chooseNode: chooseNodeBy(nodes, stream),
-    // Checkpoint 4 replaces this with a reward policy worth measuring. Taking
-    // card 0 now keeps the sweep running; it is not yet a number to trust.
+    // Checkpoint 4 replaces these with policies worth measuring. What they do
+    // now is keep the sweep running and keep currency from being dead: a
+    // shopper that buys nothing makes every currency number in the report a
+    // measurement of money nobody spent.
     chooseReward: async () => 0,
+    chooseShopPurchases: async (stock, state) => {
+      const basket: number[] = [];
+      let left = state.currency;
+      // Cheapest first, so a small balance still buys something rather than
+      // being held for a shelf item it can never reach.
+      const order = stock.items
+        .map((item, index) => ({ index, price: item.price }))
+        .sort((a, b) => a.price - b.price || a.index - b.index);
+      for (const { index, price } of order) {
+        if (price > left) continue;
+        basket.push(index);
+        left -= price;
+      }
+      return basket;
+    },
+    chooseEventOption: async () => 0,
     battle: policy === 'greedy' ? greedyAiPolicy : randomMovePolicy(stream),
   };
 }

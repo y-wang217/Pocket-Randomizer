@@ -36,6 +36,8 @@ const KIND_LABELS: Record<NodeSpec['kind'], string> = {
   trainer: 'Trainer',
   rest: 'Rest',
   gym: 'Gym',
+  shop: 'Shop',
+  event: '?',
 };
 
 const KIND_HINTS: Record<NodeSpec['kind'], string> = {
@@ -43,6 +45,8 @@ const KIND_HINTS: Record<NodeSpec['kind'], string> = {
   trainer: 'A trained Pokemon. Tougher, and the level band is higher.',
   rest: 'Restore HP, PP and status in full.',
   gym: 'The gym leader. Beat them and the segment is over.',
+  shop: 'Spend coins on items, healing and moves.',
+  event: 'Something happens. You choose what to do about it.',
 };
 
 export interface RunMap {

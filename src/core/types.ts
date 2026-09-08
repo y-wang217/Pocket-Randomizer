@@ -312,7 +312,19 @@ export type RunDecision =
    * keep replaying happily after a pool edit and hand the player an item their
    * run never offered.
    */
-  | { kind: 'reward'; index: number };
+  | { kind: 'reward'; index: number }
+  /**
+   * Which shelf slots were bought, as indexes into the shop's stock.
+   *
+   * A set, recorded in the order the player selected them and applied in shelf
+   * order — see `economy.applyPurchases`. Indexes rather than items, for the
+   * same reason a reward is an index: the shelf is reconstructible from the
+   * seed, and a log naming the item would survive a price change and buy
+   * something the run never stocked.
+   */
+  | { kind: 'shop'; indexes: number[] }
+  /** Which event option was taken. The outcome was drawn when the map was built. */
+  | { kind: 'event'; index: number };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

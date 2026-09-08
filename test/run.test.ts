@@ -43,6 +43,8 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
       return index === -1 ? 0 : index;
     },
     chooseReward: async () => 0,
+    chooseShopPurchases: async () => [],
+    chooseEventOption: async () => 0,
     battle,
   };
 }
@@ -83,6 +85,8 @@ describe('headless run', () => {
         return 0;
       },
       chooseReward: async () => 0,
+      chooseShopPurchases: async () => [],
+      chooseEventOption: async () => 0,
       battle: greedyAiPolicy,
     };
 

@@ -24,7 +24,7 @@
 import type { PokemonSpec, TeamSpec, Tier } from '../core/types';
 import { DAMAGING_MOVES } from './movePools';
 import { SPECIES_POOL } from './speciesPools';
-import type { NodeKind, Range } from './tuning';
+import type { BattleKind, Range } from './tuning';
 
 /**
  * How many Pokemon the player fields.
@@ -62,7 +62,7 @@ export interface SegmentScaling {
    */
   playerLevel: number;
   /** Opponent level relative to `playerLevel`, drawn per encounter. */
-  levelOffset: Record<NodeKind, Range>;
+  levelOffset: Record<BattleKind, Range>;
   /** Species bands (data/speciesPools.ts) this segment may draw from. */
   speciesBands: readonly number[];
   /** Damaging-move bands (data/movePools.ts) this segment may draw from. */
@@ -77,7 +77,7 @@ export interface SegmentScaling {
    * raising the party keeps the *shape* of the curve rather than trivialising
    * the back half of the run.
    */
-  teamAdvantage: Record<NodeKind, number>;
+  teamAdvantage: Record<BattleKind, number>;
 }
 
 /**
@@ -116,66 +116,66 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 0,
     playerLevel: 30,
-    levelOffset: { wild: { min: -8, max: -6 }, trainer: { min: -7, max: -5 }, rest: { min: 0, max: 0 }, gym: { min: -1, max: 0 } },
+    levelOffset: { wild: { min: -8, max: -6 }, trainer: { min: -7, max: -5 }, gym: { min: -1, max: 0 } },
     speciesBands: [0, 1],
     moveBands: [0],
-    teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 0 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 0 },
   },
   {
     segment: 1,
     playerLevel: 36,
-    levelOffset: { wild: { min: -10, max: -7 }, trainer: { min: -8, max: -6 }, rest: { min: 0, max: 0 }, gym: { min: -2, max: -1 } },
+    levelOffset: { wild: { min: -10, max: -7 }, trainer: { min: -8, max: -6 }, gym: { min: -2, max: -1 } },
     speciesBands: [0, 1, 2],
     moveBands: [0],
-    teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 0 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 0 },
   },
   {
     segment: 2,
     playerLevel: 42,
-    levelOffset: { wild: { min: -12, max: -9 }, trainer: { min: -10, max: -7 }, rest: { min: 0, max: 0 }, gym: { min: -9, max: -7 } },
+    levelOffset: { wild: { min: -12, max: -9 }, trainer: { min: -10, max: -7 }, gym: { min: -9, max: -7 } },
     speciesBands: [1, 2],
     moveBands: [0, 1],
-    teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 1 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
   },
   {
     segment: 3,
     playerLevel: 48,
-    levelOffset: { wild: { min: -14, max: -10 }, trainer: { min: -11, max: -8 }, rest: { min: 0, max: 0 }, gym: { min: -10, max: -8 } },
+    levelOffset: { wild: { min: -14, max: -10 }, trainer: { min: -11, max: -8 }, gym: { min: -10, max: -8 } },
     speciesBands: [1, 2],
     moveBands: [0, 1],
-    teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 1 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
   },
   {
     segment: 4,
     playerLevel: 54,
-    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -13, max: -9 }, rest: { min: 0, max: 0 }, gym: { min: -16, max: -13 } },
+    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -13, max: -9 }, gym: { min: -16, max: -13 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
-    teamAdvantage: { wild: 0, trainer: 0, rest: 0, gym: 1 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
   },
   {
     segment: 5,
     playerLevel: 60,
-    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -14, max: -10 }, rest: { min: 0, max: 0 }, gym: { min: -18, max: -14 } },
+    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -14, max: -10 }, gym: { min: -18, max: -14 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
-    teamAdvantage: { wild: 0, trainer: 1, rest: 0, gym: 2 },
+    teamAdvantage: { wild: 0, trainer: 1, gym: 2 },
   },
   {
     segment: 6,
     playerLevel: 66,
-    levelOffset: { wild: { min: -19, max: -14 }, trainer: { min: -16, max: -11 }, rest: { min: 0, max: 0 }, gym: { min: -19, max: -15 } },
+    levelOffset: { wild: { min: -19, max: -14 }, trainer: { min: -16, max: -11 }, gym: { min: -19, max: -15 } },
     speciesBands: [3, 4],
     moveBands: [1, 2, 3],
-    teamAdvantage: { wild: 0, trainer: 1, rest: 0, gym: 2 },
+    teamAdvantage: { wild: 0, trainer: 1, gym: 2 },
   },
   {
     segment: 7,
     playerLevel: 72,
-    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -12 }, rest: { min: 0, max: 0 }, gym: { min: -21, max: -16 } },
+    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -12 }, gym: { min: -21, max: -16 } },
     speciesBands: [3, 4],
     moveBands: [1, 2, 3],
-    teamAdvantage: { wild: 0, trainer: 1, rest: 0, gym: 2 },
+    teamAdvantage: { wild: 0, trainer: 1, gym: 2 },
   },
 ];
 
@@ -320,13 +320,13 @@ function shift(bands: readonly number[], by: number, ceiling: number): readonly 
  * writing a literal: a hardcoded team size is the single-mon assumption
  * wearing a different hat.
  */
-export function opponentTeamSize(kind: NodeKind, segment: number, tier: Tier, override?: number): number {
+export function opponentTeamSize(kind: BattleKind, segment: number, tier: Tier, override?: number): number {
   const advantage = override ?? segmentScaling(segment).teamAdvantage[kind] + TIER_MODIFIERS[tier].team;
   return Math.max(1, Math.min(MAX_TEAM_SIZE, PARTY_SIZE + advantage));
 }
 
 /** The opponent level band for a node kind in a segment, tier applied. */
-export function opponentLevel(kind: NodeKind, segment: number, tier: Tier): Range {
+export function opponentLevel(kind: BattleKind, segment: number, tier: Tier): Range {
   const row = segmentScaling(segment);
   const offset = row.levelOffset[kind];
   const bonus = TIER_MODIFIERS[tier].level;

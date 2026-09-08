@@ -45,6 +45,20 @@ function wobbling(): RunPolicy {
     // Last card, for the same reason as the last node: a policy that always
     // answers 0 would agree with the scripted default and prove nothing.
     chooseReward: async (offer) => offer.options.length - 1,
+    // Buys the whole shelf when it can, so a replay has a non-trivial basket
+    // to reproduce rather than an empty one.
+    chooseShopPurchases: async (stock, state) => {
+      const affordable: number[] = [];
+      let left = state.currency;
+      for (const [index, item] of stock.items.entries()) {
+        if (item.price <= left) {
+          affordable.push(index);
+          left -= item.price;
+        }
+      }
+      return affordable;
+    },
+    chooseEventOption: async (event) => event.choices.length - 1,
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -186,6 +200,14 @@ describe('save mid-run, reload, continue', () => {
         return 0;
       },
       chooseReward: async () => {
+        liveCalls++;
+        return 0;
+      },
+      chooseShopPurchases: async () => {
+        liveCalls++;
+        return [];
+      },
+      chooseEventOption: async () => {
         liveCalls++;
         return 0;
       },

@@ -20,8 +20,9 @@
  *      moves — for every node in index order, including options the player will
  *      never take.
  *   3. `battle` stream: one sim seed per battle node, in the same index order.
- *   4. `rewards` stream: the three-card offer for each battle node that has a
- *      tier, in the same index order.
+ *   4. `rewards` stream: per node in index order — the three-card offer for a
+ *      node with a tier, the stock for a shop, the resolved outcomes for an
+ *      event. One sweep, so all three share one draw order.
  *
  * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
  * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
@@ -54,12 +55,14 @@ import {
   generateTrainerTeam,
   generateWildTeam,
 } from './randomizer';
+import { generateShopStock, type ShopStock } from './economy';
+import { generateEvent, type EventInstance } from './events';
 import { generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import { starterLevel } from '../data/scaling';
-import { tierWeightsFor, type NodeKind, type Range, type Tuning } from '../data/tuning';
+import { tierWeightsFor, type ChoosableKind, type NodeKind, type Range, type Tuning } from '../data/tuning';
 
 /** What a battle node fights. Generated eagerly; see the header. */
 export interface EncounterSpec {
@@ -114,6 +117,17 @@ export interface NodeSpec {
    * `playRun`.
    */
   reward: RewardOffer | null;
+  /** The shelf, for a shop node. Null for everything else. */
+  shop: ShopStock | null;
+  /**
+   * The prompt and its already-resolved outcomes, for an event node.
+   *
+   * Resolved at map generation, which is the point: an event that reads
+   * "might be a trap" has already flipped its coin, so reloading a save cannot
+   * reroll it and two players on the same seed making the same choice get the
+   * same result.
+   */
+  event: EventInstance | null;
 }
 
 export interface Step {
@@ -149,7 +163,18 @@ function drawRange(stream: RngStream, range: Range): number {
   return range.min + stream.nextInt(span + 1);
 }
 
-const CHOOSABLE_KINDS: readonly Exclude<NodeKind, 'gym'>[] = ['wild', 'trainer', 'rest'];
+/**
+ * The kinds a step may offer, in a fixed sample order.
+ *
+ * The order is a draw order — `sampleWeighted` walks it — so appending is safe
+ * and reordering reshuffles every recorded map. Stage 3's `shop` and `event`
+ * are therefore appended rather than slotted in next to `rest` where they
+ * would read more naturally.
+ */
+const CHOOSABLE_KINDS: readonly ChoosableKind[] = ['wild', 'trainer', 'rest', 'shop', 'event'];
+
+/** Node kinds that are a fight, and therefore the only ones that carry a tier. */
+const BATTLE_KINDS: readonly ChoosableKind[] = ['wild', 'trainer'];
 
 /**
  * Weighted sample, optionally without replacement. One draw per item picked.
@@ -243,7 +268,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
 
   // --- pass 1: shape, from the `map` stream -------------------------------
   const stepCount = drawRange(rng.map, tuning.stepsPerSegment);
-  const shape: Exclude<NodeKind, 'gym'>[][] = [];
+  const shape: ChoosableKind[][] = [];
 
   for (let step = 0; step < stepCount; step++) {
     const allowed = CHOOSABLE_KINDS.filter((kind) => kind !== 'rest' || step >= tuning.restEarliestStep);
@@ -281,6 +306,8 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
       simSeed: PLACEHOLDER_SEED,
     },
     reward: null,
+    shop: null,
+    event: null,
   };
 
   const segment: Segment = {
@@ -303,6 +330,8 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
   // would be identical today and would couple their draw orders forever.
   for (const node of nodesOf(segment)) {
     if (node.tier) node.reward = generateRewardOffer(node.id, node.tier, index, rng, tuning);
+    else if (node.kind === 'shop') node.shop = generateShopStock(node.id, index, rng, tuning);
+    else if (node.kind === 'event') node.event = generateEvent(node.id, rng, tuning);
   }
   return segment;
 }
@@ -320,11 +349,11 @@ const PLACEHOLDER_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
  * nothing has been drawn for those nodes' contents yet.
  */
 function ensureRests(
-  shape: Exclude<NodeKind, 'gym'>[][],
+  shape: ChoosableKind[][],
   stream: RngStream,
   tuning: Tuning,
 ): void {
-  const hasRest = (kinds: readonly Exclude<NodeKind, 'gym'>[]): boolean => kinds.includes('rest');
+  const hasRest = (kinds: readonly ChoosableKind[]): boolean => kinds.includes('rest');
   let short = tuning.minRestSteps - shape.filter(hasRest).length;
 
   while (short > 0) {
@@ -357,12 +386,12 @@ function ensureRests(
  * `tuning.distinctTiersPerStep` for why that is the rule and not the option.
  */
 function assignTiers(
-  kinds: readonly Exclude<NodeKind, 'gym'>[],
+  kinds: readonly ChoosableKind[],
   segment: number,
   stream: RngStream,
   tuning: Tuning,
 ): (Tier | null)[] {
-  const battleSlots = kinds.filter((kind) => kind !== 'rest').length;
+  const battleSlots = kinds.filter((kind) => BATTLE_KINDS.includes(kind)).length;
   if (battleSlots === 0) return kinds.map(() => null);
 
   const weights = tierWeightsFor(tuning, segment);
@@ -383,7 +412,7 @@ function assignTiers(
   const fallback = drawn[drawn.length - 1] ?? 'normal';
 
   let next = 0;
-  return kinds.map((kind) => (kind === 'rest' ? null : (drawn[next++] ?? fallback)));
+  return kinds.map((kind) => (BATTLE_KINDS.includes(kind) ? (drawn[next++] ?? fallback) : null));
 }
 
 /**
@@ -397,13 +426,16 @@ function assignTiers(
  */
 function buildNode(
   id: string,
-  kind: Exclude<NodeKind, 'gym'>,
+  kind: ChoosableKind,
   tier: Tier | null,
   segment: number,
   rng: Rng,
 ): NodeSpec {
-  if (kind === 'rest') {
-    return { id, kind, tier: null, label: 'Rest site', encounter: null, reward: null };
+  if (kind === 'rest' || kind === 'shop' || kind === 'event') {
+    // Contents for these are pass 4's job: a shop's shelf and an event's
+    // outcomes both come off the `rewards` stream, and drawing them here would
+    // interleave that stream with the `randomizer` draws around it.
+    return { id, kind, tier: null, label: NON_BATTLE_LABELS[kind], encounter: null, reward: null, shop: null, event: null };
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
 
@@ -423,11 +455,20 @@ function buildNode(
     },
     // Filled by pass 4.
     reward: null,
+    shop: null,
+    event: null,
   };
 }
 
+/** What the map calls a node that is not a fight. */
+const NON_BATTLE_LABELS: Record<'rest' | 'shop' | 'event', string> = {
+  rest: 'Rest site',
+  shop: 'Shop',
+  event: 'Something happens',
+};
+
 /** What the log and the summary call this opponent. */
-function describeOpponent(kind: Exclude<NodeKind, 'gym'>, team: TeamSpec, lead: PokemonSpec): string {
+function describeOpponent(kind: ChoosableKind, team: TeamSpec, lead: PokemonSpec): string {
   if (kind === 'wild') return `Wild ${lead.species}`;
   return team.length === 1 ? `Trainer's ${lead.species}` : `Trainer (${team.length})`;
 }

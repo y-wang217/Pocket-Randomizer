@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import { describeSpec } from '../src/core/battle/driver';
 import { generateSegment, generateStarterOptions, nodesOf, type Segment } from '../src/core/encounters';
+import { isBattleKind } from '../src/core/economy';
 import { createRng } from '../src/core/rng';
 import { playerLevel, SEGMENT_COUNT, segmentScaling, starterLevel } from '../src/data/scaling';
 import { getStarterPool } from '../src/data/starters';
@@ -62,7 +63,10 @@ describe('generation determinism', () => {
     // would find a placeholder.
     const { segment } = generate('GEN-EAGER');
     for (const node of nodesOf(segment)) {
-      if (node.kind === 'rest') {
+      if (!isBattleKind(node.kind)) {
+        // Rests, shops and events have no opponent. Their *contents* are still
+        // eager — a shop's shelf and an event's outcomes are drawn in pass 4 —
+        // which the assertions below the loop cover.
         expect(node.encounter).toBeNull();
         continue;
       }
@@ -148,7 +152,11 @@ describe('generation rules', () => {
     for (const seed of seeds) {
       const { segment } = generate(seed);
       for (const node of nodesOf(segment)) {
-        if (node.kind === 'rest' || node.kind === 'gym') {
+        // A tier scales an encounter and picks a reward pool. Gyms are excluded
+        // for the separate reason `generateGymTeam` takes no tier: a gym is the
+        // segment's difficulty statement and a second dial on it is one the
+        // balance report cannot attribute.
+        if (!isBattleKind(node.kind) || node.kind === 'gym') {
           expect(node.tier, `${node.id} is a ${node.kind} and should carry no tier`).toBeNull();
         } else {
           expect(['normal', 'hard', 'elite']).toContain(node.tier);

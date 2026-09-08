@@ -17,6 +17,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { isBattleKind } from '../src/core/economy';
 import { generateSegment, generateStarterOptions, nodesOf } from '../src/core/encounters';
 import { generateTrainerTeam, generateWildTeam } from '../src/core/randomizer';
 import { createRng, RNG_STREAMS } from '../src/core/rng';
@@ -71,7 +72,7 @@ describe('tier determinism', () => {
     // on the path taken and the seed would stop fixing the run.
     for (const segment of createRun('TIER-EAGER').segments) {
       for (const node of nodesOf(segment)) {
-        if (node.kind === 'rest' || node.kind === 'gym') expect(node.tier).toBeNull();
+        if (!isBattleKind(node.kind) || node.kind === 'gym') expect(node.tier).toBeNull();
         else expect(TIERS).toContain(node.tier);
       }
     }
