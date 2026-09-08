@@ -29,6 +29,7 @@ import {
 import type { Choice, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
+import { createTooltips } from './tooltips';
 import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createBattleScreen } from './screens/battle';
@@ -73,6 +74,16 @@ export function mountApp(root: HTMLElement): void {
   const shell = el('main', 'shell');
   shell.append(createHeader(), seedBar.root, router.root);
   root.replaceChildren(shell);
+
+  /*
+   * One tooltip layer for the whole app, mounted once.
+   *
+   * Delegated from the shell rather than from the battle screen, so a type
+   * badge on the starter select or the party screen works for free — every one
+   * of those already renders `.type` chips, and Stage 4.5's rule is that a type
+   * badge is a door into the reference wheel wherever it appears.
+   */
+  createTooltips(shell);
 
   /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;
