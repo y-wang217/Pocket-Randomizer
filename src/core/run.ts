@@ -440,7 +440,17 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
  */
 export interface RunPolicy {
   chooseStarter: (options: PokemonSpec[]) => Promise<number>;
-  chooseNode: (options: NodeSpec[]) => Promise<number>;
+  /**
+   * Which node to walk into.
+   *
+   * Takes the state as well as the options, like every other decision on this
+   * interface. Stage 3 is what forced it: a policy asked to weigh a `hard`
+   * fight against a rest cannot answer without knowing how much HP it has, and
+   * one asked whether a shop is worth a step cannot answer without knowing what
+   * it can afford. A `chooseNode` that saw only the options would be picking
+   * between labels.
+   */
+  chooseNode: (options: NodeSpec[], state: RunState) => Promise<number>;
   /**
    * Which of the three cards to take. No skip and no reroll — the return type
    * is an index, not an index-or-nothing, and that is the design.
@@ -530,7 +540,7 @@ export async function playRun(
     if (atGym(state)) {
       node = segmentOf(state).gym;
     } else {
-      const choice = await policy.chooseNode(nodeOptions(state));
+      const choice = await policy.chooseNode(nodeOptions(state), state);
       record({ kind: 'node', index: choice });
       node = nextNode(state, choice);
     }
@@ -751,9 +761,9 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       if (!decision) return live ? live.chooseStarter(options) : exhausted('starter');
       return decision.kind === 'starter' ? decision.index : exhausted('starter');
     },
-    chooseNode: async (options) => {
+    chooseNode: async (options, state) => {
       const decision = next('node');
-      if (!decision) return live ? live.chooseNode(options) : exhausted('node');
+      if (!decision) return live ? live.chooseNode(options, state) : exhausted('node');
       return decision.kind === 'node' ? decision.index : exhausted('node');
     },
     chooseReward: async (offer, state) => {

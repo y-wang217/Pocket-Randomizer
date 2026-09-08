@@ -53,11 +53,25 @@ export const STARTER_BANDS: readonly number[] = [3, 4];
  * strong at segment 1 and ordinary by segment 8, which is the correct shape for
  * a resource the player cannot upgrade.
  *
- * Stage 3 is where this stops being a constant: once rewards can hand out
- * moves, the starting kit can be weak again because the player has a way to
- * fix it.
+ * **Stage 3 is that stage, and the window narrowed as predicted.** Band 3 — the
+ * 100+ BP moves — is out. The reasoning is the mirror image of the Stage 2
+ * finding: a starter holding band-3 moves has a best attack no reward can beat,
+ * so every TM and tutor card in the game is a dead card. The simulator measured
+ * it precisely: with the wide window, move rewards were taken 2-3% of the time,
+ * and the report read that as "nobody wants a TM" when it was really "nobody
+ * can be offered an upgrade".
+ *
+ * That matters beyond the take rate, because moves are what carries the tier
+ * gradient. A Pokemon holds one item, so a second item reward is worth almost
+ * nothing and a risk-greedy player's advantage saturates after one good card;
+ * a move slot is one of four and keeps improving. Killing the move reward
+ * therefore killed the risk gradient it was meant to pay for.
+ *
+ * So the kit is strong at segment 1, ordinary by segment 4, and the way back is
+ * the reward screen — which is the shape a resource the player *can* upgrade
+ * should have.
  */
-export const STARTER_MOVE_BANDS: readonly number[] = [1, 2, 3];
+export const STARTER_MOVE_BANDS: readonly number[] = [1, 2];
 
 const BASE: readonly SpeciesEntry[] = SPECIES_POOL.filter(
   (entry) => STARTER_BANDS.includes(entry.band) && !isSpeciesBlacklisted(entry.id),

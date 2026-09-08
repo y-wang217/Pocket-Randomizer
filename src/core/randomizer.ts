@@ -84,8 +84,13 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `opponentLevel`, so every encounter moved with it. Despite living outside
  * this file, it is the same failure this string guards — a recorded decision
  * sequence that still replays cleanly and is no longer the run it recorded.
+ *
+ * Went to 4 for Stage 3's tuning pass, which is the plainest case yet: the tier
+ * modifiers, the level curve, the species bands, the tier distribution and
+ * `STARTER_MOVE_BANDS` all moved. Not one draw changed position and every seed
+ * rolls a different run.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-3';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-4';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

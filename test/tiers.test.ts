@@ -258,7 +258,10 @@ describe('tier scaling is monotonic', () => {
     // axis at once, the report can no longer attribute a change to an axis.
     expect(TIER_MODIFIERS.elite.team).toBeGreaterThan(TIER_MODIFIERS.hard.team);
     expect(TIER_MODIFIERS.elite.level).toBeLessThan(TIER_MODIFIERS.hard.level);
-    expect(TIER_MODIFIERS.normal).toEqual({ level: 0, band: 0, team: 0 });
+    expect(TIER_MODIFIERS.normal).toEqual({ level: 0, speciesBand: 0, moveBand: 0, team: 0 });
+    // hard is a stat check, elite is a damage check plus a body. Different axes.
+    expect(TIER_MODIFIERS.hard.moveBand).toBe(0);
+    expect(TIER_MODIFIERS.elite.moveBand).toBeGreaterThan(TIER_MODIFIERS.hard.moveBand);
   });
 });
 

@@ -29,7 +29,7 @@
  * healing up, because by segment 6 a shop is further away than the next gym.
  */
 import type { Tier } from '../core/types';
-import { CHOICE_ITEMS, MODEST_ITEMS, STAPLE_ITEMS, TYPE_ITEMS } from './items';
+import { CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
 
 /**
  * One drawable entry in a pool: a weight, and enough parameters for
@@ -66,10 +66,29 @@ const ids = (entries: readonly { id: string }[]): readonly string[] => entries.m
 
 const TYPE_ITEM_IDS = ids(TYPE_ITEMS);
 const MODEST_ITEM_IDS = ids(MODEST_ITEMS);
-const STAPLE_ITEM_IDS = ids(STAPLE_ITEMS);
+const GOOD_ITEM_IDS = ids(GOOD_ITEMS);
+const PREMIUM_ITEM_IDS = ids(PREMIUM_ITEMS);
 const CHOICE_ITEM_IDS = ids(CHOICE_ITEMS);
 
 /*
+ * **The tier gradient is carried by moves and money, not by items, and the
+ * simulator is what settled that.**
+ *
+ * The obvious design is for the elite pool to be the good-items pool. It does
+ * not work, for a structural reason: at `PARTY_SIZE` 1 a Pokemon holds exactly
+ * one item, so the *second* item a run is offered is worth almost nothing. A
+ * risk-greedy player's advantage therefore saturates after one good card, while
+ * the risk keeps compounding every node — and the report showed exactly that,
+ * with `tier-greedy` losing 3-4 points of per-segment survival and gaining
+ * nothing back after its first Leftovers.
+ *
+ * Moves do not saturate: there are four slots, `teachMove` replaces the weakest
+ * attack, and a run that takes six tutors is meaningfully stronger than one that
+ * took two. Neither does money, which converts to healing at every shop. So the
+ * higher tiers below weight *tutors* and currency up and items down, and the
+ * items they do offer are the four that change a fight rather than a longer list
+ * of ones that nudge it.
+ *
  * TM and tutor are the same mechanism pointed at different bands, and that is
  * on purpose rather than a missing distinction.
  *
@@ -96,20 +115,20 @@ const NORMAL: readonly RewardBand[] = [
     throughSegment: 2,
     entries: [
       { kind: 'item', weight: 4, items: TYPE_ITEM_IDS },
-      { kind: 'currency', weight: 4, min: 18, max: 30 },
+      { kind: 'currency', weight: 2, min: 14, max: 24 },
       { kind: 'tm', weight: 3, bandOffset: 0 },
-      { kind: 'heal', weight: 2, fraction: 0.35 },
+      { kind: 'heal', weight: 3, fraction: 0.4 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
       { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
-      { kind: 'currency', weight: 3, min: 26, max: 42 },
+      { kind: 'currency', weight: 2, min: 20, max: 32 },
       { kind: 'tm', weight: 3, bandOffset: 0 },
       // Healing climbs late: by segment 6 the next shop is further off than the
       // next gym, so HP stops being convertible into anything else.
-      { kind: 'heal', weight: 4, fraction: 0.5 },
+      { kind: 'heal', weight: 3, fraction: 0.5 },
     ],
   },
 ];
@@ -126,19 +145,19 @@ const HARD: readonly RewardBand[] = [
   {
     throughSegment: 2,
     entries: [
-      { kind: 'item', weight: 4, items: [...MODEST_ITEM_IDS, ...STAPLE_ITEM_IDS] },
-      { kind: 'currency', weight: 3, min: 40, max: 62 },
-      { kind: 'tm', weight: 3, bandOffset: 1 },
-      { kind: 'heal', weight: 2, fraction: 0.6 },
+      { kind: 'item', weight: 3, items: [...MODEST_ITEM_IDS, ...GOOD_ITEM_IDS] },
+      { kind: 'currency', weight: 2, min: 30, max: 48 },
+      { kind: 'tm', weight: 4, bandOffset: 1 },
+      { kind: 'heal', weight: 5, fraction: 0.85 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
-      { kind: 'item', weight: 4, items: [...STAPLE_ITEM_IDS, ...MODEST_ITEM_IDS] },
-      { kind: 'currency', weight: 2, min: 55, max: 85 },
-      { kind: 'tutor', weight: 3, bandOffset: 1 },
-      { kind: 'heal', weight: 3, fraction: 0.75 },
+      { kind: 'item', weight: 3, items: GOOD_ITEM_IDS },
+      { kind: 'currency', weight: 2, min: 42, max: 66 },
+      { kind: 'tutor', weight: 4, bandOffset: 1 },
+      { kind: 'heal', weight: 6, fraction: 0.95 },
     ],
   },
 ];
@@ -164,20 +183,20 @@ const ELITE: readonly RewardBand[] = [
   {
     throughSegment: 2,
     entries: [
-      { kind: 'item', weight: 5, items: STAPLE_ITEM_IDS },
-      { kind: 'tutor', weight: 3, bandOffset: 1 },
-      { kind: 'currency', weight: 2, min: 80, max: 120 },
-      { kind: 'heal', weight: 2, fraction: 1 },
+      { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
+      { kind: 'tutor', weight: 4, bandOffset: 2 },
+      { kind: 'currency', weight: 2, min: 62, max: 95 },
+      { kind: 'heal', weight: 6, fraction: 1 },
       { kind: 'species', weight: 2, bandOffset: 1 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
-      { kind: 'item', weight: 5, items: [...STAPLE_ITEM_IDS, ...CHOICE_ITEM_IDS] },
+      { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
       { kind: 'tutor', weight: 4, bandOffset: 2 },
-      { kind: 'currency', weight: 2, min: 110, max: 170 },
-      { kind: 'heal', weight: 3, fraction: 1 },
+      { kind: 'currency', weight: 2, min: 85, max: 135 },
+      { kind: 'heal', weight: 7, fraction: 1 },
       { kind: 'species', weight: 2, bandOffset: 1 },
     ],
   },

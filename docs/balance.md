@@ -3,7 +3,8 @@
 What the simulator measured, what it changed, and what is still wrong.
 
 `npm run sim -- --seeds 1000` plays a thousand full runs headless under two
-policies and prints the report this document summarises. The JSON goes to
+policies and prints the report this document summarises. Stage 3 adds
+`--policy tiers`, which is the question that stage exists to answer; see §6. The JSON goes to
 `sim-reports/`, stamped with the randomizer version that produced it.
 
 Those JSON files are not committed, and do not need to be: the simulator is
@@ -167,6 +168,139 @@ tuning pass but not a permanent one. Nothing in the report showed a single
 species, ability or move dominating an outcome distribution, so nothing earned a
 line. `Shedinja` is excluded for a mechanical reason (one max HP means the run's
 central resource does not apply to it), not a measured one.
+
+## 6. Stage 3 — the risk gradient
+
+`npm run sim -- --seeds 1000 --policy tiers`, at `gymrun-randomizer-4`. Both
+policies use the Stage 0 greedy battle AI and the same rest-and-shop preamble,
+so the only variable between them is **which fight they pick**.
+
+| | tier-averse | tier-greedy |
+|---|---|---|
+| completion | **7.0%** | **6.6%** |
+| mean gyms cleared | 2.90 | 2.66 |
+| died before gym 2 | 24.0% | 32.2% |
+| full clears (of 1000) | 70 | 66 |
+| median coins at run end | 142 | 144 |
+
+Gym clear rates, tier-averse: 91 / 86 / 79 / 83 / 75 / 82 / 72 / 80. Steepest
+drop 9 points, against a target of 25.
+
+### 6.1 The headline is a MISS, and it is the honest result
+
+**`tier-greedy` does not beat `tier-averse`.** 6.6% against 7.0% at 1000 seeds
+is 66 clears against 70 — a tie inside the noise. Risk is *real*: greedy dies
+before gym 2 a third of the time against averse's quarter. It simply does not
+pay.
+
+The stage began far worse than that. The first measurement, before any tuning,
+read 0.3% for both with greedy dying before gym 2 in **52%** of runs — risk
+that was purely a tax. Getting to parity took the whole pass below. But parity
+is not the spec's bar, and this section says so rather than rounding up.
+
+### 6.2 Why it is hard, which is the useful part
+
+**Risk compounds and rewards saturate.** A run is roughly thirty nodes, so a
+per-node survival penalty multiplies: three points a segment is `0.97^7`, a
+quarter of the run's completion gone. The reward is one card per fight,
+whatever the tier — and at `PARTY_SIZE` 1 almost every card has a ceiling:
+
+- **Items saturate at one.** A Pokemon holds one item. The second Leftovers a
+  run is offered is worth nothing.
+- **Moves saturate at one too**, which was the surprise. The greedy battle AI
+  uses its single highest-damage move every turn, so a second move upgrade only
+  matters if it beats the first. Four slots do not mean four upgrades.
+- **Only consumables scale** — healing and money — and those are the rewards
+  that do the least to change how a fight goes.
+
+So the elite path buys a permanent advantage that caps out after one good card,
+against a risk that recurs at every node. That is a structural fact about
+`PARTY_SIZE` 1, not a number that was set wrong, which is why five separate
+reward-pool shapes were tried against it and none of them cleared the bar:
+items-heavy, tutor-heavy, heal-and-money-heavy, elite-without-a-second-Pokemon,
+and elite-as-a-pure-stat-check.
+
+**The two fixes that would work are both out of Stage 3's scope.** Either the
+offer itself scales with tier — more cards, or a guaranteed premium card, which
+the spec's "always a choice of 3" rules out — or Stage 4's party slots make item
+and species rewards stop saturating, because a second Leftovers goes on a
+second Pokemon. The second is the one to revisit; this is left as the stage's
+open question rather than tuned into a number that flatters it.
+
+### 6.3 What the pass actually changed
+
+Completion went from **1.5% to 7.0%**, which is the other done-condition and is
+now inside the 5-15% target. Five findings moved it.
+
+**A three-Pokemon ordinary node.** `teamAdvantage.trainer` was 1 in segments
+5-7, and it stacked with `elite`'s own `team: 1` to produce a *three*-Pokemon
+fight at an ordinary node — a gym without the reward. Per-segment survival read
+62% there and 85%+ everywhere else, which is as clean a signal as the simulator
+has produced. Fixing it alone took completion from 1.7% to 5.3%. The rule it
+settled into: **the segment sets level and stat quality, the tier sets team
+size**, and only a gym breaks both at once.
+
+**`elite` was paying for its second Pokemon at the wrong price.** It began at
+`+1` level; it ships at `-8`. Two Pokemon *above* the curve is a wall, and the
+Stage 2 lesson — every step up in team size is paid for with a step down in
+level — applies at node scale exactly as it was written down.
+
+**One `band` number moved two windows.** `TierModifier.band` shifted the species
+pool and the move pool together, so `hard` landed a base-stat jump and a
+move-power jump at once — at segment 0 that is the largest single difficulty
+step in the game, sitting on the first tier a player ever meets. It is
+`speciesBand` and `moveBand` now: hard is a stat check, elite is a damage check
+plus a body.
+
+**`STARTER_MOVE_BANDS` narrowed from `[1,2,3]` to `[1,2]`,** exactly as
+`data/starters.ts` predicted it would when rewards arrived. A starter holding
+band-3 moves has a best attack no reward can beat, so every TM and tutor in the
+game was a dead card — taken 2-3% of the time, which the report read as "nobody
+wants a TM" when it was really "nobody can be offered an upgrade".
+
+**Money was being printed and not spent.** Payouts ran nearly twice as high;
+19-24% of shop arrivals were *flush* with a median 170 coins unspent at the end
+of a run. A risk-greedy player earning 2.2x of a currency nobody can spend is
+earning nothing. Base payouts came down before the tier multiplier went up.
+
+### 6.4 What the new report rows say
+
+**Reward take rate.** Items 42-46%, currency 39%, healing 11-13%, moves 3-5%.
+No kind is over half, which is the spec's target — a kind that were always
+correct would make the choice of three decorative.
+
+**Conditional completion is dominated by survivor bias, and the table says so.**
+Runs that took a TM complete 24-27% against a 7% baseline. That is not a TM
+being worth 20 points; it is that only a run which is already going well gets
+deep enough to be offered one. Every figure prints its `n` for this reason.
+
+**Currency curve.** Median held walking into a shop climbs 51 → 109 → 155 → 222
+→ 270 → 317 → 368 → 463 across the eight segments, with spend tracking it.
+Broke on arrival 3-4%, flush 10-15%. Neither extreme, which is what the prices
+are tuned for.
+
+**Choice items are not a trap.** The open question from `data/items.ts`: with
+`PARTY_SIZE` 1 and no switching, a Choice lock lasts a whole battle. The answer
+is +23 to +25 points of completion for Choice Band and Choice Specs, consistent
+across both policies at n=52-91. Correlational and thin — they only appear in
+the late elite pool — but nowhere near the negative a trap would show. **They
+stay in the pool**, and the note in `data/items.ts` can be closed.
+
+**Diversity holds.** 634 distinct species across the sample; the most common
+appears in 10-11% of runs, against a target of 25%.
+
+### 6.5 What is still wrong
+
+1. **The risk gradient is at parity, not ahead.** §6.1 and §6.2. The stage's
+   headline done-condition is not met, and the diagnosis says why.
+2. **Move rewards are still rarely picked** — 3-5%, even after narrowing the
+   starter window. The greedy AI's single-best-move habit is most of it, and a
+   battle policy with any notion of coverage would value them differently.
+3. **Median 142 coins is left on the table at the end of every run.** Not a
+   failure — a player cannot know which fight is their last — but it is a
+   quarter of a late-game item, and a reroll or a sell-back would recover it.
+4. **`--policy tiers` is a slow way to ask this question.** Two 1000-seed
+   samples is about six minutes. Fine for a checkpoint, painful for a bisect.
 
 ## 5. Running it yourself
 

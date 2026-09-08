@@ -258,14 +258,18 @@ export const DEFAULT_TUNING: Tuning = {
    * cannot price is a coin flip dressed as a decision. By segment 2 they have
    * fought a dozen nodes and the word means something.
    *
-   * The back half inverts the weights so that declining risk gets progressively
-   * harder to do: at segment 5+ a step is more likely than not to make the safe
-   * option the worse-paying one.
+   * The back half raises the elite share so that declining risk gets steadily
+   * harder to do. It does not *invert* the weights, which was the first cut:
+   * `{3, 4, 4}` put 73% of late nodes above normal, and combined with
+   * `distinctTiersPerStep` it meant a risk-averse player frequently had no safe
+   * option at all. The simulator read that as a run dying to attrition it never
+   * chose — per-segment survival around 62%, which compounds to a 1% clear over
+   * eight segments.
    */
   tierBands: [
-    { throughSegment: 1, weights: { normal: 6, hard: 3, elite: 0 } },
-    { throughSegment: 4, weights: { normal: 4, hard: 4, elite: 2 } },
-    { throughSegment: 7, weights: { normal: 3, hard: 4, elite: 4 } },
+    { throughSegment: 1, weights: { normal: 7, hard: 3, elite: 0 } },
+    { throughSegment: 4, weights: { normal: 5, hard: 5, elite: 1 } },
+    { throughSegment: 7, weights: { normal: 4, hard: 5, elite: 2 } },
   ],
   distinctTiersPerStep: true,
 

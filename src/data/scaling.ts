@@ -70,6 +70,18 @@ export interface SegmentScaling {
   /**
    * Extra Pokemon the opponent fields *beyond the player's party size*.
    *
+   * **At ordinary nodes this is zero everywhere, and team size comes from the
+   * tier instead.** Stage 3's first tuning pass is the reason. Segments 5-7 had
+   * `trainer: 1`, which stacked with `elite`'s own `team: 1` to produce a
+   * *three*-Pokemon ordinary node — a gym-sized fight with an ordinary node's
+   * reward. Per-segment survival collapsed to 62% there and nowhere else, which
+   * is as clean a signal as the simulator has ever produced.
+   *
+   * The rule it settled into is worth keeping: the segment sets level and stat
+   * quality, the tier sets team size, and only a gym breaks both at once. That
+   * also makes an `elite` node legible — it is *the* two-Pokemon fight, at every
+   * point in the run.
+   *
    * The number that matters is the difference, not the count. A gym with six
    * Pokemon against a solo player is not a difficulty curve, it is a wall; the
    * same gym against a party of six is an even fight. So the table stores the
@@ -132,7 +144,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 2,
     playerLevel: 42,
-    levelOffset: { wild: { min: -12, max: -9 }, trainer: { min: -10, max: -7 }, gym: { min: -9, max: -7 } },
+    levelOffset: { wild: { min: -15, max: -12 }, trainer: { min: -13, max: -10 }, gym: { min: -9, max: -7 } },
     speciesBands: [1, 2],
     moveBands: [0, 1],
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
@@ -140,7 +152,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 3,
     playerLevel: 48,
-    levelOffset: { wild: { min: -14, max: -10 }, trainer: { min: -11, max: -8 }, gym: { min: -10, max: -8 } },
+    levelOffset: { wild: { min: -17, max: -13 }, trainer: { min: -14, max: -11 }, gym: { min: -10, max: -8 } },
     speciesBands: [1, 2],
     moveBands: [0, 1],
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
@@ -148,7 +160,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 4,
     playerLevel: 54,
-    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -13, max: -9 }, gym: { min: -16, max: -13 } },
+    levelOffset: { wild: { min: -18, max: -14 }, trainer: { min: -16, max: -12 }, gym: { min: -16, max: -13 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
@@ -156,26 +168,26 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 5,
     playerLevel: 60,
-    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -14, max: -10 }, gym: { min: -18, max: -14 } },
+    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -13 }, gym: { min: -20, max: -16 } },
     speciesBands: [2, 3],
     moveBands: [1, 2],
-    teamAdvantage: { wild: 0, trainer: 1, gym: 2 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
   },
   {
     segment: 6,
     playerLevel: 66,
-    levelOffset: { wild: { min: -19, max: -14 }, trainer: { min: -16, max: -11 }, gym: { min: -19, max: -15 } },
-    speciesBands: [3, 4],
+    levelOffset: { wild: { min: -22, max: -17 }, trainer: { min: -19, max: -14 }, gym: { min: -21, max: -17 } },
+    speciesBands: [2, 3],
     moveBands: [1, 2, 3],
-    teamAdvantage: { wild: 0, trainer: 1, gym: 2 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
   },
   {
     segment: 7,
     playerLevel: 72,
-    levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -12 }, gym: { min: -21, max: -16 } },
-    speciesBands: [3, 4],
+    levelOffset: { wild: { min: -23, max: -18 }, trainer: { min: -20, max: -15 }, gym: { min: -23, max: -18 } },
+    speciesBands: [2, 3],
     moveBands: [1, 2, 3],
-    teamAdvantage: { wild: 0, trainer: 1, gym: 2 },
+    teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
   },
 ];
 
@@ -197,9 +209,9 @@ export const SEGMENTS: readonly SegmentScaling[] = [
  * a second Pokemon and pays for that with levels.** That is the Stage 2 finding
  * applied at node scale: team size is the dominant lever at `PARTY_SIZE` 1, and
  * a step up in team size that is *not* paid for with a step down in level is
- * not a difficulty curve, it is a wall. An `elite` node fielding two Pokemon at
- * `hard`'s level would be strictly harder than `hard` on every axis at once,
- * and the report could not tell which axis was doing the work.
+ * not a difficulty curve, it is a wall. The first Stage 3 cut proved it — see
+ * the note on the `elite` row below — and the fix was to make elite's level
+ * modifier *negative*.
  *
  * Crucially, a tier shifts *values* and never consumes a draw. A `hard` node
  * and a `normal` node in the same map position roll the same number of times,
@@ -208,16 +220,52 @@ export const SEGMENTS: readonly SegmentScaling[] = [
 export interface TierModifier {
   /** Added to the drawn opponent level. */
   level: number;
-  /** Added to every species and move band the segment allows. See `shift`. */
-  band: number;
+  /**
+   * Added to the species band window — how *bulky and strong* the opponent is.
+   */
+  speciesBand: number;
+  /**
+   * Added to the damaging-move band window — how *hard it hits*.
+   *
+   * **Split from `speciesBand` by the Stage 3 tuning pass, and the split earned
+   * itself immediately.** One `band` number moved both windows at once, so
+   * `hard` landed a base-stat jump and a move-power jump together: at segment 0
+   * it took opponents from ~350 average BST with sub-55 BP moves to ~445 BST
+   * with 60-75 BP moves, which is the single largest difficulty step anywhere in
+   * the game and it sat on the *first* tier a player ever meets.
+   *
+   * The simulator measured it as a nine-point hole in per-segment survival for
+   * `tier-greedy` in the opening segments — enough to sink the whole risk
+   * gradient, because a reward pool cannot pay back nine points a segment.
+   * Two knobs let `hard` be a stat check and `elite` be a damage check, which
+   * is also the more legible pair to play against.
+   */
+  moveBand: number;
   /** Extra opponents, on top of the segment's own advantage. */
   team: number;
 }
 
 export const TIER_MODIFIERS: Record<Tier, TierModifier> = {
-  normal: { level: 0, band: 0, team: 0 },
-  hard: { level: 3, band: 1, team: 0 },
-  elite: { level: 1, band: 2, team: 1 },
+  normal: { level: 0, speciesBand: 0, moveBand: 0, team: 0 },
+  /** A stat check: bulkier, higher level, hitting with the same move pool. */
+  hard: { level: 1, speciesBand: 1, moveBand: 0, team: 0 },
+  /*
+   * Elite fields a second Pokemon and pays for it with *four levels below the
+   * segment baseline* — not above it.
+   *
+   * The first cut had `{ level: 1, band: 2, team: 1 }`, and the simulator was
+   * blunt about it: `tier-greedy` died before gym 2 in 52% of runs against
+   * `tier-averse`'s 35%, and completed no more often. Two Pokemon *above* the
+   * curve at an ordinary node is not a risky fight, it is a gym without the
+   * reward, and no pool can be tuned to pay for it.
+   *
+   * Below the curve, the same two Pokemon are texture instead: more matchups,
+   * more PP spent, more turns to be outplayed in, and a real chance to lose if
+   * the player walks in damaged. That is the Stage 2 team-size finding applied
+   * exactly as it was written down — every step up in team size is paid for
+   * with a step down in level.
+   */
+  elite: { level: -8, speciesBand: 1, moveBand: 1, team: 1 },
 };
 
 /**
@@ -272,12 +320,12 @@ export function starterLevel(): number {
 
 /** Bands a segment may draw species from, shifted by tier. */
 export function speciesBandsFor(segment: number, tier: Tier): readonly number[] {
-  return shift(segmentScaling(segment).speciesBands, TIER_MODIFIERS[tier].band, MAX_SPECIES_BAND);
+  return shift(segmentScaling(segment).speciesBands, TIER_MODIFIERS[tier].speciesBand, MAX_SPECIES_BAND);
 }
 
 /** Bands a segment may draw damaging moves from, shifted by tier. */
 export function moveBandsFor(segment: number, tier: Tier): readonly number[] {
-  return shift(segmentScaling(segment).moveBands, TIER_MODIFIERS[tier].band, MAX_MOVE_BAND);
+  return shift(segmentScaling(segment).moveBands, TIER_MODIFIERS[tier].moveBand, MAX_MOVE_BAND);
 }
 
 /**

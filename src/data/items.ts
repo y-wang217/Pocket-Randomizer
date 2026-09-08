@@ -81,25 +81,46 @@ function item(id: string, name: string, blurb: string, extra: Partial<ItemEntry>
 }
 
 /**
- * The staples: items whose effect is obvious and large.
+ * The premium four: items that change how a fight is *played*.
  *
- * These carry the hard and elite pools. Every one of them changes how a fight
- * is played rather than only how it is scored — Leftovers turns a losing
- * attrition race, Focus Sash buys a turn from a one-shot, Assault Vest trades
- * your status moves for bulk.
+ * The elite pool and nothing else. Each one rewrites a fight's shape rather
+ * than nudging a number — Leftovers turns a losing attrition race, Focus Sash
+ * buys a turn back from a one-shot, Life Orb turns a two-turn kill into a
+ * one-turn kill, Assault Vest trades your status moves for the bulk to survive
+ * the turn you needed them.
+ *
+ * **Split out from the wider staples by the Stage 3 tuning pass.** The first cut
+ * had one `STAPLE_ITEMS` list feeding both the hard and the elite pools, which
+ * meant the two tiers offered the *same items* and the reward gradient between
+ * them was nothing but a heal fraction. The rule the spec states — elite pools
+ * contain strictly better entries — has to hold between elite and hard, not just
+ * between elite and normal, and it did not.
  */
-export const STAPLE_ITEMS: readonly ItemEntry[] = [
+export const PREMIUM_ITEMS: readonly ItemEntry[] = [
   item('leftovers', 'Leftovers', 'Restores 1/16 max HP at the end of every turn.'),
   item('lifeorb', 'Life Orb', 'Attacks do 1.3x damage. Costs 1/10 max HP per attack.'),
   item('focussash', 'Focus Sash', 'Survive one KO at full HP with 1 HP left. Once per battle.'),
   item('assaultvest', 'Assault Vest', 'Sp. Def 1.5x, but status moves cannot be selected.'),
-  item('eviolite', 'Eviolite', 'Def and Sp. Def 1.5x — but only if the holder can still evolve.'),
+];
+
+/**
+ * The solid middle: real effects that do not rewrite a fight.
+ *
+ * The hard pool. Every one of these is strictly better than a coin-flip on a
+ * type match and strictly worse than the four above, which is exactly the shape
+ * the middle tier should have.
+ */
+export const GOOD_ITEMS: readonly ItemEntry[] = [
   item('rockyhelmet', 'Rocky Helmet', 'Attackers making contact lose 1/6 of their max HP.'),
   item('expertbelt', 'Expert Belt', 'Super-effective hits do 1.2x damage.'),
   item('shellbell', 'Shell Bell', 'Heals 1/8 of the damage the holder deals.'),
+  item('eviolite', 'Eviolite', 'Def and Sp. Def 1.5x — but only if the holder can still evolve.'),
   item('punchingglove', 'Punching Glove', 'Punching moves do 1.1x damage and make no contact.'),
   item('weaknesspolicy', 'Weakness Policy', 'Raises Atk and Sp. Atk two stages when hit super effectively.'),
 ];
+
+/** Everything above the type items, for the shop tables and for tests. */
+export const STAPLE_ITEMS: readonly ItemEntry[] = [...PREMIUM_ITEMS, ...GOOD_ITEMS];
 
 /**
  * The Choice items, together, because they stand or fall together.
@@ -154,7 +175,8 @@ export const TYPE_ITEMS: readonly ItemEntry[] = [
  * list reshuffles what every recorded seed offers. Append; do not insert.
  */
 export const ITEMS: readonly ItemEntry[] = [
-  ...STAPLE_ITEMS,
+  ...PREMIUM_ITEMS,
+  ...GOOD_ITEMS,
   ...CHOICE_ITEMS,
   ...MODEST_ITEMS,
   ...TYPE_ITEMS,

@@ -49,15 +49,20 @@ export function currencyScaleFor(segment: number): number {
  * makes that a type-level fact rather than a row of zeroes.
  */
 export const NODE_PAYOUT: Record<BattleKind, number> = {
-  wild: 14,
-  trainer: 24,
-  gym: 70,
+  wild: 8,
+  trainer: 14,
+  gym: 40,
 };
 
 /**
  * The tier multiplier on a fight's payout.
  *
- * **This is half of the risk gradient and the more honest half.** A reward pool
+ * **This is half of the risk gradient and the more honest half.** It only pays,
+ * though, if money is scarce enough to be worth having: the first tuning pass
+ * ran payouts almost twice as high and measured 19-24% of shop arrivals *flush*
+ * with a median of 170 coins left unspent at the end of a run. A risk-greedy
+ * player earning 2.2x of a currency nobody can spend is earning nothing, which
+ * is why the base payouts above came down before this multiplier went up. A reward pool
  * is a lottery — an elite card is better *on average* — whereas this is the part
  * a player can count. Elite pays a bit over twice normal, and if the balance
  * report says elite paths are underpaying, this is the first number to move,
@@ -65,8 +70,8 @@ export const NODE_PAYOUT: Record<BattleKind, number> = {
  */
 export const TIER_PAYOUT: Record<Tier, number> = {
   normal: 1,
-  hard: 1.55,
-  elite: 2.2,
+  hard: 1.6,
+  elite: 2.4,
 };
 
 // ---------------------------------------------------------------------------
