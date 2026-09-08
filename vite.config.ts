@@ -22,5 +22,18 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    /*
+     * Raised from the 5s default in Stage 4.
+     *
+     * Two of the resume tests replay a whole run from *every* save point, which
+     * is quadratic in the length of a run — and Stage 4 made runs longer twice
+     * over: opponents field `PARTY_SIZE + advantage` Pokemon, so every team on
+     * the map grew, and switching adds turns on top of that. The tests were not
+     * slow because they were doing something wasteful; they were slow because
+     * there is more run to replay, and shortening them would trade the property
+     * they prove (resume works from *any* point, not a convenient one) for a
+     * number in a config file.
+     */
+    testTimeout: 60_000,
   },
 });

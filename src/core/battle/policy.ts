@@ -39,6 +39,44 @@ export function usableMoves(view: BattleView): BattleView['moves'] {
   return usable.length > 0 ? usable : view.moves;
 }
 
+/**
+ * Never switches voluntarily; answers a forced switch and nothing else.
+ *
+ * **The control arm of Stage 4's headline comparison.** Wrapping a policy in
+ * this rather than writing a second one is what makes `switch-aware` versus
+ * `no-switch` a fair test: the two share their battle AI exactly, and the only
+ * difference between the runs they produce is whether a voluntary switch was
+ * ever available. A hand-written no-switch bot would differ in a dozen small
+ * ways nobody chose, and the gap in completion rate would be a measurement of
+ * those instead of of switching.
+ *
+ * It works by *hiding* the switches rather than by discarding a switch the
+ * inner policy returned. A policy handed a view it cannot act on would score
+ * choices it is not allowed to take and then be overruled, which is a different
+ * bot again — one that sometimes plays its second-best move for reasons it
+ * cannot see. Blanking the bench makes the inner policy's view honest: as far
+ * as it knows, there is nothing to switch to.
+ */
+export function withoutSwitching(inner: Policy): Policy {
+  return async (view) => {
+    // A forced switch is not a choice, so it passes through untouched: refusing
+    // it would not be a no-switch policy, it would be a policy that cannot play.
+    if (view.forceSwitch) return inner(view);
+    return inner({
+      ...view,
+      trapped: true,
+      switches: view.switches.map((member) => ({
+        ...member,
+        usable: false,
+        // Reported as trapping rather than as a fourth reason, because that is
+        // what it is from the policy's side: something outside it is refusing
+        // the switch. The UI never sees this wrapper.
+        block: member.block ?? 'trapped',
+      })),
+    });
+  };
+}
+
 /** Always picks the first usable move. Deterministic; the baseline for tests. */
 export const firstUsableMovePolicy: Policy = async (view) => {
   const forced = forcedSwitchFallback(view);

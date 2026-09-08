@@ -51,9 +51,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { greedyAiPolicy } from '../src/core/battle/ai';
+import { AI_VERSION, greedyAiPolicy } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
-import { usableMoves, usableSwitches, type Policy } from '../src/core/battle/policy';
+import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { createRng, type RngStream } from '../src/core/rng';
@@ -95,7 +95,25 @@ import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
  * long as it is written down: a tier policy is a node policy wearing the
  * battle AI it needs to be a fair comparison.
  */
-type PolicyName = 'greedy' | 'random' | 'tier-averse' | 'tier-greedy';
+type PolicyName =
+  | 'greedy'
+  | 'random'
+  | 'tier-averse'
+  | 'tier-greedy'
+  /**
+   * The Stage 4 pair, and the one comparison this stage is judged on.
+   *
+   * Same battle AI, same node policy, same seeds — the only difference is
+   * whether a voluntary switch was ever on the table. `no-switch` is the
+   * greedy AI wrapped in `withoutSwitching`, which blanks the bench rather
+   * than discarding a switch the AI returned, so the two bots differ in
+   * exactly one way (see `policy.withoutSwitching`).
+   *
+   * If the gap between them is under a few points, switching is decorative and
+   * the switch cost or the party size is wrong. That is the whole hypothesis.
+   */
+  | 'switch-aware'
+  | 'no-switch';
 type NodePolicyName = 'rest' | 'wild' | 'trainer' | 'first' | 'random' | 'tier-averse' | 'tier-greedy';
 
 /** The node policy a `--policy` name implies, if it implies one. */
@@ -115,6 +133,8 @@ interface Options {
 }
 
 const ALL_POLICIES: PolicyName[] = ['greedy', 'random'];
+/** The Stage 4 headline: same AI, same seeds, switching on and off. */
+const SWITCH_POLICIES: PolicyName[] = ['switch-aware', 'no-switch'];
 const ALL_NODE_POLICIES: NodePolicyName[] = ['rest', 'wild', 'trainer', 'first'];
 /** The Stage 3 headline: same seeds, same battle AI, opposite appetite for risk. */
 const TIER_POLICIES: PolicyName[] = ['tier-averse', 'tier-greedy'];
@@ -147,7 +167,13 @@ function parseArgs(argv: string[]): Options {
       case '--policy': {
         const name = value();
         options.policies =
-          name === 'all' ? ALL_POLICIES : name === 'tiers' ? TIER_POLICIES : [assertPolicy(name)];
+          name === 'all'
+            ? ALL_POLICIES
+            : name === 'tiers'
+              ? TIER_POLICIES
+              : name === 'switching'
+                ? SWITCH_POLICIES
+                : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -187,11 +213,13 @@ function parseArgs(argv: string[]): Options {
   return options;
 }
 
-const POLICY_NAMES: readonly string[] = [...ALL_POLICIES, ...TIER_POLICIES];
+const POLICY_NAMES: readonly string[] = [...ALL_POLICIES, ...TIER_POLICIES, ...SWITCH_POLICIES];
 
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
-    throw new Error(`--policy must be one of ${POLICY_NAMES.join(', ')}, tiers or all (got "${name}")`);
+    throw new Error(
+      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching or all (got "${name}")`,
+    );
   }
   return name as PolicyName;
 }
@@ -209,9 +237,11 @@ const USAGE = `
   npm run sim -- [options]
 
     --seeds N        how many seeds to play per policy (default 200)
-    --policy NAME    greedy | random | tier-averse | tier-greedy | tiers | all
-                     greedy/random vary the battle AI; tier-* vary node choice
-                     and always use the greedy battle AI      (default all)
+    --policy NAME    greedy | random | switch-aware | no-switch | switching |
+                     tier-averse | tier-greedy | tiers | all
+                     greedy/random and switch-aware/no-switch vary the battle
+                     AI; tier-* vary node choice and always use the greedy
+                     battle AI                                (default all)
     --nodes NAME     rest | wild | trainer | first | random | tier-averse |
                      tier-greedy | all                        (default rest)
     --prefix TEXT    seed prefix, so two sweeps can use different populations
@@ -222,9 +252,19 @@ const USAGE = `
   The balance levers themselves live in src/data/scaling.ts and are edited
   there; --set reaches the map-shape knobs in src/data/tuning.ts.
 
-  The Stage 3 headline, and the one number this stage is judged on:
+  The Stage 3 headline:
 
     npm run sim -- --seeds 1000 --policy tiers
+
+  The Stage 4 headline, and the one number this stage is judged on — the same
+  battle AI with the bench visible and with it hidden:
+
+    npm run sim -- --seeds 1000 --policy switching
+
+  Party size is a module constant, not a --set field, because the difficulty
+  curve is a function of it. GYMRUN_PARTY_SIZE=1 reproduces the Stage 3
+  population on this build, which is how a completion-rate change gets
+  attributed to the party rather than to a bug.
 `;
 
 /** `stepsPerSegment.min=4` -> that path replaced on the tuning object. */
@@ -278,9 +318,12 @@ function randomMovePolicy(stream: RngStream): Policy {
  * Both are deterministic given the seed; ties break toward the lower index so
  * the choice never depends on iteration order.
  *
- * This matters more than it looks: with `PARTY_SIZE = 1` the starter is the
+ * This matters more than it looks. At `PARTY_SIZE` 1 the starter *was* the
  * entire run, so a starter policy that picked badly would report a difficulty
- * curve that is mostly a measurement of itself.
+ * curve that was mostly a measurement of itself. With a party it is the first
+ * of three and matters proportionally less — but it is still the only member
+ * the player holds for the whole run, since acquisitions arrive later and at a
+ * level penalty.
  */
 function bestStarter(options: PokemonSpec[]): number {
   let best = 0;
@@ -542,6 +585,19 @@ function buildPolicy(
 ): RunPolicy {
   const stream = createRng(seed).policy;
   const randomBattle = policy === 'random';
+  /*
+   * The battle AI this policy plays with.
+   *
+   * `no-switch` wraps the *same* greedy AI rather than substituting a different
+   * one, which is what makes the pair a controlled comparison: two hand-written
+   * bots would differ in a dozen small ways nobody chose, and the gap in
+   * completion rate would measure those instead of switching.
+   */
+  const battlePolicy: Policy = randomBattle
+    ? randomMovePolicy(stream)
+    : policy === 'no-switch'
+      ? withoutSwitching(greedyAiPolicy)
+      : greedyAiPolicy;
 
   /** Index of the highest-scoring option. Ties to the lower index, always. */
   const bestBy = <T,>(items: readonly T[], score: (item: T) => number): number => {
@@ -611,7 +667,7 @@ function buildPolicy(
       return best;
     },
 
-    battle: randomBattle ? randomMovePolicy(stream) : greedyAiPolicy,
+    battle: battlePolicy,
   };
 }
 
@@ -1260,6 +1316,15 @@ const report = {
   randomizerVersion: RANDOMIZER_VERSION,
   runLogVersion: RUN_LOG_VERSION,
   engineVersion: ENGINE_VERSION,
+  /*
+   * The AI's behaviour version, next to the data version and not folded into
+   * it.
+   *
+   * An AI change shifts win rates as much as a pool edit does, and two reports
+   * a week apart showing a six-point gap are unattributable without both
+   * stamps. This is the one that says the bot changed.
+   */
+  aiVersion: AI_VERSION,
   partySize: PARTY_SIZE,
   segments: SEGMENTS_PER_RUN,
   seedPrefix: options.prefix,
