@@ -1,7 +1,7 @@
 /**
  * The screen router.
  *
- * Four screens, one visible at a time, all mounted once and toggled rather
+ * Seven screens, one visible at a time, all mounted once and toggled rather
  * than created and destroyed. Toggling keeps the DOM — and therefore the
  * battle log's scroll position and the HP bar's CSS transition — alive across
  * a switch, which is what makes returning from a battle to the map feel like
@@ -10,7 +10,7 @@
  * Visibility is `hidden`, not `display`, so a screen that is off is out of the
  * accessibility tree too.
  */
-export type ScreenName = 'starter' | 'map' | 'battle' | 'summary';
+export type ScreenName = 'starter' | 'map' | 'battle' | 'reward' | 'shop' | 'event' | 'summary';
 
 export interface Router {
   root: HTMLElement;

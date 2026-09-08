@@ -51,7 +51,17 @@ await new Promise((resolve) => server.listen(0, resolve));
  * says which ending it got — but re-scan for a seed that wins, or the victory
  * branch stops being exercised.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE603';
+/*
+ * A seed chosen to *exercise* the app, not a lucky one.
+ *
+ * It clears two gyms across sixteen nodes and passes through rests,
+ * shops and events on the way, so a single smoke run touches every screen. It
+ * has to be rechosen whenever a tuning pass moves the curve — SMOKE603 played
+ * a full segment before Stage 3 and dies at node two after it — which is why
+ * the failures below are phrased as "this seed no longer smokes the app"
+ * rather than as balance regressions.
+ */
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE11';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
@@ -112,6 +122,9 @@ async function playRun(label) {
   let battles = 0;
   let nodes = 0;
   let rests = 0;
+  let rewards = 0;
+  let shops = 0;
+  let events = 0;
   let sawSavedLog = false;
   let mapStructure = null;
   // The furthest the eight-gym rail got. Read while playing, because the map
@@ -137,6 +150,60 @@ async function playRun(label) {
         continue;
       }
       await page.waitForTimeout(40);
+      continue;
+    }
+
+    /*
+     * The three Stage 3 screens.
+     *
+     * Checked before the map, because all three interrupt the map loop and a
+     * run that stalled on one would time out at the summary with no clue why.
+     * Each takes the same deterministic-from-what-is-on-screen approach the
+     * rest of this bot uses, so the second run can be compared to the first.
+     */
+    if (await page.locator(visible('reward')).count()) {
+      const card = page.locator(`${visible('reward')} .reward`).first();
+      if (await card.count()) {
+        if (rewards === 0) await page.screenshot({ path: `stats/${label}-reward.png`, fullPage: true });
+        await card.click();
+        rewards++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+    }
+
+    if (await page.locator(visible('shop')).count()) {
+      // Add whatever is still affordable, cheapest-enabled first, then leave.
+      // Buying *something* is the point: a shop the bot walks out of empty
+      // handed exercises the screen but not the purchase.
+      for (let pick = 0; pick < 6; pick++) {
+        const add = page.locator(`${visible('shop')} .shop__item button:not([disabled])`).first();
+        if (!(await add.count())) break;
+        if ((await add.textContent()) !== 'Add') break;
+        await add.click();
+        await page.waitForTimeout(15);
+      }
+      if (shops === 0) await page.screenshot({ path: `stats/${label}-shop.png`, fullPage: true });
+      await page.locator(`${visible('shop')} .shop__footer .button`).click();
+      shops++;
+      await page.waitForTimeout(25);
+      continue;
+    }
+
+    if (await page.locator(visible('event')).count()) {
+      const choice = page.locator(`${visible('event')} .event__choice:not([disabled])`).first();
+      if (await choice.count()) {
+        await choice.click();
+        await page.waitForTimeout(25);
+      }
+      // The second click is the reveal being dismissed. It has to exist, or the
+      // outcome is never shown and the run is stuck.
+      const carry = page.locator(`${visible('event')} .event__result .button`);
+      await carry.waitFor({ timeout: 5_000 });
+      if (events === 0) await page.screenshot({ path: `stats/${label}-event.png`, fullPage: true });
+      await carry.click();
+      events++;
+      await page.waitForTimeout(25);
       continue;
     }
 
@@ -172,6 +239,9 @@ async function playRun(label) {
     battles,
     nodes,
     rests,
+    rewards,
+    shops,
+    events,
     sawSavedLog,
     mapStructure,
     outcome: await page.getAttribute(visible('summary'), 'data-outcome'),
@@ -261,6 +331,7 @@ const first = await playRun('run1');
 console.log(`\nrun finished: ${first.title} (${first.outcome})`);
 console.log(`  ${first.detail}`);
 console.log(`  ${first.nodes} node choices (${first.rests} rests), ${first.battles} move clicks`);
+console.log(`  ${first.rewards} reward picks, ${first.shops} shop visits, ${first.events} events`);
 console.log(`  map partway through: ${JSON.stringify(first.mapStructure)}`);
 
 console.log('\nrequired UI:');
@@ -269,6 +340,9 @@ await check('summary actions', '.summary__actions .button');
 if (!first.seedLine?.includes(SEED)) problems.push('summary did not show the seed');
 if (first.nodes < 3) problems.push(`only ${first.nodes} node choices — the map is not being played`);
 if (first.battles < 3) problems.push(`only ${first.battles} move clicks — battles are not being played`);
+// A run that won a fight and was never offered a card means the reward screen
+// is not reachable, which is most of Stage 3 not being played.
+if (first.rewards < 1) problems.push('no reward screen was ever shown — Stage 3 is not reachable');
 
 // The map has to show the whole chain, not just the step in front of you.
 const shape = first.mapStructure ?? {};
@@ -330,6 +404,14 @@ same('outcome', first.outcome, second.outcome);
 same('summary line', first.detail, second.detail);
 same('node-by-node history', first.visits, second.visits);
 same('node choices and move clicks', [first.nodes, first.battles], [second.nodes, second.battles]);
+// The Stage 3 decisions have to replay identically too. A reward screen whose
+// cards moved between two plays of one seed would break the seed's promise more
+// visibly than anything else on screen.
+same(
+  'reward, shop and event decisions',
+  [first.rewards, first.shops, first.events],
+  [second.rewards, second.shops, second.events],
+);
 same('map shape partway through', first.mapStructure, second.mapStructure);
 same('gyms cleared', first.count, second.count);
 same('cause of death', first.cause, second.cause);

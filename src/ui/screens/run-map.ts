@@ -21,14 +21,30 @@
  * **The party panel is always on screen.** HP and PP are the resources a run
  * spends, and a rest node is only a real option if the cost of skipping it is
  * visible at the moment you skip it.
+ *
+ * **Stage 3: every offered fight shows its tier and what it pays, before you
+ * commit.** This is the most important pixel in the game. A tier that the
+ * player discovers only after walking into it is not a risk they took, it is a
+ * thing that happened to them — and the whole stage is the claim that the step
+ * between two nodes is a decision. So a current node carries three things: the
+ * tier, the exact coin payout (which is a pure function of kind, tier and
+ * segment, so it can be shown without spoiling anything), and a one-line read
+ * on what the reward pool behind it is like.
+ *
+ * What it deliberately does *not* show is the three cards themselves. They were
+ * drawn when the map was built and could be displayed — but a step where you
+ * can read both futures in full is an optimisation problem, not a decision.
+ * Tier and payout is the amount of information that leaves a judgement to make.
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
 import { gymsCleared } from '../../core/run';
-import type { PokemonState } from '../../core/types';
+import { nodePayout } from '../../core/economy';
+import type { PokemonState, Tier } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { el } from '../scene';
+import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
 
 const KIND_LABELS: Record<NodeSpec['kind'], string> = {
@@ -47,6 +63,18 @@ const KIND_HINTS: Record<NodeSpec['kind'], string> = {
   gym: 'The gym leader. Beat them and the segment is over.',
   shop: 'Spend coins on items, healing and moves.',
   event: 'Something happens. You choose what to do about it.',
+};
+
+/**
+ * What a tier means, in one line, in the player's terms.
+ *
+ * Not "+3 levels and a band shift" — that is `data/scaling.ts` talking to a
+ * balance pass. This is what the number feels like from the outside.
+ */
+const TIER_HINTS: Record<Tier, string> = {
+  normal: 'Ordinary. Modest reward.',
+  hard: 'Bulkier and a level up on you. Better reward.',
+  elite: 'Two of them. The best rewards in the game.',
 };
 
 export interface RunMap {
@@ -94,7 +122,9 @@ export function createRunMap(): RunMap {
       blurb.textContent = gym.blurb;
 
       chain.replaceChildren(...renderChain(state, segment, onChoose));
-      party.replaceChildren(...state.party.map(renderMember));
+      // Coins live next to the party, with the other resources a run spends.
+      // A shop node saying "from 55" is only a decision if this is on screen.
+      party.replaceChildren(renderWallet(state), ...state.party.map(renderMember));
     },
   };
 }
@@ -140,18 +170,18 @@ function renderChain(
 
   const rows = segment.steps.map((step) => {
     const done = visits[step.index];
-    if (done) return renderStep(step.index, [done.node], 'done', done);
+    if (done) return renderStep(step.index, [done.node], 'done', segment.index, done);
     if (step.index === state.position && !state.outcome) {
-      return renderStep(step.index, step.options, 'current', undefined, onChoose);
+      return renderStep(step.index, step.options, 'current', segment.index, undefined, onChoose);
     }
-    return renderStep(step.index, step.options, 'upcoming');
+    return renderStep(step.index, step.options, 'upcoming', segment.index);
   });
 
   const gymVisit = state.history.find(
     (visit) => visit.segment === state.currentSegment && visit.node.kind === 'gym',
   );
   const gymPhase = gymVisit ? 'done' : state.position >= segment.steps.length ? 'current' : 'upcoming';
-  rows.push(renderStep(segment.steps.length, [segment.gym], gymPhase, gymVisit));
+  rows.push(renderStep(segment.steps.length, [segment.gym], gymPhase, segment.index, gymVisit));
   return rows;
 }
 
@@ -161,6 +191,7 @@ function renderStep(
   index: number,
   options: readonly NodeSpec[],
   phase: Phase,
+  segment: number,
   visit?: NodeVisit,
   onChoose?: (index: number) => void,
 ): HTMLElement {
@@ -172,7 +203,7 @@ function renderStep(
   const nodes = el('div', 'step__nodes');
   nodes.append(
     ...options.map((node, option) =>
-      renderNode(node, phase, visit, onChoose ? () => onChoose(option) : undefined),
+      renderNode(node, phase, segment, visit, onChoose ? () => onChoose(option) : undefined),
     ),
   );
 
@@ -183,13 +214,14 @@ function renderStep(
 function renderNode(
   node: NodeSpec,
   phase: Phase,
+  segment: number,
   visit?: NodeVisit,
   onChoose?: () => void,
 ): HTMLElement {
   const interactive = Boolean(onChoose);
   const element = interactive ? document.createElement('button') : el('div', '');
   if (element instanceof HTMLButtonElement) element.type = 'button';
-  element.className = `node node--${node.kind} node--${phase}`;
+  element.className = `node node--${node.kind} node--${phase}${node.tier ? ` node--tier-${node.tier}` : ''}`;
 
   const label = el('span', 'node__label');
   // The gym is named; the rest are a kind, because naming them would reveal
@@ -201,6 +233,11 @@ function renderNode(
       ? `${node.label}${size > 1 ? ` · ${size} Pokemon` : ''}`
       : KIND_LABELS[node.kind];
 
+  // The tier, on the label line, on every step the player can still see. Not
+  // only the current one: taking a fight now is a different decision when you
+  // can see an elite two steps ahead.
+  if (node.tier) label.append(document.createTextNode(' '), tierBadge(node.tier));
+
   const detail = el('span', 'node__detail');
   if (visit?.result) {
     // Past nodes name what was fought. That is information the player already
@@ -210,13 +247,42 @@ function renderNode(
     detail.textContent = node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
   } else if (visit) {
     detail.textContent = 'restored';
+  } else if (phase === 'current') {
+    /*
+     * The trade, spelled out before the click.
+     *
+     * The coin payout is exact rather than a range, because it *is* exact — a
+     * pure function of kind, tier and segment, computed by the same
+     * `nodePayout` that pays it out. Showing a number the player can plan
+     * against costs nothing in surprise and buys the whole decision.
+     */
+    const payout = nodePayout(node, segment);
+    const parts: string[] = [];
+    if (payout > 0) parts.push(`${payout} coins`);
+    if (node.tier) parts.push(TIER_HINTS[node.tier]);
+    else parts.push(KIND_HINTS[node.kind]);
+    if (node.kind === 'shop' && node.shop) {
+      const cheapest = Math.min(...node.shop.items.map((item) => item.price));
+      parts.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
+    }
+    detail.textContent = parts.join(' · ');
   } else {
-    detail.textContent = phase === 'current' ? KIND_HINTS[node.kind] : '';
+    detail.textContent = '';
   }
 
   element.append(label, detail);
   if (onChoose) element.addEventListener('click', onChoose);
   return element;
+}
+
+function renderWallet(state: RunState): HTMLElement {
+  const card = el('div', 'party__wallet');
+  const label = el('span', 'party__wallet-label');
+  label.textContent = 'Coins';
+  const value = el('span', 'party__wallet-value');
+  value.textContent = String(state.currency);
+  card.append(label, value);
+  return card;
 }
 
 function renderMember(member: PokemonState): HTMLElement {

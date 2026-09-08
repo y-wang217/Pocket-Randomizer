@@ -29,7 +29,10 @@ import { createPending } from './pending';
 import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createBattleScreen } from './screens/battle';
+import { createEventScreen } from './screens/event';
+import { createRewardScreen } from './screens/reward';
 import { createRouter } from './screens/router';
+import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
@@ -39,12 +42,18 @@ export function mountApp(root: HTMLElement): void {
   const starterScreen = createStarterSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
+  const rewardScreen = createRewardScreen();
+  const shopScreen = createShopScreen();
+  const eventScreen = createEventScreen();
   const summaryScreen = createSummary();
 
   const router = createRouter({
     starter: starterScreen.root,
     map: mapScreen.root,
     battle: battleScreen.root,
+    reward: rewardScreen.root,
+    shop: shopScreen.root,
+    event: eventScreen.root,
     summary: summaryScreen.root,
   });
 
@@ -65,6 +74,9 @@ export function mountApp(root: HTMLElement): void {
     const starterPick = createPending<number>();
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
+    const rewardPick = createPending<number>();
+    const shopBasket = createPending<number[]>();
+    const eventPick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     const releaseBattle = (): void => {
       detachBattle?.();
@@ -75,6 +87,9 @@ export function mountApp(root: HTMLElement): void {
       starterPick.cancel();
       nodePick.cancel();
       movePick.cancel();
+      rewardPick.cancel();
+      shopBasket.cancel();
+      eventPick.cancel();
       releaseBattle();
     };
 
@@ -90,12 +105,23 @@ export function mountApp(root: HTMLElement): void {
         router.show('map');
         return nodePick.wait();
       },
-      // Checkpoint 5 replaces this with the reward screen. Until then the run
-      // takes the first card so the app still plays end to end — a placeholder
-      // that is visibly a placeholder, rather than a screen that half exists.
-      chooseReward: async () => 0,
-      chooseShopPurchases: async () => [],
-      chooseEventOption: async () => 0,
+      chooseReward: (offer, state) => {
+        rewardScreen.render(offer, state, (index) => rewardPick.submit(index));
+        router.show('reward');
+        return rewardPick.wait();
+      },
+      chooseShopPurchases: (stock, state) => {
+        shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
+        router.show('shop');
+        return shopBasket.wait();
+      },
+      chooseEventOption: (event, state) => {
+        // The event screen holds the run open between the pick and the reveal:
+        // it resolves this promise on "Carry on", not on the choice itself.
+        eventScreen.render(event, state, (index) => eventPick.submit(index));
+        router.show('event');
+        return eventPick.wait();
+      },
       battle: () => movePick.wait(),
     };
 
@@ -168,7 +194,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 2 · ${GYMRUN_FORMAT} · eight gyms, randomized`;
+  subtitle.textContent = `Stage 3 · ${GYMRUN_FORMAT} · eight gyms, and a choice at every step`;
   header.append(title, subtitle);
   return header;
 }

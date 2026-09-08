@@ -903,3 +903,257 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
 }
+
+/* ==========================================================================
+   Stage 3 — tiers, rewards, shops and events
+   ========================================================================== */
+
+/* ---------- the tier badge ----------
+   One chip, three colours, used on the map and on the reward screen so the two
+   agree at a glance. This is the single most important pixel in the game: it is
+   how a player prices a step before walking into it. */
+
+.tier {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  vertical-align: 1px;
+}
+
+.tier--normal { color: var(--text-faint); }
+.tier--hard { color: var(--hp-mid); }
+.tier--elite { color: var(--loss); }
+
+/* The whole node is tinted too, so the shape of a step reads before the text
+   does — you should be able to see a risky step from across the room. */
+.node--tier-hard { border-left-color: var(--hp-mid); }
+.node--tier-elite { border-left-color: var(--loss); }
+.node--shop { border-left-color: var(--type-electric); }
+.node--event { border-left-color: var(--type-psychic); }
+
+.node--current.node--tier-elite { box-shadow: inset 0 0 0 1px rgb(248 81 73 / 18%); }
+
+/* ---------- coins on the party panel ---------- */
+
+.party__wallet {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--type-electric);
+  border-radius: var(--radius);
+}
+
+.party__wallet-label { color: var(--text-dim); font-size: 12px; }
+.party__wallet-value {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--type-electric);
+}
+
+/* ---------- reward screen ---------- */
+
+.rewards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gap);
+}
+
+.reward {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.reward:hover { border-color: var(--accent); transform: translateY(-1px); }
+.reward:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.reward--item { border-left-color: var(--type-steel); }
+.reward--currency { border-left-color: var(--type-electric); }
+.reward--heal { border-left-color: var(--hp-high); }
+.reward--tm,
+.reward--tutor { border-left-color: var(--type-psychic); }
+.reward--species { border-left-color: var(--accent); }
+
+.reward__kind {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.reward__name { font-weight: 600; font-size: 15px; }
+.reward__detail { color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+
+.reward__note {
+  margin-top: auto;
+  padding-top: 4px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* A card that is weak *for this run* says so. A near-dud that announces itself
+   is a legibly low reward; one that hides is a lottery. */
+.reward__note--warn { color: var(--hp-mid); }
+
+/* ---------- shop ---------- */
+
+.shop__wallet {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+
+.shop__coin {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 90px;
+  padding: 10px 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.shop__coin-label {
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.shop__coin-value { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+.shop__coin--warn .shop__coin-value { color: var(--hp-mid); }
+
+.shop__shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.shop__item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.shop__item--chosen {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--bg-sunken);
+}
+
+.shop__item-label { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.shop__item-name { font-weight: 600; font-size: 13px; }
+.shop__item-detail { color: var(--text-dim); font-size: 11px; line-height: 1.4; }
+
+.shop__price {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--type-electric);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* Unaffordable rows stay visible and disabled. A shelf that hid what you cannot
+   afford would teach the player nothing about what to save for. */
+.shop__item button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.shop__footer { display: flex; justify-content: flex-end; }
+
+/* ---------- event ---------- */
+
+.event__prompt {
+  max-width: 62ch;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.event__choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gap);
+}
+
+.event__choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.event__choice:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.event__choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.event__choice:disabled { cursor: default; opacity: 0.4; }
+
+/* The choice that was taken stays lit while the outcome is read, so the player
+   can see what they picked next to what it cost. Doubled class so it outranks
+   `.event__choice:disabled`, which is (0,2,0) and would otherwise dim it with
+   the choices the player did not take. */
+.event__choice.event__choice--taken:disabled {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--bg-sunken);
+}
+
+.event__choice-label { font-weight: 600; font-size: 14px; }
+.event__choice-hint { color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+
+.event__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  padding: 14px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.event__outcome { margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 600; }
+.event__outcome--good { color: var(--hp-high); }
+.event__outcome--bad { color: var(--hp-low); }
+.event__outcome--flat { color: var(--text-faint); }

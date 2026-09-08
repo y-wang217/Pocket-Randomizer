@@ -371,6 +371,60 @@ describe('applyReward', () => {
     expect(taught.moves.find((m) => m.name === 'Rest')?.pp).toBe(1);
   });
 
+  it('never lets a move reward leave the party weaker', () => {
+    /*
+     * The invariant that makes a move card safe to be forced into.
+     *
+     * The reward screen found the counter-example: a segment-0 normal node
+     * offering Arm Thrust (15 BP) in place of Aqua Step (80 BP), in an offer of
+     * three with no skip. A card that makes the player strictly worse is a
+     * punishment wearing a reward's clothes.
+     */
+    const member = createPartyMember({
+      species: 'Snorlax',
+      ability: 'Thick Fat',
+      moves: ['Body Slam', 'Crunch', 'Earthquake', 'Giga Impact'],
+      level: 50,
+    });
+    const after = teachMove(member, 'Arm Thrust');
+
+    // Nothing learned, nothing lost, and the PP is topped up instead.
+    expect(after.spec.moves).toEqual(member.spec.moves);
+    expect(after.moves.every((move) => move.pp === move.maxPp)).toBe(true);
+  });
+
+  it('spends a status slot on a weak move rather than an attack', () => {
+    // Weaker than every attack, but there is a status move to trade: coverage
+    // is worth something, and the attacks are what must not get worse.
+    const member = createPartyMember({
+      species: 'Snorlax',
+      ability: 'Thick Fat',
+      moves: ['Body Slam', 'Crunch', 'Earthquake', 'Rest'],
+      level: 50,
+    });
+    const after = teachMove(member, 'Arm Thrust');
+
+    expect(after.spec.moves).toContain('Arm Thrust');
+    expect(after.spec.moves).not.toContain('Rest');
+    for (const kept of ['Body Slam', 'Crunch', 'Earthquake']) {
+      expect(after.spec.moves, `${kept} was traded for a weaker move`).toContain(kept);
+    }
+  });
+
+  it('never offers a move card that cannot do anything', () => {
+    // The data half of the same rule: every tm and tutor entry draws from at
+    // least one band above the node's own, so an early TM is not automatically
+    // weaker than the kit the player started with.
+    for (const [tier, bands] of Object.entries(REWARD_POOLS)) {
+      for (const band of bands) {
+        for (const entry of band.entries) {
+          if (entry.kind !== 'tm' && entry.kind !== 'tutor') continue;
+          expect(entry.bandOffset, `${tier} through segment ${band.throughSegment}`).toBeGreaterThanOrEqual(1);
+        }
+      }
+    }
+  });
+
   it('fills an empty slot before replacing anything', () => {
     const member = createPartyMember({
       species: 'Snorlax',

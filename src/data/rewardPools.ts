@@ -54,6 +54,18 @@ export type RewardEntry =
   /** Replace the party member's species. Gated by `tuning.allowSpeciesRewards`. */
   | { kind: 'species'; weight: number; bandOffset: number };
 
+/*
+ * Every `tm` and `tutor` entry carries a `bandOffset` of at least 1, and that
+ * floor is load-bearing rather than tidy.
+ *
+ * A move reward is drawn from the *node's* band window, and a segment-0 normal
+ * node draws from move band 0 — under 55 BP — while the starter arrives holding
+ * band 1 and 2. At offset 0 every early TM was therefore weaker than everything
+ * the player already had, which `party.teachMove` now refuses to act on, so the
+ * card was simply blank. A blank card in an offer of three with no skip is a
+ * third of a decision thrown away.
+ */
+
 /** A stretch of the run, and what a tier offers across it. */
 export interface RewardBand {
   /** The last segment index this row covers. Rows are read in order. */
@@ -116,7 +128,7 @@ const NORMAL: readonly RewardBand[] = [
     entries: [
       { kind: 'item', weight: 4, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 14, max: 24 },
-      { kind: 'tm', weight: 3, bandOffset: 0 },
+      { kind: 'tm', weight: 3, bandOffset: 1 },
       { kind: 'heal', weight: 3, fraction: 0.4 },
     ],
   },
@@ -125,7 +137,7 @@ const NORMAL: readonly RewardBand[] = [
     entries: [
       { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 20, max: 32 },
-      { kind: 'tm', weight: 3, bandOffset: 0 },
+      { kind: 'tm', weight: 3, bandOffset: 1 },
       // Healing climbs late: by segment 6 the next shop is further off than the
       // next gym, so HP stops being convertible into anything else.
       { kind: 'heal', weight: 3, fraction: 0.5 },

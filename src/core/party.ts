@@ -265,14 +265,22 @@ export function levelParty(party: readonly PokemonState[], level: number): Pokem
  *      nothing at all would be a card the player can be punished for taking
  *      through no fault of their own.
  *   2. **A free slot** — take it.
- *   3. **Otherwise** — replace the *weakest damaging* move, ties to the later
- *      slot.
+ *   3. **Stronger than the weakest attack** — replace that attack, ties to the
+ *      later slot.
+ *   4. **Weaker than everything** — replace a *status* move if there is one, so
+ *      the card still buys coverage; otherwise change nothing and refill PP.
  *
- * Three is the interesting one. It never touches a status move, so a reward can
- * never cost the player their Recover or their Swords Dance; and because every
- * taught move is itself damaging, "at least one damaging move" survives by
- * construction rather than by check. It also means the upgrade path is legible:
- * take enough TMs and your worst attack keeps getting better.
+ * **Four is the rule that makes a move reward safe to be forced into, and it
+ * was added because the reward screen showed the alternative out loud.** The
+ * first version always replaced the weakest attack, and a segment-0 normal node
+ * duly offered Arm Thrust (15 BP) in place of Aqua Step (80 BP) — a card that
+ * makes the player strictly worse, in an offer of three with no skip. That is a
+ * punishment wearing a reward's clothes.
+ *
+ * The invariant it buys: **a move reward can never leave the party weaker.**
+ * Three never touches a status move either, so a reward can also never cost the
+ * player their Recover or their Swords Dance; and because every taught move is
+ * damaging, "at least one damaging move" survives by construction.
  *
  * The spec is rebuilt rather than mutated, and PP carries per move id rather
  * than per slot — a replaced slot shifts nothing else, but matching by id is
@@ -293,11 +301,17 @@ export function teachMove(member: PokemonState, moveName: string): PokemonState 
   if (moves.length < MOVESET.slots) {
     moves.push(moveName);
   } else {
-    const slot = weakestDamagingSlot(member);
-    // Every generated moveset has a damaging move (guaranteed by construction
-    // in core/randomizer.ts), so this is a fallback rather than a path: with no
-    // attack to replace, the last slot is the least-bad answer available.
-    moves[slot >= 0 ? slot : moves.length - 1] = moveName;
+    const slot = replaceableSlot(member, moveName);
+    // Null means the incoming move is weaker than every attack the party has
+    // and there is no status move to spend. The card is a no-op rather than a
+    // downgrade; the reward screen says so before it is taken.
+    if (slot === null) {
+      return {
+        ...member,
+        moves: member.moves.map((move) => ({ ...move, pp: move.maxPp })),
+      };
+    }
+    moves[slot] = moveName;
   }
 
   const spec: PokemonSpec = { ...member.spec, moves };
@@ -315,19 +329,51 @@ export function teachMove(member: PokemonState, moveName: string): PokemonState 
   };
 }
 
-/** Index of the lowest-base-power damaging move, ties to the later slot; -1 if none. */
-function weakestDamagingSlot(member: PokemonState): number {
+/**
+ * Which slot `moveName` should take, or null if it should take none.
+ *
+ * The weakest attack when the incoming move beats it; otherwise the last status
+ * slot, because a weaker attack that adds a type you could not hit is still
+ * worth something; otherwise nothing at all.
+ */
+function replaceableSlot(member: PokemonState, moveName: string): number | null {
   const card = describeSpecCard(member.spec);
-  let slot = -1;
+  const incoming = movePower(moveName);
+
+  let weakestSlot: number | null = null;
   let weakest = Number.POSITIVE_INFINITY;
+  let statusSlot: number | null = null;
+
   for (const [index, move] of card.moves.entries()) {
-    if (move.category === 'Status') continue;
+    if (move.category === 'Status') {
+      statusSlot = index;
+      continue;
+    }
     if (move.basePower <= weakest) {
       weakest = move.basePower;
-      slot = index;
+      weakestSlot = index;
     }
   }
-  return slot;
+
+  if (weakestSlot !== null && incoming > weakest) return weakestSlot;
+  return statusSlot;
+}
+
+/**
+ * Base power of a move by name, asked of the engine rather than of a table.
+ *
+ * `describeSpecCard` is the adapter's answer for a spec that has never fought,
+ * so probing a one-move spec is the cheapest exact reading available here — and
+ * it is cached, so the second ask is free.
+ */
+function movePower(moveName: string): number {
+  const probe = describeSpecCard({
+    species: 'Ditto',
+    ability: 'Limber',
+    moves: [moveName],
+    level: 50,
+  });
+  return probe.moves[0]?.basePower ?? 0;
 }
 
 /**
