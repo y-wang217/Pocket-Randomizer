@@ -42,6 +42,9 @@ function wobbling(): RunPolicy {
   return {
     chooseStarter: async () => 1,
     chooseNode: async (options) => options.length - 1,
+    // Last card, for the same reason as the last node: a policy that always
+    // answers 0 would agree with the scripted default and prove nothing.
+    chooseReward: async (offer) => offer.options.length - 1,
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -179,6 +182,10 @@ describe('save mid-run, reload, continue', () => {
         return 0;
       },
       chooseNode: async () => {
+        liveCalls++;
+        return 0;
+      },
+      chooseReward: async () => {
         liveCalls++;
         return 0;
       },

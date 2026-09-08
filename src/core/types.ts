@@ -272,6 +272,16 @@ export interface PokemonState {
   moves: MoveState[];
   status: StatusName | null;
   fainted: boolean;
+  /**
+   * The held item, by dex id. Undefined for a Pokemon holding nothing.
+   *
+   * Here rather than on `spec`, even though `PokemonSpec.item` exists and is
+   * what the sim reads. A held item is something the run *did* — acquired,
+   * swapped, lost — which puts it on the same side of the identity line as HP
+   * and PP. `core/items.ts` merges the two at the moment a battle starts and
+   * explains why that merge lives in exactly one place.
+   */
+  item?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -291,7 +301,18 @@ export interface PokemonState {
 export type RunDecision =
   | { kind: 'starter'; index: number }
   | { kind: 'node'; index: number }
-  | { kind: 'battle'; choice: Choice };
+  | { kind: 'battle'; choice: Choice }
+  /**
+   * Which of the three cards was taken. An index, not the reward.
+   *
+   * The reward itself is *derived* — the offer was drawn from the `rewards`
+   * stream at map generation, so replaying the seed reconstructs all three
+   * options — and the rule that a log holds nothing derived is what keeps
+   * replay from drifting. A log storing `{kind:'item', item:'leftovers'}` would
+   * keep replaying happily after a pool edit and hand the player an item their
+   * run never offered.
+   */
+  | { kind: 'reward'; index: number };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

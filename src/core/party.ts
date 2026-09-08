@@ -12,9 +12,10 @@
  * replayed from a decision log, and a shared mutable party is the fastest way
  * to make a replay disagree with the run it replays.
  */
-import { describeSpec } from './battle/driver';
+import { describeSpec, describeSpecCard } from './battle/driver';
+import { battleSpecFor } from './items';
 import type { MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
-import { PARTY_SIZE } from '../data/scaling';
+import { MOVESET, PARTY_SIZE } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
 /** A fresh party member at full HP and PP. */
@@ -64,14 +65,37 @@ export function leadOf(party: readonly PokemonState[]): PokemonState | null {
  * this returns without changing anything that calls it.
  */
 export function battleMembersFor(party: readonly PokemonState[]): PokemonState[] {
-  const available = party.filter((member) => !member.fainted);
-  if (available.length === 0) throw new Error('Cannot start a battle with a wiped party');
-  return available.slice(0, PARTY_SIZE);
+  const sent = sendOrder(party);
+  if (sent.length === 0) throw new Error('Cannot start a battle with a wiped party');
+  return sent;
 }
 
-/** The specs to hand the sim, in the order `battleMembersFor` chose. */
+/**
+ * The members a battle is sent, in send order, without the wiped-party guard.
+ *
+ * The one definition of "which members go, and in what order", shared by
+ * `battleMembersFor` (which sends them) and `applyBattleState` (which maps the
+ * result back). Two copies of this rule would be two orders to keep in
+ * agreement, and the failure would be damage written onto the wrong Pokemon.
+ *
+ * `battleMembersFor` keeps the throw because starting a battle with nothing to
+ * send is a bug; reading a result back is a query and answers with an empty
+ * list.
+ */
+function sendOrder(party: readonly PokemonState[]): PokemonState[] {
+  return party.filter((member) => !member.fainted).slice(0, PARTY_SIZE);
+}
+
+/**
+ * The specs to hand the sim, in the order `battleMembersFor` chose.
+ *
+ * Held items are merged in here and only here (see `core/items.ts`). The merged
+ * specs are battle-time objects that exist for the length of one fight; the
+ * party's own specs are untouched, and `applyBattleState` is what maps the
+ * result back.
+ */
 export function battleTeamFor(party: readonly PokemonState[]): TeamSpec {
-  return battleMembersFor(party).map((member) => member.spec);
+  return battleMembersFor(party).map(battleSpecFor);
 }
 
 /** The carry-over state for the members `battleTeamFor` selected, in the same order. */
@@ -82,15 +106,44 @@ export function carryOverFor(party: readonly PokemonState[]): PokemonState[] {
 /**
  * Fold a finished battle's read-back state into the party.
  *
- * `battleTeamFor` sends a subset, so the sim hands back a subset. Matching them
- * up by spec identity rather than by index keeps this correct when Stage 4
- * sends a lead that is not slot 0.
+ * `battleTeamFor` sends a subset, so the sim hands back a subset, and this maps
+ * the subset back onto the whole party.
+ *
+ * **It matches by send order, not by spec identity, and that changed in Stage
+ * 3.** Stage 2 matched on `updated.spec === member.spec`, which worked because
+ * the specs handed to the sim were the party's own objects. Held items broke
+ * that: `battleTeamFor` now merges the item in and produces a *new* spec per
+ * member, so identity matching would have found nothing, silently returned the
+ * party unchanged, and thrown away every point of damage from every battle. It
+ * would have done so without failing a type check or a single Stage 2 test,
+ * which is the kind of bug worth writing a paragraph about.
+ *
+ * Send order is stable for the same reason identity was meant to be: it is
+ * computed by `battleMembersFor` from the pre-battle party, exactly as
+ * `battleTeamFor` computed it, so slot i of the read-back is the member at slot
+ * i of the send. Stage 4 sending a lead that is not party slot 0 is still fine
+ * — `battleMembersFor` decides the order in both directions.
+ *
+ * The member's own `spec` and `item` are kept rather than taken from the
+ * read-back, because the read-back carries the merged battle spec and the party
+ * carries the identity. Merging one back over the other is how the two would
+ * quietly converge.
  */
 export function applyBattleState(
   party: readonly PokemonState[],
   after: readonly PokemonState[],
 ): PokemonState[] {
-  return party.map((member) => after.find((updated) => updated.spec === member.spec) ?? member);
+  const sent = sendOrder(party);
+  const updates = new Map<PokemonState, PokemonState>();
+  for (const [index, member] of sent.entries()) {
+    const updated = after[index];
+    if (updated) updates.set(member, updated);
+  }
+
+  return party.map((member) => {
+    const updated = updates.get(member);
+    return updated ? { ...updated, spec: member.spec, item: member.item } : member;
+  });
 }
 
 /**
@@ -196,6 +249,113 @@ export function levelParty(party: readonly PokemonState[], level: number): Pokem
       }),
     };
   });
+}
+
+/**
+ * Teach a move, replacing the weakest attack if there is no room.
+ *
+ * The rule is deliberately simple and deliberately not a choice, because there
+ * is nowhere to put the choice. A `RunPolicy` answers a reward offer with one
+ * index; there is no second question for "and which move does it replace", and
+ * inventing one would mean a decision in the log that the reward screen has to
+ * be able to ask twice on a replay. So the replacement is a rule the player can
+ * learn instead:
+ *
+ *   1. **Already known** — refill that move's PP instead. A reward that did
+ *      nothing at all would be a card the player can be punished for taking
+ *      through no fault of their own.
+ *   2. **A free slot** — take it.
+ *   3. **Otherwise** — replace the *weakest damaging* move, ties to the later
+ *      slot.
+ *
+ * Three is the interesting one. It never touches a status move, so a reward can
+ * never cost the player their Recover or their Swords Dance; and because every
+ * taught move is itself damaging, "at least one damaging move" survives by
+ * construction rather than by check. It also means the upgrade path is legible:
+ * take enough TMs and your worst attack keeps getting better.
+ *
+ * The spec is rebuilt rather than mutated, and PP carries per move id rather
+ * than per slot — a replaced slot shifts nothing else, but matching by id is
+ * what makes that true instead of nearly true.
+ */
+export function teachMove(member: PokemonState, moveName: string): PokemonState {
+  const known = member.moves.findIndex((move) => move.name === moveName);
+  if (known >= 0) {
+    return {
+      ...member,
+      moves: member.moves.map((move, index) =>
+        index === known ? { ...move, pp: move.maxPp } : { ...move },
+      ),
+    };
+  }
+
+  const moves = [...member.spec.moves];
+  if (moves.length < MOVESET.slots) {
+    moves.push(moveName);
+  } else {
+    const slot = weakestDamagingSlot(member);
+    // Every generated moveset has a damaging move (guaranteed by construction
+    // in core/randomizer.ts), so this is a fallback rather than a path: with no
+    // attack to replace, the last slot is the least-bad answer available.
+    moves[slot >= 0 ? slot : moves.length - 1] = moveName;
+  }
+
+  const spec: PokemonSpec = { ...member.spec, moves };
+  const vitals = describeSpec(spec);
+  const carried = new Map(member.moves.map((move) => [move.id, move.pp]));
+
+  return {
+    ...member,
+    spec,
+    maxHp: vitals.maxHp,
+    moves: vitals.moves.map((fresh) => ({
+      ...fresh,
+      pp: Math.min(fresh.maxPp, carried.get(fresh.id) ?? fresh.maxPp),
+    })),
+  };
+}
+
+/** Index of the lowest-base-power damaging move, ties to the later slot; -1 if none. */
+function weakestDamagingSlot(member: PokemonState): number {
+  const card = describeSpecCard(member.spec);
+  let slot = -1;
+  let weakest = Number.POSITIVE_INFINITY;
+  for (const [index, move] of card.moves.entries()) {
+    if (move.category === 'Status') continue;
+    if (move.basePower <= weakest) {
+      weakest = move.basePower;
+      slot = index;
+    }
+  }
+  return slot;
+}
+
+/**
+ * Replace a party member's species outright, keeping its HP *fraction*.
+ *
+ * The species reward, and the reason it is gated off by default: at
+ * `PARTY_SIZE` 1 this is not an addition, it is a forced swap of the run's only
+ * Pokemon. `tuning.allowSpeciesRewards` decides whether the pools ever offer
+ * it; this function is what happens if they do.
+ *
+ * The new Pokemon arrives at the same *share* of HP rather than at full, for
+ * the same reason `levelParty` carries a fraction: a free full heal attached to
+ * a species swap would make the card a heal with a species stapled on, and the
+ * simulator could not tell which half a player was taking it for. The item and
+ * the level carry; the moveset does not, because it belongs to the old species.
+ */
+export function replaceSpecies(member: PokemonState, spec: PokemonSpec): PokemonState {
+  const vitals = describeSpec(spec);
+  const share = member.maxHp > 0 ? member.hp / member.maxHp : 1;
+  return {
+    ...member,
+    spec,
+    maxHp: vitals.maxHp,
+    hp: Math.max(1, Math.min(vitals.maxHp, Math.round(vitals.maxHp * share))),
+    moves: vitals.moves.map((move) => ({ ...move })),
+    status: null,
+    fainted: false,
+  };
 }
 
 /** 0..1, for a HP bar that never divides by a zero max. */

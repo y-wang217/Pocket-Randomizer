@@ -105,6 +105,27 @@ play the *same* damage rolls, crits and accuracy checks in every fight, eight
 nodes running. `test/generation.test.ts` asserts every battle in a segment gets
 a distinct seed.
 
+### Pass 4 — reward offers, from the `rewards` stream
+
+The three cards each battle node pays out, in the same index order. Nodes
+without a tier — rests and gyms — take no draw and carry no offer.
+
+**This is the decision §1 was written for, one level down.** The build spec
+allows drawing an offer when the node is *completed*; this draws it when the map
+is built, and the reason is that a lazy draw would make the roll a function of
+*how the battle went*. Turn count, damage rolls consumed, whether a move
+missed — all of it would sit between the node starting and the offer being
+drawn. Two players on the same seed making the same choices would get different
+rewards because one of them got a critical hit.
+
+Drawing early is not revealing early. `playRun` asks the player which card they
+want **after** the fight, and only when `winner === 'p1'`. A lost fight pays
+nothing, which is what makes an elite node a risk rather than a slower payout.
+
+It is pass *four* — appended rather than inserted — because appending a pass
+cannot move the three before it. Every seed's map shape, encounter contents and
+battle PRNG seeds are the same with rewards as without.
+
 ### Before all of it — starter options
 
 `generateStarterOptions` draws from the `randomizer` stream **before** the first
@@ -143,7 +164,15 @@ every column at once would leave the balance report unable to say which column
 moved a number.
 
 The second thing a tier does is select a reward pool, and that lives in
-`data/rewardPools.ts`.
+`data/rewardPools.ts`. The rule there is that **elite pools contain strictly
+better entries, not merely more entries** — the expected value of three draws
+from one table is the expected value of that table however many times you shake
+it, so a pool that was the normal pool plus extras would produce no gradient at
+all and the simulator would correctly report the tier as noise.
+
+A reward pool entry may carry a `bandOffset` on top of the node's tier shift, so
+an elite node's tutor reaches two bands above an elite node's *encounter*. Both
+shifts go through the same clamp-and-widen rule below.
 
 A tier **shifts values and never consumes a draw** inside the randomizer. A
 `hard` node and a `normal` node in the same map position roll the same number of
@@ -196,6 +225,12 @@ seed making the same choices get the same run, turn for turn. Two players on the
 same seed making different choices get different runs on the same map — which is
 the property the whole thing exists for.
 
+A reward decision is an **index**, never the reward. The offer was drawn from
+the `rewards` stream when the map was built, so replaying the seed reconstructs
+all three cards; a log storing `{kind:'item', item:'leftovers'}` would keep
+replaying happily after a pool edit and hand the player an item their run never
+offered.
+
 Consequently, a **`RunLog` is a seed plus a decision sequence and nothing else**
 — no HP, no party, no map, no turn numbers. All of that is derived, and a log
 that stores derived state is a log that can disagree with the engine that
@@ -242,6 +277,13 @@ quietly reinterprets it as a completely different run — the worst available
 outcome for a game whose whole promise is that a shared seed is a shared run.
 So it is checked separately, with its own message, and a mismatch throws rather
 than replaying.
+
+`RUN_LOG_VERSION` went to `gymrun-run-4` in Stage 3, when `RunDecision` grew a
+`reward` member. A Stage 2 log replayed against this build would run out of step
+the first time a node paid out — the run asks for a reward decision and finds a
+battle one — but only *partway through*, after reconstructing several nodes of a
+run that was never played. The guard refuses it up front and names both
+versions.
 
 Bump `RANDOMIZER_VERSION` in `core/randomizer.ts` for: a regenerated pool, a
 moved band window, a changed level curve, a new draw inside `rollMoveset`, a

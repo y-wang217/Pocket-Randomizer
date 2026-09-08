@@ -38,6 +38,7 @@ import {
   restParty,
 } from './party';
 import { RANDOMIZER_VERSION } from './randomizer';
+import { applyReward, type Reward, type RewardOffer } from './rewards';
 import { createRng } from './rng';
 import type { BattleResult, PokemonSpec, PokemonState, RunDecision, RunLog } from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
@@ -50,8 +51,16 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * the mons, generation and sim it was recorded with. Stage 0's logs are
  * `gymrun-0.1.0` and do not match, which is the explicit rejection the widened
  * log format calls for.
+ *
+ * Went to `-4` in Stage 3, when `RunDecision` grew a `reward` member. A Stage 2
+ * log replayed against this build would run out of step the first time a node
+ * paid out: the run asks for a reward decision and finds a battle one. That
+ * *would* throw — `replayRunPolicy` checks the kind at each cursor — but only
+ * partway through, after reconstructing a run that was never played. The
+ * version guard refuses it up front and says which version it found, which is
+ * the difference between a diagnosis and a crash.
  */
-export const RUN_LOG_VERSION = `gymrun-run-3/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-4/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -91,6 +100,15 @@ export interface RunState {
    */
   position: number;
   party: PokemonState[];
+  /**
+   * Run currency. A single scalar, and it may never go below zero.
+   *
+   * A scalar rather than a wallet object because there is exactly one currency
+   * and there is no reason for there to be two. Earned from battle nodes and
+   * from `currency` rewards; spent in shops, which is `core/economy.ts`'s job
+   * and where the never-negative rule is enforced on the way out.
+   */
+  currency: number;
   starterOptions: PokemonSpec[];
   starterIndex: number | null;
   history: NodeVisit[];
@@ -119,6 +137,7 @@ export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunSta
     currentSegment: 0,
     position: 0,
     party: [],
+    currency: 0,
     starterOptions,
     starterIndex: null,
     history: [],
@@ -249,6 +268,16 @@ export function chooseStarter(state: RunState, index: number): RunState {
  */
 export interface NodeResult {
   node: NodeSpec;
+  /**
+   * The card the player took, if this node paid out and they won.
+   *
+   * The *reward*, not the index. `playRun` resolves the index against the
+   * node's offer before handing it here, because the index is what the log
+   * stores and the reward is what state changes need — and keeping the
+   * resolution in one place means a replayed index and a clicked index become
+   * the same value before anything downstream can tell them apart.
+   */
+  reward?: Reward;
   /** Present for battle nodes: the outcome, and the party as the sim left it. */
   battle?: {
     result: BattleResult;
@@ -295,6 +324,9 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   // The one death rule, checked before anything can undo it.
   if (isWiped(party)) return { ...state, party, history, outcome: 'defeat' };
 
+  // A gym has no tier and therefore no offer (see `NodeSpec.reward`), so the
+  // gym branch below never has a reward to fold in — the segment heal and the
+  // level are the payout, and they are larger than any card in any pool.
   if (result.node.kind === 'gym') {
     // A gym that did not end in a win ends the run, wipe or not: a turn-limit
     // draw against a gym leader is a gym the player did not beat.
@@ -329,12 +361,27 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
     };
   }
 
-  return {
+  const advanced: RunState = {
     ...state,
     party: betweenNodes(party, state.tuning),
     history,
     position: state.position + 1,
   };
+
+  /*
+   * The reward, applied last and only here.
+   *
+   * After the wipe check, so a heal can never resurrect a finished run — and
+   * `playRun` will not even have asked, because it gates the question on
+   * winning the fight. After `betweenNodes`, so a heal reward is not undone by
+   * the node boundary that follows it.
+   *
+   * This is the hook Stage 1 built `resolveNode` around, and `applyReward` is
+   * the only path through it. A reward screen that changed party state itself
+   * would bypass the seam, and the symptom would be a replay that reconstructs
+   * a different run from the same log.
+   */
+  return result.reward ? applyReward(advanced, result.reward) : advanced;
 }
 
 // ---------------------------------------------------------------------------
@@ -351,6 +398,18 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
 export interface RunPolicy {
   chooseStarter: (options: PokemonSpec[]) => Promise<number>;
   chooseNode: (options: NodeSpec[]) => Promise<number>;
+  /**
+   * Which of the three cards to take. No skip and no reroll — the return type
+   * is an index, not an index-or-nothing, and that is the design.
+   *
+   * Takes the state as well as the offer because a reward is only good relative
+   * to what you already have: a second Leftovers is worthless, a heal at full
+   * HP is a wasted card, and a type item is a coin flip until you know your own
+   * typing. A policy handed only the three cards would have to guess at all of
+   * that, and the simulator's "reward take rate by kind" would be measuring a
+   * bot playing a different game from the player.
+   */
+  chooseReward: (offer: RewardOffer, state: RunState) => Promise<number>;
   battle: Policy;
 }
 
@@ -423,6 +482,29 @@ export async function playRun(
     }
 
     const result = await playNode(state, node, policy, record, opponent, options);
+
+    /*
+     * The reward, asked for after the fight and only on a win.
+     *
+     * The three cards were drawn when the map was built, so nothing about this
+     * question depends on how the battle went — but *whether it is asked* does,
+     * and that is the point. A lost fight pays nothing, which is what makes the
+     * elite node next to the normal one a risk rather than a longer wait for
+     * the same payout.
+     *
+     * Winning is also what makes the wipe check downstream unreachable from
+     * here: a side that won the battle has something left standing, so
+     * `resolveNode` cannot end the run on a node that just paid out.
+     */
+    if (result.node.reward && result.battle?.result.winner === 'p1') {
+      const offer = result.node.reward;
+      const index = await policy.chooseReward(offer, state);
+      record({ kind: 'reward', index });
+      const choice = offer.options[index];
+      if (!choice) throw new RangeError(`Reward choice ${index} out of range (${offer.options.length} offered)`);
+      result.reward = choice;
+    }
+
     state = resolveNode(state, result);
     options.onState?.(state);
   }
@@ -500,6 +582,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
   return {
     chooseStarter: async () => 0,
     chooseNode: async () => 0,
+    chooseReward: async () => 0,
     battle,
   };
 }
@@ -588,6 +671,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('node');
       if (!decision) return live ? live.chooseNode(options) : exhausted('node');
       return decision.kind === 'node' ? decision.index : exhausted('node');
+    },
+    chooseReward: async (offer, state) => {
+      const decision = next('reward');
+      if (!decision) return live ? live.chooseReward(offer, state) : exhausted('reward');
+      return decision.kind === 'reward' ? decision.index : exhausted('reward');
     },
     battle: async (view) => {
       const decision = next('battle');

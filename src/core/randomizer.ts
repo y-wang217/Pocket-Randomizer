@@ -142,7 +142,16 @@ function damagingFor(segment: number, tier: Tier): MoveEntry[] {
   return damagingInBands(moveBandsFor(segment, tier));
 }
 
-function damagingInBands(allowed: readonly number[]): MoveEntry[] {
+/**
+ * Damaging moves in a band window, blacklist applied.
+ *
+ * Exported for `core/rewards.ts`, which draws TM and tutor rewards from the
+ * same inventory an encounter draws from. That sharing is the point: a reward
+ * that handed out moves from a separate table would be a second move pool to
+ * keep balanced, and the first band change that missed one would make rewards
+ * quietly stronger or weaker than the fights they are paid for.
+ */
+export function damagingInBands(allowed: readonly number[]): MoveEntry[] {
   const bands = new Set(allowed);
   const inBand = DAMAGING_MOVES.filter((move) => bands.has(move.band) && !isMoveBlacklisted(move.id));
   // Every band has all eighteen types (asserted in test/randomizer.test.ts), so
@@ -315,6 +324,36 @@ export function generateWildTeam(segment: number, tier: Tier, rng: Rng): TeamSpe
   const size = opponentTeamSize('wild', segment, tier);
 
   return Array.from({ length: size }, () => rollSpec(pool, damaging, level, rng.randomizer));
+}
+
+/**
+ * One Pokemon for a species reward, at the player's own level.
+ *
+ * Not `generateWildMon`: a reward is the player's Pokemon and is rolled at the
+ * player's level from the reward pool's band window, with a moveset drawn from
+ * the starter's move range for exactly the reason `STARTER_MOVE_BANDS` exists —
+ * a Pokemon the player will carry for the rest of the run cannot be handed the
+ * kit of a segment-1 opponent.
+ *
+ * Gated off by `tuning.allowSpeciesRewards`; see data/rewardPools.ts for why.
+ */
+export function generateRewardSpecies(
+  bands: readonly number[],
+  level: number,
+  rng: Rng,
+): PokemonSpec {
+  const bandSet = new Set(bands);
+  const pool = SPECIES_POOL.filter((entry) => bandSet.has(entry.band) && !isSpeciesBlacklisted(entry.id));
+  if (pool.length === 0) throw new RangeError(`No species available in bands ${bands.join(',')}`);
+  const damaging = damagingInBands(STARTER_MOVE_BANDS);
+  const stream = rng.rewards;
+  const entry = stream.pick(pool);
+  return {
+    species: entry.species,
+    level,
+    ability: rollAbility(stream),
+    moves: rollMoveset(entry, damaging, stream),
+  };
 }
 
 /**

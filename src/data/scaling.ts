@@ -333,6 +333,29 @@ export function opponentLevel(kind: NodeKind, segment: number, tier: Tier): Rang
   return { min: row.playerLevel + offset.min + bonus, max: row.playerLevel + offset.max + bonus };
 }
 
+/**
+ * The move bands a reward at this node may draw from.
+ *
+ * A reward pool entry carries a `bandOffset` and this applies it *on top of*
+ * the node's own tier shift, so an elite node's tutor reaches two bands above
+ * an elite node's encounter rather than merely matching it. Both shifts go
+ * through the same clamp-and-widen rule, so a reward pool cannot ask for a band
+ * that does not exist any more than an encounter can.
+ *
+ * This is the second of the two things a tier does — the first is scaling the
+ * encounter, above — and putting both in one file is deliberate: the risk and
+ * the reward are one curve, and a balance pass that can only see half of it is
+ * tuning blind.
+ */
+export function rewardMoveBands(segment: number, tier: Tier, offset: number): readonly number[] {
+  return shift(moveBandsFor(segment, tier), offset, MAX_MOVE_BAND);
+}
+
+/** The species bands a species reward at this node may draw from. */
+export function rewardSpeciesBands(segment: number, tier: Tier, offset: number): readonly number[] {
+  return shift(speciesBandsFor(segment, tier), offset, MAX_SPECIES_BAND);
+}
+
 // ---------------------------------------------------------------------------
 // The metric a tier is monotonic in
 // ---------------------------------------------------------------------------

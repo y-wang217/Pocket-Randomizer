@@ -20,6 +20,8 @@
  *      moves — for every node in index order, including options the player will
  *      never take.
  *   3. `battle` stream: one sim seed per battle node, in the same index order.
+ *   4. `rewards` stream: the three-card offer for each battle node that has a
+ *      tier, in the same index order.
  *
  * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
  * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
@@ -38,6 +40,13 @@
  *
  * Pass 3 is separate again so that changing what a node *contains* cannot shift
  * the damage rolls of a node earlier in the map.
+ *
+ * Pass 4 is Stage 3's, and it is at map generation for the reason the whole
+ * document exists. Drawing an offer when the node is *completed* would make the
+ * roll depend on how the battle went — how many turns it ran, how many damage
+ * rolls the sim consumed — and the reward a seed pays out would quietly become
+ * a function of play. It is last because it is the newest: appending a pass
+ * cannot move the three that came before it.
  */
 import {
   generateGymTeam,
@@ -45,6 +54,7 @@ import {
   generateTrainerTeam,
   generateWildTeam,
 } from './randomizer';
+import { generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
@@ -91,6 +101,19 @@ export interface NodeSpec {
   label: string;
   /** Null for nodes that are not a fight. */
   encounter: EncounterSpec | null;
+  /**
+   * The three cards this node pays out, drawn at map generation.
+   *
+   * Null wherever `tier` is null, and for the same reason: a reward pool is
+   * keyed by tier, so a node without one has nothing to draw from. Gyms
+   * therefore pay no cards — a cleared gym already pays the segment heal and
+   * the level, which is a larger reward than any card in any pool.
+   *
+   * Present on the node rather than held in run state because it is part of
+   * what the seed fixed. The player is shown it only after winning; see
+   * `playRun`.
+   */
+  reward: RewardOffer | null;
 }
 
 export interface Step {
@@ -257,6 +280,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
       // Filled by pass 3.
       simSeed: PLACEHOLDER_SEED,
     },
+    reward: null,
   };
 
   const segment: Segment = {
@@ -271,6 +295,14 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
   // --- pass 3: sim seeds, from the `battle` stream -------------------------
   for (const node of nodesOf(segment)) {
     if (node.encounter) node.encounter.simSeed = rng.battle.nextSimSeed();
+  }
+
+  // --- pass 4: reward offers, from the `rewards` stream --------------------
+  // A separate loop rather than a branch inside pass 3, so that the two streams
+  // are consumed in two independent index-ordered sweeps. Interleaving them
+  // would be identical today and would couple their draw orders forever.
+  for (const node of nodesOf(segment)) {
+    if (node.tier) node.reward = generateRewardOffer(node.id, node.tier, index, rng, tuning);
   }
   return segment;
 }
@@ -371,7 +403,7 @@ function buildNode(
   rng: Rng,
 ): NodeSpec {
   if (kind === 'rest') {
-    return { id, kind, tier: null, label: 'Rest site', encounter: null };
+    return { id, kind, tier: null, label: 'Rest site', encounter: null, reward: null };
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
 
@@ -389,6 +421,8 @@ function buildNode(
       opponent: describeOpponent(kind, team, lead),
       simSeed: PLACEHOLDER_SEED,
     },
+    // Filled by pass 4.
+    reward: null,
   };
 }
 

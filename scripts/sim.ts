@@ -274,6 +274,9 @@ function buildPolicy(policy: PolicyName, nodes: NodePolicyName, seed: string): R
     chooseStarter: async (options) =>
       policy === 'greedy' ? bestStarter(options) : stream.nextInt(Math.max(1, options.length)),
     chooseNode: chooseNodeBy(nodes, stream),
+    // Checkpoint 4 replaces this with a reward policy worth measuring. Taking
+    // card 0 now keeps the sweep running; it is not yet a number to trust.
+    chooseReward: async () => 0,
     battle: policy === 'greedy' ? greedyAiPolicy : randomMovePolicy(stream),
   };
 }

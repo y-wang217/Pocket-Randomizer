@@ -99,6 +99,25 @@ export interface Tuning {
    */
   distinctTiersPerStep: boolean;
 
+  // --- rewards -------------------------------------------------------------
+
+  /**
+   * Whether reward pools may offer a species swap.
+   *
+   * **Off, and the shape is built anyway.** The spec lists rare species in the
+   * Stage 3 reward pools, but party size is still 1 until Stage 4, so a species
+   * reward is not an addition — it is a forced swap of the run's only Pokemon.
+   * That is either the most interesting decision in the game or an instant
+   * run-ender, and nothing short of playing it will say which.
+   *
+   * So: the kind is typed in `core/rewards.ts`, the entries are in
+   * `data/rewardPools.ts`, and this flag decides whether they are ever dealt.
+   * Flip it on once and playtest it deliberately, separately from everything
+   * else in this stage. If it is fun it becomes a Stage 3 feature; if it is not
+   * it waits for Stage 4, when a swap costs a slot instead of the whole run.
+   */
+  allowSpeciesRewards: boolean;
+
   // --- persistence between nodes ------------------------------------------
 
   /**
@@ -200,6 +219,8 @@ export const DEFAULT_TUNING: Tuning = {
     { throughSegment: 7, weights: { normal: 3, hard: 4, elite: 4 } },
   ],
   distinctTiersPerStep: true,
+
+  allowSpeciesRewards: false,
 
   restHpFraction: 1,
   restPpFraction: 1,

@@ -140,13 +140,35 @@ describe('tier stream isolation', () => {
     ).not.toEqual(tiersOf('TIER-RETUNE'));
   });
 
-  it('never lets a tier draw reach the rewards stream', () => {
-    // Stated separately because it is the Stage 3 invariant the next checkpoint
-    // depends on: `rewards` is untouched by generation until rewards exist.
-    const rng = createRng('TIER-REWARDS');
-    generateStarterOptions(rng, DEFAULT_TUNING);
-    for (let index = 0; index < SEGMENT_COUNT; index++) generateSegment(index, rng, DEFAULT_TUNING);
-    expect(rng.rewards.draws).toBe(0);
+  it('keeps every reward draw on the rewards stream and nowhere else', () => {
+    /*
+     * The Stage 3 half of the same invariant, asserted by moving the one knob
+     * that changes how many reward draws a map takes.
+     *
+     * `allowSpeciesRewards` adds a whole reward kind to the elite pools, and
+     * resolving a species entry rolls a species, an ability and four moves. If
+     * any of that came off `randomizer` — which is where a species is *normally*
+     * rolled, and therefore the plausible mistake — flipping the flag would
+     * shift every encounter in the map. The map and battle streams must not
+     * move either.
+     */
+    const positions = (tuning: typeof DEFAULT_TUNING): Record<string, number> => {
+      const rng = createRng('TIER-REWARDS');
+      generateStarterOptions(rng, tuning);
+      for (let index = 0; index < SEGMENT_COUNT; index++) generateSegment(index, rng, tuning);
+      return { map: rng.map.draws, randomizer: rng.randomizer.draws, battle: rng.battle.draws, rewards: rng.rewards.draws };
+    };
+
+    const off = positions(DEFAULT_TUNING);
+    const on = positions(withTuning({ allowSpeciesRewards: true }));
+
+    expect(on.map).toBe(off.map);
+    expect(on.randomizer).toBe(off.randomizer);
+    expect(on.battle).toBe(off.battle);
+    // ...and the flag genuinely did something, or the three above pass because
+    // nothing changed at all.
+    expect(on.rewards).toBeGreaterThan(off.rewards!);
+    expect(off.rewards).toBeGreaterThan(0);
   });
 });
 

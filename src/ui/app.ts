@@ -90,6 +90,10 @@ export function mountApp(root: HTMLElement): void {
         router.show('map');
         return nodePick.wait();
       },
+      // Checkpoint 5 replaces this with the reward screen. Until then the run
+      // takes the first card so the app still plays end to end — a placeholder
+      // that is visibly a placeholder, rather than a screen that half exists.
+      chooseReward: async () => 0,
       battle: () => movePick.wait(),
     };
 

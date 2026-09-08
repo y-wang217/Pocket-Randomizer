@@ -42,6 +42,7 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
       const index = options.findIndex((option) => option.kind === kind);
       return index === -1 ? 0 : index;
     },
+    chooseReward: async () => 0,
     battle,
   };
 }
@@ -81,6 +82,7 @@ describe('headless run', () => {
         seen.push(...options);
         return 0;
       },
+      chooseReward: async () => 0,
       battle: greedyAiPolicy,
     };
 
