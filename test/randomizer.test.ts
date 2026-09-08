@@ -39,7 +39,8 @@ import { assertReplayable, createRun, isReplayable, RUN_LOG_VERSION } from '../s
 import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { opponentTeamSize, PARTY_SIZE, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
+import { opponentTeamSize, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
+import { PARTY_SIZE } from '../src/data/partyTuning';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 

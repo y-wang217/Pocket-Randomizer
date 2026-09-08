@@ -37,9 +37,18 @@ import {
 } from '../types';
 import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
 import type { Policy } from './policy';
+import { rejectionReason } from './switching';
 
-/** Bumped whenever a change would make an older RunLog replay differently. */
-export const ENGINE_VERSION = 'gymrun-0.1.0';
+/**
+ * Bumped whenever a change would make an older RunLog replay differently.
+ *
+ * `0.2.0` is Stage 4. A battle log now carries voluntary switches, which
+ * consume turns and battle-stream rolls that a Stage 3 log never spent, so the
+ * same decision sequence replayed against this build would be a different
+ * battle rather than the same one. That is the failure the version exists to
+ * refuse.
+ */
+export const ENGINE_VERSION = 'gymrun-0.2.0';
 
 const SIDES: readonly SideId[] = ['p1', 'p2'];
 const VALID_STATUSES: readonly string[] = ['brn', 'par', 'slp', 'frz', 'psn', 'tox'];
@@ -244,6 +253,30 @@ function readMoves(battle: Battle, side: SideId): MoveView[] {
 }
 
 /**
+ * Whether the sim will refuse to let this side switch out, and why.
+ *
+ * **Reads both `trapped` and `maybeTrapped`, and the second one is the whole
+ * reason this is a function.** The sim sets `trapped` when the thing holding
+ * you is public knowledge and `maybeTrapped` when it is not — an unrevealed
+ * Arena Trap reports the latter, which is a client's cue to offer the switch
+ * and let the server say no. This driver runs with `strictChoices`, where a
+ * refused choice is a thrown error in the middle of a battle, so it has to
+ * treat both as blocking. `battle/switching.ts` records what that trades away.
+ *
+ * Null outside a choice request, and null on a forced switch: trapping does not
+ * apply when the active Pokemon has already fainted.
+ */
+function readTrapping(request: unknown): 'trapped' | 'maybe-trapped' | null {
+  if (!request || typeof request !== 'object') return null;
+  if ('forceSwitch' in request) return null;
+  if (!('active' in request)) return null;
+  const active = (request as { active?: ({ trapped?: boolean; maybeTrapped?: boolean } | null)[] }).active?.[0];
+  if (!active) return null;
+  if (active.trapped) return 'trapped';
+  return active.maybeTrapped ? 'maybe-trapped' : null;
+}
+
+/**
  * The side's bench, as a policy may see it.
  *
  * Read off the live `side.pokemon` array rather than off the request, because
@@ -252,23 +285,26 @@ function readMoves(battle: Battle, side: SideId): MoveView[] {
  * anything else is a choice the sim will reject on the second switch of a
  * battle and accept on the first, which is the worst kind of bug to find.
  *
- * `usable` means "the sim would accept `switch N` right now". Trapping
- * abilities are honoured — a randomizer that rolls Arena Trap onto anything
- * will produce trapped turns — but only outside a forced switch, where
- * trapping does not apply.
+ * `usable` means "the sim would accept `switch N` right now", and `block` says
+ * which of the four reasons it does not. Trapping is honoured — a randomizer
+ * that rolls Arena Trap onto anything will produce trapped turns — but only
+ * outside a forced switch, where it does not apply.
  */
 function readSwitches(battle: Battle, side: SideId): SwitchView[] {
   const simSide = battle.sides[sideIndex(side)];
   if (!simSide) return [];
-  const request = simSide.activeRequest;
-  const forced = Boolean(request && 'forceSwitch' in request && request.forceSwitch?.[0]);
-  const trapped = Boolean(
-    request && 'active' in request && request.active?.[0]?.trapped,
-  );
+  const trapping = readTrapping(simSide.activeRequest);
   const dex = Dex.forGen(GYMRUN_GEN);
 
   return simSide.pokemon.map((mon, index) => {
     const maxHp = mon.maxhp || 1;
+    // Ordered so the reason the player can see wins: a fainted member reads as
+    // fainted even on a turn where the whole side is also trapped.
+    const block: SwitchView['block'] = mon.fainted
+      ? 'fainted'
+      : mon.isActive
+        ? 'active'
+        : trapping;
     return {
       slot: index + 1,
       species: mon.species.name,
@@ -282,7 +318,8 @@ function readSwitches(battle: Battle, side: SideId): SwitchView[] {
       hpFraction: Math.max(0, Math.min(1, mon.hp / maxHp)),
       status: readStatus(mon),
       fainted: mon.fainted,
-      usable: !mon.fainted && !mon.isActive && (forced || !trapped),
+      usable: block === null,
+      block,
     };
   });
 }
@@ -462,6 +499,7 @@ export function createBattle(options: BattleOptions): BattleSession {
       switches: awaiting ? readSwitches(battle, side) : [],
       forceSwitch,
       awaitingChoice: awaiting,
+      trapped: awaiting && !forceSwitch && readTrapping(request) !== null,
     };
   }
 
@@ -487,11 +525,25 @@ export function createBattle(options: BattleOptions): BattleSession {
     decisions,
     viewFor: buildView,
     protocolFor: (side) => protocol[side],
+    /*
+     * Submit a decision, checked against the view first.
+     *
+     * The check is not belt and braces over the sim's own validation — it is
+     * the only place the error is legible. `strictChoices` makes a refused
+     * choice a *throw* out of `battle.choose`, several frames down, reading
+     * `[Unavailable choice] Can't switch: The active Pokemon is trapped` with
+     * no mention of whose turn it was or what was submitted. `rejectionReason`
+     * reads the same view a policy decided from, so a disagreement between the
+     * two is reported as the seam failing rather than as the engine complaining.
+     */
     submit(side, choice) {
       if (battle.ended) throw new Error('Battle has already ended');
+      const refusal = rejectionReason(buildView(side), choice);
+      if (refusal) {
+        throw new Error(`Illegal choice ${encodeChoice(choice)} for ${side}: ${refusal}`);
+      }
       decisions.push({ turn: battle.turn, side, choice });
-      const accepted = battle.choose(side as SideID, encodeChoice(choice));
-      if (!accepted) throw new Error(`Sim rejected choice ${encodeChoice(choice)} for ${side}`);
+      battle.choose(side as SideID, encodeChoice(choice));
       const fresh = drain();
       if (fresh.length > 0 || battle.ended) notify(fresh);
     },

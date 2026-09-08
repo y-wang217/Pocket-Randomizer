@@ -75,7 +75,8 @@ import { moveChoice, switchChoice, type PokemonSpec, type Tier } from '../src/co
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { opponentTeamSize, PARTY_SIZE, SEGMENTS } from '../src/data/scaling';
+import { opponentTeamSize, SEGMENTS } from '../src/data/scaling';
+import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
 

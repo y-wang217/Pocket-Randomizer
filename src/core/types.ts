@@ -52,10 +52,12 @@ export type TeamSpec = PokemonSpec[];
  * a side with a bench gets a **forced switch request** from the sim the moment
  * its active faints. A policy that can only answer `move N` cannot answer it.
  *
- * So the choice kind is here now, and it is deliberately only reachable on a
- * forced switch. Voluntary mid-turn switching is still Stage 4: it changes what
- * a turn *is*, and every balance number this stage produces assumes it does not
- * exist.
+ * Stage 4 is where the second member stops being reachable only on a forced
+ * switch. Voluntary mid-turn switching changes what a turn *is* — it consumes
+ * one, and the incoming member takes the opponent's attack — so every balance
+ * number recorded before this stage was measured in a different game and none
+ * of them carried forward. The type did not have to change, which was the whole
+ * point of writing it as a union in Stage 0.
  */
 export type Choice =
   | { kind: 'move'; /** 1-based, matching the sim's `move N`. */ slot: number }
@@ -139,8 +141,22 @@ export interface SwitchView {
   hpFraction: number;
   status: StatusName | null;
   fainted: boolean;
-  /** False when the sim will not accept a switch to it (fainted, or active). */
+  /** False when the sim will not accept a switch to it right now. */
   usable: boolean;
+  /**
+   * Why it is not usable, or null when it is.
+   *
+   * Carried rather than derived because the reasons are not all visible from
+   * the rest of this record: `fainted` and `active` are, and trapping is not —
+   * it is a property of the *opponent* that the adapter read off the request.
+   * The battle screen shows an illegal switch disabled with this reason
+   * attached rather than hiding the row, so a trapped player can see that they
+   * are trapped instead of watching their bench silently disappear.
+   *
+   * Typed as the string union in `battle/switching.ts`, spelled out here
+   * because core/types.ts may not import from battle/.
+   */
+  block: 'fainted' | 'active' | 'trapped' | 'maybe-trapped' | null;
 }
 
 /** A Pokemon as seen on the field. */
@@ -198,6 +214,18 @@ export interface BattleView {
   forceSwitch: boolean;
   /** True when this side owes the sim a decision. */
   awaitingChoice: boolean;
+  /**
+   * True when the sim says the active Pokemon may not switch out.
+   *
+   * A property of the turn rather than of any one bench member, which is why it
+   * is here as well as on every blocked `SwitchView`: the battle screen greys
+   * the whole panel with one label rather than repeating "trapped" three times,
+   * and a policy can skip scoring switches entirely.
+   *
+   * Covers the sim's `maybeTrapped` as well as its `trapped`. See
+   * `battle/switching.ts` for why an unrevealed Arena Trap has to count.
+   */
+  trapped: boolean;
 }
 
 // ---------------------------------------------------------------------------

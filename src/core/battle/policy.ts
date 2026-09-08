@@ -13,10 +13,23 @@
  * this file may touch the DOM: the human policy is driven by *events*, and it
  * is `ui/` that decides those events come from a click.
  */
-import type { BattleView, Choice, SwitchView } from '../types';
-import { moveChoice, switchChoice } from '../types';
+import type { BattleView, Choice } from '../types';
+import { moveChoice } from '../types';
+import { forcedSwitchFallback, usableSwitches } from './switching';
 
 export type Policy = (view: BattleView) => Promise<Choice>;
+
+/*
+ * `usableSwitches` and `forcedSwitchFallback` moved to `battle/switching.ts` in
+ * Stage 4 and are re-exported here.
+ *
+ * They were never really policy helpers — they are legality questions, and
+ * Stage 4 gave legality enough surface (voluntary switches, trapping, the
+ * `wait` request, a reason per blocked bench slot) to be its own file. Every
+ * caller kept working, which is the point of re-exporting rather than
+ * rewriting the imports: a policy asks the same two questions it always did.
+ */
+export { forcedSwitchFallback, usableSwitches };
 
 /** Moves the policy is allowed to pick this turn. */
 export function usableMoves(view: BattleView): BattleView['moves'] {
@@ -24,35 +37,6 @@ export function usableMoves(view: BattleView): BattleView['moves'] {
   // When everything is disabled or out of PP the sim substitutes Struggle,
   // which arrives as the only entry and must still be pickable.
   return usable.length > 0 ? usable : view.moves;
-}
-
-/**
- * Bench members the sim would accept a switch to right now.
- *
- * Every policy must consult this when `view.forceSwitch` is set, because on
- * those turns `usableMoves` is empty and the sim will not accept a move. A
- * policy that reads `moves` unconditionally works perfectly until the first
- * opponent with two Pokemon, which is exactly the sort of thing that used to be
- * safe and stopped being safe in Stage 2.
- */
-export function usableSwitches(view: BattleView): SwitchView[] {
-  return view.switches.filter((member) => member.usable);
-}
-
-/**
- * The one legal answer to a forced switch, when there is nothing to think about.
- *
- * Returns null when the view is not a forced switch, so a policy can use it as
- * a guard clause. Ties break toward the lower slot: an unspecified tie-break
- * would make the choice depend on array order and a seed would stop reproducing
- * the same battle.
- */
-export function forcedSwitchFallback(view: BattleView): Choice | null {
-  if (!view.forceSwitch) return null;
-  const available = usableSwitches(view);
-  const first = available[0];
-  if (!first) throw new Error('Forced to switch with nothing to switch to');
-  return switchChoice(first.slot);
 }
 
 /** Always picks the first usable move. Deterministic; the baseline for tests. */

@@ -15,7 +15,8 @@
 import { describeSpec, describeSpecCard } from './battle/driver';
 import { battleSpecFor } from './items';
 import type { MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
-import { MOVESET, PARTY_SIZE } from '../data/scaling';
+import { MOVESET } from '../data/scaling';
+import { PARTY_SIZE, reviveHpFor } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
 
 /** A fresh party member at full HP and PP. */
@@ -152,6 +153,13 @@ export function applyBattleState(
  * Status clears (by default) and fainted members revive. HP and PP do not
  * change: they are the resources a run spends, and a segment where they reset
  * for free is a segment where the rest node is decoration.
+ *
+ * **Revival is partial from Stage 4, and that is a balance change rather than a
+ * refactor.** Stage 1 revived to a hardcoded half of max HP and nothing could
+ * observe it: a fainted member meant a wiped party and a finished run. With a
+ * party the branch is reachable after every fight, and the fraction is now the
+ * price of a faint — see `partyTuning.reviveHpFraction` for why free revival
+ * would make the bench three health bars rather than three Pokemon.
  */
 export function betweenNodes(party: readonly PokemonState[], tuning: Tuning): PokemonState[] {
   return party.map((member) => ({
@@ -159,21 +167,10 @@ export function betweenNodes(party: readonly PokemonState[], tuning: Tuning): Po
     moves: member.moves.map((move) => ({ ...move })),
     status: tuning.clearStatusBetweenNodes ? null : member.status,
     ...(tuning.reviveFaintedBetweenNodes && member.fainted
-      ? { fainted: false, hp: Math.max(1, Math.round(member.maxHp * REVIVE_HP_FRACTION)) }
+      ? { fainted: false, hp: Math.min(member.maxHp, reviveHpFor(member.maxHp)) }
       : {}),
   }));
 }
-
-/**
- * Revival HP.
- *
- * Not a tuning knob yet on purpose. Nothing in Stage 1 can reach this branch —
- * a fainted member means a wiped party and a finished run — so exposing a
- * number no run can observe would be exposing an untested one. Stage 4, which
- * is the first stage where a member can faint without the run ending, is where
- * it becomes a real balance question and moves into `Tuning`.
- */
-const REVIVE_HP_FRACTION = 0.5;
 
 /** A rest node: restore HP and PP, and clear status if the tuning says so. */
 export function restParty(party: readonly PokemonState[], tuning: Tuning): PokemonState[] {

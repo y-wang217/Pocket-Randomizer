@@ -24,23 +24,17 @@
 import type { PokemonSpec, TeamSpec, Tier } from '../core/types';
 import { DAMAGING_MOVES } from './movePools';
 import { SPECIES_POOL } from './speciesPools';
+import { PARTY_SIZE } from './partyTuning';
 import type { BattleKind, Range } from './tuning';
 
-/**
- * How many Pokemon the player fields.
- *
- * **Stage 4 raises this, and raising it must not require a rewrite.** Every
- * place that would otherwise assume a single player Pokemon reads this
- * constant instead: `party.battleTeamFor`, `party.carryOverFor`, and the
- * opponent team sizes below. The driver already grew a switch choice for the
- * same reason (see `Choice` in core/types.ts), so a party of three is a
- * configuration change rather than a new run loop.
- *
- * The one thing it does not yet buy is a *player-facing* switch: at party size
- * one the player is never asked, so the UI has no switch button to press. That
- * is the honest remaining Stage 4 work.
+/*
+ * `PARTY_SIZE` used to be declared here and now lives in `data/partyTuning.ts`,
+ * next to the join level and the revive rules. Stage 4 made it a balance
+ * question rather than a structural constant — how much a faint costs, how far
+ * below the curve an acquisition arrives, and how many slots there are are one
+ * question asked three ways — and this file is still the only place that turns
+ * it into opponent team sizes.
  */
-export const PARTY_SIZE = 1;
 
 /** The sim's hard ceiling on a side. Team sizes are clamped to it. */
 const MAX_TEAM_SIZE = 6;
@@ -250,22 +244,42 @@ export const TIER_MODIFIERS: Record<Tier, TierModifier> = {
   /** A stat check: bulkier, higher level, hitting with the same move pool. */
   hard: { level: 1, speciesBand: 1, moveBand: 0, team: 0 },
   /*
-   * Elite fields a second Pokemon and pays for it with *four levels below the
-   * segment baseline* — not above it.
+   * Elite fields one Pokemon more than the player and pays for it with *three
+   * levels below the segment baseline* — not above it.
    *
-   * The first cut had `{ level: 1, band: 2, team: 1 }`, and the simulator was
-   * blunt about it: `tier-greedy` died before gym 2 in 52% of runs against
-   * `tier-averse`'s 35%, and completed no more often. Two Pokemon *above* the
-   * curve at an ordinary node is not a risky fight, it is a gym without the
-   * reward, and no pool can be tuned to pay for it.
+   * The first Stage 3 cut had `{ level: 1, band: 2, team: 1 }`, and the
+   * simulator was blunt about it: `tier-greedy` died before gym 2 in 52% of runs
+   * against `tier-averse`'s 35%, and completed no more often. An extra Pokemon
+   * *above* the curve at an ordinary node is not a risky fight, it is a gym
+   * without the reward, and no pool can be tuned to pay for it.
    *
-   * Below the curve, the same two Pokemon are texture instead: more matchups,
+   * Below the curve, the same extra Pokemon is texture instead: more matchups,
    * more PP spent, more turns to be outplayed in, and a real chance to lose if
    * the player walks in damaged. That is the Stage 2 team-size finding applied
    * exactly as it was written down — every step up in team size is paid for
    * with a step down in level.
+   *
+   * **The payment shrank from eight levels to three in Stage 4, and the reason
+   * is arithmetic rather than taste.** `team: 1` is a fixed *number* of extra
+   * Pokemon, so what it buys depends entirely on `PARTY_SIZE`: at 1 it was a
+   * second body against a lone player, a 100% increase in the opposition, and
+   * eight levels was the price of that. At 3 the same `+1` is a fourth body
+   * against three — a 33% increase — while eight levels went on costing exactly
+   * as much as before. Scaling the payment by what it now buys gives
+   * `-8 x (1/3) ≈ -3`.
+   *
+   * Left un-scaled it does not merely mis-price the tier, it *inverts* it:
+   * `test/tiers.test.ts` measured elite at 84% of hard's encounter power at
+   * `PARTY_SIZE` 3, which is an "elite" node that is strictly easier than the
+   * `hard` one beside it and a reward pool paying more for it. Three restores
+   * the ordering with about eleven points of margin.
+   *
+   * This is a *monotonicity* repair, not the Stage 4 balance pass. It makes the
+   * tier ordering true again at the new party size; whether -3 is the right
+   * steepness is a clear-rate question, and docs/balance.md records what the
+   * simulator said about it.
    */
-  elite: { level: -8, speciesBand: 1, moveBand: 1, team: 1 },
+  elite: { level: -3, speciesBand: 1, moveBand: 1, team: 1 },
 };
 
 /**
