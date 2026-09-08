@@ -10,7 +10,16 @@
  * the HP bar's CSS width transition actually animates instead of restarting
  * from scratch on every update.
  */
-import { BOOST_NAMES, type ActiveView, type BattleView, type MoveView } from '../core/types';
+import {
+  BOOST_NAMES,
+  moveChoice,
+  switchChoice,
+  type ActiveView,
+  type BattleView,
+  type Choice,
+  type MoveView,
+  type SwitchView,
+} from '../core/types';
 
 const STATUS_LABELS: Record<string, string> = {
   brn: 'BRN',
@@ -34,8 +43,15 @@ interface SidePanel {
 
 export interface Scene {
   root: HTMLElement;
-  /** Redraw from a view. `onChoose` fires with a 1-based move slot. */
-  update(view: BattleView, onChoose: (slot: number) => void): void;
+  /**
+   * Redraw from a view. `onChoose` fires with the choice the player made.
+   *
+   * A `Choice`, not a move slot. Stage 4 is where the two kinds of answer stop
+   * being distinguishable by shape — a switch and a move are both "a slot" —
+   * and passing the union through means the app never has to guess which panel
+   * a number came from.
+   */
+  update(view: BattleView, onChoose: (choice: Choice) => void): void;
 }
 
 export function createScene(): Scene {
@@ -43,8 +59,9 @@ export function createScene(): Scene {
   const foe = createSidePanel('foe');
   const me = createSidePanel('me');
   const moves = el('div', 'moves');
+  const bench = el('div', 'bench');
 
-  root.append(foe.root, me.root, moves);
+  root.append(foe.root, me.root, moves, bench);
 
   return {
     root,
@@ -52,9 +69,27 @@ export function createScene(): Scene {
       updateSidePanel(foe, view.foe, true);
       updateSidePanel(me, view.me, false);
       renderMoves(moves, view, onChoose);
+      renderBench(bench, view, onChoose);
     },
   };
 }
+
+/**
+ * Why a bench member cannot be sent out, in the player's words.
+ *
+ * **Every blocked switch is shown disabled with its reason, never hidden.** A
+ * row that vanishes teaches the player that the bench is unreliable; a row that
+ * says "Trapped" teaches them what Arena Trap does. The two trapping cases read
+ * differently on purpose — the sim tells us when the cause is public and when it
+ * is not, and passing that distinction through is the difference between "you
+ * are held by that Dugtrio" and "something is holding you".
+ */
+const BLOCK_LABELS: Record<NonNullable<SwitchView['block']>, string> = {
+  fainted: 'Fainted',
+  active: 'Out now',
+  trapped: 'Trapped',
+  'maybe-trapped': 'Something is holding you',
+};
 
 function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const root = el('div', `panel panel--${kind}`);
@@ -125,19 +160,105 @@ function hpBand(fraction: number): 'high' | 'mid' | 'low' {
   return fraction > 0.2 ? 'mid' : 'low';
 }
 
-function renderMoves(container: HTMLElement, view: BattleView, onChoose: (slot: number) => void): void {
+function renderMoves(container: HTMLElement, view: BattleView, onChoose: (choice: Choice) => void): void {
   if (view.moves.length === 0) {
-    // No moves are offered between turns and after the battle ends. Clearing
-    // them would collapse the column out from under the player mid-battle and
-    // leave a hole behind the end screen, so the last set stays on screen,
-    // disabled, until a real one replaces it.
+    /*
+     * No moves are offered between turns, on a forced switch, or after the
+     * battle ends. Clearing them would collapse the column out from under the
+     * player mid-battle and leave a hole behind the end screen, so the last set
+     * stays on screen, disabled, until a real one replaces it.
+     *
+     * On a forced switch that is exactly the behaviour the spec asks for: the
+     * moves are visibly there and visibly unavailable, so the player can see
+     * that the game is asking a different question rather than wondering where
+     * the buttons went.
+     */
     for (const button of container.querySelectorAll('button')) button.disabled = true;
     return;
   }
   container.replaceChildren(...view.moves.map((move) => renderMove(move, view.awaitingChoice, onChoose)));
 }
 
-function renderMove(move: MoveView, enabled: boolean, onChoose: (slot: number) => void): HTMLElement {
+/**
+ * The bench, as a row of buttons beside the moves.
+ *
+ * Hidden only when there is no bench at all — a party of one has nothing to say
+ * here, and an empty panel would be a permanent reminder of a mechanic the run
+ * has not reached yet. From two members on it is always visible, including on
+ * turns where every row is disabled, because "you cannot switch right now" is
+ * information and an absent panel is not.
+ */
+function renderBench(container: HTMLElement, view: BattleView, onChoose: (choice: Choice) => void): void {
+  const bench = view.switches.filter((member) => member.block !== 'active');
+  if (bench.length === 0) {
+    if (view.switches.length === 0) return;
+    // Between turns the view carries no switches at all; leave the last render
+    // in place, disabled, rather than collapsing the panel.
+    for (const button of container.querySelectorAll('button')) button.disabled = true;
+    return;
+  }
+
+  const heading = el('div', 'bench__heading');
+  heading.textContent = view.forceSwitch
+    ? 'Choose who comes in'
+    : view.trapped
+      ? 'Switch — blocked this turn'
+      : 'Switch';
+  container.replaceChildren(heading, ...bench.map((member) => renderBenchMember(member, view, onChoose)));
+  container.dataset['forced'] = view.forceSwitch ? 'true' : 'false';
+}
+
+function renderBenchMember(
+  member: SwitchView,
+  view: BattleView,
+  onChoose: (choice: Choice) => void,
+): HTMLElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'bench__member';
+  button.disabled = !view.awaitingChoice || !member.usable;
+
+  const name = el('span', 'bench__name');
+  name.textContent = member.name;
+  const level = el('span', 'bench__level');
+  level.textContent = `Lv${member.level}`;
+
+  const types = el('span', 'bench__types');
+  types.replaceChildren(
+    ...member.types.map((type) => {
+      const chip = el('span', `type type--${type.toLowerCase()}`);
+      chip.textContent = type;
+      return chip;
+    }),
+  );
+
+  const track = el('div', 'hp hp--slim');
+  const fill = el('div', 'hp__fill');
+  fill.style.width = `${member.hpFraction * 100}%`;
+  fill.dataset['band'] = hpBand(member.hpFraction);
+  track.append(fill);
+
+  const meta = el('span', 'bench__meta');
+  meta.textContent = `${member.hp} / ${member.maxHp}`;
+  if (member.status) {
+    const status = el('span', 'badge badge--status');
+    status.dataset['status'] = member.status;
+    status.textContent = STATUS_LABELS[member.status] ?? member.status.toUpperCase();
+    meta.append(' ', status);
+  }
+  // The reason a row is disabled, spelled out on the row itself.
+  if (member.block) {
+    const reason = el('span', 'bench__block');
+    reason.textContent = BLOCK_LABELS[member.block];
+    meta.append(' ', reason);
+  }
+
+  button.append(name, level, types, track, meta);
+  button.addEventListener('click', () => onChoose(switchChoice(member.slot)));
+  return button;
+}
+
+function renderMove(move: MoveView, enabled: boolean, onChoose: (choice: Choice) => void): HTMLElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `move move--${move.type.toLowerCase()}`;
@@ -160,7 +281,7 @@ function renderMove(move: MoveView, enabled: boolean, onChoose: (slot: number) =
   if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
 
   button.append(name, meta, pp);
-  button.addEventListener('click', () => onChoose(move.slot));
+  button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }
 

@@ -154,7 +154,12 @@ body {
   cursor: pointer;
 }
 
-.button:hover { border-color: var(--accent); }
+.button:hover:not(:disabled) { border-color: var(--accent); }
+
+/* Disabled rather than hidden, everywhere: a control that disappears from one
+   row and not another reads as a bug, and the greyed-out version is what tells
+   the player the action exists at all. */
+.button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .button--primary {
   background: var(--accent);
@@ -685,6 +690,134 @@ body {
   gap: 8px;
   font-size: 12px;
 }
+
+/* ---------- bench: the switch panel, beside the moves ---------- */
+
+/* Same grid as .moves, so a switch reads as an alternative to a move rather
+   than as a different kind of control in a different place. */
+.bench {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bench__heading {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* A forced switch is the only question on screen, so the panel says so with a
+   border rather than by hiding the moves — the player can still see what they
+   would have been able to do. */
+.bench[data-forced='true'] .bench__heading { color: var(--accent); }
+
+.bench__member {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.bench[data-forced='true'] .bench__member:not(:disabled) { border-color: var(--border-strong); }
+.bench__member:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+
+/* Disabled, never hidden: a row that vanishes teaches the player that the bench
+   is unreliable; a row that says "Trapped" teaches them what Arena Trap does. */
+.bench__member:disabled { opacity: 0.42; cursor: not-allowed; }
+
+.bench__name { font-weight: 600; }
+.bench__level,
+.bench__meta { font-size: 11px; color: var(--text-dim); }
+.bench__types { display: flex; gap: 4px; flex-wrap: wrap; }
+.bench__block { color: var(--hp-low); }
+
+.hp--slim { height: 4px; }
+
+/* ---------- party screen, acquisition, item targeting ---------- */
+
+.party__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.party__member--lead { border-left-color: var(--accent); }
+.party__member--fainted { opacity: 0.55; border-left-color: var(--hp-low); }
+
+.party__actions { display: flex; gap: 8px; margin-top: 10px; }
+
+.badge--lead {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.badge--item { background: var(--bg-sunken); color: var(--text-dim); }
+.badge--muted { opacity: 0.6; }
+
+.button--danger { border-color: var(--hp-low); color: var(--hp-low); }
+.button--danger:hover:not(:disabled) { border-color: var(--hp-low); background: var(--hp-low); color: var(--bg); }
+.button--danger[data-confirm='true'] { background: var(--hp-low); color: var(--bg); }
+
+/* The manage and compare lists are the map's party panel at a readable width,
+   deliberately the same card so the player is looking at one thing throughout. */
+.party--manage,
+.party--compare,
+.party--target {
+  width: min(760px, 100%);
+}
+
+.screen--party,
+.screen--acquisition,
+.screen--target { align-items: flex-start; }
+
+/* The offered Pokemon, in the same card shape as the party it is measured
+   against — anything else makes the comparison a matter of squinting. */
+.party__member--offered { border-left-color: var(--accent); background: var(--bg-sunken); }
+
+.acquire__heading {
+  margin: 18px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.acquire__actions { display: flex; gap: 8px; margin-top: 18px; }
+
+.party__member--target {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.party__member--target:hover { border-color: var(--accent); }
+
+.target__effect {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* A near-dud that announces itself is a legible choice; one that hides is a
+   lottery the player loses four fights later. */
+.target__effect--dud { color: var(--hp-mid); }
 
 /* ---------- battle screen ---------- */
 

@@ -102,14 +102,16 @@ src/core/      pure, deterministic, zero DOM, unit tested
   party.ts     what persists between nodes, and the rules that change it
   encounters.ts  map and encounter generation, all of it eager
   run.ts       the run state machine, RunPolicy, and playRun
-  battle/      format, driver (the only @pkmn/sim adapter), policy, ai
+  acquisition.ts how a Pokemon joins the party, and what it costs
+  battle/      format, driver (the only @pkmn/sim adapter), policy, switching, ai
 src/data/      what a Pokémon is rolled *from*, and every balance number
-  scaling.ts     the curve: eight rows, and PARTY_SIZE
+  scaling.ts     the curve: eight rows, and what party the curve assumes
+  partyTuning.ts PARTY_SIZE, join level, and what a faint costs
   gyms.ts        eight leaders and their type identities
   starters.ts    what the player begins with; Stage 5's unlock seam
   blacklists.ts  the exceptions, each with the evidence that earned it
   speciesPools.ts, movePools.ts, abilities.ts   generated; npm run gen:pools
-src/ui/        a thin DOM layer: four screens and a router
+src/ui/        a thin DOM layer: ten screens and a router
 scripts/sim.ts the balance simulator
 test/          determinism, generation, the randomizer's seven promises, replay
 docs/          architecture, generation rules, balance, engine notes
@@ -172,11 +174,9 @@ than trusting it to the construction.
 
 ## Open questions for later
 
-1. **Fights are short early.** 1.6 turns per battle in segment 1, rising to 3.1
-   by segment 8. Late fights have a shape; early ones are an exchange. The
-   causes are structural rather than tuneable — no EV or IV spreads, and one
-   Pokémon a side, so there is no switch to make. Stage 4's party slots address
-   the second directly.
+1. **Fights are short early.** Late fights have a shape; early ones are an
+   exchange. One of the two causes is gone — there is a party and a switch to
+   make from Stage 4 — and the other, no EV or IV spreads, is still structural.
 2. **`random` clears gym 3 in a quarter of runs**, against a target of "rarely".
    Tightening the early gyms would push `greedy`'s completion below the 5%
    floor, so the trade was declined; the depth test that matters passes at 1.0%.
@@ -185,7 +185,15 @@ than trusting it to the construction.
 4. **Nuzlocke interpretation.** The build spec's section 3 is read here as *no*
    nuzlocke ruleset: no per-Pokémon permadeath, no forced first-encounter rule.
    Wipe — every party member fainted — is the only death rule.
-5. **Party size for Stage 4.** `PARTY_SIZE` is 1 and every single-Pokémon
-   assumption reads it. The driver already answers forced switches, so raising
-   it is a configuration change; what is genuinely missing is a player-facing
-   switch button, because at party size one the player is never asked.
+5. **Switching does not pay yet, and that is Stage 4's unmet done-condition.**
+   `switch-aware` completes 10.0% of runs against `no-switch`'s 11.2% — a gap in
+   the wrong direction, inside noise. It is not a tuning oversight: the first
+   scoring model made it *worse* in all twelve weight combinations tried, and
+   replacing the one-turn horizon with a multi-turn matchup race only brought it
+   back to parity. `docs/balance.md` §7.6 has the data and the three untried
+   levers, the strongest being that the opponent outnumbers the player at every
+   gym, so switching to answer a matchup loses to a side with more answers.
+6. **Party size stays at 3.** 43% of losses happen with a full, standing party —
+   those runs were beaten by a single wall, not by running out of Pokémon, and a
+   fourth slot would not have saved one of them. That is the spec's own
+   condition for testing 4, and it says do not, yet. `docs/balance.md` §7.7.

@@ -260,14 +260,31 @@ the run ends. That is the entire extent of persistence, by design.
 
 ## Deliberately absent
 
-As of Stage 2: no rewards, shops, event nodes or tier selection (Stage 3); no
-player party slots, voluntary switching, bench experience or party management
-(Stage 4); no unlocks, daily seed, run history or seed links (Stage 5); no EVs,
+As of Stage 4: no unlocks, daily seed, run history or seed links (Stage 5); no
+bench experience — and that one is a *decision* rather than a gap, written down
+in `data/partyTuning.ts`: level is a pure function of segment index, so a
+benched member is never behind and there is nothing to model; no EVs,
 IVs, natures or breeding at all.
 
 `Choice` stopped being a single-member union in Stage 2, and the way it did is
 the argument for the seam: gym leaders field more than one Pokémon, the sim
 issues a forced-switch request on a faint, and adding `{ kind: 'switch' }` was
-an additive change the compiler walked through file by file. Voluntary
-switching — which changes what a *turn is* — is still Stage 4, and every balance
-number this stage produced assumes it does not exist.
+an additive change the compiler walked through file by file.
+
+Stage 4 made that switch voluntary, and the type did not have to change at all
+— which was the whole point of writing it as a union in Stage 0. What did change
+is everything downstream of *what a turn is*: a switch consumes one and the
+incoming member takes the opponent's attack, so every balance number recorded
+before Stage 4 describes a different game. `docs/balance.md` §7 is the
+re-baseline.
+
+The one place the seam did leak is worth naming, because it is the shape of
+mistake this document exists to prevent. `readSwitches` asked the sim's request
+for `active[0].trapped` and offered the switch whenever it was absent — but an
+unrevealed Arena Trap reports `maybeTrapped` instead, because the ability is not
+public information. The adapter's model of legality and the engine's disagreed,
+the view offered a switch the sim then refused, and with `strictChoices` a
+refusal is a throw mid-battle. The rule it cost us is in
+`core/battle/switching.ts`: **legality is read off the request, never off our own
+model of the battle**, and a test that only reads the `BattleView` is a test of
+the translation agreeing with itself.

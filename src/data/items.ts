@@ -65,13 +65,19 @@ export interface ItemEntry {
    * True for the Choice items, which lock the holder into the first move it
    * uses for the rest of the battle.
    *
-   * Flagged rather than inferred because it is the one property in this file
-   * that interacts with a system GYMRUN does not have yet. With `PARTY_SIZE` 1
-   * and no switching, a Choice lock lasts the *whole battle* — there is no
-   * switching out to reset it. That is either a strong item with a real cost or
-   * a trap, and which one it is depends on numbers nobody has yet. The
-   * simulator answers it in checkpoint 4, and the answer is a change to
-   * `data/rewardPools.ts` rather than to any code.
+   * Flagged rather than inferred because Stage 3 could not tell whether it was
+   * a strong item or a trap. At `PARTY_SIZE` 1 with no switching, a Choice lock
+   * lasted the *whole battle* — there was nothing to switch out to, so the
+   * drawback had no escape hatch and the item was a coin flip on your first
+   * move being the right one.
+   *
+   * **Stage 4 settles it: they are not a trap.** Switching now exists, and a
+   * Choice item locks the *move* while leaving the switch legal — the sim
+   * reports the other moves as disabled and sets no trapping flag at all, which
+   * `test/switching.test.ts` asserts against the raw request rather than
+   * against our reading of it. Switching out and back resets the lock, which is
+   * the mechanic that makes the item playable, and it is exactly the escape
+   * hatch Stage 3 was missing.
    */
   locksMove: boolean;
 }

@@ -20,7 +20,10 @@
  *
  * **The party panel is always on screen.** HP and PP are the resources a run
  * spends, and a rest node is only a real option if the cost of skipping it is
- * visible at the moment you skip it.
+ * visible at the moment you skip it. From Stage 4 it is a *party* panel rather
+ * than one Pokemon: every member, the lead marked, held items shown, and a way
+ * into the party screen — because the lead decides who walks into the node you
+ * are about to choose, which makes it a decision that belongs next to the map.
  *
  * **Stage 3: every offered fight shows its tier and what it pays, before you
  * commit.** This is the most important pixel in the game. A tier that the
@@ -37,12 +40,14 @@
  * Tier and payout is the amount of information that leaves a judgement to make.
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
+import { heldItem } from '../../core/items';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
 import { gymsCleared } from '../../core/run';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState, Tier } from '../../core/types';
 import { GYMS } from '../../data/gyms';
+import { PARTY_SIZE } from '../../data/partyTuning';
 import { el } from '../scene';
 import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
@@ -80,7 +85,16 @@ const TIER_HINTS: Record<Tier, string> = {
 export interface RunMap {
   root: HTMLElement;
   /** Redraw from state. `onChoose` fires with the index of a current option. */
-  render(state: RunState, onChoose: (index: number) => void): void;
+  /**
+   * Draw the map. `onChoose` picks a node; `onManage` opens the party screen.
+   *
+   * Two callbacks rather than one because they are different *kinds* of thing:
+   * a node pick is a run decision that `playRun` is waiting on, and managing the
+   * party is not a decision at all — it edits state between them. Collapsing
+   * them into one handler would hide that difference from the one file that has
+   * to keep it straight.
+   */
+  render(state: RunState, onChoose: (index: number) => void, onManage: () => void): void;
 }
 
 export function createRunMap(): RunMap {
@@ -101,7 +115,7 @@ export function createRunMap(): RunMap {
 
   return {
     root,
-    render(state, onChoose) {
+    render(state, onChoose, onManage) {
       const segment = state.segments[state.currentSegment];
       if (!segment) return;
 
@@ -124,7 +138,19 @@ export function createRunMap(): RunMap {
       chain.replaceChildren(...renderChain(state, segment, onChoose));
       // Coins live next to the party, with the other resources a run spends.
       // A shop node saying "from 55" is only a decision if this is on screen.
-      party.replaceChildren(renderWallet(state), ...state.party.map(renderMember));
+      /*
+       * The party HUD, which is now a *party* rather than one Pokemon.
+       *
+       * The button to open the party screen lives here rather than in a menu,
+       * because reordering is how the battle lead is set and the lead only
+       * matters at the moment you are choosing which node to walk into. Putting
+       * it anywhere else would make it a setting instead of a decision.
+       */
+      party.replaceChildren(
+        renderWallet(state),
+        renderPartyHeader(state.party.length, onManage),
+        ...state.party.map((member, index) => renderMember(member, index)),
+      );
     },
   };
 }
@@ -285,8 +311,26 @@ function renderWallet(state: RunState): HTMLElement {
   return card;
 }
 
-function renderMember(member: PokemonState): HTMLElement {
+/** The party's own heading, with the way into the party screen. */
+function renderPartyHeader(size: number, onManage: () => void): HTMLElement {
+  const row = el('div', 'party__header');
+  const label = el('span', 'party__wallet-label');
+  label.textContent = `Party ${size} / ${PARTY_SIZE}`;
+  const manage = document.createElement('button');
+  manage.type = 'button';
+  manage.className = 'button button--small';
+  manage.textContent = 'Manage';
+  manage.addEventListener('click', () => onManage());
+  row.append(label, manage);
+  return row;
+}
+
+function renderMember(member: PokemonState, index: number): HTMLElement {
   const card = el('div', 'party__member');
+  // The lead is marked on the map, not only on the party screen: it is the
+  // Pokemon that walks into whichever node you are about to pick.
+  if (index === 0) card.classList.add('party__member--lead');
+  if (member.fainted) card.classList.add('party__member--fainted');
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
@@ -299,6 +343,12 @@ function renderMember(member: PokemonState): HTMLElement {
   // randomizer it is not flavour — it is half of what the Pokemon *is*, it was
   // rolled rather than chosen, and it is the thing a player forgets between the
   // starter select and segment 6.
+  if (index === 0) {
+    const lead = el('span', 'badge badge--lead');
+    lead.textContent = 'Lead';
+    header.append(lead);
+  }
+
   const ability = el('span', 'party__ability');
   ability.textContent = member.spec.ability;
   header.append(ability);
@@ -312,8 +362,16 @@ function renderMember(member: PokemonState): HTMLElement {
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
-  hp.textContent = `${member.hp} / ${member.maxHp} HP`;
+  hp.textContent = member.fainted ? 'Fainted' : `${member.hp} / ${member.maxHp} HP`;
   meta.append(hp);
+  // What they are holding, because Stage 4 lets the player choose who holds
+  // what and a targeting decision you cannot audit is one you cannot learn from.
+  const item = heldItem(member);
+  if (item) {
+    const chip = el('span', 'badge badge--item');
+    chip.textContent = item.name;
+    meta.append(chip);
+  }
   if (member.status) {
     const status = el('span', 'badge badge--status');
     status.dataset['status'] = member.status;

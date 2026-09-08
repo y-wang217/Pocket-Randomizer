@@ -2,19 +2,23 @@
  * The battle screen: Stage 0's scene and log, with a header saying which node
  * you are in.
  *
- * Everything below the header is Stage 0 unchanged. That is deliberate — the
- * scene reads a `BattleView` and writes elements, and a run does not change
- * what a battle looks like, only how often you have one.
+ * Everything below the header was Stage 0 unchanged for three stages, and
+ * Stage 4 is the first thing to widen it: the scene now renders a switch panel
+ * beside the moves. The seam held — the screen still reads a `BattleView` and
+ * writes elements, and the only change here is that a click carries a `Choice`
+ * rather than a move slot, because a switch and a move are both "a slot" and
+ * nothing above this file should have to guess which panel a number came from.
  */
 import type { BattleSession } from '../../core/battle/driver';
 import type { NodeSpec } from '../../core/encounters';
+import type { Choice } from '../../core/types';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createScene, el, type Scene } from '../scene';
 
 export interface BattleScreen {
   root: HTMLElement;
   /** Point the screen at a new battle. Returns an unsubscribe for the session. */
-  attach(session: BattleSession, node: NodeSpec, onChoose: (slot: number) => void): () => void;
+  attach(session: BattleSession, node: NodeSpec, onChoose: (choice: Choice) => void): () => void;
 }
 
 export function createBattleScreen(): BattleScreen {

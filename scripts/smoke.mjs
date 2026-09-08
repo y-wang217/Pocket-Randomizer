@@ -125,6 +125,11 @@ async function playRun(label) {
   let rewards = 0;
   let shops = 0;
   let events = 0;
+  let targets = 0;
+  let acquisitions = 0;
+  let releases = 0;
+  let partyVisits = 0;
+  let switches = 0;
   let sawSavedLog = false;
   let mapStructure = null;
   // The furthest the eight-gym rail got. Read while playing, because the map
@@ -136,6 +141,19 @@ async function playRun(label) {
     if (await page.locator(visible('summary')).count()) break;
 
     if (await page.locator(visible('battle')).count()) {
+      /*
+       * A forced switch offers no moves at all, so it has to be answered from
+       * the bench or the run stalls here forever. This is the branch that
+       * proves the switch panel is wired to a policy and not just drawn.
+       */
+      const forced = page.locator(`${visible('battle')} .bench[data-forced="true"] .bench__member:not(:disabled)`);
+      if (await forced.count()) {
+        await forced.first().click();
+        switches++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+
       const move = await hardestMove();
       if (move) {
         // One frame of a real fight, after the HP bar's 380ms transition has
@@ -207,7 +225,79 @@ async function playRun(label) {
       continue;
     }
 
+    /*
+     * The three Stage 4 screens.
+     *
+     * Also before the map, for the same reason the Stage 3 ones are: each
+     * interrupts the map loop, and a run stalled on one would time out at the
+     * summary with no clue why.
+     */
+    if (await page.locator(visible('target')).count()) {
+      // Take the first member. Which one is a real decision, but a smoke test
+      // is proving the screen routes and a click reaches the policy — the
+      // *quality* of the target is the simulator's question, not this one.
+      const card = page.locator(`${visible('target')} .party__member--target`).first();
+      if (await card.count()) {
+        if (targets === 0) await page.screenshot({ path: `stats/${label}-target.png`, fullPage: true });
+        await card.click();
+        targets++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+    }
+
+    if (await page.locator(visible('acquisition')).count()) {
+      if (acquisitions === 0) await page.screenshot({ path: `stats/${label}-acquisition.png`, fullPage: true });
+      // Take it while there is room; once full, release the last member. Both
+      // paths have to be exercised, and "always decline" would exercise neither.
+      const take = page.locator(`${visible('acquisition')} .acquire__actions .button--primary`);
+      if (await take.count()) {
+        await take.click();
+        acquisitions++;
+      } else {
+        // Full: the only way to accept is to name who leaves, and the button
+        // confirms before it commits, so it takes two clicks.
+        const release = page.locator(`${visible('acquisition')} .button--danger`).last();
+        if (await release.count()) {
+          await release.click();
+          await release.click();
+          releases++;
+          acquisitions++;
+        } else {
+          await page.locator(`${visible('acquisition')} .acquire__actions .button`).last().click();
+        }
+      }
+      await page.waitForTimeout(25);
+      continue;
+    }
+
+    if (await page.locator(visible('party')).count()) {
+      if (partyVisits === 0) await page.screenshot({ path: `stats/${label}-party.png`, fullPage: true });
+      partyVisits++;
+      await page.locator(`${visible('party')} .button--primary`).click();
+      await page.waitForTimeout(25);
+      continue;
+    }
+
     if (await page.locator(visible('map')).count()) {
+      /*
+       * Open the party screen once, mid-run, and reorder.
+       *
+       * Not decoration: reordering sets the battle lead, so this is the one
+       * click that proves the party screen reaches run state rather than just
+       * rendering it. Done once so the second run makes the same clicks.
+       */
+      if (nodes === 2 && partyVisits === 0) {
+        const manage = page.locator(`${visible('map')} .party__header .button`);
+        if (await manage.count()) {
+          await manage.click();
+          await page.waitForTimeout(25);
+          const lead = page.locator(`${visible('party')} .button--small:not(:disabled)`).first();
+          if ((await lead.count()) && (await lead.textContent()) === 'Lead') await lead.click();
+          continue;
+        }
+      }
+
       // Mid-run the log must be on disk, or an interrupted run is lost. It is
       // cleared when the run ends, so it has to be checked while playing.
       if (!sawSavedLog) {
@@ -242,6 +332,11 @@ async function playRun(label) {
     rewards,
     shops,
     events,
+    targets,
+    acquisitions,
+    releases,
+    partyVisits,
+    switches,
     sawSavedLog,
     mapStructure,
     outcome: await page.getAttribute(visible('summary'), 'data-outcome'),
@@ -332,6 +427,10 @@ console.log(`\nrun finished: ${first.title} (${first.outcome})`);
 console.log(`  ${first.detail}`);
 console.log(`  ${first.nodes} node choices (${first.rests} rests), ${first.battles} move clicks`);
 console.log(`  ${first.rewards} reward picks, ${first.shops} shop visits, ${first.events} events`);
+console.log(
+  `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} item targets, ` +
+    `${first.switches} forced switches, ${first.partyVisits} party screens`,
+);
 console.log(`  map partway through: ${JSON.stringify(first.mapStructure)}`);
 
 console.log('\nrequired UI:');
@@ -375,6 +474,33 @@ if (first.outcome === 'victory' && first.badgesWon !== 8) {
 }
 console.log(`  ok   cause of death: ${first.cause?.trim()}`);
 
+/*
+ * Stage 4's screens, and the party that makes them reachable.
+ *
+ * The summary's final team is the honest test of the whole stage in one number:
+ * a run that ends holding more than one Pokemon has acquired at least one,
+ * which means the acquisition screen routed, a decision reached `playRun`, and
+ * `applyAcquisition` folded it into run state. All of that from a click.
+ */
+console.log('\nStage 4 UI:');
+if (first.acquisitions < 1) {
+  problems.push('no acquisition screen was ever shown — the party can never grow');
+}
+if (first.targets < 1) {
+  problems.push('no item-target screen was ever shown — targeted rewards are unreachable');
+}
+if (first.partyVisits < 1) {
+  problems.push('the party screen was never opened — reorder and release are unsmoked');
+}
+if (first.teamCards < 2) {
+  problems.push(`the run ended with ${first.teamCards} Pokemon — acquisition never reached run state`);
+}
+console.log(`  ok   party grew to ${first.teamCards}, from a starter of 1`);
+console.log(
+  `  ${first.switches >= 1 ? 'ok  ' : 'note'} ${first.switches} forced switch(es) answered from the bench`,
+);
+await check('switch panel', '.bench__member');
+
 // The rest and gym paths are the two Stage 1 adds, so one pass must hit both.
 if (first.rests < 1) problems.push('no rest node was taken — the rest path is unsmoked');
 const reachedGym = first.visits.some((line) => /Gym|\(Rock\)|Garnet/.test(line));
@@ -412,6 +538,20 @@ same(
   [first.rewards, first.shops, first.events],
   [second.rewards, second.shops, second.events],
 );
+/*
+ * And Stage 4's, which are the ones most likely to drift.
+ *
+ * An acquisition decision is the one entry in the run log stored as a *value*
+ * rather than an index (see `RunDecision` in core/types.ts), so if anything
+ * about replay were going to reconstruct a different party from the same
+ * clicks, it would show up here first.
+ */
+same(
+  'acquisition, release and item-target decisions',
+  [first.acquisitions, first.releases, first.targets],
+  [second.acquisitions, second.releases, second.targets],
+);
+same('switches and final party size', [first.switches, first.teamCards], [second.switches, second.teamCards]);
 same('map shape partway through', first.mapStructure, second.mapStructure);
 same('gyms cleared', first.count, second.count);
 same('cause of death', first.cause, second.cause);

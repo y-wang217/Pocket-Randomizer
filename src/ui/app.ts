@@ -13,7 +13,10 @@
 import { greedyAiPolicy } from '../core/battle/ai';
 import type { BattleSession } from '../core/battle/driver';
 import { GYMRUN_FORMAT } from '../core/battle/format';
+import { PARTY_SIZE } from '../data/partyTuning';
 import type { NodeSpec } from '../core/encounters';
+import type { AcquisitionDecision } from '../core/acquisition';
+import { releaseMember, reorderParty } from '../core/party';
 import { normalizeSeed } from '../core/rng';
 import {
   isReplayable,
@@ -23,14 +26,16 @@ import {
   type RunResult,
   type RunState,
 } from '../core/run';
-import { moveChoice, type Choice, type PokemonSpec, type RunLog } from '../core/types';
-import { PARTY_SIZE } from '../data/partyTuning';
+import type { Choice, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
 import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
+import { createAcquisitionScreen } from './screens/acquisition';
+import { createItemTargetScreen } from './screens/item-target';
+import { createPartyScreen } from './screens/party';
 import { createRewardScreen } from './screens/reward';
 import { createRouter } from './screens/router';
 import { createShopScreen } from './screens/shop';
@@ -46,6 +51,9 @@ export function mountApp(root: HTMLElement): void {
   const rewardScreen = createRewardScreen();
   const shopScreen = createShopScreen();
   const eventScreen = createEventScreen();
+  const targetScreen = createItemTargetScreen();
+  const acquisitionScreen = createAcquisitionScreen();
+  const partyScreen = createPartyScreen();
   const summaryScreen = createSummary();
 
   const router = createRouter({
@@ -53,6 +61,9 @@ export function mountApp(root: HTMLElement): void {
     map: mapScreen.root,
     battle: battleScreen.root,
     reward: rewardScreen.root,
+    target: targetScreen.root,
+    acquisition: acquisitionScreen.root,
+    party: partyScreen.root,
     shop: shopScreen.root,
     event: eventScreen.root,
     summary: summaryScreen.root,
@@ -76,6 +87,8 @@ export function mountApp(root: HTMLElement): void {
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
     const rewardPick = createPending<number>();
+    const targetPick = createPending<number>();
+    const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<number>();
     let detachBattle: (() => void) | null = null;
@@ -89,6 +102,8 @@ export function mountApp(root: HTMLElement): void {
       nodePick.cancel();
       movePick.cancel();
       rewardPick.cancel();
+      targetPick.cancel();
+      acquirePick.cancel();
       shopBasket.cancel();
       eventPick.cancel();
       releaseBattle();
@@ -123,29 +138,64 @@ export function mountApp(root: HTMLElement): void {
         router.show('event');
         return eventPick.wait();
       },
-      // Stage 4's two new questions. Both are answered by a rule for now and
-      // get their screens in checkpoint 5; the seam is what matters here —
-      // `playRun` asks, and a promise resolved by a click is the same answer as
-      // a promise resolved by a rule.
-      chooseItemTarget: async () => 0,
-      chooseAcquisition: async (_offer, party) =>
-        party.length < PARTY_SIZE ? { kind: 'accept' as const } : { kind: 'decline' as const },
+      chooseItemTarget: (reward, party) => {
+        targetScreen.render(reward, party, (slot) => targetPick.submit(slot));
+        router.show('target');
+        return targetPick.wait();
+      },
+      chooseAcquisition: (offer, party) => {
+        acquisitionScreen.render(offer, party, (decision) => acquirePick.submit(decision));
+        router.show('acquisition');
+        return acquirePick.wait();
+      },
       battle: () => movePick.wait(),
+    };
+
+    /*
+     * The party the map screen is currently showing.
+     *
+     * Held here rather than read back out of `playRun`, because the party
+     * screen edits state *between* decisions — a reorder is not a run decision
+     * and is not in the log (see `screens/party.ts`) — so there has to be one
+     * object both screens agree is the current party. `onState` replaces it
+     * whenever the run advances; the party screen mutates it in place through
+     * `core/party.ts` and re-renders both.
+     */
+    let live: RunState | null = null;
+
+    const showParty = (): void => {
+      const state = live;
+      if (!state) return;
+      partyScreen.render(state.party, {
+        onReorder: (from, to) => {
+          state.party = reorderParty(state.party, from, to);
+          showParty();
+          mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+        },
+        onRelease: (slot) => {
+          state.party = releaseMember(state.party, slot);
+          showParty();
+          mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+        },
+        onDone: () => router.show('map'),
+      });
+      router.show('party');
     };
 
     const onState = (state: RunState): void => {
       // Rendering on every transition, not only when a choice is pending, is
       // what makes a rest node visible: it resolves without a decision, so the
       // only evidence it happened is the party panel refilling.
-      mapScreen.render(state, (index) => nodePick.submit(index));
+      live = state;
+      mapScreen.render(state, (index) => nodePick.submit(index), showParty);
     };
 
     const onBattle = (session: BattleSession, node: NodeSpec): void => {
       releaseBattle();
-      detachBattle = battleScreen.attach(session, node, (slot) => {
+      detachBattle = battleScreen.attach(session, node, (choice) => {
         // A click with nothing pending is a no-op, not a decision queued
         // against the following turn.
-        movePick.submit(moveChoice(slot));
+        movePick.submit(choice);
       });
       router.show('battle');
     };
@@ -158,7 +208,7 @@ export function mountApp(root: HTMLElement): void {
 
       releaseBattle();
       // Leave the map showing the run as it finished, behind the summary.
-      mapScreen.render(result.state, () => undefined);
+      mapScreen.render(result.state, () => undefined, () => undefined);
       summaryScreen.render(result);
       router.show('summary');
       // The run is over: a saved log now would resume into a finished run.
@@ -202,7 +252,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 3 · ${GYMRUN_FORMAT} · eight gyms, and a choice at every step`;
+  subtitle.textContent = `Stage 4 · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, and somewhere to switch to`;
   header.append(title, subtitle);
   return header;
 }
