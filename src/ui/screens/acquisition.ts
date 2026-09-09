@@ -52,6 +52,7 @@ import { statLine, typeChip } from './starter-select';
 const SOURCE_BLURB: Record<AcquisitionOffer['source'], string> = {
   encounter: 'You beat it. You can take it with you.',
   reward: 'Offered as your reward for the fight.',
+  event: 'It is here, and it will come with you.',
 };
 
 /**

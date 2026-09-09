@@ -155,8 +155,24 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * still: keyed sub-streams moved every draw in the game onto a different
  * sequence. Two guards, two messages — this one says the questions changed,
  * that one says the answers would now mean something else.
+ *
+ * Went to `-10` for band 3, and it is worth being exact about why, because the
+ * obvious reading says it should not have moved at all.
+ *
+ * No decision *kind* was added. An event-sourced capture records
+ * `{ kind: 'acquisition', decision }`, byte for byte what a wild capture has
+ * recorded since 4.6a, and `AcquisitionDecision` did not change shape. What
+ * changed is *where the question is asked*: an event node that resolves to an
+ * offer now asks one, and a 4.6c-minus-one log has no answer for it. The cursor
+ * slips at that node and every entry after it is read as an answer to the wrong
+ * question — a run that took the Pokemon replays as a run that took whatever
+ * the next decision's index happens to select.
+ *
+ * Which is exactly what this guard is for. It does not ask whether the schema
+ * changed; it asks whether the *questions* changed, and a new question in a new
+ * place is a changed sequence even when every entry in it is an old shape.
  */
-export const RUN_LOG_VERSION = `gymrun-run-9/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-10/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -1213,8 +1229,18 @@ export async function playRun(
      * an offer the player can accept after losing would make the wild node's
      * risk one-sided.
      */
+    /*
+     * Won the fight, or there was no fight to win.
+     *
+     * The gate was `winner === 'p1'`, which is right for a wild node and reads
+     * as "you earned it". An event node has no battle at all, and requiring a
+     * victory there would make band 3 unreachable rather than gated. So the
+     * rule is stated as what it always meant: an offer is refused only by a
+     * fight that was lost, never by the absence of one.
+     */
     const offered = acquisitionOffered(result);
-    if (offered && result.battle?.result.winner === 'p1') {
+    const earned = result.battle ? result.battle.result.winner === 'p1' : true;
+    if (offered && earned) {
       const decision = await policy.chooseAcquisition(offered, state.party);
       record({ kind: 'acquisition', decision });
       const refusal = decisionRefusal(state.party, decision);
@@ -1273,8 +1299,23 @@ export async function playRun(
  * second source again: a band-3 capability event spawns an encounter, and the
  * capture it offers arrives here.
  */
-function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
-  return result.node.acquisition;
+/**
+ * The Pokemon this node is offering, from either place one can come from.
+ *
+ * A wild node carries its offer on `node.acquisition`, drawn in pass 5. An
+ * event node carries it on the *chosen* outcome — which is the difference that
+ * matters, because an event's other choices lead elsewhere and an offer sitting
+ * statically on the node would appear whichever button was pressed.
+ *
+ * Both are drawn at map generation and neither depends on how anything went.
+ * This function is the whole of what band 3 added to the node model: one more
+ * place to look for an offer, not one more way for a node to finish.
+ */
+export function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
+  if (result.node.acquisition) return result.node.acquisition;
+  if (result.eventChoice === undefined) return null;
+  const outcome = result.node.event?.choices[result.eventChoice]?.outcome;
+  return outcome?.kind === 'acquisition' ? outcome.offer : null;
 }
 
 /**

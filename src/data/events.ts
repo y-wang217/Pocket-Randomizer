@@ -42,6 +42,16 @@ export type EventOutcomeTemplate =
   | { kind: 'heal'; percent: number }
   /** One item, drawn from this pool of ids. */
   | { kind: 'item'; pool: readonly string[] }
+  /**
+   * A Pokemon on the table, take it or leave it.
+   *
+   * Carries no data: the spec is drawn at map generation, on the node's own
+   * `capture` sub-stream, and lands on the resolved `EventOutcome`. There is
+   * nothing here to tune because there is nothing here to choose — an event
+   * that offers a Pokemon offers whatever that node's segment would have
+   * produced.
+   */
+  | { kind: 'acquisition' }
   | { kind: 'nothing' };
 
 /** One thing the player can do, and the outcomes it may produce. */

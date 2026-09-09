@@ -667,6 +667,16 @@ function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number)
   switch (outcome.kind) {
     case 'nothing':
       return 0;
+    /*
+     * Worth a roster slot, priced as one.
+     *
+     * The bot scores a party slot the same way the capture step already does
+     * elsewhere in this file: a free member is worth a lot with room to spare
+     * and much less at a full party, where taking it means releasing something.
+     * Not zero at a full party, because `release` is a real answer.
+     */
+    case 'acquisition':
+      return hasRoom(state.party) ? 140 : 40;
     case 'currency':
       return (outcome.amount / priceAt(130, segment)) * 85;
     case 'heal': {
