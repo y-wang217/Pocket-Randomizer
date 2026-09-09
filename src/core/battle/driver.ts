@@ -154,8 +154,23 @@ export interface SpecCard {
    */
   gender: Gender;
   ability: string;
+  /** The ability's dex id, so a screen can raise its tooltip. */
+  abilityId: string;
   types: string[];
   maxHp: number;
+  /**
+   * The five boostable stats at this level, as the sim computed them.
+   *
+   * **Read off the probe rather than recomputed**, for the reason the rest of
+   * this function exists: the stat formula is five lines this repo could be
+   * subtly wrong about forever, and `describeSpecCard` already has a fully
+   * constructed Pokemon to ask. The party screen shows these; the battle panel
+   * shows the live ones off `ActiveFacts`, which include stat stages.
+   *
+   * HP is not here. It is `maxHp`, because HP-the-stat and HP-the-resource are
+   * the same number outside a battle.
+   */
+  baseStatsAtLevel: Record<StatName, number>;
   moves: MoveView[];
 }
 
@@ -203,8 +218,16 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
     level: mon.level,
     gender: spec.gender ?? null,
     ability: dex.abilities.get(mon.ability).name,
+    abilityId: dex.abilities.get(mon.ability).id,
     types: mon.getTypes(),
     maxHp: mon.maxhp,
+    baseStatsAtLevel: {
+      atk: mon.storedStats.atk,
+      def: mon.storedStats.def,
+      spa: mon.storedStats.spa,
+      spd: mon.storedStats.spd,
+      spe: mon.storedStats.spe,
+    },
     moves: mon.moveSlots.map((slot, index) => {
       const data = dex.moves.get(slot.id);
       return {

@@ -324,6 +324,165 @@ body {
 .stat[data-stat="hp"] { grid-column: 1 / -1; }
 .stat[data-stat="spe"] { grid-column: 1 / -1; }
 
+/*
+ * Simple mode: the bar that stands in for the number.
+ *
+ * It occupies the same row slot the number does — the two are swapped by
+ * `hidden`, never both shown — so flipping the toggle cannot reflow the panel
+ * under the reader. `flex: 1` rather than a fixed width so the bar fills
+ * whatever the label leaves, which keeps the two halves of a stat pair the same
+ * length and therefore comparable at a glance.
+ */
+.stat__bar {
+  flex: 1;
+  height: 6px;
+  min-width: 40px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.stat__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--text-faint);
+  transition: width 120ms ease-out;
+}
+
+/* A boosted row colours its bar, exactly as it colours its number. Hiding the
+   digits must not hide that something changed them. */
+.stat[data-stage="up"] .stat__bar-fill { background: var(--stage-up); }
+.stat[data-stage="down"] .stat__bar-fill { background: var(--stage-down); }
+
+/* The party screen's stat block: six rows, two columns, same rows as a battle
+   panel so the two read as the same object seen in two places. */
+.stats--party {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  margin: 8px 0;
+}
+
+/*
+ * The Simple / Detailed toggle, in the header.
+ *
+ * Quiet by design: it is a reading preference, not a game action, and a control
+ * that competes with the seed bar for attention is one that gets pressed by
+ * accident.
+ */
+.verbosity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.verbosity__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/*
+ * The backpack, below the party on the same screen.
+ *
+ * Deliberately not a panel with its own border: the party and the bag are one
+ * screen, and a boxed-off section would put a wall between the Pokemon and the
+ * items they can hold — which is the comparison the screen exists to make easy.
+ */
+.backpack {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.backpack__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.backpack__count {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* Over capacity is stated, not scolded — it is the condition for leaving the
+   screen, and the player cannot proceed until it is met. */
+.backpack__count--over { color: var(--hp-low); }
+
+.backpack__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backpack__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+}
+
+.backpack__effect {
+  flex: 1;
+  min-width: 180px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.backpack__give {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.backpack__empty,
+.backpack__discarded {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* The held-item row on a party card: the item, what it does, and the way off. */
+.party__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.party__item-effect {
+  flex: 1;
+  min-width: 160px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/*
+ * A move rendered outside a battle.
+ *
+ * Same `.move` rules as the battle button, minus the affordances of a control:
+ * no pointer, no hover, no disabled state. Part 5 asks that a move look
+ * identical everywhere the player sees it, and the way to keep that true is for
+ * the card and the button to share their styling rather than resemble it.
+ */
+.move--card {
+  cursor: default;
+  width: 100%;
+}
+
 .badge {
   padding: 1px 7px;
   border-radius: 999px;

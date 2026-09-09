@@ -54,14 +54,19 @@ await new Promise((resolve) => server.listen(0, resolve));
 /*
  * A seed chosen to *exercise* the app, not a lucky one.
  *
- * It clears two gyms across sixteen nodes and passes through rests,
- * shops and events on the way, so a single smoke run touches every screen. It
- * has to be rechosen whenever a tuning pass moves the curve — SMOKE603 played
- * a full segment before Stage 3 and dies at node two after it — which is why
- * the failures below are phrased as "this seed no longer smokes the app"
- * rather than as balance regressions.
+ * It clears two gyms and passes through rests, shops and events on the way, so
+ * a single smoke run touches every screen. It has to be rechosen whenever a
+ * tuning pass moves the curve — SMOKE603 played a full segment before Stage 3
+ * and died at node two after it — which is why the failures below are phrased
+ * as "this seed no longer smokes the app" rather than as balance regressions.
+ *
+ * SMOKE11 was the Stage 4.5 pick and died at gym 1 after Stage 4.5.1 moved
+ * `RANDOMIZER_VERSION` to `-5`: gender is rolled per Pokemon now, so every
+ * seed's species, ability and moveset rolls shifted and SMOKE11's run is simply
+ * a different run. SMOKE12 was the first re-scanned seed that reaches two gyms
+ * and shows the move-target screen on the way.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE11';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE12';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
@@ -487,7 +492,16 @@ if (first.acquisitions < 1) {
   problems.push('no acquisition screen was ever shown — the party can never grow');
 }
 if (first.targets < 1) {
-  problems.push('no item-target screen was ever shown — targeted rewards are unreachable');
+  /*
+   * Renamed in Stage 4.5.1, because what this screen is for changed.
+   *
+   * It used to appear for items, TMs and tutors alike. Items no longer reach it
+   * — they go to the backpack, and who holds one is settled on the party screen
+   * — so the only thing left that asks "which member" is a taught move. A seed
+   * that never offers one now legitimately never shows this screen, which is
+   * why the seed above was re-scanned for one that does.
+   */
+  problems.push('no move-recipient screen was ever shown — taught moves are unreachable');
 }
 if (first.partyVisits < 1) {
   problems.push('the party screen was never opened — reorder and release are unsmoked');
