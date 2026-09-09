@@ -29,10 +29,15 @@
  *   - **Breeding and evolution items** — Everstone, evolution stones, incense.
  *     There is no breeding and no evolution: a Pokemon's species is fixed from
  *     the moment it is generated.
- *   - **Consumables** — every Berry, Z-crystals, Mega Stones. Berries fire once
- *     and vanish, which needs an inventory to be interesting and needs the
- *     player to be able to *not* use one. The spec puts consumables out of
- *     scope for Stage 3 and this is why.
+ *   - **Z-crystals and Mega Stones** — a once-per-battle nuke and a mid-battle
+ *     stat rewrite, neither of which the greedy AI scores, so both would make
+ *     the balance report measure the mis-scoring.
+ *
+ * **Berries were on that list and came off it in Stage 4.6b.** The Stage 3 note
+ * said they "fire once and vanish, which needs an inventory to be interesting
+ * and needs the player to be able to *not* use one" — and both conditions are
+ * met now. The inventory is 4.5.1's backpack, and the choice not to use one is
+ * a backpack slot spent on a Leftovers instead. See `BERRIES` below.
  *
  * ## One item per Pokemon, and a bag for the rest
  *
@@ -56,6 +61,22 @@
 
 /** A held item the reward pools may draw. */
 export interface ItemEntry {
+  /**
+   * True for a berry: a held item that fires once and is destroyed.
+   *
+   * **Stage 4.6b, and it is the one property that changes what an item *is*
+   * rather than what it does.** Every other item on this whitelist is
+   * permanent — assign it, unassign it, discard it, but it exists until the
+   * player says otherwise. A berry leaves the run the moment it triggers, and
+   * `core/battle/driver.ts` reads that off the `-enditem` protocol message so
+   * the run state agrees with the battle that spent it.
+   *
+   * A flag rather than a separate table, because a berry *is* a held item in
+   * every other respect: it occupies the one item slot, it occupies a backpack
+   * slot, it is assigned on the party screen, and the sim resolves it with no
+   * help from us. A second table would be a second set of rules for all four.
+   */
+  consumable?: boolean;
   /** Dex id. The value handed to the sim, and the key everything else uses. */
   id: string;
   /** Dex name, as the engine spells it. Shown to the player. */
@@ -95,6 +116,11 @@ export interface ItemEntry {
 
 function item(id: string, name: string, blurb: string, extra: Partial<ItemEntry> = {}): ItemEntry {
   return { id, name, blurb, boostsType: null, locksMove: false, ...extra };
+}
+
+/** A berry: the same record, with `consumable` set. */
+function berry(id: string, name: string, blurb: string, extra: Partial<ItemEntry> = {}): ItemEntry {
+  return item(id, name, blurb, { ...extra, consumable: true });
 }
 
 /**
@@ -185,6 +211,60 @@ export const TYPE_ITEMS: readonly ItemEntry[] = [
 ];
 
 /**
+ * Berries: the low denomination of the whole economy.
+ *
+ * **They matter early, they fade as HP totals scale, and the fade is the
+ * design.** An Oran Berry restores 10 HP. At segment 1 that is a fifth of a
+ * health bar and the difference between two fights and three; at segment 7 it
+ * is a rounding error, and the slot it occupies is worth more as a Leftovers.
+ * A player who is still carrying berries into the last two segments has not
+ * been offered anything better, which is a fact about the reward pools that the
+ * simulator can see.
+ *
+ * That is also why they occupy backpack slots against
+ * `tuning.backpackCapacity` rather than sitting in a pocket of their own. A
+ * separate berry pouch would make them free, and a free consumable is one the
+ * player never has to think about; competing with held items is what makes
+ * dropping them a decision the player makes deliberately, at the point the
+ * economy has moved past them.
+ *
+ * ## Why these fifteen
+ *
+ * Three groups, and each earns its place differently:
+ *
+ *   - **Healing** — Oran and Sitrus fire at half HP and buy a turn. The
+ *     cheapest possible effect and the one the early game is short of.
+ *   - **Status** — Lum, Chesto and Persim answer the thing a run cannot play
+ *     around: a turn-two sleep or freeze that outlasts the fight. Stage 1
+ *     cleared status between nodes for exactly this reason; a berry is the
+ *     *within*-fight version of the same mercy.
+ *   - **Type resist** — the six that halve one super-effective hit. These are
+ *     the interesting ones, because they are the only berry a player can
+ *     *plan* with: the gym rail names every leader's type from segment 1, so
+ *     holding a Chople into a Fighting gym is a decision rather than a hope.
+ *
+ * Leppa is the odd one out and is here on the spec's list: PP is the resource
+ * a run quietly runs out of, and 4.6 does not otherwise touch PP restoration.
+ */
+export const BERRIES: readonly ItemEntry[] = [
+  berry('oranberry', 'Oran Berry', 'Restores 10 HP when the holder drops below half.'),
+  berry('sitrusberry', 'Sitrus Berry', 'Restores 1/4 max HP when the holder drops below half.'),
+  berry('lumberry', 'Lum Berry', 'Cures any status condition, once.'),
+  berry('chestoberry', 'Chesto Berry', 'Wakes the holder from sleep, once.'),
+  berry('persimberry', 'Persim Berry', 'Cures confusion, once.'),
+  berry('leppaberry', 'Leppa Berry', 'Restores 10 PP to a move that has run out.'),
+  berry('occaberry', 'Occa Berry', 'Halves one super-effective Fire hit.', { boostsType: 'Fire' }),
+  berry('passhoberry', 'Passho Berry', 'Halves one super-effective Water hit.', { boostsType: 'Water' }),
+  berry('rindoberry', 'Rindo Berry', 'Halves one super-effective Grass hit.', { boostsType: 'Grass' }),
+  berry('wacanberry', 'Wacan Berry', 'Halves one super-effective Electric hit.', { boostsType: 'Electric' }),
+  berry('chopleberry', 'Chople Berry', 'Halves one super-effective Fighting hit.', { boostsType: 'Fighting' }),
+  berry('payapaberry', 'Payapa Berry', 'Halves one super-effective Psychic hit.', { boostsType: 'Psychic' }),
+  berry('yacheberry', 'Yache Berry', 'Halves one super-effective Ice hit.', { boostsType: 'Ice' }),
+  berry('habanberry', 'Haban Berry', 'Halves one super-effective Dragon hit.', { boostsType: 'Dragon' }),
+  berry('colburberry', 'Colbur Berry', 'Halves one super-effective Dark hit.', { boostsType: 'Dark' }),
+];
+
+/**
  * Every item a run can produce, in a fixed order.
  *
  * The order is a **draw order** — `data/rewardPools.ts` names items and
@@ -197,6 +277,8 @@ export const ITEMS: readonly ItemEntry[] = [
   ...CHOICE_ITEMS,
   ...MODEST_ITEMS,
   ...TYPE_ITEMS,
+  // Appended, like every list before them, because the order is a draw order.
+  ...BERRIES,
 ];
 
 const BY_ID = new Map(ITEMS.map((entry) => [entry.id, entry]));

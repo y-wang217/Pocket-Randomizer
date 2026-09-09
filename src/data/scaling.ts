@@ -442,6 +442,43 @@ function shiftWeights(
 }
 
 /**
+ * How often an opponent walks in holding a berry, by segment.
+ *
+ * **Stage 4.6b, and the shape of the curve is the point.** Berries are the low
+ * denomination: they matter when a health bar is small and fade as HP totals
+ * scale, so an opponent holding one is a real complication in segment 1 and
+ * noise by segment 7. Weighting the rate the same way means the *player* meets
+ * the mechanic while it still teaches something — a fight that goes one turn
+ * longer than it should is how you learn to read `-enditem` on the battle log.
+ *
+ * A trainer holds them far more often than a wild Pokemon. A trainer prepared;
+ * a wild Pokemon is holding whatever it was holding. That is flavour, and it is
+ * also the lever that keeps the guaranteed wild encounter from becoming the
+ * hardest node in the segment.
+ *
+ * Gym leaders are not on this table and hold nothing. A gym is the segment's
+ * difficulty statement and it already draws at `GYM_MOVE_BAND_BONUS`; a second
+ * dial on the same fight is a dial the balance report cannot attribute.
+ */
+export const BERRY_HOLD_RATE: readonly { trainer: number; wild: number }[] = [
+  { trainer: 0.5, wild: 0.25 },
+  { trainer: 0.5, wild: 0.25 },
+  { trainer: 0.4, wild: 0.2 },
+  { trainer: 0.4, wild: 0.2 },
+  { trainer: 0.3, wild: 0.15 },
+  { trainer: 0.3, wild: 0.15 },
+  { trainer: 0.2, wild: 0.1 },
+  { trainer: 0.2, wild: 0.1 },
+];
+
+/** The chance a `kind` opponent in this segment holds a berry. Gyms hold none. */
+export function berryHoldRate(kind: BattleKind, segment: number): number {
+  if (kind === 'gym') return 0;
+  const row = BERRY_HOLD_RATE[Math.max(0, Math.min(BERRY_HOLD_RATE.length - 1, segment))];
+  return row ? row[kind] : 0;
+}
+
+/**
  * What band a move reward pays at, by the tier that paid it.
  *
  * **The reward half of Stage 4.6b's ramp, as three numbers.** A move card is

@@ -55,9 +55,12 @@ import {
 } from '../data/blacklists';
 import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
+import type { BattleKind } from '../data/tuning';
 import { localeAdmits, type LocaleId } from '../data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry } from '../data/movePools';
+import { BERRIES } from '../data/items';
 import {
+  berryHoldRate,
   GYM_MOVE_BAND_BONUS,
   MOVESET,
   moveBandsFor,
@@ -467,9 +470,34 @@ export function rollGender(entry: SpeciesEntry, stream: RngStream): Gender {
 }
 
 /**
+ * A held berry, or nothing. **Exactly one draw either way.**
+ *
+ * Stage 4.6b, appended to the spec draw order for the reason gender was: any
+ * insertion point reshuffles every recorded seed and costs the same version
+ * bump, so the end is the position that makes the history readable.
+ *
+ * The draw happens whether or not the rate can succeed — a gym's rate is zero
+ * and it still costs a value — so the per-Pokemon draw count is a constant and
+ * retuning `BERRY_HOLD_RATE` cannot move a single roll that follows it. That is
+ * the same rule `rollGender` follows for a genderless species, and the same one
+ * `drawBand` follows for a slot that ends up taking a status move.
+ *
+ * Two draws rather than one, and the second is spent unconditionally for the
+ * same reason: which berry is a separate question from whether, and folding
+ * them into one weighted pick over "nothing plus fifteen berries" would make
+ * the count depend on the outcome.
+ */
+function rollBerry(kind: BattleKind, segment: number, stream: RngStream): string | undefined {
+  const roll = stream.nextFloat();
+  const berry = stream.pick(BERRIES);
+  return roll < berryHoldRate(kind, segment) ? berry.id : undefined;
+}
+
+/**
  * One Pokemon.
  *
- * The draw order — species, level, ability, moves, gender — is a contract.
+ * The draw order — species, level, ability, moves, gender, berry — is a
+ * contract.
  * Everything that generates a team goes through here so there is exactly one
  * order to remember.
  *
@@ -483,15 +511,29 @@ function rollSpec(
   damaging: BandedMovePool,
   level: { min: number; max: number },
   stream: RngStream,
+  holding?: { kind: BattleKind; segment: number },
 ): PokemonSpec {
   const entry = stream.pick(pool);
-  return {
+  const spec: PokemonSpec = {
     species: entry.species,
     level: Math.max(1, Math.min(100, stream.inRange(level))),
     ability: rollAbility(stream),
     moves: rollMoveset(entry, damaging, stream),
     gender: rollGender(entry, stream),
   };
+  /*
+   * The berry draw is skipped entirely for a Pokemon nobody is holding one
+   * for — a starter, and (before 4.6b removed it) a reward species.
+   *
+   * That is a *different* rule from the draw-and-discard inside `rollBerry`,
+   * and the distinction matters: within a population that can hold berries the
+   * count is constant, so the rate is free to move. A starter is not in that
+   * population at all, and giving it a discarded draw would be paying for a
+   * question nobody asked.
+   */
+  if (!holding) return spec;
+  const item = rollBerry(holding.kind, holding.segment, stream);
+  return item ? { ...spec, item } : spec;
 }
 
 // ---------------------------------------------------------------------------
@@ -513,7 +555,10 @@ export function generateWildMon(
 ): PokemonSpec {
   const pool = wildSpeciesFor(segment, tier, locale);
   const damaging = damagingFor(segment, tier);
-  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream);
+  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream, {
+    kind: 'wild',
+    segment,
+  });
 }
 
 /** A trainer's team. Size comes from the curve, which is a function of PARTY_SIZE. */
@@ -523,7 +568,9 @@ export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStre
   const level = opponentLevel('trainer', segment, tier);
   const size = opponentTeamSize('trainer', segment, tier);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
+  return Array.from({ length: size }, () =>
+    rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }),
+  );
 }
 
 /**
@@ -546,7 +593,12 @@ export function generateGymTeam(gym: GymDefinition, segment: number, stream: Rng
   const level = opponentLevel('gym', segment, tier);
   const size = opponentTeamSize('gym', segment, tier, gym.teamSize);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
+  // `holding` is passed even though a gym's rate is zero, so a gym member costs
+  // the same draws as any other opponent and the table is the only thing
+  // deciding what it holds.
+  return Array.from({ length: size }, () =>
+    rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }),
+  );
 }
 
 /**
@@ -569,7 +621,9 @@ export function generateWildTeam(
   const level = opponentLevel('wild', segment, tier);
   const size = opponentTeamSize('wild', segment, tier);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
+  return Array.from({ length: size }, () =>
+    rollSpec(pool, damaging, level, stream, { kind: 'wild', segment }),
+  );
 }
 
 /*

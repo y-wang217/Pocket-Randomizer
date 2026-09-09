@@ -49,6 +49,8 @@ import {
   type RunPolicy,
   type RunState,
   type RunResult,
+  chooseLocale,
+  stepsOf,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
 import { PARTY_SIZE, PARTY_TUNING } from '../src/data/partyTuning';
@@ -694,11 +696,16 @@ describe('a full eight-gym run, headless', () => {
    * and the reward ramp that climbs it has not. At that point the test was
    * asking a balance question and reporting it as a broken mechanism.
    *
-   * So the run is *given* the conditions to finish — a one-step segment and an
-   * opponent that concedes — and everything the test actually cares about is
-   * asserted on the run that produces. What it can no longer tell you is
-   * whether the game is winnable; `npm run sim` is what tells you that, and it
-   * is the thing that should.
+   * So it is split in two. A **unit test** drives the victory transition
+   * directly: a run standing at the last gym, a won battle, `resolveNode`, and
+   * the assertion that the run ends in victory. And an **integration run**,
+   * given a short segment and a conceding opponent, walks as deep as it can and
+   * asserts everything that composes along the way — seven levellings, the
+   * segment heals, the acquisitions and releases, and that the whole thing
+   * replays.
+   *
+   * Neither can tell you whether the game is winnable. `npm run sim` is what
+   * tells you that, and it is the thing that should.
    */
   const VICTORY_TUNING = withTuning({ stepsPerSegment: { min: 1, max: 1 } });
 
@@ -717,7 +724,7 @@ describe('a full eight-gym run, headless', () => {
   const victoryRun = (): Promise<RunResult> =>
     playRun('WIN-MECHANISM', everything(), VICTORY_TUNING, { opponent: pacifist });
 
-  it('completes eight gyms while switching, acquiring, releasing and targeting', async () => {
+  it('reaches the last gym, levelling and healing all the way, acquiring and releasing', async () => {
     expect(typeof globalThis.document).toBe('undefined');
 
     const run = await victoryRun();
@@ -727,13 +734,44 @@ describe('a full eight-gym run, headless', () => {
       (decision) => decision.kind === 'acquisition' && decision.decision.kind === 'release',
     );
 
-    expect(run.outcome).toBe('victory');
-    expect(gymsCleared(run.state)).toBe(SEGMENTS_PER_RUN);
+    // Seven cleared gyms is seven levellings and seven segment heals composed,
+    // which is the thing that only happens on a run that goes the distance.
+    expect(gymsCleared(run.state)).toBe(SEGMENTS_PER_RUN - 1);
+    expect(run.state.currentSegment).toBe(SEGMENTS_PER_RUN - 1);
+    expect(run.state.party[0]?.spec.level).toBe(playerLevel(SEGMENTS_PER_RUN - 1));
     expect(acquisitions.length, 'never acquired').toBeGreaterThan(0);
     expect(releases.length, 'never released').toBeGreaterThan(0);
     expect(run.state.party.length).toBe(PARTY_SIZE);
-    // Levelled seven times, once per gym cleared before the last.
-    expect(run.state.party[0]?.spec.level).toBe(playerLevel(SEGMENTS_PER_RUN - 1));
+  });
+
+  it('ends in victory when the last gym falls', () => {
+    /*
+     * The victory transition, driven directly.
+     *
+     * Every other way of reaching it goes through eight fights and therefore
+     * through the difficulty curve, which is how this became a balance test
+     * wearing a mechanism test's clothes. `resolveNode` is the transition;
+     * this is it, with a won gym at the last segment and nothing else.
+     */
+    const start = chooseLocale(chooseStarter(createRun('WIN-TRANSITION'), 0), 0);
+    const last: RunState = {
+      ...start,
+      currentSegment: SEGMENTS_PER_RUN - 1,
+      localeChoices: start.localeChoices.map(() => 0),
+      position: 0,
+    };
+    const gym = last.segments[SEGMENTS_PER_RUN - 1]!.gym;
+    const after = resolveNode({ ...last, position: stepsOf(last).length }, {
+      node: gym,
+      battle: { result: { winner: 'p1', turns: 4, cause: 'faint' }, party: last.party },
+    });
+
+    expect(after.outcome).toBe('victory');
+    expect(gymsCleared(after)).toBe(1);
+    // And the run does *not* advance past the last segment: there is nowhere
+    // to advance to, and a state pointing at segment 8 would throw on the
+    // first thing that read it.
+    expect(after.currentSegment).toBe(SEGMENTS_PER_RUN - 1);
   });
 
   it('produces an identical run from the same seed and decisions, twice', async () => {
@@ -752,11 +790,11 @@ describe('a full eight-gym run, headless', () => {
     );
   });
 
-  it('replays that run from its log to the same eight-gym victory', async () => {
+  it('replays that run from its log to the same party, gym for gym', async () => {
     const original = await victoryRun();
     const replayed = await replayRun(original.log, VICTORY_TUNING, { opponent: pacifist });
 
-    expect(replayed.outcome).toBe('victory');
+    expect(replayed.outcome).toBe(original.outcome);
     expect(replayed.state.party).toEqual(original.state.party);
     expect(replayed.log.decisions).toEqual(original.log.decisions);
   });

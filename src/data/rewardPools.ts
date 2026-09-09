@@ -58,7 +58,7 @@
  * is where a "what does this change about my party" readout belongs now.
  */
 import type { Tier } from '../core/types';
-import { CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
+import { BERRIES, CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
 
 /**
  * One drawable entry in a pool: a weight, and enough parameters for
@@ -112,6 +112,7 @@ export interface RewardBand {
 const ids = (entries: readonly { id: string }[]): readonly string[] => entries.map((entry) => entry.id);
 
 const TYPE_ITEM_IDS = ids(TYPE_ITEMS);
+const BERRY_IDS = ids(BERRIES);
 const MODEST_ITEM_IDS = ids(MODEST_ITEMS);
 const GOOD_ITEM_IDS = ids(GOOD_ITEMS);
 const PREMIUM_ITEM_IDS = ids(PREMIUM_ITEMS);
@@ -161,7 +162,18 @@ const NORMAL: readonly RewardBand[] = [
   {
     throughSegment: 2,
     entries: [
-      { kind: 'item', weight: 4, items: TYPE_ITEM_IDS },
+      /*
+       * Berries are the normal pool's headline from Stage 4.6b, and they are
+       * weighted heaviest in the opening band on purpose.
+       *
+       * The spec's line for this tier is "a berry, or a move in the segment's
+       * current band — sidegrades and coverage, not power". A berry is the
+       * cheapest thing the game can pay out and the most useful thing it can
+       * pay out early, which is exactly the shape a no-risk tier should have.
+       * The weight falls in the late band as the berry itself fades.
+       */
+      { kind: 'item', weight: 5, items: BERRY_IDS },
+      { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 14, max: 24 },
       { kind: 'tm', weight: 3 },
       { kind: 'heal', weight: 3, fraction: 0.4 },
@@ -170,6 +182,7 @@ const NORMAL: readonly RewardBand[] = [
   {
     throughSegment: 7,
     entries: [
+      { kind: 'item', weight: 2, items: BERRY_IDS },
       { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 20, max: 32 },
       { kind: 'tm', weight: 3 },

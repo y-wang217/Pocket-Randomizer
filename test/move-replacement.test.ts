@@ -398,7 +398,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
     /*
      * The seed is chosen, not arbitrary. Most runs die before the party fills,
      * and a census that never reached a release would be asserting five things
-     * and silently skipping the sixth. `ALL-DECISIONS-2` gets deep enough with
+     * and silently skipping the sixth. `ALL-DECISIONS-6` gets deep enough with
      * this policy to hit every branch.
      *
      * It was `ALL-DECISIONS` until Stage 4.6a rekeyed the RNG streams and then
@@ -407,7 +407,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * `npx vite-node scripts/scan-seed.ts census` is how the replacement was
      * found.
      */
-    const run = await playRun('ALL-DECISIONS-2', policy);
+    const run = await playRun('ALL-DECISIONS-6', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
     for (const decision of ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign']) {
