@@ -242,34 +242,50 @@ fixed index order, so a variable count inside one node shifts only that node's
 successors on that one stream. What it must never do is move `map`,
 `randomizer` or `battle`, and it cannot: it never touches them.
 
-### Pass 5 — encounter acquisitions, from `rewards`, keyed per node
+### Pass 5 — encounter captures, from no stream at all
 
-One roll per **wild** node, in node index order, deciding whether that node
-offers the Pokemon it just fielded. Trainers and gyms take no roll: a trainer
-does not hand over their team and a gym leader certainly does not.
+Every **wild** node offers the Pokemon it just fielded, if the player wins.
+Trainers and gyms offer nothing: a trainer does not hand over their team and a
+gym leader certainly does not.
 
-The offer is the node's own lead, re-levelled to `joinLevelFor(segment)` —
-**not a fresh roll**. That is what "no new species generation path" means
-concretely: the team was generated in pass 2 from `randomizer`, and this reads
-it back. A second path would be a second set of rules for what a wild Pokemon
-is, and the first divergence between them would be invisible.
+**Stage 4.6a removed the roll.** This was one draw per wild node at a rate keyed
+to tier (0.55 / 0.7 / 0.85), and the pass existed partly to keep that draw count
+independent of the tier table. There is no rate now, so the pass consumes
+nothing.
 
-Two properties matter, and both are asserted in `test/party.test.ts`:
+The argument for removing it is the one this whole document is about. A capture
+roll on a *seeded* run is a punch with no counterplay: the player cannot see it,
+change it, or learn from it, and two players on one seed who both win the same
+fight end up with different parties for a reason neither of them can name. The
+cost the rate was standing in for is now a cost on the map — a segment
+guarantees exactly one wild encounter and it occupies one of that segment's
+limited steps — so the question becomes "is this worth a slot", which is a
+decision, rather than "did the seed feel like it", which is not.
 
-- **Exactly one roll per wild node, whether or not the offer appears.** A check
-  that only rolled when it might succeed would make the draw *count* depend on
-  the tier table, so editing `ENCOUNTER_ACQUISITION_RATE` would shift every
-  later reward roll in every recorded seed.
+The offer is the node's own lead, **exactly as it was fought**: level, moveset,
+ability, gender and held item. 4.5.1 re-levelled it down to
+`joinLevelFor(segment)` as the price of a free Pokemon; the price is the step and
+the slot now, and a captured Pokemon weaker than the one just beaten is a readout
+the player cannot square with what they watched. Species *reward cards* still
+join at the discount — they cost no step at all.
+
+Two properties survive from Stage 4, and both are asserted in
+`test/capture.test.ts`:
+
+- **The offer is the node's own lead, never a fresh roll.** One species
+  generation path, not two.
 - **Whether an offer appears cannot depend on how the battle went** — only on
-  whether it was won. That is pass 4's rule one level down, and the reason
-  this is a generation pass rather than something `resolveNode` decides.
+  whether it was won.
 
-It is a fifth *sweep* rather than a branch inside pass 4, even though both use
-the same stream. Folding it in would produce identical output today and couple
-the two draw orders forever: the next change to reward offers would silently
-reshuffle every acquisition in every recorded seed. Appending is the only edit
-to this list that cannot move what came before it, which is the whole
-discipline — **the list only ever grows downward.**
+A held item on a captured Pokemon goes to the **backpack**, not into its hands.
+That is the reading of the spec that makes its next sentence work: going over
+capacity triggers the existing discard choice, which can only happen if the item
+lands in the bag. Nothing is lost — the party screen hands it straight back for
+free.
+
+It stays a pass rather than folding into `buildNode` because it is still a
+*payout*, and it belongs beside the other four things a node pays. The key
+(`node/<id>/capture`) already exists for the day a capture needs a draw again.
 
 ### Node kinds
 
@@ -379,7 +395,10 @@ The offsets that ship were measured, not guessed — see docs/balance.md.
 | A step's fights carry different tiers | The tier is the whole of what the player can see about a node's trade. Two `hard` fights in one step is a decision-shaped rectangle |
 | `elite` never appears in segments 0-1 | Not for fairness — the player can decline it — but for legibility. A tier label is worthless to someone with no baseline for what a normal fight costs |
 | Only wild nodes carry an `acquisition` | A trainer does not hand over their Pokemon, and the offer is the *defeated* species, so a node with no encounter has nothing to offer |
-| An acquisition offer is the node's own lead, re-levelled | One species generation path, not two. See pass 5 |
+| **Every** wild node carries one | Stage 4.6a: capture is guaranteed, not rolled. A capture roll on a seeded run is a punch with no counterplay; the cost is the step the encounter occupies. See pass 5 |
+| An acquisition offer is the node's own lead, at its own level | One species generation path, not two, and no discount — the price is the step and the slot |
+| Exactly one wild step per route, all of its options wild | The guaranteed encounter has to be reachable whatever the player picks. Its options carry different tiers, so it is still a decision. See §1c |
+| At least one event and one reachable rest per route | The floor under capability events and under the 4.5.1 rest cut |
 | The party can never exceed `PARTY_SIZE` | Enforced in `acquisition.applyAcquisition`, which *refuses* an illegal decision rather than clamping it — a decision silently turned into a different decision is a log that replays into a different run |
 
 ## 5. What a seed does *not* fix

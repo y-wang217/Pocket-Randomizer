@@ -497,29 +497,23 @@ export function generateSegment(
     }
   }
 
-  // --- pass 5: encounter acquisitions, also from the `rewards` stream -------
+  // --- pass 5: encounter captures, no stream at all ------------------------
   /*
-   * A fifth sweep rather than a branch inside pass 4, and appended rather than
-   * interleaved, for the reason the whole contract exists: appending a pass
-   * cannot move the four that came before it. Folding the roll into pass 4
-   * would be identical output today and would couple the two draw orders
-   * forever — the next change to reward offers would silently reshuffle every
-   * acquisition in every recorded seed.
+   * **Stage 4.6a: every wild node offers its Pokemon, and the offer is not
+   * drawn.** This was a roll per wild node off the `rewards` stream at a rate
+   * keyed to tier; it is now a fact about the node, so the pass consumes
+   * nothing and could in principle be folded into `buildNode`.
    *
-   * Wild nodes only: a trainer does not hand over their Pokemon, and a gym
-   * leader certainly does not.
+   * It stays a pass because it is still a *payout* — it belongs beside the
+   * other four things a node pays, where anyone changing what a node offers
+   * will find it — and because keeping it here means the day a capture needs a
+   * draw again, the key already exists (`nodeRewardKey(id, 'capture')`) and
+   * nothing else moves.
    */
   for (const node of nodesOf(segment)) {
     const lead = node.encounter?.team[0];
-    if (node.kind !== 'wild' || !node.tier || !lead) continue;
-    node.acquisition = generateEncounterAcquisition(
-      node.id,
-      lead,
-      node.tier,
-      index,
-      rng.rewards.at(nodeRewardKey(node.id, 'capture')),
-      tuning,
-    );
+    if (node.kind !== 'wild' || !lead) continue;
+    node.acquisition = generateEncounterAcquisition(node.id, lead, tuning);
   }
 
   // --- pass 6: the gym clear offer, also from the `rewards` stream ----------

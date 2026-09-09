@@ -139,6 +139,18 @@ export function stow(backpack: readonly ItemId[], itemId: ItemId): ItemId[] {
 }
 
 /**
+ * Stow several, in order. **Stage 4.6a, and it exists because a capture can
+ * free two items at once**: a captured Pokemon's own held item, and the item of
+ * the member released to make room for it.
+ *
+ * A fold over `stow` rather than a second implementation, so the unknown-item
+ * guard and the transient overflow rule are stated exactly once.
+ */
+export function stowAll(backpack: readonly ItemId[], itemIds: readonly ItemId[]): ItemId[] {
+  return itemIds.reduce<ItemId[]>((carried, itemId) => stow(carried, itemId), [...backpack]);
+}
+
+/**
  * Apply a whole item plan: reassignments first, then discards.
  *
  * **Ordering matters and is fixed here rather than left to the caller.** An

@@ -62,7 +62,7 @@ import {
 } from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
 import { describeMove } from './battle/driver';
-import { applyItemPlan, backpackCapacity, needsItemPlan, stow } from './items';
+import { applyItemPlan, backpackCapacity, needsItemPlan, stowAll } from './items';
 import {
   applyReward,
   isTargeted,
@@ -699,7 +699,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       cleared = {
         ...cleared,
         party: acquired,
-        backpack: freed ? stow(cleared.backpack, freed) : cleared.backpack,
+        backpack: stowAll(cleared.backpack, freed),
       };
     }
     return cleared;
@@ -766,11 +766,16 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       result.acquisition.offer,
       result.acquisition.decision,
     );
-    // A released member's item goes to the backpack, not with them. The release
-    // is still permanent; the item is not part of the price. Over capacity is
-    // allowed here and resolved by the boundary's item plan, like any other
-    // acquisition.
-    advanced = { ...advanced, party, backpack: freed ? stow(advanced.backpack, freed) : advanced.backpack };
+    /*
+     * Every item the decision freed goes to the backpack, not with anybody.
+     *
+     * Two can come out of one capture: the released member's item — the release
+     * is still permanent, but an item is destroyed only by an explicit discard
+     * and letting a Pokemon go is not one — and, from 4.6a, whatever the
+     * *captured* Pokemon was holding. Over capacity is allowed here and
+     * resolved by the boundary's item plan, like any other acquisition.
+     */
+    advanced = { ...advanced, party, backpack: stowAll(advanced.backpack, freed) };
   }
   return advanced;
 }
