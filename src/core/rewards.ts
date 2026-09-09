@@ -261,7 +261,16 @@ export function resolveRewardEntry(
  * `applyReward` has to use it. Three copies of "is it an item, a tm or a
  * tutor?" is three places for the fourth kind to be forgotten.
  */
-export type TargetedReward = Extract<Reward, { kind: 'tm' } | { kind: 'tutor' }>;
+export type MoveReward = Extract<Reward, { kind: 'tm' } | { kind: 'tutor' }>;
+
+/**
+ * The old name for `MoveReward`, kept only where the UI still speaks it.
+ *
+ * Renamed in Stage 4.5.1: once items stopped being targeted, "the rewards that
+ * need a target" and "the rewards that teach a move" became the same set, and
+ * the second name is the one that says why.
+ */
+export type TargetedReward = MoveReward;
 
 /**
  * Whether this card needs the player to pick who gets it.
@@ -306,7 +315,12 @@ export function isTargeted(reward: Reward): reward is TargetedReward {
  *
  * Returns new state, like every other transition.
  */
-export function applyReward(state: RunState, choice: Reward, target = 0): RunState {
+export function applyReward(
+  state: RunState,
+  choice: Reward,
+  target = 0,
+  replaceSlot: number | null = null,
+): RunState {
   switch (choice.kind) {
     case 'currency':
       return { ...state, currency: state.currency + Math.max(0, choice.amount) };
@@ -321,7 +335,7 @@ export function applyReward(state: RunState, choice: Reward, target = 0): RunSta
 
     case 'tm':
     case 'tutor':
-      return withTarget(state, target, (member) => teachMove(member, choice.move));
+      return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
 
     case 'species':
       return state;
@@ -347,13 +361,35 @@ export function applyReward(state: RunState, choice: Reward, target = 0): RunSta
  * reward silently resurrecting a finished run is the failure worth being
  * unreachable twice over.
  */
+/**
+ * The member a targeted card actually lands on. **The single definition.**
+ *
+ * An out-of-range or fainted slot falls back to the lead rather than throwing.
+ * That is not leniency about bad input — `playRun` validates the index when it
+ * records the decision — it is about a member that *fainted in the fight that
+ * paid the card*: a run that crashed rather than handing the TM elsewhere would
+ * be a worse failure than the move moving.
+ *
+ * **Exported in Stage 4.5.1, and the export is the fix for a bug the fallback
+ * would otherwise have caused.** The replacement slot is chosen for a
+ * particular Pokemon's four moves. If `playRun` asked "which of *this* member's
+ * moves goes" and then `applyReward` quietly redirected the card to the lead,
+ * the answer would be applied to a different Pokemon's move list — displacing
+ * whatever happened to sit at that index. So both sides resolve the recipient
+ * through this function, once, and the question is asked about the member that
+ * will actually receive it.
+ */
+export function recipientFor(party: readonly PokemonState[], slot: number): PokemonState | null {
+  const chosen = party[slot];
+  return chosen && !chosen.fainted ? chosen : leadOf(party);
+}
+
 function withTarget(
   state: RunState,
   slot: number,
   change: (member: PokemonState) => PokemonState,
 ): RunState {
-  const chosen = state.party[slot];
-  const target = chosen && !chosen.fainted ? chosen : leadOf(state.party);
+  const target = recipientFor(state.party, slot);
   if (!target) return state;
   return { ...state, party: state.party.map((member) => (member === target ? change(member) : member)) };
 }

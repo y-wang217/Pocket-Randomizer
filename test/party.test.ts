@@ -35,6 +35,7 @@ import {
   RUN_LOG_VERSION,
   createRun,
   chooseStarter,
+  defaultMoveReplacement,
   gymsCleared,
   playRun,
   replayRun,
@@ -335,7 +336,8 @@ function collector(): RunPolicy & { readonly taken: number; readonly released: n
     },
     // The last slot, so a target that was ignored shows up as slot 0 holding
     // everything.
-    chooseItemTarget: async (_reward, party) => party.length - 1,
+    chooseMoveRecipient: async (_offer, party) => party.length - 1,
+    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     chooseAcquisition: async (_offer, party) => {
       taken++;
       if (party.length < PARTY_SIZE) return { kind: 'accept' };
@@ -623,7 +625,8 @@ describe('a full eight-gym run, headless', () => {
         const wild = options.findIndex((option) => option.kind === 'wild');
         return wild === -1 ? 0 : wild;
       },
-      chooseItemTarget: async (_reward, party) => party.length - 1,
+      chooseMoveRecipient: async (_offer, party) => party.length - 1,
+    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       chooseAcquisition: async (_offer, party) =>
         hasRoom(party) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
     };

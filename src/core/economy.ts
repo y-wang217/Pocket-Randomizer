@@ -21,7 +21,7 @@
  * never played. That is the exact failure the whole replay design exists to
  * prevent.
  */
-import { applyReward, resolveRewardEntry, type Reward } from './rewards';
+import { applyReward, isTargeted, resolveRewardEntry, type Reward } from './rewards';
 import type { Rng } from './rng';
 import type { RunState } from './run';
 import type { NodeSpec } from './encounters';
@@ -166,10 +166,44 @@ export function canAfford(state: RunState, stock: ShopStock, indexes: readonly n
  * twice is one item and two charges, and the version of that which "works" is
  * the version that silently overcharges.
  */
+/**
+ * Who a bought TM goes to, and what it costs them.
+ *
+ * The same pair `playRun` records for a reward card — `target` a party slot,
+ * `replaceSlot` a 0-based move slot or null when nothing is displaced. It rides
+ * with the purchase rather than being asked at application time because
+ * `applyPurchases` is a state transition and asking a question is not something
+ * a state transition may do.
+ */
+export interface MovePurchaseChoice {
+  target: number;
+  replaceSlot: number | null;
+}
+
+/**
+ * The rewards a basket buys, in the order they are applied.
+ *
+ * **Shelf order, not click order, and it is shared rather than recomputed.**
+ * `applyPurchases` folds them in this order and `playRun` walks the same list to
+ * ask who a bought TM goes to — two loops over one ordering. If each derived
+ * its own, a basket holding two TMs would answer the questions in one order and
+ * apply them in the other, and the second TM would land on the member chosen
+ * for the first.
+ */
+export function purchasedRewards(stock: ShopStock, indexes: readonly number[]): Reward[] {
+  return [...indexes]
+    .sort((a, b) => a - b)
+    .flatMap((index) => {
+      const item = stock.items[index];
+      return item ? [item.reward] : [];
+    });
+}
+
 export function applyPurchases(
   state: RunState,
   stock: ShopStock,
   indexes: readonly number[],
+  moveChoices: readonly MovePurchaseChoice[] = [],
 ): RunState {
   if (indexes.length === 0) return state;
   if (new Set(indexes).size !== indexes.length) {
@@ -184,14 +218,32 @@ export function applyPurchases(
     );
   }
 
-  // Applied in shelf order rather than in the order the player clicked, so a
-  // basket is a set and not a sequence. It matters for exactly one case today —
-  // buying two held items, where the later one wins — and a replay that
-  // reordered the clicks would otherwise end up holding the other one.
+  /*
+   * Applied in shelf order rather than in the order the player clicked, so a
+   * basket is a set and not a sequence.
+   *
+   * From Stage 4.5.1 the order carries a second job: a shop can sell a TM, and
+   * a TM needs a recipient and a displaced move like any other taught move.
+   * `playRun` asks those questions by walking `purchasedRewards` and hands the
+   * answers back here in the same order, so `moveChoices` is consumed
+   * positionally against the move rewards in this fold.
+   */
   let next: RunState = { ...state, currency: state.currency - cost };
-  for (const index of [...indexes].sort((a, b) => a - b)) {
-    const item = stock.items[index];
-    if (item) next = applyReward(next, item.reward);
+  let move = 0;
+  for (const reward of purchasedRewards(stock, indexes)) {
+    if (isTargeted(reward)) {
+      const choice = moveChoices[move];
+      move++;
+      if (!choice) {
+        throw new RangeError(
+          `Shop basket buys a ${reward.kind} but carries no recipient for it. ` +
+            'A taught move needs a target and, unless a slot is free, a move to displace.',
+        );
+      }
+      next = applyReward(next, reward, choice.target, choice.replaceSlot);
+      continue;
+    }
+    next = applyReward(next, reward);
   }
   return next;
 }

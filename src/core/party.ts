@@ -18,7 +18,7 @@
  * replayed from a decision log, and a shared mutable party is the fastest way
  * to make a replay disagree with the run it replays.
  */
-import { describeSpec, describeSpecCard } from './battle/driver';
+import { describeSpec } from './battle/driver';
 import { battleSpecFor } from './items';
 import type { MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
 import { MOVESET } from '../data/scaling';
@@ -275,64 +275,97 @@ export function levelParty(party: readonly PokemonState[], level: number): Pokem
 }
 
 /**
- * Teach a move, replacing the weakest attack if there is no room.
+ * Which move slot a taught move would displace, or null if none is needed.
  *
- * The rule is deliberately simple and deliberately not a choice, because there
- * is nowhere to put the choice. A `RunPolicy` answers a reward offer with one
- * index; there is no second question for "and which move does it replace", and
- * inventing one would mean a decision in the log that the reward screen has to
- * be able to ask twice on a replay. So the replacement is a rule the player can
- * learn instead:
+ * **The single definition of "does the player get asked", shared by `playRun`
+ * and by the replay that answers it** — the same discipline `rewards.isTargeted`
+ * and `items.needsItemPlan` follow, and for the same reason. It is derived from
+ * the member and the move, both of which a replay reconstructs exactly, so the
+ * question is asked at identical points in both.
  *
- *   1. **Already known** — refill that move's PP instead. A reward that did
- *      nothing at all would be a card the player can be punished for taking
- *      through no fault of their own.
- *   2. **A free slot** — take it.
- *   3. **Stronger than the weakest attack** — replace that attack, ties to the
- *      later slot.
- *   4. **Weaker than everything** — replace a *status* move if there is one, so
- *      the card still buys coverage; otherwise change nothing and refill PP.
+ * Two cases skip the prompt, and both are the absence of a decision rather than
+ * a decision made for the player:
  *
- * **Four is the rule that makes a move reward safe to be forced into, and it
- * was added because the reward screen showed the alternative out loud.** The
- * first version always replaced the weakest attack, and a segment-0 normal node
- * duly offered Arm Thrust (15 BP) in place of Aqua Step (80 BP) — a card that
- * makes the player strictly worse, in an offer of three with no skip. That is a
- * punishment wearing a reward's clothes.
+ *   1. **A free slot** — nothing is displaced, so there is nothing to choose.
+ *   2. **Already known** — the move is already there; teaching it again refills
+ *      its PP. Asking which of the four to drop in order to gain a fifth copy
+ *      of one of them would be asking a question with no good answer.
  *
- * The invariant it buys: **a move reward can never leave the party weaker.**
- * Three never touches a status move either, so a reward can also never cost the
- * player their Recover or their Swords Dance; and because every taught move is
- * damaging, "at least one damaging move" survives by construction.
+ * Returns `'free'`, `'known'`, or `'choose'`. Three states rather than a
+ * boolean, because the two skip cases do *different* things downstream and a
+ * caller that could not tell them apart would refill PP on an empty slot.
+ */
+export function replacementNeeded(member: PokemonState, moveName: string): 'free' | 'known' | 'choose' {
+  if (member.moves.some((move) => move.name === moveName)) return 'known';
+  return member.spec.moves.length < MOVESET.slots ? 'free' : 'choose';
+}
+
+/**
+ * Teach a move into a named slot. **The Stage 4.5.1 logic change.**
+ *
+ * ## What this replaces, and why the old rule had to go
+ *
+ * Until now the replacement was a *rule* rather than a choice, and the rule was
+ * written down at length because it had to be learnable: already known refills
+ * PP; a free slot takes it; otherwise replace the weakest attack, ties to the
+ * later slot; and if the incoming move is weaker than everything, replace a
+ * status move or change nothing at all.
+ *
+ * That last clause bought an invariant — **a move reward could never leave the
+ * party weaker** — and this stage gives it up on purpose. Which move you give
+ * up is a more interesting decision than which move you gain, and a rule that
+ * guarantees you never lose is a rule that removes the decision. The place to
+ * decline a move reward is the reward screen, where it was already chosen over
+ * two alternatives; offering a second escape hatch here would make that pick
+ * meaningless.
+ *
+ * The consequence is real and is not a bug: a member whose four moves are all
+ * better than the incoming one now *must* give one up. The player picks which,
+ * and picking the least-bad victim is the decision.
+ *
+ * ## The contract
+ *
+ * `slot` is a 0-based move slot, and it is required exactly when
+ * `replacementNeeded` says `'choose'`. Passing one in the other two cases is a
+ * caller bug and throws, rather than being ignored — a silently discarded slot
+ * would mean a log entry that changed nothing, and the next replay would find
+ * an entry the run no longer asks for.
  *
  * The spec is rebuilt rather than mutated, and PP carries per move id rather
- * than per slot — a replaced slot shifts nothing else, but matching by id is
+ * than per slot: a replaced slot shifts nothing else, but matching by id is
  * what makes that true instead of nearly true.
  */
-export function teachMove(member: PokemonState, moveName: string): PokemonState {
-  const known = member.moves.findIndex((move) => move.name === moveName);
-  if (known >= 0) {
+export function teachMove(
+  member: PokemonState,
+  moveName: string,
+  slot: number | null = null,
+): PokemonState {
+  const need = replacementNeeded(member, moveName);
+
+  if (need === 'known') {
+    if (slot !== null) throw new RangeError(`${member.spec.species} already knows ${moveName}; nothing is displaced`);
+    // A reward that did nothing at all would be a card the player can be
+    // punished for taking through no fault of their own.
     return {
       ...member,
-      moves: member.moves.map((move, index) =>
-        index === known ? { ...move, pp: move.maxPp } : { ...move },
+      moves: member.moves.map((move) =>
+        move.name === moveName ? { ...move, pp: move.maxPp } : { ...move },
       ),
     };
   }
 
   const moves = [...member.spec.moves];
-  if (moves.length < MOVESET.slots) {
+  if (need === 'free') {
+    if (slot !== null) throw new RangeError(`${member.spec.species} has a free move slot; nothing is displaced`);
     moves.push(moveName);
   } else {
-    const slot = replaceableSlot(member, moveName);
-    // Null means the incoming move is weaker than every attack the party has
-    // and there is no status move to spend. The card is a no-op rather than a
-    // downgrade; the reward screen says so before it is taken.
     if (slot === null) {
-      return {
-        ...member,
-        moves: member.moves.map((move) => ({ ...move, pp: move.maxPp })),
-      };
+      throw new RangeError(
+        `${member.spec.species} knows ${moves.length} moves and must displace one to learn ${moveName}`,
+      );
+    }
+    if (!Number.isInteger(slot) || slot < 0 || slot >= moves.length) {
+      throw new RangeError(`Move slot ${slot} out of range (${member.spec.species} knows ${moves.length})`);
     }
     moves[slot] = moveName;
   }
@@ -352,52 +385,25 @@ export function teachMove(member: PokemonState, moveName: string): PokemonState 
   };
 }
 
-/**
- * Which slot `moveName` should take, or null if it should take none.
+/*
+ * `replaceableSlot` and `movePower` lived here through Stage 4.5 and are gone.
  *
- * The weakest attack when the incoming move beats it; otherwise the last status
- * slot, because a weaker attack that adds a type you could not hit is still
- * worth something; otherwise nothing at all.
- */
-function replaceableSlot(member: PokemonState, moveName: string): number | null {
-  const card = describeSpecCard(member.spec);
-  const incoming = movePower(moveName);
-
-  let weakestSlot: number | null = null;
-  let weakest = Number.POSITIVE_INFINITY;
-  let statusSlot: number | null = null;
-
-  for (const [index, move] of card.moves.entries()) {
-    if (move.category === 'Status') {
-      statusSlot = index;
-      continue;
-    }
-    if (move.basePower <= weakest) {
-      weakest = move.basePower;
-      weakestSlot = index;
-    }
-  }
-
-  if (weakestSlot !== null && incoming > weakest) return weakestSlot;
-  return statusSlot;
-}
-
-/**
- * Base power of a move by name, asked of the engine rather than of a table.
+ * Together they were the rule that picked which move a reward displaced — the
+ * weakest attack when the incoming move beat it, otherwise a status move,
+ * otherwise nothing. That rule is now the *player's* answer, so what is left of
+ * it is not a rule at all but a heuristic, and a heuristic belongs with the
+ * policies that need one rather than in the state machine everything shares.
  *
- * `describeSpecCard` is the adapter's answer for a spec that has never fought,
- * so probing a one-move spec is the cheapest exact reading available here — and
- * it is cached, so the second ask is free.
+ * It went to two places, deliberately not one. `run.defaultMoveReplacement` is
+ * the reference answer the scripted baseline gives; `scripts/sim.ts` has its
+ * own, because the simulator's job is to measure a *better* player than the
+ * baseline and a shared heuristic would make the two indistinguishable. Both
+ * are documented where they live, because both now show up in balance reports.
+ *
+ * The null case did not survive either. "Displace nothing" was the clause that
+ * made a move reward safe to be forced into, and Stage 4.5.1 gives that safety
+ * up on purpose — see `teachMove`.
  */
-function movePower(moveName: string): number {
-  const probe = describeSpecCard({
-    species: 'Ditto',
-    ability: 'Limber',
-    moves: [moveName],
-    level: 50,
-  });
-  return probe.moves[0]?.basePower ?? 0;
-}
 
 /*
  * `replaceSpecies` lived here through Stage 3 and is gone.

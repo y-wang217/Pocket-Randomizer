@@ -34,6 +34,7 @@ import {
   createParty,
   isWiped,
   levelParty,
+  replacementNeeded,
   recoverParty,
   restParty,
 } from './party';
@@ -45,16 +46,31 @@ import {
   type AcquisitionOffer,
 } from './acquisition';
 import { RANDOMIZER_VERSION } from './randomizer';
-import { applyPurchases, nodePayout, type ShopStock } from './economy';
+import {
+  applyPurchases,
+  nodePayout,
+  purchasedRewards,
+  type MovePurchaseChoice,
+  type ShopStock,
+} from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
+import { describeMove } from './battle/driver';
 import { applyItemPlan, backpackCapacity, needsItemPlan } from './items';
-import { applyReward, isTargeted, type Reward, type RewardOffer, type TargetedReward } from './rewards';
+import {
+  applyReward,
+  isTargeted,
+  recipientFor,
+  type MoveReward,
+  type Reward,
+  type RewardOffer,
+} from './rewards';
 import { createRng } from './rng';
 import type {
   BattleResult,
   ItemAssignment,
   ItemId,
   ItemPlan,
+  MoveSpec,
   PokemonSpec,
   PokemonState,
   RunDecision,
@@ -349,6 +365,24 @@ export interface NodeResult {
    */
   rewardTarget?: number;
   /**
+   * Which of the recipient's move slots a taught move displaces, 0-based.
+   *
+   * Absent when nothing was displaced — a free move slot, or a move the
+   * recipient already knew — which is `party.replacementNeeded` answering, and
+   * is exactly when `playRun` did not ask. `teachMove` throws on a slot passed
+   * in either of those cases rather than ignoring it, so an absent value here
+   * and an absent question there cannot drift apart silently.
+   */
+  rewardReplaceSlot?: number;
+  /**
+   * Recipients and displaced slots for any taught moves in the shop basket, in
+   * shelf order.
+   *
+   * Parallel to the move rewards in `economy.purchasedRewards`, not to
+   * `purchases` — most baskets contain no TM at all and this is empty.
+   */
+  purchaseMoveChoices?: MovePurchaseChoice[];
+  /**
    * What the player did with a Pokemon this node offered.
    *
    * Covers both routes: a `species` reward card and a wild node's post-battle
@@ -481,7 +515,12 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   // node — but the ordering is written down anyway so that a future node kind
   // that could do both has an answer rather than an accident.
   if (result.purchases && result.node.shop) {
-    advanced = applyPurchases(advanced, result.node.shop, result.purchases);
+    advanced = applyPurchases(
+      advanced,
+      result.node.shop,
+      result.purchases,
+      result.purchaseMoveChoices ?? [],
+    );
   }
 
   /*
@@ -497,7 +536,14 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * would bypass the seam, and the symptom would be a replay that reconstructs
    * a different run from the same log.
    */
-  if (result.reward) advanced = applyReward(advanced, result.reward, result.rewardTarget ?? 0);
+  if (result.reward) {
+    advanced = applyReward(
+      advanced,
+      result.reward,
+      result.rewardTarget ?? 0,
+      result.rewardReplaceSlot ?? null,
+    );
+  }
 
   /*
    * The acquisition, applied last of all.
@@ -569,19 +615,51 @@ export interface RunPolicy {
   /** Which event option to take. The outcome was drawn when the map was built. */
   chooseEventOption: (event: EventInstance, state: RunState) => Promise<number>;
   /**
-   * Which party member gets an item, a TM or a tutor. A party slot.
+   * Which party member learns a taught move. A party slot.
    *
-   * **Stage 4's question, and it did not exist before because there was nowhere
-   * to put it.** At one slot every card landed on the lead, which is why
-   * `rewards.withTarget` was a named function rather than `party[0]` written
-   * out five times.
+   * **Stage 4's question, renamed in Stage 4.5.1 because the old name stopped
+   * being true.** It was `chooseItemTarget`, and it answered for items, TMs and
+   * tutors alike. Items no longer reach it — they go to the backpack — so what
+   * is left is only ever a move, and a method called "item target" that is
+   * never asked about an item is a comment that lies.
+   *
+   * Asked *first*, before `chooseMoveToReplace`, because the second question
+   * cannot be posed until there is a member to pose it about: which four moves
+   * are on the table depends entirely on who is learning.
    *
    * Takes the whole party rather than a list of legal targets, because "who
-   * should hold the Leftovers" is not a legality question — every member is
-   * legal — it is a question about typing, held items and who is doing the
-   * fighting, and a policy handed a filtered list could not tell.
+   * should learn Earthquake" is not a legality question — every member is legal
+   * — it is a question about typing and about what they would have to give up.
    */
-  chooseItemTarget: (reward: TargetedReward, party: readonly PokemonState[]) => Promise<number>;
+  chooseMoveRecipient: (
+    offer: MoveReward,
+    party: readonly PokemonState[],
+    state: RunState,
+  ) => Promise<number>;
+  /**
+   * Which of the recipient's four moves the incoming one displaces. A 0-based
+   * move slot.
+   *
+   * **There is no decline, and the return type says so** — a slot, not a
+   * slot-or-nothing. The place to skip a move reward is the reward screen,
+   * where it was already chosen over two alternatives; a second escape hatch
+   * here would make that pick meaningless.
+   *
+   * Asked only when a replacement is actually needed. A member with a free move
+   * slot takes the move into it, and one that already knows the move refills its
+   * PP instead — both are `party.replacementNeeded` answering, and it is the
+   * single definition shared by this question and by the replay of it.
+   *
+   * Takes `member` rather than a slot index because the recipient has already
+   * been resolved by `rewards.recipientFor` — including the fainted-member
+   * fallback — and re-resolving it here is how the answer would end up applied
+   * to a different Pokemon's move list.
+   */
+  chooseMoveToReplace: (
+    member: PokemonState,
+    incoming: MoveSpec,
+    state: RunState,
+  ) => Promise<number>;
   /**
    * Whether to take a Pokemon on offer, and who to release for it.
    *
@@ -714,6 +792,35 @@ export async function playRun(
       const indexes = await policy.chooseShopPurchases(stock, state);
       record({ kind: 'shop', indexes: [...indexes] });
       result.purchases = [...indexes];
+
+      /*
+       * A shop can sell a TM, so a basket can contain a taught move.
+       *
+       * Walked in `purchasedRewards` order — shelf order, the same order
+       * `applyPurchases` folds them in — because the questions and the
+       * application have to agree about which TM is which when a basket holds
+       * two.
+       *
+       * Asked against a *running* party rather than the one the node started
+       * with. Buying two TMs in one basket means the first one has already
+       * filled a free move slot by the time the second is asked about, and
+       * `replacementNeeded` would otherwise answer `'free'` here and `'choose'`
+       * inside `applyPurchases` — one entry asked, two expected, and the log
+       * out of step from that point on. Folding the same `applyReward` calls
+       * keeps the two readings identical.
+       */
+      const moveChoices: MovePurchaseChoice[] = [];
+      let scratch = state;
+      for (const reward of purchasedRewards(stock, indexes)) {
+        if (!isTargeted(reward)) {
+          scratch = applyReward(scratch, reward);
+          continue;
+        }
+        const answers = await askMoveQuestions(reward, state, scratch.party, policy, record);
+        moveChoices.push(answers);
+        scratch = applyReward(scratch, reward, answers.target, answers.replaceSlot);
+      }
+      result.purchaseMoveChoices = moveChoices;
     }
 
     if (result.node.event) {
@@ -745,12 +852,12 @@ export async function playRun(
        * when the replaying run does not expect one.
        */
       if (isTargeted(choice)) {
-        const target = await policy.chooseItemTarget(choice, state.party);
-        record({ kind: 'target', index: target });
-        if (!state.party[target]) {
-          throw new RangeError(`Item target ${target} out of range (party has ${state.party.length})`);
-        }
-        result.rewardTarget = target;
+        // Who learns it, then what it costs them. Both questions, both log
+        // entries, in `askMoveQuestions` so the shop path below asks them the
+        // same way.
+        const answers = await askMoveQuestions(choice, state, state.party, policy, record);
+        result.rewardTarget = answers.target;
+        result.rewardReplaceSlot = answers.replaceSlot ?? undefined;
       }
     }
 
@@ -912,6 +1019,97 @@ async function playNode(
 // ---------------------------------------------------------------------------
 
 /**
+ * Ask both move questions for one taught move, record both, return the answers.
+ *
+ * **One definition, two callers**, because a move bought from a shop and a move
+ * taken from a reward card are the same act and must produce the same pair of
+ * log entries in the same order. Two copies of this would be two places for the
+ * `replacementNeeded` gate to be written slightly differently, and the symptom
+ * would be a replay that runs out of step at the first shop that stocked a TM.
+ *
+ * The recipient is resolved through `rewards.recipientFor` before the second
+ * question is asked, so the four moves on the table belong to the member that
+ * will actually receive the move — see that function for the fainted-member
+ * case this protects against.
+ */
+async function askMoveQuestions(
+  offer: MoveReward,
+  state: RunState,
+  party: readonly PokemonState[],
+  policy: RunPolicy,
+  record: (decision: RunDecision) => void,
+): Promise<MovePurchaseChoice> {
+  const target = await policy.chooseMoveRecipient(offer, party, state);
+  record({ kind: 'target', index: target });
+  if (!party[target]) {
+    throw new RangeError(`Move recipient ${target} out of range (party has ${party.length})`);
+  }
+
+  const recipient = recipientFor(party, target);
+  if (!recipient || replacementNeeded(recipient, offer.move) !== 'choose') {
+    return { target, replaceSlot: null };
+  }
+
+  const incoming = describeMove(offer.move);
+  if (!incoming) throw new RangeError(`A reward offers a move the dex does not have: ${offer.move}`);
+  const slot = await policy.chooseMoveToReplace(recipient, incoming, state);
+  record({ kind: 'replace', slot });
+  if (!Number.isInteger(slot) || slot < 0 || slot >= recipient.spec.moves.length) {
+    throw new RangeError(
+      `Move slot ${slot} out of range (${recipient.spec.species} knows ${recipient.spec.moves.length})`,
+    );
+  }
+  return { target, replaceSlot: slot };
+}
+
+/**
+ * The reference move replacement: drop the weakest damaging move, else the last
+ * status move.
+ *
+ * **The heuristic that used to be a game rule.** Through Stage 4.5 this lived in
+ * `party.replaceableSlot` and decided for the player; Stage 4.5.1 makes it the
+ * player's decision and demotes this to what the scripted baseline answers when
+ * nobody is asking. It is written down because it appears in every balance
+ * report from here on.
+ *
+ * Three rules, in order:
+ *
+ *   1. The damaging move with the lowest base power. Ties go to the *later*
+ *      slot, so the choice is stable rather than dependent on move order.
+ *   2. If every move is a status move, the last one.
+ *   3. Slot 0, which is unreachable — a member with four moves has a lowest one
+ *      — and exists so the return type is a slot rather than a slot-or-nothing.
+ *
+ * **What it deliberately does not do is refuse.** The old rule's fourth clause
+ * returned "displace nothing" when the incoming move was weaker than everything,
+ * which is what made a move reward safe to be forced into. There is no decline
+ * any more, so this always names a victim, and a baseline run can now be made
+ * worse by a card it took. That is the intended shape: see `party.teachMove`.
+ */
+export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec): number {
+  void incoming;
+  const known = member.spec.moves.map((name) => describeMove(name));
+
+  let weakestSlot: number | null = null;
+  let weakest = Number.POSITIVE_INFINITY;
+  let statusSlot: number | null = null;
+
+  known.forEach((move, index) => {
+    if (!move || move.category === 'Status') {
+      statusSlot = index;
+      return;
+    }
+    // `<=` so ties resolve to the later slot.
+    if (move.basePower <= weakest) {
+      weakest = move.basePower;
+      weakestSlot = index;
+    }
+  });
+
+  return weakestSlot ?? statusSlot ?? 0;
+}
+
+/**
  * The reference item plan: fill empty hands in order, discard the overflow.
  *
  * **Deliberately not clever, and written down because it will appear in every
@@ -969,7 +1167,11 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     // The lead, which is slot 0 and the member the Stage 3 code targeted
     // implicitly. A baseline that spread items around would make every sweep it
     // appears in a measurement of one targeting heuristic.
-    chooseItemTarget: async () => 0,
+    // The lead, which is slot 0 and the member the Stage 3 code targeted
+    // implicitly. A baseline that spread moves around would make every sweep it
+    // appears in a measurement of one targeting heuristic.
+    chooseMoveRecipient: async () => 0,
+    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     /*
      * Fills the party, then declines.
      *
@@ -1085,10 +1287,15 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       if (!decision) return live ? live.chooseEventOption(event, state) : exhausted('event');
       return decision.kind === 'event' ? decision.index : exhausted('event');
     },
-    chooseItemTarget: async (reward, party) => {
+    chooseMoveRecipient: async (offer, party, state) => {
       const decision = next('target');
-      if (!decision) return live ? live.chooseItemTarget(reward, party) : exhausted('target');
+      if (!decision) return live ? live.chooseMoveRecipient(offer, party, state) : exhausted('target');
       return decision.kind === 'target' ? decision.index : exhausted('target');
+    },
+    chooseMoveToReplace: async (member, incoming, state) => {
+      const decision = next('replace');
+      if (!decision) return live ? live.chooseMoveToReplace(member, incoming, state) : exhausted('replace');
+      return decision.kind === 'replace' ? decision.slot : exhausted('replace');
     },
     chooseAcquisition: async (offer, party) => {
       const decision = next('acquisition');

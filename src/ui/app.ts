@@ -20,6 +20,7 @@ import { releaseMember, reorderParty } from '../core/party';
 import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
+  defaultMoveReplacement,
   isReplayable,
   playRun,
   resumeRun,
@@ -162,11 +163,22 @@ export function mountApp(root: HTMLElement): void {
         router.show('event');
         return eventPick.wait();
       },
-      chooseItemTarget: (reward, party) => {
-        targetScreen.render(reward, party, (slot) => targetPick.submit(slot));
+      chooseMoveRecipient: (offer, party) => {
+        targetScreen.render(offer, party, (slot) => targetPick.submit(slot));
         router.show('target');
         return targetPick.wait();
       },
+      /*
+       * Auto-answered for now, by the same reference heuristic the scripted
+       * baseline uses.
+       *
+       * The replacement screen — incoming move and all four current moves side
+       * by side, same move card component throughout — is built in the display
+       * pass at the end of this stage. Until then the run cannot skip the
+       * question: there is no decline, so `teachMove` throws if a member with
+       * four moves is handed one without a slot to put it in.
+       */
+      chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       chooseAcquisition: (offer, party) => {
         acquisitionScreen.render(offer, party, (decision) => acquirePick.submit(decision));
         router.show('acquisition');

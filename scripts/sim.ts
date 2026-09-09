@@ -67,16 +67,17 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { describeSpecCard, type BattleSession } from '../src/core/battle/driver';
+import { describeMove, describeSpecCard, type BattleSession } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
 import { itemSuitsTypes } from '../src/core/items';
-import type { Reward, TargetedReward } from '../src/core/rewards';
+import type { MoveReward, Reward } from '../src/core/rewards';
 import { hasRoom } from '../src/core/acquisition';
 import {
   moveChoice,
   switchChoice,
   type ItemAssignment,
   type ItemPlan,
+  type MoveSpec,
   type PokemonSpec,
   type PokemonState,
   type Tier,
@@ -84,7 +85,7 @@ import {
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { expectedPartySize, opponentTeamSize, SEGMENTS } from '../src/data/scaling';
+import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
@@ -617,15 +618,98 @@ function memberValue(card: ReturnType<typeof describeSpecCard>): number {
  * with an obviously right answer; past that it prefers a member holding
  * nothing, since swapping destroys what was there.
  */
-function valueOfTarget(reward: TargetedReward, member: PokemonState): number {
-  const card = describeSpecCard(member.spec);
-  if (member.fainted) return -100;
+/**
+ * Index of the highest-scoring option. Ties to the lower index, always.
+ *
+ * Module scope rather than a closure inside `buildPolicy`, where it used to
+ * live. The move heuristics below are module-level functions and reached it
+ * through the temporal dead zone — which typechecks, because `scripts/` was
+ * outside the `tsconfig.json` include list, and fails at the first move card.
+ * Both halves of that are fixed: this is hoisted, and the include list now
+ * covers this file.
+ */
+function bestBy<T>(items: readonly T[], score: (item: T) => number): number {
+  let best = 0;
+  let bestScore = -Infinity;
+  for (const [index, item] of items.entries()) {
+    const value = score(item);
+    if (value > bestScore) {
+      bestScore = value;
+      best = index;
+    }
+  }
+  return best;
+}
 
-  // A move reward goes to whoever gains most from it, which is whoever has the
-  // weakest best-attack — the same reasoning `valueOfReward` uses to price it.
-  const attacks = card.moves.filter((move) => move.category !== 'Status');
-  const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
-  return 100 - strongest;
+/**
+ * Who learns a taught move. **Deterministic, documented, and it will appear in
+ * every balance report from here on.**
+ *
+ * Scored per member, highest wins, ties to the earlier slot (`bestBy`):
+ *
+ *   1. A fainted member scores -100 and is never chosen. It would be redirected
+ *      to the lead anyway (`rewards.recipientFor`), and a policy that let that
+ *      happen would be choosing a Pokemon it did not mean to.
+ *   2. **+60 if the move's type matches one of the member's own** — the spec's
+ *      suggested rule, and the one real piece of judgement in here: STAB is the
+ *      largest single multiplier a move reward can buy.
+ *   3. **+40 if the member has a free move slot**, because that member pays
+ *      nothing for the move while everyone else gives one up.
+ *   4. Otherwise, whoever gains most, which is whoever has the weakest
+ *      best-attack — the same reasoning `valueOfReward` uses to price the card
+ *      in the first place, so the bot's valuation and its placement agree.
+ *
+ * It is not clever, and rule 4 in particular is a proxy rather than an analysis.
+ * It needs to be deterministic and written down, because a heuristic that
+ * changes between reports makes two reports incomparable.
+ */
+function greedyMoveRecipient(offer: MoveReward, party: readonly PokemonState[]): number {
+  const incoming = describeMove(offer.move);
+  return bestBy(party, (member) => {
+    if (member.fainted) return -100;
+    const card = describeSpecCard(member.spec);
+
+    let score = 0;
+    if (incoming && card.types.includes(incoming.type)) score += 60;
+    if (member.spec.moves.length < MOVESET.slots) score += 40;
+
+    const attacks = card.moves.filter((move) => move.category !== 'Status');
+    const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
+    return score + (100 - strongest) / 100;
+  });
+}
+
+/**
+ * What the move costs them. **Deterministic, documented, same reason.**
+ *
+ *   1. The damaging move with the lowest base power, ties to the *later* slot.
+ *   2. If the member holds more than one status move, the first of them —
+ *      the spec's suggested rule. One status move is often the member's only
+ *      answer to something; two means one is spare.
+ *   3. Otherwise slot 0, which is unreachable for a member with four moves.
+ *
+ * Note what it does **not** consider: whether the incoming move is better than
+ * the one being dropped. There is no decline, so the bot always gives something
+ * up, and a run can be made worse by a card it took. That is the shape Stage
+ * 4.5.1 intends, and the report is expected to show it — see `party.teachMove`.
+ */
+function greedyMoveToReplace(member: PokemonState, incoming: MoveSpec): number {
+  void incoming;
+  const known = member.spec.moves.map((name) => describeMove(name));
+  const statusSlots = known.flatMap((move, index) => (!move || move.category === 'Status' ? [index] : []));
+  if (statusSlots.length > 1) return statusSlots[0]!;
+
+  let weakestSlot: number | null = null;
+  let weakest = Number.POSITIVE_INFINITY;
+  known.forEach((move, index) => {
+    if (!move || move.category === 'Status') return;
+    if (move.basePower <= weakest) {
+      weakest = move.basePower;
+      weakestSlot = index;
+    }
+  });
+
+  return weakestSlot ?? statusSlots[0] ?? 0;
 }
 
 /**
@@ -741,20 +825,6 @@ function buildPolicy(
       ? withoutSwitching(greedyAiPolicy)
       : greedyAiPolicy;
 
-  /** Index of the highest-scoring option. Ties to the lower index, always. */
-  const bestBy = <T,>(items: readonly T[], score: (item: T) => number): number => {
-    let best = 0;
-    let bestScore = -Infinity;
-    for (const [index, item] of items.entries()) {
-      const value = score(item);
-      if (value > bestScore) {
-        bestScore = value;
-        best = index;
-      }
-    }
-    return best;
-  };
-
   return {
     chooseStarter: async (options) =>
       randomBattle ? stream.nextInt(Math.max(1, options.length)) : bestStarter(options),
@@ -819,8 +889,8 @@ function buildPolicy(
      * measurement wants — a targeting rule that only works when played
      * perfectly is a rule the report cannot generalise from.
      */
-    chooseItemTarget: async (reward, party) =>
-      bestBy(party, (member) => valueOfTarget(reward, member)),
+    chooseMoveRecipient: async (offer, party) => greedyMoveRecipient(offer, party),
+    chooseMoveToReplace: async (member, incoming) => greedyMoveToReplace(member, incoming),
 
     chooseItemPlan: async (state) => greedyItemPlan(state),
 

@@ -273,6 +273,32 @@ export interface BattleLog {
 // Party state
 // ---------------------------------------------------------------------------
 
+/**
+ * A move as an *offer*: everything a card needs to show, with nothing about who
+ * knows it.
+ *
+ * The same fields `MoveView` carries minus the two that only exist once a
+ * Pokemon holds the move — the slot it sits in and the PP left on it. That is
+ * the point of the separate type: a move reward has no slot and no remaining
+ * PP, and giving it placeholder values for both is how a card ends up rendering
+ * "PP 0/15" for a move nobody has used.
+ *
+ * `maxPp` is here because it is a property of the move rather than of the
+ * holder, and Part 5 requires a reward card to show it alongside type, base
+ * power and category — the same four numbers the battle screen shows, so that a
+ * move looks identical everywhere the player sees it.
+ */
+export interface MoveSpec {
+  id: string;
+  name: string;
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  /** 0 for status moves. */
+  basePower: number;
+  accuracy: number | true;
+  maxPp: number;
+}
+
 /** Remaining PP for one move slot, carried between encounters. */
 export interface MoveState {
   id: string;
@@ -446,7 +472,24 @@ export type RunDecision =
    * `items.needsItemPlan`, which is the single definition shared by the
    * question and the replay, for the same reason `rewards.isTargeted` is.
    */
-  | { kind: 'items'; plan: ItemPlan };
+  | { kind: 'items'; plan: ItemPlan }
+  /**
+   * Which move slot a taught move displaced, 0-based.
+   *
+   * **Stage 4.5.1's logic change, and the reason it is a separate entry from
+   * `target`.** The two questions are asked in sequence — who learns it, then
+   * what it costs them — and they are different questions with different
+   * answers, so folding them into one entry would mean a log that could not
+   * express "the player picked slot 2, then changed their mind about which move
+   * to drop".
+   *
+   * Recorded only when a replacement was actually chosen. A member with a free
+   * move slot is never asked, and neither is one that already knows the move —
+   * both conditions are derived from the member and the move, which a replay
+   * reconstructs exactly. See `party.replacementNeeded`, which is the single
+   * definition shared by the question and the replay.
+   */
+  | { kind: 'replace'; slot: number };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

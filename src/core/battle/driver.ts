@@ -25,6 +25,7 @@ import {
   type Choice,
   type BattleLog,
   type Decision,
+  type MoveSpec,
   type MoveState,
   type MoveView,
   type PokemonState,
@@ -187,6 +188,64 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
   vitalsCache.set(key, card);
   return card;
 }
+
+/**
+ * One move, described without a Pokemon to hold it.
+ *
+ * For the reward and replacement screens, which have to show an *offer* — a
+ * move nobody knows yet — next to four moves somebody does. Both sides come out
+ * of the same dex read here, so a Thunderbolt on a reward card carries the same
+ * type, base power, category and PP as the Thunderbolt on the battle screen.
+ * Part 5's rule is that a move looks identical everywhere the player sees it,
+ * and two lookup paths is how that stops being true.
+ *
+ * **`maxPp` is asked of the engine rather than computed, and the first attempt
+ * at computing it was wrong within four moves.** The x8/5 three-PP-Ups rule
+ * looks like two lines until Trump Card, which the sim excludes by *id* on the
+ * line next to `noPPBoosts` (`sim/pokemon.ts`: `move.noPPBoosts || move.id ===
+ * 'trumpcard' ? 0 : 3`). A reimplementation gets 8 where the battle gets 5, and
+ * the reward card then advertises PP the move will never have. That is the
+ * exact failure the header of this file describes: ten lines this repo could be
+ * subtly wrong about forever.
+ *
+ * So it goes through `describeSpecCard`, which builds a real half-started
+ * battle and reads the move slot the sim constructed. The probe species is
+ * arbitrary and irrelevant — Custom Game applies no team validator, so anything
+ * can be handed any move — and the result is cached by that function, so the
+ * cost is one battle per distinct move for the life of the process.
+ */
+export function describeMove(nameOrId: string): MoveSpec | null {
+  const data = Dex.forGen(GYMRUN_GEN).moves.get(nameOrId);
+  if (!data.exists) return null;
+
+  const probe = describeSpecCard({
+    species: PP_PROBE_SPECIES,
+    ability: PP_PROBE_ABILITY,
+    moves: [data.name],
+    level: 50,
+  });
+  const slot = probe.moves[0];
+  if (!slot) return null;
+
+  return {
+    id: slot.id,
+    name: slot.name,
+    type: slot.type,
+    category: slot.category,
+    basePower: slot.basePower,
+    accuracy: slot.accuracy,
+    maxPp: slot.maxPp,
+  };
+}
+
+/**
+ * The body `describeMove` hands its move to. Nothing about it is read.
+ *
+ * A plain single-form species with no signature move and no form change, so
+ * that nothing about the *holder* can affect the move slot the sim builds.
+ */
+const PP_PROBE_SPECIES = 'Ditto';
+const PP_PROBE_ABILITY = 'Limber';
 
 // ---------------------------------------------------------------------------
 // sim -> BattleView
