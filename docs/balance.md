@@ -748,6 +748,163 @@ rather than of play and a random bot samples it as well as any.
 A report that cries wolf on its own headline is worse than one with no
 checklist, and this one had been doing it in both directions since Stage 4.
 
+## 10. Stage 4.6a — locales, capture, and the report's three new questions
+
+Three systems land here and only one of them moves a number on purpose. Locales
+decide *which* wild Pokemon a segment fields, capture decides *whether* you keep
+one, and the keyed-stream refactor underneath both decides nothing at all — it
+moves every draw in the game onto an independent sequence, which is why
+everything below is measured fresh rather than diffed.
+
+**1000 seeds, `greedy`, `randomizer-7`.** Same depth as §9.5 so the two tables
+are comparable.
+
+### 10.1 The headline, against Stage 4.5.1
+
+| gym | leader | type | team | reached | clear rate | drop |
+|---|---|---|---|---|---|---|
+| 1 | Garnet | Rock | 1 | 950 | 97.7% | — |
+| 2 | Marina | Water | 2 | 869 | 89.3% | -8pt |
+| 3 | Volta | Electric | 3 | 754 | 78.9% | -10pt |
+| 4 | Fern | Grass | 4 | 566 | 83.9% | +5pt |
+| 5 | Cinder | Fire | 4 | 433 | 58.2% | -26pt |
+| 6 | Solene | Psychic | 5 | 236 | 66.9% | +9pt |
+| 7 | Vesper | Ghost | 5 | 148 | 66.9% | 0pt |
+| 8 | Draven | Dragon | 5 | 94 | 75.5% | +9pt |
+
+Run completion **7.1%**, mean **3.35** gyms of 8, against 4.5.1's 9.2% and 3.19.
+
+**Completion fell two points and mean depth rose.** Those pull in opposite
+directions and the reason is one change: the guaranteed wild step. A segment now
+contains one fight the player cannot decline, so every run takes more attrition
+per segment — that costs the tail, where a run is limping — while the same
+guarantee fills the party faster, which is worth more in the middle where a run
+is still healthy. The middle gyms are where it shows: gym 3 fell 83.1% to 78.9%
+and gym 5 fell 65.7% to 58.2%, while mean depth went *up*.
+
+Both numbers are inside the 5-15% completion band, so nothing here is a fix to
+make. It is stated because the next stage retunes, and a retune that treats 7.1%
+as a regression rather than as the price of a composition guarantee will
+"correct" it by weakening the thing that fills the party.
+
+### 10.2 Every locale is reachable, and the offer is flat
+
+| locale | share of picks | share of offers |
+|---|---|---|
+| Forest | 13.2% | 12.6% |
+| City | 12.8% | 12.5% |
+| Cave | 12.7% | 12.5% |
+| Summit | 12.7% | 12.8% |
+| Badlands | 12.6% | 12.5% |
+| Ruins | 12.1% | 12.4% |
+| Shore | 12.1% | 12.2% |
+| Marsh | 11.7% | 12.5% |
+
+Eight locales, an even eighth is 12.5%, and the offer column is inside 0.3
+points of it everywhere. The pick column is wider because the sim's locale
+policy is a uniform draw over a two-or-three card offer, so it inherits the
+offer's noise and adds its own.
+
+The two questions this table exists to answer:
+
+- **Is any locale unreachable?** No. Neither the never-offered nor the
+  never-picked list has anything in it, and `test/locales.test.ts` asserts the
+  stronger property directly: across 300 seeds, **100%** of runs are offered all
+  eight.
+- **Does the no-consecutive rule starve anything?** No. A run walks a mean of
+  **3.59 distinct locales** before it dies, against a mean of 3.35 gyms cleared
+  — so a run essentially never repeats a region.
+
+### 10.3 Capture: offered eight times a run, taken not quite half
+
+| | value |
+|---|---|
+| capture offers per run | 7.99 |
+| offers taken | 46.5% (3713 of 7992) |
+| party entering gym 1 | 2.69 of 3 (curve assumes 1) |
+| party entering gym 2 and after | 3.00 of 3 |
+
+Eight offers per run against one guaranteed wild step per segment is the
+composition guarantee showing up in the measurement.
+
+**A 46.5% take rate is the number that says capture is a decision.** The bot
+declines the majority of what it is offered, because the party is full from gym
+2 onward and taking something then costs a member. Compare Stage 4's first
+baseline, where a 94.5% take rate said supply was the constraint rather than
+appetite (§7.3): that failure is inverted now, and the constraint is the slot.
+
+The party is **ahead of the curve** at gyms 1 to 3 — 2.69 against an assumed 1,
+then 3.00 against 2 — and exactly on it from gym 4. `EXPECTED_PARTY_SIZE`'s
+early rows are now conservative: opponents in the first three segments are sized
+for a smaller party than the player actually has. That is a 4.6b item and it is
+listed in §10.6.
+
+### 10.4 Parties diversify, and gym 8 is where it shows
+
+Ninety-four parties reached Draven. Between them they carried **152 distinct
+species**, a mean of **4.32 distinct types** each, and the most common single
+species — Slaking — held 4.3% of the slots.
+
+That is the number the locale system is judged on and it is deliberately the
+hardest one to make look good: it counts distinct species *across every party
+that got there*, so a system that funnelled every run into the same handful
+would report a small number no matter how well spread each individual party was.
+152 species across 94 parties of three is 152 of a possible 282.
+
+The type spread is flatter than the species spread and that is expected: Ground
+and Water lead at 10.1% each against an even eighteenth of 5.6%, because both
+appear in two locales and in a lot of species besides.
+
+### 10.5 The catch pair, and what it actually measured
+
+`--policy catching` runs two bots that differ in exactly one rule. At 200 seeds:
+
+| policy | completion | mean gyms | capture take rate |
+|---|---|---|---|
+| `catch-greedy` | 0.0% | 1.68 | 100% |
+| `catch-averse` | 0.0% | 1.42 | 0% |
+| `greedy` (for scale) | 7.1% | 3.35 | 46.5% |
+
+The spec's expectation was that the gap between the two would measure whether
+capture does anything. It does — always catching beats never catching by 0.26
+gyms, about 18% — and the third row is the more interesting result.
+
+**A selective catcher reaches roughly twice as deep as an indiscriminate one.**
+`catch-greedy` is the spec's own definition: always catch, replace the
+lowest-*level* member when full. `greedy` catches when the offer beats its worst
+member on a crude value estimate and declines otherwise. Same map, same battle
+AI, same node policy, and 1.68 gyms against 3.35.
+
+So the value in the capture system is not in the catching. It is in the
+declining — an always-take policy is *punished*, and the punishment is losing a
+Pokemon you earned to one you merely met. That is also the strongest available
+answer to the objection that a guaranteed capture is a free reward: it is only
+free if you take everything, and taking everything is the worst policy measured
+here.
+
+`catch-averse` completing 0% on a party that only ever grows through reward
+cards is the same finding from the other end, and it re-confirms §7.3's death
+spiral: you need a party to survive.
+
+### 10.6 What this stage did not measure, and should not have
+
+Nothing here retunes anything. No level, band, weight or price moved in 4.6a,
+deliberately: three systems landed at once and a retune on top of them would
+leave the next report unable to say which change moved which number. Two items
+are flagged for 4.6b, which *is* a retune:
+
+1. **`EXPECTED_PARTY_SIZE`'s early rows are low** (§10.3). The player carries
+   2.69 members into gym 1 against an assumption of 1, and 3.00 into gyms 2 and
+   3 against an assumption of 2.
+2. **Gym 5 is still the cliff**, now at 58.2% with a 26-point drop into it. It
+   has been the cliff in every report since Stage 2 and it is the oldest open
+   item in this document.
+
+And one thing that is *not* an item: the two points of completion in §10.1. They
+are the price of the guaranteed wild step, which is the thing that fills the
+party, and "fixing" the completion rate by removing it would trade a system for
+a number.
+
 ## 5. Running it yourself
 
 ```sh
@@ -757,6 +914,7 @@ npm run sim -- --seeds 1000 --policy greedy
 npm run sim -- --nodes all               # compare node-choice playstyles
 npm run sim -- --set stepsPerSegment.min=6 --set stepsPerSegment.max=8
 npm run sim -- --seeds 1000 --policy switching   # Stage 4's headline pair
+npm run sim -- --seeds 1000 --policy catching    # Stage 4.6a's headline pair
 GYMRUN_PARTY_SIZE=1 npm run sim -- --policy greedy  # reproduce the Stage 3 game
 npm run sim -- --help
 ```

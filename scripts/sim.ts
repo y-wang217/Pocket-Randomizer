@@ -84,6 +84,7 @@ import {
 } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
+import { localeById, LOCALE_IDS, type LocaleId } from '../src/data/locales';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
@@ -123,7 +124,23 @@ type PolicyName =
    * the switch cost or the party size is wrong. That is the whole hypothesis.
    */
   | 'switch-aware'
-  | 'no-switch';
+  | 'no-switch'
+  /**
+   * The Stage 4.6a pair, and the crude measure of whether capture does
+   * anything at all.
+   *
+   * Same battle AI, same node policy, same seeds, same locale picks — the only
+   * difference is whether a won wild encounter is ever taken. `catch-greedy`
+   * always catches and releases its lowest-level member when full;
+   * `catch-averse` never catches and plays the run on its starter plus
+   * whatever a reward card hands it.
+   *
+   * If the gap is small, then either the guaranteed wild step is not paying
+   * for the step it costs, or the party the curve assumes is being reached
+   * some other way — and `party.sizeBySegment` says which.
+   */
+  | 'catch-greedy'
+  | 'catch-averse';
 type NodePolicyName = 'rest' | 'wild' | 'trainer' | 'first' | 'random' | 'tier-averse' | 'tier-greedy';
 
 /** The node policy a `--policy` name implies, if it implies one. */
@@ -148,6 +165,8 @@ const SWITCH_POLICIES: PolicyName[] = ['switch-aware', 'no-switch'];
 const ALL_NODE_POLICIES: NodePolicyName[] = ['rest', 'wild', 'trainer', 'first'];
 /** The Stage 3 headline: same seeds, same battle AI, opposite appetite for risk. */
 const TIER_POLICIES: PolicyName[] = ['tier-averse', 'tier-greedy'];
+/** The Stage 4.6a headline: same seeds, same everything, capture on and off. */
+const CATCH_POLICIES: PolicyName[] = ['catch-greedy', 'catch-averse'];
 
 function parseArgs(argv: string[]): Options {
   const options: Options = {
@@ -183,7 +202,9 @@ function parseArgs(argv: string[]): Options {
               ? TIER_POLICIES
               : name === 'switching'
                 ? SWITCH_POLICIES
-                : [assertPolicy(name)];
+                : name === 'catching'
+                  ? CATCH_POLICIES
+                  : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -223,12 +244,17 @@ function parseArgs(argv: string[]): Options {
   return options;
 }
 
-const POLICY_NAMES: readonly string[] = [...ALL_POLICIES, ...TIER_POLICIES, ...SWITCH_POLICIES];
+const POLICY_NAMES: readonly string[] = [
+  ...ALL_POLICIES,
+  ...TIER_POLICIES,
+  ...SWITCH_POLICIES,
+  ...CATCH_POLICIES,
+];
 
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
-      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching or all (got "${name}")`,
+      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching or all (got "${name}")`,
     );
   }
   return name as PolicyName;
@@ -248,9 +274,11 @@ const USAGE = `
 
     --seeds N        how many seeds to play per policy (default 200)
     --policy NAME    greedy | random | switch-aware | no-switch | switching |
-                     tier-averse | tier-greedy | tiers | all
+                     tier-averse | tier-greedy | tiers |
+                     catch-greedy | catch-averse | catching | all
                      greedy/random and switch-aware/no-switch vary the battle
-                     AI; tier-* vary node choice and always use the greedy
+                     AI; tier-* vary node choice and catch-* vary whether a won
+                     wild encounter is taken — both always use the greedy
                      battle AI                                (default all)
     --nodes NAME     rest | wild | trainer | first | random | tier-averse |
                      tier-greedy | all                        (default rest)
@@ -270,6 +298,11 @@ const USAGE = `
   battle AI with the bench visible and with it hidden:
 
     npm run sim -- --seeds 1000 --policy switching
+
+  The Stage 4.6a headline — everything identical except whether a won wild
+  encounter is ever taken:
+
+    npm run sim -- --seeds 1000 --policy catching
 
   Party size is a module constant, not a --set field, because the difficulty
   curve is a function of it. GYMRUN_PARTY_SIZE=1 reproduces the Stage 3
@@ -585,6 +618,21 @@ interface RunCollector {
   acquisitionsOffered: number;
   acquisitionsTaken: number;
   releases: number;
+
+  // --- Stage 4.6a ---------------------------------------------------------
+  /** The locale picked in each segment, in segment order. */
+  locales: LocaleId[];
+  /** What was on offer each time, so the report can separate offer from pick. */
+  localesOffered: LocaleId[][];
+  /**
+   * Captures offered and taken, counted apart from reward-card acquisitions.
+   *
+   * Two routes to a party member, and only one of them costs a step. Folding
+   * them together is how "the capture system does nothing" and "the species
+   * cards do everything" look identical in a report.
+   */
+  capturesOffered: number;
+  capturesTaken: number;
 }
 
 function newCollector(): RunCollector {
@@ -595,6 +643,10 @@ function newCollector(): RunCollector {
     acquisitionsOffered: 0,
     acquisitionsTaken: 0,
     releases: 0,
+    locales: [],
+    localesOffered: [],
+    capturesOffered: 0,
+    capturesTaken: 0,
   };
 }
 
@@ -825,22 +877,43 @@ function buildPolicy(
       ? withoutSwitching(greedyAiPolicy)
       : greedyAiPolicy;
 
+  /*
+   * How this bot treats a capture offer.
+   *
+   * `catch-greedy` takes every one and releases its lowest-*level* member when
+   * full — level rather than `memberValue`, deliberately, because the pair is
+   * a controlled comparison and the point is to measure the *system*, not a
+   * valuation heuristic. `catch-averse` declines everything. Every other policy
+   * uses the value-based rule below, which is the floor on competent play.
+   */
+  const catchRule = policy === 'catch-greedy' ? 'greedy' : policy === 'catch-averse' ? 'averse' : 'value';
+
   return {
     chooseStarter: async (options) =>
       randomBattle ? stream.nextInt(Math.max(1, options.length)) : bestStarter(options),
 
     /*
-     * The locale, drawn from the policy stream for a random bot and taken as
-     * offered otherwise.
+     * The locale, drawn uniformly from the offer, for **every** policy.
      *
-     * A placeholder until the locale metrics land: what a *greedy* locale
-     * policy should be — cover the types the party cannot hit, or feed the next
-     * gym — is a question the report has to answer before a bot encodes an
-     * answer to it. Taking the first offer is the honest floor in the meantime,
-     * and the random bot's pick distribution is what says whether every locale
-     * is reachable at all.
+     * Not "take the first", which was the placeholder and was worse than it
+     * looks: `sampleWeighted` emits the offer in table order, so a bot that
+     * always took index 0 would report a pick distribution shaped by
+     * `LOCALES`' declaration order rather than by the offer rule, and the
+     * report's job here is to say whether any locale is unreachable.
+     *
+     * Not a greedy locale policy either, and that is a deliberate omission.
+     * What "greedy" means for a region — cover the types the party cannot hit,
+     * or feed the next gym's weakness — is a question this report has to answer
+     * *before* a bot encodes an answer to it. A uniform pick is the honest
+     * floor, and it keeps the catch pair a controlled comparison: both bots
+     * draw the same locale from the same stream position.
      */
-    chooseLocale: async (options) => (randomBattle ? stream.nextInt(Math.max(1, options.length)) : 0),
+    chooseLocale: async (options) => {
+      const index = stream.nextInt(Math.max(1, options.length));
+      collect.locales.push(options[index] ?? options[0] ?? 'cave');
+      collect.localesOffered.push([...options]);
+      return index;
+    },
 
     chooseNode: chooseNodeBy(nodes, stream),
 
@@ -931,9 +1004,24 @@ function buildPolicy(
      */
     chooseAcquisition: async (offer, party) => {
       collect.acquisitionsOffered++;
+      if (offer.source === 'encounter') collect.capturesOffered++;
+
+      if (catchRule === 'averse') return { kind: 'decline' };
+
       if (hasRoom(party)) {
         collect.acquisitionsTaken++;
+        if (offer.source === 'encounter') collect.capturesTaken++;
         return { kind: 'accept' };
+      }
+
+      if (catchRule === 'greedy') {
+        // Lowest level, not lowest value: the catch pair measures the system,
+        // and a release rule made of taste would put the heuristic in the gap.
+        const lowest = bestBy(party, (member) => -member.spec.level);
+        collect.acquisitionsTaken++;
+        collect.releases++;
+        if (offer.source === 'encounter') collect.capturesTaken++;
+        return { kind: 'release', slot: lowest };
       }
 
       const incoming = memberValue(describeSpecCard(offer.spec));
@@ -944,6 +1032,7 @@ function buildPolicy(
       }
       collect.acquisitionsTaken++;
       collect.releases++;
+      if (offer.source === 'encounter') collect.capturesTaken++;
       return { kind: 'release', slot: worst };
     },
 
@@ -1037,6 +1126,24 @@ interface RunRecord {
   aliveAtLastBattle: number;
   /** Distinct types across the final party. A party of three sharing a weakness. */
   typeCoverage: number;
+
+  // --- Stage 4.6a ---------------------------------------------------------
+  /** The locale picked in each segment reached, and what was offered there. */
+  locales: LocaleId[];
+  localesOffered: LocaleId[][];
+  /** Wild victories that offered a capture, and how many were taken. */
+  capturesOffered: number;
+  capturesTaken: number;
+  /**
+   * The party walking into each gym: size, species and types.
+   *
+   * Per gym rather than only at the end, because the question the curve asks is
+   * "how big is the party *here*" and the question the locale system asks is
+   * "are these runs converging on the same few species". Both are answered at a
+   * gym, which is the one point in a segment every surviving run passes
+   * through.
+   */
+  gymParties: { gym: number; size: number; species: string[]; types: string[] }[];
 }
 
 async function playSample(
@@ -1068,13 +1175,26 @@ async function playSample(
     let partyAtEnd = 0;
     let everFilled = false;
     const partyBySegment: { segment: number; size: number }[] = [];
+    const gymParties: RunRecord['gymParties'] = [];
 
     const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning, {
-      onBattle: (session, _node, before) => {
+      onBattle: (session, node, before) => {
         sessions.push(session);
         aliveAtLastBattle = before.party.filter((member) => !member.fainted).length;
         partyAtEnd = before.party.length;
         partyBySegment.push({ segment: before.currentSegment, size: before.party.length });
+        if (node.kind === 'gym') {
+          // The party *entering* the gym, read off the state handed to the
+          // battle rather than off the end of the run — after the fight
+          // everyone the gym beat is fainted, which measures the gym.
+          const cards = before.party.map((member) => describeSpecCard(member.spec));
+          gymParties.push({
+            gym: before.currentSegment + 1,
+            size: before.party.length,
+            species: cards.map((card) => card.species),
+            types: [...new Set(cards.flatMap((card) => card.types))],
+          });
+        }
       },
       onState: (state) => {
         if (state.party.length >= PARTY_SIZE) everFilled = true;
@@ -1140,6 +1260,11 @@ async function playSample(
       partyAtEnd,
       aliveAtLastBattle,
       typeCoverage: new Set(state.party.flatMap((member) => describeSpecCard(member.spec).types)).size,
+      locales: [...collect.locales],
+      localesOffered: collect.localesOffered.map((offer) => [...offer]),
+      capturesOffered: collect.capturesOffered,
+      capturesTaken: collect.capturesTaken,
+      gymParties,
     });
     onProgress(index + 1);
   }
@@ -1285,6 +1410,51 @@ interface Sample {
     /** Distinct types on the final party, and how completion splits on it. */
     meanTypeCoverage: number;
     completionByCoverage: { coverage: string; runs: number; completion: number }[];
+  };
+  /**
+   * Stage 4.6a's section: where the run went, and what it caught there.
+   *
+   * Three questions, and they are separate on purpose. **Are all eight locales
+   * reachable** is a property of the offer rule and would be satisfied by a
+   * map nobody plays. **Is capture being used** is a property of the policy.
+   * **Do parties diversify** is the only one that says the locale system did
+   * anything, and it is the one that needs a distribution rather than a mean:
+   * eight runs all reaching gym 8 with the same three species is a locale
+   * system that is decoration, and its mean type count would look fine.
+   */
+  locales: {
+    /** Share of picks landing on each locale, and share of offers containing it. */
+    picked: Tally[];
+    offered: Tally[];
+    /** Locales that were never picked, and never offered, across the sample. */
+    neverPicked: string[];
+    neverOffered: string[];
+    /** Mean distinct locales walked in a run that reached the end of the map. */
+    meanDistinctPerRun: number;
+  };
+  capture: {
+    /** Wild victories that offered a capture, per run and in total. */
+    offered: number;
+    taken: number;
+    /** Share of offers taken. The crude "is the system used" number. */
+    takeRate: number;
+    offersPerRun: number;
+    /** Party size entering each gym, against what the curve assumes. */
+    partyAtGym: { gym: number; reached: number; meanSize: number; assumed: number }[];
+    /**
+     * The party entering gym 8: type spread, and whether runs converge.
+     *
+     * `distinctSpecies` over `parties` is the convergence number. If forty runs
+     * reach gym 8 carrying twelve distinct species between them, locales are
+     * not diversifying anything — they are a coat of paint on one pool.
+     */
+    gym8: {
+      parties: number;
+      meanTypes: number;
+      distinctSpecies: number;
+      topSpecies: Tally[];
+      topTypes: Tally[];
+    };
   };
   durationMs: number;
 }
@@ -1485,6 +1655,8 @@ function summarize(
       distinctStarters: new Set(records.map((record) => record.starter)).size,
     },
     party: summarizeParty(records),
+    locales: summarizeLocales(records),
+    capture: summarizeCapture(records),
     durationMs,
   };
 }
@@ -1555,6 +1727,80 @@ function summarizeParty(records: RunRecord[]): Sample['party'] {
         runs: group.length,
         completion: completionOf(group),
       })),
+  };
+}
+
+/**
+ * Where the runs went.
+ *
+ * Picks and offers are reported separately because they answer different
+ * questions. A locale missing from `offered` is a bug in the weighting rule; a
+ * locale present in `offered` and missing from `picked` is a bot that never
+ * chose it, which at a uniform locale policy would mean the offer is lopsided
+ * rather than that the locale is bad.
+ */
+function summarizeLocales(records: RunRecord[]): Sample['locales'] {
+  const picks = records.flatMap((record) => record.locales);
+  const offers = records.flatMap((record) => record.localesOffered);
+  const offeredFlat = offers.flatMap((offer) => [...new Set(offer)]);
+
+  const pickedNames = new Set(picks);
+  const offeredNames = new Set(offeredFlat);
+
+  return {
+    picked: tally(picks.map((locale) => localeById(locale).name), LOCALE_IDS.length),
+    offered: tally(offeredFlat.map((locale) => localeById(locale).name), LOCALE_IDS.length),
+    neverPicked: LOCALE_IDS.filter((locale) => !pickedNames.has(locale)).map((locale) => localeById(locale).name),
+    neverOffered: LOCALE_IDS.filter((locale) => !offeredNames.has(locale)).map((locale) => localeById(locale).name),
+    meanDistinctPerRun:
+      records.length === 0
+        ? 0
+        : sum(records.map((record) => new Set(record.locales).size)) / records.length,
+  };
+}
+
+/**
+ * What the runs caught, and what they were carrying when it mattered.
+ *
+ * The gym-8 block is the diversification claim and it is deliberately the
+ * hardest number in the report to make look good: it counts *distinct species
+ * across every party that got there*, so a locale system that funnels every run
+ * into the same handful reports a small number no matter how many types each
+ * individual party covers.
+ */
+function summarizeCapture(records: RunRecord[]): Sample['capture'] {
+  const runs = Math.max(1, records.length);
+  const offered = sum(records.map((record) => record.capturesOffered));
+  const taken = sum(records.map((record) => record.capturesTaken));
+
+  const partyAtGym = Array.from({ length: SEGMENTS_PER_RUN }, (_, index) => {
+    const gym = index + 1;
+    const rows = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym === gym));
+    return {
+      gym,
+      reached: rows.length,
+      meanSize: rows.length === 0 ? 0 : sum(rows.map((row) => row.size)) / rows.length,
+      assumed: expectedPartySize(index),
+    };
+  });
+
+  const finals = records.flatMap((record) =>
+    record.gymParties.filter((entry) => entry.gym === SEGMENTS_PER_RUN),
+  );
+
+  return {
+    offered,
+    taken,
+    takeRate: offered === 0 ? 0 : taken / offered,
+    offersPerRun: offered / runs,
+    partyAtGym,
+    gym8: {
+      parties: finals.length,
+      meanTypes: finals.length === 0 ? 0 : sum(finals.map((entry) => entry.types.length)) / finals.length,
+      distinctSpecies: new Set(finals.flatMap((entry) => entry.species)).size,
+      topSpecies: tally(finals.flatMap((entry) => entry.species), 6),
+      topTypes: tally(finals.flatMap((entry) => entry.types), 6),
+    },
   };
 }
 
@@ -1662,6 +1908,106 @@ function render(sample: Sample): string {
         ]),
     ),
   );
+
+  /*
+   * Stage 4.6a, printed next to the party section because it is the same
+   * question asked from the other end: the party section says how big the party
+   * got, and this says where it came from and what region it was caught in.
+   */
+  const locales = sample.locales;
+  out.push('', 'Locales — where the runs went');
+  out.push(
+    table(
+      ['locale', 'picks', 'share of picks', 'share of offers'],
+      locales.picked.map((row) => [
+        row.label,
+        String(row.count),
+        pct(row.share),
+        pct(locales.offered.find((offer) => offer.label === row.label)?.share ?? 0),
+      ]),
+    ),
+  );
+  out.push(
+    locales.neverOffered.length > 0
+      ? `  UNREACHABLE: never offered — ${locales.neverOffered.join(', ')}`
+      : '  every locale was offered',
+    locales.neverPicked.length > 0
+      ? `  never picked: ${locales.neverPicked.join(', ')}`
+      : `  every locale was picked   ·   mean distinct locales per run: ${locales.meanDistinctPerRun.toFixed(2)}`,
+  );
+
+  const capture = sample.capture;
+  out.push('', 'Capture — the offer every won wild encounter makes');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['capture offers / run', capture.offersPerRun.toFixed(2), 'one guaranteed wild step per segment'],
+        [
+          'offers taken',
+          pct(capture.takeRate),
+          capture.takeRate < 0.2
+            ? 'the slot costs more than the catch is worth'
+            : capture.takeRate > 0.95
+              ? 'never a decision — always worth taking'
+              : 'a decision',
+        ],
+        ['captures taken', String(capture.taken), `of ${capture.offered} offered`],
+      ],
+    ),
+  );
+
+  out.push('', 'Party entering each gym — the curve\'s own assumption in the last column');
+  out.push(
+    table(
+      ['gym', 'reached', 'mean party', 'curve assumes', 'gap'],
+      capture.partyAtGym
+        .filter((row) => row.reached > 0)
+        .map((row) => [
+          String(row.gym),
+          String(row.reached),
+          row.meanSize.toFixed(2),
+          String(row.assumed),
+          (row.meanSize - row.assumed).toFixed(2),
+        ]),
+    ),
+  );
+
+  if (capture.gym8.parties > 0) {
+    /*
+     * The diversification claim, and the only number in this section that can
+     * say the locale system did anything.
+     *
+     * `distinct species` counts across *every* party that reached gym 8. A run
+     * whose party is well spread across types is not evidence — every run
+     * converging on the same three species would still report a healthy type
+     * count each. Convergence shows up here or nowhere.
+     */
+    out.push('', `Party entering gym ${SEGMENTS_PER_RUN} — ${capture.gym8.parties} parties`);
+    out.push(
+      table(
+        ['measure', 'value'],
+        [
+          ['mean distinct types', capture.gym8.meanTypes.toFixed(2)],
+          ['distinct species across all of them', String(capture.gym8.distinctSpecies)],
+          [
+            'most common species',
+            capture.gym8.topSpecies
+              .slice(0, 3)
+              .map((row) => `${row.label} ${pct(row.share)}`)
+              .join(', ') || '—',
+          ],
+          [
+            'most common types',
+            capture.gym8.topTypes
+              .slice(0, 4)
+              .map((row) => `${row.label} ${pct(row.share)}`)
+              .join(', ') || '—',
+          ],
+        ],
+      ),
+    );
+  }
 
   out.push('', 'Did the party ever fill?');
   out.push(
