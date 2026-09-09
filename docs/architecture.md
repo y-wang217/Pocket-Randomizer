@@ -52,9 +52,12 @@ data/                 A leaf. Values and balance numbers, no logic.
       | read by
       |
 core/types.ts         The shared vocabulary. No DOM, no sim.
-core/rng.ts           Seeded streams: map, rewards, battle.
+core/rng.ts           Seeded streams: map, rewards, battle, randomizer,
+                      policy — and keyed sub-streams inside each of them.
+core/streamKeys.ts    Every sub-stream key in the game, in one file.
 core/party.ts         What persists between nodes, and the rules that change it.
-core/encounters.ts    Map and encounter generation. All of it eager.
+core/encounters.ts    Map and encounter generation. All of it eager,
+                      including a route per offered locale.
 core/run.ts           RunState, resolveNode, RunPolicy, playRun.
 core/battle/
   format.ts           Generation, format id, clauses. The gen-lock lives here.
@@ -65,8 +68,9 @@ core/battle/
   ai.ts               Greedy damage-maximising policy over @smogon/calc.
       |
       v
-ui/                   A thin DOM layer. Ten screens and a router.
-  screens/            starter-select, run-map, battle, summary, and six more.
+ui/                   A thin DOM layer. Eleven screens and a router.
+  screens/            starter-select, locale-select, run-map, battle,
+                      summary, and six more.
   scene.ts            The battlefield. Reads BattleUiView and nothing else.
   tooltips.ts         One delegated tap-first layer. Content all from data/.
 ```
