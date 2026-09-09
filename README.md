@@ -185,23 +185,41 @@ At 400 seeds, the `greedy` policy:
 | 7 | Vesper | Ghost | 5 | 43 | 65.1% | +6pt |
 | 8 | Draven | Dragon | 5 | 26 | 61.5% | -4pt |
 
-Run completion **4.0%**, mean 2.94 gyms of 8, worst gym-to-gym drop 20 points.
+Run completion **7.2%**, mean 3.27 gyms of 8, worst gym-to-gym drop 17 points.
+400 seeds, `--prefix RETUNE`, greedy policy.
 
-**That is a miss, and it is recorded rather than smoothed over.** The
-simulator's own target band for completion is 5-15%, and 4.6b landed inside it
-at 7.2% with a mean of 3.27. Admitting Cut and Flash ahead of 4.6c cost 3.2
-points of completion. Two things did it: Cut is a 50 BP band 1 move that
-dilutes the weakest band the starter draws from, and Flash is a status move
-with no offence at all, so both make a wasted move slot more likely at exactly
-the point in a run where a wasted slot is least survivable. The gym 5 wall
-deepened from -17 to -20 points as a result.
+**A correction, recorded rather than quietly fixed.** An earlier version of this
+section reported 4.0% completion and attributed a 3.2-point drop to admitting
+Cut and Flash to the move pools ahead of Stage 4.6c. **That attribution was
+wrong, and the comparison behind it was invalid**: the 7.2% baseline was
+measured with `--prefix RETUNE` and the 4.0% with the default `--prefix SIM`.
+Those are two different populations of 400 seeds, so the two numbers were never
+comparable, and the difference between them was the seed set rather than
+anything in the game.
 
-The two moves are in on purpose and the cost was accepted knowingly: they are
-the only capabilities in Stage 4.6c where carrying the move is a real
-sacrifice, which is the whole premise of the gate mechanic. Retuning belongs
-with 4.6c's gate rates rather than here, since the same numbers move again as
-soon as events land. Backing them out is one line in
-`scripts/gen-pools.ts` if the gates do not earn it.
+Measured properly, on one population:
+
+| build | prefix | completion | mean gyms |
+|---|---|---|---|
+| `randomizer-9`, Cut and Flash in | SIM | 4.0% | 2.94 |
+| `randomizer-10`, Cut and Flash out | SIM | 4.0% | 2.82 |
+| `randomizer-8`, before either | RETUNE | 7.2% | 3.27 |
+| `randomizer-10`, Cut and Flash out | RETUNE | 7.2% | 3.27 |
+
+**Admitting the two moves cost nothing measurable** — same completion, and mean
+gyms moved by 0.12 in the noise. The `SIM` population simply sits lower than the
+`RETUNE` one. The reasoning in the original note was plausible and it was
+checked against a number that could not support it.
+
+Cut and Flash have since been removed for an unrelated reason: capabilities are
+satisfied by relics now, not by moves, so neither move has any special claim on
+a pool slot. `randomizer-10`'s move tables are byte-identical to `randomizer-8`'s
+— which is why the RETUNE rows match to every digit — but the version string
+still moved forward, because two distinct content states must never share a
+name.
+
+Completion is inside the simulator's 5-15% target band. It is no longer a gate
+either way; see [`docs/balance.md`](docs/balance.md) §0.
 
 The player's mean move band entering each gym climbs **1.03 → 3.04** over those
 eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has

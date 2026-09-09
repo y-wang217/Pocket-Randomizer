@@ -268,39 +268,8 @@ const UNSCOREABLE = new Set([
   'flail', 'reversal', 'endeavor', 'painsplit',
 ]);
 
-/**
- * Moves the current generation calls nonstandard that GYMRUN takes anyway.
- *
- * `isNonstandard` is a *legality* verdict — gen 9 marks Cut `Unobtainable` and
- * Flash `Past` because Scarlet and Violet removed them, not because the engine
- * cannot run them. GYMRUN runs Custom Game precisely so that legality is not a
- * rule it enforces, and `test/nonstandard-moves.test.ts` holds that claim to
- * the raw protocol: Cut deals damage from a Gastly that learns it in no
- * generation, Flash lands its accuracy drop, both with the learnset tables
- * stripped and both under `GYMRUN_TRIM_STRICT=1`.
- *
- * These two are admitted for a reason that is not completeness. Stage 4.6c
- * gates routes on capabilities, and a capability is only a decision if the move
- * proving it costs something to carry. Surf and Waterfall cost nothing — a
- * player keeps them anyway — so those gates are free. Cut and Flash are the
- * only two where a utility slot is a real sacrifice, which makes them the only
- * two that test the mechanic. Excluded, their gates would be passable solely by
- * a starter that happened to roll the move.
- *
- * This is a deliberately short list. It is not a general amnesty on
- * `isNonstandard`: Z-moves, Max moves and the rest stay out on their own rules
- * below, and a move added here should come with the reason it earns the
- * exception.
- */
-const ADMITTED_NONSTANDARD = new Set(['cut', 'flash']);
-
-/** Standard in this generation, or one of the two admitted by name. */
-function standardEnough(move: Move): boolean {
-  return move.isNonstandard === null || ADMITTED_NONSTANDARD.has(move.id);
-}
-
 function moveAllowed(move: Move): boolean {
-  if (!move.exists || !standardEnough(move)) return false;
+  if (!move.exists || move.isNonstandard !== null) return false;
   if (move.isZ || move.isMax) return false;
   if (move.category === 'Status') return false;
   if (move.basePower <= 0) return false;
@@ -346,7 +315,7 @@ const STATUS_BY_IMPACT: Record<string, readonly string[]> = {
   pressure: [
     'Screech', 'Charm', 'Scary Face', 'Metal Sound', 'Fake Tears', 'Tickle',
     'Eerie Impulse', 'Protect', 'Substitute', 'Reflect', 'Light Screen', 'Safeguard',
-    'Tailwind', 'Taunt', 'Encore', 'Disable', 'Flash',
+    'Tailwind', 'Taunt', 'Encore', 'Disable',
   ],
 };
 
@@ -407,7 +376,7 @@ const damagingRows: MoveRow[] = dex.moves
 const statusRows: MoveRow[] = [...new Set(STATUS_MOVES)]
   .map((name) => {
     const move = dex.moves.get(name);
-    if (!move.exists || !standardEnough(move)) {
+    if (!move.exists || move.isNonstandard !== null) {
       throw new Error(`Status move "${name}" is not a standard gen ${GEN} move`);
     }
     if (move.category !== 'Status') throw new Error(`"${name}" is not a status move`);

@@ -7,11 +7,71 @@ policies and prints the report this document summarises. Stage 3 adds
 `--policy tiers`, which is the question that stage exists to answer; see §6. The JSON goes to
 `sim-reports/`, stamped with the randomizer version that produced it.
 
-Those JSON files are not committed, and do not need to be: the simulator is
+Ad-hoc reports are not committed, and do not need to be: the simulator is
 deterministic given a seed prefix, so that one command regenerates the exact
 report quoted below. The findings are what is worth keeping, and they are here.
+**Benchmark** reports are the exception and live in `sim-reports/benchmarks/`;
+§0 says why.
 
 ---
+
+## 0. Balance is not a gate
+
+**Standing policy, 2026-09-09. This overrides every "target" in the sections
+below.**
+
+The simulator keeps running and keeps reporting. **A completion rate outside
+its target band no longer blocks a checkpoint, a commit or a merge.** Record the
+number, note the direction, continue.
+
+Two things follow from that, and both are rules rather than suggestions:
+
+- **Do not retune between checkpoints.** A mid-stage tuning pass tunes against a
+  curve that is about to move. Mechanics are landing faster than the table can
+  settle, so a number chased today is a number re-chased next week, and the work
+  in between is attributed to the wrong cause.
+- **Do not move a target to make a miss disappear.** A target that follows the
+  measurement is not a target. If a band is wrong, it gets changed deliberately,
+  in its own change, with the reason written down — never as a side effect of
+  missing it.
+
+### What replaced the gate
+
+A benchmark comparison at each major release: a pinned seed set and policy set,
+run, and the report committed to `sim-reports/benchmarks/` stamped with
+`RANDOMIZER_VERSION` and — once it exists — `contentHash`, then diffed against
+the last recorded one. The question stops being "did we pass" and becomes "what
+moved, and does the direction make sense given what changed".
+
+The recorded points so far:
+
+**The prefix is part of the stamp.** `--prefix` selects which 400 seeds get
+played, and two prefixes are two populations that sit at different completion
+rates for no reason but the draw. A comparison across prefixes measures nothing.
+This was learned by making the mistake: a 3.2-point "regression" was attributed
+to a move-pool change and written into the README before anyone noticed that
+the two runs used `RETUNE` and `SIM`.
+
+| stamp | prefix | completion | mean gyms | note |
+|---|---|---|---|---|
+| `randomizer-8`, 400 | RETUNE | 7.2% | 3.27 | Stage 4.6b, after the level-offset retune |
+| `randomizer-9`, 400 | SIM | 4.0% | 2.94 | Cut and Flash admitted |
+| `randomizer-10`, 400 | SIM | 4.0% | 2.82 | Cut and Flash removed |
+| `randomizer-10`, 400 | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
+
+Read down a prefix, never across. On `SIM`, admitting the two moves cost
+nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
+returned the exact v8 numbers to every digit, which is what byte-identical move
+tables should do and is a decent check that the benchmark is measuring the game
+rather than the weather.
+
+Every row stays, including the ones produced by a bad comparison. A benchmark
+that keeps only its good numbers measures nothing.
+
+### What still gates, absolutely
+
+Determinism. Stream isolation. The two version guards. The full test suite.
+Those are correctness, and correctness is a gate. Balance is a number.
 
 ## 1. Why this document exists before the UI does
 

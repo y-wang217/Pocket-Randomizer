@@ -496,6 +496,36 @@ draw changed position and every seed rolled a different team anyway.
 
 ## 8. Capabilities, and why `latent` is not a learnset
 
+> **Superseded 2026-09-09. Kept because the measurements are still good.**
+>
+> Everything below describes capabilities as satisfied by a **move in a party
+> member's slot**. That is no longer how they work. A capability is satisfied by
+> a **relic**: a permanent, run-scoped, passive object that occupies no move
+> slot, costs no backpack capacity, is never displaced and is never taught. It
+> satisfies one capability and carries a passive effect for the rest of the run.
+>
+> So there is no such thing as a capability move. The `known` band as described
+> below — "a member has the move in a slot" — is wrong, and the slots-before-
+> types ordering it justified is moot, because relics are not slots and not
+> types. `data/capabilityTypes.ts` and its type table survive as data and get
+> re-landed in the relic work; nothing measured here is lost.
+>
+> Two things below stay true and are the reason this section was not deleted.
+> The first is the learnset investigation: the 12.8 kB measurement, the prevo
+> finding, the generation-source finding, and the argument that legality is the
+> wrong question for a game that runs Custom Game. All of it applies to any
+> future scheme that wants to ask what a Pokemon could learn. The second is the
+> type-affinity ranking the table was derived from, which is real data about the
+> games and cost a dex query to produce.
+>
+> The admission of Cut and Flash to the move pools, which this section's
+> reasoning led to, was reverted the same day for the same reason: no move
+> proves a capability, so neither move has any special claim on a pool slot.
+> `RANDOMIZER_VERSION` went to 9 admitting them and to 10 removing them. See
+> `docs/engine-notes.md` for the durable half of that work — the engine will run
+> a move the current generation calls nonstandard, which is a fact worth keeping
+> even though the feature that needed it is gone.
+
 Stage 4.6c gates some routes on a capability — Surf, Fly, Cut and five others.
 A party reads at one of three bands for each: `known` if a member has the move
 in a slot, `latent` if nobody has it but somebody could plausibly carry it,

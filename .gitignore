@@ -9,4 +9,8 @@ stats/
 # deterministic given a seed prefix, so `npm run sim -- --seeds 1000` regenerates
 # the exact report docs/balance.md quotes. The findings live in that document;
 # the JSON is the working copy.
-sim-reports/
+# sim-reports/ is committed as of 2026-09-09: a benchmark report per major
+# release is the record that replaced the balance gate. See docs/balance.md §0.
+# Ad-hoc runs still land here, so commit deliberately rather than with `git add -A`.
+sim-reports/*
+!sim-reports/benchmarks/
