@@ -34,6 +34,7 @@
  */
 import { abilityInfo, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
+import { bandInfo, BAND_MULTIHIT_NOTE } from '../data/bandInfo';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
@@ -41,7 +42,7 @@ import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { el } from './scene';
 
 /** What a `data-tip` attribute can name. */
-type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item' | 'category' | 'stat';
+type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item' | 'category' | 'stat' | 'band';
 
 const KINDS: readonly TipKind[] = [
   'type',
@@ -51,6 +52,7 @@ const KINDS: readonly TipKind[] = [
   'item',
   'category',
   'stat',
+  'band',
 ];
 
 export interface TooltipLayer {
@@ -200,6 +202,8 @@ function render(tip: string): HTMLElement | null {
       return renderCategory(id);
     case 'stat':
       return renderStat(id);
+    case 'band':
+      return renderBand(id);
   }
 }
 
@@ -273,6 +277,24 @@ function renderStat(id: string): HTMLElement | null {
   if (info.pairsWith) {
     body.append(line(`Resolved against the defender's ${info.pairsWith}.`, 'tip__note'));
   }
+  return body;
+}
+
+/**
+ * A move's base-power band. **Stage 4.6b.**
+ *
+ * Reads like every other tooltip here: what the thing is, in one line, from
+ * `data/`. The multi-hit note is appended unconditionally rather than only for
+ * a multi-hit move, because the tooltip is attached to the *band*, not to a
+ * particular move — and it is the one place the badge and the base power on the
+ * same card can disagree.
+ */
+function renderBand(id: string): HTMLElement | null {
+  const info = bandInfo(Number(id));
+  if (!info) return null;
+  const body = panel(`${info.label} — ${info.range}`);
+  body.append(line(info.text, 'tip__text'));
+  body.append(line(BAND_MULTIHIT_NOTE, 'tip__note'));
   return body;
 }
 

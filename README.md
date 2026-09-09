@@ -1,15 +1,15 @@
-# GYMRUN — Stage 4.6a
+# GYMRUN — Stage 4.6b
 
-A browser-based seeded Pokémon roguelike. This is Stage 4.6a: **an eight-gym
-randomizer run through regions you choose, with a party you catch, carry and
-have to prune.**
+A browser-based seeded Pokémon roguelike. This is Stage 4.6b: **an eight-gym
+randomizer run through regions you choose, with a party you catch, and a kit
+that starts weak and climbs.**
 
 Stage 0 proved the battle engine. Stage 1 made it a run. Stage 2 made it a
 *randomizer* and built the instrument that says whether the randomizer is
 playable. Stage 3 added tiers, rewards, items, shops and events. Stage 4 added
 party slots and switching. Stage 4.5 added no mechanics at all and made the
-existing ones legible. Stage 4.5.1 put prices back on things. Stage 4.6a gives
-the map a geography.
+existing ones legible. Stage 4.5.1 put prices back on things. Stage 4.6a gave
+the map a geography. Stage 4.6b turns the run into a ramp.
 
 There is still no battle engine here. GYMRUN wraps [Pokémon
 Showdown](https://pokemonshowdown.com) via `@pkmn/sim` — see
@@ -33,7 +33,37 @@ npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
 
-## What Stage 4.6a adds
+## What Stage 4.6b adds
+
+**A run that starts with Tackle and Growl and ends with something that hits like
+a truck.**
+
+- **Every damaging move sits in one of four base-power bands**, cut at 55, 75
+  and 95. A segment draws from a *weighted distribution* over bands rather than
+  a flat window, so the ramp is a slope rather than a staircase — and each move
+  slot draws its own band, so it is a property of a Pokémon rather than of the
+  population it came from.
+- **The starter opens at band 1 and climbs from there.** Rewards are what climb
+  it: a normal card pays *in* the segment's band (a sidegrade — coverage, not
+  power), a hard card one above, an elite card two. Gym leaders draw one band
+  above the segment around them, which is the difficulty spike as a single
+  number.
+- **Berries**, fifteen of them, as the low denomination of the economy. They are
+  held items the sim already resolves; the new work is that a fired berry is
+  read off the battle's own `-enditem` line and **destroyed** — it does not
+  restock. They occupy backpack slots, which is what makes dropping them a
+  decision once the economy moves past them.
+- **Species reward cards are gone.** Capture from 4.6a is the acquisition route,
+  and it costs a step. Two routes was two sets of rules for what a joined
+  Pokémon is.
+
+Measured at 400 seeds: the player's mean move band entering each gym climbs
+**1.03 → 2.89**, and it climbs *faster on the risky path*. Getting completion
+back to 7.2% took one retune, and it was the level offsets rather than a band —
+`docs/balance.md` §11 has the three passes and the two findings that turned out
+to be about the simulator rather than the game.
+
+## What Stage 4.6a added
 
 **A map with places in it, and a party you catch rather than one you are
 given.**
@@ -142,33 +172,35 @@ balance a roguelike by playing it. Fifty runs is an afternoon and three
 anecdotes; a thousand runs is forty seconds and a distribution, and a difficulty
 curve is a distribution.
 
-At 1000 seeds, the `greedy` policy:
+At 400 seeds, the `greedy` policy:
 
 | gym | leader | type | team | reached | clear rate | drop |
 |---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 950 | 97.7% | — |
-| 2 | Marina | Water | 2 | 869 | 89.3% | -8pt |
-| 3 | Volta | Electric | 3 | 754 | 78.9% | -10pt |
-| 4 | Fern | Grass | 4 | 566 | 83.9% | +5pt |
-| 5 | Cinder | Fire | 4 | 433 | 58.2% | -26pt |
-| 6 | Solene | Psychic | 5 | 236 | 66.9% | +9pt |
-| 7 | Vesper | Ghost | 5 | 148 | 66.9% | 0pt |
-| 8 | Draven | Dragon | 5 | 94 | 75.5% | +9pt |
+| 1 | Garnet | Rock | 1 | 374 | 95.2% | — |
+| 2 | Marina | Water | 2 | 348 | 86.8% | -8pt |
+| 3 | Volta | Electric | 3 | 301 | 76.4% | -10pt |
+| 4 | Fern | Grass | 4 | 223 | 78.5% | +2pt |
+| 5 | Cinder | Fire | 4 | 170 | 61.2% | -17pt |
+| 6 | Solene | Psychic | 5 | 97 | 75.3% | +14pt |
+| 7 | Vesper | Ghost | 5 | 68 | 58.8% | -16pt |
+| 8 | Draven | Dragon | 5 | 37 | 78.4% | +20pt |
 
-Run completion **7.1%**, mean 3.35 gyms of 8, worst gym-to-gym drop 26 points.
+Run completion **7.2%**, mean 3.27 gyms of 8, worst gym-to-gym drop 17 points —
+against 4.6a's 7.1%, 3.35 and 26. **Stage 4.6b lands where it started with a
+smoother curve**, which is the honest summary of a ramp: it redistributes
+difficulty rather than adding it.
 
-Completion fell two points from Stage 4.5.1's 9.2% and mean depth rose, which
-pull opposite ways for one reason: the guaranteed wild step is a fight per
-segment nobody can decline. That costs the tail, where a run is limping, and
-pays in the middle, where it fills the party. `docs/balance.md` §10.1 has the
-argument for why "fixing" the two points would trade a system for a number.
+The player's mean move band entering each gym climbs **1.03 → 2.89** over those
+eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has the
+retune — three measured passes, of which only the third moved anything — and
+the two findings that turned out to be about the simulator rather than the game.
 A `random` policy completes **0.0%** of runs and clears gym 6 in **0.8%** of
 them, which is the depth test: if a random policy cleared gym 6, move choice
 would not matter. Every Stage 2 target passes on both policies.
 
 The randomizer draws from 635 species, 397 damaging moves and all 310
-abilities, and across 34,606 encounters the sweep saw **every one of them** —
-635 distinct species and 310 distinct abilities. That is the diversity claim
+abilities, and across 13,594 encounters at 400 seeds the sweep saw **632 of the
+635 species and all 310 abilities**. That is the diversity claim
 worth making, because win rate cannot measure it at all: a narrow pool that
 happened to be balanced would pass every other number in the report.
 

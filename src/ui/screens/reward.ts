@@ -44,8 +44,23 @@ import { describeMove } from '../../core/battle/driver';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
+import { bandOfMove } from '../../data/moveOverrides';
 import { el, moveCard } from '../scene';
 import { typeChip } from './starter-select';
+
+/**
+ * The band chip: which of four base-power brackets a move sits in.
+ *
+ * Exported alongside `tierBadge` and styled the same way, because the two are
+ * the same kind of thing — a one-word attribute the player learns to read at a
+ * glance. Neither says whether the thing it labels is good.
+ */
+export function bandBadge(band: number): HTMLElement {
+  const badge = el('span', `band band--${band}`);
+  badge.textContent = `BAND ${band}`;
+  badge.dataset['tip'] = `band:${band}`;
+  return badge;
+}
 
 /** The tier chip, shared with the map so the two screens agree at a glance. */
 export function tierBadge(tier: string): HTMLElement {
@@ -106,6 +121,25 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
         reward.kind === 'tutor'
           ? 'A strong move. You choose who learns it, and what it replaces.'
           : 'A new move. You choose who learns it, and what it replaces.';
+      /*
+       * The band, next to the name. **Stage 4.6b, and it is an attribute.**
+       *
+       * "Band 3" says which of four power brackets the move sits in, and Part 4
+       * governs it exactly as it governs everything else on this card: a band
+       * is a fact about the move, the same kind of fact as its type or its base
+       * power, and the card does not say whether it is better than what the
+       * player is holding. There is no comparison, no arrow, and no colour that
+       * implies a direction.
+       *
+       * It is worth printing *because* base power is already here and does not
+       * answer the question the ramp poses. A player who has learned that this
+       * segment pays band 2 can read one badge and know whether the risky node
+       * beside them is offering something they cannot get for free — which is
+       * the whole decision Stage 4.6b added, and it is unreadable from `95 BP`
+       * alone.
+       */
+      const band = bandOfMove(reward.move);
+      if (band !== null) name.append(document.createTextNode(' '), bandBadge(band));
       // Type, base power, PP and category, through the same component the
       // battle screen uses. No comparison against anything the player owns.
       const facts = describeMove(reward.move);

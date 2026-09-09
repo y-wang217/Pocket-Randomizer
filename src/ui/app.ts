@@ -480,7 +480,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 4.6a · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, caught in eight regions`;
+  subtitle.textContent = `Stage 4.6b · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, caught in eight regions, on a kit that climbs`;
   header.append(title, subtitle, createVerbosityToggle());
   return header;
 }

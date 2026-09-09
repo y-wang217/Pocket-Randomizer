@@ -940,6 +940,40 @@ body {
 .starter__move-name { font-size: 13px; }
 .starter__move-stats { display: inline-flex; align-items: center; gap: 6px; }
 
+/* ---------- bands and berries ---------- */
+
+/*
+ * The band chip, styled as the tier chip is: a small flat label the player
+ * learns to read at a glance. Four steps of the same hue rather than four
+ * different colours — a band is a position on one axis, and four colours would
+ * read as four kinds of thing.
+ *
+ * Deliberately not a red-to-green ramp. That would be the stylesheet saying
+ * which band is better, which is the Part 4 rule the badge exists inside.
+ */
+.band {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+}
+
+.band--1 { opacity: 0.72; }
+.band--2 { opacity: 0.82; }
+.band--3 { opacity: 0.92; }
+.band--4 { opacity: 1; border-color: var(--accent); color: var(--text); }
+
+/* A berry in the bag. Dashed, because the thing it marks is impermanence. */
+.badge--consumable {
+  border-style: dashed;
+}
+
 /* ---------- locale select ---------- */
 
 /*

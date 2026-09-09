@@ -103,6 +103,26 @@ export function impactOf(move: MoveEntry): MoveImpact | null {
 }
 
 /**
+ * The band of a move named the way a screen has it: by display name or by id.
+ *
+ * **The UI's door into banding, and the reason it is one function.** A reward
+ * card knows a move as `"Flamethrower"` — that is what `Reward.move` carries
+ * and what `describeMove` echoes — while banding is keyed by `MoveEntry`. Every
+ * screen that wanted a band would otherwise be doing its own lookup against
+ * `DAMAGING_MOVES`, and the first one to search by id where the others search
+ * by name would print a blank badge nobody noticed.
+ *
+ * Null for a status move, for a move the pool does not contain, and for a name
+ * that matches nothing — all three are "no band to show", and a screen that
+ * distinguished them would be showing the player the shape of our tables.
+ */
+export function bandOfMove(nameOrId: string): number | null {
+  const wanted = nameOrId.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const entry = DAMAGING_MOVES.find((move) => move.id === wanted || move.name === nameOrId);
+  return entry ? bandOf(entry) : null;
+}
+
+/**
  * Every move id an override names that no pool contains.
  *
  * A typo in this file is silent otherwise: the override sits there, matches
