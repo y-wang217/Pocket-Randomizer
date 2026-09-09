@@ -493,3 +493,102 @@ Bump `RANDOMIZER_VERSION` in `core/randomizer.ts` for: a regenerated pool, a
 moved band window, a changed level curve, a new draw inside `rollMoveset`, a
 reordered data table. It went to `-2` on the first balance pass, where not one
 draw changed position and every seed rolled a different team anyway.
+
+---
+
+## 2026-09-09 — Stage 4.6c, checkpoint 0: capability tables
+
+Capabilities are the 4.6c gate mechanic: an event asks for Cut, and the party
+answers `known`, `latent` or `none`. This entry records two deviations from the
+4.6 amendment, both taken deliberately, and one deferral.
+
+### `latent` is type-based, and there is no generated learnset table
+
+The amendment's `latent` was "some party member could legally learn the move",
+which implies a generated `hmLearnsets.ts`. That was built as far as a
+measurement — 12.8 kB over the reachable species pool — and rejected.
+
+Move legality is already fiction here: the randomizer hands moves to species
+that cannot learn them, and `core/battle/format.ts` runs Custom Game precisely
+so no validator objects. A learnset-derived `latent` would be the one place in
+the game where legality counted, and it would disagree with the moveset on the
+party screen. A type is also legible — the party screen shows every member's
+types and the map shows a locale's four — so a player can predict the answer
+before the event asks.
+
+There is a third reason worth recording because it is easy to rediscover the
+hard way: `build-config/trim-sim-data.ts` strips the learnset tables from the
+bundle, about 450 kB gzipped, and `test/trimmed-data.test.ts` holds the build to
+never reading them. A learnset-based `latent` would have put them back.
+
+So `data/capabilityTypes.ts` maps each capability to the types that satisfy it.
+No generator, no codegen artifact, no drift test.
+
+### Capability moves are an overlay, not a regeneration
+
+The amendment said capability moves join `data/movePools.ts`. That file is
+generated and its first line forbids hand-editing, so as written it could only
+have meant relaxing the filters in `scripts/gen-pools.ts` and regenerating.
+That is not what happened, for two reasons.
+
+The exclusions that drop these moves are correct. Cut is `isNonstandard:
+'Unobtainable'` in gen 9 and Flash is `'Past'` — dex hygiene worth keeping
+through every future regeneration. Fly and Dive, **cut from the capability set
+entirely**, carry `flags.charge`, excluded because @smogon/calc scores one turn
+of a two-turn move; relaxing a filter that protects a number in the balance
+report in order to reach two moves is a bad trade.
+
+And a regenerated pool feeds `rollMoveset`, so every trainer and gym leader
+would start rolling Cut and Flash. On an opponent both are close to a wasted
+slot, which makes an encounter easier for a reason the player cannot see and the
+report cannot attribute. The mechanic only has a cost if the moves nobody keeps
+are offered to the *player*.
+
+`data/capabilityMoves.ts` is therefore an overlay drawn by reward offers, shop
+stock and starter preslots and by nothing else. It is a **delta**: Rock Smash,
+Strength and Surf are already in `DAMAGING_MOVES`, so the file carries two rows,
+Cut and Flash. `bandOfMove` searches the generated pool first and the overlay
+second, so a capability move bands and displaces exactly like any other move —
+the amendment's actual intent — and a future regeneration that brought Cut
+through would take over silently.
+
+Both play correctly in `gen9customgame`: Custom Game applies no team validator,
+so `isNonstandard` keeps a move out of the generator without keeping it out of
+the engine. @smogon/calc scores both, so the greedy AI ranks them normally.
+
+### The set is five, and every one is reachable
+
+| capability | move | band | satisfying types | locales offering one |
+|---|---|---|---|---|
+| `cut` | Cut | 1 | Grass, Bug | forest, marsh |
+| `flash` | Flash | status (`pressure`) | Electric, Fire, Fairy | city, ruins, badlands |
+| `rockSmash` | Rock Smash | 1 | Fighting, Rock | cave, summit, forest, badlands |
+| `strength` | Strength | 3 | Fighting, Steel | cave, forest, badlands |
+| `surf` | Surf | 3 | Water | shore, marsh |
+
+Every capability is supplied by at least two locales, asserted rather than
+trusted in `test/capabilities.test.ts`. Two matters rather than one: a segment
+offers two or three locales and the player commits to one, so a capability
+reachable through a single locale would be a gate whose answer was fixed several
+steps earlier by a decision made for other reasons.
+
+Cut, Flash and Rock Smash are band 1 or status, so the starter preslot path
+works inside the existing `STARTER_MOVE_BANDS = [1]` rule and no exception to it
+is needed. A band-3 preslot would reintroduce the dead-card failure that
+`data/starters.ts` narrowed `[1, 2]` to `[1]` to prevent.
+
+### `known` pays an ordinary outcome — the encounter is deferred
+
+Part C designed the `known` branch as a spawned encounter. It is descoped, and
+the reason is structural rather than preferential: `playNode` returns at
+`run.ts:1326` before any event handling, and `playRun` asks `chooseEventOption`
+at `run.ts:1129` *after* it has returned. An event that spawns a battle needs
+re-entry into `playNode`, which is a run state machine change — a second battle
+folded into one `NodeResult`, and a `RUN_LOG_VERSION` bump on an axis another
+branch owns.
+
+So `known` pays an ordinary `EventOutcome`, a better one, from the same union,
+and the feature stays inside `core/events.ts` and `data/events.ts`. **`known`
+was not designed as an item payout** — it is an encounter deferred to a stage
+that builds `playNode` re-entry for its own sake. The comment at `run.ts:1273`
+stays true as a note about that future stage.
