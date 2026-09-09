@@ -42,7 +42,7 @@ import type { Rng } from './rng';
 import type { RunState } from './run';
 import type { Gender, PokemonState, Tier } from './types';
 import { itemById } from '../data/items';
-import { rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
+import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
 import { rewardMoveBands, rewardSpeciesBands } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
@@ -165,6 +165,73 @@ export function generateRewardOffer(
     );
   }
   return { nodeId, tier, options };
+}
+
+/**
+ * Draw the three cards for a gym clear.
+ *
+ * **A separate function from `generateRewardOffer` rather than a branch inside
+ * it**, for the reason `NodeSpec.tier` is nullable at all: a gym has no tier,
+ * and threading a `Tier | null` through the shared path would make
+ * `rewardEntriesFor(null, segment)` a thing that has to be handled rather than
+ * a thing that cannot be said. The offer it returns is the *same shape* — three
+ * distinct options, one pick, no skip, no reroll — because a gym reward is a
+ * reward, and every screen and policy downstream reads `RewardOffer` and must
+ * not learn a second one.
+ *
+ * `tier` on the returned offer is `'elite'`, and that is a display fact rather
+ * than a draw: nothing here consulted it (the pool came from
+ * `gymRewardEntriesFor`), but `RewardOffer.tier` is what the reward screen
+ * badges, and a gym offer that badged as `normal` would be the screen
+ * contradicting the cards in front of it. The alternative — widening the field
+ * to `Tier | 'gym'` — would touch every consumer to say something they would
+ * then have to render anyway.
+ *
+ * Called from `generateSegment`'s pass 6, from `rng.rewards`, exactly as pass 4
+ * draws every other offer. Drawing at gym *completion* would make the roll
+ * depend on how the fight went, which is the failure the whole eager-generation
+ * contract exists to prevent.
+ */
+export function generateGymRewardOffer(
+  nodeId: string,
+  segment: number,
+  rng: Rng,
+  tuning: Tuning,
+): RewardOffer {
+  const stream = rng.rewards;
+  const pool = gymRewardEntriesFor(segment).filter(
+    (entry) => entry.kind !== 'species' || tuning.allowSpeciesRewards,
+  );
+
+  const options: Reward[] = [];
+  const takenMoves = new Set<string>();
+  const takenItems = new Set<string>();
+  let remaining = [...pool];
+
+  for (let card = 0; card < OFFER_SIZE; card++) {
+    if (remaining.length === 0) break;
+    const entry = pickWeighted(remaining, stream);
+    if (!entry) break;
+    remaining = remaining.filter((candidate) => candidate !== entry);
+
+    /*
+     * Resolved at `elite`, which is what makes the entries land where the pool
+     * intends. `resolveRewardEntry` takes a tier because the *move and species
+     * bands* are a function of it (`rewardMoveBands`, `rewardSpeciesBands`), so
+     * resolving a gym's `bandOffset: 3` tutor against `normal` would quietly
+     * hand back a mid-tier move and the "strictly better than elite" rule would
+     * fail silently in the one place nobody looks.
+     */
+    const reward = resolveRewardEntry(entry, segment, 'elite', rng, takenItems, takenMoves);
+    if (reward) options.push(reward);
+  }
+
+  if (options.length < OFFER_SIZE) {
+    throw new RangeError(
+      `Gym reward pool at segment ${segment} produced ${options.length} options, need ${OFFER_SIZE}`,
+    );
+  }
+  return { nodeId, tier: 'elite', options };
 }
 
 /**

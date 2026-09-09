@@ -578,7 +578,7 @@ function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number)
 
 /** What one run reported about itself, filled in by its policy as it played. */
 interface RunCollector {
-  rewards: { kind: Reward['kind']; segment: number }[];
+  rewards: { kind: Reward['kind']; segment: number; gym: boolean }[];
   shopVisits: { segment: number; balance: number; spent: number }[];
   itemsAcquired: string[];
   /** How many Pokemon this run was offered, taken, and released for. */
@@ -836,7 +836,19 @@ function buildPolicy(
       const best = bestBy(offer.options, (option) => valueOfReward(option, state, segment));
       const chosen = offer.options[best];
       if (chosen) {
-        collect.rewards.push({ kind: chosen.kind, segment });
+        /*
+         * Gym offers are tagged so the report can break them out, and the tag
+         * comes off the node id rather than off a flag on the offer.
+         *
+         * `RewardOffer` deliberately has no "is this a gym" field: it is the one
+         * shape every screen and policy reads, and adding a discriminator would
+         * invite a policy to *treat* a gym card differently — which would make
+         * the take rate measure the bot's special case instead of the pool.
+         * The id is already `s<segment>-gym` by construction (`generateSegment`)
+         * and is the same string the offer carries for exactly this kind of
+         * tying-together.
+         */
+        collect.rewards.push({ kind: chosen.kind, segment, gym: offer.nodeId.endsWith('-gym') });
         if (chosen.kind === 'item') collect.itemsAcquired.push(chosen.item);
       }
       return best;
@@ -950,7 +962,7 @@ interface RunRecord {
   death: CauseOfDeath | null;
   starter: string;
   /** Which reward kinds this run took, in order. */
-  rewards: { kind: Reward['kind']; segment: number }[];
+  rewards: { kind: Reward['kind']; segment: number; gym: boolean }[];
   /** Balance and spend at each shop visited. Drives the currency curve. */
   shopVisits: { segment: number; balance: number; spent: number }[];
   /** Every item this run acquired by any route. Item impact is measured on these. */
@@ -1170,6 +1182,19 @@ interface Sample {
    */
   rewards: {
     taken: Tally[];
+    /**
+     * What a gym clear paid, separately from every other node. Stage 4.5.2.
+     *
+     * Broken out rather than folded in because the gym pool is the only one
+     * that is *not* keyed by tier, and because the question a tuning pass has
+     * about it is specific: does one entry dominate? A gym offers three cards
+     * eight times a run at most, so a kind at 60% of gym picks is a pool that
+     * has collapsed to one card, and that would be invisible inside a table
+     * where ordinary nodes outnumber gyms forty to one.
+     */
+    gym: Tally[];
+    /** Gym offers the policy was actually shown — the denominator for `gym`. */
+    gymOffers: number;
     /** Completion rate among runs that took this kind at least once. */
     conditional: { kind: string; runs: number; completion: number }[];
   };
@@ -1351,6 +1376,9 @@ function summarize(
 
   // --- rewards ------------------------------------------------------------
   const rewardKinds = records.flatMap((record) => record.rewards.map((reward) => reward.kind));
+  const gymPicks = records.flatMap((record) =>
+    record.rewards.filter((reward) => reward.gym).map((reward) => reward.kind),
+  );
   const conditional = [...new Set(rewardKinds)].sort().map((kind) => {
     const took = records.filter((record) => record.rewards.some((reward) => reward.kind === kind));
     return { kind, runs: took.length, completion: completionOf(took) };
@@ -1391,6 +1419,8 @@ function summarize(
     completionRate: runs === 0 ? 0 : wins.length / runs,
     rewards: {
       taken: tally(rewardKinds, 8),
+      gym: tally(gymPicks, 8),
+      gymOffers: gymPicks.length,
       conditional,
     },
     currency: {
@@ -1735,6 +1765,24 @@ function render(sample: Sample): string {
     '  Conditional completion is correlational: a run that took a Leftovers is also',
     '  a run that survived long enough to be offered one. Read the n, not the rate.',
   );
+
+  out.push('', `Gym clear rewards — ${sample.rewards.gymOffers} offers taken`);
+  if (sample.rewards.gym.length === 0) {
+    out.push('  none — no run cleared a gym');
+  } else {
+    out.push(
+      table(
+        ['kind', 'picks', 'share of gym picks'],
+        sample.rewards.gym.map((row) => [row.label, String(row.count), pct(row.share)]),
+      ),
+    );
+    const top = sample.rewards.gym[0];
+    out.push(
+      top && top.share > 0.6
+        ? `  ${top.label} takes ${pct(top.share)} of gym picks — the pool has collapsed to one card.`
+        : '  No entry dominates. A gym offer is still a choice.',
+    );
+  }
 
   out.push('', 'Currency — median balance walking into a shop');
   out.push(

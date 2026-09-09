@@ -120,8 +120,23 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * twice over. That is not redundancy: the engine half says the *battle* would
  * replay differently and this half says the *run* would, and a reader
  * diagnosing a rejected log wants to know which.
+ *
+ * Went to `-8` in Stage 4.5.2, for the gym clear offer. A cleared gym now asks
+ * a `reward` question — and, when the card taken is a move or a Pokemon, a
+ * `target`, a `replace` or an `acquisition` behind it — where a 4.5.1 log has
+ * nothing at all. The cursor slips at the *first gym*, which is early enough
+ * that a silently misread log would reconstruct almost the entire run wrongly
+ * while looking plausible throughout.
+ *
+ * `RANDOMIZER_VERSION` moved with it, and that half is the one that matters
+ * more here: pass 6 appends a draw to the `rewards` stream in every segment, so
+ * a 4.5.1 log replayed against this build would reconstruct different *cards*
+ * at every node after the first gym even where the decision indexes still
+ * lined up. That is the failure the two guards exist to separate — this one
+ * says the questions changed, that one says the answers would mean something
+ * different.
  */
-export const RUN_LOG_VERSION = `gymrun-run-7/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-8/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -465,9 +480,6 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   // The one death rule, checked before anything can undo it.
   if (isWiped(party)) return { ...state, party, currency, history, outcome: 'defeat' };
 
-  // A gym has no tier and therefore no offer (see `NodeSpec.reward`), so the
-  // gym branch below never has a reward to fold in — the segment heal and the
-  // level are the payout, and they are larger than any card in any pool.
   if (result.node.kind === 'gym') {
     // A gym that did not end in a win ends the run, wipe or not: a turn-limit
     // draw against a gym leader is a gym the player did not beat.
@@ -486,7 +498,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      * folded in and after the wipe check, so a gym won on one HP is a segment
      * started on the same share of a bigger bar rather than a free heal.
      */
-    return {
+    let cleared: RunState = {
       ...state,
       // Order matters: fold in the node, then heal, then level. Healing before
       // levelling means the fraction `levelParty` carries is the healed one, so
@@ -501,6 +513,41 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       currentSegment: nextSegment,
       position: 0,
     };
+
+    /*
+     * The gym clear card, applied after the heal and the level.
+     *
+     * **Last, like every other reward, and for the same reasons**: after the
+     * wipe check so a heal can never resurrect a finished run, and after the
+     * node boundary so nothing it grants is undone by the transition that
+     * follows. The ordering against `levelParty` is the new part and it matters
+     * in one direction — a `species` card resolves at `joinLevelFor(segment)`
+     * and a `tm`/`tutor` lands on a member whose `maxHp` has just moved, so
+     * applying the card first would compute both against the pre-clear party.
+     *
+     * Gyms paid nothing before Stage 4.5.2, so this branch returned here.
+     */
+    if (result.reward) {
+      cleared = applyReward(
+        cleared,
+        result.reward,
+        result.rewardTarget ?? 0,
+        result.rewardReplaceSlot ?? null,
+      );
+    }
+    if (result.acquisition) {
+      const { party: acquired, freed } = applyAcquisition(
+        cleared.party,
+        result.acquisition.offer,
+        result.acquisition.decision,
+      );
+      cleared = {
+        ...cleared,
+        party: acquired,
+        backpack: freed ? stow(cleared.backpack, freed) : cleared.backpack,
+      };
+    }
+    return cleared;
   }
 
   let advanced: RunState = {

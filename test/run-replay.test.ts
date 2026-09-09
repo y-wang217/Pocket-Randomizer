@@ -131,6 +131,54 @@ describe('run log', () => {
     expect(() => replayRunPolicy(stale)).toThrow(/recorded on/);
   });
 
+  /**
+   * **The 4.5.2 guard, named against the version it has to refuse.**
+   *
+   * A real pre-patch log, not a synthetic one: `gymrun-run-7` was the shipped
+   * version through Stage 4.5.1, and `gymrun-randomizer-5` the shipped
+   * randomizer. Both moved for the gym clear offer, and each half refuses for a
+   * different reason the message has to distinguish — the run half says the
+   * *questions* changed (a cleared gym now asks a `reward`), the randomizer half
+   * says the *answers would mean something else* (pass 6 appends a draw to the
+   * rewards stream, so every offer after the first gym is a different card).
+   *
+   * Written as the literal old strings rather than as "the previous value",
+   * because the point is to catch a future edit that bumps one guard and
+   * forgets the other.
+   */
+  it('refuses a Stage 4.5.1 log on both halves of the guard', () => {
+    const preGymRewards: RunLog = {
+      seed: 'LOG-451',
+      version: 'gymrun-run-7/gymrun-0.3.0',
+      randomizerVersion: 'gymrun-randomizer-5',
+      decisions: [],
+    };
+
+    expect(isReplayable(preGymRewards)).toBe(false);
+    // The message names the mismatch, and names both sides of it.
+    expect(() => assertReplayable(preGymRewards)).toThrow(/gymrun-run-7/);
+    expect(() => assertReplayable(preGymRewards)).toThrow(new RegExp(RUN_LOG_VERSION.replace('/', '\\/')));
+
+    // And the randomizer half refuses on its own, with the run half current.
+    const staleRandomizer: RunLog = {
+      seed: 'LOG-451',
+      version: RUN_LOG_VERSION,
+      randomizerVersion: 'gymrun-randomizer-5',
+      decisions: [],
+    };
+    expect(isReplayable(staleRandomizer)).toBe(false);
+    expect(() => assertReplayable(staleRandomizer)).toThrow(/gymrun-randomizer-5/);
+    expect(() => assertReplayable(staleRandomizer)).toThrow(new RegExp(RANDOMIZER_VERSION));
+  });
+
+  it('has actually bumped both versions for this stage', () => {
+    // The guard above only works if the constants moved. A patch that added
+    // pass 6 and left these alone would replay a 4.5.1 log silently and wrongly,
+    // which is the exact failure the versions exist to prevent.
+    expect(RUN_LOG_VERSION).not.toContain('gymrun-run-7/');
+    expect(RANDOMIZER_VERSION).not.toBe('gymrun-randomizer-5');
+  });
+
   it('refuses a log whose decisions do not match what the run asks for', () => {
     const scrambled: RunLog = {
       seed: 'LOG-SCRAMBLED',

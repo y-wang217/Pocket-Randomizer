@@ -437,7 +437,14 @@ describe('the version guard', () => {
     // asserts on construction, so the refusal arrives before a single decision
     // is reconstructed rather than partway through a run that never happened.
     expect(() => replayRun(stale)).toThrow(/gymrun-run-5\/gymrun-0\.1\.0/);
-    expect(() => replayRun(stale)).toThrow(/this build replays gymrun-run-7/);
+    // Against the constant rather than a literal. The property is "the message
+    // names the build doing the refusing", not "the build is version 7" — and
+    // pinning the number here means every future bump breaks a test about
+    // something else, which is how a guard gets edited without being thought
+    // about. Line 462 below already does it this way.
+    expect(() => replayRun(stale)).toThrow(
+      new RegExp(`this build replays ${RUN_LOG_VERSION.replace(/[.\\/]/g, '\\$&')}`),
+    );
   });
 
   /*

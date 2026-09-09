@@ -89,8 +89,20 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * modifiers, the level curve, the species bands, the tier distribution and
  * `STARTER_MOVE_BANDS` all moved. Not one draw changed position and every seed
  * rolls a different run.
+ *
+ * Went to 6 in Stage 4.5.2 for the gym clear offer, and this one is the case
+ * the file's opening paragraph describes most literally: `generateSegment`
+ * gained a sixth pass that draws three cards from the `rewards` stream at the
+ * end of every segment. Nothing about *how* a Pokemon is rolled changed, and no
+ * draw ahead of it moved — pass 6 is appended precisely so it cannot — but
+ * every `rewards` draw in every segment after the first now sits one offer
+ * further along the stream. A 4.5.1 log would replay cleanly and hand out
+ * different cards at every node from the second segment on.
+ *
+ * (5 was Stage 4.5.1's relocated gender draw. See the README section on it —
+ * the engine was rolling gender off the battle PRNG with a flat coin flip.)
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-5';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-6';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
