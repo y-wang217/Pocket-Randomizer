@@ -46,6 +46,53 @@ export const BLACKLISTED_SPECIES: readonly string[] = ['shedinja'];
  */
 export const BLACKLISTED_ABILITIES: readonly string[] = [];
 
+/*
+ * ---------------------------------------------------------------------------
+ * The Stage 4.5.1 gender audit: four candidates, none of them admissible.
+ * ---------------------------------------------------------------------------
+ *
+ * Gender became a real, stable, displayed property in Stage 4.5.1, which made
+ * it worth asking what in the pools depends on it. Recorded here so the next
+ * person does not repeat the search and so that "we looked" is distinguishable
+ * from "nobody looked".
+ *
+ * **No gender-dependent move is drawable at all.** Attract and Captivate are
+ * both absent from `data/movePools.ts` — `scripts/gen-pools.ts` had already
+ * excluded them on structural grounds. So the obvious worry, a move that does
+ * nothing against the 4.6% of the species pool that is genderless, does not
+ * arise: the move cannot be rolled.
+ *
+ * Four abilities in `data/abilities.ts` touch gender, and each was checked
+ * against the pools rather than against memory of a normal Pokemon game:
+ *
+ *   - **Rivalry** — 1.25x into the same gender, 0.75x into the opposite. Read
+ *     off the engine rather than assumed: `if (attacker.gender &&
+ *     defender.gender)` means a genderless Pokemon on *either* side makes it a
+ *     no-op, not a penalty. A legible ±25% swing, and more legible now than
+ *     before, because both genders are on screen and neither re-rolls.
+ *   - **Cute Charm** — 30% infatuation on contact, opposite gender only. The
+ *     one entry whose *whole* effect is gender-gated. It still fires against
+ *     roughly half of what a run meets, which is a variance ability rather than
+ *     a dead one.
+ *   - **Oblivious** — immunity to infatuation, Taunt and Intimidate. The
+ *     infatuation clause is nearly unreachable now that Attract is not
+ *     drawable, but Taunt is in the move pool and Intimidate is in this one, so
+ *     two thirds of the ability is live.
+ *   - **Aroma Veil** — blocks Attract, Disable, Encore, Heal Block, Taunt,
+ *     Torment. Attract is unreachable and Heal Block and Torment are not in the
+ *     pool, but Disable, Encore and Taunt all are.
+ *
+ * None of them meets this file's bar. None is *mechanical* — every one can be
+ * played by the engine and none makes an encounter something other than a
+ * fight — and none is *measured*, because no simulator report has shown any of
+ * them touching an outcome distribution. Under-application is the cheap
+ * mistake to fix here and over-application is not, so the list stays empty.
+ *
+ * What would change it is a report, not a bad run: Cute Charm is the one to
+ * watch, because a 30% full-stop on contact is the closest thing in the pool to
+ * a coin flip that decides a fight.
+ */
+
 /**
  * Moves the randomizer may not roll.
  *

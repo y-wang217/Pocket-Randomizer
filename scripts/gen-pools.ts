@@ -110,6 +110,32 @@ interface SpeciesRow {
   types: string[];
   bst: number;
   band: number;
+  /** Chance of rolling male, 0..1. `null` for a genderless species. */
+  maleChance: number | null;
+}
+
+/**
+ * The species' real male chance, or null if it has no gender.
+ *
+ * **Baked in at build time because the engine does not apply it.** The sim
+ * assigns gender with `battle.sample(['M', 'F'])` whenever a set does not name
+ * one (`sim/pokemon.ts`), which is a flat coin flip that ignores `genderRatio`
+ * entirely — Combee comes out 50/50 rather than the 87.5% male its own data
+ * declares. GYMRUN rolls gender itself from this number, so the ratio is the
+ * one the dex states.
+ *
+ * `species.gender` is set only for gender-*locked* species: 'N' for the
+ * genderless, 'M' or 'F' for the handful that are always one. Everything else
+ * carries a `genderRatio` and an empty `gender`.
+ */
+function maleChanceOf(species: Species): number | null {
+  if (species.gender === 'N') return null;
+  if (species.gender === 'M') return 1;
+  if (species.gender === 'F') return 0;
+  const ratio = species.genderRatio;
+  if (!ratio) return 0.5;
+  const total = ratio.M + ratio.F;
+  return total > 0 ? ratio.M / total : null;
 }
 
 const speciesRows: SpeciesRow[] = dex.species
@@ -121,6 +147,7 @@ const speciesRows: SpeciesRow[] = dex.species
     types: [...species.types],
     bst: bstOf(species),
     band: bandOf(bstOf(species)),
+    maleChance: maleChanceOf(species),
   }))
   // Sorted by dex number, not by name or by band. The order is a draw order:
   // the randomizer picks an index into a filtered view of this list, so a
@@ -310,7 +337,7 @@ const BANNER = `/**
 
 function emitSpecies(): string {
   const rows = speciesRows
-    .map((row) => `  { id: '${row.id}', species: ${quote(row.species)}, types: [${row.types.map(quote).join(', ')}], bst: ${row.bst}, band: ${row.band} },`)
+    .map((row) => `  { id: '${row.id}', species: ${quote(row.species)}, types: [${row.types.map(quote).join(', ')}], bst: ${row.bst}, band: ${row.band}, maleChance: ${row.maleChance} },`)
     .join('\n');
 
   return `${BANNER}
@@ -326,6 +353,17 @@ export interface SpeciesEntry {
   bst: number;
   /** 0 (weakest) to ${BST_CUTS.length}. data/scaling.ts says which bands a segment may draw. */
   band: number;
+  /**
+   * Chance of rolling male, 0..1, or \`null\` for a genderless species.
+   *
+   * Here rather than asked of the dex at runtime, because \`core/randomizer.ts\`
+   * does not import the sim — and because the sim would give the wrong answer
+   * anyway. Showdown assigns an unnamed gender with a flat \`sample(['M','F'])\`
+   * that ignores \`genderRatio\`, so Combee comes out 50/50 rather than 87.5%
+   * male. GYMRUN rolls it from this number instead and hands the sim a concrete
+   * gender, which also means one fewer draw off the battle PRNG per Pokemon.
+   */
+  maleChance: number | null;
 }
 
 /**

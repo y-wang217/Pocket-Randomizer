@@ -25,6 +25,7 @@ import {
   type Choice,
   type BattleLog,
   type Decision,
+  type Gender,
   type MoveSpec,
   type MoveState,
   type MoveView,
@@ -51,8 +52,15 @@ import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
  * same decision sequence replayed against this build would be a different
  * battle rather than the same one. That is the failure the version exists to
  * refuse.
+ *
+ * `0.3.0` is Stage 4.5.1, and the cause is one line in `toPokemonSet`. Specs
+ * now carry a gender, and a named gender short-circuits the
+ * `battle.sample(['M', 'F'])` the sim was making per Pokemon at team
+ * construction. Every battle stream is therefore offset by one draw per
+ * gendered body on both sides — the same decisions, a different battle, from
+ * the very first turn.
  */
-export const ENGINE_VERSION = 'gymrun-0.2.0';
+export const ENGINE_VERSION = 'gymrun-0.3.0';
 
 const SIDES: readonly SideId[] = ['p1', 'p2'];
 const VALID_STATUSES: readonly string[] = ['brn', 'par', 'slp', 'frz', 'psn', 'tox'];
@@ -81,7 +89,24 @@ export function toPokemonSet(spec: PokemonSpec): PokemonSet {
     ability: spec.ability,
     moves: spec.moves.slice(0, 4),
     nature: 'Serious',
-    gender: '',
+    /*
+     * The spec's gender, or the sim's own coin flip when nothing rolled one.
+     *
+     * **A concrete value here removes a draw from the battle PRNG**, which is
+     * why this line moved a whole `ENGINE_VERSION`. Showdown assigns an unnamed
+     * gender with `battle.sample(['M', 'F'])` at team construction, so every
+     * gendered Pokemon on both sides used to consume one value before the
+     * battle started. Naming it short-circuits that branch — the stream is
+     * shorter by one draw per Pokemon, and every recorded battle log replays
+     * differently.
+     *
+     * `null` is genderless and maps to `''`, which is what the sim expects: it
+     * falls through to `species.gender` ('N'), recognises it, and consumes no
+     * draw. `undefined` — a spec built by hand in a test — also maps to `''`
+     * and gets the sim's flip for a gendered species, which is the old
+     * behaviour and is fine for a spec nobody replays.
+     */
+    gender: spec.gender ?? '',
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
     level: spec.level,
@@ -117,6 +142,17 @@ export interface SpecCard {
   species: string;
   name: string;
   level: number;
+  /**
+   * The spec's own gender, carried straight through.
+   *
+   * **Not read off the probe battle, and the distinction matters.** The probe
+   * runs on a fixed seed, so asking it would give every Pokemon in the game the
+   * same answer for its species — and a different one from whatever the real
+   * battle shows. The spec is the source of truth outside a battle; `undefined`
+   * (a hand-built spec that nobody rolled a gender for) reads as genderless
+   * here rather than inventing one.
+   */
+  gender: Gender;
   ability: string;
   types: string[];
   maxHp: number;
@@ -165,6 +201,7 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
     species: mon.species.name,
     name: mon.name,
     level: mon.level,
+    gender: spec.gender ?? null,
     ability: dex.abilities.get(mon.ability).name,
     types: mon.getTypes(),
     maxHp: mon.maxhp,
@@ -345,6 +382,9 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     species: pokemon.species.name,
     name: pokemon.name,
     level,
+    // The sim reports genderless as an empty string; the display layer wants a
+    // value it can branch on, and `null` is the one `Gender` names.
+    gender: pokemon.gender === 'M' || pokemon.gender === 'F' ? pokemon.gender : null,
     types: pokemon.getTypes(),
     hp: pokemon.hp,
     maxHp: pokemon.maxhp,
@@ -474,6 +514,7 @@ function readSwitches(battle: Battle, side: SideId): SwitchView[] {
       species: mon.species.name,
       name: mon.name,
       level: mon.level,
+      gender: mon.gender === 'M' || mon.gender === 'F' ? mon.gender : null,
       types: mon.getTypes(),
       ability: dex.abilities.get(mon.ability).name,
       moves: mon.moveSlots.map((slot) => slot.id),

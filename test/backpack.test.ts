@@ -499,28 +499,40 @@ describe('item assignment replays identically', () => {
   }, 60_000);
 
   it('resumes identically from a save taken between an assignment and the next battle', async () => {
-    // The specific case the spec names. A save written straight after an item
-    // plan is the one that would expose a backpack reconstructed from the party
-    // rather than from the log, because at that instant the two disagree: the
-    // items have just moved and no battle has yet read them.
-    const saves: RunLog[] = [];
-    const original = await playRun('BAG-RESUME', shuffling(), undefined, {
-      onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
-    });
+    /*
+     * The specific case the spec names. A save written straight after an item
+     * plan is the one that would expose a backpack reconstructed from the party
+     * rather than from the log, because at that instant the two disagree: the
+     * items have just moved and no battle has yet read them.
+     *
+     * **Searched across seeds rather than pinned to one**, because whether a
+     * given seed ever reaches such a boundary depends on what its nodes pay
+     * out, and every `RANDOMIZER_VERSION` bump reshuffles that. A seed pinned
+     * here fails on the next bump for a reason that has nothing to do with the
+     * behaviour under test — which is exactly what happened when gender moved
+     * onto the spec.
+     */
+    let checked = 0;
+    for (const seed of ['BAG-RESUME', 'BAG-RESUME-2', 'BAG-RESUME-3', 'BAG-RESUME-4']) {
+      const saves: RunLog[] = [];
+      const original = await playRun(seed, shuffling(), undefined, {
+        onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
+      });
 
-    const afterPlans = saves.filter((log) => log.decisions.at(-1)?.kind === 'items');
-    expect(afterPlans.length).toBeGreaterThan(0);
-
-    for (const save of afterPlans) {
-      const resumed = await resumeRun(save, shuffling());
-      expect(resumed.state.backpack, `resuming after ${save.decisions.length} decisions`).toEqual(
-        original.state.backpack,
-      );
-      expect(resumed.state.party.map((member) => member.item)).toEqual(
-        original.state.party.map((member) => member.item),
-      );
-      expect(resumed.outcome).toBe(original.outcome);
+      for (const save of saves.filter((log) => log.decisions.at(-1)?.kind === 'items')) {
+        checked++;
+        const resumed = await resumeRun(save, shuffling());
+        expect(resumed.state.backpack, `${seed} after ${save.decisions.length} decisions`).toEqual(
+          original.state.backpack,
+        );
+        expect(resumed.state.party.map((member) => member.item)).toEqual(
+          original.state.party.map((member) => member.item),
+        );
+        expect(resumed.outcome).toBe(original.outcome);
+      }
     }
+    // The search has to have found something, or this test asserts nothing.
+    expect(checked).toBeGreaterThan(0);
   }, 120_000);
 
   it('carries the backpack through a save and reload as JSON', async () => {

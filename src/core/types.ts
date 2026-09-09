@@ -18,6 +18,29 @@ export function opposingSide(side: SideId): SideId {
 // ---------------------------------------------------------------------------
 
 /**
+ * A Pokemon's gender: male, female, or none at all.
+ *
+ * **On the spec from Stage 4.5.1, and the reason is that the engine gets it
+ * wrong.** Showdown assigns an unnamed gender with `battle.sample(['M', 'F'])`
+ * — a flat coin flip that ignores the species' own `genderRatio`, so Combee
+ * comes out 50/50 rather than 87.5% male. Worse for a roguelike, it draws from
+ * the *battle* PRNG at team construction, so the same party member is male in
+ * one fight and female in the next, and nothing outside a battle has a gender
+ * at all.
+ *
+ * Rolling it here fixes all three: the ratio is the dex's, the value is stable
+ * for the life of the Pokemon, and the party screen can show it. It is also not
+ * a *new* draw in aggregate — handing the sim a concrete gender short-circuits
+ * the `sample` it was making anyway, so the roll moves from the battle stream to
+ * the randomizer rather than being added to the game.
+ *
+ * `null` is genderless, and it is distinct from `undefined`: undefined means
+ * nobody rolled one (a spec built by hand in a test), and the sim falls back to
+ * its own behaviour. Every spec the randomizer produces has a value.
+ */
+export type Gender = 'M' | 'F' | null;
+
+/**
  * A Pokemon described declaratively, never as a Showdown export string.
  *
  * Stage 0 hardcodes two of these in data/mons.ts. Stage 2's randomizer will
@@ -34,6 +57,20 @@ export interface PokemonSpec {
   /** Unused in Stage 0, but wired through the sim so items work on day one. */
   item?: string;
   nickname?: string;
+  /**
+   * Rolled once, from the species' real gender ratio. See `Gender`.
+   *
+   * Optional so that a spec built by hand — every test in this repo — still
+   * typechecks, in which case the sim falls back to its own coin flip. Every
+   * spec `core/randomizer.ts` produces carries one.
+   *
+   * On the spec rather than alongside it, unlike `PokemonState.item`, and the
+   * distinction is the identity line `core/items.ts` describes: a held item is
+   * something the run *did* and can undo, while gender is fixed at the moment
+   * the Pokemon is generated and never changes again. That puts it on the
+   * species side of the line, with ability and moves.
+   */
+  gender?: Gender;
 }
 
 export type TeamSpec = PokemonSpec[];
@@ -102,6 +139,17 @@ export function emptyStatStages(): StatStages {
   return { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 };
 }
 
+/**
+ * A Pokemon type, by the dex's spelling: `'Fire'`, `'Ghost'`, and so on.
+ *
+ * An alias rather than a union, because the list comes from the dex at runtime
+ * (`driver.WHEEL_TYPES`) and a hand-written union here would be a second copy
+ * of it — one that a generation change would leave silently disagreeing with
+ * the engine. The alias is worth having anyway: `TypeName[]` says what a
+ * coverage set is in a way `string[]` does not.
+ */
+export type TypeName = string;
+
 export interface MoveView {
   /** 1-based slot, the value to hand back in a `Choice`. */
   slot: number;
@@ -132,6 +180,8 @@ export interface SwitchView {
   species: string;
   name: string;
   level: number;
+  /** Male, female, or genderless, so the bench reads like the active panel. */
+  gender: Gender;
   types: string[];
   ability: string;
   /** Move ids, so a policy can estimate what this member would threaten with. */

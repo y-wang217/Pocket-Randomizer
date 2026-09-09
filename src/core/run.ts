@@ -941,6 +941,7 @@ function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
         level: card.level,
         ability: card.ability,
         moves: [...card.moves],
+        gender: card.gender,
       },
     };
   }

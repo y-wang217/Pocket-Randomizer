@@ -40,7 +40,7 @@ import { stow } from './items';
 import { leadOf, recoverParty, teachMove } from './party';
 import type { Rng } from './rng';
 import type { RunState } from './run';
-import type { PokemonState, Tier } from './types';
+import type { Gender, PokemonState, Tier } from './types';
 import { itemById } from '../data/items';
 import { rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
@@ -78,7 +78,22 @@ export type Reward =
    * this card through `chooseAcquisition` exactly as it routes an encounter's
    * offer. See `core/acquisition.ts`.
    */
-  | { kind: 'species'; species: string; level: number; moves: string[]; ability: string };
+  | {
+      kind: 'species';
+      species: string;
+      level: number;
+      moves: string[];
+      ability: string;
+      /**
+       * Rolled with the rest of the spec, and carried rather than re-rolled.
+       *
+       * The card is flattened out of a `PokemonSpec` and rebuilt into one in
+       * `run.acquisitionOffered`, so every field the spec has must survive the
+       * round trip. A gender dropped here would be silently re-rolled by the sim
+       * at the acquired member's first battle — and again at its second.
+       */
+      gender: Gender;
+    };
 
 /** The three cards a node offers. Exactly three, always distinct. */
 export interface RewardOffer {
@@ -243,6 +258,7 @@ export function resolveRewardEntry(
         level: spec.level,
         moves: spec.moves,
         ability: spec.ability,
+        gender: spec.gender ?? null,
       };
     }
   }

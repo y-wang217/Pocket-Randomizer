@@ -27,7 +27,14 @@ import {
   type BattleUiView,
   type MoveUiView,
 } from '../core/battle/view';
-import { moveChoice, switchChoice, type Choice, type StatName, type SwitchView } from '../core/types';
+import {
+  moveChoice,
+  switchChoice,
+  type Choice,
+  type Gender,
+  type StatName,
+  type SwitchView,
+} from '../core/types';
 
 const STATUS_LABELS: Record<string, string> = {
   brn: 'BRN',
@@ -167,7 +174,11 @@ function updateSidePanel(
   isFaster: boolean,
 ): void {
   panel.name.textContent = isFoe ? `Opposing ${active.name}` : active.name;
-  panel.level.textContent = `Lv${active.level}`;
+  // Gender sits with the level because it is the same kind of fact: a fixed
+  // property of this Pokemon, not a thing the fight is doing to it. Genderless
+  // renders nothing at all rather than a dash or an "N" — a placeholder for
+  // "no gender" is a symbol the player has to learn in order to ignore.
+  panel.level.textContent = `Lv${active.level}${genderMark(active.gender)}`;
 
   panel.types.replaceChildren(...active.types.map((type) => typeChip(type)));
 
@@ -373,7 +384,7 @@ function renderBenchMember(
   const name = el('span', 'bench__name');
   name.textContent = member.name;
   const level = el('span', 'bench__level');
-  level.textContent = `Lv${member.level}`;
+  level.textContent = `Lv${member.level}${genderMark(member.gender)}`;
 
   const types = el('span', 'bench__types');
   types.replaceChildren(...member.types.map((type) => typeChip(type)));
@@ -493,6 +504,23 @@ const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
   Status: 'STAT',
 };
 
+
+/**
+ * The mark shown after a level: male, female, or nothing at all.
+ *
+ * **Genderless renders the empty string, not a placeholder.** A dash or an "N"
+ * would be a symbol the player has to learn in order to ignore, and the whole
+ * point of showing gender is that it is a fact needing no explanation. The
+ * absence of a mark is the readout.
+ *
+ * The symbols rather than the letters because they read at a glance next to a
+ * number: "Lv50 M" parses as a stat and "Lv50 \u2642" does not.
+ */
+export function genderMark(gender: Gender): string {
+  if (gender === 'M') return ' \u2642';
+  if (gender === 'F') return ' \u2640';
+  return '';
+}
 
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
