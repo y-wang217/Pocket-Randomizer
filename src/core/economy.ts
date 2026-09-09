@@ -2,7 +2,7 @@
  * The economy: what a node pays, what a shop stocks, and the one rule about
  * spending.
  *
- * Pure, like `randomizer.ts` and `rewards.ts`, and takes an explicit `Rng`.
+ * Pure, like `randomizer.ts` and `rewards.ts`, and takes an explicit stream.
  * Every number is in `data/shop.ts`; this is the arithmetic and the validation.
  *
  * ## The rule
@@ -22,7 +22,7 @@
  * prevent.
  */
 import { applyReward, isTargeted, resolveRewardEntry, type Reward } from './rewards';
-import type { Rng } from './rng';
+import type { RngStream } from './rng';
 import type { RunState } from './run';
 import type { NodeSpec } from './encounters';
 import { currencyScaleFor, NODE_PAYOUT, priceAt, shopEntriesFor, TIER_PAYOUT } from '../data/shop';
@@ -94,10 +94,9 @@ export interface ShopStock {
 export function generateShopStock(
   nodeId: string,
   segment: number,
-  rng: Rng,
+  stream: RngStream,
   tuning: Tuning,
 ): ShopStock {
-  const stream = rng.rewards;
   const entries = shopEntriesFor(segment);
   const size = stream.inRange(tuning.shopStockSize);
 
@@ -123,7 +122,7 @@ export function generateShopStock(
     // A shop sells at `normal` tier bands: the shelf is a function of how far
     // into the run you are, not of the node you fought to get here. A shop node
     // has no tier of its own, so there is nothing else it could use.
-    const reward = resolveRewardEntry(chosen, segment, 'normal', rng, takenItems, takenMoves);
+    const reward = resolveRewardEntry(chosen, segment, 'normal', stream, takenItems, takenMoves);
     if (!reward) continue;
 
     const signature = JSON.stringify(reward);

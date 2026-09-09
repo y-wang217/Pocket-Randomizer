@@ -399,10 +399,15 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
     /*
      * The seed is chosen, not arbitrary. Most runs die before the party fills,
      * and a census that never reached a release would be asserting five things
-     * and silently skipping the sixth. `ALL-DECISIONS` gets four gyms deep with
-     * this policy, which is far enough to hit every branch.
+     * and silently skipping the sixth. `ALL-DECISIONS-3` gets deep enough with
+     * this policy to hit every branch.
+     *
+     * It was `ALL-DECISIONS` until Stage 4.6a rekeyed the RNG streams. Nothing
+     * about the census changed; every seed simply rolls a different run, which
+     * is what a `RANDOMIZER_VERSION` bump means. `scripts/scan-seed.ts` is how
+     * the replacement was found.
      */
-    const run = await playRun('ALL-DECISIONS', policy);
+    const run = await playRun('ALL-DECISIONS-3', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
     for (const decision of ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign']) {

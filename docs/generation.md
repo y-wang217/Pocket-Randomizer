@@ -34,13 +34,40 @@ The cost is a few hundred microseconds and some generated data nobody sees. The
 benefit is that a seed's map and encounters are fixed for as long as the passes
 below stay in the same order.
 
+## 1b. Keyed sub-streams, and what stopped being a contract
+
+**Stage 4.6a moved every draw in the game onto a keyed sub-stream.** A stream is
+no longer one sequence per run: `rng.map.at('seg3/cave/route')` is a sequence of
+its own, derived from the seed, the stream name and the key, and independent of
+every other key. `src/core/streamKeys.ts` is the namespace and
+[`gymrun-seeds-and-mappability.md`](../gymrun-seeds-and-mappability.md) is the
+argument.
+
+Three things follow, and the third is the reason the stage did it:
+
+- **The pass list below is no longer a draw order.** It is still a pass list —
+  pass 2 needs pass 1's kinds, and the passes read well — but "the list only
+  ever grows downward", the discipline every stage from 3 onward followed, is
+  retired. Reordering the passes is a refactor now, not a break.
+- **A new draw's blast radius is one key.** A draw added to a node's reward
+  offer moves that node's cards. It cannot move the node beside it, that node's
+  team, or its battle seed.
+- **A new key costs nothing at all.** Which is what lets 4.6b and 4.6c add
+  draws without every seed's map moving underneath the report that measures
+  them.
+
+What did *not* change: order **within** a key is still a contract, eager
+generation is still the rule, and a payout is still drawn when the map is built
+rather than when a node is completed. Those arguments were never about stream
+layout.
+
 ## 2. The passes
 
-`generateSegment(index, rng, tuning)` runs three passes. They are separate on
-purpose, and the boundaries between them are the parts that would be expensive
-to change later.
+`generateSegment(index, rng, tuning)` runs its passes over keyed sub-streams.
+They are separate on purpose, and the boundaries between them are the parts that
+would be expensive to change later.
 
-### Pass 1 — shape, from the `map` stream
+### Pass 1 — shape, from `map`, keyed per segment
 
 1. The number of steps, from `tuning.stepsPerSegment`.
 2. For each step, in order: how many options (`tuning.nodeChoiceCount`), then
@@ -74,7 +101,7 @@ Tiers within one step are sampled **without replacement** too
 (`tuning.distinctTiersPerStep`), for the same reason kinds are: a step offering
 two `hard` fights is one trade printed twice.
 
-### Pass 2 — contents, from the `randomizer` stream
+### Pass 2 — contents, from `randomizer`, keyed per node
 
 For each node, in index order (step 0 option 0, step 0 option 1, …, then the
 gym): the whole team, member by member. Within a member the order is species,
@@ -92,7 +119,7 @@ now fixed by `map` and the contents by `randomizer`, and neither can move the
 other. `test/randomizer.test.ts` asserts it directly rather than trusting it to
 the construction.
 
-### Pass 3 — sim seeds, from the `battle` stream
+### Pass 3 — sim seeds, from `battle`, keyed per node
 
 One `sodium` PRNG seed per battle node, in the same index order.
 
@@ -105,7 +132,7 @@ play the *same* damage rolls, crits and accuracy checks in every fight, eight
 nodes running. `test/generation.test.ts` asserts every battle in a segment gets
 a distinct seed.
 
-### Pass 4 — payouts and contents, from the `rewards` stream
+### Pass 4 — payouts and contents, from `rewards`, keyed per node and purpose
 
 One sweep in node index order, filling in whichever of three things the node
 needs:
@@ -149,7 +176,7 @@ fixed index order, so a variable count inside one node shifts only that node's
 successors on that one stream. What it must never do is move `map`,
 `randomizer` or `battle`, and it cannot: it never touches them.
 
-### Pass 5 — encounter acquisitions, from the `rewards` stream again
+### Pass 5 — encounter acquisitions, from `rewards`, keyed per node
 
 One roll per **wild** node, in node index order, deciding whether that node
 offers the Pokemon it just fielded. Trainers and gyms take no roll: a trainer

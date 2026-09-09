@@ -28,7 +28,7 @@
  */
 import { stow } from './items';
 import { recoverParty } from './party';
-import type { Rng } from './rng';
+import type { RngStream } from './rng';
 import type { RunState } from './run';
 import { hpEventDelta } from './hpCopy';
 import { itemById } from '../data/items';
@@ -81,9 +81,8 @@ export interface EventInstance {
  * the event table would do anyway. What it must never do is shift `map`,
  * `randomizer` or `battle`, and it cannot: it never touches them.
  */
-export function generateEvent(nodeId: string, rng: Rng, tuning: Tuning): EventInstance {
+export function generateEvent(nodeId: string, stream: RngStream, tuning: Tuning): EventInstance {
   void tuning;
-  const stream = rng.rewards;
   const definition = stream.pick(EVENTS);
 
   return {
@@ -101,7 +100,7 @@ export function generateEvent(nodeId: string, rng: Rng, tuning: Tuning): EventIn
 /** Weighted pick of one outcome template. Exactly one draw, always. */
 function drawOutcome(
   outcomes: readonly { weight: number; outcome: EventOutcomeTemplate }[],
-  stream: Rng['rewards'],
+  stream: RngStream,
 ): EventOutcomeTemplate {
   const total = outcomes.reduce((sum, entry) => sum + Math.max(0, entry.weight), 0);
   let roll = stream.nextFloat() * Math.max(total, Number.EPSILON);
@@ -113,7 +112,7 @@ function drawOutcome(
 }
 
 /** Collapse a template's remaining randomness. Only `item` has any. */
-function resolveOutcome(template: EventOutcomeTemplate, stream: Rng['rewards']): EventOutcome {
+function resolveOutcome(template: EventOutcomeTemplate, stream: RngStream): EventOutcome {
   if (template.kind !== 'item') return template;
   const available = template.pool.filter((id) => itemById(id));
   if (available.length === 0) return { kind: 'nothing' };

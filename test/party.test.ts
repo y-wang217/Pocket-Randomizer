@@ -496,10 +496,11 @@ describe('acquisition draws stay on the rewards stream', () => {
     generateStarterOptions(rng, tuning);
     for (let index = 0; index < SEGMENTS_PER_RUN; index++) generateSegment(index, rng, tuning);
     return {
-      map: rng.map.draws,
-      randomizer: rng.randomizer.draws,
-      battle: rng.battle.draws,
-      rewards: rng.rewards.draws,
+      // Sub-stream totals: since 4.6a nothing draws off the unkeyed sequence.
+      map: rng.map.totalDraws,
+      randomizer: rng.randomizer.totalDraws,
+      battle: rng.battle.totalDraws,
+      rewards: rng.rewards.totalDraws,
     };
   }
 
@@ -509,9 +510,9 @@ describe('acquisition draws stay on the rewards stream', () => {
     // every seed's later reward rolls would shift when that table moved.
     const rng = createRng('ACQ-COUNT');
     generateStarterOptions(rng, DEFAULT_TUNING);
-    const before = rng.rewards.draws;
+    const before = rng.rewards.totalDraws;
     const segment = generateSegment(0, rng, DEFAULT_TUNING);
-    const after = rng.rewards.draws;
+    const after = rng.rewards.totalDraws;
 
     const wilds = nodesOf(segment).filter((node) => node.kind === 'wild');
     const offered = wilds.filter((node) => node.acquisition).length;
@@ -652,7 +653,7 @@ describe('a full eight-gym run, headless', () => {
    * regression in this test — rescan for a seed that does, or the victory path
    * quietly stops being covered.
    */
-  const WINNING_SEED = 'WIN-3';
+  const WINNING_SEED = 'WIN-5';
 
   it('completes eight gyms while switching, acquiring, releasing and targeting', async () => {
     expect(typeof globalThis.document).toBe('undefined');

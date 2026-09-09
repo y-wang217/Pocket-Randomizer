@@ -83,10 +83,10 @@ describe('1. determinism', () => {
     // The same stream position must produce the same Pokemon regardless of what
     // was generated before it in the process. A cached pool that got filtered
     // in place, or a module-level counter, would fail here and nowhere else.
-    const first = generateWildMon(3, 'normal', createRng('PURE'));
-    generateGymTeam(GYMS[0]!, 0, createRng('NOISE'));
-    generateTrainerTeam(5, 'normal', createRng('MORE-NOISE'));
-    expect(generateWildMon(3, 'normal', createRng('PURE'))).toEqual(first);
+    const first = generateWildMon(3, 'normal', createRng('PURE').randomizer);
+    generateGymTeam(GYMS[0]!, 0, createRng('NOISE').randomizer);
+    generateTrainerTeam(5, 'normal', createRng('MORE-NOISE').randomizer);
+    expect(generateWildMon(3, 'normal', createRng('PURE').randomizer)).toEqual(first);
   });
 });
 
@@ -139,10 +139,10 @@ describe('2. stream isolation', () => {
     const rng = createRng('ISOLATE-SOURCE');
     const before = Object.fromEntries(RNG_STREAMS.map((name) => [name, rng[name].draws]));
 
-    generateWildTeam(4, 'normal', rng);
-    generateTrainerTeam(4, 'normal', rng);
-    generateGymTeam(GYMS[4]!, 4, rng);
-    generateStarters(3, starterLevel(), rng);
+    generateWildTeam(4, 'normal', rng.randomizer);
+    generateTrainerTeam(4, 'normal', rng.randomizer);
+    generateGymTeam(GYMS[4]!, 4, rng.randomizer);
+    generateStarters(3, starterLevel(), rng.randomizer);
 
     expect(rng.randomizer.draws).toBeGreaterThan(before['randomizer'] ?? 0);
     for (const name of RNG_STREAMS) {
@@ -193,8 +193,8 @@ describe('3. legality bypass', () => {
     for (let seed = 0; seed < 8; seed++) {
       const rng = createRng(`BYPASS-BATTLE-${seed}`);
       const run = await runBattle(
-        generateTrainerTeam(6, 'normal', rng),
-        generateGymTeam(GYMS[6]!, 6, rng),
+        generateTrainerTeam(6, 'normal', rng.randomizer),
+        generateGymTeam(GYMS[6]!, 6, rng.randomizer),
         `BYPASS-BATTLE-${seed}`,
         greedyAiPolicy,
         greedyAiPolicy,
@@ -291,7 +291,7 @@ describe('5. gym identity', () => {
   it('gives every gym member the type of its leader, across many seeds', () => {
     for (const gym of GYMS) {
       for (let seed = 0; seed < 60; seed++) {
-        const team = generateGymTeam(gym, gym.segment, createRng(`GYM-${gym.id}-${seed}`));
+        const team = generateGymTeam(gym, gym.segment, createRng(`GYM-${gym.id}-${seed}`).randomizer);
         expect(team.length).toBeGreaterThan(0);
         for (const member of team) {
           const entry = speciesByName.get(member.species);
@@ -323,7 +323,7 @@ describe('5. gym identity', () => {
       const expected = opponentTeamSize('gym', gym.segment, 'normal', gym.teamSize);
       expect(expected, `${gym.leader}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
       for (let seed = 0; seed < 5; seed++) {
-        const team = generateGymTeam(gym, gym.segment, createRng(`SIZE-${gym.id}-${seed}`));
+        const team = generateGymTeam(gym, gym.segment, createRng(`SIZE-${gym.id}-${seed}`).randomizer);
         expect(team, `${gym.leader}`).toHaveLength(expected);
       }
     }
@@ -349,7 +349,7 @@ describe('5. gym identity', () => {
     // did would mean the type pool had collapsed to one entry.
     const distinct = new Set<string>();
     for (let seed = 0; seed < 40; seed++) {
-      for (const member of generateGymTeam(GYMS[7]!, 7, createRng(`VARIETY-${seed}`))) {
+      for (const member of generateGymTeam(GYMS[7]!, 7, createRng(`VARIETY-${seed}`).randomizer)) {
         distinct.add(member.species);
       }
     }
@@ -359,7 +359,7 @@ describe('5. gym identity', () => {
   it('never rolls a pseudo-legendary into the first gym', () => {
     // The spec's own example of what band filtering is for.
     for (let seed = 0; seed < 60; seed++) {
-      for (const member of generateGymTeam(GYMS[0]!, 0, createRng(`EARLY-${seed}`))) {
+      for (const member of generateGymTeam(GYMS[0]!, 0, createRng(`EARLY-${seed}`).randomizer)) {
         const entry = speciesByName.get(member.species);
         expect(entry?.band, `${member.species} at gym 1`).toBeLessThanOrEqual(1);
         expect(entry?.bst ?? 0, `${member.species} at gym 1`).toBeLessThanOrEqual(420);
@@ -420,9 +420,9 @@ describe('the curve, exercised', () => {
     for (const segment of SEGMENT_INDEXES) {
       const rng = createRng(`CURVE-${segment}`);
       const teams: TeamSpec[] = [
-        generateWildTeam(segment, 'normal', rng),
-        generateTrainerTeam(segment, 'normal', rng),
-        generateGymTeam(GYMS[segment]!, segment, rng),
+        generateWildTeam(segment, 'normal', rng.randomizer),
+        generateTrainerTeam(segment, 'normal', rng.randomizer),
+        generateGymTeam(GYMS[segment]!, segment, rng.randomizer),
       ];
       for (const team of teams) {
         expect(team.length).toBeGreaterThan(0);
@@ -442,8 +442,8 @@ describe('the curve, exercised', () => {
     for (const segment of SEGMENT_INDEXES) {
       const normal = createRng(`TIER-${segment}`);
       const hard = createRng(`TIER-${segment}`);
-      generateTrainerTeam(segment, 'normal', normal);
-      generateTrainerTeam(segment, 'hard', hard);
+      generateTrainerTeam(segment, 'normal', normal.randomizer);
+      generateTrainerTeam(segment, 'hard', hard.randomizer);
       expect(hard.randomizer.draws, `segment ${segment}`).toBe(normal.randomizer.draws);
     }
   });
@@ -452,8 +452,8 @@ describe('the curve, exercised', () => {
     // And the parameter is not decorative: it moves levels up.
     let harder = 0;
     for (let seed = 0; seed < 20; seed++) {
-      const normal = generateWildMon(2, 'normal', createRng(`TIER-LV-${seed}`));
-      const hard = generateWildMon(2, 'hard', createRng(`TIER-LV-${seed}`));
+      const normal = generateWildMon(2, 'normal', createRng(`TIER-LV-${seed}`).randomizer);
+      const hard = generateWildMon(2, 'hard', createRng(`TIER-LV-${seed}`).randomizer);
       if (hard.level > normal.level) harder++;
     }
     expect(harder).toBe(20);

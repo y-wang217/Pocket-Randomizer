@@ -157,7 +157,16 @@ describe('tier stream isolation', () => {
       const rng = createRng('TIER-REWARDS');
       generateStarterOptions(rng, tuning);
       for (let index = 0; index < SEGMENT_COUNT; index++) generateSegment(index, rng, tuning);
-      return { map: rng.map.draws, randomizer: rng.randomizer.draws, battle: rng.battle.draws, rewards: rng.rewards.draws };
+      // `totalDraws` rather than `draws`: since Stage 4.6a every draw here
+      // lands on a keyed sub-stream, so the unkeyed counter reads zero on all
+      // four and the three "did not move" assertions below would pass for the
+      // wrong reason.
+      return {
+        map: rng.map.totalDraws,
+        randomizer: rng.randomizer.totalDraws,
+        battle: rng.battle.totalDraws,
+        rewards: rng.rewards.totalDraws,
+      };
     };
 
     /*
@@ -198,7 +207,7 @@ describe('tier scaling is monotonic', () => {
     let total = 0;
     for (let seed = 0; seed < seeds; seed++) {
       const rng = createRng(`POWER-${segment}-${seed}`);
-      const team = kind === 'wild' ? generateWildTeam(segment, tier, rng) : generateTrainerTeam(segment, tier, rng);
+      const team = kind === 'wild' ? generateWildTeam(segment, tier, rng.randomizer) : generateTrainerTeam(segment, tier, rng.randomizer);
       total += encounterPower(team);
     }
     return total / seeds;

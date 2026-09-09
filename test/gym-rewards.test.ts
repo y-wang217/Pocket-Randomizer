@@ -165,9 +165,9 @@ describe('when the offer is drawn', () => {
  * test a tautology. These are what the map and battle streams produced before
  * `generateSegment` had a pass 6, and today's build must still produce them.
  */
-const PRE_PASS_6_SEGMENT_0_SHAPE: string[][] = [["trainer:normal", "event:-"], ["event:-", "wild:normal"], ["shop:-", "wild:hard", "event:-"], ["trainer:normal", "wild:hard", "event:-"], ["wild:hard", "rest:-"]];
+const KEYED_SEGMENT_0_SHAPE: string[][] = [["shop:-","event:-","wild:normal"],["trainer:normal","wild:hard","shop:-"],["wild:normal","trainer:hard"],["wild:normal","trainer:hard","rest:-"],["wild:normal","shop:-"]];
 
-const PRE_PASS_6_SEGMENT_0_SEEDS: (string | null)[] = ["sodium,767d3f95ac2a4f916266f04a8a5c74d31b00879f130d9264eb54bd144db12da9", null, null, "sodium,f8ec31658303243d32bd69aa4416a6ba444cc1f5b964e3b0996f54d4cd67db73", null, "sodium,43eb1408a2bce30bd2b9bc3e1486500f3ac1a5638476968d80dfb7f92143d615", null, "sodium,a6a470fb5b229d9b331726ecfd299bdc68bdf69c8a761cf37c9c0b83cb3faed3", "sodium,3dbcf3e1c4658d088d152df84a7e0fd7f4f896183db12d8054f25c074c3bb46b", null, "sodium,a925f4e6155bba7dee174845236148ef5cd289de13b8a25fc26fae9366448c63", null, "sodium,45e8026618d49453680da79218cca66990830bd149f95bce3235e7b553954208"];
+const KEYED_SEGMENT_0_SEEDS: (string | null)[] = [null,null,"sodium,5db563acc8ea2ad4e04d0f2359a7b0a5eef4ad494d3174d1edda1557d85defbd","sodium,97b7c48971fcf0deeaa87fe7d0d003f2c840a8d476437b7c85441b420aeba701","sodium,5b802396be21ac55b37c3b4346dadda3d95bd8ea627de1866b1af18b14594eef",null,"sodium,cea293fb86eb45f02cd73255f41e5b0d254b2a4f1c151c24e38b088d0b64cd03","sodium,914e4a44881646ba8deaea2315afe00bc89764fb73a0796c486d22d1bca0467c","sodium,b80ea5683a9cd9b585694b128d65cc6ad1a1a8152aef65cda8ade229b9ae1b6f","sodium,5be03b5b7e9b42e0377bf805397bde6aaf5bad0f753415830f7ec2f324940560",null,"sodium,ae2aceec3b6ed7c7b134905fea4ced4e2d8874d5c289a2ea553a995b4fde65cc",null,"sodium,90334ea2803513d623caaf516b8f0997be0256aa48fcb05b1b993c3a79c61c30"];
 
 describe('stream isolation', () => {
   /**
@@ -200,14 +200,25 @@ describe('stream isolation', () => {
   });
 
   /**
-   * The recorded baseline, captured from the build *before* pass 6 existed.
+   * The recorded baseline for one seed's map, shape and battle seeds.
    *
    * A hard-coded fixture rather than a computed comparison, because the thing
    * being tested is that today's build agrees with yesterday's — and yesterday's
    * code is gone. A fixture is the only way to assert across a change that has
    * already happened.
+   *
+   * **Re-minted in Stage 4.6a, and the re-mint is the honest move rather than
+   * the convenient one.** It held the map as it stood *before* pass 6 existed,
+   * which proved appending a pass moved nothing. 4.6a did not append a pass; it
+   * moved every draw in the game onto keyed sub-streams, so every seed's map is
+   * different by construction and `RANDOMIZER_VERSION` says so. Keeping the old
+   * numbers would have been asserting that a deliberate change did not happen.
+   *
+   * What it pins from here is the same thing one level along: this build's map
+   * for this seed, so a later stage that claims to add a key without moving one
+   * either passes this or the claim was wrong.
    */
-  it('matches the pre-pass-6 map for a fixed seed', () => {
+  it('matches the recorded map for a fixed seed', () => {
     const segments = withoutGymOffers('GYM-ISOLATION');
 
     // Shape and contents are long; the digest is what a regression would move.
@@ -215,7 +226,7 @@ describe('stream isolation', () => {
     expect(digest).toBeGreaterThan(0);
 
     // The load-bearing assertion: the map stream's output for segment 0.
-    expect(segments[0]?.shape).toEqual(PRE_PASS_6_SEGMENT_0_SHAPE);
-    expect(segments[0]?.simSeeds).toEqual(PRE_PASS_6_SEGMENT_0_SEEDS);
+    expect(segments[0]?.shape).toEqual(KEYED_SEGMENT_0_SHAPE);
+    expect(segments[0]?.simSeeds).toEqual(KEYED_SEGMENT_0_SEEDS);
   });
 });

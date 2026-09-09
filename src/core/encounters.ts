@@ -9,66 +9,56 @@
  * costs a few hundred microseconds and buys seed compatibility that survives
  * three more stages.
  *
- * The passes, in order, are the contract. Reordering them changes what every
- * recorded seed produces, so they are written down in docs/generation.md as
- * well as here:
+ * ## What Stage 4.6a changed about the contract
  *
- *   1. `map` stream: segment length, then per step the option count and the
- *      node kinds, then the rest-availability fix-up, then per step the tiers
- *      of that step's battle nodes.
- *   2. `randomizer` stream: encounter contents — species, level, ability and
- *      moves — for every node in index order, including options the player will
- *      never take.
- *   3. `battle` stream: one sim seed per battle node, in the same index order.
- *   4. `rewards` stream: per node in index order — the three-card offer for a
- *      node with a tier, the stock for a shop, the resolved outcomes for an
- *      event. One sweep, so all three share one draw order.
- *   5. `rewards` stream again: one roll per wild node, in index order, for
- *      whether it offers its species. Always exactly one roll per wild node,
- *      whether or not the offer appears — a check that only rolled when it
- *      might succeed would make the draw count depend on the tier table.
- *   6. `rewards` stream once more: the segment's gym clear offer. Stage 4.5.2.
+ * Through Stage 4.5.2 the passes below were a **global draw order**: five
+ * sweeps over the map, each consuming one long sequence, and the order between
+ * them was the compatibility contract. That is why every stage appended a pass
+ * rather than editing one — "the list only ever grows downward" was the whole
+ * discipline, and it was load-bearing.
  *
- * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
- * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
- * drawn for a node that then became a rest would be a draw stranded in the
- * middle of the sequence. Tier belongs to `map` and not to `randomizer` because
- * it is part of the shape of the choice the player is offered — the map screen
- * shows it before anything about the encounter is known — and because the
- * randomizer must stay free to add draws without moving it.
+ * Keyed sub-streams (`core/rng.ts`) retire that rule. Every draw here now names
+ * a **key** — a node, a segment, a purpose — and two keys are independent
+ * sequences. So:
  *
- * Pass 2 moved from the `map` stream to the `randomizer` stream in Stage 2, and
- * that is the change the whole stage rests on. A randomizer adds draws
- * constantly — a fourth move slot, a tier modifier, a bigger gym team — and
- * every one of them would otherwise have shifted the *shape* of every map
- * generated after it. Now the shape is fixed by `map` and the contents by
- * `randomizer`, and neither can move the other.
+ *   - The passes are still passes, because they are readable that way and
+ *     because pass 2 needs pass 1's kinds. They are no longer a draw order.
+ *   - A new draw under a new key moves nothing at all. A new draw inside an
+ *     existing key moves only that key's own later draws — one node's cards,
+ *     not every node's.
+ *   - Reordering the passes is now a refactor rather than a break, which is
+ *     precisely what makes 4.6b and 4.6c cheap. `core/streamKeys.ts` holds the
+ *     namespace and `gymrun-seeds-and-mappability.md` holds the argument.
  *
- * Pass 3 is separate again so that changing what a node *contains* cannot shift
- * the damage rolls of a node earlier in the map.
+ * What has *not* changed is eagerness. Contents are still generated for every
+ * option the player will never take, because the alternative makes the number
+ * of draws a function of the path walked — and while keying means that can no
+ * longer corrupt a *different* node, a lazily generated node would still be a
+ * node whose contents depend on when it was visited.
  *
- * Pass 4 is Stage 3's, and it is at map generation for the reason the whole
- * document exists. Drawing an offer when the node is *completed* would make the
- * roll depend on how the battle went — how many turns it ran, how many damage
- * rolls the sim consumed — and the reward a seed pays out would quietly become
- * a function of play.
+ * ## The passes
  *
- * Pass 5 is Stage 4's: one roll per wild node for whether it offers the species
- * it just fielded. Same rule as pass 4 and the same stream, and a *separate
- * sweep* rather than a branch inside it — because appending is the only edit to
- * this list that cannot move what came before it. Folding the roll into pass 4
- * would produce identical output today and couple the two draw orders forever,
- * so the next change to reward offers would silently reshuffle every
- * acquisition in every recorded seed.
+ *   1. `map`, keyed per segment: segment length, then per step the option count
+ *      and the node kinds, then the rest-availability fix-up, then per step the
+ *      tiers of that step's battle nodes.
+ *   2. `randomizer`, keyed per node: encounter contents — species, level,
+ *      ability and moves — for every node, including options never taken.
+ *   3. `battle`, keyed per node: one sim seed per battle node.
+ *   4. `rewards`, keyed per node and purpose: the three-card offer for a node
+ *      with a tier, the stock for a shop, the resolved outcomes for an event.
+ *   5. `rewards`, keyed per node: whether a won wild node offers its species.
+ *   6. `rewards`, keyed per segment: the gym clear offer.
  *
- * Pass 6 is Stage 4.5.2's, and it is a sixth sweep for the same reason pass 5
- * is a fifth. A gym carries no tier, so pass 4's `if (node.tier)` has always
- * skipped it; the tempting fix was to relax that condition in place, which
- * would have inserted a draw into the *middle* of the rewards stream and
- * changed every offer at every node after the first gym in every recorded seed.
+ * Pass 1's internal order still matters, because it is one key: the tier draw
+ * comes *after* the rest fix-up, since the fix-up rewrites node kinds and a
+ * tier drawn for a node that then became a rest would be a draw stranded in the
+ * middle of that key's sequence.
  *
- * Each new pass goes on the end for exactly that reason. That is the whole
- * discipline: the list only ever grows downward.
+ * Pass 4 is at map generation for the reason the whole document exists.
+ * Drawing an offer when the node is *completed* would make the roll depend on
+ * how the battle went — how many turns it ran, how many damage rolls the sim
+ * consumed — and the reward a seed pays out would quietly become a function of
+ * play. Keying does not touch that argument; it is about *when*, not *where*.
  */
 import {
   generateGymTeam,
@@ -81,6 +71,7 @@ import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
+import { gymRewardKey, nodeKey, nodeRewardKey, segmentShapeKey, STARTERS_KEY } from './streamKeys';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import { starterLevel } from '../data/scaling';
@@ -288,7 +279,7 @@ const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
  * about reacting to one.
  */
 export function generateStarterOptions(rng: Rng, tuning: Tuning, unlocked?: readonly string[]): PokemonSpec[] {
-  return generateStarters(tuning.starterOptionCount, starterLevel(), rng, unlocked);
+  return generateStarters(tuning.starterOptionCount, starterLevel(), rng.randomizer.at(STARTERS_KEY), unlocked);
 }
 
 // ---------------------------------------------------------------------------
@@ -305,25 +296,26 @@ export function generateStarterOptions(rng: Rng, tuning: Tuning, unlocked?: read
 export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segment {
   const gymDef = gymForSegment(index);
 
-  // --- pass 1: shape, from the `map` stream -------------------------------
-  const stepCount = drawRange(rng.map, tuning.stepsPerSegment);
+  // --- pass 1: shape, from the `map` stream, keyed to this segment ---------
+  const shapeStream = rng.map.at(segmentShapeKey(index));
+  const stepCount = drawRange(shapeStream, tuning.stepsPerSegment);
   const shape: ChoosableKind[][] = [];
 
   for (let step = 0; step < stepCount; step++) {
     const allowed = CHOOSABLE_KINDS.filter((kind) => kind !== 'rest' || step >= tuning.restEarliestStep);
-    const wanted = drawRange(rng.map, tuning.nodeChoiceCount);
+    const wanted = drawRange(shapeStream, tuning.nodeChoiceCount);
     const count = tuning.distinctKindsPerStep ? Math.min(wanted, allowed.length) : wanted;
     shape.push(
-      sampleWeighted(rng.map, allowed, (kind) => tuning.nodeWeights[kind], count, tuning.distinctKindsPerStep),
+      sampleWeighted(shapeStream, allowed, (kind) => tuning.nodeWeights[kind], count, tuning.distinctKindsPerStep),
     );
   }
 
-  ensureRests(shape, rng.map, tuning);
+  ensureRests(shape, shapeStream, tuning);
 
   // Tiers, still pass 1 and still the `map` stream, but only once the kinds are
   // final. See the header: the rest fix-up rewrites kinds, so a tier drawn
   // before it could belong to a node that is no longer a fight.
-  const tiers = shape.map((kinds) => assignTiers(kinds, index, rng.map, tuning));
+  const tiers = shape.map((kinds) => assignTiers(kinds, index, shapeStream, tuning));
 
   // --- pass 2: contents, from the `randomizer` stream ---------------------
   const steps: Step[] = shape.map((kinds, step) => ({
@@ -339,7 +331,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     tier: null,
     label: `${gymDef.leader}'s Gym`,
     encounter: {
-      team: generateGymTeam(gymDef, index, rng),
+      team: generateGymTeam(gymDef, index, rng.randomizer.at(nodeKey(`s${index}-gym`))),
       opponent: `${gymDef.leader} (${gymDef.type})`,
       // Filled by pass 3.
       simSeed: PLACEHOLDER_SEED,
@@ -361,7 +353,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
 
   // --- pass 3: sim seeds, from the `battle` stream -------------------------
   for (const node of nodesOf(segment)) {
-    if (node.encounter) node.encounter.simSeed = rng.battle.nextSimSeed();
+    if (node.encounter) node.encounter.simSeed = rng.battle.at(nodeKey(node.id)).nextSimSeed();
   }
 
   // --- pass 4: reward offers, from the `rewards` stream --------------------
@@ -369,9 +361,19 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
   // are consumed in two independent index-ordered sweeps. Interleaving them
   // would be identical today and would couple their draw orders forever.
   for (const node of nodesOf(segment)) {
-    if (node.tier) node.reward = generateRewardOffer(node.id, node.tier, index, rng, tuning);
-    else if (node.kind === 'shop') node.shop = generateShopStock(node.id, index, rng, tuning);
-    else if (node.kind === 'event') node.event = generateEvent(node.id, rng, tuning);
+    if (node.tier) {
+      node.reward = generateRewardOffer(
+        node.id,
+        node.tier,
+        index,
+        rng.rewards.at(nodeRewardKey(node.id, 'offer')),
+        tuning,
+      );
+    } else if (node.kind === 'shop') {
+      node.shop = generateShopStock(node.id, index, rng.rewards.at(nodeRewardKey(node.id, 'shop')), tuning);
+    } else if (node.kind === 'event') {
+      node.event = generateEvent(node.id, rng.rewards.at(nodeRewardKey(node.id, 'event')), tuning);
+    }
   }
 
   // --- pass 5: encounter acquisitions, also from the `rewards` stream -------
@@ -389,7 +391,14 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
   for (const node of nodesOf(segment)) {
     const lead = node.encounter?.team[0];
     if (node.kind !== 'wild' || !node.tier || !lead) continue;
-    node.acquisition = generateEncounterAcquisition(node.id, lead, node.tier, index, rng.rewards, tuning);
+    node.acquisition = generateEncounterAcquisition(
+      node.id,
+      lead,
+      node.tier,
+      index,
+      rng.rewards.at(nodeRewardKey(node.id, 'capture')),
+      tuning,
+    );
   }
 
   // --- pass 6: the gym clear offer, also from the `rewards` stream ----------
@@ -403,7 +412,12 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
    * A gym has no tier, so pass 4's `if (node.tier)` skips it; that is why this
    * is a pass rather than a condition relaxed there.
    */
-  segment.gym.reward = generateGymRewardOffer(segment.gym.id, index, rng, tuning);
+  segment.gym.reward = generateGymRewardOffer(
+    segment.gym.id,
+    index,
+    rng.rewards.at(gymRewardKey(index)),
+    tuning,
+  );
 
   return segment;
 }
@@ -521,7 +535,8 @@ function buildNode(
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
 
-  const team = kind === 'wild' ? generateWildTeam(segment, tier, rng) : generateTrainerTeam(segment, tier, rng);
+  const stream = rng.randomizer.at(nodeKey(id));
+  const team = kind === 'wild' ? generateWildTeam(segment, tier, stream) : generateTrainerTeam(segment, tier, stream);
   const lead = team[0];
   if (!lead) throw new Error(`Generated an empty ${kind} team at segment ${segment}`);
 

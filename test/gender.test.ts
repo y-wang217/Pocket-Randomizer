@@ -78,15 +78,15 @@ describe('the randomizer rolls gender', () => {
   it('gives every generated Pokemon a gender', () => {
     const rng = createRng('GENDER-ROLL');
     for (let i = 0; i < 40; i++) {
-      const mon = generateWildMon(2, 'normal', rng);
+      const mon = generateWildMon(2, 'normal', rng.randomizer);
       expect(mon.gender === 'M' || mon.gender === 'F' || mon.gender === null, mon.species).toBe(true);
     }
   });
 
   it('gives starters and trainer teams one too, not only wild encounters', () => {
     const rng = createRng('GENDER-EVERYWHERE');
-    for (const spec of generateStarters(3, 5, rng)) expect(spec.gender).not.toBeUndefined();
-    for (const spec of generateTrainerTeam(3, 'hard', rng)) expect(spec.gender).not.toBeUndefined();
+    for (const spec of generateStarters(3, 5, rng.randomizer)) expect(spec.gender).not.toBeUndefined();
+    for (const spec of generateTrainerTeam(3, 'hard', rng.randomizer)) expect(spec.gender).not.toBeUndefined();
   });
 
   it('rolls null for a genderless species and never M or F', () => {
@@ -95,7 +95,7 @@ describe('the randomizer rolls gender', () => {
     const rng = createRng('GENDERLESS');
     let checked = 0;
     for (let i = 0; i < 400; i++) {
-      const mon = generateWildMon(4, 'hard', rng);
+      const mon = generateWildMon(4, 'hard', rng.randomizer);
       const entry = SPECIES_POOL.find((e) => e.species === mon.species);
       if (entry?.maleChance !== null) continue;
       checked++;
@@ -117,7 +117,7 @@ describe('the randomizer rolls gender', () => {
     let male = 0;
     let checked = 0;
     for (let i = 0; i < 300; i++) {
-      const mon = generateWildMon(5, 'elite', rng);
+      const mon = generateWildMon(5, 'elite', rng.randomizer);
       const entry = SPECIES_POOL.find((e) => e.species === mon.species);
       if (entry?.maleChance !== 1) continue;
       checked++;
@@ -166,7 +166,7 @@ describe('the randomizer rolls gender', () => {
 describe('gender is stable', () => {
   it('is the same on the spec across many reads', () => {
     const rng = createRng('STABLE');
-    const mon = generateWildMon(2, 'normal', rng);
+    const mon = generateWildMon(2, 'normal', rng.randomizer);
     for (let i = 0; i < 5; i++) expect(mon.gender).toBe(mon.gender);
     expect(describeSpecCard(mon).gender).toBe(mon.gender);
   });
@@ -193,7 +193,7 @@ describe('gender is stable', () => {
     // because the roll was `battle.sample` off the battle PRNG. The spec's
     // value is now read straight through, so a probe cannot disagree with it.
     const rng = createRng('NOT-THE-BATTLE');
-    const mon = generateWildMon(3, 'normal', rng);
+    const mon = generateWildMon(3, 'normal', rng.randomizer);
     expect(describeSpecCard({ ...mon }).gender).toBe(mon.gender);
     expect(describeSpecCard({ ...mon, level: mon.level + 1 }).gender).toBe(mon.gender);
   });

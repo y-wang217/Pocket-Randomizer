@@ -38,7 +38,7 @@ import { joinLevelFor } from './acquisition';
 import { generateRewardSpecies, damagingInBands } from './randomizer';
 import { stow } from './items';
 import { leadOf, recoverParty, teachMove } from './party';
-import type { Rng } from './rng';
+import type { RngStream } from './rng';
 import type { RunState } from './run';
 import type { Gender, PokemonState, Tier } from './types';
 import { itemById } from '../data/items';
@@ -113,8 +113,10 @@ export const OFFER_SIZE = 3;
 /**
  * Draw the three cards for one battle node.
  *
- * Called from `generateSegment`'s pass 4, from `rng.rewards`, in node index
- * order. Every draw in this function comes from that stream and no other.
+ * Called from `generateSegment`'s pass 4, from the `rewards` sub-stream keyed
+ * to this node. Every draw in this function comes from that stream and no
+ * other, so a change to how many cards a node draws cannot move any other
+ * node's offer — see `core/streamKeys.ts`.
  *
  * **Exactly three distinct options, guaranteed by construction rather than by
  * retry.** Entries are drawn without replacement, and the resolvers filter out
@@ -132,10 +134,9 @@ export function generateRewardOffer(
   nodeId: string,
   tier: Tier,
   segment: number,
-  rng: Rng,
+  stream: RngStream,
   tuning: Tuning,
 ): RewardOffer {
-  const stream = rng.rewards;
   const pool = rewardEntriesFor(tier, segment).filter(
     (entry) => entry.kind !== 'species' || tuning.allowSpeciesRewards,
   );
@@ -151,7 +152,7 @@ export function generateRewardOffer(
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
 
-    const reward = resolveRewardEntry(entry, segment, tier, rng, takenItems, takenMoves);
+    const reward = resolveRewardEntry(entry, segment, tier, stream, takenItems, takenMoves);
     if (reward) options.push(reward);
   }
 
@@ -195,10 +196,9 @@ export function generateRewardOffer(
 export function generateGymRewardOffer(
   nodeId: string,
   segment: number,
-  rng: Rng,
+  stream: RngStream,
   tuning: Tuning,
 ): RewardOffer {
-  const stream = rng.rewards;
   const pool = gymRewardEntriesFor(segment).filter(
     (entry) => entry.kind !== 'species' || tuning.allowSpeciesRewards,
   );
@@ -222,7 +222,7 @@ export function generateGymRewardOffer(
      * hand back a mid-tier move and the "strictly better than elite" rule would
      * fail silently in the one place nobody looks.
      */
-    const reward = resolveRewardEntry(entry, segment, 'elite', rng, takenItems, takenMoves);
+    const reward = resolveRewardEntry(entry, segment, 'elite', stream, takenItems, takenMoves);
     if (reward) options.push(reward);
   }
 
@@ -242,7 +242,7 @@ export function generateGymRewardOffer(
  * a change to one draw order silently moving the other. They are eight lines
  * each; the duplication is cheaper than the coupling.
  */
-function pickWeighted(entries: readonly RewardEntry[], stream: Rng['rewards']): RewardEntry | null {
+function pickWeighted(entries: readonly RewardEntry[], stream: RngStream): RewardEntry | null {
   const total = entries.reduce((sum, entry) => sum + Math.max(0, entry.weight), 0);
   if (total <= 0) return null;
   let roll = stream.nextFloat() * total;
@@ -272,12 +272,10 @@ export function resolveRewardEntry(
   entry: RewardEntry,
   segment: number,
   tier: Tier,
-  rng: Rng,
+  stream: RngStream,
   takenItems: Set<string>,
   takenMoves: Set<string>,
 ): Reward | null {
-  const stream = rng.rewards;
-
   switch (entry.kind) {
     case 'item': {
       const available = entry.items.filter((id) => !takenItems.has(id) && itemById(id));
@@ -317,7 +315,7 @@ export function resolveRewardEntry(
       const spec = generateRewardSpecies(
         rewardSpeciesBands(segment, tier, entry.bandOffset),
         joinLevelFor(segment),
-        rng,
+        stream,
       );
       return {
         kind: 'species',

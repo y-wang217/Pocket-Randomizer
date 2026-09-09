@@ -237,7 +237,7 @@ describe('currency earned per node', () => {
 // ---------------------------------------------------------------------------
 
 describe('currency never goes negative', () => {
-  const stock = generateShopStock('shop-test', 0, createRng('ECON-SHOP'), DEFAULT_TUNING);
+  const stock = generateShopStock('shop-test', 0, createRng('ECON-SHOP').rewards, DEFAULT_TUNING);
 
   it('rejects a basket the run cannot pay for', () => {
     const cost = basketCost(stock, [0]);
@@ -451,7 +451,10 @@ describe('mid-run save across a reward, shop and event boundary', () => {
      *
      * Rather than guess which save that is, this resumes from all of them.
      */
-    const seed = 'ECON-RESUME';
+    // `ECON-RESUME` until Stage 4.6a rekeyed the streams, after which that
+    // seed's run ended before it was paid a card and the assertion below —
+    // which exists to stop exactly that — said so. See scripts/scan-seed.ts.
+    const seed = 'ECON-RESUME-3';
     const saves: RunLog[] = [];
     const original = await playRun(seed, spender(), DEFAULT_TUNING, {
       onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
