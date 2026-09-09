@@ -8,12 +8,12 @@
  * X but the HP said Y" is the worst possible bug to debug in a seeded game.
  */
 import { Protocol } from '@pkmn/protocol';
-import type { PokemonHPStatus, PokemonIdent } from '@pkmn/protocol';
 import { LogFormatter } from '@pkmn/view';
 import type { Tracker } from '@pkmn/view';
 
 import { movePriority } from '../core/battle/driver';
 import { readTurns, type TurnAction } from '../core/battle/turnOrder';
+import { hpAfterDamage, hpAfterHeal } from '../core/hpCopy';
 import { el } from './scene';
 
 /**
@@ -48,12 +48,26 @@ class HpTracker implements Tracker {
     return [Number(match[1]), Number(match[2])];
   }
 
-  damagePercentage(ident: PokemonIdent, health: PokemonHPStatus): string | undefined {
-    const before = this.hp.get(ident);
-    const after = this.parse(health) ?? [0, before?.[1] ?? 1];
-    if (!before || before[1] === 0) return undefined;
-    const delta = Math.abs(before[0] - after[0]) / before[1];
-    return `${(delta * 100).toFixed(1)}%`;
+  /**
+   * Deliberately `undefined`, which retires the delta phrasing. Item G.
+   *
+   * Returning a percentage here makes the formatter choose its
+   * `damagePercentage` template — `(Pikachu lost 11% of its health!)` — and
+   * that sentence is what the playtest was reading when it said the HP copy
+   * "describes a delta but reads as a state". Returning nothing makes the
+   * formatter fall back to its plain `was hurt!` phrasing, and `hpLine` below
+   * follows it with the state.
+   *
+   * The tracker still observes every line, because `hpLine` needs the before
+   * value to name what a heal restored.
+   */
+  damagePercentage(): undefined {
+    return undefined;
+  }
+
+  /** HP before the line currently being processed, for whoever it names. */
+  previous(ident: string): [number, number] | undefined {
+    return this.hp.get(ident);
   }
 
   // The rest of the Tracker surface is optional; returning undefined makes the
@@ -106,6 +120,9 @@ export function createBattleLog(container: HTMLElement): BattleLogView {
         // "lost 38%" is computed against the pre-damage HP.
         const { args, kwArgs } = Protocol.parseBattleLine(line);
         const text = formatter.formatText(args, kwArgs);
+        // Read the pre-line HP before `observe` overwrites it: a heal has to
+        // name how much it restored, which is the difference of the two.
+        const before = tracker.previous(line.split('|')[2] ?? '');
         tracker.observe(line);
 
         const action = annotations.get(line);
@@ -124,6 +141,23 @@ export function createBattleLog(container: HTMLElement): BattleLogView {
           first = false;
           added++;
         }
+
+        /*
+         * The state line, after the formatter's sentence and before the next.
+         *
+         * Item G: every HP message says what is *left*, and a heal additionally
+         * names what it restored. The formatter cannot produce either — its
+         * only HP template is the delta one the tracker now declines — so this
+         * is the one place in the log where a line is not a formatted protocol
+         * message. It is still derived entirely from the protocol: the numbers
+         * come off the `|-damage|`/`|-heal|` payload, and the wording comes
+         * from `core/hpCopy.ts` so a rewording is a one-file change.
+         */
+        const state = hpLine(line, before);
+        if (state) {
+          container.append(renderEntry(state, undefined, 'hp'));
+          added++;
+        }
       }
       if (added > 0) container.scrollTop = container.scrollHeight;
       return added;
@@ -134,6 +168,40 @@ export function createBattleLog(container: HTMLElement): BattleLogView {
       formatter = new LogFormatter('p1', tracker);
     },
   };
+}
+
+/**
+ * The state line for a `|-damage|` or `|-heal|`, or null for anything else.
+ *
+ * Reads the protocol payload rather than any model of it, so the number in the
+ * log is the number the engine just wrote. `before` is the HP the tracker held
+ * for this Pokemon *prior* to this line, which is what makes naming a heal's
+ * amount possible — the protocol sends the new total and never the delta.
+ */
+function hpLine(line: string, before: [number, number] | undefined): string | null {
+  const parts = line.split('|');
+  const kind = parts[1];
+  if (kind !== '-damage' && kind !== '-heal') return null;
+
+  const ident = parts[2];
+  const health = parts[3];
+  if (!ident || !health) return null;
+
+  const name = ident.replace(/^p[12][a-c]: /, '');
+  const match = /^(\d+)\/(\d+)/.exec(health);
+  // A fainted body reports `0 fnt` with no max. The log already says it
+  // fainted on its own line, so there is nothing for a state line to add.
+  if (!match?.[1] || !match[2]) return null;
+
+  const current = Number(match[1]);
+  const max = Number(match[2]);
+  if (kind === '-damage') return hpAfterDamage(name, current, max);
+
+  const restored = before ? Math.max(0, current - before[0]) : 0;
+  // A heal that restored nothing measurable — already at full, or the tracker
+  // never saw this body — falls back to the state alone rather than claiming
+  // "restored 0 HP", which would read as a bug.
+  return restored > 0 ? hpAfterHeal(name, restored, current, max) : hpAfterDamage(name, current, max);
 }
 
 /**
@@ -160,9 +228,10 @@ function annotate(protocol: readonly string[]): Map<string, TurnAction> {
 }
 
 /** The formatter marks emphasis with `**`, and turn headers with `== .. ==`. */
-function renderEntry(text: string, action?: TurnAction): HTMLElement {
+function renderEntry(text: string, action?: TurnAction, variant?: 'hp'): HTMLElement {
   const entry = document.createElement('p');
   entry.className = 'log-entry';
+  if (variant === 'hp') entry.classList.add('log-entry--hp');
 
   const turn = /^==\s*(.+?)\s*==$/.exec(text);
   if (turn?.[1]) {

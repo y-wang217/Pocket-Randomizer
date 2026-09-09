@@ -41,6 +41,7 @@
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
 import { heldItem } from '../../core/items';
+import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
 import { gymsCleared } from '../../core/run';
@@ -362,7 +363,7 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
-  hp.textContent = member.fainted ? 'Fainted' : `${member.hp} / ${member.maxHp} HP`;
+  hp.textContent = member.fainted ? FAINTED : hpState(member.hp, member.maxHp);
   meta.append(hp);
   // What they are holding, because Stage 4 lets the player choose who holds
   // what and a targeting decision you cannot audit is one you cannot learn from.

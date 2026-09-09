@@ -109,10 +109,18 @@ describe('the battle UI boundary', () => {
      * from it (`EFFECTIVENESS_LABELS`); the answer still arrives on the
      * projection, and the scene still computes none of it.
      */
+    /*
+     * `core/hpCopy` joined in Stage 4.5.2 for the same reason
+     * `core/battle/effectiveness` did: it is vocabulary, not data. The scene
+     * reads the *wording* of an HP readout from it and the numbers from the
+     * projection, which is the split item G asks for — one file to change a
+     * string, and no screen deciding what a number means.
+     */
     const allowed = new Set([
       'core/battle/view',
       'core/battle/effectiveness',
       'core/battle/stats',
+      'core/hpCopy',
       'core/types',
     ]);
     const imports = [...sourceOf('src/ui/scene.ts').matchAll(/from\s+['"]([^'"]+)['"]/g)]
@@ -201,6 +209,23 @@ describe('the battle UI boundary', () => {
    * decision the human never made. `battle` is the exception and is listed as
    * one — it parks on `movePick`, which the battle screen submits into.
    */
+  /**
+   * **Every player-facing HP string comes from `core/hpCopy.ts`.** Item G.
+   *
+   * The rule is that wording is a one-file change, and the way that rule dies
+   * is one screen formatting `${hp} / ${maxHp}` inline because it is three
+   * characters shorter than an import. The check is crude on purpose — a regex
+   * for the shape of the template, over the screens — because the failure it
+   * catches is a copy of the format, not a call to a wrong function.
+   */
+  it('keeps HP wording in one file', () => {
+    const screens = walk(join(ROOT, 'src/ui')).map((file) => relative(ROOT, file));
+    const inline = /`\$\{[^`]*\}\s*\/\s*\$\{[^`]*\}\s*HP/;
+
+    const offenders = screens.filter((file) => inline.test(stripComments(sourceOf(file))));
+    expect(offenders, 'format HP through core/hpCopy.ts instead').toEqual([]);
+  });
+
   it('asks the player every question the human policy claims to ask', () => {
     const source = sourceOf('src/ui/app.ts');
 

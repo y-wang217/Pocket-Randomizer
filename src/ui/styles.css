@@ -679,6 +679,15 @@ body {
 .log-entry strong { color: var(--text); font-weight: 600; }
 .log-entry--detail { color: var(--text-dim); padding-left: 10px; }
 
+/* The HP state line: what is left, after the sentence that changed it. Quiet,
+   monospaced and indented, because it is a readout rather than a narration. */
+.log-entry--hp {
+  color: var(--text-dim);
+  padding-left: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
 .log-entry--turn {
   margin: 14px 0 8px;
   padding-top: 8px;

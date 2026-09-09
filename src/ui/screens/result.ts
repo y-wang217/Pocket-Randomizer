@@ -28,6 +28,7 @@
  * No verdict on the outcome. "Won" and "Defeated" are facts; "close one!" or a
  * grade would be the screen commentating on a fight the player just watched.
  */
+import { FAINTED, hpState, ppState } from '../../core/hpCopy';
 import { hpFraction, ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
@@ -175,8 +176,8 @@ function renderMemberRow(member: PokemonState): HTMLElement {
   const text = el('span', 'panel__hp-text');
   const pp = ppTotals(member);
   text.textContent = member.fainted
-    ? `Fainted · PP ${pp.pp}/${pp.maxPp}`
-    : `${member.hp} / ${member.maxHp} HP · PP ${pp.pp}/${pp.maxPp}`;
+    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
+    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
   meta.append(text);
 
   if (member.status) {

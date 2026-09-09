@@ -19,6 +19,7 @@
  * Release is permanent for the run — no box, see `core/acquisition.ts` — so the
  * button confirms before it commits.
  */
+import { hpState } from '../../core/hpCopy';
 import { describeOffer, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
 import { describeSpecCard } from '../../core/battle/driver';
 import { heldItem } from '../../core/items';
@@ -116,7 +117,7 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   const hp = el('span', 'panel__hp-text');
   // Full HP, and worth saying out loud: an acquired member arrives healthy but
   // *below* the segment's level curve, which is the price of it.
-  hp.textContent = `${detail.maxHp} / ${detail.maxHp} HP · joins at full health`;
+  hp.textContent = `${hpState(detail.maxHp, detail.maxHp)} · joins at full health`;
   meta.append(hp);
 
   const moves = el('ul', 'party__moves');
@@ -162,7 +163,7 @@ function renderExisting(
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
-  hp.textContent = `${member.hp} / ${member.maxHp} HP`;
+  hp.textContent = hpState(member.hp, member.maxHp);
   meta.append(hp);
 
   const item = heldItem(member);

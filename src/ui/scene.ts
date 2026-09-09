@@ -19,6 +19,7 @@
  * reason: a row that is replaced cannot pulse when its stage changes.
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
+import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
   formatEffectiveness,
@@ -256,7 +257,6 @@ function updateSidePanel(
 
   panel.types.replaceChildren(...active.types.map((type) => typeChip(type)));
 
-  const percent = Math.round(active.hp.fraction * 100);
   panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
   panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
   /*
@@ -270,7 +270,7 @@ function updateSidePanel(
    * panel next to it prints the opponent's Defence, so hiding the HP would have
    * been the one coy number on a panel that answers everything else.
    */
-  panel.hpText.textContent = `${active.hp.current} / ${active.hp.max} · ${percent}%`;
+  panel.hpText.textContent = hpStateBare(active.hp.current, active.hp.max);
 
   if (active.status) {
     panel.status.textContent = active.status.label;
