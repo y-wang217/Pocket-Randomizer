@@ -1827,10 +1827,30 @@ function verdicts(sample: Sample): string[] {
 
   const check = (ok: boolean, text: string): string => `  ${ok ? 'ok  ' : 'MISS'}  ${text}`;
 
-  if (sample.policy === 'greedy') {
-    lines.push(check(!!gym1 && gym1.clearRate >= 0.85 && gym1.clearRate <= 0.95, `gym 1 clear rate ${pct(gym1?.clearRate ?? 0)} (target ~90%)`));
+  /*
+   * Which targets apply is a property of the *policy*, not of "is it greedy".
+   *
+   * This used to be a two-branch if, so every sample that was not `greedy` was
+   * checked against the random policy's targets — including `switch-aware` and
+   * `no-switch`, which are competent bots. `npm run sim -- --policy switching`
+   * is the headline command of two stages now, and it was printing three MISS
+   * lines saying a random policy clears gym 6 in 23.6% of runs when no random
+   * policy had been run at all. A report that cries wolf on its own headline is
+   * worse than one with no checklist.
+   *
+   * Competent policies take the completion band; `random` takes the depth
+   * tests; the gym-1 target is `greedy`'s alone, because it was written against
+   * that bot.
+   */
+  const COMPETENT: readonly string[] = ['greedy', 'switch-aware', 'no-switch', 'tier-averse', 'tier-greedy'];
+  const competent = COMPETENT.includes(sample.policy);
+
+  if (competent) {
+    if (sample.policy === 'greedy') {
+      lines.push(check(!!gym1 && gym1.clearRate >= 0.85 && gym1.clearRate <= 0.95, `gym 1 clear rate ${pct(gym1?.clearRate ?? 0)} (target ~90%)`));
+    }
     lines.push(check(sample.completionRate >= 0.05 && sample.completionRate <= 0.15, `full run completion ${pct(sample.completionRate)} (target 5-15%)`));
-  } else {
+  } else if (sample.policy === 'random') {
     // Two lines, because the spec's sentence about the random policy is really
     // two claims and only the second one is a depth test. "Rarely gets past gym
     // 3" is about how forgiving the early game is; "if a random policy clears
@@ -1842,24 +1862,42 @@ function verdicts(sample: Sample): string[] {
     lines.push(check(clearedSix <= 0.02, `random clears gym 6 in ${pct(clearedSix)} of runs — the depth test (target: ~never)`));
     lines.push(check(sample.completionRate <= 0.01, `random completes a run in ${pct(sample.completionRate)} (target: ~never)`));
   }
-  lines.push(check(worst.dropFromPrevious <= 25, `steepest drop ${worst.dropFromPrevious.toFixed(0)}pt at gym ${worst.gym} (${worst.leader}) (target <=25pt)`));
+  /*
+   * The curve and economy targets describe the game *a competent player*
+   * meets, so they are only checked against a competent policy.
+   *
+   * The mirror image of the bug above, and it showed up the moment a real
+   * `random` sample was run: the bot reaches gym 8 in three runs out of a
+   * thousand, goes 0 for 3, and the checklist reports a 57-point drop as a
+   * balance failure. It is a sample size of three. Likewise "items are 51.8% of
+   * picks" from a bot picking uniformly at random says nothing about whether
+   * the reward mix is right, and "broke on arrival 37.2%" measures a bot that
+   * never won a fight rather than an economy that is too tight.
+   *
+   * Species diversity is the exception and stays on for every policy: it is a
+   * property of the *randomizer*, not of play, and a random bot is as good a
+   * sampler of it as any.
+   */
+  if (competent) {
+    lines.push(check(worst.dropFromPrevious <= 25, `steepest drop ${worst.dropFromPrevious.toFixed(0)}pt at gym ${worst.gym} (${worst.leader}) (target <=25pt)`));
 
-  // Stage 3's own targets, which are about the *choice* rather than the curve.
-  const topKind = sample.rewards.taken[0];
-  if (topKind) {
+    // Stage 3's own targets, which are about the *choice* rather than the curve.
+    const topKind = sample.rewards.taken[0];
+    if (topKind) {
+      lines.push(
+        check(
+          topKind.share <= 0.5,
+          `most-picked reward kind (${topKind.label}) is ${pct(topKind.share)} of picks (target <=50%)`,
+        ),
+      );
+    }
     lines.push(
       check(
-        topKind.share <= 0.5,
-        `most-picked reward kind (${topKind.label}) is ${pct(topKind.share)} of picks (target <=50%)`,
+        sample.currency.brokeShare <= 0.35 && sample.currency.flushShare <= 0.35,
+        `arriving at a shop broke ${pct(sample.currency.brokeShare)} / flush ${pct(sample.currency.flushShare)} (target <=35% each)`,
       ),
     );
   }
-  lines.push(
-    check(
-      sample.currency.brokeShare <= 0.35 && sample.currency.flushShare <= 0.35,
-      `arriving at a shop broke ${pct(sample.currency.brokeShare)} / flush ${pct(sample.currency.flushShare)} (target <=35% each)`,
-    ),
-  );
   lines.push(
     check(
       sample.diversity.topSpeciesRunShare <= 0.25,

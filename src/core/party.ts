@@ -20,7 +20,7 @@
  */
 import { describeSpec } from './battle/driver';
 import { battleSpecFor } from './items';
-import type { MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
+import type { ItemId, MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
 import { MOVESET } from '../data/scaling';
 import { PARTY_SIZE } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
@@ -461,9 +461,20 @@ export function reorderParty(
  * wiped nor alive — so it would be a run in a state no other code has an
  * opinion about, reached by a button rather than by losing.
  */
-export function releaseMember(party: readonly PokemonState[], slot: number): PokemonState[] {
-  if (party.length <= 1 || !party[slot]) return [...party];
-  return party.filter((_, index) => index !== slot);
+export function releaseMember(
+  party: readonly PokemonState[],
+  slot: number,
+): { party: PokemonState[]; freed: ItemId | null } {
+  if (party.length <= 1 || !party[slot]) return { party: [...party], freed: null };
+  return {
+    // **The item does not go with them.** Releasing a Pokemon is removing an
+    // item from a Pokemon, and Stage 4.5.1's rule is that an item is destroyed
+    // only by an explicit discard. Before this stage the item vanished with the
+    // member — which was consistent then, because every swap destroyed one, and
+    // is a silent destruction now.
+    party: party.filter((_, index) => index !== slot),
+    freed: party[slot]?.item ?? null,
+  };
 }
 
 /** Total remaining PP across a member's moves, and its ceiling. */

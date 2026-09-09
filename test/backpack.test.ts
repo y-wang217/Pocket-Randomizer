@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { applyItemPlan, backpackCapacity, needsItemPlan, stow } from '../src/core/items';
-import { betweenNodes, createParty, restParty } from '../src/core/party';
+import { betweenNodes, createParty, releaseMember, restParty } from '../src/core/party';
 import { applyReward } from '../src/core/rewards';
 import {
   chooseStarter,
@@ -546,4 +546,99 @@ describe('item assignment replays identically', () => {
     const resumed = await resumeRun(revived, shuffling());
     expect(resumed.state.backpack).toEqual(original.state.backpack);
   }, 60_000);
+});
+
+// ---------------------------------------------------------------------------
+// Releasing a Pokemon is removing an item from a Pokemon
+// ---------------------------------------------------------------------------
+
+describe('a released member hands their item back', () => {
+  /*
+   * The case that nearly slipped through the whole stage.
+   *
+   * Part 2's rule is that an item is never destroyed except by an explicit
+   * discard. Releasing a party member *is* removing an item from a Pokemon, and
+   * before this stage the item vanished with them — which was consistent when
+   * every swap destroyed one, and is a silent destruction now. Both release
+   * paths return the freed item so their callers can stow it.
+   */
+  it('returns it from the party screen path', () => {
+    const party = partyOf(3).map((member, index) =>
+      index === 1 ? { ...member, item: 'leftovers' } : member,
+    );
+    const { party: after, freed } = releaseMember(party, 1);
+    expect(after).toHaveLength(2);
+    expect(freed).toBe('leftovers');
+  });
+
+  it('returns nothing when the released member held nothing', () => {
+    expect(releaseMember(partyOf(3), 1).freed).toBeNull();
+  });
+
+  it('returns nothing when the release was refused', () => {
+    // A party of one cannot release: an empty party is neither wiped nor alive.
+    const one = partyOf(1).map((member) => ({ ...member, item: 'leftovers' }));
+    const { party: after, freed } = releaseMember(one, 0);
+    expect(after).toHaveLength(1);
+    expect(freed).toBeNull();
+  });
+
+  it('lands the item in the backpack through resolveNode, on the logged path', () => {
+    // The acquisition route is the one determinism depends on, because it is
+    // the one that is in the run log.
+    const base = started('RELEASE-ITEM');
+    const state: RunState = {
+      ...base,
+      party: partyOf(PARTY_SIZE).map((member, index) =>
+        index === 0 ? { ...member, item: 'lifeorb' } : member,
+      ),
+      backpack: ['leftovers'],
+    };
+    const node = state.segments[0]!.steps[0]!.options[0]!;
+    const after = resolveNode(state, {
+      node,
+      acquisition: {
+        offer: {
+          nodeId: node.id,
+          source: 'encounter',
+          spec: { species: 'Pikachu', ability: 'Static', moves: ['Thunder Shock'], level: 20, gender: 'M' },
+        },
+        decision: { kind: 'release', slot: 0 },
+      },
+    });
+
+    expect(after.backpack).toEqual(['leftovers', 'lifeorb']);
+    expect(after.party.some((member) => member.spec.species === 'Pikachu')).toBe(true);
+    expect(after.party).toHaveLength(PARTY_SIZE);
+  });
+
+  it('conserves every item across a release, which is the property that matters', () => {
+    const base = started('RELEASE-CONSERVE');
+    const state: RunState = {
+      ...base,
+      party: partyOf(PARTY_SIZE).map((member, index) => ({
+        ...member,
+        item: ['lifeorb', 'leftovers', 'focussash'][index],
+      })),
+      backpack: ['expertbelt'],
+    };
+    const owned = (s: RunState): string[] =>
+      [...s.backpack, ...s.party.flatMap((m) => (m.item ? [m.item] : []))].sort();
+    const before = owned(state);
+
+    const node = state.segments[0]!.steps[0]!.options[0]!;
+    const after = resolveNode(state, {
+      node,
+      acquisition: {
+        offer: {
+          nodeId: node.id,
+          source: 'encounter',
+          spec: { species: 'Pikachu', ability: 'Static', moves: ['Thunder Shock'], level: 20, gender: 'M' },
+        },
+        decision: { kind: 'release', slot: 2 },
+      },
+    });
+
+    expect(owned(after)).toEqual(before);
+  });
 });

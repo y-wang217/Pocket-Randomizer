@@ -118,19 +118,19 @@ At 1000 seeds, the `greedy` policy:
 
 | gym | leader | type | team | reached | clear rate | drop |
 |---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 969 | 95.0% | — |
-| 2 | Marina | Water | 2 | 836 | 83.1% | -12pt |
-| 3 | Volta | Electric | 3 | 658 | 75.8% | -7pt |
-| 4 | Fern | Grass | 4 | 483 | 84.9% | +9pt |
-| 5 | Cinder | Fire | 4 | 387 | 73.6% | -11pt |
-| 6 | Solene | Psychic | 5 | 271 | 72.0% | -2pt |
-| 7 | Vesper | Ghost | 5 | 189 | 74.1% | +2pt |
-| 8 | Draven | Dragon | 5 | 134 | 72.4% | -2pt |
+| 1 | Garnet | Rock | 1 | 946 | 94.5% | — |
+| 2 | Marina | Water | 2 | 800 | 85.1% | -9pt |
+| 3 | Volta | Electric | 3 | 650 | 83.1% | -2pt |
+| 4 | Fern | Grass | 4 | 520 | 81.0% | -2pt |
+| 5 | Cinder | Fire | 4 | 388 | 65.7% | -15pt |
+| 6 | Solene | Psychic | 5 | 239 | 77.0% | +11pt |
+| 7 | Vesper | Ghost | 5 | 179 | 70.9% | -6pt |
+| 8 | Draven | Dragon | 5 | 120 | 77.5% | +7pt |
 
-Run completion **9.7%**, mean 3.24 gyms of 8, worst gym-to-gym drop 12 points.
-A `random` policy completes 0.1% of runs and clears gym 6 in 0.7% of them, which
-is the depth test: if a random policy cleared gym 6, move choice would not
-matter.
+Run completion **9.2%**, mean 3.19 gyms of 8, worst gym-to-gym drop 15 points.
+A `random` policy completes **0.0%** of runs and clears gym 6 in **0.8%** of
+them, which is the depth test: if a random policy cleared gym 6, move choice
+would not matter. Every Stage 2 target passes on both policies.
 
 The randomizer draws from 635 species, 397 damaging moves and all 310
 abilities, and across 24,673 encounters the sweep saw **every one of them** —
@@ -144,8 +144,9 @@ which is what the `reached` column is there to show.
 
 [`docs/balance.md`](docs/balance.md) has the full report and the findings that
 moved the numbers — including §7.2, where the largest error in a tuning pass
-turned out to be a premise rather than a number, and §8, the Stage 4.5
-non-result and how it was checked.
+turned out to be a premise rather than a number; §8, the Stage 4.5 non-result
+and how it was checked; and §9, where two of the three questions that opened
+Stage 4.5.1 turned out to have false premises as well.
 
 ```sh
 npm run sim                              # 200 seeds, both policies
@@ -304,6 +305,7 @@ Pokémon engine, and the engine is mostly data.
 |---|---|---|
 | Stage 4 | 731.62 kB | 4.74 kB |
 | Stage 4.5 | 744.19 kB | 5.36 kB |
+| Stage 4.5.1 | 748.32 kB | 5.61 kB |
 
 Ability descriptions turned out to cost **nothing**. `@pkmn/sim`'s `Dex`
 statically imports its text tables and `build-config/trim-sim-data.ts` only
@@ -335,20 +337,26 @@ was already in the Stage 4 bundle before the tooltip layer read one.
    Note that it is no longer *only* a gap: one fixed spread is what lets
    `core/battle/stats.ts` compute the opponent's stats exactly rather than
    estimate them, so the exclusion is now load-bearing for a feature.
-2. **`random` clears gym 3 in 16.8% of runs**, against a target of "rarely".
+2. **`random` clears gym 3 in 17.2% of runs**, against a target of "rarely".
    Tightening the early gyms would push `greedy`'s completion out of its band,
-   so the trade was declined; the depth test that matters passes at 0.7%.
-3. **Gym 1 clears at 95.0%** against a 90% target — the one MISS on the greedy
-   run. A first gym that almost never stops anyone is a tutorial, which may be
-   the right thing for it to be; it has not been argued either way yet.
+   so the trade was declined; the depth test that matters passes at 0.8%.
+3. **Gym 1 clears at 94.5%** against a ~90% target. It was the single MISS on
+   the greedy run through Stage 4.5 at 95.0% and is now inside the band by half
+   a point, which is not a result and should not be read as one — nothing in
+   Stage 4.5.1 was aimed at it. A first gym that almost never stops anyone is a
+   tutorial, which may be the right thing for it to be; it has still not been
+   argued either way.
 4. **The blacklist is nearly empty**, which is correct after one tuning pass and
    not permanent. Nothing in the report dominated an outcome distribution.
 5. **Nuzlocke interpretation.** The build spec's section 3 is read here as *no*
    nuzlocke ruleset: no per-Pokémon permadeath, no forced first-encounter rule.
    Wipe — every party member fainted — is the only death rule.
 6. **Switching does not pay yet, and that is Stage 4's unmet done-condition.**
-   `switch-aware` completes 9.7% of runs against `no-switch`'s 10.6% — a gap in
-   the wrong direction, inside noise. It is not a tuning oversight: the first
+   `switch-aware` completes 9.2% of runs against `no-switch`'s 11.3% — still a
+   gap in the wrong direction, and Stage 4.5.1 widened it rather than closing
+   it. Nothing in the stage was aimed at switching, so this is a re-measurement
+   rather than a regression, but it is the third report in a row to say the
+   same thing. It is not a tuning oversight: the first
    scoring model made it *worse* in all twelve weight combinations tried, and
    replacing the one-turn horizon with a multi-turn matchup race only brought it
    back to parity. `docs/balance.md` §7.6 has the data and the three untried

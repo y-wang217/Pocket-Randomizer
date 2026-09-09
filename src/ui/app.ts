@@ -256,7 +256,10 @@ export function mountApp(root: HTMLElement): void {
           },
           onRelease: (slot) => {
             pendingPlan = null;
-            state.party = releaseMember(state.party, slot);
+            const released = releaseMember(state.party, slot);
+            state.party = released.party;
+            // Their item goes to the bag, not with them.
+            if (released.freed) state.backpack = [...state.backpack, released.freed];
             showParty();
             mapScreen.render(state, (index) => nodePick.submit(index), showParty);
           },

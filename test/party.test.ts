@@ -94,14 +94,14 @@ describe('acquiring at a full party', () => {
 
   it('never produces a party over PARTY_SIZE, by either path', () => {
     const full = partyOf(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'decline' })).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 })).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' })).toHaveLength(2);
+    expect(applyAcquisition(full, OFFER, { kind: 'decline' }).party).toHaveLength(PARTY_SIZE);
+    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }).party).toHaveLength(PARTY_SIZE);
+    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }).party).toHaveLength(2);
   });
 
   it('releases the member named and nobody else', () => {
     const full = partyOf(PARTY_SIZE);
-    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 });
+    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }).party;
 
     expect(after.map((member) => member.spec.species)).not.toContain(SPECS[1]!.species);
     expect(after.map((member) => member.spec.species)).toContain('Tyranitar');
@@ -121,13 +121,13 @@ describe('acquiring at a full party', () => {
   it('declining leaves the party untouched, and is always legal', () => {
     for (const size of [1, PARTY_SIZE]) {
       const before = partyOf(size);
-      const after = applyAcquisition(before, OFFER, { kind: 'decline' });
+      const after = applyAcquisition(before, OFFER, { kind: 'decline' }).party;
       expect(after.map((m) => m.spec.species)).toEqual(before.map((m) => m.spec.species));
     }
   });
 
   it('joins at full HP, at the offer level, and below the segment curve', () => {
-    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' })[1]!;
+    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }).party[1]!;
     expect(joined.hp).toBe(joined.maxHp);
     expect(joined.fainted).toBe(false);
     expect(joined.spec.level).toBe(OFFER.spec.level);
@@ -161,7 +161,7 @@ describe('managing the party between nodes', () => {
   });
 
   it('releases a member permanently', () => {
-    const after = releaseMember(partyOf(3), 1);
+    const after = releaseMember(partyOf(3), 1).party;
     expect(after.map((m) => m.spec.species)).toEqual(['Snorlax', 'Blissey']);
   });
 
@@ -169,8 +169,8 @@ describe('managing the party between nodes', () => {
     // A party of zero is neither wiped nor alive — `isWiped` reads `fainted` —
     // so it would be a state reached by a button rather than by losing.
     const one = partyOf(1);
-    expect(releaseMember(one, 0)).toHaveLength(1);
-    expect(isWiped(releaseMember(one, 0))).toBe(false);
+    expect(releaseMember(one, 0).party).toHaveLength(1);
+    expect(isWiped(releaseMember(one, 0).party)).toBe(false);
   });
 });
 

@@ -55,7 +55,7 @@ import {
 } from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
 import { describeMove } from './battle/driver';
-import { applyItemPlan, backpackCapacity, needsItemPlan } from './items';
+import { applyItemPlan, backpackCapacity, needsItemPlan, stow } from './items';
 import {
   applyReward,
   isTargeted,
@@ -559,10 +559,16 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * a loud failure instead of a quietly different run.
    */
   if (result.acquisition) {
-    advanced = {
-      ...advanced,
-      party: applyAcquisition(advanced.party, result.acquisition.offer, result.acquisition.decision),
-    };
+    const { party, freed } = applyAcquisition(
+      advanced.party,
+      result.acquisition.offer,
+      result.acquisition.decision,
+    );
+    // A released member's item goes to the backpack, not with them. The release
+    // is still permanent; the item is not part of the price. Over capacity is
+    // allowed here and resolved by the boundary's item plan, like any other
+    // acquisition.
+    advanced = { ...advanced, party, backpack: freed ? stow(advanced.backpack, freed) : advanced.backpack };
   }
   return advanced;
 }
