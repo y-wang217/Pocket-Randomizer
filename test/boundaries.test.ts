@@ -99,7 +99,22 @@ describe('the battle UI boundary', () => {
    * turn it is rendering.
    */
   it('draws the field from the projection alone', () => {
-    const allowed = new Set(['core/battle/view', 'core/battle/stats', 'core/types']);
+    /*
+     * `core/battle/effectiveness` joined the list in Stage 4.5.2, and it is not
+     * a widening of the rule.
+     *
+     * It is the leaf `view.ts` itself delegates to — the projection's own
+     * vocabulary, split out of it so the four effectiveness bands could be unit
+     * tested without building a battle. The scene reads only the band *names*
+     * from it (`EFFECTIVENESS_LABELS`); the answer still arrives on the
+     * projection, and the scene still computes none of it.
+     */
+    const allowed = new Set([
+      'core/battle/view',
+      'core/battle/effectiveness',
+      'core/battle/stats',
+      'core/types',
+    ]);
     const imports = [...sourceOf('src/ui/scene.ts').matchAll(/from\s+['"]([^'"]+)['"]/g)]
       .map((match) => match[1] ?? '')
       .filter((path) => path.includes('core/'))

@@ -568,7 +568,7 @@ body {
 
 /* 0x is the one badge allowed to shout. A move that does literally nothing is
    a wasted turn, and it is the case a new player most needs told. */
-.badge--effect[data-band="immune"] {
+.badge--effect[data-band="none"] {
   background: var(--hp-low);
   color: #1a0505;
 }
@@ -691,6 +691,77 @@ body {
 }
 
 .log-entry--turn:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
+/*
+ * Turn order, made visible. Item C of the 4.5.2 playtest round.
+ *
+ * Priority has resolved correctly since Stage 0 — the sim does it natively and
+ * GYMRUN never computes turn order — but the log was a flat list of sentences
+ * with no marker for sequence, so a slower Pokemon moving first read as a bug.
+ * The ordinal is the fix, and it is deliberately tiny: this is a log a player
+ * scans between turns, not a combat replay.
+ */
+.log-entry--action {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.log-entry__order {
+  flex: none;
+  min-width: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-faint);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+/* The ordinal says when; the colour says who. Two facts, one glyph. */
+.log-entry--action[data-side='p1'] .log-entry__order { color: var(--accent); border-color: var(--accent); }
+
+.log-entry__priority {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--stage-up);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: help;
+}
+
+/* A switch is a different kind of event from a hit, and gets a rule of its own
+   rather than a colour — colour is already carrying whose turn it was. */
+.log-entry--switch {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 6px;
+  margin-left: -8px;
+}
+
+/*
+ * The sprite-swap beat.
+ *
+ * A switch changes the whole panel at once and, without a beat, reads as the
+ * screen glitching. One short fade-and-rise, and — per the spec — it must not
+ * block input: this is a CSS animation on a panel nobody has to wait for, no
+ * timer gates the move buttons, and tapping anywhere cancels it (`scene.ts`
+ * clears the attribute on pointerdown).
+ */
+@keyframes panel-swap {
+  from { opacity: 0.25; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.panel[data-swapped='true'] .panel__header,
+.panel[data-swapped='true'] .hp {
+  animation: panel-swap 260ms ease-out;
+}
+
 
 /* ---------- screens ---------- */
 

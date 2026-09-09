@@ -12,6 +12,10 @@ import type { PokemonHPStatus, PokemonIdent } from '@pkmn/protocol';
 import { LogFormatter } from '@pkmn/view';
 import type { Tracker } from '@pkmn/view';
 
+import { movePriority } from '../core/battle/driver';
+import { readTurns, type TurnAction } from '../core/battle/turnOrder';
+import { el } from './scene';
+
 /**
  * The smallest tracker that earns its keep.
  *
@@ -84,16 +88,40 @@ export function createBattleLog(container: HTMLElement): BattleLogView {
   return {
     append(protocol) {
       let added = 0;
+
+      /*
+       * The turn structure is read from the *same* batch of lines that is about
+       * to be formatted, and keyed by line.
+       *
+       * Two passes over one array rather than one pass that does both, because
+       * `readTurns` needs to see a whole turn before it can say which move went
+       * first — the marker on line one is a fact about line two. Keying by the
+       * protocol line itself avoids a parallel index that would drift the moment
+       * the formatter emitted a different number of chunks than it consumed.
+       */
+      const annotations = annotate(protocol);
+
       for (const line of protocol) {
         // The tracker must see the line *before* the formatter, so that
         // "lost 38%" is computed against the pre-damage HP.
         const { args, kwArgs } = Protocol.parseBattleLine(line);
         const text = formatter.formatText(args, kwArgs);
         tracker.observe(line);
+
+        const action = annotations.get(line);
+        let first = true;
         for (const chunk of text.split('\n')) {
           const trimmed = chunk.trim();
           if (!trimmed) continue;
-          container.append(renderEntry(trimmed));
+          /*
+           * The marker goes on the *first* chunk only.
+           *
+           * One protocol line can format into several sentences — "used Quick
+           * Attack!" and "It's super effective!" — and numbering all of them
+           * would make one action look like three.
+           */
+          container.append(renderEntry(trimmed, first ? action : undefined));
+          first = false;
           added++;
         }
       }
@@ -108,8 +136,31 @@ export function createBattleLog(container: HTMLElement): BattleLogView {
   };
 }
 
+/**
+ * Map each protocol line to the action it turned out to be, if any.
+ *
+ * `readTurns` gives back groups of actions but not the lines they came from, so
+ * this walks the two in step: the nth move-or-switch line in the batch is the
+ * nth move-or-switch action. That holds because both are reading the same
+ * stream in the same order, and it is cheaper than threading a line index
+ * through the core reader — which would make a pure protocol reader carry a
+ * detail that exists only for this renderer.
+ */
+function annotate(protocol: readonly string[]): Map<string, TurnAction> {
+  const actions = readTurns(protocol, movePriority).flatMap((group) => group.actions);
+  const out = new Map<string, TurnAction>();
+
+  let index = 0;
+  for (const line of protocol) {
+    if (!/^\|(?:move|switch|drag)\|/.test(line)) continue;
+    const action = actions[index++];
+    if (action) out.set(line, action);
+  }
+  return out;
+}
+
 /** The formatter marks emphasis with `**`, and turn headers with `== .. ==`. */
-function renderEntry(text: string): HTMLElement {
+function renderEntry(text: string, action?: TurnAction): HTMLElement {
   const entry = document.createElement('p');
   entry.className = 'log-entry';
 
@@ -120,6 +171,41 @@ function renderEntry(text: string): HTMLElement {
     return entry;
   }
   if (text.startsWith('(') || text.startsWith('It')) entry.classList.add('log-entry--detail');
+
+  /*
+   * The sequence marker, and the whole of item C.
+   *
+   * A small ordinal at the head of each action, so the turn reads as "1 then 2"
+   * at a glance rather than as a wall of sentences the player has to infer an
+   * order from. `data-side` colours it by whose action it was, which is the
+   * other half of "who went first" — the ordinal says when, the colour says who.
+   */
+  if (action) {
+    entry.classList.add('log-entry--action');
+    entry.dataset['side'] = action.side;
+    if (action.kind === 'switch') entry.classList.add('log-entry--switch');
+
+    const order = el('span', 'log-entry__order');
+    order.textContent = String(action.order);
+    entry.append(order);
+
+    /*
+     * The priority tag, on the move that a bracket put first.
+     *
+     * One short marker rather than a sentence: this is a log a player scans
+     * between turns, not a combat replay. It carries the bracket in its
+     * `title`/`aria-label` so "why did that go first" has an answer one tap
+     * away without spending a line on it.
+     */
+    if (action.kind === 'move' && action.priority) {
+      const tag = el('span', 'log-entry__priority');
+      tag.textContent = 'FIRST';
+      const sign = action.bracket > 0 ? '+' : '';
+      tag.title = `Priority ${sign}${action.bracket} — moved before a faster Pokemon`;
+      tag.setAttribute('aria-label', tag.title);
+      entry.append(tag);
+    }
+  }
 
   for (const [index, part] of text.split('**').entries()) {
     if (!part) continue;

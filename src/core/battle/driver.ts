@@ -1065,6 +1065,25 @@ export function moveFlags(id: string): string[] {
   return Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(id).flags);
 }
 
+/**
+ * A move's priority bracket, straight off the dex.
+ *
+ * The one number `core/battle/turnOrder.ts` needs and cannot have: it reads the
+ * protocol, which reports *what happened* and never *why*, so a Quick Attack
+ * going first is indistinguishable from a fast Pokemon going first unless
+ * something supplies the bracket. Priority runs -7 (Trick Room's counter-moves)
+ * to +5 (Helping Hand); 0 is every ordinary move.
+ *
+ * Exported from the adapter rather than read from `data/movePools.ts` for the
+ * usual reason: the pools are a generated *subset* the randomizer draws from,
+ * and a gym leader's signature move or a Struggle substitution can reach the
+ * log without ever having been in a pool. The dex knows about all of them.
+ */
+export function movePriority(nameOrId: string): number {
+  const move = Dex.forGen(GYMRUN_GEN).moves.get(nameOrId);
+  return move.exists ? move.priority : 0;
+}
+
 /** A move's one-line description, for the move tooltip. */
 export function moveShortDesc(id: string): string {
   return Dex.forGen(GYMRUN_GEN).moves.get(id).shortDesc ?? '';

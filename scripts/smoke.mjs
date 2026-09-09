@@ -168,6 +168,13 @@ async function playRun(label) {
           await page.waitForTimeout(500);
           await page.screenshot({ path: `stats/${label}-battle.png`, fullPage: true });
         }
+        // A later shot too, so the log has a few turns in it: turn order and
+        // priority markers are the point of Stage 4.5.2 and cannot be read off
+        // a battle that is three lines old.
+        if (battles === 24) {
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: `stats/${label}-battle-log.png`, fullPage: true });
+        }
         await move.click();
         battles++;
         await page.waitForTimeout(25);
