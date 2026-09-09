@@ -11,7 +11,8 @@ import { describe, expect, it } from 'vitest';
 import { createPartyMember } from '../src/core/party';
 import { resolveCapability } from '../src/core/capabilities';
 import { CAPABILITIES, CAPABILITY_MOVES, CAPABILITY_TYPES, capabilityTypes } from '../src/data/capabilityTypes';
-import { SPECIES_POOL, typesOfSpecies } from '../src/data/speciesPools';
+import { SPECIES_POOL } from '../src/data/speciesPools';
+import { typesOfSpecies } from '../src/data/speciesTypes';
 import type { PokemonState } from '../src/core/types';
 
 function member(species: string, moves: string[]): PokemonState {

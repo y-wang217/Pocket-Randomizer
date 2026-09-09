@@ -176,30 +176,44 @@ At 400 seeds, the `greedy` policy:
 
 | gym | leader | type | team | reached | clear rate | drop |
 |---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 374 | 95.2% | — |
-| 2 | Marina | Water | 2 | 348 | 86.8% | -8pt |
-| 3 | Volta | Electric | 3 | 301 | 76.4% | -10pt |
-| 4 | Fern | Grass | 4 | 223 | 78.5% | +2pt |
-| 5 | Cinder | Fire | 4 | 170 | 61.2% | -17pt |
-| 6 | Solene | Psychic | 5 | 97 | 75.3% | +14pt |
-| 7 | Vesper | Ghost | 5 | 68 | 58.8% | -16pt |
-| 8 | Draven | Dragon | 5 | 37 | 78.4% | +20pt |
+| 1 | Garnet | Rock | 1 | 368 | 92.4% | — |
+| 2 | Marina | Water | 2 | 334 | 86.5% | -6pt |
+| 3 | Volta | Electric | 3 | 281 | 78.3% | -8pt |
+| 4 | Fern | Grass | 4 | 211 | 74.9% | -3pt |
+| 5 | Cinder | Fire | 4 | 145 | 54.5% | -20pt |
+| 6 | Solene | Psychic | 5 | 76 | 59.2% | +5pt |
+| 7 | Vesper | Ghost | 5 | 43 | 65.1% | +6pt |
+| 8 | Draven | Dragon | 5 | 26 | 61.5% | -4pt |
 
-Run completion **7.2%**, mean 3.27 gyms of 8, worst gym-to-gym drop 17 points —
-against 4.6a's 7.1%, 3.35 and 26. **Stage 4.6b lands where it started with a
-smoother curve**, which is the honest summary of a ramp: it redistributes
-difficulty rather than adding it.
+Run completion **4.0%**, mean 2.94 gyms of 8, worst gym-to-gym drop 20 points.
 
-The player's mean move band entering each gym climbs **1.03 → 2.89** over those
-eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has the
-retune — three measured passes, of which only the third moved anything — and
-the two findings that turned out to be about the simulator rather than the game.
-A `random` policy completes **0.0%** of runs and clears gym 6 in **0.8%** of
-them, which is the depth test: if a random policy cleared gym 6, move choice
-would not matter. Every Stage 2 target passes on both policies.
+**That is a miss, and it is recorded rather than smoothed over.** The
+simulator's own target band for completion is 5-15%, and 4.6b landed inside it
+at 7.2% with a mean of 3.27. Admitting Cut and Flash ahead of 4.6c cost 3.2
+points of completion. Two things did it: Cut is a 50 BP band 1 move that
+dilutes the weakest band the starter draws from, and Flash is a status move
+with no offence at all, so both make a wasted move slot more likely at exactly
+the point in a run where a wasted slot is least survivable. The gym 5 wall
+deepened from -17 to -20 points as a result.
 
-The randomizer draws from 635 species, 397 damaging moves and all 310
-abilities, and across 13,594 encounters at 400 seeds the sweep saw **632 of the
+The two moves are in on purpose and the cost was accepted knowingly: they are
+the only capabilities in Stage 4.6c where carrying the move is a real
+sacrifice, which is the whole premise of the gate mechanic. Retuning belongs
+with 4.6c's gate rates rather than here, since the same numbers move again as
+soon as events land. Backing them out is one line in
+`scripts/gen-pools.ts` if the gates do not earn it.
+
+The player's mean move band entering each gym climbs **1.03 → 3.04** over those
+eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has
+4.6b's retune — three measured passes, of which only the third moved anything —
+and the two findings that turned out to be about the simulator rather than the
+game. A `random` policy completes **0.0%** of runs and clears gym 6 in **0.0%**
+of them, which is the depth test: if a random policy cleared gym 6, move choice
+would not matter. Every Stage 2 target passes on both policies; the completion
+band is the one miss.
+
+The randomizer draws from 635 species, 398 damaging moves and all 310
+abilities, and across 12,298 encounters at 400 seeds the sweep saw **630 of the
 635 species and all 310 abilities**. That is the diversity claim
 worth making, because win rate cannot measure it at all: a narrow pool that
 happened to be balanced would pass every other number in the report.
@@ -451,7 +465,7 @@ retunes once, against this number, and that is the last retune planned.
    Note that it is no longer *only* a gap: one fixed spread is what lets
    `core/battle/stats.ts` compute the opponent's stats exactly rather than
    estimate them, so the exclusion is now load-bearing for a feature.
-2. **`random` clears gym 3 in 17.2% of runs**, against a target of "rarely".
+2. **`random` clears gym 3 in 19.8% of runs**, against a target of "rarely".
    Tightening the early gyms would push `greedy`'s completion out of its band,
    so the trade was declined; the depth test that matters passes at 0.8%.
 3. **Gym 1 clears at 94.5%** against a ~90% target. It was the single MISS on

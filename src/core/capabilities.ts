@@ -23,7 +23,7 @@
  * always work.
  */
 import { capabilityMove, capabilityTypes, type Capability } from '../data/capabilityTypes';
-import { typesOfSpecies } from '../data/speciesPools';
+import { typesOfSpecies } from '../data/speciesTypes';
 import type { PokemonState } from './types';
 
 /**

@@ -141,8 +141,16 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * picking four moves out of one flat window. The third is the one that moves
  * draws: every slot costs a band draw it did not cost before, so every roll
  * after the first moveset in a seed sits somewhere new.
+ *
+ * Went to 9 for admitting Cut and Flash ahead of Stage 4.6c. Two rows added to
+ * two generated tables, and it is the smallest change the string has ever
+ * carried — but the move pools are sorted by id and a moveset draws an index
+ * into them, so `cut` arriving between `crushgrip` and `cut`'s old neighbour
+ * renumbers every damaging move after it. Every seed rolls different movesets
+ * from the first Pokemon onward. `scripts/gen-pools.ts` says why the two moves
+ * are in, which is a capability argument rather than a completeness one.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-8';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-9';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
