@@ -13,10 +13,13 @@ signature.
 
 ## The rules
 
-Five constraints are enforced by a test (`test/boundaries.test.ts`), and the
-first four by ESLint (`eslint.config.js`) as well. Two enforcement mechanisms
-because lint is easy to disable inline and easy to skip in CI, and these are
-load-bearing:
+Five constraints are enforced by a test (`test/boundaries.test.ts`). Three of
+them — 1, 2 and 4 — are enforced by ESLint (`eslint.config.js`) as well, because
+lint is easy to disable inline and easy to skip in CI and those three are the
+ones a single stray import or call can break. Rules 3 and 5 are test-only: both
+are about what a *file* may name rather than about a package or a call, and the
+lint form of either would be a per-file override list that the next file quietly
+joins. All five are load-bearing:
 
 1. **`core/` never imports from `ui/`.** A battle must be fully playable with no
    browser present.
