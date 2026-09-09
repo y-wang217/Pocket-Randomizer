@@ -70,7 +70,16 @@ export interface Tuning {
   stepsPerSegment: Range;
   /** How many nodes a step offers. The spec calls for 2 or 3. */
   nodeChoiceCount: Range;
-  /** Relative frequency of each node kind when filling a step's options. */
+  /**
+   * Relative frequency of each node kind when filling a step's options.
+   *
+   * **`rest` halved in Stage 4.5.1**, from 2 to 1, and the reason is worth
+   * writing down because the direction is counter-intuitive. A rest node that
+   * becomes a fight is a node that *pays a reward*, so cutting rests both
+   * removes healing and adds rewards — the two pull opposite ways, and only the
+   * simulator says which wins. It is the first: 12.0% completion to 11.3% at
+   * 400 seeds, with the floor in `minRestSteps` cut in step.
+   */
   nodeWeights: Record<ChoosableKind, number>;
   /**
    * First step index that may offer a rest.
@@ -95,6 +104,19 @@ export interface Tuning {
    * Weighted draws can produce a segment with no rest at all. A run whose seed
    * decided there was nowhere to heal is not a hard run, it is a run the player
    * had no hand in, so generation guarantees a floor.
+   *
+   * **Halved in Stage 4.5.1, from 2 to 1, alongside `nodeWeights.rest`.** Both
+   * were tuned for a world where healing was free, and the stage's premise is
+   * that a rest node is only a decision if skipping it costs something. Two
+   * guaranteed rests in a four-to-five step segment meant the choice arrived
+   * about half the time and almost never bit.
+   *
+   * The floor stays at 1 rather than going to 0, and the simulator is why. At
+   * 400 seeds, halving both dials cost about a point of completion (12.0% ->
+   * 11.3%); removing the floor entirely cost five (7.2%) and reintroduced
+   * exactly the failure this number exists to prevent — a seed that offers
+   * nowhere to heal at all. One is the smallest guarantee that is still a
+   * guarantee.
    */
   minRestSteps: number;
 
@@ -347,10 +369,10 @@ export const DEFAULT_TUNING: Tuning = {
    * which is often enough to plan around and rare enough to be worth planning
    * around.
    */
-  nodeWeights: { wild: 5, trainer: 3, rest: 2, shop: 1.5, event: 2.5 },
+  nodeWeights: { wild: 5, trainer: 3, rest: 1, shop: 1.5, event: 2.5 },
   restEarliestStep: 1,
   distinctKindsPerStep: true,
-  minRestSteps: 2,
+  minRestSteps: 1,
 
   /*
    * Elite is locked out of segments 0-1 and the weight climbs from there.

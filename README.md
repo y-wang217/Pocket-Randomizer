@@ -1,14 +1,14 @@
-# GYMRUN — Stage 4.5
+# GYMRUN — Stage 4.5.1
 
-A browser-based seeded Pokémon roguelike. This is Stage 4.5: **an eight-gym
-randomizer run with a party, held items, shops and events — and a battle screen
-that finally shows you the mechanics it has been resolving all along.**
+A browser-based seeded Pokémon roguelike. This is Stage 4.5.1: **an eight-gym
+randomizer run with a party you carry, a bag you have to prune, and rewards that
+make you choose what they cost you.**
 
 Stage 0 proved the battle engine. Stage 1 made it a run. Stage 2 made it a
 *randomizer* and built the instrument that says whether the randomizer is
 playable. Stage 3 added tiers, rewards, items, shops and events. Stage 4 added
-party slots and switching. Stage 4.5 adds no mechanics at all — it makes the
-existing ones legible.
+party slots and switching. Stage 4.5 added no mechanics at all and made the
+existing ones legible. Stage 4.5.1 is the one that puts prices back on things.
 
 There is still no battle engine here. GYMRUN wraps [Pokémon
 Showdown](https://pokemonshowdown.com) via `@pkmn/sim` — see
@@ -32,7 +32,34 @@ npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
 
-## What Stage 4.5 adds
+## What Stage 4.5.1 adds
+
+**Three decisions that used to be rules, and one that used to be free.**
+
+- **A backpack.** Items no longer land on a Pokemon and destroy what it was
+  holding — they go in a bag, and who wears what is settled on the party screen
+  for free, as often as you like, between fights. The bag is finite
+  (`tuning.backpackCapacity`), so *acquiring* is still a choice; assigning is
+  not. Nothing is ever destroyed except by an explicit discard.
+- **You choose what a move costs you.** A move reward asks who learns it and
+  then which of their four moves goes. There is no decline — the place to skip a
+  move card is the reward screen, where you already picked it over two
+  alternatives. The Stage 4.5 rule that a move reward could never leave you
+  weaker is deliberately gone.
+- **A coverage line on species cards.** One factual sentence — "adds Dragon,
+  Steel. Loses Ghost." — with no score, no arrow and no colour that says which
+  way is better.
+- **Gender, rolled properly and shown.** Not the cosmetic change it looks like:
+  the engine was rolling it off the *battle* PRNG with a flat coin flip, so the
+  same Pokemon was male in one fight and female in the next and nothing outside
+  a battle had a gender at all. See "Determinism" below.
+- **A Simple / Detailed toggle**, and stat tooltips on every abbreviation,
+  because `Atk` versus `SpA` is the one distinction a non-player cannot infer.
+
+Rest nodes were also cut roughly in half. They were tuned for a world where
+healing was free, and this is the stage that makes healing cost a node.
+
+## What Stage 4.5 added
 
 Nothing you can play. **No mechanics, no state, no randomness, and no balance
 change** — the 1000-seed report is byte identical across the stage, which is
@@ -140,7 +167,9 @@ src/core/      pure, deterministic, zero DOM, unit tested
   encounters.ts  map and encounter generation, all of it eager
   run.ts       the run state machine, RunPolicy, and playRun
   acquisition.ts how a Pokemon joins the party, and what it costs
+  coverage.ts  offensive type coverage as a set of names, never a score
   economy.ts, rewards.ts, items.ts, events.ts   Stage 3's four systems
+               items.ts also owns the backpack: capacity, plans, discards
   battle/
     format.ts    generation, format id, clauses; the gen-lock lives here
     driver.ts    THE ONLY @pkmn/sim adapter
@@ -149,15 +178,17 @@ src/core/      pure, deterministic, zero DOM, unit tested
     policy.ts, switching.ts, ai.ts
 src/data/      what a Pokémon is rolled *from*, and every balance number
   scaling.ts     the curve: eight rows, and what party the curve assumes
-  partyTuning.ts PARTY_SIZE, join level, and what a faint costs
+  partyTuning.ts PARTY_SIZE and join level (revival moved to tuning.ts)
   gyms.ts        eight leaders and their type identities
   starters.ts    what the player begins with; Stage 5's unlock seam
   blacklists.ts  the exceptions, each with the evidence that earned it
   statusInfo.ts  what every condition does, and what to do about it
+  statInfo.ts    what Atk, SpA and the rest mean, without saying which is good
   abilityEffects.ts, abilityOverrides.ts, categoryInfo.ts   tooltip data
   speciesPools.ts, movePools.ts, abilities.ts   generated; npm run gen:pools
 src/ui/        a thin DOM layer: ten screens and a router
   scene.ts     the battlefield; reads BattleUiView and nothing else
+  settings.ts  the verbosity flag; unreachable from core/, and tested so
   tooltips.ts  one delegated tap-first layer; all content from data/
 scripts/sim.ts the balance simulator
 test/          determinism, generation, the randomizer's promises, replay,
@@ -238,6 +269,31 @@ moved band window, a changed curve, or a new draw inside the randomizer.
 Randomizer draws come from their own RNG stream, so adding a draw in one system
 cannot shift another's. `test/randomizer.test.ts` asserts that directly rather
 than trusting it to the construction.
+
+### The engine was rolling gender, and it was rolling it wrong
+
+Worth recording because it is the exact shape of bug the version guards exist
+for, and because the Stage 4.5.1 prompt asked for the opposite of what the
+measurement showed.
+
+Showdown assigns a gender that a team does not name with
+`battle.sample(['M', 'F'])` — a **flat coin flip that ignores the species'
+`genderRatio`**, taken from the *battle* PRNG at team construction. Three
+consequences, all measured rather than assumed:
+
+- Combee, 87.5% male in its own data, came out 206/194 over 400 seeds.
+- The same party member was male in one fight and female in the next, and
+  nothing outside a battle had a gender at all — so a party screen had nothing
+  to show.
+- Every gendered body on both sides cost one battle draw before turn one.
+
+GYMRUN now rolls gender itself, from the real ratio baked into
+`SpeciesEntry.maleChance`, and hands the sim a concrete value. That
+short-circuits the sample the engine was already making, so it is a **relocated
+draw rather than a new one** — the run makes one fewer battle draw per Pokemon
+and one more randomizer draw. Both version numbers moved as a result:
+`RANDOMIZER_VERSION` because specs changed, and `ENGINE_VERSION` because every
+battle stream is offset from the first turn.
 
 ## Bundle
 

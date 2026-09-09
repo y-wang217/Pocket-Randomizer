@@ -468,8 +468,11 @@ Three things are worth writing down before the next attempt:
    is the binding constraint rather than the cost.
 2. **Partial free revival makes preservation cheap to skip.** A fainted member
    comes back at half HP for nothing at the next node, so losing one costs less
-   than the full turn a switch spends. `partyTuning.freeRevive` exists to
-   measure this; setting `reviveHpFraction` lower is the untried lever.
+   than the full turn a switch spends. **Stage 4.5.1 made this lever reachable**
+   — it was `partyTuning.reviveHpFraction`, read at module scope, so the number
+   this paragraph blames was the one number a sweep could not vary. It is
+   `tuning.reviveHpPercent` now and `--set reviveHpPercent=0.25` works. Still
+   untried, but no longer untriable.
 3. **Comparing across `switchCost` values is not a controlled experiment.** The
    opponent runs the same AI, so raising the cost strengthens the opponent in
    *both* arms and closes the gap without switching helping anyone. Only the
