@@ -14,7 +14,14 @@ export type ScreenName =
   | 'starter'
   | 'map'
   | 'battle'
-  | 'reward'
+  /**
+   * How a battle ended, with its reward cards inside it. Stage 4.5.2.
+   *
+   * Was `reward`, and the rename is the item: the reward screen used to be the
+   * only thing a finished fight could reach, so a win with no cards reached
+   * nothing at all.
+   */
+  | 'result'
   /** Which member gets an item, a TM or a tutor. Stage 4. */
   | 'target'
   /** Which of that member's four moves the incoming one displaces. */

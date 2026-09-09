@@ -128,6 +128,7 @@ async function playRun(label) {
   let nodes = 0;
   let rests = 0;
   let rewards = 0;
+  let results = 0;
   let shops = 0;
   let events = 0;
   let targets = 0;
@@ -192,12 +193,28 @@ async function playRun(label) {
      * Each takes the same deterministic-from-what-is-on-screen approach the
      * rest of this bot uses, so the second run can be compared to the first.
      */
-    if (await page.locator(visible('reward')).count()) {
-      const card = page.locator(`${visible('reward')} .reward`).first();
+    /*
+     * The result screen, which every battle now ends on. Stage 4.5.2 item D.
+     *
+     * Two shapes, and the bot has to answer both: with cards it takes one (the
+     * card *is* the continue, since there is no skip), and without cards — a
+     * fight the player lost — it presses Carry on. A run that only knew the
+     * first shape would hang on the first defeat.
+     */
+    if (await page.locator(visible('result')).count()) {
+      const card = page.locator(`${visible('result')} .reward`).first();
       if (await card.count()) {
         if (rewards === 0) await page.screenshot({ path: `stats/${label}-reward.png`, fullPage: true });
         await card.click();
         rewards++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+      const carry = page.locator(`${visible('result')} .result__actions .button`).first();
+      if (await carry.count()) {
+        if (results === 0) await page.screenshot({ path: `stats/${label}-result.png`, fullPage: true });
+        await carry.click();
+        results++;
         await page.waitForTimeout(25);
         continue;
       }
@@ -368,6 +385,7 @@ async function playRun(label) {
     nodes,
     rests,
     rewards,
+    results,
     shops,
     events,
     targets,
@@ -465,7 +483,10 @@ const first = await playRun('run1');
 console.log(`\nrun finished: ${first.title} (${first.outcome})`);
 console.log(`  ${first.detail}`);
 console.log(`  ${first.nodes} node choices (${first.rests} rests), ${first.battles} move clicks`);
-console.log(`  ${first.rewards} reward picks, ${first.shops} shop visits, ${first.events} events`);
+console.log(
+  `  ${first.rewards} reward picks, ${first.results} cardless results, ` +
+    `${first.shops} shop visits, ${first.events} events`,
+);
 console.log(
   `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} move targets, ` +
     `${first.replacements} move replacements, ` +
@@ -583,9 +604,9 @@ same('node choices and move clicks', [first.nodes, first.battles], [second.nodes
 // cards moved between two plays of one seed would break the seed's promise more
 // visibly than anything else on screen.
 same(
-  'reward, shop and event decisions',
-  [first.rewards, first.shops, first.events],
-  [second.rewards, second.shops, second.events],
+  'reward, cardless-result, shop and event decisions',
+  [first.rewards, first.results, first.shops, first.events],
+  [second.rewards, second.results, second.shops, second.events],
 );
 /*
  * And Stage 4's, which are the ones most likely to drift.

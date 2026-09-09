@@ -43,44 +43,12 @@
 import { describeMove } from '../../core/battle/driver';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
 import { createPartyMember } from '../../core/party';
-import type { Reward, RewardOffer } from '../../core/rewards';
+import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { PARTY_SIZE } from '../../data/partyTuning';
 import { el, genderMark, moveCard } from '../scene';
 import { typeChip } from './starter-select';
-
-export interface RewardScreen {
-  root: HTMLElement;
-  render(offer: RewardOffer, state: RunState, onPick: (index: number) => void): void;
-}
-
-const TIER_BLURB: Record<string, string> = {
-  normal: 'A normal fight. A normal payout.',
-  hard: 'You took the harder road. This is what it pays.',
-  elite: 'You took the worst odds in the step. Take something worth it.',
-};
-
-export function createRewardScreen(): RewardScreen {
-  const root = el('section', 'screen screen--reward');
-
-  const title = el('h2', 'screen__title');
-  const blurb = el('p', 'screen__blurb');
-  const cards = el('div', 'rewards');
-
-  root.append(title, blurb, cards);
-
-  return {
-    root,
-    render(offer, state, onPick) {
-      title.replaceChildren(document.createTextNode('Choose a reward '), tierBadge(offer.tier));
-      blurb.textContent = `${TIER_BLURB[offer.tier] ?? ''} One of the three. There is no skip.`;
-      cards.replaceChildren(
-        ...offer.options.map((option, index) => renderCard(option, state, () => onPick(index))),
-      );
-    },
-  };
-}
 
 /** The tier chip, shared with the map so the two screens agree at a glance. */
 export function tierBadge(tier: string): HTMLElement {
@@ -89,7 +57,16 @@ export function tierBadge(tier: string): HTMLElement {
   return badge;
 }
 
-function renderCard(reward: Reward, state: RunState, onPick: () => void): HTMLElement {
+/**
+ * One reward card. **Exported, because the screen that holds them moved.**
+ *
+ * Through Stage 4.5.1 this file owned both the cards and the screen around
+ * them, and that screen was doing double duty as the result screen — so a win
+ * with no cards had nowhere to land. Item D inverts it: `screens/result.ts` is
+ * the screen, and the cards are a section inside it. What is left here is what
+ * a card *is*, which was always this file's real subject.
+ */
+export function renderRewardCard(reward: Reward, state: RunState, onPick: () => void): HTMLElement {
   const card = document.createElement('button');
   card.type = 'button';
   card.className = `reward reward--${reward.kind}`;

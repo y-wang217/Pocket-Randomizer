@@ -40,7 +40,7 @@ import { createAcquisitionScreen } from './screens/acquisition';
 import { createItemTargetScreen } from './screens/item-target';
 import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
-import { createRewardScreen } from './screens/reward';
+import { createResultScreen } from './screens/result';
 import { createRouter } from './screens/router';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
@@ -56,7 +56,7 @@ export function mountApp(root: HTMLElement): void {
   const starterScreen = createStarterSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
-  const rewardScreen = createRewardScreen();
+  const resultScreen = createResultScreen();
   const shopScreen = createShopScreen();
   const eventScreen = createEventScreen();
   const targetScreen = createItemTargetScreen();
@@ -69,7 +69,7 @@ export function mountApp(root: HTMLElement): void {
     starter: starterScreen.root,
     map: mapScreen.root,
     battle: battleScreen.root,
-    reward: rewardScreen.root,
+    result: resultScreen.root,
     target: targetScreen.root,
     replace: replaceScreen.root,
     acquisition: acquisitionScreen.root,
@@ -106,7 +106,7 @@ export function mountApp(root: HTMLElement): void {
     const starterPick = createPending<number>();
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
-    const rewardPick = createPending<number>();
+    const rewardPick = createPending<number | null>();
     const targetPick = createPending<number>();
     const replacePick = createPending<number>();
     const acquirePick = createPending<AcquisitionDecision>();
@@ -143,10 +143,34 @@ export function mountApp(root: HTMLElement): void {
         router.show('map');
         return nodePick.wait();
       },
-      chooseReward: (offer, state) => {
-        rewardScreen.render(offer, state, (index) => rewardPick.submit(index));
-        router.show('reward');
+      /*
+       * Every battle completion, win or loss, cards or none.
+       *
+       * This is the hook item D added, and it is the *only* one `playRun` uses
+       * for a battle node — so a rewardless win lands on a screen instead of
+       * dropping the player back to the map with nothing to say the node
+       * happened. Reward cards render inside the result rather than replacing
+       * it; taking one is the continue, and when there are none the screen
+       * grows a Carry on button instead.
+       */
+      reviewBattle: (review, state) => {
+        resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
+        router.show('result');
         return rewardPick.wait();
+      },
+      /*
+       * Required by `RunPolicy` and unreachable from `playRun` while
+       * `reviewBattle` is implemented above, because the two are one question
+       * and `playRun` asks the richer form when it is offered.
+       *
+       * Kept honest rather than stubbed: it renders the same screen with the
+       * cards alone, which is the shape it had before this stage. A throw here
+       * would be a landmine for whoever removes `reviewBattle`.
+       */
+      chooseReward: async (offer, state) => {
+        resultScreen.render(null, offer, state, (index) => rewardPick.submit(index));
+        router.show('result');
+        return (await rewardPick.wait()) ?? 0;
       },
       /*
        * Auto-planned for now: fill empty hands, discard the overflow.

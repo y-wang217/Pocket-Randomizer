@@ -425,6 +425,43 @@ export interface NodeResult {
 }
 
 /**
+ * Everything a battle's result screen renders, assembled once by `playRun`.
+ *
+ * **Item D of the Stage 4.5.2 playtest round.** Every battle used to end in one
+ * of two ways: a win with cards went to the reward screen, and a win *without*
+ * cards — a gym, before this stage, or any battle the player lost — went
+ * straight back to the map with nothing on screen to say the node had happened
+ * at all. The reward screen was doing double duty as the result screen, so a
+ * rewardless win read as the game skipping a beat.
+ *
+ * So this is what a node resolution *is*, from the player's side, and the offer
+ * is a field on it rather than a screen of its own. That is the whole change:
+ * cards render inside the result, not instead of it.
+ *
+ * Assembled before `resolveNode` runs, from the same inputs `resolveNode` will
+ * use, because that function owns state transitions and `playRun` owns talking
+ * to the policy — the split every other decision in this file already follows.
+ */
+export interface BattleReview {
+  node: NodeSpec;
+  result: BattleResult;
+  /** `winner === 'p1'`, named because three call sites ask. */
+  won: boolean;
+  /** The party as the sim left it, before the node boundary heals anything. */
+  party: PokemonState[];
+  /**
+   * What this node pays, or 0 on a loss.
+   *
+   * Computed here rather than read back off the state afterwards, because the
+   * screen is shown *before* `resolveNode` folds it in — and "you earned 40"
+   * is a fact about the node, while the balance after is a fact about the run.
+   */
+  currencyEarned: number;
+  /** The three cards, or null on a loss and at a node that offers none. */
+  offer: RewardOffer | null;
+}
+
+/**
  * Fold a finished node into the run. **This is Stage 3's hook for rewards.**
  *
  * Everything that happens between two nodes happens here and nowhere else:
@@ -657,6 +694,32 @@ export interface RunPolicy {
    */
   chooseReward: (offer: RewardOffer, state: RunState) => Promise<number>;
   /**
+   * The same question, asked with the whole result attached. **Optional.**
+   *
+   * `chooseReward` answers "which of these three", and until Stage 4.5.2 that
+   * was the only thing `playRun` asked after a fight — so a battle that offered
+   * no cards asked nothing, and the player was returned to the map with no
+   * confirmation that anything had happened. `reviewBattle` is that same
+   * question widened to "what happened, and what do you take from it": it is
+   * asked for **every** battle completion, win or loss, cards or none, and
+   * returns the reward index when there was an offer and null when there was
+   * not.
+   *
+   * It is one path, not a second one. `playRun` records exactly the same
+   * `{kind: 'reward', index}` decision whichever hook answered, and records it
+   * under exactly the same condition, so a log written by a policy that
+   * implements this is byte-identical to one written by a policy that does not.
+   * That property is what makes the hook optional rather than a fork: a
+   * headless policy has no screen to show and nothing to acknowledge, so the
+   * simulator, the replay policy and every scripted test answer through
+   * `chooseReward` and produce the same run.
+   *
+   * Returning a number for an offer that is null is a caller error and is
+   * ignored; returning null for an offer that exists falls back to card 0,
+   * because there is no skip.
+   */
+  reviewBattle?: (review: BattleReview, state: RunState) => Promise<number | null>;
+  /**
    * Which shelf slots to buy. An array, because a shop visit is one decision.
    *
    * Not a sequence of buy-one calls: a player who picks three things and can
@@ -886,9 +949,44 @@ export async function playRun(
       result.eventChoice = index;
     }
 
-    if (result.node.reward && result.battle?.result.winner === 'p1') {
-      const offer = result.node.reward;
-      const index = await policy.chooseReward(offer, state);
+    /*
+     * The result of the fight, and the cards that came out of it.
+     *
+     * One question for both, asked once per battle node. The three cards were
+     * drawn when the map was built, so nothing about *what* is offered depends
+     * on how the battle went — but whether an offer exists at all does, and
+     * that is the point: a lost fight pays nothing, which is what makes the
+     * elite node next to the normal one a risk rather than a longer wait for
+     * the same payout.
+     *
+     * Winning is also what makes the wipe check downstream unreachable from
+     * here: a side that won has something left standing, so `resolveNode`
+     * cannot end the run on a node that just paid out.
+     */
+    const won = result.battle?.result.winner === 'p1';
+    const offer = won ? (result.node.reward ?? null) : null;
+    let reviewedIndex: number | null = null;
+
+    if (result.battle && policy.reviewBattle) {
+      const picked = await policy.reviewBattle(
+        {
+          node: result.node,
+          result: result.battle.result,
+          won,
+          party: result.battle.party,
+          currencyEarned: won ? nodePayout(result.node, state.currentSegment) : 0,
+          offer,
+        },
+        state,
+      );
+      // Null for a node with no offer is the expected answer and records
+      // nothing. A number there would be an answer to a question nobody asked.
+      if (offer) reviewedIndex = picked ?? 0;
+    }
+
+    if (offer) {
+      const index = reviewedIndex ?? (await policy.chooseReward(offer, state));
+      reviewedIndex = null;
       record({ kind: 'reward', index });
       const choice = offer.options[index];
       if (!choice) throw new RangeError(`Reward choice ${index} out of range (${offer.options.length} offered)`);

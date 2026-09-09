@@ -1160,7 +1160,31 @@ body {
 
 .screen--party,
 .screen--acquisition,
-.screen--target { align-items: flex-start; }
+.screen--target,
+.screen--result { align-items: flex-start; }
+
+/* ---------- result screen ---------- */
+
+.screen--result > * { width: min(760px, 100%); }
+
+.screen__title[data-outcome='win'] { color: var(--stage-up); }
+.screen__title[data-outcome='loss'] { color: var(--hp-low); }
+
+.result__heading {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.result__party { display: grid; gap: 8px; }
+
+.result__actions { display: flex; gap: 8px; margin-top: 18px; }
+
+/* 44px of touch target: this is the button a phone player presses after every
+   fight, and it is the only way off the screen when no cards are offered. */
+.result__actions .button { min-height: 44px; }
 
 /* The offered Pokemon, in the same card shape as the party it is measured
    against — anything else makes the comparison a matter of squinting. */
