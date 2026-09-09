@@ -98,6 +98,61 @@ export interface Tuning {
    * offers two rather than silently offering a duplicate.
    */
   distinctKindsPerStep: boolean;
+  // --- locales and composition guarantees ---------------------------------
+
+  /**
+   * How many locales a segment offers. The spec calls for 2 or 3.
+   *
+   * A pre-step rather than a node: picking a region does not consume one of
+   * `stepsPerSegment`, so the node budget is exactly what it was in 4.5.1 and
+   * the balance report can read the locale system as an addition rather than as
+   * a segment that got shorter.
+   */
+  localeOfferCount: Range;
+  /**
+   * Steps in a segment whose **every** option is a wild encounter.
+   *
+   * One, which is the guarantee "exactly one wild encounter per segment,
+   * reachable whatever the player picks". The spec allows a step where the wild
+   * node is the only option; this takes the other half of the same sentence and
+   * makes every option of that step a wild node, because a step with one option
+   * is not a choice — and this codebase already refuses to send a list of one to
+   * `chooseNode` (see the gym, and `nodeOptions`).
+   *
+   * The options are still a decision, because their **tiers** differ: a normal
+   * wild against a hard wild is two trades, and the tier is on the map before
+   * the click. See `wildStepOptionCount` for how wide that step is and why the
+   * width is a number here rather than a function of the tier table.
+   */
+  wildStepsPerSegment: number;
+  /**
+   * How many options the guaranteed wild step offers.
+   *
+   * Two, and it is a constant rather than the step's own drawn option count for
+   * one reason: **every option on that step is a wild encounter, so the tier is
+   * the whole of what distinguishes them.** Three wilds in segment 0, where
+   * `elite` is locked out and only two tiers exist, would be two options
+   * carrying the same badge — a decision-shaped rectangle, which is exactly
+   * what `distinctKindsPerStep` and `distinctTiersPerStep` both exist to
+   * prevent.
+   *
+   * Two rather than "however many tiers the segment has" because that version
+   * couples map *shape* to `tierBands`, and the rule those bands are tuned
+   * under is that moving them changes which tier a node carries and nothing
+   * else — same lengths, same option counts, same kinds. `test/tiers.test.ts`
+   * asserts it, and it caught this exact coupling when the first version of the
+   * wild step derived its width from the tier weights.
+   */
+  wildStepOptionCount: number;
+  /**
+   * Minimum steps in a segment that offer an event.
+   *
+   * The floor under the capability events 4.6c builds on: a segment with no
+   * event in it is a segment where a party's utility Pokemon does nothing at
+   * all, and a mechanic that fails to appear is one nobody can learn.
+   */
+  minEventSteps: number;
+
   /**
    * Minimum steps in a segment that offer a rest.
    *
@@ -372,6 +427,11 @@ export const DEFAULT_TUNING: Tuning = {
   nodeWeights: { wild: 5, trainer: 3, rest: 1, shop: 1.5, event: 2.5 },
   restEarliestStep: 1,
   distinctKindsPerStep: true,
+
+  localeOfferCount: { min: 2, max: 3 },
+  wildStepsPerSegment: 1,
+  wildStepOptionCount: 2,
+  minEventSteps: 1,
   minRestSteps: 1,
 
   /*

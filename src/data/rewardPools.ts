@@ -296,48 +296,34 @@ export function gymRewardEntriesFor(segment: number): readonly RewardEntry[] {
 }
 
 /**
- * How often a wild node offers the species it just fielded, by tier.
+ * ## Capture used to be a rate, and Stage 4.6a made it a certainty
  *
- * **Keyed to tier and not to segment, which is the same rule the reward pools
- * follow.** The tier is what the player can see before they choose the node, so
- * it is the only thing an acquisition rate may key off if the map is going to
- * show the trade. A rate that climbed with segment index would make late wild
- * nodes quietly better than early ones for a reason nothing on screen says.
+ * `ENCOUNTER_ACQUISITION_RATE` lived here: 0.55 / 0.7 / 0.85 by tier, drawn
+ * once per wild node at map generation. It is gone, and the argument for
+ * removing it is worth keeping.
  *
- * The gradient is steep on purpose. A `normal` wild node is the option you take
- * when you cannot afford the fight beside it; an `elite` one is the option you
- * take *for* this. That is the same shape as the reward pools — the higher
- * tiers pay in things that do not saturate — and a party slot is the least
- * saturating reward in the game while there are slots left.
+ * A capture roll on a **seeded** run is a punch with no counterplay. The player
+ * cannot see it, cannot change it, and cannot learn from it — two players on the
+ * same seed who both walk into the same wild node and both win get different
+ * parties, and neither did anything to deserve it. That is fine in a game with
+ * an infinite supply of encounters and it is not fine in a run with roughly
+ * thirty nodes in it.
  *
- * **These started at 0.25/0.4/0.6 and the first Stage 4 baseline said they were
- * far too low.** The measurement was not ambiguous: 0.78 offers per run against
- * a party that needs two of them to fill, a 94.5% take rate — the bot was
- * refusing almost nothing, so supply and not appetite was the constraint — and
- * a mean party of 1.54 walking into fights sized for three. Runs that ever
- * filled the party completed 68% of the time; runs that never did completed 2%.
+ * What replaces it is a cost the player *can* see: 4.6a guarantees exactly one
+ * wild encounter per segment, and it occupies one of that segment's limited
+ * steps. Taking the capture costs a party slot or a party member; reaching it
+ * cost a step. Both are decisions, and neither is a roll.
  *
- * That is a death spiral rather than a difficulty curve: you need a party to
- * survive, and you need to survive to be offered one. The rates below are set
- * so the party fills during the first two segments, which is also what
- * `EXPECTED_PARTY_SIZE` in `data/scaling.ts` promises the difficulty curve —
- * and the simulator's `sizeBySegment` section is what holds the two to it.
+ * The tier gradient the rates encoded — elite nodes offering more often — is not
+ * lost so much as relocated: a capture from an elite node is a *stronger*
+ * Pokemon, because the tier still shifts the species band and the level. The
+ * higher tier pays in what you catch rather than in whether you catch.
  *
- * The metric that judges them is the share of runs that ever fill the party. If
- * players routinely reach gym 4 on one Pokemon these are still too low; if the
- * party is full before the first gym the release choice never carries any
- * weight, because nothing has been lost yet to make room for.
+ * The numbers the old table was tuned against (0.78 offers per run, a 94.5%
+ * take rate, runs that filled the party completing 68% against 2%) are in
+ * docs/balance.md and stay relevant: they are why the party has to fill early,
+ * and the guaranteed wild step is a stronger promise about that than any rate.
  */
-const ENCOUNTER_ACQUISITION_RATE: Record<Tier, number> = {
-  normal: 0.55,
-  hard: 0.7,
-  elite: 0.85,
-};
-
-/** The chance a won wild node of this tier offers its species. */
-export function encounterAcquisitionRate(tier: Tier): number {
-  return ENCOUNTER_ACQUISITION_RATE[tier];
-}
 
 export const REWARD_POOLS: Record<Tier, readonly RewardBand[]> = {
   normal: NORMAL,

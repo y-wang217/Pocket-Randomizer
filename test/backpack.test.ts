@@ -414,7 +414,7 @@ describe('the backpack serializes', () => {
     // it unchanged except where a reward, a shop or an event adds to it — the
     // plan that empties it is a separate transition, applied by `playRun`.
     const state = { ...started(), backpack: ['leftovers'] };
-    const node = state.segments[0]!.steps[0]!.options[0]!;
+    const node = state.segments[0]!.routes[0]!.steps[0]!.options[0]!;
     const after = resolveNode(state, { node });
     expect(after.backpack).toEqual(['leftovers']);
   });
@@ -594,7 +594,7 @@ describe('a released member hands their item back', () => {
       ),
       backpack: ['leftovers'],
     };
-    const node = state.segments[0]!.steps[0]!.options[0]!;
+    const node = state.segments[0]!.routes[0]!.steps[0]!.options[0]!;
     const after = resolveNode(state, {
       node,
       acquisition: {
@@ -626,7 +626,7 @@ describe('a released member hands their item back', () => {
       [...s.backpack, ...s.party.flatMap((m) => (m.item ? [m.item] : []))].sort();
     const before = owned(state);
 
-    const node = state.segments[0]!.steps[0]!.options[0]!;
+    const node = state.segments[0]!.routes[0]!.steps[0]!.options[0]!;
     const after = resolveNode(state, {
       node,
       acquisition: {

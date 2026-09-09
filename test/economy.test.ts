@@ -23,7 +23,7 @@ import {
   isBattleKind,
   nodePayout,
 } from '../src/core/economy';
-import { nodesOf, type NodeSpec } from '../src/core/encounters';
+import { nodesOf, routeStepsOf, type NodeSpec } from '../src/core/encounters';
 import { applyEventOutcome, definitionOf, describeOutcome, type EventOutcome } from '../src/core/events';
 import { createParty } from '../src/core/party';
 import { createRng } from '../src/core/rng';
@@ -237,7 +237,7 @@ describe('currency earned per node', () => {
 // ---------------------------------------------------------------------------
 
 describe('currency never goes negative', () => {
-  const stock = generateShopStock('shop-test', 0, createRng('ECON-SHOP'), DEFAULT_TUNING);
+  const stock = generateShopStock('shop-test', 0, createRng('ECON-SHOP').rewards, DEFAULT_TUNING);
 
   it('rejects a basket the run cannot pay for', () => {
     const cost = basketCost(stock, [0]);
@@ -451,7 +451,12 @@ describe('mid-run save across a reward, shop and event boundary', () => {
      *
      * Rather than guess which save that is, this resumes from all of them.
      */
-    const seed = 'ECON-RESUME';
+    // `ECON-RESUME` until Stage 4.6a, after which that seed's run ended before
+    // it was paid a card and the assertion below — which exists to stop exactly
+    // that — said so. `scripts/scan-seed.ts spender` finds the replacement, and
+    // bounds its length: this resumes from *every* save, so the test is
+    // quadratic in the run.
+    const seed = 'ECON-RESUME-2';
     const saves: RunLog[] = [];
     const original = await playRun(seed, spender(), DEFAULT_TUNING, {
       onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
@@ -530,7 +535,7 @@ describe('map shape with shops and events', () => {
   it('still guarantees somewhere to rest in every segment', () => {
     for (const seed of seeds) {
       for (const segment of createRun(seed).segments) {
-        const restSteps = segment.steps.filter((step) => step.options.some((o) => o.kind === 'rest'));
+        const restSteps = routeStepsOf(segment).filter((step) => step.options.some((o) => o.kind === 'rest'));
         expect(restSteps.length, `${seed} segment ${segment.index}`).toBeGreaterThanOrEqual(
           DEFAULT_TUNING.minRestSteps,
         );
@@ -541,8 +546,11 @@ describe('map shape with shops and events', () => {
   it('still never repeats a kind within a step', () => {
     for (const seed of seeds) {
       for (const segment of createRun(seed).segments) {
-        for (const step of segment.steps) {
+        for (const step of routeStepsOf(segment)) {
           const kinds = step.options.map((option) => option.kind);
+          // The 4.6a wild step is all-wild by design; test/generation.test.ts
+          // carries the exception and asserts its tiers are distinct instead.
+          if (kinds.every((kind) => kind === 'wild')) continue;
           expect(new Set(kinds).size, `${seed} s${segment.index} step ${step.index}`).toBe(kinds.length);
         }
       }
@@ -556,7 +564,7 @@ describe('map shape with shops and events', () => {
     let withFight = 0;
     for (const seed of seeds) {
       for (let index = 0; index < SEGMENT_COUNT; index++) {
-        for (const step of createRun(seed).segments[index]?.steps ?? []) {
+        for (const step of routeStepsOf(createRun(seed).segments[index])) {
           steps++;
           if (step.options.some((option) => option.tier !== null)) withFight++;
         }

@@ -235,6 +235,11 @@ describe('the battle UI boundary', () => {
 
     const asked = [
       'chooseStarter',
+      // Stage 4.6a. It shipped for one checkpoint answered with `async () => 0`
+      // — a legal, replayable run that walked the first region offered, with
+      // the player never shown the choice — which is precisely the failure this
+      // test exists for. It goes in the list with the screen.
+      'chooseLocale',
       'chooseNode',
       'chooseReward',
       'chooseShopPurchases',

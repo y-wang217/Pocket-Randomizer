@@ -25,7 +25,14 @@
 import { greedyAiPolicy } from './battle/ai';
 import { ENGINE_VERSION, runBattle, type BattleSession, type Casualty } from './battle/driver';
 import type { Policy } from './battle/policy';
-import { generateSegment, generateStarterOptions, type NodeSpec, type Segment } from './encounters';
+import {
+  generateSegment,
+  generateStarterOptions,
+  routeAt,
+  type LocaleRoute,
+  type NodeSpec,
+  type Segment,
+} from './encounters';
 import {
   applyBattleState,
   battleTeamFor,
@@ -55,7 +62,7 @@ import {
 } from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
 import { describeMove } from './battle/driver';
-import { applyItemPlan, backpackCapacity, needsItemPlan, stow } from './items';
+import { applyItemPlan, backpackCapacity, needsItemPlan, stowAll } from './items';
 import {
   applyReward,
   isTargeted,
@@ -77,6 +84,7 @@ import type {
   RunLog,
 } from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
+import type { LocaleId } from '../data/locales';
 import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
 
 /**
@@ -135,8 +143,20 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * lined up. That is the failure the two guards exist to separate — this one
  * says the questions changed, that one says the answers would mean something
  * different.
+ *
+ * Went to `-9` in Stage 4.6a, for the locale decision. A segment now opens on a
+ * question a 4.5.2 log has no answer for, and it is the *first* question of
+ * every segment — so the cursor slips at decision one and every entry after it
+ * is read as an answer to the wrong question. A run that walked route 0 and
+ * fought at step 0 would replay as a run that picked locale... and then found a
+ * battle choice where a node pick belongs. The guard refuses it up front.
+ *
+ * `RANDOMIZER_VERSION` moved to 7 in the same stage and for a broader reason
+ * still: keyed sub-streams moved every draw in the game onto a different
+ * sequence. Two guards, two messages — this one says the questions changed,
+ * that one says the answers would now mean something else.
  */
-export const RUN_LOG_VERSION = `gymrun-run-8/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-9/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -168,6 +188,21 @@ export interface RunState {
   /** Stage 1 generates one. The type is the same either way, deliberately. */
   segments: Segment[];
   currentSegment: number;
+  /**
+   * Which locale each segment is being walked through, as an index into that
+   * segment's offer. `null` for a segment whose locale has not been picked.
+   *
+   * **State rather than a mutation of the segment, and that is the whole
+   * shape of it.** `segments` is what the seed produced and never changes;
+   * this is what the player did about it. A run that rewrote `segment.routes`
+   * on selection would be a run whose map data disagreed with the seed that
+   * built it, and the discarded routes are exactly what a replay needs in
+   * order to reconstruct the choice.
+   *
+   * One entry per segment, all null at creation. `localeOf` reads it and
+   * `chooseLocale` is the only thing that writes it.
+   */
+  localeChoices: (number | null)[];
   /**
    * Index into the current segment's steps.
    *
@@ -219,13 +254,36 @@ export interface RunState {
 export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunState {
   const rng = createRng(seed);
   const starterOptions = generateStarterOptions(rng, tuning);
-  const segments = Array.from({ length: SEGMENTS_PER_RUN }, (_, index) => generateSegment(index, rng, tuning));
+
+  /*
+   * Segments are generated in order because the **locale offer** depends on the
+   * offers before it: no locale twice in a row, and a locale nobody has been
+   * offered outweighs one they have (`data/locales.ts`). That is a dependency
+   * between segments, and it is the only one — everything else about segment 5
+   * is a function of the seed and its own keys, which is what
+   * `test/stream-keys.test.ts` asserts by generating one segment two ways.
+   *
+   * The context is what was *offered*, never what was picked. An offer that
+   * depended on the player's choice would make the map a function of play, and
+   * the two unpicked routes would stop being reconstructible from the seed.
+   */
+  const segments: Segment[] = [];
+  const seen: LocaleId[] = [];
+  for (let index = 0; index < SEGMENTS_PER_RUN; index++) {
+    const previous = segments[index - 1]?.localeOffer ?? [];
+    const segment = generateSegment(index, rng, tuning, { previous, seen: [...seen] });
+    for (const locale of segment.localeOffer) {
+      if (!seen.includes(locale)) seen.push(locale);
+    }
+    segments.push(segment);
+  }
 
   return {
     seed,
     tuning,
     segments,
     currentSegment: 0,
+    localeChoices: segments.map(() => null),
     position: 0,
     party: [],
     currency: 0,
@@ -259,9 +317,48 @@ export function segmentOf(state: RunState): Segment {
   return segment;
 }
 
-/** True when the steps are done and the only thing left is the gym. */
+/**
+ * Whether the current segment is still waiting for its locale.
+ *
+ * **Derived from state, never counted into it**, which is the property the
+ * whole run log rests on: a replay reconstructs this the same way the live run
+ * computed it, so the question is asked at exactly the same points in both.
+ */
+export function needsLocale(state: RunState): boolean {
+  return !state.outcome && state.localeChoices[state.currentSegment] == null;
+}
+
+/** The locales the current segment is offering. Empty once one is picked. */
+export function localeOptions(state: RunState): LocaleId[] {
+  return needsLocale(state) ? [...segmentOf(state).localeOffer] : [];
+}
+
+/** The route the run is walking, or null before the locale is picked. */
+export function routeOf(state: RunState): LocaleRoute | null {
+  const choice = state.localeChoices[state.currentSegment];
+  return choice == null ? null : routeAt(segmentOf(state), choice);
+}
+
+/** The locale the current segment is being walked through, or null. */
+export function localeOf(state: RunState): LocaleId | null {
+  return routeOf(state)?.locale ?? null;
+}
+
+/** The steps of the route being walked. Empty before the locale is picked. */
+export function stepsOf(state: RunState): readonly { index: number; options: NodeSpec[] }[] {
+  return routeOf(state)?.steps ?? [];
+}
+
+/**
+ * True when the steps are done and the only thing left is the gym.
+ *
+ * False while a locale is still owed, even though the route is empty and
+ * `position` is zero: a segment nobody has entered is not a segment finished.
+ * Getting this backwards would send the run straight to the gym.
+ */
 export function atGym(state: RunState): boolean {
-  return state.position >= segmentOf(state).steps.length;
+  if (needsLocale(state)) return false;
+  return state.position >= stepsOf(state).length;
 }
 
 /**
@@ -272,8 +369,8 @@ export function atGym(state: RunState): boolean {
  * decision recorded in the log that the player never made.
  */
 export function nodeOptions(state: RunState): NodeSpec[] {
-  if (state.outcome || atGym(state)) return [];
-  return segmentOf(state).steps[state.position]?.options ?? [];
+  if (state.outcome || needsLocale(state) || atGym(state)) return [];
+  return stepsOf(state)[state.position]?.options ?? [];
 }
 
 /** The node that will be played next, choice or not. */
@@ -348,6 +445,27 @@ export function chooseStarter(state: RunState, index: number): RunState {
   const spec = state.starterOptions[index];
   if (!spec) throw new RangeError(`Starter choice ${index} out of range`);
   return { ...state, starterIndex: index, party: createParty([spec]) };
+}
+
+/**
+ * Commit the locale pick for the current segment.
+ *
+ * The one transition that discards generated content: the routes for the
+ * locales not taken stay on the segment and are never walked. They are not
+ * deleted, because a replay reconstructs the *offer* and needs them there to
+ * resolve the same index to the same road.
+ */
+export function chooseLocale(state: RunState, index: number): RunState {
+  const segment = segmentOf(state);
+  if (!segment.localeOffer[index]) {
+    throw new RangeError(`Locale choice ${index} out of range (${segment.localeOffer.length} offered)`);
+  }
+  if (state.localeChoices[state.currentSegment] != null) {
+    throw new Error(`Segment ${state.currentSegment} already has a locale`);
+  }
+  const localeChoices = [...state.localeChoices];
+  localeChoices[state.currentSegment] = index;
+  return { ...state, localeChoices };
 }
 
 /**
@@ -581,7 +699,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       cleared = {
         ...cleared,
         party: acquired,
-        backpack: freed ? stow(cleared.backpack, freed) : cleared.backpack,
+        backpack: stowAll(cleared.backpack, freed),
       };
     }
     return cleared;
@@ -648,11 +766,16 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       result.acquisition.offer,
       result.acquisition.decision,
     );
-    // A released member's item goes to the backpack, not with them. The release
-    // is still permanent; the item is not part of the price. Over capacity is
-    // allowed here and resolved by the boundary's item plan, like any other
-    // acquisition.
-    advanced = { ...advanced, party, backpack: freed ? stow(advanced.backpack, freed) : advanced.backpack };
+    /*
+     * Every item the decision freed goes to the backpack, not with anybody.
+     *
+     * Two can come out of one capture: the released member's item — the release
+     * is still permanent, but an item is destroyed only by an explicit discard
+     * and letting a Pokemon go is not one — and, from 4.6a, whatever the
+     * *captured* Pokemon was holding. Over capacity is allowed here and
+     * resolved by the boundary's item plan, like any other acquisition.
+     */
+    advanced = { ...advanced, party, backpack: stowAll(advanced.backpack, freed) };
   }
   return advanced;
 }
@@ -670,6 +793,22 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
  */
 export interface RunPolicy {
   chooseStarter: (options: PokemonSpec[]) => Promise<number>;
+  /**
+   * Which region to walk this segment through. An index into the offer.
+   *
+   * **Asked once per segment, before its first step, and it is not a node.**
+   * The locale decides what the segment's wild Pokemon are and nothing else —
+   * not how hard it is, not what it pays — so a policy answering this is
+   * choosing a *type pool*, which is why it takes the state: what the party
+   * already covers is the whole of what makes one region better than another
+   * for a given run.
+   *
+   * Takes the offered ids rather than the routes behind them, deliberately.
+   * A policy handed three routes would be choosing between maps it can read in
+   * full, which is an optimisation problem; the player sees a name and four
+   * types, and the bot that balances the game should see the same.
+   */
+  chooseLocale: (options: LocaleId[], state: RunState) => Promise<number>;
   /**
    * Which node to walk into.
    *
@@ -869,6 +1008,25 @@ export async function playRun(
   // a browser tab.
   for (let guard = 0; guard <= maxNodes(state); guard++) {
     if (state.outcome) break;
+
+    /*
+     * The locale, asked at the top of the segment and before anything else.
+     *
+     * Inside the node loop rather than around it, because "a segment has begun"
+     * is not a separate phase of the run — it is the state of the first
+     * iteration that lands in a segment with no locale yet, whether that is the
+     * very first iteration or the one right after a gym fell. `needsLocale` is
+     * derived from state, so a replay asks at exactly the same points.
+     *
+     * It consumes no RNG. Every route was drawn when the map was built; this
+     * says which of them the run keeps.
+     */
+    if (needsLocale(state)) {
+      const index = await policy.chooseLocale(localeOptions(state), state);
+      record({ kind: 'locale', index });
+      state = chooseLocale(state, index);
+      options.onState?.(state);
+    }
 
     let node: NodeSpec;
     if (atGym(state)) {
@@ -1121,7 +1279,13 @@ function makeLog(seed: string, decisions: RunDecision[]): RunLog {
 }
 
 function maxNodes(state: RunState): number {
-  return state.segments.reduce((total, segment) => total + segment.steps.length + 1, 0);
+  // The *longest* offered route in each segment, because which one is walked is
+  // a decision this guard runs before. A guard that assumed the shortest would
+  // abort a legal run on its last node.
+  return state.segments.reduce(
+    (total, segment) => total + Math.max(...segment.routes.map((route) => route.steps.length)) + 1,
+    0,
+  );
 }
 
 /**
@@ -1310,6 +1474,14 @@ export function defaultItemPlan(state: RunState): ItemPlan {
 export function scriptedRunPolicy(battle: Policy): RunPolicy {
   return {
     chooseStarter: async () => 0,
+    /*
+     * The first locale offered, like every other scripted answer here.
+     *
+     * Not "the one that covers the most types", which would make every sweep
+     * this baseline appears in a measurement of one routing heuristic. The
+     * simulator's `--policy` bots are where a real locale preference belongs.
+     */
+    chooseLocale: async () => 0,
     chooseNode: async () => 0,
     chooseReward: async () => 0,
     // Buys nothing. A scripted baseline that spent money would make every
@@ -1418,6 +1590,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('starter');
       if (!decision) return live ? live.chooseStarter(options) : exhausted('starter');
       return decision.kind === 'starter' ? decision.index : exhausted('starter');
+    },
+    chooseLocale: async (options, state) => {
+      const decision = next('locale');
+      if (!decision) return live ? live.chooseLocale(options, state) : exhausted('locale');
+      return decision.kind === 'locale' ? decision.index : exhausted('locale');
     },
     chooseNode: async (options, state) => {
       const decision = next('node');

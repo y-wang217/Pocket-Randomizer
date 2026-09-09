@@ -31,6 +31,8 @@ import {
   SEGMENTS_PER_RUN,
   type RunPolicy,
   type RunState,
+  stepsOf,
+  chooseLocale,
 } from '../src/core/run';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
@@ -40,6 +42,7 @@ import { moveChoice, type PokemonState } from '../src/core/types';
 function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): RunPolicy {
   return {
     chooseStarter: async () => 0,
+    chooseLocale: async () => 0,
     chooseNode: async (options) => {
       const index = options.findIndex((option) => option.kind === kind);
       return index === -1 ? 0 : index;
@@ -84,6 +87,7 @@ describe('headless run', () => {
     const seen: NodeSpec[] = [];
     const policy: RunPolicy = {
       chooseStarter: async () => 0,
+      chooseLocale: async () => 0,
       chooseNode: async (options) => {
         // Every node the player is *offered* must be choosable; the gym is not.
         for (const option of options) expect(option.kind).not.toBe('gym');
@@ -101,7 +105,7 @@ describe('headless run', () => {
     };
 
     const run = await playRun('RUN-GYM', policy);
-    const steps = segmentOf(run.state).steps.length;
+    const steps = stepsOf(run.state).length;
     // A run that reached the gym asked for exactly one choice per step.
     if (run.outcome === 'victory') {
       expect(run.state.history.filter((visit) => visit.node.kind !== 'gym')).toHaveLength(steps);
@@ -374,12 +378,21 @@ describe('run shape', () => {
 
 // --- helpers ---------------------------------------------------------------
 
+/**
+ * A run with a starter *and* a locale, which is where the map begins from
+ * Stage 4.6a.
+ *
+ * A segment has no route until a locale is picked, so a run that has only
+ * chosen a starter correctly offers no nodes at all — `nodeOptions` returns
+ * empty and `atGym` is false. Every helper below wants the state one decision
+ * further along than that.
+ */
 function withStarter(seed: string, tuning = DEFAULT_TUNING): RunState {
-  return chooseStarter(createRun(seed, tuning), 0);
+  return chooseLocale(chooseStarter(createRun(seed, tuning), 0), 0);
 }
 
 function atTheGym(state: RunState): RunState {
-  return { ...state, position: segmentOf(state).steps.length };
+  return { ...state, position: stepsOf(state).length };
 }
 
 function firstNodeOfKind(state: RunState, kind: NodeSpec['kind']): NodeSpec | undefined {

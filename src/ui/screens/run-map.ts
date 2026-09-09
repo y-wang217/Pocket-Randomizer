@@ -44,7 +44,8 @@ import { heldItem } from '../../core/items';
 import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared } from '../../core/run';
+import { gymsCleared, localeOf, stepsOf } from '../../core/run';
+import { localeById } from '../../data/locales';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState, Tier } from '../../core/types';
 import { GYMS } from '../../data/gyms';
@@ -134,7 +135,17 @@ export function createRunMap(): RunMap {
   const title = el('h2', 'screen__title');
   const subtitle = el('p', 'screen__blurb');
   const blurb = el('p', 'map__blurb');
-  heading.append(title, subtitle, blurb);
+  /*
+   * The region the segment is being walked through, above the step chain.
+   *
+   * A heading rather than a badge on every node, because the locale is a
+   * property of the *whole* route: repeating it on each card would be printing
+   * one fact five times, and the phone pass spent a stage reclaiming vertical
+   * space. Its four types are here for the same reason they are on the select
+   * screen — they are what the region actually means for what you will meet.
+   */
+  const region = el('p', 'map__region');
+  heading.append(title, subtitle, blurb, region);
 
   const chain = el('ol', 'chain');
   const party = el('div', 'party');
@@ -181,10 +192,19 @@ export function createRunMap(): RunMap {
         // how the fight is *approached* — a solo Pokemon against three has to
         // budget PP — so hiding it would hide the decision rather than create one.
         document.createTextNode(
-          ` · ${team} Pokemon · ${segment.steps.length} steps before the gym`,
+          ` · ${team} Pokemon · ${stepsOf(state).length} steps before the gym`,
         ),
       );
       blurb.textContent = gym.blurb;
+
+      const locale = localeOf(state);
+      region.hidden = !locale;
+      if (locale) {
+        const definition = localeById(locale);
+        const label = el('span', 'map__region-name');
+        label.textContent = definition.name;
+        region.replaceChildren(label, ...definition.types.map(typeChip));
+      }
 
       chain.replaceChildren(...renderChain(state, segment, onChoose));
       scrollToCurrentStep(chain);
@@ -239,6 +259,8 @@ function renderChain(
   segment: Segment,
   onChoose: (index: number) => void,
 ): HTMLElement[] {
+  // The route the player committed to, which is empty until they pick a locale.
+  const steps = stepsOf(state);
   // Only this segment's visits. History is the whole run now, so filtering by
   // segment is what keeps step 1 of segment 4 from reading step 1 of segment 1's
   // result — the bug the Stage 1 version would have had the moment there were
@@ -247,7 +269,7 @@ function renderChain(
     (visit) => visit.segment === state.currentSegment && visit.node.kind !== 'gym',
   );
 
-  const rows = segment.steps.map((step) => {
+  const rows = steps.map((step) => {
     const done = visits[step.index];
     if (done) return renderStep(step.index, [done.node], 'done', segment.index, done);
     if (step.index === state.position && !state.outcome) {
@@ -259,8 +281,8 @@ function renderChain(
   const gymVisit = state.history.find(
     (visit) => visit.segment === state.currentSegment && visit.node.kind === 'gym',
   );
-  const gymPhase = gymVisit ? 'done' : state.position >= segment.steps.length ? 'current' : 'upcoming';
-  rows.push(renderStep(segment.steps.length, [segment.gym], gymPhase, segment.index, gymVisit));
+  const gymPhase = gymVisit ? 'done' : state.position >= steps.length ? 'current' : 'upcoming';
+  rows.push(renderStep(steps.length, [segment.gym], gymPhase, segment.index, gymVisit));
   return rows;
 }
 

@@ -18,7 +18,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { isBattleKind } from '../src/core/economy';
-import { generateSegment, generateStarterOptions, nodesOf } from '../src/core/encounters';
+import { generateSegment, generateStarterOptions, nodesOf,
+  routeStepsOf,
+} from '../src/core/encounters';
 import { generateTrainerTeam, generateWildTeam } from '../src/core/randomizer';
 import { createRng, RNG_STREAMS } from '../src/core/rng';
 import { createRun } from '../src/core/run';
@@ -121,7 +123,7 @@ describe('tier stream isolation', () => {
      */
     const shapeOf = (tuning: typeof DEFAULT_TUNING): unknown =>
       createRun('TIER-RETUNE', tuning).segments.map((segment) => ({
-        steps: segment.steps.map((step) => step.options.map((option) => `${option.id}:${option.kind}`)),
+        steps: routeStepsOf(segment).map((step) => step.options.map((option) => `${option.id}:${option.kind}`)),
       }));
 
     const shipped = shapeOf(DEFAULT_TUNING);
@@ -157,7 +159,16 @@ describe('tier stream isolation', () => {
       const rng = createRng('TIER-REWARDS');
       generateStarterOptions(rng, tuning);
       for (let index = 0; index < SEGMENT_COUNT; index++) generateSegment(index, rng, tuning);
-      return { map: rng.map.draws, randomizer: rng.randomizer.draws, battle: rng.battle.draws, rewards: rng.rewards.draws };
+      // `totalDraws` rather than `draws`: since Stage 4.6a every draw here
+      // lands on a keyed sub-stream, so the unkeyed counter reads zero on all
+      // four and the three "did not move" assertions below would pass for the
+      // wrong reason.
+      return {
+        map: rng.map.totalDraws,
+        randomizer: rng.randomizer.totalDraws,
+        battle: rng.battle.totalDraws,
+        rewards: rng.rewards.totalDraws,
+      };
     };
 
     /*
@@ -198,7 +209,7 @@ describe('tier scaling is monotonic', () => {
     let total = 0;
     for (let seed = 0; seed < seeds; seed++) {
       const rng = createRng(`POWER-${segment}-${seed}`);
-      const team = kind === 'wild' ? generateWildTeam(segment, tier, rng) : generateTrainerTeam(segment, tier, rng);
+      const team = kind === 'wild' ? generateWildTeam(segment, tier, rng.randomizer) : generateTrainerTeam(segment, tier, rng.randomizer);
       total += encounterPower(team);
     }
     return total / seeds;
@@ -303,7 +314,7 @@ describe('tier tuning', () => {
     let repeats = 0;
     for (let seed = 0; seed < 60; seed++) {
       for (const segment of createRun(`SPREAD-OFF-${seed}`, flat).segments) {
-        for (const step of segment.steps) {
+        for (const step of routeStepsOf(segment)) {
           const tiers = step.options.map((option) => option.tier).filter((tier) => tier !== null);
           if (tiers.length > 1 && new Set(tiers).size < tiers.length) repeats++;
         }

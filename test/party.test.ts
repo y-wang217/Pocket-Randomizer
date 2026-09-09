@@ -410,7 +410,7 @@ describe('a fainted member does not leave the party', () => {
   it('keeps the slot and revives into it', () => {
     const before = { ...chooseStarter(createRun('FAINT'), 0), party: partyOf(2) };
     const dead = before.party.map((m, i) => (i === 0 ? { ...m, hp: 0, fainted: true } : m));
-    const node = before.segments[0]!.steps[0]!.options[0]!;
+    const node = before.segments[0]!.routes[0]!.steps[0]!.options[0]!;
 
     const after = resolveNode(before, {
       node,
@@ -496,30 +496,47 @@ describe('acquisition draws stay on the rewards stream', () => {
     generateStarterOptions(rng, tuning);
     for (let index = 0; index < SEGMENTS_PER_RUN; index++) generateSegment(index, rng, tuning);
     return {
-      map: rng.map.draws,
-      randomizer: rng.randomizer.draws,
-      battle: rng.battle.draws,
-      rewards: rng.rewards.draws,
+      // Sub-stream totals: since 4.6a nothing draws off the unkeyed sequence.
+      map: rng.map.totalDraws,
+      randomizer: rng.randomizer.totalDraws,
+      battle: rng.battle.totalDraws,
+      rewards: rng.rewards.totalDraws,
     };
   }
 
-  it('rolls exactly one acquisition check per wild node, offer or no offer', () => {
-    // Counted rather than asserted indirectly: a check that only rolled when it
-    // might succeed would make the draw count depend on the tier table, and
-    // every seed's later reward rolls would shift when that table moved.
+  it('offers a capture at every wild node, and spends no draw doing it', () => {
+    /*
+     * **The Stage 4.6a inversion.** This test used to assert the opposite
+     * property — exactly one *roll* per wild node, whether or not the offer
+     * appeared — because the rate was keyed to tier and a check that only
+     * rolled when it might succeed would have made the draw count depend on the
+     * tier table.
+     *
+     * There is no rate now. A capture roll on a seeded run is a punch with no
+     * counterplay, so capture is guaranteed and the cost lives where the player
+     * can see it: the wild encounter occupies one of the segment's limited
+     * steps. What is left to assert is that the offer is universal and free.
+     */
     const rng = createRng('ACQ-COUNT');
     generateStarterOptions(rng, DEFAULT_TUNING);
-    const before = rng.rewards.draws;
     const segment = generateSegment(0, rng, DEFAULT_TUNING);
-    const after = rng.rewards.draws;
 
     const wilds = nodesOf(segment).filter((node) => node.kind === 'wild');
-    const offered = wilds.filter((node) => node.acquisition).length;
-
     expect(wilds.length).toBeGreaterThan(0);
-    // Some but not all: a rate of 0 or 1 would make the assertion above vacuous.
-    expect(offered).toBeLessThanOrEqual(wilds.length);
-    expect(after - before).toBeGreaterThanOrEqual(wilds.length);
+    for (const node of wilds) {
+      expect(node.acquisition, `${node.id} offered no capture`).not.toBeNull();
+    }
+
+    // And turning captures off is now free of side effects, which it could not
+    // be while a roll existed to skip: the two maps are identical apart from
+    // the offers themselves.
+    const shape = (tuning: typeof DEFAULT_TUNING): string =>
+      JSON.stringify(
+        createRun('ACQ-COUNT', tuning).segments.map((seg) =>
+          nodesOf(seg).map((node) => [node.id, node.kind, node.tier, node.encounter?.team ?? null]),
+        ),
+      );
+    expect(shape(withTuning({ allowEncounterAcquisitions: false }))).toEqual(shape(DEFAULT_TUNING));
   });
 
   it('reproduces the identical map, encounters and battles for a fixed seed, twice', () => {
@@ -539,19 +556,30 @@ describe('acquisition draws stay on the rewards stream', () => {
     expect(offers().length).toBeGreaterThan(0);
   });
 
-  it('offers the species the node actually fields, at the join level', () => {
-    // "The defeated species", literally: the offer is the node's own lead
-    // re-levelled, not a fresh roll. A second generation path would be a second
-    // set of rules for what a wild Pokemon is.
+  it('offers the species the node actually fields, exactly as it was fought', () => {
+    /*
+     * "The defeated species", literally: the offer is the node's own lead, not
+     * a fresh roll. A second generation path would be a second set of rules for
+     * what a wild Pokemon is, and the first divergence between them would be
+     * invisible.
+     *
+     * **At its own level from Stage 4.6a**, where it used to arrive re-levelled
+     * down to `joinLevelFor(segment)`. The discount was the price of a free
+     * Pokemon; the price is now the step the encounter occupies and the party
+     * slot it takes, and a caught Pokemon weaker than the one just beaten is a
+     * readout the player cannot square with what they watched.
+     */
     const state = createRun('ACQ-SAME');
     let checked = 0;
-    for (const [index, segment] of state.segments.entries()) {
+    for (const segment of state.segments) {
       for (const node of nodesOf(segment)) {
         if (!node.acquisition) continue;
+        const lead = node.encounter?.team[0];
         checked++;
-        expect(node.acquisition.spec.species).toBe(node.encounter?.team[0]?.species);
-        expect(node.acquisition.spec.ability).toBe(node.encounter?.team[0]?.ability);
-        expect(node.acquisition.spec.level).toBe(joinLevelFor(index));
+        expect(node.acquisition.spec.species).toBe(lead?.species);
+        expect(node.acquisition.spec.ability).toBe(lead?.ability);
+        expect(node.acquisition.spec.moves).toEqual(lead?.moves);
+        expect(node.acquisition.spec.level).toBe(lead?.level);
       }
     }
     expect(checked).toBeGreaterThan(0);
@@ -650,9 +678,11 @@ describe('a full eight-gym run, headless', () => {
    *
    * If a balance pass moves the curve this may stop winning. That is not a
    * regression in this test — rescan for a seed that does, or the victory path
-   * quietly stops being covered.
+   * quietly stops being covered. `npx vite-node scripts/scan-seed.ts win` is
+   * the rescan; Stage 4.6a needed it twice, once for the keyed streams and
+   * once for locales.
    */
-  const WINNING_SEED = 'WIN-3';
+  const WINNING_SEED = 'WIN-146';
 
   it('completes eight gyms while switching, acquiring, releasing and targeting', async () => {
     expect(typeof globalThis.document).toBe('undefined');

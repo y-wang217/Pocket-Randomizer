@@ -9,66 +9,56 @@
  * costs a few hundred microseconds and buys seed compatibility that survives
  * three more stages.
  *
- * The passes, in order, are the contract. Reordering them changes what every
- * recorded seed produces, so they are written down in docs/generation.md as
- * well as here:
+ * ## What Stage 4.6a changed about the contract
  *
- *   1. `map` stream: segment length, then per step the option count and the
- *      node kinds, then the rest-availability fix-up, then per step the tiers
- *      of that step's battle nodes.
- *   2. `randomizer` stream: encounter contents — species, level, ability and
- *      moves — for every node in index order, including options the player will
- *      never take.
- *   3. `battle` stream: one sim seed per battle node, in the same index order.
- *   4. `rewards` stream: per node in index order — the three-card offer for a
- *      node with a tier, the stock for a shop, the resolved outcomes for an
- *      event. One sweep, so all three share one draw order.
- *   5. `rewards` stream again: one roll per wild node, in index order, for
- *      whether it offers its species. Always exactly one roll per wild node,
- *      whether or not the offer appears — a check that only rolled when it
- *      might succeed would make the draw count depend on the tier table.
- *   6. `rewards` stream once more: the segment's gym clear offer. Stage 4.5.2.
+ * Through Stage 4.5.2 the passes below were a **global draw order**: five
+ * sweeps over the map, each consuming one long sequence, and the order between
+ * them was the compatibility contract. That is why every stage appended a pass
+ * rather than editing one — "the list only ever grows downward" was the whole
+ * discipline, and it was load-bearing.
  *
- * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
- * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
- * drawn for a node that then became a rest would be a draw stranded in the
- * middle of the sequence. Tier belongs to `map` and not to `randomizer` because
- * it is part of the shape of the choice the player is offered — the map screen
- * shows it before anything about the encounter is known — and because the
- * randomizer must stay free to add draws without moving it.
+ * Keyed sub-streams (`core/rng.ts`) retire that rule. Every draw here now names
+ * a **key** — a node, a segment, a purpose — and two keys are independent
+ * sequences. So:
  *
- * Pass 2 moved from the `map` stream to the `randomizer` stream in Stage 2, and
- * that is the change the whole stage rests on. A randomizer adds draws
- * constantly — a fourth move slot, a tier modifier, a bigger gym team — and
- * every one of them would otherwise have shifted the *shape* of every map
- * generated after it. Now the shape is fixed by `map` and the contents by
- * `randomizer`, and neither can move the other.
+ *   - The passes are still passes, because they are readable that way and
+ *     because pass 2 needs pass 1's kinds. They are no longer a draw order.
+ *   - A new draw under a new key moves nothing at all. A new draw inside an
+ *     existing key moves only that key's own later draws — one node's cards,
+ *     not every node's.
+ *   - Reordering the passes is now a refactor rather than a break, which is
+ *     precisely what makes 4.6b and 4.6c cheap. `core/streamKeys.ts` holds the
+ *     namespace and `gymrun-seeds-and-mappability.md` holds the argument.
  *
- * Pass 3 is separate again so that changing what a node *contains* cannot shift
- * the damage rolls of a node earlier in the map.
+ * What has *not* changed is eagerness. Contents are still generated for every
+ * option the player will never take, because the alternative makes the number
+ * of draws a function of the path walked — and while keying means that can no
+ * longer corrupt a *different* node, a lazily generated node would still be a
+ * node whose contents depend on when it was visited.
  *
- * Pass 4 is Stage 3's, and it is at map generation for the reason the whole
- * document exists. Drawing an offer when the node is *completed* would make the
- * roll depend on how the battle went — how many turns it ran, how many damage
- * rolls the sim consumed — and the reward a seed pays out would quietly become
- * a function of play.
+ * ## The passes
  *
- * Pass 5 is Stage 4's: one roll per wild node for whether it offers the species
- * it just fielded. Same rule as pass 4 and the same stream, and a *separate
- * sweep* rather than a branch inside it — because appending is the only edit to
- * this list that cannot move what came before it. Folding the roll into pass 4
- * would produce identical output today and couple the two draw orders forever,
- * so the next change to reward offers would silently reshuffle every
- * acquisition in every recorded seed.
+ *   1. `map`, keyed per segment: segment length, then per step the option count
+ *      and the node kinds, then the rest-availability fix-up, then per step the
+ *      tiers of that step's battle nodes.
+ *   2. `randomizer`, keyed per node: encounter contents — species, level,
+ *      ability and moves — for every node, including options never taken.
+ *   3. `battle`, keyed per node: one sim seed per battle node.
+ *   4. `rewards`, keyed per node and purpose: the three-card offer for a node
+ *      with a tier, the stock for a shop, the resolved outcomes for an event.
+ *   5. `rewards`, keyed per node: whether a won wild node offers its species.
+ *   6. `rewards`, keyed per segment: the gym clear offer.
  *
- * Pass 6 is Stage 4.5.2's, and it is a sixth sweep for the same reason pass 5
- * is a fifth. A gym carries no tier, so pass 4's `if (node.tier)` has always
- * skipped it; the tempting fix was to relax that condition in place, which
- * would have inserted a draw into the *middle* of the rewards stream and
- * changed every offer at every node after the first gym in every recorded seed.
+ * Pass 1's internal order still matters, because it is one key: the tier draw
+ * comes *after* the rest fix-up, since the fix-up rewrites node kinds and a
+ * tier drawn for a node that then became a rest would be a draw stranded in the
+ * middle of that key's sequence.
  *
- * Each new pass goes on the end for exactly that reason. That is the whole
- * discipline: the list only ever grows downward.
+ * Pass 4 is at map generation for the reason the whole document exists.
+ * Drawing an offer when the node is *completed* would make the roll depend on
+ * how the battle went — how many turns it ran, how many damage rolls the sim
+ * consumed — and the reward a seed pays out would quietly become a function of
+ * play. Keying does not touch that argument; it is about *when*, not *where*.
  */
 import {
   generateGymTeam,
@@ -81,8 +71,15 @@ import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
+import { gymRewardKey, localeOfferKey, nodeKey, nodeRewardKey, routeKey, STARTERS_KEY } from './streamKeys';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
+import {
+  localeOfferWeight,
+  LOCALE_IDS,
+  type LocaleId,
+  type LocaleOfferContext,
+} from '../data/locales';
 import { starterLevel } from '../data/scaling';
 import { tierWeightsFor, type ChoosableKind, type NodeKind, type Range, type Tuning } from '../data/tuning';
 
@@ -174,6 +171,27 @@ export interface Step {
   options: NodeSpec[];
 }
 
+/**
+ * One locale's road through a segment.
+ *
+ * **Stage 4.6a, and it is the reason `Segment.steps` is gone.** A segment offers
+ * two or three locales and the player commits to one; each has its own route,
+ * generated at run creation like everything else. The unpicked routes stay in
+ * the map data and are never walked.
+ *
+ * Generating all of them up front rather than deriving the picked one at
+ * selection time is the eager rule (docs/generation.md §1) applied to a new
+ * decision. With keyed sub-streams the two are *identical* in output — a route
+ * is a function of `(seed, 'map', 'seg<i>/<locale>/route')` and of nothing else
+ * — so the choice is made on the other ground: eager is what the codebase
+ * already does, and a lazy path would be a second way for content to exist,
+ * differing from the first only in cases nobody would think to test.
+ */
+export interface LocaleRoute {
+  locale: LocaleId;
+  steps: Step[];
+}
+
 export interface Segment {
   index: number;
   /** The gym that caps this segment, for display. */
@@ -181,14 +199,50 @@ export interface Segment {
   type: string;
   /** The full leader record, so a screen can show the blurb without a lookup. */
   gymDefinition: GymDefinition;
-  steps: Step[];
+  /**
+   * The locales this segment offers, in offer order. Two or three.
+   *
+   * The player's answer is an **index into this list**, recorded in the run log
+   * — the same rule a reward decision follows, and for the same reason: the
+   * offer is reconstructible from the seed, and a log naming `'marsh'` would
+   * keep replaying after a table edit and walk a route the run never offered.
+   */
+  localeOffer: LocaleId[];
+  /** One route per offered locale, aligned to `localeOffer`. */
+  routes: LocaleRoute[];
   /** Not an option: reaching the end of the steps means fighting this. */
   gym: NodeSpec;
 }
 
-/** Every node in a segment, in the order generation visited them. */
+/** The route for one offered locale, by offer index. */
+export function routeAt(segment: Segment, offerIndex: number): LocaleRoute {
+  const route = segment.routes[offerIndex];
+  if (!route) throw new RangeError(`Segment ${segment.index} has no route ${offerIndex}`);
+  return route;
+}
+
+/**
+ * Every step of every offered route, flattened.
+ *
+ * What a *property* of a segment is asserted over: "at least one rest is
+ * reachable" has to hold on each route, not on one of them, because the player
+ * picks the route and a guarantee that held only on the road not taken is not a
+ * guarantee. Callers that care which route a step belongs to walk
+ * `segment.routes` instead.
+ */
+export function routeStepsOf(segment: Segment | undefined): Step[] {
+  return segment ? segment.routes.flatMap((route) => route.steps) : [];
+}
+
+/**
+ * Every node in a segment, across **every** offered route, plus the gym.
+ *
+ * Generation's view rather than a player's: the passes below fill in contents,
+ * sim seeds and payouts for routes the run will discard, because which one is
+ * discarded is a decision and decisions do not draw.
+ */
 export function nodesOf(segment: Segment): NodeSpec[] {
-  return [...segment.steps.flatMap((step) => step.options), segment.gym];
+  return [...segment.routes.flatMap((route) => route.steps.flatMap((step) => step.options)), segment.gym];
 }
 
 // ---------------------------------------------------------------------------
@@ -288,50 +342,108 @@ const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
  * about reacting to one.
  */
 export function generateStarterOptions(rng: Rng, tuning: Tuning, unlocked?: readonly string[]): PokemonSpec[] {
-  return generateStarters(tuning.starterOptionCount, starterLevel(), rng, unlocked);
+  return generateStarters(tuning.starterOptionCount, starterLevel(), rng.randomizer.at(STARTERS_KEY), unlocked);
 }
 
 // ---------------------------------------------------------------------------
 // Segments
 // ---------------------------------------------------------------------------
 
-/**
- * Generate one segment.
- *
- * Stage 1 called this once with `index: 0`; Stage 2 calls it eight times, and
- * the signature did not change. That was the whole reason it took an index it
- * did not yet need.
- */
-export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segment {
-  const gymDef = gymForSegment(index);
+/** Segment 0's context: nothing offered before, nothing seen. */
+const EMPTY_OFFER_CONTEXT: LocaleOfferContext = { previous: [], seen: [] };
 
-  // --- pass 1: shape, from the `map` stream -------------------------------
-  const stepCount = drawRange(rng.map, tuning.stepsPerSegment);
+/**
+ * One locale's route: pass 1 (shape) and pass 2 (contents), on that locale's
+ * own key.
+ *
+ * Keyed by segment **and locale**, which is what makes generating every offered
+ * route as cheap in seed terms as generating one. The road through the Cave is
+ * the same road whether the Marsh was offered beside it or not, so the offer
+ * count can change without every route in the run changing with it.
+ */
+function buildRoute(segment: number, locale: LocaleId, rng: Rng, tuning: Tuning): LocaleRoute {
+  // --- pass 1: shape, from `map`, keyed to this route ----------------------
+  const shapeStream = rng.map.at(routeKey(segment, locale));
+  const stepCount = drawRange(shapeStream, tuning.stepsPerSegment);
   const shape: ChoosableKind[][] = [];
 
   for (let step = 0; step < stepCount; step++) {
     const allowed = CHOOSABLE_KINDS.filter((kind) => kind !== 'rest' || step >= tuning.restEarliestStep);
-    const wanted = drawRange(rng.map, tuning.nodeChoiceCount);
+    const wanted = drawRange(shapeStream, tuning.nodeChoiceCount);
     const count = tuning.distinctKindsPerStep ? Math.min(wanted, allowed.length) : wanted;
     shape.push(
-      sampleWeighted(rng.map, allowed, (kind) => tuning.nodeWeights[kind], count, tuning.distinctKindsPerStep),
+      sampleWeighted(shapeStream, allowed, (kind) => tuning.nodeWeights[kind], count, tuning.distinctKindsPerStep),
     );
   }
 
-  ensureRests(shape, rng.map, tuning);
+  enforceComposition(shape, shapeStream, tuning);
 
   // Tiers, still pass 1 and still the `map` stream, but only once the kinds are
-  // final. See the header: the rest fix-up rewrites kinds, so a tier drawn
-  // before it could belong to a node that is no longer a fight.
-  const tiers = shape.map((kinds) => assignTiers(kinds, index, rng.map, tuning));
+  // final. See the header: the fix-ups rewrite kinds, so a tier drawn before
+  // them could belong to a node that is no longer a fight.
+  const tiers = shape.map((kinds) => assignTiers(kinds, segment, shapeStream, tuning));
 
-  // --- pass 2: contents, from the `randomizer` stream ---------------------
+  // --- pass 2: contents, from `randomizer`, keyed per node -----------------
   const steps: Step[] = shape.map((kinds, step) => ({
     index: step,
     options: kinds.map((kind, option) =>
-      buildNode(`s${index}-${step}-${option}`, kind, tiers[step]?.[option] ?? null, index, rng),
+      buildNode(
+        `s${segment}-${locale}-${step}-${option}`,
+        kind,
+        tiers[step]?.[option] ?? null,
+        segment,
+        locale,
+        rng,
+      ),
     ),
   }));
+
+  return { locale, steps };
+}
+
+/**
+ * Generate one segment: its locale offer, a route through each offered locale,
+ * and the gym that caps all of them.
+ *
+ * Stage 1 called this once with `index: 0`; Stage 2 calls it eight times, and
+ * the signature did not change. Stage 4.6a is the first change to it, and it is
+ * the one the "no locale twice in a row" rule forces: the offer depends on what
+ * the previous segment offered and on what the run has offered at all, so the
+ * caller has to hand that over. `createRun` threads it; a test calling this
+ * directly gets the empty context, which is segment 0's.
+ */
+export function generateSegment(
+  index: number,
+  rng: Rng,
+  tuning: Tuning,
+  context: LocaleOfferContext = EMPTY_OFFER_CONTEXT,
+): Segment {
+  const gymDef = gymForSegment(index);
+
+  // --- pass 0: the locale offer, from `map`, keyed to this segment ---------
+  /*
+   * A pre-step, not a node. It consumes no step from the node budget, which is
+   * what keeps the 4.5.1 balance table comparable: a segment is the same length
+   * it was, with a decision in front of it.
+   *
+   * The weighting rule is `data/locales.ts`'s, not this function's. All the
+   * generator knows is "sample without replacement by weight" — the same
+   * `sampleWeighted` that draws kinds and tiers, so a zero weight locks a
+   * locale out exactly the way a zero tier weight locks out `elite`.
+   */
+  const offerStream = rng.map.at(localeOfferKey(index));
+  const wantedLocales = drawRange(offerStream, tuning.localeOfferCount);
+  const localeOffer = sampleWeighted(
+    offerStream,
+    LOCALE_IDS,
+    (locale) => localeOfferWeight(locale, context),
+    Math.min(wantedLocales, LOCALE_IDS.length),
+    true,
+  );
+  if (localeOffer.length === 0) throw new RangeError(`Segment ${index} was offered no locales`);
+
+  // --- passes 1 and 2: one route per offered locale ------------------------
+  const routes: LocaleRoute[] = localeOffer.map((locale) => buildRoute(index, locale, rng, tuning));
 
   const gym: NodeSpec = {
     id: `s${index}-gym`,
@@ -339,7 +451,7 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     tier: null,
     label: `${gymDef.leader}'s Gym`,
     encounter: {
-      team: generateGymTeam(gymDef, index, rng),
+      team: generateGymTeam(gymDef, index, rng.randomizer.at(nodeKey(`s${index}-gym`))),
       opponent: `${gymDef.leader} (${gymDef.type})`,
       // Filled by pass 3.
       simSeed: PLACEHOLDER_SEED,
@@ -355,13 +467,14 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     leader: gymDef.leader,
     type: gymDef.type,
     gymDefinition: gymDef,
-    steps,
+    localeOffer,
+    routes,
     gym,
   };
 
   // --- pass 3: sim seeds, from the `battle` stream -------------------------
   for (const node of nodesOf(segment)) {
-    if (node.encounter) node.encounter.simSeed = rng.battle.nextSimSeed();
+    if (node.encounter) node.encounter.simSeed = rng.battle.at(nodeKey(node.id)).nextSimSeed();
   }
 
   // --- pass 4: reward offers, from the `rewards` stream --------------------
@@ -369,27 +482,38 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
   // are consumed in two independent index-ordered sweeps. Interleaving them
   // would be identical today and would couple their draw orders forever.
   for (const node of nodesOf(segment)) {
-    if (node.tier) node.reward = generateRewardOffer(node.id, node.tier, index, rng, tuning);
-    else if (node.kind === 'shop') node.shop = generateShopStock(node.id, index, rng, tuning);
-    else if (node.kind === 'event') node.event = generateEvent(node.id, rng, tuning);
+    if (node.tier) {
+      node.reward = generateRewardOffer(
+        node.id,
+        node.tier,
+        index,
+        rng.rewards.at(nodeRewardKey(node.id, 'offer')),
+        tuning,
+      );
+    } else if (node.kind === 'shop') {
+      node.shop = generateShopStock(node.id, index, rng.rewards.at(nodeRewardKey(node.id, 'shop')), tuning);
+    } else if (node.kind === 'event') {
+      node.event = generateEvent(node.id, rng.rewards.at(nodeRewardKey(node.id, 'event')), tuning);
+    }
   }
 
-  // --- pass 5: encounter acquisitions, also from the `rewards` stream -------
+  // --- pass 5: encounter captures, no stream at all ------------------------
   /*
-   * A fifth sweep rather than a branch inside pass 4, and appended rather than
-   * interleaved, for the reason the whole contract exists: appending a pass
-   * cannot move the four that came before it. Folding the roll into pass 4
-   * would be identical output today and would couple the two draw orders
-   * forever — the next change to reward offers would silently reshuffle every
-   * acquisition in every recorded seed.
+   * **Stage 4.6a: every wild node offers its Pokemon, and the offer is not
+   * drawn.** This was a roll per wild node off the `rewards` stream at a rate
+   * keyed to tier; it is now a fact about the node, so the pass consumes
+   * nothing and could in principle be folded into `buildNode`.
    *
-   * Wild nodes only: a trainer does not hand over their Pokemon, and a gym
-   * leader certainly does not.
+   * It stays a pass because it is still a *payout* — it belongs beside the
+   * other four things a node pays, where anyone changing what a node offers
+   * will find it — and because keeping it here means the day a capture needs a
+   * draw again, the key already exists (`nodeRewardKey(id, 'capture')`) and
+   * nothing else moves.
    */
   for (const node of nodesOf(segment)) {
     const lead = node.encounter?.team[0];
-    if (node.kind !== 'wild' || !node.tier || !lead) continue;
-    node.acquisition = generateEncounterAcquisition(node.id, lead, node.tier, index, rng.rewards, tuning);
+    if (node.kind !== 'wild' || !lead) continue;
+    node.acquisition = generateEncounterAcquisition(node.id, lead, tuning);
   }
 
   // --- pass 6: the gym clear offer, also from the `rewards` stream ----------
@@ -403,7 +527,12 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
    * A gym has no tier, so pass 4's `if (node.tier)` skips it; that is why this
    * is a pass rather than a condition relaxed there.
    */
-  segment.gym.reward = generateGymRewardOffer(segment.gym.id, index, rng, tuning);
+  segment.gym.reward = generateGymRewardOffer(
+    segment.gym.id,
+    index,
+    rng.rewards.at(gymRewardKey(index)),
+    tuning,
+  );
 
   return segment;
 }
@@ -412,31 +541,96 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
 const PLACEHOLDER_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
 
 /**
- * Guarantee the segment offers somewhere to heal.
+ * The three composition guarantees, applied to a drawn shape in a fixed order.
  *
- * Weighted draws can produce a segment with no rest in it at all, and eight
- * fights with no way to spend a turn recovering is not a hard run, it is a run
- * whose seed decided the outcome. This converts the last option of a
- * deterministically chosen eligible step, which is why it runs in pass 1:
- * nothing has been drawn for those nodes' contents yet.
+ * **Stage 4.6a, and it replaces `ensureRests` rather than sitting beside it.**
+ * Three fix-ups that all rewrite kinds cannot be three independent functions:
+ * the rest fix-up used to overwrite a step's last option unconditionally, which
+ * with an event guarantee in play would have satisfied one rule by breaking
+ * another. So there is one pass, one order, and a set of **claimed** steps that
+ * a later fix-up may not touch.
+ *
+ * The order is deliberate and runs from least placeable to most:
+ *
+ *   1. **The wild step**, which takes a whole step, so it needs the most room.
+ *   2. **The event**, which may go anywhere.
+ *   3. **The rest**, which may not go before `restEarliestStep` but is otherwise
+ *      free, and which is last because it is the guarantee the run can most
+ *      easily do without for one segment.
+ *
+ * It runs in pass 1, before any contents are drawn, which is what lets it
+ * rewrite kinds at all: at this point nothing has been drawn for these nodes, so
+ * changing what they are strands no draw.
  */
-function ensureRests(
-  shape: ChoosableKind[][],
-  stream: RngStream,
-  tuning: Tuning,
-): void {
-  const hasRest = (kinds: readonly ChoosableKind[]): boolean => kinds.includes('rest');
-  let short = tuning.minRestSteps - shape.filter(hasRest).length;
+function enforceComposition(shape: ChoosableKind[][], stream: RngStream, tuning: Tuning): void {
+  const claimed = new Set<number>();
 
-  while (short > 0) {
+  /*
+   * The wild step: every option a wild encounter, so the segment's one
+   * guaranteed wild fight is reachable whatever the player picks.
+   *
+   * Its width is `tuning.wildStepOptionCount` rather than the width that step
+   * happened to draw, and rather than the number of tiers the segment can
+   * offer. The second of those was the first version and it was wrong in a way
+   * `test/tiers.test.ts` caught immediately: deriving the width from the tier
+   * weights makes `tierBands` — the knob a tuning pass reaches for first —
+   * reshape every map it touches, and the whole point of that table is that it
+   * moves risk and nothing else.
+   */
+  for (let placed = 0; placed < tuning.wildStepsPerSegment; placed++) {
+    const eligible = shape.map((_, step) => step).filter((step) => !claimed.has(step));
+    if (eligible.length === 0) break;
+    const step = eligible[stream.nextInt(eligible.length)];
+    if (step === undefined) break;
+    const width = Math.max(1, tuning.wildStepOptionCount);
+    shape[step] = Array.from({ length: width }, () => 'wild' as ChoosableKind);
+    claimed.add(step);
+  }
+
+  ensureKind(shape, 'event', tuning.minEventSteps, stream, claimed, 0);
+  ensureKind(shape, 'rest', tuning.minRestSteps, stream, claimed, tuning.restEarliestStep);
+}
+
+/**
+ * Guarantee that at least `minimum` steps offer `kind`, and claim the steps
+ * that provide it.
+ *
+ * Claiming covers steps that already had the kind as well as steps converted to
+ * get it, and that is the half worth writing down: a segment that naturally
+ * rolled an event and then had its rest fix-up overwrite that same option would
+ * satisfy both counters and ship a segment with no event in it. The claim is
+ * what makes the guarantees compose rather than race.
+ *
+ * Converts the **last** option of a deterministically chosen eligible step, and
+ * draws one value per conversion. A weighted re-roll here would make the number
+ * of draws depend on what was drawn, which is the dependency the whole eager
+ * contract is written to avoid.
+ */
+function ensureKind(
+  shape: ChoosableKind[][],
+  kind: ChoosableKind,
+  minimum: number,
+  stream: RngStream,
+  claimed: Set<number>,
+  earliestStep: number,
+): void {
+  let have = 0;
+  shape.forEach((kinds, step) => {
+    if (have >= minimum || claimed.has(step) || !kinds.includes(kind)) return;
+    claimed.add(step);
+    have++;
+  });
+
+  while (have < minimum) {
     const eligible = shape
       .map((kinds, step) => ({ kinds, step }))
-      .filter(({ kinds, step }) => step >= tuning.restEarliestStep && !hasRest(kinds) && kinds.length > 0);
+      .filter(({ kinds, step }) => step >= earliestStep && !claimed.has(step) && kinds.length > 0);
     if (eligible.length === 0) return;
     const target = eligible[stream.nextInt(eligible.length)];
     if (!target) return;
-    target.kinds[target.kinds.length - 1] = 'rest';
-    short--;
+    target.kinds[target.kinds.length - 1] = kind;
+    claimed.add(target.step);
+    have++;
   }
 }
 
@@ -501,6 +695,7 @@ function buildNode(
   kind: ChoosableKind,
   tier: Tier | null,
   segment: number,
+  locale: LocaleId,
   rng: Rng,
 ): NodeSpec {
   if (kind === 'rest' || kind === 'shop' || kind === 'event') {
@@ -521,7 +716,18 @@ function buildNode(
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
 
-  const team = kind === 'wild' ? generateWildTeam(segment, tier, rng) : generateTrainerTeam(segment, tier, rng);
+  const stream = rng.randomizer.at(nodeKey(id));
+  /*
+   * The locale reaches exactly one of these two calls, and that is the whole of
+   * what a locale decides. A trainer's team, a shop's shelf and an event's
+   * outcomes are locale agnostic: a locale is where you are, not how hard it is,
+   * and a second dial on difficulty is a dial the balance report cannot
+   * attribute.
+   */
+  const team =
+    kind === 'wild'
+      ? generateWildTeam(segment, tier, stream, locale)
+      : generateTrainerTeam(segment, tier, stream);
   const lead = team[0];
   if (!lead) throw new Error(`Generated an empty ${kind} team at segment ${segment}`);
 

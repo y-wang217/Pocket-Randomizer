@@ -859,6 +859,25 @@ body {
 
 .screen[hidden] { display: none; }
 
+/*
+ * **The `hidden` trap, and it has bitten twice.**
+ *
+ * `hidden` is a UA style — `display: none` at the lowest specificity — so any
+ * class rule that sets `display` overrides it and the element stays on screen.
+ * Every container in this stylesheet that is toggled from JS *and* carries a
+ * `display` of its own therefore needs a rule of its own here.
+ *
+ * The way it surfaced: the result screen hides its reward cards on a fight the
+ * player lost, `.rewards` is `display: grid`, and the previous fight's cards
+ * stayed up underneath the defeat. Stage 4.6a made it fatal rather than ugly —
+ * the capture block renders with the cards hidden, and a smoke run clicked the
+ * stale cards forever because they were still there to click.
+ */
+.rewards[hidden],
+.result__party[hidden],
+.result__capture[hidden],
+.map__region[hidden] { display: none; }
+
 .screen__title {
   margin: 0;
   font-size: 17px;
@@ -921,6 +940,51 @@ body {
 .starter__move-name { font-size: 13px; }
 .starter__move-stats { display: inline-flex; align-items: center; gap: 6px; }
 
+/* ---------- locale select ---------- */
+
+/*
+ * Same card grammar as the starter grid, and deliberately so: both are "pick
+ * one of two or three, no take-backs", and a player who has learned one has
+ * learned the other. The card is shorter because there is less on it — a name,
+ * four types, one line — and there is less on it because a locale decides one
+ * thing.
+ */
+.screen--locale { align-items: flex-start; }
+
+.locales {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gap);
+  width: 100%;
+}
+
+.locale {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 14px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.locale:hover { border-color: var(--accent); transform: translateY(-1px); }
+.locale:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.locale__name { font-weight: 600; font-size: 16px; }
+.locale__types { display: flex; flex-wrap: wrap; gap: 4px; }
+.locale__blurb { color: var(--text-dim); font-size: 12px; }
+
+/* 44px of touch target on a phone, like every other primary control. */
+@media (max-width: 760px) {
+  .locale { min-height: 88px; }
+}
+
 /* ---------- run map ---------- */
 
 .screen--map {
@@ -935,6 +999,19 @@ body {
 
 .rail { grid-area: rail; }
 .map__heading { grid-area: heading; display: flex; flex-direction: column; gap: 2px; }
+
+/* The region this segment is being walked through, as one line above the
+   chain. One line rather than a badge per node: the locale is a property of the
+   whole route, and the phone pass spent a stage reclaiming vertical space. */
+.map__region {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.map__region-name { font-weight: 600; font-size: 13px; }
 .chain { grid-area: chain; }
 .party { grid-area: party; }
 .threats--map { grid-area: threats; }
@@ -1251,7 +1328,6 @@ body {
 }
 
 .screen--party,
-.screen--acquisition,
 .screen--target,
 .screen--result { align-items: flex-start; }
 
@@ -1291,6 +1367,30 @@ body {
 }
 
 .acquire__actions { display: flex; gap: 8px; margin-top: 18px; }
+.acquire__actions .button { min-height: 44px; }
+
+/*
+ * The capture block, inside the result screen from Stage 4.6a rather than on a
+ * screen after it. Separated by a rule rather than by a heading level, because
+ * it is a different *question* about the same node — what the fight paid is
+ * above it, what the fight left you is beside it.
+ */
+.result__capture {
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.acquire__blurb { color: var(--text-dim); font-size: 13px; margin: 4px 0 12px; }
+
+/* The coverage line: a readout, never a verdict — so no colour that says which
+   direction is better, and no arrow. Same treatment as the species card's. */
+.acquire__coverage {
+  margin: 10px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
 
 .party__member--target {
   display: block;

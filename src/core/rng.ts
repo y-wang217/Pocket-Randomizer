@@ -14,6 +14,33 @@
  * seed recorded before that change would replay differently. Independent
  * streams mean a seed's battle rolls are fixed forever regardless of what
  * later stages consume.
+ *
+ * ## Keyed sub-streams, Stage 4.6a
+ *
+ * Five named streams solved the *between systems* problem and left the *within
+ * a system* one untouched. Every map draw in a run comes off one sequence in
+ * one order, so adding a draw at segment 0 shifts every draw at segments 1
+ * through 7 — which is the failure `RANDOMIZER_VERSION` exists to announce, and
+ * announcing it three times in one stage is three retunes.
+ *
+ * So a stream now opens **sub-streams by key**: `rng.map.at('seg3/cave/route')`
+ * is a sequence of its own, seeded from the run seed, the stream name and the
+ * key together. Two consequences, and both are the point:
+ *
+ *   - A draw under one key cannot move a draw under any other, in the same
+ *     stream or a different one. Adding a *new key* is therefore free — no
+ *     recorded seed changes, no version bump.
+ *   - Generation no longer has a global draw order to preserve. What has to
+ *     hold is that a given key draws the same things in the same order, which
+ *     is a local property of one function rather than a whole-file contract.
+ *
+ * `gymrun-seeds-and-mappability.md` is the long form, including why 4.6b and
+ * 4.6c should not need a `randomizerVersion` bump between them.
+ *
+ * The separator between the stream name and the key is `#`, which appears in
+ * neither a stream name nor a normalized seed — so no `(name, key, seed)`
+ * triple can hash to the same domain string as a different one, and no key can
+ * collide with the unkeyed root sequence.
  */
 
 /**
@@ -57,7 +84,42 @@ export interface RngStream {
 /** A Pokemon Showdown PRNG seed. Matches @pkmn/sim's `PRNGSeed` shape. */
 export type SimSeed = `sodium,${string}`;
 
-export type Rng = { readonly [K in RngStreamName]: RngStream } & {
+/**
+ * A named stream, plus the sub-streams it can open.
+ *
+ * `at(key)` is the Stage 4.6a addition and the reason the whole refactor
+ * exists. Each key gets an independent sequence derived from the run seed, the
+ * stream name and the key — so a system that keys its draws by node id can add
+ * a draw to one node without moving any other node's rolls, and a stage that
+ * adds a whole new key adds it without moving anything at all.
+ *
+ * Sub-streams are **memoized per key**, so two calls with the same key return
+ * the same sequence and the second continues where the first left off. A fresh
+ * sequence per call would make the draw a function of how many times the caller
+ * happened to ask, which is the exact class of bug the keying is here to
+ * remove.
+ *
+ * The stream itself is still drawable. Nothing in generation uses the unkeyed
+ * form after 4.6a, but tests do, and `formatSeed` does — it wants one sequence
+ * off `policy` and has no meaningful key to give.
+ */
+export interface KeyedRngStream extends RngStream {
+  /** The sub-stream for `key`, created on first use and memoized after. */
+  at(key: string): RngStream;
+  /** How many distinct keys have been opened. Diagnostics and tests only. */
+  readonly keys: number;
+  /**
+   * Draws on this stream and every sub-stream it has opened.
+   *
+   * The number an isolation test wants. `draws` counts the *unkeyed* sequence
+   * alone, so after 4.6a it reads zero for a stream the whole map was generated
+   * from — a test asserting "the battle stream was not touched" would then pass
+   * for the wrong reason, which is worse than failing.
+   */
+  readonly totalDraws: number;
+}
+
+export type Rng = { readonly [K in RngStreamName]: KeyedRngStream } & {
   /** The seed string this Rng was built from. */
   readonly seed: string;
 };
@@ -106,10 +168,12 @@ function sfc32(seed: [number, number, number, number]): () => number {
   };
 }
 
-function createStream(seed: string, name: RngStreamName): RngStream {
+function createStream(domain: string): RngStream {
   // Domain-separating the stream name into the hash is what makes the streams
   // independent: `map` cannot advance `battle` no matter how much it draws.
-  const next = sfc32(cyrb128(`gymrun:${name}:${seed}`));
+  // Since 4.6a the same mechanism separates one *key* from another, which is
+  // the same guarantee one level down.
+  const next = sfc32(cyrb128(domain));
   let draws = 0;
 
   const nextUint32 = (): number => {
@@ -152,15 +216,52 @@ function createStream(seed: string, name: RngStreamName): RngStream {
   return stream;
 }
 
+/**
+ * A named stream and its keyed sub-streams.
+ *
+ * The root sequence keeps the domain string it had before 4.6a, so an unkeyed
+ * draw off `map` produces exactly what it always did. Sub-streams take a
+ * different shape entirely (`#` between name and key), which is what keeps a
+ * key from ever colliding with the root.
+ */
+function createKeyedStream(seed: string, name: RngStreamName): KeyedRngStream {
+  const root = createStream(`gymrun:${name}:${seed}`);
+  const subs = new Map<string, RngStream>();
+
+  return {
+    ...root,
+    // Spreading copies the getter's *value*, so `draws` has to be re-declared
+    // here or it would freeze at zero.
+    get draws() {
+      return root.draws;
+    },
+    get keys() {
+      return subs.size;
+    },
+    get totalDraws() {
+      let total = root.draws;
+      for (const sub of subs.values()) total += sub.draws;
+      return total;
+    },
+    at(key: string): RngStream {
+      const existing = subs.get(key);
+      if (existing) return existing;
+      const created = createStream(`gymrun:${name}#${key}:${seed}`);
+      subs.set(key, created);
+      return created;
+    },
+  };
+}
+
 /** Build the full set of named streams for a run seed. */
 export function createRng(seed: string): Rng {
   return {
     seed,
-    map: createStream(seed, 'map'),
-    rewards: createStream(seed, 'rewards'),
-    battle: createStream(seed, 'battle'),
-    randomizer: createStream(seed, 'randomizer'),
-    policy: createStream(seed, 'policy'),
+    map: createKeyedStream(seed, 'map'),
+    rewards: createKeyedStream(seed, 'rewards'),
+    battle: createKeyedStream(seed, 'battle'),
+    randomizer: createKeyedStream(seed, 'randomizer'),
+    policy: createKeyedStream(seed, 'policy'),
   };
 }
 

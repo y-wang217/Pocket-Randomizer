@@ -22,7 +22,7 @@
  *
  * ## The stream
  *
- * Every draw comes from `rng.randomizer` and nothing else. That is the
+ * Every draw comes from the `randomizer` stream and nothing else. That is the
  * protection against the failure mode this stage introduces: adding a draw here
  * must not shift a map shape or a damage roll for a seed recorded before the
  * change, and a Stage 3 reward draw must not shift what a species roll produced.
@@ -31,6 +31,13 @@
  * directly in test/randomizer.test.ts anyway, because it is the failure that
  * would be silent.
  *
+ * **Stage 4.6a hands these functions an `RngStream` rather than the whole
+ * `Rng`.** Two things change with it. The caller now says *which* sub-stream a
+ * team is rolled from — `core/encounters.ts` keys one per node — so a team
+ * whose draw count changes cannot move the team next to it. And the rule that
+ * the randomizer draws from one stream stops being a comment: a function handed
+ * one stream has no other to reach for.
+ *
  * ## The draw order
  *
  * Within a spec the order is: species, level, ability, then moves in slot
@@ -38,7 +45,7 @@
  * Changing either reinterprets every recorded seed, which is what
  * `RANDOMIZER_VERSION` exists to make loud rather than silent.
  */
-import type { Rng, RngStream } from './rng';
+import type { RngStream } from './rng';
 import type { Gender, PokemonSpec, TeamSpec, Tier } from './types';
 import {
   isAbilityBlacklisted,
@@ -48,6 +55,7 @@ import {
 } from '../data/blacklists';
 import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
+import { localeAdmits, type LocaleId } from '../data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry } from '../data/movePools';
 import {
   MOVESET,
@@ -101,8 +109,26 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  *
  * (5 was Stage 4.5.1's relocated gender draw. See the README section on it —
  * the engine was rolling gender off the battle PRNG with a flat coin flip.)
+ *
+ * Went to 7 in Stage 4.6a for the keyed sub-stream refactor, and this is the
+ * broadest bump the string has ever carried: **every draw in the game moved to
+ * a different sequence.** Not one line of what a Pokemon *is* changed, and not
+ * one draw changed position within its own function — but a draw that used to
+ * be the four hundredth value off `randomizer` is now the third value off
+ * `randomizer#node/s2-1-0`, so every seed rolls a different run.
+ *
+ * It is the bump the whole refactor was done to spend *once*. 4.6b and 4.6c add
+ * draws under new keys and inside existing ones, and neither can move a draw
+ * this version stamps — see `gymrun-seeds-and-mappability.md` for why that is a
+ * property of the construction rather than a promise.
+ *
+ * The rest of 4.6a rides on the same 7: locales narrow the wild species pool,
+ * a segment generates a route per offered locale, and every segment guarantees
+ * a wild step. All of it lands inside the same version because it lands inside
+ * the same stage — the string says "a seed recorded before this rolls something
+ * else now", and one bump says that exactly as well as three.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-6';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-7';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -119,6 +145,29 @@ export const RANDOMIZER_VERSION = 'gymrun-randomizer-6';
 function speciesFor(segment: number, tier: Tier): SpeciesEntry[] {
   const bands = new Set(speciesBandsFor(segment, tier));
   return SPECIES_POOL.filter((entry) => bands.has(entry.band) && !isSpeciesBlacklisted(entry.id));
+}
+
+/**
+ * The species a **wild** node may draw: its segment's bands, narrowed to the
+ * locale's four types.
+ *
+ * Stage 4.6a, and it is the only thing a locale decides. A species qualifies on
+ * either of its types, so the Marsh fields a Gyarados on Water alone — see
+ * `LocaleDefinition.types` for why both-types would collapse each locale to a
+ * handful of monotypes.
+ *
+ * The fallback is the same shape `gymSpeciesFor` uses and exists for the same
+ * reason: every band carries all eighteen types (asserted in
+ * test/randomizer.test.ts), so an empty window means a blacklist has emptied
+ * it, and a data gap should widen the pool rather than crash a run. It is
+ * asserted never to fire in practice — `test/locales.test.ts` checks that every
+ * wild species across many seeds really does match its locale.
+ */
+function wildSpeciesFor(segment: number, tier: Tier, locale?: LocaleId): SpeciesEntry[] {
+  const pool = speciesFor(segment, tier);
+  if (!locale) return pool;
+  const matching = pool.filter((entry) => localeAdmits(locale, entry.types));
+  return matching.length > 0 ? matching : pool;
 }
 
 /** The species a gym may draw: its own type, its own restrictions, its segment's bands. */
@@ -325,20 +374,25 @@ function rollSpec(
  * Pokemon. `opponentTeamSize` is still asked, so that a tier or a Stage 4
  * party change that should produce a horde produces one.
  */
-export function generateWildMon(segment: number, tier: Tier, rng: Rng): PokemonSpec {
-  const pool = speciesFor(segment, tier);
+export function generateWildMon(
+  segment: number,
+  tier: Tier,
+  stream: RngStream,
+  locale?: LocaleId,
+): PokemonSpec {
+  const pool = wildSpeciesFor(segment, tier, locale);
   const damaging = damagingFor(segment, tier);
-  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), rng.randomizer);
+  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream);
 }
 
 /** A trainer's team. Size comes from the curve, which is a function of PARTY_SIZE. */
-export function generateTrainerTeam(segment: number, tier: Tier, rng: Rng): TeamSpec {
+export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStream): TeamSpec {
   const pool = speciesFor(segment, tier);
   const damaging = damagingFor(segment, tier);
   const level = opponentLevel('trainer', segment, tier);
   const size = opponentTeamSize('trainer', segment, tier);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, rng.randomizer));
+  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
 }
 
 /**
@@ -348,14 +402,14 @@ export function generateTrainerTeam(segment: number, tier: Tier, rng: Rng): Team
  * is the segment's difficulty statement; letting a node tier modify it would
  * mean two dials on the same number, and the report could not tell them apart.
  */
-export function generateGymTeam(gym: GymDefinition, segment: number, rng: Rng): TeamSpec {
+export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream): TeamSpec {
   const tier: Tier = 'normal';
   const pool = gymSpeciesFor(gym, segment, tier);
   const damaging = damagingFor(segment, tier);
   const level = opponentLevel('gym', segment, tier);
   const size = opponentTeamSize('gym', segment, tier, gym.teamSize);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, rng.randomizer));
+  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
 }
 
 /**
@@ -367,13 +421,18 @@ export function generateGymTeam(gym: GymDefinition, segment: number, rng: Rng): 
  * — but a wild node that hardcoded `[generateWildMon(...)]` would be the
  * single-mon assumption written down one more time.
  */
-export function generateWildTeam(segment: number, tier: Tier, rng: Rng): TeamSpec {
-  const pool = speciesFor(segment, tier);
+export function generateWildTeam(
+  segment: number,
+  tier: Tier,
+  stream: RngStream,
+  locale?: LocaleId,
+): TeamSpec {
+  const pool = wildSpeciesFor(segment, tier, locale);
   const damaging = damagingFor(segment, tier);
   const level = opponentLevel('wild', segment, tier);
   const size = opponentTeamSize('wild', segment, tier);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, rng.randomizer));
+  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
 }
 
 /**
@@ -390,13 +449,12 @@ export function generateWildTeam(segment: number, tier: Tier, rng: Rng): TeamSpe
 export function generateRewardSpecies(
   bands: readonly number[],
   level: number,
-  rng: Rng,
+  stream: RngStream,
 ): PokemonSpec {
   const bandSet = new Set(bands);
   const pool = SPECIES_POOL.filter((entry) => bandSet.has(entry.band) && !isSpeciesBlacklisted(entry.id));
   if (pool.length === 0) throw new RangeError(`No species available in bands ${bands.join(',')}`);
   const damaging = damagingInBands(STARTER_MOVE_BANDS);
-  const stream = rng.rewards;
   const entry = stream.pick(pool);
   return {
     species: entry.species,
@@ -422,7 +480,7 @@ export function generateRewardSpecies(
 export function generateStarters(
   count: number,
   level: number,
-  rng: Rng,
+  stream: RngStream,
   unlocked?: readonly string[],
 ): PokemonSpec[] {
   const pool = getStarterPool(unlocked);
@@ -430,7 +488,6 @@ export function generateStarters(
   // kit until Stage 3 adds rewards; see STARTER_MOVE_BANDS for the measurement
   // that made this the largest single balance change of the stage.
   const damaging = damagingInBands(STARTER_MOVE_BANDS);
-  const stream = rng.randomizer;
   const picked: PokemonSpec[] = [];
   const seen = new Set<string>();
 

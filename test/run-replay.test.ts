@@ -44,6 +44,7 @@ import { PARTY_SIZE } from '../src/data/partyTuning';
 function wobbling(): RunPolicy {
   return {
     chooseStarter: async () => 1,
+    chooseLocale: async () => 0,
     chooseNode: async (options) => options.length - 1,
     // Last card, for the same reason as the last node: a policy that always
     // answers 0 would agree with the scripted default and prove nothing.
@@ -258,6 +259,10 @@ describe('save mid-run, reload, continue', () => {
     let liveCalls = 0;
     const live: RunPolicy = {
       chooseStarter: async () => {
+        liveCalls++;
+        return 0;
+      },
+      chooseLocale: async () => {
         liveCalls++;
         return 0;
       },

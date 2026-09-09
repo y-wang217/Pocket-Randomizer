@@ -27,14 +27,43 @@
  *
  * No verdict on the outcome. "Won" and "Defeated" are facts; "close one!" or a
  * grade would be the screen commentating on a fight the player just watched.
+ *
+ * ## Stage 4.6a: the capture lands here too
+ *
+ * A won wild encounter offers its Pokemon, and that offer is a **block inside
+ * this screen** rather than a screen after it. The spec's words are "do not add
+ * a second path by which a node completes", and the reason bites: the capture
+ * used to arrive after the result had been dismissed, so the player judged
+ * whether a Pokemon was worth a party slot with the fight it came from off
+ * screen. Outcome, party, cards and offer are one view now.
+ *
+ * `playRun` still asks two questions in sequence — take a card, then take the
+ * Pokemon — so this screen renders twice for such a node. The second render
+ * carries the same review and no cards, because they have already been taken.
  */
+import type { AcquisitionDecision, AcquisitionOffer } from '../../core/acquisition';
 import { FAINTED, hpState, ppState } from '../../core/hpCopy';
 import { hpFraction, ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
 import type { PokemonState } from '../../core/types';
 import { el } from '../scene';
+import { renderCaptureOffer } from './acquisition';
 import { renderRewardCard, tierBadge } from './reward';
+
+/**
+ * A Pokemon on the table, and the party it is being weighed against.
+ *
+ * Carries the party rather than reading it off `state`, because the two are not
+ * the same at the moment this is asked: `playRun` hands `chooseAcquisition` the
+ * party as it stands *before* the node resolves, which is the party the player
+ * is looking at on this screen.
+ */
+export interface CapturePrompt {
+  offer: AcquisitionOffer;
+  party: readonly PokemonState[];
+  onDecide: (decision: AcquisitionDecision) => void;
+}
 
 export interface ResultScreen {
   root: HTMLElement;
@@ -45,12 +74,16 @@ export interface ResultScreen {
    * `chooseReward` fallback, which exists because `RunPolicy` requires that
    * method even though `playRun` routes battles through `reviewBattle`. Then
    * the screen is the cards alone — the shape it had before this stage.
+   *
+   * `capture` is the Stage 4.6a block. When it is present the reward cards are
+   * gone, because by then they have been taken.
    */
   render(
     review: BattleReview | null,
     offer: RewardOffer | null,
     state: RunState,
     onDone: (index: number | null) => void,
+    capture?: CapturePrompt | null,
   ): void;
 }
 
@@ -67,13 +100,14 @@ export function createResultScreen(): ResultScreen {
   const cardsHeading = el('h3', 'result__heading');
   const cards = el('div', 'rewards');
 
+  const capture = el('div', 'result__capture');
   const actions = el('div', 'result__actions');
 
-  root.append(title, blurb, partyHeading, party, cardsHeading, cards, actions);
+  root.append(title, blurb, partyHeading, party, cardsHeading, cards, capture, actions);
 
   return {
     root,
-    render(review, offer, state, onDone) {
+    render(review, offer, state, onDone, capturePrompt) {
       const won = review?.won ?? true;
 
       if (review) {
@@ -90,9 +124,7 @@ export function createResultScreen(): ResultScreen {
       // there is no fight to report the cost of.
       partyHeading.hidden = !review;
       party.hidden = !review;
-      if (review) {
-        party.replaceChildren(...review.party.map((member) => renderMemberRow(member)));
-      }
+      party.replaceChildren(...(review?.party ?? []).map((member) => renderMemberRow(member)));
 
       cardsHeading.hidden = !offer;
       cards.hidden = !offer;
@@ -103,6 +135,28 @@ export function createResultScreen(): ResultScreen {
             renderRewardCard(option, state, () => onDone(index)),
           ),
         );
+      } else {
+        // Cleared, not just hidden. `hidden` is a UA style that any `display`
+        // rule overrides — see the note in styles.css — and a stale card left
+        // in the DOM is a button that answers a question already asked.
+        cardsHeading.replaceChildren();
+        cards.replaceChildren();
+      }
+
+      /*
+       * The capture block, below the cards and above the actions.
+       *
+       * Below, because the cards are the payout for the fight and the capture
+       * is a separate question about the party — and because on the second
+       * render, which is the one that carries this, there are no cards at all.
+       */
+      capture.hidden = !capturePrompt;
+      if (capturePrompt) {
+        capture.replaceChildren(
+          renderCaptureOffer(capturePrompt.offer, capturePrompt.party, capturePrompt.onDecide),
+        );
+      } else {
+        capture.replaceChildren();
       }
 
       /*
@@ -113,7 +167,10 @@ export function createResultScreen(): ResultScreen {
        * skipping were allowed, which it is not. Without one, this button is the
        * whole point of the screen: the confirmation a rewardless win never got.
        */
-      if (offer) {
+      if (offer || capturePrompt) {
+        // With a capture on screen, "Take it" and "Leave it" are the continue,
+        // exactly as taking a card is when the cards are up. A third button
+        // beside them would read as though the offer could be postponed.
         actions.replaceChildren();
       } else {
         const carry = document.createElement('button');
