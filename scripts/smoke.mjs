@@ -131,6 +131,7 @@ async function playRun(label) {
   let shops = 0;
   let events = 0;
   let targets = 0;
+  let replacements = 0;
   let acquisitions = 0;
   let releases = 0;
   let partyVisits = 0;
@@ -251,6 +252,31 @@ async function playRun(label) {
       }
     }
 
+    /*
+     * Which move it costs, and the reason this branch is not optional.
+     *
+     * The replacement screen is modal by design — there is no decline, so
+     * `playRun` parks here until a slot comes back. A smoke run that did not
+     * know about it would not fail loudly; it would sit on this screen until
+     * the summary timed out, which is exactly how the screen came to be
+     * missing in the first place.
+     *
+     * The last slot rather than the first, deliberately. `defaultMoveReplacement`
+     * drops the weakest attack, which is usually an early slot, so always
+     * taking slot 0 would make the smoke run agree with the old auto-answer by
+     * accident and stop proving that a human choice is what got applied.
+     */
+    if (await page.locator(visible('replace')).count()) {
+      const victim = page.locator(`${visible('replace')} .move--victim`).last();
+      if (await victim.count()) {
+        if (replacements === 0) await page.screenshot({ path: `stats/${label}-replace.png`, fullPage: true });
+        await victim.click();
+        replacements++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+    }
+
     if (await page.locator(visible('acquisition')).count()) {
       if (acquisitions === 0) await page.screenshot({ path: `stats/${label}-acquisition.png`, fullPage: true });
       // Take it while there is room; once full, release the last member. Both
@@ -338,6 +364,7 @@ async function playRun(label) {
     shops,
     events,
     targets,
+    replacements,
     acquisitions,
     releases,
     partyVisits,
@@ -433,7 +460,8 @@ console.log(`  ${first.detail}`);
 console.log(`  ${first.nodes} node choices (${first.rests} rests), ${first.battles} move clicks`);
 console.log(`  ${first.rewards} reward picks, ${first.shops} shop visits, ${first.events} events`);
 console.log(
-  `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} item targets, ` +
+  `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} move targets, ` +
+    `${first.replacements} move replacements, ` +
     `${first.switches} forced switches, ${first.partyVisits} party screens`,
 );
 console.log(`  map partway through: ${JSON.stringify(first.mapStructure)}`);
@@ -561,9 +589,9 @@ same(
  * clicks, it would show up here first.
  */
 same(
-  'acquisition, release and item-target decisions',
-  [first.acquisitions, first.releases, first.targets],
-  [second.acquisitions, second.releases, second.targets],
+  'acquisition, release, move-target and replacement decisions',
+  [first.acquisitions, first.releases, first.targets, first.replacements],
+  [second.acquisitions, second.releases, second.targets, second.replacements],
 );
 same('switches and final party size', [first.switches, first.teamCards], [second.switches, second.teamCards]);
 same('map shape partway through', first.mapStructure, second.mapStructure);

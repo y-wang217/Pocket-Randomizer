@@ -20,7 +20,6 @@ import { releaseMember, reorderParty } from '../core/party';
 import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
-  defaultMoveReplacement,
   isReplayable,
   playRun,
   resumeRun,
@@ -39,6 +38,7 @@ import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 import { createAcquisitionScreen } from './screens/acquisition';
 import { createItemTargetScreen } from './screens/item-target';
+import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createRewardScreen } from './screens/reward';
 import { createRouter } from './screens/router';
@@ -60,6 +60,7 @@ export function mountApp(root: HTMLElement): void {
   const shopScreen = createShopScreen();
   const eventScreen = createEventScreen();
   const targetScreen = createItemTargetScreen();
+  const replaceScreen = createMoveReplaceScreen();
   const acquisitionScreen = createAcquisitionScreen();
   const partyScreen = createPartyScreen();
   const summaryScreen = createSummary();
@@ -70,6 +71,7 @@ export function mountApp(root: HTMLElement): void {
     battle: battleScreen.root,
     reward: rewardScreen.root,
     target: targetScreen.root,
+    replace: replaceScreen.root,
     acquisition: acquisitionScreen.root,
     party: partyScreen.root,
     shop: shopScreen.root,
@@ -106,6 +108,7 @@ export function mountApp(root: HTMLElement): void {
     const movePick = createPending<Choice>();
     const rewardPick = createPending<number>();
     const targetPick = createPending<number>();
+    const replacePick = createPending<number>();
     const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<number>();
@@ -121,6 +124,7 @@ export function mountApp(root: HTMLElement): void {
       movePick.cancel();
       rewardPick.cancel();
       targetPick.cancel();
+      replacePick.cancel();
       acquirePick.cancel();
       shopBasket.cancel();
       eventPick.cancel();
@@ -191,16 +195,25 @@ export function mountApp(root: HTMLElement): void {
         return targetPick.wait();
       },
       /*
-       * Auto-answered for now, by the same reference heuristic the scripted
-       * baseline uses.
+       * The second half of a move reward, and the one the app used to answer
+       * for the player.
        *
-       * The replacement screen — incoming move and all four current moves side
-       * by side, same move card component throughout — is built in the display
-       * pass at the end of this stage. Until then the run cannot skip the
-       * question: there is no decline, so `teachMove` throws if a member with
-       * four moves is handed one without a slot to put it in.
+       * It was wired to `defaultMoveReplacement` — the reference heuristic the
+       * scripted baseline uses — on the note that the screen would land in a
+       * later display pass. That pass did not land, so the reward screen's
+       * "you choose what it replaces next" was a promise the app broke every
+       * time, silently, by dropping the weakest attack. `core/run.ts` was
+       * asking the question and the run log was recording the answer the whole
+       * time; only this line was not asking anybody.
+       *
+       * The heuristic stays where it belongs: `scripts/sim.ts` and the replay
+       * baseline still answer with it, which is why it is still exported.
        */
-      chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
+      chooseMoveToReplace: (member, incoming) => {
+        replaceScreen.render(member, incoming, (slot) => replacePick.submit(slot));
+        router.show('replace');
+        return replacePick.wait();
+      },
       chooseAcquisition: (offer, party) => {
         acquisitionScreen.render(offer, party, (decision) => acquirePick.submit(decision));
         router.show('acquisition');

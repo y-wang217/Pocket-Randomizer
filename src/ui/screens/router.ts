@@ -1,7 +1,7 @@
 /**
  * The screen router.
  *
- * Ten screens, one visible at a time, all mounted once and toggled rather
+ * Eleven screens, one visible at a time, all mounted once and toggled rather
  * than created and destroyed. Toggling keeps the DOM — and therefore the
  * battle log's scroll position and the HP bar's CSS transition — alive across
  * a switch, which is what makes returning from a battle to the map feel like
@@ -17,6 +17,8 @@ export type ScreenName =
   | 'reward'
   /** Which member gets an item, a TM or a tutor. Stage 4. */
   | 'target'
+  /** Which of that member's four moves the incoming one displaces. */
+  | 'replace'
   /** A Pokemon on offer, against the party. Stage 4. */
   | 'acquisition'
   /** Reorder and release, between nodes. Stage 4. */

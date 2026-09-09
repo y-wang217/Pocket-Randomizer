@@ -1128,6 +1128,48 @@ body {
    lottery the player loses four fights later. */
 .target__effect--dud { color: var(--hp-mid); }
 
+/* ---------- move replacement ---------- */
+
+/* Left-aligned like the other decision screens, so the five move cards start
+   on the same edge the target screen's party cards did one click earlier. */
+.screen--replace { align-items: flex-start; }
+
+.screen--replace > * { width: min(760px, 100%); }
+
+.replace__heading {
+  margin: 18px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* The incoming move sits alone and full width; the four it could displace are
+   the same 2x2 grid as the battle screen's buttons. A player giving up Ice
+   Beam should be reaching for it in the position they already know it by. */
+.replace__incoming { display: block; }
+
+.replace__moves {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.replace__owner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 13px;
+}
+
+/* Minimum 44px of touch target, because this screen is a phone screen: four
+   cards, one irreversible tap, and no undo behind it. */
+.move--victim { min-height: 44px; }
+
+.move--victim:hover { border-color: var(--hp-low); }
+
 /* ---------- battle screen ---------- */
 
 .battle__header { display: flex; flex-direction: column; gap: 2px; }
