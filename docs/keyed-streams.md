@@ -4,8 +4,8 @@ How a GYMRUN seed becomes a run, why that stopped scaling at Stage 4.5.2, and
 what Stage 4.6a changed about it.
 
 This is the **implementation record**. The design it implements is
-[`gymrun-seeds-and-mappability.md`](../gymrun-seeds-and-mappability.md) in the
-repository root, which the 4.6 prompts reference by name.
+[`gymrun-seeds-and-mappability.md`](spec/gymrun-seeds-and-mappability.md) in
+`docs/spec/`, which the 4.6 prompts reference by name.
 
 This file was written during Stage 4.6a, before that design document was
 available — the prompt referred to it as existing and it was not in the
@@ -237,4 +237,20 @@ function does not exist.
 
 The design also asks that the unkeyed stream API be deleted outright, so that
 nobody reaches for it. It is still exported and still drawable; nothing in
-generation uses it.
+generation uses it. Deliberately left for its own commit: nothing in generation
+draws off it, so it is not urgent, and deleting an exported API inside a stage
+that is changing behaviour makes one commit answer two questions.
+
+### When the three land
+
+All three are **one release, scheduled after 4.6c and before the freeze.** That
+ordering is forced rather than chosen: the freeze stamps a `contentHash` as the
+first shareable baseline, so the freeze cannot happen until the hash exists.
+
+They are explicitly not to be built inside a data step. The decision came up at
+the 4.6c prerequisite, where the prompt asked for a new generated table to be
+added to "the `contentHash` file list" — a list that does not exist. Building
+the hash mechanism there would have shipped it as a side effect of a table
+nobody was reviewing it for. The hand bump carries 4.6c instead, with the
+failure mode the design names: a forgotten bump silently reinterprets a shared
+seed. `docs/generation.md` section 9 records it from the other side.

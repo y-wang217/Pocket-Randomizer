@@ -7,7 +7,7 @@
  * `Math.random()` would make a seed meaningless. Both deserve to fail the test
  * suite, not just the linter.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -79,6 +79,49 @@ describe('core/ boundaries', () => {
       .filter((file) => /from\s+['"]@pkmn\/sim['"]/.test(readFileSync(file, 'utf8')))
       .map((f) => relative(ROOT, f))
       .filter((f) => !allowed.has(f));
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * `core/capabilities.ts` reaches no dex, at any depth.
+   *
+   * The general rule above already forbids it importing `@pkmn/sim` directly,
+   * and that is not the check this needs. The dex is one hop away through
+   * ordinary, reasonable-looking code: `core/coverage.ts` imports
+   * `battle/driver.ts` for the type chart, so a capability function that
+   * borrowed one helper from coverage would pull the whole sim in behind it and
+   * pass every other test in this file.
+   *
+   * That would matter because it would work. `latent` resolves off a type
+   * table, deliberately and not for want of a learnset — the argument is in
+   * `data/capabilityTypes.ts` — and the way that decision gets quietly undone
+   * is not somebody rewriting it, it is somebody importing a convenience that
+   * makes a dex query possible again. So the check is transitive.
+   */
+  it('keeps core/capabilities.ts free of the dex at any depth', () => {
+    const reached = new Set<string>();
+
+    const visit = (file: string): void => {
+      if (reached.has(file) || !file.startsWith(SRC)) return;
+      reached.add(file);
+      const source = stripComments(readFileSync(file, 'utf8'));
+      for (const match of source.matchAll(/from\s+['"]([^'"]+)['"]/g)) {
+        const specifier = match[1] ?? '';
+        if (!specifier.startsWith('.')) continue;
+        const base = join(file, '..', specifier);
+        const candidate = [base, `${base}.ts`, join(base, 'index.ts')].find(
+          (path) => path.endsWith('.ts') && existsSync(path),
+        );
+        if (candidate) visit(candidate);
+      }
+    };
+
+    visit(join(CORE, 'capabilities.ts'));
+    expect(reached.size).toBeGreaterThan(1);
+
+    const offenders = [...reached]
+      .filter((file) => /from\s+['"]@pkmn\//.test(stripComments(readFileSync(file, 'utf8'))))
+      .map((file) => relative(ROOT, file));
     expect(offenders).toEqual([]);
   });
 });

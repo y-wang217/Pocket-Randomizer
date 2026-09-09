@@ -28,7 +28,7 @@
  *     not every node's.
  *   - Reordering the passes is now a refactor rather than a break, which is
  *     precisely what makes 4.6b and 4.6c cheap. `core/streamKeys.ts` holds the
- *     namespace and `gymrun-seeds-and-mappability.md` holds the argument.
+ *     namespace and `docs/spec/gymrun-seeds-and-mappability.md` holds the argument.
  *
  * What has *not* changed is eagerness. Contents are still generated for every
  * option the player will never take, because the alternative makes the number

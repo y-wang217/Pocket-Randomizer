@@ -84,7 +84,7 @@ given.**
   fought — level, moveset, ability, held item.
 - **Keyed RNG sub-streams**, which is the change nothing on screen shows and
   everything later depends on. See "Determinism" below and
-  [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md).
+  [`gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md).
 
 The measured result is that parties **fill by gym 2** and **diversify**: 94 runs
 reached the eighth gym carrying 152 distinct species between them, and the most
@@ -356,7 +356,7 @@ From Stage 4.6a a stream opens sub-streams **by key** —
 the stream name and the key. A draw under one key cannot move a draw under any
 other, so adding a *new* key is free and adding a draw inside an existing one
 moves that node's rolls and nothing else. `src/core/streamKeys.ts` is the
-namespace; [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md)
+namespace; [`gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md)
 is the argument, including why the two sub-stages after this one should not need
 a structural bump of their own.
 

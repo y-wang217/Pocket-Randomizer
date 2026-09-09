@@ -679,3 +679,20 @@ export const SPECIES_POOL: readonly SpeciesEntry[] = [
 
 /** The highest band any entry carries. */
 export const MAX_SPECIES_BAND = 4;
+
+/**
+ * The types of a pool species, by the name a `PokemonSpec` carries.
+ *
+ * A lookup rather than a dex query, so that a caller which must not import the
+ * sim can still ask. `core/capabilities.ts` is that caller, and the boundary
+ * test in `test/boundaries.test.ts` is what keeps it one.
+ *
+ * Empty for a species that is not in the pool. That is not a failure worth
+ * throwing over: a capability read on an unknown species should resolve `none`
+ * and let the run continue, not end it.
+ */
+const TYPES_BY_SPECIES = new Map(SPECIES_POOL.map((entry) => [entry.species, entry.types]));
+
+export function typesOfSpecies(species: string): readonly string[] {
+  return TYPES_BY_SPECIES.get(species) ?? [];
+}

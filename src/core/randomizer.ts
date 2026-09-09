@@ -125,7 +125,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  *
  * It is the bump the whole refactor was done to spend *once*. 4.6b and 4.6c add
  * draws under new keys and inside existing ones, and neither can move a draw
- * this version stamps — see `gymrun-seeds-and-mappability.md` for why that is a
+ * this version stamps — see `docs/spec/gymrun-seeds-and-mappability.md` for why that is a
  * property of the construction rather than a promise.
  *
  * The rest of 4.6a rides on the same 7: locales narrow the wild species pool,

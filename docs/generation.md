@@ -40,7 +40,7 @@ below stay in the same order.
 no longer one sequence per run: `rng.map.at('seg3/cave/route')` is a sequence of
 its own, derived from the seed, the stream name and the key, and independent of
 every other key. `src/core/streamKeys.ts` is the namespace and
-[`gymrun-seeds-and-mappability.md`](../gymrun-seeds-and-mappability.md) is the
+[`gymrun-seeds-and-mappability.md`](spec/gymrun-seeds-and-mappability.md) is the
 argument.
 
 Three things follow, and the third is the reason the stage did it:
@@ -493,3 +493,87 @@ Bump `RANDOMIZER_VERSION` in `core/randomizer.ts` for: a regenerated pool, a
 moved band window, a changed level curve, a new draw inside `rollMoveset`, a
 reordered data table. It went to `-2` on the first balance pass, where not one
 draw changed position and every seed rolled a different team anyway.
+
+## 8. Capabilities, and why `latent` is not a learnset
+
+Stage 4.6c gates some routes on a capability — Surf, Fly, Cut and five others.
+A party reads at one of three bands for each: `known` if a member has the move
+in a slot, `latent` if nobody has it but somebody could plausibly carry it,
+`none` otherwise. `core/capabilities.ts` resolves it; `data/capabilityTypes.ts`
+holds the table.
+
+`known` needs no table. `latent` is the one that had to be decided, and the
+obvious answer was a real gen 7 learnset: ask the dex which species can
+legally learn Surf, and let a party of eligible species read `latent`.
+
+**That was built as far as measuring it, and then rejected.** The measurements,
+so the decision can be re-opened on evidence rather than re-derived:
+
+- A generated table keyed by capability over the 635 species reachable through
+  `speciesPools.ts`, `starters.ts` and `locales.ts` costs **12.8 kB** of source.
+  The full national dex costs 26.2 kB. Size was never the problem.
+- It needs a codegen script, because the bundle has no learnsets: the Vite
+  plugin in `build-config/trim-sim-data.ts` strips them, correctly, and turning
+  that off to answer a map-screen question would trade ~5 MB for one band.
+- It needs a prevo walk. A species learnset entry holds only that species' own
+  moves, so Raichu resolves `none` for Surf and for Fly without one — both sit
+  on Pikachu. Kleavor inherits Cut from Scyther, Annihilape Strength from
+  Primeape. This is not an edge case; it is most of the third stage of the pool.
+- It needs a generation filter. `Dex.forGen(7)` and `Dex.mod('gen7')` return the
+  *same* modern learnset table, with sources tagged per generation
+  (`gyarados.surf → ['9M','8M','8V','7M','7V','6M','5M','4M','3M']`), so a
+  plain `!!learnset[move]` answers yes for moves only learnable in gen 8 or 9.
+- It needs a drift test, byte-identical against a regenerated table, because a
+  dependency bump that quietly moves a species between bands is exactly the
+  failure this project spends effort preventing elsewhere.
+
+None of that is prohibitive. The reason it was dropped is that **legality is
+the wrong question for this game.** GYMRUN runs Custom Game specifically so the
+randomizer can hand the engine a Magikarp with Levitate and Boomburst. Move
+legality is not a rule this project enforces; it is a rule it exists to break.
+A `latent` band read off a legality table would be the single place in the game
+that asked whether a Pokemon is *allowed* to know something, and it would have
+answered out of a table nothing else consults.
+
+It is also worse to play against. A player who sees a Water type pass a Surf
+gate has learned the rule. A player who sees one specific Water type fail it
+has learned only that there is a table they cannot see.
+
+So `latent` is type-based, and the type sets were derived from the gen 7
+learnsets rather than invented — queried once, offline, ranked by which types
+can actually learn each move, then edited where the ranking was an artifact
+rather than a theme. `data/capabilityTypes.ts` carries both the ranking and the
+edits, and names the one lever that was deliberately not pulled: `surf`,
+`waterfall` and `dive` are all Water alone, so one type clears three of the
+eight gates. 4.6c ships the simulator's per-band gate pass rate, which is the
+instrument that would say whether that needs splitting. Splitting it first
+would be guessing.
+
+**Slots are checked before types**, and the order is load-bearing rather than
+an optimisation: teaching a capability move always yields `known`, whatever the
+member is. A fix the map screen offered and the party screen refused for some
+species would be a broken promise, and it is exactly what a legality-based
+`latent` would have produced. `test/capabilities.test.ts` asserts it as a
+property across all eight capabilities, from both prior bands.
+
+The decision is not scheduled for revisiting. If it is revisited, the numbers
+above are the starting point.
+
+## 9. `contentHash`, deferred
+
+`gymrun-seeds-and-mappability.md` specifies a `contentHash` computed over the
+data tables, replacing the hand-bumped `RANDOMIZER_VERSION`, plus seed strings
+that carry that hash and a `previewRun` that builds a map without playing it.
+None of the three is built. `RANDOMIZER_VERSION` is still hand-edited, and the
+`hmLearnsets.ts` that would have been the first entry on the hash's file list
+is not being built either.
+
+They are **their own release, scheduled after 4.6c and before the freeze**, for
+the reason the seeds document gives: the freeze stamps a `contentHash` as the
+first shareable baseline, and it cannot be stamped without one. They are
+deliberately not bundled into a data-generation step — a hash mechanism built
+as a side effect of shipping a table is a mechanism nobody reviewed.
+
+Until then the hand bump stands, with the failure mode the seeds document names
+and this paragraph does not solve: a forgotten bump silently reinterprets a
+shared seed. `docs/keyed-streams.md` tracks what is missing.
