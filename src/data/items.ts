@@ -94,6 +94,24 @@ export interface ItemEntry {
    */
   boostsType: string | null;
   /**
+   * The type this item *halves an incoming hit of*, for the resist berries and
+   * null otherwise.
+   *
+   * **A separate field from `boostsType`, and the separation is a correction.**
+   * The first draft of the berry table set `boostsType: 'Fighting'` on a Chople
+   * Berry, which reads the same and means the opposite: `boostsType` is what
+   * `itemSuitsTypes` checks the *holder's* types against, so a Chople would
+   * have been offered as a match for a Fighting-type Pokemon — precisely the
+   * one that does not want it. A resist berry is wanted by whatever is about to
+   * be hit by that type, which is a fact about the opponent.
+   *
+   * Which is why nothing reads this to decide who should hold one. It is here
+   * so the reward card can name the type, and so the player can make the plan
+   * the gym rail already lets them make: every leader's type is on screen from
+   * segment 1.
+   */
+  resistsType?: string | null;
+  /**
    * True for the Choice items, which lock the holder into the first move it
    * uses for the rest of the battle.
    *
@@ -115,7 +133,7 @@ export interface ItemEntry {
 }
 
 function item(id: string, name: string, blurb: string, extra: Partial<ItemEntry> = {}): ItemEntry {
-  return { id, name, blurb, boostsType: null, locksMove: false, ...extra };
+  return { id, name, blurb, boostsType: null, resistsType: null, locksMove: false, ...extra };
 }
 
 /** A berry: the same record, with `consumable` set. */
@@ -253,15 +271,15 @@ export const BERRIES: readonly ItemEntry[] = [
   berry('chestoberry', 'Chesto Berry', 'Wakes the holder from sleep, once.'),
   berry('persimberry', 'Persim Berry', 'Cures confusion, once.'),
   berry('leppaberry', 'Leppa Berry', 'Restores 10 PP to a move that has run out.'),
-  berry('occaberry', 'Occa Berry', 'Halves one super-effective Fire hit.', { boostsType: 'Fire' }),
-  berry('passhoberry', 'Passho Berry', 'Halves one super-effective Water hit.', { boostsType: 'Water' }),
-  berry('rindoberry', 'Rindo Berry', 'Halves one super-effective Grass hit.', { boostsType: 'Grass' }),
-  berry('wacanberry', 'Wacan Berry', 'Halves one super-effective Electric hit.', { boostsType: 'Electric' }),
-  berry('chopleberry', 'Chople Berry', 'Halves one super-effective Fighting hit.', { boostsType: 'Fighting' }),
-  berry('payapaberry', 'Payapa Berry', 'Halves one super-effective Psychic hit.', { boostsType: 'Psychic' }),
-  berry('yacheberry', 'Yache Berry', 'Halves one super-effective Ice hit.', { boostsType: 'Ice' }),
-  berry('habanberry', 'Haban Berry', 'Halves one super-effective Dragon hit.', { boostsType: 'Dragon' }),
-  berry('colburberry', 'Colbur Berry', 'Halves one super-effective Dark hit.', { boostsType: 'Dark' }),
+  berry('occaberry', 'Occa Berry', 'Halves one super-effective Fire hit.', { resistsType: 'Fire' }),
+  berry('passhoberry', 'Passho Berry', 'Halves one super-effective Water hit.', { resistsType: 'Water' }),
+  berry('rindoberry', 'Rindo Berry', 'Halves one super-effective Grass hit.', { resistsType: 'Grass' }),
+  berry('wacanberry', 'Wacan Berry', 'Halves one super-effective Electric hit.', { resistsType: 'Electric' }),
+  berry('chopleberry', 'Chople Berry', 'Halves one super-effective Fighting hit.', { resistsType: 'Fighting' }),
+  berry('payapaberry', 'Payapa Berry', 'Halves one super-effective Psychic hit.', { resistsType: 'Psychic' }),
+  berry('yacheberry', 'Yache Berry', 'Halves one super-effective Ice hit.', { resistsType: 'Ice' }),
+  berry('habanberry', 'Haban Berry', 'Halves one super-effective Dragon hit.', { resistsType: 'Dragon' }),
+  berry('colburberry', 'Colbur Berry', 'Halves one super-effective Dark hit.', { resistsType: 'Dark' }),
 ];
 
 /**

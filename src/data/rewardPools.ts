@@ -175,7 +175,7 @@ const NORMAL: readonly RewardBand[] = [
       { kind: 'item', weight: 5, items: BERRY_IDS },
       { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 14, max: 24 },
-      { kind: 'tm', weight: 3 },
+      { kind: 'tm', weight: 7 },
       { kind: 'heal', weight: 3, fraction: 0.4 },
     ],
   },
@@ -185,7 +185,7 @@ const NORMAL: readonly RewardBand[] = [
       { kind: 'item', weight: 2, items: BERRY_IDS },
       { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 20, max: 32 },
-      { kind: 'tm', weight: 3 },
+      { kind: 'tm', weight: 7 },
       // Healing climbs late: by segment 6 the next shop is further off than the
       // next gym, so HP stops being convertible into anything else.
       { kind: 'heal', weight: 3, fraction: 0.5 },
@@ -207,7 +207,7 @@ const HARD: readonly RewardBand[] = [
     entries: [
       { kind: 'item', weight: 3, items: [...MODEST_ITEM_IDS, ...GOOD_ITEM_IDS] },
       { kind: 'currency', weight: 2, min: 30, max: 48 },
-      { kind: 'tm', weight: 4 },
+      { kind: 'tm', weight: 8 },
       { kind: 'heal', weight: 5, fraction: 0.85 },
     ],
   },
@@ -216,7 +216,7 @@ const HARD: readonly RewardBand[] = [
     entries: [
       { kind: 'item', weight: 3, items: GOOD_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 42, max: 66 },
-      { kind: 'tutor', weight: 4 },
+      { kind: 'tutor', weight: 8 },
       { kind: 'heal', weight: 6, fraction: 0.95 },
     ],
   },
@@ -244,7 +244,7 @@ const ELITE: readonly RewardBand[] = [
     throughSegment: 2,
     entries: [
       { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
-      { kind: 'tutor', weight: 4 },
+      { kind: 'tutor', weight: 8 },
       { kind: 'currency', weight: 2, min: 62, max: 95 },
       { kind: 'heal', weight: 6, fraction: 1 },
     ],
@@ -253,7 +253,7 @@ const ELITE: readonly RewardBand[] = [
     throughSegment: 7,
     entries: [
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
-      { kind: 'tutor', weight: 4 },
+      { kind: 'tutor', weight: 8 },
       { kind: 'currency', weight: 2, min: 85, max: 135 },
       { kind: 'heal', weight: 7, fraction: 1 },
     ],
