@@ -15,7 +15,7 @@
  * All of it comes from `describeSpecCard`, so this file never sees the sim.
  */
 import { describeSpecCard } from '../../core/battle/driver';
-import type { PokemonSpec } from '../../core/types';
+import type { PokemonSpec, StatName } from '../../core/types';
 import { el } from '../scene';
 
 export interface StarterSelect {
@@ -81,9 +81,57 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
     }),
   );
 
-  card.append(header, meta, moves);
+  card.append(header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
   card.addEventListener('click', onPick);
   return card;
+}
+
+/**
+ * The five boostable stats plus HP, as one compact row. **Item F, part 4.**
+ *
+ * A pick screen that shows a sprite, a name and a moveset is asking the player
+ * to choose between three bodies whose *bulk and speed are invisible* — and
+ * speed in particular decides most turns, which is the whole argument
+ * `core/battle/view.ts` makes for the battle screen's speed readout. Without
+ * it a starter pick is a coin flip, and the spec says this game should not have
+ * those.
+ *
+ * Numbers with no verdict: no total, no rating, no "best in class" marker, and
+ * no ordering that implies one. Showdown's order, the same order the battle
+ * panel uses, so the number a player learns here is in the place they will look
+ * for it during a fight.
+ *
+ * Exported because the species reward card needs exactly the same row — a
+ * Pokemon offered mid-run is the same decision as a starter, and two renderings
+ * of one thing is how they drift.
+ */
+export function statLine(stats: Record<StatName, number>, maxHp: number): HTMLElement {
+  const row = el('ul', 'statline');
+
+  const entries: [string, number][] = [
+    ['HP', maxHp],
+    ['Atk', stats.atk],
+    ['Def', stats.def],
+    ['SpA', stats.spa],
+    ['SpD', stats.spd],
+    ['Spe', stats.spe],
+  ];
+
+  row.replaceChildren(
+    ...entries.map(([label, value]) => {
+      const cell = el('li', 'statline__stat');
+      const name = el('span', 'statline__label');
+      name.textContent = label;
+      // The same tooltip the battle panel raises, so "what is SpA" has one
+      // answer in one place. Text lives in data/statInfo.ts.
+      name.dataset['tip'] = `stat:${label.toLowerCase()}`;
+      const number = el('span', 'statline__value');
+      number.textContent = String(value);
+      cell.append(name, number);
+      return cell;
+    }),
+  );
+  return row;
 }
 
 export function typeChip(type: string): HTMLElement {

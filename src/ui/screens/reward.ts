@@ -40,7 +40,7 @@
  * It no longer names a party member, because the item is no longer going to
  * one.
  */
-import { describeMove } from '../../core/battle/driver';
+import { describeMove, describeSpecCard } from '../../core/battle/driver';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
 import { createPartyMember } from '../../core/party';
 import type { Reward } from '../../core/rewards';
@@ -48,7 +48,7 @@ import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { PARTY_SIZE } from '../../data/partyTuning';
 import { el, genderMark, moveCard } from '../scene';
-import { typeChip } from './starter-select';
+import { statLine, typeChip } from './starter-select';
 
 /** The tier chip, shared with the map so the two screens agree at a glance. */
 export function tierBadge(tier: string): HTMLElement {
@@ -117,9 +117,36 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
     }
 
     case 'species': {
-      name.textContent = `${reward.species} · Lv${reward.level}${genderMark(reward.gender)}`;
-      detail.textContent = `${reward.ability}. ${reward.moves.join(', ')}.`;
+      /*
+       * **Item F, part 4: a species card is a pick screen and was showing a
+       * name.**
+       *
+       * It said the species, the level, the ability and a comma-joined list of
+       * move *names* — no types, no base stats, no base power, no PP. The
+       * starter select has shown all of that since Stage 2, and this card
+       * offers the same decision mid-run against a party you already know.
+       * Choosing between "a Pokemon" and two other cards on a name is the coin
+       * flip the spec says this game should not have.
+       *
+       * Built from the same probe the starter card uses, so the two agree by
+       * construction rather than by being kept in step.
+       */
+      const card_ = describeSpecCard({
+        species: reward.species,
+        ability: reward.ability,
+        moves: reward.moves,
+        level: reward.level,
+        gender: reward.gender,
+      });
+
+      name.textContent = `${card_.species} · Lv${card_.level}${genderMark(reward.gender)}`;
+      detail.textContent = card_.ability;
       note.textContent = coverageLine(reward, state);
+
+      const types = el('span', 'panel__types');
+      types.replaceChildren(...card_.types.map(typeChip));
+      card.append(types, statLine(card_.baseStatsAtLevel, card_.maxHp));
+      for (const move of card_.moves) card.append(moveCard(move));
       break;
     }
   }

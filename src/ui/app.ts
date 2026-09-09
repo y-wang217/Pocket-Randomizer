@@ -85,6 +85,28 @@ export function mountApp(root: HTMLElement): void {
   root.replaceChildren(shell);
 
   /*
+   * Which phase the app is in, so CSS can reclaim the setup chrome on a phone.
+   *
+   * **The measured cause of the Stage 4.5.2 mobile complaints, and it was not
+   * what the brief guessed.** At 390x844 there is no horizontal overflow and
+   * the step chain has been laid out vertically since Stage 3 — but the title,
+   * the stage blurb, the Detail toggle and the seed box together occupy about
+   * 350px above *every* screen, which is 40% of a phone viewport spent on
+   * controls used once per run. That is what pushed the move buttons to y=777
+   * and the map's decision point to y=688.
+   *
+   * So the attribute, and the narrow-viewport rules keyed off it, are the whole
+   * fix for three of item F's four parts: nothing was mislaid out, there was
+   * simply no room left by the time the screen got its turn. It is set here
+   * rather than in each screen because it is a fact about the *app*, and
+   * because a screen that had to remember to set it would eventually forget.
+   */
+  const setPhase = (phase: 'setup' | 'running'): void => {
+    shell.dataset['phase'] = phase;
+  };
+  setPhase('setup');
+
+  /*
    * One tooltip layer for the whole app, mounted once.
    *
    * Delegated from the shell rather than from the battle screen, so a type
@@ -100,6 +122,7 @@ export function mountApp(root: HTMLElement): void {
   async function start(seed: string, resume?: RunLog): Promise<void> {
     abandon?.();
 
+    setPhase('running');
     seedBar.setSeed(seed);
     writeSeedToLocation(seed);
 
@@ -369,6 +392,9 @@ export function mountApp(root: HTMLElement): void {
       mapScreen.render(result.state, () => undefined, () => undefined);
       summaryScreen.render(result);
       router.show('summary');
+      // The run is over, so the seed controls are wanted again: the summary is
+      // where a player picks the next seed or replays this one.
+      setPhase('setup');
       // The run is over: a saved log now would resume into a finished run.
       clearRunLog();
     } catch {

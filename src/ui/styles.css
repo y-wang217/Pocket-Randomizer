@@ -1488,6 +1488,82 @@ body {
 
 .overlay__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
+/*
+ * The compact stat row on a pick screen. Item F, part 4.
+ *
+ * A grid rather than a flex row so the six cells line up across three stacked
+ * cards — comparing Atk between two offers means reading down a column, and a
+ * flex row would put each card's Atk at a different x. Monospaced numbers for
+ * the same reason.
+ */
+.statline {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.statline__stat { display: flex; flex-direction: column; gap: 1px; }
+
+.statline__label {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  cursor: help;
+}
+
+.statline__value { font-family: var(--mono); font-size: 12px; color: var(--text); }
+
+/* ---------- the phone pass ---------- */
+
+/*
+ * **Item F, and the measurement that produced it.**
+ *
+ * The brief expected a horizontal chain overflowing the viewport. There is
+ * none: at 390x844 `documentElement.scrollWidth` equals the viewport width and
+ * the step chain has laid out vertically since Stage 3. What the measurement
+ * actually found is that the app header and the seed box occupy roughly 350px
+ * above *every* screen — 40% of a phone — so the move buttons started at y=777
+ * of 844 and the map's decision point at y=688 with a party of one. Nothing was
+ * mislaid out. There was no room left by the time the screen got its turn.
+ *
+ * So the phone rules below reclaim that space rather than redesigning anything,
+ * and they only apply once a run is under way: during setup the seed box *is*
+ * the screen, and hiding it would leave a phone player with nothing to press.
+ */
+@media (max-width: 760px) {
+  /* The title shrinks and the stage blurb goes. It is a description of the
+     build for someone reading over your shoulder, not something a player in a
+     fight needs on screen. */
+  .shell[data-phase='running'] .header__title { font-size: 20px; letter-spacing: 0.18em; }
+  .shell[data-phase='running'] .header__subtitle { display: none; }
+
+  /* The seed box is a setup control. It stays reachable — the summary screen
+     restores the setup phase — but it does not sit above a live battle. */
+  .shell[data-phase='running'] .seedbar { display: none; }
+
+  /* Both battle panels tighten so the two of them plus the move grid fit
+     without scrolling. Nothing is removed: the six stats, the stages, the
+     status chips and the HP numbers are all still there. */
+  .shell[data-phase='running'] .panel { padding: 10px 12px; gap: 6px; }
+  .shell[data-phase='running'] .panel .stats { gap: 2px 10px; }
+
+  /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
+     four buttons in a column is a scroll, and a scroll is what this pass is
+     removing. */
+  .move { min-height: 44px; }
+  .moves { gap: 6px; }
+
+  /* The map's decision point is what the player came to the screen for, so the
+     current step's cards keep their full size while the rest of the chain
+     tightens around them. */
+  .step--done .node,
+  .step--upcoming .node { padding: 6px 8px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
 }

@@ -630,6 +630,110 @@ const rematchSeed = await page.inputValue('.seedbar__input');
 console.log(`\nrematch seed: ${rematchSeed} ${rematchSeed === seed ? '(same, ok)' : '(CHANGED — FAIL)'}`);
 if (rematchSeed !== seed) problems.push('rematch changed the seed');
 
+/*
+ * ---------------------------------------------------------------------------
+ * The phone pass. Item F of Stage 4.5.2.
+ * ---------------------------------------------------------------------------
+ *
+ * **Measured, not assumed.** The brief expected a step chain wider than the
+ * viewport with no scroll affordance. There is none — `scrollWidth` equals the
+ * viewport width and the chain has laid out vertically since Stage 3. What the
+ * measurement actually found is that the header and the seed box occupied
+ * ~350px above every screen, 40% of a 390x844 phone, so the move buttons
+ * started at y=777 and the map's decision point at y=688. Nothing was mislaid
+ * out; there was no room left by the time the screen got its turn.
+ *
+ * These assertions are here rather than in vitest because every one of them is
+ * about *layout at a viewport size*, which jsdom cannot answer — it has no
+ * layout engine, so `getBoundingClientRect` returns zeros and a passing test
+ * would mean nothing.
+ */
+console.log('\nphone (390x844):');
+const phone = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  isMobile: true,
+  hasTouch: true,
+});
+await phone.goto(url, { waitUntil: 'load' });
+await phone.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
+
+const phoneCheck = (label, ok, detail) => {
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? ` (${detail})` : ''}`);
+  if (!ok) problems.push(`phone: ${label} — ${detail}`);
+};
+
+// Starter cards carry base stats, so a pick is not a coin flip.
+const starterStats = await phone.locator('.starter .statline__stat').count();
+phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
+
+await phone.locator('.starter').first().click();
+await phone.waitForSelector(`${visible('map')}`);
+
+const mapMetrics = await phone.evaluate(() => {
+  const nodes = globalThis.document.querySelector('.step--current .step__nodes');
+  const rect = nodes?.getBoundingClientRect();
+  return {
+    scrollWidth: globalThis.document.documentElement.scrollWidth,
+    innerWidth: globalThis.window.innerWidth,
+    innerHeight: globalThis.window.innerHeight,
+    offered: rect ? { top: Math.round(rect.top), bottom: Math.round(rect.bottom) } : null,
+  };
+});
+
+phoneCheck(
+  'no horizontal overflow on the map',
+  mapMetrics.scrollWidth <= mapMetrics.innerWidth,
+  `${mapMetrics.scrollWidth}px in ${mapMetrics.innerWidth}px`,
+);
+phoneCheck(
+  'the offered nodes are fully visible without scrolling',
+  Boolean(mapMetrics.offered) && mapMetrics.offered.bottom <= mapMetrics.innerHeight,
+  mapMetrics.offered ? `cards end at y=${mapMetrics.offered.bottom} of ${mapMetrics.innerHeight}` : 'no current step',
+);
+
+// Into a fight, for the move grid and the stat panels.
+const phoneNode = phone.locator(`${visible('map')} .step--current .node`).first();
+if (await phoneNode.count()) {
+  await phoneNode.click();
+  await phone.waitForTimeout(600);
+}
+
+if (await phone.locator(visible('battle')).count()) {
+  const battle = await phone.evaluate(() => {
+    const buttons = [...globalThis.document.querySelectorAll('.moves .move')];
+    const rects = buttons.map((b) => b.getBoundingClientRect());
+    const grid = globalThis.document.querySelector('.moves');
+    const columns = grid ? globalThis.getComputedStyle(grid).gridTemplateColumns.split(' ').length : 0;
+    const panels = [...globalThis.document.querySelectorAll('.panel')].map((p) => p.getBoundingClientRect());
+    return {
+      innerHeight: globalThis.window.innerHeight,
+      count: buttons.length,
+      columns,
+      minHeight: rects.length ? Math.round(Math.min(...rects.map((r) => r.height))) : 0,
+      movesBottom: rects.length ? Math.round(Math.max(...rects.map((r) => r.bottom))) : 0,
+      panelsBottom: panels.length ? Math.round(Math.max(...panels.map((r) => r.bottom))) : 0,
+      // PP and effectiveness live on the button face, not behind a hover.
+      withPp: globalThis.document.querySelectorAll('.moves .move__pp').length,
+      scrollWidth: globalThis.document.documentElement.scrollWidth,
+      innerWidth: globalThis.window.innerWidth,
+    };
+  });
+
+  phoneCheck('four move buttons in a 2x2 grid', battle.count === 4 && battle.columns === 2,
+    `${battle.count} buttons, ${battle.columns} columns`);
+  phoneCheck('move buttons meet the 44px touch target', battle.minHeight >= 44, `${battle.minHeight}px`);
+  phoneCheck('every move button shows PP', battle.withPp === battle.count, `${battle.withPp}/${battle.count}`);
+  phoneCheck('both stat panels are above the fold', battle.panelsBottom <= battle.innerHeight,
+    `panels end at y=${battle.panelsBottom} of ${battle.innerHeight}`);
+  phoneCheck('the move grid is above the fold', battle.movesBottom <= battle.innerHeight,
+    `moves end at y=${battle.movesBottom} of ${battle.innerHeight}`);
+  phoneCheck('no horizontal overflow in a battle', battle.scrollWidth <= battle.innerWidth,
+    `${battle.scrollWidth}px in ${battle.innerWidth}px`);
+  await phone.screenshot({ path: 'stats/phone-battle.png' });
+} else {
+  problems.push('phone: never reached a battle');
+}
+
 await browser.close();
 server.close();
 
