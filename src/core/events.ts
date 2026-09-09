@@ -30,6 +30,7 @@ import { stow } from './items';
 import { recoverParty } from './party';
 import type { Rng } from './rng';
 import type { RunState } from './run';
+import { hpEventDelta } from './hpCopy';
 import { itemById } from '../data/items';
 import { EVENTS, type EventDefinition, type EventOutcomeTemplate } from '../data/events';
 import type { Tuning } from '../data/tuning';
@@ -193,10 +194,13 @@ export function describeOutcome(outcome: EventOutcome): string {
   switch (outcome.kind) {
     case 'currency':
       return outcome.amount >= 0 ? `+${outcome.amount} coins` : `${outcome.amount} coins`;
+    // The one place a delta is the correct unit: an event label describes an
+    // effect drawn at map generation, so there is no "after" to state yet.
+    // `core/hpCopy.ts` says why, and owns the wording.
     case 'damage':
-      return `-${Math.round(outcome.percent * 100)}% HP`;
+      return hpEventDelta(-outcome.percent);
     case 'heal':
-      return `+${Math.round(outcome.percent * 100)}% HP`;
+      return hpEventDelta(outcome.percent);
     case 'item':
       return itemById(outcome.item)?.name ?? outcome.item;
     case 'nothing':

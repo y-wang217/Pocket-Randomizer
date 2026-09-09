@@ -568,7 +568,7 @@ body {
 
 /* 0x is the one badge allowed to shout. A move that does literally nothing is
    a wasted turn, and it is the case a new player most needs told. */
-.badge--effect[data-band="immune"] {
+.badge--effect[data-band="none"] {
   background: var(--hp-low);
   color: #1a0505;
 }
@@ -679,6 +679,15 @@ body {
 .log-entry strong { color: var(--text); font-weight: 600; }
 .log-entry--detail { color: var(--text-dim); padding-left: 10px; }
 
+/* The HP state line: what is left, after the sentence that changed it. Quiet,
+   monospaced and indented, because it is a readout rather than a narration. */
+.log-entry--hp {
+  color: var(--text-dim);
+  padding-left: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
 .log-entry--turn {
   margin: 14px 0 8px;
   padding-top: 8px;
@@ -691,6 +700,77 @@ body {
 }
 
 .log-entry--turn:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
+/*
+ * Turn order, made visible. Item C of the 4.5.2 playtest round.
+ *
+ * Priority has resolved correctly since Stage 0 — the sim does it natively and
+ * GYMRUN never computes turn order — but the log was a flat list of sentences
+ * with no marker for sequence, so a slower Pokemon moving first read as a bug.
+ * The ordinal is the fix, and it is deliberately tiny: this is a log a player
+ * scans between turns, not a combat replay.
+ */
+.log-entry--action {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.log-entry__order {
+  flex: none;
+  min-width: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-faint);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+/* The ordinal says when; the colour says who. Two facts, one glyph. */
+.log-entry--action[data-side='p1'] .log-entry__order { color: var(--accent); border-color: var(--accent); }
+
+.log-entry__priority {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--stage-up);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: help;
+}
+
+/* A switch is a different kind of event from a hit, and gets a rule of its own
+   rather than a colour — colour is already carrying whose turn it was. */
+.log-entry--switch {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 6px;
+  margin-left: -8px;
+}
+
+/*
+ * The sprite-swap beat.
+ *
+ * A switch changes the whole panel at once and, without a beat, reads as the
+ * screen glitching. One short fade-and-rise, and — per the spec — it must not
+ * block input: this is a CSS animation on a panel nobody has to wait for, no
+ * timer gates the move buttons, and tapping anywhere cancels it (`scene.ts`
+ * clears the attribute on pointerdown).
+ */
+@keyframes panel-swap {
+  from { opacity: 0.25; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.panel[data-swapped='true'] .panel__header,
+.panel[data-swapped='true'] .hp {
+  animation: panel-swap 260ms ease-out;
+}
+
 
 /* ---------- screens ---------- */
 
@@ -1089,7 +1169,31 @@ body {
 
 .screen--party,
 .screen--acquisition,
-.screen--target { align-items: flex-start; }
+.screen--target,
+.screen--result { align-items: flex-start; }
+
+/* ---------- result screen ---------- */
+
+.screen--result > * { width: min(760px, 100%); }
+
+.screen__title[data-outcome='win'] { color: var(--stage-up); }
+.screen__title[data-outcome='loss'] { color: var(--hp-low); }
+
+.result__heading {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.result__party { display: grid; gap: 8px; }
+
+.result__actions { display: flex; gap: 8px; margin-top: 18px; }
+
+/* 44px of touch target: this is the button a phone player presses after every
+   fight, and it is the only way off the screen when no cards are offered. */
+.result__actions .button { min-height: 44px; }
 
 /* The offered Pokemon, in the same card shape as the party it is measured
    against — anything else makes the comparison a matter of squinting. */
@@ -1127,6 +1231,48 @@ body {
 /* A near-dud that announces itself is a legible choice; one that hides is a
    lottery the player loses four fights later. */
 .target__effect--dud { color: var(--hp-mid); }
+
+/* ---------- move replacement ---------- */
+
+/* Left-aligned like the other decision screens, so the five move cards start
+   on the same edge the target screen's party cards did one click earlier. */
+.screen--replace { align-items: flex-start; }
+
+.screen--replace > * { width: min(760px, 100%); }
+
+.replace__heading {
+  margin: 18px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* The incoming move sits alone and full width; the four it could displace are
+   the same 2x2 grid as the battle screen's buttons. A player giving up Ice
+   Beam should be reaching for it in the position they already know it by. */
+.replace__incoming { display: block; }
+
+.replace__moves {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.replace__owner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 13px;
+}
+
+/* Minimum 44px of touch target, because this screen is a phone screen: four
+   cards, one irreversible tap, and no undo behind it. */
+.move--victim { min-height: 44px; }
+
+.move--victim:hover { border-color: var(--hp-low); }
 
 /* ---------- battle screen ---------- */
 
@@ -1341,6 +1487,82 @@ body {
 }
 
 .overlay__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+/*
+ * The compact stat row on a pick screen. Item F, part 4.
+ *
+ * A grid rather than a flex row so the six cells line up across three stacked
+ * cards — comparing Atk between two offers means reading down a column, and a
+ * flex row would put each card's Atk at a different x. Monospaced numbers for
+ * the same reason.
+ */
+.statline {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 8px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.statline__stat { display: flex; flex-direction: column; gap: 1px; }
+
+.statline__label {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  cursor: help;
+}
+
+.statline__value { font-family: var(--mono); font-size: 12px; color: var(--text); }
+
+/* ---------- the phone pass ---------- */
+
+/*
+ * **Item F, and the measurement that produced it.**
+ *
+ * The brief expected a horizontal chain overflowing the viewport. There is
+ * none: at 390x844 `documentElement.scrollWidth` equals the viewport width and
+ * the step chain has laid out vertically since Stage 3. What the measurement
+ * actually found is that the app header and the seed box occupy roughly 350px
+ * above *every* screen — 40% of a phone — so the move buttons started at y=777
+ * of 844 and the map's decision point at y=688 with a party of one. Nothing was
+ * mislaid out. There was no room left by the time the screen got its turn.
+ *
+ * So the phone rules below reclaim that space rather than redesigning anything,
+ * and they only apply once a run is under way: during setup the seed box *is*
+ * the screen, and hiding it would leave a phone player with nothing to press.
+ */
+@media (max-width: 760px) {
+  /* The title shrinks and the stage blurb goes. It is a description of the
+     build for someone reading over your shoulder, not something a player in a
+     fight needs on screen. */
+  .shell[data-phase='running'] .header__title { font-size: 20px; letter-spacing: 0.18em; }
+  .shell[data-phase='running'] .header__subtitle { display: none; }
+
+  /* The seed box is a setup control. It stays reachable — the summary screen
+     restores the setup phase — but it does not sit above a live battle. */
+  .shell[data-phase='running'] .seedbar { display: none; }
+
+  /* Both battle panels tighten so the two of them plus the move grid fit
+     without scrolling. Nothing is removed: the six stats, the stages, the
+     status chips and the HP numbers are all still there. */
+  .shell[data-phase='running'] .panel { padding: 10px 12px; gap: 6px; }
+  .shell[data-phase='running'] .panel .stats { gap: 2px 10px; }
+
+  /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
+     four buttons in a column is a scroll, and a scroll is what this pass is
+     removing. */
+  .move { min-height: 44px; }
+  .moves { gap: 6px; }
+
+  /* The map's decision point is what the player came to the screen for, so the
+     current step's cards keep their full size while the rest of the chain
+     tightens around them. */
+  .step--done .node,
+  .step--upcoming .node { padding: 6px 8px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }

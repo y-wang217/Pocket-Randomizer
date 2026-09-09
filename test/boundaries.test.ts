@@ -99,7 +99,30 @@ describe('the battle UI boundary', () => {
    * turn it is rendering.
    */
   it('draws the field from the projection alone', () => {
-    const allowed = new Set(['core/battle/view', 'core/battle/stats', 'core/types']);
+    /*
+     * `core/battle/effectiveness` joined the list in Stage 4.5.2, and it is not
+     * a widening of the rule.
+     *
+     * It is the leaf `view.ts` itself delegates to — the projection's own
+     * vocabulary, split out of it so the four effectiveness bands could be unit
+     * tested without building a battle. The scene reads only the band *names*
+     * from it (`EFFECTIVENESS_LABELS`); the answer still arrives on the
+     * projection, and the scene still computes none of it.
+     */
+    /*
+     * `core/hpCopy` joined in Stage 4.5.2 for the same reason
+     * `core/battle/effectiveness` did: it is vocabulary, not data. The scene
+     * reads the *wording* of an HP readout from it and the numbers from the
+     * projection, which is the split item G asks for — one file to change a
+     * string, and no screen deciding what a number means.
+     */
+    const allowed = new Set([
+      'core/battle/view',
+      'core/battle/effectiveness',
+      'core/battle/stats',
+      'core/hpCopy',
+      'core/types',
+    ]);
     const imports = [...sourceOf('src/ui/scene.ts').matchAll(/from\s+['"]([^'"]+)['"]/g)]
       .map((match) => match[1] ?? '')
       .filter((path) => path.includes('core/'))
@@ -167,6 +190,76 @@ describe('the battle UI boundary', () => {
     // And the four sources it *does* read from are all outside this file.
     for (const source_ of ['statusInfo', 'abilityText', 'itemById', 'typeChart']) {
       expect(source, `tooltips.ts should read ${source_} from elsewhere`).toContain(source_);
+    }
+  });
+
+  /**
+   * **Every `RunPolicy` question the app implements must reach a screen.**
+   *
+   * This rule is here because breaking it is silent. `chooseMoveToReplace`
+   * shipped wired to `defaultMoveReplacement` — the heuristic the scripted
+   * baseline answers with — so `playRun` asked the question, the run log
+   * recorded an answer, every test passed, and the player was simply never
+   * shown the choice. Nothing in the suite could tell the difference between
+   * "the human picked slot 2" and "the app picked slot 2 for them", because
+   * from `core/`'s side there is no difference at all.
+   *
+   * So the check is on the shape of the answer rather than on its value: a
+   * decision the human policy resolves without parking on a `Pending` is a
+   * decision the human never made. `battle` is the exception and is listed as
+   * one — it parks on `movePick`, which the battle screen submits into.
+   */
+  /**
+   * **Every player-facing HP string comes from `core/hpCopy.ts`.** Item G.
+   *
+   * The rule is that wording is a one-file change, and the way that rule dies
+   * is one screen formatting `${hp} / ${maxHp}` inline because it is three
+   * characters shorter than an import. The check is crude on purpose — a regex
+   * for the shape of the template, over the screens — because the failure it
+   * catches is a copy of the format, not a call to a wrong function.
+   */
+  it('keeps HP wording in one file', () => {
+    const screens = walk(join(ROOT, 'src/ui')).map((file) => relative(ROOT, file));
+    const inline = /`\$\{[^`]*\}\s*\/\s*\$\{[^`]*\}\s*HP/;
+
+    const offenders = screens.filter((file) => inline.test(stripComments(sourceOf(file))));
+    expect(offenders, 'format HP through core/hpCopy.ts instead').toEqual([]);
+  });
+
+  it('asks the player every question the human policy claims to ask', () => {
+    const source = sourceOf('src/ui/app.ts');
+
+    // The block from `chooseStarter` to the end of the policy literal.
+    const policy = /chooseStarter:[\s\S]*?\n {4}\};/.exec(source)?.[0] ?? '';
+    expect(policy, 'could not find the human RunPolicy in app.ts').not.toEqual('');
+
+    const asked = [
+      'chooseStarter',
+      'chooseNode',
+      'chooseReward',
+      'chooseShopPurchases',
+      'chooseEventOption',
+      'chooseMoveRecipient',
+      'chooseMoveToReplace',
+      'chooseAcquisition',
+      'battle',
+    ];
+
+    /*
+     * Each entry is sliced at the *next* entry's key before it is searched, so
+     * a question cannot pass by borrowing the `.wait()` of the one below it.
+     * That is the whole failure mode: the broken version sat directly above
+     * `chooseAcquisition`, which does park on a pending.
+     */
+    const starts = asked.map((question) => ({ question, at: policy.indexOf(`${question}:`) }));
+    for (const [index, entry] of starts.entries()) {
+      expect(entry.at, `app.ts has no ${entry.question} entry`).toBeGreaterThanOrEqual(0);
+      const ends = starts
+        .slice(index + 1)
+        .map((next) => next.at)
+        .filter((at) => at > entry.at);
+      const body = policy.slice(entry.at, ends.length > 0 ? Math.min(...ends) : policy.length);
+      expect(body, `app.ts answers ${entry.question} without asking the player`).toContain('.wait()');
     }
   });
 });

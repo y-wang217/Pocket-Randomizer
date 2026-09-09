@@ -47,6 +47,7 @@
  */
 import { describeSpecCard } from '../../core/battle/driver';
 import { backpackCapacity } from '../../core/items';
+import { FAINTED, hpState, ppState } from '../../core/hpCopy';
 import { hpFraction, ppTotals } from '../../core/party';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
 import { itemById } from '../../data/items';
@@ -281,8 +282,8 @@ function renderManaged(
   const hp = el('span', 'panel__hp-text');
   const pp = ppTotals(member);
   hp.textContent = member.fainted
-    ? `Fainted · PP ${pp.pp}/${pp.maxPp}`
-    : `${member.hp} / ${member.maxHp} HP · PP ${pp.pp}/${pp.maxPp}`;
+    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
+    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
   meta.append(hp);
 
   if (member.status) {

@@ -128,9 +128,11 @@ async function playRun(label) {
   let nodes = 0;
   let rests = 0;
   let rewards = 0;
+  let results = 0;
   let shops = 0;
   let events = 0;
   let targets = 0;
+  let replacements = 0;
   let acquisitions = 0;
   let releases = 0;
   let partyVisits = 0;
@@ -167,6 +169,13 @@ async function playRun(label) {
           await page.waitForTimeout(500);
           await page.screenshot({ path: `stats/${label}-battle.png`, fullPage: true });
         }
+        // A later shot too, so the log has a few turns in it: turn order and
+        // priority markers are the point of Stage 4.5.2 and cannot be read off
+        // a battle that is three lines old.
+        if (battles === 24) {
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: `stats/${label}-battle-log.png`, fullPage: true });
+        }
         await move.click();
         battles++;
         await page.waitForTimeout(25);
@@ -184,12 +193,28 @@ async function playRun(label) {
      * Each takes the same deterministic-from-what-is-on-screen approach the
      * rest of this bot uses, so the second run can be compared to the first.
      */
-    if (await page.locator(visible('reward')).count()) {
-      const card = page.locator(`${visible('reward')} .reward`).first();
+    /*
+     * The result screen, which every battle now ends on. Stage 4.5.2 item D.
+     *
+     * Two shapes, and the bot has to answer both: with cards it takes one (the
+     * card *is* the continue, since there is no skip), and without cards — a
+     * fight the player lost — it presses Carry on. A run that only knew the
+     * first shape would hang on the first defeat.
+     */
+    if (await page.locator(visible('result')).count()) {
+      const card = page.locator(`${visible('result')} .reward`).first();
       if (await card.count()) {
         if (rewards === 0) await page.screenshot({ path: `stats/${label}-reward.png`, fullPage: true });
         await card.click();
         rewards++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+      const carry = page.locator(`${visible('result')} .result__actions .button`).first();
+      if (await carry.count()) {
+        if (results === 0) await page.screenshot({ path: `stats/${label}-result.png`, fullPage: true });
+        await carry.click();
+        results++;
         await page.waitForTimeout(25);
         continue;
       }
@@ -246,6 +271,31 @@ async function playRun(label) {
         if (targets === 0) await page.screenshot({ path: `stats/${label}-target.png`, fullPage: true });
         await card.click();
         targets++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+    }
+
+    /*
+     * Which move it costs, and the reason this branch is not optional.
+     *
+     * The replacement screen is modal by design — there is no decline, so
+     * `playRun` parks here until a slot comes back. A smoke run that did not
+     * know about it would not fail loudly; it would sit on this screen until
+     * the summary timed out, which is exactly how the screen came to be
+     * missing in the first place.
+     *
+     * The last slot rather than the first, deliberately. `defaultMoveReplacement`
+     * drops the weakest attack, which is usually an early slot, so always
+     * taking slot 0 would make the smoke run agree with the old auto-answer by
+     * accident and stop proving that a human choice is what got applied.
+     */
+    if (await page.locator(visible('replace')).count()) {
+      const victim = page.locator(`${visible('replace')} .move--victim`).last();
+      if (await victim.count()) {
+        if (replacements === 0) await page.screenshot({ path: `stats/${label}-replace.png`, fullPage: true });
+        await victim.click();
+        replacements++;
         await page.waitForTimeout(25);
         continue;
       }
@@ -335,9 +385,11 @@ async function playRun(label) {
     nodes,
     rests,
     rewards,
+    results,
     shops,
     events,
     targets,
+    replacements,
     acquisitions,
     releases,
     partyVisits,
@@ -431,9 +483,13 @@ const first = await playRun('run1');
 console.log(`\nrun finished: ${first.title} (${first.outcome})`);
 console.log(`  ${first.detail}`);
 console.log(`  ${first.nodes} node choices (${first.rests} rests), ${first.battles} move clicks`);
-console.log(`  ${first.rewards} reward picks, ${first.shops} shop visits, ${first.events} events`);
 console.log(
-  `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} item targets, ` +
+  `  ${first.rewards} reward picks, ${first.results} cardless results, ` +
+    `${first.shops} shop visits, ${first.events} events`,
+);
+console.log(
+  `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} move targets, ` +
+    `${first.replacements} move replacements, ` +
     `${first.switches} forced switches, ${first.partyVisits} party screens`,
 );
 console.log(`  map partway through: ${JSON.stringify(first.mapStructure)}`);
@@ -548,9 +604,9 @@ same('node choices and move clicks', [first.nodes, first.battles], [second.nodes
 // cards moved between two plays of one seed would break the seed's promise more
 // visibly than anything else on screen.
 same(
-  'reward, shop and event decisions',
-  [first.rewards, first.shops, first.events],
-  [second.rewards, second.shops, second.events],
+  'reward, cardless-result, shop and event decisions',
+  [first.rewards, first.results, first.shops, first.events],
+  [second.rewards, second.results, second.shops, second.events],
 );
 /*
  * And Stage 4's, which are the ones most likely to drift.
@@ -561,9 +617,9 @@ same(
  * clicks, it would show up here first.
  */
 same(
-  'acquisition, release and item-target decisions',
-  [first.acquisitions, first.releases, first.targets],
-  [second.acquisitions, second.releases, second.targets],
+  'acquisition, release, move-target and replacement decisions',
+  [first.acquisitions, first.releases, first.targets, first.replacements],
+  [second.acquisitions, second.releases, second.targets, second.replacements],
 );
 same('switches and final party size', [first.switches, first.teamCards], [second.switches, second.teamCards]);
 same('map shape partway through', first.mapStructure, second.mapStructure);
@@ -573,6 +629,110 @@ same('cause of death', first.cause, second.cause);
 const rematchSeed = await page.inputValue('.seedbar__input');
 console.log(`\nrematch seed: ${rematchSeed} ${rematchSeed === seed ? '(same, ok)' : '(CHANGED — FAIL)'}`);
 if (rematchSeed !== seed) problems.push('rematch changed the seed');
+
+/*
+ * ---------------------------------------------------------------------------
+ * The phone pass. Item F of Stage 4.5.2.
+ * ---------------------------------------------------------------------------
+ *
+ * **Measured, not assumed.** The brief expected a step chain wider than the
+ * viewport with no scroll affordance. There is none — `scrollWidth` equals the
+ * viewport width and the chain has laid out vertically since Stage 3. What the
+ * measurement actually found is that the header and the seed box occupied
+ * ~350px above every screen, 40% of a 390x844 phone, so the move buttons
+ * started at y=777 and the map's decision point at y=688. Nothing was mislaid
+ * out; there was no room left by the time the screen got its turn.
+ *
+ * These assertions are here rather than in vitest because every one of them is
+ * about *layout at a viewport size*, which jsdom cannot answer — it has no
+ * layout engine, so `getBoundingClientRect` returns zeros and a passing test
+ * would mean nothing.
+ */
+console.log('\nphone (390x844):');
+const phone = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  isMobile: true,
+  hasTouch: true,
+});
+await phone.goto(url, { waitUntil: 'load' });
+await phone.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
+
+const phoneCheck = (label, ok, detail) => {
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? ` (${detail})` : ''}`);
+  if (!ok) problems.push(`phone: ${label} — ${detail}`);
+};
+
+// Starter cards carry base stats, so a pick is not a coin flip.
+const starterStats = await phone.locator('.starter .statline__stat').count();
+phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
+
+await phone.locator('.starter').first().click();
+await phone.waitForSelector(`${visible('map')}`);
+
+const mapMetrics = await phone.evaluate(() => {
+  const nodes = globalThis.document.querySelector('.step--current .step__nodes');
+  const rect = nodes?.getBoundingClientRect();
+  return {
+    scrollWidth: globalThis.document.documentElement.scrollWidth,
+    innerWidth: globalThis.window.innerWidth,
+    innerHeight: globalThis.window.innerHeight,
+    offered: rect ? { top: Math.round(rect.top), bottom: Math.round(rect.bottom) } : null,
+  };
+});
+
+phoneCheck(
+  'no horizontal overflow on the map',
+  mapMetrics.scrollWidth <= mapMetrics.innerWidth,
+  `${mapMetrics.scrollWidth}px in ${mapMetrics.innerWidth}px`,
+);
+phoneCheck(
+  'the offered nodes are fully visible without scrolling',
+  Boolean(mapMetrics.offered) && mapMetrics.offered.bottom <= mapMetrics.innerHeight,
+  mapMetrics.offered ? `cards end at y=${mapMetrics.offered.bottom} of ${mapMetrics.innerHeight}` : 'no current step',
+);
+
+// Into a fight, for the move grid and the stat panels.
+const phoneNode = phone.locator(`${visible('map')} .step--current .node`).first();
+if (await phoneNode.count()) {
+  await phoneNode.click();
+  await phone.waitForTimeout(600);
+}
+
+if (await phone.locator(visible('battle')).count()) {
+  const battle = await phone.evaluate(() => {
+    const buttons = [...globalThis.document.querySelectorAll('.moves .move')];
+    const rects = buttons.map((b) => b.getBoundingClientRect());
+    const grid = globalThis.document.querySelector('.moves');
+    const columns = grid ? globalThis.getComputedStyle(grid).gridTemplateColumns.split(' ').length : 0;
+    const panels = [...globalThis.document.querySelectorAll('.panel')].map((p) => p.getBoundingClientRect());
+    return {
+      innerHeight: globalThis.window.innerHeight,
+      count: buttons.length,
+      columns,
+      minHeight: rects.length ? Math.round(Math.min(...rects.map((r) => r.height))) : 0,
+      movesBottom: rects.length ? Math.round(Math.max(...rects.map((r) => r.bottom))) : 0,
+      panelsBottom: panels.length ? Math.round(Math.max(...panels.map((r) => r.bottom))) : 0,
+      // PP and effectiveness live on the button face, not behind a hover.
+      withPp: globalThis.document.querySelectorAll('.moves .move__pp').length,
+      scrollWidth: globalThis.document.documentElement.scrollWidth,
+      innerWidth: globalThis.window.innerWidth,
+    };
+  });
+
+  phoneCheck('four move buttons in a 2x2 grid', battle.count === 4 && battle.columns === 2,
+    `${battle.count} buttons, ${battle.columns} columns`);
+  phoneCheck('move buttons meet the 44px touch target', battle.minHeight >= 44, `${battle.minHeight}px`);
+  phoneCheck('every move button shows PP', battle.withPp === battle.count, `${battle.withPp}/${battle.count}`);
+  phoneCheck('both stat panels are above the fold', battle.panelsBottom <= battle.innerHeight,
+    `panels end at y=${battle.panelsBottom} of ${battle.innerHeight}`);
+  phoneCheck('the move grid is above the fold', battle.movesBottom <= battle.innerHeight,
+    `moves end at y=${battle.movesBottom} of ${battle.innerHeight}`);
+  phoneCheck('no horizontal overflow in a battle', battle.scrollWidth <= battle.innerWidth,
+    `${battle.scrollWidth}px in ${battle.innerWidth}px`);
+  await phone.screenshot({ path: 'stats/phone-battle.png' });
+} else {
+  problems.push('phone: never reached a battle');
+}
 
 await browser.close();
 server.close();

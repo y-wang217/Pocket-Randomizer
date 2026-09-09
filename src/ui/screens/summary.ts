@@ -18,6 +18,7 @@
  *     lost" is not a summary; "Vesper's Chandelure, Sacred Fire, at gym 7" is
  *     something to plan against next time.
  */
+import { hpState } from '../../core/hpCopy';
 import { describeSpecCard } from '../../core/battle/driver';
 import { causeOfDeath, gymsCleared, type CauseOfDeath, type RunResult, type RunState } from '../../core/run';
 import { GYMS } from '../../data/gyms';
@@ -202,7 +203,7 @@ function renderMember(member: RunState['party'][number]): HTMLElement {
   header.append(name, level, types);
 
   const meta = el('div', 'starter__meta');
-  meta.textContent = `${detail.ability} · ${member.hp} / ${member.maxHp} HP`;
+  meta.textContent = `${detail.ability} · ${hpState(member.hp, member.maxHp)}`;
 
   const moves = el('ul', 'starter__moves');
   moves.replaceChildren(

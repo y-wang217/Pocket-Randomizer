@@ -215,6 +215,87 @@ const ELITE: readonly RewardBand[] = [
 ];
 
 /**
+ * The gym pool: what clearing a segment pays.
+ *
+ * **Keyed by segment index rather than by tier, and that is forced rather than
+ * chosen.** A gym node carries `tier: null` by design (see `NodeSpec.tier`) —
+ * there is one gym per segment and no version of it you could have taken
+ * instead, so a tier would be a risk label on a decision nobody made. With no
+ * tier there is nothing for `rewardEntriesFor` to key on, so this table is
+ * indexed the only other way the run is ordered.
+ *
+ * ## Why gyms paid nothing until now
+ *
+ * The old reasoning is in `resolveNode`: a cleared gym already pays the segment
+ * heal and a level, "which is a larger reward than any card in any pool". That
+ * is true of the heal and false of the feeling. The heal is *restorative* — it
+ * puts you back where you were — and the level is automatic and invisible,
+ * a number that goes up because you advanced rather than because you won. So
+ * the hardest fight in the segment was the only one that handed you nothing to
+ * choose, and the playtest reported exactly that.
+ *
+ * ## The rule these entries have to satisfy
+ *
+ * **Strictly better than elite, entry for entry.** Elite is already "the best
+ * rewards in the game" (`TIER_HINTS`), so a gym pool that merely matched it
+ * would make the clear feel like a slightly lucky elite node. The gradient is
+ * carried the same way the tier gradient is — by moves and money, which do not
+ * saturate, rather than by items, which do at one held item per member:
+ *
+ *   - currency well above the elite band, since it converts to healing and
+ *     moves at the next shop and is the least saturating thing here;
+ *   - a tutor two bands up rather than one, so a gym clear is the reliable way
+ *     to upgrade your best attack rather than a coverage sidegrade;
+ *   - the premium items only, never the modest or type ones;
+ *   - a species offer at a higher weight than elite carries, because a party
+ *     slot is the single least saturating reward in the game while slots remain
+ *     and a gym is the natural place to grow.
+ *
+ * There is no `heal` entry anywhere in it, and that is the one deliberate
+ * *absence*. `gymClearHealFraction` already heals the party on the same
+ * transition, so a heal card here would be a card that does nothing — the worst
+ * possible third of an offer with no skip and no reroll.
+ */
+const GYM: readonly RewardBand[] = [
+  {
+    // The opening three gyms. No Choice items, for the reason ELITE gives: a
+    // whole-battle move lock is a trap for a player who has not yet learned
+    // what their moveset does, and gym 1 is where that player is.
+    throughSegment: 2,
+    entries: [
+      { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
+      { kind: 'tutor', weight: 5, bandOffset: 2 },
+      { kind: 'currency', weight: 3, min: 110, max: 165 },
+      { kind: 'species', weight: 4, bandOffset: 2 },
+    ],
+  },
+  {
+    throughSegment: 7,
+    entries: [
+      { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
+      { kind: 'tutor', weight: 5, bandOffset: 3 },
+      { kind: 'currency', weight: 3, min: 150, max: 230 },
+      { kind: 'species', weight: 4, bandOffset: 2 },
+    ],
+  },
+];
+
+/**
+ * The entries a gym clear draws from, by segment.
+ *
+ * Separate from `rewardEntriesFor` rather than folded into it with a nullable
+ * tier, because the two are keyed on different things and a function that took
+ * `Tier | null` would invite exactly the bug `NodeSpec.tier` was made nullable
+ * to prevent: `REWARD_POOLS[node.tier]` compiling perfectly and handing a gym a
+ * normal-tier card.
+ */
+export function gymRewardEntriesFor(segment: number): readonly RewardEntry[] {
+  const row = GYM.find((band) => segment <= band.throughSegment) ?? GYM[GYM.length - 1];
+  if (!row) throw new RangeError(`No gym reward pool for segment ${segment}`);
+  return row.entries;
+}
+
+/**
  * How often a wild node offers the species it just fielded, by tier.
  *
  * **Keyed to tier and not to segment, which is the same rule the reward pools

@@ -20,7 +20,6 @@ import { releaseMember, reorderParty } from '../core/party';
 import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
-  defaultMoveReplacement,
   isReplayable,
   playRun,
   resumeRun,
@@ -39,8 +38,9 @@ import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 import { createAcquisitionScreen } from './screens/acquisition';
 import { createItemTargetScreen } from './screens/item-target';
+import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
-import { createRewardScreen } from './screens/reward';
+import { createResultScreen } from './screens/result';
 import { createRouter } from './screens/router';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
@@ -56,10 +56,11 @@ export function mountApp(root: HTMLElement): void {
   const starterScreen = createStarterSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
-  const rewardScreen = createRewardScreen();
+  const resultScreen = createResultScreen();
   const shopScreen = createShopScreen();
   const eventScreen = createEventScreen();
   const targetScreen = createItemTargetScreen();
+  const replaceScreen = createMoveReplaceScreen();
   const acquisitionScreen = createAcquisitionScreen();
   const partyScreen = createPartyScreen();
   const summaryScreen = createSummary();
@@ -68,8 +69,9 @@ export function mountApp(root: HTMLElement): void {
     starter: starterScreen.root,
     map: mapScreen.root,
     battle: battleScreen.root,
-    reward: rewardScreen.root,
+    result: resultScreen.root,
     target: targetScreen.root,
+    replace: replaceScreen.root,
     acquisition: acquisitionScreen.root,
     party: partyScreen.root,
     shop: shopScreen.root,
@@ -81,6 +83,28 @@ export function mountApp(root: HTMLElement): void {
   const shell = el('main', 'shell');
   shell.append(createHeader(), seedBar.root, router.root);
   root.replaceChildren(shell);
+
+  /*
+   * Which phase the app is in, so CSS can reclaim the setup chrome on a phone.
+   *
+   * **The measured cause of the Stage 4.5.2 mobile complaints, and it was not
+   * what the brief guessed.** At 390x844 there is no horizontal overflow and
+   * the step chain has been laid out vertically since Stage 3 — but the title,
+   * the stage blurb, the Detail toggle and the seed box together occupy about
+   * 350px above *every* screen, which is 40% of a phone viewport spent on
+   * controls used once per run. That is what pushed the move buttons to y=777
+   * and the map's decision point to y=688.
+   *
+   * So the attribute, and the narrow-viewport rules keyed off it, are the whole
+   * fix for three of item F's four parts: nothing was mislaid out, there was
+   * simply no room left by the time the screen got its turn. It is set here
+   * rather than in each screen because it is a fact about the *app*, and
+   * because a screen that had to remember to set it would eventually forget.
+   */
+  const setPhase = (phase: 'setup' | 'running'): void => {
+    shell.dataset['phase'] = phase;
+  };
+  setPhase('setup');
 
   /*
    * One tooltip layer for the whole app, mounted once.
@@ -98,14 +122,16 @@ export function mountApp(root: HTMLElement): void {
   async function start(seed: string, resume?: RunLog): Promise<void> {
     abandon?.();
 
+    setPhase('running');
     seedBar.setSeed(seed);
     writeSeedToLocation(seed);
 
     const starterPick = createPending<number>();
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
-    const rewardPick = createPending<number>();
+    const rewardPick = createPending<number | null>();
     const targetPick = createPending<number>();
+    const replacePick = createPending<number>();
     const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<number>();
@@ -121,6 +147,7 @@ export function mountApp(root: HTMLElement): void {
       movePick.cancel();
       rewardPick.cancel();
       targetPick.cancel();
+      replacePick.cancel();
       acquirePick.cancel();
       shopBasket.cancel();
       eventPick.cancel();
@@ -139,10 +166,34 @@ export function mountApp(root: HTMLElement): void {
         router.show('map');
         return nodePick.wait();
       },
-      chooseReward: (offer, state) => {
-        rewardScreen.render(offer, state, (index) => rewardPick.submit(index));
-        router.show('reward');
+      /*
+       * Every battle completion, win or loss, cards or none.
+       *
+       * This is the hook item D added, and it is the *only* one `playRun` uses
+       * for a battle node — so a rewardless win lands on a screen instead of
+       * dropping the player back to the map with nothing to say the node
+       * happened. Reward cards render inside the result rather than replacing
+       * it; taking one is the continue, and when there are none the screen
+       * grows a Carry on button instead.
+       */
+      reviewBattle: (review, state) => {
+        resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
+        router.show('result');
         return rewardPick.wait();
+      },
+      /*
+       * Required by `RunPolicy` and unreachable from `playRun` while
+       * `reviewBattle` is implemented above, because the two are one question
+       * and `playRun` asks the richer form when it is offered.
+       *
+       * Kept honest rather than stubbed: it renders the same screen with the
+       * cards alone, which is the shape it had before this stage. A throw here
+       * would be a landmine for whoever removes `reviewBattle`.
+       */
+      chooseReward: async (offer, state) => {
+        resultScreen.render(null, offer, state, (index) => rewardPick.submit(index));
+        router.show('result');
+        return (await rewardPick.wait()) ?? 0;
       },
       /*
        * Auto-planned for now: fill empty hands, discard the overflow.
@@ -191,16 +242,25 @@ export function mountApp(root: HTMLElement): void {
         return targetPick.wait();
       },
       /*
-       * Auto-answered for now, by the same reference heuristic the scripted
-       * baseline uses.
+       * The second half of a move reward, and the one the app used to answer
+       * for the player.
        *
-       * The replacement screen — incoming move and all four current moves side
-       * by side, same move card component throughout — is built in the display
-       * pass at the end of this stage. Until then the run cannot skip the
-       * question: there is no decline, so `teachMove` throws if a member with
-       * four moves is handed one without a slot to put it in.
+       * It was wired to `defaultMoveReplacement` — the reference heuristic the
+       * scripted baseline uses — on the note that the screen would land in a
+       * later display pass. That pass did not land, so the reward screen's
+       * "you choose what it replaces next" was a promise the app broke every
+       * time, silently, by dropping the weakest attack. `core/run.ts` was
+       * asking the question and the run log was recording the answer the whole
+       * time; only this line was not asking anybody.
+       *
+       * The heuristic stays where it belongs: `scripts/sim.ts` and the replay
+       * baseline still answer with it, which is why it is still exported.
        */
-      chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
+      chooseMoveToReplace: (member, incoming) => {
+        replaceScreen.render(member, incoming, (slot) => replacePick.submit(slot));
+        router.show('replace');
+        return replacePick.wait();
+      },
       chooseAcquisition: (offer, party) => {
         acquisitionScreen.render(offer, party, (decision) => acquirePick.submit(decision));
         router.show('acquisition');
@@ -332,6 +392,9 @@ export function mountApp(root: HTMLElement): void {
       mapScreen.render(result.state, () => undefined, () => undefined);
       summaryScreen.render(result);
       router.show('summary');
+      // The run is over, so the seed controls are wanted again: the summary is
+      // where a player picks the next seed or replays this one.
+      setPhase('setup');
       // The run is over: a saved log now would resume into a finished run.
       clearRunLog();
     } catch {

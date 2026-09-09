@@ -502,8 +502,21 @@ describe('mid-run save across a reward, shop and event boundary', () => {
           expect(Object.keys(decision).sort()).toEqual(['index', 'kind']);
         }
       }
-      // Nothing derived: no prices, no item ids, no outcome text.
-      expect(JSON.stringify(run.log)).not.toMatch(/price|leftovers|coins/i);
+      /*
+       * Nothing derived: no prices, no item ids, no outcome text — checked
+       * against the shop and event decisions rather than against the whole log.
+       *
+       * It used to scan `JSON.stringify(run.log)`, which was over-broad and
+       * only passing by luck. Since Stage 4.5.1 an `items` decision carries the
+       * ids of the items the player assigned — that is the *point* of it, a
+       * backpack layout is a decision and an id is how it is recorded — so any
+       * seed whose plan happened to assign Leftovers failed a test about shops.
+       * Stage 4.5.2 shifted the rewards stream and found one.
+       */
+      const derived = run.log.decisions.filter(
+        (decision) => decision.kind === 'shop' || decision.kind === 'event',
+      );
+      expect(JSON.stringify(derived)).not.toMatch(/price|leftovers|coins/i);
     }
     expect(shopDecisions + eventDecisions).toBeGreaterThan(0);
   });

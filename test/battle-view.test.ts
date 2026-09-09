@@ -17,7 +17,6 @@ import { createBattle, typeChart, typeMultiplier } from '../src/core/battle/driv
 import {
   applyAbilityEffects,
   buildBattleUiView,
-  effectivenessBand,
   fasterSide,
   formatEffectiveness,
   formatStat,
@@ -152,11 +151,28 @@ describe('type effectiveness', () => {
     expect(formatEffectiveness(null)).toBeNull();
   });
 
-  it('bands multipliers for styling', () => {
-    expect(effectivenessBand(4)).toBe('super');
-    expect(effectivenessBand(0.25)).toBe('resisted');
-    expect(effectivenessBand(0)).toBe('immune');
-    expect(effectivenessBand(1)).toBeNull();
+  /*
+   * Banding moved to `core/battle/effectiveness.ts` and changed shape with the
+   * move: `bandOf` returns `'neutral'` where `effectivenessBand` returned null,
+   * because neutral is an answer and only a status move has none. The four
+   * bands are covered in test/effectiveness.test.ts; what is left here is the
+   * projection carrying one through onto a move.
+   */
+  it('carries the band onto the move the screen renders', () => {
+    const view = buildBattleUiView(
+      facts({
+        opponent: active({ types: ['Flying'] }),
+        moves: [move({ type: 'Ground', typeMultiplier: 0 }), move({ type: 'Normal', category: 'Status' })],
+      }),
+      { ability: true, item: true },
+      () => [],
+    );
+    expect(view.moves[0]?.band).toBe('none');
+    expect(view.moves[0]?.effectiveness).toBe(0);
+    // A status move has no band at all, which is the distinction the old
+    // null-for-neutral shape could not express.
+    expect(view.moves[1]?.band).toBeNull();
+    expect(view.moves[1]?.effectiveness).toBeNull();
   });
 });
 

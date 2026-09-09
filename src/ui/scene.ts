@@ -18,9 +18,10 @@
  * from scratch on every update. The stat rows follow the same rule for the same
  * reason: a row that is replaced cannot pulse when its stage changes.
  */
+import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
+import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
-  effectivenessBand,
   formatEffectiveness,
   formatStat,
   type ActiveUiView,
@@ -92,6 +93,21 @@ export function createScene(): Scene {
   const bench = el('div', 'bench');
 
   root.append(foe.root, me.root, moves, bench);
+
+  /*
+   * Any transition must be skippable by tapping. Nothing here blocks input in
+   * the first place — the beat is a CSS animation on a panel, and the move
+   * buttons are live throughout — but a player who taps *because* something is
+   * moving should see it stop, so the first touch anywhere clears both beats.
+   */
+  root.addEventListener(
+    'pointerdown',
+    () => {
+      delete foe.root.dataset['swapped'];
+      delete me.root.dataset['swapped'];
+    },
+    true,
+  );
 
   return {
     root,
@@ -209,6 +225,29 @@ function updateSidePanel(
   isFoe: boolean,
   isFaster: boolean,
 ): void {
+  /*
+   * The sprite-swap beat, when the body on this side changed.
+   *
+   * Detected from the species the panel last drew rather than from a switch
+   * event, because the panel is updated from a projection and has no event
+   * stream — and because that makes it correct for every way a Pokemon can be
+   * replaced: a voluntary switch, a forced one after a faint, and whatever
+   * Stage 5 adds. The log line beside it is the *narration*; this is only the
+   * beat that stops the panel changing wholesale looking like a glitch.
+   *
+   * Never on the first draw: an opening switch-in is not a swap, and animating
+   * it would flash both panels at the start of every battle.
+   */
+  const previous = panel.root.dataset['species'];
+  panel.root.dataset['species'] = active.species;
+  if (previous !== undefined && previous !== active.species) {
+    // Restart rather than extend: re-setting the attribute on an element that
+    // already carries it does not replay a CSS animation.
+    delete panel.root.dataset['swapped'];
+    void panel.root.offsetWidth;
+    panel.root.dataset['swapped'] = 'true';
+  }
+
   panel.name.textContent = isFoe ? `Opposing ${active.name}` : active.name;
   // Gender sits with the level because it is the same kind of fact: a fixed
   // property of this Pokemon, not a thing the fight is doing to it. Genderless
@@ -218,7 +257,6 @@ function updateSidePanel(
 
   panel.types.replaceChildren(...active.types.map((type) => typeChip(type)));
 
-  const percent = Math.round(active.hp.fraction * 100);
   panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
   panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
   /*
@@ -232,7 +270,7 @@ function updateSidePanel(
    * panel next to it prints the opponent's Defence, so hiding the HP would have
    * been the one coy number on a panel that answers everything else.
    */
-  panel.hpText.textContent = `${active.hp.current} / ${active.hp.max} · ${percent}%`;
+  panel.hpText.textContent = hpStateBare(active.hp.current, active.hp.max);
 
   if (active.status) {
     panel.status.textContent = active.status.label;
@@ -531,11 +569,20 @@ function renderMove(
   // Effectiveness, computed live against whatever is actually standing there.
   // Neutral prints nothing: a row where every button carries a badge is a row
   // where the badges stop being read, and the 0x goes unread with them.
-  const label = formatEffectiveness(move.effectiveness);
-  if (label) {
+  /*
+   * Neutral and status both print nothing, and they are now distinguishable.
+   *
+   * `band` is null only for a status move; a neutral damaging move says
+   * `'neutral'`. The renderer suppresses both, which is a display decision and
+   * stays here — but the *reason* they are suppressed is different, and the
+   * projection no longer conflates them. See core/battle/effectiveness.ts.
+   */
+  const label = move.band === null || move.band === 'neutral' ? null : formatEffectiveness(move.effectiveness);
+  if (label && move.band) {
     const badge = el('span', 'badge badge--effect');
     badge.textContent = label;
-    badge.dataset['band'] = effectivenessBand(move.effectiveness) ?? 'neutral';
+    badge.dataset['band'] = move.band;
+    badge.setAttribute('aria-label', `${move.name}: ${EFFECTIVENESS_LABELS[move.band]}`);
     if (move.abilityAffected && cause) {
       /*
        * A 0x with no reason attached reads as a bug.
@@ -550,7 +597,10 @@ function renderMove(
       badge.dataset['tip'] = `ability:${cause.id}`;
       badge.tabIndex = 0;
       badge.setAttribute('role', 'button');
-      badge.setAttribute('aria-label', `${label} — from ${cause.name}`);
+      badge.setAttribute(
+        'aria-label',
+        `${move.name}: ${EFFECTIVENESS_LABELS[move.band]} — from ${cause.name}`,
+      );
     }
     meta.append(badge);
   }

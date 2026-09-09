@@ -27,6 +27,7 @@
  *      whether it offers its species. Always exactly one roll per wild node,
  *      whether or not the offer appears — a check that only rolled when it
  *      might succeed would make the draw count depend on the tier table.
+ *   6. `rewards` stream once more: the segment's gym clear offer. Stage 4.5.2.
  *
  * Stage 3 added the tier draw, and its position inside pass 1 is the contract:
  * *after* the rest fix-up, because the fix-up rewrites node kinds and a tier
@@ -60,6 +61,12 @@
  * so the next change to reward offers would silently reshuffle every
  * acquisition in every recorded seed.
  *
+ * Pass 6 is Stage 4.5.2's, and it is a sixth sweep for the same reason pass 5
+ * is a fifth. A gym carries no tier, so pass 4's `if (node.tier)` has always
+ * skipped it; the tempting fix was to relax that condition in place, which
+ * would have inserted a draw into the *middle* of the rewards stream and
+ * changed every offer at every node after the first gym in every recorded seed.
+ *
  * Each new pass goes on the end for exactly that reason. That is the whole
  * discipline: the list only ever grows downward.
  */
@@ -72,7 +79,7 @@ import {
 import { generateEncounterAcquisition, type AcquisitionOffer } from './acquisition';
 import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
-import { generateRewardOffer, type RewardOffer } from './rewards';
+import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
@@ -122,10 +129,16 @@ export interface NodeSpec {
   /**
    * The three cards this node pays out, drawn at map generation.
    *
-   * Null wherever `tier` is null, and for the same reason: a reward pool is
-   * keyed by tier, so a node without one has nothing to draw from. Gyms
-   * therefore pay no cards — a cleared gym already pays the segment heal and
-   * the level, which is a larger reward than any card in any pool.
+   * Null wherever `tier` is null **except at a gym**, which draws from its own
+   * segment-keyed pool (`data/rewardPools.gymRewardEntriesFor`) in pass 6.
+   * Everything else without a tier is a rest, a shop or an event and has
+   * nothing to draw from.
+   *
+   * Gyms paid nothing until Stage 4.5.2, on the argument that the segment heal
+   * and the level were already a larger reward than any card. That is true of
+   * the heal and false of the feeling: a heal is restorative and a level is
+   * automatic, so the hardest fight in the segment was the only one that handed
+   * the player nothing to *choose*.
    *
    * Present on the node rather than held in run state because it is part of
    * what the seed fixed. The player is shown it only after winning; see
@@ -378,6 +391,20 @@ export function generateSegment(index: number, rng: Rng, tuning: Tuning): Segmen
     if (node.kind !== 'wild' || !node.tier || !lead) continue;
     node.acquisition = generateEncounterAcquisition(node.id, lead, node.tier, index, rng.rewards, tuning);
   }
+
+  // --- pass 6: the gym clear offer, also from the `rewards` stream ----------
+  /*
+   * Appended, like every pass before it, and for the reason the contract
+   * exists: a new pass on the end cannot move the five above it. Folding this
+   * draw into pass 4 — where it would read naturally, right beside every other
+   * offer — would couple the two draw orders forever, so the next change to
+   * gym rewards would reshuffle every acquisition in every recorded seed.
+   *
+   * A gym has no tier, so pass 4's `if (node.tier)` skips it; that is why this
+   * is a pass rather than a condition relaxed there.
+   */
+  segment.gym.reward = generateGymRewardOffer(segment.gym.id, index, rng, tuning);
+
   return segment;
 }
 

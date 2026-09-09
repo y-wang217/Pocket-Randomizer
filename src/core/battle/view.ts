@@ -56,6 +56,29 @@ import {
   BOOSTABLE_STATS,
   statAtLevel,
 } from './stats';
+import {
+  moveEffectiveness,
+  type AbilityEffects,
+  type Effectiveness,
+  type RevealPolicy,
+} from './effectiveness';
+/*
+ * The ability-effect table, the reveal policy and the fold that applies them
+ * moved to `effectiveness.ts` in Stage 4.5.2, and are re-exported here.
+ *
+ * They went because that file became the leaf: it answers "what does this move
+ * do to that Pokemon" and needs all three, while this file answers "what does
+ * the whole screen render" and needs them only to pass along. Importing
+ * upward would have made the two mutually recursive. The re-export is so the
+ * move is invisible to `driver.ts`, `scene.ts` and the tests, which have named
+ * these through `view.ts` since Stage 4.5.
+ */
+export {
+  applyAbilityEffects,
+  type AbilityEffects,
+  type AbilityTypeEffect,
+  type RevealPolicy,
+} from './effectiveness';
 import type { Gender, StatName, StatStages, StatusName, SwitchView } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -172,43 +195,6 @@ export interface BattleFacts {
   invertedSpeed: boolean;
 }
 
-/**
- * How the defender's ability changes what a move does to it.
- *
- * Hand-curated in `data/abilityEffects.ts` rather than read off the dex,
- * because @pkmn/sim implements these as event handler *functions* and there is
- * nothing in the data to introspect. A gap in that table shows the naive type
- * chart result, which is the documented fallback everywhere else in this file —
- * and `test/ability-effects.test.ts` sweeps the generated ability pool against
- * a probe battle so a missing immunity fails the suite rather than reaching a
- * player.
- */
-export type AbilityTypeEffect =
-  /** Absorbs a type outright: Levitate, Volt Absorb, Flash Fire. */
-  | { kind: 'immune'; types: readonly string[] }
-  /**
-   * Absorbs by move *flag* rather than by type: Bulletproof, Soundproof.
-   *
-   * Here because the alternative is a lie the player would catch immediately.
-   * Shadow Ball is a `bullet` move, so a visible Bulletproof turns a 2x badge
-   * into a 0x one on a button whose type says nothing about it — exactly the
-   * Levitate-on-a-Rhydon case, arriving through a different door.
-   */
-  | { kind: 'flag-immune'; flags: readonly string[] }
-  /** Flat type-keyed damage multiplier: Thick Fat, Heatproof, Fluffy. */
-  | { kind: 'multiply'; types: readonly string[]; factor: number }
-  /** Wonder Guard: everything that is not super effective does nothing. */
-  | { kind: 'wonder-guard' };
-
-/** What the player is allowed to see of the opponent. See `data/tuning.ts`. */
-export interface RevealPolicy {
-  ability: boolean;
-  item: boolean;
-}
-
-/** The ability-effect lookup, injected so `view.ts` stays a leaf. */
-export type AbilityEffects = (abilityId: string) => readonly AbilityTypeEffect[];
-
 // ---------------------------------------------------------------------------
 // The output
 // ---------------------------------------------------------------------------
@@ -293,6 +279,16 @@ export interface MoveUiView {
    * stops reading.
    */
   effectiveness: number | null;
+  /**
+   * The same answer as a name, and the one the renderer should branch on.
+   *
+   * Null exactly when `effectiveness` is — that is, for status moves and
+   * nothing else. The multiplier could not carry that distinction: `1` and
+   * `null` both mean "print no badge" while meaning completely different
+   * things, and a renderer that only had the number had to rediscover which
+   * was which. See `core/battle/effectiveness.ts`.
+   */
+  band: Effectiveness | null;
   /**
    * True when a *visible* ability changed `effectiveness` away from the type
    * chart. The button says so, because "Ground does nothing to this Rhydon"
@@ -496,58 +492,31 @@ function toMoveUiView(
     usable: move.usable,
   };
 
-  // A status move deals no damage, so it has no multiplier. Showing "0x" on a
-  // Thunder Wave aimed at a Ground type would be technically adjacent to true
-  // and completely misleading: the immunity that stops it is the paralysis
-  // immunity, not the type chart.
-  if (move.category === 'Status') {
-    return { ...base, effectiveness: null, abilityAffected: false };
-  }
+  /*
+   * The whole answer comes from one pure helper, and the adapter's chart lookup
+   * is handed to it as a closure over the multiplier it already computed.
+   *
+   * `MoveFacts.typeMultiplier` is the naive chart result for *this* move
+   * against *this* defender, so the "lookup" here is a constant function. That
+   * looks redundant and is not: it keeps `moveEffectiveness` a function of a
+   * chart rather than of a pre-computed number, which is what lets a unit test
+   * hand it `driver.typeMultiplier` directly and assert Ground against Flying
+   * without building a battle.
+   */
+  const result = moveEffectiveness(
+    move,
+    defender,
+    () => move.typeMultiplier,
+    abilityEffects,
+    reveal,
+  );
 
-  const naive = move.typeMultiplier;
-  const ability = defender.ability;
-  if (!ability || !reveal.ability) {
-    return { ...base, effectiveness: naive, abilityAffected: false };
-  }
-
-  const modified = applyAbilityEffects(naive, move.type, move.flags, abilityEffects(ability.id));
-  return { ...base, effectiveness: modified, abilityAffected: modified !== naive };
-}
-
-/**
- * Fold a defender's ability effects into a type-chart multiplier.
- *
- * A list rather than a single effect, because Dry Skin is both — immune to
- * Water and taking 1.25x from Fire — and collapsing it to one would have meant
- * picking which half of the ability to tell the truth about. Exported for
- * testing.
- */
-export function applyAbilityEffects(
-  multiplier: number,
-  moveType: string,
-  moveFlags: readonly string[],
-  effects: readonly AbilityTypeEffect[],
-): number {
-  let out = multiplier;
-  for (const effect of effects) {
-    switch (effect.kind) {
-      case 'immune':
-        if (effect.types.includes(moveType)) out = 0;
-        break;
-      case 'flag-immune':
-        if (effect.flags.some((flag) => moveFlags.includes(flag))) out = 0;
-        break;
-      case 'multiply':
-        if (effect.types.includes(moveType)) out *= effect.factor;
-        break;
-      case 'wonder-guard':
-        // Blocks everything that is not super effective. A move already at 0
-        // stays at 0; 0.5x, 1x and 0.25x all become 0.
-        if (out <= 1) out = 0;
-        break;
-    }
-  }
-  return out;
+  return {
+    ...base,
+    effectiveness: result.multiplier,
+    band: result.band,
+    abilityAffected: result.abilityAffected,
+  };
 }
 
 /**
@@ -631,13 +600,4 @@ export function formatEffectiveness(multiplier: number | null): string | null {
   // 0.25 and 0.5 are the only fractional values the chart produces; toString
   // renders them without trailing zeros, and 4x/2x come out as integers.
   return `${multiplier}x`;
-}
-
-/** Coarse band for styling, so CSS does not have to parse a multiplier. */
-export function effectivenessBand(
-  multiplier: number | null,
-): 'immune' | 'resisted' | 'neutral' | 'super' | null {
-  if (multiplier === null || multiplier === 1) return null;
-  if (multiplier === 0) return 'immune';
-  return multiplier < 1 ? 'resisted' : 'super';
 }

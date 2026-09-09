@@ -41,6 +41,7 @@
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
 import { heldItem } from '../../core/items';
+import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
 import { gymsCleared } from '../../core/run';
@@ -97,6 +98,32 @@ export interface RunMap {
   render(state: RunState, onChoose: (index: number) => void, onManage: () => void): void;
 }
 
+/**
+ * Bring the step the player is standing on into view.
+ *
+ * **The map's decision point is the only thing on this screen that is
+ * urgent**, and on a phone it sits below the gym rail, the segment heading and
+ * the whole party panel — measured at y=688 of an 844px viewport with a party
+ * of one, and further down with three. Reclaiming the setup chrome (see the
+ * phone rules in `styles.css`) buys most of that back; this covers the rest,
+ * and covers a long segment on any viewport.
+ *
+ * `block: 'center'` rather than `'start'`: the steps on either side are what
+ * make the current one read as a position in a sequence rather than as a list
+ * that happens to begin here.
+ *
+ * Guarded on the method existing because jsdom does not implement it, and a
+ * screen that threw in a test environment would be a screen nobody could test.
+ * `prefers-reduced-motion` is honoured through `scroll-behavior` in the
+ * stylesheet, which already covers `.chain`.
+ */
+function scrollToCurrentStep(chain: HTMLElement): void {
+  const current = chain.querySelector('.step--current');
+  if (current instanceof HTMLElement && typeof current.scrollIntoView === 'function') {
+    current.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+}
+
 export function createRunMap(): RunMap {
   const root = el('section', 'screen screen--map');
 
@@ -136,6 +163,7 @@ export function createRunMap(): RunMap {
       blurb.textContent = gym.blurb;
 
       chain.replaceChildren(...renderChain(state, segment, onChoose));
+      scrollToCurrentStep(chain);
       // Coins live next to the party, with the other resources a run spends.
       // A shop node saying "from 55" is only a decision if this is on screen.
       /*
@@ -362,7 +390,7 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
-  hp.textContent = member.fainted ? 'Fainted' : `${member.hp} / ${member.maxHp} HP`;
+  hp.textContent = member.fainted ? FAINTED : hpState(member.hp, member.maxHp);
   meta.append(hp);
   // What they are holding, because Stage 4 lets the player choose who holds
   // what and a targeting decision you cannot audit is one you cannot learn from.

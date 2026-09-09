@@ -13,6 +13,7 @@
  * show them because it does not know who is getting it yet.
  */
 import { describeSpecCard } from '../../core/battle/driver';
+import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
 import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
 import { describeReward } from '../../core/rewards';
@@ -84,7 +85,7 @@ function renderTarget(
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
-  hp.textContent = member.fainted ? 'Fainted — revives at the next node' : `${member.hp} / ${member.maxHp} HP`;
+  hp.textContent = member.fainted ? FAINTED_REVIVES : hpState(member.hp, member.maxHp);
   meta.append(hp);
 
   const effect = el('span', 'target__effect');

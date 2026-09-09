@@ -57,10 +57,16 @@ describe('reward offers', () => {
     for (const seed of seeds) {
       for (const segment of createRun(seed).segments) {
         for (const node of nodesOf(segment)) {
-          if (!node.tier) {
+          if (!node.tier && node.kind !== 'gym') {
             expect(node.reward, `${node.id} is a ${node.kind} and should pay no cards`).toBeNull();
             continue;
           }
+          /*
+           * A gym has no tier and, from Stage 4.5.2, does have an offer — it
+           * draws from a segment-keyed pool instead. It goes through the same
+           * three-distinct-options check as everything else below, because the
+           * shape of an offer is the same shape wherever it came from.
+           */
           const options = node.reward?.options ?? [];
           expect(options, `${node.id}`).toHaveLength(OFFER_SIZE);
           // Distinct by *content*, not by kind: two `item` cards are a fine

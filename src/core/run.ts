@@ -120,8 +120,23 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * twice over. That is not redundancy: the engine half says the *battle* would
  * replay differently and this half says the *run* would, and a reader
  * diagnosing a rejected log wants to know which.
+ *
+ * Went to `-8` in Stage 4.5.2, for the gym clear offer. A cleared gym now asks
+ * a `reward` question — and, when the card taken is a move or a Pokemon, a
+ * `target`, a `replace` or an `acquisition` behind it — where a 4.5.1 log has
+ * nothing at all. The cursor slips at the *first gym*, which is early enough
+ * that a silently misread log would reconstruct almost the entire run wrongly
+ * while looking plausible throughout.
+ *
+ * `RANDOMIZER_VERSION` moved with it, and that half is the one that matters
+ * more here: pass 6 appends a draw to the `rewards` stream in every segment, so
+ * a 4.5.1 log replayed against this build would reconstruct different *cards*
+ * at every node after the first gym even where the decision indexes still
+ * lined up. That is the failure the two guards exist to separate — this one
+ * says the questions changed, that one says the answers would mean something
+ * different.
  */
-export const RUN_LOG_VERSION = `gymrun-run-7/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-8/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -410,6 +425,43 @@ export interface NodeResult {
 }
 
 /**
+ * Everything a battle's result screen renders, assembled once by `playRun`.
+ *
+ * **Item D of the Stage 4.5.2 playtest round.** Every battle used to end in one
+ * of two ways: a win with cards went to the reward screen, and a win *without*
+ * cards — a gym, before this stage, or any battle the player lost — went
+ * straight back to the map with nothing on screen to say the node had happened
+ * at all. The reward screen was doing double duty as the result screen, so a
+ * rewardless win read as the game skipping a beat.
+ *
+ * So this is what a node resolution *is*, from the player's side, and the offer
+ * is a field on it rather than a screen of its own. That is the whole change:
+ * cards render inside the result, not instead of it.
+ *
+ * Assembled before `resolveNode` runs, from the same inputs `resolveNode` will
+ * use, because that function owns state transitions and `playRun` owns talking
+ * to the policy — the split every other decision in this file already follows.
+ */
+export interface BattleReview {
+  node: NodeSpec;
+  result: BattleResult;
+  /** `winner === 'p1'`, named because three call sites ask. */
+  won: boolean;
+  /** The party as the sim left it, before the node boundary heals anything. */
+  party: PokemonState[];
+  /**
+   * What this node pays, or 0 on a loss.
+   *
+   * Computed here rather than read back off the state afterwards, because the
+   * screen is shown *before* `resolveNode` folds it in — and "you earned 40"
+   * is a fact about the node, while the balance after is a fact about the run.
+   */
+  currencyEarned: number;
+  /** The three cards, or null on a loss and at a node that offers none. */
+  offer: RewardOffer | null;
+}
+
+/**
  * Fold a finished node into the run. **This is Stage 3's hook for rewards.**
  *
  * Everything that happens between two nodes happens here and nowhere else:
@@ -465,9 +517,6 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   // The one death rule, checked before anything can undo it.
   if (isWiped(party)) return { ...state, party, currency, history, outcome: 'defeat' };
 
-  // A gym has no tier and therefore no offer (see `NodeSpec.reward`), so the
-  // gym branch below never has a reward to fold in — the segment heal and the
-  // level are the payout, and they are larger than any card in any pool.
   if (result.node.kind === 'gym') {
     // A gym that did not end in a win ends the run, wipe or not: a turn-limit
     // draw against a gym leader is a gym the player did not beat.
@@ -486,7 +535,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      * folded in and after the wipe check, so a gym won on one HP is a segment
      * started on the same share of a bigger bar rather than a free heal.
      */
-    return {
+    let cleared: RunState = {
       ...state,
       // Order matters: fold in the node, then heal, then level. Healing before
       // levelling means the fraction `levelParty` carries is the healed one, so
@@ -501,6 +550,41 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       currentSegment: nextSegment,
       position: 0,
     };
+
+    /*
+     * The gym clear card, applied after the heal and the level.
+     *
+     * **Last, like every other reward, and for the same reasons**: after the
+     * wipe check so a heal can never resurrect a finished run, and after the
+     * node boundary so nothing it grants is undone by the transition that
+     * follows. The ordering against `levelParty` is the new part and it matters
+     * in one direction — a `species` card resolves at `joinLevelFor(segment)`
+     * and a `tm`/`tutor` lands on a member whose `maxHp` has just moved, so
+     * applying the card first would compute both against the pre-clear party.
+     *
+     * Gyms paid nothing before Stage 4.5.2, so this branch returned here.
+     */
+    if (result.reward) {
+      cleared = applyReward(
+        cleared,
+        result.reward,
+        result.rewardTarget ?? 0,
+        result.rewardReplaceSlot ?? null,
+      );
+    }
+    if (result.acquisition) {
+      const { party: acquired, freed } = applyAcquisition(
+        cleared.party,
+        result.acquisition.offer,
+        result.acquisition.decision,
+      );
+      cleared = {
+        ...cleared,
+        party: acquired,
+        backpack: freed ? stow(cleared.backpack, freed) : cleared.backpack,
+      };
+    }
+    return cleared;
   }
 
   let advanced: RunState = {
@@ -609,6 +693,32 @@ export interface RunPolicy {
    * bot playing a different game from the player.
    */
   chooseReward: (offer: RewardOffer, state: RunState) => Promise<number>;
+  /**
+   * The same question, asked with the whole result attached. **Optional.**
+   *
+   * `chooseReward` answers "which of these three", and until Stage 4.5.2 that
+   * was the only thing `playRun` asked after a fight — so a battle that offered
+   * no cards asked nothing, and the player was returned to the map with no
+   * confirmation that anything had happened. `reviewBattle` is that same
+   * question widened to "what happened, and what do you take from it": it is
+   * asked for **every** battle completion, win or loss, cards or none, and
+   * returns the reward index when there was an offer and null when there was
+   * not.
+   *
+   * It is one path, not a second one. `playRun` records exactly the same
+   * `{kind: 'reward', index}` decision whichever hook answered, and records it
+   * under exactly the same condition, so a log written by a policy that
+   * implements this is byte-identical to one written by a policy that does not.
+   * That property is what makes the hook optional rather than a fork: a
+   * headless policy has no screen to show and nothing to acknowledge, so the
+   * simulator, the replay policy and every scripted test answer through
+   * `chooseReward` and produce the same run.
+   *
+   * Returning a number for an offer that is null is a caller error and is
+   * ignored; returning null for an offer that exists falls back to card 0,
+   * because there is no skip.
+   */
+  reviewBattle?: (review: BattleReview, state: RunState) => Promise<number | null>;
   /**
    * Which shelf slots to buy. An array, because a shop visit is one decision.
    *
@@ -839,9 +949,44 @@ export async function playRun(
       result.eventChoice = index;
     }
 
-    if (result.node.reward && result.battle?.result.winner === 'p1') {
-      const offer = result.node.reward;
-      const index = await policy.chooseReward(offer, state);
+    /*
+     * The result of the fight, and the cards that came out of it.
+     *
+     * One question for both, asked once per battle node. The three cards were
+     * drawn when the map was built, so nothing about *what* is offered depends
+     * on how the battle went — but whether an offer exists at all does, and
+     * that is the point: a lost fight pays nothing, which is what makes the
+     * elite node next to the normal one a risk rather than a longer wait for
+     * the same payout.
+     *
+     * Winning is also what makes the wipe check downstream unreachable from
+     * here: a side that won has something left standing, so `resolveNode`
+     * cannot end the run on a node that just paid out.
+     */
+    const won = result.battle?.result.winner === 'p1';
+    const offer = won ? (result.node.reward ?? null) : null;
+    let reviewedIndex: number | null = null;
+
+    if (result.battle && policy.reviewBattle) {
+      const picked = await policy.reviewBattle(
+        {
+          node: result.node,
+          result: result.battle.result,
+          won,
+          party: result.battle.party,
+          currencyEarned: won ? nodePayout(result.node, state.currentSegment) : 0,
+          offer,
+        },
+        state,
+      );
+      // Null for a node with no offer is the expected answer and records
+      // nothing. A number there would be an answer to a question nobody asked.
+      if (offer) reviewedIndex = picked ?? 0;
+    }
+
+    if (offer) {
+      const index = reviewedIndex ?? (await policy.chooseReward(offer, state));
+      reviewedIndex = null;
       record({ kind: 'reward', index });
       const choice = offer.options[index];
       if (!choice) throw new RangeError(`Reward choice ${index} out of range (${offer.options.length} offered)`);
