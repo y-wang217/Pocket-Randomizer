@@ -65,8 +65,16 @@ await new Promise((resolve) => server.listen(0, resolve));
  * seed's species, ability and moveset rolls shifted and SMOKE11's run is simply
  * a different run. SMOKE12 was the first re-scanned seed that reaches two gyms
  * and shows the move-target screen on the way.
+ *
+ * SMOKE12 died at node one after Stage 4.6a moved `RANDOMIZER_VERSION` to `-7`
+ * — the keyed streams re-seeded every roll in the game — and the bot walks into
+ * the first option of the first step, which on that seed became a `hard` wild
+ * three levels above the starter. SMOKE23 clears a gym, fills the party to
+ * three through four captures and two releases, and answers four forced
+ * switches, so one pass covers the locale screen, the capture block, both
+ * acquisition paths and the bench.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE12';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE23';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
@@ -135,6 +143,7 @@ async function playRun(label) {
   let replacements = 0;
   let acquisitions = 0;
   let releases = 0;
+  let locales = 0;
   let partyVisits = 0;
   let switches = 0;
   let sawSavedLog = false;
@@ -186,6 +195,29 @@ async function playRun(label) {
     }
 
     /*
+     * The locale, which opens every segment from Stage 4.6a.
+     *
+     * First, because it interrupts the map loop before the map has anything to
+     * show: a segment has no route at all until this is answered, so a run that
+     * did not know about the screen would sit here until the summary timed out.
+     *
+     * The last card rather than the first, deliberately — the app answered this
+     * question with index 0 for one checkpoint while the screen was being
+     * built, and a smoke run that also took index 0 would agree with that
+     * auto-answer by accident and stop proving a human choice was applied.
+     */
+    if (await page.locator(visible('locale')).count()) {
+      const card = page.locator(`${visible('locale')} .locale`).last();
+      if (await card.count()) {
+        if (locales === 0) await page.screenshot({ path: `stats/${label}-locale.png`, fullPage: true });
+        await card.click();
+        locales++;
+        await page.waitForTimeout(25);
+        continue;
+      }
+    }
+
+    /*
      * The three Stage 3 screens.
      *
      * Checked before the map, because all three interrupt the map loop and a
@@ -210,6 +242,43 @@ async function playRun(label) {
         await page.waitForTimeout(25);
         continue;
       }
+      /*
+       * The capture block, which from Stage 4.6a lives inside this screen
+       * rather than on one after it.
+       *
+       * Checked after the cards and before the carry-on button, which is the
+       * order the screen itself renders in: with cards up the block is hidden,
+       * and when the block is up there is no carry-on button at all — taking or
+       * leaving the Pokemon *is* the continue.
+       *
+       * Take it while there is room; once full, release the last member. Both
+       * paths have to be exercised, and "always decline" would exercise
+       * neither.
+       */
+      const capture = page.locator(`${visible('result')} .result__capture`);
+      if ((await capture.count()) && !(await capture.first().isHidden())) {
+        if (acquisitions === 0) await page.screenshot({ path: `stats/${label}-capture.png`, fullPage: true });
+        const take = capture.locator('.acquire__actions .button--primary');
+        if (await take.count()) {
+          await take.click();
+          acquisitions++;
+        } else {
+          // Full: the only way to accept is to name who leaves, and the button
+          // confirms before it commits, so it takes two clicks.
+          const release = capture.locator('.button--danger').last();
+          if (await release.count()) {
+            await release.click();
+            await release.click();
+            releases++;
+            acquisitions++;
+          } else {
+            await capture.locator('.acquire__actions .button').last().click();
+          }
+        }
+        await page.waitForTimeout(25);
+        continue;
+      }
+
       const carry = page.locator(`${visible('result')} .result__actions .button`).first();
       if (await carry.count()) {
         if (results === 0) await page.screenshot({ path: `stats/${label}-result.png`, fullPage: true });
@@ -301,31 +370,6 @@ async function playRun(label) {
       }
     }
 
-    if (await page.locator(visible('acquisition')).count()) {
-      if (acquisitions === 0) await page.screenshot({ path: `stats/${label}-acquisition.png`, fullPage: true });
-      // Take it while there is room; once full, release the last member. Both
-      // paths have to be exercised, and "always decline" would exercise neither.
-      const take = page.locator(`${visible('acquisition')} .acquire__actions .button--primary`);
-      if (await take.count()) {
-        await take.click();
-        acquisitions++;
-      } else {
-        // Full: the only way to accept is to name who leaves, and the button
-        // confirms before it commits, so it takes two clicks.
-        const release = page.locator(`${visible('acquisition')} .button--danger`).last();
-        if (await release.count()) {
-          await release.click();
-          await release.click();
-          releases++;
-          acquisitions++;
-        } else {
-          await page.locator(`${visible('acquisition')} .acquire__actions .button`).last().click();
-        }
-      }
-      await page.waitForTimeout(25);
-      continue;
-    }
-
     if (await page.locator(visible('party')).count()) {
       if (partyVisits === 0) await page.screenshot({ path: `stats/${label}-party.png`, fullPage: true });
       partyVisits++;
@@ -379,6 +423,34 @@ async function playRun(label) {
     await page.waitForTimeout(40);
   }
 
+  /*
+   * Say *where* a stalled run stopped.
+   *
+   * The loop is bounded, so a bot that meets a screen it does not know about
+   * falls out of it and then times out waiting for the summary — with a stack
+   * trace pointing at the wait rather than at the screen. That has now cost two
+   * debugging sessions across two stages, so the run reports which screen it
+   * was looking at and what was clickable on it before it gives up.
+   */
+  if (!(await page.locator(visible('summary')).count())) {
+    const stuck = await page.evaluate(() => {
+      const screens = [...globalThis.document.querySelectorAll('.screen')].filter((screen) => !screen.hidden);
+      const open = screens[0];
+      return {
+        screens: screens.map((screen) => screen.dataset['screen']),
+        buttons: open ? [...open.querySelectorAll('button:not([disabled])')].map((b) => b.textContent?.trim()) : [],
+      };
+    });
+    const line =
+      `the run stalled on the ${stuck.screens.join('+') || '(none)'} screen ` +
+      `with ${stuck.buttons.length} things to click: ${stuck.buttons.slice(0, 8).join(' | ')}`;
+    // Printed as well as collected, because the wait below throws before the
+    // problem list is ever rendered — which is exactly how the stall stayed
+    // undiagnosed the first time.
+    console.log(`  FAIL ${line}`);
+    problems.push(line);
+  }
+
   await page.waitForSelector(visible('summary'), { timeout: 20_000 });
   return {
     battles,
@@ -392,6 +464,7 @@ async function playRun(label) {
     replacements,
     acquisitions,
     releases,
+    locales,
     partyVisits,
     switches,
     sawSavedLog,
@@ -487,6 +560,7 @@ console.log(
   `  ${first.rewards} reward picks, ${first.results} cardless results, ` +
     `${first.shops} shop visits, ${first.events} events`,
 );
+console.log(`  ${first.locales} locales picked`);
 console.log(
   `  ${first.acquisitions} acquisitions (${first.releases} releases), ${first.targets} move targets, ` +
     `${first.replacements} move replacements, ` +
@@ -561,6 +635,15 @@ if (first.targets < 1) {
 }
 if (first.partyVisits < 1) {
   problems.push('the party screen was never opened — reorder and release are unsmoked');
+}
+/*
+ * Stage 4.6a: every segment opens on a locale pick, so a run that reached the
+ * gym must have made at least one. Zero means the screen never rendered and
+ * something answered for the player — the failure `test/boundaries.test.ts`
+ * guards in `core/`, checked here where a real click has to reach it.
+ */
+if (first.locales < 1) {
+  problems.push('no locale select screen was ever shown — the region pick is unreachable');
 }
 if (first.teamCards < 2) {
   problems.push(`the run ended with ${first.teamCards} Pokemon — acquisition never reached run state`);
@@ -667,6 +750,45 @@ const starterStats = await phone.locator('.starter .statline__stat').count();
 phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
 
 await phone.locator('.starter').first().click();
+
+/*
+ * The locale pick, which from Stage 4.6a sits between the starter and the map.
+ *
+ * Measured as well as clicked: it is a full screen on the one viewport the
+ * phone pass exists for, and a card the thumb cannot reach is the same failure
+ * the pass was written to catch on the map. 44px is the floor every other
+ * primary control on this screen holds to.
+ */
+await phone.waitForSelector(`${visible('locale')} .locale`, { timeout: 20_000 });
+const localeMetrics = await phone.evaluate(() => {
+  const cards = [...globalThis.document.querySelectorAll('.locale')];
+  const last = cards.at(-1)?.getBoundingClientRect();
+  return {
+    cards: cards.length,
+    shortest: Math.min(...cards.map((card) => Math.round(card.getBoundingClientRect().height))),
+    lastBottom: last ? Math.round(last.bottom) : 0,
+    innerHeight: globalThis.window.innerHeight,
+    scrollWidth: globalThis.document.documentElement.scrollWidth,
+    innerWidth: globalThis.window.innerWidth,
+  };
+});
+phoneCheck(
+  'locale cards are thumb-sized',
+  localeMetrics.shortest >= 44,
+  `shortest ${localeMetrics.shortest}px across ${localeMetrics.cards} cards`,
+);
+phoneCheck(
+  'every locale is on screen without scrolling',
+  localeMetrics.lastBottom <= localeMetrics.innerHeight,
+  `last card ends at y=${localeMetrics.lastBottom} of ${localeMetrics.innerHeight}`,
+);
+phoneCheck(
+  'locale select does not scroll sideways',
+  localeMetrics.scrollWidth <= localeMetrics.innerWidth,
+  `${localeMetrics.scrollWidth}px into ${localeMetrics.innerWidth}px`,
+);
+
+await phone.locator('.locale').first().click();
 await phone.waitForSelector(`${visible('map')}`);
 
 const mapMetrics = await phone.evaluate(() => {

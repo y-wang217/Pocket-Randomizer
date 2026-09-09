@@ -2,7 +2,11 @@
  * The screen router.
  *
  * Eleven screens, one visible at a time, all mounted once and toggled rather
- * than created and destroyed. Toggling keeps the DOM — and therefore the
+ * than created and destroyed.
+ *
+ * Stage 4.6a added `locale` and removed `acquisition`: a capture is now a block
+ * inside `result` rather than a screen after it, so a fight and the offer it
+ * produced are one view. See `screens/acquisition.ts`. Toggling keeps the DOM — and therefore the
  * battle log's scroll position and the HP bar's CSS transition — alive across
  * a switch, which is what makes returning from a battle to the map feel like
  * one app rather than four.
@@ -12,6 +16,8 @@
  */
 export type ScreenName =
   | 'starter'
+  /** Which region the segment is walked through. Stage 4.6a, a pre-step. */
+  | 'locale'
   | 'map'
   | 'battle'
   /**
@@ -26,8 +32,6 @@ export type ScreenName =
   | 'target'
   /** Which of that member's four moves the incoming one displaces. */
   | 'replace'
-  /** A Pokemon on offer, against the party. Stage 4. */
-  | 'acquisition'
   /** Reorder and release, between nodes. Stage 4. */
   | 'party'
   | 'shop'

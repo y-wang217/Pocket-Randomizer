@@ -23,6 +23,7 @@ import {
   isReplayable,
   playRun,
   resumeRun,
+  type BattleReview,
   type RunPolicy,
   type RunResult,
   type RunState,
@@ -36,10 +37,11 @@ import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
-import { createAcquisitionScreen } from './screens/acquisition';
+
 import { createItemTargetScreen } from './screens/item-target';
 import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
+import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
 import { createRouter } from './screens/router';
 import { createShopScreen } from './screens/shop';
@@ -54,6 +56,7 @@ export function mountApp(root: HTMLElement): void {
   initSettings();
 
   const starterScreen = createStarterSelect();
+  const localeScreen = createLocaleSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
   const resultScreen = createResultScreen();
@@ -61,18 +64,17 @@ export function mountApp(root: HTMLElement): void {
   const eventScreen = createEventScreen();
   const targetScreen = createItemTargetScreen();
   const replaceScreen = createMoveReplaceScreen();
-  const acquisitionScreen = createAcquisitionScreen();
   const partyScreen = createPartyScreen();
   const summaryScreen = createSummary();
 
   const router = createRouter({
     starter: starterScreen.root,
+    locale: localeScreen.root,
     map: mapScreen.root,
     battle: battleScreen.root,
     result: resultScreen.root,
     target: targetScreen.root,
     replace: replaceScreen.root,
-    acquisition: acquisitionScreen.root,
     party: partyScreen.root,
     shop: shopScreen.root,
     event: eventScreen.root,
@@ -131,6 +133,7 @@ export function mountApp(root: HTMLElement): void {
     writeSeedToLocation(seed);
 
     const starterPick = createPending<number>();
+    const localePick = createPending<number>();
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
     const rewardPick = createPending<number | null>();
@@ -147,6 +150,7 @@ export function mountApp(root: HTMLElement): void {
 
     abandon = () => {
       starterPick.cancel();
+      localePick.cancel();
       nodePick.cancel();
       movePick.cancel();
       rewardPick.cancel();
@@ -164,19 +168,11 @@ export function mountApp(root: HTMLElement): void {
         router.show('starter');
         return starterPick.wait();
       },
-      /*
-       * Answered for the player until the locale select screen lands.
-       *
-       * `core/run.ts` asks this question and the run log records the answer, so
-       * a run played through this build is a legal, replayable run that walked
-       * the first region offered — and the player was never shown the choice.
-       * That is exactly the failure `test/boundaries.test.ts` was written for
-       * after `chooseMoveToReplace` shipped wired to a heuristic, which is why
-       * this hook is deliberately *not* in that test's list yet: it goes in with
-       * the screen, in the display pass at the end of this stage, and the test
-       * is what stops it being forgotten.
-       */
-      chooseLocale: async () => 0,
+      chooseLocale: (options, state) => {
+        localeScreen.render(options, state.currentSegment, (index) => localePick.submit(index));
+        router.show('locale');
+        return localePick.wait();
+      },
       chooseNode: (options: NodeSpec[]) => {
         // The map is already rendered by onState; this only arms the buttons.
         void options;
@@ -194,6 +190,7 @@ export function mountApp(root: HTMLElement): void {
        * grows a Carry on button instead.
        */
       reviewBattle: (review, state) => {
+        lastReview = review;
         resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
         router.show('result');
         return rewardPick.wait();
@@ -278,9 +275,29 @@ export function mountApp(root: HTMLElement): void {
         router.show('replace');
         return replacePick.wait();
       },
+      /*
+       * The capture, rendered back onto the result screen the fight ended on.
+       *
+       * Not a screen of its own any more: the offer used to arrive after the
+       * result had been dismissed, so the player judged whether a Pokemon was
+       * worth a party slot with the fight it came from off screen. The same
+       * review is re-rendered with no cards — by this point they have been
+       * taken — and the capture block underneath them.
+       *
+       * `lastReview` can be null only on the `chooseReward` fallback path,
+       * which `playRun` does not use while `reviewBattle` exists. The screen
+       * handles a null review as the cards-only shape it had before 4.5.2.
+       */
       chooseAcquisition: (offer, party) => {
-        acquisitionScreen.render(offer, party, (decision) => acquirePick.submit(decision));
-        router.show('acquisition');
+        const state = live;
+        if (state) {
+          resultScreen.render(lastReview, null, state, () => undefined, {
+            offer,
+            party,
+            onDecide: (decision) => acquirePick.submit(decision),
+          });
+          router.show('result');
+        }
         return acquirePick.wait();
       },
       battle: () => movePick.wait(),
@@ -297,6 +314,16 @@ export function mountApp(root: HTMLElement): void {
      * `core/party.ts` and re-renders both.
      */
     let live: RunState | null = null;
+
+    /*
+     * The last battle result shown, held for the capture render that follows it.
+     *
+     * `playRun` asks two questions about one node — take a card, then take the
+     * Pokemon — and the second call has no review attached. Keeping the first
+     * one is what lets the capture render on the *same* screen rather than on a
+     * blank one.
+     */
+    let lastReview: BattleReview | null = null;
 
     /*
      * The item plan the player has composed on the party screen, if any.
@@ -453,7 +480,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 4.5.1 · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, a bag, and a price for healing`;
+  subtitle.textContent = `Stage 4.6a · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, caught in eight regions`;
   header.append(title, subtitle, createVerbosityToggle());
   return header;
 }

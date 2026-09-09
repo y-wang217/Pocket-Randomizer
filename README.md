@@ -1,14 +1,15 @@
-# GYMRUN — Stage 4.5.1
+# GYMRUN — Stage 4.6a
 
-A browser-based seeded Pokémon roguelike. This is Stage 4.5.1: **an eight-gym
-randomizer run with a party you carry, a bag you have to prune, and rewards that
-make you choose what they cost you.**
+A browser-based seeded Pokémon roguelike. This is Stage 4.6a: **an eight-gym
+randomizer run through regions you choose, with a party you catch, carry and
+have to prune.**
 
 Stage 0 proved the battle engine. Stage 1 made it a run. Stage 2 made it a
 *randomizer* and built the instrument that says whether the randomizer is
 playable. Stage 3 added tiers, rewards, items, shops and events. Stage 4 added
 party slots and switching. Stage 4.5 added no mechanics at all and made the
-existing ones legible. Stage 4.5.1 is the one that puts prices back on things.
+existing ones legible. Stage 4.5.1 put prices back on things. Stage 4.6a gives
+the map a geography.
 
 There is still no battle engine here. GYMRUN wraps [Pokémon
 Showdown](https://pokemonshowdown.com) via `@pkmn/sim` — see
@@ -32,7 +33,34 @@ npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
 
-## What Stage 4.5.1 adds
+## What Stage 4.6a adds
+
+**A map with places in it, and a party you catch rather than one you are
+given.**
+
+- **Eight locales, and a segment opens on a choice between two or three of
+  them.** A locale decides which wild Pokémon that segment fields and nothing
+  else — not the tiers, not the trainers, not the shops, not the gym. Four types
+  each, all eighteen covered exactly, with Dragon, Psychic, Fairy and Steel
+  appearing once. A locale is never offered twice in a row, and at 1000 seeds
+  every locale is offered in every run.
+- **Exactly one wild encounter per segment, and you cannot walk past it.** One
+  step's options are all wild, at different tiers, so the encounter is
+  guaranteed and the step is still a decision.
+- **Capture, offered on every wild victory and guaranteed rather than rolled.**
+  A capture roll on a seeded run is a punch with no counterplay; the cost is that
+  the encounter occupies one of the segment's limited steps, and taking it costs
+  a party slot or a party member. The caught Pokémon arrives exactly as it was
+  fought — level, moveset, ability, held item.
+- **Keyed RNG sub-streams**, which is the change nothing on screen shows and
+  everything later depends on. See "Determinism" below and
+  [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md).
+
+The measured result is that parties **fill by gym 2** and **diversify**: 94 runs
+reached the eighth gym carrying 152 distinct species between them, and the most
+common one held 4.3% of the slots.
+
+## What Stage 4.5.1 added
 
 **Three decisions that used to be rules, and one that used to be free.**
 
@@ -118,27 +146,33 @@ At 1000 seeds, the `greedy` policy:
 
 | gym | leader | type | team | reached | clear rate | drop |
 |---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 946 | 94.5% | — |
-| 2 | Marina | Water | 2 | 800 | 85.1% | -9pt |
-| 3 | Volta | Electric | 3 | 650 | 83.1% | -2pt |
-| 4 | Fern | Grass | 4 | 520 | 81.0% | -2pt |
-| 5 | Cinder | Fire | 4 | 388 | 65.7% | -15pt |
-| 6 | Solene | Psychic | 5 | 239 | 77.0% | +11pt |
-| 7 | Vesper | Ghost | 5 | 179 | 70.9% | -6pt |
-| 8 | Draven | Dragon | 5 | 120 | 77.5% | +7pt |
+| 1 | Garnet | Rock | 1 | 950 | 97.7% | — |
+| 2 | Marina | Water | 2 | 869 | 89.3% | -8pt |
+| 3 | Volta | Electric | 3 | 754 | 78.9% | -10pt |
+| 4 | Fern | Grass | 4 | 566 | 83.9% | +5pt |
+| 5 | Cinder | Fire | 4 | 433 | 58.2% | -26pt |
+| 6 | Solene | Psychic | 5 | 236 | 66.9% | +9pt |
+| 7 | Vesper | Ghost | 5 | 148 | 66.9% | 0pt |
+| 8 | Draven | Dragon | 5 | 94 | 75.5% | +9pt |
 
-Run completion **9.2%**, mean 3.19 gyms of 8, worst gym-to-gym drop 15 points.
+Run completion **7.1%**, mean 3.35 gyms of 8, worst gym-to-gym drop 26 points.
+
+Completion fell two points from Stage 4.5.1's 9.2% and mean depth rose, which
+pull opposite ways for one reason: the guaranteed wild step is a fight per
+segment nobody can decline. That costs the tail, where a run is limping, and
+pays in the middle, where it fills the party. `docs/balance.md` §10.1 has the
+argument for why "fixing" the two points would trade a system for a number.
 A `random` policy completes **0.0%** of runs and clears gym 6 in **0.8%** of
 them, which is the depth test: if a random policy cleared gym 6, move choice
 would not matter. Every Stage 2 target passes on both policies.
 
 The randomizer draws from 635 species, 397 damaging moves and all 310
-abilities, and across 24,673 encounters the sweep saw **every one of them** —
+abilities, and across 34,606 encounters the sweep saw **every one of them** —
 635 distinct species and 310 distinct abilities. That is the diversity claim
 worth making, because win rate cannot measure it at all: a narrow pool that
 happened to be balanced would pass every other number in the report.
 
-Note the clear rates are per *arrival*, not per run — 72.4% of the 134 runs that
+Note the clear rates are per *arrival*, not per run — 75.5% of the 94 runs that
 reached Draven beat him. The population thins faster than the gyms get harder,
 which is what the `reached` column is there to show.
 
@@ -153,6 +187,7 @@ npm run sim                              # 200 seeds, both policies
 npm run sim -- --seeds 1000              # the report above
 npm run sim -- --nodes all               # compare node-choice playstyles
 npm run sim -- --policy switching        # Stage 4's headline pair
+npm run sim -- --policy catching         # Stage 4.6a's: capture on and off
 npm run sim -- --set stepsPerSegment.min=6
 npm run sim -- --help
 ```
@@ -161,11 +196,14 @@ npm run sim -- --help
 
 ```
 src/core/      pure, deterministic, zero DOM, unit tested
-  rng.ts       seeded streams: map, rewards, battle, randomizer, policy
+  rng.ts       seeded streams: map, rewards, battle, randomizer, policy —
+               and, from 4.6a, keyed sub-streams inside each of them
+  streamKeys.ts  every sub-stream key in the game, as functions not literals
   types.ts     the vocabulary every layer shares
   randomizer.ts  how a Pokémon is rolled; pure, explicit Rng, no globals
   party.ts     what persists between nodes, and the rules that change it
-  encounters.ts  map and encounter generation, all of it eager
+  encounters.ts  map and encounter generation, all of it eager — including a
+               route per offered locale, of which the player keeps one
   run.ts       the run state machine, RunPolicy, and playRun
   acquisition.ts how a Pokemon joins the party, and what it costs
   coverage.ts  offensive type coverage as a set of names, never a score
@@ -183,6 +221,7 @@ src/data/      what a Pokémon is rolled *from*, and every balance number
   scaling.ts     the curve: eight rows, and what party the curve assumes
   partyTuning.ts PARTY_SIZE and join level (revival moved to tuning.ts)
   gyms.ts        eight leaders and their type identities
+  locales.ts     eight regions, four types each, and the rule that offers them
   starters.ts    what the player begins with; Stage 5's unlock seam
   blacklists.ts  the exceptions, each with the evidence that earned it
   statusInfo.ts  what every condition does, and what to do about it
@@ -273,6 +312,26 @@ Randomizer draws come from their own RNG stream, so adding a draw in one system
 cannot shift another's. `test/randomizer.test.ts` asserts that directly rather
 than trusting it to the construction.
 
+### Keyed sub-streams, and the bump they exist to spend once
+
+Named streams solved the *between systems* problem and left the *within a
+system* one alone: every map draw in a run came off one sequence, so a draw
+added at segment 0 shifted every draw at segments 1 through 7. That is why every
+stage from 3 onward appended a generation pass rather than editing one.
+
+From Stage 4.6a a stream opens sub-streams **by key** —
+`rng.map.at('seg3/cave/route')` is a sequence of its own, derived from the seed,
+the stream name and the key. A draw under one key cannot move a draw under any
+other, so adding a *new* key is free and adding a draw inside an existing one
+moves that node's rolls and nothing else. `src/core/streamKeys.ts` is the
+namespace; [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md)
+is the argument, including why the two sub-stages after this one should not need
+a structural bump of their own.
+
+It cost one `RANDOMIZER_VERSION` bump, and it is the broadest the string has
+carried: not one line of what a Pokémon *is* changed, and every seed rolls a
+different run.
+
 ### The engine was rolling gender, and it was rolling it wrong
 
 Worth recording because it is the exact shape of bug the version guards exist
@@ -308,6 +367,7 @@ Pokémon engine, and the engine is mostly data.
 | Stage 4 | 731.62 kB | 4.74 kB |
 | Stage 4.5 | 744.19 kB | 5.36 kB |
 | Stage 4.5.1 | 748.32 kB | 5.61 kB |
+| Stage 4.6a | 729.00 kB | 6.34 kB |
 
 Ability descriptions turned out to cost **nothing**. `@pkmn/sim`'s `Dex`
 statically imports its text tables and `build-config/trim-sim-data.ts` only

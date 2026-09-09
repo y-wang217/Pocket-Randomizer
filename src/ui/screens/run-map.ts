@@ -44,7 +44,8 @@ import { heldItem } from '../../core/items';
 import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared, stepsOf } from '../../core/run';
+import { gymsCleared, localeOf, stepsOf } from '../../core/run';
+import { localeById } from '../../data/locales';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState, Tier } from '../../core/types';
 import { GYMS } from '../../data/gyms';
@@ -134,7 +135,17 @@ export function createRunMap(): RunMap {
   const title = el('h2', 'screen__title');
   const subtitle = el('p', 'screen__blurb');
   const blurb = el('p', 'map__blurb');
-  heading.append(title, subtitle, blurb);
+  /*
+   * The region the segment is being walked through, above the step chain.
+   *
+   * A heading rather than a badge on every node, because the locale is a
+   * property of the *whole* route: repeating it on each card would be printing
+   * one fact five times, and the phone pass spent a stage reclaiming vertical
+   * space. Its four types are here for the same reason they are on the select
+   * screen — they are what the region actually means for what you will meet.
+   */
+  const region = el('p', 'map__region');
+  heading.append(title, subtitle, blurb, region);
 
   const chain = el('ol', 'chain');
   const party = el('div', 'party');
@@ -185,6 +196,15 @@ export function createRunMap(): RunMap {
         ),
       );
       blurb.textContent = gym.blurb;
+
+      const locale = localeOf(state);
+      region.hidden = !locale;
+      if (locale) {
+        const definition = localeById(locale);
+        const label = el('span', 'map__region-name');
+        label.textContent = definition.name;
+        region.replaceChildren(label, ...definition.types.map(typeChip));
+      }
 
       chain.replaceChildren(...renderChain(state, segment, onChoose));
       scrollToCurrentStep(chain);
