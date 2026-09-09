@@ -34,13 +34,24 @@
  *     player to be able to *not* use one. The spec puts consumables out of
  *     scope for Stage 3 and this is why.
  *
- * ## One item per Pokemon
+ * ## One item per Pokemon, and a bag for the rest
  *
- * There is no inventory. A Pokemon holds one item; acquiring a second offers a
- * swap and the swapped-out item is gone. That is enforced in `core/items.ts`
- * and it is a deliberate refusal to build a bag: a bag needs a screen, a
- * capacity rule, and a decision about what happens on a wipe, and none of those
- * are interesting until there is a party to spread items across.
+ * A Pokemon still holds exactly one item. What changed in Stage 4.5.1 is what
+ * happens to the others: **there is an inventory now, and nothing is destroyed
+ * except by an explicit discard.**
+ *
+ * Stage 3 refused to build one and wrote down what it would need — "a screen, a
+ * capacity rule, and a decision about what happens on a wipe" — and gated the
+ * refusal on there being a party to spread items across. All three exist: the
+ * screen is the party screen, the capacity rule is `tuning.backpackCapacity`,
+ * and the answer on a wipe is that the run is over and the bag goes with it.
+ *
+ * The consequence for this file is that the cost of an item moved. It used to
+ * be paid on *assignment* — giving a Pokemon a Leftovers destroyed whatever it
+ * held — and it is now paid on *acquisition*, against a finite bag. Which is
+ * the better place for it: the reward screen is where the player is choosing
+ * between three cards, and the party screen is where they are free to change
+ * their mind. See `core/items.ts`.
  */
 
 /** A held item the reward pools may draw. */

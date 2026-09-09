@@ -168,9 +168,11 @@ function renderExisting(
   const item = heldItem(member);
   if (item) {
     const chip = el('span', 'badge badge--item');
-    // What they are holding is part of the cost of releasing them: the item
-    // goes with them, and there is no inventory to catch it.
-    chip.textContent = `${item.name} (lost with them)`;
+    // Stage 4.5.1: the item is *not* part of the price. Releasing is still
+    // permanent — there is no box and no retrieval — but what they were
+    // holding goes back to the bag, because an item is destroyed only by an
+    // explicit discard and letting a Pokemon go is not one.
+    chip.textContent = `${item.name} (returns to your bag)`;
     meta.append(chip);
   }
 

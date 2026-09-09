@@ -13,13 +13,10 @@
  * show them because it does not know who is getting it yet.
  */
 import { describeSpecCard } from '../../core/battle/driver';
-import { heldItem, itemSuitsTypes } from '../../core/items';
-import { hpFraction } from '../../core/party';
+import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
 import { describeReward } from '../../core/rewards';
 import type { PokemonState } from '../../core/types';
-import { itemById } from '../../data/items';
-import { DAMAGING_MOVES } from '../../data/movePools';
 import { el } from '../scene';
 import { typeChip } from './starter-select';
 
@@ -45,10 +42,11 @@ export function createItemTargetScreen(): ItemTargetScreen {
     root,
     render(reward, party, onTarget) {
       title.textContent = describeReward(reward);
-      blurb.textContent =
-        reward.kind === 'item'
-          ? 'Who holds it? Whatever they are holding now is destroyed.'
-          : 'Who learns it? It replaces their weakest attack.';
+      // Items no longer reach this screen — they go to the backpack and are
+      // assigned on the party screen, where the choice is free and reversible.
+      // What is left is the two cards that teach a move, and that choice is
+      // neither. See `rewards.isTargeted`.
+      blurb.textContent = 'Who learns it? You choose what it replaces next.';
 
       list.replaceChildren(...party.map((member, index) => renderTarget(reward, member, index, onTarget)));
     },
@@ -90,7 +88,7 @@ function renderTarget(
   meta.append(hp);
 
   const effect = el('span', 'target__effect');
-  effect.textContent = effectOn(reward, member, detail);
+  effect.textContent = effectOn(reward, member);
   if (effect.textContent.startsWith('No use')) effect.classList.add('target__effect--dud');
 
   button.append(header, track, meta, effect);
@@ -99,45 +97,25 @@ function renderTarget(
 }
 
 /**
- * What this card would actually do to this member, in one line.
+ * What this card would do to this member, in one line. **Facts only.**
  *
- * The honest version, including when the answer is "nothing". A near-dud that
- * announces itself is a legible choice; one that hides is a lottery the player
- * loses four fights later — the same rule the reward screen already follows,
- * applied to the pairing rather than to the card.
+ * Rewritten in Stage 4.5.1, and most of what came out was a verdict rather
+ * than a fact. The old version compared the incoming move's base power against
+ * the member's weakest and strongest attacks and said things like "their new
+ * best attack (95 BP, up from 60)" and "no use — weaker than every attack
+ * Snorlax already has". Part 4 forbids exactly that: **a move card must not
+ * indicate which of the player's current moves it would improve on.** The base
+ * powers of all five moves are on the next screen, side by side, in the same
+ * component; the player does the comparison.
+ *
+ * What is left is the one thing that is genuinely a fact about the pairing and
+ * not a judgement of it — whether this member will be asked a second question
+ * at all. `replacementNeeded` is the same function `playRun` gates the prompt
+ * on, so the line and the flow cannot disagree.
  */
-function effectOn(
-  reward: TargetedReward,
-  member: PokemonState,
-  detail: ReturnType<typeof describeSpecCard>,
-): string {
-  if (reward.kind === 'item') {
-    const entry = itemById(reward.item);
-    if (!entry) return '';
-    const held = heldItem(member);
-    const replacing = held ? ` Destroys their ${held.name}.` : '';
-    if (entry.boostsType && !itemSuitsTypes(entry, detail.types)) {
-      return `No use — ${detail.species} has no ${entry.boostsType} moves to boost.${replacing}`;
-    }
-    return `${entry.blurb}${replacing}`;
-  }
-
-  const incoming = DAMAGING_MOVES.find((move) => move.name === reward.move)?.basePower ?? 0;
-  const attacks = detail.moves.filter((move) => move.category !== 'Status');
-  if (detail.moves.some((move) => move.name === reward.move)) {
-    return `Already knows ${reward.move} — restores its PP instead.`;
-  }
-  if (detail.moves.length < 4) return `Learns ${reward.move} in a free slot.`;
-
-  const weakest = attacks.length > 0 ? Math.min(...attacks.map((move) => move.basePower)) : 0;
-  const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
-  if (incoming <= weakest) {
-    const status = detail.moves.find((move) => move.category === 'Status');
-    return status
-      ? `Weaker than everything they have — replaces ${status.name} for the coverage.`
-      : `No use — weaker than every attack ${detail.species} already has.`;
-  }
-  return incoming > strongest
-    ? `Their new best attack (${incoming} BP, up from ${strongest}).`
-    : `Coverage: ${incoming} BP, replacing their ${weakest} BP attack.`;
+function effectOn(reward: TargetedReward, member: PokemonState): string {
+  const need = replacementNeeded(member, reward.move);
+  if (need === 'known') return `Already knows ${reward.move}. Taking it here restores its PP.`;
+  if (need === 'free') return `Has a free move slot. ${reward.move} goes straight in.`;
+  return `Knows four moves. You choose which one ${reward.move} replaces.`;
 }

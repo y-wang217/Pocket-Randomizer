@@ -20,9 +20,28 @@
  * handed `{...spec, item}` at the moment a battle starts, and the merged object
  * exists only for the duration of that battle. Everywhere else — the party
  * panel, the reward screen, the run log — reads `PokemonState.item`.
+ *
+ * ## Stage 4.5.1: the backpack, and the rule it retires
+ *
+ * Stage 3 wrote "there is no inventory and the swapped-out item is gone", and
+ * gated the reversal on there being a party to spread items across. There is
+ * one now, so the rule is **retired rather than flagged off** — an item is
+ * never destroyed except by an explicit discard.
+ *
+ * That turns one decision into two, and the split is the point. *Which item do
+ * I own* is settled at the reward screen against a finite capacity; *who holds
+ * it* is settled on the party screen and is free to change between every fight.
+ * The first is irreversible and the second is not, which is why only the first
+ * has a cost attached.
+ *
+ * The backpack holds ids, not entries. An id is what the log carries, what
+ * `PokemonState.item` carries and what the sim is handed, and resolving to an
+ * `ItemEntry` is a lookup any reader can do — storing entries would mean the
+ * run state held a copy of `data/items.ts` that a pool edit could not reach.
  */
-import type { PokemonSpec, PokemonState } from './types';
+import type { ItemId, ItemPlan, PokemonSpec, PokemonState } from './types';
 import { itemById, type ItemEntry } from '../data/items';
+import type { Tuning } from '../data/tuning';
 
 /**
  * The spec to hand the sim for a party member, with its held item merged in.
@@ -44,20 +63,158 @@ export function battleSpecFor(member: PokemonState): PokemonSpec {
 /**
  * Give a party member an item, replacing whatever it was holding.
  *
- * **One item per Pokemon, and the swapped-out item is gone.** There is no
- * inventory and no bag, which is a refusal rather than an omission: a bag needs
- * a screen, a capacity rule, and an answer to what happens to it on a wipe, and
- * none of those are interesting decisions until there is a party to spread
- * items across. Stage 4 is the conversation; until then, taking an item is a
- * choice with a cost, which is the more useful version anyway.
+ * **The displaced item is returned, not destroyed** — that is the Stage 3 rule
+ * being retired rather than flagged off. Callers hand it back to the backpack;
+ * `applyItemPlan` is the only caller that matters and does exactly that.
  *
- * Returns a new state. Nothing in a run is mutated in place — a run is replayed
+ * An unknown id is refused rather than equipped, and reports itself as
+ * displacing nothing, so a pool edit that removes an item cannot silently strip
+ * a Pokemon of the one it was holding.
+ *
+ * Returns new state. Nothing in a run is mutated in place — a run is replayed
  * from a decision log, and shared mutable party state is the fastest way to
  * make a replay disagree with the run it replays.
  */
-export function giveItem(member: PokemonState, itemId: string): PokemonState {
-  if (!itemById(itemId)) return member;
-  return { ...member, item: itemId };
+export function giveItem(
+  member: PokemonState,
+  itemId: ItemId,
+): { member: PokemonState; displaced: ItemId | null } {
+  if (!itemById(itemId)) return { member, displaced: null };
+  return { member: { ...member, item: itemId }, displaced: member.item ?? null };
+}
+
+/** Take a member's item off, handing it back. The inverse of `giveItem`. */
+export function takeItem(member: PokemonState): { member: PokemonState; displaced: ItemId | null } {
+  if (!member.item) return { member, displaced: null };
+  const without = { ...member };
+  delete without.item;
+  return { member: without, displaced: member.item };
+}
+
+// ---------------------------------------------------------------------------
+// The backpack
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether this state has anything for an item plan to do.
+ *
+ * **The single definition, shared by the question in `playRun` and the replay
+ * that answers it** — the same discipline `rewards.isTargeted` follows, and for
+ * the same reason. A boundary where the question is asked live but skipped on
+ * replay puts the log one entry out of step, and the symptom is a battle
+ * decision being read as a node decision several nodes later.
+ *
+ * It is derived purely from state, which replay reconstructs identically, so it
+ * is safe to gate on. What it must never gate on is anything the *player* varies
+ * independently of the log.
+ */
+export function needsItemPlan(state: {
+  backpack: readonly ItemId[];
+  party: readonly PokemonState[];
+}): boolean {
+  return state.backpack.length > 0 || state.party.some((member) => member.item !== undefined);
+}
+
+/** How many loose items the run may hold. Held items are not counted; see the tuning note. */
+export function backpackCapacity(tuning: Tuning): number {
+  return Math.max(0, Math.floor(tuning.backpackCapacity));
+}
+
+/**
+ * Put an item in the backpack. Over capacity is *allowed here* and resolved later.
+ *
+ * The transient overflow is deliberate. A node can hand over three items at once
+ * — a reward, a shop basket and an event all resolve in one `resolveNode` — and
+ * asking the player to discard between each of them would be asking them to
+ * choose without knowing what else is arriving. So acquisition always succeeds,
+ * the backpack is briefly over its limit, and the boundary's item plan is what
+ * brings it back down. `applyItemPlan` refuses to leave it over.
+ *
+ * Nothing is dropped and nothing is refused, which is the spec's rule stated as
+ * a postcondition rather than an intention.
+ */
+export function stow(backpack: readonly ItemId[], itemId: ItemId): ItemId[] {
+  if (!itemById(itemId)) return [...backpack];
+  return [...backpack, itemId];
+}
+
+/**
+ * Apply a whole item plan: reassignments first, then discards.
+ *
+ * **Ordering matters and is fixed here rather than left to the caller.** An
+ * item taken off a Pokemon lands in the backpack, and the player may well have
+ * meant to discard *that* one — resolving assignments first is what makes
+ * "unequip the Charcoal and throw it away" expressible as one plan.
+ *
+ * Assignments are applied as a transaction against a pool that starts as the
+ * backpack plus everything the named slots were holding. That is what makes the
+ * plan a *destination* rather than a sequence: swapping the items on slots 0 and
+ * 1 is two assignments that would each be illegal on their own, and are legal
+ * together because both items are in the pool before either is placed.
+ *
+ * Throws on anything illegal — an unknown slot, an item the run does not own,
+ * a discard of something absent, or a plan that leaves the backpack over
+ * capacity. Loud, because every one of those is either a UI bug or a hand-edited
+ * log, and a silently trimmed backpack would replay as a different run.
+ */
+export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemId[]; tuning: Tuning }>(
+  state: S,
+  plan: ItemPlan,
+): S {
+  const seen = new Set<number>();
+  for (const assignment of plan.assignments) {
+    if (!state.party[assignment.slot]) {
+      throw new RangeError(
+        `Item assignment names slot ${assignment.slot}, but the party has ${state.party.length}`,
+      );
+    }
+    if (seen.has(assignment.slot)) {
+      throw new RangeError(`Item plan assigns slot ${assignment.slot} twice`);
+    }
+    seen.add(assignment.slot);
+  }
+
+  // The pool: the backpack, plus whatever the touched slots were holding. Both
+  // sources go in before anything comes out, which is what lets two members
+  // trade items in one plan.
+  const pool = [...state.backpack];
+  const party = [...state.party];
+  for (const assignment of plan.assignments) {
+    const { member, displaced } = takeItem(party[assignment.slot]!);
+    party[assignment.slot] = member;
+    if (displaced) pool.push(displaced);
+  }
+
+  for (const assignment of plan.assignments) {
+    if (assignment.item === null) continue;
+    const index = pool.indexOf(assignment.item);
+    if (index === -1) {
+      throw new RangeError(
+        `Item plan gives slot ${assignment.slot} a ${assignment.item}, which the run does not hold`,
+      );
+    }
+    pool.splice(index, 1);
+    const { member } = giveItem(party[assignment.slot]!, assignment.item);
+    party[assignment.slot] = member;
+  }
+
+  for (const discarded of plan.discards) {
+    const index = pool.indexOf(discarded);
+    if (index === -1) {
+      throw new RangeError(`Item plan discards a ${discarded}, which is not in the backpack`);
+    }
+    pool.splice(index, 1);
+  }
+
+  const capacity = backpackCapacity(state.tuning);
+  if (pool.length > capacity) {
+    throw new RangeError(
+      `Item plan leaves ${pool.length} items in a backpack that holds ${capacity}. ` +
+        'Over-capacity is resolved by discarding, never by dropping the overflow.',
+    );
+  }
+
+  return { ...state, party, backpack: pool };
 }
 
 /** What a member is holding, resolved to its whitelist entry. Null if nothing. */

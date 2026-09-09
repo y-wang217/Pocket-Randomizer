@@ -396,9 +396,13 @@ describe('events', () => {
       hurt.party[0]!.maxHp,
     );
     expect(applyEventOutcome(hurt, { kind: 'currency', amount: 60 }, DEFAULT_TUNING).currency).toBe(60);
+    // Stage 4.5.1: an event item goes to the backpack like every other item the
+    // run acquires. It used to be forced onto the lead, which silently
+    // destroyed whatever that member was holding — the Stage 3 swap rule firing
+    // on a decision the player was never offered.
     expect(
-      applyEventOutcome(hurt, { kind: 'item', item: 'leftovers' }, DEFAULT_TUNING).party[0]!.item,
-    ).toBe('leftovers');
+      applyEventOutcome(hurt, { kind: 'item', item: 'leftovers' }, DEFAULT_TUNING).backpack,
+    ).toEqual(['leftovers']);
     expect(applyEventOutcome(hurt, { kind: 'nothing' }, DEFAULT_TUNING)).toBe(hurt);
   });
 

@@ -27,7 +27,15 @@ import {
   type BattleUiView,
   type MoveUiView,
 } from '../core/battle/view';
-import { moveChoice, switchChoice, type Choice, type StatName, type SwitchView } from '../core/types';
+import { showsNumbers } from './settings';
+import {
+  moveChoice,
+  switchChoice,
+  type Choice,
+  type Gender,
+  type StatName,
+  type SwitchView,
+} from '../core/types';
 
 const STATUS_LABELS: Record<string, string> = {
   brn: 'BRN',
@@ -43,6 +51,9 @@ interface StatRow {
   root: HTMLElement;
   label: HTMLElement;
   value: HTMLElement;
+  /** The Simple-mode relative bar. Hidden in Detailed, and vice versa. */
+  bar: HTMLElement;
+  barFill: HTMLElement;
   marker: HTMLElement;
 }
 
@@ -115,14 +126,46 @@ function createStatRow(stat: string): StatRow {
   const root = el('div', 'stat');
   root.dataset['stat'] = stat;
   const label = el('span', 'stat__label');
+  /*
+   * Every stat label is a tooltip trigger. **Persistent, not discoverable.**
+   *
+   * Part 5 asks that the abbreviations be explained wherever they appear, and
+   * `Atk` versus `SpA` is the case it names: two labels one character apart
+   * that decide which of the defender's two unrelated defences a move is
+   * resolved against. A help affordance the player has to find first is one
+   * they find after the run in which they needed it.
+   *
+   * The same tap-first layer Stage 4.5 built (`ui/tooltips.ts`), and
+   * deliberately not a second mechanism — a `title` attribute here would be a
+   * hover-only answer on a screen whose other answers work on a phone.
+   */
+  label.dataset['tip'] = `stat:${stat}`;
   const value = el('span', 'stat__value');
   // The speed marker lives on every row so the arrow can move without the
   // layout shifting under it. Only the Speed row ever fills it in.
   const marker = el('span', 'stat__marker');
   marker.hidden = true;
-  root.append(label, value, marker);
-  return { root, label, value, marker };
+  // The Simple-mode bar. Always built, never rebuilt — the toggle flips which
+  // of `value` and `bar` is hidden, so switching modes cannot reflow the panel.
+  const bar = el('div', 'stat__bar');
+  const barFill = el('div', 'stat__bar-fill');
+  bar.append(barFill);
+  root.append(label, value, bar, marker);
+  return { root, label, value, bar, barFill, marker };
 }
+
+/**
+ * The widest stat a bar is drawn against.
+ *
+ * A relative bar needs a denominator, and there is no honest one available on
+ * screen: the panel shows two Pokemon, so scaling to the larger of the two
+ * would make the same Pokemon's Attack bar change length depending on who it is
+ * fighting. A fixed ceiling keeps a bar meaning the same thing all run.
+ *
+ * 200 is a little above the highest stat a levelled party member reaches at the
+ * shipped curve, so bars stay readable rather than all pinning to full.
+ */
+const STAT_BAR_CEILING = 200;
 
 function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const root = el('div', `panel panel--${kind}`);
@@ -167,7 +210,11 @@ function updateSidePanel(
   isFaster: boolean,
 ): void {
   panel.name.textContent = isFoe ? `Opposing ${active.name}` : active.name;
-  panel.level.textContent = `Lv${active.level}`;
+  // Gender sits with the level because it is the same kind of fact: a fixed
+  // property of this Pokemon, not a thing the fight is doing to it. Genderless
+  // renders nothing at all rather than a dash or an "N" — a placeholder for
+  // "no gender" is a symbol the player has to learn in order to ignore.
+  panel.level.textContent = `Lv${active.level}${genderMark(active.gender)}`;
 
   panel.types.replaceChildren(...active.types.map((type) => typeChip(type)));
 
@@ -225,6 +272,7 @@ function updateSidePanel(
   panel.hpRow.label.textContent = STAT_LABELS.hp;
   panel.hpRow.value.textContent = `${active.hp.max}`;
   panel.hpRow.root.dataset['stage'] = 'flat';
+  applyVerbosity(panel.hpRow, active.hp.max);
 
   for (const stat of BOOSTABLE_STATS) {
     const row = panel.rows[stat];
@@ -235,13 +283,43 @@ function updateSidePanel(
     // quiet until it has something to say.
     row.value.textContent = formatStat('', view).trim();
     row.root.dataset['stage'] = view.stage === 0 ? 'flat' : view.stage > 0 ? 'up' : 'down';
+    // The bar tracks the *effective* stat, so a Swords Dance is visible in
+    // Simple mode too. Hiding the number must not hide the change.
+    applyVerbosity(row, view.effective);
 
+    /*
+     * The speed marker survives Simple mode, deliberately.
+     *
+     * It is the one thing on the panel that answers a question rather than
+     * stating a number, and it is exactly the question a player who turned the
+     * numbers off still needs answered. The stage prompt names it for the same
+     * reason.
+     */
     const marksSpeed = stat === 'spe' && isFaster;
     row.marker.hidden = !marksSpeed;
     if (marksSpeed) {
       row.marker.textContent = '▲ first';
       row.marker.title = 'Moves first at this Speed';
     }
+  }
+}
+
+/**
+ * Show the number or the bar, according to the verbosity flag.
+ *
+ * **The only place the flag changes what a stat row looks like**, and it is a
+ * pure swap of which child is hidden — no branch computes a different value, so
+ * the two modes cannot disagree about what the stat is. `showsNumbers()` is
+ * read here rather than passed in because it is a display preference and does
+ * not belong in the same argument list as the battle state.
+ */
+function applyVerbosity(row: StatRow, effective: number): void {
+  const numbers = showsNumbers();
+  row.value.hidden = !numbers;
+  row.bar.hidden = numbers;
+  if (!numbers) {
+    const share = Math.max(0, Math.min(1, effective / STAT_BAR_CEILING));
+    row.barFill.style.width = `${share * 100}%`;
   }
 }
 
@@ -373,7 +451,7 @@ function renderBenchMember(
   const name = el('span', 'bench__name');
   name.textContent = member.name;
   const level = el('span', 'bench__level');
-  level.textContent = `Lv${member.level}`;
+  level.textContent = `Lv${member.level}${genderMark(member.gender)}`;
 
   const types = el('span', 'bench__types');
   types.replaceChildren(...member.types.map((type) => typeChip(type)));
@@ -487,12 +565,102 @@ function renderMove(
 }
 
 /** Short enough for a button, unambiguous enough to learn from. */
-const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
+export const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
   Physical: 'PHYS',
   Special: 'SPEC',
   Status: 'STAT',
 };
 
+/**
+ * The four facts about a move, rendered the same way everywhere.
+ *
+ * **Part 5's rule is that a move looks identical everywhere the player sees
+ * it**, and this is the one function that makes that true. The battle button
+ * (`renderMove`) builds it and then adds the two things that only exist during
+ * a fight — remaining PP against max, and live effectiveness against whatever
+ * is standing opposite. The reward card and the replacement screen build it and
+ * add nothing.
+ *
+ * That split is also where Part 4 lands. Everything in here is an attribute of
+ * the move itself; the one piece of *situational* information the UI is allowed
+ * to show — effectiveness against the Pokemon currently on the field — is added
+ * by the battle button and is unavailable to any screen that is not in a
+ * battle. A reward card physically cannot render it, rather than being trusted
+ * not to.
+ *
+ * `maxPp` is shown alone off the battle screen because a move nobody knows yet
+ * has no remaining PP: printing "PP 0/24" for an offer would be stating a
+ * resource the player has not spent.
+ */
+export function moveFacts(move: {
+  name: string;
+  type: string;
+  category: MoveUiView['category'];
+  basePower: number;
+  maxPp: number;
+}): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement } {
+  const name = el('span', 'move__name');
+  name.textContent = move.name;
+
+  const meta = el('span', 'move__meta');
+  const type = el('span', `type type--${move.type.toLowerCase()}`);
+  type.textContent = move.type;
+  type.dataset['tip'] = `type:${move.type}`;
+
+  const category = el('span', `badge badge--category badge--cat-${move.category.toLowerCase()}`);
+  category.textContent = CATEGORY_LABELS[move.category];
+  category.dataset['tip'] = `category:${move.category.toLowerCase()}`;
+  category.tabIndex = 0;
+  category.setAttribute('role', 'button');
+
+  const power = el('span', 'move__power');
+  power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
+  meta.append(type, category, power);
+
+  const pp = el('span', 'move__pp');
+  pp.textContent = `PP ${move.maxPp}`;
+
+  return { name, meta, pp };
+}
+
+/**
+ * A move as a standalone card, for screens outside a battle.
+ *
+ * Same element classes as the battle button so the two are styled by one rule
+ * set: a card that merely *resembled* the button would drift the first time
+ * either was restyled.
+ */
+export function moveCard(move: {
+  name: string;
+  type: string;
+  category: MoveUiView['category'];
+  basePower: number;
+  maxPp: number;
+}): HTMLElement {
+  const card = el('div', `move move--card move--${move.type.toLowerCase()}`);
+  card.dataset['category'] = move.category.toLowerCase();
+  const facts = moveFacts(move);
+  card.append(facts.name, facts.meta, facts.pp);
+  return card;
+}
+
+
+/**
+ * The mark shown after a level: male, female, or nothing at all.
+ *
+ * **Genderless renders the empty string, not a placeholder.** A dash or an "N"
+ * would be a symbol the player has to learn in order to ignore, and the whole
+ * point of showing gender is that it is a fact needing no explanation. The
+ * absence of a mark is the readout.
+ *
+ * The symbols rather than the letters because they read at a glance next to a
+ * number: "Lv50 M" parses as a stat and "Lv50 \u2642" does not.
+ */
+export function genderMark(gender: Gender): string {
+  if (gender === 'M') return ' \u2642';
+  if (gender === 'F') return ' \u2640';
+  return '';
+}
 
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,

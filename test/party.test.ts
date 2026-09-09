@@ -28,11 +28,14 @@ import {
   releaseMember,
   reorderParty,
   restParty,
+  reviveHpFor,
 } from '../src/core/party';
 import { applyReward } from '../src/core/rewards';
 import {
+  RUN_LOG_VERSION,
   createRun,
   chooseStarter,
+  defaultMoveReplacement,
   gymsCleared,
   playRun,
   replayRun,
@@ -45,6 +48,7 @@ import {
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
 import { PARTY_SIZE, PARTY_TUNING } from '../src/data/partyTuning';
+import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
@@ -90,14 +94,14 @@ describe('acquiring at a full party', () => {
 
   it('never produces a party over PARTY_SIZE, by either path', () => {
     const full = partyOf(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'decline' })).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 })).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' })).toHaveLength(2);
+    expect(applyAcquisition(full, OFFER, { kind: 'decline' }).party).toHaveLength(PARTY_SIZE);
+    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }).party).toHaveLength(PARTY_SIZE);
+    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }).party).toHaveLength(2);
   });
 
   it('releases the member named and nobody else', () => {
     const full = partyOf(PARTY_SIZE);
-    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 });
+    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }).party;
 
     expect(after.map((member) => member.spec.species)).not.toContain(SPECS[1]!.species);
     expect(after.map((member) => member.spec.species)).toContain('Tyranitar');
@@ -117,13 +121,13 @@ describe('acquiring at a full party', () => {
   it('declining leaves the party untouched, and is always legal', () => {
     for (const size of [1, PARTY_SIZE]) {
       const before = partyOf(size);
-      const after = applyAcquisition(before, OFFER, { kind: 'decline' });
+      const after = applyAcquisition(before, OFFER, { kind: 'decline' }).party;
       expect(after.map((m) => m.spec.species)).toEqual(before.map((m) => m.spec.species));
     }
   });
 
   it('joins at full HP, at the offer level, and below the segment curve', () => {
-    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' })[1]!;
+    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }).party[1]!;
     expect(joined.hp).toBe(joined.maxHp);
     expect(joined.fainted).toBe(false);
     expect(joined.spec.level).toBe(OFFER.spec.level);
@@ -157,7 +161,7 @@ describe('managing the party between nodes', () => {
   });
 
   it('releases a member permanently', () => {
-    const after = releaseMember(partyOf(3), 1);
+    const after = releaseMember(partyOf(3), 1).party;
     expect(after.map((m) => m.spec.species)).toEqual(['Snorlax', 'Blissey']);
   });
 
@@ -165,8 +169,8 @@ describe('managing the party between nodes', () => {
     // A party of zero is neither wiped nor alive — `isWiped` reads `fainted` —
     // so it would be a state reached by a button rather than by losing.
     const one = partyOf(1);
-    expect(releaseMember(one, 0)).toHaveLength(1);
-    expect(isWiped(releaseMember(one, 0))).toBe(false);
+    expect(releaseMember(one, 0).party).toHaveLength(1);
+    expect(isWiped(releaseMember(one, 0).party)).toBe(false);
   });
 });
 
@@ -180,12 +184,34 @@ describe('revival is partial', () => {
     return [{ ...party[0]!, hp: 0, fainted: true }, party[1]!];
   };
 
-  it('brings a fainted member back at reviveHpFraction at the next node', () => {
+  // Stage 4.5.1: the fraction moved from `PARTY_TUNING.reviveHpFraction` to
+  // `tuning.reviveHpPercent` so a sweep can vary it. Same number, same
+  // behaviour — the assertion below reads it off the tuning now.
+  it('brings a fainted member back at reviveHpPercent at the next node', () => {
     const revived = betweenNodes(fainted(), DEFAULT_TUNING)[0]!;
     expect(revived.fainted).toBe(false);
-    expect(revived.hp).toBe(Math.round(revived.maxHp * PARTY_TUNING.reviveHpFraction));
+    expect(revived.hp).toBe(reviveHpFor(revived.maxHp, DEFAULT_TUNING.reviveHpPercent));
     // Which is a real cost, not a formality: it is not a full heal.
     expect(revived.hp).toBeLessThan(revived.maxHp);
+  });
+
+  it('honours a swept reviveHpPercent rather than a constant', () => {
+    // The whole point of the move: `withTuning` can now reach this number.
+    // At party size 1 these branches are unreachable, so the sweep is the only
+    // thing that can tell the difference between them.
+    const quarter = betweenNodes(fainted(), withTuning({ reviveHpPercent: 0.25 }))[0]!;
+    const full = betweenNodes(fainted(), withTuning({ reviveHpPercent: 1 }))[0]!;
+    expect(quarter.hp).toBe(reviveHpFor(quarter.maxHp, 0.25));
+    expect(full.hp).toBe(full.maxHp);
+    expect(quarter.hp).toBeLessThan(full.hp);
+  });
+
+  it('never revives a member to zero HP, however low the percent goes', () => {
+    // `round(maxHp * 0)` is 0, and an un-fainted member at zero HP is a state
+    // nothing downstream is written to survive.
+    const revived = betweenNodes(fainted(), withTuning({ reviveHpPercent: 0 }))[0]!;
+    expect(revived.fainted).toBe(false);
+    expect(revived.hp).toBe(1);
   });
 
   it('restores fully at a rest node', () => {
@@ -211,9 +237,20 @@ describe('targeting a reward at a party member', () => {
     return { ...chooseStarter(createRun('TARGET'), 0), party: partyOf(3) };
   }
 
-  it('gives the item to the slot the player named', () => {
+  /*
+   * Stage 4.5.1: an item card is no longer targeted at all.
+   *
+   * It used to land on a named slot and destroy whatever was there. It now
+   * lands in the backpack, and who holds it is settled on the party screen by a
+   * separate, free, reversible decision — see `rewards.isTargeted` for why a
+   * choice the player can undo ten seconds later does not belong on a reward
+   * screen. The assertion is kept rather than deleted so the change is visible
+   * as a change: same card, same call, different destination.
+   */
+  it('puts an item card in the backpack rather than on a party member', () => {
     const after = applyReward(state(), { kind: 'item', item: 'leftovers' }, 2);
-    expect(after.party.map((member) => member.item)).toEqual([undefined, undefined, 'leftovers']);
+    expect(after.backpack).toEqual(['leftovers']);
+    expect(after.party.map((member) => member.item)).toEqual([undefined, undefined, undefined]);
   });
 
   it('teaches the move to the slot the player named', () => {
@@ -222,26 +259,40 @@ describe('targeting a reward at a party member', () => {
     expect(after.party[0]!.spec.moves).not.toContain('Earthquake');
   });
 
-  it('destroys the item that was already held, with no inventory to catch it', () => {
+  /*
+   * Stage 4.5.1: this test asserted the rule that this stage retires.
+   *
+   * It was called "destroys the item that was already held, with no inventory
+   * to catch it", and there is an inventory to catch it now. The Stage 3 note
+   * gated the reversal on there being a party to spread items across; there is
+   * one, so the rule is gone rather than flagged off, and the assertion is
+   * inverted rather than removed — nothing is destroyed except by an explicit
+   * discard.
+   */
+  it('no longer destroys a held item: an item card cannot displace anything', () => {
     const before = state();
-    const holding = { ...before, party: before.party.map((m, i) => (i === 0 ? giveItem(m, 'lifeorb') : m)) };
+    const holding = { ...before, party: before.party.map((m, i) => (i === 0 ? giveItem(m, 'lifeorb').member : m)) };
     const after = applyReward(holding, { kind: 'item', item: 'leftovers' }, 0);
 
-    expect(after.party[0]!.item).toBe('leftovers');
-    expect(after.party.some((member) => member.item === 'lifeorb')).toBe(false);
+    expect(after.party[0]!.item).toBe('lifeorb');
+    expect(after.backpack).toEqual(['leftovers']);
   });
 
   it('falls back to the lead rather than crashing on a fainted target', () => {
     // A member can faint in the fight that paid the card. A run ended by its
-    // own reward screen would be a worse failure than the item moving.
+    // own reward screen would be a worse failure than the move moving.
+    //
+    // Stage 4.5.1: demonstrated with a TM rather than an item, because items
+    // are no longer targeted and so can no longer name a fainted slot at all.
+    // The fallback still has to hold for the cards that *are* targeted.
     const before = state();
     const withDead = {
       ...before,
       party: before.party.map((m, i) => (i === 1 ? { ...m, hp: 0, fainted: true } : m)),
     };
-    const after = applyReward(withDead, { kind: 'item', item: 'leftovers' }, 1);
-    expect(after.party[0]!.item).toBe('leftovers');
-    expect(after.party[1]!.item).toBeUndefined();
+    const after = applyReward(withDead, { kind: 'tm', move: 'Earthquake' }, 1);
+    expect(after.party[0]!.spec.moves).toContain('Earthquake');
+    expect(after.party[1]!.spec.moves).not.toContain('Earthquake');
   });
 
   it('leaves untargeted rewards party-wide', () => {
@@ -285,7 +336,8 @@ function collector(): RunPolicy & { readonly taken: number; readonly released: n
     },
     // The last slot, so a target that was ignored shows up as slot 0 holding
     // everything.
-    chooseItemTarget: async (_reward, party) => party.length - 1,
+    chooseMoveRecipient: async (_offer, party) => party.length - 1,
+    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     chooseAcquisition: async (_offer, party) => {
       taken++;
       if (party.length < PARTY_SIZE) return { kind: 'accept' };
@@ -385,7 +437,30 @@ describe('the version guard', () => {
     // asserts on construction, so the refusal arrives before a single decision
     // is reconstructed rather than partway through a run that never happened.
     expect(() => replayRun(stale)).toThrow(/gymrun-run-5\/gymrun-0\.1\.0/);
-    expect(() => replayRun(stale)).toThrow(/this build replays gymrun-run-6/);
+    expect(() => replayRun(stale)).toThrow(/this build replays gymrun-run-7/);
+  });
+
+  /*
+   * Stage 4.5.1's own break, asserted separately from Stage 3's.
+   *
+   * A Stage 4.5 log is the *near* miss — one version back, same engine string —
+   * and it is the one a player is actually holding, so it gets its own case
+   * rather than being folded into the paragraph above. It must be refused by
+   * name and not "mostly replayed": every decision in it is individually valid,
+   * the sequence is simply one `items` entry short at every node boundary and
+   * one `target` entry long at every item card.
+   */
+  it('refuses a Stage 4.5 log by name, naming both versions', () => {
+    const stale: RunLog = {
+      seed: 'STAGE45',
+      version: 'gymrun-run-6/gymrun-0.2.0',
+      randomizerVersion: RANDOMIZER_VERSION,
+      decisions: [],
+    };
+    expect(() => replayRun(stale)).toThrow(/gymrun-run-6\/gymrun-0\.2\.0/);
+    expect(() => replayRun(stale)).toThrow(
+      new RegExp(`this build replays ${RUN_LOG_VERSION.replace(/[.\\/]/g, '\\$&')}`),
+    );
   });
 });
 
@@ -550,7 +625,8 @@ describe('a full eight-gym run, headless', () => {
         const wild = options.findIndex((option) => option.kind === 'wild');
         return wild === -1 ? 0 : wild;
       },
-      chooseItemTarget: async (_reward, party) => party.length - 1,
+      chooseMoveRecipient: async (_offer, party) => party.length - 1,
+    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       chooseAcquisition: async (_offer, party) =>
         hasRoom(party) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
     };

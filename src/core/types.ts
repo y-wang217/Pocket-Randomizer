@@ -18,6 +18,29 @@ export function opposingSide(side: SideId): SideId {
 // ---------------------------------------------------------------------------
 
 /**
+ * A Pokemon's gender: male, female, or none at all.
+ *
+ * **On the spec from Stage 4.5.1, and the reason is that the engine gets it
+ * wrong.** Showdown assigns an unnamed gender with `battle.sample(['M', 'F'])`
+ * — a flat coin flip that ignores the species' own `genderRatio`, so Combee
+ * comes out 50/50 rather than 87.5% male. Worse for a roguelike, it draws from
+ * the *battle* PRNG at team construction, so the same party member is male in
+ * one fight and female in the next, and nothing outside a battle has a gender
+ * at all.
+ *
+ * Rolling it here fixes all three: the ratio is the dex's, the value is stable
+ * for the life of the Pokemon, and the party screen can show it. It is also not
+ * a *new* draw in aggregate — handing the sim a concrete gender short-circuits
+ * the `sample` it was making anyway, so the roll moves from the battle stream to
+ * the randomizer rather than being added to the game.
+ *
+ * `null` is genderless, and it is distinct from `undefined`: undefined means
+ * nobody rolled one (a spec built by hand in a test), and the sim falls back to
+ * its own behaviour. Every spec the randomizer produces has a value.
+ */
+export type Gender = 'M' | 'F' | null;
+
+/**
  * A Pokemon described declaratively, never as a Showdown export string.
  *
  * Stage 0 hardcodes two of these in data/mons.ts. Stage 2's randomizer will
@@ -34,6 +57,20 @@ export interface PokemonSpec {
   /** Unused in Stage 0, but wired through the sim so items work on day one. */
   item?: string;
   nickname?: string;
+  /**
+   * Rolled once, from the species' real gender ratio. See `Gender`.
+   *
+   * Optional so that a spec built by hand — every test in this repo — still
+   * typechecks, in which case the sim falls back to its own coin flip. Every
+   * spec `core/randomizer.ts` produces carries one.
+   *
+   * On the spec rather than alongside it, unlike `PokemonState.item`, and the
+   * distinction is the identity line `core/items.ts` describes: a held item is
+   * something the run *did* and can undo, while gender is fixed at the moment
+   * the Pokemon is generated and never changes again. That puts it on the
+   * species side of the line, with ability and moves.
+   */
+  gender?: Gender;
 }
 
 export type TeamSpec = PokemonSpec[];
@@ -102,6 +139,17 @@ export function emptyStatStages(): StatStages {
   return { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 };
 }
 
+/**
+ * A Pokemon type, by the dex's spelling: `'Fire'`, `'Ghost'`, and so on.
+ *
+ * An alias rather than a union, because the list comes from the dex at runtime
+ * (`driver.WHEEL_TYPES`) and a hand-written union here would be a second copy
+ * of it — one that a generation change would leave silently disagreeing with
+ * the engine. The alias is worth having anyway: `TypeName[]` says what a
+ * coverage set is in a way `string[]` does not.
+ */
+export type TypeName = string;
+
 export interface MoveView {
   /** 1-based slot, the value to hand back in a `Choice`. */
   slot: number;
@@ -132,6 +180,8 @@ export interface SwitchView {
   species: string;
   name: string;
   level: number;
+  /** Male, female, or genderless, so the bench reads like the active panel. */
+  gender: Gender;
   types: string[];
   ability: string;
   /** Move ids, so a policy can estimate what this member would threaten with. */
@@ -273,6 +323,32 @@ export interface BattleLog {
 // Party state
 // ---------------------------------------------------------------------------
 
+/**
+ * A move as an *offer*: everything a card needs to show, with nothing about who
+ * knows it.
+ *
+ * The same fields `MoveView` carries minus the two that only exist once a
+ * Pokemon holds the move — the slot it sits in and the PP left on it. That is
+ * the point of the separate type: a move reward has no slot and no remaining
+ * PP, and giving it placeholder values for both is how a card ends up rendering
+ * "PP 0/15" for a move nobody has used.
+ *
+ * `maxPp` is here because it is a property of the move rather than of the
+ * holder, and Part 5 requires a reward card to show it alongside type, base
+ * power and category — the same four numbers the battle screen shows, so that a
+ * move looks identical everywhere the player sees it.
+ */
+export interface MoveSpec {
+  id: string;
+  name: string;
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  /** 0 for status moves. */
+  basePower: number;
+  accuracy: number | true;
+  maxPp: number;
+}
+
 /** Remaining PP for one move slot, carried between encounters. */
 export interface MoveState {
   id: string;
@@ -310,6 +386,58 @@ export interface PokemonState {
    * explains why that merge lives in exactly one place.
    */
   item?: string;
+}
+
+// ---------------------------------------------------------------------------
+// The backpack
+// ---------------------------------------------------------------------------
+
+/**
+ * A held item, by dex id. The key `data/items.ts` is indexed on.
+ *
+ * A named alias rather than a bare `string` because from Stage 4.5.1 an item id
+ * travels: it sits on a Pokemon, it sits in the backpack, it moves between the
+ * two, and it appears in the run log. Four places calling it `string` is four
+ * places where a species id or a move id typechecks just as well.
+ */
+export type ItemId = string;
+
+/**
+ * What one party slot should be holding once a plan is applied.
+ *
+ * A *destination*, not a move. "Slot 2 holds the Leftovers" replays to the same
+ * layout from any starting arrangement, where "take the Leftovers off slot 1
+ * and put it on slot 2" only replays correctly if slot 1 was holding it — which
+ * is the sort of precondition a log should never have to carry.
+ *
+ * `null` means the slot holds nothing, and the item it *was* holding goes back
+ * to the backpack. Nothing is destroyed by an assignment.
+ */
+export interface ItemAssignment {
+  slot: number;
+  item: ItemId | null;
+}
+
+/**
+ * Everything the player did to their items at one node boundary, as one act.
+ *
+ * **One decision, not a stream of them, and that is what makes free
+ * reassignment loggable.** The spec asks that items be reassignable "any number
+ * of times between nodes, at no cost". A log that recorded every swap would
+ * grow without bound with the player's fidgeting and would replay their
+ * indecision rather than their decision. A log that records the *layout they
+ * committed to* is the same size whether they moved one item or twenty, which
+ * is why `assignments` is a destination list and not a move list.
+ *
+ * `discards` is separate because it is the one irreversible act here. Every
+ * other part of a plan can be undone by a later plan; a discarded item is gone.
+ * The capacity rule is what forces the choice — see `tuning.backpackCapacity` —
+ * and `items.applyItemPlan` throws rather than silently trimming if a plan
+ * leaves the backpack over it.
+ */
+export interface ItemPlan {
+  assignments: ItemAssignment[];
+  discards: ItemId[];
 }
 
 // ---------------------------------------------------------------------------
@@ -380,7 +508,38 @@ export type RunDecision =
   | {
       kind: 'acquisition';
       decision: { kind: 'decline' } | { kind: 'accept' } | { kind: 'release'; slot: number };
-    };
+    }
+  /**
+   * What the player did with their items at this node boundary.
+   *
+   * **Stored as a value, and it is the second exception to the index rule.**
+   * The first is `acquisition`, above, and the justification is the same: a
+   * plan is not a selection from a list the seed reconstructs, it is a layout
+   * the player composed out of things they already own. There is nothing
+   * derived in it to drift when a pool is edited.
+   *
+   * Recorded only at boundaries where there was something to manage — see
+   * `items.needsItemPlan`, which is the single definition shared by the
+   * question and the replay, for the same reason `rewards.isTargeted` is.
+   */
+  | { kind: 'items'; plan: ItemPlan }
+  /**
+   * Which move slot a taught move displaced, 0-based.
+   *
+   * **Stage 4.5.1's logic change, and the reason it is a separate entry from
+   * `target`.** The two questions are asked in sequence — who learns it, then
+   * what it costs them — and they are different questions with different
+   * answers, so folding them into one entry would mean a log that could not
+   * express "the player picked slot 2, then changed their mind about which move
+   * to drop".
+   *
+   * Recorded only when a replacement was actually chosen. A member with a free
+   * move slot is never asked, and neither is one that already knows the move —
+   * both conditions are derived from the member and the move, which a replay
+   * reconstructs exactly. See `party.replacementNeeded`, which is the single
+   * definition shared by the question and the replay.
+   */
+  | { kind: 'replace'; slot: number };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

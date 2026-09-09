@@ -150,7 +150,10 @@ function detailOf(reward: Reward): string {
       return 'Heals HP and PP, and clears status.';
     case 'tm':
     case 'tutor':
-      return 'Taught in place of your weakest attack.';
+      // Stage 4.5.1: the shop asks the same two questions a reward card does —
+      // who learns it, then what it displaces — so the shelf can no longer
+      // promise which move goes.
+      return 'You choose who learns it, and what it replaces.';
     default:
       return '';
   }

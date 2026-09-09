@@ -67,16 +67,25 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { describeSpecCard, type BattleSession } from '../src/core/battle/driver';
+import { describeMove, describeSpecCard, type BattleSession } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
 import { itemSuitsTypes } from '../src/core/items';
-import type { Reward, TargetedReward } from '../src/core/rewards';
+import type { MoveReward, Reward } from '../src/core/rewards';
 import { hasRoom } from '../src/core/acquisition';
-import { moveChoice, switchChoice, type PokemonSpec, type PokemonState, type Tier } from '../src/core/types';
+import {
+  moveChoice,
+  switchChoice,
+  type ItemAssignment,
+  type ItemPlan,
+  type MoveSpec,
+  type PokemonSpec,
+  type PokemonState,
+  type Tier,
+} from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { expectedPartySize, opponentTeamSize, SEGMENTS } from '../src/data/scaling';
+import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
@@ -609,22 +618,189 @@ function memberValue(card: ReturnType<typeof describeSpecCard>): number {
  * with an obviously right answer; past that it prefers a member holding
  * nothing, since swapping destroys what was there.
  */
-function valueOfTarget(reward: TargetedReward, member: PokemonState): number {
-  const card = describeSpecCard(member.spec);
-  if (member.fainted) return -100;
+/**
+ * Index of the highest-scoring option. Ties to the lower index, always.
+ *
+ * Module scope rather than a closure inside `buildPolicy`, where it used to
+ * live. The move heuristics below are module-level functions and reached it
+ * through the temporal dead zone — which typechecks, because `scripts/` was
+ * outside the `tsconfig.json` include list, and fails at the first move card.
+ * Both halves of that are fixed: this is hoisted, and the include list now
+ * covers this file.
+ */
+function bestBy<T>(items: readonly T[], score: (item: T) => number): number {
+  let best = 0;
+  let bestScore = -Infinity;
+  for (const [index, item] of items.entries()) {
+    const value = score(item);
+    if (value > bestScore) {
+      bestScore = value;
+      best = index;
+    }
+  }
+  return best;
+}
 
-  if (reward.kind === 'item') {
-    const entry = itemById(reward.item);
-    if (!entry) return 0;
-    if (entry.boostsType) return itemSuitsTypes(entry, card.types) ? 100 : 0;
-    return member.item ? 10 : 50;
+/**
+ * Who learns a taught move. **Deterministic, documented, and it will appear in
+ * every balance report from here on.**
+ *
+ * Scored per member, highest wins, ties to the earlier slot (`bestBy`):
+ *
+ *   1. A fainted member scores -100 and is never chosen. It would be redirected
+ *      to the lead anyway (`rewards.recipientFor`), and a policy that let that
+ *      happen would be choosing a Pokemon it did not mean to.
+ *   2. **+60 if the move's type matches one of the member's own** — the spec's
+ *      suggested rule, and the one real piece of judgement in here: STAB is the
+ *      largest single multiplier a move reward can buy.
+ *   3. **+40 if the member has a free move slot**, because that member pays
+ *      nothing for the move while everyone else gives one up.
+ *   4. Otherwise, whoever gains most, which is whoever has the weakest
+ *      best-attack — the same reasoning `valueOfReward` uses to price the card
+ *      in the first place, so the bot's valuation and its placement agree.
+ *
+ * It is not clever, and rule 4 in particular is a proxy rather than an analysis.
+ * It needs to be deterministic and written down, because a heuristic that
+ * changes between reports makes two reports incomparable.
+ */
+function greedyMoveRecipient(offer: MoveReward, party: readonly PokemonState[]): number {
+  const incoming = describeMove(offer.move);
+  return bestBy(party, (member) => {
+    if (member.fainted) return -100;
+    const card = describeSpecCard(member.spec);
+
+    let score = 0;
+    if (incoming && card.types.includes(incoming.type)) score += 60;
+    if (member.spec.moves.length < MOVESET.slots) score += 40;
+
+    const attacks = card.moves.filter((move) => move.category !== 'Status');
+    const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
+    return score + (100 - strongest) / 100;
+  });
+}
+
+/**
+ * What the move costs them. **Deterministic, documented, same reason.**
+ *
+ *   1. The damaging move with the lowest base power, ties to the *later* slot.
+ *   2. If the member holds more than one status move, the first of them —
+ *      the spec's suggested rule. One status move is often the member's only
+ *      answer to something; two means one is spare.
+ *   3. Otherwise slot 0, which is unreachable for a member with four moves.
+ *
+ * Note what it does **not** consider: whether the incoming move is better than
+ * the one being dropped. There is no decline, so the bot always gives something
+ * up, and a run can be made worse by a card it took. That is the shape Stage
+ * 4.5.1 intends, and the report is expected to show it — see `party.teachMove`.
+ */
+function greedyMoveToReplace(member: PokemonState, incoming: MoveSpec): number {
+  void incoming;
+  const known = member.spec.moves.map((name) => describeMove(name));
+  const statusSlots = known.flatMap((move, index) => (!move || move.category === 'Status' ? [index] : []));
+  if (statusSlots.length > 1) return statusSlots[0]!;
+
+  let weakestSlot: number | null = null;
+  let weakest = Number.POSITIVE_INFINITY;
+  known.forEach((move, index) => {
+    if (!move || move.category === 'Status') return;
+    if (move.basePower <= weakest) {
+      weakest = move.basePower;
+      weakestSlot = index;
+    }
+  });
+
+  return weakestSlot ?? statusSlots[0] ?? 0;
+}
+
+/**
+ * What one item is worth to one party member. **The item half of the old
+ * `valueOfTarget`**, split out when items stopped being a targeted reward and
+ * became a backpack the bot re-plans at every node boundary.
+ *
+ * Same shallow scoring it always was: a type item is worth a lot to a member of
+ * that type and nothing to anyone else, and everything else is worth having.
+ * The one change is that "is this member already holding something" is no
+ * longer part of the score, because the planner below reasons about the whole
+ * allocation at once and does not need a tie-breaker standing in for one.
+ */
+function valueOfItemFor(itemId: string, member: PokemonState): number {
+  if (member.fainted) return -100;
+  const entry = itemById(itemId);
+  if (!entry) return 0;
+  const card = describeSpecCard(member.spec);
+  if (entry.boostsType) return itemSuitsTypes(entry, card.types) ? 100 : 0;
+  return 50;
+}
+
+/**
+ * The greedy item plan. **Deterministic, documented, and it will appear in
+ * every balance report from here on.**
+ *
+ * Four rules, in order:
+ *
+ *   1. The pool is the backpack *plus everything currently held*. The bot
+ *      re-plans the whole allocation at each boundary rather than only placing
+ *      what is loose, because reassignment is free and a policy that never
+ *      revisits a placement would measure the game's first guess rather than
+ *      its best one.
+ *   2. Score every (slot, item) pair with `valueOfItemFor`. Take the highest
+ *      scoring pair, commit it, remove both the slot and that item, repeat.
+ *      Pairs scoring zero or less are never committed — a Charcoal on a Lapras
+ *      is left in the bag rather than worn as decoration.
+ *   3. Ties break on slot index first, then on the item's position in the pool.
+ *      Both are stable orderings the seed reconstructs, which is what makes the
+ *      plan replayable rather than merely repeatable.
+ *   4. Whatever is left over stays in the backpack, and if that is still over
+ *      capacity the lowest-scoring items are discarded — scored against the
+ *      *best* member for each, so the thing thrown away is the thing that would
+ *      have helped least whoever it ended up on.
+ *
+ * It is not clever. It needs to be deterministic and written down, because a
+ * heuristic that changes between reports makes two reports incomparable.
+ */
+function greedyItemPlan(state: RunState): ItemPlan {
+  const pool = [...state.backpack, ...state.party.flatMap((member) => (member.item ? [member.item] : []))];
+  const openSlots = state.party.map((_, slot) => slot);
+  const assignments: ItemAssignment[] = [];
+  const remaining = [...pool];
+
+  for (;;) {
+    let best: { slot: number; item: string; index: number; score: number } | null = null;
+    for (const slot of openSlots) {
+      remaining.forEach((item, index) => {
+        const score = valueOfItemFor(item, state.party[slot]!);
+        if (score <= 0) return;
+        // Strictly greater, so the first pair found at a given score wins — and
+        // the iteration order is slot then pool position, which is rule 3.
+        if (!best || score > best.score) best = { slot, item, index, score };
+      });
+    }
+    if (!best) break;
+    const pick: { slot: number; item: string; index: number; score: number } = best;
+    assignments.push({ slot: pick.slot, item: pick.item });
+    openSlots.splice(openSlots.indexOf(pick.slot), 1);
+    remaining.splice(pick.index, 1);
   }
 
-  // A move reward goes to whoever gains most from it, which is whoever has the
-  // weakest best-attack — the same reasoning `valueOfReward` uses to price it.
-  const attacks = card.moves.filter((move) => move.category !== 'Status');
-  const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
-  return 100 - strongest;
+  // Every slot that won nothing is explicitly emptied, or an item the plan
+  // decided not to place would stay on the Pokemon that happened to hold it.
+  for (const slot of openSlots) {
+    if (state.party[slot]?.item !== undefined) assignments.push({ slot, item: null });
+  }
+
+  const capacity = Math.max(0, Math.floor(state.tuning.backpackCapacity));
+  const overflow = Math.max(0, remaining.length - capacity);
+  if (overflow === 0) return { assignments, discards: [] };
+
+  const ranked = remaining
+    .map((item, index) => ({
+      item,
+      index,
+      score: Math.max(...state.party.map((member) => valueOfItemFor(item, member)), 0),
+    }))
+    .sort((a, b) => a.score - b.score || a.index - b.index);
+
+  return { assignments, discards: ranked.slice(0, overflow).map((entry) => entry.item) };
 }
 
 function buildPolicy(
@@ -648,20 +824,6 @@ function buildPolicy(
     : policy === 'no-switch'
       ? withoutSwitching(greedyAiPolicy)
       : greedyAiPolicy;
-
-  /** Index of the highest-scoring option. Ties to the lower index, always. */
-  const bestBy = <T,>(items: readonly T[], score: (item: T) => number): number => {
-    let best = 0;
-    let bestScore = -Infinity;
-    for (const [index, item] of items.entries()) {
-      const value = score(item);
-      if (value > bestScore) {
-        bestScore = value;
-        best = index;
-      }
-    }
-    return best;
-  };
 
   return {
     chooseStarter: async (options) =>
@@ -727,8 +889,10 @@ function buildPolicy(
      * measurement wants — a targeting rule that only works when played
      * perfectly is a rule the report cannot generalise from.
      */
-    chooseItemTarget: async (reward, party) =>
-      bestBy(party, (member) => valueOfTarget(reward, member)),
+    chooseMoveRecipient: async (offer, party) => greedyMoveRecipient(offer, party),
+    chooseMoveToReplace: async (member, incoming) => greedyMoveToReplace(member, incoming),
+
+    chooseItemPlan: async (state) => greedyItemPlan(state),
 
     /*
      * Take a Pokemon while there is room; once full, take it only if it beats
@@ -1663,10 +1827,30 @@ function verdicts(sample: Sample): string[] {
 
   const check = (ok: boolean, text: string): string => `  ${ok ? 'ok  ' : 'MISS'}  ${text}`;
 
-  if (sample.policy === 'greedy') {
-    lines.push(check(!!gym1 && gym1.clearRate >= 0.85 && gym1.clearRate <= 0.95, `gym 1 clear rate ${pct(gym1?.clearRate ?? 0)} (target ~90%)`));
+  /*
+   * Which targets apply is a property of the *policy*, not of "is it greedy".
+   *
+   * This used to be a two-branch if, so every sample that was not `greedy` was
+   * checked against the random policy's targets — including `switch-aware` and
+   * `no-switch`, which are competent bots. `npm run sim -- --policy switching`
+   * is the headline command of two stages now, and it was printing three MISS
+   * lines saying a random policy clears gym 6 in 23.6% of runs when no random
+   * policy had been run at all. A report that cries wolf on its own headline is
+   * worse than one with no checklist.
+   *
+   * Competent policies take the completion band; `random` takes the depth
+   * tests; the gym-1 target is `greedy`'s alone, because it was written against
+   * that bot.
+   */
+  const COMPETENT: readonly string[] = ['greedy', 'switch-aware', 'no-switch', 'tier-averse', 'tier-greedy'];
+  const competent = COMPETENT.includes(sample.policy);
+
+  if (competent) {
+    if (sample.policy === 'greedy') {
+      lines.push(check(!!gym1 && gym1.clearRate >= 0.85 && gym1.clearRate <= 0.95, `gym 1 clear rate ${pct(gym1?.clearRate ?? 0)} (target ~90%)`));
+    }
     lines.push(check(sample.completionRate >= 0.05 && sample.completionRate <= 0.15, `full run completion ${pct(sample.completionRate)} (target 5-15%)`));
-  } else {
+  } else if (sample.policy === 'random') {
     // Two lines, because the spec's sentence about the random policy is really
     // two claims and only the second one is a depth test. "Rarely gets past gym
     // 3" is about how forgiving the early game is; "if a random policy clears
@@ -1678,24 +1862,42 @@ function verdicts(sample: Sample): string[] {
     lines.push(check(clearedSix <= 0.02, `random clears gym 6 in ${pct(clearedSix)} of runs — the depth test (target: ~never)`));
     lines.push(check(sample.completionRate <= 0.01, `random completes a run in ${pct(sample.completionRate)} (target: ~never)`));
   }
-  lines.push(check(worst.dropFromPrevious <= 25, `steepest drop ${worst.dropFromPrevious.toFixed(0)}pt at gym ${worst.gym} (${worst.leader}) (target <=25pt)`));
+  /*
+   * The curve and economy targets describe the game *a competent player*
+   * meets, so they are only checked against a competent policy.
+   *
+   * The mirror image of the bug above, and it showed up the moment a real
+   * `random` sample was run: the bot reaches gym 8 in three runs out of a
+   * thousand, goes 0 for 3, and the checklist reports a 57-point drop as a
+   * balance failure. It is a sample size of three. Likewise "items are 51.8% of
+   * picks" from a bot picking uniformly at random says nothing about whether
+   * the reward mix is right, and "broke on arrival 37.2%" measures a bot that
+   * never won a fight rather than an economy that is too tight.
+   *
+   * Species diversity is the exception and stays on for every policy: it is a
+   * property of the *randomizer*, not of play, and a random bot is as good a
+   * sampler of it as any.
+   */
+  if (competent) {
+    lines.push(check(worst.dropFromPrevious <= 25, `steepest drop ${worst.dropFromPrevious.toFixed(0)}pt at gym ${worst.gym} (${worst.leader}) (target <=25pt)`));
 
-  // Stage 3's own targets, which are about the *choice* rather than the curve.
-  const topKind = sample.rewards.taken[0];
-  if (topKind) {
+    // Stage 3's own targets, which are about the *choice* rather than the curve.
+    const topKind = sample.rewards.taken[0];
+    if (topKind) {
+      lines.push(
+        check(
+          topKind.share <= 0.5,
+          `most-picked reward kind (${topKind.label}) is ${pct(topKind.share)} of picks (target <=50%)`,
+        ),
+      );
+    }
     lines.push(
       check(
-        topKind.share <= 0.5,
-        `most-picked reward kind (${topKind.label}) is ${pct(topKind.share)} of picks (target <=50%)`,
+        sample.currency.brokeShare <= 0.35 && sample.currency.flushShare <= 0.35,
+        `arriving at a shop broke ${pct(sample.currency.brokeShare)} / flush ${pct(sample.currency.flushShare)} (target <=35% each)`,
       ),
     );
   }
-  lines.push(
-    check(
-      sample.currency.brokeShare <= 0.35 && sample.currency.flushShare <= 0.35,
-      `arriving at a shop broke ${pct(sample.currency.brokeShare)} / flush ${pct(sample.currency.flushShare)} (target <=35% each)`,
-    ),
-  );
   lines.push(
     check(
       sample.diversity.topSpeciesRunShare <= 0.25,

@@ -15,7 +15,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
-import { runBattle } from '../src/core/battle/driver';
+import { describeMove, runBattle } from '../src/core/battle/driver';
 import { usableMoves, type Policy } from '../src/core/battle/policy';
 import { nodesOf } from '../src/core/encounters';
 import { battleSpecFor, giveItem, itemSuitsTypes } from '../src/core/items';
@@ -23,6 +23,7 @@ import { createParty, createPartyMember, teachMove } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import {
   createRun,
+  defaultMoveReplacement,
   playRun,
   RUN_LOG_VERSION,
   replayRun,
@@ -223,7 +224,7 @@ const cyclingPolicy: Policy = async (view) => {
 
 async function fightHolding(item: string | undefined, seed: string) {
   const member = createPartyMember(HOLDER);
-  const held = item ? giveItem(member, item) : member;
+  const held = item ? giveItem(member, item).member : member;
   const hurt = { ...held, hp: Math.floor(held.maxHp / 2) };
   return runBattle([battleSpecFor(hurt)], PUNCHBAG, seed, cyclingPolicy, greedyAiPolicy, {
     carryOver: [hurt],
@@ -262,9 +263,9 @@ describe('held items reach the engine', () => {
 
   it('drops an item the whitelist does not know rather than passing it through', () => {
     const member = createPartyMember(HOLDER);
-    expect(giveItem(member, 'masterball').item).toBeUndefined();
+    expect(giveItem(member, 'masterball').member.item).toBeUndefined();
     expect(battleSpecFor({ ...member, item: 'masterball' }).item).toBeUndefined();
-    expect(battleSpecFor(giveItem(member, 'leftovers')).item).toBe('leftovers');
+    expect(battleSpecFor(giveItem(member, 'leftovers').member).item).toBe('leftovers');
   });
 
   it('keeps the item off the identity spec, and out of the way of a read-back', async () => {
@@ -280,7 +281,7 @@ describe('held items reach the engine', () => {
      * So: hold an item, take a real fight, and assert HP actually moved.
      */
     const state = createRun('ITEM-READBACK');
-    const party = createParty([state.starterOptions[0]!]).map((member) => giveItem(member, 'leftovers'));
+    const party = createParty([state.starterOptions[0]!]).map((member) => giveItem(member, 'leftovers').member);
     expect(party[0]!.spec.item).toBeUndefined();
     expect(battleSpecFor(party[0]!).item).toBe('leftovers');
 
@@ -329,12 +330,20 @@ describe('applyReward', () => {
     expect(applyReward(state, { kind: 'currency', amount: -40 }).currency).toBe(0);
   });
 
-  it('gives the item to the lead and swaps out whatever it held', () => {
+  /*
+   * Stage 4.5.1: banked, which is exactly what the old version said would not
+   * happen.
+   *
+   * The previous assertion ended "the old one is gone, not banked", and the
+   * backpack is the bank. Two item cards in a row used to leave the lead
+   * holding the second and the first destroyed; they now leave the run holding
+   * both, and the choice of who wears which is made elsewhere and is free.
+   */
+  it('banks both item cards rather than having the second destroy the first', () => {
     let state = applyReward(started(), { kind: 'item', item: 'leftovers' });
-    expect(state.party[0]?.item).toBe('leftovers');
     state = applyReward(state, { kind: 'item', item: 'lifeorb' });
-    // One item per Pokemon: the old one is gone, not banked.
-    expect(state.party[0]?.item).toBe('lifeorb');
+    expect(state.backpack).toEqual(['leftovers', 'lifeorb']);
+    expect(state.party[0]?.item).toBeUndefined();
   });
 
   it('heals without ever exceeding max HP', () => {
@@ -344,24 +353,61 @@ describe('applyReward', () => {
     expect(healed.party[0]?.hp).toBe(healed.party[0]?.maxHp);
   });
 
-  it('teaches a move by replacing the weakest attack, never a status move', () => {
+  /*
+   * Stage 4.5.1: `teachMove` no longer picks. It is told.
+   *
+   * This asserted the rule that chose the weakest attack and protected status
+   * moves. That rule is now the *player's* choice, so the test asserts the new
+   * contract instead: the named slot is what goes, and nothing else moves. The
+   * old rule survives as `run.defaultMoveReplacement`, which is tested for what
+   * it now is — one policy's answer among several — rather than as a law.
+   */
+  it('displaces exactly the move slot it is given, and nothing else', () => {
     const member = createPartyMember({
       species: 'Snorlax',
       ability: 'Thick Fat',
       moves: ['Pound', 'Body Slam', 'Rest', 'Giga Impact'],
       level: 50,
     });
-    const taught = teachMove(member, 'Earthquake');
+    const taught = teachMove(member, 'Earthquake', 2);
     const names = taught.spec.moves;
 
-    expect(names).toContain('Earthquake');
-    // Pound is the weakest attack, so it is what goes.
-    expect(names).not.toContain('Pound');
-    // Rest is a status move and must survive: a reward may never cost the
-    // player their utility.
-    expect(names).toContain('Rest');
-    expect(names).toContain('Giga Impact');
-    expect(names).toHaveLength(4);
+    // Slot 2 was Rest, and the player is now allowed to spend it.
+    expect(names).toEqual(['Pound', 'Body Slam', 'Earthquake', 'Giga Impact']);
+  });
+
+  it('refuses a slot when the member has a free one, rather than ignoring it', () => {
+    const member = createPartyMember({
+      species: 'Snorlax',
+      ability: 'Thick Fat',
+      moves: ['Pound', 'Body Slam'],
+      level: 50,
+    });
+    // Loud, because a silently ignored slot means a log entry that changed
+    // nothing, and the next replay finds an entry the run no longer asks for.
+    expect(() => teachMove(member, 'Earthquake', 0)).toThrow(/has a free move slot/);
+    expect(teachMove(member, 'Earthquake').spec.moves).toEqual(['Pound', 'Body Slam', 'Earthquake']);
+  });
+
+  it('refuses to teach a fifth move without being told what it displaces', () => {
+    const member = createPartyMember({
+      species: 'Snorlax',
+      ability: 'Thick Fat',
+      moves: ['Pound', 'Body Slam', 'Rest', 'Giga Impact'],
+      level: 50,
+    });
+    expect(() => teachMove(member, 'Earthquake')).toThrow(/must displace one/);
+  });
+
+  it('refuses a slot outside the member move list', () => {
+    const member = createPartyMember({
+      species: 'Snorlax',
+      ability: 'Thick Fat',
+      moves: ['Pound', 'Body Slam', 'Rest', 'Giga Impact'],
+      level: 50,
+    });
+    expect(() => teachMove(member, 'Earthquake', 4)).toThrow(/out of range/);
+    expect(() => teachMove(member, 'Earthquake', -1)).toThrow(/out of range/);
   });
 
   it('refills PP instead of doing nothing when the move is already known', () => {
@@ -381,14 +427,24 @@ describe('applyReward', () => {
     expect(taught.moves.find((m) => m.name === 'Rest')?.pp).toBe(1);
   });
 
-  it('never lets a move reward leave the party weaker', () => {
+  it('CAN now leave the party weaker, which is the invariant this stage gave up', () => {
     /*
-     * The invariant that makes a move card safe to be forced into.
+     * **This test used to assert the opposite, and the inversion is deliberate.**
      *
-     * The reward screen found the counter-example: a segment-0 normal node
-     * offering Arm Thrust (15 BP) in place of Aqua Step (80 BP), in an offer of
-     * three with no skip. A card that makes the player strictly worse is a
-     * punishment wearing a reward's clothes.
+     * The old rule refused to teach a move weaker than everything the member
+     * knew — "nothing learned, nothing lost, PP topped up instead" — and that
+     * clause was what made a move card safe to be forced into. Stage 4.5.1
+     * removes the safety on purpose: which move you give up is a more
+     * interesting decision than which you gain, and a rule guaranteeing you
+     * never lose is a rule that removes the decision.
+     *
+     * The escape hatch moved rather than disappearing. It lives at the reward
+     * screen, where this card was chosen over two alternatives; offering a
+     * second one here would make that pick meaningless.
+     *
+     * So Arm Thrust (15 BP) really does displace Giga Impact if that is what
+     * the player says. The test exists to make that a decision someone made
+     * rather than a regression someone will "fix".
      */
     const member = createPartyMember({
       species: 'Snorlax',
@@ -396,29 +452,54 @@ describe('applyReward', () => {
       moves: ['Body Slam', 'Crunch', 'Earthquake', 'Giga Impact'],
       level: 50,
     });
-    const after = teachMove(member, 'Arm Thrust');
+    const after = teachMove(member, 'Arm Thrust', 3);
 
-    // Nothing learned, nothing lost, and the PP is topped up instead.
-    expect(after.spec.moves).toEqual(member.spec.moves);
-    expect(after.moves.every((move) => move.pp === move.maxPp)).toBe(true);
+    expect(after.spec.moves).toEqual(['Body Slam', 'Crunch', 'Earthquake', 'Arm Thrust']);
   });
 
-  it('spends a status slot on a weak move rather than an attack', () => {
-    // Weaker than every attack, but there is a status move to trade: coverage
-    // is worth something, and the attacks are what must not get worse.
+  /*
+   * What the old rule became, tested as what it now is.
+   *
+   * Stage 4.5 protected status moves by spending them: an incoming move weaker
+   * than every attack took the status slot, so the *attacks* could never get
+   * worse. `defaultMoveReplacement` deliberately does not carry that clause
+   * over. It is the scripted baseline's answer, not the game's, and it is
+   * simpler on purpose — it never reads the incoming move's power at all, which
+   * is why the parameter is explicitly discarded.
+   *
+   * The visible consequence, asserted here so it is a decision rather than a
+   * surprise: the baseline now drops its *weakest attack* and keeps Rest, which
+   * is the opposite trade the old rule made. The simulator does not use this
+   * heuristic — `scripts/sim.ts` has its own, which does spend a spare status
+   * move — so the balance report is not measuring this behaviour.
+   */
+  it('drops the weakest attack and keeps a status move, which inverts the Stage 4.5 trade', () => {
     const member = createPartyMember({
       species: 'Snorlax',
       ability: 'Thick Fat',
       moves: ['Body Slam', 'Crunch', 'Earthquake', 'Rest'],
       level: 50,
     });
-    const after = teachMove(member, 'Arm Thrust');
+    const incoming = describeMove('Arm Thrust')!;
+    const slot = defaultMoveReplacement(member, incoming);
+    const after = teachMove(member, 'Arm Thrust', slot);
 
-    expect(after.spec.moves).toContain('Arm Thrust');
-    expect(after.spec.moves).not.toContain('Rest');
-    for (const kept of ['Body Slam', 'Crunch', 'Earthquake']) {
-      expect(after.spec.moves, `${kept} was traded for a weaker move`).toContain(kept);
-    }
+    // Crunch (80) is the weakest of the three attacks; Body Slam is 85 and
+    // Earthquake 100. Rest survives because the rule never looks at it.
+    expect(after.spec.moves).toEqual(['Body Slam', 'Arm Thrust', 'Earthquake', 'Rest']);
+  });
+
+  it('falls back to a status slot only when there is no attack to drop', () => {
+    const member = createPartyMember({
+      species: 'Snorlax',
+      ability: 'Thick Fat',
+      moves: ['Rest', 'Amnesia', 'Curse', 'Yawn'],
+      level: 50,
+    });
+    const slot = defaultMoveReplacement(member, describeMove('Arm Thrust')!);
+    // The last status move, so the choice is stable rather than dependent on
+    // move order at the front of the list.
+    expect(slot).toBe(3);
   });
 
   it('never offers a move card that cannot do anything', () => {

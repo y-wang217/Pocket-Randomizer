@@ -50,50 +50,25 @@ export interface PartyTuning {
    * penalty is paid for the rest of the current segment and no longer.
    */
   joinLevelOffset: number;
-  /**
-   * Fraction of max HP a fainted member returns at, at the next node.
+  /*
+   * `reviveHpFraction` and `freeRevive` used to live here. **They moved to
+   * `tuning.reviveHpPercent` in Stage 4.5.1**, and the two of them collapsed
+   * into one number on the way.
    *
-   * **The Stage 4 balance lever that did not exist before Stage 4.** Stage 1
-   * encoded free revival because with one Pokemon a faint ended the run and the
-   * branch was unreachable. With a party it is reachable every fight, and free
-   * revival would mean losing a member costs *nothing* — the bench would be
-   * three extra health bars rather than three Pokemon, and switching would only
-   * ever be about matchups and never about preservation.
-   *
-   * Half is the starting hypothesis. Rest nodes and heal rewards still restore
-   * fully, so the recovery is there to be *spent a node on* rather than handed
-   * over.
+   * The split this file's header describes is still the right one — a value the
+   * difficulty *curve* is a function of is not a per-run knob — but revival was
+   * never such a value. `data/scaling.ts` does not read it; only
+   * `party.betweenNodes` does, and that already takes a `Tuning`. Keeping it
+   * here bought nothing and cost the simulator the ability to sweep the single
+   * lever docs/balance.md §7.6 spends three paragraphs blaming.
    */
-  reviveHpFraction: number;
-  /**
-   * Restore fainted members to full instead. Off.
-   *
-   * Exposed so the simulator can measure the difference between free and
-   * partial revival rather than leaving it as an opinion. Turning it on is the
-   * Stage 1 behaviour, and the gap between the two reports is what a faint is
-   * actually worth.
-   */
-  freeRevive: boolean;
 }
 
 export const PARTY_TUNING: PartyTuning = {
   size: PARTY_SIZE,
   joinLevelOffset: 3,
-  reviveHpFraction: 0.5,
-  freeRevive: false,
 };
 
-/**
- * Revival HP for a member, in whole points, floored at 1.
- *
- * One function rather than the arithmetic written at each of the two call
- * sites, because "what a faint costs" is a rule and two copies of a rule are
- * two rules.
- */
-export function reviveHpFor(maxHp: number): number {
-  if (PARTY_TUNING.freeRevive) return maxHp;
-  return Math.max(1, Math.round(maxHp * PARTY_TUNING.reviveHpFraction));
-}
 
 /*
  * ---------------------------------------------------------------------------

@@ -56,7 +56,7 @@ import {
   BOOSTABLE_STATS,
   statAtLevel,
 } from './stats';
-import type { StatName, StatStages, StatusName, SwitchView } from '../types';
+import type { Gender, StatName, StatStages, StatusName, SwitchView } from '../types';
 
 // ---------------------------------------------------------------------------
 // The input: a plain-data snapshot from the adapter
@@ -82,6 +82,16 @@ export interface ActiveFacts {
   /** Nickname if the spec set one, otherwise the species. */
   name: string;
   level: number;
+  /**
+   * Male, female, or genderless. Read only, displayed next to the level.
+   *
+   * Read off the sim's Pokemon rather than the spec, because this is the fact
+   * about the body actually on the field. From Stage 4.5.1 the two agree —
+   * the spec names a gender and the sim uses it — but a spec built by hand
+   * still gets the engine's own coin flip, and the battle screen should show
+   * what is fighting rather than what was asked for.
+   */
+  gender: Gender;
   types: string[];
   hp: number;
   maxHp: number;
@@ -243,6 +253,16 @@ export interface ActiveUiView {
   name: string;
   types: string[];
   level: number;
+  /**
+   * Male, female, or genderless. Never narrowed by the reveal policy.
+   *
+   * Gender is on the `|switch|` line the moment a Pokemon appears, so hiding it
+   * would be hiding something the protocol already announced — and the reveal
+   * policy exists for the two things a player genuinely could not otherwise
+   * know (`revealOpponentAbility`, `revealOpponentItem`), not for everything
+   * that happens to be about the opponent.
+   */
+  gender: Gender;
   hp: { current: number; max: number; fraction: number };
   /** HP is not boostable, so it is not in here. It is in `hp`. */
   stats: Record<StatName, StatView>;
@@ -403,6 +423,7 @@ function toActiveUiView(facts: ActiveFacts, reveal: RevealPolicy): ActiveUiView 
     name: facts.name,
     types: facts.types,
     level: facts.level,
+    gender: facts.gender,
     hp: {
       current: facts.hp,
       max: facts.maxHp,

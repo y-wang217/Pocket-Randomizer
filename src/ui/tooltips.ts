@@ -36,13 +36,22 @@ import { abilityInfo, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
+import { statInfo } from '../data/statInfo';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { el } from './scene';
 
 /** What a `data-tip` attribute can name. */
-type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item' | 'category';
+type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item' | 'category' | 'stat';
 
-const KINDS: readonly TipKind[] = ['type', 'status', 'volatile', 'ability', 'item', 'category'];
+const KINDS: readonly TipKind[] = [
+  'type',
+  'status',
+  'volatile',
+  'ability',
+  'item',
+  'category',
+  'stat',
+];
 
 export interface TooltipLayer {
   root: HTMLElement;
@@ -189,6 +198,8 @@ function render(tip: string): HTMLElement | null {
       return renderItem(id);
     case 'category':
       return renderCategory(id);
+    case 'stat':
+      return renderStat(id);
   }
 }
 
@@ -238,6 +249,30 @@ function renderCategory(id: string): HTMLElement | null {
   const body = panel(info.label);
   body.append(line(info.mechanics, 'tip__text'));
   body.append(line(info.advice, 'tip__advice'));
+  return body;
+}
+
+/**
+ * A stat abbreviation, explained where it is printed.
+ *
+ * **The Part 5 requirement is that this is answerable without leaving the
+ * screen**, which is why it is a tooltip on the label rather than a help page:
+ * the question "what is SpA" arrives while looking at a number, and an answer
+ * that costs a navigation is an answer nobody reads.
+ *
+ * `pairsWith` is rendered as a note rather than folded into the sentence,
+ * because it is the fact that makes the six numbers parse as three pairs. It is
+ * also the closest this file comes to advice, and it stays on the safe side of
+ * Part 4 by naming a term in the damage formula rather than a course of action.
+ */
+function renderStat(id: string): HTMLElement | null {
+  const info = statInfo(id);
+  if (!info) return null;
+  const body = panel(`${info.abbreviation} — ${info.label}`);
+  body.append(line(info.mechanics, 'tip__text'));
+  if (info.pairsWith) {
+    body.append(line(`Resolved against the defender's ${info.pairsWith}.`, 'tip__note'));
+  }
   return body;
 }
 

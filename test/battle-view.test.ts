@@ -41,6 +41,9 @@ function active(overrides: Partial<ActiveFacts> = {}): ActiveFacts {
     species: 'Ditto',
     name: 'Ditto',
     level: 50,
+    // Ditto is genderless, which is also the value that exercises the "render
+    // nothing, not a placeholder" rule.
+    gender: null,
     types: ['Normal'],
     hp: 100,
     maxHp: 100,

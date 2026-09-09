@@ -9,18 +9,45 @@
  *
  * Every card says what it *does*, not what it is called. "Leftovers" means
  * nothing to a player who has not held one; "Restores 1/16 max HP at the end of
- * every turn" means something immediately. And a type-boosting item that does
- * not match the party's typing says so out loud — see `itemSuitsTypes`. A
- * near-dud that announces itself is a legibly weak reward; one that hides is a
- * lottery, and the player finds out four fights later.
+ * every turn" means something immediately.
+ *
+ * ## Part 4: the cards present attributes, never verdicts
+ *
+ * Stage 4.5.1 rewrote most of this file, and the reason is a rule rather than a
+ * feature: **the UI never renders a recommendation, a score, a "best" marker,
+ * or an ordering that implies one.** The player should be able to work out that
+ * a move is good; the screen should not tell them.
+ *
+ * Four notes were removed outright, and each is worth naming because each read
+ * as helpful:
+ *
+ *   - *"Every attack you have is stronger. This only restores PP."* — a verdict
+ *     on the card, and precisely the thing Part 4 names: a move card must not
+ *     indicate which of the player's current moves it would improve on.
+ *   - *"Replaces {move}."* — pre-empted a decision that is now the player's, and
+ *     was a prediction rather than a fact once `chooseMoveToReplace` existed.
+ *   - *"You are at full health. This is nearly wasted."* — a verdict on a heal.
+ *     The card states what it restores; whether that is worth a pick is the
+ *     pick.
+ *   - *"Replaces {item}, which is lost."* and *"Replaces your Pokemon
+ *     entirely."* — both simply false after this stage. Items go to the
+ *     backpack and nothing is destroyed; a species card is an addition that
+ *     costs a slot, or a swap the player chooses.
+ *
+ * What survives is the type-match line on an item, and it survives because it
+ * is an attribute rather than a judgement: a Charcoal boosts Fire moves, and
+ * saying which type it boosts is the same class of fact as saying it is 1.2x.
+ * It no longer names a party member, because the item is no longer going to
+ * one.
  */
-import { describeSpecCard } from '../../core/battle/driver';
-import { itemSuitsTypes } from '../../core/items';
-import { teachMove } from '../../core/party';
+import { describeMove } from '../../core/battle/driver';
+import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
+import { createPartyMember } from '../../core/party';
 import type { Reward, RewardOffer } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
-import { el } from '../scene';
+import { PARTY_SIZE } from '../../data/partyTuning';
+import { el, genderMark, moveCard } from '../scene';
 import { typeChip } from './starter-select';
 
 export interface RewardScreen {
@@ -74,25 +101,15 @@ function renderCard(reward: Reward, state: RunState, onPick: () => void): HTMLEl
   const detail = el('span', 'reward__detail');
   const note = el('span', 'reward__note');
 
-  const lead = state.party[0];
-
   switch (reward.kind) {
     case 'item': {
       const entry = itemById(reward.item);
       name.textContent = entry?.name ?? reward.item;
+      // The plain-language effect line Part 5 asks for, from the item's own
+      // metadata rather than written here — `blurb` has been that field since
+      // Stage 3, so no `playerDescription` was added alongside it.
       detail.textContent = entry?.blurb ?? '';
-      if (entry && lead) {
-        const types = describeSpecCard(lead.spec).types;
-        if (!itemSuitsTypes(entry, types)) {
-          // The honest version of a weak card: say it is weak *for you*.
-          note.textContent = `Does nothing for a ${types.join('/')} Pokemon.`;
-          note.classList.add('reward__note--warn');
-        }
-        if (lead.item) {
-          const held = itemById(lead.item)?.name ?? lead.item;
-          note.textContent = `${note.textContent} Replaces ${held}, which is lost.`.trim();
-        }
-      }
+      note.textContent = 'Goes to your backpack. Assign it on the party screen.';
       break;
     }
 
@@ -103,55 +120,34 @@ function renderCard(reward: Reward, state: RunState, onPick: () => void): HTMLEl
       break;
 
     case 'heal':
-      name.textContent = reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
-      detail.textContent = 'Heals HP and PP, and clears status.';
-      if (lead) {
-        const missing = lead.maxHp > 0 ? 1 - lead.hp / lead.maxHp : 0;
-        note.textContent =
-          missing < 0.05
-            ? 'You are at full health. This is nearly wasted.'
-            : `You are down ${Math.round(missing * 100)}%.`;
-        if (missing < 0.05) note.classList.add('reward__note--warn');
-      }
+      name.textContent =
+        reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
+      detail.textContent = 'Heals HP and PP, and clears status, for the whole party.';
       break;
 
     case 'tm':
-    case 'tutor':
+    case 'tutor': {
       name.textContent = reward.move;
       detail.textContent =
         reward.kind === 'tutor'
-          ? 'A strong move, taught in place of your weakest attack.'
-          : 'A new move, taught in place of your weakest attack.';
-      if (lead) {
-        // Naming what goes is the whole decision: a move reward is a trade, and
-        // a trade you cannot see the other half of is a coin flip. `teachMove`
-        // is asked rather than guessed at, so the card cannot promise one thing
-        // and the transition do another.
-        const after = teachMove(lead, reward.move);
-        const before = new Set(lead.spec.moves);
-        const dropped = lead.spec.moves.find((move) => !after.spec.moves.includes(move));
-        const learned = after.spec.moves.some((move) => !before.has(move));
-
-        if (!learned) {
-          note.textContent = 'Every attack you have is stronger. This only restores PP.';
-          note.classList.add('reward__note--warn');
-        } else if (dropped) {
-          note.textContent = `Replaces ${dropped}.`;
-        } else {
-          note.textContent = 'Fills an empty move slot.';
-        }
-      }
+          ? 'A strong move. You choose who learns it, and what it replaces.'
+          : 'A new move. You choose who learns it, and what it replaces.';
+      // Type, base power, PP and category, through the same component the
+      // battle screen uses. No comparison against anything the player owns.
+      const facts = describeMove(reward.move);
+      if (facts) card.append(moveCard(facts));
       break;
+    }
 
-    case 'species':
-      name.textContent = `${reward.species} · Lv${reward.level}`;
+    case 'species': {
+      name.textContent = `${reward.species} · Lv${reward.level}${genderMark(reward.gender)}`;
       detail.textContent = `${reward.ability}. ${reward.moves.join(', ')}.`;
-      note.textContent = 'Replaces your Pokemon entirely. Everything it knows is gone.';
-      note.classList.add('reward__note--warn');
+      note.textContent = coverageLine(reward, state);
       break;
+    }
   }
 
-  card.append(kind, name, detail);
+  card.prepend(kind, name, detail);
   if (note.textContent) card.append(note);
   if (reward.kind === 'item') {
     const entry = itemById(reward.item);
@@ -159,6 +155,52 @@ function renderCard(reward: Reward, state: RunState, onPick: () => void): HTMLEl
   }
   card.addEventListener('click', onPick);
   return card;
+}
+
+/**
+ * The coverage one-liner: what the party's offensive typing gains and loses.
+ *
+ * **A factual readout, and Part 4 applies to it in full.** "Adds Dragon, Steel.
+ * Loses Ghost." is correct; "improves your coverage" is not, and neither is a
+ * count, an arrow, or a colour that implies which direction is better. The
+ * function that computes it (`core/coverage.ts`) deliberately exposes no number
+ * for this line to dress up as one.
+ *
+ * Two readings, because the card means two different things depending on the
+ * party:
+ *
+ *   - **A slot free** — the newcomer is added, so the line is a pure gain and
+ *     can never show a loss.
+ *   - **Full** — taking it costs a member, and which member is a choice the
+ *     player has not made yet at this point. The card cannot know the answer,
+ *     so it reports against slot 0 and says so. The acquisition screen, where
+ *     the target actually gets highlighted, is where the line updates per
+ *     member — `coverageAfterSwap` takes the highlighted slot for exactly that.
+ */
+function coverageLine(
+  reward: Extract<Reward, { kind: 'species' }>,
+  state: RunState,
+): string {
+  if (state.party.length === 0) return '';
+  const incoming = createPartyMember({
+    species: reward.species,
+    level: reward.level,
+    ability: reward.ability,
+    moves: [...reward.moves],
+    gender: reward.gender,
+  });
+
+  const before = offensiveCoverage(state.party);
+  const full = state.party.length >= PARTY_SIZE;
+  const after = coverageAfterSwap(state.party, incoming, full ? 0 : -1);
+  const delta = coverageDelta(before, after);
+
+  const parts: string[] = [];
+  if (delta.added.length > 0) parts.push(`adds ${delta.added.join(', ')}`);
+  if (delta.lost.length > 0) parts.push(`loses ${delta.lost.join(', ')}`);
+  const body = parts.length > 0 ? parts.join('. ') : 'unchanged';
+  const scope = full ? ' if it replaces your first member' : '';
+  return `Coverage${scope}: ${body}.`;
 }
 
 const KIND_LABELS: Record<Reward['kind'], string> = {

@@ -16,6 +16,8 @@ import { firstUsableMovePolicy } from '../src/core/battle/policy';
 import {
   RUN_LOG_VERSION,
   assertReplayable,
+  defaultItemPlan,
+  defaultMoveReplacement,
   isReplayable,
   playRun,
   replayRun,
@@ -63,12 +65,14 @@ function wobbling(): RunPolicy {
     // The last member, for the same reason as the last card: a policy that
     // always answered 0 would agree with the scripted default and prove
     // nothing about whether the target is really replayed.
-    chooseItemTarget: async (_reward, party) => party.length - 1,
+    chooseMoveRecipient: async (_offer, party) => party.length - 1,
+    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     // Takes everything, releasing the lead once full. The most destructive
     // legal answer, so a replay that reproduces it has reproduced the party
     // churning rather than a party that only ever grew.
     chooseAcquisition: async (_offer, party) =>
       party.length < PARTY_SIZE ? { kind: 'accept' } : { kind: 'release', slot: 0 },
+    chooseItemPlan: async (state) => defaultItemPlan(state),
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -83,6 +87,10 @@ function fingerprint(result: RunResult): unknown {
     outcome: result.outcome,
     log: result.log,
     party: result.state.party,
+    // Stage 4.5.1: the backpack is run state, so it belongs in the fingerprint.
+    // A resume that reconstructed the party but not the bag would pass every
+    // assertion above while quietly handing the player different items.
+    backpack: result.state.backpack,
     position: result.state.position,
     segment: result.state.currentSegment,
     history: result.state.history.map((visit) => [visit.node.id, visit.hpAfter, visit.result]),
@@ -221,13 +229,21 @@ describe('save mid-run, reload, continue', () => {
         liveCalls++;
         return 0;
       },
-      chooseItemTarget: async () => {
+      chooseMoveRecipient: async () => {
         liveCalls++;
         return 0;
+      },
+      chooseMoveToReplace: async (member, incoming) => {
+        liveCalls++;
+        return defaultMoveReplacement(member, incoming);
       },
       chooseAcquisition: async () => {
         liveCalls++;
         return { kind: 'decline' as const };
+      },
+      chooseItemPlan: async (state) => {
+        liveCalls++;
+        return defaultItemPlan(state);
       },
       battle: async (view) => {
         liveCalls++;

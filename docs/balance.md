@@ -468,8 +468,11 @@ Three things are worth writing down before the next attempt:
    is the binding constraint rather than the cost.
 2. **Partial free revival makes preservation cheap to skip.** A fainted member
    comes back at half HP for nothing at the next node, so losing one costs less
-   than the full turn a switch spends. `partyTuning.freeRevive` exists to
-   measure this; setting `reviveHpFraction` lower is the untried lever.
+   than the full turn a switch spends. **Stage 4.5.1 made this lever reachable**
+   — it was `partyTuning.reviveHpFraction`, read at module scope, so the number
+   this paragraph blames was the one number a sweep could not vary. It is
+   `tuning.reviveHpPercent` now and `--set reviveHpPercent=0.25` works. Still
+   untried, but no longer untriable.
 3. **Comparing across `switchCost` values is not a controlled experiment.** The
    opponent runs the same AI, so raising the cost strengthens the opponent in
    *both* arms and closes the gap without switching helping anyone. Only the
@@ -549,6 +552,201 @@ the greedy AI decides from, with `foe.ability` null — was not touched. Had the
 stage taken the shorter route and widened it, the AI would have gained an
 ability it has never seen, and every number in §7 would have moved for a
 reason that had nothing to do with balance.
+
+## 9. Stage 4.5.1 — putting prices back on things
+
+Stage 4.5 changed no balance number and said so loudly. This stage changes
+several on purpose, and the interesting part is that two of the three
+investigations that opened it found the premise wrong rather than the number.
+
+### 9.1 Two of the three opening questions had false premises
+
+The stage began with three questions, each of which could have invalidated
+every recorded seed. Two were answered "that is not what the code does":
+
+1. **Does `tuning.allowSpeciesRewards` filter before the draw?** Yes — it
+   removes entries from the pool `pickWeighted` sums weights over, so flipping
+   it shifts every reward roll in every seed. **But it was already `true`**,
+   flipped in Stage 4, so there was nothing to flip and no bump owed.
+2. **Where is HP being restored between nodes?** Nowhere. `betweenNodes`
+   already carried HP and PP untouched and revived only the fainted, at half.
+   Measured rather than read: a party at 16/54 with 4 PP came out at 16/54 with
+   4 PP, and the fainted member at exactly 25/50.
+
+What was actually wrong was *where the number lived*. `reviveHpFraction` sat at
+module scope in `data/partyTuning.ts`, read by a `reviveHpFor` that took no
+tuning — so the single lever §7.6 spends three paragraphs blaming was the one
+lever `withTuning` could not vary. It is `tuning.reviveHpPercent` now.
+
+### 9.2 The rest-node cut, and why the direction needed measuring
+
+Rest frequency was already fully exposed as tuning (`nodeWeights.rest`,
+`minRestSteps`, `restEarliestStep`), so "expose it" was done and only the value
+change remained.
+
+The direction is not obvious. **A rest node that becomes a fight is a node that
+pays a reward**, so cutting rests removes healing and adds rewards at the same
+time, and the two pull opposite ways. 400 seeds, fixed prefix, `switch-aware`:
+
+| rest weight | minRestSteps | completion | mean gyms |
+|---|---|---|---|
+| 2 | 2 | 12.0% | 3.44 |
+| 2 | 1 | 11.0% | 3.29 |
+| **1** | **1** | **11.3%** | **3.25** |
+| 1 | 0 | 7.2% | 3.11 |
+
+Healing wins, modestly. Halving both dials costs about a point of completion;
+removing the floor costs five and reintroduces the failure `ensureRests` exists
+to prevent — a seed that offers nowhere to heal at all, which is a run the
+player had no hand in rather than a hard one. Shipped at weight 1, floor 1.
+
+### 9.3 The gym clear still full-heals, and that is a decision
+
+`gymClearHealFraction` stays at 1. Part 1 of the stage prompt, read literally,
+would have removed it — it is neither a rest node nor an explicit heal effect —
+but it was kept deliberately, so attrition pressure lives entirely *within* a
+segment's four-to-five steps, which is where the rest-versus-reward decision is
+actually made.
+
+That has a consequence worth stating plainly: **healing was never the binding
+constraint on a run, and cutting rest nodes did not make it one.** The gym heal
+is a larger source of recovery than every rest node in a segment combined. If a
+later stage wants attrition to compound across segments, this is the number,
+not `minRestSteps`.
+
+### 9.4 A move reward can now leave you weaker
+
+Stage 4.5's `replaceableSlot` refused to teach a move weaker than everything the
+member knew. That clause bought an invariant — a move card could never make you
+worse — and it is deliberately gone, because a rule that guarantees you never
+lose is a rule that removes the decision.
+
+The escape hatch moved rather than disappearing: it is the reward screen, where
+the card was already chosen over two alternatives. The balance consequence is
+that a card taken carelessly is now a real cost, and the simulator's greedy
+policy takes that cost every time it takes a move card — its heuristic drops the
+lowest-base-power damaging move without ever comparing it to the incoming one,
+which is written down in `scripts/sim.ts` precisely because it will show up in
+every report from here on.
+
+### 9.5 The shipped numbers
+
+`npm run sim -- --seeds 1000 --policy greedy`, `rest` node policy,
+`PARTY_SIZE = 3`, `gymrun-randomizer-5`, seed prefix `s451`:
+
+| gym | clear rate | drop |
+|---|---|---|
+| 1 | 94.5% | — |
+| 2 | 85.1% | -9pt |
+| 3 | 83.1% | -2pt |
+| 4 | 81.0% | -2pt |
+| 5 | 65.7% | -15pt |
+| 6 | 77.0% | +11pt |
+| 7 | 70.9% | -6pt |
+| 8 | 77.5% | +7pt |
+
+**Run completion 9.2%**, mean 3.19 gyms of eight.
+
+The stage moved the curve twice, in opposite directions, and the intermediate
+measurement is worth keeping because it separates the two:
+
+| | completion | mean gyms |
+|---|---|---|
+| Stage 4.5, same prefix | 9.0% | 3.12 |
+| after backpack, moves, gender, coverage | 10.0% | 3.26 |
+| after the rest cut (shipped) | 9.2% | 3.19 |
+
+So the mechanical changes were worth about a point of completion on their own —
+the backpack means items reach Pokemon that want them rather than whoever the
+card landed on — and cutting rests gave that point back. Both are inside the
+5-15% band with room, and the worst drop is 15pt against a 25pt target.
+
+**Every Stage 2 target passes, on both policies, for the first time.**
+
+```
+greedy                                     random
+  ok  gym 1 clear rate 94.5%   (~90%)        ok  past gym 3 in 17.2%  (rarely)
+  ok  completion 9.2%          (5-15%)       ok  clears gym 6 in 0.8% (~never)
+  ok  steepest drop 15pt       (<=25pt)      ok  completes 0.0%       (~never)
+  ok  top reward kind 43.1%    (<=50%)       ok  top species 8.8%     (<=25%)
+  ok  shop broke 21.8/flush 17.0 (<=35%)
+  ok  top species 15.5%        (<=25%)
+```
+
+Gym 1 is the one worth noting: §7.5 recorded it as the single MISS on the greedy
+run at 95.0% against a band of 85-95%. It is 94.5% now, inside by half a point,
+and nothing in this stage was aimed at it — the extra acquisition offers from
+the rest cut are the likeliest cause. Half a point inside a band is not a
+result, and it should not be treated as one; open question 3 stands.
+
+### 9.6 The party fills much more often, and it is the rest cut that did it
+
+The one number that moved a long way:
+
+| | Stage 4.5 | shipped |
+|---|---|---|
+| acquisition offers per run | 2.33 | 3.33 |
+| runs that filled the party | 51.8% | 65.4% |
+| mean party at the losing battle | 2.23 | 2.46 |
+| mean type coverage on the final party | 3.20 | 3.44 |
+
+**A rest node that becomes a wild node is a node that offers its Pokemon.**
+Cutting rest frequency did not only remove healing; it added a third more
+acquisition offers, and the party-fill rate went with them. §7.5 flagged 51.8%
+as "half, not most" against the spec's "players fill the party in most runs".
+It is most now, and nothing in this stage was aimed at that.
+
+### 9.7 Switching still does not pay, and the gap widened
+
+| 1000 seeds | completion | mean gyms |
+|---|---|---|
+| `switch-aware` | 9.2% | 3.19 |
+| `no-switch` | 11.3% | 3.44 |
+
+A 2.1-point gap in the wrong direction, against Stage 4's -0.9. Nothing in this
+stage was aimed at switching, so this is a re-measurement rather than a
+regression — but it is the third report in a row to say the same thing, and the
+gap is now outside what §7.6 could call noise.
+
+The one new thing this stage contributes to the question: the party fills in
+65.4% of runs rather than 51.8%, so `switch-aware` now has a *fuller bench to
+switch into* and still loses. That removes one of the explanations §7.6 left
+open — it is not that the bot had nothing to switch to. The strongest remaining
+lever is unchanged: the opponent outnumbers the player at every gym, so
+switching to answer a matchup loses to a side with more answers.
+
+### 9.8 The checklist was checking the wrong policy, in both directions
+
+`npm run sim -- --policy switching` has been the headline command since Stage 4,
+and it was printing three MISS lines every time:
+
+```
+MISS  random gets past gym 3 in 56.0% of runs (target: rarely)
+MISS  random clears gym 6 in 23.6% of runs — the depth test (target: ~never)
+MISS  random completes a run in 11.3% (target: ~never)
+```
+
+No random policy had been run. The checklist branched on `policy === 'greedy'`
+and treated *everything else* as the random sample, so `no-switch` — a competent
+bot — was being measured against "a random policy should almost never clear gym
+6". Against a real `random` sample all three pass comfortably: 17.2%, 0.8%,
+0.0%.
+
+The mirror image showed up the moment that real sample was run. The curve and
+economy targets were being applied to the random bot, which reaches gym 8 in
+three runs out of a thousand and goes 0 for 3 — reported as a 57-point drop and
+a balance failure, on a sample size of three. Same for "items are 51.8% of
+picks" from a bot picking uniformly at random, and "broke on arrival 37.2%" from
+a bot that never won a fight.
+
+Both halves are fixed. Competent policies take the completion band and the
+curve and economy targets; `random` takes the three depth tests; the gym-1
+target stays `greedy`'s because it was written against that bot; species
+diversity stays on for everything, because it is a property of the randomizer
+rather than of play and a random bot samples it as well as any.
+
+A report that cries wolf on its own headline is worse than one with no
+checklist, and this one had been doing it in both directions since Stage 4.
 
 ## 5. Running it yourself
 

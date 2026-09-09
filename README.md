@@ -1,14 +1,14 @@
-# GYMRUN — Stage 4.5
+# GYMRUN — Stage 4.5.1
 
-A browser-based seeded Pokémon roguelike. This is Stage 4.5: **an eight-gym
-randomizer run with a party, held items, shops and events — and a battle screen
-that finally shows you the mechanics it has been resolving all along.**
+A browser-based seeded Pokémon roguelike. This is Stage 4.5.1: **an eight-gym
+randomizer run with a party you carry, a bag you have to prune, and rewards that
+make you choose what they cost you.**
 
 Stage 0 proved the battle engine. Stage 1 made it a run. Stage 2 made it a
 *randomizer* and built the instrument that says whether the randomizer is
 playable. Stage 3 added tiers, rewards, items, shops and events. Stage 4 added
-party slots and switching. Stage 4.5 adds no mechanics at all — it makes the
-existing ones legible.
+party slots and switching. Stage 4.5 added no mechanics at all and made the
+existing ones legible. Stage 4.5.1 is the one that puts prices back on things.
 
 There is still no battle engine here. GYMRUN wraps [Pokémon
 Showdown](https://pokemonshowdown.com) via `@pkmn/sim` — see
@@ -32,7 +32,34 @@ npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
 
-## What Stage 4.5 adds
+## What Stage 4.5.1 adds
+
+**Three decisions that used to be rules, and one that used to be free.**
+
+- **A backpack.** Items no longer land on a Pokemon and destroy what it was
+  holding — they go in a bag, and who wears what is settled on the party screen
+  for free, as often as you like, between fights. The bag is finite
+  (`tuning.backpackCapacity`), so *acquiring* is still a choice; assigning is
+  not. Nothing is ever destroyed except by an explicit discard.
+- **You choose what a move costs you.** A move reward asks who learns it and
+  then which of their four moves goes. There is no decline — the place to skip a
+  move card is the reward screen, where you already picked it over two
+  alternatives. The Stage 4.5 rule that a move reward could never leave you
+  weaker is deliberately gone.
+- **A coverage line on species cards.** One factual sentence — "adds Dragon,
+  Steel. Loses Ghost." — with no score, no arrow and no colour that says which
+  way is better.
+- **Gender, rolled properly and shown.** Not the cosmetic change it looks like:
+  the engine was rolling it off the *battle* PRNG with a flat coin flip, so the
+  same Pokemon was male in one fight and female in the next and nothing outside
+  a battle had a gender at all. See "Determinism" below.
+- **A Simple / Detailed toggle**, and stat tooltips on every abbreviation,
+  because `Atk` versus `SpA` is the one distinction a non-player cannot infer.
+
+Rest nodes were also cut roughly in half. They were tuned for a world where
+healing was free, and this is the stage that makes healing cost a node.
+
+## What Stage 4.5 added
 
 Nothing you can play. **No mechanics, no state, no randomness, and no balance
 change** — the 1000-seed report is byte identical across the stage, which is
@@ -91,19 +118,19 @@ At 1000 seeds, the `greedy` policy:
 
 | gym | leader | type | team | reached | clear rate | drop |
 |---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 969 | 95.0% | — |
-| 2 | Marina | Water | 2 | 836 | 83.1% | -12pt |
-| 3 | Volta | Electric | 3 | 658 | 75.8% | -7pt |
-| 4 | Fern | Grass | 4 | 483 | 84.9% | +9pt |
-| 5 | Cinder | Fire | 4 | 387 | 73.6% | -11pt |
-| 6 | Solene | Psychic | 5 | 271 | 72.0% | -2pt |
-| 7 | Vesper | Ghost | 5 | 189 | 74.1% | +2pt |
-| 8 | Draven | Dragon | 5 | 134 | 72.4% | -2pt |
+| 1 | Garnet | Rock | 1 | 946 | 94.5% | — |
+| 2 | Marina | Water | 2 | 800 | 85.1% | -9pt |
+| 3 | Volta | Electric | 3 | 650 | 83.1% | -2pt |
+| 4 | Fern | Grass | 4 | 520 | 81.0% | -2pt |
+| 5 | Cinder | Fire | 4 | 388 | 65.7% | -15pt |
+| 6 | Solene | Psychic | 5 | 239 | 77.0% | +11pt |
+| 7 | Vesper | Ghost | 5 | 179 | 70.9% | -6pt |
+| 8 | Draven | Dragon | 5 | 120 | 77.5% | +7pt |
 
-Run completion **9.7%**, mean 3.24 gyms of 8, worst gym-to-gym drop 12 points.
-A `random` policy completes 0.1% of runs and clears gym 6 in 0.7% of them, which
-is the depth test: if a random policy cleared gym 6, move choice would not
-matter.
+Run completion **9.2%**, mean 3.19 gyms of 8, worst gym-to-gym drop 15 points.
+A `random` policy completes **0.0%** of runs and clears gym 6 in **0.8%** of
+them, which is the depth test: if a random policy cleared gym 6, move choice
+would not matter. Every Stage 2 target passes on both policies.
 
 The randomizer draws from 635 species, 397 damaging moves and all 310
 abilities, and across 24,673 encounters the sweep saw **every one of them** —
@@ -117,8 +144,9 @@ which is what the `reached` column is there to show.
 
 [`docs/balance.md`](docs/balance.md) has the full report and the findings that
 moved the numbers — including §7.2, where the largest error in a tuning pass
-turned out to be a premise rather than a number, and §8, the Stage 4.5
-non-result and how it was checked.
+turned out to be a premise rather than a number; §8, the Stage 4.5 non-result
+and how it was checked; and §9, where two of the three questions that opened
+Stage 4.5.1 turned out to have false premises as well.
 
 ```sh
 npm run sim                              # 200 seeds, both policies
@@ -140,7 +168,9 @@ src/core/      pure, deterministic, zero DOM, unit tested
   encounters.ts  map and encounter generation, all of it eager
   run.ts       the run state machine, RunPolicy, and playRun
   acquisition.ts how a Pokemon joins the party, and what it costs
+  coverage.ts  offensive type coverage as a set of names, never a score
   economy.ts, rewards.ts, items.ts, events.ts   Stage 3's four systems
+               items.ts also owns the backpack: capacity, plans, discards
   battle/
     format.ts    generation, format id, clauses; the gen-lock lives here
     driver.ts    THE ONLY @pkmn/sim adapter
@@ -149,15 +179,17 @@ src/core/      pure, deterministic, zero DOM, unit tested
     policy.ts, switching.ts, ai.ts
 src/data/      what a Pokémon is rolled *from*, and every balance number
   scaling.ts     the curve: eight rows, and what party the curve assumes
-  partyTuning.ts PARTY_SIZE, join level, and what a faint costs
+  partyTuning.ts PARTY_SIZE and join level (revival moved to tuning.ts)
   gyms.ts        eight leaders and their type identities
   starters.ts    what the player begins with; Stage 5's unlock seam
   blacklists.ts  the exceptions, each with the evidence that earned it
   statusInfo.ts  what every condition does, and what to do about it
+  statInfo.ts    what Atk, SpA and the rest mean, without saying which is good
   abilityEffects.ts, abilityOverrides.ts, categoryInfo.ts   tooltip data
   speciesPools.ts, movePools.ts, abilities.ts   generated; npm run gen:pools
 src/ui/        a thin DOM layer: ten screens and a router
   scene.ts     the battlefield; reads BattleUiView and nothing else
+  settings.ts  the verbosity flag; unreachable from core/, and tested so
   tooltips.ts  one delegated tap-first layer; all content from data/
 scripts/sim.ts the balance simulator
 test/          determinism, generation, the randomizer's promises, replay,
@@ -239,6 +271,31 @@ Randomizer draws come from their own RNG stream, so adding a draw in one system
 cannot shift another's. `test/randomizer.test.ts` asserts that directly rather
 than trusting it to the construction.
 
+### The engine was rolling gender, and it was rolling it wrong
+
+Worth recording because it is the exact shape of bug the version guards exist
+for, and because the Stage 4.5.1 prompt asked for the opposite of what the
+measurement showed.
+
+Showdown assigns a gender that a team does not name with
+`battle.sample(['M', 'F'])` — a **flat coin flip that ignores the species'
+`genderRatio`**, taken from the *battle* PRNG at team construction. Three
+consequences, all measured rather than assumed:
+
+- Combee, 87.5% male in its own data, came out 206/194 over 400 seeds.
+- The same party member was male in one fight and female in the next, and
+  nothing outside a battle had a gender at all — so a party screen had nothing
+  to show.
+- Every gendered body on both sides cost one battle draw before turn one.
+
+GYMRUN now rolls gender itself, from the real ratio baked into
+`SpeciesEntry.maleChance`, and hands the sim a concrete value. That
+short-circuits the sample the engine was already making, so it is a **relocated
+draw rather than a new one** — the run makes one fewer battle draw per Pokemon
+and one more randomizer draw. Both version numbers moved as a result:
+`RANDOMIZER_VERSION` because specs changed, and `ENGINE_VERSION` because every
+battle stream is offset from the first turn.
+
 ## Bundle
 
 `@pkmn/sim` is most of it, and that is the shape of this project: we ship a
@@ -248,6 +305,7 @@ Pokémon engine, and the engine is mostly data.
 |---|---|---|
 | Stage 4 | 731.62 kB | 4.74 kB |
 | Stage 4.5 | 744.19 kB | 5.36 kB |
+| Stage 4.5.1 | 748.32 kB | 5.61 kB |
 
 Ability descriptions turned out to cost **nothing**. `@pkmn/sim`'s `Dex`
 statically imports its text tables and `build-config/trim-sim-data.ts` only
@@ -279,20 +337,26 @@ was already in the Stage 4 bundle before the tooltip layer read one.
    Note that it is no longer *only* a gap: one fixed spread is what lets
    `core/battle/stats.ts` compute the opponent's stats exactly rather than
    estimate them, so the exclusion is now load-bearing for a feature.
-2. **`random` clears gym 3 in 16.8% of runs**, against a target of "rarely".
+2. **`random` clears gym 3 in 17.2% of runs**, against a target of "rarely".
    Tightening the early gyms would push `greedy`'s completion out of its band,
-   so the trade was declined; the depth test that matters passes at 0.7%.
-3. **Gym 1 clears at 95.0%** against a 90% target — the one MISS on the greedy
-   run. A first gym that almost never stops anyone is a tutorial, which may be
-   the right thing for it to be; it has not been argued either way yet.
+   so the trade was declined; the depth test that matters passes at 0.8%.
+3. **Gym 1 clears at 94.5%** against a ~90% target. It was the single MISS on
+   the greedy run through Stage 4.5 at 95.0% and is now inside the band by half
+   a point, which is not a result and should not be read as one — nothing in
+   Stage 4.5.1 was aimed at it. A first gym that almost never stops anyone is a
+   tutorial, which may be the right thing for it to be; it has still not been
+   argued either way.
 4. **The blacklist is nearly empty**, which is correct after one tuning pass and
    not permanent. Nothing in the report dominated an outcome distribution.
 5. **Nuzlocke interpretation.** The build spec's section 3 is read here as *no*
    nuzlocke ruleset: no per-Pokémon permadeath, no forced first-encounter rule.
    Wipe — every party member fainted — is the only death rule.
 6. **Switching does not pay yet, and that is Stage 4's unmet done-condition.**
-   `switch-aware` completes 9.7% of runs against `no-switch`'s 10.6% — a gap in
-   the wrong direction, inside noise. It is not a tuning oversight: the first
+   `switch-aware` completes 9.2% of runs against `no-switch`'s 11.3% — still a
+   gap in the wrong direction, and Stage 4.5.1 widened it rather than closing
+   it. Nothing in the stage was aimed at switching, so this is a re-measurement
+   rather than a regression, but it is the third report in a row to say the
+   same thing. It is not a tuning oversight: the first
    scoring model made it *worse* in all twelve weight combinations tried, and
    replacing the one-turn horizon with a multi-turn matchup race only brought it
    back to parity. `docs/balance.md` §7.6 has the data and the three untried

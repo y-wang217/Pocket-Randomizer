@@ -19,6 +19,8 @@ import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
 import { normalizeSeed } from '../core/rng';
 import {
+  defaultItemPlan,
+  defaultMoveReplacement,
   isReplayable,
   playRun,
   resumeRun,
@@ -26,9 +28,10 @@ import {
   type RunResult,
   type RunState,
 } from '../core/run';
-import type { Choice, PokemonSpec, RunLog } from '../core/types';
+import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
+import { getVerbosity, initSettings, onSettingsChange, setVerbosity } from './settings';
 import { createTooltips } from './tooltips';
 import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
@@ -46,6 +49,10 @@ import { createSummary } from './screens/summary';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 
 export function mountApp(root: HTMLElement): void {
+  // Before any screen is built, so the first render already reflects the
+  // stored preference rather than flipping to it a frame later.
+  initSettings();
+
   const starterScreen = createStarterSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
@@ -137,6 +144,35 @@ export function mountApp(root: HTMLElement): void {
         router.show('reward');
         return rewardPick.wait();
       },
+      /*
+       * Auto-planned for now: fill empty hands, discard the overflow.
+       *
+       * The party screen is where this belongs — the backpack and the party are
+       * one screen, and assignment is a player decision — and it is built in the
+       * display pass at the end of this stage. Until then the run cannot simply
+       * skip the question: a plan that leaves the backpack over capacity is
+       * refused, so "ask nothing" would end a run on a thrown RangeError the
+       * first time the bag filled. `defaultItemPlan` is the documented reference
+       * plan, and it makes the same choice on a replay as it did live.
+       */
+      /*
+       * The layout the player left the party screen with, or the reference plan.
+       *
+       * The fallback is not a convenience. There is no decline: a plan that
+       * leaves the backpack over capacity is refused, so a player who never
+       * opens the screen must still produce a legal plan or the run ends on a
+       * thrown RangeError the first time the bag fills. `defaultItemPlan` is
+       * that legal plan, and it is the same one the scripted baseline gives.
+       *
+       * Cleared after use, so a plan composed before one node cannot be
+       * silently reapplied at the next — by then the party may have changed and
+       * the slots would mean something else.
+       */
+      chooseItemPlan: async (state) => {
+        const plan = pendingPlan;
+        pendingPlan = null;
+        return plan ?? defaultItemPlan(state);
+      },
       chooseShopPurchases: (stock, state) => {
         shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
         router.show('shop');
@@ -149,11 +185,22 @@ export function mountApp(root: HTMLElement): void {
         router.show('event');
         return eventPick.wait();
       },
-      chooseItemTarget: (reward, party) => {
-        targetScreen.render(reward, party, (slot) => targetPick.submit(slot));
+      chooseMoveRecipient: (offer, party) => {
+        targetScreen.render(offer, party, (slot) => targetPick.submit(slot));
         router.show('target');
         return targetPick.wait();
       },
+      /*
+       * Auto-answered for now, by the same reference heuristic the scripted
+       * baseline uses.
+       *
+       * The replacement screen — incoming move and all four current moves side
+       * by side, same move card component throughout — is built in the display
+       * pass at the end of this stage. Until then the run cannot skip the
+       * question: there is no decline, so `teachMove` throws if a member with
+       * four moves is handed one without a slot to put it in.
+       */
+      chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       chooseAcquisition: (offer, party) => {
         acquisitionScreen.render(offer, party, (decision) => acquirePick.submit(decision));
         router.show('acquisition');
@@ -174,23 +221,76 @@ export function mountApp(root: HTMLElement): void {
      */
     let live: RunState | null = null;
 
+    /*
+     * The item plan the player has composed on the party screen, if any.
+     *
+     * Held here between the screen and the next `chooseItemPlan` call, because
+     * the two are separated by however long the player spends on the map. Null
+     * means they never opened the screen, and the run falls back to the
+     * reference plan — which is also what happens on the very first boundary,
+     * before the screen has ever been shown.
+     */
+    let pendingPlan: ItemPlan | null = null;
+
     const showParty = (): void => {
       const state = live;
       if (!state) return;
-      partyScreen.render(state.party, {
-        onReorder: (from, to) => {
-          state.party = reorderParty(state.party, from, to);
-          showParty();
-          mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+      partyScreen.render(
+        { party: state.party, backpack: state.backpack, tuning: state.tuning, plan: pendingPlan },
+        {
+          /*
+           * Both of these drop the pending plan, and they have to.
+           *
+           * A plan names *slots*, and reordering or releasing changes which
+           * Pokemon a slot is. Carrying the plan across either would apply the
+           * Leftovers the player chose for their Squirtle to whoever ended up
+           * in that slot instead — a silent mis-assignment with no error to
+           * notice. Dropping it re-seeds the screen from run state, which is
+           * the arrangement that is actually true.
+           */
+          onReorder: (from, to) => {
+            pendingPlan = null;
+            state.party = reorderParty(state.party, from, to);
+            showParty();
+            mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+          },
+          onRelease: (slot) => {
+            pendingPlan = null;
+            const released = releaseMember(state.party, slot);
+            state.party = released.party;
+            // Their item goes to the bag, not with them.
+            if (released.freed) state.backpack = [...state.backpack, released.freed];
+            showParty();
+            mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+          },
+          onPlan: (plan) => {
+            pendingPlan = plan;
+          },
+          onDone: () => router.show('map'),
         },
-        onRelease: (slot) => {
-          state.party = releaseMember(state.party, slot);
-          showParty();
-          mapScreen.render(state, (index) => nodePick.submit(index), showParty);
-        },
-        onDone: () => router.show('map'),
-      });
+      );
       router.show('party');
+    };
+
+    /*
+     * Redraw the open screen when the toggle flips.
+     *
+     * Without this the new mode would only appear at the next natural
+     * re-render, which on the party screen is never — the player would flip the
+     * switch and watch nothing happen. The battle screen redraws every turn and
+     * would have caught up on its own; the map and party screens would not.
+     */
+    const unsubscribe = onSettingsChange(() => {
+      const state = live;
+      if (!state) return;
+      mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+      if (router.current() === 'party') showParty();
+    });
+
+    const previousAbandon = abandon;
+    abandon = () => {
+      unsubscribe();
+      previousAbandon();
     };
 
     const onState = (state: RunState): void => {
@@ -273,9 +373,52 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 4 · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, and somewhere to switch to`;
-  header.append(title, subtitle);
+  subtitle.textContent = `Stage 4.5.1 · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, a bag, and a price for healing`;
+  header.append(title, subtitle, createVerbosityToggle());
   return header;
+}
+
+/**
+ * The Simple / Detailed toggle. **Presentation only, and global.**
+ *
+ * In the header rather than on a settings screen because it is a reading
+ * preference rather than a game option: the player who wants it wants it
+ * *while looking at* the numbers it hides, and a preference behind a menu is
+ * one they set once and never revisit.
+ *
+ * It is a cross-run setting, persisted in `ui/settings.ts`, and it defaults to
+ * Detailed on a first launch — a new player does not know the help exists, so
+ * the mode that hides it is the mode they never leave.
+ *
+ * Nothing here touches run state. See the header of `ui/settings.ts` for the
+ * rule and `test/verbosity.test.ts` for its enforcement.
+ */
+function createVerbosityToggle(): HTMLElement {
+  const wrap = el('div', 'verbosity');
+  const label = el('span', 'verbosity__label');
+  label.textContent = 'Detail';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'button button--small verbosity__toggle';
+
+  const paint = (): void => {
+    const detailed = getVerbosity() === 'detailed';
+    button.textContent = detailed ? 'Detailed' : 'Simple';
+    button.setAttribute('aria-pressed', String(detailed));
+    // Says what the *other* mode does, because the button already says which
+    // one is on. "Showing numbers" and "showing bars" are both facts.
+    button.title = detailed ? 'Showing stat numbers' : 'Showing relative bars';
+  };
+
+  button.addEventListener('click', () => {
+    setVerbosity(getVerbosity() === 'detailed' ? 'simple' : 'detailed');
+    paint();
+  });
+  paint();
+
+  wrap.append(label, button);
+  return wrap;
 }
 
 interface SeedBar {

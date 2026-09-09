@@ -36,7 +36,7 @@
 import { describeSpecCard } from './battle/driver';
 import { createPartyMember } from './party';
 import type { RngStream } from './rng';
-import type { PokemonSpec, PokemonState } from './types';
+import type { ItemId, PokemonSpec, PokemonState } from './types';
 import { PARTY_SIZE, PARTY_TUNING } from '../data/partyTuning';
 import { encounterAcquisitionRate } from '../data/rewardPools';
 import { playerLevel } from '../data/scaling';
@@ -166,14 +166,26 @@ export function applyAcquisition(
   party: readonly PokemonState[],
   offer: AcquisitionOffer,
   decision: AcquisitionDecision,
-): PokemonState[] {
+): { party: PokemonState[]; freed: ItemId | null } {
   const refusal = decisionRefusal(party, decision);
   if (refusal) throw new RangeError(`Cannot apply acquisition decision: ${refusal}`);
 
-  if (decision.kind === 'decline') return [...party];
+  if (decision.kind === 'decline') return { party: [...party], freed: null };
   const joined = createPartyMember(offer.spec);
-  if (decision.kind === 'accept') return [...party, joined];
-  return [...party.filter((_, index) => index !== decision.slot), joined];
+  if (decision.kind === 'accept') return { party: [...party, joined], freed: null };
+
+  /*
+   * A released member hands their item back rather than taking it with them.
+   *
+   * The release itself is still permanent — there is no box and no retrieval,
+   * and that is what gives the choice teeth. What changed in Stage 4.5.1 is
+   * that the *item* is not part of the price: an item is destroyed only by an
+   * explicit discard, and letting a Pokemon go is not one.
+   */
+  return {
+    party: [...party.filter((_, index) => index !== decision.slot), joined],
+    freed: party[decision.slot]?.item ?? null,
+  };
 }
 
 /**

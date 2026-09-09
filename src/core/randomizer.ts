@@ -39,7 +39,7 @@
  * `RANDOMIZER_VERSION` exists to make loud rather than silent.
  */
 import type { Rng, RngStream } from './rng';
-import type { PokemonSpec, TeamSpec, Tier } from './types';
+import type { Gender, PokemonSpec, TeamSpec, Tier } from './types';
 import {
   isAbilityBlacklisted,
   isMoveBlacklisted,
@@ -90,7 +90,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `STARTER_MOVE_BANDS` all moved. Not one draw changed position and every seed
  * rolls a different run.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-4';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-5';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -248,11 +248,43 @@ function rollMoveset(entry: SpeciesEntry, damaging: readonly MoveEntry[], stream
 }
 
 /**
+ * Gender, from the species' own ratio. **Stage 4.5.1, and it is a relocated
+ * draw rather than a new one.**
+ *
+ * The sim would otherwise roll this itself at team construction, with
+ * `battle.sample(['M', 'F'])` — a flat coin flip that ignores `genderRatio`
+ * entirely, taken from the *battle* PRNG, and therefore re-rolled every fight.
+ * Rolling it here makes it a property of the Pokemon rather than of the
+ * encounter, and handing the sim a concrete value short-circuits the draw it
+ * was making, so the total number of draws in a run goes *down*.
+ *
+ * **A genderless species draws and discards.** It costs a value it cannot use,
+ * which looks wasteful and is deliberate: it makes the per-Pokemon draw cost a
+ * constant, so a blacklist edit that changes which species are drawable cannot
+ * also change how many draws each one costs.
+ *
+ * Exported for `test/gender.test.ts` alone. The draw-and-discard is the part
+ * worth a direct test — it is invisible from the outside, and a version that
+ * skipped the draw would pass every observable assertion while quietly making
+ * the draw count a function of the species pool.
+ */
+export function rollGender(entry: SpeciesEntry, stream: RngStream): Gender {
+  const roll = stream.nextFloat();
+  if (entry.maleChance === null) return null;
+  return roll < entry.maleChance ? 'M' : 'F';
+}
+
+/**
  * One Pokemon.
  *
- * The draw order — species, level, ability, moves — is a contract. Everything
- * that generates a team goes through here so there is exactly one order to
- * remember.
+ * The draw order — species, level, ability, moves, gender — is a contract.
+ * Everything that generates a team goes through here so there is exactly one
+ * order to remember.
+ *
+ * Gender is last because it was added last (Stage 4.5.1). Position within the
+ * order is arbitrary — any insertion point reshuffles every recorded seed and
+ * costs the same `RANDOMIZER_VERSION` bump — so the end is the position that
+ * makes the history of the contract readable.
  */
 function rollSpec(
   pool: readonly SpeciesEntry[],
@@ -266,6 +298,7 @@ function rollSpec(
     level: Math.max(1, Math.min(100, stream.inRange(level))),
     ability: rollAbility(stream),
     moves: rollMoveset(entry, damaging, stream),
+    gender: rollGender(entry, stream),
   };
 }
 
@@ -358,6 +391,7 @@ export function generateRewardSpecies(
     level,
     ability: rollAbility(stream),
     moves: rollMoveset(entry, damaging, stream),
+    gender: rollGender(entry, stream),
   };
 }
 
@@ -398,6 +432,7 @@ export function generateStarters(
       level,
       ability: rollAbility(stream),
       moves: rollMoveset(entry, damaging, stream),
+      gender: rollGender(entry, stream),
     });
   }
   return picked;
