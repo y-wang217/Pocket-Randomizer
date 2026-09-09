@@ -51,12 +51,23 @@ export function nodeRewardKey(nodeId: string, purpose: 'offer' | 'shop' | 'event
   return `node/${nodeId}/${purpose}`;
 }
 
+/** The locales a segment offers, on `map`. */
+export function localeOfferKey(segment: number): string {
+  return `seg${segment}/locale-offer`;
+}
+
 /**
- * One segment's route shape, on `map`: step count, kinds, the composition
- * fix-ups and the tiers.
+ * One route's shape, on `map`: step count, kinds, the composition fix-ups and
+ * the tiers.
+ *
+ * Keyed by locale as well as segment because a segment generates a route for
+ * **every** locale it offers and the player keeps one. Two locales drawing off
+ * one sequence would make the road through the Cave depend on whether the Marsh
+ * was offered beside it — a dependency nobody can see and every recorded seed
+ * would rest on.
  */
-export function segmentShapeKey(segment: number): string {
-  return `seg${segment}/shape`;
+export function routeKey(segment: number, locale: string): string {
+  return `seg${segment}/${locale}/route`;
 }
 
 /** The gym clear offer, on `rewards`. */

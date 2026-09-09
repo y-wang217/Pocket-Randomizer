@@ -23,7 +23,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { nodesOf, type Segment } from '../src/core/encounters';
+import { nodesOf, type Segment,
+  routeStepsOf,
+} from '../src/core/encounters';
 import { createRun } from '../src/core/run';
 import { OFFER_SIZE } from '../src/core/rewards';
 import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../src/data/rewardPools';
@@ -165,9 +167,9 @@ describe('when the offer is drawn', () => {
  * test a tautology. These are what the map and battle streams produced before
  * `generateSegment` had a pass 6, and today's build must still produce them.
  */
-const KEYED_SEGMENT_0_SHAPE: string[][] = [["shop:-","event:-","wild:normal"],["trainer:normal","wild:hard","shop:-"],["wild:normal","trainer:hard"],["wild:normal","trainer:hard","rest:-"],["wild:normal","shop:-"]];
+const KEYED_SEGMENT_0_SHAPE: string[][] = [["wild:hard","wild:normal"],["trainer:normal","wild:hard"],["shop:-","rest:-"],["trainer:normal","wild:hard","event:-"],["wild:hard","trainer:normal","event:-"],["shop:-","wild:normal"],["rest:-","wild:normal","event:-"],["wild:normal","wild:hard"],["trainer:hard","shop:-","rest:-"]];
 
-const KEYED_SEGMENT_0_SEEDS: (string | null)[] = [null,null,"sodium,5db563acc8ea2ad4e04d0f2359a7b0a5eef4ad494d3174d1edda1557d85defbd","sodium,97b7c48971fcf0deeaa87fe7d0d003f2c840a8d476437b7c85441b420aeba701","sodium,5b802396be21ac55b37c3b4346dadda3d95bd8ea627de1866b1af18b14594eef",null,"sodium,cea293fb86eb45f02cd73255f41e5b0d254b2a4f1c151c24e38b088d0b64cd03","sodium,914e4a44881646ba8deaea2315afe00bc89764fb73a0796c486d22d1bca0467c","sodium,b80ea5683a9cd9b585694b128d65cc6ad1a1a8152aef65cda8ade229b9ae1b6f","sodium,5be03b5b7e9b42e0377bf805397bde6aaf5bad0f753415830f7ec2f324940560",null,"sodium,ae2aceec3b6ed7c7b134905fea4ced4e2d8874d5c289a2ea553a995b4fde65cc",null,"sodium,90334ea2803513d623caaf516b8f0997be0256aa48fcb05b1b993c3a79c61c30"];
+const KEYED_SEGMENT_0_SEEDS: (string | null)[] = ["sodium,da53fe3ef48f9494c2f32ba1aa813a7d71b1c6caf5feb22e965c16612bb0917e","sodium,7ba551d1e2a5148f2916cd8a17d60af059571bcf2eeee07cfb7a43b2dcd03a31","sodium,0466917374ec75b2fc0658c935a4404fdebf7a7e7821f41175c72852e4e18214","sodium,dfe0f17614a40e7b005533a7801b24a17cf042558d29b375f1fcf4bca806bed5",null,null,"sodium,c657f94fa0334b3bed1e27643df1106aca318da3974c9ba9395ed9aadae02675","sodium,dcb4c78a225332bbb4045819b5a7184571304b41c6334c40d8569dcea544460c",null,"sodium,a01697aef81a4c7d79107871ae0460bf45fa1ddedf6ec7229b851a932b177031","sodium,dd34d948c2f8547fa6e53d6b949ac5d447595c38844cb9c4eca436ecb07113e0",null,null,"sodium,b522d2acd0c91511544dbad94945c952f70f997ed485974cda0778de9a332f57",null,"sodium,bf891908e830e1c6f6cc2fbb03d35feb3c919e8e83fa16add7a4ad73fc555f94",null,"sodium,2f97debfddd9f82aee26fc0f86ea0d97a0dc27dd1ef039d0ef3d4edc5efb8a72","sodium,a2e87064b0ec2d3a9aafff64d8d69d6e6ff4301b22ced8c50bcbd7bc35f758db","sodium,cca078d50073c20eb68ca6c4cac8b6cf0df8929d2dfbabc0d9ba8a2cbe44f43d",null,null,"sodium,90334ea2803513d623caaf516b8f0997be0256aa48fcb05b1b993c3a79c61c30"];
 
 describe('stream isolation', () => {
   /**
@@ -187,7 +189,7 @@ describe('stream isolation', () => {
       index: segment.index,
       leader: segment.leader,
       // pass 1, the `map` stream: the shape of the segment and every tier.
-      shape: segment.steps.map((step) => step.options.map((node) => `${node.kind}:${node.tier ?? '-'}`)),
+      shape: routeStepsOf(segment).map((step) => step.options.map((node) => `${node.kind}:${node.tier ?? '-'}`)),
       // pass 2, the `randomizer` stream: what every node contains.
       contents: nodesOf(segment).map((node) => JSON.stringify(node.encounter?.team ?? null)),
       // pass 3, the `battle` stream: one sim seed per battle node.
@@ -216,7 +218,9 @@ describe('stream isolation', () => {
    *
    * What it pins from here is the same thing one level along: this build's map
    * for this seed, so a later stage that claims to add a key without moving one
-   * either passes this or the claim was wrong.
+   * either passes this or the claim was wrong. It covers every offered route in
+   * the segment rather than one, because a locale offer is part of what the map
+   * stream produces now.
    */
   it('matches the recorded map for a fixed seed', () => {
     const segments = withoutGymOffers('GYM-ISOLATION');

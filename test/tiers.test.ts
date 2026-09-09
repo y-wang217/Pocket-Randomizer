@@ -18,7 +18,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { isBattleKind } from '../src/core/economy';
-import { generateSegment, generateStarterOptions, nodesOf } from '../src/core/encounters';
+import { generateSegment, generateStarterOptions, nodesOf,
+  routeStepsOf,
+} from '../src/core/encounters';
 import { generateTrainerTeam, generateWildTeam } from '../src/core/randomizer';
 import { createRng, RNG_STREAMS } from '../src/core/rng';
 import { createRun } from '../src/core/run';
@@ -121,7 +123,7 @@ describe('tier stream isolation', () => {
      */
     const shapeOf = (tuning: typeof DEFAULT_TUNING): unknown =>
       createRun('TIER-RETUNE', tuning).segments.map((segment) => ({
-        steps: segment.steps.map((step) => step.options.map((option) => `${option.id}:${option.kind}`)),
+        steps: routeStepsOf(segment).map((step) => step.options.map((option) => `${option.id}:${option.kind}`)),
       }));
 
     const shipped = shapeOf(DEFAULT_TUNING);
@@ -312,7 +314,7 @@ describe('tier tuning', () => {
     let repeats = 0;
     for (let seed = 0; seed < 60; seed++) {
       for (const segment of createRun(`SPREAD-OFF-${seed}`, flat).segments) {
-        for (const step of segment.steps) {
+        for (const step of routeStepsOf(segment)) {
           const tiers = step.options.map((option) => option.tier).filter((tier) => tier !== null);
           if (tiers.length > 1 && new Set(tiers).size < tiers.length) repeats++;
         }

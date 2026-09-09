@@ -410,7 +410,7 @@ describe('a fainted member does not leave the party', () => {
   it('keeps the slot and revives into it', () => {
     const before = { ...chooseStarter(createRun('FAINT'), 0), party: partyOf(2) };
     const dead = before.party.map((m, i) => (i === 0 ? { ...m, hp: 0, fainted: true } : m));
-    const node = before.segments[0]!.steps[0]!.options[0]!;
+    const node = before.segments[0]!.routes[0]!.steps[0]!.options[0]!;
 
     const after = resolveNode(before, {
       node,
@@ -651,9 +651,11 @@ describe('a full eight-gym run, headless', () => {
    *
    * If a balance pass moves the curve this may stop winning. That is not a
    * regression in this test — rescan for a seed that does, or the victory path
-   * quietly stops being covered.
+   * quietly stops being covered. `npx vite-node scripts/scan-seed.ts win` is
+   * the rescan; Stage 4.6a needed it twice, once for the keyed streams and
+   * once for locales.
    */
-  const WINNING_SEED = 'WIN-5';
+  const WINNING_SEED = 'WIN-146';
 
   it('completes eight gyms while switching, acquiring, releasing and targeting', async () => {
     expect(typeof globalThis.document).toBe('undefined');

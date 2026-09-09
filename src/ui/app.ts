@@ -164,6 +164,19 @@ export function mountApp(root: HTMLElement): void {
         router.show('starter');
         return starterPick.wait();
       },
+      /*
+       * Answered for the player until the locale select screen lands.
+       *
+       * `core/run.ts` asks this question and the run log records the answer, so
+       * a run played through this build is a legal, replayable run that walked
+       * the first region offered — and the player was never shown the choice.
+       * That is exactly the failure `test/boundaries.test.ts` was written for
+       * after `chooseMoveToReplace` shipped wired to a heuristic, which is why
+       * this hook is deliberately *not* in that test's list yet: it goes in with
+       * the screen, in the display pass at the end of this stage, and the test
+       * is what stops it being forgotten.
+       */
+      chooseLocale: async () => 0,
       chooseNode: (options: NodeSpec[]) => {
         // The map is already rendered by onState; this only arms the buttons.
         void options;

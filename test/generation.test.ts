@@ -12,7 +12,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { describeSpec } from '../src/core/battle/driver';
-import { generateSegment, generateStarterOptions, nodesOf, type Segment } from '../src/core/encounters';
+import { generateSegment, generateStarterOptions, nodesOf, type Segment,
+  routeStepsOf,
+} from '../src/core/encounters';
 import { isBattleKind } from '../src/core/economy';
 import { createRng } from '../src/core/rng';
 import { playerLevel, SEGMENT_COUNT, segmentScaling, starterLevel } from '../src/data/scaling';
@@ -104,9 +106,11 @@ describe('generation rules', () => {
   it('respects the tuned step and option counts', () => {
     for (const seed of seeds) {
       const { segment } = generate(seed);
-      expect(segment.steps.length).toBeGreaterThanOrEqual(DEFAULT_TUNING.stepsPerSegment.min);
-      expect(segment.steps.length).toBeLessThanOrEqual(DEFAULT_TUNING.stepsPerSegment.max);
-      for (const step of segment.steps) {
+      for (const route of segment.routes) {
+        expect(route.steps.length).toBeGreaterThanOrEqual(DEFAULT_TUNING.stepsPerSegment.min);
+        expect(route.steps.length).toBeLessThanOrEqual(DEFAULT_TUNING.stepsPerSegment.max);
+      }
+      for (const step of routeStepsOf(segment)) {
         expect(step.options.length).toBeGreaterThanOrEqual(2);
         expect(step.options.length).toBeLessThanOrEqual(DEFAULT_TUNING.nodeChoiceCount.max);
       }
@@ -116,8 +120,22 @@ describe('generation rules', () => {
   it('never offers the same kind twice in one step', () => {
     for (const seed of seeds) {
       const { segment } = generate(seed);
-      for (const step of segment.steps) {
+      /*
+       * The guaranteed wild step is the one exception, and it is a deliberate
+       * one: 4.6a needs a wild encounter reachable whatever the player picks,
+       * so one step per route is wild all the way across. It stays a decision
+       * because those options carry **different tiers** — see
+       * `tuning.wildStepsPerSegment`, which trims that step to the number of
+       * tiers the segment can actually draw so that two options are never the
+       * same trade printed twice.
+       */
+      for (const step of routeStepsOf(segment)) {
         const kinds = step.options.map((option) => option.kind);
+        if (kinds.every((kind) => kind === 'wild')) {
+          const tiers = step.options.map((option) => option.tier);
+          expect(new Set(tiers).size, 'a wild step must offer distinct tiers').toBe(tiers.length);
+          continue;
+        }
         expect(new Set(kinds).size).toBe(kinds.length);
       }
     }
@@ -126,7 +144,7 @@ describe('generation rules', () => {
   it('never offers a rest before the tuned earliest step, and always offers enough of them', () => {
     for (const seed of seeds) {
       const { segment } = generate(seed);
-      const restSteps = segment.steps.filter((step) => step.options.some((o) => o.kind === 'rest'));
+      const restSteps = routeStepsOf(segment).filter((step) => step.options.some((o) => o.kind === 'rest'));
       for (const step of restSteps) {
         expect(step.index).toBeGreaterThanOrEqual(DEFAULT_TUNING.restEarliestStep);
       }
@@ -139,7 +157,7 @@ describe('generation rules', () => {
       const { segment } = generate(seed);
       expect(segment.gym.kind).toBe('gym');
       expect(segment.gym.label).toContain(segment.leader);
-      expect(segment.steps.flatMap((s) => s.options).some((o) => o.kind === 'gym')).toBe(false);
+      expect(routeStepsOf(segment).flatMap((s) => s.options).some((o) => o.kind === 'gym')).toBe(false);
     }
   });
 
@@ -172,7 +190,7 @@ describe('generation rules', () => {
     let stepsWithTwoFights = 0;
     for (const seed of seeds) {
       for (const segment of wholeRun(`${seed}-SPREAD`)) {
-        for (const step of segment.steps) {
+        for (const step of routeStepsOf(segment)) {
           const tiers = step.options.map((option) => option.tier).filter((tier) => tier !== null);
           if (tiers.length < 2) continue;
           stepsWithTwoFights++;

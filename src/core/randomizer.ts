@@ -55,6 +55,7 @@ import {
 } from '../data/blacklists';
 import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
+import { localeAdmits, type LocaleId } from '../data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry } from '../data/movePools';
 import {
   MOVESET,
@@ -120,6 +121,12 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * draws under new keys and inside existing ones, and neither can move a draw
  * this version stamps — see `gymrun-seeds-and-mappability.md` for why that is a
  * property of the construction rather than a promise.
+ *
+ * The rest of 4.6a rides on the same 7: locales narrow the wild species pool,
+ * a segment generates a route per offered locale, and every segment guarantees
+ * a wild step. All of it lands inside the same version because it lands inside
+ * the same stage — the string says "a seed recorded before this rolls something
+ * else now", and one bump says that exactly as well as three.
  */
 export const RANDOMIZER_VERSION = 'gymrun-randomizer-7';
 
@@ -138,6 +145,29 @@ export const RANDOMIZER_VERSION = 'gymrun-randomizer-7';
 function speciesFor(segment: number, tier: Tier): SpeciesEntry[] {
   const bands = new Set(speciesBandsFor(segment, tier));
   return SPECIES_POOL.filter((entry) => bands.has(entry.band) && !isSpeciesBlacklisted(entry.id));
+}
+
+/**
+ * The species a **wild** node may draw: its segment's bands, narrowed to the
+ * locale's four types.
+ *
+ * Stage 4.6a, and it is the only thing a locale decides. A species qualifies on
+ * either of its types, so the Marsh fields a Gyarados on Water alone — see
+ * `LocaleDefinition.types` for why both-types would collapse each locale to a
+ * handful of monotypes.
+ *
+ * The fallback is the same shape `gymSpeciesFor` uses and exists for the same
+ * reason: every band carries all eighteen types (asserted in
+ * test/randomizer.test.ts), so an empty window means a blacklist has emptied
+ * it, and a data gap should widen the pool rather than crash a run. It is
+ * asserted never to fire in practice — `test/locales.test.ts` checks that every
+ * wild species across many seeds really does match its locale.
+ */
+function wildSpeciesFor(segment: number, tier: Tier, locale?: LocaleId): SpeciesEntry[] {
+  const pool = speciesFor(segment, tier);
+  if (!locale) return pool;
+  const matching = pool.filter((entry) => localeAdmits(locale, entry.types));
+  return matching.length > 0 ? matching : pool;
 }
 
 /** The species a gym may draw: its own type, its own restrictions, its segment's bands. */
@@ -344,8 +374,13 @@ function rollSpec(
  * Pokemon. `opponentTeamSize` is still asked, so that a tier or a Stage 4
  * party change that should produce a horde produces one.
  */
-export function generateWildMon(segment: number, tier: Tier, stream: RngStream): PokemonSpec {
-  const pool = speciesFor(segment, tier);
+export function generateWildMon(
+  segment: number,
+  tier: Tier,
+  stream: RngStream,
+  locale?: LocaleId,
+): PokemonSpec {
+  const pool = wildSpeciesFor(segment, tier, locale);
   const damaging = damagingFor(segment, tier);
   return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream);
 }
@@ -386,8 +421,13 @@ export function generateGymTeam(gym: GymDefinition, segment: number, stream: Rng
  * — but a wild node that hardcoded `[generateWildMon(...)]` would be the
  * single-mon assumption written down one more time.
  */
-export function generateWildTeam(segment: number, tier: Tier, stream: RngStream): TeamSpec {
-  const pool = speciesFor(segment, tier);
+export function generateWildTeam(
+  segment: number,
+  tier: Tier,
+  stream: RngStream,
+  locale?: LocaleId,
+): TeamSpec {
+  const pool = wildSpeciesFor(segment, tier, locale);
   const damaging = damagingFor(segment, tier);
   const level = opponentLevel('wild', segment, tier);
   const size = opponentTeamSize('wild', segment, tier);

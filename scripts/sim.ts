@@ -829,6 +829,19 @@ function buildPolicy(
     chooseStarter: async (options) =>
       randomBattle ? stream.nextInt(Math.max(1, options.length)) : bestStarter(options),
 
+    /*
+     * The locale, drawn from the policy stream for a random bot and taken as
+     * offered otherwise.
+     *
+     * A placeholder until the locale metrics land: what a *greedy* locale
+     * policy should be — cover the types the party cannot hit, or feed the next
+     * gym — is a question the report has to answer before a bot encodes an
+     * answer to it. Taking the first offer is the honest floor in the meantime,
+     * and the random bot's pick distribution is what says whether every locale
+     * is reachable at all.
+     */
+    chooseLocale: async (options) => (randomBattle ? stream.nextInt(Math.max(1, options.length)) : 0),
+
     chooseNode: chooseNodeBy(nodes, stream),
 
     chooseReward: async (offer, state) => {

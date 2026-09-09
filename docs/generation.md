@@ -61,18 +61,84 @@ generation is still the rule, and a payout is still drawn when the map is built
 rather than when a node is completed. Those arguments were never about stream
 layout.
 
+## 1c. Locales, and generating a road you will not walk
+
+**Stage 4.6a opens a segment on a locale choice.** Two or three regions are
+offered (`tuning.localeOfferCount`), each has its own route, and the player
+commits to one before the first step.
+
+- **The offer is a pre-step, not a node.** It consumes nothing from
+  `stepsPerSegment`, so the node budget is exactly what 4.5.1 measured and the
+  balance table stays comparable across the stage.
+- **Every offered locale's route is generated at run creation**, contents and
+  all, and the unpicked ones are discarded at selection time. That is §1's rule
+  applied to a new decision rather than a new rule.
+- **The weighting rule lives in `data/locales.ts`**, not in the generator: a
+  locale offered last segment has weight zero, and one nobody has been offered
+  outweighs one they have. The generator only knows "sample without replacement
+  by weight", which is the same `sampleWeighted` that draws kinds and tiers.
+- **A locale decides the wild species pool and nothing else.** Not trainers, not
+  shops, not rests, not tiers, not the gym. A locale is where you are, not how
+  hard it is — and a second dial on difficulty is a dial the balance report
+  cannot attribute.
+
+### Why generate three roads to walk one
+
+With keyed sub-streams the alternative — deriving the picked locale's route at
+selection time — produces the *identical* route, because a route is a function
+of `(seed, 'map', 'seg<i>/<locale>/route')` and of nothing else. So the choice
+is made on other grounds: eager generation is what the codebase already does
+everywhere, and a lazy path would be a second way for content to come into
+existence, differing from the first only in circumstances nobody would think to
+test. The cost is a few hundred microseconds and some data nobody sees.
+
+A replay also needs the unpicked routes to still be there. A log records the
+locale as an **index into the offer**, like every other decision it stores, and
+resolving that index requires the offer and its routes reconstructed exactly.
+
+### The composition guarantees
+
+Enforced in pass 1, per route, in a fixed order, with a set of *claimed* steps
+so that one guarantee cannot satisfy itself by breaking another:
+
+| guarantee | tuning | how |
+|---|---|---|
+| Exactly one unavoidable wild encounter | `wildStepsPerSegment` | one step's options are **all** wild, `wildStepOptionCount` wide |
+| At least one event offered | `minEventSteps` | convert a step's last option if none rolled |
+| At least one reachable rest | `minRestSteps` | as before, no earlier than `restEarliestStep` |
+
+The wild step is the one place `distinctKindsPerStep` is deliberately broken: a
+wild encounter has to be reachable *whatever* the player picks, and a step with
+one option is not a choice — this codebase already refuses to hand `chooseNode`
+a list of one. It stays a decision because the options carry **different
+tiers**, which is on the map before the click.
+
+Its width is a constant (`wildStepOptionCount`), not the number of tiers the
+segment can draw. Deriving it from the tier weights was the first version and
+`test/tiers.test.ts` rejected it immediately: it made `tierBands` reshape every
+map, and the rule that table is tuned under is that it moves risk and nothing
+else.
+
 ## 2. The passes
 
-`generateSegment(index, rng, tuning)` runs its passes over keyed sub-streams.
+`generateSegment(index, rng, tuning, offerContext)` runs its passes over keyed
+sub-streams.
 They are separate on purpose, and the boundaries between them are the parts that
 would be expensive to change later.
 
-### Pass 1 — shape, from `map`, keyed per segment
+### Pass 0 — the locale offer, from `map`, keyed per segment
+
+Two or three locales, sampled without replacement by `localeOfferWeight`. The
+context — what the previous segment offered, and what the run has offered at
+all — is threaded by `createRun`, which is the only reason segments are
+generated in order.
+
+### Pass 1 — shape, from `map`, keyed per route
 
 1. The number of steps, from `tuning.stepsPerSegment`.
 2. For each step, in order: how many options (`tuning.nodeChoiceCount`), then
    which node *kinds* they are.
-3. The rest-availability fix-up (see §4), which may rewrite a kind.
+3. The composition fix-ups (see §4 and §1c), which may rewrite kinds.
 4. For each step, in order: the **tier** of each of that step's battle nodes.
 
 Kinds are sampled **without replacement** when `tuning.distinctKindsPerStep` is

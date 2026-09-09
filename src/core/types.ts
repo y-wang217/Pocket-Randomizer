@@ -456,6 +456,19 @@ export interface ItemPlan {
  */
 export type RunDecision =
   | { kind: 'starter'; index: number }
+  /**
+   * Which locale the segment is walked through, as an index into its offer.
+   *
+   * **Stage 4.6a's decision, and it is the first one that happens before a
+   * step rather than at one.** An index rather than the locale id, for the
+   * reason every other index in this union is one: the offer is reconstructed
+   * from the seed, so a log storing `'marsh'` would keep replaying happily
+   * after a table edit and walk a route the run never offered.
+   *
+   * It consumes no RNG. The offer and every route behind it were drawn when the
+   * map was built; picking one only says which of them the run keeps.
+   */
+  | { kind: 'locale'; index: number }
   | { kind: 'node'; index: number }
   | { kind: 'battle'; choice: Choice }
   /**

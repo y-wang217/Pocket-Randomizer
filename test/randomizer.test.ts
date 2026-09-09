@@ -24,7 +24,9 @@ import { describe, expect, it } from 'vitest';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { runBattle } from '../src/core/battle/driver';
 import { firstUsableMovePolicy } from '../src/core/battle/policy';
-import { generateSegment, nodesOf } from '../src/core/encounters';
+import { generateSegment, nodesOf,
+  routeStepsOf,
+} from '../src/core/encounters';
 import {
   RANDOMIZER_VERSION,
   generateGymTeam,
@@ -122,7 +124,7 @@ describe('2. stream isolation', () => {
         [0, 1].map((index) => {
           const segment = generateSegment(index, rng, DEFAULT_TUNING);
           return {
-            steps: segment.steps.map((step) => step.options.map((option) => option.kind)),
+            steps: routeStepsOf(segment).map((step) => step.options.map((option) => option.kind)),
             seeds: nodesOf(segment).map((node) => node.encounter?.simSeed ?? null),
           };
         }),
