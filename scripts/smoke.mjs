@@ -691,6 +691,106 @@ phoneCheck(
   mapMetrics.offered ? `cards end at y=${mapMetrics.offered.bottom} of ${mapMetrics.innerHeight}` : 'no current step',
 );
 
+/*
+ * The party threat readout on the map, measured rather than assumed.
+ *
+ * The requirement is that it must not crowd the offered node cards, which Item
+ * F fought to get above the fold on a 390x844 phone. Two things make that
+ * true and both are checked here rather than reasoned about: it is rendered
+ * *below* the step chain, so it is not in the cards' way at any open state,
+ * and it ships collapsed, so the closed height is a summary line.
+ *
+ * The interesting number is the pair before and after opening it. If the cards
+ * move at all when the disclosure expands, the readout is in the wrong place
+ * in the document and no default open state would save it.
+ */
+const threatMetrics = await phone.evaluate(() => {
+  const details = globalThis.document.querySelector('.screen--map .threats');
+  if (!details) return null;
+
+  const cards = () => globalThis.document.querySelector('.step--current .step__nodes')?.getBoundingClientRect();
+  const before = cards();
+  const openByDefault = details.open;
+
+  details.open = true;
+  const after = cards();
+  const readout = details.getBoundingClientRect();
+  const chips = details.querySelectorAll('.threats__item .type').length;
+  const hasNone = Boolean(details.querySelector('.threats__none'));
+  details.open = false;
+  const closed = details.getBoundingClientRect();
+
+  return {
+    openByDefault,
+    chips,
+    hasNone,
+    cardsBefore: before ? Math.round(before.bottom) : null,
+    cardsAfter: after ? Math.round(after.bottom) : null,
+    openTop: Math.round(readout.top),
+    openHeight: Math.round(readout.height),
+    closedHeight: Math.round(closed.height),
+  };
+});
+
+if (!threatMetrics) {
+  problems.push('phone: the map has no threat readout');
+} else {
+  phoneCheck(
+    'the map carries the threat readout, collapsed',
+    threatMetrics.openByDefault === false,
+    `closed height ${threatMetrics.closedHeight}px, open ${threatMetrics.openHeight}px at y=${threatMetrics.openTop}`,
+  );
+  phoneCheck(
+    'expanding the readout does not move the offered node cards',
+    threatMetrics.cardsBefore !== null && threatMetrics.cardsBefore === threatMetrics.cardsAfter,
+    `cards end at y=${threatMetrics.cardsBefore} closed, y=${threatMetrics.cardsAfter} open`,
+  );
+  phoneCheck(
+    'the readout says something rather than drawing an empty box',
+    threatMetrics.chips > 0 || threatMetrics.hasNone,
+    `${threatMetrics.chips} type badges`,
+  );
+}
+
+/*
+ * And the same readout on the party screen, where it is open by default and is
+ * the first thing under the heading.
+ */
+await phone.locator(`${visible('map')} .party__header .button`).first().click().catch(() => undefined);
+await phone.waitForTimeout(50);
+if (await phone.locator(visible('party')).count()) {
+  const partyMetrics = await phone.evaluate(() => {
+    const readout = globalThis.document.querySelector('.screen--party .threats');
+    if (!readout) return null;
+    const rect = readout.getBoundingClientRect();
+    return {
+      tag: readout.tagName,
+      top: Math.round(rect.top),
+      bottom: Math.round(rect.bottom),
+      innerHeight: globalThis.window.innerHeight,
+      chips: readout.querySelectorAll('.threats__item .type').length,
+      hasNone: Boolean(readout.querySelector('.threats__none')),
+    };
+  });
+
+  if (!partyMetrics) {
+    problems.push('phone: the party screen has no threat readout');
+  } else {
+    phoneCheck(
+      'the party screen shows the readout open, above the fold',
+      partyMetrics.tag === 'SECTION' && partyMetrics.bottom <= partyMetrics.innerHeight,
+      `y=${partyMetrics.top}..${partyMetrics.bottom} of ${partyMetrics.innerHeight}`,
+    );
+    phoneCheck(
+      'and it lists the party\'s unanswered types',
+      partyMetrics.chips > 0 || partyMetrics.hasNone,
+      `${partyMetrics.chips} type badges`,
+    );
+  }
+  await phone.locator(`${visible('party')} .button--primary`).first().click();
+  await phone.waitForSelector(visible('map'));
+}
+
 // Into a fight, for the move grid and the stat panels.
 const phoneNode = phone.locator(`${visible('map')} .step--current .node`).first();
 if (await phoneNode.count()) {

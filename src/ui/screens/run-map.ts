@@ -52,6 +52,7 @@ import { PARTY_SIZE } from '../../data/partyTuning';
 import { el } from '../scene';
 import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
+import { createThreatReadout } from './threats';
 
 const KIND_LABELS: Record<NodeSpec['kind'], string> = {
   wild: 'Wild',
@@ -138,7 +139,30 @@ export function createRunMap(): RunMap {
   const chain = el('ol', 'chain');
   const party = el('div', 'party');
 
-  root.append(rail, heading, chain, party);
+  /*
+   * Collapsed, and in a grid area of its own **below the chain**.
+   *
+   * The first version put it inside the party block, on the reasoning that the
+   * party block comes after `chain` in the DOM and therefore could not push the
+   * node cards down. `npm run smoke` measured that reasoning and it was wrong:
+   * at 390x844 the map's grid reorders to `rail heading party chain`, so on the
+   * one viewport Item F cares about the party block is *above* the cards.
+   * Opening the readout moved the decision point from y=683 to y=741 — still on
+   * screen, and still 58px of the thing the phone pass spent a stage
+   * reclaiming.
+   *
+   * So it gets an area, and the area is last on a phone and under the party
+   * column on a desktop. Now no open state can reach the cards at all, which is
+   * a stronger guarantee than shipping it closed and hoping.
+   *
+   * It is created once and moved rather than rebuilt, so a player who opens it
+   * finds it still open after the map redraws — which it does on every node,
+   * every rest and every flip of the Detail toggle.
+   */
+  const threats = createThreatReadout({ collapsed: true });
+  threats.root.classList.add('threats--map');
+
+  root.append(rail, heading, chain, party, threats.root);
 
   return {
     root,
@@ -174,6 +198,7 @@ export function createRunMap(): RunMap {
        * matters at the moment you are choosing which node to walk into. Putting
        * it anywhere else would make it a setting instead of a decision.
        */
+      threats.render(state.party);
       party.replaceChildren(
         renderWallet(state),
         renderPartyHeader(state.party.length, onManage),

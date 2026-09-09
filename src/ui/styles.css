@@ -392,6 +392,77 @@ body {
  * screen, and a boxed-off section would put a wall between the Pokemon and the
  * items they can hold — which is the comparison the screen exists to make easy.
  */
+/* ---------- the party threat readout ---------- */
+
+/*
+ * A line about the whole team, styled to read as a readout and not as an alarm.
+ *
+ * **No severity colour anywhere in this block**, and that is the point of
+ * writing it down here as well as in the component. Every chip is the type's
+ * own colour — the same `--type-*` variable it wears on a move button, a gym
+ * on the rail and a Pokemon panel — so a Fire chip reads as *Fire*. A red
+ * border, a warning icon or a heavier weight on a 4x entry would be the
+ * stylesheet delivering the verdict the component refuses to.
+ *
+ * The one visual grouping it gets is a rule above it, borrowed from
+ * `.backpack`: a section of the party screen rather than a box sitting on top
+ * of it.
+ */
+.threats {
+  margin: 4px 0 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.threats__title,
+.threats__summary {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+/* The map's collapsed form. A pointer and a marker, nothing louder — it is one
+   of several things on a screen whose urgent element is the node cards. */
+.threats__summary {
+  cursor: pointer;
+  color: var(--text-dim);
+}
+
+.threats__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.threats__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+/* Chip and count on one line, so a type and its reach read as one entry rather
+   than as two columns the eye has to pair up. */
+.threats__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.threats__count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.threats__none,
+.threats__explainer {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
 .backpack {
   margin-top: 18px;
   padding-top: 14px;
@@ -855,7 +926,9 @@ body {
 .screen--map {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  grid-template-areas: "rail rail" "heading heading" "chain party";
+  /* The chain spans two rows so the threat readout can sit under the party
+     column without the cards losing height to it. */
+  grid-template-areas: "rail rail" "heading heading" "chain party" "chain threats";
   gap: var(--gap);
   align-items: start;
 }
@@ -864,11 +937,21 @@ body {
 .map__heading { grid-area: heading; display: flex; flex-direction: column; gap: 2px; }
 .chain { grid-area: chain; }
 .party { grid-area: party; }
+.threats--map { grid-area: threats; }
 
 @media (max-width: 760px) {
   .screen--map {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "rail" "heading" "party" "chain";
+    /*
+     * The party HUD moves above the chain on a phone, which is deliberate — HP
+     * and PP are the cost of the node you are about to choose. The threat
+     * readout goes **last**, and that placement is measured rather than
+     * guessed: inside the party block it opened on top of the offered node
+     * cards and pushed the map's decision point from y=683 to y=741 at
+     * 390x844. See `scripts/smoke.mjs`, which now asserts the cards do not
+     * move when it is opened.
+     */
+    grid-template-areas: "rail" "heading" "party" "chain" "threats";
   }
 }
 

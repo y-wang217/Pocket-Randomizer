@@ -56,6 +56,7 @@ import type { Tuning } from '../../data/tuning';
 import { genderMark, el } from '../scene';
 import { showsNumbers } from '../settings';
 import { typeChip } from './starter-select';
+import { createThreatReadout } from './threats';
 
 export interface PartyScreen {
   root: HTMLElement;
@@ -113,6 +114,18 @@ export function createPartyScreen(): PartyScreen {
   const blurb = el('p', 'screen__blurb');
   blurb.textContent = 'The first member leads the next battle. Releasing is permanent.';
 
+  /*
+   * The threat readout's home, open rather than behind a disclosure.
+   *
+   * It sits with the party rather than in a panel of its own because it is a
+   * fact *about* the party, and because this screen is where the player is
+   * standing when a team-level fact is actionable — mid-reassignment, between
+   * fights. Above the member cards so it is read before them: it is one line
+   * about six, and putting it under three tall cards would make it a footnote
+   * on a phone.
+   */
+  const threats = createThreatReadout();
+
   const list = el('div', 'party party--manage');
   const bag = el('section', 'backpack');
 
@@ -121,7 +134,7 @@ export function createPartyScreen(): PartyScreen {
   done.className = 'button button--primary';
   done.textContent = 'Back to the map';
 
-  root.append(title, blurb, list, bag, done);
+  root.append(title, blurb, threats.root, list, bag, done);
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -143,6 +156,15 @@ export function createPartyScreen(): PartyScreen {
     root,
     render(view, handlers) {
       onDone = handlers.onDone;
+      /*
+       * From the party alone, and redrawn here rather than in `draw()`.
+       *
+       * `draw()` runs on every item move, and an item changes nothing about
+       * which types hit the party — held items are not in the matchup model.
+       * What does change it is a release or a reorder, and both of those come
+       * back through `render`.
+       */
+      threats.render(view.party);
       /*
        * Seed from the unspent plan if there is one, and from the run otherwise.
        *

@@ -169,6 +169,8 @@ src/core/      pure, deterministic, zero DOM, unit tested
   run.ts       the run state machine, RunPolicy, and playRun
   acquisition.ts how a Pokemon joins the party, and what it costs
   coverage.ts  offensive type coverage as a set of names, never a score
+  typeMatchup.ts  which types beat the party and it cannot answer; a
+               party and nothing else, in dex order, ranking nothing
   economy.ts, rewards.ts, items.ts, events.ts   Stage 3's four systems
                items.ts also owns the backpack: capacity, plans, discards
   battle/

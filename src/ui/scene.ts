@@ -400,13 +400,35 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
   container.hidden = chips.length === 0;
 }
 
+/**
+ * A Pokemon's type, as a badge and **not** as a door into the reference wheel.
+ *
+ * Stage 4.5 made every type badge open the wheel. On a *move* badge that was
+ * right and still is: "what does my Rock move hit" is a real question, and it
+ * is the one question the per-move effectiveness markers do not answer — they
+ * speak only about the Pokemon currently standing opposite. The move badges
+ * below keep their `type:` tip for exactly that reason.
+ *
+ * On a Pokemon panel it was wrong, and a playtester found it. The wheel there
+ * answers "what does Water do offensively", next to a Pokemon whose four moves
+ * are drawn off-species and predict nothing of the kind — a Water type in
+ * GYMRUN routinely knows no Water moves at all. So the badge invited a reading
+ * that was true about the type and false about the Pokemon wearing it, which
+ * is worse than no tooltip.
+ *
+ * The defensive half of that question now has a home built for it: the party
+ * threat readout (`core/typeMatchup.ts`) answers "what beats my team and I
+ * cannot answer" from the whole party, on the screens where a team-level fact
+ * can be acted on.
+ *
+ * This is byte-identical to `screens/starter-select.typeChip` now, and stays
+ * here rather than importing it: `scene.ts` is the module every screen imports
+ * `el` from, so reaching the other way would invert the dependency and close a
+ * cycle. The rule the two share is that a type badge is a *label*.
+ */
 function typeChip(type: string): HTMLElement {
   const chip = el('span', `type type--${type.toLowerCase()}`);
   chip.textContent = type;
-  // Every type badge is a door into the reference wheel. See ui/tooltips.ts.
-  chip.dataset['tip'] = `type:${type}`;
-  chip.tabIndex = 0;
-  chip.setAttribute('role', 'button');
   return chip;
 }
 
