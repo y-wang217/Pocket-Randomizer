@@ -26,8 +26,8 @@
  * that had to run a function to find out what a button does could not compare
  * two buttons, and the report's event numbers would be measuring a coin toss.
  */
-import { giveItem } from './items';
-import { leadOf, recoverParty } from './party';
+import { stow } from './items';
+import { recoverParty } from './party';
 import type { Rng } from './rng';
 import type { RunState } from './run';
 import { itemById } from '../data/items';
@@ -149,14 +149,17 @@ export function applyEventOutcome(state: RunState, outcome: EventOutcome, tuning
     case 'damage':
       return { ...state, party: damageParty(state, outcome.percent, tuning) };
 
-    case 'item': {
-      const target = leadOf(state.party);
-      if (!target) return state;
-      return {
-        ...state,
-        party: state.party.map((member) => (member === target ? giveItem(member, outcome.item) : member)),
-      };
-    }
+    case 'item':
+      /*
+       * Into the backpack, like every other item the run acquires.
+       *
+       * It used to go straight onto the lead, because there was nowhere else to
+       * put it and no way to move it afterwards. That made an event item a
+       * *worse* reward than an identical one from a card, since it silently
+       * destroyed whatever the lead was holding — the Stage 3 swap rule firing
+       * on a decision the player was never offered.
+       */
+      return { ...state, backpack: stow(state.backpack, outcome.item) };
   }
 }
 

@@ -13,12 +13,10 @@
  * show them because it does not know who is getting it yet.
  */
 import { describeSpecCard } from '../../core/battle/driver';
-import { heldItem, itemSuitsTypes } from '../../core/items';
 import { hpFraction } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
 import { describeReward } from '../../core/rewards';
 import type { PokemonState } from '../../core/types';
-import { itemById } from '../../data/items';
 import { DAMAGING_MOVES } from '../../data/movePools';
 import { el } from '../scene';
 import { typeChip } from './starter-select';
@@ -45,10 +43,11 @@ export function createItemTargetScreen(): ItemTargetScreen {
     root,
     render(reward, party, onTarget) {
       title.textContent = describeReward(reward);
-      blurb.textContent =
-        reward.kind === 'item'
-          ? 'Who holds it? Whatever they are holding now is destroyed.'
-          : 'Who learns it? It replaces their weakest attack.';
+      // Items no longer reach this screen — they go to the backpack and are
+      // assigned on the party screen, where the choice is free and reversible.
+      // What is left is the two cards that teach a move, and that choice is
+      // neither. See `rewards.isTargeted`.
+      blurb.textContent = 'Who learns it? It replaces their weakest attack.';
 
       list.replaceChildren(...party.map((member, index) => renderTarget(reward, member, index, onTarget)));
     },
@@ -90,7 +89,7 @@ function renderTarget(
   meta.append(hp);
 
   const effect = el('span', 'target__effect');
-  effect.textContent = effectOn(reward, member, detail);
+  effect.textContent = effectOn(reward, detail);
   if (effect.textContent.startsWith('No use')) effect.classList.add('target__effect--dud');
 
   button.append(header, track, meta, effect);
@@ -108,20 +107,8 @@ function renderTarget(
  */
 function effectOn(
   reward: TargetedReward,
-  member: PokemonState,
   detail: ReturnType<typeof describeSpecCard>,
 ): string {
-  if (reward.kind === 'item') {
-    const entry = itemById(reward.item);
-    if (!entry) return '';
-    const held = heldItem(member);
-    const replacing = held ? ` Destroys their ${held.name}.` : '';
-    if (entry.boostsType && !itemSuitsTypes(entry, detail.types)) {
-      return `No use — ${detail.species} has no ${entry.boostsType} moves to boost.${replacing}`;
-    }
-    return `${entry.blurb}${replacing}`;
-  }
-
   const incoming = DAMAGING_MOVES.find((move) => move.name === reward.move)?.basePower ?? 0;
   const attacks = detail.moves.filter((move) => move.category !== 'Status');
   if (detail.moves.some((move) => move.name === reward.move)) {

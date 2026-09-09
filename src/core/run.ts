@@ -47,9 +47,19 @@ import {
 import { RANDOMIZER_VERSION } from './randomizer';
 import { applyPurchases, nodePayout, type ShopStock } from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
+import { applyItemPlan, backpackCapacity, needsItemPlan } from './items';
 import { applyReward, isTargeted, type Reward, type RewardOffer, type TargetedReward } from './rewards';
 import { createRng } from './rng';
-import type { BattleResult, PokemonSpec, PokemonState, RunDecision, RunLog } from './types';
+import type {
+  BattleResult,
+  ItemAssignment,
+  ItemId,
+  ItemPlan,
+  PokemonSpec,
+  PokemonState,
+  RunDecision,
+  RunLog,
+} from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
 import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
 
@@ -82,12 +92,20 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * into a run it had already reconstructed wrongly. The guard refuses it up
  * front and names both versions.
  *
+ * Went to `-7` in Stage 4.5.1, and this break runs in both directions. A new
+ * `items` decision appears at most node boundaries, which a Stage 4.5 log has
+ * no answer for; and an item reward no longer asks a `target` question, which a
+ * Stage 4.5 log *does* carry an answer for and would now offer one entry too
+ * many. Either way the cursor slips, and it slips at the first item card rather
+ * than at the point of the change — so the guard refuses the log up front and
+ * names both versions.
+ *
  * `ENGINE_VERSION` moved too (0.1.0 -> 0.2.0), so the composite string differs
  * twice over. That is not redundancy: the engine half says the *battle* would
  * replay differently and this half says the *run* would, and a reader
  * diagnosing a rejected log wants to know which.
  */
-export const RUN_LOG_VERSION = `gymrun-run-6/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-7/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -136,6 +154,21 @@ export interface RunState {
    * and where the never-negative rule is enforced on the way out.
    */
   currency: number;
+  /**
+   * Loose items the run is carrying, by dex id, in acquisition order.
+   *
+   * **Stage 4.5.1, and it is state rather than a screen.** Held items live on
+   * `PokemonState.item` and always have; this is everything the run owns and
+   * nobody is holding. The two together are the run's item wealth, and the
+   * split is what makes reassignment free — moving a Leftovers from one member
+   * to another is a move between these two homes, not an acquisition.
+   *
+   * Order is preserved because it is the order the player sees on the party
+   * screen, and a backpack that reshuffled itself between nodes would make
+   * "discard the third one" mean something different on a replay than it did
+   * live. Capacity is `tuning.backpackCapacity`; `core/items.ts` owns the rule.
+   */
+  backpack: ItemId[];
   starterOptions: PokemonSpec[];
   starterIndex: number | null;
   history: NodeVisit[];
@@ -165,6 +198,7 @@ export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunSta
     position: 0,
     party: [],
     currency: 0,
+    backpack: [],
     starterOptions,
     starterIndex: null,
     history: [],
@@ -562,6 +596,24 @@ export interface RunPolicy {
     offer: AcquisitionOffer,
     party: readonly PokemonState[],
   ) => Promise<AcquisitionDecision>;
+  /**
+   * What to do with the run's items, asked once at each node boundary.
+   *
+   * **One question per boundary, not one per swap.** The spec asks that items
+   * be reassignable "any number of times between nodes, at no cost" — so the
+   * fidgeting is free and unlogged, and what reaches the log is the layout the
+   * player committed to when they left the screen. That is what keeps a log's
+   * size a function of the run rather than of the player's indecision.
+   *
+   * Takes the whole state because both halves of the answer need it: the
+   * assignment half needs the party and the backpack, and the discard half
+   * needs `tuning.backpackCapacity` to know whether it is being forced at all.
+   *
+   * Asked only where `items.needsItemPlan` says there is something to manage.
+   * A plan that changes nothing is legal and common — `{assignments: [],
+   * discards: []}` is the answer at most boundaries.
+   */
+  chooseItemPlan: (state: RunState) => Promise<ItemPlan>;
   battle: Policy;
 }
 
@@ -726,6 +778,32 @@ export async function playRun(
     }
 
     state = resolveNode(state, result);
+
+    /*
+     * The item plan, asked after the node has resolved and not before.
+     *
+     * The ordering is the whole design. Everything that hands the run an item —
+     * a reward card, a shop basket, an event — lands inside `resolveNode`, and
+     * all of it lands in the backpack. Asking beforehand would be asking the
+     * player to arrange items they have not been given yet; asking afterwards
+     * means the question is always "here is everything you own, what now".
+     *
+     * It is also the only point at which the backpack may be over capacity, and
+     * `applyItemPlan` will not let it stay that way — so the transient overflow
+     * `items.stow` permits is opened and closed within one loop iteration.
+     *
+     * Skipped when the run has ended, because there is nothing left to equip and
+     * a wiped party has no slots to assign to. Skipped when there is nothing to
+     * manage, per `needsItemPlan` — which is state-derived and therefore
+     * reconstructed identically by a replay, the property the whole log depends
+     * on.
+     */
+    if (!state.outcome && needsItemPlan(state)) {
+      const plan = await policy.chooseItemPlan(state);
+      record({ kind: 'items', plan: clonePlan(plan) });
+      state = applyItemPlan(state, plan);
+    }
+
     options.onState?.(state);
   }
 
@@ -760,6 +838,22 @@ function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
     };
   }
   return result.node.acquisition;
+}
+
+/**
+ * A defensive copy of a plan on its way into the log.
+ *
+ * A policy returns arrays it may still hold a reference to — the UI builds one
+ * from screen state and could well keep mutating it — and a log entry that
+ * changed after it was recorded would replay as something the run never did.
+ * `chooseShopPurchases` gets the same treatment at its call site for the same
+ * reason.
+ */
+function clonePlan(plan: ItemPlan): ItemPlan {
+  return {
+    assignments: plan.assignments.map((assignment) => ({ ...assignment })),
+    discards: [...plan.discards],
+  };
 }
 
 /** The one place a `RunLog` is built, so every stamp on it agrees. */
@@ -818,6 +912,46 @@ async function playNode(
 // ---------------------------------------------------------------------------
 
 /**
+ * The reference item plan: fill empty hands in order, discard the overflow.
+ *
+ * **Deliberately not clever, and written down because it will appear in every
+ * balance report from here on.** Two rules, in this order:
+ *
+ *   1. Walk the party in slot order. Every member holding nothing takes the
+ *      next item from the backpack, in acquisition order.
+ *   2. If the backpack is still over `tuning.backpackCapacity`, discard from
+ *      the front — the oldest items, the ones that have already been passed
+ *      over once per node for as long as they have been carried.
+ *
+ * It never takes an item *off* a Pokemon. That is the part that keeps it a
+ * baseline rather than a heuristic: a policy that reshuffled held items would
+ * make every sweep it appears in a measurement of one reassignment strategy,
+ * which is the objection `chooseItemTarget`'s comment already makes about
+ * spreading targets around.
+ *
+ * It is also the floor on competent play rather than the floor on play: doing
+ * *nothing* is not available, because a plan that leaves the backpack over
+ * capacity is refused, and a run whose bag filled up would end on a thrown
+ * `RangeError` rather than on a decision.
+ */
+export function defaultItemPlan(state: RunState): ItemPlan {
+  const capacity = backpackCapacity(state.tuning);
+  const assignments: ItemAssignment[] = [];
+
+  let taken = 0;
+  state.party.forEach((member, slot) => {
+    if (member.item !== undefined) return;
+    const item = state.backpack[taken];
+    if (item === undefined) return;
+    assignments.push({ slot, item });
+    taken++;
+  });
+
+  const left = state.backpack.slice(taken);
+  return { assignments, discards: left.slice(0, Math.max(0, left.length - capacity)) };
+}
+
+/**
  * A run policy that always takes the first option and the first usable move.
  *
  * The baseline a sweep measures against, and the cheapest possible proof that
@@ -846,6 +980,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      * baseline wants.
      */
     chooseAcquisition: async (_offer, party) => (hasRoom(party) ? { kind: 'accept' } : { kind: 'decline' }),
+    chooseItemPlan: async (state) => defaultItemPlan(state),
     battle,
   };
 }
@@ -959,6 +1094,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('acquisition');
       if (!decision) return live ? live.chooseAcquisition(offer, party) : exhausted('acquisition');
       return decision.kind === 'acquisition' ? decision.decision : exhausted('acquisition');
+    },
+    chooseItemPlan: async (state) => {
+      const decision = next('items');
+      if (!decision) return live ? live.chooseItemPlan(state) : exhausted('items');
+      return decision.kind === 'items' ? decision.plan : exhausted('items');
     },
     battle: async (view) => {
       const decision = next('battle');

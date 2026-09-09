@@ -12,6 +12,7 @@
  */
 
 import type { Tier } from '../core/types';
+import { PARTY_SIZE } from './partyTuning';
 
 /**
  * The kinds of node a step can offer. `gym` is never an option, only a cap.
@@ -231,6 +232,51 @@ export interface Tuning {
    * member fainted — stays the only death rule when Stage 4 adds slots.
    */
   reviveFaintedBetweenNodes: boolean;
+  /**
+   * Fraction of max HP a revived member returns at. Floored at 1 point.
+   *
+   * **Moved here from `partyTuning.reviveHpFraction` in Stage 4.5.1, and the
+   * move is the point.** Stage 4 introduced partial revival as its headline
+   * attrition lever and then put it somewhere a sweep cannot reach: module
+   * scope in `data/partyTuning.ts`, read by a `reviveHpFor` that took no
+   * tuning. So the one number the balance report kept blaming (docs/balance.md
+   * §7.6: "partial free revival makes preservation cheap to skip") was the one
+   * number `withTuning` could not vary, and every claim about it was an opinion
+   * rather than a measurement.
+   *
+   * It also absorbs the old `freeRevive` boolean, which was `reviveHpPercent:
+   * 1` written as a second knob. Two dials on one number is how the two answers
+   * drift apart — see the note this file's header makes about `nodeWeights`.
+   *
+   * Half is still the shipped hypothesis. Lower makes a faint hurt for longer
+   * than the node it happened on; 1 is the Stage 1 behaviour, where the bench
+   * is three health bars rather than three Pokemon.
+   */
+  reviveHpPercent: number;
+
+  // --- the backpack --------------------------------------------------------
+
+  /**
+   * How many *loose* items the run may carry. Held items do not count.
+   *
+   * Party size plus two, which is the smallest number that is still a decision:
+   * enough to re-equip a full party from scratch, plus two spare to choose
+   * between. Counting only loose items is the deliberate half — a capacity that
+   * counted held ones would make equipping a Pokemon a way to dodge the limit,
+   * and the limit exists so that *acquisition* stays a choice rather than pure
+   * accumulation.
+   *
+   * Stage 3 refused to build a bag at all, on the grounds that a bag needs "a
+   * screen, a capacity rule, and an answer to what happens on a wipe". This is
+   * the capacity rule. The screen is the party screen, which is where items are
+   * assigned; the answer on a wipe is that the run is over and the backpack
+   * goes with it.
+   *
+   * If the simulator later shows players never reaching the cap, that is this
+   * number being wrong, not the cap being pointless — see the note in
+   * `core/items.ts` on why the finite version is the interesting one.
+   */
+  backpackCapacity: number;
 
   // --- selection -----------------------------------------------------------
 
@@ -342,6 +388,9 @@ export const DEFAULT_TUNING: Tuning = {
   restClearsStatus: true,
   clearStatusBetweenNodes: true,
   reviveFaintedBetweenNodes: true,
+  reviveHpPercent: 0.5,
+
+  backpackCapacity: PARTY_SIZE + 2,
 
   starterOptionCount: 3,
 

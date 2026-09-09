@@ -313,6 +313,58 @@ export interface PokemonState {
 }
 
 // ---------------------------------------------------------------------------
+// The backpack
+// ---------------------------------------------------------------------------
+
+/**
+ * A held item, by dex id. The key `data/items.ts` is indexed on.
+ *
+ * A named alias rather than a bare `string` because from Stage 4.5.1 an item id
+ * travels: it sits on a Pokemon, it sits in the backpack, it moves between the
+ * two, and it appears in the run log. Four places calling it `string` is four
+ * places where a species id or a move id typechecks just as well.
+ */
+export type ItemId = string;
+
+/**
+ * What one party slot should be holding once a plan is applied.
+ *
+ * A *destination*, not a move. "Slot 2 holds the Leftovers" replays to the same
+ * layout from any starting arrangement, where "take the Leftovers off slot 1
+ * and put it on slot 2" only replays correctly if slot 1 was holding it — which
+ * is the sort of precondition a log should never have to carry.
+ *
+ * `null` means the slot holds nothing, and the item it *was* holding goes back
+ * to the backpack. Nothing is destroyed by an assignment.
+ */
+export interface ItemAssignment {
+  slot: number;
+  item: ItemId | null;
+}
+
+/**
+ * Everything the player did to their items at one node boundary, as one act.
+ *
+ * **One decision, not a stream of them, and that is what makes free
+ * reassignment loggable.** The spec asks that items be reassignable "any number
+ * of times between nodes, at no cost". A log that recorded every swap would
+ * grow without bound with the player's fidgeting and would replay their
+ * indecision rather than their decision. A log that records the *layout they
+ * committed to* is the same size whether they moved one item or twenty, which
+ * is why `assignments` is a destination list and not a move list.
+ *
+ * `discards` is separate because it is the one irreversible act here. Every
+ * other part of a plan can be undone by a later plan; a discarded item is gone.
+ * The capacity rule is what forces the choice — see `tuning.backpackCapacity` —
+ * and `items.applyItemPlan` throws rather than silently trimming if a plan
+ * leaves the backpack over it.
+ */
+export interface ItemPlan {
+  assignments: ItemAssignment[];
+  discards: ItemId[];
+}
+
+// ---------------------------------------------------------------------------
 // Run logs
 // ---------------------------------------------------------------------------
 
@@ -380,7 +432,21 @@ export type RunDecision =
   | {
       kind: 'acquisition';
       decision: { kind: 'decline' } | { kind: 'accept' } | { kind: 'release'; slot: number };
-    };
+    }
+  /**
+   * What the player did with their items at this node boundary.
+   *
+   * **Stored as a value, and it is the second exception to the index rule.**
+   * The first is `acquisition`, above, and the justification is the same: a
+   * plan is not a selection from a list the seed reconstructs, it is a layout
+   * the player composed out of things they already own. There is nothing
+   * derived in it to drift when a pool is edited.
+   *
+   * Recorded only at boundaries where there was something to manage — see
+   * `items.needsItemPlan`, which is the single definition shared by the
+   * question and the replay, for the same reason `rewards.isTargeted` is.
+   */
+  | { kind: 'items'; plan: ItemPlan };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

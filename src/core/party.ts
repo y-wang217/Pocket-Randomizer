@@ -22,7 +22,7 @@ import { describeSpec, describeSpecCard } from './battle/driver';
 import { battleSpecFor } from './items';
 import type { MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
 import { MOVESET } from '../data/scaling';
-import { PARTY_SIZE, reviveHpFor } from '../data/partyTuning';
+import { PARTY_SIZE } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
 
 /** A fresh party member at full HP and PP. */
@@ -164,8 +164,13 @@ export function applyBattleState(
  * refactor.** Stage 1 revived to a hardcoded half of max HP and nothing could
  * observe it: a fainted member meant a wiped party and a finished run. With a
  * party the branch is reachable after every fight, and the fraction is now the
- * price of a faint — see `partyTuning.reviveHpFraction` for why free revival
- * would make the bench three health bars rather than three Pokemon.
+ * price of a faint — see `tuning.reviveHpPercent` for why free revival would
+ * make the bench three health bars rather than three Pokemon.
+ *
+ * Stage 4.5.1 changed where that fraction is *read from*, not what it does. It
+ * used to come from module scope, which meant the most-blamed balance number in
+ * the run state machine was the one the sweep could not vary. It now arrives on
+ * the `Tuning` this function already took.
  */
 export function betweenNodes(party: readonly PokemonState[], tuning: Tuning): PokemonState[] {
   return party.map((member) => ({
@@ -173,9 +178,24 @@ export function betweenNodes(party: readonly PokemonState[], tuning: Tuning): Po
     moves: member.moves.map((move) => ({ ...move })),
     status: tuning.clearStatusBetweenNodes ? null : member.status,
     ...(tuning.reviveFaintedBetweenNodes && member.fainted
-      ? { fainted: false, hp: Math.min(member.maxHp, reviveHpFor(member.maxHp)) }
+      ? { fainted: false, hp: reviveHpFor(member.maxHp, tuning.reviveHpPercent) }
       : {}),
   }));
+}
+
+/**
+ * Revival HP for a member, in whole points, floored at 1.
+ *
+ * A named function rather than the arithmetic inline, because "what a faint
+ * costs" is a rule, and the floor is the part of it that is easy to lose: a
+ * member revived to `round(maxHp * 0)` is a member revived un-fainted at zero
+ * HP, which is a state nothing downstream is written to survive.
+ *
+ * Exported so `test/party.test.ts` asserts against the rule rather than
+ * restating it — a test that recomputes the formula agrees with any bug in it.
+ */
+export function reviveHpFor(maxHp: number, percent: number): number {
+  return Math.max(1, Math.min(maxHp, Math.round(maxHp * percent)));
 }
 
 /** A rest node: restore HP and PP, and clear status if the tuning says so. */

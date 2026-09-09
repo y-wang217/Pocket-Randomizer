@@ -16,6 +16,7 @@ import { firstUsableMovePolicy } from '../src/core/battle/policy';
 import {
   RUN_LOG_VERSION,
   assertReplayable,
+  defaultItemPlan,
   isReplayable,
   playRun,
   replayRun,
@@ -69,6 +70,7 @@ function wobbling(): RunPolicy {
     // churning rather than a party that only ever grew.
     chooseAcquisition: async (_offer, party) =>
       party.length < PARTY_SIZE ? { kind: 'accept' } : { kind: 'release', slot: 0 },
+    chooseItemPlan: async (state) => defaultItemPlan(state),
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -83,6 +85,10 @@ function fingerprint(result: RunResult): unknown {
     outcome: result.outcome,
     log: result.log,
     party: result.state.party,
+    // Stage 4.5.1: the backpack is run state, so it belongs in the fingerprint.
+    // A resume that reconstructed the party but not the bag would pass every
+    // assertion above while quietly handing the player different items.
+    backpack: result.state.backpack,
     position: result.state.position,
     segment: result.state.currentSegment,
     history: result.state.history.map((visit) => [visit.node.id, visit.hpAfter, visit.result]),
@@ -228,6 +234,10 @@ describe('save mid-run, reload, continue', () => {
       chooseAcquisition: async () => {
         liveCalls++;
         return { kind: 'decline' as const };
+      },
+      chooseItemPlan: async (state) => {
+        liveCalls++;
+        return defaultItemPlan(state);
       },
       battle: async (view) => {
         liveCalls++;

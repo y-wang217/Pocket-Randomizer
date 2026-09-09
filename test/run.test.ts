@@ -19,6 +19,7 @@ import { createParty, isWiped, restParty } from '../src/core/party';
 import {
   atGym,
   chooseStarter,
+  defaultItemPlan,
   createRun,
   gymsCleared,
   nodeOptions,
@@ -47,6 +48,7 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
     chooseEventOption: async () => 0,
     chooseItemTarget: async () => 0,
     chooseAcquisition: async () => ({ kind: 'decline' }),
+    chooseItemPlan: async (state) => defaultItemPlan(state),
     battle,
   };
 }
@@ -91,6 +93,7 @@ describe('headless run', () => {
       chooseEventOption: async () => 0,
       chooseItemTarget: async () => 0,
       chooseAcquisition: async () => ({ kind: 'decline' }),
+      chooseItemPlan: async (state) => defaultItemPlan(state),
       battle: greedyAiPolicy,
     };
 

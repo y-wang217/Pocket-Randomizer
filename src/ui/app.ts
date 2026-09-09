@@ -19,6 +19,7 @@ import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
 import { normalizeSeed } from '../core/rng';
 import {
+  defaultItemPlan,
   isReplayable,
   playRun,
   resumeRun,
@@ -137,6 +138,18 @@ export function mountApp(root: HTMLElement): void {
         router.show('reward');
         return rewardPick.wait();
       },
+      /*
+       * Auto-planned for now: fill empty hands, discard the overflow.
+       *
+       * The party screen is where this belongs — the backpack and the party are
+       * one screen, and assignment is a player decision — and it is built in the
+       * display pass at the end of this stage. Until then the run cannot simply
+       * skip the question: a plan that leaves the backpack over capacity is
+       * refused, so "ask nothing" would end a run on a thrown RangeError the
+       * first time the bag filled. `defaultItemPlan` is the documented reference
+       * plan, and it makes the same choice on a replay as it did live.
+       */
+      chooseItemPlan: async (state) => defaultItemPlan(state),
       chooseShopPurchases: (stock, state) => {
         shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
         router.show('shop');

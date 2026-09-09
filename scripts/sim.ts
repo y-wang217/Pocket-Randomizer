@@ -72,7 +72,15 @@ import type { EventOutcome } from '../src/core/events';
 import { itemSuitsTypes } from '../src/core/items';
 import type { Reward, TargetedReward } from '../src/core/rewards';
 import { hasRoom } from '../src/core/acquisition';
-import { moveChoice, switchChoice, type PokemonSpec, type PokemonState, type Tier } from '../src/core/types';
+import {
+  moveChoice,
+  switchChoice,
+  type ItemAssignment,
+  type ItemPlan,
+  type PokemonSpec,
+  type PokemonState,
+  type Tier,
+} from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { itemById, ITEMS } from '../src/data/items';
 import { DAMAGING_MOVES } from '../src/data/movePools';
@@ -613,18 +621,102 @@ function valueOfTarget(reward: TargetedReward, member: PokemonState): number {
   const card = describeSpecCard(member.spec);
   if (member.fainted) return -100;
 
-  if (reward.kind === 'item') {
-    const entry = itemById(reward.item);
-    if (!entry) return 0;
-    if (entry.boostsType) return itemSuitsTypes(entry, card.types) ? 100 : 0;
-    return member.item ? 10 : 50;
-  }
-
   // A move reward goes to whoever gains most from it, which is whoever has the
   // weakest best-attack — the same reasoning `valueOfReward` uses to price it.
   const attacks = card.moves.filter((move) => move.category !== 'Status');
   const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
   return 100 - strongest;
+}
+
+/**
+ * What one item is worth to one party member. **The item half of the old
+ * `valueOfTarget`**, split out when items stopped being a targeted reward and
+ * became a backpack the bot re-plans at every node boundary.
+ *
+ * Same shallow scoring it always was: a type item is worth a lot to a member of
+ * that type and nothing to anyone else, and everything else is worth having.
+ * The one change is that "is this member already holding something" is no
+ * longer part of the score, because the planner below reasons about the whole
+ * allocation at once and does not need a tie-breaker standing in for one.
+ */
+function valueOfItemFor(itemId: string, member: PokemonState): number {
+  if (member.fainted) return -100;
+  const entry = itemById(itemId);
+  if (!entry) return 0;
+  const card = describeSpecCard(member.spec);
+  if (entry.boostsType) return itemSuitsTypes(entry, card.types) ? 100 : 0;
+  return 50;
+}
+
+/**
+ * The greedy item plan. **Deterministic, documented, and it will appear in
+ * every balance report from here on.**
+ *
+ * Four rules, in order:
+ *
+ *   1. The pool is the backpack *plus everything currently held*. The bot
+ *      re-plans the whole allocation at each boundary rather than only placing
+ *      what is loose, because reassignment is free and a policy that never
+ *      revisits a placement would measure the game's first guess rather than
+ *      its best one.
+ *   2. Score every (slot, item) pair with `valueOfItemFor`. Take the highest
+ *      scoring pair, commit it, remove both the slot and that item, repeat.
+ *      Pairs scoring zero or less are never committed — a Charcoal on a Lapras
+ *      is left in the bag rather than worn as decoration.
+ *   3. Ties break on slot index first, then on the item's position in the pool.
+ *      Both are stable orderings the seed reconstructs, which is what makes the
+ *      plan replayable rather than merely repeatable.
+ *   4. Whatever is left over stays in the backpack, and if that is still over
+ *      capacity the lowest-scoring items are discarded — scored against the
+ *      *best* member for each, so the thing thrown away is the thing that would
+ *      have helped least whoever it ended up on.
+ *
+ * It is not clever. It needs to be deterministic and written down, because a
+ * heuristic that changes between reports makes two reports incomparable.
+ */
+function greedyItemPlan(state: RunState): ItemPlan {
+  const pool = [...state.backpack, ...state.party.flatMap((member) => (member.item ? [member.item] : []))];
+  const openSlots = state.party.map((_, slot) => slot);
+  const assignments: ItemAssignment[] = [];
+  const remaining = [...pool];
+
+  for (;;) {
+    let best: { slot: number; item: string; index: number; score: number } | null = null;
+    for (const slot of openSlots) {
+      remaining.forEach((item, index) => {
+        const score = valueOfItemFor(item, state.party[slot]!);
+        if (score <= 0) return;
+        // Strictly greater, so the first pair found at a given score wins — and
+        // the iteration order is slot then pool position, which is rule 3.
+        if (!best || score > best.score) best = { slot, item, index, score };
+      });
+    }
+    if (!best) break;
+    const pick: { slot: number; item: string; index: number; score: number } = best;
+    assignments.push({ slot: pick.slot, item: pick.item });
+    openSlots.splice(openSlots.indexOf(pick.slot), 1);
+    remaining.splice(pick.index, 1);
+  }
+
+  // Every slot that won nothing is explicitly emptied, or an item the plan
+  // decided not to place would stay on the Pokemon that happened to hold it.
+  for (const slot of openSlots) {
+    if (state.party[slot]?.item !== undefined) assignments.push({ slot, item: null });
+  }
+
+  const capacity = Math.max(0, Math.floor(state.tuning.backpackCapacity));
+  const overflow = Math.max(0, remaining.length - capacity);
+  if (overflow === 0) return { assignments, discards: [] };
+
+  const ranked = remaining
+    .map((item, index) => ({
+      item,
+      index,
+      score: Math.max(...state.party.map((member) => valueOfItemFor(item, member)), 0),
+    }))
+    .sort((a, b) => a.score - b.score || a.index - b.index);
+
+  return { assignments, discards: ranked.slice(0, overflow).map((entry) => entry.item) };
 }
 
 function buildPolicy(
@@ -729,6 +821,8 @@ function buildPolicy(
      */
     chooseItemTarget: async (reward, party) =>
       bestBy(party, (member) => valueOfTarget(reward, member)),
+
+    chooseItemPlan: async (state) => greedyItemPlan(state),
 
     /*
      * Take a Pokemon while there is room; once full, take it only if it beats

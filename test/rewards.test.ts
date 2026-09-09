@@ -223,7 +223,7 @@ const cyclingPolicy: Policy = async (view) => {
 
 async function fightHolding(item: string | undefined, seed: string) {
   const member = createPartyMember(HOLDER);
-  const held = item ? giveItem(member, item) : member;
+  const held = item ? giveItem(member, item).member : member;
   const hurt = { ...held, hp: Math.floor(held.maxHp / 2) };
   return runBattle([battleSpecFor(hurt)], PUNCHBAG, seed, cyclingPolicy, greedyAiPolicy, {
     carryOver: [hurt],
@@ -262,9 +262,9 @@ describe('held items reach the engine', () => {
 
   it('drops an item the whitelist does not know rather than passing it through', () => {
     const member = createPartyMember(HOLDER);
-    expect(giveItem(member, 'masterball').item).toBeUndefined();
+    expect(giveItem(member, 'masterball').member.item).toBeUndefined();
     expect(battleSpecFor({ ...member, item: 'masterball' }).item).toBeUndefined();
-    expect(battleSpecFor(giveItem(member, 'leftovers')).item).toBe('leftovers');
+    expect(battleSpecFor(giveItem(member, 'leftovers').member).item).toBe('leftovers');
   });
 
   it('keeps the item off the identity spec, and out of the way of a read-back', async () => {
@@ -280,7 +280,7 @@ describe('held items reach the engine', () => {
      * So: hold an item, take a real fight, and assert HP actually moved.
      */
     const state = createRun('ITEM-READBACK');
-    const party = createParty([state.starterOptions[0]!]).map((member) => giveItem(member, 'leftovers'));
+    const party = createParty([state.starterOptions[0]!]).map((member) => giveItem(member, 'leftovers').member);
     expect(party[0]!.spec.item).toBeUndefined();
     expect(battleSpecFor(party[0]!).item).toBe('leftovers');
 
@@ -329,12 +329,20 @@ describe('applyReward', () => {
     expect(applyReward(state, { kind: 'currency', amount: -40 }).currency).toBe(0);
   });
 
-  it('gives the item to the lead and swaps out whatever it held', () => {
+  /*
+   * Stage 4.5.1: banked, which is exactly what the old version said would not
+   * happen.
+   *
+   * The previous assertion ended "the old one is gone, not banked", and the
+   * backpack is the bank. Two item cards in a row used to leave the lead
+   * holding the second and the first destroyed; they now leave the run holding
+   * both, and the choice of who wears which is made elsewhere and is free.
+   */
+  it('banks both item cards rather than having the second destroy the first', () => {
     let state = applyReward(started(), { kind: 'item', item: 'leftovers' });
-    expect(state.party[0]?.item).toBe('leftovers');
     state = applyReward(state, { kind: 'item', item: 'lifeorb' });
-    // One item per Pokemon: the old one is gone, not banked.
-    expect(state.party[0]?.item).toBe('lifeorb');
+    expect(state.backpack).toEqual(['leftovers', 'lifeorb']);
+    expect(state.party[0]?.item).toBeUndefined();
   });
 
   it('heals without ever exceeding max HP', () => {

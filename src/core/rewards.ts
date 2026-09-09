@@ -36,7 +36,7 @@
  */
 import { joinLevelFor } from './acquisition';
 import { generateRewardSpecies, damagingInBands } from './randomizer';
-import { giveItem } from './items';
+import { stow } from './items';
 import { leadOf, recoverParty, teachMove } from './party';
 import type { Rng } from './rng';
 import type { RunState } from './run';
@@ -261,7 +261,7 @@ export function resolveRewardEntry(
  * `applyReward` has to use it. Three copies of "is it an item, a tm or a
  * tutor?" is three places for the fourth kind to be forgotten.
  */
-export type TargetedReward = Extract<Reward, { kind: 'item' } | { kind: 'tm' } | { kind: 'tutor' }>;
+export type TargetedReward = Extract<Reward, { kind: 'tm' } | { kind: 'tutor' }>;
 
 /**
  * Whether this card needs the player to pick who gets it.
@@ -269,9 +269,19 @@ export type TargetedReward = Extract<Reward, { kind: 'item' } | { kind: 'tm' } |
  * Currency and heals are party-wide. A species offer is not targeted either —
  * it is a different question entirely (`chooseAcquisition`), because the member
  * it affects is one that does not exist yet.
+ *
+ * **`item` left this set in Stage 4.5.1, and the removal is the backpack.** An
+ * item reward no longer lands on a Pokemon at all; it lands in the backpack,
+ * and who holds it is a separate, reversible, free decision made on the party
+ * screen (see `core/items.ts`). Asking "who gets this Leftovers" at the reward
+ * screen would be asking a question whose answer the player can change for free
+ * ten seconds later — which is not a decision, it is a prompt.
+ *
+ * What is left is the two cards that teach a move, and those are targeted in
+ * the strong sense: the choice is irreversible and it costs a move slot.
  */
 export function isTargeted(reward: Reward): reward is TargetedReward {
-  return reward.kind === 'item' || reward.kind === 'tm' || reward.kind === 'tutor';
+  return reward.kind === 'tm' || reward.kind === 'tutor';
 }
 
 /**
@@ -305,7 +315,9 @@ export function applyReward(state: RunState, choice: Reward, target = 0): RunSta
       return { ...state, party: recoverParty(state.party, choice.fraction) };
 
     case 'item':
-      return withTarget(state, target, (member) => giveItem(member, choice.item));
+      // Into the backpack, never onto a Pokemon. See `isTargeted` above for why
+      // the target question moved off this card entirely.
+      return { ...state, backpack: stow(state.backpack, choice.item) };
 
     case 'tm':
     case 'tutor':
