@@ -351,11 +351,10 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
     const policy: RunPolicy = {
       ...scriptedRunPolicy(greedyAiPolicy),
       chooseReward: async (offer) => {
-        // Prefer a move card, then a species card, then anything.
+        // Prefer a move card, then anything. The species card it used to fall
+        // back to is gone in Stage 4.6b; capture is the acquisition route.
         const move = offer.options.findIndex((o) => o.kind === 'tm' || o.kind === 'tutor');
-        if (move !== -1) return move;
-        const species = offer.options.findIndex((o) => o.kind === 'species');
-        return species === -1 ? 0 : species;
+        return move === -1 ? 0 : move;
       },
       chooseShopPurchases: async (stock, state) => {
         // Everything affordable, cheapest first, so the shop is really used.
@@ -399,7 +398,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
     /*
      * The seed is chosen, not arbitrary. Most runs die before the party fills,
      * and a census that never reached a release would be asserting five things
-     * and silently skipping the sixth. `ALL-DECISIONS-13` gets deep enough with
+     * and silently skipping the sixth. `ALL-DECISIONS-6` gets deep enough with
      * this policy to hit every branch.
      *
      * It was `ALL-DECISIONS` until Stage 4.6a rekeyed the RNG streams and then
@@ -408,7 +407,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * `npx vite-node scripts/scan-seed.ts census` is how the replacement was
      * found.
      */
-    const run = await playRun('ALL-DECISIONS-13', policy);
+    const run = await playRun('ALL-DECISIONS-6', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
     for (const decision of ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign']) {

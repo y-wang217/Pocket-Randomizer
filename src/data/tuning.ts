@@ -219,25 +219,18 @@ export interface Tuning {
 
   // --- rewards -------------------------------------------------------------
 
-  /**
-   * Whether reward pools may offer a Pokemon to add to the party.
+  /*
+   * `allowSpeciesRewards` was here, and Stage 4.6b deleted it rather than
+   * turning it off.
    *
-   * **On from Stage 4, and the flag stays because it is now a real lever
-   * rather than a gate.** Stage 3 typed the kind, wrote the pool entries, and
-   * left this false with a note: at party size 1 a species reward was not an
-   * addition, it was a forced swap of the run's only Pokemon — either the most
-   * interesting decision in the game or an instant run-ender, and nothing short
-   * of playing it would say which.
-   *
-   * A party is the condition that note was waiting for. Taking one now costs a
-   * slot, or costs a member if the party is full, and declining is always
-   * legal — so the card is a decision rather than a coin flip. It keeps the
-   * flag so the simulator can measure a run of the game *without* reward
-   * acquisitions against one with them, which is how the two routes get told
-   * apart: wild nodes offer members too, and if the reward pools are turned off
-   * and parties still fill, these cards are not the reason.
+   * It gated a reward card that handed over a Pokemon, and 4.6a made that card
+   * redundant: capture is offered on every wild victory and a segment
+   * guarantees a wild encounter. A flag left behind is a configuration nobody
+   * runs and a branch nobody tests — and the reason this one could be deleted
+   * cleanly is the reason it existed: it was there so the report could tell the
+   * two acquisition routes apart, and there is one route now.
    */
-  allowSpeciesRewards: boolean;
+
   /**
    * Whether a won wild node may offer the species it just fielded.
    *
@@ -461,7 +454,6 @@ export const DEFAULT_TUNING: Tuning = {
   shopStockSize: { min: 3, max: 4 },
   eventDamageFloor: 0.05,
 
-  allowSpeciesRewards: true,
   allowEncounterAcquisitions: true,
 
   restHpFraction: 1,

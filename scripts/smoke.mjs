@@ -69,12 +69,15 @@ await new Promise((resolve) => server.listen(0, resolve));
  * SMOKE12 died at node one after Stage 4.6a moved `RANDOMIZER_VERSION` to `-7`
  * — the keyed streams re-seeded every roll in the game — and the bot walks into
  * the first option of the first step, which on that seed became a `hard` wild
- * three levels above the starter. SMOKE23 clears a gym, fills the party to
- * three through four captures and two releases, and answers four forced
- * switches, so one pass covers the locale screen, the capture block, both
- * acquisition paths and the bench.
+ * three levels above the starter. SMOKE23 replaced it, and in turn stopped
+ * reaching a gym when Stage 4.6b's reward ramp widened the level offsets: the
+ * banded starter is weaker than its predecessor for the first three segments,
+ * so the seed's early fights resolve the other way now. SMOKE24 clears four
+ * gyms, fills the party to three, and answers forced switches on the way, so
+ * one pass covers the locale screen, the capture block, both acquisition paths
+ * and the bench.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE23';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE24';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright

@@ -1,20 +1,24 @@
 /**
- * Acquiring Pokemon: two routes, one code path.
+ * Acquiring Pokemon: one route, one decision.
  *
- * A run can gain a party member from a reward card (`species`, which Stage 3
- * typed and gated off) or from a wild node that offers the Pokemon it just
- * defeated. Those are two *sources* and one *decision*, and this file is the
- * decision: an offer, the three answers a player can give it, and the rule that
- * neither answer can leave the party over `PARTY_SIZE`.
+ * A run gains a party member by beating a wild Pokemon and keeping it. This
+ * file is the decision: an offer, the three answers a player can give it, and
+ * the rule that no answer can leave the party over `PARTY_SIZE`.
  *
- * ## Why the species reward was gated, and why it is on now
+ * ## There were two routes, and Stage 4.6b closed one
  *
- * At `PARTY_SIZE` 1 a species reward was not an addition, it was a forced swap
- * of the run's only Pokemon — either the most interesting decision in the game
- * or an instant run-ender, with no way to know which without playing it. Stage
- * 3 wrote the type, wrote the pool entries, and left
- * `tuning.allowSpeciesRewards` false with a note saying to revisit it when a
- * swap cost a slot instead of the whole run. That is now, so it is on.
+ * A `species` reward card was the other. Stage 3 wrote it and gated it off at
+ * `PARTY_SIZE` 1, where it was a forced swap of the run's only Pokemon rather
+ * than an addition; Stage 4 turned it on once a swap cost a slot instead of the
+ * whole run; and 4.6a made it redundant by guaranteeing a wild encounter per
+ * segment and a capture on every wild victory.
+ *
+ * Two routes was two sets of rules for what a joined Pokemon is. The card
+ * arrived below the level curve because a free Pokemon needed a price; a
+ * capture arrives at the level it was fought at, because its price is the step
+ * it occupied and the slot it takes. Explaining that difference on screen was
+ * not possible, and the simulator's acquisition numbers were measuring the gap
+ * between the routes rather than the decision.
  *
  * ## The one rule
  *

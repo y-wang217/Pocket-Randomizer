@@ -905,6 +905,164 @@ are the price of the guaranteed wild step, which is the thing that fills the
 party, and "fixing" the completion rate by removing it would trade a system for
 a number.
 
+## 11. Stage 4.6b — the ramp, and the retune it forced
+
+The stage's claim is one sentence: **a run starts with Tackle and Growl and
+ends with something that hits like a truck.** Everything below is that sentence
+measured, and the retune it cost.
+
+**400 seeds, `greedy`, `randomizer-8`.**
+
+### 11.1 The fresh targets
+
+The spec asks for new targets rather than a diff, because 4.6b moved every
+number the Stage 2 targets were written against. These are minted from this
+report and are checked by `npm run sim` from here on:
+
+| target | value | why |
+|---|---|---|
+| full run completion | 5-15% | unchanged: the band is a shape, not a number |
+| gym 1 clear rate | ~90% | unchanged, and `greedy`'s alone |
+| move band entering gym 5 | >= 2.0 | the spec's own test for whether the ramp ramps |
+| band-1 share at gym 5 | <= 55% | a mean alone hides the shape |
+| berries eaten in segment 6 | <= 0.05/run | they are meant to have faded by then |
+| gym 6+ parties carrying a berry | <= 50% | a bag still full of them is a pool that offered nothing better |
+
+### 11.2 The headline, and the retune
+
+| gym | leader | type | team | reached | clear rate | drop |
+|---|---|---|---|---|---|---|
+| 1 | Garnet | Rock | 1 | 374 | 95.2% | — |
+| 2 | Marina | Water | 2 | 348 | 86.8% | -8pt |
+| 3 | Volta | Electric | 3 | 301 | 76.4% | -10pt |
+| 4 | Fern | Grass | 4 | 223 | 78.5% | +2pt |
+| 5 | Cinder | Fire | 4 | 170 | 61.2% | -17pt |
+| 6 | Solene | Psychic | 5 | 97 | 75.3% | +14pt |
+| 7 | Vesper | Ghost | 5 | 68 | 58.8% | -16pt |
+| 8 | Draven | Dragon | 5 | 37 | 78.4% | +20pt |
+
+Run completion **7.2%**, mean **3.27** gyms, worst drop **17 points** — against
+4.6a's 7.1%, 3.35 and 26 points. The stage lands where it started and the curve
+is *smoother* than it was, which is the honest summary: the ramp is a
+redistribution of difficulty rather than an addition of it.
+
+**Getting there took one lever, and it was not a band.** Banding alone took
+completion from 7.1% to **0.8%** and mean depth from 3.35 to 2.07, because the
+starter dropped two bands (`[1,2]` old numbering is `[2,3]` new) while opponents
+in the opening segments were already at band 1 and did not move. The player lost
+a large early advantage that every number in this document had been tuned
+around.
+
+Three passes, each measured:
+
+1. **The segment-to-band table**, which the spec explicitly marks "to be moved
+   by the report". Shifted one segment later and softened at the top: 0.8% ->
+   1.7%, depth 2.07 -> 2.16.
+2. **Move reward frequency**, doubled in every pool. It moved the take rate by
+   *under a point*, which was the finding rather than the fix — see §11.4.
+3. **The level offsets**, widened by 3 for wild and trainer nodes and 2 for
+   gyms. 2.5% -> 7.2%, depth 2.3 -> 3.27.
+
+The third is the whole retune. Base power and level are the two things damage
+is made of, and 4.6b cut the player's base power by roughly 40% at the opening;
+compensating in the other term is the change that keeps the *shape* of every
+other table intact. Nothing in `data/tuning.ts`, `data/rewardPools.ts` band
+structure, or the tier modifiers moved for balance reasons.
+
+### 11.3 The ramp ramps
+
+| entering gym | mean band | still band 1 |
+|---|---|---|
+| 1 | 1.03 | 97% |
+| 2 | 1.32 | 85% |
+| 3 | 1.59 | 74% |
+| 4 | 1.95 | 57% |
+| 5 | 2.09 | 50% |
+| 6 | 2.33 | 40% |
+| 7 | 2.58 | 32% |
+| 8 | 2.89 | 26% |
+
+A run opens holding almost nothing but band 1 and arrives at Draven holding
+almost three times the base power. Both targets pass at gym 5 — 2.09 against
+2.0, and 50% against 55% — but only just, and that is worth saying plainly: the
+spec's test is "still on band 1 at gym 5", and half the player's moves still
+are. The climb is real and it is slower than the opponents', which is what makes
+the back half hard.
+
+**And it is faster on the risky path**, which is the stage's stated done
+condition. `tier-greedy` against `tier-averse` at 120 seeds: 2.35 mean gyms
+against 1.84, carrying 2.39 mean band into gym 5 against 2.18. Same seeds, same
+battle AI, opposite appetite for risk.
+
+### 11.4 The two findings that were about the instrument
+
+Both are the same shape as §7.2's — the largest error in a tuning pass turning
+out to be a premise — and both were caught by a number refusing to move.
+
+**Move rewards were valued against the wrong Pokemon.** `valueOfReward` scored
+a TM by what it did for the *lead*, while `greedyMoveRecipient` hands it to
+whoever gains most. With one Pokemon those were the same number; with three they
+are not, and from 4.6b moves are the primary power axis. The symptom was
+doubling every `tm` and `tutor` weight in the pools and watching the take rate
+move by under a point. Scoring against the real recipient took move take from
+23% to 33% and completion from 1.7% to 2.5% with no data change at all.
+
+**Berries were indistinguishable from gear.** `valueOfItemFor` returned a flat
+50 for every non-type item, so an Oran Berry scored the same as a Leftovers: the
+bot neither used them nor discarded them, and the first report showed 88% of
+late parties carrying one. That read as berries clogging the bag; it was the bot
+unable to tell them apart. `ITEM_VALUE` now covers them, valued below every held
+item and above nothing, which is the design stated as a policy.
+
+Neither is a balance change and both moved balance numbers. That is the standing
+hazard of this document: the simulator is the instrument *and* a player, and a
+number that will not move is as often the instrument as the game.
+
+### 11.5 Berries fade, and one target misses
+
+| segment | eaten per run |
+|---|---|
+| 1 | 0.09 |
+| 2 | 0.19 |
+| 3 | 0.09 |
+| 4 | 0.06 |
+| 5 | 0.04 |
+| 6 | 0.01 |
+| 7 | 0.00 |
+| 8 | 0.01 |
+
+The fade is exactly the shape the design asks for: consumption peaks in segment
+2 and is gone by 6. **The carrying number misses**: 67.3% of parties reaching
+gym 6 still hold at least one berry, against a 50% target, at a mean of 1.09
+each.
+
+It is a miss and it is not the one it looks like. Consumption is low in absolute
+terms everywhere — 0.19 per run at its peak — because most berries fire on a
+condition (below half HP, a status landing) that a short fight never reaches.
+That is README open question 1, "fights are short early", showing up in a new
+place rather than a berry problem: a berry that is never *triggered* is also
+never *spent*, so it sits in the bag looking like clutter.
+
+The fix is therefore not backpack capacity and not the berry table. It is
+whatever makes early fights longer, and that is a question for a stage with EV
+and IV spreads in it. Recorded, not acted on.
+
+### 11.6 What else the report says
+
+- **Capture take fell to 29.0%** from 4.6a's 46.5%, on the same 7.97 offers per
+  run. The bot is choosier because a captured Pokemon now competes against a
+  *banded* kit rather than against whatever the starter happened to roll —
+  which is the capture system and the ramp interacting exactly as intended.
+- **Gym 8 diversity holds**: 37 parties carrying 92 distinct species, mean 4.46
+  types each.
+- **The depth tests pass unchanged.** `random` completes 0.0% of runs, clears
+  gym 6 in 0.8%, and gets past gym 3 in 21.0%.
+- **Reward take by kind**: currency 29.8%, item 29.0%, tutor 19.3%, tm 12.3%,
+  heal 9.7%. The open item from 4.5.2 — gym currency taking 59.7% of picks —
+  **is closed**: currency is under a third of all picks and no kind dominates.
+  The stage's own prediction was that currency had been winning against a weak
+  field, and a banded field is what it was measured against.
+
 ## 5. Running it yourself
 
 ```sh

@@ -137,8 +137,6 @@ function describeStock(reward: Reward): string {
       return `Tutor: ${reward.move}`;
     case 'currency':
       return `${reward.amount} coins`;
-    case 'species':
-      return reward.species;
   }
 }
 

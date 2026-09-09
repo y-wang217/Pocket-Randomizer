@@ -10,6 +10,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import type { Policy } from '../src/core/battle/policy';
+import { moveChoice, switchChoice } from '../src/core/types';
+
 import {
   applyAcquisition,
   decisionRefusal,
@@ -45,6 +48,9 @@ import {
   SEGMENTS_PER_RUN,
   type RunPolicy,
   type RunState,
+  type RunResult,
+  chooseLocale,
+  stepsOf,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
 import { PARTY_SIZE, PARTY_TUNING } from '../src/data/partyTuning';
@@ -391,18 +397,25 @@ describe('a whole run that acquires', () => {
     expect(replayed.log.decisions).toEqual(original.log.decisions);
   });
 
-  it('offers an acquisition from both routes across a sample of seeds', async () => {
+  it('offers an acquisition from the one route there is', async () => {
+    /*
+     * This asserted *both* routes — a wild node's offer and a `species` reward
+     * card — because the point of `acquisitionOffered` was that two sources
+     * produced one decision. Stage 4.6b deleted the card, so the assertion is
+     * now that the encounter route is the only one, which is the property worth
+     * holding: a second path to a party member is a second set of rules for
+     * what a joined Pokemon is.
+     */
     const sources = new Set<string>();
     for (let index = 0; index < 12; index++) {
       const state = createRun(`SOURCES-${index}`);
       for (const segment of state.segments) {
         for (const node of nodesOf(segment)) {
-          if (node.acquisition) sources.add('encounter');
-          if (node.reward?.options.some((option) => option.kind === 'species')) sources.add('reward');
+          if (node.acquisition) sources.add(node.acquisition.source);
         }
       }
     }
-    expect([...sources].sort()).toEqual(['encounter', 'reward']);
+    expect([...sources]).toEqual(['encounter']);
   });
 });
 
@@ -643,9 +656,9 @@ describe('a full eight-gym run, headless', () => {
   /**
    * A scripted policy that does every Stage 4 thing there is to do.
    *
-   * Walks into wild nodes (where encounter offers come from), rests when hurt,
-   * fills the party and then churns it, and targets the last member so a
-   * mis-wired target shows up as slot 0 holding everything.
+   * Walks into wild nodes (where captures come from), rests when hurt, fills
+   * the party and then churns it, and targets the last member so a mis-wired
+   * target shows up as slot 0 holding everything.
    */
   function everything(): RunPolicy {
     return {
@@ -661,51 +674,104 @@ describe('a full eight-gym run, headless', () => {
         return wild === -1 ? 0 : wild;
       },
       chooseMoveRecipient: async (_offer, party) => party.length - 1,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
+      chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       chooseAcquisition: async (_offer, party) =>
         hasRoom(party) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
     };
   }
 
-  /*
-   * A seed the policy above actually *wins* on, found by scanning.
+  /**
+   * **A run that is *made* to reach the eighth gym, rather than a seed that
+   * happens to.**
    *
-   * A test that plays until it loses proves `playRun` terminates; it does not
-   * prove the eighth gym is reachable, that the victory branch of `resolveNode`
-   * runs, or that seven levellings and eight segment heals compose. Those only
-   * happen on a run that finishes, and at a ~10% completion rate a seed has to
-   * be chosen rather than assumed.
+   * This pinned `WINNING_SEED`, found by scanning, on the argument that a test
+   * which plays until it loses proves `playRun` terminates and does not prove
+   * the victory branch of `resolveNode` runs or that seven levellings and eight
+   * segment heals compose.
    *
-   * If a balance pass moves the curve this may stop winning. That is not a
-   * regression in this test — rescan for a seed that does, or the victory path
-   * quietly stops being covered. `npx vite-node scripts/scan-seed.ts win` is
-   * the rescan; Stage 4.6a needed it twice, once for the keyed streams and
-   * once for locales.
+   * The argument was right and the mechanism was wrong. A seed only wins while
+   * the *difficulty curve* lets it, so a mechanism test was pinned to a balance
+   * number: three rescans in two stages, and then Stage 4.6b's mid-stage
+   * trough, where no seed in six hundred wins because move banding has landed
+   * and the reward ramp that climbs it has not. At that point the test was
+   * asking a balance question and reporting it as a broken mechanism.
+   *
+   * So it is split in two. A **unit test** drives the victory transition
+   * directly: a run standing at the last gym, a won battle, `resolveNode`, and
+   * the assertion that the run ends in victory. And an **integration run**,
+   * given a short segment and a conceding opponent, walks as deep as it can and
+   * asserts everything that composes along the way — seven levellings, the
+   * segment heals, the acquisitions and releases, and that the whole thing
+   * replays.
+   *
+   * Neither can tell you whether the game is winnable. `npm run sim` is what
+   * tells you that, and it is the thing that should.
    */
-  const WINNING_SEED = 'WIN-146';
+  const VICTORY_TUNING = withTuning({ stepsPerSegment: { min: 1, max: 1 } });
 
-  it('completes eight gyms while switching, acquiring, releasing and targeting', async () => {
+  /** An opponent that never attacks, so the run's *transitions* are the subject. */
+  const pacifist: Policy = async (view) => {
+    const usable = view.forceSwitch
+      ? view.switches.find((option) => option.usable)?.slot
+      : undefined;
+    if (view.forceSwitch) return switchChoice(usable ?? 1);
+    const weakest = [...view.moves]
+      .filter((move) => move.usable)
+      .sort((a, b) => a.basePower - b.basePower)[0];
+    return moveChoice(weakest?.slot ?? 1);
+  };
+
+  const victoryRun = (): Promise<RunResult> =>
+    playRun('WIN-MECHANISM', everything(), VICTORY_TUNING, { opponent: pacifist });
+
+  it('reaches the last gym, levelling and healing all the way, acquiring and releasing', async () => {
     expect(typeof globalThis.document).toBe('undefined');
 
-    const run = await playRun(WINNING_SEED, everything());
+    const run = await victoryRun();
     const decisions = run.log.decisions;
-    const switches = decisions.filter(
-      (decision) => decision.kind === 'battle' && decision.choice.kind === 'switch',
-    );
     const acquisitions = decisions.filter((decision) => decision.kind === 'acquisition');
     const releases = acquisitions.filter(
       (decision) => decision.kind === 'acquisition' && decision.decision.kind === 'release',
     );
-    const targets = decisions.filter((decision) => decision.kind === 'target');
 
-    expect(run.outcome).toBe('victory');
-    expect(gymsCleared(run.state)).toBe(SEGMENTS_PER_RUN);
-    // Each of the four, or the run proved less than it looks like it did.
-    expect(switches.length, 'never switched').toBeGreaterThan(0);
+    // Seven cleared gyms is seven levellings and seven segment heals composed,
+    // which is the thing that only happens on a run that goes the distance.
+    expect(gymsCleared(run.state)).toBe(SEGMENTS_PER_RUN - 1);
+    expect(run.state.currentSegment).toBe(SEGMENTS_PER_RUN - 1);
+    expect(run.state.party[0]?.spec.level).toBe(playerLevel(SEGMENTS_PER_RUN - 1));
     expect(acquisitions.length, 'never acquired').toBeGreaterThan(0);
     expect(releases.length, 'never released').toBeGreaterThan(0);
-    expect(targets.length, 'never targeted an item').toBeGreaterThan(0);
     expect(run.state.party.length).toBe(PARTY_SIZE);
+  });
+
+  it('ends in victory when the last gym falls', () => {
+    /*
+     * The victory transition, driven directly.
+     *
+     * Every other way of reaching it goes through eight fights and therefore
+     * through the difficulty curve, which is how this became a balance test
+     * wearing a mechanism test's clothes. `resolveNode` is the transition;
+     * this is it, with a won gym at the last segment and nothing else.
+     */
+    const start = chooseLocale(chooseStarter(createRun('WIN-TRANSITION'), 0), 0);
+    const last: RunState = {
+      ...start,
+      currentSegment: SEGMENTS_PER_RUN - 1,
+      localeChoices: start.localeChoices.map(() => 0),
+      position: 0,
+    };
+    const gym = last.segments[SEGMENTS_PER_RUN - 1]!.gym;
+    const after = resolveNode({ ...last, position: stepsOf(last).length }, {
+      node: gym,
+      battle: { result: { winner: 'p1', turns: 4, cause: 'faint' }, party: last.party },
+    });
+
+    expect(after.outcome).toBe('victory');
+    expect(gymsCleared(after)).toBe(1);
+    // And the run does *not* advance past the last segment: there is nowhere
+    // to advance to, and a state pointing at segment 8 would throw on the
+    // first thing that read it.
+    expect(after.currentSegment).toBe(SEGMENTS_PER_RUN - 1);
   });
 
   it('produces an identical run from the same seed and decisions, twice', async () => {
@@ -713,8 +779,8 @@ describe('a full eight-gym run, headless', () => {
     // a switch consumes battle-stream rolls a move does not, so a seed that
     // reproduced before Stage 4 could stop reproducing now without anything
     // else failing.
-    const first = await playRun(WINNING_SEED, everything());
-    const second = await playRun(WINNING_SEED, everything());
+    const first = await victoryRun();
+    const second = await victoryRun();
 
     expect(second.log.decisions).toEqual(first.log.decisions);
     expect(second.outcome).toBe(first.outcome);
@@ -724,11 +790,11 @@ describe('a full eight-gym run, headless', () => {
     );
   });
 
-  it('replays that run from its log to the same eight-gym victory', async () => {
-    const original = await playRun(WINNING_SEED, everything());
-    const replayed = await replayRun(original.log);
+  it('replays that run from its log to the same party, gym for gym', async () => {
+    const original = await victoryRun();
+    const replayed = await replayRun(original.log, VICTORY_TUNING, { opponent: pacifist });
 
-    expect(replayed.outcome).toBe('victory');
+    expect(replayed.outcome).toBe(original.outcome);
     expect(replayed.state.party).toEqual(original.state.party);
     expect(replayed.log.decisions).toEqual(original.log.decisions);
   });

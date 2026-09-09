@@ -151,6 +151,54 @@ export function stowAll(backpack: readonly ItemId[], itemIds: readonly ItemId[])
 }
 
 /**
+ * Spend the items a battle used up: off the party, out of the bag, gone.
+ *
+ * **Stage 4.6b, and "gone" is the whole rule.** A consumed berry is destroyed
+ * — it does not restock between nodes, and it does not come back to the
+ * backpack the way an unassigned item does. That is what makes it a resource
+ * rather than an ability with a cooldown, and it is why the fade the berry
+ * table describes is a fade rather than a plateau.
+ *
+ * Removed from the *holder* first, and from the backpack only if it was not
+ * held. The sim spends a held item, so the holder is where it almost always
+ * is; the backpack branch covers the one case that is not, an item the run
+ * gained and lost inside the same node.
+ *
+ * Ids the whitelist does not know are still removed. `readConsumedItems` is
+ * deliberately forgiving about what the protocol names, and an item that
+ * reached a Pokemon can leave it whatever this file knows about it.
+ */
+export function spendItems<S extends { party: PokemonState[]; backpack: ItemId[] }>(
+  state: S,
+  consumed: readonly ItemId[],
+): S {
+  if (consumed.length === 0) return state;
+
+  const party = [...state.party];
+  const backpack = [...state.backpack];
+
+  for (const itemId of consumed) {
+    const holder = party.findIndex((member) => member.item === itemId);
+    if (holder !== -1) {
+      const member = party[holder];
+      if (member) {
+        // A copy without the item, rather than `delete`: every party
+        // transition in this codebase returns new objects, and a mutated
+        // member would be shared with the state the caller still holds.
+        const rest = { ...member };
+        delete rest.item;
+        party[holder] = rest;
+      }
+      continue;
+    }
+    const loose = backpack.indexOf(itemId);
+    if (loose !== -1) backpack.splice(loose, 1);
+  }
+
+  return { ...state, party, backpack };
+}
+
+/**
  * Apply a whole item plan: reassignments first, then discards.
  *
  * **Ordering matters and is fixed here rather than left to the caller.** An

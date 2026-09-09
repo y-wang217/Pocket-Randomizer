@@ -55,15 +55,21 @@ import {
 } from '../data/blacklists';
 import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
+import type { BattleKind } from '../data/tuning';
 import { localeAdmits, type LocaleId } from '../data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry } from '../data/movePools';
+import { BERRIES } from '../data/items';
 import {
+  berryHoldRate,
+  GYM_MOVE_BAND_BONUS,
   MOVESET,
   moveBandsFor,
+  moveBandWeightsFor,
   opponentLevel,
   opponentTeamSize,
   speciesBandsFor,
 } from '../data/scaling';
+import { bandOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../data/moveOverrides';
 import { SPECIES_POOL, type SpeciesEntry } from '../data/speciesPools';
 import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
 
@@ -127,8 +133,16 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * a wild step. All of it lands inside the same version because it lands inside
  * the same stage — the string says "a seed recorded before this rolls something
  * else now", and one bump says that exactly as well as three.
+ *
+ * Went to 8 in Stage 4.6b for move banding. Three changes at once, and each
+ * alone would have earned it: move bands were renumbered 0-3 to 1-4, multi-hit
+ * moves are banded on what they apply in a turn rather than per hit, and a
+ * moveset now draws a *band per slot* from a weighted distribution instead of
+ * picking four moves out of one flat window. The third is the one that moves
+ * draws: every slot costs a band draw it did not cost before, so every roll
+ * after the first moveset in a seed sits somewhere new.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-7';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-8';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -204,8 +218,9 @@ function gymSpeciesFor(gym: GymDefinition, segment: number, tier: Tier): Species
   return anyBand;
 }
 
-function damagingFor(segment: number, tier: Tier): MoveEntry[] {
-  return damagingInBands(moveBandsFor(segment, tier));
+/** The banded pool a segment draws opponent movesets from. */
+function damagingFor(segment: number, tier: Tier): BandedMovePool {
+  return bandedMovePool(segment, tier);
 }
 
 /**
@@ -219,11 +234,110 @@ function damagingFor(segment: number, tier: Tier): MoveEntry[] {
  */
 export function damagingInBands(allowed: readonly number[]): MoveEntry[] {
   const bands = new Set(allowed);
-  const inBand = DAMAGING_MOVES.filter((move) => bands.has(move.band) && !isMoveBlacklisted(move.id));
+  const inBand = DAMAGING_AVAILABLE.filter((move) => bands.has(bandOf(move) ?? 0));
   // Every band has all eighteen types (asserted in test/randomizer.test.ts), so
   // this is a guard against a blacklist emptying a window rather than a
   // routine path.
-  return inBand.length > 0 ? inBand : DAMAGING_MOVES.filter((move) => !isMoveBlacklisted(move.id));
+  return inBand.length > 0 ? inBand : [...DAMAGING_AVAILABLE];
+}
+
+/** Every damaging move the blacklist allows. The base every pool filters. */
+const DAMAGING_AVAILABLE: readonly MoveEntry[] = DAMAGING_MOVES.filter(
+  (move) => !isMoveBlacklisted(move.id),
+);
+
+/**
+ * Damaging moves in one band, memoized.
+ *
+ * A pure function of two constant tables, asked once per move slot — four times
+ * per Pokemon, fifty-odd Pokemon per segment — so the cache is the difference
+ * between filtering four hundred moves twice per member and doing it four times
+ * per run.
+ */
+const BY_BAND = new Map<number, readonly MoveEntry[]>();
+
+function damagingInBand(band: number): readonly MoveEntry[] {
+  const cached = BY_BAND.get(band);
+  if (cached) return cached;
+  const pool = DAMAGING_AVAILABLE.filter((move) => bandOf(move) === band);
+  BY_BAND.set(band, pool);
+  return pool;
+}
+
+/**
+ * What a segment draws its damaging moves from: the bands, their weights, and
+ * everything as a fallback.
+ *
+ * **Stage 4.6b, and it replaces a flat pool.** A moveset used to be four picks
+ * from one filtered list; it is now four picks each preceded by a band draw, so
+ * a segment "mostly band 3, some band 2" produces a Pokemon with a band-2 move
+ * beside its band-3 ones rather than a Pokemon that is uniformly one or the
+ * other. The ramp is a property of each moveset, not only of the population.
+ */
+export interface BandedMovePool {
+  weights: Readonly<Record<number, number>>;
+  /** Every move in any band this pool can draw. The fallback, and rewards' view. */
+  all: readonly MoveEntry[];
+}
+
+/**
+ * A pool over a fixed set of bands, weighted evenly.
+ *
+ * What a starter draws from, and a species reward: neither belongs to a
+ * segment's ramp — a starter is the run's opening position and a reward card is
+ * paid at the level of the card, not of the map. Even weights because there is
+ * no ramp to express: `STARTER_MOVE_BANDS` says which bands, and this says they
+ * are equally likely.
+ */
+export function flatPool(bands: readonly number[]): BandedMovePool {
+  const weights: Record<number, number> = {};
+  for (const band of bands) weights[band] = 1;
+  return { weights, all: damagingInBands(bands) };
+}
+
+export function bandedMovePool(segment: number, tier: Tier): BandedMovePool {
+  const weights = moveBandWeightsFor(segment, tier);
+  return { weights, all: damagingInBands(moveBandsFor(segment, tier)) };
+}
+
+/**
+ * A gym leader's pool: the segment's distribution, one band higher.
+ *
+ * `GYM_MOVE_BAND_BONUS` is the whole of the gym difficulty spike and it is one
+ * number in `data/scaling.ts`. Applied here rather than by passing a tier,
+ * because a gym takes no tier — see `generateGymTeam`.
+ */
+export function gymMovePool(segment: number): BandedMovePool {
+  const weights = moveBandWeightsFor(segment, 'normal');
+  const shifted: Record<number, number> = {};
+  for (const [band, weight] of Object.entries(weights)) {
+    const raised = Math.min(MAX_MOVE_BAND, Number(band) + GYM_MOVE_BAND_BONUS);
+    shifted[raised] = (shifted[raised] ?? 0) + Number(weight);
+  }
+  return { weights: shifted, all: damagingInBands(Object.keys(shifted).map(Number)) };
+}
+
+/**
+ * One band, drawn from a weighted distribution. **Exactly one draw, always.**
+ *
+ * The same walk `sampleWeighted` in `core/encounters.ts` uses, and the same
+ * rule: one `nextFloat` per pick whatever the weights are, so retuning
+ * `moveBandWeights` changes which band a slot gets and never how many draws the
+ * moveset costs.
+ */
+function drawBand(weights: Readonly<Record<number, number>>, stream: RngStream): number {
+  const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = stream.nextFloat() * total;
+  let chosen = entries.at(-1)?.[0];
+  for (const [band, weight] of entries) {
+    roll -= weight;
+    if (roll < 0) {
+      chosen = band;
+      break;
+    }
+  }
+  return chosen === undefined ? MIN_MOVE_BAND : Number(chosen);
 }
 
 const STATUS_AVAILABLE: readonly MoveEntry[] = STATUS_MOVES.filter((move) => !isMoveBlacklisted(move.id));
@@ -263,18 +377,36 @@ function rollAbility(stream: RngStream): string {
  * be more random and less interesting: the encounter that matters is the one
  * whose typing tells you something true about what it will do.
  */
-function rollMoveset(entry: SpeciesEntry, damaging: readonly MoveEntry[], stream: RngStream): string[] {
+function rollMoveset(entry: SpeciesEntry, pool: BandedMovePool, stream: RngStream): string[] {
   const types = new Set(entry.types);
-  const stab = damaging.filter((move) => types.has(move.type));
   const taken = new Set<string>();
 
-  /** Draw one move from `pool`, skipping anything already taken. Null if exhausted. */
-  const take = (pool: readonly MoveEntry[]): MoveEntry | null => {
-    const available = pool.filter((move) => !taken.has(move.id));
+  /** Draw one move from `from`, skipping anything already taken. Null if exhausted. */
+  const take = (from: readonly MoveEntry[]): MoveEntry | null => {
+    const available = from.filter((move) => !taken.has(move.id));
     if (available.length === 0) return null;
     const move = stream.pick(available);
     taken.add(move.id);
     return move;
+  };
+
+  /**
+   * One slot's band, then one move from it.
+   *
+   * The band draw happens on **every** slot, including the ones that go on to
+   * take a status move and ignore it. That is what keeps the draw count a
+   * function of `MOVESET.slots` alone: a version that only drew a band when it
+   * needed one would make the number of draws depend on the status coin flip,
+   * and every roll after it in the seed would move with `statusChance`.
+   */
+  const takeDamaging = (stabOnly: boolean): MoveEntry | null => {
+    const band = drawBand(pool.weights, stream);
+    const inBand = damagingInBand(band);
+    const from = stabOnly ? inBand.filter((move) => types.has(move.type)) : inBand;
+    // Falls back out of the band before it falls back out of STAB: a species
+    // with no in-band move of its own types should still hit something hard,
+    // and a band is a strength statement where STAB is a flavour one.
+    return take(from) ?? take(inBand) ?? take(pool.all);
   };
 
   const moves: MoveEntry[] = [];
@@ -282,7 +414,7 @@ function rollMoveset(entry: SpeciesEntry, damaging: readonly MoveEntry[], stream
   // Leading slots: STAB where the species has any, otherwise open coverage. A
   // species whose types have no move in this band still gets an attack.
   for (let slot = 0; slot < MOVESET.stabSlots; slot++) {
-    const move = take(stab) ?? take(damaging);
+    const move = takeDamaging(true);
     if (move) moves.push(move);
   }
 
@@ -297,11 +429,13 @@ function rollMoveset(entry: SpeciesEntry, damaging: readonly MoveEntry[], stream
     const wantsStab = stream.nextFloat() < MOVESET.stabBias;
 
     if (last && wantsStatus) {
-      const move = take(STATUS_AVAILABLE) ?? take(damaging);
+      // The band draw still happens, and is discarded — see `takeDamaging`.
+      drawBand(pool.weights, stream);
+      const move = take(STATUS_AVAILABLE) ?? take(pool.all);
       if (move) moves.push(move);
       continue;
     }
-    const move = (wantsStab ? take(stab) : null) ?? take(damaging) ?? take(STATUS_AVAILABLE);
+    const move = takeDamaging(wantsStab) ?? take(STATUS_AVAILABLE);
     if (move) moves.push(move);
   }
 
@@ -336,9 +470,34 @@ export function rollGender(entry: SpeciesEntry, stream: RngStream): Gender {
 }
 
 /**
+ * A held berry, or nothing. **Exactly one draw either way.**
+ *
+ * Stage 4.6b, appended to the spec draw order for the reason gender was: any
+ * insertion point reshuffles every recorded seed and costs the same version
+ * bump, so the end is the position that makes the history readable.
+ *
+ * The draw happens whether or not the rate can succeed — a gym's rate is zero
+ * and it still costs a value — so the per-Pokemon draw count is a constant and
+ * retuning `BERRY_HOLD_RATE` cannot move a single roll that follows it. That is
+ * the same rule `rollGender` follows for a genderless species, and the same one
+ * `drawBand` follows for a slot that ends up taking a status move.
+ *
+ * Two draws rather than one, and the second is spent unconditionally for the
+ * same reason: which berry is a separate question from whether, and folding
+ * them into one weighted pick over "nothing plus fifteen berries" would make
+ * the count depend on the outcome.
+ */
+function rollBerry(kind: BattleKind, segment: number, stream: RngStream): string | undefined {
+  const roll = stream.nextFloat();
+  const berry = stream.pick(BERRIES);
+  return roll < berryHoldRate(kind, segment) ? berry.id : undefined;
+}
+
+/**
  * One Pokemon.
  *
- * The draw order — species, level, ability, moves, gender — is a contract.
+ * The draw order — species, level, ability, moves, gender, berry — is a
+ * contract.
  * Everything that generates a team goes through here so there is exactly one
  * order to remember.
  *
@@ -349,18 +508,32 @@ export function rollGender(entry: SpeciesEntry, stream: RngStream): Gender {
  */
 function rollSpec(
   pool: readonly SpeciesEntry[],
-  damaging: readonly MoveEntry[],
+  damaging: BandedMovePool,
   level: { min: number; max: number },
   stream: RngStream,
+  holding?: { kind: BattleKind; segment: number },
 ): PokemonSpec {
   const entry = stream.pick(pool);
-  return {
+  const spec: PokemonSpec = {
     species: entry.species,
     level: Math.max(1, Math.min(100, stream.inRange(level))),
     ability: rollAbility(stream),
     moves: rollMoveset(entry, damaging, stream),
     gender: rollGender(entry, stream),
   };
+  /*
+   * The berry draw is skipped entirely for a Pokemon nobody is holding one
+   * for — a starter, and (before 4.6b removed it) a reward species.
+   *
+   * That is a *different* rule from the draw-and-discard inside `rollBerry`,
+   * and the distinction matters: within a population that can hold berries the
+   * count is constant, so the rate is free to move. A starter is not in that
+   * population at all, and giving it a discarded draw would be paying for a
+   * question nobody asked.
+   */
+  if (!holding) return spec;
+  const item = rollBerry(holding.kind, holding.segment, stream);
+  return item ? { ...spec, item } : spec;
 }
 
 // ---------------------------------------------------------------------------
@@ -382,7 +555,10 @@ export function generateWildMon(
 ): PokemonSpec {
   const pool = wildSpeciesFor(segment, tier, locale);
   const damaging = damagingFor(segment, tier);
-  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream);
+  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream, {
+    kind: 'wild',
+    segment,
+  });
 }
 
 /** A trainer's team. Size comes from the curve, which is a function of PARTY_SIZE. */
@@ -392,7 +568,9 @@ export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStre
   const level = opponentLevel('trainer', segment, tier);
   const size = opponentTeamSize('trainer', segment, tier);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
+  return Array.from({ length: size }, () =>
+    rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }),
+  );
 }
 
 /**
@@ -405,11 +583,22 @@ export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStre
 export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream): TeamSpec {
   const tier: Tier = 'normal';
   const pool = gymSpeciesFor(gym, segment, tier);
-  const damaging = damagingFor(segment, tier);
+  /*
+   * The one place a move pool is not the segment's own: a gym leader draws one
+   * band higher (`GYM_MOVE_BAND_BONUS`). That is the difficulty spike, and it
+   * is a move band rather than a tier because a gym takes no tier — see this
+   * function's own note on why.
+   */
+  const damaging = gymMovePool(segment);
   const level = opponentLevel('gym', segment, tier);
   const size = opponentTeamSize('gym', segment, tier, gym.teamSize);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
+  // `holding` is passed even though a gym's rate is zero, so a gym member costs
+  // the same draws as any other opponent and the table is the only thing
+  // deciding what it holds.
+  return Array.from({ length: size }, () =>
+    rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }),
+  );
 }
 
 /**
@@ -432,38 +621,19 @@ export function generateWildTeam(
   const level = opponentLevel('wild', segment, tier);
   const size = opponentTeamSize('wild', segment, tier);
 
-  return Array.from({ length: size }, () => rollSpec(pool, damaging, level, stream));
+  return Array.from({ length: size }, () =>
+    rollSpec(pool, damaging, level, stream, { kind: 'wild', segment }),
+  );
 }
 
-/**
- * One Pokemon for a species reward, at the player's own level.
- *
- * Not `generateWildMon`: a reward is the player's Pokemon and is rolled at the
- * player's level from the reward pool's band window, with a moveset drawn from
- * the starter's move range for exactly the reason `STARTER_MOVE_BANDS` exists —
- * a Pokemon the player will carry for the rest of the run cannot be handed the
- * kit of a segment-1 opponent.
- *
- * Gated off by `tuning.allowSpeciesRewards`; see data/rewardPools.ts for why.
+/*
+ * `generateRewardSpecies` was here and went with the species reward card in
+ * Stage 4.6b. It was the second path by which a Pokemon could come into
+ * existence — rolled at the player's level, from the reward pool's band window,
+ * with a starter's move range — and the first divergence between it and
+ * `generateWildTeam` would have been invisible. Capture reads back a species
+ * the map already generated, so there is one path again.
  */
-export function generateRewardSpecies(
-  bands: readonly number[],
-  level: number,
-  stream: RngStream,
-): PokemonSpec {
-  const bandSet = new Set(bands);
-  const pool = SPECIES_POOL.filter((entry) => bandSet.has(entry.band) && !isSpeciesBlacklisted(entry.id));
-  if (pool.length === 0) throw new RangeError(`No species available in bands ${bands.join(',')}`);
-  const damaging = damagingInBands(STARTER_MOVE_BANDS);
-  const entry = stream.pick(pool);
-  return {
-    species: entry.species,
-    level,
-    ability: rollAbility(stream),
-    moves: rollMoveset(entry, damaging, stream),
-    gender: rollGender(entry, stream),
-  };
-}
 
 /**
  * The starter options a run offers.
@@ -487,7 +657,7 @@ export function generateStarters(
   // The whole run's move range, not segment 0's. The player cannot upgrade this
   // kit until Stage 3 adds rewards; see STARTER_MOVE_BANDS for the measurement
   // that made this the largest single balance change of the stage.
-  const damaging = damagingInBands(STARTER_MOVE_BANDS);
+  const damaging = flatPool(STARTER_MOVE_BANDS);
   const picked: PokemonSpec[] = [];
   const seen = new Set<string>();
 

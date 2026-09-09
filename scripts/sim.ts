@@ -67,7 +67,12 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { describeMove, describeSpecCard, type BattleSession } from '../src/core/battle/driver';
+import {
+  describeMove,
+  describeSpecCard,
+  readConsumedItems,
+  type BattleSession,
+} from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
 import { itemSuitsTypes } from '../src/core/items';
 import type { MoveReward, Reward } from '../src/core/rewards';
@@ -83,13 +88,31 @@ import {
   type Tier,
 } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
-import { itemById, ITEMS } from '../src/data/items';
+import { BERRIES, itemById, ITEMS } from '../src/data/items';
 import { localeById, LOCALE_IDS, type LocaleId } from '../src/data/locales';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
+
+
+/** Berry ids, as a set, for the two tallies that ask "is this a berry". */
+const BERRY_IDS = new Set(BERRIES.map((entry) => entry.id));
+
+/**
+ * The band a base power falls in, restated here rather than imported.
+ *
+ * `bandOf` in `data/moveOverrides.ts` takes a `MoveEntry`, and what the report
+ * has is a `describeSpecCard` move — the same move, described by the adapter
+ * for a screen. Restating the cuts means the report measures *what the player
+ * is holding* rather than what the pool says it handed out, which is the same
+ * distinction that makes this a measurement rather than a restatement of the
+ * tuning table.
+ */
+function bandOfPower(basePower: number): number {
+  return basePower <= 55 ? 1 : basePower <= 75 ? 2 : basePower <= 95 ? 3 : 4;
+}
 
 // ---------------------------------------------------------------------------
 // Arguments
@@ -495,6 +518,36 @@ const ITEM_VALUE: Record<string, number> = {
   wiseglasses: 50,
   punchingglove: 45,
   weaknesspolicy: 45,
+  /*
+   * Berries, valued *below every held item and above nothing*. Stage 4.6b.
+   *
+   * That ordering is the whole of the bot's berry policy and it is deliberately
+   * the simplest thing that is not wrong: a berry goes on a Pokemon that has
+   * nothing better, and is the first thing discarded when the bag overflows.
+   * Which is the design stated as a policy — they carry the early game, when
+   * there is nothing better to hold, and they are dropped once there is.
+   *
+   * Healing above status above resist, because the bot cannot see what it is
+   * about to fight. A resist berry is the one a *player* can plan with, since
+   * the gym rail names every leader's type from segment 1; a bot that valued it
+   * highly would be claiming a foresight this baseline does not have, and the
+   * report would credit the mechanic for the bot's cheating.
+   */
+  sitrusberry: 30,
+  oranberry: 25,
+  lumberry: 22,
+  chestoberry: 18,
+  persimberry: 15,
+  leppaberry: 15,
+  occaberry: 12,
+  passhoberry: 12,
+  rindoberry: 12,
+  wacanberry: 12,
+  chopleberry: 12,
+  payapaberry: 12,
+  yacheberry: 12,
+  habanberry: 12,
+  colburberry: 12,
 };
 
 /**
@@ -544,9 +597,40 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
     case 'tm':
     case 'tutor': {
       const incoming = DAMAGING_MOVES.find((move) => move.name === reward.move)?.basePower ?? 0;
+      /*
+       * Scored against the member it would actually be **given to**, not
+       * against the lead.
+       *
+       * The second time this scorer has understated move rewards, and the
+       * mechanism is different from the first (see below). `greedyMoveRecipient`
+       * hands the card to whoever gains most, and this valued it against slot 0
+       * — so a card that would transform the third party member was priced by
+       * what it did for the first, and usually priced at zero. With one Pokemon
+       * that was the same number; from Stage 4 it is three, and from 4.6b moves
+       * are the *primary* power axis, so the gap became the report's headline:
+       * doubling every tm and tutor weight in the pools moved the take rate by
+       * under a point, which is not a fact about the pools.
+       */
+      const best = state.party.reduce(
+        (top, member) => {
+          const held = describeSpecCard(member.spec).moves.filter((move) => move.category !== 'Status');
+          const strongest = held.length > 0 ? Math.max(...held.map((move) => move.basePower)) : 0;
+          const weakest = held.length > 0 ? Math.min(...held.map((move) => move.basePower)) : 0;
+          return strongest < top.strongest ? { strongest, weakest } : top;
+        },
+        { strongest: Number.POSITIVE_INFINITY, weakest: 0 },
+      );
       const attacks = card.moves.filter((move) => move.category !== 'Status');
-      const weakest = attacks.length > 0 ? Math.min(...attacks.map((move) => move.basePower)) : 0;
-      const strongest = attacks.length > 0 ? Math.max(...attacks.map((move) => move.basePower)) : 0;
+      const weakest = Number.isFinite(best.strongest)
+        ? best.weakest
+        : attacks.length > 0
+          ? Math.min(...attacks.map((move) => move.basePower))
+          : 0;
+      const strongest = Number.isFinite(best.strongest)
+        ? best.strongest
+        : attacks.length > 0
+          ? Math.max(...attacks.map((move) => move.basePower))
+          : 0;
       /*
        * Scored against the *best* move, not the worst.
        *
@@ -565,11 +649,6 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
        */
       return Math.max(0, incoming - strongest) * 1.5 + Math.max(0, incoming - weakest) * 0.35;
     }
-
-    case 'species':
-      // Gated off, so unreachable. Zero rather than a guess: a number here would
-      // be an untested opinion about a mechanic nobody has played yet.
-      return 0;
   }
 }
 
@@ -781,7 +860,17 @@ function valueOfItemFor(itemId: string, member: PokemonState): number {
   if (!entry) return 0;
   const card = describeSpecCard(member.spec);
   if (entry.boostsType) return itemSuitsTypes(entry, card.types) ? 100 : 0;
-  return 50;
+  /*
+   * `ITEM_VALUE` rather than a flat 50, from Stage 4.6b.
+   *
+   * The flat number was fine while every non-type item was a real held item and
+   * the ties broke by iteration order. Berries broke it: they are non-type,
+   * so they scored *the same as a Leftovers*, which meant the bag filled with
+   * berries the bot neither used nor discarded — the first report measured 88%
+   * of late parties still carrying one and read it as the berries clogging the
+   * bag, when it was the bot unable to tell them apart from gear.
+   */
+  return ITEM_VALUE[itemId] ?? 50;
 }
 
 /**
@@ -1143,7 +1232,30 @@ interface RunRecord {
    * gym, which is the one point in a segment every surviving run passes
    * through.
    */
-  gymParties: { gym: number; size: number; species: string[]; types: string[] }[];
+  gymParties: {
+    gym: number;
+    size: number;
+    species: string[];
+    types: string[];
+    /**
+     * The base-power band of every damaging move the party holds, entering
+     * this gym. **Stage 4.6b's headline measurement.**
+     *
+     * The spec's test for whether the ramp ramps: if the player is still on
+     * band 1 at gym 5, it is not ramping. Collected per gym rather than at the
+     * end because the end of a run is wherever it died, and a distribution
+     * taken there measures how far runs get rather than what they were
+     * carrying when they got there.
+     */
+    moveBands: number[];
+    /** Berries held or bagged entering this gym, and the bag's size. */
+    berries: number;
+    backpack: number;
+  }[];
+
+  // --- Stage 4.6b ---------------------------------------------------------
+  /** Berries the player's side used up, tagged with the segment they fired in. */
+  berriesEaten: { segment: number }[];
 }
 
 async function playSample(
@@ -1168,6 +1280,8 @@ async function playSample(
      * comparing player and AI switch rates needs.
      */
     const sessions: BattleSession[] = [];
+    /** Which segment each session was fought in, for the berry tally below. */
+    const sessionSegments: number[] = [];
     // Party state at the start of each battle, so a defeat can be read back to
     // the party that walked into it. After the fight everyone is fainted, which
     // is what a wipe *is* and therefore measures nothing.
@@ -1180,6 +1294,7 @@ async function playSample(
     const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning, {
       onBattle: (session, node, before) => {
         sessions.push(session);
+        sessionSegments.push(before.currentSegment);
         aliveAtLastBattle = before.party.filter((member) => !member.fainted).length;
         partyAtEnd = before.party.length;
         partyBySegment.push({ segment: before.currentSegment, size: before.party.length });
@@ -1188,11 +1303,22 @@ async function playSample(
           // battle rather than off the end of the run — after the fight
           // everyone the gym beat is fainted, which measures the gym.
           const cards = before.party.map((member) => describeSpecCard(member.spec));
+          const carried = [
+            ...before.party.map((member) => member.item),
+            ...before.backpack,
+          ].filter((item): item is string => Boolean(item));
           gymParties.push({
             gym: before.currentSegment + 1,
             size: before.party.length,
             species: cards.map((card) => card.species),
             types: [...new Set(cards.flatMap((card) => card.types))],
+            moveBands: cards.flatMap((card) =>
+              card.moves
+                .filter((move) => move.category !== 'Status')
+                .map((move) => bandOfPower(move.basePower)),
+            ),
+            berries: carried.filter((item) => BERRY_IDS.has(item)).length,
+            backpack: before.backpack.length,
           });
         }
       },
@@ -1219,6 +1345,21 @@ async function playSample(
       aiSwitches += session.voluntarySwitches.p2;
       switchesPerBattle.push(session.voluntarySwitches.p1);
     }
+
+    /*
+     * Berries eaten, read back off each battle's own protocol.
+     *
+     * The run log records decisions and nothing derived, so what a battle
+     * *spent* is not in it — but the session that played the battle still has
+     * the protocol, and `readConsumedItems` is the same reader `runBattle` uses
+     * to tell the run. Reading it here rather than adding a hook keeps the
+     * measurement outside `core/`, which is where a measurement belongs.
+     */
+    const berriesEaten = sessions.flatMap((session, index) =>
+      readConsumedItems(session.protocolFor('p1'), 'p1')
+        .filter((item) => BERRY_IDS.has(item))
+        .map(() => ({ segment: sessionSegments[index] ?? 0 })),
+    );
 
     const battles = state.history
       .filter((visit) => visit.result)
@@ -1265,6 +1406,7 @@ async function playSample(
       capturesOffered: collect.capturesOffered,
       capturesTaken: collect.capturesTaken,
       gymParties,
+      berriesEaten,
     });
     onProgress(index + 1);
   }
@@ -1431,6 +1573,24 @@ interface Sample {
     neverOffered: string[];
     /** Mean distinct locales walked in a run that reached the end of the map. */
     meanDistinctPerRun: number;
+  };
+  /**
+   * Stage 4.6b's section: is the ramp ramping, and are the berries fading?
+   *
+   * Two questions the earlier reports had no vocabulary for. The first is the
+   * spec's own test — "if the player is still on band 1 at gym 5, the ramp is
+   * not ramping" — and the second is the berry design stated as a measurement:
+   * they are supposed to matter early and be *dropped* by segment 6, so a run
+   * still carrying them late means the reward pools never offered anything
+   * better.
+   */
+  ramp: {
+    /** Share of the player's damaging moves in each band, entering each gym. */
+    bandsAtGym: { gym: number; parties: number; shares: number[]; mean: number }[];
+    /** Berries eaten per run, by the segment they fired in. */
+    berriesPerSegment: { segment: number; eaten: number; perRun: number }[];
+    /** Berries carried into gym 6 and later, and the share of the bag they hold. */
+    lateBerries: { parties: number; meanCarried: number; shareOfRuns: number };
   };
   capture: {
     /** Wild victories that offered a capture, per run and in total. */
@@ -1655,6 +1815,7 @@ function summarize(
       distinctStarters: new Set(records.map((record) => record.starter)).size,
     },
     party: summarizeParty(records),
+    ramp: summarizeRamp(records),
     locales: summarizeLocales(records),
     capture: summarizeCapture(records),
     durationMs,
@@ -1727,6 +1888,52 @@ function summarizeParty(records: RunRecord[]): Sample['party'] {
         runs: group.length,
         completion: completionOf(group),
       })),
+  };
+}
+
+/**
+ * Is the ramp ramping, and are the berries fading?
+ *
+ * Both halves are distributions rather than means, and deliberately: a mean
+ * band of 2.5 at gym 5 is the same number whether every move is band 2 or 3, or
+ * half of them are still band 1 and the rest are band 4. Only one of those is
+ * a ramp.
+ */
+function summarizeRamp(records: RunRecord[]): Sample['ramp'] {
+  const runs = Math.max(1, records.length);
+
+  const bandsAtGym = Array.from({ length: SEGMENTS_PER_RUN }, (_, index) => {
+    const gym = index + 1;
+    const rows = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym === gym));
+    const bands = rows.flatMap((row) => row.moveBands);
+    const shares = [1, 2, 3, 4].map((band) =>
+      bands.length === 0 ? 0 : bands.filter((held) => held === band).length / bands.length,
+    );
+    return {
+      gym,
+      parties: rows.length,
+      shares,
+      mean: bands.length === 0 ? 0 : sum(bands) / bands.length,
+    };
+  });
+
+  const berriesPerSegment = Array.from({ length: SEGMENTS_PER_RUN }, (_, segment) => {
+    const eaten = records.flatMap((record) =>
+      record.berriesEaten.filter((entry) => entry.segment === segment),
+    ).length;
+    return { segment, eaten, perRun: eaten / runs };
+  });
+
+  // Gym 6 and later: the point the berry design says they should be gone by.
+  const late = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym >= 6));
+  return {
+    bandsAtGym,
+    berriesPerSegment,
+    lateBerries: {
+      parties: late.length,
+      meanCarried: late.length === 0 ? 0 : sum(late.map((entry) => entry.berries)) / late.length,
+      shareOfRuns: late.length === 0 ? 0 : late.filter((entry) => entry.berries > 0).length / late.length,
+    },
   };
 }
 
@@ -1914,6 +2121,50 @@ function render(sample: Sample): string {
    * question asked from the other end: the party section says how big the party
    * got, and this says where it came from and what region it was caught in.
    */
+  /*
+   * The ramp, printed before the locale and capture sections because it is the
+   * thing Stage 4.6b changed and the thing a retune reads first.
+   */
+  const ramp = sample.ramp;
+  out.push('', "The ramp — what the player's moves are banded at, entering each gym");
+  out.push(
+    table(
+      ['gym', 'parties', 'band 1', 'band 2', 'band 3', 'band 4', 'mean', 'reads as'],
+      ramp.bandsAtGym
+        .filter((row) => row.parties > 0)
+        .map((row) => [
+          String(row.gym),
+          String(row.parties),
+          ...row.shares.map((share) => pct(share)),
+          row.mean.toFixed(2),
+          // The spec's own test, applied per row: still on band 1 at gym 5 is
+          // a ramp that is not ramping.
+          row.gym >= 5 && (row.shares[0] ?? 0) > 0.4
+            ? 'still on band 1'
+            : row.gym <= 2 && row.mean > 2.5
+              ? 'climbing too fast'
+              : '',
+        ]),
+    ),
+  );
+
+  out.push('', 'Berries — eaten per run, by the segment they fired in');
+  out.push(
+    table(
+      ['segment', 'eaten', 'per run'],
+      ramp.berriesPerSegment
+        .filter((row) => row.eaten > 0)
+        .map((row) => [String(row.segment + 1), String(row.eaten), row.perRun.toFixed(2)]),
+    ),
+  );
+  out.push(
+    `  carried into gym 6+: ${ramp.lateBerries.meanCarried.toFixed(2)} per party, ` +
+      `${pct(ramp.lateBerries.shareOfRuns)} of those parties hold at least one` +
+      (ramp.lateBerries.shareOfRuns > 0.5
+        ? ' — berries are clogging the bag late; capacity or the pools are wrong'
+        : ''),
+  );
+
   const locales = sample.locales;
   out.push('', 'Locales — where the runs went');
   out.push(
@@ -2228,7 +2479,7 @@ function describeDeath(death: CauseOfDeath): string {
  * has to remember four thresholds to interpret a table will not.
  */
 function verdicts(sample: Sample): string[] {
-  const lines: string[] = ['', 'Against the Stage 2 targets (starting hypotheses, not truths)'];
+  const lines: string[] = ['', 'Against the targets (starting hypotheses, not truths)'];
   const gym1 = sample.perGym[0];
   const worst = sample.perGym.reduce((a, b) => (b.dropFromPrevious > a.dropFromPrevious ? b : a));
 
@@ -2257,6 +2508,43 @@ function verdicts(sample: Sample): string[] {
       lines.push(check(!!gym1 && gym1.clearRate >= 0.85 && gym1.clearRate <= 0.95, `gym 1 clear rate ${pct(gym1?.clearRate ?? 0)} (target ~90%)`));
     }
     lines.push(check(sample.completionRate >= 0.05 && sample.completionRate <= 0.15, `full run completion ${pct(sample.completionRate)} (target 5-15%)`));
+
+    /*
+     * The Stage 4.6b targets, minted from the retune's own report.
+     *
+     * The spec asks for fresh ones rather than a diff, because the stage moved
+     * every number that the Stage 2 targets were written against. These are the
+     * two claims 4.6b makes that nothing before it could:
+     *
+     *   - **The ramp ramps.** The spec's own test is "if the player is still on
+     *     band 1 at gym 5, the ramp is not ramping". Stated as a mean band and
+     *     a band-1 share, because a mean alone hides the shape.
+     *   - **Berries fade.** They are meant to carry the early game and be
+     *     dropped by segment 6; a party still carrying them into gym 6 is a
+     *     party the reward pools never offered anything better.
+     */
+    const atFive = sample.ramp.bandsAtGym.find((row) => row.gym === 5);
+    if (atFive && atFive.parties > 0) {
+      lines.push(
+        check(atFive.mean >= 2, `move band entering gym 5 is ${atFive.mean.toFixed(2)} (target >= 2.0)`),
+      );
+      lines.push(
+        check(
+          (atFive.shares[0] ?? 0) <= 0.55,
+          `${pct(atFive.shares[0] ?? 0)} of moves still band 1 at gym 5 (target <= 55%)`,
+        ),
+      );
+    }
+    const lateEaten = sample.ramp.berriesPerSegment.at(-3)?.perRun ?? 0;
+    lines.push(
+      check(lateEaten <= 0.05, `berries eaten per run in segment 6 is ${lateEaten.toFixed(2)} (target <= 0.05)`),
+    );
+    lines.push(
+      check(
+        sample.ramp.lateBerries.shareOfRuns <= 0.5,
+        `${pct(sample.ramp.lateBerries.shareOfRuns)} of gym 6+ parties still carry a berry (target <= 50%)`,
+      ),
+    );
   } else if (sample.policy === 'random') {
     // Two lines, because the spec's sentence about the random policy is really
     // two claims and only the second one is a depth test. "Rarely gets past gym

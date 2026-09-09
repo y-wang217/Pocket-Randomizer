@@ -456,7 +456,7 @@ describe('mid-run save across a reward, shop and event boundary', () => {
     // that — said so. `scripts/scan-seed.ts spender` finds the replacement, and
     // bounds its length: this resumes from *every* save, so the test is
     // quadratic in the run.
-    const seed = 'ECON-RESUME-2';
+    const seed = 'ECON-RESUME';
     const saves: RunLog[] = [];
     const original = await playRun(seed, spender(), DEFAULT_TUNING, {
       onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),

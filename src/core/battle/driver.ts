@@ -26,6 +26,7 @@ import {
   type BattleLog,
   type Decision,
   type Gender,
+  type ItemId,
   type MoveSpec,
   type MoveState,
   type MoveView,
@@ -1209,6 +1210,19 @@ export interface BattleRun {
   protocol: string[];
   /** Every faint in the battle, with what caused it. Drives the run summary. */
   casualties: Casualty[];
+  /**
+   * Items the player's side used up, by dex id, in the order they fired.
+   *
+   * **Stage 4.6b, and it is the whole of the berry consumption sync.** The sim
+   * resolves a berry itself — it is an ordinary held item to Showdown — so
+   * nothing above this file has to know how an Oran Berry works. What it does
+   * have to know is that the berry is *gone*, and the only place that fact
+   * exists is the `-enditem` line the engine emitted when it fired.
+   *
+   * Player side only. A trainer's berry is spent inside a battle nobody carries
+   * state out of, so reading it would be reading the engine's own bookkeeping.
+   */
+  consumed: ItemId[];
   session: BattleSession;
 }
 
@@ -1263,7 +1277,14 @@ export async function runBattle(
 
   const result = session.result ?? { winner: null, turns: session.turn, cause: 'turn-limit' as const };
   const protocol = [...session.protocolFor('p1')];
-  return { result, battleLog: session.toBattleLog(), protocol, casualties: readCasualties(protocol), session };
+  return {
+    result,
+    battleLog: session.toBattleLog(),
+    protocol,
+    casualties: readCasualties(protocol),
+    consumed: readConsumedItems(protocol, 'p1'),
+    session,
+  };
 }
 
 /**
@@ -1373,6 +1394,43 @@ export function readCasualties(protocol: readonly string[]): Casualty[] {
     });
   }
   return casualties;
+}
+
+/**
+ * Items one side used up, by dex id, in the order the engine spent them.
+ *
+ * `-enditem` is the sim's own announcement that a held item is gone, and it
+ * covers every way that happens: a berry eaten, a Focus Sash spent, an Air
+ * Balloon popped, a Knock Off. **All of them, deliberately** — the run's rule
+ * is that an item leaves the bag when the battle says it left the Pokemon, and
+ * a reader that only recognised berries would quietly keep a spent Focus Sash
+ * on the party screen.
+ *
+ * Ids are normalised the way `data/items.ts` spells them, because that is the
+ * key `PokemonState.item` and the backpack are both stored under; the protocol
+ * spells them as display names (`Oran Berry`).
+ *
+ * Deliberately forgiving, like `readCasualties`: an id the whitelist does not
+ * know is returned anyway, and `core/items.ts` is where it fails to match
+ * anything. Dropping it here would make an unknown item silently permanent.
+ */
+export function readConsumedItems(protocol: readonly string[], side: SideId): ItemId[] {
+  const consumed: ItemId[] = [];
+  for (const line of protocol) {
+    const parts = line.split('|');
+    if (parts[1] !== '-enditem') continue;
+    const identifier = parts[2] ?? '';
+    const owner: SideId = identifier.startsWith('p2') ? 'p2' : 'p1';
+    if (owner !== side) continue;
+    const item = parts[3];
+    if (item) consumed.push(toItemId(item));
+  }
+  return consumed;
+}
+
+/** `Oran Berry` -> `oranberry`. The spelling `data/items.ts` keys on. */
+function toItemId(name: string): ItemId {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 /** `p2a: Gengar` -> `Gengar`. Empty for a malformed or absent identifier. */

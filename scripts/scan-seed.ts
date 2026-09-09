@@ -1,16 +1,21 @@
 /**
  * Rescan the seeds the test suite pins.
  *
- * Three tests need a seed that does something a *typical* seed does not: one
- * that a scripted policy wins on, one that reaches every decision kind, and one
- * that pays a card before it dies. Each is chosen rather than assumed, and each
- * stops being the right seed the moment a stage changes what a seed rolls —
- * which is exactly what a `RANDOMIZER_VERSION` bump announces.
+ * Two tests need a seed that does something a *typical* seed does not: one that
+ * reaches every decision kind, and one that pays a card before it dies. Each is
+ * chosen rather than assumed, and each stops being the right seed the moment a
+ * stage changes what a seed rolls — which is exactly what a
+ * `RANDOMIZER_VERSION` bump announces.
+ *
+ * There was a third — a seed the scripted policy *wins* on — and it is gone.
+ * A run only wins while the difficulty curve lets it, so pinning one coupled a
+ * mechanism test to a balance number; it needed rescanning three times in two
+ * stages and then became unfindable in Stage 4.6b's mid-stage trough.
+ * `test/party.test.ts` makes its own winnable run now.
  *
  * This is how the replacement is found. It is not a test and it asserts
  * nothing; it prints a seed to paste into the test that names it.
  *
- *   npx vite-node scripts/scan-seed.ts win        # test/party.test.ts
  *   npx vite-node scripts/scan-seed.ts census     # test/move-replacement.test.ts
  *   npx vite-node scripts/scan-seed.ts spender    # test/economy.test.ts
  *
@@ -21,46 +26,15 @@
  * reports, loudly, as the assertion it already carries.
  */
 import { greedyAiPolicy } from '../src/core/battle/ai';
-import { hasRoom } from '../src/core/acquisition';
 import { PARTY_SIZE } from '../src/data/partyTuning';
-import {
-  defaultItemPlan,
-  defaultMoveReplacement,
-  playRun,
-  scriptedRunPolicy,
-  type RunPolicy,
-} from '../src/core/run';
-
-/** test/party.test.ts: walks into wild nodes, rests when hurt, churns the party. */
-function everything(): RunPolicy {
-  return {
-    ...scriptedRunPolicy(greedyAiPolicy),
-    chooseNode: async (options, state) => {
-      const hp = state.party.reduce((total, member) => total + member.hp, 0);
-      const max = state.party.reduce((total, member) => total + member.maxHp, 0);
-      if (max > 0 && hp / max < 0.7) {
-        const rest = options.findIndex((option) => option.kind === 'rest');
-        if (rest !== -1) return rest;
-      }
-      const wild = options.findIndex((option) => option.kind === 'wild');
-      return wild === -1 ? 0 : wild;
-    },
-    chooseMoveRecipient: async (_offer, party) => party.length - 1,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
-    chooseAcquisition: async (_offer, party) =>
-      hasRoom(party) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
-  };
-}
-
+import { defaultItemPlan, playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 /** test/move-replacement.test.ts: the census of every Stage 4.5.1 decision. */
 function census(seen: Set<string>): RunPolicy {
   return {
     ...scriptedRunPolicy(greedyAiPolicy),
     chooseReward: async (offer) => {
       const move = offer.options.findIndex((option) => option.kind === 'tm' || option.kind === 'tutor');
-      if (move !== -1) return move;
-      const species = offer.options.findIndex((option) => option.kind === 'species');
-      return species === -1 ? 0 : species;
+      return move === -1 ? 0 : move;
     },
     chooseShopPurchases: async (stock, state) => {
       const order = stock.items
@@ -122,22 +96,10 @@ function spender(): RunPolicy {
   };
 }
 
-const mode = process.argv[2] ?? 'win';
+const mode = process.argv[2] ?? 'census';
 const attempts = Number(process.argv[3] ?? 200);
 
-if (mode === 'win') {
-  for (let i = 0; i < attempts; i++) {
-    const seed = `WIN-${i}`;
-    const run = await playRun(seed, everything());
-    const switches = run.log.decisions.filter(
-      (decision) => decision.kind === 'battle' && decision.choice.kind === 'switch',
-    ).length;
-    if (run.outcome === 'victory' && switches > 0) {
-      console.log(`win: ${seed} (${switches} switches)`);
-      break;
-    }
-  }
-} else if (mode === 'census') {
+if (mode === 'census') {
   const wanted = ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign'];
   for (let i = 0; i < attempts; i++) {
     const seed = i === 0 ? 'ALL-DECISIONS' : `ALL-DECISIONS-${i}`;
@@ -161,5 +123,5 @@ if (mode === 'win') {
     }
   }
 } else {
-  console.log('modes: win | census | spender');
+  console.log('modes: census | spender');
 }

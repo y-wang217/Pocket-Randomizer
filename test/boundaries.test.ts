@@ -26,6 +26,18 @@ function walk(dir: string): string[] {
 const coreFiles = walk(CORE);
 const srcFiles = walk(SRC);
 
+/**
+ * Source with block and line comments removed.
+ *
+ * Enough of a stripper for the checks that use it: it is a regex, so a `//`
+ * inside a string literal would take the rest of that line with it. There are
+ * none in the files checked, and a false *negative* on one line is a cheap
+ * failure mode for checks whose job is to catch a whole import.
+ */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+}
+
 describe('core/ boundaries', () => {
   it('has files to check', () => {
     expect(coreFiles.length).toBeGreaterThan(3);
@@ -45,8 +57,17 @@ describe('core/ boundaries', () => {
   });
 
   it('touches no DOM global', () => {
+    /*
+     * Code only. **The comments have to come out first**, and Stage 4.6b is
+     * what proved it: a sentence ending "...out of one flat window." matched
+     * `window\s*\.` and reported `core/randomizer.ts` as reaching for the DOM.
+     *
+     * A boundary test that fires on prose is a boundary test people learn to
+     * work around by rewording, which is exactly the wrong lesson — the rule is
+     * about what a file *does*.
+     */
     const dom = /\b(document|window|localStorage|navigator|HTMLElement)\b\s*\./;
-    const offenders = coreFiles.filter((file) => dom.test(readFileSync(file, 'utf8')));
+    const offenders = coreFiles.filter((file) => dom.test(stripComments(readFileSync(file, 'utf8'))));
     expect(offenders.map((f) => relative(ROOT, f))).toEqual([]);
   });
 
@@ -155,11 +176,6 @@ describe('the battle UI boundary', () => {
     );
     expect(offenders).toEqual([]);
   });
-
-  /** Enough of a stripper for the check above. See its note on the limits. */
-  function stripComments(source: string): string {
-    return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
-  }
 
   /**
    * Tooltip text lives in `data/`, never inline in a component.

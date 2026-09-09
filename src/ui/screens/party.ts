@@ -496,9 +496,33 @@ function renderBackpack(
       const name = el('span', 'badge badge--item');
       name.textContent = entry?.name ?? id;
       if (entry) name.dataset['tip'] = `item:${entry.id}`;
+      /*
+       * A berry is marked, because it is the one row on this screen whose
+       * *lifetime* differs from every other. **Stage 4.6b.**
+       *
+       * Every other item here is permanent: give it away, take it back,
+       * discard it, but it exists until the player says otherwise. A berry
+       * fires once and is gone — and a player who does not know that will
+       * assign one, count it against the cap, and find it missing after a
+       * fight with no explanation.
+       *
+       * It is a class on the badge and one word in the effect line, not a
+       * separate section. The berry occupies a backpack slot exactly like
+       * everything else, which is the whole reason it is a decision (see
+       * `BERRIES` in data/items.ts), and filing it apart on screen would say
+       * the opposite.
+       */
+      if (entry?.consumable) name.classList.add('badge--consumable');
 
       const effect = el('span', 'backpack__effect');
-      effect.textContent = entry?.blurb ?? '';
+      // "Used up when it fires." is an attribute, and the one attribute this
+      // row would otherwise be missing. Not a warning, and not advice about
+      // whether to carry it.
+      effect.textContent = entry
+        ? entry.consumable
+          ? `${entry.blurb} Used up when it fires.`
+          : entry.blurb
+        : '';
 
       const give = el('span', 'backpack__give');
       view.party.forEach((member, slot) => {

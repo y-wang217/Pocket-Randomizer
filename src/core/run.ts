@@ -62,7 +62,7 @@ import {
 } from './economy';
 import { applyEventOutcome, type EventInstance } from './events';
 import { describeMove } from './battle/driver';
-import { applyItemPlan, backpackCapacity, needsItemPlan, stowAll } from './items';
+import { applyItemPlan, backpackCapacity, needsItemPlan, spendItems, stowAll } from './items';
 import {
   applyReward,
   isTargeted,
@@ -532,6 +532,17 @@ export interface NodeResult {
     result: BattleResult;
     party: PokemonState[];
     /**
+     * Items the player's side used up, by dex id. **Stage 4.6b.**
+     *
+     * Carried on the result rather than read off the party, because a spent
+     * item leaves no trace on the Pokemon that held it: `applyBattleState`
+     * copies HP, PP and status back and the item field simply reads empty,
+     * which is indistinguishable from a Pokemon that never held one. The
+     * protocol is the only witness, and `core/battle/driver.ts` is the only
+     * thing allowed to read it.
+     */
+    consumed?: ItemId[];
+    /**
      * Every faint on either side, as the adapter read them off the protocol.
      *
      * Optional because `resolveNode` is also called directly by tests that
@@ -597,6 +608,22 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (result.node.kind === 'rest') party = restParty(party, state.tuning);
 
   /*
+   * Items the battle used up, spent before anything else touches the party.
+   *
+   * First, because everything below it — the wipe check, a heal reward, the
+   * node boundary — reads a party that must already agree with the battle that
+   * just happened. A berry still sitting on a Pokemon after the sim ate it is
+   * an item the player would assign, carry and count against capacity, and
+   * would find missing the next time a battle started.
+   */
+  let backpack = state.backpack;
+  if (result.battle?.consumed?.length) {
+    const spent = spendItems({ party, backpack }, result.battle.consumed);
+    party = spent.party;
+    backpack = spent.backpack;
+  }
+
+  /*
    * Winnings, and the event's outcome, folded in before the wipe check.
    *
    * The event especially: `applyEventOutcome` can take HP off the party, and
@@ -633,17 +660,17 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   ];
 
   // The one death rule, checked before anything can undo it.
-  if (isWiped(party)) return { ...state, party, currency, history, outcome: 'defeat' };
+  if (isWiped(party)) return { ...state, party, backpack, currency, history, outcome: 'defeat' };
 
   if (result.node.kind === 'gym') {
     // A gym that did not end in a win ends the run, wipe or not: a turn-limit
     // draw against a gym leader is a gym the player did not beat.
     if (result.battle?.result.winner !== 'p1') {
-      return { ...state, party, currency, history, outcome: 'defeat' };
+      return { ...state, party, backpack, currency, history, outcome: 'defeat' };
     }
     const nextSegment = state.currentSegment + 1;
     if (nextSegment >= state.segments.length) {
-      return { ...state, party, currency, history, outcome: 'victory' };
+      return { ...state, party, backpack, currency, history, outcome: 'victory' };
     }
     /*
      * Clearing a gym is the only thing that levels the party.
@@ -663,6 +690,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         recoverParty(betweenNodes(party, state.tuning), state.tuning.gymClearHealFraction),
         playerLevel(nextSegment),
       ),
+      backpack,
       currency,
       history,
       currentSegment: nextSegment,
@@ -708,6 +736,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   let advanced: RunState = {
     ...state,
     party: betweenNodes(party, state.tuning),
+    backpack,
     currency,
     history,
     position: state.position + 1,
@@ -1232,28 +1261,19 @@ export async function playRun(
 }
 
 /**
- * The Pokemon this node is offering, from whichever route, or null.
+ * The Pokemon this node is offering, or null.
  *
- * Two sources, one decision — so the *choice* of which source is made here,
- * once, rather than at both call sites. A node cannot offer both: a `species`
- * card and an encounter offer would be two Pokemon and two decisions, and the
- * card wins because it is the one the player chose by taking it.
+ * **One route since Stage 4.6b, and this function is what is left of two.** A
+ * `species` reward card was the other, and it chose between them here so that
+ * the two sources produced one decision. The card is gone — capture is the
+ * acquisition path now, and it costs a step — so this reads the node's own
+ * offer and nothing else.
+ *
+ * It stays a function rather than becoming a field read, because 4.6c adds a
+ * second source again: a band-3 capability event spawns an encounter, and the
+ * capture it offers arrives here.
  */
 function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
-  if (result.reward?.kind === 'species') {
-    const card = result.reward;
-    return {
-      nodeId: result.node.id,
-      source: 'reward',
-      spec: {
-        species: card.species,
-        level: card.level,
-        ability: card.ability,
-        moves: [...card.moves],
-        gender: card.gender,
-      },
-    };
-  }
   return result.node.acquisition;
 }
 
@@ -1327,7 +1347,15 @@ async function playNode(
     },
   );
 
-  return { node, battle: { result: run.result, party: run.session.partyState('p1'), casualties: run.casualties } };
+  return {
+    node,
+    battle: {
+      result: run.result,
+      party: run.session.partyState('p1'),
+      casualties: run.casualties,
+      consumed: run.consumed,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

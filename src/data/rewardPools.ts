@@ -14,22 +14,51 @@
  * **this file is the fix, not `core/rewards.ts`.** The generator is a weighted
  * draw over a table; if the numbers are wrong the table is wrong.
  *
- * ## Keyed by tier *and* by segment band
+ * ## Three keys: tier, segment band, and base-power band
  *
- * Two dimensions because they answer different questions. Tier is "how much did
- * you risk"; the segment band is "how far into the run are you". A Leftovers at
- * segment 0 is a different reward from a Leftovers at segment 6 — the first
- * reshapes the whole run, the second arrives after most of the attrition has
- * already happened — so the bands shift *which* entries a tier offers as the
- * run goes on, not just how much of them.
+ * The first two answer different questions. Tier is "how much did you risk";
+ * the segment band is "how far into the run are you". A Leftovers at segment 0
+ * is a different reward from a Leftovers at segment 6 — the first reshapes the
+ * whole run, the second arrives after most of the attrition has already
+ * happened — so the bands shift *which* entries a tier offers as the run goes
+ * on, not just how much of them.
  *
  * The visible shape of that: the opening bands keep Choice items out (a
  * whole-battle move lock is a trap for a player who has not yet learned what
  * their moveset does), and the late bands drop pure currency down and push
  * healing up, because by segment 6 a shop is further away than the next gym.
+ *
+ * **Stage 4.6b adds the third: what base-power band a move reward pays at.**
+ * It is not a column in the tables below, because it is not a property of an
+ * entry — it is `REWARD_BAND_OFFSET` in `data/scaling.ts`, one number per tier,
+ * applied to the segment's own current band:
+ *
+ * | tier | pays a move at |
+ * |---|---|
+ * | normal | the segment's band — a sidegrade, coverage rather than power |
+ * | hard | one band above |
+ * | elite | two bands above |
+ *
+ * That is the whole of the ramp's *reward* half, and it is three numbers rather
+ * than a `bandOffset` on every entry because it is one rule. An entry may still
+ * carry a `bandOffset` on top, and exactly one kind of pool uses it: the gym
+ * pool, which has to reach above elite to stay strictly better than it.
+ *
+ * ## Species rewards are gone
+ *
+ * Stage 3 wrote the kind, Stage 4 turned it on, and Stage 4.6a made it
+ * redundant: capture is offered on every wild victory, guaranteed, and a
+ * segment guarantees a wild encounter. Two routes to a party member is two
+ * sets of rules for what a joined Pokemon is — different levels, different
+ * movesets, different prices — and the capture route is the one that costs a
+ * step and is therefore the one the player can plan around.
+ *
+ * The kind is deleted rather than left behind a flag, and `offensiveCoverage`
+ * with its coverage line survives: 4.6a moved it onto the capture card, which
+ * is where a "what does this change about my party" readout belongs now.
  */
 import type { Tier } from '../core/types';
-import { CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
+import { BERRIES, CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
 
 /**
  * One drawable entry in a pool: a weight, and enough parameters for
@@ -45,25 +74,31 @@ export type RewardEntry =
   | { kind: 'item'; weight: number; items: readonly string[] }
   /** Run currency, drawn from an inclusive range and scaled by segment. */
   | { kind: 'currency'; weight: number; min: number; max: number }
-  /** A damaging move added to the party, from the node's bands plus `bandOffset`. */
-  | { kind: 'tm'; weight: number; bandOffset: number }
+  /**
+   * A damaging move added to the party, at the band the tier pays.
+   *
+   * `bandOffset` is an *extra* shift on top of `REWARD_BAND_OFFSET[tier]`, and
+   * it defaults to zero because the tier already says what a move reward is
+   * worth. Only the gym pool sets it, to stay strictly better than elite.
+   */
+  | { kind: 'tm'; weight: number; bandOffset?: number }
   /** The same mechanism, aimed higher. See the note on why both exist. */
-  | { kind: 'tutor'; weight: number; bandOffset: number }
+  | { kind: 'tutor'; weight: number; bandOffset?: number }
   /** Restore this fraction of max HP and PP. */
-  | { kind: 'heal'; weight: number; fraction: number }
-  /** Replace the party member's species. Gated by `tuning.allowSpeciesRewards`. */
-  | { kind: 'species'; weight: number; bandOffset: number };
+  | { kind: 'heal'; weight: number; fraction: number };
 
 /*
- * Every `tm` and `tutor` entry carries a `bandOffset` of at least 1, and that
- * floor is load-bearing rather than tidy.
+ * Every `tm` and `tutor` entry used to carry a `bandOffset` of at least 1, and
+ * the floor was load-bearing: a move reward was drawn from the *node's* band
+ * window, a segment-0 normal node drew from the bottom band, and the starter
+ * arrived holding two bands above it — so at offset 0 every early TM was weaker
+ * than everything the player already had, and the card was blank.
  *
- * A move reward is drawn from the *node's* band window, and a segment-0 normal
- * node draws from move band 0 — under 55 BP — while the starter arrives holding
- * band 1 and 2. At offset 0 every early TM was therefore weaker than everything
- * the player already had, which `party.teachMove` now refuses to act on, so the
- * card was simply blank. A blank card in an offer of three with no skip is a
- * third of a decision thrown away.
+ * Stage 4.6b removes the floor and the reason for it in one move. The starter
+ * now opens at band 1, the same band segment 0 draws, so a normal node's move
+ * reward is a *sidegrade* rather than a dud: same power, different type, which
+ * is the coverage decision the normal tier is supposed to offer. The tiers
+ * above it pay in power, through `REWARD_BAND_OFFSET`.
  */
 
 /** A stretch of the run, and what a tier offers across it. */
@@ -77,6 +112,7 @@ export interface RewardBand {
 const ids = (entries: readonly { id: string }[]): readonly string[] => entries.map((entry) => entry.id);
 
 const TYPE_ITEM_IDS = ids(TYPE_ITEMS);
+const BERRY_IDS = ids(BERRIES);
 const MODEST_ITEM_IDS = ids(MODEST_ITEMS);
 const GOOD_ITEM_IDS = ids(GOOD_ITEMS);
 const PREMIUM_ITEM_IDS = ids(PREMIUM_ITEMS);
@@ -126,18 +162,30 @@ const NORMAL: readonly RewardBand[] = [
   {
     throughSegment: 2,
     entries: [
-      { kind: 'item', weight: 4, items: TYPE_ITEM_IDS },
+      /*
+       * Berries are the normal pool's headline from Stage 4.6b, and they are
+       * weighted heaviest in the opening band on purpose.
+       *
+       * The spec's line for this tier is "a berry, or a move in the segment's
+       * current band — sidegrades and coverage, not power". A berry is the
+       * cheapest thing the game can pay out and the most useful thing it can
+       * pay out early, which is exactly the shape a no-risk tier should have.
+       * The weight falls in the late band as the berry itself fades.
+       */
+      { kind: 'item', weight: 5, items: BERRY_IDS },
+      { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 14, max: 24 },
-      { kind: 'tm', weight: 3, bandOffset: 1 },
+      { kind: 'tm', weight: 7 },
       { kind: 'heal', weight: 3, fraction: 0.4 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
+      { kind: 'item', weight: 2, items: BERRY_IDS },
       { kind: 'item', weight: 3, items: TYPE_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 20, max: 32 },
-      { kind: 'tm', weight: 3, bandOffset: 1 },
+      { kind: 'tm', weight: 7 },
       // Healing climbs late: by segment 6 the next shop is further off than the
       // next gym, so HP stops being convertible into anything else.
       { kind: 'heal', weight: 3, fraction: 0.5 },
@@ -159,7 +207,7 @@ const HARD: readonly RewardBand[] = [
     entries: [
       { kind: 'item', weight: 3, items: [...MODEST_ITEM_IDS, ...GOOD_ITEM_IDS] },
       { kind: 'currency', weight: 2, min: 30, max: 48 },
-      { kind: 'tm', weight: 4, bandOffset: 1 },
+      { kind: 'tm', weight: 8 },
       { kind: 'heal', weight: 5, fraction: 0.85 },
     ],
   },
@@ -168,7 +216,7 @@ const HARD: readonly RewardBand[] = [
     entries: [
       { kind: 'item', weight: 3, items: GOOD_ITEM_IDS },
       { kind: 'currency', weight: 2, min: 42, max: 66 },
-      { kind: 'tutor', weight: 4, bandOffset: 1 },
+      { kind: 'tutor', weight: 8 },
       { kind: 'heal', weight: 6, fraction: 0.95 },
     ],
   },
@@ -196,20 +244,18 @@ const ELITE: readonly RewardBand[] = [
     throughSegment: 2,
     entries: [
       { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
-      { kind: 'tutor', weight: 4, bandOffset: 2 },
+      { kind: 'tutor', weight: 8 },
       { kind: 'currency', weight: 2, min: 62, max: 95 },
       { kind: 'heal', weight: 6, fraction: 1 },
-      { kind: 'species', weight: 2, bandOffset: 1 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
-      { kind: 'tutor', weight: 4, bandOffset: 2 },
+      { kind: 'tutor', weight: 8 },
       { kind: 'currency', weight: 2, min: 85, max: 135 },
       { kind: 'heal', weight: 7, fraction: 1 },
-      { kind: 'species', weight: 2, bandOffset: 1 },
     ],
   },
 ];
@@ -264,18 +310,21 @@ const GYM: readonly RewardBand[] = [
     throughSegment: 2,
     entries: [
       { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
-      { kind: 'tutor', weight: 5, bandOffset: 2 },
+      // The one `bandOffset` left in the file, and the reason it survived: a
+      // gym offer resolves at `elite`, so the tier rule already pays +2, and
+      // "strictly better than elite" needs one more. It clamps at the ceiling
+      // in the late segments, where the pool's own premium items and larger
+      // currency carry the strictness instead.
+      { kind: 'tutor', weight: 5, bandOffset: 1 },
       { kind: 'currency', weight: 3, min: 110, max: 165 },
-      { kind: 'species', weight: 4, bandOffset: 2 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
-      { kind: 'tutor', weight: 5, bandOffset: 3 },
+      { kind: 'tutor', weight: 5, bandOffset: 1 },
       { kind: 'currency', weight: 3, min: 150, max: 230 },
-      { kind: 'species', weight: 4, bandOffset: 2 },
     ],
   },
 ];
