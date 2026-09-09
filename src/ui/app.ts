@@ -109,10 +109,14 @@ export function mountApp(root: HTMLElement): void {
   /*
    * One tooltip layer for the whole app, mounted once.
    *
-   * Delegated from the shell rather than from the battle screen, so a type
-   * badge on the starter select or the party screen works for free — every one
-   * of those already renders `.type` chips, and Stage 4.5's rule is that a type
-   * badge is a door into the reference wheel wherever it appears.
+   * Delegated from the shell rather than from the battle screen, so every tip
+   * outside a battle — an ability on the party screen, a stat on a starter
+   * card, a move's type on a reward card — works for free.
+   *
+   * Stage 4.5's rule was that a type badge opened the reference wheel wherever
+   * it appeared. Stage 4.5.2 narrowed it to *move* type badges: on a Pokemon
+   * the wheel answered a question about the type that said nothing true about
+   * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
   createTooltips(shell);
 
