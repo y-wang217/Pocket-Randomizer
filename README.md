@@ -391,6 +391,26 @@ was already in the Stage 4 bundle before the tooltip layer read one.
 | `npm run measure` | Gzipped bundle size per dependency (build first) |
 | `GYMRUN_FULL_DEX=1 npm run build` | Build without the bundle trim |
 
+## Ratified, and no longer open
+
+Stage 4.6a shipped six calls flagged for review. All six are ratified and are
+written up where they take effect; they are listed here so that "was this
+decided or defaulted?" has one answer.
+
+| call | where it lives |
+|---|---|
+| Locale select is a pre-step, not a node — the node budget is unchanged from 4.5.1 | `tuning.localeOfferCount` |
+| Routes for every offered locale are generated up front and discarded at selection | `docs/generation.md` §1c |
+| A captured Pokémon arrives at the level, moveset and item it was fought with | `core/acquisition.ts` |
+| Its held item goes to the **backpack**, not into its hands | `core/acquisition.ts` |
+| The guaranteed wild step is all-wild at distinct tiers, not a one-option step | `tuning.wildStepOptionCount` |
+| The capture renders inside the result screen; the standalone acquisition screen is gone | `ui/screens/acquisition.ts` |
+
+**The 7.1% completion rate is the accepted baseline**, not a regression to
+recover. It is the price of the guaranteed wild step — a fight per segment
+nobody can decline — and `docs/balance.md` §10.1 has the argument. Stage 4.6b
+retunes once, against this number, and that is the last retune planned.
+
 ## Open questions for later
 
 1. **Fights are short early.** Late fights have a shape; early ones are an
