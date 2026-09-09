@@ -1,209 +1,137 @@
-# Seeds and mappability
+# GYMRUN: Seeds, Versioning, and Whether Runs Are Still Mappable
 
-How a GYMRUN seed becomes a run, why that stopped scaling at Stage 4.5.2, and
-what Stage 4.6a changed about it.
-
-This document was written *as part of* Stage 4.6a rather than before it. The
-4.6 prompt referred to it as an existing file; it did not exist in the
-repository, so what follows is the refactor as designed and shipped, recorded
-here in the place the prompt expected to find it. Read
-[`docs/generation.md`](docs/generation.md) alongside it — that one says what a
-seed produces, this one says why the draws are arranged the way they are.
+Companion to `gymrun-stage4.6-claude-code-prompts.md`. Read this before starting 4.6a. It contains a refactor that Part A depends on.
 
 ---
 
-## 1. The problem
+## The question, split in two
 
-A seed produces five independent sequences: `map`, `rewards`, `battle`,
-`randomizer`, `policy` (`src/core/rng.ts`). The split has been load-bearing
-since Stage 2 and it solved exactly one problem — **one system cannot move
-another system's rolls**. Adding a reward draw cannot reshuffle a map.
+"Are runs still mappable" is two properties that have been treated as one, and they have different answers.
 
-It never addressed the other half. Within one stream, every draw in a whole run
-came off one sequence in one order:
+**1. Replay determinism.** Same seed plus same decision log reconstructs the same run, inside one build. This is a correctness property. Save and resume depends on it, the simulator depends on it, and bug reports depend on it. It must never break.
 
-```
-map: [seg 0 steps][seg 0 kinds][seg 0 tiers][seg 1 steps][seg 1 kinds]...
-```
+**2. Seed portability.** A seed string means the same run across builds and across players. This is a product feature. It is what makes shared seeds, daily seeds, and "beat my run" work.
 
-So a draw added anywhere shifted everything after it. That is why every stage
-from 3 onward *appended* a generation pass rather than editing one, and why
-`docs/generation.md` called the pass list a contract whose only legal edit was
-to grow downward. It worked, and it cost a `RANDOMIZER_VERSION` bump — a full
-retune — every time a stage needed a draw in the middle.
+4.6 threatens only the second one, and it threatens it three times, once per sub-stage. Nothing here endangers the first.
 
-Stage 4.6 needs draws in the middle three times:
+---
 
-- **4.6a** draws a locale offer per segment, and a route *per offered locale*.
-- **4.6b** draws banded moves and rekeyed reward pools.
-- **4.6c** draws three outcome sets per event instead of one.
+## Why the current mechanism does not survive 4.6
 
-Under sequential streams that is three bumps and three balance reports, each of
-which moves every number for a reason unrelated to what the stage changed. The
-whole point of the split below is to make it **one**.
+Today the protection is `randomizerVersion` plus the run log version, both bumped by hand, with a loud rejection on mismatch. That is correct behaviour and it should stay. The problem is what forces the bump.
 
-## 2. Keyed sub-streams
+Streams are sequential. Every draw comes off a stream in order, so **inserting one new draw anywhere shifts every draw after it on that stream**. That is why the 4.5.1 gym reward pool had to be appended as a sixth pass: it was the only way to add draws without shifting the map and battle streams for existing seeds.
 
-A named stream now opens sub-streams by key:
+Appending a pass works once. It does not work for 4.6, which adds:
+
+- Locale offers, and a route per offered locale. (4.6a)
+- Wild encounter placement and species. (4.6a)
+- Banded move draws replacing flat move draws. (4.6b)
+- Berry hold rolls on trainer and wild mons. (4.6b)
+- Three band outcome sets per event, plus a band 3 encounter spec. (4.6c)
+
+Done sequentially with appended passes, that is a stack of six or seven passes in a fixed order that nobody can safely reorder afterward, three `randomizerVersion` bumps in a row, and a stream isolation test suite that has to be rewritten at each sub-stage to prove something that should be structurally true.
+
+---
+
+## The fix: keyed sub-streams
+
+Replace sequential streams with streams derived by key. A child PRNG is derived by hashing the run seed with a stable string:
 
 ```ts
-rng.map.at('seg3/cave/route')      // an independent sequence
-rng.randomizer.at('node/s3-cave-2-0')
-rng.rewards.at('node/s3-cave-2-0/offer')
+rng.at('locale:segment3:offer')
+rng.at('rewards:segment3:node2:offer')
+rng.at('rewards:segment3:node2:event:band:known')
+rng.at('randomizer:segment3:wild:species')
 ```
 
-Each is `sfc32(cyrb128('gymrun:<stream>#<key>:<seed>'))` — the same construction
-the five streams already used, one level down. Two keys are as independent as
-two streams, because they are the same mechanism.
+Each key gets its own independent generator seeded from `hash(runSeed, key)`. Draw order stops existing as a global concept.
 
-Sub-streams are **memoized per key**, so asking twice continues one sequence
-rather than restarting it. A version that rebuilt the sequence per call would
-make a draw a function of how many times the caller asked, which is the bug
-class this exists to remove.
+**What this buys.**
 
-The separator is `#` because it appears in neither a stream name nor a
-normalized seed (`A-Z0-9`). With a plain `:`, the triple (`map`, `a`, `b`) and
-(`map`, —, `a:b`) would hash to one domain string. `test/stream-keys.test.ts`
-asserts that directly rather than trusting the argument.
+- Adding a draw creates a new key. It cannot shift any existing key, by construction, not by convention.
+- Stream isolation stops being a property you test per stage and becomes a property of the derivation. The test becomes one test, written once: inserting a draw under an arbitrary key leaves output under every other key byte identical.
+- 4.6b and 4.6c should not need a `randomizerVersion` bump at all for their new draws. They bump only for the content changes described below.
+- Sub-stages stop invalidating each other's seeds mid-development.
 
-### What a key names
+**What it costs.** One refactor, done as step 1 of 4.6a, before any locale work. Every existing draw site moves from `rng.stream('map')` to a key. The existing determinism tests are the safety net: the refactor is done when they pass unchanged.
 
-**A thing that draws, never a moment in time.** `node/s3-cave-2-0` is a key;
-"the fourth draw of segment 3" is not. That is the whole discipline, and it is
-what makes a key stable across a change to everything around it.
+**The one discipline it requires.** Keys must be stable strings, never derived from anything that varies with player behaviour. A key containing a turn count or a party size reintroduces the exact coupling this removes. Write that rule into `docs/generation.md` next to the existing entries.
 
-`src/core/streamKeys.ts` holds every key in the game, as functions rather than
-literals, because two call sites spelling one key differently is two sequences
-where one was intended and nothing would report it.
+---
 
-| stream | key | draws |
-|---|---|---|
-| `randomizer` | `starters` | the starter options |
-| `map` | `seg<i>/locale-offer` | which locales a segment offers |
-| `map` | `seg<i>/<locale>/route` | that route's steps, kinds, fix-ups, tiers |
-| `randomizer` | `node/<id>` | that node's team |
-| `battle` | `node/<id>` | that node's sim PRNG seed |
-| `rewards` | `node/<id>/offer` | the three cards |
-| `rewards` | `node/<id>/shop` | the shelf |
-| `rewards` | `node/<id>/event` | the prompt and its resolved outcomes |
-| `rewards` | `seg<i>/gym-reward` | the gym clear offer |
+## Two version axes, not one
 
-One key on two streams (`node/<id>` on `randomizer` and on `battle`) is safe and
-deliberate: the streams are domain-separated by name first, so those are two
-unrelated sequences. It means "everything about node x" is one thing to name.
+Once streams are keyed, what actually invalidates a shared seed is not code, it is content. Separate the axes:
 
-### Purposes are separated even where they cannot co-occur
+**`contentHash`.** A hash computed at build time over the data tables: `speciesPools`, `movePools`, `scaling`, `rewardPools`, `locales`, `items`, `hms`, `events`, `blacklists`, `starters`, `tuning`. Any change to a balance number changes the hash. Code changes that do not touch data do not.
 
-A node is a fight *or* a shop *or* an event, so one `node/<id>` key on `rewards`
-would work today. It is three keys anyway, because "cannot co-occur" is a
-property of this stage's node kinds and a key is forever. The moment an event
-node also pays a card, separate purposes mean a new draw in a sequence nothing
-else reads.
+This replaces hand-bumped `randomizerVersion` with something that cannot be forgotten, which matters because a forgotten bump is the failure mode that silently reinterprets a shared seed. The hand bump is a discipline problem and disciplines fail. A hash does not.
 
-## 3. What this buys, precisely
+**Run log version.** Bumps when the *decision schema* changes: a new logged decision, a reordering, a changed shape. 4.6a adds locale selection and capture decisions, 4.6b adds nothing, 4.6c adds HM teaching. So the log version bumps at 4.6a and 4.6c, and it is independent of `contentHash`.
 
-**A new key moves nothing.** Not "moves little" — nothing. The sequence for
-`seg3/cave/route` is a pure function of the seed, the stream name and that
-string, so a stage that adds `seg3/cave/weather` has not touched it.
+Both go in the log. Replay checks both. Mismatch on either fails loudly with a message naming which axis mismatched and what the two values were.
 
-**A new draw inside an existing key moves only that key's own later draws.**
-4.6b adds a band draw to a node's reward offer: that node's cards change, and no
-other node's do — not the node beside it, not its team, not its sim seed.
+---
 
-**Generation order stops being a contract.** The passes in
-`core/encounters.ts` are still passes, because pass 2 needs pass 1's kinds and
-because they read well. They are no longer a draw order, so reordering them is a
-refactor rather than a break. "The list only ever grows downward" is retired.
+## Seed strings carry their content
 
-### Why 4.6b and 4.6c should not need a `randomizerVersion` bump
+Right now a seed is a bare string, so a mismatch is only detectable at replay time, after the player has already committed. Make the shareable identity carry its version:
 
-They will each change what a seed *rolls*, so both will still bump the version —
-that is what the string is for, and neither stage is claiming otherwise.
+```
+GYMRUN-a3f91c-8827364
+        ^        ^
+        |        run seed
+        contentHash, first 6
+```
 
-What they will not need is a bump **for structural reasons**. Under the old
-streams, 4.6b's reward rekey would have moved every `rewards` draw in the run
-and therefore every acquisition and every shop shelf in every seed; 4.6c's
-three-outcome events would have done it again. Those are the bumps this refactor
-removes: after 4.6a, a stage's blast radius is the keys it actually touches, so
-its balance report can attribute a change to the thing the stage changed. A
-stage that adds draws only under new keys — 4.6c's band-3 encounter spec is
-designed to be exactly that — can land without moving a single existing roll.
+Pasting a seed with a foreign content hash is caught at paste time, with a message that says the seed was made on a different balance version and will not reproduce. The bare seed still works for a fresh run, it just is not a promise of the same run.
 
-That is also what makes the 4.6c requirement "RNG consumption is identical
-regardless of which band resolves" cheap to satisfy: draw all three bands under
-one key at map generation and the consumption is fixed by construction.
+This is the piece that makes the Stage 5 daily seed and seed sharing links actually work, and it is much cheaper to build now than to retrofit onto seeds already in circulation.
 
-## 4. Mappability
+---
 
-Locale selection (4.6a) is the first thing in the game where **the player picks
-which generated content is real**. A segment offers two or three locales and a
-route exists for each.
+## Are runs mappable? Yes, and more so after this
 
-Keying makes the two candidate implementations equivalent:
+Keyed streams make something possible that sequential streams did not: **generating the full map without playing it.**
 
-- Generate every offered locale's route up front and discard the unpicked ones.
-- Derive the picked locale's route at selection time.
+Because every structural draw is keyed and none of it depends on battle outcomes, `previewRun(seed, contentHash)` can produce the entire run topology in milliseconds, with no battles simulated:
 
-Both produce the identical route, because the route is a function of
-`(seed, 'map', 'seg<i>/<locale>/route')` and nothing else — not of when it was
-generated, not of what else was generated first. **4.6a takes the first**, for
-one reason: eager generation is already the rule the codebase is built on
-(`docs/generation.md` §1), and a lazy path would be a second way for content to
-come into existence, differing from the first only in circumstances nobody would
-think to test.
+- Every segment's locale offers.
+- The route under each offered locale, node types and tiers.
+- Wild encounter placement and species pool.
+- Reward offers at every node.
+- Event capability requirements and all three band outcomes.
+- Shop stock.
 
-The cost is three routes generated where one is walked, which is a few hundred
-microseconds and some data nobody sees.
+What it cannot produce is anything downstream of a player decision or a battle roll: which locale gets picked, what the party looks like, which event band resolves, whether the run is won.
 
-## 5. What is still a contract
+Three uses, in order of near term value:
 
-Keying removes the *global* draw order. It removes nothing else.
+1. **Balance work.** Inspecting a thousand maps without simulating a thousand runs is orders of magnitude faster than the current report loop, and it answers the structural questions directly. Does every segment really contain a rest? Do locales distribute evenly? Is any capability required more often than any other?
+2. **Bug reports.** A seed plus a preview is a complete reproduction of the structural half of any bug, with no replay needed.
+3. **Stage 5.** Seed sharing pages, daily seed previews, and a spectator layout all read off this.
 
-- **Within one key, order is still a contract.** A node's team is species,
-  level, ability, moves, gender, member by member. Inserting a draw in the
-  middle of that reshuffles that node — and only that node, which is the
-  improvement, but it is still a change every seed feels.
-- **Eager generation is still the rule.** Contents are drawn for options the
-  player never takes. Keying means a lazily drawn node can no longer corrupt a
-  *different* node; it does not stop the node itself depending on when it was
-  visited.
-- **A reward is still drawn at map generation, never at node completion.** That
-  argument was never about stream layout — it is that a draw taken after a fight
-  is a draw that depends on how the fight went.
-- **Player decisions still consume no RNG.** A locale pick, a capture, a
-  release: all are inputs, all serialize into the log in order, none draw.
+Build `previewRun` as part of the 4.6a stream refactor while the derivation is fresh. It is a thin function over keyed streams and it is a poor retrofit later.
 
-## 6. Version guards
+---
 
-`RANDOMIZER_VERSION` went to `gymrun-randomizer-7` for 4.6a, and it is the
-broadest bump the string has carried. Not one line of *what a Pokemon is*
-changed and not one draw moved within its own function — but a value that used
-to be the four hundredth off `randomizer` is now the third off
-`randomizer#node/s2-1-0`, so every seed rolls a different run. That is exactly
-the class of change the string exists to make loud: a 4.5.2 log replays
-perfectly and is not the run it recorded.
+## What to accept during 4.6 development
 
-`RUN_LOG_VERSION` moves separately, when the *questions* change — 4.6a adds a
-locale decision, so it moves too. Two guards, two messages, because a reader
-diagnosing a rejected log wants to know whether the questions changed or the
-answers would now mean something different.
+Seeds shared during 4.6a, 4.6b, and 4.6c are disposable. Each sub-stage changes data tables, so each changes `contentHash`, so no seed survives the patch. Do not spend any effort preserving cross-sub-stage seed compatibility. It has no user and it will constrain the tuning passes, which are the point.
 
-## 7. The tests that hold this up
+**Freeze at the end of 4.6c.** Once the retune from 4.6b and the gate rates from 4.6c have settled, stamp that `contentHash` and treat it as the first shareable baseline. Everything before it is development. Everything after it moves seeds deliberately, with the hash making the move visible.
 
-`test/stream-keys.test.ts`, six groups:
+---
 
-1. Draining one key by ten thousand draws moves no other key and no other
-   stream.
-2. A key gives the same values however much was drawn elsewhere first, and
-   `at(k)` twice is one sequence rather than two.
-3. Opening a key that never existed moves nothing.
-4. One key on two streams, two seeds, or against another key: three different
-   sequences.
-5. A key cannot collide with the unkeyed sequence, including the `#` case above.
-6. A whole run's generation leaves every *unkeyed* sequence at zero draws, one
-   segment generates identically whatever was generated before it, and one seed
-   generates one run twice.
+## Order this implies for 4.6a step 1
 
-Property 6 is the one that catches the regression that matters: a new draw added
-straight onto `rng.map` instead of onto a key would pass every other test in the
-suite and quietly reintroduce the global order.
+1. Implement `rng.at(key)` with a stable hash derivation, alongside the existing sequential streams.
+2. Port every existing draw site to a key. Existing determinism tests must pass unchanged against ported call sites, with the *values* allowed to change since the derivation is new. This is the one and only intentional seed break of the refactor.
+3. Delete the sequential stream API entirely. Leaving both means someone uses the old one.
+4. Write the single isolation test: a draw inserted under an arbitrary key leaves output under all other keys byte identical.
+5. Add `contentHash` computed over the data tables, put it in the run log next to the run log version, and make replay check both.
+6. Build `previewRun`.
+7. Bump `randomizerVersion` once, or retire it in favour of `contentHash` if you prefer one mechanism. Retiring it is cleaner but check nothing else reads it first.
+
+Then start locales.
