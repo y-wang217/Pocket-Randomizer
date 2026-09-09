@@ -53,6 +53,7 @@
  * are curated in `scripts/gen-pools.ts` and travel on the generated entry; this
  * file can correct one move's tag without a regeneration.
  */
+import { capabilityOnlyMove, CAPABILITY_ONLY_MOVES } from './capabilityMoves';
 import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry, type MoveImpact } from './movePools';
 
 /** A hand-written correction to a generated move entry. */
@@ -115,10 +116,19 @@ export function impactOf(move: MoveEntry): MoveImpact | null {
  * Null for a status move, for a move the pool does not contain, and for a name
  * that matches nothing — all three are "no band to show", and a screen that
  * distinguished them would be showing the player the shape of our tables.
+ *
+ * **The capability overlay is searched after the generated pool** (Stage 4.6c).
+ * Cut is not in `DAMAGING_MOVES` and never will be — see the header of
+ * `data/capabilityMoves.ts` — but a reward card offering it has to print the
+ * same badge as a card offering Ember, because it *is* an ordinary band-1 move.
+ * Searching the pool first means a regeneration that ever brought Cut through
+ * would take over silently, which is the right precedence.
  */
 export function bandOfMove(nameOrId: string): number | null {
   const wanted = nameOrId.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const entry = DAMAGING_MOVES.find((move) => move.id === wanted || move.name === nameOrId);
+  const entry =
+    DAMAGING_MOVES.find((move) => move.id === wanted || move.name === nameOrId) ??
+    capabilityOnlyMove(wanted);
   return entry ? bandOf(entry) : null;
 }
 
@@ -129,8 +139,13 @@ export function bandOfMove(nameOrId: string): number | null {
  * nothing, and the move keeps its computed band forever. `test/data-tables.test.ts`
  * asserts this is empty, which is the cheapest possible guard on a hand-written
  * table keyed by ids from a generated one.
+ *
+ * The capability overlay counts as a pool here, so a capability move may carry
+ * an override on the same terms as any other move. None does today.
  */
 export function danglingOverrides(): string[] {
-  const known = new Set([...DAMAGING_MOVES, ...STATUS_MOVES].map((move) => move.id));
+  const known = new Set(
+    [...DAMAGING_MOVES, ...STATUS_MOVES, ...CAPABILITY_ONLY_MOVES].map((move) => move.id),
+  );
   return Object.keys(MOVE_OVERRIDES).filter((id) => !known.has(id));
 }
