@@ -360,13 +360,29 @@ describe('run shape', () => {
      * choice needs no wrapping, no turn number and no side — it is just
      * `{kind, slot}`, and that shape still goes straight into the log.
      */
+    /*
+     * Slot 1 when slot 1 is usable, and the first usable slot otherwise.
+     *
+     * It returned `move 1` unconditionally until Stage 4.6b re-banded every
+     * moveset, at which point this seed's slot 1 ran out of PP mid-run and the
+     * driver refused the choice — correctly. A policy that cannot answer "slot
+     * 1 is spent" is not what this test is about, so it answers, and the
+     * assertion below narrows to the shape of the entries that *did* take slot
+     * 1.
+     */
     const run = await playRun(
       'RUN-CHOICE',
-      scriptedRunPolicy(async (view) => forcedSwitchFallback(view) ?? moveChoice(1)),
+      scriptedRunPolicy(async (view) => {
+        const forced = forcedSwitchFallback(view);
+        if (forced) return forced;
+        const first = view.moves.find((move) => move.slot === 1 && move.usable);
+        return moveChoice(first?.slot ?? view.moves.find((move) => move.usable)?.slot ?? 1);
+      }),
     );
     const battleDecisions = run.log.decisions.filter((decision) => decision.kind === 'battle');
     const moves = battleDecisions.filter(
-      (decision) => decision.kind === 'battle' && decision.choice.kind === 'move',
+      (decision) =>
+        decision.kind === 'battle' && decision.choice.kind === 'move' && decision.choice.slot === 1,
     );
 
     expect(moves.length).toBeGreaterThan(0);

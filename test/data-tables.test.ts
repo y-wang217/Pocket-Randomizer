@@ -21,9 +21,11 @@
 import { Dex } from '@pkmn/sim';
 import { describe, expect, it } from 'vitest';
 
+import { bandOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../src/data/moveOverrides';
+
 import { ABILITY_POOL } from '../src/data/abilities';
 import { GYMS } from '../src/data/gyms';
-import { DAMAGING_MOVES, MAX_MOVE_BAND, STATUS_MOVES } from '../src/data/movePools';
+import { COMPUTED_MAX_MOVE_BAND, DAMAGING_MOVES, STATUS_MOVES } from '../src/data/movePools';
 import { SEGMENTS, speciesBandsFor } from '../src/data/scaling';
 import { MAX_SPECIES_BAND, SPECIES_POOL } from '../src/data/speciesPools';
 
@@ -106,8 +108,17 @@ describe('move pools', () => {
     const types = new Set(DAMAGING_MOVES.map((move) => move.type));
     expect(types.size).toBe(18);
 
-    for (let band = 0; band <= MAX_MOVE_BAND; band++) {
-      const inBand = new Set(DAMAGING_MOVES.filter((move) => move.band === band).map((move) => move.type));
+    // Bands are 1..4 from Stage 4.6b, and `bandOf` rather than `move.band`
+    // because an override can move a move between bands — a band emptied of a
+    // type by an override is the same failure as one emptied by the generator.
+    // Both ceilings, because they can differ: the generator's is what base
+    // power produced, and the live one is what overrides left. A band that
+    // exists only because an override put a move there still needs 18 types.
+    expect(MAX_MOVE_BAND).toBeGreaterThanOrEqual(COMPUTED_MAX_MOVE_BAND);
+    for (let band = MIN_MOVE_BAND; band <= MAX_MOVE_BAND; band++) {
+      const inBand = new Set(
+        DAMAGING_MOVES.filter((move) => bandOf(move) === band).map((move) => move.type),
+      );
       expect(inBand.size, `band ${band} covers ${inBand.size}/18 types`).toBe(18);
     }
   });
@@ -157,8 +168,16 @@ describe('the curve can be drawn from', () => {
       const available = SPECIES_POOL.filter((entry) => bands.has(entry.band));
       expect(available.length, `segment ${row.segment} species`).toBeGreaterThan(30);
 
-      const moveBands = new Set(row.moveBands);
-      const moves = DAMAGING_MOVES.filter((move) => moveBands.has(move.band));
+      // The band *distribution* from Stage 4.6b, not a window: every band the
+      // segment can draw has to have moves in it, and a weight of zero means
+      // the segment cannot draw that band at all.
+      const moveBands = new Set(
+        Object.entries(row.moveBandWeights)
+          .filter(([, weight]) => weight > 0)
+          .map(([band]) => Number(band)),
+      );
+      expect(moveBands.size, `segment ${row.segment} has no drawable move band`).toBeGreaterThan(0);
+      const moves = DAMAGING_MOVES.filter((move) => moveBands.has(bandOf(move) ?? 0));
       expect(moves.length, `segment ${row.segment} moves`).toBeGreaterThan(50);
     }
   });

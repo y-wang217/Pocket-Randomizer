@@ -70,8 +70,25 @@ export const STARTER_BANDS: readonly number[] = [3, 4];
  * So the kit is strong at segment 1, ordinary by segment 4, and the way back is
  * the reward screen — which is the shape a resource the player *can* upgrade
  * should have.
+ *
+ * ## Stage 4.6b: band 1 only, and the renumbering that hides how big a change
+ * that is
+ *
+ * This read `[1, 2]` and now reads `[1]`, which looks like a one-band narrowing
+ * and is not. Move bands were renumbered from 0-3 to 1-4 in the same stage, so
+ * the old `[1, 2]` is the new `[2, 3]` — the starter has come down **two**
+ * bands, from "the middle of the table" to "the bottom of it".
+ *
+ * That is the ramp's opening position, and it is the point of the stage: a run
+ * starts with Tackle and Growl and climbs. The Stage 3 finding above still
+ * holds and is what makes the narrowing safe rather than cruel — a starter
+ * whose best attack no reward can beat makes every move card in the game a dead
+ * card, and this is that argument taken to its conclusion. The compensation is
+ * that the *opponents* start at band 1 too: segments 1-2 draw band 1 only, so
+ * the opening is a fight between two weak kits rather than a weak kit against
+ * the old one.
  */
-export const STARTER_MOVE_BANDS: readonly number[] = [1, 2];
+export const STARTER_MOVE_BANDS: readonly number[] = [1];
 
 const BASE: readonly SpeciesEntry[] = SPECIES_POOL.filter(
   (entry) => STARTER_BANDS.includes(entry.band) && !isSpeciesBlacklisted(entry.id),

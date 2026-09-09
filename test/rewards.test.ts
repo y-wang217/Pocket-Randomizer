@@ -292,8 +292,18 @@ describe('held items reach the engine', () => {
     expect(battleSpecFor(party[0]!).item).toBe('leftovers');
 
     const run = await playRun('ITEM-READBACK', scriptedRunPolicy(greedyAiPolicy));
-    const damaged = run.state.history.some((visit) => visit.result && visit.hpAfter > 0);
-    expect(damaged).toBe(true);
+    /*
+     * HP went *down*, which is the property this guards.
+     *
+     * It read `hpAfter > 0` until Stage 4.6b, which says "the party survived a
+     * fight with something left" — true of a run that wins its first fight and
+     * false of one that loses it, so the test was a seed's survival wearing a
+     * regression guard's clothes. The bug it exists for is damage being
+     * silently discarded, and the assertion for that is that damage landed.
+     */
+    const startingHp = party.reduce((total, member) => total + member.maxHp, 0);
+    const damaged = run.state.history.some((visit) => visit.result && visit.hpAfter < startingHp);
+    expect(damaged, 'no fight moved a single point of HP').toBe(true);
   });
 
   it('names a type item that does nothing for this Pokemon', () => {

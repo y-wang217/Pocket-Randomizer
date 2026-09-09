@@ -17,6 +17,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { MAX_MOVE_BAND } from '../src/data/moveOverrides';
+
 import { isBattleKind } from '../src/core/economy';
 import { generateSegment, generateStarterOptions, nodesOf,
   routeStepsOf,
@@ -27,7 +29,6 @@ import { createRun } from '../src/core/run';
 import type { Tier } from '../src/core/types';
 import {
   encounterPower,
-  MAX_MOVE_BAND,
   MAX_SPECIES_BAND,
   moveBandsFor,
   SEGMENT_COUNT,

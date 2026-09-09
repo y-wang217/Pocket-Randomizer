@@ -159,12 +159,66 @@ const speciesRows: SpeciesRow[] = dex.species
 // Moves
 // ---------------------------------------------------------------------------
 
-/** Base-power cuts between move bands. Mirrors BST_CUTS in spirit. */
+/**
+ * Base-power cuts between move bands. Mirrors BST_CUTS in spirit.
+ *
+ * **Bands are numbered 1 to 4 from Stage 4.6b**, where they were 0 to 3. The
+ * renumbering is not cosmetic: 4.6b puts the band on reward cards, in the
+ * balance report and in every conversation about the ramp, and a table that
+ * says "band 1" while the code says 0 is a translation everybody has to
+ * remember and somebody eventually gets wrong. Species bands stay 0-based
+ * because they are never named outside this codebase.
+ *
+ * The first cut is **55 and not the spec's 50**, which is a ratified
+ * exception: 55 is where Stage 2 put it after measuring that segments 1-2 need
+ * opponents under 55 BP to produce a fight lasting more than a turn, and
+ * moving it to 50 would have re-opened that measurement for the sake of a
+ * round number.
+ */
 const POWER_CUTS = [55, 75, 95] as const;
 
 function powerBandOf(basePower: number): number {
   const index = POWER_CUTS.findIndex((cut) => basePower <= cut);
-  return index === -1 ? POWER_CUTS.length : index;
+  return (index === -1 ? POWER_CUTS.length : index) + 1;
+}
+
+/**
+ * Expected hits for a multi-hit move. 1 for everything else.
+ *
+ * A fixed count is itself; a `[2, 5]` range is 3.167, which is the gen 5+
+ * distribution (2 and 3 at a third each, 4 and 5 at a sixth each). Skill Link
+ * would make it 5 and is ignored: abilities are drawn off-species, so every
+ * move would have to be banded for an ability it usually will not have.
+ */
+function expectedHits(move: Move): number {
+  const hits = move.multihit;
+  if (!hits) return 1;
+  if (Array.isArray(hits)) {
+    const low = hits[0] ?? 1;
+    const high = hits[1] ?? low;
+    return low === 2 && high === 5 ? 3.167 : (low + high) / 2;
+  }
+  return hits;
+}
+
+/**
+ * The base power a move actually applies in a turn.
+ *
+ * **The one place the dex's own number is not taken at face value, and it is a
+ * mechanical correction rather than a balance one.** `basePower` on a multi-hit
+ * move is per *hit*: Population Bomb reports 20 and lands ten times, so the
+ * generated table would file the hardest move in the game as band 1 — the
+ * weakest card there is — and a reward screen would offer it as a beginner's
+ * pick.
+ *
+ * Stage 4.6b's override table (`data/moveOverrides.ts`) exists for moves whose
+ * power lies about their strength, and this class is deliberately *not* left to
+ * it. An override is a hand-written exception justified by evidence; this is
+ * arithmetic the dex already knows, and computing it here means it stays right
+ * when the dex changes a hit count.
+ */
+function effectivePower(move: Move): number {
+  return Math.round(move.basePower * expectedHits(move));
 }
 
 /**
@@ -243,23 +297,48 @@ function moveAllowed(move: Move): boolean {
  *
  * These forty do something on the turn they are used, or on the next one.
  */
-const STATUS_MOVES: readonly string[] = [
-  // setup
-  'Swords Dance', 'Nasty Plot', 'Calm Mind', 'Bulk Up', 'Dragon Dance', 'Agility',
-  'Iron Defense', 'Amnesia', 'Work Up', 'Hone Claws', 'Shell Smash', 'Quiver Dance',
-  'Coil', 'Cosmic Power', 'Rock Polish', 'Curse', 'Growth', 'Acid Armor',
-  // recovery
-  'Recover', 'Roost', 'Synthesis', 'Moonlight', 'Morning Sun', 'Soft-Boiled',
-  'Slack Off', 'Milk Drink', 'Rest', 'Shore Up', 'Strength Sap', 'Life Dew',
-  'Leech Seed', 'Aqua Ring', 'Wish',
-  // status
-  'Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Glare', 'Sleep Powder', 'Spore',
-  'Hypnosis', 'Yawn', 'Stun Spore', 'Poison Powder', 'Confuse Ray', 'Sing',
-  // pressure
-  'Screech', 'Charm', 'Scary Face', 'Metal Sound', 'Fake Tears', 'Tickle',
-  'Eerie Impulse', 'Protect', 'Substitute', 'Reflect', 'Light Screen', 'Safeguard',
-  'Tailwind', 'Taunt', 'Encore', 'Disable',
-];
+const STATUS_BY_IMPACT: Record<string, readonly string[]> = {
+  setup: [
+    'Swords Dance', 'Nasty Plot', 'Calm Mind', 'Bulk Up', 'Dragon Dance', 'Agility',
+    'Iron Defense', 'Amnesia', 'Work Up', 'Hone Claws', 'Shell Smash', 'Quiver Dance',
+    'Coil', 'Cosmic Power', 'Rock Polish', 'Curse', 'Growth', 'Acid Armor',
+  ],
+  recovery: [
+    'Recover', 'Roost', 'Synthesis', 'Moonlight', 'Morning Sun', 'Soft-Boiled',
+    'Slack Off', 'Milk Drink', 'Rest', 'Shore Up', 'Strength Sap', 'Life Dew',
+    'Leech Seed', 'Aqua Ring', 'Wish',
+  ],
+  status: [
+    'Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Glare', 'Sleep Powder', 'Spore',
+    'Hypnosis', 'Yawn', 'Stun Spore', 'Poison Powder', 'Confuse Ray', 'Sing',
+  ],
+  pressure: [
+    'Screech', 'Charm', 'Scary Face', 'Metal Sound', 'Fake Tears', 'Tickle',
+    'Eerie Impulse', 'Protect', 'Substitute', 'Reflect', 'Light Screen', 'Safeguard',
+    'Tailwind', 'Taunt', 'Encore', 'Disable',
+  ],
+};
+
+/**
+ * The impact tag, which is the status half of Stage 4.6b's banding.
+ *
+ * **These four groups already existed here as comments.** They were written in
+ * Stage 2 as a note on why the list is curated, and 4.6b needs exactly the
+ * distinction they draw: a status move has no base power, so it has no band,
+ * and offering a Swords Dance as a "band 1" reward would read as the weakest
+ * card in the game. Promoting the comment to data is cheaper and more honest
+ * than inventing a second taxonomy beside it.
+ *
+ * A single move's tag can be corrected in `data/moveOverrides.ts` without
+ * regenerating; the groups are the default, not the last word.
+ */
+const STATUS_MOVES: readonly string[] = Object.values(STATUS_BY_IMPACT).flat();
+
+function impactOf(name: string): string {
+  const found = Object.entries(STATUS_BY_IMPACT).find(([, names]) => names.includes(name));
+  if (!found) throw new Error(`Status move "${name}" has no impact group`);
+  return found[0];
+}
 
 interface MoveRow {
   id: string;
@@ -268,10 +347,14 @@ interface MoveRow {
   category: 'Physical' | 'Special' | 'Status';
   basePower: number;
   accuracy: number;
-  band: number;
+  /** Null for a status move: no base power, so no band. See `impact`. */
+  band: number | null;
+  /** Status moves only. */
+  impact: string | null;
 }
 
 function moveRow(move: Move): MoveRow {
+  const status = move.category === 'Status';
   return {
     id: move.id,
     name: move.name,
@@ -279,7 +362,8 @@ function moveRow(move: Move): MoveRow {
     category: move.category,
     basePower: move.basePower,
     accuracy: move.accuracy === true ? 101 : move.accuracy,
-    band: move.category === 'Status' ? 0 : powerBandOf(move.basePower),
+    band: status ? null : powerBandOf(effectivePower(move)),
+    impact: status ? impactOf(move.name) : null,
   };
 }
 
@@ -383,10 +467,10 @@ export const MAX_SPECIES_BAND = ${BST_CUTS.length};
 
 function emitMoves(): string {
   const damaging = damagingRows
-    .map((row) => `  { id: '${row.id}', name: ${quote(row.name)}, type: ${quote(row.type)}, category: '${row.category}', basePower: ${row.basePower}, accuracy: ${row.accuracy}, band: ${row.band} },`)
+    .map((row) => `  { id: '${row.id}', name: ${quote(row.name)}, type: ${quote(row.type)}, category: '${row.category}', basePower: ${row.basePower}, accuracy: ${row.accuracy}, band: ${row.band}, impact: null },`)
     .join('\n');
   const status = statusRows
-    .map((row) => `  { id: '${row.id}', name: ${quote(row.name)}, type: ${quote(row.type)}, category: 'Status', basePower: 0, accuracy: ${row.accuracy}, band: 0 },`)
+    .map((row) => `  { id: '${row.id}', name: ${quote(row.name)}, type: ${quote(row.type)}, category: 'Status', basePower: 0, accuracy: ${row.accuracy}, band: null, impact: '${row.impact}' },`)
     .join('\n');
 
   return `${BANNER}
@@ -401,9 +485,29 @@ export interface MoveEntry {
   basePower: number;
   /** 101 means "never misses"; the dex reports that as \`true\`. */
   accuracy: number;
-  /** 0 (weakest) to ${POWER_CUTS.length} for damaging moves; always 0 for status. */
-  band: number;
+  /**
+   * 1 (weakest) to ${POWER_CUTS.length + 1} for damaging moves, cut from base power at
+   * ${POWER_CUTS.join(', ')}. **Null for a status move**, which has no base power and
+   * therefore no band — see \`impact\`.
+   *
+   * This is the *computed* band. \`data/moveOverrides.ts\` can replace it for a
+   * move whose base power lies about its strength, and \`bandOf()\` there is the
+   * one function that should be asked.
+   */
+  band: number | null;
+  /**
+   * What a status move actually does, for the pools that gate on it.
+   *
+   * Null for damaging moves, which are gated by band instead. The four groups
+   * are curated in \`scripts/gen-pools.ts\`; \`impactOf()\` in
+   * \`data/moveOverrides.ts\` is the one function that should be asked, because a
+   * single move's tag can be corrected without regenerating this file.
+   */
+  impact: MoveImpact | null;
 }
+
+/** What a status move is for. Damaging moves carry a band instead. */
+export type MoveImpact = 'setup' | 'recovery' | 'status' | 'pressure';
 
 /**
  * Damaging moves, by move id.
@@ -427,8 +531,15 @@ export const STATUS_MOVES: readonly MoveEntry[] = [
 ${status}
 ];
 
-/** The highest band any damaging move carries. */
-export const MAX_MOVE_BAND = ${POWER_CUTS.length};
+/**
+ * The highest band the *computed* banding produces.
+ *
+ * Not the ceiling anything should clamp to: an override in
+ * \`data/moveOverrides.ts\` can move a move above it, so the live ceiling is
+ * \`MAX_MOVE_BAND\` there, derived from the entries with overrides applied. This
+ * is here as a record of what the generator itself emits.
+ */
+export const COMPUTED_MAX_MOVE_BAND = ${POWER_CUTS.length + 1};
 `;
 }
 
@@ -465,10 +576,14 @@ for (let band = 0; band <= BST_CUTS.length; band++) {
   console.log(`  band ${band}: ${String(rows.length).padStart(3)} species`);
 }
 console.log(`damaging moves: ${damagingRows.length}`);
-for (let band = 0; band <= POWER_CUTS.length; band++) {
+for (let band = 1; band <= POWER_CUTS.length + 1; band++) {
   const rows = damagingRows.filter((row) => row.band === band);
   const types = new Set(rows.map((row) => row.type));
   console.log(`  band ${band}: ${String(rows.length).padStart(3)} moves across ${types.size}/18 types`);
 }
 console.log(`status moves: ${statusRows.length}`);
+for (const impact of Object.keys(STATUS_BY_IMPACT)) {
+  const rows = statusRows.filter((row) => row.impact === impact);
+  console.log(`  ${impact.padEnd(8)}: ${String(rows.length).padStart(3)} moves`);
+}
 console.log(`abilities: ${abilityRows.length}`);

@@ -22,7 +22,7 @@
  *   - **Team sizes**, as a function of PARTY_SIZE. See below.
  */
 import type { PokemonSpec, TeamSpec, Tier } from '../core/types';
-import { DAMAGING_MOVES } from './movePools';
+import { MAX_MOVE_BAND, MIN_MOVE_BAND } from './moveOverrides';
 import { SPECIES_POOL } from './speciesPools';
 import { PARTY_SIZE } from './partyTuning';
 import type { BattleKind, Range } from './tuning';
@@ -59,8 +59,27 @@ export interface SegmentScaling {
   levelOffset: Record<BattleKind, Range>;
   /** Species bands (data/speciesPools.ts) this segment may draw from. */
   speciesBands: readonly number[];
-  /** Damaging-move bands (data/movePools.ts) this segment may draw from. */
-  moveBands: readonly number[];
+  /**
+   * How likely each damaging-move band is in this segment. **A distribution,
+   * not a window, from Stage 4.6b.**
+   *
+   * It was `moveBands: readonly number[]` — a flat set every move slot drew
+   * uniformly from — and the change is the whole of the stage's ramp. A window
+   * makes the run a *staircase*: every opponent in segments 4-5 draws from
+   * exactly bands 2 and 3, half and half, so the moment the segment index ticks
+   * over, everything the player meets steps up together. A distribution makes
+   * it a slope: segment 4 is mostly band 3 with band 2 still showing up, so the
+   * opponent that hits like a truck arrives *before* the segment where every
+   * opponent does.
+   *
+   * It also gives a tuning pass a dial it did not have. A window can only be
+   * widened or moved; a weight can be moved by a tenth.
+   *
+   * A band with no entry has weight zero and cannot be drawn, which is what
+   * keeps band 4 out of the opening segments — the same idiom `tuning.tierBands`
+   * uses to keep `elite` out of them.
+   */
+  moveBandWeights: Readonly<Record<number, number>>;
   /**
    * Extra Pokemon the opponent fields *beyond the player's party size*.
    *
@@ -124,7 +143,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 30,
     levelOffset: { wild: { min: -8, max: -6 }, trainer: { min: -7, max: -5 }, gym: { min: -1, max: 0 } },
     speciesBands: [0, 1],
-    moveBands: [0],
+    moveBandWeights: { 1: 1 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 0 },
   },
   {
@@ -132,7 +151,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 36,
     levelOffset: { wild: { min: -10, max: -7 }, trainer: { min: -8, max: -6 }, gym: { min: -2, max: -1 } },
     speciesBands: [0, 1, 2],
-    moveBands: [0],
+    moveBandWeights: { 1: 1 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 0 },
   },
   {
@@ -140,7 +159,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 42,
     levelOffset: { wild: { min: -15, max: -12 }, trainer: { min: -13, max: -10 }, gym: { min: -6, max: -4 } },
     speciesBands: [1, 2],
-    moveBands: [0, 1],
+    moveBandWeights: { 1: 2, 2: 5 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
   },
   {
@@ -148,7 +167,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 48,
     levelOffset: { wild: { min: -17, max: -13 }, trainer: { min: -14, max: -11 }, gym: { min: -7, max: -5 } },
     speciesBands: [1, 2],
-    moveBands: [0, 1],
+    moveBandWeights: { 1: 2, 2: 5 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
   },
   {
@@ -156,7 +175,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 54,
     levelOffset: { wild: { min: -18, max: -14 }, trainer: { min: -16, max: -12 }, gym: { min: -10, max: -8 } },
     speciesBands: [2, 3],
-    moveBands: [1, 2],
+    moveBandWeights: { 2: 2, 3: 5 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 1 },
   },
   {
@@ -164,7 +183,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 60,
     levelOffset: { wild: { min: -20, max: -15 }, trainer: { min: -17, max: -13 }, gym: { min: -12, max: -9 } },
     speciesBands: [2, 3],
-    moveBands: [1, 2],
+    moveBandWeights: { 2: 2, 3: 5 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
   },
   {
@@ -172,7 +191,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 66,
     levelOffset: { wild: { min: -22, max: -17 }, trainer: { min: -19, max: -14 }, gym: { min: -12, max: -9 } },
     speciesBands: [2, 3],
-    moveBands: [1, 2, 3],
+    moveBandWeights: { 3: 2, 4: 5 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
   },
   {
@@ -180,7 +199,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 72,
     levelOffset: { wild: { min: -23, max: -18 }, trainer: { min: -20, max: -15 }, gym: { min: -13, max: -10 } },
     speciesBands: [2, 3],
-    moveBands: [1, 2, 3],
+    moveBandWeights: { 3: 2, 4: 5 },
     teamAdvantage: { wild: 0, trainer: 0, gym: 2 },
   },
 ];
@@ -283,14 +302,18 @@ export const TIER_MODIFIERS: Record<Tier, TierModifier> = {
 };
 
 /**
- * The highest band each generated pool actually contains.
+ * The highest species band the generated pool actually contains.
  *
- * Derived rather than written down, because both pools are generated files and
- * a regenerated pool that added a band would otherwise leave a hardcoded
- * ceiling silently wrong. It is the ceiling `shift` clamps to.
+ * Derived rather than written down, because the pool is a generated file and a
+ * regenerated pool that added a band would otherwise leave a hardcoded ceiling
+ * silently wrong. It is the ceiling `shift` clamps to.
+ *
+ * The move-band ceiling is `MAX_MOVE_BAND` in `data/moveOverrides.ts`, which is
+ * where banding lives from Stage 4.6b — a band can now come from an override
+ * rather than from the generated entry, so the ceiling has to be derived where
+ * the overrides are.
  */
 export const MAX_SPECIES_BAND = SPECIES_POOL.reduce((top, entry) => Math.max(top, entry.band), 0);
-export const MAX_MOVE_BAND = DAMAGING_MOVES.reduce((top, move) => Math.max(top, move.band), 0);
 
 /**
  * How a generated moveset is shaped.
@@ -337,10 +360,100 @@ export function speciesBandsFor(segment: number, tier: Tier): readonly number[] 
   return shift(segmentScaling(segment).speciesBands, TIER_MODIFIERS[tier].speciesBand, MAX_SPECIES_BAND);
 }
 
-/** Bands a segment may draw damaging moves from, shifted by tier. */
-export function moveBandsFor(segment: number, tier: Tier): readonly number[] {
-  return shift(segmentScaling(segment).moveBands, TIER_MODIFIERS[tier].moveBand, MAX_MOVE_BAND);
+/**
+ * The band distribution a segment draws damaging moves from, tier applied.
+ *
+ * The tier shifts the whole distribution up by `TIER_MODIFIERS[tier].moveBand`,
+ * clamped at the ceiling — so a `hard` node in segment 4 is mostly band 4 where
+ * an ordinary one is mostly band 3, and the weights keep their shape rather
+ * than being replaced by a different table per tier.
+ *
+ * Two bands that collide at the ceiling have their weights **summed**, which is
+ * the honest reading of "shift a distribution into a wall": the probability
+ * mass has to go somewhere, and the top band is where it goes.
+ */
+export function moveBandWeightsFor(segment: number, tier: Tier): Readonly<Record<number, number>> {
+  return shiftWeights(segmentScaling(segment).moveBandWeights, TIER_MODIFIERS[tier].moveBand);
 }
+
+/**
+ * The bands a segment can actually draw, tier applied. Sorted, no weights.
+ *
+ * What a *pool* wants, as opposed to what a draw wants: `damagingInBands`
+ * filters the move list, and a reward that reaches "one band above" reaches a
+ * set. A band with weight zero is not in it, because a band that cannot be
+ * drawn is not a band this segment has.
+ */
+export function moveBandsFor(segment: number, tier: Tier): readonly number[] {
+  return Object.entries(moveBandWeightsFor(segment, tier))
+    .filter(([, weight]) => weight > 0)
+    .map(([band]) => Number(band))
+    .sort((a, b) => a - b);
+}
+
+/**
+ * The band a segment is *at* — the one carrying the most weight.
+ *
+ * The spec's "the segment's current band", which the reward pools are keyed
+ * against: a normal node pays a move in it, a hard node one above, an elite two
+ * above. The modal band rather than the mean, because a band is a label and
+ * there is no such thing as band 2.4.
+ *
+ * Ties go to the **higher** band. A tie means the segment is mid-transition,
+ * and a reward that rounds a transition downward is a reward that arrives a
+ * segment late.
+ */
+export function segmentMoveBand(segment: number, tier: Tier = 'normal'): number {
+  const weights = moveBandWeightsFor(segment, tier);
+  let best = MIN_MOVE_BAND;
+  let bestWeight = -1;
+  for (const [band, weight] of Object.entries(weights)) {
+    if (weight >= bestWeight) {
+      bestWeight = weight;
+      best = Number(band);
+    }
+  }
+  return best;
+}
+
+/**
+ * Shift a band distribution up, clamped at the ceiling, weights summed on
+ * collision.
+ *
+ * The move-band mirror of `shift`, and a separate function rather than a
+ * generalisation of it because the two do different things to a collision. A
+ * *window* that runs into the ceiling is widened back downward, so an elite
+ * node in the last segment still draws from more than the top eighteen species;
+ * a *distribution* that runs into the ceiling piles up there, which is what
+ * "everything you meet hits like a truck" is supposed to mean at the end of a
+ * run.
+ */
+function shiftWeights(
+  weights: Readonly<Record<number, number>>,
+  by: number,
+): Readonly<Record<number, number>> {
+  if (by === 0) return weights;
+  const shifted: Record<number, number> = {};
+  for (const [band, weight] of Object.entries(weights)) {
+    const raised = Math.max(MIN_MOVE_BAND, Math.min(MAX_MOVE_BAND, Number(band) + by));
+    shifted[raised] = (shifted[raised] ?? 0) + weight;
+  }
+  return shifted;
+}
+
+/**
+ * The band bonus a gym leader draws at. **The difficulty spike, as one number.**
+ *
+ * A gym takes no tier — it is the segment's difficulty statement, and a second
+ * dial on the same number is a dial the balance report cannot attribute — so
+ * the spike it *does* get has to be visible somewhere, and this is the somewhere.
+ * At +1 a gym in segment 4 draws mostly band 4 while the trainers around it draw
+ * mostly band 3.
+ *
+ * It applies to the move band only. Level, team size and species band come from
+ * the segment's own gym columns, which were tuned before this existed.
+ */
+export const GYM_MOVE_BAND_BONUS = 1;
 
 /**
  * Raise a band window by a tier's band modifier, without letting it run off the
@@ -463,7 +576,10 @@ export function opponentLevel(kind: BattleKind, segment: number, tier: Tier): Ra
  * tuning blind.
  */
 export function rewardMoveBands(segment: number, tier: Tier, offset: number): readonly number[] {
-  return shift(moveBandsFor(segment, tier), offset, MAX_MOVE_BAND);
+  const bands = moveBandsFor(segment, tier).map((band) =>
+    Math.max(MIN_MOVE_BAND, Math.min(MAX_MOVE_BAND, band + offset)),
+  );
+  return [...new Set(bands)].sort((a, b) => a - b);
 }
 
 /** The species bands a species reward at this node may draw from. */
