@@ -12,10 +12,9 @@ instruction silently did nothing. Read from here, not from memory.
 | `gymrun-seeds-and-mappability.md` | Keyed sub-stream derivation, the two version axes (`contentHash` and run log version), seed string format, `previewRun`. Load-bearing for Stage 5 seed sharing. |
 | `gymrun-qol-release-plan-rev2.md` | Current release plan. Requirement register R1 to R14, Releases 0/A/B/C, and the 4.6c HM amendment in section 7. |
 
-**Which of these are actually here.** Only `gymrun-seeds-and-mappability.md`. `pokerun-build-spec.md` and
-`gymrun-qol-release-plan-rev2.md` are named above but have not been supplied, so a prompt that says to read
-them is asking for something this directory does not have. Say so rather than proceeding on an assumption
-about what they contained — the same rule the missing stage prompts get below.
+**Which of these are actually here.** All three, as of 2026-09-09. Every standing document and every
+recovered stage prompt named in the tables now exists in this directory. The two prompts marked MISSING
+below are still missing and are the only gap left.
 
 **`gymrun-seeds-and-mappability.md` verification: done, and it diverged.** The copy previously in the repo
 was a reconstruction written from a prompt description. It was diffed against the real document at the 4.6c
@@ -37,8 +36,9 @@ into a data step.
 | Stage 4 prompt | MISSING. Not recovered. |
 | Stage 4.5 prompt | MISSING. Referenced by 4.5.1 and by the QoL plan. |
 | `gymrun-patch-playtest-round2.md` | Merged |
-| `gymrun-stage4_5_1-claude-code-prompt.md` | Merged |
-| `gymrun-stage4_6-claude-code-prompts.md` | 4.6a merged, 4.6b merged at `c6d730a`, 4.6c not started |
+| `gymrun-stage4.5.1-claude-code-prompt.md` | Merged |
+| `gymrun-stage4.6-claude-code-prompts.md` | 4.6a and 4.6b merged. **Part C superseded** — see below. |
+| `../../gymrun-stage4.6c-relics-claude-code-prompt.md` | Live. Capabilities as relics, the third and final design. Sits at the repo root rather than here, because it is the prompt being worked rather than an archived one. |
 
 The three missing prompts are recorded rather than omitted. If a prompt here tells you to read one of them,
 say so in your report instead of proceeding on an assumption about what it contained.
@@ -47,9 +47,14 @@ say so in your report instead of proceeding on an assumption about what it conta
 
 These are live. The underlying file was not rewritten, so read the amendment as authoritative.
 
-1. **HMs are ordinary moves.** `gymrun-qol-release-plan-rev2.md` section 7 overrides Part C of
-   `gymrun-stage4_6-claude-code-prompts.md`. No `data/hms.ts`, no HM item class, no teaching screen, no
-   permanence, no backpack exemption. HM moves live in `data/movePools.ts` and band through `bandOfMove`.
+1. **Capabilities are relics.** *(Superseded twice; this is version 3, 2026-09-09.)*
+   `../../gymrun-stage4.6c-relics-claude-code-prompt.md` overrides **both** Part C of
+   `gymrun-stage4.6-claude-code-prompts.md` (HMs as items) and section 7 of
+   `gymrun-qol-release-plan-rev2.md` (HMs as ordinary moves). A capability is granted by a permanent,
+   run-scoped, passive relic. No move slot, no backpack capacity, no teaching, no legality query — and
+   **knowing a capability-named move grants nothing**. Surf-the-move and Surf-the-capability are unrelated
+   systems that share a name. Both earlier versions remain in this directory and both are wrong; read the
+   supersession notice at the top of the relics prompt before either.
 2. **Decline exists in the move learning flow.** Release A retires the "There is no decline" rule from
    Stage 4.5.1 Part 6. Decline is a parameter of the flow entry point, defaulted on, and forfeits the reward.
 3. **Species rewards are gone.** 4.6b removed them from the pools and deleted `tuning.allowSpeciesRewards`.
