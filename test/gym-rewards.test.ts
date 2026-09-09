@@ -29,13 +29,19 @@ import { nodesOf, type Segment,
 import { createRun } from '../src/core/run';
 import { OFFER_SIZE } from '../src/core/rewards';
 import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../src/data/rewardPools';
-import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
+import { rewardMoveBand } from '../src/data/scaling';
+import { DEFAULT_TUNING } from '../src/data/tuning';
 
 const seeds = Array.from({ length: 12 }, (_, i) => `GYM-${i}`);
 
 /** Every gym in a seed's run, with the offer it now carries. */
 function gymsOf(seed: string, tuning = DEFAULT_TUNING) {
   return createRun(seed, tuning).segments.map((segment: Segment) => segment.gym);
+}
+
+/** One entry of a given kind from the elite pool covering this segment. */
+function eliteEntry(segment: number, kind: RewardEntry['kind']): RewardEntry | undefined {
+  return rewardEntriesFor('elite', segment).find((entry) => entry.kind === kind);
 }
 
 describe('the offer a gym clear produces', () => {
@@ -71,32 +77,6 @@ describe('the offer a gym clear produces', () => {
     }
   });
 
-  it('respects the species-reward tuning flag, like every other pool', () => {
-    const off = withTuning({ allowSpeciesRewards: false });
-    for (const seed of seeds.slice(0, 4)) {
-      for (const gym of gymsOf(seed, off)) {
-        const kinds = (gym.reward?.options ?? []).map((option) => option.kind);
-        expect(kinds).not.toContain('species');
-        // And it still fills three cards with the entry removed.
-        expect(kinds).toHaveLength(OFFER_SIZE);
-      }
-    }
-  });
-});
-
-/** One entry of a given kind from the elite pool covering this segment. */
-function eliteEntry(segment: number, kind: RewardEntry['kind']): RewardEntry | undefined {
-  return rewardEntriesFor('elite', segment).find((entry) => entry.kind === kind);
-}
-
-describe('strictly better than an elite node', () => {
-  /**
-   * The rule stated as arithmetic rather than as a vibe.
-   *
-   * Elite is already "the best rewards in the game", so a gym pool that merely
-   * matched it would make the clear read as a slightly lucky elite node. Each
-   * check below is against the elite band covering the same segment.
-   */
   it('pays more currency than the elite band at every segment', () => {
     for (let segment = 0; segment < 8; segment++) {
       const gym = gymRewardEntriesFor(segment).find((entry) => entry.kind === 'currency');
@@ -122,18 +102,26 @@ describe('strictly better than an elite node', () => {
       if (gym?.kind !== 'tutor' && gym?.kind !== 'tm') continue;
       if (elite?.kind !== 'tutor' && elite?.kind !== 'tm') continue;
 
-      expect(gym.bandOffset, `segment ${segment} move band`).toBeGreaterThanOrEqual(elite.bandOffset);
+      /*
+       * The band a card actually pays at, not the entry's own offset.
+       *
+       * Stage 4.6b moved the tier's share of the band into
+       * `REWARD_BAND_OFFSET`, so an entry's `bandOffset` is now only the extra
+       * a pool adds on top — and the gym's is the only one that is not zero.
+       * Comparing offsets would compare the extras and miss the rule.
+       */
+      expect(
+        rewardMoveBand(segment, 'elite', gym.bandOffset ?? 0),
+        `segment ${segment} move band`,
+      ).toBeGreaterThanOrEqual(rewardMoveBand(segment, 'elite', elite.bandOffset ?? 0));
     }
   });
 
-  it('weights a party slot above what an elite node does', () => {
-    for (let segment = 0; segment < 8; segment++) {
-      const gym = gymRewardEntriesFor(segment).find((entry) => entry.kind === 'species');
-      const elite = eliteEntry(segment, 'species');
-      if (!gym || !elite) continue;
-      expect(gym.weight, `segment ${segment} species weight`).toBeGreaterThan(elite.weight);
-    }
-  });
+  /*
+   * A third assertion lived here: that a gym weights a *party slot* above what
+   * an elite node does. Species rewards are gone in Stage 4.6b — capture is the
+   * acquisition route — so there is no slot in either pool to weigh.
+   */
 });
 
 describe('when the offer is drawn', () => {

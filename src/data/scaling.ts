@@ -442,6 +442,28 @@ function shiftWeights(
 }
 
 /**
+ * What band a move reward pays at, by the tier that paid it.
+ *
+ * **The reward half of Stage 4.6b's ramp, as three numbers.** A move card is
+ * drawn at the segment's own current band plus this, so:
+ *
+ * - **normal** pays *in* band: same power, different type. A sidegrade, which
+ *   is a coverage decision rather than an upgrade — and the tier that costs
+ *   nothing should not hand out power.
+ * - **hard** pays one band above, which is the smallest step that is visibly a
+ *   step.
+ * - **elite** pays two, which is the reason to take an elite node at all when
+ *   the item on the same card is a coin flip.
+ *
+ * One rule rather than a `bandOffset` on every pool entry, because it *is* one
+ * rule: "what did you risk" is exactly the question a tier answers, and
+ * spreading the answer across twenty table rows is twenty places to make the
+ * same edit. An entry may still add its own offset on top; only the gym pool
+ * does, to stay strictly better than elite.
+ */
+export const REWARD_BAND_OFFSET: Record<Tier, number> = { normal: 0, hard: 1, elite: 2 };
+
+/**
  * The band bonus a gym leader draws at. **The difficulty spike, as one number.**
  *
  * A gym takes no tier — it is the segment's difficulty statement, and a second
@@ -576,16 +598,34 @@ export function opponentLevel(kind: BattleKind, segment: number, tier: Tier): Ra
  * tuning blind.
  */
 export function rewardMoveBands(segment: number, tier: Tier, offset: number): readonly number[] {
-  const bands = moveBandsFor(segment, tier).map((band) =>
-    Math.max(MIN_MOVE_BAND, Math.min(MAX_MOVE_BAND, band + offset)),
-  );
-  return [...new Set(bands)].sort((a, b) => a - b);
+  return [rewardMoveBand(segment, tier, offset)];
 }
 
-/** The species bands a species reward at this node may draw from. */
-export function rewardSpeciesBands(segment: number, tier: Tier, offset: number): readonly number[] {
-  return shift(speciesBandsFor(segment, tier), offset, MAX_SPECIES_BAND);
+/**
+ * The single band a move reward pays at: the segment's own, plus the tier's
+ * offset, plus whatever the entry adds.
+ *
+ * **One band, not a window, and that is the change.** A window meant a normal
+ * node's TM could land anywhere the *encounter* could, so "what does this tier
+ * pay" had no answer a player could learn. One band per tier is a rule that can
+ * be read off the card, which is what makes the reward screen's band label
+ * (Stage 4.6b's UI) worth printing at all.
+ *
+ * Computed from the segment's band rather than from the tier-shifted encounter
+ * window, deliberately. The tier is already in this sum once; taking it from
+ * the encounter as well would pay `hard` twice and make an elite card in a late
+ * segment indistinguishable from a gym's.
+ */
+export function rewardMoveBand(segment: number, tier: Tier, offset = 0): number {
+  const band = segmentMoveBand(segment) + REWARD_BAND_OFFSET[tier] + offset;
+  return Math.max(MIN_MOVE_BAND, Math.min(MAX_MOVE_BAND, band));
 }
+
+/*
+ * `rewardSpeciesBands` was here, and it went with the species reward kind in
+ * Stage 4.6b. Nothing draws a species outside an encounter now — a party member
+ * arrives by capture, which reads a species the map already generated.
+ */
 
 // ---------------------------------------------------------------------------
 // The metric a tier is monotonic in

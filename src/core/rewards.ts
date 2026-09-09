@@ -34,17 +34,16 @@
  * both get their own entry in the run log — see `TargetedReward` below and
  * `core/acquisition.ts`.
  */
-import { joinLevelFor } from './acquisition';
-import { generateRewardSpecies, damagingInBands } from './randomizer';
+import { damagingInBands } from './randomizer';
 import { stow } from './items';
 import { leadOf, recoverParty, teachMove } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
-import type { Gender, PokemonState, Tier } from './types';
+import type { PokemonState, Tier } from './types';
 import { itemById } from '../data/items';
 import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
-import { rewardMoveBands, rewardSpeciesBands } from '../data/scaling';
+import { rewardMoveBands } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
 /**
@@ -61,39 +60,25 @@ export type Reward =
   | { kind: 'tm'; move: string }
   | { kind: 'tutor'; move: string }
   | { kind: 'heal'; fraction: number }
-  /**
-   * A Pokemon offered to the party.
-   *
-   * **Stage 3 typed this as a species *swap* and gated it off; Stage 4 turns it
-   * on and it is an *addition*.** That is the same card doing a different
-   * thing, and the difference is the party: at `PARTY_SIZE` 1 there was nowhere
-   * to put a new Pokemon except on top of the only one you had, which is either
-   * the most interesting decision in the game or an instant run-ender with no
-   * way to tell which. With slots it is an offer — take it into a free slot,
-   * take it and release someone, or decline — and declining is always legal.
-   *
-   * It is therefore the one reward kind that does not resolve inside
-   * `applyReward`. Taking it is a second question (*which member goes?*), and a
-   * question needs a policy call and a log entry of its own; `playRun` routes
-   * this card through `chooseAcquisition` exactly as it routes an encounter's
-   * offer. See `core/acquisition.ts`.
-   */
-  | {
-      kind: 'species';
-      species: string;
-      level: number;
-      moves: string[];
-      ability: string;
-      /**
-       * Rolled with the rest of the spec, and carried rather than re-rolled.
-       *
-       * The card is flattened out of a `PokemonSpec` and rebuilt into one in
-       * `run.acquisitionOffered`, so every field the spec has must survive the
-       * round trip. A gender dropped here would be silently re-rolled by the sim
-       * at the acquired member's first battle — and again at its second.
-       */
-      gender: Gender;
-    };
+
+/*
+ * **A sixth kind, `species`, was here until Stage 4.6b.**
+ *
+ * It handed the player a Pokemon from a reward card, and 4.6a made it
+ * redundant: capture is offered on every wild victory and a segment guarantees
+ * a wild encounter, so there is already a route to a party member — one that
+ * costs a step, which is the thing a player can plan around.
+ *
+ * Two routes was two sets of rules for what a joined Pokemon is. The card
+ * arrived at `joinLevelFor(segment)`, below the curve, because a free Pokemon
+ * needed a price; a capture arrives at the level it was fought at, because its
+ * price is the step and the slot. Keeping both would have meant explaining on
+ * screen why one is weaker, and the simulator's acquisition numbers would have
+ * been measuring the gap between the routes rather than the decision.
+ *
+ * What survives is `offensiveCoverage` and the one-line coverage readout, which
+ * 4.6a moved onto the capture card.
+ */
 
 /** The three cards a node offers. Exactly three, always distinct. */
 export interface RewardOffer {
@@ -137,9 +122,8 @@ export function generateRewardOffer(
   stream: RngStream,
   tuning: Tuning,
 ): RewardOffer {
-  const pool = rewardEntriesFor(tier, segment).filter(
-    (entry) => entry.kind !== 'species' || tuning.allowSpeciesRewards,
-  );
+  void tuning;
+  const pool = rewardEntriesFor(tier, segment);
 
   const options: Reward[] = [];
   const takenMoves = new Set<string>();
@@ -199,9 +183,8 @@ export function generateGymRewardOffer(
   stream: RngStream,
   tuning: Tuning,
 ): RewardOffer {
-  const pool = gymRewardEntriesFor(segment).filter(
-    (entry) => entry.kind !== 'species' || tuning.allowSpeciesRewards,
-  );
+  void tuning;
+  const pool = gymRewardEntriesFor(segment);
 
   const options: Reward[] = [];
   const takenMoves = new Set<string>();
@@ -293,7 +276,7 @@ export function resolveRewardEntry(
     }
     case 'tm':
     case 'tutor': {
-      const bands = rewardMoveBands(segment, tier, entry.bandOffset);
+      const bands = rewardMoveBands(segment, tier, entry.bandOffset ?? 0);
       const available = damagingInBands(bands).filter((move) => !takenMoves.has(move.name));
       if (available.length === 0) return null;
       const move = stream.pick(available);
@@ -302,30 +285,6 @@ export function resolveRewardEntry(
     }
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
-    case 'species': {
-      /*
-       * At the join level, not the player's own.
-       *
-       * The same discount an encounter acquisition arrives at, and it has to be
-       * the same one: two routes to a party member that arrived at different
-       * levels would make the reward card strictly better than the wild offer
-       * for a reason nothing on screen explains, and the simulator's
-       * acquisition metrics would be measuring the gap rather than the choice.
-       */
-      const spec = generateRewardSpecies(
-        rewardSpeciesBands(segment, tier, entry.bandOffset),
-        joinLevelFor(segment),
-        stream,
-      );
-      return {
-        kind: 'species',
-        species: spec.species,
-        level: spec.level,
-        moves: spec.moves,
-        ability: spec.ability,
-        gender: spec.gender ?? null,
-      };
-    }
   }
 }
 
@@ -417,9 +376,6 @@ export function applyReward(
     case 'tm':
     case 'tutor':
       return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
-
-    case 'species':
-      return state;
   }
 }
 
@@ -492,7 +448,5 @@ export function describeReward(reward: Reward): string {
       return `Tutor: ${reward.move}`;
     case 'heal':
       return reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
-    case 'species':
-      return `Recruit ${reward.species} (Lv${reward.level})`;
   }
 }

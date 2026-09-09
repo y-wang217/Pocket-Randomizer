@@ -1232,28 +1232,19 @@ export async function playRun(
 }
 
 /**
- * The Pokemon this node is offering, from whichever route, or null.
+ * The Pokemon this node is offering, or null.
  *
- * Two sources, one decision — so the *choice* of which source is made here,
- * once, rather than at both call sites. A node cannot offer both: a `species`
- * card and an encounter offer would be two Pokemon and two decisions, and the
- * card wins because it is the one the player chose by taking it.
+ * **One route since Stage 4.6b, and this function is what is left of two.** A
+ * `species` reward card was the other, and it chose between them here so that
+ * the two sources produced one decision. The card is gone — capture is the
+ * acquisition path now, and it costs a step — so this reads the node's own
+ * offer and nothing else.
+ *
+ * It stays a function rather than becoming a field read, because 4.6c adds a
+ * second source again: a band-3 capability event spawns an encounter, and the
+ * capture it offers arrives here.
  */
 function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
-  if (result.reward?.kind === 'species') {
-    const card = result.reward;
-    return {
-      nodeId: result.node.id,
-      source: 'reward',
-      spec: {
-        species: card.species,
-        level: card.level,
-        ability: card.ability,
-        moves: [...card.moves],
-        gender: card.gender,
-      },
-    };
-  }
   return result.node.acquisition;
 }
 

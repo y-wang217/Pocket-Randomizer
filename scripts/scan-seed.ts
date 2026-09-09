@@ -34,9 +34,7 @@ function census(seen: Set<string>): RunPolicy {
     ...scriptedRunPolicy(greedyAiPolicy),
     chooseReward: async (offer) => {
       const move = offer.options.findIndex((option) => option.kind === 'tm' || option.kind === 'tutor');
-      if (move !== -1) return move;
-      const species = offer.options.findIndex((option) => option.kind === 'species');
-      return species === -1 ? 0 : species;
+      return move === -1 ? 0 : move;
     },
     chooseShopPurchases: async (stock, state) => {
       const order = stock.items

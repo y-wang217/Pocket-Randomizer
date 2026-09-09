@@ -173,16 +173,21 @@ describe('tier stream isolation', () => {
     };
 
     /*
-     * Both sides named explicitly rather than leaning on the default.
+     * The lever is `shopStockSize`, and it changed in Stage 4.6b.
      *
-     * `off` used to be `DEFAULT_TUNING`, which was fine while the default *was*
-     * off — and silently stopped testing anything in Stage 4, when the flag
-     * flipped on and the two sides became the same tuning compared to itself.
-     * It failed loudly (`expected 413 to be greater than 413`) only because of
-     * the last assertion, which is exactly what that assertion is for.
+     * It was `allowSpeciesRewards`, which added a whole reward kind — and the
+     * species entry resolved a species, an ability and four moves, which is
+     * exactly where a stray `randomizer` draw would have shown up. That flag is
+     * deleted with the kind, so the knob is now the shelf: a bigger shop draws
+     * more from `rewards` and must move nothing else.
+     *
+     * Both sides are named explicitly rather than one leaning on the default,
+     * which is the lesson the old comment here recorded: `off` used to be
+     * `DEFAULT_TUNING` and silently stopped testing anything the day the
+     * default changed.
      */
-    const off = positions(withTuning({ allowSpeciesRewards: false }));
-    const on = positions(withTuning({ allowSpeciesRewards: true }));
+    const off = positions(withTuning({ shopStockSize: { min: 2, max: 2 } }));
+    const on = positions(withTuning({ shopStockSize: { min: 6, max: 6 } }));
 
     expect(on.map).toBe(off.map);
     expect(on.randomizer).toBe(off.randomizer);

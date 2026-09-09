@@ -36,7 +36,7 @@ import { moveChoice, type PokemonSpec, type RunLog, type TeamSpec } from '../src
 import { ITEMS, itemById } from '../src/data/items';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { REWARD_POOLS, rewardEntriesFor } from '../src/data/rewardPools';
-import { SEGMENT_COUNT } from '../src/data/scaling';
+import { rewardMoveBand, SEGMENT_COUNT, segmentMoveBand } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
 const seeds = Array.from({ length: 20 }, (_, i) => `REW-${i}`);
@@ -96,28 +96,22 @@ describe('reward offers', () => {
     }
   });
 
-  it('gates species rewards on the tuning flag, in both directions', () => {
+  it('offers no species card at any tier or segment', () => {
     /*
-     * The gate is applied at the *draw*, not at the application. A card the
-     * player can pick that then does nothing is worse than one never dealt.
-     *
-     * Both directions asserted against an explicit flag rather than against the
-     * default, which flipped to on in Stage 4 — a party is somewhere to put an
-     * acquired Pokemon, which is the condition Stage 3 said to wait for. A test
-     * written against the default would have gone quiet at that moment instead
-     * of failing.
+     * This asserted the *flag* that gated species rewards, in both directions.
+     * Stage 4.6b deleted the kind and the flag with it — capture is the
+     * acquisition route, and it costs a step — so what is left to assert is
+     * that no pool can produce one. A deleted kind that a table still names
+     * would resolve to `null` and quietly hand a node a two-card offer.
      */
-    const kinds = (tuning: typeof DEFAULT_TUNING): Set<string> => {
-      const seen = new Set<string>();
-      for (const seed of seeds) {
-        for (const { offer } of offersOf(seed, tuning)) for (const o of offer.options) seen.add(o.kind);
+    const kinds = new Set<string>();
+    for (const seed of seeds) {
+      for (const { offer } of offersOf(seed, DEFAULT_TUNING)) {
+        for (const option of offer.options) kinds.add(option.kind);
       }
-      return seen;
-    };
-    expect(kinds(withTuning({ allowSpeciesRewards: false })).has('species')).toBe(false);
-    expect(kinds(withTuning({ allowSpeciesRewards: true })).has('species')).toBe(true);
-    // And the shipped default is on, which is the Stage 4 change itself.
-    expect(DEFAULT_TUNING.allowSpeciesRewards).toBe(true);
+    }
+    expect([...kinds]).not.toContain('species');
+    expect(kinds.size).toBeGreaterThan(2);
   });
 
   it('pays elite nodes from a strictly better table than normal ones', () => {
@@ -197,7 +191,10 @@ describe('reward determinism', () => {
           simSeed: node.encounter?.simSeed,
         })),
       );
-    expect(mapOf(withTuning({ allowSpeciesRewards: true }))).toEqual(mapOf(DEFAULT_TUNING));
+    // The knob is a reward-stream one: a bigger shelf draws more from
+    // `rewards` and must leave the map, the teams and the battle seeds alone.
+    // It was `allowSpeciesRewards` until Stage 4.6b deleted the kind.
+    expect(mapOf(withTuning({ shopStockSize: { min: 6, max: 6 } }))).toEqual(mapOf(DEFAULT_TUNING));
   });
 });
 
@@ -519,16 +516,28 @@ describe('applyReward', () => {
   });
 
   it('never offers a move card that cannot do anything', () => {
-    // The data half of the same rule: every tm and tutor entry draws from at
-    // least one band above the node's own, so an early TM is not automatically
-    // weaker than the kit the player started with.
-    for (const [tier, bands] of Object.entries(REWARD_POOLS)) {
-      for (const band of bands) {
-        for (const entry of band.entries) {
-          if (entry.kind !== 'tm' && entry.kind !== 'tutor') continue;
-          expect(entry.bandOffset, `${tier} through segment ${band.throughSegment}`).toBeGreaterThanOrEqual(1);
-        }
-      }
+    /*
+     * The data half of the same rule, restated for Stage 4.6b.
+     *
+     * It asserted that every tm and tutor entry carried `bandOffset >= 1`,
+     * because a move reward drawn from the node's own band was weaker than the
+     * kit a starter arrived with — the starter opened two bands above segment
+     * 0. The starter opens *at* band 1 now, so the floor is gone and the rule
+     * it protected is expressed differently: a normal card pays in band, which
+     * is a sidegrade, and the tiers above it pay in power.
+     *
+     * What has to hold is that the ladder never goes down. A hard card is worth
+     * at least a normal one at the same segment, and an elite at least a hard.
+     */
+    for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
+      const normal = rewardMoveBand(segment, 'normal');
+      const hard = rewardMoveBand(segment, 'hard');
+      const elite = rewardMoveBand(segment, 'elite');
+      expect(hard, `segment ${segment} hard`).toBeGreaterThanOrEqual(normal);
+      expect(elite, `segment ${segment} elite`).toBeGreaterThanOrEqual(hard);
+      // And a normal card is at least in the band the segment itself draws, or
+      // it is a card offering something the player has already outgrown.
+      expect(normal, `segment ${segment} normal`).toBeGreaterThanOrEqual(segmentMoveBand(segment));
     }
   });
 

@@ -40,15 +40,12 @@
  * It no longer names a party member, because the item is no longer going to
  * one.
  */
-import { describeMove, describeSpecCard } from '../../core/battle/driver';
-import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
-import { createPartyMember } from '../../core/party';
+import { describeMove } from '../../core/battle/driver';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
-import { PARTY_SIZE } from '../../data/partyTuning';
-import { el, genderMark, moveCard } from '../scene';
-import { statLine, typeChip } from './starter-select';
+import { el, moveCard } from '../scene';
+import { typeChip } from './starter-select';
 
 /** The tier chip, shared with the map so the two screens agree at a glance. */
 export function tierBadge(tier: string): HTMLElement {
@@ -116,39 +113,6 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
       break;
     }
 
-    case 'species': {
-      /*
-       * **Item F, part 4: a species card is a pick screen and was showing a
-       * name.**
-       *
-       * It said the species, the level, the ability and a comma-joined list of
-       * move *names* — no types, no base stats, no base power, no PP. The
-       * starter select has shown all of that since Stage 2, and this card
-       * offers the same decision mid-run against a party you already know.
-       * Choosing between "a Pokemon" and two other cards on a name is the coin
-       * flip the spec says this game should not have.
-       *
-       * Built from the same probe the starter card uses, so the two agree by
-       * construction rather than by being kept in step.
-       */
-      const card_ = describeSpecCard({
-        species: reward.species,
-        ability: reward.ability,
-        moves: reward.moves,
-        level: reward.level,
-        gender: reward.gender,
-      });
-
-      name.textContent = `${card_.species} · Lv${card_.level}${genderMark(reward.gender)}`;
-      detail.textContent = card_.ability;
-      note.textContent = coverageLine(reward, state);
-
-      const types = el('span', 'panel__types');
-      types.replaceChildren(...card_.types.map(typeChip));
-      card.append(types, statLine(card_.baseStatsAtLevel, card_.maxHp));
-      for (const move of card_.moves) card.append(moveCard(move));
-      break;
-    }
   }
 
   card.prepend(kind, name, detail);
@@ -161,51 +125,13 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
   return card;
 }
 
-/**
- * The coverage one-liner: what the party's offensive typing gains and loses.
- *
- * **A factual readout, and Part 4 applies to it in full.** "Adds Dragon, Steel.
- * Loses Ghost." is correct; "improves your coverage" is not, and neither is a
- * count, an arrow, or a colour that implies which direction is better. The
- * function that computes it (`core/coverage.ts`) deliberately exposes no number
- * for this line to dress up as one.
- *
- * Two readings, because the card means two different things depending on the
- * party:
- *
- *   - **A slot free** — the newcomer is added, so the line is a pure gain and
- *     can never show a loss.
- *   - **Full** — taking it costs a member, and which member is a choice the
- *     player has not made yet at this point. The card cannot know the answer,
- *     so it reports against slot 0 and says so. The acquisition screen, where
- *     the target actually gets highlighted, is where the line updates per
- *     member — `coverageAfterSwap` takes the highlighted slot for exactly that.
+/*
+ * `coverageLine` lived here, on the species card, and went with it in Stage
+ * 4.6b. The reading it produced did not: `screens/acquisition.ts` prints the
+ * same sentence from the same pure function on the capture card, which is where
+ * "what would this change about my party" belongs now that capture is the only
+ * way a party member arrives.
  */
-function coverageLine(
-  reward: Extract<Reward, { kind: 'species' }>,
-  state: RunState,
-): string {
-  if (state.party.length === 0) return '';
-  const incoming = createPartyMember({
-    species: reward.species,
-    level: reward.level,
-    ability: reward.ability,
-    moves: [...reward.moves],
-    gender: reward.gender,
-  });
-
-  const before = offensiveCoverage(state.party);
-  const full = state.party.length >= PARTY_SIZE;
-  const after = coverageAfterSwap(state.party, incoming, full ? 0 : -1);
-  const delta = coverageDelta(before, after);
-
-  const parts: string[] = [];
-  if (delta.added.length > 0) parts.push(`adds ${delta.added.join(', ')}`);
-  if (delta.lost.length > 0) parts.push(`loses ${delta.lost.join(', ')}`);
-  const body = parts.length > 0 ? parts.join('. ') : 'unchanged';
-  const scope = full ? ' if it replaces your first member' : '';
-  return `Coverage${scope}: ${body}.`;
-}
 
 const KIND_LABELS: Record<Reward['kind'], string> = {
   item: 'Held item',
@@ -213,5 +139,4 @@ const KIND_LABELS: Record<Reward['kind'], string> = {
   heal: 'Restore',
   tm: 'TM',
   tutor: 'Move tutor',
-  species: 'New Pokemon',
 };

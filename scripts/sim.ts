@@ -565,11 +565,6 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
        */
       return Math.max(0, incoming - strongest) * 1.5 + Math.max(0, incoming - weakest) * 0.35;
     }
-
-    case 'species':
-      // Gated off, so unreachable. Zero rather than a guess: a number here would
-      // be an untested opinion about a mechanic nobody has played yet.
-      return 0;
   }
 }
 

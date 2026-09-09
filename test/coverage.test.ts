@@ -15,12 +15,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { greedyAiPolicy } from '../src/core/battle/ai';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../src/core/coverage';
 import { createPartyMember } from '../src/core/party';
-import { playRun, replayRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 import type { PokemonSpec, PokemonState } from '../src/core/types';
-import { PARTY_SIZE } from '../src/data/partyTuning';
 
 const mon = (species: string, ability: string, moves: string[]): PokemonState =>
   createPartyMember({ species, ability, moves, level: 50 } as PokemonSpec);
@@ -226,58 +223,17 @@ describe('there is no score to render', () => {
 // Species rewards, end to end
 // ---------------------------------------------------------------------------
 
-/**
- * A policy that takes every species card it is offered and, once full, swaps.
+/*
+ * **This section is gone, and the mechanism it tested with it.**
  *
- * The reward-card route specifically, not the wild-node one. Both go through
- * `chooseAcquisition` — that is the whole point of `acquisitionOffered` — but
- * only the card carries a spec that was flattened into a `Reward` and rebuilt,
- * so only the card can lose a field on the round trip. Gender did, in an
- * earlier draft of this stage.
+ * It played a run that took every species reward card and asserted the party
+ * replayed species for species, plus that every field of the flattened spec —
+ * gender especially, which was dropped in an earlier draft — survived the round
+ * trip through `Reward` and back into a `PokemonSpec`.
+ *
+ * Stage 4.6b deletes the card. Capture is the acquisition route, and a captured
+ * Pokemon is never flattened: `generateEncounterAcquisition` reads the node's
+ * own lead and copies it, so there is no round trip to lose a field in. The
+ * replay half is covered by `test/capture.test.ts`, which plays a catching run
+ * and replays it to the same party.
  */
-function speciesTaker(): RunPolicy {
-  return {
-    ...scriptedRunPolicy(greedyAiPolicy),
-    chooseReward: async (offer) => {
-      const species = offer.options.findIndex((option) => option.kind === 'species');
-      return species === -1 ? 0 : species;
-    },
-    chooseAcquisition: async (_offer, party) =>
-      party.length < PARTY_SIZE ? { kind: 'accept' } : { kind: 'release', slot: 0 },
-  };
-}
-
-describe('a species swap replays identically', () => {
-  it('reconstructs the same party, species for species', async () => {
-    const original = await playRun('SPECIES-SWAP', speciesTaker());
-    const replayed = await replayRun(original.log);
-
-    expect(replayed.state.party.map((member) => member.spec.species)).toEqual(
-      original.state.party.map((member) => member.spec.species),
-    );
-    expect(replayed.outcome).toBe(original.outcome);
-    expect(replayed.log.decisions).toEqual(original.log.decisions);
-  }, 60_000);
-
-  it('carries every spec field across the card round trip, gender included', async () => {
-    // A species card is a flattened `PokemonSpec` rebuilt in
-    // `run.acquisitionOffered`. A field dropped there is silently re-rolled by
-    // the sim at the member's first battle — and again at its second.
-    const run = await playRun('SPECIES-FIELDS', speciesTaker());
-    for (const member of run.state.party) {
-      expect(member.spec.gender, member.spec.species).not.toBeUndefined();
-      expect(member.spec.ability, member.spec.species).toBeTruthy();
-      expect(member.spec.moves.length, member.spec.species).toBeGreaterThan(0);
-    }
-  }, 60_000);
-
-  it('reports the same coverage for the replayed party as for the original', async () => {
-    // The function is pure, so this can only fail if the parties differ — which
-    // is the point: it is a second, independent read on the replay above.
-    const original = await playRun('SPECIES-COVER', speciesTaker());
-    const replayed = await replayRun(original.log);
-    expect(offensiveCoverage(replayed.state.party)).toEqual(
-      offensiveCoverage(original.state.party),
-    );
-  }, 60_000);
-});

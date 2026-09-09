@@ -395,18 +395,25 @@ describe('a whole run that acquires', () => {
     expect(replayed.log.decisions).toEqual(original.log.decisions);
   });
 
-  it('offers an acquisition from both routes across a sample of seeds', async () => {
+  it('offers an acquisition from the one route there is', async () => {
+    /*
+     * This asserted *both* routes — a wild node's offer and a `species` reward
+     * card — because the point of `acquisitionOffered` was that two sources
+     * produced one decision. Stage 4.6b deleted the card, so the assertion is
+     * now that the encounter route is the only one, which is the property worth
+     * holding: a second path to a party member is a second set of rules for
+     * what a joined Pokemon is.
+     */
     const sources = new Set<string>();
     for (let index = 0; index < 12; index++) {
       const state = createRun(`SOURCES-${index}`);
       for (const segment of state.segments) {
         for (const node of nodesOf(segment)) {
-          if (node.acquisition) sources.add('encounter');
-          if (node.reward?.options.some((option) => option.kind === 'species')) sources.add('reward');
+          if (node.acquisition) sources.add(node.acquisition.source);
         }
       }
     }
-    expect([...sources].sort()).toEqual(['encounter', 'reward']);
+    expect([...sources]).toEqual(['encounter']);
   });
 });
 
