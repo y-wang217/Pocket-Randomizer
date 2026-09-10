@@ -1,0 +1,207 @@
+/*
+ * The design tokens. Stage V0 of the visual identity pass.
+ *
+ * **Every colour, face, size, radius and spacing value the UI uses is declared
+ * here and nowhere else.** `test/visual-tokens.test.ts` reads every other file
+ * under `src/ui/` and fails on a raw literal. This file is the one place a raw
+ * value is allowed to exist, which is what makes a palette swap a one-file
+ * change and what lets V1 override three of these per locale.
+ *
+ * Nothing here is read by `core/`. Nothing here is read by `data/`. The flavour
+ * of the game lives in `src/ui/` on purpose: `contentHash` is computed over
+ * `data/`, and a palette edit must not move a seed.
+ *
+ * ## The four base values, and what is derived from them
+ *
+ * The plan asks for four: a near-black with a blue cast, a mid surface for
+ * panels, a cream for text, a muted cream for secondary text. The other
+ * surfaces and borders the stylesheet has always used (sunken, border, strong
+ * border, faint text) are mixed from those four rather than declared, so the
+ * palette really is four numbers and a locale override of the base pair in V1
+ * moves everything with it.
+ *
+ * ## One accent
+ *
+ * `--accent` is read by exactly one class, `.primary-action`, and by nothing
+ * else. `test/visual-tokens.test.ts` asserts that too. Everything the old
+ * accent used to mark — the current step, the focus ring, the lead's border,
+ * a hover — now reads `--emphasis`, which is the text cream: a heavier
+ * neutral, not a second colour.
+ *
+ * Hue: the overnight rule was the first of hot pink, acid lime, orange, cyan
+ * with a hue distance over 30 degrees from all eighteen type tokens. None
+ * clears it (nearest: fairy 0°, bug 6°, fire 6°, ice 9°), so the plan's own
+ * flagged default stands, hot pink, on the argument the plan makes: the type
+ * chips are desaturated outlines and the accent is the only solid saturated
+ * fill, so a hue collision is not a chip collision. Cyan has the widest margin
+ * of the four if the morning disagrees. One line to swap.
+ *
+ * ## Faces
+ *
+ * `--font-display` is Pixelify Sans for headings and labels. `--font-body` is
+ * what numbers and prose render in, and it is the overnight's conservative
+ * default: the system monospace stack, because the legibility gate needs a
+ * phone. Swapping body to the display face is one line, `--font-body`.
+ *
+ * ## Sizes and spacing hold the old pixel values
+ *
+ * The type scale and the spacing scale carry exactly the pixel values the
+ * stylesheet used before this stage, because the two guarded screens must lay
+ * out to the same pixel after it. The spacing scale is 4px with 2px half
+ * steps; the half steps exist for that reason and are listed in the V0 report.
+ */
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/PixelifySans-Regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/PixelifySans-Bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- base: four values ---------- */
+  --base-deep: #0b0f17;
+  --base-surface: #151c27;
+  --cream: #efe6d2;
+  --cream-dim: #a79f90;
+
+  /* ---------- derived surfaces and text ---------- */
+  --bg: var(--base-deep);
+  --bg-raised: var(--base-surface);
+  --bg-sunken: color-mix(in srgb, var(--base-deep) 82%, #000);
+  --border: color-mix(in srgb, var(--cream) 9%, var(--base-surface));
+  --border-strong: color-mix(in srgb, var(--cream) 20%, var(--base-surface));
+
+  --text: var(--cream);
+  --text-dim: var(--cream-dim);
+  --text-faint: color-mix(in srgb, var(--cream-dim) 68%, var(--base-surface));
+
+  /* The heavier neutral that took over every job the accent used to do. */
+  --emphasis: var(--cream);
+  --emphasis-ink: var(--base-deep);
+
+  /* The overlay dim and the one drop shadow, mixed from the deep base. */
+  --dim: color-mix(in srgb, var(--base-deep) 78%, transparent);
+  --shadow: color-mix(in srgb, #000 55%, transparent);
+
+  /* ---------- the one accent ---------- */
+  --accent: #ff2d95;
+  --accent-ink: #14060d;
+
+  /* ---------- readouts: resources and outcomes, not chrome ---------- */
+  --hp-high: #3fb950;
+  --hp-mid: #d29922;
+  --hp-low: #f85149;
+
+  --win: #3fb950;
+  --loss: #f85149;
+
+  --status-brn: #f0603c;
+  --status-par: #e0c341;
+  --status-slp: #9a8fa8;
+  --status-frz: #63c7e0;
+  --status-psn: #b163c9;
+  --status-tox: #b163c9;
+
+  --stage-up: #3fb950;
+  --stage-down: #f85149;
+
+  /* ---------- the eighteen type colours, plus Stellar ---------- */
+  /* The same table the effectiveness markers and the threat readout read. It
+     lived in styles.css; this is a move, not a copy. */
+  --type-normal: #9099a1;
+  --type-fire: #ee8130;
+  --type-water: #6390f0;
+  --type-electric: #f7d02c;
+  --type-grass: #7ac74c;
+  --type-ice: #96d9d6;
+  --type-fighting: #c22e28;
+  --type-poison: #a33ea1;
+  --type-ground: #e2bf65;
+  --type-flying: #a98ff3;
+  --type-psychic: #f95587;
+  --type-bug: #a6b91a;
+  --type-rock: #b6a136;
+  --type-ghost: #735797;
+  --type-dragon: #6f35fc;
+  --type-dark: #705746;
+  --type-steel: #b7b7ce;
+  --type-fairy: #d685ad;
+  --type-stellar: #40b5a5;
+
+  /* How far a chip's hue is pulled toward the neutrals. One number for every
+     coloured chip, so no chip is more saturated than another. */
+  --chip-fill: 16%;
+  --chip-line: 55%;
+  --chip-text: 70%;
+
+  /* ---------- faces ---------- */
+  --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --font-display: 'Pixelify Sans', var(--font-mono-stack);
+  /* Morning decision: `var(--font-display)` if the phone screenshots read. */
+  --font-body: var(--font-mono-stack);
+  --tracking-label: 0.08em;
+  --tracking-title: 0.16em;
+
+  /* ---------- type scale, in the pixel values the layout was built on ---------- */
+  --fs-2xs: 9px;
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-md: 12px;
+  --fs-base: 13px;
+  --fs-lg: 14px;
+  --fs-xl: 15px;
+  --fs-2xl: 16px;
+  --fs-3xl: 17px;
+  --fs-4xl: 18px;
+  --fs-5xl: 20px;
+  --fs-6xl: 24px;
+  --fs-7xl: 26px;
+  /* The capability gate line on a node. 4.6c wrote it in rem (12.48px at the
+     default root size) and the map's height depends on it, so it is pinned
+     here rather than snapped to the 12px step. Morning decision: snapping it
+     to --fs-md moves the SMOKE24 map by -1.5px and needs a new baseline. */
+  --fs-gate: 0.78rem;
+
+  /* ---------- spacing: 4px scale, 2px half steps ---------- */
+  --hairline: 1px;
+  --space-h: 2px;
+  --space-1: 4px;
+  --space-1h: 6px;
+  --space-2: 8px;
+  --space-2h: 10px;
+  --space-3: 12px;
+  --space-3h: 14px;
+  --space-4: 16px;
+  --space-4h: 18px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  /* The gate line's rule, same story as --fs-gate. 5.6px. */
+  --space-gate: 0.35rem;
+
+  /* ---------- two radii ---------- */
+  --radius-card: 4px;
+  --radius-chip: 2px;
+
+  /* ---------- motion ----------
+     V0 adds none. data/tuning.ts carries no duration yet, so this is 0; when
+     Release C adds the per-turn number, ui/ writes it here at startup and
+     nothing reads a second constant. The transitions that predate this stage
+     keep their own lengths in styles.css. */
+  --motion-duration: 0ms;
+}

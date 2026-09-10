@@ -565,7 +565,7 @@ function createSeedBar(): SeedBar {
 
   const apply = document.createElement('button');
   apply.type = 'submit';
-  apply.className = 'button button--primary';
+  apply.className = 'button';
   apply.textContent = 'Start run';
 
   const reroll = document.createElement('button');

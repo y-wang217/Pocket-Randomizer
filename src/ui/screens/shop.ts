@@ -42,7 +42,7 @@ export function createShopScreen(): ShopScreen {
 
   const leave = document.createElement('button');
   leave.type = 'button';
-  leave.className = 'button button--primary';
+  leave.className = 'button primary-action';
 
   footer.append(leave);
   root.append(title, blurb, wallet, shelf, footer);

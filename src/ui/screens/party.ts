@@ -136,7 +136,7 @@ export function createPartyScreen(): PartyScreen {
 
   const done = document.createElement('button');
   done.type = 'button';
-  done.className = 'button button--primary';
+  done.className = 'button primary-action';
   done.textContent = 'Back to the map';
 
   root.append(title, blurb, threats.root, list, bag, relics, done);
