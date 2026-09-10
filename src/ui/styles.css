@@ -205,6 +205,34 @@ body {
   position: relative;
 }
 
+/* ---------- the turn order nudge ----------
+   Release C item 2. A panel twitches when its Pokemon acts, in the order the
+   actions resolved, so the sequence is on the board rather than only in the
+   log's ordinals.
+
+   Two steps and no more: `scene.ts` places a side by its first action in the
+   turn, which caps the sequence at the two sides. The second waits one nudge
+   before starting, so the pair reads as "then" rather than as a shudder.
+
+   The distance is a token and it is deliberately tiny — 2px is a twitch that
+   registers at the edge of vision without the panel appearing to come loose.
+   `transform` only: no layout property is touched, so a nudge cannot reflow the
+   screen or move the move buttons under a thumb that is already descending. */
+.panel[data-jiggle] {
+  animation: panel-nudge var(--motion-jiggle) ease-in-out;
+}
+
+.panel[data-jiggle="2"] {
+  animation-delay: var(--motion-jiggle);
+}
+
+@keyframes panel-nudge {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(calc(var(--jiggle-distance) * -1)); }
+  70% { transform: translateX(var(--jiggle-distance)); }
+  100% { transform: translateX(0); }
+}
+
 /* ---------- the chunk a hit took ----------
    Sized and placed from `scene.ts`, which knows both fractions; the stylesheet
    owns only how it looks and how long it stays. Zero width until something is
@@ -1801,10 +1829,13 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
-  /* Release C: the chunk resolves instantly rather than fading. Its resting
-     state is the animation's own end state, so "instant" here means the same
-     thing the animation would have arrived at, not a different outcome. */
+  /* Release C: the chunk resolves instantly rather than fading, and the panels
+     do not move. Both resting states are the animations' own end states, so
+     "instant" here means the thing the animation would have arrived at, not a
+     different outcome — and every flag word still renders, because a flag is
+     text and not an animation. */
   .hp__shadow { animation: none; }
+  .panel[data-jiggle] { animation: none; }
 }
 
 /* ==========================================================================

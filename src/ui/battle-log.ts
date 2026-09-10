@@ -11,8 +11,8 @@ import { Protocol } from '@pkmn/protocol';
 import { LogFormatter } from '@pkmn/view';
 import type { Tracker } from '@pkmn/view';
 
-import { movePriority } from '../core/battle/driver';
-import { readTurns, type TurnAction } from '../core/battle/turnOrder';
+import type { FlaggedTurn } from '../core/battle/flags';
+import type { TurnAction } from '../core/battle/turnOrder';
 import { hpAfterDamage, hpAfterHeal } from '../core/hpCopy';
 import { el } from './scene';
 
@@ -90,8 +90,18 @@ class HpTracker implements Tracker {
 }
 
 export interface BattleLogView {
-  /** Feed new protocol lines. Returns the number of entries appended. */
-  append(protocol: readonly string[]): number;
+  /**
+   * Feed new protocol lines, with the turn reading of those same lines.
+   *
+   * **Release C: the reading arrives rather than being taken.** The log used
+   * to call `readTurns` itself, and the jiggle would have been a second
+   * caller — two readings of one stream, free to disagree about which move
+   * went first while sitting a few hundred pixels apart on the same screen.
+   * The screen now reads once and hands the result to both consumers, which
+   * makes "the log and the jiggle agree" true by construction rather than by
+   * two implementations happening to match.
+   */
+  append(protocol: readonly string[], turns: readonly FlaggedTurn[]): number;
   clear(): void;
 }
 
@@ -100,20 +110,18 @@ export function createBattleLog(container: HTMLElement): BattleLogView {
   let formatter = new LogFormatter('p1', tracker);
 
   return {
-    append(protocol) {
+    append(protocol, turns) {
       let added = 0;
 
       /*
-       * The turn structure is read from the *same* batch of lines that is about
-       * to be formatted, and keyed by line.
+       * The turn structure is the reading of the *same* batch of lines that is
+       * about to be formatted, keyed back onto the lines.
        *
-       * Two passes over one array rather than one pass that does both, because
-       * `readTurns` needs to see a whole turn before it can say which move went
-       * first — the marker on line one is a fact about line two. Keying by the
-       * protocol line itself avoids a parallel index that would drift the moment
-       * the formatter emitted a different number of chunks than it consumed.
+       * Keying by the protocol line itself rather than by a parallel index,
+       * which would drift the moment the formatter emitted a different number
+       * of chunks than it consumed.
        */
-      const annotations = annotate(protocol);
+      const annotations = annotate(protocol, turns);
 
       for (const line of protocol) {
         // The tracker must see the line *before* the formatter, so that
@@ -207,15 +215,15 @@ function hpLine(line: string, before: [number, number] | undefined): string | nu
 /**
  * Map each protocol line to the action it turned out to be, if any.
  *
- * `readTurns` gives back groups of actions but not the lines they came from, so
+ * The reader gives back groups of actions but not the lines they came from, so
  * this walks the two in step: the nth move-or-switch line in the batch is the
  * nth move-or-switch action. That holds because both are reading the same
  * stream in the same order, and it is cheaper than threading a line index
  * through the core reader — which would make a pure protocol reader carry a
  * detail that exists only for this renderer.
  */
-function annotate(protocol: readonly string[]): Map<string, TurnAction> {
-  const actions = readTurns(protocol, movePriority).flatMap((group) => group.actions);
+function annotate(protocol: readonly string[], turns: readonly FlaggedTurn[]): Map<string, TurnAction> {
+  const actions = turns.flatMap((group) => group.actions.map((each) => each.action));
   const out = new Map<string, TurnAction>();
 
   let index = 0;

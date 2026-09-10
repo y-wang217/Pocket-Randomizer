@@ -24,12 +24,17 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createBattle } from '../src/core/battle/driver';
+import { createBattle, moveIdentity, movePriority, speciesTypes } from '../src/core/battle/driver';
+import { readFlags, type FlagDeps, type FlaggedTurn } from '../src/core/battle/flags';
 import { buildBattleUiView, type ActiveUiView, type BattleUiView } from '../src/core/battle/view';
+import { moveChoice, type TeamSpec } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { createScene, type Scene } from '../src/ui/scene';
 import { resetSettings } from '../src/ui/settings';
+
+/** The same three adapter lookups `ui/screens/battle.ts` supplies in the app. */
+const FLAGS: FlagDeps = { priorityOf: movePriority, moveIdentityOf: moveIdentity, typesOf: speciesTypes };
 
 beforeEach(() => {
   resetSettings();
@@ -69,6 +74,30 @@ function fillOf(scene: Scene, side: 'me' | 'foe'): HTMLElement {
 }
 
 const NOOP = (): undefined => undefined;
+
+/**
+ * Play exactly one turn and hand the scene the reading of it.
+ *
+ * Deliberately the same two calls `ui/screens/battle.ts` makes in the app —
+ * one `readFlags` over the batch, then `scene.update(view, onChoose, turns)` —
+ * so what is asserted below is the wiring that actually ships and not a
+ * rehearsal of it. `slot` picks which move both sides use.
+ */
+function playOneTurn(p1: TeamSpec, p2: TeamSpec, slot: number, seed: string): { scene: Scene; turns: FlaggedTurn[] } {
+  const session = createBattle({ teams: { p1, p2 }, seed });
+  const before = session.protocolFor('p1').length;
+  for (const side of ['p1', 'p2'] as const) session.submit(side, moveChoice(slot));
+
+  const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
+  const turns = readFlags(batch, FLAGS);
+  const scene = createScene();
+  scene.update(
+    buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects),
+    NOOP,
+    turns,
+  );
+  return { scene, turns };
+}
 
 describe('the HP chunk and its shadow', () => {
   it('paints the shadow across exactly the span the bar vacated', () => {
@@ -182,5 +211,82 @@ describe('the HP chunk and its shadow', () => {
     expect(shadowOf(scene, 'foe').style.width).toBe('0%');
     // And the number it was describing is still correct.
     expect(fillOf(scene, 'foe').style.width).toBe('50%');
+  });
+});
+
+describe('the turn order jiggle', () => {
+  /**
+   * The pair `test/turn-order.test.ts` and `test/flags.test.ts` both use: base
+   * 30 Speed against base 130, so an order flip is a bracket and nothing else.
+   */
+  const SLOW: TeamSpec = [{ species: 'Snorlax', ability: 'Immunity', moves: ['Quick Attack', 'Tackle'], level: 50 }];
+  const FAST: TeamSpec = [{ species: 'Jolteon', ability: 'Volt Absorb', moves: ['Tackle', 'Quick Attack'], level: 50 }];
+
+  function nudges(scene: Scene): { me: string | undefined; foe: string | undefined } {
+    const me = scene.root.querySelector('.panel--me');
+    const foe = scene.root.querySelector('.panel--foe');
+    if (!(me instanceof HTMLElement) || !(foe instanceof HTMLElement)) throw new Error('no panels');
+    return { me: me.dataset['jiggle'], foe: foe.dataset['jiggle'] };
+  }
+
+  it('nudges the panels in the order the log numbers the actions', () => {
+    // The player is slow and uses a priority move, so p1 resolves first
+    // despite losing the Speed tie by a hundred points.
+    const { scene, turns } = playOneTurn(SLOW, FAST, 1, 'JIGGLE01');
+
+    // The log's own ordinals, off the same reading the jiggle was given.
+    /*
+     * The log's own ordinals, off the same reading the jiggle was given. Note
+     * the group carries no turn number: an incremental batch opens mid-turn
+     * and closes with the `|turn|` that starts the *next* one, which is why
+     * the jiggle keys off "the last group with actions" and never off a
+     * number.
+     */
+    const order = turns.flatMap((turn) => turn.actions.map((each) => each.action.side));
+    expect(order[0]).toBe('p1');
+    expect(order[1]).toBe('p2');
+
+    // And the panels agree, because they were placed from that same list.
+    expect(nudges(scene)).toEqual({ me: '1', foe: '2' });
+  });
+
+  it('nudges the other way round when the bracket is not in play', () => {
+    // Slot 2 on both sides is an ordinary Tackle, so Speed decides and the
+    // fast side goes first.
+    const { scene, turns } = playOneTurn(SLOW, FAST, 2, 'JIGGLE01');
+    const order = turns.flatMap((turn) => turn.actions.map((each) => each.action.side));
+    expect(order[0]).toBe('p2');
+    expect(nudges(scene)).toEqual({ me: '2', foe: '1' });
+  });
+
+  it('does not nudge on the opening draw, because an arrival is not a turn', () => {
+    const scene = createScene();
+    scene.update(baseView(), NOOP);
+    expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
+  });
+
+  it('places a side by its first action, so the sequence never exceeds two', () => {
+    const scene = createScene();
+    // A replacement switch after a faint is a third action on a side that has
+    // already moved. It must not re-place a panel that is already nudged.
+    scene.update(baseView(), NOOP, [
+      {
+        turn: 3,
+        actions: [
+          { action: { kind: 'move', side: 'p2', actor: 'A', move: 'Tackle', order: 1, priority: false, bracket: 0 }, flags: [] },
+          { action: { kind: 'move', side: 'p1', actor: 'B', move: 'Tackle', order: 2, priority: false, bracket: 0 }, flags: [] },
+          { action: { kind: 'switch', side: 'p1', actor: 'C', from: null, order: 3 }, flags: [] },
+        ],
+        residual: [],
+      },
+    ]);
+    expect(nudges(scene)).toEqual({ me: '2', foe: '1' });
+  });
+
+  it('clears the nudge on a tap, like every other transition', () => {
+    const { scene } = playOneTurn(SLOW, FAST, 1, 'JIGGLE01');
+    expect(nudges(scene).me).toBe('1');
+    scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
+    expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
   });
 });

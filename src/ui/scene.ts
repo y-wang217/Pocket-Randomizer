@@ -19,6 +19,7 @@
  * reason: a row that is replaced cannot pulse when its stage changes.
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
+import type { FlaggedTurn } from '../core/battle/flags';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -92,8 +93,14 @@ export interface Scene {
    * being distinguishable by shape — a switch and a move are both "a slot" —
    * and passing the union through means the app never has to guess which panel
    * a number came from.
+   *
+   * `turns` is the screen's one reading of the protocol batch that produced
+   * this view, the same object the log is rendering from. Release C item 2
+   * drives the jiggle off it, and the point of passing it rather than reading
+   * it here is that there is then no second reading to disagree with the log.
+   * Omitted on a redraw that is not the result of new protocol.
    */
-  update(view: BattleUiView, onChoose: (choice: Choice) => void): void;
+  update(view: BattleUiView, onChoose: (choice: Choice) => void, turns?: readonly FlaggedTurn[]): void;
 }
 
 export function createScene(): Scene {
@@ -125,6 +132,8 @@ export function createScene(): Scene {
       for (const panel of [foe, me]) {
         delete panel.hpShadow.dataset['fading'];
         panel.hpShadow.style.width = '0%';
+        // The nudge stops mid-swing and the panel sits back where it belongs.
+        delete panel.root.dataset['jiggle'];
       }
     },
     true,
@@ -132,12 +141,13 @@ export function createScene(): Scene {
 
   return {
     root,
-    update(view, onChoose) {
+    update(view, onChoose, turns) {
       updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent');
       updateSidePanel(me, view.player, false, view.fasterSide === 'player');
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
+      jiggle({ me, foe }, turns);
     },
   };
 }
@@ -492,6 +502,71 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
  */
 function panelTypeChip(type: string): HTMLElement {
   return typeChip(type);
+}
+
+/**
+ * Nudge each panel in the order its side acted. **Item 2.**
+ *
+ * ## What it is for
+ *
+ * The log has said who went first since the round 2 patch, in an ordinal at the
+ * head of each entry. That is correct and it is *reading*, and the thing the
+ * playtest actually reported — "priority doesn't exist" — was never fixed by a
+ * number you have to go and look at. A panel that twitches when its Pokemon
+ * acts puts the sequence where the player is already looking: on the board.
+ *
+ * ## It never computes an order
+ *
+ * The order is `turns`, which the screen read once and gave to the log as well.
+ * There is no sort here, no Speed comparison and no second call to `readTurns`
+ * — the panels move in the order the actions are already in, so the jiggle and
+ * the log's ordinals cannot disagree. Priority marking is not this function's
+ * business at all: it is the log's rule, applied by the reader, and the flag
+ * strip surfaces it. A same-bracket turn is unmarked there and unremarkable
+ * here — both sides jiggle either way, because both sides acted either way.
+ *
+ * ## Which turn, and which sides
+ *
+ * The last group in the batch that has any actions, and **not** the last group
+ * with a turn number — those are different, and the difference is the whole
+ * bug this comment exists to stop somebody reintroducing. An incremental
+ * update arrives as `|move| … |move| … |upkeep| |turn|N+1`: the actions that
+ * just resolved sit in the leading group, which has no number yet because the
+ * line that would have numbered it came at the *start* of the previous batch,
+ * and the trailing `|turn|` opens an empty group for a turn nobody has played.
+ * Reading a turn number here nudges nothing, forever.
+ *
+ * The opening replay is skipped by its caller passing no reading at all, which
+ * is the right place for it: an arrival is not a turn, and nudging both panels
+ * at the start of every battle is noise.
+ *
+ * A side is placed by its *first* action in that turn, so a replacement switch
+ * after a faint does not re-nudge a panel that has already moved. That caps the
+ * sequence at two, which is what the two `data-jiggle` steps in the stylesheet
+ * are: the delay is a token, not a number written from here.
+ */
+function jiggle(panels: { me: SidePanel; foe: SidePanel }, turns: readonly FlaggedTurn[] | undefined): void {
+  for (const panel of [panels.me, panels.foe]) delete panel.root.dataset['jiggle'];
+  if (!turns) return;
+
+  const latest = [...turns].reverse().find((turn) => turn.actions.length > 0);
+  if (!latest) return;
+
+  const seen: ('p1' | 'p2')[] = [];
+  for (const { action } of latest.actions) {
+    if (!seen.includes(action.side)) seen.push(action.side);
+  }
+
+  // Restart rather than extend, the same as the swap beat and the HP chunk:
+  // re-setting an attribute an element already carries does not replay a CSS
+  // animation, and two turns running must each get their own nudge.
+  void panels.me.root.offsetWidth;
+  for (const [index, side] of seen.entries()) {
+    // `p1` is the player throughout: the projection, the log formatter and the
+    // protocol all take p1's view.
+    const panel = side === 'p1' ? panels.me : panels.foe;
+    panel.root.dataset['jiggle'] = String(index + 1);
+  }
 }
 
 /**
