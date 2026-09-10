@@ -496,19 +496,47 @@ draw changed position and every seed rolled a different team anyway.
 
 ## 8. Capabilities, and why `latent` is not a learnset
 
-> **Superseded 2026-09-09. Kept because the measurements are still good.**
+> **Superseded 2026-09-10. Kept because the measurements are still good.**
 >
-> Everything below describes capabilities as satisfied by a **move in a party
-> member's slot**. That is no longer how they work. A capability is satisfied by
-> a **relic**: a permanent, run-scoped, passive object that occupies no move
-> slot, costs no backpack capacity, is never displaced and is never taught. It
-> satisfies one capability and carries a passive effect for the rest of the run.
+> Capabilities have been designed three times. Both earlier versions are still
+> in `docs/spec/`, and both are wrong.
 >
-> So there is no such thing as a capability move. The `known` band as described
-> below — "a member has the move in a slot" — is wrong, and the slots-before-
-> types ordering it justified is moot, because relics are not slots and not
-> types. `data/capabilityTypes.ts` and its type table survive as data and get
-> re-landed in the relic work; nothing measured here is lost.
+> **Version 1 — HMs as items** (original Stage 4.6c Part C). A separate item
+> class: permanent, exempt from backpack capacity, taught into a move slot.
+> Retired because it needed a teaching flow, a legality table, and a
+> build-config artifact to answer which species could legally learn what.
+>
+> **Version 2 — HMs as ordinary moves** (QoL rev2 §7, and what the section
+> below describes). Capability moves join the general move pools and band
+> normally; `known` means a party member has the move slotted. Retired because
+> it made capability value track move quality. Surf is a move a player keeps
+> anyway, so Surf gates resolved `known` constantly and cost nothing; Cut is a
+> move nobody keeps, so Cut gates resolved `none` constantly and were passable
+> only by luck. The premise the whole mechanic rested on — that a utility slot
+> is a real sacrifice — held for one half of the capability list and collapsed
+> for the other, and the same mechanic behaving oppositely depending on which
+> move it names is not a mechanic.
+>
+> **Version 3 — capabilities as relics** (current). A capability is granted by
+> a permanent, run-scoped, passive object that occupies no move slot, costs no
+> backpack capacity, is never displaced and is never taught. It grants one
+> capability and carries one small always-on effect for the rest of the run.
+> Chosen over a third variation of the same idea because accumulating passives
+> that are not always applicable are the thing that makes a roguelike run feel
+> like it is building toward something: a relic that does nothing in six fights
+> and wins the seventh is a better object than a move slot that is dead weight
+> in all seven.
+>
+> So there is no such thing as a capability move, and **knowing a
+> capability-named move grants nothing** — Surf-the-move and
+> Surf-the-capability are unrelated systems that share a name. The `known` band
+> as described below is wrong, and the slots-before-types ordering it justified
+> is moot, because relics are neither slots nor types. `resolveCapability` now
+> takes a `RunState` rather than a party, because a relic belongs to the run.
+>
+> The type table survives intact, moved from `data/capabilityTypes.ts` to
+> `data/capabilities.ts`, and still answers `latent`. Nothing measured here is
+> lost.
 >
 > Two things below stay true and are the reason this section was not deleted.
 > The first is the learnset investigation: the 12.8 kB measurement, the prevo
@@ -525,6 +553,9 @@ draw changed position and every seed rolled a different team anyway.
 > `docs/engine-notes.md` for the durable half of that work — the engine will run
 > a move the current generation calls nonstandard, which is a fact worth keeping
 > even though the feature that needed it is gone.
+>
+> Under version 3 those two moves are back to being ordinary moves excluded by
+> ordinary curation rules, with no relationship to capabilities whatsoever.
 
 Stage 4.6c gates some routes on a capability — Surf, Fly, Cut and five others.
 A party reads at one of three bands for each: `known` if a member has the move

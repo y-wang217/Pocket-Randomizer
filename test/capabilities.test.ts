@@ -1,16 +1,24 @@
 /**
- * The three capability bands.
+ * The three capability bands, version 3.
  *
- * The property that matters most is the last one in this file: teaching a
- * capability move always yields `known`, whatever the party read before. That
- * is the rule the whole feature rests on — a gate the run can see is a gate the
- * run can fix — and it is the one a legality-based `latent` would have broken,
- * silently, for exactly the species a player would have been most surprised by.
+ * **Rewritten for Stage 4.6c.** This file previously asserted that a party
+ * member with the capability move in a slot resolved `known` — including a case
+ * named "reads known off a species whose type does not answer", which was the
+ * point of the old design and is exactly backwards under this one. Capabilities
+ * are granted by relics now, and nothing a Pokemon knows grants one. The old
+ * assertions are replaced rather than deleted: the same situations are still
+ * covered, with the answers version 3 gives.
+ *
+ * The property that matters most is the last one: holding the relic yields
+ * `known` from any prior band. That is the rule the whole feature rests on — a
+ * gate the run can see is a gate the run can open — and it is the one both
+ * earlier designs broke, each for a different half of the capability list.
  */
 import { describe, expect, it } from 'vitest';
 import { createPartyMember } from '../src/core/party';
-import { resolveCapability } from '../src/core/capabilities';
-import { CAPABILITIES, CAPABILITY_MOVES, CAPABILITY_TYPES, capabilityTypes } from '../src/data/capabilityTypes';
+import { resolveCapability, type CapabilityContext } from '../src/core/capabilities';
+import { CAPABILITIES, CAPABILITY_TYPES, capabilityTypes } from '../src/data/capabilities';
+import { RELICS, relicsGranting } from '../src/data/relics';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { typesOfSpecies } from '../src/data/speciesTypes';
 import type { PokemonState } from '../src/core/types';
@@ -26,87 +34,101 @@ function firstOf(type: string): string {
   return entry.species;
 }
 
+/** A species carrying none of `types`. */
+function firstWithout(types: readonly string[]): string {
+  const entry = SPECIES_POOL.find((row) => !row.types.some((type) => types.includes(type)));
+  if (!entry) throw new Error('Every pool species answers');
+  return entry.species;
+}
+
+const run = (relics: string[], party: PokemonState[]): CapabilityContext => ({ relics, party });
+
 describe('the three bands', () => {
-  it('reads none when neither a slot nor a type answers', () => {
-    // A Fire type with no capability move: not Water, so not even latent.
-    const party = [member(firstOf('Fire'), ['Ember', 'Tackle'])];
-    expect(resolveCapability(party, 'surf')).toBe('none');
+  it('reads none when neither a relic nor a type answers', () => {
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Ember', 'Tackle'])];
+    expect(resolveCapability(run([], party), 'surf')).toBe('none');
   });
 
-  it('reads latent when a type answers but no slot does', () => {
-    const party = [member(firstOf('Water'), ['Tackle'])];
-    expect(resolveCapability(party, 'surf')).toBe('latent');
+  it('reads latent when a type answers but no relic does', () => {
+    expect(resolveCapability(run([], [member(firstOf('Water'), ['Tackle'])]), 'surf')).toBe('latent');
   });
 
-  it('reads known when a slot answers', () => {
-    const party = [member(firstOf('Water'), ['Surf'])];
-    expect(resolveCapability(party, 'surf')).toBe('known');
+  it('reads known when a relic grants it', () => {
+    const relic = relicsGranting('surf')[0];
+    if (!relic) throw new Error('fixture');
+    expect(resolveCapability(run([relic.id], []), 'surf')).toBe('known');
   });
 
-  it('reads known off a species whose type does not answer', () => {
-    // The whole point of slots-before-types: a Fire type holding Surf passes
-    // the water gate. Nothing asks whether it was allowed to learn it.
-    const party = [member(firstOf('Fire'), ['Surf'])];
-    expect(resolveCapability(party, 'surf')).toBe('known');
-  });
-
-  it('matches a move name case- and punctuation-insensitively', () => {
-    const party = [member(firstOf('Fire'), ['rock smash'])];
-    expect(resolveCapability(party, 'rockSmash')).toBe('known');
-  });
-
-  it('reads an empty party as none', () => {
-    expect(resolveCapability([], 'cut')).toBe('none');
-  });
-
-  it('counts a fainted member', () => {
-    // A capability is a property of the team, not of who is standing up.
-    const [live] = [member(firstOf('Water'), ['Surf'])];
-    if (!live) throw new Error('fixture');
-    expect(resolveCapability([{ ...live, fainted: true, hp: 0 }], 'surf')).toBe('known');
-  });
-
-  it('answers from any slot in the party, not just the lead', () => {
-    const party = [member(firstOf('Fire'), ['Ember']), member(firstOf('Water'), ['Surf'])];
-    expect(resolveCapability(party, 'surf')).toBe('known');
+  it('reads known on an empty party, because a relic is a run property', () => {
+    const relic = relicsGranting('fly')[0];
+    if (!relic) throw new Error('fixture');
+    expect(resolveCapability(run([relic.id], []), 'fly')).toBe('known');
   });
 });
 
-describe('the property that makes a gate fixable', () => {
-  it('yields known for every capability once the move is slotted, from any prior band', () => {
+describe('nothing a Pokemon knows grants a capability', () => {
+  it('does not read known off a slotted capability-named move', () => {
+    // The load-bearing rule of version 3, and the exact case the old file
+    // asserted the other way. A Fire type holding Surf is a Fire type holding
+    // an attack; it opens no water.
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Surf', 'Waterfall', 'Dive'])];
+    expect(resolveCapability(run([], party), 'surf')).toBe('none');
+  });
+
+  it('still reads latent off type alone, move or no move', () => {
+    const water = firstOf('Water');
+    expect(resolveCapability(run([], [member(water, ['Surf'])]), 'surf')).toBe('latent');
+    expect(resolveCapability(run([], [member(water, ['Tackle'])]), 'surf')).toBe('latent');
+  });
+
+  it('is unmoved by a relic that grants a different capability', () => {
+    const flyRelic = relicsGranting('fly')[0];
+    if (!flyRelic) throw new Error('fixture');
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Surf'])];
+    expect(resolveCapability(run([flyRelic.id], party), 'surf')).toBe('none');
+  });
+});
+
+describe('the property that makes a gate openable', () => {
+  it('yields known for every capability once the relic is held, from any prior band', () => {
     for (const capability of CAPABILITIES) {
-      const move = CAPABILITY_MOVES[capability];
+      const relic = relicsGranting(capability)[0];
+      expect(relic, `no relic grants ${capability}`).toBeTruthy();
+      if (!relic) continue;
+
       const satisfying = capabilityTypes(capability);
-
-      // A species that answers by type, and one that does not, so both the
-      // latent->known and the none->known transitions are covered.
       const byType = firstOf(satisfying[0] ?? 'Water');
-      const notByType = SPECIES_POOL.find(
-        (row) => !row.types.some((type) => satisfying.includes(type)),
-      )?.species;
-      if (!notByType) throw new Error(`Every pool species answers ${capability}`);
+      const notByType = firstWithout(satisfying);
 
-      expect(resolveCapability([member(byType, ['Tackle'])], capability)).toBe('latent');
-      expect(resolveCapability([member(notByType, ['Tackle'])], capability)).toBe('none');
+      // The three prior bands, each confirmed before the relic is added.
+      expect(resolveCapability(run([], [member(byType, ['Tackle'])]), capability)).toBe('latent');
+      expect(resolveCapability(run([], [member(notByType, ['Tackle'])]), capability)).toBe('none');
+      expect(resolveCapability(run([], []), capability)).toBe('none');
 
-      for (const species of [byType, notByType]) {
-        expect(resolveCapability([member(species, [move])], capability)).toBe('known');
-        expect(resolveCapability([member(species, ['Tackle', move, 'Ember'])], capability)).toBe('known');
+      for (const party of [[member(byType, ['Tackle'])], [member(notByType, ['Tackle'])], []]) {
+        expect(resolveCapability(run([relic.id], party), capability)).toBe('known');
       }
+    }
+  });
+
+  it('holds for every relic in the table, not just the first per capability', () => {
+    for (const relic of RELICS) {
+      expect(resolveCapability(run([relic.id], []), relic.grants)).toBe('known');
     }
   });
 });
 
 describe('the type table', () => {
-  it('covers every capability', () => {
+  it('covers every capability and has a relic for each', () => {
     for (const capability of CAPABILITIES) {
       expect(CAPABILITY_TYPES[capability].length).toBeGreaterThan(0);
-      expect(CAPABILITY_MOVES[capability]).toBeTruthy();
+      expect(relicsGranting(capability).length).toBeGreaterThan(0);
     }
   });
 
   it('names only types the species pool actually carries', () => {
-    // A typo here would make a gate unpassable and nothing else would say so.
+    // A typo here would make a gate unreachable at latent and nothing else
+    // would say so.
     const real = new Set(SPECIES_POOL.flatMap((entry) => entry.types));
     for (const capability of CAPABILITIES) {
       for (const type of CAPABILITY_TYPES[capability]) {
@@ -115,9 +137,7 @@ describe('the type table', () => {
     }
   });
 
-  it('leaves every capability reachable and none automatic', () => {
-    // Both ends matter: a gate no species answers is a wall, and one every
-    // species answers is not a gate at all.
+  it('leaves every capability reachable at latent and none automatic', () => {
     for (const capability of CAPABILITIES) {
       const types = capabilityTypes(capability);
       const answering = SPECIES_POOL.filter((row) => row.types.some((type) => types.includes(type)));
@@ -139,6 +159,6 @@ describe('the species type lookup', () => {
   });
 
   it('resolves none for a party of an unknown species', () => {
-    expect(resolveCapability([member('Missingno', ['Tackle'])], 'surf')).toBe('none');
+    expect(resolveCapability(run([], [member('Missingno', ['Tackle'])]), 'surf')).toBe('none');
   });
 });

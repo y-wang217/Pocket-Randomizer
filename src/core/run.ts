@@ -52,6 +52,7 @@ import {
   type AcquisitionDecision,
   type AcquisitionOffer,
 } from './acquisition';
+import type { RelicId } from '../data/relics';
 import { RANDOMIZER_VERSION } from './randomizer';
 import {
   applyPurchases,
@@ -251,6 +252,15 @@ export interface RunState {
    * live. Capacity is `tuning.backpackCapacity`; `core/items.ts` owns the rule.
    */
   backpack: ItemId[];
+  /**
+   * The relics this run holds, in the order they were taken.
+   *
+   * Run-scoped and permanent: nothing removes an id from this list. It is not
+   * the backpack and it is not held by a Pokemon — `core/relics.ts` says why,
+   * and `data/relics.ts` holds the table. Order is kept because it is the order
+   * a readout lists them in, not because anything reads it as precedence.
+   */
+  relics: RelicId[];
   starterOptions: PokemonSpec[];
   starterIndex: number | null;
   history: NodeVisit[];
@@ -304,6 +314,7 @@ export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunSta
     party: [],
     currency: 0,
     backpack: [],
+    relics: [],
     starterOptions,
     starterIndex: null,
     history: [],
