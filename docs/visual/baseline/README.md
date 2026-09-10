@@ -104,3 +104,26 @@ and fails on any byte that differs. Heights are compared by
   and `data-digest.txt` are byte identical: V5.2 changed no file under
   `src/data/`, and the one new copy module is `src/ui/copy/events.ts`, which is
   under `ui/` for exactly that reason.
+
+- **2026-09-10, V5.3.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that put the sprites in the scene and the
+  panels on top of it: `battle.screenHeight` 850.5 → **633**, `scrollHeight`
+  1044 → **844**, `decisionTop` 681.5 → **476**, `decisionBottom` 947.5 →
+  **742**. `decisionCount` is still 4. **This is the first recording in which
+  the battle screen does not scroll**: 844 is the viewport, so `scrollHeight`
+  and the fold are now the same number.
+
+  Where the 217.5 came from, and it is three things rather than one. The two
+  panels left the column and became absolutely positioned inside a 260px stage
+  band, so their 239.25 and 214.25 stopped contributing anything to the flow
+  (−453.5, +260 for the band). The six-row stat block left both panels with
+  them. And the empty `.bench` took `display: none`, which took the flex gap it
+  was still earning (−12).
+
+  **The decision point moved for the first time in this stage**, by 205.5, and
+  every pixel of it is above the move grid rather than inside it: `.moves` is
+  still 266 tall and its four buttons still 130. V5.4 is the one that touches
+  the grid.
+
+  **The map did not move**, on any of its five fields. Runs, the battle protocol
+  and `data-digest.txt` are byte identical.

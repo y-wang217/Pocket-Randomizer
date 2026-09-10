@@ -1,0 +1,161 @@
+/**
+ * The battle stage: two sprites in the scene, two panels floating. **V5.3.**
+ *
+ * @vitest-environment jsdom
+ *
+ * The same split every battle-UI file in this suite uses: which elements
+ * exist, which side each faces and which chips a panel carries are DOM
+ * questions and jsdom answers them; whether a panel reads as a card and
+ * whether the two sides are drawn at the same weight are questions about
+ * computed style at 390 wide, and those are in `test/visual-v5.test.ts`.
+ *
+ * Release C's HP behaviour is deliberately **not** re-asserted here.
+ * `test/battle-feedback.test.ts` owns it and runs unchanged, which is the
+ * plan's own instruction for this checkpoint: V5 restyles the bar's
+ * surroundings and does not touch the bar.
+ */
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { createBattle } from '../src/core/battle/driver';
+import { buildBattleUiView, type BattleUiView } from '../src/core/battle/view';
+import type { TeamSpec } from '../src/core/types';
+import { abilityEffects } from '../src/data/abilityEffects';
+import { createScene, type Scene } from '../src/ui/scene';
+import { resetSettings } from '../src/ui/settings';
+
+const PLAYER: TeamSpec = [
+  { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Body Slam'], level: 50 },
+];
+const FOE: TeamSpec = [{ species: 'Golem', ability: 'Sturdy', moves: ['Tackle'], level: 50 }];
+
+beforeEach(() => {
+  resetSettings();
+});
+
+function sceneFor(seed = 'STAGE01'): { scene: Scene; view: BattleUiView } {
+  const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed });
+  const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+  const scene = createScene();
+  scene.update(view, () => {});
+  return { scene, view };
+}
+
+/** The panel a side's facts are drawn on. */
+const panelOf = (scene: Scene, kind: 'me' | 'foe'): HTMLElement =>
+  scene.root.querySelector(`.panel--${kind}`) as HTMLElement;
+
+describe('the sprites', () => {
+  it('stand in the stage, one a side, with no box of their own', () => {
+    const { scene } = sceneFor();
+    const actors = [...scene.root.querySelectorAll('.stage .stage__actor')];
+    expect(actors).toHaveLength(2);
+    // The old separate sprite box is gone because it never existed: this is
+    // the first stage to draw a sprite in a battle at all, and it draws it
+    // straight onto the stage.
+    for (const actor of actors) expect(actor.parentElement?.className).toBe('stage');
+  });
+
+  it('faces the player on the near side and the player on the far side', () => {
+    const { scene } = sceneFor();
+    const src = (kind: string): string =>
+      (scene.root.querySelector(`.stage__actor--${kind} img`) as HTMLImageElement).src;
+    // `p1` is the near side and wears the back sprite; `p2` faces the player.
+    // The protocol's own sides, so nothing here translates between two
+    // vocabularies.
+    expect(src('me')).toContain('gen5-back/');
+    expect(src('foe')).not.toContain('gen5-back/');
+    expect(src('me')).toContain('snorlax');
+    expect(src('foe')).toContain('golem');
+  });
+
+  it('is decorative, and says so', () => {
+    const { scene } = sceneFor();
+    // The panel beside it names the Pokemon, its level, its types and its HP.
+    // A screen reader that also read the sprite would hear the same body twice.
+    for (const actor of scene.root.querySelectorAll('.stage__actor')) {
+      expect(actor.getAttribute('aria-hidden')).toBe('true');
+    }
+  });
+
+  it('does not re-request an image on a turn that changed nobody', () => {
+    const { scene, view } = sceneFor();
+    const img = scene.root.querySelector('.stage__actor--me img') as HTMLImageElement;
+    const first = img.src;
+    let requests = 0;
+    Object.defineProperty(img, 'src', {
+      get: () => first,
+      set: () => {
+        requests++;
+      },
+      configurable: true,
+    });
+    scene.update(view, () => {});
+    scene.update(view, () => {});
+    // Re-setting `src` to the URL it already holds makes the browser re-decode
+    // an image, and on a phone that is a repaint a move.
+    expect(requests).toBe(0);
+  });
+});
+
+describe('the floating panel', () => {
+  it('has both panels inside the stage rather than above and below it', () => {
+    const { scene } = sceneFor();
+    // The whole reason the budget closes. Stacked, the two panels and the
+    // sprite band put the move grid past the 740 line.
+    for (const kind of ['me', 'foe'] as const) {
+      expect(panelOf(scene, kind).parentElement?.className).toBe('stage');
+    }
+  });
+
+  it('carries no six-stat block, and says the stages as V2 chips instead', () => {
+    const { scene } = sceneFor();
+    expect(scene.root.querySelectorAll('.stats')).toHaveLength(0);
+    expect(scene.root.querySelectorAll('.stat__label')).toHaveLength(0);
+
+    // Nothing has moved a stage yet, so there is nothing to say and the row
+    // holds no chip at all — the same rule the flag strip follows one band
+    // below.
+    const me = panelOf(scene, 'me');
+    expect(me.querySelectorAll('.panel__stages .chip--stage')).toHaveLength(0);
+  });
+
+  it('names the stat a stage is on, so `+2` is not +2 of what', () => {
+    const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed: 'STAGE02' });
+    const scene = createScene();
+    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+    // Swords Dance, both sides submitting, so the player's Attack is +2.
+    for (const side of ['p1', 'p2'] as const) {
+      if (session.viewFor(side).awaitingChoice) session.submit(side, { kind: 'move', slot: 1 } as never);
+    }
+    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+
+    const chips = [...panelOf(scene, 'me').querySelectorAll('.panel__stages .chip--stage')];
+    expect(chips.length).toBeGreaterThan(0);
+    expect(chips.map((chip) => chip.textContent)).toContain('Atk +2');
+    // Through the V2 component, whose docstring has said "for the battle panel
+    // to adopt in V5" since that stage landed.
+    for (const chip of chips) expect(chip.classList.contains('chip')).toBe(true);
+  });
+
+  it('keeps the speed marker the six rows used to carry', () => {
+    const { scene } = sceneFor();
+    // A fact about the board as it stands right now — the same kind of fact as
+    // the live effectiveness marker, and the one exception the copy rule names.
+    const markers = [...scene.root.querySelectorAll('.panel__stages .badge--first')];
+    expect(markers).toHaveLength(1);
+    expect(markers[0]?.textContent).toContain('FIRST');
+  });
+
+  it('leaves Release C’s HP elements exactly where they were', () => {
+    const { scene } = sceneFor();
+    for (const kind of ['me', 'foe'] as const) {
+      const panel = panelOf(scene, kind);
+      const track = panel.querySelector('.hp') as HTMLElement;
+      expect(track, 'the track is still on the panel').not.toBeNull();
+      // Shadow before fill, so the fill paints over it. Release C's ordering,
+      // and the reason its comment gives is a hairline seam on the leading
+      // edge of the bar on exactly the frames the player is watching it.
+      expect([...track.children].map((child) => child.className)).toEqual(['hp__shadow', 'hp__fill']);
+    }
+  });
+});

@@ -160,6 +160,45 @@ body {
   gap: var(--space-3);
 }
 
+/* An empty bench takes no room at all. **V5.3.**
+
+   It was already invisible — `renderBench` leaves the container empty on a
+   party of one and between turns — but an empty flex child still earns the
+   column's 12px gap, and on the one screen whose whole stage is a budget that
+   is 12px of nothing. `display: none` takes it out of the flex flow, gap
+   included; `visibility: hidden` would not. The panel is back the moment it has
+   a row, including the turns where every row is disabled, because "you cannot
+   switch right now" is information and an absent panel is not. */
+.bench:empty { display: none; }
+
+/* ---------- the stage ----------
+   V5.3. Two sprites standing in the world V3 already draws behind every
+   screen, with the two panels floating over the same band.
+
+   A fixed height, and that is the whole reason it is a token: the band is a
+   budgeted number, and a stage that grew when a sprite finished loading would
+   move the move grid under a thumb already descending. Everything inside is
+   absolutely positioned against it, so nothing here can reflow anything below.
+
+   Opposite corners: opponent panel upper left with its sprite upper right,
+   player sprite lower left with its panel lower right. That is a layout
+   decision and not an emphasis one — both sprites are one size, both panels
+   wear one scrim, and no rule in this block draws one side heavier than the
+   other. */
+.stage {
+  position: relative;
+  height: var(--stage-height);
+}
+
+.stage__actor {
+  position: absolute;
+  width: var(--sprite-size);
+  height: var(--sprite-size);
+}
+
+.stage__actor--foe { top: 0; right: 0; }
+.stage__actor--me { bottom: 0; left: 0; }
+
 /* ---------- side panels ---------- */
 
 .panel {
@@ -171,6 +210,77 @@ body {
 
 .panel--foe,
 .panel--me { border-left: var(--space-1) solid var(--border-strong); }
+
+/* The floating panels. **V5.3, Reference B: a scrim, not a card.**
+
+   Everything that made these boxes goes — the raised surface, the outline, the
+   heavy left rule — and what is left is the panel's own text on a translucent
+   ground with the scene showing through it. The blur is what makes that
+   readable over a busy locale without the scrim having to be opaque enough to
+   become a card again.
+
+   Absolutely positioned inside the stage, which is why they cost the layout
+   nothing: the plan's budget only closes with the panels *in* the 260 band
+   rather than above and below it. `--panel-float` keeps each one clear of the
+   sprite in the opposite corner, so neither ever covers the other and no
+   z-order decides which side is legible.
+
+   Identical on both sides, deliberately. The scrim, the padding, the radius
+   and the width are one rule for both panels; the only thing that differs is
+   which corner each sits in. */
+.stage .panel {
+  position: absolute;
+  padding: var(--space-1h) var(--space-2);
+  background: var(--panel-scrim);
+  backdrop-filter: blur(var(--panel-blur));
+  border: 0;
+  border-left: 0;
+  border-radius: var(--radius-card);
+}
+
+/* Each panel runs from its own edge of the band to where the sprite opposite
+   it begins, rather than to a percentage. The sprite's width is the constraint,
+   so stating it that way means a panel cannot overlap a sprite even if either
+   number changes — and it gives the text every pixel the sprite does not want,
+   which is what keeps the header on one line at 390. */
+.stage .panel--foe {
+  top: 0;
+  left: 0;
+  right: calc(var(--sprite-size) + var(--space-2));
+}
+
+.stage .panel--me {
+  bottom: 0;
+  right: 0;
+  left: calc(var(--sprite-size) + var(--space-2));
+}
+
+/* Inside a floating panel every line is a line of the stage it covers, so the
+   header's block margin goes and the rows are separated by one gap instead. */
+.stage .panel__header { margin-bottom: 0; }
+
+.stage .panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Stat stages, revealed traits and volatiles on one row. Three containers
+   because they are three kinds of fact with three emptiness rules; one row
+   because the panel is over a sprite now. */
+.panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.panel__stages {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
 
 .panel__header {
   display: flex;

@@ -216,6 +216,28 @@
   /* The gate line's rule, same story as --fs-gate. 5.6px. */
   --space-gate: 0.35rem;
 
+  /* ---------- the battle stage (V5) ----------
+     The band the two sprites stand in, and the sprite itself. Both fixed, and
+     that is the point: the stage's height is a budgeted number, and a band
+     that grew when an image finished loading would move the move grid under a
+     thumb already descending. 96px is the Gen 5 sprite's own size, so nothing
+     is scaled and the pixels stay crisp.
+
+     A floating panel's width is not a token: it runs from its own edge of the
+     band to where the sprite opposite it begins, so `--sprite-size` is the
+     constraint and stating it as a percentage as well would be two numbers for
+     one fact. */
+  --stage-height: 260px;
+  --sprite-size: 96px;
+  /* The scrim a floating panel's text sits on. Reference B: a scrim, not a
+     card — the ground shows through it, so the panel reads as text over the
+     scene rather than as a box on top of it. Mixed from `--bg` so a locale's
+     world tints it exactly as much as it tints everything else, and identical
+     on both sides, because a panel drawn heavier than the one opposite would
+     be the visual-weight rule broken on the one screen that matters most. */
+  --panel-scrim: color-mix(in srgb, var(--bg) 72%, transparent);
+  --panel-blur: 2px;
+
   /* ---------- two radii ---------- */
   --radius-card: 4px;
   --radius-chip: 2px;

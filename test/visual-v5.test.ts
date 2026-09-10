@@ -131,3 +131,126 @@ describe('the event strip', () => {
     await context.close();
   }, 300_000);
 });
+
+describe('the stage', () => {
+  it('floats both panels on one scrim, with neither drawn heavier than the other', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playUntil(page, (screen) => screen === 'battle');
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(600);
+
+    const read = await page.evaluate((sel) => {
+      const stage = globalThis.document.querySelector(`${sel} .stage`);
+      const panels = [...globalThis.document.querySelectorAll(`${sel} .stage .panel`)];
+      if (!stage || panels.length !== 2) return null;
+      /*
+       * The properties that could rank one side over the other. Position is
+       * deliberately not among them: the two panels sit in opposite corners,
+       * and where a thing is is not how heavy it is.
+       */
+      const KEYS = [
+        'backgroundColor',
+        'backgroundImage',
+        'borderTopWidth',
+        'borderRightWidth',
+        'borderBottomWidth',
+        'borderLeftWidth',
+        'borderTopColor',
+        'borderRadius',
+        'boxShadow',
+        'opacity',
+        'padding',
+        'fontSize',
+        'fontWeight',
+        'backdropFilter',
+        'filter',
+      ];
+      const style = (el: Element): string => {
+        const cs = globalThis.getComputedStyle(el) as unknown as Record<string, string>;
+        return KEYS.map((key) => `${key}=${cs[key]}`).join(' ');
+      };
+      const rect = stage.getBoundingClientRect();
+      return {
+        stageHeight: Math.round(rect.height),
+        panels: panels.map(style),
+        borderWidths: panels.map((panel) => {
+          const cs = globalThis.getComputedStyle(panel);
+          return [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].join(',');
+        }),
+        positions: panels.map((panel) => globalThis.getComputedStyle(panel).position),
+        raised: panels.map((panel) => globalThis.getComputedStyle(panel).backgroundColor),
+        surface: globalThis.getComputedStyle(globalThis.document.documentElement).getPropertyValue('--bg-raised').trim(),
+      };
+    }, visible('battle'));
+
+    expect(read, 'the stage is on the board with both panels on it').not.toBeNull();
+    // The band is the budgeted number, not whatever the content came to.
+    expect(read?.stageHeight).toBe(260);
+    // One style for both sides. Not "similar": the same string.
+    expect(new Set(read?.panels).size, read?.panels.join('\n')).toBe(1);
+    // A scrim, not a card: no outline at all, and not the raised surface every
+    // other panel in the app sits on.
+    for (const widths of read?.borderWidths ?? []) expect(widths).toBe('0px,0px,0px,0px');
+    for (const position of read?.positions ?? []) expect(position).toBe('absolute');
+    for (const background of read?.raised ?? []) expect(background).not.toBe(read?.surface);
+    await context.close();
+  }, 300_000);
+
+  it('puts a sprite in each corner the panel opposite does not use', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playUntil(page, (screen) => screen === 'battle');
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(600);
+
+    const boxes = await page.evaluate((sel) => {
+      const box = (selector: string) => {
+        const el = globalThis.document.querySelector(`${sel} ${selector}`);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) };
+      };
+      return {
+        foeSprite: box('.stage__actor--foe'),
+        meSprite: box('.stage__actor--me'),
+        foePanel: box('.stage .panel--foe'),
+        mePanel: box('.stage .panel--me'),
+      };
+    }, visible('battle'));
+
+    for (const [name, value] of Object.entries(boxes)) expect(value, `${name} is on the stage`).not.toBeNull();
+    const { foeSprite, meSprite, foePanel, mePanel } = boxes;
+    if (!foeSprite || !meSprite || !foePanel || !mePanel) throw new Error('the stage is missing a box');
+
+    // Opponent upper right, player lower left. Both sprites the same size,
+    // which is the visual-weight rule: a bigger sprite would be a bigger
+    // Pokemon and nothing on this board says that.
+    const size = (b: { left: number; right: number; top: number; bottom: number }): number[] => [
+      b.right - b.left,
+      b.bottom - b.top,
+    ];
+    expect(size(foeSprite)).toEqual(size(meSprite));
+    expect(size(foeSprite)).toEqual([96, 96]);
+    expect(foeSprite.top).toBeLessThan(meSprite.top);
+    expect(meSprite.left).toBeLessThan(foeSprite.left);
+
+    // Neither panel overlaps the sprite opposite it. The panel stops where the
+    // sprite begins, which is why it is stated as `calc(--sprite-size + gap)`
+    // rather than as a percentage that could drift into it.
+    expect(foePanel.right).toBeLessThanOrEqual(foeSprite.left);
+    expect(mePanel.left).toBeGreaterThanOrEqual(meSprite.right);
+    await context.close();
+  }, 300_000);
+
+  it('takes no room for a bench nobody has', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playUntil(page, (screen) => screen === 'battle');
+    const empty = await page.evaluate((sel) => {
+      const bench = globalThis.document.querySelector(`${sel} .bench`);
+      return bench ? { children: bench.children.length, display: globalThis.getComputedStyle(bench).display } : null;
+    }, visible('battle'));
+    // An empty flex child still earns the column's gap, and on this screen that
+    // is 12px of nothing. `display: none` takes the gap with it.
+    if (empty && empty.children === 0) expect(empty.display).toBe('none');
+    await context.close();
+  }, 300_000);
+});

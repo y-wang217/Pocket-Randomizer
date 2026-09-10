@@ -424,3 +424,124 @@ target at 130, `4/4 damaging` carrying a band, `0 overhanging of 4`. Baseline
 re-recorded in this commit. The move grid is now reported above the fold by the
 smoke script (`moves end at y=748`) because that check measures within the
 scrolled view; `heights.json` is the absolute ruler and still reads 947.5.
+
+## V5.3 Sprites into the scene, panels floating
+
+**Cuts 2, 3 and 4 taken, cut 6 paid: −217.5 net.** `screenHeight` 850.5 →
+**633**, `scrollHeight` 1044 → **844**, and the decision point moves for the
+first time this stage: `decisionTop` 681.5 → **476**, `decisionBottom` 947.5 →
+**742**. The battle screen no longer scrolls at 390x844 — `scrollHeight` and the
+fold are the same number.
+
+| what | from | to |
+|---|---|---|
+| both panels, in the column | 239.25 + 214.25 | 0 — absolutely positioned inside the band |
+| the stage band, with both sprites | 0 | **260** |
+| the empty `.bench` and the gap it earned | 12 | 0 |
+
+### Two sprites stand in a place
+
+`.stage__actor--foe` upper right, `.stage__actor--me` lower left, over the V3
+world that was already drawn behind every screen. No container: the actors are
+children of `.stage` and carry no surface, no outline and no elevation of their
+own. `spriteImg` from V4 resolves them through `@pkmn/img`, so nothing raster
+ships in the repo — the plan's asset rule.
+
+`p1` wears the back sprite and `p2` the front, which are **the protocol's own
+sides**, so nothing in the scene translates between two vocabularies. Both are
+96x96, the Gen 5 sprite's own size, so nothing is scaled and the pixels stay
+crisp — and both are the *same* size, which is the visual-weight rule: a larger
+sprite would be a larger Pokemon and nothing on this board says that.
+
+The band's height is a token and fixed. A stage that grew when an image
+finished loading would move the move grid under a thumb already descending, and
+in a sandbox with no route to Showdown's CDN the box holds and the layout is
+identical — which is what the measurements in this report were taken on.
+
+### The panels float, and the budget only closes that way
+
+Absolutely positioned inside the band, on a scrim, with no border, no raised
+surface and no left rule. Each runs from its own edge of the band to where the
+sprite opposite it begins — `calc(var(--sprite-size) + var(--space-2))` rather
+than a percentage — so a panel cannot overlap a sprite even if either number
+changes, and the text gets every pixel the sprite does not want.
+
+**One rule for both sides.** The scrim, the blur, the padding, the radius and
+the type are a single declaration applying to both panels; the only thing that
+differs is which corner each sits in. A browser test compares fifteen computed
+properties across the two and requires the strings to be equal, not similar.
+
+### What this stage takes away, stated plainly
+
+**The six-row stat block leaves both battle panels.** It cost 89.75px a panel
+and printed a number for every stat on every turn whether or not anything had
+happened to it. In its place, stat *stages* render as V2 chips — `Atk +2`,
+`Spe -1` — and only when they are not zero, so the row is empty until the
+battle has something to say. `stageChip` gained an optional stat label, because
+`+2` on a mixed row does not say +2 of what; it is still one chip at one weight,
+and `badge--up`/`badge--down` carry the sign, not an emphasis.
+
+The speed marker moved onto that row rather than leaving with the block. It was
+the one thing on the six rows that answered a question rather than stating a
+number, it is a fact about the board as it stands — the same kind of fact as the
+live effectiveness marker, which is the one exception the copy rule names — and
+Stage 4.5's prompt asks for it by name.
+
+**The consequence, and it is a real one: the opponent's exact stats are no
+longer on the battle screen.** The player's are still one tap away in the party
+drawer, which is reachable in a battle; the opponent's are now read off the
+archetype label alone. This is the plan's own budget — its panel line is "name,
+level, gender, HP bar plus number, status chip, stage chips", and 89.75px of
+rows cannot fit inside 56 — so V5 takes it rather than reinterpreting.
+
+**It would cost the budget nothing to give back**, and that is worth stating
+because it makes this a free decision rather than a trade. The panels are
+overlaid now, so their height does not reach the total at all: a collapsed
+one-row six-value readout would add about 19px to a panel inside a 260px band
+that has room, and change neither gate. That is exactly the shape
+`gymrun-patch-restore-the-fold.md` step 3 describes, on the unmerged trim
+branch, and it is the obvious answer if a playtest misses the numbers.
+
+### Release C's HP bar is untouched
+
+The track, the shadow-before-fill ordering, `markHpChunk`, the band colours and
+the jiggle are the same code. `test/battle-feedback.test.ts` runs **unchanged**
+and passes, which is the plan's instruction for this checkpoint.
+
+### Tests
+
+New: `test/battle-stage.test.ts` (jsdom, 9) and three more in
+`test/visual-v5.test.ts` (Chromium). The sprites are in the stage with no box
+and face the right way; the actor does not re-request an image on a turn that
+changed nobody; there is no `.stats` and no `.stat__label` left in a battle; a
+stage chip names its stat; the speed marker survived; Release C's two HP
+children are still in their order. In the browser: one scrim across both panels
+with fifteen computed properties identical, both sprites 96x96 in opposite
+corners with neither panel overlapping the sprite across from it, and an empty
+bench taking `display: none`.
+
+### One instrument goes quiet, and it is recorded rather than absorbed
+
+`scripts/visual/contrast.mjs` reads `.stat__label` and `.stat__value` on the
+battle screen, and after this step neither exists there. Its loop skips a
+selector it cannot find, so those two readings simply stop — and the V1 contrast
+test skips a label with no reading, so nothing goes red. **This is a hole the
+instrument already had**: its `map` list names five `.panel*` selectors and the
+map screen has no `.panel` at all, so three readings have been skipping since
+before V5. Both styles are still live on the party and drawer surfaces, which
+the table does not walk. Naming the hole rather than papering over it: the fix
+is a `party` walk in that script, and it is its own patch rather than V5's.
+
+### Gates at V5.3
+
+Full suite **75 files, 960 tests, all pass** — 948 plus 12: 9 in
+`test/battle-stage.test.ts` and 3 more in `test/visual-v5.test.ts`. `tsc` and
+`eslint` clean. `npm run smoke` exits 0 with the 4.7 map fold as its
+only `xfail`; every R12 check green (4/4 damaging moves carry a band, 0
+overhanging, 44px target at 130); `the move grid is above the fold` now reads
+`moves end at y=742 of 844` and, because the page no longer scrolls, that is the
+absolute number rather than a scrolled one. Baseline re-recorded in this commit.
+
+**Both gates now rest on the move grid alone**, which is V5.4:
+`screenHeight` 633 wants 33 off it, `decisionBottom` 742 wants 2 off it against
+the fold and 38 against the 740 line. One cut answers all three.

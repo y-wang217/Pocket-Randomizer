@@ -24,15 +24,14 @@ import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
   formatEffectiveness,
-  formatStat,
   type ActiveUiView,
   type BattleUiView,
   type MoveUiView,
 } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
-import { bandChip, categoryChip, effectChip, neutralChip, statusChip, typeChip } from './chip';
+import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
-import { showsNumbers } from './settings';
+import { spriteImg, spriteUrl } from './sprites';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import { moveTagLabel, type MoveTag } from '../data/moveTags';
@@ -42,7 +41,6 @@ import {
   switchChoice,
   type Choice,
   type Gender,
-  type StatName,
   type SwitchView,
 } from '../core/types';
 
@@ -55,15 +53,19 @@ const STATUS_LABELS: Record<string, string> = {
   tox: 'TOX',
 };
 
-/** A row in the six-stat panel. Held so it can be updated rather than rebuilt. */
-interface StatRow {
+/**
+ * A Pokemon standing on the stage. **V5.3.**
+ *
+ * The sprite and nothing else: no name, no numbers, no box. Everything a
+ * player reads about this body is on the panel floating over the same band,
+ * and the two are separate elements because they are separate facts — where
+ * the Pokemon is, and what is true about it.
+ */
+interface Actor {
   root: HTMLElement;
-  label: HTMLElement;
-  value: HTMLElement;
-  /** The Simple-mode relative bar. Hidden in Detailed, and vice versa. */
-  bar: HTMLElement;
-  barFill: HTMLElement;
-  marker: HTMLElement;
+  img: HTMLImageElement;
+  /** `p1` faces away, `p2` faces the player. The protocol's own sides. */
+  side: 'p1' | 'p2';
 }
 
 interface SidePanel {
@@ -80,8 +82,15 @@ interface SidePanel {
   status: HTMLElement;
   volatiles: HTMLElement;
   traits: HTMLElement;
-  hpRow: StatRow;
-  rows: Record<StatName, StatRow>;
+  /**
+   * The stat stages, as V2 chips. **V5.3.**
+   *
+   * Replaces the six-row block, which cost 89.75px a panel and printed a
+   * number for every stat whether or not anything had happened to it. A stage
+   * is the thing a turn *changes*, and a row that says `Atk 150` on turn one
+   * and `Atk 150` on turn twenty was spending the budget to repeat itself.
+   */
+  stages: HTMLElement;
 }
 
 export interface Scene {
@@ -105,12 +114,35 @@ export interface Scene {
 
 export function createScene(): Scene {
   const root = el('div', 'scene');
+  /*
+   * The stage. **V5.3, and the change the whole stage is named for.**
+   *
+   * Two sprites stand in the ambient scene the V3 world already draws behind
+   * every screen, with no container of their own, and the two panels float
+   * over the same band on a scrim rather than sitting above and below it as
+   * cards. The plan's budget only closes this way — stacked, the opponent
+   * panel, the sprite band and the player panel put the move grid past the 740
+   * line the same table claims 156px of headroom against — and it is what the
+   * plan's own sentence asks for: "stat panels float over the scene with no
+   * chrome".
+   *
+   * Opponent upper right, player lower left. The two sprites and the two
+   * panels are placed in opposite corners of the band so neither ever covers
+   * the other, which is a layout decision and not an emphasis one: both
+   * sprites are the same size, both panels wear the same scrim, and nothing
+   * here draws one side heavier than the other.
+   */
+  const stage = el('div', 'stage');
   const foe = createSidePanel('foe');
   const me = createSidePanel('me');
+  const foeActor = createActor('foe', 'p2');
+  const meActor = createActor('me', 'p1');
+  stage.append(foeActor.root, meActor.root, foe.root, me.root);
+
   const moves = el('div', 'moves');
   const bench = el('div', 'bench');
 
-  root.append(foe.root, me.root, moves, bench);
+  root.append(stage, moves, bench);
 
   /*
    * Any transition must be skippable by tapping. Nothing here blocks input in
@@ -142,6 +174,8 @@ export function createScene(): Scene {
   return {
     root,
     update(view, onChoose, turns) {
+      updateActor(foeActor, view.opponent);
+      updateActor(meActor, view.player);
       updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent');
       updateSidePanel(me, view.player, false, view.fasterSide === 'player');
       root.dataset['faster'] = view.fasterSide;
@@ -169,50 +203,46 @@ const BLOCK_LABELS: Record<NonNullable<SwitchView['block']>, string> = {
   'maybe-trapped': 'Something is holding you',
 };
 
-function createStatRow(stat: string): StatRow {
-  const root = el('div', 'stat');
-  root.dataset['stat'] = stat;
-  const label = el('span', 'stat__label');
-  /*
-   * Every stat label is a tooltip trigger. **Persistent, not discoverable.**
-   *
-   * Part 5 asks that the abbreviations be explained wherever they appear, and
-   * `Atk` versus `SpA` is the case it names: two labels one character apart
-   * that decide which of the defender's two unrelated defences a move is
-   * resolved against. A help affordance the player has to find first is one
-   * they find after the run in which they needed it.
-   *
-   * The same tap-first layer Stage 4.5 built (`ui/tooltips.ts`), and
-   * deliberately not a second mechanism — a `title` attribute here would be a
-   * hover-only answer on a screen whose other answers work on a phone.
-   */
-  label.dataset['tip'] = `stat:${stat}`;
-  const value = el('span', 'stat__value');
-  // The speed marker lives on every row so the arrow can move without the
-  // layout shifting under it. Only the Speed row ever fills it in.
-  const marker = el('span', 'stat__marker');
-  marker.hidden = true;
-  // The Simple-mode bar. Always built, never rebuilt — the toggle flips which
-  // of `value` and `bar` is hidden, so switching modes cannot reflow the panel.
-  const bar = el('div', 'stat__bar');
-  const barFill = el('div', 'stat__bar-fill');
-  bar.append(barFill);
-  root.append(label, value, bar, marker);
-  return { root, label, value, bar, barFill, marker };
+/**
+ * A sprite on the stage, built once and pointed at a species.
+ *
+ * `p1` is the near side and wears the back sprite, `p2` the far side and the
+ * front — the protocol's own sides, so nothing here translates between two
+ * vocabularies. The size is fixed in the stylesheet rather than left to the
+ * image, because the stage's height is a budgeted number and a band that
+ * resized when a sprite finished loading would move the move grid under a
+ * thumb already descending.
+ *
+ * Decorative, and `aria-hidden` for that reason: the panel beside it names the
+ * Pokemon, its level, its types and its HP, so a screen reader that also read
+ * the sprite would be told the same body twice. `sprites.ts` hides a sprite
+ * that fails to load rather than showing a broken-image glyph, which is what a
+ * sandbox with no route to Showdown's CDN gets.
+ */
+function createActor(kind: 'me' | 'foe', side: 'p1' | 'p2'): Actor {
+  const root = el('div', `stage__actor stage__actor--${kind}`);
+  root.setAttribute('aria-hidden', 'true');
+  const img = spriteImg('', side);
+  root.append(img);
+  return { root, img, side };
 }
 
 /**
- * The widest stat a bar is drawn against.
+ * Point an actor at whatever is standing there now.
  *
- * A relative bar needs a denominator, and there is no honest one available on
- * screen: the panel shows two Pokemon, so scaling to the larger of the two
- * would make the same Pokemon's Attack bar change length depending on who it is
- * fighting. A fixed ceiling keeps a bar meaning the same thing all run.
- *
- * 200 is a little above the highest stat a levelled party member reaches at the
- * shipped curve, so bars stay readable rather than all pinning to full.
+ * Guarded on the species the actor last drew, for the reason the panel's swap
+ * beat is: re-setting `src` to the URL it already holds makes the browser
+ * re-decode an image every turn, and on a phone that is a repaint per move.
+ * `data-species` is the same marker `updateSidePanel` keeps, and V5.5 reads it
+ * to decide whether a body changed.
  */
-const STAT_BAR_CEILING = 200;
+function updateActor(actor: Actor, active: ActiveUiView): void {
+  if (actor.root.dataset['species'] === active.species) return;
+  actor.root.dataset['species'] = active.species;
+  actor.img.src = spriteUrl(active.species, actor.side);
+  actor.img.alt = active.species;
+  delete actor.img.dataset['missing'];
+}
 
 function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const root = el('div', `panel panel--${kind}`);
@@ -254,23 +284,26 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const status = statusChip('', '');
   meta.append(hpText, status);
 
-  // Ability and item, on their own line. Both are revealable, and the reveal
-  // flag is honoured here rather than upstream so one source decides it.
+  /*
+   * One row for everything a turn can have done to this Pokemon: its stat
+   * stages, its ability and item, and whatever it is currently suffering.
+   *
+   * Three containers rather than one, because they are three different kinds
+   * of fact and each has its own emptiness rule — a Pokemon with no boosts,
+   * no revealed traits and no volatiles renders three empty spans and no row
+   * at all. They share a line because the panel is floating over a sprite now
+   * and every line it takes is a line of the stage it covers.
+   */
+  const chips = el('div', 'panel__chips');
+  const stages = el('div', 'panel__stages');
+  // Ability and item. Both are revealable, and the reveal flag is honoured
+  // here rather than upstream so one source decides it.
   const traits = el('div', 'panel__traits');
   const volatiles = el('div', 'panel__volatiles');
+  chips.append(stages, traits, volatiles);
 
-  const statsRoot = el('div', 'stats');
-  const hpRow = createStatRow('hp');
-  const rows = {} as Record<StatName, StatRow>;
-  statsRoot.append(hpRow.root);
-  for (const stat of BOOSTABLE_STATS) {
-    const row = createStatRow(stat);
-    rows[stat] = row;
-    statsRoot.append(row.root);
-  }
-
-  root.append(header, hpTrack, meta, traits, volatiles, statsRoot);
-  return { root, name, level, archetype, types, hpFill, hpShadow, hpText, status, volatiles, traits, hpRow, rows };
+  root.append(header, hpTrack, meta, chips);
+  return { root, name, level, archetype, types, hpFill, hpShadow, hpText, status, volatiles, traits, stages };
 }
 
 function updateSidePanel(
@@ -377,70 +410,51 @@ function updateSidePanel(
   panel.volatiles.hidden = active.volatiles.length === 0;
 
   /*
-   * The HP row shows **max** HP, not current.
+   * The stat stages, as chips, and **only the ones that are not zero.**
+   * **V5.3.**
    *
-   * It is on the panel in Showdown order because a six-stat panel missing HP
-   * reads as an error, but the thing it is showing is HP-*the-stat* — the same
-   * kind of number as the Attack beside it, and the one that says whether this
-   * Pokemon is bulky. Current HP is a resource rather than a stat, and it is
-   * already on the bar and the line above. The first cut printed `103 / 115` in
-   * both places, which made the panel look like it was repeating itself and
-   * left the actual stat unstated.
+   * The six-row block printed a number for every stat on every turn whether or
+   * not anything had happened to it, and cost 89.75px a panel to do it. A
+   * stage is the thing a turn *changes*: `Atk +2` after a Swords Dance, `Spe
+   * -1` after a String Shot, nothing at all until something moves. So the row
+   * is empty on turn one and stays empty until the battle has something to say,
+   * which is the same rule the flag strip follows one band below.
    *
-   * HP is not boostable, so the row never carries a stage.
+   * Through `stageChip`, the V2 component, whose own docstring has said "for
+   * the battle panel to adopt in V5" since that stage landed. `badge--up` and
+   * `badge--down` carry the direction, which is a fact about the sign and not
+   * an emphasis: a `+2` and a `-2` are the same chip at the same weight, and
+   * `--stage-up` / `--stage-down` are the same two readout colours the block
+   * used before this stage.
+   *
+   * **Base stats leave the battle panel with the block.** They are not gone
+   * from the run — the party drawer is reachable in a battle and carries the
+   * player's six for every member — but the opponent's are now read off the
+   * archetype label rather than as numbers. That is the plan's budget, and the
+   * V5 report records it as the one thing this stage takes away.
    */
-  panel.hpRow.label.textContent = STAT_LABELS.hp;
-  panel.hpRow.value.textContent = `${active.hp.max}`;
-  panel.hpRow.root.dataset['stage'] = 'flat';
-  applyVerbosity(panel.hpRow, active.hp.max);
+  const stages = BOOSTABLE_STATS.filter((stat) => active.stats[stat].stage !== 0).map((stat) =>
+    stageChip(active.stats[stat].stage, STAT_LABELS[stat]),
+  );
 
-  for (const stat of BOOSTABLE_STATS) {
-    const row = panel.rows[stat];
-    const view = active.stats[stat];
-    row.label.textContent = STAT_LABELS[stat];
-    // `formatStat` prints the bare number at stage 0 and grows the stage and
-    // effective value only once something has changed them, so the panel stays
-    // quiet until it has something to say.
-    row.value.textContent = formatStat('', view).trim();
-    row.root.dataset['stage'] = view.stage === 0 ? 'flat' : view.stage > 0 ? 'up' : 'down';
-    // The bar tracks the *effective* stat, so a Swords Dance is visible in
-    // Simple mode too. Hiding the number must not hide the change.
-    applyVerbosity(row, view.effective);
-
-    /*
-     * The speed marker survives Simple mode, deliberately.
-     *
-     * It is the one thing on the panel that answers a question rather than
-     * stating a number, and it is exactly the question a player who turned the
-     * numbers off still needs answered. The stage prompt names it for the same
-     * reason.
-     */
-    const marksSpeed = stat === 'spe' && isFaster;
-    row.marker.hidden = !marksSpeed;
-    if (marksSpeed) {
-      row.marker.textContent = '▲ first';
-      row.marker.title = 'Moves first at this Speed';
-    }
+  /*
+   * The speed marker survives the block that used to carry it.
+   *
+   * It was the one thing on the six rows that answered a question rather than
+   * stating a number, it is a fact about the board as it stands right now —
+   * the same kind of fact as the live effectiveness marker, and the one
+   * exception the copy rule names — and Stage 4.5's prompt asks for it by
+   * name. So it moves onto the chip row rather than leaving with the rows.
+   */
+  if (isFaster) {
+    const marker = neutralChip('\u25b2 FIRST', 'first');
+    marker.title = 'Moves first at this Speed';
+    marker.setAttribute('aria-label', marker.title);
+    stages.push(marker);
   }
-}
 
-/**
- * Show the number or the bar, according to the verbosity flag.
- *
- * **The only place the flag changes what a stat row looks like**, and it is a
- * pure swap of which child is hidden — no branch computes a different value, so
- * the two modes cannot disagree about what the stat is. `showsNumbers()` is
- * read here rather than passed in because it is a display preference and does
- * not belong in the same argument list as the battle state.
- */
-function applyVerbosity(row: StatRow, effective: number): void {
-  const numbers = showsNumbers();
-  row.value.hidden = !numbers;
-  row.bar.hidden = numbers;
-  if (!numbers) {
-    const share = Math.max(0, Math.min(1, effective / STAT_BAR_CEILING));
-    row.barFill.style.width = `${share * 100}%`;
-  }
+  panel.stages.replaceChildren(...stages);
+  panel.stages.hidden = stages.length === 0;
 }
 
 /**
