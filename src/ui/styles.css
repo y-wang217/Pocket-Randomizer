@@ -139,6 +139,25 @@ body {
 
 /* ---------- layout ---------- */
 
+/* The battle screen's own vertical rhythm. **V5.6.**
+
+   Two gaps of 12 sat between the heading, the board and the strip, and the
+   plan's budget line for all of that is 40. Eight is still a visible break
+   between three things that are not the same thing, and the four pixels each
+   are the last two the loaded worst case needed: with a status chip and a stage
+   chip on both panels the screen measured 602 against the plan's 600, and the
+   only rows left to take it from were margins. Nothing is removed and nothing
+   moves closer to a thumb — the two gaps sit above the move grid, not inside
+   it.
+
+   `.screen.screen--battle` rather than `.screen--battle`, which was the first
+   attempt and did nothing: `.screen { gap: var(--space-3) }` is declared later
+   in this file and ties on specificity, so the bare class lost on source order.
+   The same shape of mistake the drawer's `[hidden]` note records twice, caught
+   here by the measurement rather than by the rule looking wrong. */
+.screen.screen--battle { gap: var(--space-2); }
+.screen--battle .board { gap: var(--space-2); }
+
 /* V5.2: two children, one column, every viewport.
 
    The board was a two-column grid because the persistent log sat beside the
@@ -383,6 +402,21 @@ body {
   gap: var(--space-1);
   min-width: 0;
   overflow: hidden;
+}
+
+/* **A chip does not wrap its own words, and this is not the same rule as the
+   one above.** `flex-wrap: nowrap` stops the row breaking between chips; it
+   does nothing about a chip being squeezed narrow enough that `Badly poisoned`
+   breaks *inside* it. Two long flag words on one turn — `Paralysed` and `Badly
+   poisoned` together — did exactly that at 390 and made the strip 35px, which
+   is two lines by any reading of the plan's rule.
+
+   `flex: 0 0 auto` so a chip keeps its natural width and the row's own
+   `overflow: hidden` does the truncating, which is what the plan asks for: the
+   strip clips and the sheet has the full text. */
+.flags .chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 /* The tap that opens the history. Last in the row and never shrinks: a

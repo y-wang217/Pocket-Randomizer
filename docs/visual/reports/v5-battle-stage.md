@@ -755,3 +755,163 @@ to run and nothing to wait for. Not "it is fast" — "there is nothing there".
 Full suite **75 files, 972 tests, all pass** — 965 plus 7: 5 more in
 `test/battle-stage.test.ts`, 2 more in `test/visual-v5.test.ts`. Guarded heights
 equal to the pixel, so no baseline re-record. `tsc` and `eslint` clean. `npm run smoke` exits 0 with the 4.7 map fold as its only `xfail`.
+
+## V5.6 Measure again — the after table, and the worst case
+
+### Before and after, side by side
+
+`heights.json`, 390x844, SMOKE24, the same run and the same clicks throughout.
+
+| field | before (`main`, `f5c84fe`) | after | delta |
+|---|---|---|---|
+| `battle.screenHeight` | 1182.5 | **587** | −595.5 |
+| `battle.scrollHeight` | 1376 | **844** | −532 |
+| `battle.decisionTop` | 681.5 | **472** | −209.5 |
+| `battle.decisionBottom` | 947.5 | **700** | −247.5 |
+| `battle.decisionCount` | 4 | 4 | 0 |
+| every `map` field | — | unchanged | 0 |
+
+Element by element, from the top of the document:
+
+| # | Element | before | after |
+|---|---|---|---|
+| 1 | shell top padding | 24 | 24 |
+| 2 | `header.header` | 64.5 | 64.5 |
+| 3–5 | gaps and `.shell__drawer-bar` | 56.5 | 56.5 |
+| 6 | `.battle__header` | 47 | 47 |
+| 7 | gap | 12 | **8** |
+| 8 | **`.stage`** — two sprites, two floating panels | **0** | **260** |
+| 9 | `.panel--foe` in the column | 239.25 | **0** (inside the band) |
+| 10 | `.panel--me` in the column | 214.25 | **0** (inside the band) |
+| 11 | gaps inside `.scene` | 36 | 12 |
+| 12 | **`.moves`**, 2x2 | 266 | **228** |
+| 13–15 | `.bench` and its gaps | 24 | **0** |
+| 16 | **`.flags`**, the event strip | 24 | 24 |
+| 17 | gap | 12 | **8** |
+| 18 | **`.log`**, persistent | **320** | **0** (a sheet) |
+| | **Total** | **1327.5** | **739** |
+
+**Are the four move buttons above the fold?** Row 1 runs 472..583 and row 2
+583..700. Both fully visible, 144px of clear air below the last one, and the
+event strip at 708..732 is on screen under them. The document's `scrollHeight`
+is 844 — **the battle screen does not scroll at all**, which it has never done
+in this project before.
+
+### The worst case, played rather than assumed
+
+The plan's test 1 asks for the height "with a full status and stage chip row on
+both sides", and a played seed cannot be asked for that: whether both Pokemon
+happen to be statused and boosted on the turn the bot stops is the seed's
+business. So V5.6 adds a battle screen to the gallery — the harness built at V4
+for "a state the smoke bot cannot reach on demand" —
+`gallery.html#seed=V5-LOADED&screen=battle`. It drives Swords Dance and Toxic
+against Rock Polish and Thunder Wave until both sides carry a status **and** a
+stage, and measures then. Every number is a real projection of a real
+`@pkmn/sim` battle; nothing constructs a view by hand.
+
+| | loaded | gate |
+|---|---|---|
+| battle screen layout height | **594** | ≤ 600 |
+| panels, each | 121 | — |
+| status chips / stage chips | 1 / 1 on **both** sides | ≥ 1 each |
+| event strip | **24**, one band | one line |
+| document `scrollHeight` | **844** | ≤ 844 |
+
+### It found two things SMOKE24 could not
+
+1. **The screen was 602 loaded**, two over the plan's 600. The only rows left
+   were margins, so the two gaps between the battle heading, the board and the
+   strip went 12 → 8. Nothing moved closer to a thumb: both sit above the move
+   grid. The first attempt at that rule did nothing, because `.screen--battle`
+   ties with `.screen { gap: var(--space-3) }` on specificity and loses on
+   source order — the same shape of mistake the drawer's `[hidden]` note records
+   twice, caught here by the measurement rather than by the rule looking wrong.
+2. **The strip was 35px, which is two lines.** Two long flag words on one turn —
+   `Paralysed` and `Badly poisoned` — wrapped *inside* their chips.
+   `flex-wrap: nowrap` stops a row breaking between chips and says nothing about
+   a chip breaking inside itself. `.flags .chip` is `flex: 0 0 auto` and
+   `white-space: nowrap` now, so a chip keeps its natural width and the row's
+   own `overflow: hidden` does the truncating — which is what the plan asked for
+   all along: the strip clips, the sheet has the full text. **V5.2's own
+   one-line test passed the whole time**, because the turn it measured had short
+   words; the loaded board is the case that could fail it, and it is now a test.
+
+### Test 6, item by item
+
+| claim | instrument | result |
+|---|---|---|
+| `core/` unchanged | `git diff origin/main -- src/core` | **empty** |
+| `data/` unchanged | `git diff origin/main -- src/data`, and `data-digest.txt` | **empty**, byte identical |
+| no timers in `core/` | `test/boundaries.test.ts` | pass |
+| `core/` never imports `ui/` | `test/boundaries.test.ts`, `eslint.config.js` | pass |
+| seeded output byte identical | `test/sim-fixture.test.ts` and `docs/visual/baseline/runs`+`battles` via `test/visual-baseline.test.ts` | pass, both |
+| `playRun` headless unchanged | `test/headless.test.ts`, `test/determinism.test.ts` | pass |
+| no version axis moved | the three axes live in `src/core/`, which is byte identical | none |
+| all suites pass | `vitest run` | **75 files, 974 tests** |
+
+### Bundle
+
+Measured against `main` at `f5c84fe` rather than against `bundle.json`, which is
+the pre-V0 baseline and covers V0–V4, Release C and R12 as well.
+
+| file | raw | gzipped |
+|---|---|---|
+| `assets/index.js` | +1,297 | +280 |
+| `assets/index.css` | +2,301 | +358 |
+| **total** | **+3,598** | **+633** |
+
+The plan estimated **+2 kB** for V5. Gzipped it is +0.6 kB, raw +3.6 kB. Most of
+it is stylesheet: the stage, the floating panels, the sheet and the strip are
+CSS, and the only new TypeScript is `log-sheet.ts`, `copy/events.ts` and the
+actor in `scene.ts`. `bundle.json` is not re-recorded, per the baseline README's
+own rule.
+
+## Definition of done
+
+The plan's own, checked against the tree:
+
+> Two sprites stand in a place. The player reads both HP bars, both statuses,
+> and four moves with PP and effectiveness without scrolling, sees the last
+> thing that happened in one line, and never has to close anything to act.
+
+- **Two sprites stand in a place.** `.stage__actor--foe` upper right and
+  `--me` lower left, in the V3 world, 96x96 each, no box.
+- **Both HP bars and both statuses without scrolling.** The panels float on the
+  band at 121 each; `scrollHeight` is 844 on both the played and the loaded
+  board.
+- **Four moves with PP and effectiveness without scrolling.** 472..700 against
+  a 740 line and an 844 fold, PP on all four, markers on every non-neutral one.
+- **The last thing that happened in one line.** `.flags__event` plus Release C's
+  flag words, 24px, truncating rather than wrapping.
+- **Never has to close anything to act.** The history sheet never opens on its
+  own; `open` has one caller and it is a click handler, and the move buttons are
+  live throughout.
+
+Plus this prompt's four additions: the preflight report is section 0 above; the
+trim overlap finding is in §0b; the suite floor is the measured 935; and the
+one-line answer is below.
+
+## The trim branch, in one line
+
+**The trim branch will not need a rebase fix against V5's harness changes** —
+it touches no file V5 touched (`build-config/trim-sim-data.ts` and docs only),
+and in particular it does not touch `scripts/visual/browser.mjs` or `openApp`.
+V5 did change `scripts/visual/contrast.mjs` and `scripts/visual/`-adjacent test
+files, and trim touches neither. Its one real conflict is with R12 over
+`docs/generation.md`'s append point, which V5 does not make worse: V5 added no
+section there.
+
+### Gates at V5.6
+
+Full suite **75 files, 974 tests, all pass** — the measured 935 floor plus 39
+new across `test/event-strip.test.ts` (10), `test/battle-stage.test.ts` (17) and
+`test/visual-v5.test.ts` (12). `tsc`, `eslint` and `npm run build` clean.
+`GYMRUN_TRIM_STRICT=1 npm run build` clean. `npm run smoke` exits 0 with the 4.7
+map fold as its only `xfail`. Baseline re-recorded in this commit; `bundle.json`
+deliberately not.
+
+One check went red on the way here and is worth recording, because it is the
+check working: `boundaries.test.ts`'s verdict grep caught the gallery calling
+its opponent `'The worst case'`. The gallery is a harness and is not shipped,
+and the check walks every string literal under `src/ui/` without caring — which
+is right, because it cannot tell and should not have to. Renamed.

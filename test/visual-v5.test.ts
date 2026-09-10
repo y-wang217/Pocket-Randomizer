@@ -414,3 +414,116 @@ describe('the species swap', () => {
     await context.close();
   }, 300_000);
 });
+
+/**
+ * V5.6: the closing measurement, on the board's **worst case**.
+ *
+ * The plan's test 1 is a layout height "with a full status and stage chip row
+ * on both sides", and the smoke bot cannot ask for that — it plays a seed, and
+ * whether both Pokemon happen to be statused and boosted on the turn it stops
+ * is the seed's business. So this uses the gallery, which exists for exactly
+ * this ("a state the smoke bot cannot reach on demand"): `#screen=battle`
+ * drives a battle with Swords Dance and Toxic against Rock Polish and Thunder
+ * Wave until both sides carry a status and a stage, and *then* it is measured.
+ *
+ * **Played, not fabricated.** Every number below is a real projection of a real
+ * `@pkmn/sim` battle; nothing constructs a `BattleUiView` by hand.
+ *
+ * Its own harness, because a gallery build is a different build.
+ */
+describe('the loaded board', () => {
+  let gallery: Harness;
+
+  beforeAll(async () => {
+    gallery = await openHarness({ gallery: true });
+  }, 180_000);
+
+  afterAll(async () => {
+    await gallery?.close();
+  });
+
+  async function loaded(): Promise<{ page: Awaited<ReturnType<typeof openApp>>['page']; context: Awaited<ReturnType<typeof openApp>>['context'] }> {
+    const context = await gallery.browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    await page.goto(`${gallery.url}/gallery.html#seed=V5-LOADED&screen=battle`, { waitUntil: 'load' });
+    await page.waitForFunction(() => globalThis.document.documentElement.dataset['galleryReady'] === 'true', undefined, {
+      timeout: 60_000,
+    });
+    await page.evaluate(() => globalThis.document.fonts.ready);
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(600);
+    return { page, context };
+  }
+
+  it('is at or under 600 with a status and a stage chip on both sides', async () => {
+    const { page, context } = await loaded();
+
+    const read = await page.evaluate(() => {
+      const r = (n: number): number => Math.round(n * 100) / 100;
+      const screen = globalThis.document.querySelector('.screen--battle');
+      const panels = [...globalThis.document.querySelectorAll('.stage .panel')];
+      const moves = [...globalThis.document.querySelectorAll('.moves .move')].map((m) => m.getBoundingClientRect());
+      const strip = globalThis.document.querySelector('.flags');
+      if (!screen || !strip || panels.length !== 2 || moves.length !== 4) return null;
+      return {
+        screenHeight: r(screen.getBoundingClientRect().height),
+        scrollHeight: globalThis.document.documentElement.scrollHeight,
+        stripHeight: r(strip.getBoundingClientRect().height),
+        stripBottom: r(strip.getBoundingClientRect().bottom + globalThis.scrollY),
+        decisionBottom: r(Math.max(...moves.map((m) => m.bottom + globalThis.scrollY))),
+        panels: panels.map((panel) => ({
+          height: r(panel.getBoundingClientRect().height),
+          status: panel.querySelectorAll('.badge--status:not([hidden])').length,
+          stages: panel.querySelectorAll('.panel__stages .chip--stage').length,
+        })),
+      };
+    });
+
+    expect(read, 'the loaded battle rendered').not.toBeNull();
+    if (!read) throw new Error('no loaded battle');
+
+    // The premise, asserted before the thing it is the premise for: this really
+    // is the loaded board, on both sides.
+    for (const panel of read.panels) {
+      expect(panel.status, 'a status chip on this side').toBeGreaterThan(0);
+      expect(panel.stages, 'and a stage chip').toBeGreaterThan(0);
+    }
+    // The plan's test 1.
+    expect(read.screenHeight, 'battle screen layout height, loaded').toBeLessThanOrEqual(600);
+    // The plan's test 2: four move buttons *plus the strip* above the fold.
+    expect(read.decisionBottom).toBeLessThanOrEqual(844);
+    expect(read.stripBottom, 'the strip is on screen too').toBeLessThanOrEqual(844);
+    expect(read.scrollHeight, 'and nothing is below the fold at all').toBeLessThanOrEqual(844);
+    await context.close();
+  }, 300_000);
+
+  it('holds the strip to one line when two long flag words land at once', async () => {
+    const { page, context } = await loaded();
+
+    const strip = await page.evaluate(() => {
+      const root = globalThis.document.querySelector('.flags');
+      if (!root) return null;
+      const chips = [...root.querySelectorAll('.chip')];
+      return {
+        height: Math.round(root.getBoundingClientRect().height),
+        words: chips.map((chip) => chip.textContent ?? ''),
+        wraps: chips.map((chip) => globalThis.getComputedStyle(chip).whiteSpace),
+        chipHeights: chips.map((chip) => Math.round(chip.getBoundingClientRect().height)),
+      };
+    });
+
+    expect(strip, 'the strip is on the board').not.toBeNull();
+    /*
+     * The case that found the defect. `flex-wrap: nowrap` stops the row
+     * breaking *between* chips and does nothing about `Badly poisoned` breaking
+     * *inside* one once the row squeezes it, which made the strip 35px — two
+     * lines by any reading of the plan's rule. This board lands `Paralysed` and
+     * `Badly poisoned` on the same turn, which is what makes it the test.
+     */
+    expect((strip?.words ?? []).length, 'this board has words to say').toBeGreaterThan(1);
+    expect(strip?.height, 'still one band').toBe(24);
+    for (const value of strip?.wraps ?? []) expect(value).toBe('nowrap');
+    for (const height of strip?.chipHeights ?? []) expect(height).toBeLessThanOrEqual(24);
+    await context.close();
+  }, 300_000);
+});

@@ -159,3 +159,32 @@ and fails on any byte that differs. Heights are compared by
 this project's history**: layout height 595 against the plan's 600, and all four
 move buttons ending at 704 against the 740 usable line, on a screen whose
 `scrollHeight` equals the 844 viewport.
+
+- **2026-09-10, V5.6.** `heights.json` battle entries re-recorded a fourth and
+  last time in this stage: `battle.screenHeight` 595 → **587**, `decisionTop`
+  476 → **472**, `decisionBottom` 704 → **700**. `scrollHeight` stays at
+  **844** and `decisionCount` at 4.
+
+  Eight pixels, both of them margins, and they were found by the *loaded* board
+  rather than by SMOKE24. `gallery.html#screen=battle` drives a battle until
+  both panels carry a status and a stage — the state the plan's closing
+  assertion names and the smoke bot cannot ask for — and that board measured 602
+  against the plan's 600. The two gaps between the battle heading, the board and
+  the strip went from 12 to 8. Nothing moved closer to a thumb: both sit above
+  the move grid.
+
+  One defect went with them, also found by the loaded board: two long flag words
+  on one turn (`Paralysed` and `Badly poisoned`) wrapped *inside* their chips
+  and made the strip 35px. `flex-wrap: nowrap` stops a row breaking between
+  chips and says nothing about a chip breaking inside itself. The strip is one
+  24px band again.
+
+  **The map did not move**, on any of its five fields, at any point in V5. Runs,
+  the battle protocol and `data-digest.txt` are byte identical to `main` at
+  `f5c84fe` — `git diff origin/main -- src/core src/data` is empty, so no
+  version axis moved and no seed changed.
+
+  `bundle.json` is **not** re-recorded, per this file's own rule: it is the
+  pre-V0 baseline and each stage states its delta against it. V5's own delta,
+  measured against `main` rather than against V0, is **+3,598 raw / +633
+  gzipped**.
