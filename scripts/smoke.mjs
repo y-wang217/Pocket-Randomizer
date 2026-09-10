@@ -89,7 +89,12 @@ const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const page = await browser.newPage();
 const problems = [];
 page.on('console', (msg) => {
-  if (msg.type() === 'error') problems.push(`console: ${msg.text()}`);
+  if (msg.type() !== 'error') return;
+  // Item icons are cells of Showdown's sprite sheet (V2, via @pkmn/img). A
+  // sandbox with no route to that host logs a failed load; that is the
+  // network, not the app, and the slot renders without the image.
+  if (/Failed to load resource/.test(msg.text()) && /play\.pokemonshowdown\.com/.test(msg.location()?.url ?? '')) return;
+  problems.push(`console: ${msg.text()}`);
 });
 page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 

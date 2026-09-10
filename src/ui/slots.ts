@@ -17,11 +17,27 @@
  * consumable marking here, because the slot is chrome and a berry is not
  * lesser chrome.
  */
-import { Icons } from '@pkmn/img';
+import { Icons } from '@pkmn/img/adaptable';
 
 import type { ItemId } from '../core/types';
 import { itemById } from '../data/items';
-import { el } from './scene';
+import { el } from './dom';
+import { ITEM_ICONS } from './theme/itemIcons';
+
+/*
+ * The icon resolver, on @pkmn/img's adaptable entry with GYMRUN's own item
+ * index. The default entry carries the whole sprite index for every species
+ * and cost 43 kB gzipped for thirty-eight items; this carries thirty-eight
+ * numbers. `scripts/gen-item-icons.ts` writes the table.
+ */
+const icons = new Icons({
+  getItem: (name: string) => {
+    const spritenum = ITEM_ICONS[name.toLowerCase().replace(/[^a-z0-9]+/g, '')];
+    return spritenum === undefined ? undefined : { spritenum };
+  },
+  getPokemon: () => undefined,
+  getAvatar: () => undefined,
+});
 
 export interface SlotContent {
   /** The line under the number. A species, or an item name. */
@@ -36,7 +52,7 @@ export interface SlotContent {
 export function itemIcon(id: ItemId): HTMLElement {
   const entry = itemById(id);
   const icon = el('span', 'slot__icon');
-  const sprite = Icons.getItem(entry?.name ?? id);
+  const sprite = icons.getItem(entry?.name ?? id);
   icon.style.backgroundImage = `url(${sprite.url})`;
   icon.style.backgroundPosition = `${sprite.left}px ${sprite.top}px`;
   icon.setAttribute('role', 'img');
