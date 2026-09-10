@@ -58,7 +58,7 @@ the two runs used `RETUNE` and `SIM`.
 | `randomizer-9`, 400 | SIM | 4.0% | 2.94 | Cut and Flash admitted |
 | `randomizer-10`, 400 | SIM | 4.0% | 2.82 | Cut and Flash removed |
 | `randomizer-10`, 400 | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
-| `randomizer-11`, 400 | RETUNE | see §12 | | Stage 4.6c relics |
+| `randomizer-11`, 400 | RETUNE | 5.3% | **3.03** | Stage 4.6c relics |
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
@@ -1193,18 +1193,63 @@ twice.
   ahead of it — and a guess should not be the only measurement of the thing it
   guesses at.
 
-### First readings, 120 seeds, prefix RELICS
+### The benchmark, 400 seeds, prefix RETUNE, greedy
+
+**Mean gyms 3.03, down from 3.27 at `randomizer-10`.** Completion 5.3%, up from
+7.2%. Both moved; mean gyms is the one this is read on, and it is down 0.24.
+
+The direction is unsurprising and the cause is structural rather than a
+mistuning: a relic entry in the elite and gym pools is a card competing with
+the tutor and the item beside it, so a run that takes relics takes fewer of
+the things that were carrying the ramp. Relics pay back in capability and a
+small passive, and capability only pays when an event needing it turns up.
+
+Not acted on, per §0. Recorded, direction noted, moving on. The controlled
+version of the question is `--policy relics`, which is what should settle
+whether the trade is worth it.
+
+### Relics and gates, same run
 
 | measure | value |
 |---|---|
-| relic offers per run | 1.17 (greedy) / 2.52 (relic-greedy) |
-| mean relics held at run end | 1.07 / 2.32 |
-| events resolving `known` | 10.8% / 19.1% |
-| events resolving `latent` | 35.3% / 31.8% |
+| relic offers per run | 2.76 (1000 taken of 1104) |
+| mean relics held at run end | 2.49 |
+| events resolving `known` | 19.3% |
+| events resolving `latent` | 30.5% |
 | relics never offered | none |
 
-`known` clears the 5% decoration threshold on both policies. The
-per-capability spread is real and is the input to weighting `data/events.ts`,
-which is not yet done — every capability is named by exactly one event today.
+`known` at 19.3% clears the 5% decoration threshold comfortably.
 
-Not acted on, per §0. Recorded, direction noted, moving on.
+### The per-capability split, which is the finding worth acting on later
+
+| capability | events | none | latent | known |
+|---|---|---|---|---|
+| cut | 58 | 31.0% | 53.4% | 15.5% |
+| surf | 71 | 64.8% | 21.1% | 14.1% |
+| strength | 38 | 36.8% | 52.6% | 10.5% |
+| rockSmash | 56 | 50.0% | 48.2% | **1.8%** |
+| fly | 41 | 70.7% | 24.4% | 4.9% |
+| waterfall | 68 | 66.2% | 27.9% | 5.9% |
+| dive | 62 | 64.5% | 29.0% | 6.5% |
+
+The spread is much wider than the 5% band the whole-sample number suggests:
+`cut` reaches `known` in 15.5% of its events and `rockSmash` in 1.8%. Two
+things are mixed together here and they want separating before anything is
+tuned.
+
+The first is the intended type skew — `surf`, `waterfall` and `dive` all sit
+near 65% `none` because Water is one type and a party either has it or does
+not, while `cut` and `strength` draw on three types each and sit near half
+that.
+
+The second is not about types at all: **`rockSmash` has exactly one relic and
+so does every other capability, but the relic granting it is one of ten in a
+shuffled order.** A run holding 2.49 relics on average holds a quarter of the
+table, so any *particular* capability reads `known` about a quarter of the
+time at best — and which quarter is luck. That is the mechanic working, but it
+means per-capability `known` rates at this sample are as much a measure of
+shuffle luck as of design.
+
+Neither is acted on here. The lever, when it is pulled, is event counts in
+`data/events.ts` — today every capability is named by exactly one event, which
+is a flat starting point and not a tuned one.
