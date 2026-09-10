@@ -118,6 +118,54 @@ describe('the token rule', () => {
     expect(offenders).toEqual([]);
   });
 
+  /**
+   * Durations. **Release C, and pinned by count rather than banned outright.**
+   *
+   * V0's motion note is explicit that "the transitions that predate this stage
+   * keep their own lengths in styles.css", so a flat ban would fail on 18
+   * values V0 deliberately left alone. What Release C's rule actually says is
+   * that every *new* duration resolves through a token — and the instrument for
+   * that is the same one V0 used for colours: pin the survivors, so the next
+   * hardcoded value is the one that fails.
+   *
+   * The 18 are 16 × 120ms (the shared hover/press beat), one 380ms (the HP
+   * fill's colour crossfade) and one 260ms (the swap beat). Release C's own two
+   * lengths are `var(--motion-hp-shadow)` and `var(--motion-jiggle)`, both
+   * derived from `--motion-duration`, which is why the count did not move.
+   *
+   * If this fails because the number went **down**, that is a stage retiring a
+   * hardcoded length and the pin comes down with it.
+   */
+  const PRE_RELEASE_C_DURATIONS = 18;
+
+  it('adds no duration that is not a token', () => {
+    const found: string[] = [];
+    for (const file of cssFiles) {
+      const source = stripCss(readFileSync(file, 'utf8'));
+      for (const { line, prop, value } of declarations(source)) {
+        if (!/^(transition|animation)(-duration|-delay)?$/.test(prop)) continue;
+        for (const time of value.match(/(^|[\s(,])-?\d*\.?\d+m?s\b/g) ?? []) {
+          found.push(`${relative(ROOT, file)}:${line} ${prop}: ${time.trim()}`);
+        }
+      }
+    }
+    expect(found.length, found.join('\n')).toBe(PRE_RELEASE_C_DURATIONS);
+  });
+
+  it('derives every battle-feedback length from the one tuning number', () => {
+    const tokens = readFileSync(TOKENS, 'utf8');
+    // The token the tuning number is written into at startup, and the two
+    // lengths derived from it. One number, not three.
+    expect(tokens).toMatch(/--motion-duration:\s*\d+ms;/);
+    expect(tokens).toMatch(/--motion-hp-shadow:\s*var\(--motion-duration\)/);
+    expect(tokens).toMatch(/--motion-jiggle:\s*calc\(var\(--motion-duration\)/);
+
+    const styles = cssFiles.map((file) => stripCss(readFileSync(file, 'utf8'))).join('\n');
+    for (const rule of ['--motion-hp-shadow', '--motion-jiggle']) {
+      expect(styles, `${rule} is used`).toContain(`var(${rule})`);
+    }
+  });
+
   it('keeps colours and faces out of the TypeScript', () => {
     const offenders: string[] = [];
     for (const file of tsFiles) {

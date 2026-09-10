@@ -63,23 +63,25 @@ power banding and berries (4.6b), and relics, capability events and band 3
 encounters (4.6c). The benchmark for the current randomizer version is recorded
 in `sim-reports/benchmarks/`.
 
-**Head of `main`:** `9296ba7`. The visual identity branch (V0 to V4) and Stage
+**Head of `main`:** `f0c53f2`. The visual identity branch (V0 to V4) and Stage
 4.7 both merged into it, as PR #13 and PR #12; PR #10 before them is the 0.5
-verification release.
+verification release, PR #14 the V5 unblock audit, and PR #15 the 4.7 phone
+regression patch. The three facts this section carried before 2026-09-10 were
+all stale, and the audit
+([`reports/v5-unblock-audit.md`](reports/v5-unblock-audit.md) divergence 1)
+listed them; they are corrected here.
 
-**Visual identity, V0 to V4, on `claude/gymrun-visual-identity-overnight-fllr8n`.**
-An overnight run under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built
-the first five stages of
-[`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md):
+**Visual identity, V0 to V4: merged**, as PR #13 (`9296ba7`). An overnight run
+under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built the first five stages
+of [`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md):
 tokens and the display face, locale palettes, world chrome, the scene layer,
 and the run summary. Each stage's report in `visual/reports/` opens with its
-morning decisions. V5 is skipped until Release C merges. The branch is the
-morning's pull request; nothing there touches `core/` or `data/`, and every
-seeded run in `visual/baseline/` is byte identical.
+morning decisions, **and two of those decisions are still open and still want a
+phone**: V0.5's `--font-body` and V3.6's performance check. V5 exited as a clean
+skip because Release C was not merged.
 
-**Working branch:** `claude/stage-4-7-phone-regressions-4crtiu`, the 4.7 phone
-regression patch,
-[`spec/gymrun-patch-4.7-phone-regressions.md`](spec/gymrun-patch-4.7-phone-regressions.md).
+**Merged since:** the 4.7 phone regression patch, as PR #15
+([`spec/gymrun-patch-4.7-phone-regressions.md`](spec/gymrun-patch-4.7-phone-regressions.md)).
 Presentation only, no `core/` change, no version bump. Its step 1 shipped — the
 pre-gym screen had no control that submitted the current lead, so a party of one
 could not leave it — and its steps 2 to 4 stopped on the prompt's own stop
@@ -87,6 +89,45 @@ condition, because the vertical budget they were to reclaim is missed by 100px
 on trees that predate Stage 4.7 entirely.
 [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md)
 has the three measurements; `generation.md` section 12b records the deviation.
+
+**Merged since that:** Release C, PR #16 (`846975c`), **battle feedback
+visuals**. Presentation only — the HP chunk and its
+shadow, the turn order jiggle, post-resolution flag words off a new pure reader
+in `core/battle/flags.ts`, and the berry flag off the `-enditem` reader 4.6b
+already had. No `core/` state change, no version axis moved, seeded output byte
+identical by both instruments. It is the last hard blocker in front of V5.
+Report: [`reports/release-c-battle-feedback.md`](reports/release-c-battle-feedback.md).
+
+**The two branches agree about the map's 25px overflow, from opposite
+directions**, which is worth recording because they were written independently:
+the phone patch stopped on it as a budget miss that "predates Stage 4.7
+entirely", and Release C measured the same check reporting the same number on a
+tree with 4.7 in and no visual pass on top. Neither release owns it. Release C's
+smoke marker is the countdown; see `reports/release-c-battle-feedback.md` §0.
+
+**Working branch:** `claude/band-badge-move-card-t02z1t`, **R12: the band badge
+on every move card**
+([`spec/gymrun-patch-r12-band-badge-move-card.md`](spec/gymrun-patch-r12-band-badge-move-card.md)).
+Display only, one commit, no version axis moved, seeded output byte identical by
+both instruments. `bandChip` had one caller — the reward screen, which resolved
+the band itself and hung the badge off its own name line — so `BAND 3` was
+readable on the offer and absent from the four moves the player was comparing it
+against. It now renders on all eight surfaces that draw a move, through one
+insertion point (`moveBandChip` in `ui/scene.ts`) and one resolution path
+(`bandOfMove`, read once in the adapter). **The badge fits on the battle button
+at 390 wide**: `.move__meta` was already wrapping, so the whole cost is 1px on
+the move grid and the decision point does not move. Deltas and the measurement
+are in [`visual/baseline/README.md`](visual/baseline/README.md); `generation.md`
+section 12c records the one-pixel reading of the prompt's height rule.
+
+**Still unblocked by Release C, and now by R12:** V5, whose test 5 assumes R12
+is on `main`. Its prompt needs the four amendments in section 2 of the R12
+document applied before it is pasted — the event strip Release C already built
+is V5's strip and must not be built twice, the 36px it costs is already spent
+against V5's budget, test 4 becomes a same-weight rule rather than a
+chip-on-every-button rule, and the open V0.5 `--font-body` decision has to be
+answered before V5 or after it, never inside it. Both R12 and V5 are named in
+[`spec/gymrun-release-c-battle-feedback-amended.md`](spec/gymrun-release-c-battle-feedback-amended.md).
 
 **Next scheduled work:** the `contentHash` release. It bundles four things that
 are specified but unbuilt: `contentHash` itself, seed strings that carry it,

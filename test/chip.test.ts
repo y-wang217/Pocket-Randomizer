@@ -37,13 +37,28 @@ describe('the chip', () => {
     expect(effectChip('0x', 'none').dataset['band']).toBe('none');
   });
 
-  it('keeps BAND n where it rendered: on the reward card, beside the move name', () => {
+  /**
+   * **The badge moved at R12, and this assertion moved with it.**
+   *
+   * Through V2 this read `.reward__name .band`, which was the truth then: the
+   * reward screen appended the badge to its own name line and was the only
+   * caller of `bandChip`. R12 moved it into the shared move card, so it now
+   * renders on eight surfaces and none of them is `.reward__name`.
+   *
+   * What stays here is the V2 rule this test was written for — the badge is
+   * still the one chip component, still on the reward card, still reading
+   * `BAND n`. Where it renders on every *other* surface, and that every one of
+   * them resolves it through `bandOfMove`, is `test/band-badge.test.ts`.
+   */
+  it('keeps BAND n on the reward card, now inside the move card it describes', () => {
     const state = createRun('CHIP-BAND');
     const card = renderRewardCard({ kind: 'tm', move: 'Ice Beam' }, state, () => undefined);
-    const badge = card.querySelector('.reward__name .band');
+    const badge = card.querySelector('.move .band');
     expect(badge).not.toBeNull();
     expect(badge?.classList.contains('chip')).toBe(true);
     expect(badge?.textContent).toMatch(/^BAND \d$/);
+    // And nowhere else on the card, so the two homes cannot both be live.
+    expect(card.querySelectorAll('.band')).toHaveLength(1);
   });
 });
 

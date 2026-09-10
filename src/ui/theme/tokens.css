@@ -221,9 +221,34 @@
   --radius-chip: 2px;
 
   /* ---------- motion ----------
-     V0 adds none. data/tuning.ts carries no duration yet, so this is 0; when
-     Release C adds the per-turn number, ui/ writes it here at startup and
-     nothing reads a second constant. The transitions that predate this stage
-     keep their own lengths in styles.css. */
-  --motion-duration: 0ms;
+     V0 left this at 0 and named the stage that would fill it in. Release C is
+     that stage: `data/tuning.ts` now carries one added-time-per-turn number and
+     `ui/theme/motion.ts` writes it here at startup, so nothing in the
+     stylesheet reads a second constant. The value below is the fallback for a
+     document that never ran that code — a test harness, a static render — and
+     it is deliberately the shipped default rather than 0, so a missing startup
+     call degrades to the designed feel instead of to no feedback at all.
+
+     Every battle-feedback length is derived from it, so the one number really
+     is the budget: the shadow spends all of it, and the jiggle runs inside that
+     window rather than after it. The transitions that predate this stage keep
+     their own lengths in styles.css. */
+  --motion-duration: 500ms;
+  /* The chunk a hit took, marking where the bar was. Release C item 1. */
+  --motion-hp-shadow: var(--motion-duration);
+  /* One panel nudge. Two run back to back, the second delayed by one, so the
+     pair finishes inside the shadow's window and the budget stays one number.
+     Release C item 2. */
+  --motion-jiggle: calc(var(--motion-duration) / 4);
+
+  /* ---------- battle feedback surfaces ----------
+     The shadow is the track's own sunken ground lifted just clear of it, not a
+     colour of its own and above all not a hue: a red chunk would be a verdict
+     about a hit the player has not been told the size of yet, and the bar's
+     three HP colours already carry the only colour meaning on this control. */
+  --hp-shadow: color-mix(in srgb, var(--cream) 22%, var(--bg-sunken));
+  /* How far a panel travels when its Pokemon acts. A twitch, not a shake: far
+     enough to register at the edge of vision, near enough that the panel never
+     looks like it came loose from the layout. */
+  --jiggle-distance: 2px;
 }

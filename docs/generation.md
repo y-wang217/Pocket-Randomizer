@@ -735,6 +735,46 @@ produces"**. `scaling.ts`, `speciesPools.ts`, `movePools.ts` and `tuning.ts` can
 `archetypes.ts`, `data/moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
 and `categoryInfo.ts` cannot.
 
+### Release C ran the experiment, twice, and `tuning.ts` is the awkward case
+
+**2026-09-10, Release C.** The two paragraphs above contradict each other and
+neither is marked superseded — the audit
+(`docs/reports/v5-unblock-audit.md` divergence 2) calls that the single
+highest-value fix in the tree, and it is still not made here, because resolving
+it belongs to the `contentHash` release and `CLAUDE.md` requires the losing half
+to be *deleted* with a dated note rather than out-argued in a third paragraph.
+
+What Release C adds is evidence, from the one instrument that already hashes
+`src/data/` today: `docs/visual/baseline/data-digest.txt`, a sha256 over every
+file under it — a glob, in other words, and therefore a live rehearsal of the
+glob reading.
+
+Release C added two things under `src/data/`: `flagWords.ts`, a vocabulary of
+nine post-resolution words, and `tuning.ts`'s `battleFeedbackMs`, which is how
+long an HP shadow lingers. **Each moved the digest, and each time the digest was
+the only thing in the whole baseline that moved** — every recorded run and the
+recorded battle protocol were byte identical both times. Two players on one seed
+holding different copies of either file play the identical run.
+
+Under the glob reading, a player who prefers a 300ms shadow could not share a
+seed. That settles the direction: **the explicit file list is right.**
+
+It also exposes what the file list alone does not solve, and this is the part
+the `contentHash` release has to decide. `tuning.ts` is on the "can change what
+a seed produces" side of the test above, correctly — `stepsPerSegment` is in it.
+It now also holds `battleFeedbackMs` and `maxMoveTagsOnFace`, which cannot. **A
+per-file list is not fine-grained enough for `tuning.ts`.** Either the hash
+needs a per-field split of that one file, or the display numbers move out of it into a
+display-only module that is simply never on the list. The second is cheaper and
+is the recommendation; it is deliberately not named as a file here, because
+choosing where those fields land is the `contentHash` release's decision and a
+path invented in a note is a path the next reader goes looking for. Moving a
+field out of `Tuning` also changes what the simulator can sweep, which is an
+argument that release has to make rather than inherit.
+
+Written up in full, with the digests, in
+[`reports/release-c-battle-feedback.md`](reports/release-c-battle-feedback.md) §4.
+
 
 ## 9b. Deviation: keyed streams shipped two levels, not one
 
@@ -1118,3 +1158,46 @@ so `drawerBar.hidden = true` did nothing and the Party trigger rendered on the
 starter screen and on the summary. As a flow bar that read as spacing; as a
 fixed pill it would have floated over both. It is the third occurrence of that
 trap in `ui/styles.css`, which the file already carries two notes about.
+## 12c. Deviation: R12 moved `decisionBottom` by one pixel
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-r12-band-badge-move-card.md`](spec/gymrun-patch-r12-band-badge-move-card.md);
+the measurement is in
+[`visual/baseline/README.md`](visual/baseline/README.md) under the R12
+correction.
+
+**What the prompt asked.** "Report the height delta per surface from
+`heights.json`; the battle decision point must not move." And, as its own stop
+condition: the badge fits on the move button's face without changing the 44px
+minimum touch target or the 2x2 grid, and if it does not fit at 390 wide, report
+the measurement and stop rather than shrinking the target.
+
+**What was built, and the one number that moved.** The badge fits. At 390x844
+on `SMOKE24` a move button is 176 wide with 150 of usable face; the band chip is
+45.9 wide and joins the second line of a `.move__meta` row that was already
+wrapping before this stage, so it costs 0.5px per grid row rather than a third
+line's 24. `battle.decisionTop` is **unmoved at 681.5** and `decisionCount` is
+still 4, but `battle.decisionBottom` is **946.5 → 947.5**, and `screenHeight`
+and `scrollHeight` each move 1 with it. The 44px target reads 130 and the grid
+still fills the width in two 176-wide columns; neither was touched, because R12
+added no CSS at all.
+
+**Why this was read as satisfying the rule rather than tripping the stop
+condition.** "The decision point" is taken to be `decisionTop` — where the
+decision begins, and the number V5's fold budget is keyed off. Release C's own
+note in `visual/baseline/README.md` uses the phrase the same way. The stop
+condition is about *fit*: it is triggered by a badge that does not fit on the
+face, and the failure it exists to prevent is somebody shrinking the touch
+target or the chip to make room. Nothing was shrunk, and one pixel of chip
+height is not a fit failure. **It is recorded here rather than absorbed**
+because a reader who takes "the decision point" to mean both edges of the block
+would call this a miss, and that reading deserves the number in front of it
+instead of having to re-measure to find it.
+
+**What this changes for V5.** Nothing structural, and it is worth saying so
+explicitly because V5's budget arithmetic is already being re-done: the R12
+amendment to the V5 prompt says to re-measure at V5 step 1 rather than reuse the
+audit's figure, and the starting height that re-measurement will find is 1327.5
+rather than the 1326.5 the amendment names — Release C's 36 plus R12's 1.

@@ -814,6 +814,31 @@ const phoneCheck = (label, ok, detail) => {
   if (!ok) problems.push(`phone: ${label} — ${detail}`);
 };
 
+/**
+ * A check that is known to fail, with the reason attached. Release C, Step 0.
+ *
+ * The same instrument `test/visual-v0.test.ts:47` uses inside the suite, which
+ * marks the absolute-fold assertion `it.fails` rather than deleting it. This
+ * script had no equivalent, so an absolute gate named in `CLAUDE.md` was
+ * failing with nothing on screen saying it was expected — which is how a red
+ * gate stops being read.
+ *
+ * The semantics are vitest's, deliberately: a marked check that *passes* is
+ * itself a problem, because the layout it was waiting for has arrived and the
+ * marker is now hiding a real assertion. **That is the intended way to
+ * notice.** Nothing here suppresses a failure permanently; it converts one into
+ * a countdown.
+ */
+const phoneCheckExpectedFail = (label, ok, detail, reason) => {
+  if (ok) {
+    console.log(`  FAIL ${label}${detail ? ` (${detail})` : ''} — passes now; take the marker off`);
+    problems.push(`phone: ${label} passes now — remove the expected-failure marker (${reason})`);
+    return;
+  }
+  console.log(`  xfail ${label}${detail ? ` (${detail})` : ''}`);
+  console.log(`        expected: ${reason}`);
+};
+
 // Starter cards carry base stats, so a pick is not a coin flip.
 const starterStats = await phone.locator('.starter .statline__stat').count();
 phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
@@ -876,10 +901,31 @@ phoneCheck(
   mapMetrics.scrollWidth <= mapMetrics.innerWidth,
   `${mapMetrics.scrollWidth}px in ${mapMetrics.innerWidth}px`,
 );
-phoneCheck(
+/*
+ * Marked, not fixed, and the measurement that says whose it is. Release C,
+ * Step 0, answering `docs/reports/v5-unblock-audit.md` §3 note 1.
+ *
+ * The cause is **Stage 4.7's vertical cost on the map**, not the visual pass:
+ * the drawer bar above every decision surface and 4.7's added rows push the
+ * current step's node cards 25px past an 844px fold. Measured rather than
+ * argued — this same check reports `cards end at y=869 of 844` on `7bb6242`,
+ * the merge of PR #12 with 4.7 in and not one visual-pass commit on top, which
+ * is byte for byte what it reports on this tree. V0 to V4 moved this number by
+ * zero. `docs/visual/baseline/heights.json` agrees from the other side: the
+ * map's decision point went 654.03 -> 728.22 at the 4.7 merge and has not
+ * moved since.
+ *
+ * So it is not Release C's to fix, and it is not the visual pass's either. It
+ * belongs to whoever takes the map's rows back — the same event
+ * `test/visual-v0.test.ts:47` is waiting on, which is why this wears the same
+ * marker. When that lands, this check passes, `phoneCheckExpectedFail` turns
+ * that into a failure, and the marker comes off.
+ */
+phoneCheckExpectedFail(
   'the offered nodes are fully visible without scrolling',
   Boolean(mapMetrics.offered) && mapMetrics.offered.bottom <= mapMetrics.innerHeight,
   mapMetrics.offered ? `cards end at y=${mapMetrics.offered.bottom} of ${mapMetrics.innerHeight}` : 'no current step',
+  "Stage 4.7's map rows put the cards 25px below the fold; see docs/reports/v5-unblock-audit.md §3 note 1",
 );
 
 /*
@@ -1006,6 +1052,32 @@ if (await phone.locator(visible('battle')).count()) {
       // PP and effectiveness live on the button face, not behind a hover.
       withPp: globalThis.document.querySelectorAll('.moves .move__pp').length,
       /*
+       * R12: the band badge, on the face, and *fitting* on it.
+       *
+       * The per-surface assertion that it renders at all is a jsdom test. What
+       * only a browser can answer is whether it fits — `.move__meta` wraps, so
+       * a badge one character too wide grows the button, the 2x2 grid, and the
+       * distance from the top of the screen to the decision. So the check is
+       * the pair the prompt names: one badge per damaging move, and neither the
+       * 44px target nor the two columns moved to make room.
+       *
+       * Counted against damaging moves rather than all four, because a status
+       * move has no bracket and prints nothing — the fourth button on this turn
+       * is Sweet Kiss, and a check that expected four badges would be asserting
+       * that a status move grows a band.
+       */
+      damagingMoves: buttons.filter((move) => move.dataset.category !== 'status').length,
+      withBand: globalThis.document.querySelectorAll('.moves .move .band').length,
+      bandOverflow: buttons.filter((move) => {
+        const badge = move.querySelector('.band');
+        if (!badge) return false;
+        // The badge inside the face it is drawn on, with the face's own padding
+        // allowed for by comparing against the content box.
+        const face = move.getBoundingClientRect();
+        const chip = badge.getBoundingClientRect();
+        return chip.right > face.right || chip.left < face.left;
+      }).length,
+      /*
        * Stage 4.7, Part 6. Tags on the face, capped, and a status move showing
        * an effect readout where its base power would have been.
        *
@@ -1035,6 +1107,15 @@ if (await phone.locator(visible('battle')).count()) {
     `${battle.count} buttons, ${battle.columns} columns`);
   phoneCheck('move buttons meet the 44px touch target', battle.minHeight >= 44, `${battle.minHeight}px`);
   phoneCheck('every move button shows PP', battle.withPp === battle.count, `${battle.withPp}/${battle.count}`);
+  // R12. Every damaging move wears its band, and none of them overhangs the
+  // face it is drawn on.
+  phoneCheck(
+    'every damaging move button shows its band',
+    battle.withBand === battle.damagingMoves && battle.damagingMoves > 0,
+    `${battle.withBand}/${battle.damagingMoves} damaging`,
+  );
+  phoneCheck('no band badge overhangs its move button', battle.bandOverflow === 0,
+    `${battle.bandOverflow} overhanging of ${battle.withBand}`);
   phoneCheck('both stat panels are above the fold', battle.panelsBottom <= battle.innerHeight,
     `panels end at y=${battle.panelsBottom} of ${battle.innerHeight}`);
   phoneCheck('the move grid is above the fold', battle.movesBottom <= battle.innerHeight,

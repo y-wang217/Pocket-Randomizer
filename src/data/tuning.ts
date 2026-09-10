@@ -407,6 +407,35 @@ export interface Tuning {
    * a phone" is exactly the sort of thing worth being able to vary.
    */
   maxMoveTagsOnFace: number;
+  /**
+   * How long the battle screen's feedback takes to settle, in milliseconds.
+   *
+   * **One number for all of it, and that is the constraint rather than a
+   * convenience.** The HP chunk's shadow spends the whole of it; the two turn
+   * order nudges are a quarter each and run inside the same window, the second
+   * delayed by one. `ui/theme/motion.ts` writes it to `--motion-duration` at
+   * startup and every battle-feedback length in the stylesheet is derived from
+   * that token, so there is exactly one place the feel of a turn is set and no
+   * second constant to find.
+   *
+   * **It is not a delay.** Nothing on the screen waits for it: the bar, the HP
+   * text, the flag words and the move buttons are all correct and interactive
+   * on the frame the update arrives, and a tap resolves every animation early.
+   * This is how long the feedback *stays*, not how long the player waits.
+   *
+   * 500ms is the prompt's default and it has not been measured against
+   * anything. Unlike every other number in this file it is not a balance
+   * finding — the simulator has no opinion about how long a shadow should
+   * linger — so it is here to be swept by a playtest, not by `npm run sim`.
+   *
+   * A display number, so it changes no seed. On `contentHash`: it is under
+   * `src/data/`, and `docs/generation.md` §9 currently contradicts itself
+   * about whether the hash is a glob over that directory or an explicit file
+   * list. Under the glob reading this number would move a content hash, which
+   * is exactly the failure 4.7's constraint in that section names. See
+   * `docs/reports/release-c-battle-feedback.md`.
+   */
+  battleFeedbackMs: number;
 }
 
 /**
@@ -491,6 +520,7 @@ export const DEFAULT_TUNING: Tuning = {
   revealOpponentItem: true,
 
   maxMoveTagsOnFace: 3,
+  battleFeedbackMs: 500,
 };
 
 /** A tuning derived from the default. Stage 2's sweep builds variants this way. */

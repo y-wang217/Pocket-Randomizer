@@ -27,6 +27,15 @@ export interface MoveCardData {
   maxPp: number;
   tags: readonly MoveTag[];
   effect: MoveEffectFields | null;
+  /**
+   * The base-power band, 1 to 4, or null. **R12.**
+   *
+   * Read straight off the explanation, which took it from `bandOfMove`. Every
+   * surface outside a battle fills its card through this function, so this is
+   * the one place a band is resolved for all of them — and the reward card no
+   * longer calls `bandOfMove` itself, which was the second path.
+   */
+  band: number | null;
   /** The full set, for the tap-to-expand explanation. A superset of `tags`. */
   allTags: readonly MoveTag[];
   /** The explanation itself, for a caller that wants a field the card omits. */
@@ -49,11 +58,12 @@ export function moveCardData(
 ): MoveCardData {
   const explanation = describeMove(move.name);
   if (!explanation) {
-    return { ...move, tags: [], effect: null, allTags: [], explanation: null };
+    return { ...move, tags: [], effect: null, band: null, allTags: [], explanation: null };
   }
 
   return {
     name: move.name,
+    band: explanation.band,
     type: move.type,
     category: move.category,
     basePower: move.basePower,

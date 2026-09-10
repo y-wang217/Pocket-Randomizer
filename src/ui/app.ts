@@ -56,11 +56,22 @@ import { createDrawer, type DrawerView } from './drawer';
 import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
+import { applyMotion } from './theme/motion';
 
 export function mountApp(root: HTMLElement): void {
   // Before any screen is built, so the first render already reflects the
   // stored preference rather than flipping to it a frame later.
   initSettings();
+  /*
+   * The one battle-feedback duration, from `data/tuning.ts` onto the root.
+   *
+   * On `documentElement` rather than on the app root because `tokens.css`
+   * declares `--motion-duration` on `:root` and a value set lower down would
+   * shadow it for the subtree while leaving the token's own fallback in place
+   * above — two answers to one question, which is the thing the token exists
+   * to prevent.
+   */
+  applyMotion(document.documentElement);
 
   const starterScreen = createStarterSelect();
   const localeScreen = createLocaleSelect();

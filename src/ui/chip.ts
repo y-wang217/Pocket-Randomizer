@@ -31,6 +31,7 @@ export type ChipVariant =
   | 'capability-band'
   | 'category'
   | 'effect'
+  | 'flag'
   | 'neutral';
 
 export interface ChipOptions {
@@ -97,6 +98,27 @@ export function categoryChip(category: string, label: string, options: ChipOptio
 export function effectChip(label: string, band: string): HTMLElement {
   const node = build('effect', 'badge badge--effect', label);
   node.dataset['band'] = band;
+  return node;
+}
+
+/**
+ * One post-resolution flag word. Release C item 3.
+ *
+ * **Every flag is the same chip.** No `--chip`, no size modifier, no weight
+ * modifier and no per-kind variant class beyond the `data-flag` hook, which
+ * exists so a test can find one and carries no style. `SUPER EFFECTIVE` and
+ * `NOT VERY EFFECTIVE` are the same kind of fact and must look it — the moment
+ * one of them is bigger or brighter, the row has stopped reporting and started
+ * recommending, and the accent belongs to `.primary-action` alone.
+ *
+ * Deliberately **not** `effectChip`. That one is the pre-selection forecast on
+ * a move button; this is a truth about a turn that already resolved. They are
+ * different systems, neither derives from the other, and sharing a class here
+ * would be the first step to somebody deriving one from the other.
+ */
+export function flagChip(kind: string, text: string, options: ChipOptions = {}): HTMLElement {
+  const node = build('flag', 'badge badge--flag', text, options);
+  node.dataset['flag'] = kind;
   return node;
 }
 

@@ -55,6 +55,8 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-patch-4.7-phone-regressions.md`](gymrun-patch-4.7-phone-regressions.md) | patch prompt | `active` | | step 1 built; steps 2-4 stopped on the prompt's own stop condition, see `../generation.md` section 12b |
 | [`gymrun-patch-strict-trim.md`](gymrun-patch-strict-trim.md) | patch prompt | `active` | | |
 | [`gymrun-patch-restore-the-fold.md`](gymrun-patch-restore-the-fold.md) | patch prompt | `active` | | cuts 1-4 built, cut 5 not needed, see `../generation.md` section 14 |
+| [`gymrun-release-c-battle-feedback-amended.md`](gymrun-release-c-battle-feedback-amended.md) | stage prompt | `merged` | supersedes section 6 of the QoL release plan | `846975c` (items 1-4); R12 and V5 are its named follow-ons, R12 with its own row below |
+| [`gymrun-patch-r12-band-badge-move-card.md`](gymrun-patch-r12-band-badge-move-card.md) | patch prompt | `active` | | section 1 built; section 2 amends the V5 prompt and is not yet consumed |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
@@ -100,9 +102,10 @@ not to be treated as one.
 
 ## Resolving a path an archived prompt names
 
-Every prompt here opens by naming documents to read. Nine of those names do not
-resolve as written: they are bare filenames from a time when the documents sat
-at the repo root, plus one prompt that was never recovered.
+Every prompt here opens by naming documents to read. Ten of those names do not
+resolve as written: nine are bare filenames from a time when the documents sat
+at the repo root, one is a source path that moved under `screens/`, plus one
+prompt that was never recovered.
 
 **They are not corrected, and that is protocol 4 working rather than failing.**
 A prompt is a record of what was asked. Editing one to match where a file ended
@@ -123,6 +126,7 @@ If a prompt tells you to read something below, read the right-hand column.
 | `core/events.ts` | `src/core/events.ts` — same shorthand |
 | `data/hms.ts` | **Deleted at 4.6c.** Capabilities are relics; there is no HM table and there will not be one |
 | the Stage 4.5 prompt | **Unrecoverable.** See "Prompts that were never recovered" above. Do not reconstruct it |
+| `src/ui/reward.ts` around line 61 | `src/ui/screens/reward.ts:61` — the reward screen moved under `screens/` at Stage 4.5.1, item D. The line number is right in the new location: `bandBadge` is there |
 
 The `data/` and `core/` shorthand is used consistently across every document
 and is not a defect, merely shorter than the tree. The first three rows exist
