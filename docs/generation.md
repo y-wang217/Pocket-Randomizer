@@ -1154,3 +1154,59 @@ tree**: it sits unbuilt on the unmerged `claude/strict-trim-startup-fix-46g74x`
 branch, archived there at `305e5b5`, and its step 3 says of itself "this is the
 V5 budget brought forward; note it in the report so V5 does not redo it". It is
 the obvious answer if a playtest misses the numbers.
+
+## 12e. Deviation: 4.7.2's font swap shortened the map by 29.69px
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-4.7.2-font-stats-verbosity.md`](spec/gymrun-patch-4.7.2-font-stats-verbosity.md),
+step 1; the measurement is
+[`visual/reports/patch-4.7.2.md`](visual/reports/patch-4.7.2.md) section 1.
+
+**What the rule says.** The visual stages' standing gate, in
+`scripts/visual/measure.mjs`: "every visual stage must leave their layout height
+unchanged to the pixel." `test/visual-v0.test.ts` asserts both guarded screens
+against `visual/baseline/heights.json` as whole objects, so any field moving is
+a fail. The patch's own stop condition, from ruling 5, is narrower: report
+`decisionTop` and `decisionBottom` before and after, and **stop rather than ship
+if the decision point drops below the fold on 390x844.**
+
+**What moved.** `--font-body` went from the system monospace stack to Pixelify
+Sans, which is the narrower and shorter face, so text-driven boxes shrank. At
+390x844 on `SMOKE24`:
+
+| | before | after | delta |
+|---|---|---|---|
+| `map.screenHeight` | 976.69 | 947 | **−29.69** |
+| `map.scrollHeight` | 1170 | 1140 | **−30** |
+| `map.decisionTop` | 614.5 | 614.5 | 0 |
+| `map.decisionBottom` | 728.22 | 698.53 | **−29.69** |
+| `battle.*` | — | — | **0 on every field** |
+
+`decisionCount` is unchanged at 2 and 4.
+
+**Why this ships rather than tripping the stop condition.** Every number moved
+*up*. The stop condition is a floor, not an equality: it fires when a decision
+point drops below the fold, and the fold is the 740 usable line that
+`test/visual-v0.test.ts` asserts. The map's last offered card moved from 728.22
+to 698.53, which is 41.47px of new clearance under a line it already cleared by
+11.78, and the battle screen did not move at all — the move grid is a fixed 2x2
+of 44px-minimum buttons, so a narrower face changes nothing about it.
+`decisionTop`, the number V5's budget arithmetic is keyed off and the one both
+R12's note and Release C's take "the decision point" to mean, is **unmoved on
+both screens.**
+
+**The baseline was re-recorded, and that is the deviation.** The equality gate
+cannot pass otherwise, and re-recording is what ruling 5's "accept the baseline
+churn" authorises. It is recorded here rather than absorbed because a reader
+comparing `visual/baseline/heights.json` against `docs/visual/reports/v5-battle-stage.md` will
+find the map's two numbers disagree with V5's report, and the answer is this
+patch and not a regression in V5. **V5's battle figures are untouched and stay
+quotable.**
+
+**What this does not buy.** The 29.69px is a *consequence* of a typography
+decision, not a budget win to spend: it arrived because the face is narrower,
+and it would go back the moment `--font-body` returns to the mono stack — which
+is one line, by design. Nothing should be laid out on the assumption that the
+map now has thirty spare pixels.

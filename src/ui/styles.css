@@ -517,7 +517,7 @@ body {
 
 .panel__hp-text {
   color: var(--text-dim);
-  font-family: var(--font-body);
+  font-family: var(--font-numeral);
   font-size: var(--fs-md);
 }
 
@@ -561,9 +561,39 @@ body {
 
 .stat__value {
   color: var(--text-dim);
-  /* Tabular figures: the numbers change every turn and a panel that reflows
-     under the reader is a panel they stop trusting to compare against. */
+  font-family: var(--font-numeral);
+  /*
+   * **This line is a no-op under Pixelify Sans and is kept deliberately.
+   * Patch 4.7.2.**
+   *
+   * It arrived with a comment claiming tabular figures stop the panel
+   * reflowing under the reader. That was true of the system monospace stack
+   * and is not true now: the face carries no `tnum` feature, and asking for
+   * one measures identically to not asking — every digit is the same advance
+   * except `1`, which is 31% narrower. So the request is inert here, and the
+   * reflow it used to prevent is prevented by reserved width instead, on the
+   * rule below.
+   *
+   * Kept rather than deleted because it costs nothing and is correct the
+   * moment `--font-numeral` points at a face that has the feature — which is
+   * the entire reason that token is separate. Measurements:
+   * `docs/visual/reports/patch-4.7.2.md`.
+   */
   font-variant-numeric: tabular-nums;
+  /*
+   * The reservation that actually holds the column still. **Patch 4.7.2.**
+   *
+   * `1ch` is the advance of `0`, which under this face is the advance of every
+   * digit but `1`, so three of them is the widest a stat number gets and the
+   * box never has to grow. Right-aligned inside it, because from this patch the
+   * bar sits beside the number rather than instead of it, and a bar whose left
+   * edge moved with the digit count of the number in front of it would defeat
+   * the one thing six bars are for — being comparable down the column at a
+   * glance. In `ch` rather than px so it tracks the face rather than needing a
+   * new number the next time `--font-numeral` moves.
+   */
+  min-width: 3ch;
+  text-align: right;
 }
 
 /*
@@ -1008,10 +1038,18 @@ body {
 }
 
 .move__category,
-.move__power,
-.move__pp {
+.move__power {
   color: var(--text-dim);
   font-family: var(--font-body);
+  font-size: var(--fs-sm);
+}
+
+/* PP splits out of the row above at 4.7.2. Category and base power are facts
+   about the move and never change; PP is the one of the three that counts
+   down under the reader, so it is the one that reads --font-numeral. */
+.move__pp {
+  color: var(--text-dim);
+  font-family: var(--font-numeral);
   font-size: var(--fs-sm);
 }
 
@@ -2085,7 +2123,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   cursor: help;
 }
 
-.statline__value { font-family: var(--font-body); font-size: var(--fs-md); color: var(--text); }
+.statline__value { font-family: var(--font-numeral); font-size: var(--fs-md); color: var(--text); }
 
 /* ---------- the phone pass ---------- */
 
@@ -2308,7 +2346,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   text-transform: uppercase;
 }
 
-.shop__coin-value { font-family: var(--font-body); font-size: var(--fs-4xl); font-weight: 600; }
+.shop__coin-value { font-family: var(--font-numeral); font-size: var(--fs-4xl); font-weight: 600; }
 .shop__coin--warn .shop__coin-value { color: var(--hp-mid); }
 
 .shop__shelf {
@@ -3369,7 +3407,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 .party__contribution-cell { display: flex; gap: var(--space-1); }
 .party__contribution-label { color: var(--text-faint); }
-.party__contribution-value { color: var(--text-dim); }
+.party__contribution-value { color: var(--text-dim); font-family: var(--font-numeral); }
 
 /* The archetype chip, beside a level on both battle panels and every card.
    It wears the one neutral chip recipe from `.chip`; only the cursor is its own. */

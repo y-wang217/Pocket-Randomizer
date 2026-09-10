@@ -181,3 +181,148 @@ over `--bg-raised`, five of nineteen under 4.5:1:
 
 Ruling 5 accepts the baseline churn and requires `decisionTop` and
 `decisionBottom` before and after. Ruling 6 lifts `--chip-text` once, globally.
+
+---
+
+## 1. Font tokens
+
+**Three tokens, all Pixelify Sans, one line each to swap.** `tokens.css`:
+
+```css
+--font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+--font-display: 'Pixelify Sans', var(--font-mono-stack);
+--font-body:    var(--font-display);   /* was var(--font-mono-stack) */
+--font-numeral: var(--font-display);   /* new */
+```
+
+Nothing inline, in CSS or in TS — that was already true and stays true.
+`test/visual-tokens.test.ts` gains **test 8**: it resolves every `--font-*`
+token a rule actually uses through to a terminal family list and asserts they
+all name the same first family. The fallback stack is deliberately not counted
+as a second face; what the test forbids is two *chosen* faces.
+
+Confirmed applied rather than assumed — the computed `font-family` on `body` in
+the built app is `"Pixelify Sans", ui-monospace, …` and `document.fonts` reports
+both weights `loaded`.
+
+### 1.1 Tabular figures: the face has none
+
+Measured on the real element at 100px, advance width per digit:
+
+```
+normal      0:58.61  1:40.41  2:58.61  3:58.61  4:58.61
+            5:58.61  6:58.61  7:58.61  8:58.61  9:58.61   spread 18.20
+tabular-nums  … identical, every digit …                  spread 18.20
+```
+
+**`font-variant-numeric: tabular-nums` measures identically to not asking for
+it, so there is no `tnum` feature in the face.** The answer to the ruling's
+question is no.
+
+The useful half of that measurement is the shape of the miss: **every digit is
+the same advance except `1`, which is 31% narrower.** The face is accidentally
+tabular in nine glyphs out of ten, so the reflow is not the general wobble a
+proportional face usually causes — it is one glyph.
+
+There is one now-inert `font-variant-numeric: tabular-nums` in the stylesheet,
+on `.stat__value`. It is **kept, with its comment rewritten to say it is inert**
+rather than deleted: it costs nothing and becomes correct the moment
+`--font-numeral` points at a face that has the feature, which is what that token
+is for. The old comment claimed tabular figures were what stopped the panel
+reflowing, and that claim is now false — leaving it would have been the more
+expensive choice.
+
+### 1.2 Counter jitter at 390x844
+
+Every counter that rewrites in place now reads `--font-numeral`: the battle
+panel's HP text, a move's PP, the six stat numbers, the pick-screen stat row,
+the shop wallet, and the contribution counts. `.move__pp` was split out of the
+rule it shared with `.move__category` and `.move__power` — those two are facts
+about a move and never change; PP is the one of the three that counts down.
+
+**Measured in a real fight**, `SMOKE24` at 390x844:
+
+| counter | drift across turns |
+|---|---|
+| `.panel__hp-text`, player | **4.84px**, left edge pinned, right edge moves |
+| `.panel__hp-text`, foe | **4.84px**, same |
+| `.move__pp` | **0** |
+
+**PP does not jitter at all**, and not by luck: `.move__pp` is a block filling a
+fixed 150px button, so the text reflows inside a box the layout has already
+committed to. Its intrinsic width does vary (38.25px for `PP 1/40` to 46.7px for
+`PP 40/40`) and none of that reaches the layout.
+
+**HP jitters, and the worst case is bigger than the observed one.** Measured on
+an element carrying the real class at its real 12px:
+
+| string | width |
+|---|---|
+| `888 / 888 · 100%` | 90.13 |
+| `111 / 111 · 100%` | 77.03 |
+| `94 / 94 · 100%` | 76.06 |
+| `11 / 94 · 12%` | 64.67 |
+| `1 / 94 · 1%` | 52.78 |
+
+**13.1px between two strings of identical digit count** — all-1s against all-8s
+— which is the `1` glyph and nothing else.
+
+**What that actually moves.** The HP text's left edge is pinned, so the digits
+do not slide under the reader; what moves is the right edge, and `.panel__meta`
+is a flex row with the status chip next in it. So a status chip can shift up to
+13px as HP changes. **Not reserved, deliberately**: that row already moves far
+more than 13px whenever a status chip appears or clears at all, so reserving
+width there would buy nothing and would cost about 25px of a 390px phone to
+hold three-digit space for a two-digit Pokemon.
+
+**Reserved where the layout genuinely depends on it**, which is `.stat__value`:
+`min-width: 3ch; text-align: right`. From step 4 the bar sits *beside* the
+number rather than instead of it, and six bars whose left edges moved with the
+digit count in front of them would defeat the only thing six bars are for. `3ch`
+is three `0`-advances, the widest a stat number gets, and in `ch` so it tracks
+the face instead of needing a new number next time.
+
+### 1.3 Bundle delta
+
+| | before | after | delta |
+|---|---|---|---|
+| JS | 3,594,559 B | 3,594,559 B | **0** |
+| CSS | 57,104 B | 57,287 B | **+183 B** (gzip 10.05 → 10.09 kB, +40 B) |
+| fonts | 15,596 B | 15,596 B | **0** |
+
+**Zero, as expected, on everything but the comments.** Pixelify Sans was already
+self-hosted and already loading because `--font-display` used it; the swap adds
+no request and no bytes. The +183 B of CSS is the new token, the six
+`--font-numeral` rules, the split PP rule and their comments.
+
+### 1.4 The guarded screens moved, upward
+
+Reported here because the font swap moves pixels whether or not the ruling
+attached that requirement to step 2.
+
+| | before | after | delta |
+|---|---|---|---|
+| `map.screenHeight` | 976.69 | 947 | −29.69 |
+| `map.scrollHeight` | 1170 | 1140 | −30 |
+| `map.decisionTop` | 614.5 | 614.5 | **0** |
+| `map.decisionBottom` | 728.22 | 698.53 | **−29.69** |
+| `battle.screenHeight` | 587 | 587 | **0** |
+| `battle.scrollHeight` | 844 | 844 | **0** |
+| `battle.decisionTop` | 472 | 472 | **0** |
+| `battle.decisionBottom` | 700 | 700 | **0** |
+
+**The battle screen did not move on any field.** The map got shorter, every
+number moved *up*, and `decisionTop` is unmoved on both. The stop condition —
+the decision point dropping below the fold — is not met and is not close: the
+map's last offered card cleared the 740 line by 11.78px before and clears it by
+41.47px now. `../baseline/heights.json` re-recorded, and the whole thing written up as a
+dated deviation at [`../../generation.md`](../../generation.md) section 12e,
+because a reader diffing it against V5's report needs to know which patch moved
+the map.
+
+### 1.5 Suite
+
+`test/visual-v0.test.ts` (both budget assertions), `test/visual-v2.test.ts`,
+`test/visual-v3.test.ts`, `test/visual-baseline.test.ts` and
+`test/visual-tokens.test.ts` all pass, including the byte-identical baseline
+re-recording check.
