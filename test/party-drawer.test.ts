@@ -230,6 +230,7 @@ describe('every decision surface', () => {
             backpack: [],
             relics: [],
             tuning: state.tuning,
+            backTo: 'Back to the map',
             plan: null,
           },
           {
