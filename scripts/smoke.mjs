@@ -256,9 +256,15 @@ async function playRun(label) {
       if (await choose.count()) {
         await choose.click();
       } else {
-        // Every other member has fainted, so slot 0 is the only legal lead and
-        // its button is inert. The screen still has to be left.
-        await page.locator(`${visible('pre-gym')} .pre-gym__slot .button`).first().click({ force: true });
+        /*
+         * A party of one, or a party whose every other member has fainted: no
+         * slot offers a *change* of lead, so the only thing left to do is
+         * confirm the one the party already has. Forcing a click through slot
+         * 0's disabled button was the old fallback and it never fired — a
+         * disabled button dispatches no click, force or not — so this branch
+         * stalled the bot for the full timeout instead of leaving the screen.
+         */
+        await page.locator(`${visible('pre-gym')} .pre-gym__confirm`).click();
       }
       preGyms++;
       await page.waitForTimeout(25);

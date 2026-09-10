@@ -1,5 +1,18 @@
 # The 4.7 merge, measured
 
+> **Correction, 2026-09-10.** Two attributions below are wrong, and the numbers
+> that correct them are in
+> [`phone-regressions-4.7.md`](phone-regressions-4.7.md). Stage 4.7 did **not**
+> arrive in PR #10 — PR #10 is the 0.5 verification release and changed the
+> battle screen by nothing at all; 4.7 arrived in PR #12 and reached `main`
+> through PR #13. And the two "before" columns here are `0aa2391`, the V4 branch
+> tip, not the pre-4.7 `main` — so the +106.5 attributed to the stage is a
+> branch-to-branch delta rather than the stage's cost to the fold. Measured
+> against `main` before PR #10, the fourth move button already ended at 840, so
+> the fold miss is older than 4.7 and the closing paragraph's "when main takes
+> those rows back" does not reach 740. The itemised rows themselves stand.
+
+
 What Stage 4.7 (merged into this branch from `main` as PR #10 and PR #12) costs
 the two guarded screens, at 390x844 on seed SMOKE24. A report for a decision
 about `main`; nothing here is a change to make on this branch.

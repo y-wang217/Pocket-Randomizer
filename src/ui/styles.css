@@ -2956,6 +2956,19 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   gap: var(--space-1h);
 }
 
+/*
+ * The confirm and the party link, on one row. The confirm is the accent and
+ * comes first, because it is the control that leaves the screen; the link to
+ * item assignment is a detour and is styled as one.
+ */
+.pre-gym__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
 /* Locale select's new context: the gym rail and the party strip. */
 .locale__gym {
   display: flex;

@@ -63,7 +63,9 @@ power banding and berries (4.6b), and relics, capability events and band 3
 encounters (4.6c). The benchmark for the current randomizer version is recorded
 in `sim-reports/benchmarks/`.
 
-**Head of `main`:** `559fb6b`.
+**Head of `main`:** `9296ba7`. The visual identity branch (V0 to V4) and Stage
+4.7 both merged into it, as PR #13 and PR #12; PR #10 before them is the 0.5
+verification release.
 
 **Visual identity, V0 to V4, on `claude/gymrun-visual-identity-overnight-fllr8n`.**
 An overnight run under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built
@@ -75,10 +77,16 @@ morning decisions. V5 is skipped until Release C merges. The branch is the
 morning's pull request; nothing there touches `core/` or `data/`, and every
 seeded run in `visual/baseline/` is byte identical.
 
-**Working branch:** `claude/gymrun-docs-pass-arsdr7`, this documentation pass.
-It is Release 0 of the QoL plan, continued: the prompts landed in `spec/`
-already, and this pass adds the orientation layer over them. Documentation only,
-no source changes.
+**Working branch:** `claude/stage-4-7-phone-regressions-4crtiu`, the 4.7 phone
+regression patch,
+[`spec/gymrun-patch-4.7-phone-regressions.md`](spec/gymrun-patch-4.7-phone-regressions.md).
+Presentation only, no `core/` change, no version bump. Its step 1 shipped — the
+pre-gym screen had no control that submitted the current lead, so a party of one
+could not leave it — and its steps 2 to 4 stopped on the prompt's own stop
+condition, because the vertical budget they were to reclaim is missed by 100px
+on trees that predate Stage 4.7 entirely.
+[`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md)
+has the three measurements; `generation.md` section 12b records the deviation.
 
 **Next scheduled work:** the `contentHash` release. It bundles four things that
 are specified but unbuilt: `contentHash` itself, seed strings that carry it,
@@ -125,6 +133,20 @@ One line each. The analysis lives where the pointer goes, not here.
    predates the merge. It is live on the party screen and the map, and covered
    by `test/threat-readout.test.ts`. The plan is a historical record and is not
    edited to match; this row is the deviation note.
+7. **The 390x844 vertical budget, missed by 206.5px and not by Stage 4.7.** The
+   visual plan asks both decision points to end at or above y=740. The battle's
+   fourth move button ends at 946.5 on `main`, of which 106.5 is 4.7's and 100
+   predates it: the same measurer puts it at 840 on the commit before PR #10.
+   Reaching 740 is a decision about the battle heading, the two Pokemon panels
+   and the move grid, and it needs its own prompt.
+   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+8. **Strict trim is red, and the app does not boot under it.** `CLAUDE.md`
+   names it an absolute gate. `GYMRUN_TRIM_STRICT=1 vitest run` fails 22 tests
+   across the five browser test files on `9296ba7`, every one of them at
+   `openApp` waiting for the starter screen: something in the bundle reads the
+   trimmed `learnsets`/`legality` tables at start-up and the strict proxy throws.
+   Its own patch — find the read and make it lazy or remove it.
+   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
 
 Five audit findings, where the tree does not currently satisfy an invariant in
 `CLAUDE.md`, are recorded in the message of the commit that added that file.
