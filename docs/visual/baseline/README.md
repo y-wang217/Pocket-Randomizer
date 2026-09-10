@@ -35,3 +35,9 @@ and fails on any byte that differs. Heights are compared by
   buttons at 681.5..950.5 (was 612..840). The move grid now ends 106px below
   the 844 fold. The plan's vertical budget, "four move buttons above the
   fold", does not hold on this tree, and V5's before table starts from here.
+- **2026-09-10, later the same day.** `heights.json` battle entries re-recorded
+  after the archetype chip lost 4.7's own `border` and took the `.chip` recipe
+  (an inset shadow, which costs no layout): each battle panel header is 2px
+  shorter, so `battle.screenHeight` 1149.5 → 1145.5, `scrollHeight` 1343 →
+  1339, `decisionBottom` 950.5 → 946.5. The map did not move. Runs and the
+  digest are unchanged.

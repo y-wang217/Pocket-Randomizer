@@ -83,7 +83,11 @@ async function hardestMove(page) {
   let best = 0;
   let bestPower = -1;
   for (let i = 0; i < count; i++) {
-    const text = (await buttons.nth(i).locator('.move__power').textContent()) ?? '';
+    // 4.7 puts a status move's effect line where its base power would be, so
+    // a button with no `.move__power` is a status move: power 0, never chosen
+    // over a damaging move.
+    const powerNode = buttons.nth(i).locator('.move__power');
+    const text = (await powerNode.count()) ? ((await powerNode.textContent()) ?? '') : '';
     const power = Number(/^(\d+)/.exec(text.trim())?.[1] ?? 0);
     if (power > bestPower) {
       bestPower = power;
@@ -194,6 +198,17 @@ export async function stepOnce(page) {
     case 'party':
       await page.locator(`${visible('party')} .primary-action, ${visible('party')} .button--primary`).first().click();
       return screen;
+    case 'pre-gym': {
+      // 4.7's lead pick. Slot 0 is preferred, the way the headless runs answer
+      // `chooseLead`. On the merged tree slot 0's own button is disabled
+      // ("Leading") and no other control submits the default, so the only way
+      // off the screen is to hand the lead to the lowest enabled slot. That is
+      // a 4.7 gap on main, recorded in the V-report, not a choice this bot made.
+      const slots = page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not(:disabled)`);
+      if (await slots.count()) await slots.first().click();
+      else await page.waitForTimeout(40);
+      return screen;
+    }
     case 'map': {
       const node = await chooseNode(page);
       if (node) await node.click();

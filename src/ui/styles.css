@@ -1648,6 +1648,11 @@ body {
   z-index: 30;
   display: grid;
   place-items: center;
+  /* The body sits below the viewport's centre, not on it: 4.7's drawer bar
+     pushed the move replacement screen's pinned incoming card down to 388px,
+     and the band must never cover that card (V2.2). Half of this padding is
+     how far the centred body drops. */
+  padding-top: calc(var(--space-12) * 2 + var(--space-8));
   background: var(--dim);
 }
 
@@ -2898,13 +2903,9 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .party__contribution-label { color: var(--text-faint); }
 .party__contribution-value { color: var(--text-dim); }
 
-/* The archetype chip, beside a level on both battle panels and every card. */
-.badge--archetype {
-  background: var(--bg-sunken);
-  color: var(--text-dim);
-  border: var(--hairline) solid var(--border);
-  cursor: pointer;
-}
+/* The archetype chip, beside a level on both battle panels and every card.
+   It wears the one neutral chip recipe from `.chip`; only the cursor is its own. */
+.badge--archetype { cursor: pointer; }
 
 /* Move tags. Deliberately quiet: they are context on a button whose job is
  * still to be pressed, and a row of loud chips would out-shout the move name. */
@@ -2915,17 +2916,15 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 }
 
 .badge--tag {
-  background: transparent;
-  border: var(--hairline) solid var(--border);
-  color: var(--text-faint);
   font-size: var(--fs-xs);
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
 }
 
-/* Accuracy is the one tag most likely to explain a miss, so it is the one tag
- * that is not quiet. Still a colour, never a word like "risky". */
-.badge--tag-accuracy { color: var(--emphasis); border-color: var(--emphasis); }
+/* 4.7 gave the accuracy tag its own colour so it would not be quiet. The
+ * visual stages allow one neutral chip recipe and one coloured chip (the
+ * type), so the accuracy tag reads like every other tag; its tooltip still
+ * says what it is. */
 
 /* The status move's effect line, in the region base power would have used. */
 .move__effect {
