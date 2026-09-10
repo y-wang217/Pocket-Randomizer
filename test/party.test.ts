@@ -58,6 +58,19 @@ import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
+/**
+ * A hand-built `NodeResult` reporting no per-member counters. **Stage 4.7.**
+ *
+ * An empty array rather than one zeroed entry per member, and the difference is
+ * a statement: `applyBattleState` reads `contribution[index]` and leaves a
+ * member's running total alone when there is nothing at that index, so this
+ * says "this fixture is not about contribution" rather than "every member did
+ * nothing". The fixtures below are about state transitions — a wipe, a heal, a
+ * berry — and a zero would be an assertion they are not making.
+ */
+const NO_CONTRIBUTION: never[] = [];
+
+
 const SPECS: PokemonSpec[] = [
   { species: 'Snorlax', ability: 'Thick Fat', moves: ['Body Slam', 'Curse'], level: 30 },
   { species: 'Gengar', ability: 'Levitate', moves: ['Shadow Ball'], level: 30 },
@@ -466,7 +479,7 @@ describe('a fainted member does not leave the party', () => {
 
     const after = resolveNode(before, {
       node,
-      battle: { result: { winner: 'p1', turns: 6, cause: 'faint' }, party: dead },
+      battle: { result: { winner: 'p1', turns: 6, cause: 'faint' }, party: dead, contribution: NO_CONTRIBUTION },
     });
 
     expect(after.outcome).toBe(null);
@@ -818,7 +831,7 @@ describe('a full eight-gym run, headless', () => {
     const gym = last.segments[SEGMENTS_PER_RUN - 1]!.gym;
     const after = resolveNode({ ...last, position: stepsOf(last).length }, {
       node: gym,
-      battle: { result: { winner: 'p1', turns: 4, cause: 'faint' }, party: last.party },
+      battle: { result: { winner: 'p1', turns: 4, cause: 'faint' }, party: last.party, contribution: NO_CONTRIBUTION },
     });
 
     expect(after.outcome).toBe('victory');

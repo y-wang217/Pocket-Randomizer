@@ -79,6 +79,7 @@ import { createRng } from './rng';
 import type {
   BattleMemberState,
   BattleResult,
+  Contribution,
   ItemAssignment,
   ItemId,
   ItemPlan,
@@ -581,6 +582,16 @@ export interface NodeResult {
      */
     party: BattleMemberState[];
     /**
+     * Per-member counters for this battle, in send order. **Stage 4.7, Part 5.**
+     *
+     * Carried on the result rather than folded in by the driver for the reason
+     * every other payout is: `resolveNode` owns state transitions and the
+     * battle layer owns facts. It is also what makes the counters replayable —
+     * they are a function of the protocol, which is a function of the seed and
+     * the decisions, so a replay rebuilds them rather than restoring them.
+     */
+    contribution: Contribution[];
+    /**
      * Items the player's side used up, by dex id. **Stage 4.6b.**
      *
      * Carried on the result rather than read off the party, because a spent
@@ -627,6 +638,8 @@ export interface BattleReview {
   won: boolean;
   /** The party as the sim left it, before the node boundary heals anything. */
   party: BattleMemberState[];
+  /** What each member did in this battle, in send order. See `NodeResult`. */
+  contribution: Contribution[];
   /**
    * What this node pays, or 0 on a loss.
    *
@@ -653,7 +666,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (state.outcome) throw new Error('Run has already ended');
 
   let party = state.party;
-  if (result.battle) party = applyBattleState(party, result.battle.party);
+  if (result.battle) party = applyBattleState(party, result.battle.party, result.battle.contribution);
   if (result.node.kind === 'rest') party = restParty(party, state.tuning);
 
   /*
@@ -1232,6 +1245,7 @@ export async function playRun(
           result: result.battle.result,
           won,
           party: result.battle.party,
+          contribution: result.battle.contribution,
           currencyEarned: won ? nodePayout(result.node, state.currentSegment) : 0,
           offer,
         },
@@ -1469,6 +1483,7 @@ async function playNode(
     battle: {
       result: run.result,
       party: run.session.partyState('p1'),
+      contribution: run.contribution,
       casualties: run.casualties,
       consumed: run.consumed,
     },

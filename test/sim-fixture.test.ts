@@ -78,6 +78,14 @@ async function report(seed: string): Promise<unknown> {
       hp: member.hp,
       maxHp: member.maxHp,
       fainted: member.fainted,
+      /*
+       * Stage 4.7. Counters are derived from the battle protocol, so freezing
+       * them here makes this fixture a check on the *reducer* as well as on
+       * generation: a change that alters attribution without altering a single
+       * battle shows up as a diff on this file and nowhere else.
+       */
+      joinedSegment: member.joinedSegment,
+      contribution: member.contribution,
       status: member.status,
       pp: member.moves.map((move) => move.pp),
     })),

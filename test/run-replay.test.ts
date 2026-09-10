@@ -313,6 +313,49 @@ describe('save mid-run, reload, continue', () => {
     expect(liveCalls).toBeGreaterThan(0);
   });
 
+  it('rebuilds contribution counters exactly, including from a mid-battle save', async () => {
+    /*
+     * **Stage 4.7, Part 5's determinism assertion, and it is the reason the
+     * counters are derived rather than logged.**
+     *
+     * `fingerprint` already carries the whole party, so every resume test in
+     * this file compares counters as a side effect. This one is separate
+     * because it asserts the thing on purpose and says why: a counter is a
+     * function of a battle protocol, a protocol is a function of the seed and
+     * the decisions, so a rebuilt counter that disagrees with a saved one means
+     * the *battle* diverged. A mismatch here is a determinism bug wearing a
+     * stats feature as a disguise, and it would otherwise surface as a slightly
+     * wrong number on a summary screen that nobody would think to distrust.
+     *
+     * The saves taken *during* a battle are the interesting ones — a save after
+     * every `battle` decision is a save mid-fight, with a protocol half
+     * written — because a reducer that only agreed at node boundaries would
+     * pass every other test in this file.
+     */
+    const saves: RunLog[] = [];
+    const original = await playRun('RESUME-CONTRIB', wobbling(), undefined, {
+      onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
+    });
+
+    const counters = (result: RunResult): unknown =>
+      result.state.party.map((member) => [member.spec.species, member.contribution]);
+
+    // The run has to have done something, or this asserts that zero is zero.
+    const totals = original.state.party.map((member) => member.contribution);
+    expect(totals.some((counter) => counter.damageDealt > 0)).toBe(true);
+    expect(totals.some((counter) => counter.turnsOnField > 0)).toBe(true);
+
+    const midBattle = saves.filter((save) => save.decisions.at(-1)?.kind === 'battle');
+    expect(midBattle.length, 'this seed never fought').toBeGreaterThan(0);
+
+    for (const save of [midBattle[0]!, midBattle[Math.floor(midBattle.length / 2)]!, midBattle.at(-1)!]) {
+      const resumed = await resumeRun(save, wobbling());
+      expect(counters(resumed), `resuming after ${save.decisions.length} decisions`).toEqual(
+        counters(original),
+      );
+    }
+  }, 120_000);
+
   it('never serializes derived state, so a resumed party is recomputed not restored', async () => {
     const saves: RunLog[] = [];
     await playRun('RESUME-DERIVED', wobbling(), undefined, {
@@ -324,6 +367,9 @@ describe('save mid-run, reload, continue', () => {
       // The three things a save is allowed to contain. Anything about HP, PP,
       // party, map or nodes in here means derived state leaked into the log.
       expect(serialized).not.toMatch(/"hp"|"party"|"maxHp"|"segments"|"encounter"|"turn"/);
+      // Stage 4.7: contribution counters are derived too, and a log that
+      // carried them would be a log that could disagree with the battle.
+      expect(serialized).not.toMatch(/"contribution"|"damageDealt"|"kos"|"turnsOnField"/);
     }
   });
 });

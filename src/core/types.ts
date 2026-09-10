@@ -358,6 +358,44 @@ export interface MoveState {
 }
 
 /**
+ * What one party member did in one battle. Raw counts, never a score.
+ *
+ * **Nothing here is a percentage and nothing here is composite**, deliberately.
+ * A percentage is a fact about a denominator that has not been agreed on, and a
+ * composite score is a verdict with the arithmetic hidden inside it — see the
+ * Part 4 editorial rule. Shares are computed at render, from these, against a
+ * denominator the caller can name.
+ */
+export interface Contribution {
+  /**
+   * HP removed from opposing Pokemon by this member's own moves.
+   *
+   * **Direct move damage only.** A `-damage` line carrying a `[from]` tag —
+   * poison, recoil, Life Orb, hazards, a burn — is credited to nobody, because
+   * "damage dealt" that included the poison you inflicted three turns ago would
+   * make the number depend on a causal chain the protocol does not record and
+   * this file would have to guess at.
+   */
+  damageDealt: number;
+  /** HP this member lost, from every source: moves, status, recoil, hazards. */
+  damageTaken: number;
+  /** Opposing Pokemon that fainted to this member's last landed move. */
+  kos: number;
+  /** Times this member fainted. */
+  faints: number;
+  /**
+   * Turns this member was the active Pokemon **when the turn began**.
+   *
+   * The qualifier is the whole definition and it is not the only defensible
+   * one. A switch resolves *inside* a turn, so a turn where A switches out and
+   * B takes the hit is counted for A. Counting it for both would make the
+   * column sum to more turns than the battle had, which is the property that
+   * makes this number usable as a denominator at render.
+   */
+  turnsOnField: number;
+}
+
+/**
  * What a battle can say about a party member: vitals, never identity.
  *
  * This is what persists across a node boundary, and it is deliberately small:
@@ -425,6 +463,19 @@ export interface PokemonState extends BattleMemberState {
    * final party alone.
    */
   joinedSegment: number;
+  /**
+   * What this member has done, cumulatively, across the whole run.
+   *
+   * **Derived state, and it never enters a `RunLog`.** A replay rebuilds it
+   * from the same battle rolls the original run produced, which is why
+   * `test/run-replay.test.ts` can assert that rebuilt counters match saved ones
+   * exactly — a mismatch there is a determinism bug wearing a stats feature as
+   * a disguise, and that assertion is the whole reason this is derived rather
+   * than logged.
+   *
+   * Raw counts. Never a percentage, never a composite score. See the type.
+   */
+  contribution: Contribution;
 }
 
 // ---------------------------------------------------------------------------

@@ -19,8 +19,17 @@
  * to make a replay disagree with the run it replays.
  */
 import { describeSpec } from './battle/driver';
+import { addContribution, emptyContribution } from './battle/contribution';
 import { battleSpecFor } from './items';
-import type { BattleMemberState, ItemId, MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
+import type {
+  BattleMemberState,
+  Contribution,
+  ItemId,
+  MoveState,
+  PokemonSpec,
+  PokemonState,
+  TeamSpec,
+} from './types';
 import { MOVESET } from '../data/scaling';
 import { PARTY_SIZE } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
@@ -43,6 +52,7 @@ export function createPartyMember(spec: PokemonSpec, joinedSegment = 0): Pokemon
     status: null,
     fainted: false,
     joinedSegment,
+    contribution: emptyContribution(),
   };
 }
 
@@ -161,12 +171,13 @@ export function carryOverFor(party: readonly PokemonState[]): PokemonState[] {
 export function applyBattleState(
   party: readonly PokemonState[],
   after: readonly BattleMemberState[],
+  contribution: readonly Contribution[],
 ): PokemonState[] {
   const sent = sendOrder(party);
-  const updates = new Map<PokemonState, BattleMemberState>();
+  const updates = new Map<PokemonState, { state: BattleMemberState; delta: Contribution | undefined }>();
   for (const [index, member] of sent.entries()) {
     const updated = after[index];
-    if (updated) updates.set(member, updated);
+    if (updated) updates.set(member, { state: updated, delta: contribution[index] });
   }
 
   return party.map((member) => {
@@ -174,11 +185,14 @@ export function applyBattleState(
     if (!updated) return member;
     return {
       ...member,
-      maxHp: updated.maxHp,
-      hp: updated.hp,
-      moves: updated.moves,
-      status: updated.status,
-      fainted: updated.fainted,
+      maxHp: updated.state.maxHp,
+      hp: updated.state.hp,
+      moves: updated.state.moves,
+      status: updated.state.status,
+      fainted: updated.state.fainted,
+      contribution: updated.delta
+        ? addContribution(member.contribution, updated.delta)
+        : member.contribution,
     };
   });
 }

@@ -31,6 +31,7 @@ import {
   type MoveState,
   type MoveView,
   type BattleMemberState,
+  type Contribution,
   type PokemonState,
   type SideId,
   type StatName,
@@ -42,6 +43,7 @@ import {
 } from '../types';
 import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
 import type { Policy } from './policy';
+import { readContribution } from './contribution';
 import { statsAtLevel } from './stats';
 import { rejectionReason } from './switching';
 import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
@@ -616,6 +618,16 @@ export interface BattleSession {
   factsFor(side: SideId): BattleFacts;
   /** All protocol lines so far, from `side`'s perspective. */
   protocolFor(side: SideId): readonly string[];
+  /**
+   * The side's battle names, in the order the team was submitted.
+   *
+   * The key that turns a protocol identifier into a party slot, which is what
+   * `core/battle/contribution.ts` needs and what a name alone cannot give: a
+   * protocol says `p1a: Pikachu` and a party has three members. Read off the
+   * *submitted* order for the same reason `readPartyState` is — `side.pokemon`
+   * reorders itself on every switch.
+   */
+  rosterFor(side: SideId): readonly string[];
   /** Submit a decision. Both sides must submit before the turn resolves. */
   submit(side: SideId, choice: Choice): void;
   subscribe(listener: (update: BattleUpdate) => void): () => void;
@@ -838,6 +850,7 @@ export function createBattle(options: BattleOptions): BattleSession {
     viewFor: buildView,
     factsFor: buildFacts,
     protocolFor: (side) => protocol[side],
+    rosterFor: (side) => submitted[side].map((mon) => mon.name),
     /*
      * Submit a decision, checked against the view first.
      *
@@ -1224,6 +1237,15 @@ export interface BattleRun {
    * state out of, so reading it would be reading the engine's own bookkeeping.
    */
   consumed: ItemId[];
+  /**
+   * Per-member counters for the player's side, in send order. **Stage 4.7.**
+   *
+   * Send order, not party order, because that is the order everything else that
+   * maps a battle result onto a party uses — `readPartyState` reads back in it
+   * and `party.applyBattleState` maps in it. `core/battle/contribution.ts` is
+   * the reducer and says what each counter counts.
+   */
+  contribution: Contribution[];
   session: BattleSession;
 }
 
@@ -1284,6 +1306,7 @@ export async function runBattle(
     protocol,
     casualties: readCasualties(protocol),
     consumed: readConsumedItems(protocol, 'p1'),
+    contribution: readContribution(protocol, session.rosterFor('p1')),
     session,
   };
 }

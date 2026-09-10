@@ -1366,6 +1366,18 @@ interface RunRecord {
   // --- Stage 4.6b ---------------------------------------------------------
   /** Berries the player's side used up, tagged with the segment they fired in. */
   berriesEaten: { segment: number }[];
+
+  // --- Stage 4.7 -----------------------------------------------------------
+  /**
+   * Damage dealt by each member the run *ended* with, whole run.
+   *
+   * The question is concentration: is this a party, or one Pokemon and two
+   * health bars? Taken from the final party rather than accumulated across
+   * releases, because a member the run let go is not part of the party the
+   * question is about — and because a released member's counters leave with it,
+   * which is the honest reading of "release is permanent".
+   */
+  damageByMember: number[];
 }
 
 async function playSample(
@@ -1527,6 +1539,7 @@ async function playSample(
       relicsSeen: [...new Set(collect.relicsSeen)],
       gymParties,
       berriesEaten,
+      damageByMember: state.party.map((member) => member.contribution.damageDealt),
     });
     onProgress(index + 1);
   }
@@ -1760,6 +1773,30 @@ interface Sample {
     totalRuns: number;
     /** Relics that never appeared on a card anywhere in the sample. */
     neverOffered: string[];
+  };
+  /**
+   * Concentration: whether the run has a party or a solo carry. **Stage 4.7.**
+   *
+   * Three numbers, and the spec asks for all three because each one fails a
+   * different way on its own. A *mean* share hides the shape of the
+   * distribution; a threshold count says how often it is bad but not how bad;
+   * and neither says how many members are doing anything at all.
+   *
+   * If concentration is high across a sample, the party is decoration, and that
+   * is a larger finding than any patch that produced it. It is reported plainly
+   * and not fixed by whatever patch surfaced it.
+   */
+  contribution: {
+    /** Runs with a final party of at least one member, the denominator here. */
+    runs: number;
+    /** Mean share of a run's damage dealt by its single highest contributor. */
+    meanTopShare: number;
+    /** Deciles of that share across the sample, so the shape is visible. */
+    topShareDeciles: Tally[];
+    /** Share of runs where one member dealt more than 60% of the damage. */
+    carriedRuns: number;
+    /** Mean members dealing more than 10% of a run's damage. */
+    meanContributors: number;
   };
   capture: {
     /** Wild victories that offered a capture, per run and in total. */
@@ -2017,6 +2054,7 @@ function summarize(
     party: summarizeParty(records),
     ramp: summarizeRamp(records),
     locales: summarizeLocales(records),
+    contribution: summarizeContribution(records),
     capture: summarizeCapture(records),
     relics: summarizeRelics(records),
     durationMs,
@@ -2223,6 +2261,50 @@ function summarizeRelics(records: RunRecord[]): Sample['relics'] {
     ).map((id) => relicById(id)?.name ?? id),
   };
 }
+
+/**
+ * Contribution concentration across a sample.
+ *
+ * Runs whose final party dealt no damage at all are excluded rather than
+ * counted as perfectly concentrated: a party wiped in segment 0 before landing
+ * a hit has no share to compute, and folding it in as 0 or as 1 would both be
+ * statements the data does not make.
+ */
+function summarizeContribution(records: RunRecord[]): Sample['contribution'] {
+  const usable = records.filter((record) => sum(record.damageByMember) > 0);
+  if (usable.length === 0) {
+    return { runs: 0, meanTopShare: 0, topShareDeciles: [], carriedRuns: 0, meanContributors: 0 };
+  }
+
+  const topShares = usable.map((record) => {
+    const total = sum(record.damageByMember);
+    return Math.max(...record.damageByMember) / total;
+  });
+  const contributors = usable.map((record) => {
+    const total = sum(record.damageByMember);
+    return record.damageByMember.filter((damage) => damage / total > CONTRIBUTOR_FLOOR).length;
+  });
+
+  return {
+    runs: usable.length,
+    meanTopShare: sum(topShares) / usable.length,
+    topShareDeciles: tally(
+      topShares.map((share) => {
+        const decile = Math.min(9, Math.floor(share * 10));
+        return `${decile * 10}-${decile * 10 + 10}%`;
+      }),
+      10,
+    ),
+    carriedRuns: topShares.filter((share) => share > CARRY_THRESHOLD).length / usable.length,
+    meanContributors: sum(contributors) / usable.length,
+  };
+}
+
+/** A member deals more than this share of a run's damage to count as a contributor. */
+const CONTRIBUTOR_FLOOR = 0.1;
+
+/** Above this share for one member, the run was carried rather than played. */
+const CARRY_THRESHOLD = 0.6;
 
 function summarizeCapture(records: RunRecord[]): Sample['capture'] {
   const runs = Math.max(1, records.length);
@@ -2537,6 +2619,63 @@ function render(sample: Sample): string {
     '  Relics come from elite and gym nodes, so holders already survived the',
     '  risky path. The gap measures that too. Use --policy relics instead.',
   );
+
+  /*
+   * Concentration, printed before capture because it is the question capture
+   * exists to answer. A high take rate is only good news if the members it
+   * produced are doing something.
+   */
+  const contribution = sample.contribution;
+  if (contribution.runs > 0) {
+    out.push('', `Contribution — is this a party or a carry? n=${contribution.runs} runs`);
+    out.push(
+      table(
+        ['measure', 'value', 'reads as'],
+        [
+          [
+            'top member\'s share of damage',
+            pct(contribution.meanTopShare),
+            contribution.meanTopShare > 0.6
+              ? 'a solo carry with passengers'
+              : 'the party is fighting',
+          ],
+          [
+            `runs where one member dealt >${pct(CARRY_THRESHOLD)}`,
+            pct(contribution.carriedRuns),
+            'the party was decoration in these',
+          ],
+          [
+            `members dealing >${pct(CONTRIBUTOR_FLOOR)}`,
+            contribution.meanContributors.toFixed(2),
+            `of ${PARTY_SIZE} slots`,
+          ],
+        ],
+      ),
+    );
+    out.push(
+      '',
+      '  Top member\'s share, by decile',
+      ...contribution.topShareDeciles.map(
+        (row) => `    ${row.label.padEnd(10)} ${String(row.count).padStart(5)}  ${pct(row.share)}`,
+      ),
+    );
+    out.push(
+      '',
+      '  Tenure is a confound and it is not corrected for. The starter has been',
+      '  in the party for the whole run; a member caught in segment 5 has had',
+      '  three segments to deal damage. Some concentration is that and not carry.',
+      '  Members released along the way take their counters with them, so the',
+      '  denominator is the damage dealt by the party that finished.',
+    );
+    if (contribution.meanTopShare > 0.6) {
+      out.push(
+        '',
+        '  Even so, at this share the party is decoration. That is a finding',
+        '  about the game rather than about whatever patch surfaced it, and the',
+        '  fix is not in the patch that printed this line.',
+      );
+    }
+  }
 
   const capture = sample.capture;
   out.push('', 'Capture — the offer every won wild encounter makes');
