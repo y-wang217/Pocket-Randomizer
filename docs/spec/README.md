@@ -29,15 +29,15 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-patch-playtest-round2.md`](gymrun-patch-playtest-round2.md) | patch prompt | `merged` | | `8a7897d` |
 | [`gymrun-stage4.5.1-claude-code-prompt.md`](gymrun-stage4.5.1-claude-code-prompt.md) | stage prompt | `merged` | | `42c6961` |
 | [`gymrun-stage4.6-claude-code-prompts.md`](gymrun-stage4.6-claude-code-prompts.md) | stage prompt | `merged` | Part C only, by the relics prompt | `dfa18dc` (A), `c6d730a` (B) |
-| [`../../gymrun-stage4.6c-relics-claude-code-prompt.md`](../../gymrun-stage4.6c-relics-claude-code-prompt.md) | stage prompt | `merged` | | `4b63528` |
+| [`gymrun-stage4.6c-relics-claude-code-prompt.md`](gymrun-stage4.6c-relics-claude-code-prompt.md) | stage prompt | `merged` | | `4b63528` |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
 lists them.
 
-**The relics prompt is at the repo root, not here.** It was committed before its
-work began, so rule 1 below was satisfied, but its location is wrong and moving
-it is pending.
+The relics prompt sat at the repo root until 2026-09-10 and was moved here.
+Rule 1 below was always satisfied for it: it was committed at `47d4d0e`, before
+its first implementation commit at `3764e89`. Only the location was wrong.
 
 ### Prompts that were never recovered
 
