@@ -156,6 +156,31 @@ and fails on any byte that differs. Heights are compared by
   the keyed refactor was built to buy. `heights.json` and `bundle.json` are not
   re-recorded; neither step touches a pixel.
 
+- **2026-09-10, Stage 4.8 step 7.** `heights.json` **map** entries re-recorded, in
+  the commit that moved them, which is the one that closed the map's fold `xfail`:
+  `map.screenHeight` 976.69 → **819.19**, `scrollHeight` 1170 → **1012**,
+  `decisionTop` 614.5 → **513.5**, `decisionBottom` 728.22 → **627.22**.
+  `decisionCount` is still 2. **The battle did not move**, on any of its five
+  fields — step 7 touches nothing inside a fight.
+
+  101 pixels off the decision point, and they came from two places rather than from
+  shaving a margin:
+
+  - **The steps already taken collapse to one line** instead of one card each. That
+    is worth more than its pixel count, because it changes the *shape* of the
+    problem: the current step no longer moves down the page as a segment is walked,
+    so the fix holds at item 3's longest segment rather than only at today's length.
+  - **The map's party cards lost their move lists and abilities** and went into a
+    two-column grid. Item 1 took the roster to six, which had made that panel 697px
+    of a 844px screen; it measures ~320px now. PP and abilities are one tap away in
+    the drawer, which is reachable from this screen and every other.
+
+  This is the event `test/visual-v0.test.ts` and `scripts/smoke.mjs` were both
+  waiting on since Release C — the map's rows being taken back. The smoke check
+  reports `cards end at y=768 of 844` at its own deeper point in the run, and its
+  `xfail` marker is removed rather than moved, per the prompt. `bundle.json` is not
+  re-recorded, per this file's own rule.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.

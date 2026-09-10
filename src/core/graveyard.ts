@@ -39,6 +39,7 @@
  * of the result screen is where an absence shows.
  */
 import type { Casualty } from './battle/driver';
+import { displayName } from './nicknames';
 import type { RunState } from './run';
 import type { PokemonState } from './types';
 
@@ -131,16 +132,9 @@ export function deathsFrom(state: RunState): DeathRecord[] {
   return deaths;
 }
 
-/**
- * The name the sim would have used for a member.
- *
- * `spec.nickname ?? spec.species` is the adapter's own rule (`driver.ts` builds the
- * battle name that way), and restating it here rather than importing it is the one
- * duplication in this file. It is two tokens and the alternative is reaching into
- * the adapter for a string helper; if it ever grows, it moves.
- */
+/** The name the sim would have used for a member. One definition, in `nicknames.ts`. */
 function nameOf(member: PokemonState): string {
-  return member.spec.nickname ?? member.spec.species;
+  return displayName(member.spec);
 }
 
 /** Re-export so a caller does not have to reach into the adapter for the type. */

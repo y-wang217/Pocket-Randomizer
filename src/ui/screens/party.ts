@@ -47,6 +47,7 @@
  */
 import { memberCardContents } from '../member-card';
 import { backpackCapacity } from '../../core/items';
+import { displayName } from '../../core/nicknames';
 import { relicById, type RelicId } from '../../data/relics';
 import type { Capability } from '../../data/capabilities';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
@@ -211,7 +212,7 @@ export function createPartyScreen(): PartyScreen {
           renderSlots(
             'party',
             view.party.map((member, slot) => ({
-              label: member.spec.species,
+              label: displayName(member.spec),
               item: held[slot] ?? null,
               tip: held[slot] ? `item:${held[slot]}` : undefined,
             })),
@@ -350,7 +351,7 @@ function renderManaged(
   // over the wrong card is exactly the misclick the confirm exists to catch.
   release.addEventListener('click', () =>
     openBand({
-      title: `Release ${member.spec.species}?`,
+      title: `Release ${displayName(member.spec)}?`,
       detail: 'For good. There is no box. Anything held goes back to the bag.',
       confirm: 'Release',
       cancel: 'Keep',
@@ -486,7 +487,7 @@ function renderBackpack(
         button.className = 'button button--small';
         // Named rather than numbered: "Give to Squirtle" is a sentence and
         // "Slot 2" is a thing to look up.
-        button.textContent = member.spec.species;
+        button.textContent = displayName(member.spec);
         button.addEventListener('click', () => handlers.onEquip(id, slot));
         give.append(button);
       });

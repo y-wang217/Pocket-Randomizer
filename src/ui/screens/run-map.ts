@@ -40,6 +40,7 @@
  * Tier and payout is the amount of information that leaves a judgement to make.
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
+import { displayName } from '../../core/nicknames';
 import { heldItem } from '../../core/items';
 import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
@@ -56,7 +57,6 @@ import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../
 import { el } from '../scene';
 import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
-import { createThreatReadout } from './threats';
 
 const KIND_LABELS: Record<NodeSpec['kind'], string> = {
   wild: 'Wild',
@@ -161,10 +161,8 @@ export function createRunMap(): RunMap {
    * finds it still open after the map redraws — which it does on every node,
    * every rest and every flip of the Detail toggle.
    */
-  const threats = createThreatReadout({ collapsed: true });
-  threats.root.classList.add('threats--map');
 
-  root.append(rail, heading, chain, party, threats.root);
+  root.append(rail, heading, chain, party);
 
   return {
     root,
@@ -214,11 +212,20 @@ export function createRunMap(): RunMap {
        * matters at the moment you are choosing which node to walk into. Putting
        * it anywhere else would make it a setting instead of a decision.
        */
-      threats.render(state.party);
+      /*
+       * **The members go in their own grid. Stage 4.8, items 1 and 3.**
+       *
+       * Item 1 took the roster from three to six, and six of these cards stacked
+       * was 697px of a 844px phone — the party HUD alone pushed the one row the
+       * player can act on off the bottom of the screen. A wrapper to grid against
+       * is the smaller half of the fix; the card itself is the larger, below.
+       */
+      const members = el('div', 'party__members');
+      members.replaceChildren(...state.party.map((member, index) => renderMember(member, index)));
       party.replaceChildren(
         renderWallet(state),
         renderPartyHeader(state.party.length, state, onManage),
-        ...state.party.map((member, index) => renderMember(member, index)),
+        members,
       );
     },
   };
@@ -265,14 +272,39 @@ function renderChain(
     (visit) => visit.segment === state.currentSegment && visit.node.kind !== 'gym',
   );
 
-  const rows = steps.map((step) => {
-    const done = visits[step.index];
-    if (done) return renderStep(step.index, [done.node], 'done', segment.index, state, done);
+  /*
+   * **The steps already taken are one line, not one row each. Stage 4.8, item 3.**
+   *
+   * This is the map redesign that item 3's UI checkpoint exists for, and the reason
+   * it is not a cosmetic pass. Before it, every taken step rendered a full card, so
+   * the *current* step — the only row the player can act on — was pushed further
+   * down the page the deeper into a segment they got. On a 390x844 phone it ended
+   * 25px below the fold at 4-5 steps a segment, which is the `xfail` this closes;
+   * at item 3's 6-7 steps it would have been far worse, and it would have got worse
+   * again with every future length.
+   *
+   * Collapsing the past into one summary row **bounds the decision's position
+   * regardless of how long a segment is**, which is the property the longest row of
+   * the curve needs and the flat version could never have. What is lost is the
+   * per-step card for nodes the player has already resolved; what that card showed
+   * is in the run summary, in full, where a finished node belongs.
+   *
+   * The route is still the route: one line saying how far in, then the choice, then
+   * what is ahead. "Where am I, what's next" is what a map owes a player, and a
+   * history of cards nobody can click is not part of it.
+   */
+  const taken = steps.filter((step) => visits[step.index] !== undefined);
+  const rows: HTMLElement[] = [];
+  if (taken.length > 0) rows.push(renderTakenSummary(taken.length, steps.length));
+
+  for (const step of steps) {
+    if (visits[step.index] !== undefined) continue;
     if (step.index === state.position && !state.outcome) {
-      return renderStep(step.index, step.options, 'current', segment.index, state, undefined, onChoose);
+      rows.push(renderStep(step.index, step.options, 'current', segment.index, state, undefined, onChoose));
+      continue;
     }
-    return renderStep(step.index, step.options, 'upcoming', segment.index, state);
-  });
+    rows.push(renderStep(step.index, step.options, 'upcoming', segment.index, state));
+  }
 
   const gymVisit = state.history.find(
     (visit) => visit.segment === state.currentSegment && visit.node.kind === 'gym',
@@ -280,6 +312,28 @@ function renderChain(
   const gymPhase = gymVisit ? 'done' : state.position >= steps.length ? 'current' : 'upcoming';
   rows.push(renderStep(steps.length, [segment.gym], gymPhase, segment.index, state, gymVisit));
   return rows;
+}
+
+/**
+ * The steps behind, as one line. **Stage 4.8, item 3.**
+ *
+ * An attribute and nothing else: how many of this segment's steps are done. It
+ * carries the `step--done` class so the one smoke check that counts done rows still
+ * finds the past represented, and so the stylesheet's existing `done` treatment
+ * applies without a new rule.
+ *
+ * Deliberately not a list of what was taken. That is the run summary's job and it
+ * does it better, with the result of each node attached; repeating it here would
+ * cost the decision the space it just reclaimed.
+ */
+function renderTakenSummary(taken: number, total: number): HTMLElement {
+  const row = el('li', 'step step--done step--taken');
+  const marker = el('span', 'step__marker');
+  marker.textContent = '·';
+  const label = el('span', 'step__taken-label');
+  label.textContent = taken === 1 ? `1 of ${total} steps taken` : `${taken} of ${total} steps taken`;
+  row.append(marker, label);
+  return row;
 }
 
 type Phase = 'done' | 'current' | 'upcoming';
@@ -454,6 +508,27 @@ function renderPartyHeader(size: number, state: RunState, onManage: () => void):
   return row;
 }
 
+/**
+ * One party member, as the **map** shows them.
+ *
+ * **Stage 4.8, items 1 and 3: this card lost its moveset and its ability.**
+ *
+ * It carried four move rows with PP and the ability name, which at three members
+ * was a 291px panel and at item 1's six was 697px — more than three quarters of a
+ * 390x844 phone, above the chain, pushing the current step's cards off the bottom
+ * of the screen. That is the `xfail` item 3's UI checkpoint had to close, and no
+ * amount of work on the chain below could have closed it while the HUD above was
+ * growing with the roster.
+ *
+ * What stays is what a *routing* screen owes the player: who is in the party, who
+ * leads, how hurt they are, what they are holding, what is wrong with them. PP and
+ * abilities are a different question — "can this Pokemon still fight" rather than
+ * "which road do I take" — and both are one tap away in the party drawer, which is
+ * reachable from this screen and every other, and on the party screen itself.
+ *
+ * The alternative was keeping the detail and scrolling the map, which trades a
+ * decision the player can see for one they have to go looking for.
+ */
 function renderMember(member: PokemonState, index: number): HTMLElement {
   const card = el('div', 'party__member');
   // The lead is marked on the map, not only on the party screen: it is the
@@ -463,7 +538,7 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
-  name.textContent = member.spec.species;
+  name.textContent = displayName(member.spec);
   const level = el('span', 'panel__level');
   level.textContent = `Lv${member.spec.level}`;
   header.append(name, level);
@@ -474,9 +549,6 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   // starter select and segment 6.
   if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
-  const ability = el('span', 'party__ability');
-  ability.textContent = member.spec.ability;
-  header.append(ability);
 
   const track = el('div', 'hp');
   const fill = el('div', 'hp__fill');
@@ -495,20 +567,6 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   if (item) meta.append(neutralChip(item.name, 'item'));
   if (member.status) meta.append(statusChip(member.status));
 
-  const moves = el('ul', 'party__moves');
-  moves.replaceChildren(
-    ...member.moves.map((move) => {
-      const row = el('li', 'party__move');
-      const label = el('span', '');
-      label.textContent = move.name;
-      const pp = el('span', 'move__pp');
-      pp.textContent = `${move.pp}/${move.maxPp}`;
-      if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
-      row.append(label, pp);
-      return row;
-    }),
-  );
-
-  card.append(header, track, meta, moves);
+  card.append(header, track, meta);
   return card;
 }

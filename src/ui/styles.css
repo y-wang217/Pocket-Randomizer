@@ -1521,10 +1521,23 @@ body {
 
 .step--done .step__marker { color: var(--text-dim); }
 
+/*
+ * A step's options, side by side. Stage 4.8, item 3.
+ *
+ * The floor was 150px, which on a 390px phone fits two — so a three-option step
+ * **wrapped its third card onto a second row**, costing 119px and, worse, breaking
+ * the comparison the row exists to make. Three cards are a set the player is meant
+ * to read against each other; one of them on its own line below is a different
+ * question.
+ *
+ * 96px is the floor that fits `nodeChoiceCount`'s maximum of three at 390 wide. The
+ * cards are narrower and a little taller for it, and still far cheaper than a second
+ * row. `1fr` means nothing changes on a wide screen, where three already fitted.
+ */
 .step__nodes {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: var(--space-1h);
 }
 
@@ -1575,6 +1588,25 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/*
+ * The map's party members, in a grid. Stage 4.8, items 1 and 3.
+ *
+ * Three columns at 390 wide, so item 1's six-member roster is two rows rather than
+ * six stacked cards: 697px of a 844px phone became ~200px. The floor is 104px, which
+ * is what fits three at phone width once the page gutter and the gaps are paid for.
+ *
+ * The grid is why the cards lost their move lists. Four move rows and an ability do
+ * not fit in a third of a phone, and the trade is deliberate: on a routing screen the
+ * player needs to see *who is hurt*, and PP is one tap away in the drawer. A card
+ * this narrow that still carried a moveset would wrap into the height the stack had
+ * and the grid would have bought nothing.
+ */
+.party__members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: var(--space-2);
 }
 
 .party__member {
@@ -1928,6 +1960,106 @@ body {
   color: var(--text-faint);
   text-align: left;
 }
+
+/*
+ * The score, the slot readout and the graveyard. Stage 4.8, items 1, 4 and 5.
+ *
+ * Three rows of plain text on the existing sunken card, using the display face and
+ * the spacing scale already in the file. No new colour, no accent, no badge: a
+ * score is the one verdict this project allows and it earns no decoration for it,
+ * and a tombstone that was styled like an alert would be editorialising about a
+ * death the player already regrets.
+ *
+ * The score grid is label / count / points, right-aligned on the two numbers so the
+ * column reads down without a monospace font. `minmax(0, 1fr)` on the label is what
+ * stops a long label pushing the numbers off a 390px phone.
+ */
+/*
+ * The collapsed "steps taken" line. Stage 4.8, item 3.
+ *
+ * One row, the height of a line box, sharing the chain's marker column so the
+ * summary lines up with the step numbers below it. No card, no border, no accent:
+ * it is a readout of the past, and anything heavier would compete with the one row
+ * on this screen the player can act on.
+ */
+.step--taken {
+  align-items: baseline;
+  padding: var(--space-1) 0;
+}
+
+.step__taken-label {
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+.summary__score-total {
+  margin: 0 0 var(--space-2);
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  color: var(--text);
+}
+
+.summary__score {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.summary__score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-1) 0;
+  font-size: var(--fs-sm);
+  border-bottom: var(--hairline) solid var(--border-faint, var(--border));
+}
+
+.summary__score-row:last-child { border-bottom: 0; }
+
+.summary__score-label { color: var(--text-dim); }
+
+.summary__score-count {
+  min-width: 2.5ch;
+  text-align: right;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary__score-points {
+  min-width: 4ch;
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary__slots {
+  margin: 0 0 var(--space-3);
+  text-align: left;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.summary__grave {
+  margin: 0 0 var(--space-4h);
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.summary__grave[hidden] { display: none; }
+
+.summary__grave-row {
+  padding: var(--space-1h) 0;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  border-bottom: var(--hairline) solid var(--border-faint, var(--border));
+}
+
+.summary__grave-row:last-child { border-bottom: 0; }
 
 .summary__team {
   display: grid;

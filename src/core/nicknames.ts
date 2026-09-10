@@ -47,3 +47,17 @@ export function drawNickname(stream: RngStream): string {
 export function named<T extends { nickname?: string; moves: string[] }>(spec: T, stream: RngStream): T {
   return { ...spec, moves: [...spec.moves], nickname: drawNickname(stream) };
 }
+
+/**
+ * What to print for a Pokemon: its name if it has one, else its species.
+ *
+ * **The single definition, shared by `ui/` and by `core/graveyard.ts`.** It is the
+ * same rule `toPokemonSet` applies when it hands a name to the sim, which is what
+ * makes a member read the same on the party screen, in a battle and on a tombstone.
+ * Three copies of `nickname ?? species` is three places for one of them to be a
+ * species while the others are a name, and the symptom is a player unable to tell
+ * which Pokemon a screen is talking about.
+ */
+export function displayName(spec: { species: string; nickname?: string }): string {
+  return spec.nickname ?? spec.species;
+}

@@ -31,6 +31,7 @@
  * fight in the segment, is the worst possible place to put one.
  */
 import type { PokemonState, ItemId } from '../../core/types';
+import { displayName } from '../../core/nicknames';
 import type { GymDefinition } from '../../data/gyms';
 import { SEGMENT_COUNT } from '../../data/scaling';
 import type { Tuning } from '../../data/tuning';
@@ -134,7 +135,8 @@ export function createPreGymScreen(): PreGymScreen {
       manage.onclick = () => handlers.onManageParty();
 
       const lead = defaultLeadSlot(view.party);
-      confirm.textContent = `Send ${view.party[lead]?.spec.species ?? 'the lead'} in`;
+      const sending = view.party[lead];
+      confirm.textContent = `Send ${sending ? displayName(sending.spec) : 'the lead'} in`;
       confirm.onclick = () => handlers.onLead(lead);
 
       members.replaceChildren(
