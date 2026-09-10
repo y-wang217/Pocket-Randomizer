@@ -151,17 +151,34 @@ describe('nothing on screen implies a ranking or a severity', () => {
   });
 });
 
+/**
+ * **Rewritten at patch 4.7.2, ruling 4, rather than deleted.**
+ *
+ * These two used to assert that Simple *omitted* the `.threats__count` span and
+ * Detailed appended it — the component took a `detailed` flag and built a
+ * different list per mode. That is exactly the shape ruling 4 removed: a
+ * readout built per mode can only follow a toggle by being re-rendered, and the
+ * map was one of only two screens the old subscription redrew.
+ *
+ * The count is now always in the DOM and `:root[data-verbosity="simple"]` hides
+ * it, so what these can still assert in jsdom is that the *data* is present and
+ * identical in both modes. **Whether it is on screen is a computed-style
+ * question and jsdom has no stylesheet**, so that half moved to
+ * `test/visual-verbosity.test.ts`, which asserts it in a browser, per surface,
+ * both ways.
+ */
 describe('verbosity is presentation only', () => {
-  it('shows the type list alone in Simple', () => {
+  it('builds the same list in Simple as in Detailed, down to the counts', () => {
     setVerbosity('simple');
     const readout = createThreatReadout();
     readout.render(WATER);
 
     expect(chipsOf(readout.root)).toEqual(['Electric', 'Grass']);
-    expect(readout.root.querySelectorAll('.threats__count')).toHaveLength(0);
+    const counts = [...readout.root.querySelectorAll('.threats__count')].map((c) => c.textContent);
+    expect(counts).toEqual(['hits 1 of 1, unanswered', 'hits 1 of 1, unanswered']);
   });
 
-  it('adds the members-hit figure per type in Detailed', () => {
+  it('carries the members-hit figure per type, for the stylesheet to show or hide', () => {
     setVerbosity('detailed');
     const readout = createThreatReadout();
     readout.render(WATER);

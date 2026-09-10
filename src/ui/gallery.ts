@@ -42,9 +42,13 @@ import { createStamps } from './stamps';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
 import { initSettings } from './settings';
+import { applyVerbosity } from './theme/verbosity';
 
 async function main(): Promise<void> {
-  initSettings();
+  // The gallery renders one screen from a scripted run, so it never toggles —
+  // but it must still write the mode, or every card it captures would be
+  // Detailed-by-CSS-default regardless of the stored preference. Patch 4.7.2.
+  applyVerbosity(initSettings().verbosity);
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
   const seed = params.get('seed') ?? 'SMOKE24';
   const screen = params.get('screen') ?? 'summary';

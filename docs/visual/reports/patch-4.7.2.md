@@ -561,3 +561,122 @@ and width, and painting into it displaces nothing.
 **What is still swapped rather than shown together is Detailed.** At this step
 `bar.hidden = detailed` still holds, so the browser test measures Simple — the
 only mode with a bar on screen — and says so in its header. Ruling 3 is step 4.
+
+---
+
+## 4. Verbosity
+
+### 4.1 Ruling 3: Detailed shows both
+
+`statBlock` no longer asks what mode it is in. It renders the label, the number
+and the bar on every row, in every mode, and `[data-verbosity]` decides what is
+shown. The `hidden` swap that made the two mutually exclusive is gone.
+
+```css
+:root[data-verbosity="simple"] .stat__value  { display: none; }
+:root[data-verbosity="simple"] .threats__count { display: none; }
+```
+
+**Detailed appears in no rule**, deliberately: it is the mode that shows
+everything, so it is the absence of a rule rather than a selector to keep in
+sync with one.
+
+### 4.2 Ruling 4: one subscription, and why it is an attribute
+
+The ruling asks for "one subscription that re-renders the active screen" and
+forbids "per-screen subscriptions a future screen can forget". **In this shell
+those pull against each other**, and the conflict is worth stating rather than
+picking a side of quietly.
+
+Screens are mounted once and toggled (`screens/router.ts`); each is drawn by a
+`<screen>.render(...)` call whose arguments are captured at the point it is
+shown — `resultScreen.render(review, offer, state, cb)`, and so on for eleven
+screens. A shell-level redraw has nothing to re-invoke unless every screen hands
+it a thunk. **That is a per-screen registration, and a future screen can forget
+it exactly as the ruling says.**
+
+So the mode is an attribute on `<html>`, written by one subscription in
+`mountApp`:
+
+```ts
+applyVerbosity(initSettings().verbosity);
+onSettingsChange((settings) => applyVerbosity(settings.verbosity));
+```
+
+That is the same shape as `theme/locale.ts`, which has projected the locale onto
+`<html>` for the stylesheet since V1 — an existing seam, not a new mechanism.
+
+What it buys over a redraw:
+
+- **Nothing registers, so nothing can forget.** A screen written next year is
+  correct because the attribute is on an ancestor of everything: the router's
+  screens, the drawer, the tooltip layer.
+- **It reaches surfaces that are already open**, without rebuilding them — so a
+  drawer keeps its scroll position and a stat bar keeps its 120ms transition
+  instead of restarting it.
+- **Fewer readers, not more.** It replaces two `showsNumbers()` call sites with
+  one writer and one reader (the stylesheet). `showsNumbers()` stays exported
+  for the settings control and for `test/verbosity.test.ts`.
+
+**The seam for a third mode** is the attribute value plus a CSS block.
+`theme/verbosity.ts` names neither `simple` nor `detailed` — it writes whatever
+`Verbosity` it is given — so a third mode adds a union member and its rules and
+branches nothing.
+
+### 4.3 What changed in the components
+
+| | before | after |
+|---|---|---|
+| `member-card.statBlock` | read `showsNumbers()`, swapped `value.hidden`/`bar.hidden` | renders both, always |
+| `screens/threats.renderThreat` | took `detailed`, omitted the count span in Simple | renders the count, always |
+| `app.ts` | subscription redrawing the map and the party screen | one subscription writing the attribute |
+| `gallery.ts` | `initSettings()` | writes the attribute too, or every captured card would ignore the stored preference |
+
+The threat readout's `aria-label` already carried the detailed reading in both
+modes — its own note says Simple is "a shorter readout, not a different one" —
+so always rendering the count makes the spoken and the visible versions agree by
+construction rather than by two code paths matching.
+
+### 4.4 Tests
+
+`test/visual-verbosity.test.ts`, five assertions in a browser, all passing.
+Browser rather than jsdom because "is this number on screen" is now a
+computed-style question and jsdom has no stylesheet to ask.
+
+- **Detailed is the first-launch default** — the attribute reads `detailed`.
+- **The party screen changes, and changes back.** Detailed: bars and numbers,
+  equal counts. Simple: numbers 0, bars unchanged. Back: both restored. Neither
+  mode renders a row with neither, which is the assertion the shipped build
+  would have failed in the other direction.
+- **The threat readout changes, and changes back.** Simple drops the counts and
+  keeps every type chip — shorter, not different.
+- **pre-gym takes the change while it is open**, without navigating away. It
+  draws member cards, is neither the map nor the party screen, and the old
+  subscription never redrew it.
+- **The drawer shows the current mode every time it opens.** Ruling 4's live
+  case is not reachable there and that is a property of the app rather than a
+  gap in the test: the drawer is `aria-modal="true"` with a scrim over the
+  viewport and the toggle sits in the header underneath it, so Playwright
+  refuses the click for the same reason a thumb would miss it. What is asserted
+  is the case that exists — open in Detailed, close, toggle, reopen in Simple,
+  and back — which is ruling 4's own "re-render on drawer open", and for a modal
+  surface is the whole of the case rather than a fallback.
+
+**The battle panel is not asserted, per ruling 2.**
+
+One existing test was **rewritten rather than deleted**, per test 12:
+`test/threat-readout.test.ts`'s two verbosity cases asserted that Simple omitted
+the count span from the DOM. They now assert the data is present and identical
+in both modes, with a comment naming this patch and pointing at where the
+visibility half moved.
+
+`test/verbosity.test.ts` passes unchanged — the flag is still unreachable from
+`core/`, and a run still replays byte identical in both modes.
+
+### 4.5 Pixels
+
+`--compare` reports **guarded screen heights equal to the baseline to the
+pixel.** Detailed gained a bar per row and lost nothing: the bar takes the
+`flex: 1` remainder of a row whose height was already set by its text, and
+`.stat__value`'s reserved `3ch` from step 1 is what stops the six bars starting
+at six different x positions now that they share the row with a number.

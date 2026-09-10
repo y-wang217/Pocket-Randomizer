@@ -632,13 +632,19 @@ body {
 .stat[data-stat="spe"] { grid-column: 1 / -1; }
 
 /*
- * Simple mode: the bar that stands in for the number.
+ * The bar, shown in both modes. **Patch 4.7.2, ruling 3.**
  *
- * It occupies the same row slot the number does — the two are swapped by
- * `hidden`, never both shown — so flipping the toggle cannot reflow the panel
- * under the reader. `flex: 1` rather than a fixed width so the bar fills
- * whatever the label leaves, which keeps the two halves of a stat pair the same
- * length and therefore comparable at a glance.
+ * Through V5 the bar and the number were swapped by `hidden` and never both
+ * shown, so Detailed was the number alone. Ruling 3 is that Detailed shows the
+ * pair and Simple the bar alone — a change to Detailed, not only to Simple —
+ * so the component now renders both and the two rules at the end of this block
+ * decide what is visible.
+ *
+ * `flex: 1` rather than a fixed width so the bar fills whatever the label and
+ * the number leave, which keeps the two halves of a stat pair the same length
+ * and therefore comparable at a glance. The number's box is reserved at `3ch`
+ * (see `.stat__value`), so the bar starts at the same x on all six rows and
+ * flipping the mode cannot reflow the row under the reader.
  */
 .stat__bar {
   flex: 1;
@@ -677,6 +683,31 @@ body {
    digits must not hide that something changed them. */
 .stat[data-stage="up"] .stat__bar-fill { background: var(--stage-up); }
 .stat[data-stage="down"] .stat__bar-fill { background: var(--stage-down); }
+
+/* ---------- the verbosity modes ---------- */
+
+/*
+ * **What each mode shows, in one place. Patch 4.7.2.**
+ *
+ * `data-verbosity` is written onto `<html>` by the shell, from one
+ * subscription, and this is its only reader — see `ui/theme/verbosity.ts` for
+ * why the mode is an attribute rather than a re-render. Components render the
+ * whole readout in every mode; these rules take things away.
+ *
+ * **Detailed is the default and appears in no rule below**, deliberately: it is
+ * the mode that shows everything, so it is the absence of a rule rather than a
+ * selector that has to be kept in sync with one. That is also the seam a third
+ * mode arrives through — a new value, its own block here, and nothing else in
+ * the codebase branches.
+ *
+ * Simple: the raw stat numbers go and the bars stand in for them, and the
+ * threat readout drops its per-type counts. Everything else — the faster-side
+ * marker, the stage chips, HP, PP, every effectiveness badge and every tooltip
+ * — is present in both, because those are how a player learns rather than what
+ * they already know.
+ */
+:root[data-verbosity="simple"] .stat__value { display: none; }
+:root[data-verbosity="simple"] .threats__count { display: none; }
 
 /* The party screen's stat block: six rows, two columns, same rows as a battle
    panel so the two read as the same object seen in two places. */
