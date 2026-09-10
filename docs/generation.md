@@ -1040,7 +1040,7 @@ the measurement is in
 correction.
 
 **What the prompt asked.** "Report the height delta per surface from
-`heights.json`; the battle decision point must not move." And, as its own stop
+heights.json; the battle decision point must not move." And, as its own stop
 condition: the badge fits on the move button's face without changing the 44px
 minimum touch target or the 2x2 grid, and if it does not fit at 390 wide, report
 the measurement and stop rather than shrinking the target.
