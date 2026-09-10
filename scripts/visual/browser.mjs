@@ -149,7 +149,8 @@ export async function stepOnce(page) {
           const release = capture.locator('.button--danger').last();
           if (await release.count()) {
             await release.click();
-            await release.click();
+            // The confirm is the shared band since V2: its primary commits.
+            await page.locator('.confirm-band .primary-action').click();
           } else await capture.locator('.acquire__actions .button').last().click();
         }
         return screen;
@@ -225,7 +226,11 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
-    if (msg.type() === 'error') problems.push(`console: ${msg.text()}`);
+    if (msg.type() !== 'error') return;
+    // The item icon sheet lives on Showdown's CDN; a sandbox without a route
+    // to it logs a failed load. Not the app's problem.
+    if (/Failed to load resource/.test(msg.text()) && /play\.pokemonshowdown\.com/.test(msg.location()?.url ?? '')) return;
+    problems.push(`console: ${msg.text()}`);
   });
   page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
   await page.goto(`${url}/#seed=${seed}`, { waitUntil: 'load' });

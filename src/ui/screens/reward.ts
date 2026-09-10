@@ -45,6 +45,7 @@ import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { bandOfMove } from '../../data/moveOverrides';
+import { bandChip, tierChip } from '../chip';
 import { el, moveCard } from '../scene';
 import { typeChip } from './starter-select';
 
@@ -56,17 +57,12 @@ import { typeChip } from './starter-select';
  * glance. Neither says whether the thing it labels is good.
  */
 export function bandBadge(band: number): HTMLElement {
-  const badge = el('span', `band band--${band}`);
-  badge.textContent = `BAND ${band}`;
-  badge.dataset['tip'] = `band:${band}`;
-  return badge;
+  return bandChip(band);
 }
 
 /** The tier chip, shared with the map so the two screens agree at a glance. */
 export function tierBadge(tier: string): HTMLElement {
-  const badge = el('span', `tier tier--${tier}`);
-  badge.textContent = tier.toUpperCase();
-  return badge;
+  return tierChip(tier);
 }
 
 /**

@@ -47,6 +47,7 @@ import { hpFraction, ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
 import type { PokemonState } from '../../core/types';
+import { statusChip } from '../chip';
 import { el } from '../scene';
 import { renderCaptureOffer } from './acquisition';
 import { renderRewardCard, tierBadge } from './reward';
@@ -237,12 +238,7 @@ function renderMemberRow(member: PokemonState): HTMLElement {
     : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
   meta.append(text);
 
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
+  if (member.status) meta.append(statusChip(member.status));
 
   row.append(header, track, meta);
   return row;

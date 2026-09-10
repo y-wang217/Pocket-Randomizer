@@ -50,6 +50,7 @@ import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
+import { createStamps } from './stamps';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 
 export function mountApp(root: HTMLElement): void {
@@ -69,7 +70,9 @@ export function mountApp(root: HTMLElement): void {
   const partyScreen = createPartyScreen();
   const summaryScreen = createSummary();
 
-  const router = createRouter({
+  const shell = el('main', 'shell');
+  const router = createRouter(
+    {
     starter: starterScreen.root,
     locale: localeScreen.root,
     map: mapScreen.root,
@@ -81,12 +84,18 @@ export function mountApp(root: HTMLElement): void {
     shop: shopScreen.root,
     event: eventScreen.root,
     summary: summaryScreen.root,
-  });
+    },
+    (name) => {
+      shell.dataset['screen'] = name;
+    },
+  );
 
   const seedBar = createSeedBar();
-  const shell = el('main', 'shell');
-  shell.append(createHeader(), seedBar.root, router.root);
+  // The corner stamps, fixed to the viewport, updated with the run. Stage V2.
+  const stamps = createStamps();
+  shell.append(createHeader(), seedBar.root, router.root, stamps.root);
   root.replaceChildren(shell);
+  stamps.update({ locale: null, segment: null, segments: 0, seed: null });
 
   /*
    * Which phase the app is in, so CSS can reclaim the setup chrome on a phone.
@@ -135,6 +144,7 @@ export function mountApp(root: HTMLElement): void {
     writeSeedToLocation(seed);
     // A new run starts in no region; the first state with a locale sets one.
     applyLocale(null);
+    stamps.update({ locale: null, segment: null, segments: 0, seed });
 
     const starterPick = createPending<number>();
     const localePick = createPending<number>();
@@ -419,6 +429,12 @@ export function mountApp(root: HTMLElement): void {
        * hook, wears its region before the map is ever shown.
        */
       applyLocale(localeOf(state));
+      stamps.update({
+        locale: localeOf(state),
+        segment: state.currentSegment + 1,
+        segments: state.segments.length,
+        seed: state.seed,
+      });
       mapScreen.render(state, (index) => nodePick.submit(index), showParty);
     };
 
@@ -452,8 +468,14 @@ export function mountApp(root: HTMLElement): void {
       // Leave the map showing the run as it finished, behind the summary.
       mapScreen.render(result.state, () => undefined, () => undefined);
       summaryScreen.render(result);
-      // The summary is locale neutral.
+      // The summary is locale neutral, and its stamps say so too.
       applyLocale(null);
+      stamps.update({
+        locale: null,
+        segment: result.state.currentSegment + 1,
+        segments: result.state.segments.length,
+        seed: result.state.seed,
+      });
       router.show('summary');
       // The run is over, so the seed controls are wanted again: the summary is
       // where a player picks the next seed or replays this one.

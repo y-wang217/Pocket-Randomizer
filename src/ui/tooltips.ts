@@ -39,6 +39,7 @@ import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
+import { typeChip } from './chip';
 import { el } from './scene';
 
 /** What a `data-tip` attribute can name. */
@@ -375,11 +376,7 @@ function row(label: string, types: readonly string[], band: string): HTMLElement
     none.textContent = '—';
     list.append(none);
   } else {
-    for (const type of types) {
-      const chip = el('span', `type type--${type.toLowerCase()}`);
-      chip.textContent = type;
-      list.append(chip);
-    }
+    for (const type of types) list.append(typeChip(type));
   }
   line.append(list);
   return line;

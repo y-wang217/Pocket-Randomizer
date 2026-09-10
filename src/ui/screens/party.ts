@@ -55,7 +55,11 @@ import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
 import { itemById } from '../../data/items';
 import { statInfo, STAT_ORDER } from '../../data/statInfo';
 import type { Tuning } from '../../data/tuning';
+import { openBand } from '../band';
 import { genderMark, el } from '../scene';
+import { neutralChip, statusChip } from '../chip';
+import { renderSlots, slotNumber } from '../slots';
+import { PARTY_SIZE } from '../../data/partyTuning';
 import { showsNumbers } from '../settings';
 import { typeChip } from './starter-select';
 import { createThreatReadout } from './threats';
@@ -130,6 +134,10 @@ export function createPartyScreen(): PartyScreen {
    */
   const threats = createThreatReadout();
 
+  // The hotbar: one slot per party position, the held item as an icon in
+  // its member's slot. Stage V2. Above the cards, which carry the same
+  // numbers, so the two read as one collection seen at two sizes.
+  const partySlots = el('div', 'party__slots');
   const list = el('div', 'party party--manage');
   const bag = el('section', 'backpack');
   const relics = el('section', 'relics');
@@ -139,7 +147,7 @@ export function createPartyScreen(): PartyScreen {
   done.className = 'button primary-action';
   done.textContent = 'Back to the map';
 
-  root.append(title, blurb, threats.root, list, bag, relics, done);
+  root.append(title, blurb, threats.root, partySlots, list, bag, relics, done);
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -196,6 +204,17 @@ export function createPartyScreen(): PartyScreen {
       }
 
       const draw = (): void => {
+        partySlots.replaceChildren(
+          renderSlots(
+            'party',
+            view.party.map((member, slot) => ({
+              label: member.spec.species,
+              item: held[slot] ?? null,
+              tip: held[slot] ? `item:${held[slot]}` : undefined,
+            })),
+            PARTY_SIZE,
+          ),
+        );
         list.replaceChildren(
           ...view.party.map((member, index) =>
             renderManaged(member, index, view.party.length, held[index] ?? null, {
@@ -285,12 +304,9 @@ function renderManaged(
   // same function — a Pokemon that read "Lv30 ♀" in a fight and "Lv30" here
   // would look like two Pokemon.
   level.textContent = `Lv${spec.level}${genderMark(spec.gender)}`;
-  header.append(name, level, ...spec.types.map(typeChip));
-  if (index === 0) {
-    const lead = el('span', 'badge badge--lead');
-    lead.textContent = 'Lead';
-    header.append(lead);
-  }
+  // The slot number, the same marker the hotbar above wears. A position.
+  header.append(slotNumber(index), name, level, ...spec.types.map(typeChip));
+  if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
   const ability = el('span', 'party__ability');
   ability.textContent = spec.ability;
@@ -314,20 +330,10 @@ function renderManaged(
     : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
   meta.append(hp);
 
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
-
-  if (member.status) {
-    // Status tooltips reachable outside a battle, for the same reason as
-    // abilities: a burn the player can only read about while burning is one
-    // they learn nothing from.
-    const chip = meta.querySelector('.badge--status');
-    if (chip instanceof HTMLElement) chip.dataset['tip'] = `status:${member.status}`;
-  }
+  // Status tooltips reachable outside a battle, for the same reason as
+  // abilities: a burn the player can only read about while burning is one
+  // they learn nothing from.
+  if (member.status) meta.append(statusChip(member.status, undefined, { tip: `status:${member.status}` }));
 
   /*
    * The held item, inline, with the assignment on the same card.
@@ -339,10 +345,7 @@ function renderManaged(
    */
   const entry = holding ? itemById(holding) : null;
   const itemRow = el('div', 'party__item');
-  const itemChip = el('span', 'badge badge--item');
-  itemChip.textContent = entry ? entry.name : 'No item';
-  if (!entry) itemChip.classList.add('badge--muted');
-  if (entry) itemChip.dataset['tip'] = `item:${entry.id}`;
+  const itemChip = entry ? neutralChip(entry.name, 'item', { tip: `item:${entry.id}` }) : neutralChip('No item', 'item', { extra: 'badge--muted' });
   itemRow.append(itemChip);
 
   if (entry) {
@@ -395,14 +398,18 @@ function renderManaged(
   // The last member cannot be released: an empty party is neither wiped nor
   // alive, which is a state reached by a button rather than by losing.
   release.disabled = size <= 1;
-  release.addEventListener('click', () => {
-    if (release.dataset['confirm'] === 'true') {
-      handlers.onRelease(index);
-      return;
-    }
-    release.dataset['confirm'] = 'true';
-    release.textContent = 'Release for good?';
-  });
+  // The confirm is the shared band (ui/band.ts), not a second click on this
+  // button. Stage V2. The question names the Pokemon, because "for good?"
+  // over the wrong card is exactly the misclick the confirm exists to catch.
+  release.addEventListener('click', () =>
+    openBand({
+      title: `Release ${spec.species}?`,
+      detail: 'For good. There is no box. Anything held goes back to the bag.',
+      confirm: 'Release',
+      cancel: 'Keep',
+      onConfirm: () => handlers.onRelease(index),
+    }),
+  );
 
   actions.append(lead, release);
   card.append(header, track, meta, itemRow, stats, moves, actions);
@@ -506,8 +513,7 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     const name = el('span', 'relics__name');
     name.textContent = relic.name;
 
-    const grants = el('span', 'badge badge--capability');
-    grants.textContent = CAPABILITY_LABELS[relic.grants];
+    const grants = neutralChip(CAPABILITY_LABELS[relic.grants], 'capability');
 
     const body = el('p', 'relics__text');
     body.textContent = relic.playerDescription;
@@ -545,6 +551,14 @@ function renderBackpack(
   const heading = el('h3', 'backpack__title');
   heading.textContent = 'Backpack';
 
+  // The hotbar: capacity slots, the loose items in acquisition order, the
+  // rest empty. Stage V2. A berry's slot looks like any other slot.
+  const slots = renderSlots(
+    'backpack',
+    loose.map((id) => ({ label: itemById(id)?.name ?? id, item: id, tip: `item:${id}` })),
+    capacity,
+  );
+
   const count = el('p', 'backpack__count');
   count.textContent = `${loose.length} of ${capacity} carried`;
   if (loose.length > capacity) {
@@ -557,13 +571,12 @@ function renderBackpack(
 
   const rows = el('ul', 'backpack__list');
   rows.replaceChildren(
-    ...loose.map((id) => {
+    ...loose.map((id, index) => {
       const entry = itemById(id);
       const row = el('li', 'backpack__item');
+      row.append(slotNumber(index));
 
-      const name = el('span', 'badge badge--item');
-      name.textContent = entry?.name ?? id;
-      if (entry) name.dataset['tip'] = `item:${entry.id}`;
+      const name = neutralChip(entry?.name ?? id, 'item', entry ? { tip: `item:${entry.id}` } : {});
       /*
        * A berry is marked, because it is the one row on this screen whose
        * *lifetime* differs from every other. **Stage 4.6b.**
@@ -608,23 +621,24 @@ function renderBackpack(
       drop.type = 'button';
       drop.className = 'button button--small button--danger';
       drop.textContent = 'Discard';
-      drop.addEventListener('click', () => {
-        // Two-step, like Release, and for the same reason: a discard is the one
-        // irreversible thing on this screen.
-        if (drop.dataset['confirm'] === 'true') {
-          handlers.onDiscard(id);
-          return;
-        }
-        drop.dataset['confirm'] = 'true';
-        drop.textContent = 'Discard for good?';
-      });
+      // Confirmed through the band, like Release, and for the same reason: a
+      // discard is the one irreversible thing on this screen.
+      drop.addEventListener('click', () =>
+        openBand({
+          title: `Discard ${entry?.name ?? id}?`,
+          detail: 'For good. It leaves the run.',
+          confirm: 'Discard',
+          cancel: 'Keep',
+          onConfirm: () => handlers.onDiscard(id),
+        }),
+      );
 
       row.append(name, effect, give, drop);
       return row;
     }),
   );
 
-  const children: HTMLElement[] = [heading, count, rows];
+  const children: HTMLElement[] = [heading, count, slots, rows];
   if (loose.length === 0) {
     const empty = el('p', 'backpack__empty');
     empty.textContent = 'Nothing loose. Items you win arrive here.';
