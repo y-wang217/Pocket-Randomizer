@@ -185,15 +185,51 @@ body {
   background: var(--bg-sunken);
   border-radius: var(--radius-chip);
   overflow: hidden;
+  /* The chunk is positioned against the track. Release C item 1. */
+  position: relative;
 }
 
 .hp__fill {
   height: 100%;
   border-radius: var(--radius-chip);
   background: var(--hp-high);
-  /* The bar is the main read on how a turn went, so it animates rather than
-     jumping; the colour crossfades with it. */
-  transition: width 380ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 380ms ease;
+  /* Release C item 1: **the width no longer transitions.** A sliding bar tells
+     the player the number is changing and hides how much it changed, because by
+     the time they look, the evidence has been animated away. The bar now falls
+     on the frame the update arrives and `.hp__shadow` marks the span it left,
+     which is one read instead of a guess. The colour still crossfades: a band
+     boundary is a threshold, not a quantity, and snapping it reads as a flicker.
+     */
+  transition: background-color 380ms ease;
+  /* Over the shadow, which is painted first. */
+  position: relative;
+}
+
+/* ---------- the chunk a hit took ----------
+   Sized and placed from `scene.ts`, which knows both fractions; the stylesheet
+   owns only how it looks and how long it stays. Zero width until something is
+   lost, so an untouched bar carries no artefact.
+
+   Deliberately **not** animated in reverse or slid anywhere: it appears at full
+   strength across exactly the span that was lost, and fades in place. Motion
+   here would put a second moving thing next to a bar that just stopped moving. */
+.hp__shadow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  border-radius: var(--radius-chip);
+  background: var(--hp-shadow);
+  opacity: 0;
+}
+
+.hp__shadow[data-fading] {
+  animation: hp-chunk var(--motion-hp-shadow) ease-out forwards;
+}
+
+@keyframes hp-chunk {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .hp__fill[data-band="mid"] { background: var(--hp-mid); }
@@ -1765,6 +1801,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
+  /* Release C: the chunk resolves instantly rather than fading. Its resting
+     state is the animation's own end state, so "instant" here means the same
+     thing the animation would have arrived at, not a different outcome. */
+  .hp__shadow { animation: none; }
 }
 
 /* ==========================================================================
