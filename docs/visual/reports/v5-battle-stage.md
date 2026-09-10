@@ -182,3 +182,103 @@ which would land a font change and a layout change in one baseline re-record
 with no way to attribute either.
 
 ---
+
+## V5.1 Measure — the before table
+
+Seed `SMOKE24`, first battle, headless Chromium at 390x844, pointer parked, the
+same run and the same clicks `measure.mjs` takes. Every box from the top of the
+document down. `.bench` is empty on this turn and `.panel__volatiles` is hidden
+on both sides.
+
+| # | Element | Top | Height |
+|---|---|---|---|
+| 1 | shell top padding | 0 | 24 |
+| 2 | `header.header` (title 30, verbosity 26.5) | 24 | 64.5 |
+| 3 | gap | 88.5 | 12 |
+| 4 | `.shell__drawer-bar` | 100.5 | 32.5 |
+| 5 | gap | 133 | 12 |
+| 6 | `.battle__header` (title 25.5, blurb 19.5) | 145 | 47 |
+| 7 | gap | 192 | 12 |
+| 8 | **`.panel--foe`** | 204 | **239.25** |
+| 9 | gap | 443.25 | 12 |
+| 10 | **`.panel--me`** | 455.25 | **214.25** |
+| 11 | gap | 669.5 | 12 |
+| 12 | **`.moves`**, 2x2 | 681.5 | **266** |
+| 13 | gap | 947.5 | 12 |
+| 14 | `.bench` (empty this turn) | 959.5 | 0 |
+| 15 | gap | 959.5 | 12 |
+| 16 | **`.flags`**, the Release C strip | 971.5 | **24** |
+| 17 | gap | 995.5 | 12 |
+| 18 | **`.log`**, persistent, multi-line | 1007.5 | **320** |
+| | **Total** | | **1327.5** |
+
+`section.screen--battle` runs 145 → 1327.5, so `screenHeight` is **1182.5**.
+Document `scrollHeight` is **1376** (1327.5 plus the shell's 48px bottom
+padding, rounded up). Both agree with `heights.json` to the pixel, and 1327.5
+is the figure `generation.md` §12c predicted this measurement would find.
+
+Inside a panel, foe side: padding 11, header 46 (the name wraps under the
+archetype chip on the foe side and does not on the player's — that is the whole
+25px difference between the two panels), HP track 9, `.panel__meta` 20,
+`.panel__traits` 18.5, `.stats` 89.75 as six rows of 18.69, padding 11.
+
+Inside a move button: padding 11, `.move__name` 21, `.move__meta` **42 — two
+lines**, `.move__tags` 13.5, `.move__pp` 16.5, padding. Buttons are 176 wide
+with 150 of usable face, 130 tall, in two rows with a 6px gap.
+
+**Are the four move buttons above the fold? No.** Row 1 is 681.5..811.5 and
+fully visible; row 2 is 817.5..947.5 and is cut at 844, showing 26.5px of a
+130px button. `decisionBottom` is **103.5px below the 844 fold** and **207.5px
+below the 740 usable line**.
+
+### The reading the budget forces: the panels overlay the scene
+
+The plan's budget table lists the opponent panel (56), the scene with both
+sprites (260) and the player panel (64) as three rows summing with the rest to
+584. Read as three stacked bands the arithmetic does not close, and it fails on
+the gate that matters rather than on the one that is cosmetic:
+
+> stacked — `.battle__header` 47 + gap 12 + scene 260 + gap 12 + opponent 56 +
+> player 64 + strip 36 + grid 128 = 615 inside the screen, and the grid then
+> opens at y=632 and closes at **y=760**, past the 740 line the same table says
+> it clears by 156.
+
+Read as the plan's own sentence says — *"stat panels float over the scene with
+no chrome"*, Reference B, text on a scrim rather than a card — the two panels
+are **inside** the 260, not above and below it, and 56 + 64 = 120 of overlay
+sits comfortably in it. Then:
+
+> overlaid — `.battle__header` 47 + gap 12 + scene 260 + gap 12 + strip 24 +
+> gap 12 + grid = **367 + grid** inside the screen, the grid opens at
+> **y=512**, and both gates become one number.
+
+**Both gates are the move grid, and they are 5px apart.** `screenHeight ≤ 600`
+wants a grid at or under **233**; `decisionBottom ≤ 740` (amendment A3, gating
+on `decisionTop` at or above 740 minus the grid) wants **228**. The fold is the
+tighter of the two, so 228 is the number.
+
+Recorded as a reading rather than a deviation because it is what the plan's
+prose says; the budget table is a list of the heights those elements have, and
+only the stacked reading turns it into a claim about how they are stacked.
+
+### The cuts, by number, before they are made
+
+| # | Cut | From | To | Saves |
+|---|---|---|---|---|
+| 1 | The persistent log leaves the flow. History moves behind a tap on the strip; the strip stays where Release C put it. | 320 + 12 gap = **332** | 0 | **332** |
+| 2 | Both panels lose the six-row stat block and stop being boxes. Stat *stages* return as V2 chips; nothing else on either panel is dropped. | 239.25 + 214.25 = **453.5** | overlaid on the scene | **453.5** |
+| 3 | The scene band arrives, with both sprites and the two panels floating on it. | 0 | **260** | **−260** |
+| 4 | The `.bench` row and its two gaps leave the scene's flow with the panels. | **24** | 0 | **24** |
+| 5 | The move grid tightens **by margin and gap only** (amendment A6): the 44px target and the two-line `.move__meta` are untouched. | **266** | **≤228** | **≥38** |
+
+Net against `screenHeight` 1182.5: −332 −453.5 −24 −38 +260 = **−587.5**,
+landing at **595** with the grid at 228, under the 600 the plan asserts. The
+grid then runs 512..740 and **all four buttons finish on the 740 line**.
+
+Cut 5 is the one with no slack. 38px off a 266px grid is 19 off each row, and
+A6 forbids taking it from the button's height directly — so it comes from the
+button's 11px vertical padding and the 6px row gap, and the tag row on the face
+is the fallback if padding alone does not reach. The band badge sits on the
+second line of `.move__meta` and must not overhang: R12's smoke check watches
+exactly that, and it stays green through every step below.
+
