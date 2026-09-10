@@ -115,7 +115,7 @@ export function renderCaptureOffer(
   } else {
     const take = document.createElement('button');
     take.type = 'button';
-    take.className = 'button button--primary';
+    take.className = 'button primary-action';
     take.textContent = 'Take it';
     take.addEventListener('click', () => onDecide({ kind: 'accept' }));
     actions.replaceChildren(take, decline);

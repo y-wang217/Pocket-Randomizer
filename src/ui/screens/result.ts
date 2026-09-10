@@ -175,7 +175,7 @@ export function createResultScreen(): ResultScreen {
       } else {
         const carry = document.createElement('button');
         carry.type = 'button';
-        carry.className = 'button button--primary';
+        carry.className = 'button primary-action';
         carry.textContent = won ? 'Carry on' : 'See how it ended';
         carry.addEventListener('click', () => onDone(null));
         actions.replaceChildren(carry);

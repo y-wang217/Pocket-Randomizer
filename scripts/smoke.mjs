@@ -261,7 +261,7 @@ async function playRun(label) {
       const capture = page.locator(`${visible('result')} .result__capture`);
       if ((await capture.count()) && !(await capture.first().isHidden())) {
         if (acquisitions === 0) await page.screenshot({ path: `stats/${label}-capture.png`, fullPage: true });
-        const take = capture.locator('.acquire__actions .button--primary');
+        const take = capture.locator('.acquire__actions .primary-action');
         if (await take.count()) {
           await take.click();
           acquisitions++;
@@ -376,7 +376,7 @@ async function playRun(label) {
     if (await page.locator(visible('party')).count()) {
       if (partyVisits === 0) await page.screenshot({ path: `stats/${label}-party.png`, fullPage: true });
       partyVisits++;
-      await page.locator(`${visible('party')} .button--primary`).click();
+      await page.locator(`${visible('party')} .primary-action`).click();
       await page.waitForTimeout(25);
       continue;
     }
@@ -673,7 +673,7 @@ await page.screenshot({ path: 'stats/summary.png', fullPage: true });
 
 // The property everything rests on, checked where a player would meet it.
 console.log('\nsame seed, same clicks, again:');
-await page.click('.summary__actions .button--primary');
+await page.click('.summary__actions .primary-action');
 const second = await playRun('run2');
 
 const same = (label, a, b) => {
@@ -912,7 +912,7 @@ if (await phone.locator(visible('party')).count()) {
       `${partyMetrics.chips} type badges`,
     );
   }
-  await phone.locator(`${visible('party')} .button--primary`).first().click();
+  await phone.locator(`${visible('party')} .primary-action`).first().click();
   await phone.waitForSelector(visible('map'));
 }
 

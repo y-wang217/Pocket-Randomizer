@@ -60,7 +60,7 @@ export function createSummary(): Summary {
 
   const replay = document.createElement('button');
   replay.type = 'button';
-  replay.className = 'button button--primary';
+  replay.className = 'button primary-action';
   replay.textContent = 'Rematch this seed';
 
   const fresh = document.createElement('button');
