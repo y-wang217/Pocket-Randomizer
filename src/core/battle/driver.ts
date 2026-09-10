@@ -30,6 +30,7 @@ import {
   type MoveSpec,
   type MoveState,
   type MoveView,
+  type BattleMemberState,
   type PokemonState,
   type SideId,
   type StatName,
@@ -625,7 +626,7 @@ export interface BattleSession {
    * every member, mapped back onto the specs the battle was built from. It is
    * the only thing that crosses a node boundary.
    */
-  partyState(side: SideId): PokemonState[];
+  partyState(side: SideId): BattleMemberState[];
   /** The replayable record of this battle. */
   toBattleLog(): BattleLog;
 }
@@ -916,7 +917,7 @@ function applyCarryOver(battle: Battle, party: readonly PokemonState[]): void {
  * battle that switched still maps each spec to the Pokemon that was built from
  * it.
  */
-function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): PokemonState[] {
+function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): BattleMemberState[] {
   return specs.map((spec, index) => {
     const mon = order[index];
     if (!mon) throw new Error(`No Pokemon at slot ${index} to read back`);

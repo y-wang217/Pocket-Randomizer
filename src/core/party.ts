@@ -20,13 +20,20 @@
  */
 import { describeSpec } from './battle/driver';
 import { battleSpecFor } from './items';
-import type { ItemId, MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
+import type { BattleMemberState, ItemId, MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
 import { MOVESET } from '../data/scaling';
 import { PARTY_SIZE } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
 
-/** A fresh party member at full HP and PP. */
-export function createPartyMember(spec: PokemonSpec): PokemonState {
+/**
+ * A fresh party member at full HP and PP.
+ *
+ * `joinedSegment` defaults to 0 because the overwhelming majority of callers
+ * are building a starter or a test fixture, both of which joined at run start.
+ * `acquisition.applyAcquisition` is the one caller that passes something else,
+ * and it is also the one path by which a party can gain a member mid-run.
+ */
+export function createPartyMember(spec: PokemonSpec, joinedSegment = 0): PokemonState {
   const vitals = describeSpec(spec);
   return {
     spec,
@@ -35,11 +42,15 @@ export function createPartyMember(spec: PokemonSpec): PokemonState {
     moves: vitals.moves.map((move) => ({ ...move })),
     status: null,
     fainted: false,
+    joinedSegment,
   };
 }
 
 export function createParty(specs: readonly PokemonSpec[]): PokemonState[] {
-  return specs.map(createPartyMember);
+  // `specs.map(createPartyMember)` would hand the array index in as
+  // `joinedSegment`, which is the classic form of this bug and would quietly
+  // stamp the second starter option as a segment-1 join.
+  return specs.map((spec) => createPartyMember(spec));
 }
 
 /**
@@ -135,13 +146,24 @@ export function carryOverFor(party: readonly PokemonState[]): PokemonState[] {
  * read-back, because the read-back carries the merged battle spec and the party
  * carries the identity. Merging one back over the other is how the two would
  * quietly converge.
+ *
+ * **The merge names the five fields it takes, rather than spreading the
+ * read-back and naming the exceptions.** Stage 4.7 inverted it, and the reason
+ * is that the two forms fail in opposite directions. Spreading means every
+ * field a later stage adds to `PokemonState` is taken from the battle by
+ * default, and a battle does not know when a member joined the party or what it
+ * has contributed to the run — so the default is wrong and silently so. Naming
+ * means a later stage that adds a genuinely battle-derived field has to come
+ * here and say so, which is a compile-time-shaped omission rather than a
+ * runtime-shaped one. `after` is `BattleMemberState` for the same reason: the
+ * sim is not allowed to claim it knows the rest.
  */
 export function applyBattleState(
   party: readonly PokemonState[],
-  after: readonly PokemonState[],
+  after: readonly BattleMemberState[],
 ): PokemonState[] {
   const sent = sendOrder(party);
-  const updates = new Map<PokemonState, PokemonState>();
+  const updates = new Map<PokemonState, BattleMemberState>();
   for (const [index, member] of sent.entries()) {
     const updated = after[index];
     if (updated) updates.set(member, updated);
@@ -149,7 +171,15 @@ export function applyBattleState(
 
   return party.map((member) => {
     const updated = updates.get(member);
-    return updated ? { ...updated, spec: member.spec, item: member.item } : member;
+    if (!updated) return member;
+    return {
+      ...member,
+      maxHp: updated.maxHp,
+      hp: updated.hp,
+      moves: updated.moves,
+      status: updated.status,
+      fainted: updated.fainted,
+    };
   });
 }
 
@@ -417,8 +447,14 @@ export function teachMove(
  * be reintroducing a mechanic the party was built to replace.
  */
 
-/** 0..1, for a HP bar that never divides by a zero max. */
-export function hpFraction(member: PokemonState): number {
+/**
+ * 0..1, for a HP bar that never divides by a zero max.
+ *
+ * Takes `BattleMemberState`, not `PokemonState`: it reads two vitals and a
+ * result screen renders it over a battle read-back that has no run-scoped
+ * fields. Every `PokemonState` is one of these, so nothing else changes.
+ */
+export function hpFraction(member: BattleMemberState): number {
   if (member.maxHp <= 0) return 0;
   return Math.max(0, Math.min(1, member.hp / member.maxHp));
 }
@@ -477,8 +513,8 @@ export function releaseMember(
   };
 }
 
-/** Total remaining PP across a member's moves, and its ceiling. */
-export function ppTotals(member: PokemonState): { pp: number; maxPp: number } {
+/** Total remaining PP across a member's moves, and its ceiling. Vitals only. */
+export function ppTotals(member: BattleMemberState): { pp: number; maxPp: number } {
   return member.moves.reduce(
     (totals, move) => ({ pp: totals.pp + move.pp, maxPp: totals.maxPp + move.maxPp }),
     { pp: 0, maxPp: 0 },

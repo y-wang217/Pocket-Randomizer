@@ -77,6 +77,7 @@ import {
 } from './rewards';
 import { createRng } from './rng';
 import type {
+  BattleMemberState,
   BattleResult,
   ItemAssignment,
   ItemId,
@@ -569,7 +570,16 @@ export interface NodeResult {
   /** Present for battle nodes: the outcome, and the party as the sim left it. */
   battle?: {
     result: BattleResult;
-    party: PokemonState[];
+    /**
+     * The party as the *sim* left it — vitals, not identity.
+     *
+     * `BattleMemberState` rather than `PokemonState` from Stage 4.7: a battle
+     * read-back knows HP, PP, status and faints, and knows nothing about when a
+     * member joined the run or what it has contributed. `party.applyBattleState`
+     * is what folds this onto the run's own party, and it names the fields it
+     * takes for exactly this reason.
+     */
+    party: BattleMemberState[];
     /**
      * Items the player's side used up, by dex id. **Stage 4.6b.**
      *
@@ -616,7 +626,7 @@ export interface BattleReview {
   /** `winner === 'p1'`, named because three call sites ask. */
   won: boolean;
   /** The party as the sim left it, before the node boundary heals anything. */
-  party: PokemonState[];
+  party: BattleMemberState[];
   /**
    * What this node pays, or 0 on a loss.
    *
@@ -765,6 +775,11 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         cleared.party,
         result.acquisition.offer,
         result.acquisition.decision,
+        // The segment the party is *now* in, not the one the fight was in. The
+        // party was levelled to `playerLevel(nextSegment)` a few lines above,
+        // and a member joining at the old segment's level would be the 4.7 tax
+        // reintroduced on exactly one branch.
+        cleared.currentSegment,
       );
       cleared = {
         ...cleared,
@@ -836,6 +851,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       advanced.party,
       result.acquisition.offer,
       result.acquisition.decision,
+      advanced.currentSegment,
     );
     /*
      * Every item the decision freed goes to the backpack, not with anybody.

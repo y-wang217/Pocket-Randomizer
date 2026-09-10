@@ -53,7 +53,7 @@ import {
   stepsOf,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
-import { PARTY_SIZE, PARTY_TUNING } from '../src/data/partyTuning';
+import { PARTY_SIZE } from '../src/data/partyTuning';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
@@ -70,6 +70,15 @@ const OFFER: AcquisitionOffer = {
   source: 'encounter',
   spec: { species: 'Tyranitar', ability: 'Sand Stream', moves: ['Crunch'], level: 27 },
 };
+
+/**
+ * The segment these acquisitions happen in. **Stage 4.7.**
+ *
+ * Deliberately not 0: `joinLevelFor(0)` is 30 and the offer above is level 27,
+ * so a segment of 0 would let a normalization that silently did nothing pass
+ * the level assertions by coincidence.
+ */
+const SEGMENT = 2;
 
 function partyOf(count: number): PokemonState[] {
   return createParty(SPECS.slice(0, count));
@@ -100,14 +109,14 @@ describe('acquiring at a full party', () => {
 
   it('never produces a party over PARTY_SIZE, by either path', () => {
     const full = partyOf(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'decline' }).party).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }).party).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }).party).toHaveLength(2);
+    expect(applyAcquisition(full, OFFER, { kind: 'decline' }, SEGMENT).party).toHaveLength(PARTY_SIZE);
+    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }, SEGMENT).party).toHaveLength(PARTY_SIZE);
+    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, SEGMENT).party).toHaveLength(2);
   });
 
   it('releases the member named and nobody else', () => {
     const full = partyOf(PARTY_SIZE);
-    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }).party;
+    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }, SEGMENT).party;
 
     expect(after.map((member) => member.spec.species)).not.toContain(SPECS[1]!.species);
     expect(after.map((member) => member.spec.species)).toContain('Tyranitar');
@@ -118,30 +127,60 @@ describe('acquiring at a full party', () => {
     // Silently turning "release slot 9" into something legal would be a log
     // that replays into a different run, which is the failure the whole
     // decision-log design exists to prevent.
-    expect(() => applyAcquisition(partyOf(PARTY_SIZE), OFFER, { kind: 'release', slot: 9 })).toThrow(
+    expect(() => applyAcquisition(partyOf(PARTY_SIZE), OFFER, { kind: 'release', slot: 9 }, SEGMENT)).toThrow(
       /no party member in slot 9/,
     );
-    expect(() => applyAcquisition(partyOf(PARTY_SIZE), OFFER, { kind: 'accept' })).toThrow(/full/);
+    expect(() => applyAcquisition(partyOf(PARTY_SIZE), OFFER, { kind: 'accept' }, SEGMENT)).toThrow(/full/);
   });
 
   it('declining leaves the party untouched, and is always legal', () => {
     for (const size of [1, PARTY_SIZE]) {
       const before = partyOf(size);
-      const after = applyAcquisition(before, OFFER, { kind: 'decline' }).party;
+      const after = applyAcquisition(before, OFFER, { kind: 'decline' }, SEGMENT).party;
       expect(after.map((m) => m.spec.species)).toEqual(before.map((m) => m.spec.species));
     }
   });
 
-  it('joins at full HP, at the offer level, and below the segment curve', () => {
-    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }).party[1]!;
+  /*
+   * **Updated by Stage 4.7 (acquisition levelling), not deleted.**
+   *
+   * It used to read "joins at full HP, at the offer level, and below the
+   * segment curve", and asserted `joined.spec.level === OFFER.spec.level` plus
+   * a `joinLevelFor` strictly under the curve. Both halves were assertions
+   * about the level tax 4.7 removes: an offer is drawn at the wild encounter's
+   * level, which in the middle segments is sixteen to twenty levels under the
+   * party, and the mon then sat there until the next gym fell.
+   *
+   * The surviving half is that nothing *except* the level moves.
+   */
+  it('joins at full HP, at the segment level, with its moveset untouched', () => {
+    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, SEGMENT).party[1]!;
     expect(joined.hp).toBe(joined.maxHp);
     expect(joined.fainted).toBe(false);
-    expect(joined.spec.level).toBe(OFFER.spec.level);
+
+    expect(joined.spec.level).toBe(playerLevel(SEGMENT));
+    expect(joined.spec.level).not.toBe(OFFER.spec.level);
+
+    // Only the level. Re-rolling a caught Pokemon's moves at the new level
+    // would make a capture a second reward draw.
+    expect(joined.spec.species).toBe(OFFER.spec.species);
+    expect(joined.spec.ability).toBe(OFFER.spec.ability);
+    expect(joined.spec.moves).toEqual(OFFER.spec.moves);
+
+    // And the HP bar is rebuilt at the new level rather than relabelled.
+    expect(joined.maxHp).toBeGreaterThan(0);
 
     for (const segment of [0, 3, 7]) {
-      expect(joinLevelFor(segment)).toBe(playerLevel(segment) - PARTY_TUNING.joinLevelOffset);
-      expect(joinLevelFor(segment)).toBeLessThan(playerLevel(segment));
+      expect(joinLevelFor(segment)).toBe(playerLevel(segment));
     }
+  });
+
+  it('stamps the segment a member joined in, so churn can be measured', () => {
+    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, 5).party[1]!;
+    expect(joined.joinedSegment).toBe(5);
+    // The starter joined at run start, and `createParty` must not hand the
+    // array index in as a segment.
+    expect(partyOf(PARTY_SIZE).every((member) => member.joinedSegment === 0)).toBe(true);
   });
 });
 
@@ -576,11 +615,13 @@ describe('acquisition draws stay on the rewards stream', () => {
      * what a wild Pokemon is, and the first divergence between them would be
      * invisible.
      *
-     * **At its own level from Stage 4.6a**, where it used to arrive re-levelled
-     * down to `joinLevelFor(segment)`. The discount was the price of a free
-     * Pokemon; the price is now the step the encounter occupies and the party
-     * slot it takes, and a caught Pokemon weaker than the one just beaten is a
-     * readout the player cannot square with what they watched.
+     * **The offer still carries the level it was fought at**, and that is not
+     * in tension with Stage 4.7. The *offer* is a fact about the node: this is
+     * the Pokemon you beat, at the level you beat it. The normalization to
+     * `joinLevelFor(segment)` happens at the one place a member actually joins
+     * the party, in `applyAcquisition`, which is what keeps this assertion —
+     * "the offer is the node's own lead, not a fresh roll" — meaning what it
+     * says. See test/acquisition-levelling.test.ts for the other half.
      */
     const state = createRun('ACQ-SAME');
     let checked = 0;
@@ -734,9 +775,23 @@ describe('a full eight-gym run, headless', () => {
       (decision) => decision.kind === 'acquisition' && decision.decision.kind === 'release',
     );
 
-    // Seven cleared gyms is seven levellings and seven segment heals composed,
-    // which is the thing that only happens on a run that goes the distance.
-    expect(gymsCleared(run.state)).toBe(SEGMENTS_PER_RUN - 1);
+    /*
+     * Seven cleared gyms is seven levellings and seven segment heals composed,
+     * which is the thing that only happens on a run that goes the distance.
+     *
+     * **Loosened from `toBe(7)` to `toBeGreaterThanOrEqual(7)` by Stage 4.7
+     * (acquisition levelling), not deleted.** This seed used to stop at seven
+     * against a pacifist opponent and now clears the eighth: the party is
+     * `everything()`, which catches everything it is offered, and before 4.7
+     * those catches joined sixteen to twenty levels under the curve and could
+     * not finish a fight inside the turn limit. They arrive at the segment
+     * level now and the same seed goes one gym further.
+     *
+     * The subject of this test is the *transitions* — that eight levellings and
+     * eight heals compose without drift — so the floor is what it is asserting
+     * and the exact stopping point never was.
+     */
+    expect(gymsCleared(run.state)).toBeGreaterThanOrEqual(SEGMENTS_PER_RUN - 1);
     expect(run.state.currentSegment).toBe(SEGMENTS_PER_RUN - 1);
     expect(run.state.party[0]?.spec.level).toBe(playerLevel(SEGMENTS_PER_RUN - 1));
     expect(acquisitions.length, 'never acquired').toBeGreaterThan(0);

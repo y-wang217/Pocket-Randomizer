@@ -46,7 +46,7 @@ import { FAINTED, hpState, ppState } from '../../core/hpCopy';
 import { hpFraction, ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
-import type { PokemonState } from '../../core/types';
+import type { BattleMemberState, PokemonState } from '../../core/types';
 import { el } from '../scene';
 import { renderCaptureOffer } from './acquisition';
 import { renderRewardCard, tierBadge } from './reward';
@@ -212,7 +212,7 @@ function describeCost(review: BattleReview): string {
  * would show — HP is visible on the battle screen up to the last turn, and PP
  * is the one that quietly runs out four fights later.
  */
-function renderMemberRow(member: PokemonState): HTMLElement {
+function renderMemberRow(member: BattleMemberState): HTMLElement {
   const row = el('div', 'party__member');
 
   const header = el('div', 'panel__header');

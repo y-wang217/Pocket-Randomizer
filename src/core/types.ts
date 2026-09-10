@@ -358,18 +358,31 @@ export interface MoveState {
 }
 
 /**
- * A party member between encounters.
+ * What a battle can say about a party member: vitals, never identity.
  *
- * This is the *only* thing that persists across a node boundary, and it is
- * deliberately small: identity plus the three resources a run spends — HP, PP
- * and a status condition. Stat stages, volatiles, weather and everything else
- * the sim tracks are per-battle by definition and are not carried, because
- * carrying them would mean serializing a chunk of the engine's internal state
- * and hoping it means the same thing in the next battle.
+ * This is what persists across a node boundary, and it is deliberately small:
+ * identity plus the three resources a run spends — HP, PP and a status
+ * condition. Stat stages, volatiles, weather and everything else the sim tracks
+ * are per-battle by definition and are not carried, because carrying them would
+ * mean serializing a chunk of the engine's internal state and hoping it means
+ * the same thing in the next battle.
  *
  * `spec` is the unchanging identity. Everything else is the run's damage to it.
+ *
+ * **The split is Stage 4.7's, and it exists because the merge went wrong once.**
+ * `driver.readPartyState` reads a side's team back out of the sim, and it used
+ * to return `PokemonState` — so `party.applyBattleState` could spread the
+ * read-back over the party member and keep two named fields back. That works
+ * exactly as long as `PokemonState` holds nothing the sim does not know about.
+ * The moment it does — when a member joined, what it has contributed — the
+ * spread silently overwrites it with whatever the driver happened to put there,
+ * and nothing fails.
+ *
+ * So the sim's half of the type is named. A battle cannot construct a
+ * `PokemonState` any more, which means it cannot claim to know a run-scoped
+ * fact, which means `applyBattleState` has to say which fields it takes.
  */
-export interface PokemonState {
+export interface BattleMemberState {
   spec: PokemonSpec;
   maxHp: number;
   hp: number;
@@ -386,6 +399,32 @@ export interface PokemonState {
    * explains why that merge lives in exactly one place.
    */
   item?: string;
+}
+
+/**
+ * One Pokemon in the run's party: everything a battle knows, plus what it does
+ * not.
+ */
+export interface PokemonState extends BattleMemberState {
+  /**
+   * The segment index this member joined the party in. Zero for the starter.
+   *
+   * **Run state, not log state**, like HP: a replay rebuilds it from the same
+   * decisions, because the segment an acquisition was accepted in is a fact
+   * about *when* the decision was made rather than a value anything rolled.
+   *
+   * It is here rather than in a side table keyed by party slot for the reason
+   * Stage 4.7 discovered the hard way: **party slots move.** A release deletes
+   * one, an acquisition appends one, and lead selection reorders them
+   * deliberately. Anything keyed by slot index follows the wrong Pokemon the
+   * first time any of those happens, and does it silently.
+   *
+   * It exists to be measured. "How many members entering gym 8 are not the
+   * starter" and "segments since acquisition per member" are the two numbers
+   * the 4.7 level change is judged on, and neither is reconstructible from a
+   * final party alone.
+   */
+  joinedSegment: number;
 }
 
 // ---------------------------------------------------------------------------

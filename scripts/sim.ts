@@ -1347,6 +1347,20 @@ interface RunRecord {
     /** Berries held or bagged entering this gym, and the bag's size. */
     berries: number;
     backpack: number;
+    /**
+     * The segment each member joined the party in. **Stage 4.7.**
+     *
+     * Zero is the starter. Everything else is a capture or an event Pokemon,
+     * and the two questions Part 8 is judged on are both read off this list:
+     * *party churn*, meaning how much of the party entering gym 8 is not the
+     * starter, and *segments since acquisition*, meaning how long the run has
+     * actually been carrying what it caught.
+     *
+     * Neither is reconstructible from a final party. A run that caught and
+     * released the same slot four times looks identical at gym 8 to one that
+     * caught once in segment 1, and those are opposite findings.
+     */
+    joinedSegments: number[];
   }[];
 
   // --- Stage 4.6b ---------------------------------------------------------
@@ -1415,6 +1429,7 @@ async function playSample(
             ),
             berries: carried.filter((item) => BERRY_IDS.has(item)).length,
             backpack: before.backpack.length,
+            joinedSegments: before.party.map((member) => member.joinedSegment),
           });
         }
       },
@@ -1768,6 +1783,37 @@ interface Sample {
       distinctSpecies: number;
       topSpecies: Tally[];
       topTypes: Tally[];
+    };
+    /**
+     * Party churn at gym 8. **Stage 4.7's headline, and its own disconfirmation.**
+     *
+     * The 4.7 level change was made on a hypothesis: that a capture carried a
+     * hidden level tax, that swapping was therefore worse than it looked, and
+     * that runs converged on the starter with the party as decoration. These
+     * are the numbers that say whether that is true — and they were checked
+     * *before* the change, where they already disagreed with it (see
+     * `docs/balance.md` §12).
+     *
+     * `meanNonStarters` over `PARTY_SIZE` is the share of a gym-8 party that
+     * the run went out and got. `starterOnly` is the failure state: runs where
+     * the only thing standing at the last gym is what the run started with.
+     */
+    churn: {
+      /** Mean members entering gym 8 that are not the starter. */
+      meanNonStarters: number;
+      /** Share of gym-8 parties carrying nothing but the starter. */
+      starterOnly: number;
+      /** Share of gym-8 parties still carrying the starter at all. */
+      starterSurvives: number;
+      /**
+       * Segments a member had been in the party for, entering gym 8.
+       *
+       * `gym - 1 - joinedSegment`, tallied across every member of every gym-8
+       * party. A distribution piled at 0 and 1 means the party is churning
+       * constantly and nothing that joins sticks; one piled at 7 means the run
+       * is the starter and two passengers.
+       */
+      segmentsSinceAcquisition: Tally[];
     };
   };
   durationMs: number;
@@ -2198,6 +2244,22 @@ function summarizeCapture(records: RunRecord[]): Sample['capture'] {
     record.gymParties.filter((entry) => entry.gym === SEGMENTS_PER_RUN),
   );
 
+  /*
+   * Churn, read off `joinedSegments` rather than off the species list.
+   *
+   * A member is "not the starter" when it joined in a segment above zero. That
+   * is the whole definition, and it is a fact the run recorded at the moment
+   * the decision was taken rather than something inferred at the end — which
+   * matters because a run can release the starter and a run can catch the same
+   * species it started with, and both would confuse a species-based reading.
+   */
+  const nonStarters = finals.map(
+    (entry) => entry.joinedSegments.filter((segment) => segment > 0).length,
+  );
+  const ages = finals.flatMap((entry) =>
+    entry.joinedSegments.map((segment) => SEGMENTS_PER_RUN - 1 - segment),
+  );
+
   return {
     offered,
     taken,
@@ -2210,6 +2272,18 @@ function summarizeCapture(records: RunRecord[]): Sample['capture'] {
       distinctSpecies: new Set(finals.flatMap((entry) => entry.species)).size,
       topSpecies: tally(finals.flatMap((entry) => entry.species), 6),
       topTypes: tally(finals.flatMap((entry) => entry.types), 6),
+    },
+    churn: {
+      meanNonStarters: finals.length === 0 ? 0 : sum(nonStarters) / finals.length,
+      starterOnly: finals.length === 0 ? 0 : nonStarters.filter((count) => count === 0).length / finals.length,
+      starterSurvives:
+        finals.length === 0
+          ? 0
+          : finals.filter((entry) => entry.joinedSegments.includes(0)).length / finals.length,
+      segmentsSinceAcquisition: tally(
+        ages.map((age) => `${age} segments`),
+        SEGMENTS_PER_RUN,
+      ),
     },
   };
 }
@@ -2484,6 +2558,44 @@ function render(sample: Sample): string {
       ],
     ),
   );
+
+  /*
+   * Churn, printed next to the take rate because the two only mean anything
+   * together. A high take rate with near-zero churn is a run that catches
+   * constantly and keeps nothing, which is a different game from one that
+   * catches twice and carries both to the end.
+   */
+  if (capture.gym8.parties > 0) {
+    const churn = capture.churn;
+    out.push('', `Party churn at gym ${SEGMENTS_PER_RUN} — n=${capture.gym8.parties} parties`);
+    out.push(
+      table(
+        ['measure', 'value', 'reads as'],
+        [
+          [
+            'members not the starter',
+            `${churn.meanNonStarters.toFixed(2)} of ${PARTY_SIZE}`,
+            churn.meanNonStarters < 0.5
+              ? 'the party is the starter and decoration'
+              : 'the run is being built, not inherited',
+          ],
+          [
+            'starter-only parties',
+            pct(churn.starterOnly),
+            'carrying nothing the run went out and got',
+          ],
+          ['starter still alive', pct(churn.starterSurvives), 'never released, never lost'],
+        ],
+      ),
+    );
+    out.push(
+      '',
+      `  Segments in the party, entering gym ${SEGMENTS_PER_RUN}`,
+      ...churn.segmentsSinceAcquisition.map(
+        (row) => `    ${row.label.padEnd(12)} ${String(row.count).padStart(5)}  ${pct(row.share)}`,
+      ),
+    );
+  }
 
   out.push('', 'Party entering each gym — the curve\'s own assumption in the last column');
   out.push(
