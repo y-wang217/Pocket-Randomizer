@@ -1,9 +1,8 @@
-# GYMRUN — Stage 4.7
+# GYMRUN
 
-A browser-based seeded Pokémon roguelike. This is Stage 4.7: **an eight-gym
-randomizer run you can actually read** — the party visible on every screen that
-asks you something, the moves saying what they do, and both Pokémon on the field
-carrying a label for what their stat block is built for.
+A browser-based seeded Pokémon roguelike: **an eight-gym randomizer run through
+regions you choose, with a party you catch, a kit that starts weak and climbs,
+and relics that open the roads a party alone cannot.**
 
 Stage 0 proved the battle engine. Stage 1 made it a run. Stage 2 made it a
 *randomizer* and built the instrument that says whether the randomizer is
@@ -12,11 +11,20 @@ party slots and switching. Stage 4.5 added no mechanics at all and made the
 existing ones legible. Stage 4.5.1 put prices back on things. Stage 4.6a gave
 the map a geography. Stage 4.6b turned the run into a ramp. Stage 4.6c added
 relics. Stage 4.7 is a legibility pass and one balance change.
+the map a geography. Stage 4.6b turned the run into a ramp. Stage 4.6c made a
+capability a relic.
 
 There is still no battle engine here. GYMRUN wraps [Pokémon
-Showdown](https://pokemonshowdown.com) via `@pkmn/sim` — see
-[`docs/engine-notes.md`](docs/engine-notes.md) for the measurements that
-retired that risk.
+Showdown](https://pokemonshowdown.com) via `@pkmn/sim`.
+
+**This file is the front door: how to run it, and what each stage added.** The
+rules, the numbers and the current state are not here, and where this file
+disagrees with one of the documents below, the document is right.
+
+| you want | read |
+|---|---|
+| the invariants, and nothing else | [`CLAUDE.md`](CLAUDE.md) |
+| current state, open items, the design lineage, and the map to every other document | [`docs/README.md`](docs/README.md) |
 
 ## Quick start
 
@@ -96,6 +104,27 @@ does not measure at all (`lead-static` and `lead-swap` both reach 3.19 gyms at
 screen got polished.
 
 ## What Stage 4.6b added
+## What Stage 4.6c adds
+
+**Roads a party alone cannot open, and permanent objects that open them.**
+
+- **A capability is granted by a relic**: a permanent, run-scoped, passive
+  object. No move slot, no backpack capacity, no teaching, no legality query.
+  Knowing a capability-named move grants nothing, because the move and the
+  capability are unrelated systems that share a name.
+- **Capability events resolve in one of three bands**, by what the party can
+  answer. All three outcomes are drawn at map generation and one is selected at
+  resolution, so RNG consumption does not depend on how the run was built.
+- **Band 3 is a node transition**, which is what lets an event put a fight in
+  front of the player without `core/events.ts` learning to run one.
+- **`latent` is type-based, not learnset-based.** The bundle ships no learnsets
+  and never will; `src/data/capabilityTypes.ts` records the measurement and the
+  three reasons.
+
+This is the third design for the capability system and the two before it are
+still in `docs/spec/`. [`docs/README.md`](docs/README.md) says which is live.
+
+## What Stage 4.6b adds
 
 **A run that starts with Tackle and Growl and ends with something that hits like
 a truck.**
@@ -119,12 +148,6 @@ a truck.**
   and it costs a step. Two routes was two sets of rules for what a joined
   Pokémon is.
 
-Measured at 400 seeds: the player's mean move band entering each gym climbs
-**1.03 → 2.89**, and it climbs *faster on the risky path*. Getting completion
-back to 7.2% took one retune, and it was the level offsets rather than a band —
-`docs/balance.md` §11 has the three passes and the two findings that turned out
-to be about the simulator rather than the game.
-
 ## What Stage 4.6a added
 
 **A map with places in it, and a party you catch rather than one you are
@@ -145,12 +168,8 @@ given.**
   a party slot or a party member. The caught Pokémon arrives exactly as it was
   fought — level, moveset, ability, held item.
 - **Keyed RNG sub-streams**, which is the change nothing on screen shows and
-  everything later depends on. See "Determinism" below and
-  [`gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md).
-
-The measured result is that parties **fill by gym 2** and **diversify**: 94 runs
-reached the eighth gym carrying 152 distinct species between them, and the most
-common one held 4.3% of the slots.
+  everything later depends on. See [`docs/keyed-streams.md`](docs/keyed-streams.md)
+  and [`docs/spec/gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md).
 
 ## What Stage 4.5.1 added
 
@@ -172,7 +191,7 @@ common one held 4.3% of the slots.
 - **Gender, rolled properly and shown.** Not the cosmetic change it looks like:
   the engine was rolling it off the *battle* PRNG with a flat coin flip, so the
   same Pokemon was male in one fight and female in the next and nothing outside
-  a battle had a gender at all. See "Determinism" below.
+  a battle had a gender at all. See [`docs/engine-notes.md`](docs/engine-notes.md).
 - **A Simple / Detailed toggle**, and stat tooltips on every abbreviation,
   because `Atk` versus `SpA` is the one distinction a non-player cannot infer.
 
@@ -227,280 +246,28 @@ PP carry across encounters; the run log is the seed plus the decision sequence
 and nothing else, so closing the tab mid-run and reopening it puts you back
 where you were.
 
+## The rules, the seams, and the layout
+
+All of it lives in [`docs/architecture.md`](docs/architecture.md): the five
+boundary rules and which are lint-enforced, the layer diagram, the four seams,
+and the run log structure. It is the owner, and this file used to restate it.
+
+- Determinism and the keyed sub-streams: [`docs/keyed-streams.md`](docs/keyed-streams.md)
+  for what shipped, [`docs/spec/gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md)
+  for the design it implements.
+- What is drawn where and when: [`docs/generation.md`](docs/generation.md).
+- `@pkmn/sim` findings and the bundle: [`docs/engine-notes.md`](docs/engine-notes.md).
+
 ## Balance
 
-**The centrepiece is not a game feature. It is the simulator** — you cannot
-balance a roguelike by playing it. Fifty runs is an afternoon and three
-anecdotes; a thousand runs is forty seconds and a distribution, and a difficulty
+**The centrepiece is not a game feature. It is the simulator.** You cannot
+balance a roguelike by playing it: fifty runs is an afternoon and three
+anecdotes, a thousand runs is forty seconds and a distribution, and a difficulty
 curve is a distribution.
 
-At 400 seeds, the `greedy` policy:
-
-| gym | leader | type | team | reached | clear rate | drop |
-|---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 368 | 92.4% | — |
-| 2 | Marina | Water | 2 | 334 | 86.5% | -6pt |
-| 3 | Volta | Electric | 3 | 281 | 78.3% | -8pt |
-| 4 | Fern | Grass | 4 | 211 | 74.9% | -3pt |
-| 5 | Cinder | Fire | 4 | 145 | 54.5% | -20pt |
-| 6 | Solene | Psychic | 5 | 76 | 59.2% | +5pt |
-| 7 | Vesper | Ghost | 5 | 43 | 65.1% | +6pt |
-| 8 | Draven | Dragon | 5 | 26 | 61.5% | -4pt |
-
-Run completion **7.2%**, mean 3.27 gyms of 8, worst gym-to-gym drop 17 points.
-400 seeds, `--prefix RETUNE`, greedy policy.
-
-**A correction, recorded rather than quietly fixed.** An earlier version of this
-section reported 4.0% completion and attributed a 3.2-point drop to admitting
-Cut and Flash to the move pools ahead of Stage 4.6c. **That attribution was
-wrong, and the comparison behind it was invalid**: the 7.2% baseline was
-measured with `--prefix RETUNE` and the 4.0% with the default `--prefix SIM`.
-Those are two different populations of 400 seeds, so the two numbers were never
-comparable, and the difference between them was the seed set rather than
-anything in the game.
-
-Measured properly, on one population:
-
-| build | prefix | completion | mean gyms |
-|---|---|---|---|
-| `randomizer-9`, Cut and Flash in | SIM | 4.0% | 2.94 |
-| `randomizer-10`, Cut and Flash out | SIM | 4.0% | 2.82 |
-| `randomizer-8`, before either | RETUNE | 7.2% | 3.27 |
-| `randomizer-10`, Cut and Flash out | RETUNE | 7.2% | 3.27 |
-
-**Admitting the two moves cost nothing measurable** — same completion, and mean
-gyms moved by 0.12 in the noise. The `SIM` population simply sits lower than the
-`RETUNE` one. The reasoning in the original note was plausible and it was
-checked against a number that could not support it.
-
-Cut and Flash have since been removed for an unrelated reason: capabilities are
-satisfied by relics now, not by moves, so neither move has any special claim on
-a pool slot. `randomizer-10`'s move tables are byte-identical to `randomizer-8`'s
-— which is why the RETUNE rows match to every digit — but the version string
-still moved forward, because two distinct content states must never share a
-name.
-
-Completion is inside the simulator's 5-15% target band. It is no longer a gate
-either way; see [`docs/balance.md`](docs/balance.md) §0.
-
-The player's mean move band entering each gym climbs **1.03 → 3.04** over those
-eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has
-4.6b's retune — three measured passes, of which only the third moved anything —
-and the two findings that turned out to be about the simulator rather than the
-game. A `random` policy completes **0.0%** of runs and clears gym 6 in **0.0%**
-of them, which is the depth test: if a random policy cleared gym 6, move choice
-would not matter. Every Stage 2 target passes on both policies; the completion
-band is the one miss.
-
-The randomizer draws from 635 species, 398 damaging moves and all 310
-abilities, and across 12,298 encounters at 400 seeds the sweep saw **630 of the
-635 species and all 310 abilities**. That is the diversity claim
-worth making, because win rate cannot measure it at all: a narrow pool that
-happened to be balanced would pass every other number in the report.
-
-Note the clear rates are per *arrival*, not per run — 75.5% of the 94 runs that
-reached Draven beat him. The population thins faster than the gyms get harder,
-which is what the `reached` column is there to show.
-
-[`docs/balance.md`](docs/balance.md) has the full report and the findings that
-moved the numbers — including §7.2, where the largest error in a tuning pass
-turned out to be a premise rather than a number; §8, the Stage 4.5 non-result
-and how it was checked; and §9, where two of the three questions that opened
-Stage 4.5.1 turned out to have false premises as well.
-
-```sh
-npm run sim                              # 200 seeds, both policies
-npm run sim -- --seeds 1000              # the report above
-npm run sim -- --nodes all               # compare node-choice playstyles
-npm run sim -- --policy switching        # Stage 4's headline pair
-npm run sim -- --policy catching         # Stage 4.6a's: capture on and off
-npm run sim -- --set stepsPerSegment.min=6
-npm run sim -- --help
-```
-
-## Layout
-
-```
-src/core/      pure, deterministic, zero DOM, unit tested
-  rng.ts       seeded streams: map, rewards, battle, randomizer, policy —
-               and, from 4.6a, keyed sub-streams inside each of them
-  streamKeys.ts  every sub-stream key in the game, as functions not literals
-  types.ts     the vocabulary every layer shares
-  randomizer.ts  how a Pokémon is rolled; pure, explicit Rng, no globals
-  party.ts     what persists between nodes, and the rules that change it
-  encounters.ts  map and encounter generation, all of it eager — including a
-               route per offered locale, of which the player keeps one
-  run.ts       the run state machine, RunPolicy, and playRun
-  acquisition.ts how a Pokemon joins the party, and what it costs
-  coverage.ts  offensive type coverage as a set of names, never a score
-  typeMatchup.ts  which types beat the party and it cannot answer; a
-               party and nothing else, in dex order, ranking nothing
-  economy.ts, rewards.ts, items.ts, events.ts   Stage 3's four systems
-               items.ts also owns the backpack: capacity, plans, discards
-  battle/
-    format.ts    generation, format id, clauses; the gen-lock lives here
-    driver.ts    THE ONLY @pkmn/sim adapter
-    stats.ts     the stat formula, pure, checked against the engine
-    view.ts      BattleUiView — what the battle screen renders, derived
-    policy.ts, switching.ts, ai.ts
-src/data/      what a Pokémon is rolled *from*, and every balance number
-  scaling.ts     the curve: eight rows, and what party the curve assumes
-  partyTuning.ts PARTY_SIZE and join level (revival moved to tuning.ts)
-  gyms.ts        eight leaders and their type identities
-  locales.ts     eight regions, four types each, and the rule that offers them
-  starters.ts    what the player begins with; Stage 5's unlock seam
-  blacklists.ts  the exceptions, each with the evidence that earned it
-  statusInfo.ts  what every condition does, and what to do about it
-  statInfo.ts    what Atk, SpA and the rest mean, without saying which is good
-  abilityEffects.ts, abilityOverrides.ts, categoryInfo.ts   tooltip data
-  speciesPools.ts, movePools.ts, abilities.ts   generated; npm run gen:pools
-src/ui/        a thin DOM layer: ten screens and a router
-  scene.ts     the battlefield; reads BattleUiView and nothing else
-  settings.ts  the verbosity flag; unreachable from core/, and tested so
-  tooltips.ts  one delegated tap-first layer; all content from data/
-scripts/sim.ts the balance simulator
-test/          determinism, generation, the randomizer's promises, replay,
-               boundaries, stats, the projection, tooltip coverage
-docs/          architecture, generation rules, balance, engine notes
-```
-
-Read [`docs/architecture.md`](docs/architecture.md) before adding to this,
-[`docs/generation.md`](docs/generation.md) before touching generation — the
-order of the generation passes is a compatibility contract, not an
-implementation detail — and [`docs/balance.md`](docs/balance.md) before moving
-a number.
-
-## The four seams that matter
-
-**`Policy`** is `(view) => Promise<Choice>`: the human, the AI and a scripted
-bot are the same shape.
-
-**`RunPolicy`** is the same idea one level up — a starter pick, a node pick and
-a battle policy. `src/ui/app.ts` is a `RunPolicy` whose promises resolve on
-clicks. `scripts/sim.ts` builds two of them. A recorded log replayed back is
-one. `playRun` takes one and cannot tell which it has, so there is no separate
-interactive run loop to keep in sync with the headless one.
-
-That is what makes `npm run sim` a loop around the same function players use,
-rather than a second implementation that drifts.
-
-**`BattleUiView`** is what the battle screen renders from, and it is deliberately
-*not* the `BattleView` a policy decides from. That one is restricted to what a
-player could know, with `foe.ability` always null, because a bot with hidden
-information would make the balance sweep measure the wrong thing. The screen is
-allowed to know more — `data/tuning.ts` decides what it then shows.
-
-Keeping them apart is why Stage 4.5 moved no balance number. The shortcut was to
-widen the policy view; it would have handed the greedy AI an ability no player
-has seen and shifted every number in the table above for a reason that had
-nothing to do with balance.
-
-**The logic/data split.** `core/randomizer.ts` is *how* a Pokémon is rolled;
-`data/` is *what it is rolled from*. If a balance pass ever needs to edit the
-first, the split has failed — that is the bug to fix before touching the
-numbers.
-
-## The architecture rules
-
-All five are enforced by [`test/boundaries.test.ts`](test/boundaries.test.ts).
-Rules 1, 2 and 4 are enforced by ESLint as well — two mechanisms, because lint
-is easy to disable inline and easy to skip in CI, and those three are the ones
-a single stray import or call can break:
-
-1. `core/` never imports from `ui/`.
-2. The platform's unseeded RNG is banned anywhere under `src/`.
-3. `core/` is DOM-free and runs headless under Node.
-4. Only `core/battle/driver.ts` and `core/battle/format.ts` import `@pkmn/sim`.
-5. The battle UI reads `BattleUiView` and nothing else — no `core/run` import,
-   no `RunState`, no `PokemonSpec`.
-
-Rules 3 and 5 are test-only, and for the same reason: both are about what a
-*file* may name rather than about a package or a call, and the ESLint form of
-either would be a per-file override list that the next file quietly joins.
-
-The fifth arrived with Stage 4.5, because putting the opponent's ability on
-screen made reaching into the run for it the obvious shortcut — and that
-shortcut would have passed every other test in the suite, since nothing else
-asserts on where a screen got a number from.
-
-## Determinism, and the thing that silently breaks it
-
-A `RunLog` carries a seed, an engine version, and a **randomizer version**. The
-third one is separate because a tuning pass leaves a decision sequence perfectly
-replayable and quietly reinterprets it as a different run — the worst available
-outcome for a game whose whole promise is that a shared seed is a shared run.
-A mismatch throws, with a message that names both versions.
-
-Bump `RANDOMIZER_VERSION` in `src/core/randomizer.ts` for a regenerated pool, a
-moved band window, a changed curve, or a new draw inside the randomizer.
-
-Randomizer draws come from their own RNG stream, so adding a draw in one system
-cannot shift another's. `test/randomizer.test.ts` asserts that directly rather
-than trusting it to the construction.
-
-### Keyed sub-streams, and the bump they exist to spend once
-
-Named streams solved the *between systems* problem and left the *within a
-system* one alone: every map draw in a run came off one sequence, so a draw
-added at segment 0 shifted every draw at segments 1 through 7. That is why every
-stage from 3 onward appended a generation pass rather than editing one.
-
-From Stage 4.6a a stream opens sub-streams **by key** —
-`rng.map.at('seg3/cave/route')` is a sequence of its own, derived from the seed,
-the stream name and the key. A draw under one key cannot move a draw under any
-other, so adding a *new* key is free and adding a draw inside an existing one
-moves that node's rolls and nothing else. `src/core/streamKeys.ts` is the
-namespace; [`gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md)
-is the argument, including why the two sub-stages after this one should not need
-a structural bump of their own.
-
-It cost one `RANDOMIZER_VERSION` bump, and it is the broadest the string has
-carried: not one line of what a Pokémon *is* changed, and every seed rolls a
-different run.
-
-### The engine was rolling gender, and it was rolling it wrong
-
-Worth recording because it is the exact shape of bug the version guards exist
-for, and because the Stage 4.5.1 prompt asked for the opposite of what the
-measurement showed.
-
-Showdown assigns a gender that a team does not name with
-`battle.sample(['M', 'F'])` — a **flat coin flip that ignores the species'
-`genderRatio`**, taken from the *battle* PRNG at team construction. Three
-consequences, all measured rather than assumed:
-
-- Combee, 87.5% male in its own data, came out 206/194 over 400 seeds.
-- The same party member was male in one fight and female in the next, and
-  nothing outside a battle had a gender at all — so a party screen had nothing
-  to show.
-- Every gendered body on both sides cost one battle draw before turn one.
-
-GYMRUN now rolls gender itself, from the real ratio baked into
-`SpeciesEntry.maleChance`, and hands the sim a concrete value. That
-short-circuits the sample the engine was already making, so it is a **relocated
-draw rather than a new one** — the run makes one fewer battle draw per Pokemon
-and one more randomizer draw. Both version numbers moved as a result:
-`RANDOMIZER_VERSION` because specs changed, and `ENGINE_VERSION` because every
-battle stream is offset from the first turn.
-
-## Bundle
-
-`@pkmn/sim` is most of it, and that is the shape of this project: we ship a
-Pokémon engine, and the engine is mostly data.
-
-| | JS gzipped | CSS gzipped |
-|---|---|---|
-| Stage 4 | 731.62 kB | 4.74 kB |
-| Stage 4.5 | 744.19 kB | 5.36 kB |
-| Stage 4.5.1 | 748.32 kB | 5.61 kB |
-| Stage 4.6a | 729.00 kB | 6.34 kB |
-
-Ability descriptions turned out to cost **nothing**. `@pkmn/sim`'s `Dex`
-statically imports its text tables and `build-config/trim-sim-data.ts` only
-trims learnsets, legality and pokemongo — so every `shortDesc` in the generation
-was already in the Stage 4 bundle before the tooltip layer read one.
-[`docs/engine-notes.md`](docs/engine-notes.md) §4 has the method and the
-`@pkmn/client` decision.
+[`docs/balance.md`](docs/balance.md) owns **every** figure, the standing policy
+that balance is not a gate, and the benchmark table. No number is repeated here,
+because a number copied into two files disagrees with itself within two stages.
 
 ## Scripts
 
@@ -532,56 +299,7 @@ decided or defaulted?" has one answer.
 | The guaranteed wild step is all-wild at distinct tiers, not a one-option step | `tuning.wildStepOptionCount` |
 | The capture renders inside the result screen; the standalone acquisition screen is gone | `ui/screens/acquisition.ts` |
 
-**The 7.1% completion rate is the accepted baseline**, not a regression to
-recover. It is the price of the guaranteed wild step — a fight per segment
-nobody can decline — and `docs/balance.md` §10.1 has the argument. Stage 4.6b
-retunes once, against this number, and that is the last retune planned.
+## Open questions
 
-## Open questions for later
-
-1. **Fights are short early.** Late fights have a shape; early ones are an
-   exchange. One of the two causes is gone — there is a party and a switch to
-   make from Stage 4 — and the other, no EV or IV spreads, is still structural.
-   Note that it is no longer *only* a gap: one fixed spread is what lets
-   `core/battle/stats.ts` compute the opponent's stats exactly rather than
-   estimate them, so the exclusion is now load-bearing for a feature.
-2. **`random` clears gym 3 in 19.8% of runs**, against a target of "rarely".
-   Tightening the early gyms would push `greedy`'s completion out of its band,
-   so the trade was declined; the depth test that matters passes at 0.8%.
-3. **Gym 1 clears at 94.5%** against a ~90% target. It was the single MISS on
-   the greedy run through Stage 4.5 at 95.0% and is now inside the band by half
-   a point, which is not a result and should not be read as one — nothing in
-   Stage 4.5.1 was aimed at it. A first gym that almost never stops anyone is a
-   tutorial, which may be the right thing for it to be; it has still not been
-   argued either way.
-4. **The blacklist is nearly empty**, which is correct after one tuning pass and
-   not permanent. Nothing in the report dominated an outcome distribution.
-5. **Nuzlocke interpretation.** The build spec's section 3 is read here as *no*
-   nuzlocke ruleset: no per-Pokémon permadeath, no forced first-encounter rule.
-   Wipe — every party member fainted — is the only death rule.
-6. **Switching does not pay yet, and that is Stage 4's unmet done-condition.**
-   `switch-aware` completes 9.2% of runs against `no-switch`'s 11.3% — still a
-   gap in the wrong direction, and Stage 4.5.1 widened it rather than closing
-   it. Nothing in the stage was aimed at switching, so this is a re-measurement
-   rather than a regression, but it is the third report in a row to say the
-   same thing. It is not a tuning oversight: the first
-   scoring model made it *worse* in all twelve weight combinations tried, and
-   replacing the one-turn horizon with a multi-turn matchup race only brought it
-   back to parity. `docs/balance.md` §7.6 has the data and the three untried
-   levers, the strongest being that the opponent outnumbers the player at every
-   gym, so switching to answer a matchup loses to a side with more answers.
-
-   Stage 4.5 is a quiet lever on this one. The bot's difficulty was never the
-   whole story — a *human* could not see the speed order or a move's category
-   either, and both are inputs to "should I switch". Whether that moves player
-   switch rates is a playtest question, not a simulator one.
-7. **Party size stays at 3.** 43% of losses happen with a full, standing party —
-   those runs were beaten by a single wall, not by running out of Pokémon, and a
-   fourth slot would not have saved one of them. That is the spec's own
-   condition for testing 4, and it says do not, yet. `docs/balance.md` §7.7.
-8. **`data/abilityOverrides.ts` is empty on purpose.** The dex's own one-line
-   descriptions are the tooltip text for all 310 abilities, and they are usually
-   good. Where they fail they fail for one reason — written for someone who
-   already knows the vocabulary — and guessing which ones is how you rewrite
-   forty and miss the ones that actually confused someone. It grows from
-   playtest.
+[`docs/README.md`](docs/README.md) section 5 carries them, one line each with a
+pointer to where each is argued.

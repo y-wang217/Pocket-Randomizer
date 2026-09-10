@@ -53,6 +53,30 @@ a move the current generation calls nonstandard, this is the note that says the
 engine will run it, and the exclusion in `scripts/gen-pools.ts` is a curation
 choice rather than a constraint.
 
+## The engine assigns gender by coin flip, ignoring `genderRatio`
+
+Established during Stage 4.5.1, by measurement. Recorded here because it is the
+exact shape of bug the version guards exist for, and because the prompt that
+found it asked for the opposite of what the measurement showed.
+
+Showdown assigns a gender that a team does not name with
+`battle.sample(['M', 'F'])`, a **flat coin flip that ignores the species'
+`genderRatio`**, taken from the battle PRNG at team construction. Three
+consequences, all measured rather than assumed:
+
+- Combee, 87.5% male in its own data, came out 206/194 over 400 seeds.
+- The same party member was male in one fight and female in the next, and
+  nothing outside a battle had a gender at all, so a party screen had nothing
+  to show.
+- Every gendered body on both sides cost one battle draw before turn one.
+
+GYMRUN now rolls gender itself, from the ratio in `SpeciesEntry.maleChance`, and
+hands the sim a concrete value. That short-circuits the sample the engine was
+already making, so it is a **relocated draw rather than a new one**: the run
+makes one fewer battle draw per Pokemon and one more randomizer draw. Two
+version axes moved as a result, `RANDOMIZER_VERSION` because specs changed and
+`ENGINE_VERSION` because every battle stream is offset from the first turn.
+
 ## Charge moves are excluded by scoring, not by the engine
 
 `scripts/gen-pools.ts` drops moves with `flags.charge` — Fly, Dive, Solar Beam

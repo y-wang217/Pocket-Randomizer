@@ -74,3 +74,28 @@ export function routeKey(segment: number, locale: string): string {
 export function gymRewardKey(segment: number): string {
   return `seg${segment}/gym-reward`;
 }
+
+/**
+ * The characters of a freshly minted run seed, on `map`.
+ *
+ * The odd one out, and worth saying why it exists rather than leaving the next
+ * reader to wonder.
+ *
+ * `ui/seed.ts` mints a session's first seed by pouring CSPRNG entropy through
+ * `createRng` and reading characters back out. Until Release 0.5 it read them
+ * off the *unkeyed* root of `map` — the last caller of that API anywhere in
+ * `src/`, and the one place production code could still draw from a sequence
+ * whose position depends on everything drawn before it.
+ *
+ * Porting it is safe in a way porting any other caller would not have been.
+ * A ported call site draws different values, which for a call site inside a run
+ * is a seed break; this one's input is fresh entropy that never repeats, so
+ * "different values" is not observable and no recorded seed moves. That
+ * argument is specific to this caller and does not generalise.
+ *
+ * It buys the property the sweep was for: **no production code can draw
+ * unkeyed.** What remains of the old API is read only by the tests that exist
+ * to test it, which makes its deletion a question about the test suite rather
+ * than about the game.
+ */
+export const SEED_KEY = 'seed';

@@ -23,9 +23,20 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    /*
+     * **Every extension, not just TypeScript.** Release 0.5 found
+     * `scripts/measure-bundle.mjs` calling `Math.random()`, unflagged since
+     * Stage 2: this rule matched TypeScript files only and
+     * `test/boundaries.test.ts` walked `src/`, so a `.mjs` file under `scripts/`
+     * fell through both at once. Two backstops that exclude the same file are
+     * not two backstops.
+     */
+    files: ['**/*.ts', '**/*.mjs', '**/*.js'],
+    rules: { 'no-restricted-syntax': ['error', noMathRandom] },
+  },
+  {
     files: ['**/*.ts'],
     rules: {
-      'no-restricted-syntax': ['error', noMathRandom],
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
     },
   },
