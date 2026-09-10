@@ -15,10 +15,18 @@
  *
  * Two routes was two sets of rules for what a joined Pokemon is. The card
  * arrived below the level curve because a free Pokemon needed a price; a
- * capture arrives at the level it was fought at, because its price is the step
+ * capture arrived at the level it was fought at, because its price is the step
  * it occupied and the slot it takes. Explaining that difference on screen was
  * not possible, and the simulator's acquisition numbers were measuring the gap
  * between the routes rather than the decision.
+ *
+ * ## Stage 4.7 closed the level difference too
+ *
+ * **Anything joining the party after run start arrives at the segment's player
+ * level**, from `scaling.ts`, whatever level it was fought at. See
+ * `joinLevelFor`. Only the level moves: moveset, ability and item are the ones
+ * the player just watched, because re-rolling a caught Pokemon's moves at a new
+ * level would turn a capture into a reward reroll.
  *
  * ## The one rule
  *
@@ -45,7 +53,7 @@ import { generateWildTeam } from './randomizer';
 import type { RngStream } from './rng';
 import { createPartyMember } from './party';
 import type { ItemId, PokemonSpec, PokemonState } from './types';
-import { PARTY_SIZE, PARTY_TUNING } from '../data/partyTuning';
+import { PARTY_SIZE } from '../data/partyTuning';
 import { playerLevel } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
@@ -96,16 +104,40 @@ export function hasRoom(party: readonly PokemonState[]): boolean {
 }
 
 /**
- * The level an acquired member arrives at.
+ * The level an acquired member arrives at. **The segment's, from Stage 4.7.**
  *
- * Below the segment's curve by `joinLevelOffset`, which is the cost of a free
- * Pokemon: at zero, taking one would be strictly better than declining and
- * there would be no decision in it. Floored at 1, and the party levels it to
- * the curve at the next gym like everything else — so the penalty is paid for
- * the remainder of the current segment and no longer.
+ * `playerLevel(segment)` and nothing else — the same level every other member
+ * of the party is sitting at, because `party.levelParty` puts the whole party
+ * on this number every time a gym falls. A Pokemon that joins is simply a
+ * Pokemon in the party, and the party is level `playerLevel(segment)`.
+ *
+ * **This used to subtract `PARTY_TUNING.joinLevelOffset`, and before that it was
+ * not called at all.** The three-stage history is the argument for where it
+ * landed:
+ *
+ *   - 4.5.1 re-levelled every offer *down* by 3, as the price of a free Pokemon.
+ *   - 4.6a deleted the call for encounter captures, on the grounds that the
+ *     price is the step and the slot, and that a captured Pokemon weaker than
+ *     the one just beaten is a readout the player cannot square with what they
+ *     watched. It arrived "exactly as it was fought".
+ *   - 4.7 keeps 4.6a's reasoning and finishes it. "Exactly as it was fought" is
+ *     a much larger discount than 4.5.1's three levels, in the other direction:
+ *     a wild encounter is drawn at `playerLevel + levelOffset.wild`, which in
+ *     segment 3 is **16 to 20 levels below the party**. A capture was therefore
+ *     a slot that could not fight for the rest of the segment it was taken in —
+ *     including that segment's gym, the one fight where the slot matters.
+ *
+ * The tax was never visible and never chooseable, which is the same objection
+ * 4.6a made to the capture *roll*. `docs/balance.md` §12 has the measurement,
+ * and the honest part of it: the hypothesis that the tax was what suppressed
+ * swapping is **not** supported by the numbers, and this ships as a correctness
+ * fix rather than as the fix for that.
+ *
+ * There is no offset left to floor against, so there is no `Math.max` either:
+ * `playerLevel` is a table of eight values and every one of them is above 1.
  */
 export function joinLevelFor(segment: number): number {
-  return Math.max(1, playerLevel(segment) - PARTY_TUNING.joinLevelOffset);
+  return playerLevel(segment);
 }
 
 /**
@@ -123,13 +155,12 @@ export function joinLevelFor(segment: number): number {
  * "did the seed feel like it", which is not. `data/rewardPools.ts` carries the
  * rate table that used to be here and why it went.
  *
- * **It arrives as it was fought.** Level, moveset, ability, gender and held
- * item are the ones the player just beat, where 4.5.1 re-levelled an encounter
- * offer down to `joinLevelFor(segment)`. The discount was the price of a free
- * Pokemon; the price is now the step and the slot, and a captured Pokemon that
- * was weaker than the one on the field is a readout the player cannot square
- * with what they just saw. Species *reward cards* still join at the discount —
- * they cost no step at all.
+ * **It arrives as it was fought, except for its level.** Moveset, ability,
+ * gender and held item are the ones the player just beat. The level is the
+ * segment's, from Stage 4.7 — see `joinLevelFor` for the tax that clause used
+ * to hide and the measurement that closed it. Nothing here re-rolls: this
+ * function still hands over the node's own lead verbatim, and the level is
+ * applied at the one place a member actually joins, in `applyAcquisition`.
  *
  * **The species is the one just defeated, not a fresh roll.** Unchanged, and
  * still the point of this function: the team was generated by
@@ -214,11 +245,19 @@ export function decisionRefusal(
  * slot, so `release` is a release and not a swap-in-place — the player reorders
  * the party on the party screen if the lead matters to them, and hiding a
  * reorder inside an acquisition would be a second decision in one act.
+ *
+ * **`segment` is required rather than defaulted, and that is the whole of Stage
+ * 4.7's guarantee.** The level normalization has to happen here because this is
+ * the only path by which a party gains a member; a caller that could omit the
+ * segment is a caller that can silently reintroduce the level tax on one branch
+ * and not the other. `applyAcquisition` is called from exactly two places in
+ * `resolveNode` and both know their segment.
  */
 export function applyAcquisition(
   party: readonly PokemonState[],
   offer: AcquisitionOffer,
   decision: AcquisitionDecision,
+  segment: number,
 ): { party: PokemonState[]; freed: ItemId[] } {
   const refusal = decisionRefusal(party, decision);
   if (refusal) throw new RangeError(`Cannot apply acquisition decision: ${refusal}`);
@@ -238,7 +277,22 @@ export function applyAcquisition(
    * is the whole point of a backpack that assignment is free from.
    */
   const carried = offer.spec.item ? [offer.spec.item] : [];
-  const joined = createPartyMember({ ...offer.spec, item: undefined });
+  /*
+   * **The level is the segment's, and it is the only field this touches.**
+   *
+   * Stage 4.7's rule, applied at the one place a member can join. Moveset,
+   * ability, gender and item are the ones the player just fought — re-rolling
+   * the moves at the new level would make a capture a second reward draw, and
+   * would mean the Pokemon the player took is not the Pokemon they watched.
+   *
+   * `createPartyMember` rebuilds max HP and PP from the spec through
+   * `describeSpec`, so the level change is a real one rather than a label: a
+   * mon that joins at 54 has the HP bar of a 54.
+   */
+  const joined = createPartyMember(
+    { ...offer.spec, level: joinLevelFor(segment), item: undefined },
+    segment,
+  );
   if (decision.kind === 'accept') return { party: [...party, joined], freed: carried };
 
   /*

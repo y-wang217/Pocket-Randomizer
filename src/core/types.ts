@@ -349,6 +349,71 @@ export interface MoveSpec {
   maxPp: number;
 }
 
+/**
+ * Everything a move card can say about a move before it is used.
+ *
+ * Stage 4.7, Part 6, and it is the **Release B `MoveExplanation` pulled
+ * forward** rather than a second mechanism beside it. The QoL release plan
+ * specifies this field set; that release is not merged, so `describeMove`
+ * — which existed since Stage 1 as the narrow `MoveSpec` read — is widened to
+ * return it. `MoveSpec` stays as the narrow view its existing callers consume,
+ * so there is one lookup path and one description of a move.
+ *
+ * **Structured fields, never a prose blob.** `core/` returns data, `data/`
+ * holds the wording, `ui/` renders. A sentence written here would be a sentence
+ * a copy change could not reach without a code change, and a sentence a test
+ * would have to assert by substring.
+ *
+ * **Absent rather than empty.** A move with no boosts has no `boosts` key, not
+ * an empty array. The status readout renders a row per present field, and a
+ * present-but-empty field is how a card grows a blank row.
+ */
+export interface MoveExplanation extends MoveSpec {
+  /** PP at full, and the priority bracket. 0 is the ordinary bracket. */
+  priority: number;
+  /** The sim's own target keyword: `normal`, `self`, `allAdjacentFoes`, ... */
+  target: string;
+  /**
+   * The base-power band, from `bandOfMove` and never recomputed.
+   *
+   * Null for a status move and for a move outside the generated pool. **It can
+   * disagree with `basePower` without either being wrong**: banding happens on
+   * a multi-hit move's *total* power, so Population Bomb is band 4 at 20 base
+   * power. Anything rendering one must render the other or the badge reads as
+   * a bug — which is the failure the Release B brief already named.
+   */
+  band: number | null;
+  /** `[min, max]` hits for a multi-hit move; absent for a single-hit one. */
+  multiHit?: readonly [number, number];
+  /** Recoil as a fraction of damage dealt, e.g. 1/3 for Double-Edge. */
+  recoil?: number;
+  /** Healing as a fraction of damage dealt, e.g. 1/2 for Giga Drain. */
+  drain?: number;
+  /** Healing as a fraction of the user's max HP, e.g. 1/2 for Roost. */
+  heal?: number;
+  /** Turns of charge or recharge this move costs. */
+  chargeTurns?: number;
+  rechargeTurns?: number;
+  /** Stat stages this move changes, and on which side. */
+  boosts?: readonly { stat: string; stages: number; target: 'self' | 'foe' }[];
+  /** A status condition the move inflicts outright, e.g. `tox` for Toxic. */
+  status?: string;
+  /** A volatile the move applies, e.g. `confusion`, `substitute`, `protect`. */
+  volatile?: string;
+  /** A field or side condition the move sets, e.g. `trickroom`, `reflect`. */
+  fieldEffect?: string;
+  /** Chance and effect of a secondary, e.g. 30% burn on Flamethrower. */
+  secondary?: { chance: number; status?: string; volatile?: string; boosts?: readonly { stat: string; stages: number }[] };
+  /** Behavioural flags, by the sim's own names: `contact`, `sound`, `bullet`. */
+  flags: readonly string[];
+  /** True when the move ignores Protect and its family. */
+  bypassesProtect: boolean;
+  /** True when the move's crit rate is raised, e.g. Slash. */
+  highCrit: boolean;
+  /** The dex's own one-line description. Last, and never the only readout. */
+  shortDesc: string;
+}
+
 /** Remaining PP for one move slot, carried between encounters. */
 export interface MoveState {
   id: string;
@@ -358,18 +423,69 @@ export interface MoveState {
 }
 
 /**
- * A party member between encounters.
+ * What one party member did in one battle. Raw counts, never a score.
  *
- * This is the *only* thing that persists across a node boundary, and it is
- * deliberately small: identity plus the three resources a run spends — HP, PP
- * and a status condition. Stat stages, volatiles, weather and everything else
- * the sim tracks are per-battle by definition and are not carried, because
- * carrying them would mean serializing a chunk of the engine's internal state
- * and hoping it means the same thing in the next battle.
+ * **Nothing here is a percentage and nothing here is composite**, deliberately.
+ * A percentage is a fact about a denominator that has not been agreed on, and a
+ * composite score is a verdict with the arithmetic hidden inside it — see the
+ * Part 4 editorial rule. Shares are computed at render, from these, against a
+ * denominator the caller can name.
+ */
+export interface Contribution {
+  /**
+   * HP removed from opposing Pokemon by this member's own moves.
+   *
+   * **Direct move damage only.** A `-damage` line carrying a `[from]` tag —
+   * poison, recoil, Life Orb, hazards, a burn — is credited to nobody, because
+   * "damage dealt" that included the poison you inflicted three turns ago would
+   * make the number depend on a causal chain the protocol does not record and
+   * this file would have to guess at.
+   */
+  damageDealt: number;
+  /** HP this member lost, from every source: moves, status, recoil, hazards. */
+  damageTaken: number;
+  /** Opposing Pokemon that fainted to this member's last landed move. */
+  kos: number;
+  /** Times this member fainted. */
+  faints: number;
+  /**
+   * Turns this member was the active Pokemon **when the turn began**.
+   *
+   * The qualifier is the whole definition and it is not the only defensible
+   * one. A switch resolves *inside* a turn, so a turn where A switches out and
+   * B takes the hit is counted for A. Counting it for both would make the
+   * column sum to more turns than the battle had, which is the property that
+   * makes this number usable as a denominator at render.
+   */
+  turnsOnField: number;
+}
+
+/**
+ * What a battle can say about a party member: vitals, never identity.
+ *
+ * This is what persists across a node boundary, and it is deliberately small:
+ * identity plus the three resources a run spends — HP, PP and a status
+ * condition. Stat stages, volatiles, weather and everything else the sim tracks
+ * are per-battle by definition and are not carried, because carrying them would
+ * mean serializing a chunk of the engine's internal state and hoping it means
+ * the same thing in the next battle.
  *
  * `spec` is the unchanging identity. Everything else is the run's damage to it.
+ *
+ * **The split is Stage 4.7's, and it exists because the merge went wrong once.**
+ * `driver.readPartyState` reads a side's team back out of the sim, and it used
+ * to return `PokemonState` — so `party.applyBattleState` could spread the
+ * read-back over the party member and keep two named fields back. That works
+ * exactly as long as `PokemonState` holds nothing the sim does not know about.
+ * The moment it does — when a member joined, what it has contributed — the
+ * spread silently overwrites it with whatever the driver happened to put there,
+ * and nothing fails.
+ *
+ * So the sim's half of the type is named. A battle cannot construct a
+ * `PokemonState` any more, which means it cannot claim to know a run-scoped
+ * fact, which means `applyBattleState` has to say which fields it takes.
  */
-export interface PokemonState {
+export interface BattleMemberState {
   spec: PokemonSpec;
   maxHp: number;
   hp: number;
@@ -386,6 +502,45 @@ export interface PokemonState {
    * explains why that merge lives in exactly one place.
    */
   item?: string;
+}
+
+/**
+ * One Pokemon in the run's party: everything a battle knows, plus what it does
+ * not.
+ */
+export interface PokemonState extends BattleMemberState {
+  /**
+   * The segment index this member joined the party in. Zero for the starter.
+   *
+   * **Run state, not log state**, like HP: a replay rebuilds it from the same
+   * decisions, because the segment an acquisition was accepted in is a fact
+   * about *when* the decision was made rather than a value anything rolled.
+   *
+   * It is here rather than in a side table keyed by party slot for the reason
+   * Stage 4.7 discovered the hard way: **party slots move.** A release deletes
+   * one, an acquisition appends one, and lead selection reorders them
+   * deliberately. Anything keyed by slot index follows the wrong Pokemon the
+   * first time any of those happens, and does it silently.
+   *
+   * It exists to be measured. "How many members entering gym 8 are not the
+   * starter" and "segments since acquisition per member" are the two numbers
+   * the 4.7 level change is judged on, and neither is reconstructible from a
+   * final party alone.
+   */
+  joinedSegment: number;
+  /**
+   * What this member has done, cumulatively, across the whole run.
+   *
+   * **Derived state, and it never enters a `RunLog`.** A replay rebuilds it
+   * from the same battle rolls the original run produced, which is why
+   * `test/run-replay.test.ts` can assert that rebuilt counters match saved ones
+   * exactly — a mismatch there is a determinism bug wearing a stats feature as
+   * a disguise, and that assertion is the whole reason this is derived rather
+   * than logged.
+   *
+   * Raw counts. Never a percentage, never a composite score. See the type.
+   */
+  contribution: Contribution;
 }
 
 // ---------------------------------------------------------------------------
@@ -552,7 +707,27 @@ export type RunDecision =
    * reconstructs exactly. See `party.replacementNeeded`, which is the single
    * definition shared by the question and the replay.
    */
-  | { kind: 'replace'; slot: number };
+  | { kind: 'replace'; slot: number }
+  /**
+   * Who leads the gym battle, as a party slot. **Stage 4.7, Part 2.**
+   *
+   * Asked once per gym, on the screen between the last node of a segment and
+   * the gym itself. An index like every other selection here, and this one is
+   * an index into the party rather than into something the seed generated —
+   * which is fine for the same reason `acquisition`'s release slot is: the
+   * party at that moment is fully reconstructed by the replay that is asking.
+   *
+   * **It is a reorder, not a battle flag.** `party.setLead` moves the chosen
+   * member to slot 0 and it stays there until something else moves it, so
+   * there is one source of truth for who leads and it is the same one the
+   * party screen's drag order writes to. A per-battle flag would be a second
+   * answer to "who is in front", and the two would disagree the first time a
+   * player reordered the party after choosing a lead.
+   *
+   * The visible consequence, flagged rather than hidden: the lead chosen for
+   * gym 3 is still leading at the first node of segment 4.
+   */
+  | { kind: 'lead'; index: number };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

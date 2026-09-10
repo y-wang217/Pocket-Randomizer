@@ -1,6 +1,6 @@
 {
-  "version": "gymrun-run-10/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-11",
+  "version": "gymrun-run-11/gymrun-0.3.0",
+  "randomizerVersion": "gymrun-randomizer-12",
   "aiVersion": "gymrun-ai-2-switching",
   "runs": [
     {
@@ -25,6 +25,14 @@
           "hp": 0,
           "maxHp": 149,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 2050,
+            "damageTaken": 456,
+            "kos": 23,
+            "faints": 1,
+            "turnsOnField": 51
+          },
           "status": null,
           "pp": [
             31,
@@ -48,6 +56,14 @@
           "hp": 0,
           "maxHp": 132,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 145,
+            "damageTaken": 216,
+            "kos": 2,
+            "faints": 1,
+            "turnsOnField": 8
+          },
           "status": null,
           "pp": [
             53,
@@ -71,6 +87,14 @@
           "hp": 0,
           "maxHp": 133,
           "fainted": true,
+          "joinedSegment": 1,
+          "contribution": {
+            "damageDealt": 678,
+            "damageTaken": 281,
+            "kos": 7,
+            "faints": 2,
+            "turnsOnField": 15
+          },
           "status": null,
           "pp": [
             16,
@@ -138,7 +162,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 1,
-          "hpAfter": 148,
+          "hpAfter": 173,
           "casualties": []
         },
         {
@@ -158,7 +182,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 289,
+          "hpAfter": 317,
           "casualties": []
         },
         {
@@ -168,7 +192,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 9,
-          "hpAfter": 181,
+          "hpAfter": 212,
           "casualties": []
         },
         {
@@ -178,7 +202,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 234,
+          "hpAfter": 265,
           "casualties": []
         },
         {
@@ -188,7 +212,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 6,
-          "hpAfter": 255,
+          "hpAfter": 286,
           "casualties": []
         },
         {
@@ -422,6 +446,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -550,6 +578,13 @@
           "kind": "battle",
           "choice": {
             "kind": "switch",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
             "slot": 2
           }
         },
@@ -557,14 +592,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
+            "slot": 2
           }
         },
         {
@@ -634,6 +662,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -876,6 +908,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -1271,6 +1307,14 @@
           "hp": 0,
           "maxHp": 132,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 593,
+            "damageTaken": 162,
+            "kos": 8,
+            "faints": 1,
+            "turnsOnField": 22
+          },
           "status": null,
           "pp": [
             32,
@@ -1294,6 +1338,14 @@
           "hp": 0,
           "maxHp": 85,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 99,
+            "damageTaken": 128,
+            "kos": 1,
+            "faints": 2,
+            "turnsOnField": 5
+          },
           "status": null,
           "pp": [
             37,
@@ -1317,6 +1369,14 @@
           "hp": 0,
           "maxHp": 121,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 196,
+            "damageTaken": 223,
+            "kos": 2,
+            "faints": 2,
+            "turnsOnField": 9
+          },
           "status": null,
           "pp": [
             13,
@@ -1354,7 +1414,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 144,
+          "hpAfter": 165,
           "casualties": []
         },
         {
@@ -1364,7 +1424,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 221,
+          "hpAfter": 267,
           "casualties": []
         },
         {
@@ -1374,7 +1434,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 240,
+          "hpAfter": 286,
           "casualties": []
         },
         {
@@ -1383,8 +1443,8 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 1,
-          "hpAfter": 240,
+          "turns": 4,
+          "hpAfter": 245,
           "casualties": []
         },
         {
@@ -1600,10 +1660,35 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 3
+          }
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
           }
         },
         {
@@ -1911,6 +1996,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -1983,6 +2072,14 @@
           "hp": 0,
           "maxHp": 116,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 2810,
+            "damageTaken": 450,
+            "kos": 30,
+            "faints": 3,
+            "turnsOnField": 57
+          },
           "status": null,
           "pp": [
             4,
@@ -2006,6 +2103,14 @@
           "hp": 0,
           "maxHp": 116,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 187,
+            "damageTaken": 168,
+            "kos": 3,
+            "faints": 1,
+            "turnsOnField": 7
+          },
           "status": null,
           "pp": [
             38,
@@ -2029,6 +2134,14 @@
           "hp": 0,
           "maxHp": 125,
           "fainted": true,
+          "joinedSegment": 0,
+          "contribution": {
+            "damageDealt": 65,
+            "damageTaken": 125,
+            "kos": 2,
+            "faints": 1,
+            "turnsOnField": 4
+          },
           "status": null,
           "pp": [
             32,
@@ -2066,7 +2179,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 1,
-          "hpAfter": 118,
+          "hpAfter": 140,
           "casualties": []
         },
         {
@@ -2076,7 +2189,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 112,
+          "hpAfter": 134,
           "casualties": []
         },
         {
@@ -2086,7 +2199,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 3,
-          "hpAfter": 184,
+          "hpAfter": 230,
           "casualties": []
         },
         {
@@ -2096,7 +2209,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 144,
+          "hpAfter": 190,
           "casualties": []
         },
         {
@@ -2469,6 +2582,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -2715,6 +2832,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -2985,6 +3106,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -3204,6 +3329,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",

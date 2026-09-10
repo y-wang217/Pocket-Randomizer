@@ -15,6 +15,7 @@
  * All of it comes from `describeSpecCard`, so this file never sees the sim.
  */
 import { describeSpecCard } from '../../core/battle/driver';
+import { archetypeChip } from '../archetype-chip';
 import type { PokemonSpec, StatName } from '../../core/types';
 import { el } from '../scene';
 import { typeChip as chip } from '../chip';
@@ -54,7 +55,11 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
   const name = el('span', 'starter__name');
   const level = el('span', 'starter__level');
   const types = el('span', 'panel__types');
-  header.append(name, level, types);
+  // The archetype chip on the first screen of the run, which is where the
+  // vocabulary is worth learning: the player is comparing three stat blocks
+  // and this is the one word that says what each is shaped for.
+  const archetype = el('span', 'starter__archetype');
+  header.append(name, level, archetype, types);
 
   const meta = el('div', 'starter__meta');
   const moves = el('ul', 'starter__moves');
@@ -62,6 +67,7 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
   const detail = describeSpecCard(spec);
   name.textContent = detail.species;
   level.textContent = `Lv${detail.level}`;
+  archetype.replaceChildren(archetypeChip(detail.baseStats));
   types.replaceChildren(...detail.types.map(typeChip));
   meta.textContent = `${detail.ability} · ${detail.maxHp} HP`;
 

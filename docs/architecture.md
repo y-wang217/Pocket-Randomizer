@@ -43,11 +43,17 @@ TypeScript is strict, with `noUncheckedIndexedAccess` on and no `any` in
 ## Layers
 
 ```
-data/                 A leaf. Values and balance numbers, no logic.
-  mons.ts             Curated species pools. Stage 2 replaces these with rolls.
+data/                 A leaf. Values, balance numbers and player-facing copy,
+                      no logic. Generated pools, scaling curves, override
+                      tables, tooltip text — one concern per file. Read the
+                      directory rather than a list here; three entries are
+                      named below only because each is an exception to the
+                      line above.
+  tuning.ts           EVERY balance number a sweep can vary, in one typed
+                      object, passed in rather than imported.
   starters.ts         getStarterPool(unlocked?) — a function, for Stage 5.
-  gyms.ts             Leader, type, segment index, team.
-  tuning.ts           EVERY balance number in the game, in one typed object.
+  mons.ts             NOT balance data. Stage 0's fixed Snorlax/Milotic
+                      matchup, pinned by the determinism and replay tests.
       ^
       | read by
       |
@@ -56,6 +62,8 @@ core/rng.ts           Seeded streams: map, rewards, battle, randomizer,
                       policy — and keyed sub-streams inside each of them.
 core/streamKeys.ts    Every sub-stream key in the game, in one file.
 core/party.ts         What persists between nodes, and the rules that change it.
+core/archetype.ts     archetypeOf(baseStats) -> one of six labels. Pure.
+core/moveTags.ts      Tags and status readouts, derived from describeMove.
 core/encounters.ts    Map and encounter generation. All of it eager,
                       including a route per offered locale.
 core/run.ts           RunState, resolveNode, RunPolicy, playRun.
@@ -64,13 +72,15 @@ core/battle/
   driver.ts           THE ONLY ADAPTER OVER @pkmn/sim.
   stats.ts            The stat formula, pure. Checked against the engine.
   view.ts             BattleUiView — what the battle screen renders, derived.
+  contribution.ts     Protocol lines -> per-member counters. Inside the adapter
+                      boundary: called by runBattle, imports no @pkmn/sim.
   policy.ts           (view) => Promise<Choice>. Human, AI, and bots alike.
   ai.ts               Greedy damage-maximising policy over @smogon/calc.
       |
       v
-ui/                   A thin DOM layer. Eleven screens and a router.
-  screens/            starter-select, locale-select, run-map, battle,
-                      summary, and six more.
+ui/                   A thin DOM layer. Fourteen screens and a router.
+  screens/            One file per screen, plus router.ts. Read the
+                      directory.
   scene.ts            The battlefield. Reads BattleUiView and nothing else.
   tooltips.ts         One delegated tap-first layer. Content all from data/.
 ```
@@ -155,6 +165,7 @@ sweep measure the wrong thing.
 type RunPolicy = {
   chooseStarter: (options: PokemonSpec[]) => Promise<number>;
   chooseNode: (options: NodeSpec[]) => Promise<number>;
+  chooseLead: (party, gym, state) => Promise<number>;   // Stage 4.7
   battle: Policy;
 };
 ```
@@ -318,12 +329,80 @@ reasonable exception at a time. `describeSpecCard` set the precedent in Stage 1
 same shape of thing. The cost is that `driver.ts` is longer; the alternative was
 loosening a load-bearing rule to save a section header.
 
+### The two halves of a party member
+
+Stage 4.7 split `PokemonState` in two, and the split exists because a merge went
+wrong once.
+
+```ts
+interface BattleMemberState { spec; maxHp; hp; moves; status; fainted; item? }
+interface PokemonState extends BattleMemberState { joinedSegment; contribution }
+```
+
+`driver.readPartyState` reads a side's team back out of the sim, and it used to
+return `PokemonState` — so `party.applyBattleState` could spread the read-back
+over the party member and name two exceptions it kept back. That works exactly
+as long as `PokemonState` holds nothing the sim does not know about. The moment
+it does — when a member joined the party, what it has contributed to the run —
+the spread silently overwrites it with whatever the driver happened to put
+there, and **nothing fails**: no type error, no test, just a number that is
+quietly wrong on a summary screen nobody would think to distrust.
+
+Two things changed together. The sim's half of the type is named, so a battle
+cannot construct a `PokemonState` and therefore cannot claim to know a
+run-scoped fact. And `applyBattleState` now **names the five fields it takes**
+rather than spreading and naming the exceptions. The two forms fail in opposite
+directions: spreading makes every field a later stage adds battle-derived by
+default, which is wrong and silent; naming makes a later stage that adds a
+genuinely battle-derived field come here and say so, which is an omission the
+next reader can see.
+
+### Contribution, and where a protocol string may be seen
+
+`core/battle/contribution.ts` reduces protocol lines to per-member counters. It
+sits beside `driver.ts` rather than above it because of that file's own rule:
+**nothing above the adapter may see a protocol string.** This is inside the
+boundary — `runBattle` calls it, its output is plain numbers, and it imports no
+`@pkmn/sim` — so rule 4 and that convention hold together rather than trading
+off.
+
+The counters are derived state: they live on `PokemonState`, never in a
+`RunLog`, and a replay rebuilds them from the same battle rolls. That is what
+lets `test/run-replay.test.ts` assert rebuilt counters match saved ones exactly
+from a mid-battle save — a mismatch there is a determinism bug wearing a stats
+feature as a disguise.
+
+They are on the member rather than in a slot-keyed side table because **party
+slots move**: a release deletes one, an acquisition appends one, and Stage 4.7's
+lead selection reorders them deliberately. Anything keyed by slot index follows
+the wrong Pokemon the first time any of those happens, and does it silently.
+
+### Where the Stage 4.7 labels are computed, and why in three places
+
+`archetypeOf` is one pure function, and three different routes carry its answer
+to a screen. That looks like duplication and is the boundary doing its job:
+
+- **The battle panels** get it on `BattleUiView`. `src/ui/scene.ts` may import
+  only the projection and four vocabulary modules (rule 5), and
+  `core/archetype` is neither, so the label arrives already computed.
+- **Every other screen** calls `ui/archetype-chip.ts`, which is not the battle
+  UI and may reach `core/` freely.
+- **`data/archetypes.ts`** holds the thresholds and every word, so a retune is a
+  table edit and a copy change is a one-file change.
+
+Move tags follow the same shape for the same reason: derived in
+`core/moveTags.ts`, carried to the battle buttons on the projection, and fetched
+directly by every other surface through `ui/move-detail.ts`. `MoveTag` itself
+lives in `data/moveTags.ts` rather than beside its derivation, because the scene
+renders it and the scene cannot import `core/moveTags`.
+
 ## Run logs
 
 ```ts
 type RunDecision =
   | { kind: 'starter'; index: number }
   | { kind: 'node'; index: number }
+  | { kind: 'lead'; index: number }      // Stage 4.7
   | { kind: 'battle'; choice: Choice };
 
 type RunLog = { seed: string; version: string; decisions: RunDecision[] };

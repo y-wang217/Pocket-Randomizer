@@ -73,6 +73,7 @@ import {
   describeMove,
   describeSpecCard,
   readConsumedItems,
+  typeMultiplier,
   type BattleSession,
 } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
@@ -100,6 +101,7 @@ import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/d
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
+import type { GymDefinition } from '../src/data/gyms';
 
 
 /** Berry ids, as a set, for the two tallies that ask "is this a berry". */
@@ -183,7 +185,23 @@ type PolicyName =
    * If `relic-greedy` reaches fewer gyms than `tier-greedy`, the relic is
    * costing more in forgone cards than it pays back.
    */
-  | 'relic-greedy';
+  | 'relic-greedy'
+  /**
+   * The Stage 4.7 pair, and the crude measure of whether the pre-gym screen is
+   * a decision or a nice screen attached to a non-decision.
+   *
+   * Same seeds, same battle AI, same node policy, same locale picks, same catch
+   * rule. The only difference is the answer to one question asked eight times:
+   * `lead-static` never changes the lead and `lead-swap` applies the heuristic
+   * documented at `leadFor`.
+   *
+   * **If there is no gap, Part 2 is a screen attached to a non-decision**, and
+   * that is worth knowing before it is polished. A gap does not prove the
+   * screen is good — it proves the choice is worth something to a bot that can
+   * read the gym's type, which is exactly what the player can read.
+   */
+  | 'lead-static'
+  | 'lead-swap';
 type NodePolicyName = 'rest' | 'wild' | 'trainer' | 'first' | 'random' | 'tier-averse' | 'tier-greedy';
 
 /** The node policy a `--policy` name implies, if it implies one. */
@@ -214,6 +232,8 @@ const TIER_POLICIES: PolicyName[] = ['tier-averse', 'tier-greedy'];
 const CATCH_POLICIES: PolicyName[] = ['catch-greedy', 'catch-averse'];
 /** The Stage 4.6c headline: same seeds, same node appetite, relics on and off. */
 const RELIC_POLICIES: PolicyName[] = ['relic-greedy', 'tier-greedy'];
+/** The Stage 4.7 headline: same seeds, same everything, the lead chosen or not. */
+const LEAD_POLICIES: PolicyName[] = ['lead-static', 'lead-swap'];
 
 function parseArgs(argv: string[]): Options {
   const options: Options = {
@@ -253,7 +273,9 @@ function parseArgs(argv: string[]): Options {
                   ? CATCH_POLICIES
                   : name === 'relics'
                     ? RELIC_POLICIES
-                    : [assertPolicy(name)];
+                    : name === 'leads'
+                      ? LEAD_POLICIES
+                      : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -299,12 +321,13 @@ const POLICY_NAMES: readonly string[] = [
   ...SWITCH_POLICIES,
   ...CATCH_POLICIES,
   ...RELIC_POLICIES,
+  ...LEAD_POLICIES,
 ];
 
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
-      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics or all (got "${name}")`,
+      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics, leads or all (got "${name}")`,
     );
   }
   return name as PolicyName;
@@ -325,11 +348,14 @@ const USAGE = `
     --seeds N        how many seeds to play per policy (default 200)
     --policy NAME    greedy | random | switch-aware | no-switch | switching |
                      tier-averse | tier-greedy | tiers |
-                     catch-greedy | catch-averse | catching | all
+                     catch-greedy | catch-averse | catching |
+                     relic-greedy | relics |
+                     lead-static | lead-swap | leads | all
                      greedy/random and switch-aware/no-switch vary the battle
                      AI; tier-* vary node choice and catch-* vary whether a won
-                     wild encounter is taken — both always use the greedy
-                     battle AI                                (default all)
+                     wild encounter is taken; lead-* vary whether the pre-gym
+                     lead is ever changed — all of them use the greedy battle
+                     AI                                       (default all)
     --nodes NAME     rest | wild | trainer | first | random | tier-averse |
                      tier-greedy | all                        (default rest)
     --prefix TEXT    seed prefix, so two sweeps can use different populations
@@ -1052,6 +1078,16 @@ function buildPolicy(
       randomBattle ? stream.nextInt(Math.max(1, options.length)) : bestStarter(options),
 
     /*
+     * The pre-gym lead. `lead-static` never moves it; everything else swaps.
+     *
+     * `lead-static` returns 0, which is the party order the run already had, so
+     * it is literally the pre-4.7 behaviour. The gap between it and `lead-swap`
+     * is the measure of whether the pre-gym screen decides anything, which is
+     * why the two differ in this answer and in nothing else.
+     */
+    chooseLead: async (party, gym) => (policy === 'lead-static' ? 0 : leadFor(party, gym)),
+
+    /*
      * The locale, drawn uniformly from the offer, for **every** policy.
      *
      * Not "take the first", which was the placeholder and was worse than it
@@ -1347,11 +1383,37 @@ interface RunRecord {
     /** Berries held or bagged entering this gym, and the bag's size. */
     berries: number;
     backpack: number;
+    /**
+     * The segment each member joined the party in. **Stage 4.7.**
+     *
+     * Zero is the starter. Everything else is a capture or an event Pokemon,
+     * and the two questions Part 8 is judged on are both read off this list:
+     * *party churn*, meaning how much of the party entering gym 8 is not the
+     * starter, and *segments since acquisition*, meaning how long the run has
+     * actually been carrying what it caught.
+     *
+     * Neither is reconstructible from a final party. A run that caught and
+     * released the same slot four times looks identical at gym 8 to one that
+     * caught once in segment 1, and those are opposite findings.
+     */
+    joinedSegments: number[];
   }[];
 
   // --- Stage 4.6b ---------------------------------------------------------
   /** Berries the player's side used up, tagged with the segment they fired in. */
   berriesEaten: { segment: number }[];
+
+  // --- Stage 4.7 -----------------------------------------------------------
+  /**
+   * Damage dealt by each member the run *ended* with, whole run.
+   *
+   * The question is concentration: is this a party, or one Pokemon and two
+   * health bars? Taken from the final party rather than accumulated across
+   * releases, because a member the run let go is not part of the party the
+   * question is about — and because a released member's counters leave with it,
+   * which is the honest reading of "release is permanent".
+   */
+  damageByMember: number[];
 }
 
 async function playSample(
@@ -1415,6 +1477,7 @@ async function playSample(
             ),
             berries: carried.filter((item) => BERRY_IDS.has(item)).length,
             backpack: before.backpack.length,
+            joinedSegments: before.party.map((member) => member.joinedSegment),
           });
         }
       },
@@ -1512,6 +1575,7 @@ async function playSample(
       relicsSeen: [...new Set(collect.relicsSeen)],
       gymParties,
       berriesEaten,
+      damageByMember: state.party.map((member) => member.contribution.damageDealt),
     });
     onProgress(index + 1);
   }
@@ -1746,6 +1810,30 @@ interface Sample {
     /** Relics that never appeared on a card anywhere in the sample. */
     neverOffered: string[];
   };
+  /**
+   * Concentration: whether the run has a party or a solo carry. **Stage 4.7.**
+   *
+   * Three numbers, and the spec asks for all three because each one fails a
+   * different way on its own. A *mean* share hides the shape of the
+   * distribution; a threshold count says how often it is bad but not how bad;
+   * and neither says how many members are doing anything at all.
+   *
+   * If concentration is high across a sample, the party is decoration, and that
+   * is a larger finding than any patch that produced it. It is reported plainly
+   * and not fixed by whatever patch surfaced it.
+   */
+  contribution: {
+    /** Runs with a final party of at least one member, the denominator here. */
+    runs: number;
+    /** Mean share of a run's damage dealt by its single highest contributor. */
+    meanTopShare: number;
+    /** Deciles of that share across the sample, so the shape is visible. */
+    topShareDeciles: Tally[];
+    /** Share of runs where one member dealt more than 60% of the damage. */
+    carriedRuns: number;
+    /** Mean members dealing more than 10% of a run's damage. */
+    meanContributors: number;
+  };
   capture: {
     /** Wild victories that offered a capture, per run and in total. */
     offered: number;
@@ -1769,8 +1857,92 @@ interface Sample {
       topSpecies: Tally[];
       topTypes: Tally[];
     };
+    /**
+     * Party churn at gym 8. **Stage 4.7's headline, and its own disconfirmation.**
+     *
+     * The 4.7 level change was made on a hypothesis: that a capture carried a
+     * hidden level tax, that swapping was therefore worse than it looked, and
+     * that runs converged on the starter with the party as decoration. These
+     * are the numbers that say whether that is true — and they were checked
+     * *before* the change, where they already disagreed with it (see
+     * `docs/balance.md` §12).
+     *
+     * `meanNonStarters` over `PARTY_SIZE` is the share of a gym-8 party that
+     * the run went out and got. `starterOnly` is the failure state: runs where
+     * the only thing standing at the last gym is what the run started with.
+     */
+    churn: {
+      /** Mean members entering gym 8 that are not the starter. */
+      meanNonStarters: number;
+      /** Share of gym-8 parties carrying nothing but the starter. */
+      starterOnly: number;
+      /** Share of gym-8 parties still carrying the starter at all. */
+      starterSurvives: number;
+      /**
+       * Segments a member had been in the party for, entering gym 8.
+       *
+       * `gym - 1 - joinedSegment`, tallied across every member of every gym-8
+       * party. A distribution piled at 0 and 1 means the party is churning
+       * constantly and nothing that joins sticks; one piled at 7 means the run
+       * is the starter and two passengers.
+       */
+      segmentsSinceAcquisition: Tally[];
+    };
   };
   durationMs: number;
+}
+
+/**
+ * Which party member the bot leads a gym with. **Stage 4.7, and deliberately
+ * crude.**
+ *
+ * The standing rule is that a greedy policy's heuristic is written down,
+ * because it appears in every balance report from here on and a number produced
+ * by an unstated rule is a number nobody can argue with. This is the rule, in
+ * full:
+ *
+ *   1. Fainted members are skipped. `battleMembersFor` would skip them anyway,
+ *      so leading with one is not a choice the game offers.
+ *   2. Score each remaining member as
+ *        (its best damaging move's multiplier against the gym's type)
+ *        minus (the gym type's best multiplier against that member's types).
+ *      Offence first, defence in the same units as the tie-breaker, which is
+ *      the simplest statement of "hits it, is not hit by it".
+ *   3. Ties go to the earlier party slot, so the answer is deterministic and a
+ *      bot that finds nothing to prefer changes nothing.
+ *
+ * It is not smart. It does not read the leader's actual team — the player
+ * cannot either — it ignores HP, speed and held items, and it will happily lead
+ * with a Pokemon that dies to the leader's coverage move. It is a floor: if the
+ * gap between `lead-static` and `lead-swap` is zero *even with a rule this
+ * crude*, the decision is not a decision.
+ *
+ * It consumes no RNG, which is what keeps the lead pair a controlled
+ * comparison: both bots draw the same locales from the same stream positions.
+ */
+function leadFor(party: readonly PokemonState[], gym: GymDefinition): number {
+  let best = 0;
+  let bestScore = -Infinity;
+
+  for (const [index, member] of party.entries()) {
+    if (member.fainted) continue;
+    const card = describeSpecCard(member.spec);
+
+    const offence = Math.max(
+      0,
+      ...card.moves
+        .filter((move) => move.category !== 'Status')
+        .map((move) => typeMultiplier(move.type, [gym.type])),
+    );
+    const defence = typeMultiplier(gym.type, card.types);
+    const score = offence - defence;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = index;
+    }
+  }
+  return best;
 }
 
 /**
@@ -1971,6 +2143,7 @@ function summarize(
     party: summarizeParty(records),
     ramp: summarizeRamp(records),
     locales: summarizeLocales(records),
+    contribution: summarizeContribution(records),
     capture: summarizeCapture(records),
     relics: summarizeRelics(records),
     durationMs,
@@ -2178,6 +2351,50 @@ function summarizeRelics(records: RunRecord[]): Sample['relics'] {
   };
 }
 
+/**
+ * Contribution concentration across a sample.
+ *
+ * Runs whose final party dealt no damage at all are excluded rather than
+ * counted as perfectly concentrated: a party wiped in segment 0 before landing
+ * a hit has no share to compute, and folding it in as 0 or as 1 would both be
+ * statements the data does not make.
+ */
+function summarizeContribution(records: RunRecord[]): Sample['contribution'] {
+  const usable = records.filter((record) => sum(record.damageByMember) > 0);
+  if (usable.length === 0) {
+    return { runs: 0, meanTopShare: 0, topShareDeciles: [], carriedRuns: 0, meanContributors: 0 };
+  }
+
+  const topShares = usable.map((record) => {
+    const total = sum(record.damageByMember);
+    return Math.max(...record.damageByMember) / total;
+  });
+  const contributors = usable.map((record) => {
+    const total = sum(record.damageByMember);
+    return record.damageByMember.filter((damage) => damage / total > CONTRIBUTOR_FLOOR).length;
+  });
+
+  return {
+    runs: usable.length,
+    meanTopShare: sum(topShares) / usable.length,
+    topShareDeciles: tally(
+      topShares.map((share) => {
+        const decile = Math.min(9, Math.floor(share * 10));
+        return `${decile * 10}-${decile * 10 + 10}%`;
+      }),
+      10,
+    ),
+    carriedRuns: topShares.filter((share) => share > CARRY_THRESHOLD).length / usable.length,
+    meanContributors: sum(contributors) / usable.length,
+  };
+}
+
+/** A member deals more than this share of a run's damage to count as a contributor. */
+const CONTRIBUTOR_FLOOR = 0.1;
+
+/** Above this share for one member, the run was carried rather than played. */
+const CARRY_THRESHOLD = 0.6;
+
 function summarizeCapture(records: RunRecord[]): Sample['capture'] {
   const runs = Math.max(1, records.length);
   const offered = sum(records.map((record) => record.capturesOffered));
@@ -2198,6 +2415,22 @@ function summarizeCapture(records: RunRecord[]): Sample['capture'] {
     record.gymParties.filter((entry) => entry.gym === SEGMENTS_PER_RUN),
   );
 
+  /*
+   * Churn, read off `joinedSegments` rather than off the species list.
+   *
+   * A member is "not the starter" when it joined in a segment above zero. That
+   * is the whole definition, and it is a fact the run recorded at the moment
+   * the decision was taken rather than something inferred at the end — which
+   * matters because a run can release the starter and a run can catch the same
+   * species it started with, and both would confuse a species-based reading.
+   */
+  const nonStarters = finals.map(
+    (entry) => entry.joinedSegments.filter((segment) => segment > 0).length,
+  );
+  const ages = finals.flatMap((entry) =>
+    entry.joinedSegments.map((segment) => SEGMENTS_PER_RUN - 1 - segment),
+  );
+
   return {
     offered,
     taken,
@@ -2210,6 +2443,18 @@ function summarizeCapture(records: RunRecord[]): Sample['capture'] {
       distinctSpecies: new Set(finals.flatMap((entry) => entry.species)).size,
       topSpecies: tally(finals.flatMap((entry) => entry.species), 6),
       topTypes: tally(finals.flatMap((entry) => entry.types), 6),
+    },
+    churn: {
+      meanNonStarters: finals.length === 0 ? 0 : sum(nonStarters) / finals.length,
+      starterOnly: finals.length === 0 ? 0 : nonStarters.filter((count) => count === 0).length / finals.length,
+      starterSurvives:
+        finals.length === 0
+          ? 0
+          : finals.filter((entry) => entry.joinedSegments.includes(0)).length / finals.length,
+      segmentsSinceAcquisition: tally(
+        ages.map((age) => `${age} segments`),
+        SEGMENTS_PER_RUN,
+      ),
     },
   };
 }
@@ -2464,6 +2709,63 @@ function render(sample: Sample): string {
     '  risky path. The gap measures that too. Use --policy relics instead.',
   );
 
+  /*
+   * Concentration, printed before capture because it is the question capture
+   * exists to answer. A high take rate is only good news if the members it
+   * produced are doing something.
+   */
+  const contribution = sample.contribution;
+  if (contribution.runs > 0) {
+    out.push('', `Contribution — is this a party or a carry? n=${contribution.runs} runs`);
+    out.push(
+      table(
+        ['measure', 'value', 'reads as'],
+        [
+          [
+            'top member\'s share of damage',
+            pct(contribution.meanTopShare),
+            contribution.meanTopShare > 0.6
+              ? 'a solo carry with passengers'
+              : 'the party is fighting',
+          ],
+          [
+            `runs where one member dealt >${pct(CARRY_THRESHOLD)}`,
+            pct(contribution.carriedRuns),
+            'the party was decoration in these',
+          ],
+          [
+            `members dealing >${pct(CONTRIBUTOR_FLOOR)}`,
+            contribution.meanContributors.toFixed(2),
+            `of ${PARTY_SIZE} slots`,
+          ],
+        ],
+      ),
+    );
+    out.push(
+      '',
+      '  Top member\'s share, by decile',
+      ...contribution.topShareDeciles.map(
+        (row) => `    ${row.label.padEnd(10)} ${String(row.count).padStart(5)}  ${pct(row.share)}`,
+      ),
+    );
+    out.push(
+      '',
+      '  Tenure is a confound and it is not corrected for. The starter has been',
+      '  in the party for the whole run; a member caught in segment 5 has had',
+      '  three segments to deal damage. Some concentration is that and not carry.',
+      '  Members released along the way take their counters with them, so the',
+      '  denominator is the damage dealt by the party that finished.',
+    );
+    if (contribution.meanTopShare > 0.6) {
+      out.push(
+        '',
+        '  Even so, at this share the party is decoration. That is a finding',
+        '  about the game rather than about whatever patch surfaced it, and the',
+        '  fix is not in the patch that printed this line.',
+      );
+    }
+  }
+
   const capture = sample.capture;
   out.push('', 'Capture — the offer every won wild encounter makes');
   out.push(
@@ -2484,6 +2786,44 @@ function render(sample: Sample): string {
       ],
     ),
   );
+
+  /*
+   * Churn, printed next to the take rate because the two only mean anything
+   * together. A high take rate with near-zero churn is a run that catches
+   * constantly and keeps nothing, which is a different game from one that
+   * catches twice and carries both to the end.
+   */
+  if (capture.gym8.parties > 0) {
+    const churn = capture.churn;
+    out.push('', `Party churn at gym ${SEGMENTS_PER_RUN} — n=${capture.gym8.parties} parties`);
+    out.push(
+      table(
+        ['measure', 'value', 'reads as'],
+        [
+          [
+            'members not the starter',
+            `${churn.meanNonStarters.toFixed(2)} of ${PARTY_SIZE}`,
+            churn.meanNonStarters < 0.5
+              ? 'the party is the starter and decoration'
+              : 'the run is being built, not inherited',
+          ],
+          [
+            'starter-only parties',
+            pct(churn.starterOnly),
+            'carrying nothing the run went out and got',
+          ],
+          ['starter still alive', pct(churn.starterSurvives), 'never released, never lost'],
+        ],
+      ),
+    );
+    out.push(
+      '',
+      `  Segments in the party, entering gym ${SEGMENTS_PER_RUN}`,
+      ...churn.segmentsSinceAcquisition.map(
+        (row) => `    ${row.label.padEnd(12)} ${String(row.count).padStart(5)}  ${pct(row.share)}`,
+      ),
+    );
+  }
 
   out.push('', 'Party entering each gym — the curve\'s own assumption in the last column');
   out.push(

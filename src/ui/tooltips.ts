@@ -38,12 +38,37 @@ import { bandInfo, BAND_MULTIHIT_NOTE } from '../data/bandInfo';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
+import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
+import {
+  ARCHETYPES,
+  ARCHETYPE_CAVEAT,
+  ARCHETYPE_DISPLAY,
+  ARCHETYPE_INTRO,
+} from '../data/archetypes';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { typeChip } from './chip';
 import { el } from './scene';
 
 /** What a `data-tip` attribute can name. */
-type TipKind = 'type' | 'status' | 'volatile' | 'ability' | 'item' | 'category' | 'stat' | 'band';
+type TipKind =
+  | 'type'
+  | 'status'
+  | 'volatile'
+  | 'ability'
+  | 'item'
+  | 'category'
+  | 'stat'
+  | 'band'
+  /** A move tag on a card face. Stage 4.7, Part 6b. */
+  | 'movetag'
+  /**
+   * The six-label stat shorthand. Stage 4.7, Part 7.
+   *
+   * The one tip with no id of its own: every chip raises the same panel,
+   * because what a player taps a label for is *what the labels are* rather than
+   * what that one means. `archetype:all` is the trigger every chip carries.
+   */
+  | 'archetype';
 
 const KINDS: readonly TipKind[] = [
   'type',
@@ -54,6 +79,8 @@ const KINDS: readonly TipKind[] = [
   'category',
   'stat',
   'band',
+  'movetag',
+  'archetype',
 ];
 
 export interface TooltipLayer {
@@ -205,7 +232,56 @@ function render(tip: string): HTMLElement | null {
       return renderStat(id);
     case 'band':
       return renderBand(id);
+    case 'movetag':
+      return renderMoveTag(id);
+    case 'archetype':
+      return renderArchetypes();
   }
+}
+
+/**
+ * What one move tag claims.
+ *
+ * The words are `data/moveTags.ts`'s, like every other tip in this file — the
+ * layer is a lookup and a positioner and carries no prose of its own, which
+ * `test/boundaries.test.ts` checks.
+ */
+function renderMoveTag(id: string): HTMLElement | null {
+  const tag = MOVE_TAG_BY_ID[id as MoveTagId];
+  if (!tag) return null;
+  const body = panel(tag.long);
+  body.append(line(tag.blurb, 'tip__text'));
+  return body;
+}
+
+/**
+ * The whole archetype vocabulary, with the caveat that has to travel with it.
+ *
+ * All six rather than the one tapped, because the question a player has when
+ * they tap a label is what the *set* is: one label in isolation says nothing
+ * about whether there is a sixth or a sixtieth.
+ *
+ * **The caveat is not optional and is why this is a panel rather than a
+ * sentence.** Under full move randomization a physical attacker can be holding
+ * four special moves. The label describes the stat block, never the moveset,
+ * and the player meets that in the first hour.
+ */
+function renderArchetypes(): HTMLElement {
+  const body = panel('Stat shapes');
+  body.append(line(ARCHETYPE_INTRO, 'tip__text'));
+  const list = el('ul', 'tip__list');
+  for (const label of ARCHETYPES) {
+    const display = ARCHETYPE_DISPLAY[label];
+    const row = el('li', 'tip__row');
+    const name = el('span', 'tip__row-label');
+    name.textContent = display.long;
+    const blurb = el('span', 'tip__row-value');
+    blurb.textContent = display.blurb;
+    row.append(name, blurb);
+    list.append(row);
+  }
+  body.append(list, line(ARCHETYPE_CAVEAT, 'tip__note'));
+  return body;
 }
 
 function panel(title: string, className = ''): HTMLElement {

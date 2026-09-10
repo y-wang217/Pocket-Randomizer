@@ -7,6 +7,7 @@
  * could invent one, "deterministic core" would be a claim rather than a fact.
  */
 import { createRng, formatSeed, normalizeSeed } from '../core/rng';
+import { SEED_KEY } from '../core/streamKeys';
 
 /** Read a seed from the URL so a battle can be shared or bookmarked. */
 export function seedFromLocation(url: string): string | null {
@@ -27,10 +28,18 @@ export function writeSeedToLocation(seed: string): void {
  *
  * Entropy comes from the platform CSPRNG, then goes straight into a named
  * stream so even seed *generation* uses the same code path as everything else.
+ *
+ * **Through a key, since Release 0.5.** This read off the unkeyed root of `map`
+ * until then, and it was the last caller of that API in `src/` — the one place
+ * production code could still draw from a sequence with a global position. The
+ * derivation changed, so the seed minted from a given block of entropy changed
+ * with it, and that is observable by nothing: the entropy is fresh every call
+ * and never repeats. No recorded seed moves, which is why this one caller could
+ * be ported inside a cleanup pass when the rest cannot be.
  */
 export function newSeed(): string {
   const entropy = new Uint32Array(4);
   globalThis.crypto.getRandomValues(entropy);
   const material = Array.from(entropy, (n) => n.toString(16).padStart(8, '0')).join('');
-  return formatSeed(createRng(material).map);
+  return formatSeed(createRng(material).map.at(SEED_KEY));
 }

@@ -180,7 +180,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * two axes disagreeing here is the two axes working. See its comment in
  * `core/run.ts` for the other half of that argument.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-11';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-12';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

@@ -110,3 +110,55 @@ export function hpEventDelta(fraction: number): string {
 export function ppState(current: number, max: number): string {
   return `PP ${current}/${max}`;
 }
+
+// ---------------------------------------------------------------------------
+// The result screen
+// ---------------------------------------------------------------------------
+
+/*
+ * Stage 4.7, Part 4. **Text only** — no new visuals, no new screen, no new
+ * route. The result screen has existed since the round 2 patch; it just did not
+ * say enough.
+ *
+ * These live here for the reason the HP wording does: item G's rule is one
+ * place, so wording is a one-file change, and a string that is unit-testable
+ * without a DOM is a string a test can assert does not contradict what just
+ * happened. `test/result-screen.test.ts` reads them.
+ */
+
+/** The headline. Two states, and a draw against a gym is a loss. */
+export function outcomeTitle(won: boolean): string {
+  return won ? 'Victory' : 'Defeated';
+}
+
+/**
+ * What this node paid **and what the run now holds**.
+ *
+ * Both numbers, which is the Part 4 addition. "+40 coins" is a fact about the
+ * node; "you have 216" is the fact the next shop decision is made on, and a
+ * player who has to add the two in their head is doing arithmetic instead of
+ * deciding.
+ */
+export function currencyLine(earned: number, total: number): string {
+  return earned > 0 ? `+${earned} coins · ${total} total` : `No coins · ${total} total`;
+}
+
+/** How many members went down, and what happens to them. */
+export function faintedLine(count: number): string {
+  if (count === 0) return 'Nobody went down.';
+  const who = count === 1 ? '1 member fainted' : `${count} members fainted`;
+  return `${who} — ${FAINTED_REVIVES.toLowerCase().replace('fainted — ', '')}`;
+}
+
+/** The loss line. The run ends, and the summary screen says why. */
+export const RUN_ENDS = 'The run ends here.';
+
+/** The heading above the per-member HP and PP block. */
+export const PARTY_AFTER = 'Your party after the battle';
+
+/** The heading above the three cards, before the tier badge. */
+export const TAKE_ONE = 'Take one ';
+
+/** The cards-only path: `app.ts`'s `chooseReward` fallback. */
+export const CARDS_ONLY_TITLE = 'Choose a reward';
+export const CARDS_ONLY_BLURB = 'One of the three. There is no skip.';

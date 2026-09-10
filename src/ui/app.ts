@@ -45,12 +45,16 @@ import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
-import { createRouter } from './screens/router';
+import { createRouter, type ScreenName } from './screens/router';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
 import { createStamps } from './stamps';
+import { createPreGymScreen } from './screens/pre-gym';
+import { createDrawer, type DrawerView } from './drawer';
+import { gymForSegment } from '../data/gyms';
+import { itemLayoutOf } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 
 export function mountApp(root: HTMLElement): void {
@@ -68,11 +72,26 @@ export function mountApp(root: HTMLElement): void {
   const targetScreen = createItemTargetScreen();
   const replaceScreen = createMoveReplaceScreen();
   const partyScreen = createPartyScreen();
+  const preGymScreen = createPreGymScreen();
   const summaryScreen = createSummary();
 
   const shell = el('main', 'shell');
   const router = createRouter(
     {
+  /*
+   * The party drawer, mounted once at the shell and toggled. **Stage 4.7, Part 1.**
+   *
+   * One drawer, not one panel per screen, and an *overlay* rather than a route:
+   * closing it returns to byte-identical screen state with nothing selected and
+   * nothing submitted. A route would unmount the screen underneath and take its
+   * half-filled shop basket with it.
+   *
+   * `src/ui/drawer.ts` carries the standing rule this implements, and
+   * `docs/generation.md` §12 is where future screens inherit it.
+   */
+  const drawer = createDrawer();
+
+  const router = createRouter({
     starter: starterScreen.root,
     locale: localeScreen.root,
     map: mapScreen.root,
@@ -81,6 +100,7 @@ export function mountApp(root: HTMLElement): void {
     target: targetScreen.root,
     replace: replaceScreen.root,
     party: partyScreen.root,
+    'pre-gym': preGymScreen.root,
     shop: shopScreen.root,
     event: eventScreen.root,
     summary: summaryScreen.root,
@@ -99,6 +119,76 @@ export function mountApp(root: HTMLElement): void {
   const world = createWorldScene();
   root.replaceChildren(world.root, shell);
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
+  const shell = el('main', 'shell');
+
+  /*
+   * The drawer trigger: **one button, mounted at the shell, not one per screen.**
+   *
+   * The rule is that it sits in the same screen position on every decision
+   * surface. Ten per-screen buttons could satisfy that on the day they were
+   * written and drift the first time one screen's header grew a row; one button
+   * outside the router cannot drift, and no screen can forget to add it.
+   *
+   * It is shown on the surfaces that ask the player for something *and* have a
+   * party to show. Starter select is a decision with no party yet; the summary
+   * is a finished run. Both hide it rather than showing an empty drawer.
+   */
+  const drawerBar = el('div', 'shell__drawer-bar');
+  const drawerTrigger = drawer.trigger();
+  drawerBar.append(drawerTrigger);
+
+  shell.append(createHeader(), seedBar.root, drawerBar, router.root, drawer.root);
+
+  /** Surfaces that ask for a decision and have a party to show while asking. */
+  const DRAWER_SURFACES: readonly ScreenName[] = [
+    'locale',
+    'map',
+    'battle',
+    'result',
+    'target',
+    'replace',
+    'party',
+    'pre-gym',
+    'shop',
+    'event',
+  ];
+
+  /*
+   * The trigger's visibility follows the router, in one place.
+   *
+   * Wrapped rather than pushed into `createRouter`, because the router's job is
+   * to toggle screens and a router that also knew which screens had a party
+   * would be a router that knew about the party.
+   */
+  const showScreen = (name: ScreenName): void => {
+    router.show(name);
+    drawerBar.hidden = !DRAWER_SURFACES.includes(name);
+    // Closing on navigation, not on open: a drawer left open across a screen
+    // change would be an overlay over a decision the player has already made.
+    drawer.close();
+  };
+
+  /*
+   * What the drawer would show, asked at the moment it is opened.
+   *
+   * A getter rather than a snapshot, and that is the whole of "opening it never
+   * advances state": the trigger *reads*. It calls nothing, submits nothing,
+   * resolves no pending promise and touches no stream. A snapshot kept up to
+   * date by a subscription would work too and would be a second copy of run
+   * state to keep in agreement with the first.
+   *
+   * Assigned by `start()`, because the run's state and its unspent item plan
+   * both live inside that closure. Null between runs, and the trigger is
+   * hidden then anyway.
+   */
+  let readDrawer: () => DrawerView | null = () => null;
+
+  drawerTrigger.addEventListener('click', () => {
+    const view = readDrawer();
+    if (!view) return;
+    drawer.open({ ...view, inBattle: router.current() === 'battle' });
+  });
+  root.replaceChildren(shell);
 
   /*
    * Which phase the app is in, so CSS can reclaim the setup chrome on a phone.
@@ -159,6 +249,7 @@ export function mountApp(root: HTMLElement): void {
     const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<number>();
+    const leadPick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     const releaseBattle = (): void => {
       detachBattle?.();
@@ -176,24 +267,63 @@ export function mountApp(root: HTMLElement): void {
       acquirePick.cancel();
       shopBasket.cancel();
       eventPick.cancel();
+      leadPick.cancel();
       releaseBattle();
     };
 
     const policy: RunPolicy = {
       chooseStarter: (options: PokemonSpec[]) => {
         starterScreen.render(options, (index) => starterPick.submit(index));
-        router.show('starter');
+        showScreen('starter');
         return starterPick.wait();
       },
       chooseLocale: (options, state) => {
-        localeScreen.render(options, state.currentSegment, (index) => localePick.submit(index));
-        router.show('locale');
+        localeScreen.render(
+          {
+            options,
+            segment: state.currentSegment,
+            // The segment's own gym, and only that one. Revealing the full
+            // eight-gym ladder turns the run into a draft plan — a different
+            // and probably interesting game, and a bigger change than this
+            // patch. See the header on `locale-select.ts`.
+            gym: gymForSegment(state.currentSegment),
+            party: state.party,
+          },
+          (index) => localePick.submit(index),
+        );
+        showScreen('locale');
         return localePick.wait();
+      },
+
+      /*
+       * The pre-gym screen. **Stage 4.7, Part 2.**
+       *
+       * Between the last node of a segment and the gym battle, and the only
+       * decision on it is who leads. Not a node: `playRun` asks this inside the
+       * `atGym` branch, before `playNode`, so it costs no step and consumes no
+       * RNG.
+       */
+      chooseLead: (party, gym, state) => {
+        preGymScreen.render(
+          {
+            gym,
+            segment: state.currentSegment,
+            party,
+            holding: itemLayoutOf(party, pendingPlan),
+            tuning: state.tuning,
+          },
+          {
+            onLead: (slot) => leadPick.submit(slot),
+            onManageParty: showParty,
+          },
+        );
+        showScreen('pre-gym');
+        return leadPick.wait();
       },
       chooseNode: (options: NodeSpec[]) => {
         // The map is already rendered by onState; this only arms the buttons.
         void options;
-        router.show('map');
+        showScreen('map');
         return nodePick.wait();
       },
       /*
@@ -209,7 +339,7 @@ export function mountApp(root: HTMLElement): void {
       reviewBattle: (review, state) => {
         lastReview = review;
         resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
-        router.show('result');
+        showScreen('result');
         return rewardPick.wait();
       },
       /*
@@ -223,7 +353,7 @@ export function mountApp(root: HTMLElement): void {
        */
       chooseReward: async (offer, state) => {
         resultScreen.render(null, offer, state, (index) => rewardPick.submit(index));
-        router.show('result');
+        showScreen('result');
         return (await rewardPick.wait()) ?? 0;
       },
       /*
@@ -257,19 +387,19 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseShopPurchases: (stock, state) => {
         shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
-        router.show('shop');
+        showScreen('shop');
         return shopBasket.wait();
       },
       chooseEventOption: (event, state) => {
         // The event screen holds the run open between the pick and the reveal:
         // it resolves this promise on "Carry on", not on the choice itself.
         eventScreen.render(event, state, (index) => eventPick.submit(index));
-        router.show('event');
+        showScreen('event');
         return eventPick.wait();
       },
       chooseMoveRecipient: (offer, party) => {
         targetScreen.render(offer, party, (slot) => targetPick.submit(slot));
-        router.show('target');
+        showScreen('target');
         return targetPick.wait();
       },
       /*
@@ -287,9 +417,9 @@ export function mountApp(root: HTMLElement): void {
        * The heuristic stays where it belongs: `scripts/sim.ts` and the replay
        * baseline still answer with it, which is why it is still exported.
        */
-      chooseMoveToReplace: (member, incoming) => {
-        replaceScreen.render(member, incoming, (slot) => replacePick.submit(slot));
-        router.show('replace');
+      chooseMoveToReplace: (member, incoming, state) => {
+        replaceScreen.render(member, incoming, (slot) => replacePick.submit(slot), state.tuning);
+        showScreen('replace');
         return replacePick.wait();
       },
       /*
@@ -313,7 +443,7 @@ export function mountApp(root: HTMLElement): void {
             party,
             onDecide: (decision) => acquirePick.submit(decision),
           });
-          router.show('result');
+          showScreen('result');
         }
         return acquirePick.wait();
       },
@@ -331,6 +461,26 @@ export function mountApp(root: HTMLElement): void {
      * `core/party.ts` and re-renders both.
      */
     let live: RunState | null = null;
+
+    /*
+     * The drawer's window onto this run. See `readDrawer` above.
+     *
+     * `itemLayoutOf` folds in the unspent plan, so a player who moved their
+     * Leftovers on the party screen and then opened the drawer from the shop
+     * sees where the item is *going*, not where the run still records it. A
+     * readout that contradicted a decision the player already made is the exact
+     * failure the drawer exists to remove.
+     */
+    readDrawer = () => {
+      const state = live;
+      if (!state) return null;
+      return {
+        party: state.party,
+        holding: itemLayoutOf(state.party, pendingPlan),
+        relics: state.relics,
+        tuning: state.tuning,
+      };
+    };
 
     /*
      * The last battle result shown, held for the capture render that follows it.
@@ -393,10 +543,10 @@ export function mountApp(root: HTMLElement): void {
           onPlan: (plan) => {
             pendingPlan = plan;
           },
-          onDone: () => router.show('map'),
+          onDone: () => showScreen('map'),
         },
       );
-      router.show('party');
+      showScreen('party');
     };
 
     /*
@@ -458,7 +608,7 @@ export function mountApp(root: HTMLElement): void {
         // against the following turn.
         movePick.submit(choice);
       });
-      router.show('battle');
+      showScreen('battle');
     };
 
     try {
@@ -480,6 +630,7 @@ export function mountApp(root: HTMLElement): void {
         seed: result.state.seed,
       });
       router.show('summary');
+      showScreen('summary');
       // The run is over, so the seed controls are wanted again: the summary is
       // where a player picks the next seed or replays this one.
       setPhase('setup');
@@ -524,7 +675,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 4.6b · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, caught in eight regions, on a kit that climbs`;
+  subtitle.textContent = `Stage 4.7 · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, caught in eight regions, and legible`;
   header.append(title, subtitle, createVerbosityToggle());
   return header;
 }

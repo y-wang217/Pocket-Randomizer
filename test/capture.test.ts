@@ -52,6 +52,16 @@ const offerOf = (species: string, extra: Partial<PokemonSpec> = {}): Acquisition
   spec: spec(species, extra),
 });
 
+/**
+ * The segment an acquisition is applied in. **Stage 4.7.**
+ *
+ * `applyAcquisition` needs one because a joining member arrives at that
+ * segment's player level. Fixed at 2 here, well clear of the level 20 the
+ * fixtures above are built at, so a normalization that did nothing could not
+ * pass by coincidence.
+ */
+const SEGMENT = 2;
+
 // ---------------------------------------------------------------------------
 // 1. The offer
 // ---------------------------------------------------------------------------
@@ -108,7 +118,7 @@ describe('the three answers', () => {
 
   it('fills an empty slot on accept', () => {
     const party = partyOf('Bulbasaur');
-    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'accept' });
+    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'accept' }, SEGMENT);
 
     expect(after.map((member) => member.spec.species)).toEqual(['Bulbasaur', 'Poliwag']);
     expect(freed).toEqual([]);
@@ -120,7 +130,7 @@ describe('the three answers', () => {
     const full = partyOf(...FULL_PARTY);
     expect(hasRoom(full)).toBe(false);
 
-    const { party: after } = applyAcquisition(full, offerOf('Poliwag'), { kind: 'release', slot: 1 });
+    const { party: after } = applyAcquisition(full, offerOf('Poliwag'), { kind: 'release', slot: 1 }, SEGMENT);
     expect(after).toHaveLength(PARTY_SIZE);
     expect(after.map((member) => member.spec.species)).not.toContain(FULL_PARTY[1]);
     expect(after.map((member) => member.spec.species)).toContain('Poliwag');
@@ -131,7 +141,7 @@ describe('the three answers', () => {
 
   it('changes nothing on decline', () => {
     const party = partyOf('Bulbasaur', 'Squirtle');
-    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'decline' });
+    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'decline' }, SEGMENT);
     expect(after.map((member) => member.spec.species)).toEqual(['Bulbasaur', 'Squirtle']);
     expect(freed).toEqual([]);
   });
@@ -145,7 +155,7 @@ describe('the three answers', () => {
     expect(decisionRefusal(full, { kind: 'release', slot: 99 })).toMatch(/no party member/);
     // Refused rather than clamped: a decision silently turned into a different
     // decision is a log that replays into a different run.
-    expect(() => applyAcquisition(full, offerOf('Poliwag'), { kind: 'accept' })).toThrow(RangeError);
+    expect(() => applyAcquisition(full, offerOf('Poliwag'), { kind: 'accept' }, SEGMENT)).toThrow(RangeError);
   });
 });
 
@@ -156,9 +166,12 @@ describe('the three answers', () => {
 describe('what the items do', () => {
   it('sends the captured mon\'s held item to the backpack rather than its hands', () => {
     const party = createParty([spec('Bulbasaur')]);
-    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag', { item: 'leftovers' }), {
-      kind: 'accept',
-    });
+    const { party: after, freed } = applyAcquisition(
+      party,
+      offerOf('Poliwag', { item: 'leftovers' }),
+      { kind: 'accept' },
+      SEGMENT,
+    );
 
     expect(freed).toEqual(['leftovers']);
     // Nothing is lost: the party screen hands it straight back for free. What
@@ -172,10 +185,12 @@ describe('what the items do', () => {
       ['Bulbasaur', 'Squirtle', 'Charmander', 'Pidgey', 'Rattata', 'Zubat'].slice(0, PARTY_SIZE).map((name) => spec(name)),
     ).map((member, index) => (index === 1 ? { ...member, item: 'choiceband' } : member));
 
-    const { freed } = applyAcquisition(full, offerOf('Poliwag', { item: 'leftovers' }), {
-      kind: 'release',
-      slot: 1,
-    });
+    const { freed } = applyAcquisition(
+      full,
+      offerOf('Poliwag', { item: 'leftovers' }),
+      { kind: 'release', slot: 1 },
+      SEGMENT,
+    );
     expect([...freed].sort()).toEqual(['choiceband', 'leftovers']);
   });
 });

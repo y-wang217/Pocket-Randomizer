@@ -41,6 +41,7 @@
  * one.
  */
 import { describeMove } from '../../core/battle/driver';
+import { moveCardData } from '../move-detail';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
@@ -75,6 +76,7 @@ export function tierBadge(tier: string): HTMLElement {
  * a card *is*, which was always this file's real subject.
  */
 export function renderRewardCard(reward: Reward, state: RunState, onPick: () => void): HTMLElement {
+  const tuning = state.tuning;
   const card = document.createElement('button');
   card.type = 'button';
   card.className = `reward reward--${reward.kind}`;
@@ -138,8 +140,17 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
       if (band !== null) name.append(document.createTextNode(' '), bandBadge(band));
       // Type, base power, PP and category, through the same component the
       // battle screen uses. No comparison against anything the player owns.
+      /*
+       * The card, with tags. **Stage 4.7, Part 6b.**
+       *
+       * **No holder is passed, and that is the STAB rule.** A reward card is
+       * unassigned until `chooseMoveRecipient` answers, so a STAB tag here
+       * would be claiming something not yet true. It appears on the recipient
+       * screen and on the party card the move lands on, both of which know who
+       * is holding it.
+       */
       const facts = describeMove(reward.move);
-      if (facts) card.append(moveCard(facts));
+      if (facts) card.append(moveCard(moveCardData(facts, tuning)));
       break;
     }
 

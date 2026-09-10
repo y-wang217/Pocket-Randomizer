@@ -34,6 +34,15 @@ export type ScreenName =
   | 'replace'
   /** Reorder and release, between nodes. Stage 4. */
   | 'party'
+  /**
+   * The beat before a gym, and the one decision that belongs there. Stage 4.7.
+   *
+   * A screen and **not a node**: it consumes no step from the node budget,
+   * carries no tier, grants no reward and consumes no RNG. It is here for the
+   * same reason `locale` is — a decision that happens between nodes still needs
+   * somewhere to happen.
+   */
+  | 'pre-gym'
   | 'shop'
   | 'event'
   | 'summary';

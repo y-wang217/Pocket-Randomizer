@@ -388,6 +388,25 @@ export interface Tuning {
    * for the same reason, separable because the case is not identical.
    */
   revealOpponentItem: boolean;
+  /**
+   * How many tags a move card's **button face** may carry. **Stage 4.7.**
+   *
+   * Four move buttons in a 2x2 grid on a 390x844 phone cannot carry twelve tags
+   * and a 44px touch target. The rest of the set is not dropped — it is in the
+   * tap-to-expand explanation, which is where a player who wants the full
+   * picture is already going.
+   *
+   * Three is a judgement call and it is the first thing to revisit if
+   * playtesters report missing a tag that got cut. The priority order that
+   * decides *which* three survive is in `data/moveTags.ts`, next to the
+   * vocabulary, and is the other half of the same call.
+   *
+   * A display number, so it changes no seed and enters no hash. It is on
+   * `Tuning` rather than in `data/moveTags.ts` because the simulator can sweep
+   * a `Tuning` field and cannot sweep a module constant — and "how much fits on
+   * a phone" is exactly the sort of thing worth being able to vary.
+   */
+  maxMoveTagsOnFace: number;
 }
 
 /**
@@ -470,6 +489,8 @@ export const DEFAULT_TUNING: Tuning = {
 
   revealOpponentAbility: true,
   revealOpponentItem: true,
+
+  maxMoveTagsOnFace: 3,
 };
 
 /** A tuning derived from the default. Stage 2's sweep builds variants this way. */

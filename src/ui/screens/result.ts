@@ -42,12 +42,23 @@
  * carries the same review and no cards, because they have already been taken.
  */
 import type { AcquisitionDecision, AcquisitionOffer } from '../../core/acquisition';
-import { FAINTED, hpState, ppState } from '../../core/hpCopy';
-import { ppTotals } from '../../core/party';
+import {
+  CARDS_ONLY_BLURB,
+  CARDS_ONLY_TITLE,
+  currencyLine,
+  FAINTED,
+  faintedLine,
+  hpState,
+  outcomeTitle,
+  PARTY_AFTER,
+  ppState,
+  RUN_ENDS,
+  TAKE_ONE,
+} from '../../core/hpCopy';
+import { hpFraction, ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
-import type { PokemonState } from '../../core/types';
-import { neutralChip, statusChip } from '../chip';
+import type { BattleMemberState, PokemonState } from '../../core/types';
 import { el } from '../scene';
 import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
@@ -123,18 +134,18 @@ export function createResultScreen(): ResultScreen {
       const won = review?.won ?? true;
 
       if (review) {
-        title.textContent = won ? 'Victory' : 'Defeated';
+        title.textContent = outcomeTitle(won);
         title.dataset['outcome'] = won ? 'win' : 'loss';
-        blurb.replaceChildren(document.createTextNode(describeCost(review)));
-        if (review.currencyEarned > 0) blurb.append(' ', neutralChip(`+${review.currencyEarned} coins`, 'coins'));
+        blurb.textContent = describeCost(review, state);
       } else {
-        title.textContent = 'Choose a reward';
+        title.textContent = CARDS_ONLY_TITLE;
         delete title.dataset['outcome'];
-        blurb.textContent = 'One of the three. There is no skip.';
+        blurb.textContent = CARDS_ONLY_BLURB;
       }
 
       // The party as the fight left it. Hidden on the cards-only path, where
       // there is no fight to report the cost of.
+      partyHeading.textContent = PARTY_AFTER;
       partyHeading.hidden = !review;
       party.hidden = !review;
       party.replaceChildren(
@@ -157,7 +168,7 @@ export function createResultScreen(): ResultScreen {
       cardsHeading.hidden = !offer;
       cards.hidden = !offer;
       if (offer) {
-        cardsHeading.replaceChildren(document.createTextNode('Take one '), tierBadge(offer.tier));
+        cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), tierBadge(offer.tier));
         cards.replaceChildren(
           ...offer.options.map((option, index) =>
             renderRewardCard(option, state, () => onDone(index)),
@@ -220,19 +231,63 @@ export function createResultScreen(): ResultScreen {
  * nothing says so rather than rendering an empty line — "nothing happened" is
  * information, and a blank space is the bug it would look like.
  */
-function describeCost(review: BattleReview): string {
-  const parts: string[] = [];
-
-  const down = review.party.filter((member) => member.fainted).length;
-  if (down > 0) parts.push(`${down} fainted — they revive at the next node`);
-
-  if (!review.won) return parts.length > 0 ? parts.join(' · ') : 'The run ends here.';
-  if (parts.length > 0) return parts.join(' · ');
-  return review.currencyEarned > 0 ? 'Nobody went down.' : 'No coins, and nobody went down.';
+/**
+ * What a completed node says, in order. **Stage 4.7, Part 4.**
+ *
+ * The brief's order, and every line is stated rather than implied:
+ *
+ *   1. The outcome — that is the title, above.
+ *   2. **Currency earned at this node and the new total.** The total is the
+ *      addition: it is the number the next shop decision is made on, and a
+ *      player adding two figures in their head is doing arithmetic instead of
+ *      deciding.
+ *   3. Party HP and PP per member — the block below this line.
+ *   4. Then the three cards, inside this screen rather than replacing it.
+ *
+ * `state.currency` is the balance *before* `resolveNode` folds the payout in —
+ * the screen is shown first, deliberately, so "you earned 40" is a fact about
+ * the node and the total beside it is what the run will hold when it lands.
+ *
+ * Every string comes from `core/hpCopy.ts`, which is the copy module the round
+ * 2 patch established, and none is inlined here.
+ */
+function describeCost(review: BattleReview, state: RunState): string {
+  const parts: string[] = [
+    currencyLine(review.currencyEarned, state.currency + review.currencyEarned),
+    faintedLine(review.party.filter((member) => member.fainted).length),
+  ];
+  if (!review.won) parts.push(RUN_ENDS);
+  return parts.join(' · ');
 }
 
-/** HP and PP as the fight left them, for a slot's detail line. */
-function memberReading(member: PokemonState): string {
+/**
+ * A party member as the fight left it: HP as a bar and a number, and PP.
+ *
+ * The same card shape as the map's party panel rather than a lighter one, so
+ * the player is comparing like with like across the two screens. PP is here
+ * because it is the resource a run spends that nothing else on this screen
+ * would show — HP is visible on the battle screen up to the last turn, and PP
+ * is the one that quietly runs out four fights later.
+ */
+function renderMemberRow(member: BattleMemberState): HTMLElement {
+  const row = el('div', 'party__member');
+
+  const header = el('div', 'panel__header');
+  const name = el('span', 'panel__name');
+  name.textContent = member.spec.species;
+  const level = el('span', 'panel__level');
+  level.textContent = `Lv${member.spec.level}`;
+  header.append(name, level);
+
+  const track = el('div', 'hp');
+  const fill = el('div', 'hp__fill');
+  const fraction = hpFraction(member);
+  fill.style.width = `${fraction * 100}%`;
+  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
+  track.append(fill);
+
+  const meta = el('div', 'panel__meta');
+  const text = el('span', 'panel__hp-text');
   const pp = ppTotals(member);
   return member.fainted ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}` : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
 }

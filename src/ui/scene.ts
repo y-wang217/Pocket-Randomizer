@@ -33,6 +33,9 @@ import { categoryChip, effectChip, neutralChip, statusChip, typeChip } from './c
 import { el } from './dom';
 import { showsNumbers } from './settings';
 import { SCENES } from './theme/scenes';
+import { ARCHETYPE_DISPLAY } from '../data/archetypes';
+import { moveTagLabel, type MoveTag } from '../data/moveTags';
+import { statusReadoutLine, type MoveEffectFields } from '../data/moveCopy';
 import {
   moveChoice,
   switchChoice,
@@ -66,6 +69,8 @@ interface SidePanel {
   root: HTMLElement;
   name: HTMLElement;
   level: HTMLElement;
+  /** The Part 7 label, beside the level on both sides of the field. */
+  archetype: HTMLElement;
   types: HTMLElement;
   hpFill: HTMLElement;
   hpText: HTMLElement;
@@ -192,8 +197,21 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
   const level = el('span', 'panel__level');
+  /*
+   * The archetype chip, next to the level. **Stage 4.7, Part 7.**
+   *
+   * On *both* panels, which is half the point of the feature: a player who can
+   * tell at a glance that the thing opposite is built around Special Attack is
+   * making a read rather than a guess. It arrives on the projection — the scene
+   * computes no labels — and it is not gated by the reveal policy, because it
+   * restates base stats the stat block beside it has printed since Stage 4.5.
+   */
+  const archetype = el('span', 'badge badge--archetype');
+  archetype.dataset['tip'] = 'archetype:all';
+  archetype.tabIndex = 0;
+  archetype.setAttribute('role', 'button');
   const types = el('span', 'panel__types');
-  header.append(name, level, types);
+  header.append(name, level, archetype, types);
 
   const hpTrack = el('div', 'hp');
   const hpFill = el('div', 'hp__fill');
@@ -220,7 +238,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   }
 
   root.append(header, hpTrack, meta, traits, volatiles, statsRoot);
-  return { root, name, level, types, hpFill, hpText, status, volatiles, traits, hpRow, rows };
+  return { root, name, level, archetype, types, hpFill, hpText, status, volatiles, traits, hpRow, rows };
 }
 
 function updateSidePanel(
@@ -258,6 +276,7 @@ function updateSidePanel(
   // renders nothing at all rather than a dash or an "N" — a placeholder for
   // "no gender" is a symbol the player has to learn in order to ignore.
   panel.level.textContent = `Lv${active.level}${genderMark(active.gender)}`;
+  panel.archetype.textContent = ARCHETYPE_DISPLAY[active.archetype].short;
 
   panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
@@ -564,8 +583,17 @@ function renderMove(
   const category = categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` });
 
   const power = el('span', 'move__power');
-  power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
-  meta.append(type, category, power);
+  /*
+   * The em dash is gone for a status move that has something to say.
+   *
+   * It was a placeholder for "this move has no base power", which is true and
+   * is not what the player needed there. `move.effect` is non-null exactly when
+   * the projection found a readout to put in its place.
+   */
+  power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
+  meta.append(type, category);
+  if (move.effect) meta.append(moveEffectLine(move.effect));
+  else meta.append(power);
 
   // Effectiveness, computed live against whatever is actually standing there.
   // Neutral prints nothing: a row where every button carries a badge is a row
@@ -608,9 +636,60 @@ function renderMove(
   pp.textContent = `PP ${move.pp}/${move.maxPp}`;
   if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
 
-  button.append(name, meta, pp);
+  const tags = moveTagRow(move.tags);
+  button.append(name, meta, ...(tags ? [tags] : []), pp);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
+}
+
+/**
+ * The tag row on a move card. **One insertion point, both card shapes.**
+ *
+ * Part 6b's rule is that tags wire into the shared move card component rather
+ * than into each screen. This is that component; `moveFacts` builds it for
+ * every card outside a battle and `renderMove` builds it for the four buttons
+ * inside one, so a move carries the same tags wherever the player meets it.
+ *
+ * The cap is applied upstream — the projection caps the battle buttons and the
+ * calling screen caps its cards — because "how many fit" is a `Tuning` number
+ * and this function's job is to draw what it is handed.
+ *
+ * Renders nothing at all for a move with no tags, rather than an empty row. An
+ * empty row on three of four buttons is the ragged grid this feature exists to
+ * remove.
+ */
+export function moveTagRow(tags: readonly MoveTag[]): HTMLElement | null {
+  if (tags.length === 0) return null;
+  const row = el('span', 'move__tags');
+  for (const tag of tags) {
+    const chip = el('span', `badge badge--tag badge--tag-${tag.id.toLowerCase()}`);
+    chip.textContent = moveTagLabel(tag.id, tag.value);
+    // A tooltip trigger like every other badge on screen. The words are in
+    // `data/moveTags.ts`; the layer that shows them is `ui/tooltips.ts`, and
+    // there is exactly one of those.
+    chip.dataset['tip'] = `movetag:${tag.id}`;
+    chip.tabIndex = 0;
+    chip.setAttribute('role', 'button');
+    row.append(chip);
+  }
+  return row;
+}
+
+/**
+ * The one line that fills a status move's empty regions. **Part 6a.**
+ *
+ * On a damaging move the card carries base power, a band badge and an
+ * effectiveness marker. On a status move all three are blank, and three blanks
+ * in a row reads as a card that failed to load rather than as a move with no
+ * base power. This goes in the same region.
+ *
+ * The sentence is composed by `data/moveCopy.ts` from structured fields the
+ * projection supplied. Nothing here writes prose.
+ */
+export function moveEffectLine(effect: MoveEffectFields): HTMLElement {
+  const line = el('span', 'move__effect');
+  line.textContent = statusReadoutLine(effect);
+  return line;
 }
 
 /** Short enough for a button, unambiguous enough to learn from. */
@@ -647,7 +726,22 @@ export function moveFacts(move: {
   category: MoveUiView['category'];
   basePower: number;
   maxPp: number;
-}): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement } {
+  /**
+   * Tags for this card's face, already capped. **Stage 4.7, Part 6b.**
+   *
+   * Handed in rather than derived, because deriving them needs `describeMove`
+   * and this file may not reach for it — `test/boundaries.test.ts` restricts
+   * `scene.ts` to the projection and four vocabulary modules. The caller has
+   * the move and the holder and is where the cap lives, so the caller decides.
+   *
+   * **Absent, not empty, on an unassigned card.** STAB is a property of the
+   * move and its holder together, so a reward card with no recipient chosen
+   * passes nothing and gets no STAB tag rather than a wrong one.
+   */
+  tags?: readonly MoveTag[];
+  /** The status readout that fills the empty base-power region. Part 6a. */
+  effect?: MoveEffectFields | null;
+}): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement; tags: HTMLElement | null } {
   const name = el('span', 'move__name');
   name.textContent = move.name;
 
@@ -656,13 +750,21 @@ export function moveFacts(move: {
   const category = categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` });
 
   const power = el('span', 'move__power');
-  power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
-  meta.append(type, category, power);
+  power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
+  meta.append(type, category);
+  // The status readout takes the region base power would have occupied. A card
+  // with neither — a status move nothing could be said about — falls back to
+  // the em dash, which is at least an explicit "nothing here".
+  if (move.effect) meta.append(moveEffectLine(move.effect));
+  else if (move.category === 'Status') {
+    power.textContent = '—';
+    meta.append(power);
+  } else meta.append(power);
 
   const pp = el('span', 'move__pp');
   pp.textContent = `PP ${move.maxPp}`;
 
-  return { name, meta, pp };
+  return { name, meta, pp, tags: moveTagRow(move.tags ?? []) };
 }
 
 /**
@@ -678,11 +780,13 @@ export function moveCard(move: {
   category: MoveUiView['category'];
   basePower: number;
   maxPp: number;
+  tags?: readonly MoveTag[];
+  effect?: MoveEffectFields | null;
 }): HTMLElement {
   const card = el('div', `move move--card move--${move.type.toLowerCase()}`);
   card.dataset['category'] = move.category.toLowerCase();
   const facts = moveFacts(move);
-  card.append(facts.name, facts.meta, facts.pp);
+  card.append(facts.name, facts.meta, ...(facts.tags ? [facts.tags] : []), facts.pp);
   return card;
 }
 

@@ -30,6 +30,8 @@
 import { describeSpecCard } from '../../core/battle/driver';
 import type { MoveSpec, MoveView, PokemonState } from '../../core/types';
 import { el, genderMark, moveCard, moveFacts } from '../scene';
+import { moveCardData } from '../move-detail';
+import type { Tuning } from '../../data/tuning';
 import { typeChip } from './starter-select';
 
 export interface MoveReplaceScreen {
@@ -38,6 +40,8 @@ export interface MoveReplaceScreen {
     member: PokemonState,
     incoming: MoveSpec,
     onReplace: (slot: number) => void,
+    /** For `tuning.maxMoveTagsOnFace`. See `ui/move-detail.ts`. */
+    tuning: Tuning,
   ): void;
 }
 
@@ -61,13 +65,19 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
 
   return {
     root,
-    render(member, incoming, onReplace) {
+    render(member, incoming, onReplace, tuning) {
       const detail = describeSpecCard(member.spec);
 
       title.textContent = `${detail.species} learns ${incoming.name}`;
       blurb.textContent = 'Four moves already. Pick the one it replaces — this cannot be undone.';
 
-      incomingSlot.replaceChildren(moveCard(incoming));
+      /*
+       * The incoming move, with its tags, **and now with STAB** — because on
+       * this screen the recipient has been chosen. That is the whole of Part
+       * 6b's contextual rule: the same card carries no STAB tag on the reward
+       * screen one click earlier, where nobody had been picked yet.
+       */
+      incomingSlot.replaceChildren(moveCard(moveCardData(incoming, tuning, { types: detail.types })));
 
       // The recipient, named on the screen that decides what happens to it. The
       // target screen is one click behind and a player who picked the wrong
@@ -89,7 +99,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
        */
       current.replaceChildren(
         ...detail.moves.map((move, slot) =>
-          renderVictim(move, member.moves[slot]?.pp ?? move.maxPp, slot, onReplace),
+          renderVictim(move, member.moves[slot]?.pp ?? move.maxPp, slot, onReplace, tuning, detail.types),
         ),
       );
     },
@@ -111,17 +121,21 @@ function renderVictim(
   pp: number,
   slot: number,
   onReplace: (slot: number) => void,
+  tuning: Tuning,
+  holderTypes: readonly string[],
 ): HTMLElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `move move--victim move--${move.type.toLowerCase()}`;
   button.dataset['category'] = move.category.toLowerCase();
 
-  const facts = moveFacts(move);
+  // The holder is known here — these are the member's own four moves — so STAB
+  // renders, unlike on the reward card one screen back.
+  const facts = moveFacts(moveCardData(move, tuning, { types: holderTypes }));
   facts.pp.textContent = `PP ${pp}/${move.maxPp}`;
   if (move.maxPp > 0 && pp / move.maxPp <= 0.25) facts.pp.classList.add('move__pp--low');
 
-  button.append(facts.name, facts.meta, facts.pp);
+  button.append(facts.name, facts.meta, ...(facts.tags ? [facts.tags] : []), facts.pp);
   button.setAttribute('aria-label', `Replace ${move.name}`);
   button.addEventListener('click', () => onReplace(slot));
   return button;

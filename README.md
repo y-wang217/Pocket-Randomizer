@@ -9,6 +9,8 @@ Stage 0 proved the battle engine. Stage 1 made it a run. Stage 2 made it a
 playable. Stage 3 added tiers, rewards, items, shops and events. Stage 4 added
 party slots and switching. Stage 4.5 added no mechanics at all and made the
 existing ones legible. Stage 4.5.1 put prices back on things. Stage 4.6a gave
+the map a geography. Stage 4.6b turned the run into a ramp. Stage 4.6c added
+relics. Stage 4.7 is a legibility pass and one balance change.
 the map a geography. Stage 4.6b turned the run into a ramp. Stage 4.6c made a
 capability a relic.
 
@@ -41,6 +43,67 @@ npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
 
+## What Stage 4.7 adds
+
+**The player was making decisions without being able to see the state those
+decisions act on, and could not read what was in front of them when they did.**
+
+- **A party drawer on every screen that asks you something.** One drawer, not one
+  panel per screen, in the same place every time. It is an overlay rather than a
+  route, so closing it returns you to byte-identical screen state — nothing
+  selected, nothing submitted, no RNG drawn. Asserted per surface, because those
+  are properties of the *trigger* and a trigger placed inside a screen's own form
+  fails on that screen alone.
+- **A screen before each gym**, naming the leader and their type, where you choose
+  who leads. It is not a node: no step from the budget, no tier, no reward, no
+  RNG. Lead selection is a party *reorder*, so there is one source of truth for
+  who is in front and it is the same one the party screen writes to.
+- **Locale select shows the gym you are walking toward** and the party you are
+  walking with. Both facts, side by side, and nothing on screen connects them —
+  working out the relationship is the entire decision.
+- **Move cards say what a move does.** A status move fills the three empty
+  regions where base power and the effectiveness marker sit with a one-line
+  effect readout. Every move carries tags: multi-hit with its range and per-hit
+  power, priority bracket, STAB, recoil, drain, charge, and — the field most
+  likely to make a player think the game cheated — accuracy, whenever it is
+  under 100. Capped at three on a button face, because four buttons in a 2×2
+  grid on a 390×844 phone cannot carry twelve tags and a 44px touch target.
+- **Both Pokémon on the field carry an archetype label**, from base stats alone.
+  Not from the moveset: that would leak the opponent's moveset, which the player
+  is not shown. The label says what a Pokémon is *built* to do; working out what
+  it is holding is the read. Under full randomization a physical attacker can
+  roll four special moves, and the copy says so where the label is explained.
+- **Contribution counters** per member — damage dealt and taken, KOs, faints,
+  turns on the field — read off the battle protocol by a pure reducer. Raw
+  counts, never a share and never a score.
+- **A caught Pokémon is as usable as the one you started with.** See below.
+
+### The balance change, and the hypothesis it did not support
+
+Anything joining the party now arrives at the segment's player level. 4.6a's
+"exactly as it was fought" read as generosity and was the opposite: wild
+encounters are drawn 16 to 26 levels under the party, so a capture was a slot
+that could not fight for the rest of the segment it was taken in — including
+that segment's gym.
+
+It was made on a hypothesis: that the tax suppressed swapping, so runs converged
+on the starter. **The pre-patch numbers did not support it** and were checked
+first — `catch-greedy` already beat `catch-averse`, and 37 gym-8 parties carried
+81 distinct species between them. So it ships as a correctness fix with the swap
+question open.
+
+Measured at 400 seeds on the same prefix as the pinned 4.6c benchmark:
+completion **5.25% → 9.8%**, mean gyms **3.03 → 3.41**, and the capture take rate
+*down* slightly at 29.4%, so the feared "captures become strictly better than any
+reward" did not happen. Two findings the report gave back that the patch did not
+go looking for, both in `docs/balance.md` §13: the level tax turns out to have
+been most of the punishment for indiscriminate catching, so removing it weakened
+4.6a's "the value is in the declining" conclusion — and the pre-gym lead choice
+does not measure at all (`lead-static` and `lead-swap` both reach 3.19 gyms at
+200 seeds), which is exactly the thing the brief asked to find out before the
+screen got polished.
+
+## What Stage 4.6b added
 ## What Stage 4.6c adds
 
 **Roads a party alone cannot open, and permanent objects that open them.**
