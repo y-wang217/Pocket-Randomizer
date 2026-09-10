@@ -154,6 +154,42 @@ says why they are their own release.
 design, because HM teaching was going to be the move reward flow. Relics removed
 teaching entirely, so that dependency dissolved and 4.6c shipped ahead of it.
 
+### In flight: Stage 4.8, steps 1 and 2
+
+Branch `claude/intelligent-fermat-hzt2gb`, prompt
+[`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md),
+step 1's report [`reports/stage-4.8-report.md`](reports/stage-4.8-report.md).
+Not merged.
+
+**Step 2 (item 1, party slot unlocks) is built and green**: 1001 tests in 76
+files, typecheck, lint, build, strict trim and the browser smoke all pass, with
+only the known SMOKE24 map-overflow `xfail` — still 25px, **unmoved by V5**, and
+still item 3's UI checkpoint to close.
+
+Party capacity is a function of gyms cleared (`SLOT_UNLOCK_SCHEDULE`, 3 rising to
+6 by gym 6) rather than the old `PARTY_SIZE` constant, which is deleted so that no
+call site can read it by accident. `RANDOMIZER_VERSION` is
+`gymrun-randomizer-13`; `RUN_LOG_VERSION` is unchanged and asserted unchanged,
+because capacity is derived from the decision log rather than written into it.
+[`generation.md`](generation.md) section 7b is the detail.
+
+**The finding worth carrying forward** is that the engine's six-a-side limit, not
+taste, fixes the top of the difficulty curve's party assumption. A curve that
+assumed the full six left `opponentTeamSize`'s clamp no headroom and flattened
+normal, hard and elite onto one team size at the final segment — Stage 3's risk
+gradient gone at the end of a run. `test/tiers.test.ts` was the only thing in the
+suite that caught it. The slot schedule still reaches six; the curve's assumption
+stops one short, and the rule is written as
+`EXPECTED_PARTY_SIZE[last] < MAX_TEAM_SIZE` rather than as a number.
+
+**Open for review before step 3:** nothing blocking. Steps 3 to 8 — the gym clear
+reward, the per-segment node count curve, the score, the graveyard and nicknames,
+the threat readout's placement, all the UI, and the benchmark — are not started.
+
+Two of three sim-fixture seeds and two of six baseline runs now clear one gym
+further, so **mean gyms cleared will rise**. That is step 8's number to record
+against the pinned figure, not a thing to tune: balance is not a gate.
+
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
