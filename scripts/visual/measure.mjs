@@ -17,7 +17,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
-import { launch, openApp, playUntil, serve, visible } from './browser.mjs';
+import { launch, measureGuardedScreens, serve } from './browser.mjs';
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -30,47 +30,10 @@ const seed = flag('--seed') ?? 'SMOKE24';
 
 const round = (n) => Math.round(n * 100) / 100;
 
-async function measureScreen(page, name, decisionSelector) {
-  return page.evaluate(
-    ([screenSelector, decision]) => {
-      const screen = globalThis.document.querySelector(screenSelector);
-      const nodes = [...globalThis.document.querySelectorAll(decision)];
-      const rects = nodes.map((node) => node.getBoundingClientRect());
-      const r = (n) => Math.round(n * 100) / 100;
-      return {
-        screenHeight: r(screen.getBoundingClientRect().height),
-        scrollHeight: globalThis.document.documentElement.scrollHeight,
-        decisionCount: nodes.length,
-        decisionTop: rects.length ? r(Math.min(...rects.map((x) => x.top + globalThis.window.scrollY))) : null,
-        decisionBottom: rects.length ? r(Math.max(...rects.map((x) => x.bottom + globalThis.window.scrollY))) : null,
-      };
-    },
-    [visible(name), decisionSelector],
-  );
-}
-
-export async function measureGuardedScreens(url, browser) {
-  const { page, context, problems } = await openApp(browser, url, seed);
-  const result = { seed, viewport: { width: 390, height: 844 } };
-
-  await playUntil(page, (screen) => screen === 'map');
-  await page.waitForTimeout(100);
-  result.map = await measureScreen(page, 'map', `${visible('map')} .step--current .node`);
-
-  await playUntil(page, (screen) => screen === 'battle');
-  // The HP bar transition and the swap beat settle well inside this.
-  await page.waitForTimeout(600);
-  result.battle = await measureScreen(page, 'battle', `${visible('battle')} .moves .move`);
-
-  await context.close();
-  if (problems.length) result.problems = problems;
-  return result;
-}
-
 const server = await serve();
 const browser = await launch();
 try {
-  const measured = await measureGuardedScreens(server.url, browser);
+  const measured = await measureGuardedScreens(server.url, browser, seed);
   const text = `${JSON.stringify(measured, null, 2)}\n`;
   console.log(text);
   if (out) writeFileSync(out, text);

@@ -1329,7 +1329,13 @@ body {
 
 /* The offered Pokemon, in the same card shape as the party it is measured
    against — anything else makes the comparison a matter of squinting. */
-.party__member--offered { background: var(--bg-sunken); }
+/* The offered Pokemon is a sibling of every other offer card in the game —
+   starter, locale, reward — and wears exactly their surface. Stage V0. */
+.party__member--offered {
+  background: var(--bg-raised);
+  border-color: var(--border-strong);
+  border-left-width: var(--hairline);
+}
 
 .acquire__heading {
   margin: var(--space-4h) 0 0;
@@ -1794,7 +1800,6 @@ body {
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
-  border-left: var(--space-1) solid var(--border-strong);
   border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
