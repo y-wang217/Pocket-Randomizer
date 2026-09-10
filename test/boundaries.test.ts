@@ -457,3 +457,167 @@ describe('the battle UI boundary', () => {
     }
   });
 });
+
+/**
+ * **Every repo path a live document names resolves.** Release 0.5.
+ *
+ * Every stage prompt opens by naming documents to read, and for several stages
+ * those documents were not in the repo, so the instruction silently did
+ * nothing and sessions worked from memory of a design they could not check.
+ * Release 0 put the documents in. This is what keeps them findable: a path that
+ * stops resolving is a reader sent nowhere, and nothing else in the suite can
+ * see it happen.
+ *
+ * ## Why `docs/spec/` is excluded
+ *
+ * Nine paths named inside archived prompts do not resolve — they are bare
+ * filenames for documents that now live in `docs/spec/`, plus one prompt that
+ * was never recovered. Every one of them is frozen: protocol 4 in
+ * `docs/spec/README.md` says a prompt is a record of what was asked and is not
+ * edited to match what exists.
+ *
+ * So this check cannot cover them, and widening it to try is how it ends up
+ * deleted. A test that fails on an archive nobody may edit gets removed, and
+ * the live half of the invariant goes with it. The nine are handled where they
+ * can be: a resolution table in `docs/spec/README.md`, which makes the archive
+ * navigable without touching a frozen document.
+ *
+ * The rule that stays enforceable, and is: **anything the repo may edit, the
+ * repo keeps true.**
+ */
+describe('documentation paths', () => {
+  /*
+   * Live, repo-authored documents. `docs/spec/` is deliberately absent; see
+   * above before adding it.
+   */
+  const LIVE_DOCS = [
+    'README.md',
+    'CLAUDE.md',
+    ...readdirSync(join(ROOT, 'docs'))
+      .filter((entry) => entry.endsWith('.md'))
+      .map((entry) => `docs/${entry}`),
+  ];
+
+  /*
+   * A repo path is a backticked token that looks like one: it names a directory
+   * this project has, or carries an extension this project uses. Prose in
+   * backticks (`RunState`, `elite`, `npm run sim`) is not a path and is not
+   * checked, which is the difference between a link check and a spell check.
+   */
+  const ROOTS = ['src/', 'core/', 'ui/', 'data/', 'docs/', 'test/', 'scripts/', 'build-config/'];
+  const EXTENSIONS = ['.ts', '.mjs', '.js', '.md', '.json', '.css', '.html'];
+
+  function looksLikePath(token: string): boolean {
+    if (/\s/.test(token)) return false;
+    return ROOTS.some((root) => token.startsWith(root)) || EXTENSIONS.some((ext) => token.endsWith(ext));
+  }
+
+  /**
+   * Five spellings resolve, and every one of them is house convention.
+   *
+   * Accepting all five is not laxness. Each is used consistently across the
+   * documents and each is unambiguous, and a check that failed on one would be
+   * enforcing a naming rule nobody agreed to under cover of a link check —
+   * which is how a useful test earns a reputation for noise and stops being
+   * run.
+   *
+   *   - From the repo root: `src/core/run.ts`, `docs/balance.md`.
+   *   - Relative to the linking document: `generation.md` inside `docs/`.
+   *   - The `src/` shorthand: `core/rng.ts`, `data/tuning.ts`.
+   *   - Without the extension: `core/run`, the way an import writes it.
+   *   - A bare filename, **if exactly one file in the repo has that name**:
+   *     `view.ts` inside a section about `core/battle/`. Uniqueness is what
+   *     makes it a reference rather than a guess, and it is checked rather than
+   *     assumed — a basename shared by two files stops resolving here, which is
+   *     the correct answer for a reader who would have to guess too.
+   *
+   * What none of them can be is absent. A token that resolves under no spelling
+   * is a reader sent nowhere, which is the whole point.
+   */
+  const byBasename = new Map<string, number>();
+  for (const file of [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'test')), ...walk(join(ROOT, 'docs'), ['.md'])]) {
+    const base = file.slice(file.lastIndexOf('/') + 1);
+    byBasename.set(base, (byBasename.get(base) ?? 0) + 1);
+  }
+
+  function resolves(token: string, fromDir: string): boolean {
+    const bases = [join(ROOT, token), join(fromDir, token), join(ROOT, 'src', token)];
+    if (bases.some((base) => existsSync(base) || existsSync(`${base}.ts`))) return true;
+    return !token.includes('/') && byBasename.get(token) === 1;
+  }
+
+  it('names live documents that exist', () => {
+    expect(LIVE_DOCS.length).toBeGreaterThan(5);
+    for (const doc of LIVE_DOCS) expect(existsSync(join(ROOT, doc)), `${doc} is missing`).toBe(true);
+  });
+
+  /**
+   * Paths named to say a file does **not** exist.
+   *
+   * Three documents describe a file in order to record that it was not built,
+   * or no longer is. A road not taken, a deleted test, and a table the same
+   * paragraph says is not being built — each is prose about an absence, and an
+   * absence is exactly what this check otherwise reports as a defect.
+   *
+   * They are listed rather than pattern-matched, because "is this sentence
+   * saying the file exists" is not something a regex decides. Listed, and the
+   * size asserted: an exception nobody counts is how the next stale path joins
+   * it and stops being visible.
+   */
+  const NAMED_AS_ABSENT = new Set([
+    // architecture.md: the dex helpers went into driver.ts instead of here.
+    'core/battle/dex.ts',
+    // engine-notes.md: existed briefly, deleted when capabilities became relics.
+    'test/nonstandard-moves.test.ts',
+    // generation.md: the same paragraph says it is not being built.
+    'hmLearnsets.ts',
+  ]);
+
+  it('resolves every repo path they name', () => {
+    const broken: string[] = [];
+
+    for (const doc of LIVE_DOCS) {
+      const from = join(ROOT, doc, '..');
+      readFileSync(join(ROOT, doc), 'utf8')
+        .split('\n')
+        .forEach((line, index) => {
+          for (const match of line.matchAll(/`([^`\n]+)`/g)) {
+            const token = (match[1] ?? '').replace(/[.,;:)]+$/, '');
+            if (NAMED_AS_ABSENT.has(token)) continue;
+            if (looksLikePath(token) && !resolves(token, from)) {
+              broken.push(`${doc}:${index + 1} ${token}`);
+            }
+          }
+        });
+    }
+
+    expect(broken, 'a named path that does not resolve sends the reader nowhere').toEqual([]);
+    expect(NAMED_AS_ABSENT.size, 'the absent-path list may shrink, never grow').toBe(3);
+  });
+
+  /**
+   * Markdown links too, which are the half a reader actually clicks.
+   *
+   * Relative to the linking document rather than the repo root, and anchors and
+   * external URLs are skipped — the first is not a file and the second is not
+   * this repo's problem.
+   */
+  it('resolves every relative markdown link they make', () => {
+    const broken: string[] = [];
+
+    for (const doc of LIVE_DOCS) {
+      const from = join(ROOT, doc, '..');
+      readFileSync(join(ROOT, doc), 'utf8')
+        .split('\n')
+        .forEach((line, index) => {
+          for (const match of line.matchAll(/\]\(([^)\s]+)\)/g)) {
+            const target = (match[1] ?? '').split('#')[0] ?? '';
+            if (target === '' || /^[a-z]+:/i.test(target)) continue;
+            if (!existsSync(join(from, target))) broken.push(`${doc}:${index + 1} ${target}`);
+          }
+        });
+    }
+
+    expect(broken, 'a broken link is a reader sent nowhere').toEqual([]);
+  });
+});

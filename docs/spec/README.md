@@ -47,6 +47,38 @@ the 4.5.1 prompt and by the QoL plan. If a prompt here tells you to read one of
 them, say so in your report instead of proceeding on an assumption about what it
 contained.
 
+## Resolving a path an archived prompt names
+
+Every prompt here opens by naming documents to read. Nine of those names do not
+resolve as written: they are bare filenames from a time when the documents sat
+at the repo root, plus one prompt that was never recovered.
+
+**They are not corrected, and that is protocol 4 working rather than failing.**
+A prompt is a record of what was asked. Editing one to match where a file ended
+up would make it a description of what exists, which is the one thing it must
+not become. So the archive gets a lookup table instead, and the automated check
+in `test/boundaries.test.ts` deliberately excludes this directory — a test that
+went red on a document nobody may edit would be deleted, and the live half of
+the invariant would go with it.
+
+If a prompt tells you to read something below, read the right-hand column.
+
+| Named in a prompt as | Actually |
+|---|---|
+| `pokerun-build-spec.md` | [`pokerun-build-spec.md`](pokerun-build-spec.md), here |
+| `gymrun-seeds-and-mappability.md` | [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md), here |
+| `gymrun-stage4.6-claude-code-prompts.md` | [`gymrun-stage4.6-claude-code-prompts.md`](gymrun-stage4.6-claude-code-prompts.md), here |
+| `data/movePools.ts`, `data/rewardPools.ts`, `data/scaling.ts`, `data/events.ts` | `src/data/…` — the `data/` shorthand for `src/data/` |
+| `core/events.ts` | `src/core/events.ts` — same shorthand |
+| `data/hms.ts` | **Deleted at 4.6c.** Capabilities are relics; there is no HM table and there will not be one |
+| the Stage 4.5 prompt | **Unrecoverable.** See "Prompts that were never recovered" above. Do not reconstruct it |
+
+The `data/` and `core/` shorthand is used consistently across every document
+and is not a defect, merely shorter than the tree. The first three rows exist
+because those documents moved into this directory at `47d4d0e`, which is later
+than every prompt that names them — the prompts are not wrong, they are older
+than the layout.
+
 ## The archival rule
 
 **Every prompt is committed to `docs/spec/` verbatim before any work begins on
