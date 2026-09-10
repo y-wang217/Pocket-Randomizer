@@ -33,7 +33,9 @@ import type { RngStream } from './rng';
 import type { RunState } from './run';
 import { hpEventDelta } from './hpCopy';
 import { itemById } from '../data/items';
-import { EVENTS, type EventDefinition, type EventOutcomeTemplate } from '../data/events';
+import { EVENTS, bandsFor, type EventDefinition, type EventOutcomeTemplate } from '../data/events';
+import type { Capability } from '../data/capabilities';
+import type { CapabilityBand } from './capabilities';
 import type { Tuning } from '../data/tuning';
 
 /**
@@ -61,12 +63,21 @@ export type EventOutcome =
   | { kind: 'acquisition'; offer: AcquisitionOffer }
   | { kind: 'nothing' };
 
-/** One button on the event screen, with the outcome it is already bound to. */
+/**
+ * One button on the event screen, with all three of its outcomes already
+ * drawn.
+ *
+ * Three, not one, and **all three are drawn whatever the party looks like.**
+ * The band picks between them at resolution. Drawing only the band that
+ * applies would make RNG consumption a function of party state, and a seed
+ * would stop describing one run — two players on the same seed would diverge
+ * on a roll neither of them made.
+ */
 export interface EventChoice {
   label: string;
   /** Shown before picking. Says the shape of the risk, never the drawn outcome. */
   hint: string;
-  outcome: EventOutcome;
+  outcomes: Readonly<Record<CapabilityBand, EventOutcome>>;
 }
 
 /** An event as it exists on a generated map. */
@@ -74,7 +85,21 @@ export interface EventInstance {
   nodeId: string;
   eventId: string;
   prompt: string;
+  /** The capability whose band selects which outcome each choice pays. */
+  requires: Capability;
   choices: EventChoice[];
+}
+
+/**
+ * The outcome a choice pays at this band. **The single accessor.**
+ *
+ * Every consumer goes through it — the run's fold, the event screen, the
+ * simulator's scorer — so that "which of the three" is answered once. Two
+ * places indexing the record directly is two places for the band to be
+ * computed against a stale party.
+ */
+export function outcomeAt(choice: EventChoice, band: CapabilityBand): EventOutcome {
+  return choice.outcomes[band];
 }
 
 // ---------------------------------------------------------------------------
@@ -107,11 +132,28 @@ export function generateEvent(
     nodeId,
     eventId: definition.id,
     prompt: definition.prompt,
-    choices: definition.choices.map((choice) => ({
-      label: choice.label,
-      hint: choice.hint,
-      outcome: resolveOutcome(drawOutcome(choice.outcomes, stream), stream, offerPokemon),
-    })),
+    requires: definition.requires,
+    choices: definition.choices.map((choice) => {
+      /*
+       * Three draws per choice, in a fixed band order, every time.
+       *
+       * The order is `none`, `latent`, `known` and it is fixed because it is a
+       * draw order: reading it in a different order would reshuffle every
+       * recorded seed. Every band is drawn even though at most one is used,
+       * which is the whole point — the cost of an event is a function of its
+       * shape and never of the party standing in front of it.
+       */
+      const bands = bandsFor(choice);
+      return {
+        label: choice.label,
+        hint: choice.hint,
+        outcomes: {
+          none: resolveOutcome(drawOutcome(bands.none, stream), stream, offerPokemon),
+          latent: resolveOutcome(drawOutcome(bands.latent, stream), stream, offerPokemon),
+          known: resolveOutcome(drawOutcome(bands.known, stream), stream, offerPokemon),
+        },
+      };
+    }),
   };
 }
 

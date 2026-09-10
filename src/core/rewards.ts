@@ -40,6 +40,7 @@ import { leadOf, recoverParty, teachMove } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import type { PokemonState, Tier } from './types';
+import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import { itemById } from '../data/items';
 import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
@@ -60,6 +61,25 @@ export type Reward =
   | { kind: 'tm'; move: string }
   | { kind: 'tutor'; move: string }
   | { kind: 'heal'; fraction: number }
+  /**
+   * A relic, and the two things that make it resolvable later.
+   *
+   * `relic` is what the card shows. `alternates` is the rest of a shuffled
+   * relic order, and `fallback` is an ordinary card from the same pool — both
+   * drawn at map generation and both usually unused.
+   *
+   * They exist because a relic must never be offered twice and what the run
+   * holds is not known when the map is built. `concreteReward` walks
+   * `relic` then `alternates` for the first one not already held, and takes
+   * `fallback` if every one of them is. Doing that at *resolution* is what
+   * keeps the draw invariant: the shuffle and the fallback are drawn whether or
+   * not they are needed, so acquiring a relic mid-run cannot shift a later
+   * roll. A filter at draw time would have.
+   *
+   * A resolved card has an empty `alternates`, which is what tells the two
+   * states apart without a second type.
+   */
+  | { kind: 'relic'; relic: RelicId; alternates: readonly RelicId[]; fallback: Reward }
 
 /*
  * **A sixth kind, `species`, was here until Stage 4.6b.**
@@ -136,7 +156,7 @@ export function generateRewardOffer(
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
 
-    const reward = resolveRewardEntry(entry, segment, tier, stream, takenItems, takenMoves);
+    const reward = resolveRewardEntry(entry, segment, tier, stream, takenItems, takenMoves, pool);
     if (reward) options.push(reward);
   }
 
@@ -205,7 +225,7 @@ export function generateGymRewardOffer(
      * hand back a mid-tier move and the "strictly better than elite" rule would
      * fail silently in the one place nobody looks.
      */
-    const reward = resolveRewardEntry(entry, segment, 'elite', stream, takenItems, takenMoves);
+    const reward = resolveRewardEntry(entry, segment, 'elite', stream, takenItems, takenMoves, pool);
     if (reward) options.push(reward);
   }
 
@@ -258,8 +278,30 @@ export function resolveRewardEntry(
   stream: RngStream,
   takenItems: Set<string>,
   takenMoves: Set<string>,
+  pool: readonly RewardEntry[] = [],
 ): Reward | null {
   switch (entry.kind) {
+    case 'relic': {
+      /*
+       * Two draws, always, and neither depends on the run.
+       *
+       * The shuffle is a full permutation rather than one pick because the
+       * first choice may be held by the time the player arrives, and the
+       * alternates have to already be decided — resolution consumes no RNG.
+       * The fallback comes from this pool's non-relic entries, so a run that
+       * has collected everything still gets a card the tier would have paid.
+       */
+      const order = shuffled(RELIC_IDS, stream);
+      const ordinary = pool.filter((candidate) => candidate.kind !== 'relic');
+      const fallbackEntry = ordinary.length > 0 ? pickWeighted(ordinary, stream) : null;
+      const fallback = fallbackEntry
+        ? resolveRewardEntry(fallbackEntry, segment, tier, stream, takenItems, takenMoves, [])
+        : null;
+      const [first, ...alternates] = order;
+      if (!first || !fallback) return fallback;
+      return { kind: 'relic', relic: first, alternates, fallback };
+    }
+
     case 'item': {
       const available = entry.items.filter((id) => !takenItems.has(id) && itemById(id));
       if (available.length === 0) return null;
@@ -286,6 +328,57 @@ export function resolveRewardEntry(
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
   }
+}
+
+/**
+ * A Fisher-Yates shuffle off the stream. Exactly `n - 1` draws, always.
+ *
+ * A fixed draw count matters more than the shuffle being the tidiest one
+ * available: it is what lets a relic card cost the same number of draws as the
+ * relic table grows, so adding an eleventh relic does not reshuffle every seed
+ * beyond the one extra draw it honestly costs.
+ */
+function shuffled(ids: readonly RelicId[], stream: RngStream): RelicId[] {
+  const out = [...ids];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = stream.nextInt(i + 1);
+    const a = out[i];
+    const b = out[j];
+    if (a !== undefined && b !== undefined) {
+      out[i] = b;
+      out[j] = a;
+    }
+  }
+  return out;
+}
+
+/**
+ * Collapse a relic card against what the run already holds.
+ *
+ * Pure, no RNG, and idempotent: a resolved card resolves to itself. Every
+ * other kind passes straight through, so a caller can map an offer through
+ * this without asking what each card is.
+ */
+export function concreteReward(reward: Reward, relics: readonly RelicId[]): Reward {
+  if (reward.kind !== 'relic') return reward;
+  const order = [reward.relic, ...reward.alternates];
+  const free = order.find((id) => !relics.includes(id));
+  return free ? { kind: 'relic', relic: free, alternates: [], fallback: reward.fallback } : reward.fallback;
+}
+
+/**
+ * An offer with every relic card collapsed. **The one resolution point.**
+ *
+ * `playRun` calls this once, before it shows the offer, and everything
+ * downstream — the policy, the log's index, `applyReward` — reads the result.
+ * Resolving twice would be harmless (the function is idempotent) but resolving
+ * in two *places* would not: the card the player was shown and the card that
+ * gets applied have to be the same object, and one call site is how that stays
+ * true.
+ */
+export function resolveOffer(offer: RewardOffer, relics: readonly RelicId[]): RewardOffer {
+  if (!offer.options.some((option) => option.kind === 'relic')) return offer;
+  return { ...offer, options: offer.options.map((option) => concreteReward(option, relics)) };
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +469,21 @@ export function applyReward(
     case 'tm':
     case 'tutor':
       return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
+
+    case 'relic':
+      /*
+       * Onto the run, and never anywhere else.
+       *
+       * Not the backpack, so `tuning.backpackCapacity` never sees it and no
+       * discard can reach it. Not a party member, so no faint, release or swap
+       * can take it. Guarded against a double-add because a relic appearing
+       * twice in this list would be invisible everywhere except a passive that
+       * silently counted double — `applyRelicPassives` de-duplicates too, so
+       * this is the belt to that braces.
+       */
+      return state.relics.includes(choice.relic)
+        ? state
+        : { ...state, relics: [...state.relics, choice.relic] };
   }
 }
 
@@ -442,6 +550,11 @@ export function describeReward(reward: Reward): string {
       return itemById(reward.item)?.name ?? reward.item;
     case 'currency':
       return `${reward.amount} coins`;
+    case 'relic':
+      // The relic's own name. What it grants and what it does are the card's
+      // body, not its one-line label — a label that tried to say all three
+      // would be a sentence, and every other kind here is a noun.
+      return relicById(reward.relic)?.name ?? reward.relic;
     case 'tm':
       return `TM: ${reward.move}`;
     case 'tutor':

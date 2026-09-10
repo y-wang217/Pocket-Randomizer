@@ -133,6 +133,15 @@ const SHOP_STOCK: readonly ShopBand[] = [
       { kind: 'heal', weight: 4, price: 60, fraction: 0.5 },
       { kind: 'heal', weight: 3, price: 120, fraction: 1 },
       { kind: 'tm', weight: 3, price: 110, bandOffset: 1 },
+      /*
+       * A relic on the shelf, priced past a staple item.
+       *
+       * Not in the opening band: a relic costs more than a run has at segment
+       * 0-2, so stocking one there would be a slot that reads as a shelf full
+       * of nothing. From segment 3 it is a real decision against two heals
+       * and a TM.
+       */
+      { kind: 'relic', weight: 2, price: 260 },
     ],
   },
 ];

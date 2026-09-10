@@ -638,3 +638,77 @@ as a side effect of shipping a table is a mechanism nobody reviewed.
 Until then the hand bump stands, with the failure mode the seeds document names
 and this paragraph does not solve: a forgotten bump silently reinterprets a
 shared seed. `docs/keyed-streams.md` tracks what is missing.
+
+
+## 10. Relics, and the shape of a capability gate
+
+Stage 4.6c, 2026-09-10. Section 8 above is the history of how this was decided
+and why the two earlier designs were retired; this is what shipped.
+
+### The three bands
+
+An event names exactly one capability and pays at one of three bands.
+
+- **`known`** — the run holds a relic granting it. An encounter: a Pokemon
+  offered with no fight in front of it, through the mechanism built for band 3.
+- **`latent`** — no relic, but a party member's species carries a satisfying
+  type. A real payout.
+- **`none`** — neither. A small payout, and never nothing. A player who cannot
+  answer the requirement is unrewarded, not punished: an event that cost a run
+  something for a routing decision made four segments earlier and now
+  un-makeable would be a node the player can only lose at.
+
+**Nothing a Pokemon knows grants a capability.** A party member holding Surf
+does not make `surf` read `known`. Surf-the-move and Surf-the-capability are
+unrelated systems that share a name, and if that confuses a playtester the fix
+is to rename the capabilities rather than to reconnect them — reconnecting them
+is exactly the version-2 design that failed.
+
+### All three outcomes are drawn, one is used
+
+Every band's outcome is drawn when the map is built, and the band selects
+between them at resolution. This is the rule the feature rests on: **RNG
+consumption is identical regardless of which band applies.** If the band were
+consulted before drawing, two players on the same seed with different parties
+would diverge on a roll neither of them made, and a seed would stop describing
+one run.
+
+`test/event-bands.test.ts` asserts it directly rather than arguing it: two runs
+on one seed, one holding every relic and one holding none, generate
+byte-identical events.
+
+The same rule governs relic *offers*, from the other direction. A relic already
+held must never be offered again, but what a run holds is unknown when the map
+is built — so a relic card is drawn abstract (a shuffled relic order, plus an
+ordinary fallback card from the same pool) and collapsed at resolution by
+`concreteReward`. Filtering at draw time would have made a relic taken in
+segment 2 silently move every reward roll after it.
+
+### Where relics come from
+
+Elite and gym reward pools, and the later shop shelf. **There is no tier check
+anywhere in the code**: relics are elite-and-gym-only because those are the only
+tables carrying a `relic` entry, which is how every other tier restriction in
+`data/rewardPools.ts` already works. Putting one in the normal pool would
+decouple relics from the risk gradient Stage 3 exists to protect.
+
+Taking one is an ordinary card pick and adds no logged decision. That is why
+`RUN_LOG_VERSION` did not move for this stage while `RANDOMIZER_VERSION` did:
+the questions are unchanged, the answers mean something different.
+
+### The common-type skew, and the lever for it
+
+`latent` is satisfied by type, so capabilities keyed to common types resolve
+`latent` more often. Water is common and covers `surf`, `waterfall` and `dive`
+between them; Ghost and Dragon are not. Measured over 120 seeds the per-capability
+`latent` rate spreads roughly 29% to 50%.
+
+**This is corrected by how many events name each capability, in
+`data/events.ts`, and never by narrowing the type sets in
+`data/capabilities.ts`.** Narrowing those would make them say something false
+about the games in order to fix a different table's problem. The simulator
+reports a per-capability band split for exactly this purpose, and the report
+says so where it prints it.
+
+Today every capability is named by exactly one event, which is a flat starting
+point rather than a tuned one.

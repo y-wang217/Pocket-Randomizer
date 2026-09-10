@@ -2157,3 +2157,99 @@ body {
 /* An empty row is rendered with a dash rather than dropped: "immune to
    nothing" and "we failed to compute this" must not look the same. */
 .wheel__none { color: var(--text-faint); }
+
+/* ---------------------------------------------------------------------------
+ * Stage 4.6c: the capability gate on a node, and the relic shelf.
+ * ------------------------------------------------------------------------ */
+
+/*
+ * The gate line sits under the node's detail, on every phase.
+ *
+ * The three bands are distinguished by weight and a border rather than by a
+ * traffic-light palette. Green-amber-red would rank them, and they are not
+ * ranked: every band pays, and `none` is a fact about the run rather than a
+ * warning about the node.
+ */
+.node__gate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--border);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.node__gate-need {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.node__gate-band {
+  color: var(--text-dim);
+}
+
+/* Only the top band gets emphasis, and only because it changes what happens. */
+.node__gate--known .node__gate-band {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.relics {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.relics__title {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.relics__empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.relics__list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * No affordances on a relic row. Nothing here is clickable, draggable or
+ * removable, and the row is built to look like it: no button, no hover state,
+ * no cursor change.
+ */
+.relics__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.2rem 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+
+.relics__name {
+  font-weight: 600;
+}
+
+.relics__text {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.badge--capability {
+  align-self: start;
+  white-space: nowrap;
+}

@@ -58,6 +58,7 @@ the two runs used `RETUNE` and `SIM`.
 | `randomizer-9`, 400 | SIM | 4.0% | 2.94 | Cut and Flash admitted |
 | `randomizer-10`, 400 | SIM | 4.0% | 2.82 | Cut and Flash removed |
 | `randomizer-10`, 400 | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
+| `randomizer-11`, 400 | RETUNE | see §12 | | Stage 4.6c relics |
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
@@ -1155,3 +1156,55 @@ wrong and that is the bug to fix first.
 **Changing any of those changes what every recorded seed produces.** Bump
 `RANDOMIZER_VERSION` in `src/core/randomizer.ts` when you do, or a shared seed
 quietly becomes a different run.
+
+
+## 12. Stage 4.6c — relics, and what the report now measures
+
+**Benchmarked on mean gyms cleared, not completion rate.** Completion is a
+rare-event statistic sitting at a few percent, and it throws away every run
+that died at gym 3 — which is most of them. Mean gyms uses the whole sample and
+moves on changes completion cannot see. Completion stays in the report; it is
+no longer the number a change is judged on.
+
+Every figure below is stamped with its seed prefix and count, in the table,
+next to the number. Reading across prefixes has already produced one false
+finding in this project (see §0) and the stamp is what stops it happening
+twice.
+
+### What the report gained
+
+- **Gate band per capability.** The share of events resolving `none`, `latent`
+  and `known`, broken out per capability rather than as one number, because it
+  splits hard and the split is the point. If `known` fires in under about 5% of
+  events across the sample, relics are too rare and the mechanic is decoration;
+  the report prints that verdict itself.
+- **Relic acquisition rate**, and the distribution of how many relics a run
+  ends holding.
+- **A never-offered check**, in the same spirit as the locale UNREACHABLE line:
+  a relic that never appears on a card anywhere in the sample is named.
+- **Mean gyms, holders against non-holders.** Correlational and confounded —
+  relics come from elite and gym nodes, so a holder already survived the risky
+  path — and printed with both sample sizes and a line saying so. A flag, not a
+  finding.
+- **`--policy relics`**, running `relic-greedy` against `tier-greedy`. Same
+  node appetite, same seeds; the only difference is whether the pick is spent
+  on the relic. It exists because `valueOfReward` prices a relic at a flat
+  guess — the bot cannot see whether an event needing that capability is still
+  ahead of it — and a guess should not be the only measurement of the thing it
+  guesses at.
+
+### First readings, 120 seeds, prefix RELICS
+
+| measure | value |
+|---|---|
+| relic offers per run | 1.17 (greedy) / 2.52 (relic-greedy) |
+| mean relics held at run end | 1.07 / 2.32 |
+| events resolving `known` | 10.8% / 19.1% |
+| events resolving `latent` | 35.3% / 31.8% |
+| relics never offered | none |
+
+`known` clears the 5% decoration threshold on both policies. The
+per-capability spread is real and is the input to weighting `data/events.ts`,
+which is not yet done — every capability is named by exactly one event today.
+
+Not acted on, per §0. Recorded, direction noted, moving on.

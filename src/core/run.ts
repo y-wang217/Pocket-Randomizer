@@ -56,18 +56,21 @@ import type { RelicId } from '../data/relics';
 import { RANDOMIZER_VERSION } from './randomizer';
 import {
   applyPurchases,
+  resolveStock,
   nodePayout,
   purchasedRewards,
   type MovePurchaseChoice,
   type ShopStock,
 } from './economy';
-import { applyEventOutcome, type EventInstance } from './events';
+import { applyEventOutcome, outcomeAt, type EventInstance, type EventOutcome } from './events';
+import { resolveCapability, type CapabilityContext } from './capabilities';
 import { describeMove } from './battle/driver';
 import { applyItemPlan, backpackCapacity, needsItemPlan, spendItems, stowAll } from './items';
 import {
   applyReward,
   isTargeted,
   recipientFor,
+  resolveOffer,
   type MoveReward,
   type Reward,
   type RewardOffer,
@@ -516,6 +519,15 @@ export interface NodeResult {
    */
   reward?: Reward;
   /**
+   * The shelf as it was shown, with relic cards already collapsed.
+   *
+   * Present only when this node is a shop. `resolveNode` prefers it over
+   * `node.shop` for the same reason `reward` holds the card rather than the
+   * index: the thing the player was asked about and the thing that gets
+   * applied have to be one object. A shop is the only node read twice.
+   */
+  shopStock?: ShopStock;
+  /**
    * Which party slot a targeted reward lands on.
    *
    * Resolved by `playRun` before this is handed over, like `reward` itself —
@@ -670,9 +682,12 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         `Event choice ${result.eventChoice} out of range (${result.node.event.choices.length} offered)`,
       );
     }
-    const after = applyEventOutcome({ ...state, party, currency }, choice.outcome, state.tuning);
-    party = after.party;
-    currency = after.currency;
+    const outcome = chosenEventOutcome(result, state);
+    if (outcome) {
+      const after = applyEventOutcome({ ...state, party, currency }, outcome, state.tuning);
+      party = after.party;
+      currency = after.currency;
+    }
   }
 
   const history: NodeVisit[] = [
@@ -775,7 +790,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (result.purchases && result.node.shop) {
     advanced = applyPurchases(
       advanced,
-      result.node.shop,
+      result.shopStock ?? result.node.shop,
       result.purchases,
       result.purchaseMoveChoices ?? [],
     );
@@ -1118,7 +1133,8 @@ export async function playRun(
      * same value before anything downstream can tell them apart.
      */
     if (result.node.shop) {
-      const stock = result.node.shop;
+      const stock = resolveStock(result.node.shop, state.relics);
+      result.shopStock = stock;
       const indexes = await policy.chooseShopPurchases(stock, state);
       record({ kind: 'shop', indexes: [...indexes] });
       result.purchases = [...indexes];
@@ -1178,7 +1194,19 @@ export async function playRun(
      * cannot end the run on a node that just paid out.
      */
     const won = result.battle?.result.winner === 'p1';
-    const offer = won ? (result.node.reward ?? null) : null;
+    /*
+     * Resolved once, here, against what the run holds right now.
+     *
+     * A relic card is drawn abstract at map generation — a shuffled relic
+     * order and an ordinary fallback — because which relic is still available
+     * depends on play. `resolveOffer` collapses it, and it is called in
+     * exactly one place so that the card the player is shown, the index the
+     * log stores, and the card `applyReward` applies are the same object. It
+     * consumes no RNG and it is idempotent; an offer with no relic in it is
+     * returned unchanged.
+     */
+    const drawn = won ? (result.node.reward ?? null) : null;
+    const offer = drawn ? resolveOffer(drawn, state.relics) : null;
     let reviewedIndex: number | null = null;
 
     if (result.battle && policy.reviewBattle) {
@@ -1249,7 +1277,7 @@ export async function playRun(
      * rule is stated as what it always meant: an offer is refused only by a
      * fight that was lost, never by the absence of one.
      */
-    const offered = acquisitionOffered(result);
+    const offered = acquisitionOffered(result, state);
     const earned = result.battle ? result.battle.result.winner === 'p1' : true;
     if (offered && earned) {
       const decision = await policy.chooseAcquisition(offered, state.party);
@@ -1322,11 +1350,32 @@ export async function playRun(
  * This function is the whole of what band 3 added to the node model: one more
  * place to look for an offer, not one more way for a node to finish.
  */
-export function acquisitionOffered(result: NodeResult): AcquisitionOffer | null {
+export function acquisitionOffered(result: NodeResult, run: CapabilityContext): AcquisitionOffer | null {
   if (result.node.acquisition) return result.node.acquisition;
-  if (result.eventChoice === undefined) return null;
-  const outcome = result.node.event?.choices[result.eventChoice]?.outcome;
+  const outcome = chosenEventOutcome(result, run);
   return outcome?.kind === 'acquisition' ? outcome.offer : null;
+}
+
+/**
+ * The outcome the chosen event button actually pays. **The single definition.**
+ *
+ * Both callers go through it — `acquisitionOffered` above, to find a capture,
+ * and `resolveNode` to fold the payout — because they have to agree about
+ * which of the three drawn outcomes applies. Two independent band
+ * computations is two chances to read a different party, and the symptom
+ * would be a capture card offered for an outcome the run then did not apply.
+ *
+ * The band is read from the state the node was *entered* with. That is the
+ * state the map screen showed the requirement against, so the band the player
+ * was told about is the band they get — a fight that killed the run's only
+ * Water type on the way in does not silently downgrade the payout.
+ */
+export function chosenEventOutcome(result: NodeResult, run: CapabilityContext): EventOutcome | null {
+  const event = result.node.event;
+  if (!event || result.eventChoice === undefined) return null;
+  const choice = event.choices[result.eventChoice];
+  if (!choice) return null;
+  return outcomeAt(choice, resolveCapability(run, event.requires));
 }
 
 /**

@@ -64,6 +64,7 @@ describe('draw isolation', () => {
     const b = generateEvent('n1', without.rewards.at('e'), DEFAULT_TUNING);
     expect(a.eventId).toBe(b.eventId);
     expect(a.prompt).toBe(b.prompt);
+    expect(a.requires).toBe(b.requires);
     expect(withOffer.rewards.at('e').draws).toBe(without.rewards.at('e').draws);
   });
 
@@ -71,7 +72,9 @@ describe('draw isolation', () => {
     const rng = createRng('NONE');
     const event = generateEvent('n1', rng.rewards.at('e'), DEFAULT_TUNING, () => null);
     for (const choice of event.choices) {
-      expect(choice.outcome.kind).not.toBe('acquisition');
+      for (const outcome of Object.values(choice.outcomes)) {
+        expect(outcome.kind).not.toBe('acquisition');
+      }
     }
   });
 });
@@ -97,34 +100,47 @@ describe('finding the offer', () => {
   const eventNode = { ...base.segments[0]!.gym, kind: 'event' as const, encounter: null, acquisition: null };
   const offer = offerFor('FIND');
 
-  /** An event node whose chosen choice resolves to an acquisition. */
-  function nodeOfferingAt(chosen: number): NodeResult['node'] {
+  const nothing: EventOutcome = { kind: 'nothing' };
+  const capture: EventOutcome = { kind: 'acquisition', offer };
+
+  /** An event node where only the `known` band of choice 1 offers a Pokemon. */
+  function offeringNode(): NodeResult['node'] {
     const choices = [
-      { label: 'a', hint: 'a', outcome: { kind: 'nothing' } as EventOutcome },
-      { label: 'b', hint: 'b', outcome: { kind: 'acquisition', offer } as EventOutcome },
+      { label: 'a', hint: 'a', outcomes: { none: nothing, latent: nothing, known: nothing } },
+      { label: 'b', hint: 'b', outcomes: { none: nothing, latent: nothing, known: capture } },
     ];
-    void chosen;
-    return { ...eventNode, event: { nodeId: 'n1', eventId: 'test', prompt: 'p', choices } };
+    return {
+      ...eventNode,
+      event: { nodeId: 'n1', eventId: 'test', prompt: 'p', requires: 'surf' as const, choices },
+    };
   }
 
-  it('finds an offer on the chosen event outcome', () => {
-    expect(acquisitionOffered({ node: nodeOfferingAt(1), eventChoice: 1 })).toEqual(offer);
+  /** A run holding the Surf relic, so `surf` reads `known`. */
+  const knowsSurf = { relics: ['tidecaller-shell'], party: [] };
+  const knowsNothing = { relics: [], party: [] };
+
+  it('finds an offer on the chosen outcome at the band the run is at', () => {
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 1 }, knowsSurf)).toEqual(offer);
+  });
+
+  it('finds nothing at a lower band, because a different outcome pays', () => {
+    // The same node and the same button. Only the band differs, and the band
+    // is the run's, so two runs on this seed diverge here without either
+    // having made a roll the other did not.
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 1 }, knowsNothing)).toBeNull();
   });
 
   it('finds nothing when the player chose a different button', () => {
-    // The offer is not a property of the node. Choosing the other option means
-    // there is no Pokemon, and a static node.acquisition would have offered one
-    // whichever button was pressed.
-    expect(acquisitionOffered({ node: nodeOfferingAt(1), eventChoice: 0 })).toBeNull();
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 0 }, knowsSurf)).toBeNull();
   });
 
   it('finds nothing when no event choice was made', () => {
-    expect(acquisitionOffered({ node: nodeOfferingAt(1) })).toBeNull();
+    expect(acquisitionOffered({ node: offeringNode() }, knowsSurf)).toBeNull();
   });
 
   it('still finds a wild node offer, unchanged', () => {
     const wild = { ...eventNode, kind: 'wild' as const, acquisition: offer };
-    expect(acquisitionOffered({ node: wild })).toEqual(offer);
+    expect(acquisitionOffered({ node: wild }, knowsNothing)).toEqual(offer);
   });
 });
 

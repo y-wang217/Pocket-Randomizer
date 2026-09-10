@@ -168,8 +168,19 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * Rock Smash, Strength, Surf and Waterfall were never touched by any of this.
  * They are standard gen 9 moves, they stayed in the damaging pool throughout,
  * and they are ordinary moves with no second meaning.
+ *
+ * Went to 11 in Stage 4.6c for relics. Reward pool composition changed — the
+ * elite and gym tables carry a `relic` entry now, and the later shop band
+ * stocks one — so the weighted pick at every offer in the game lands
+ * somewhere new, and a relic card costs a shuffle and a fallback draw on top.
+ * Every reward roll moves; nothing else about what a Pokemon *is* changed.
+ *
+ * `RUN_LOG_VERSION` deliberately did **not** move with it. Taking a relic is
+ * an ordinary card pick, so no question was added and no question moved — the
+ * two axes disagreeing here is the two axes working. See its comment in
+ * `core/run.ts` for the other half of that argument.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-10';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-11';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
