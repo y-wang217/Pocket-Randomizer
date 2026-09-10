@@ -104,13 +104,25 @@ describe('no screen builds its own overlay', () => {
     const dialogs = files
       .filter(([, source]) => /role',\s*'dialog'|aria-modal|el\('div', 'band|className = ['"]band|['"]overlay/.test(source))
       .map(([name]) => name);
-    // The tooltip panel is a popover and predates the band; the 4.7 party
-    // drawer is a bottom sheet. Neither is a confirm: the drawer asks nothing,
-    // submits nothing, resolves no pending decision and closes on navigation;
-    // it is a readout the player opens, not a question the game puts. The
-    // band is the one overlay that carries a decision, and it stays the only
-    // one that does.
-    expect(dialogs.sort()).toEqual(['src/ui/band.ts', 'src/ui/drawer.ts', 'src/ui/tooltips.ts']);
+    /*
+     * The tooltip panel is a popover and predates the band; the 4.7 party
+     * drawer is a bottom sheet; V5's history sheet is the same bottom sheet
+     * holding the battle log. **None of the three is a confirm.** Each asks
+     * nothing, submits nothing and resolves no pending decision: they are
+     * readouts the player opens, not questions the game puts, and each closes
+     * without leaving anything behind it changed. The band is the one overlay
+     * that carries a decision, and it stays the only one that does.
+     *
+     * The list is an allowlist and grows one deliberate line at a time, which
+     * is the whole of its value — a fourth overlay that nobody had to justify
+     * is how the rule stops being one.
+     */
+    expect(dialogs.sort()).toEqual([
+      'src/ui/band.ts',
+      'src/ui/drawer.ts',
+      'src/ui/log-sheet.ts',
+      'src/ui/tooltips.ts',
+    ]);
   });
 
   it('never brings the two-click confirm back', () => {

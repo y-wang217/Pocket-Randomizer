@@ -23,14 +23,34 @@ const sprites = new Sprites({
   getAvatar: () => undefined,
 });
 
+/**
+ * Which way the sprite faces. **V5.**
+ *
+ * `p1` is the near side and gets the back sprite, `p2` the far side and the
+ * front — the same `p1`/`p2` the protocol, the projection and the log all use,
+ * so a caller never has to translate. Omitted, the front sprite is returned,
+ * which is what every surface outside a battle wants: a run summary is looking
+ * at the Pokemon, not standing beside it.
+ */
+export type SpriteSide = 'p1' | 'p2';
+
 /** The sprite URL for a species, or a stable placeholder when it cannot resolve. */
-export function spriteUrl(species: string): string {
-  return sprites.getPokemon(species, { gen: 'gen5' }).url;
+export function spriteUrl(species: string, side?: SpriteSide): string {
+  return sprites.getPokemon(species, { gen: 'gen5', ...(side ? { side } : {}) }).url;
 }
 
-export function spriteImg(species: string): HTMLImageElement {
+/**
+ * The sprite element for a species.
+ *
+ * **An empty species leaves `src` unset**, which is the state the battle stage
+ * builds its two actors in: the elements exist and hold their box from the
+ * first frame, and a URL arrives when a projection says who is standing there.
+ * Resolving `''` would request `gen5/.png`, which 404s on every mount and puts
+ * a failed request in the console of every session that ever opened a fight.
+ */
+export function spriteImg(species: string, side?: SpriteSide): HTMLImageElement {
   const img = el('img', 'sprite');
-  img.src = spriteUrl(species);
+  if (species) img.src = spriteUrl(species, side);
   img.alt = species;
   img.width = 96;
   img.height = 96;

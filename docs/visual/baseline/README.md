@@ -83,3 +83,108 @@ and fails on any byte that differs. Heights are compared by
   changed no file under `src/data/`, and the projection field it added
   (`MoveUiView.powerBand`) is not recorded by `baseline.ts`, which serializes
   run state and protocol rather than the view.
+
+- **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that took the persistent log off the board:
+  `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.
+  **The decision point did not move**: `decisionTop` is 681.5, `decisionBottom`
+  947.5, `decisionCount` 4, all unchanged, because the log sat *below* the move
+  grid and removing it takes height off the bottom of the screen rather than out
+  from under the buttons. The fold is V5.3's and V5.4's to move.
+
+  332 exactly, and it is the log's 320 plus the one `.board` gap that separated
+  it from the strip. The strip itself is unmoved at 24 (`--space-6`, one chip's
+  line box): the history control it gained is sized to the band rather than
+  setting it, which is deliberate — a control that made the strip 26.5 tall
+  would have been V5 spending its own budget on furniture. The board went from a
+  two-column grid to a one-column flex column in the same change, because with
+  the log gone there is no second column to name.
+
+  **The map did not move**, on any of its five fields. Runs, the battle protocol
+  and `data-digest.txt` are byte identical: V5.2 changed no file under
+  `src/data/`, and the one new copy module is `src/ui/copy/events.ts`, which is
+  under `ui/` for exactly that reason.
+
+- **2026-09-10, V5.3.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that put the sprites in the scene and the
+  panels on top of it: `battle.screenHeight` 850.5 → **633**, `scrollHeight`
+  1044 → **844**, `decisionTop` 681.5 → **476**, `decisionBottom` 947.5 →
+  **742**. `decisionCount` is still 4. **This is the first recording in which
+  the battle screen does not scroll**: 844 is the viewport, so `scrollHeight`
+  and the fold are now the same number.
+
+  Where the 217.5 came from, and it is three things rather than one. The two
+  panels left the column and became absolutely positioned inside a 260px stage
+  band, so their 239.25 and 214.25 stopped contributing anything to the flow
+  (−453.5, +260 for the band). The six-row stat block left both panels with
+  them. And the empty `.bench` took `display: none`, which took the flex gap it
+  was still earning (−12).
+
+  **The decision point moved for the first time in this stage**, by 205.5, and
+  every pixel of it is above the move grid rather than inside it: `.moves` is
+  still 266 tall and its four buttons still 130. V5.4 is the one that touches
+  the grid.
+
+  **The map did not move**, on any of its five fields. Runs, the battle protocol
+  and `data-digest.txt` are byte identical.
+
+- **2026-09-10, V5.4.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that tightened the move grid:
+  `battle.screenHeight` 633 → **595**, `decisionBottom` 742 → **704**.
+  `scrollHeight` is unchanged at **844** because the screen already fitted the
+  viewport at V5.3; `decisionTop` is unchanged at **476** and `decisionCount` is
+  still 4.
+
+  38 exactly, and none of it came off the touch target. `.moves` is 228 and a
+  button is 111 — the 44px minimum is untouched, `.move__meta` still wraps to
+  two lines and the band badge still sits on the second of them with nothing
+  overhanging. What came out is 8px of vertical padding, 9px across the three
+  internal gaps and 2px inside the meta row, per button, plus 2 off the grid's
+  own row gap. Amendment A6's rule, followed literally.
+
+  A second thing moved in the same commit and did not change any of the five
+  numbers: the archetype chip and the type badges left the panel header for the
+  panel's chip row. On a floating panel 254 wide the header wrapped to a second
+  line, and both panels grew to 145 — enough that they overlapped each other
+  inside the 260 band. They read 121 now, with 18px of clear air between them.
+  Stage 4.7's `@media` rule holding both battle panels at its own padding and
+  gap was retired at the same time; it was winning on specificity over the
+  floating panel's own metrics, and the rule beside it referred to a `.stats`
+  block that no longer exists in a battle.
+
+  **The map did not move**, on any of its five fields. Runs, the battle protocol
+  and `data-digest.txt` are byte identical.
+
+**Both guarded assertions now hold on the battle screen for the first time in
+this project's history**: layout height 595 against the plan's 600, and all four
+move buttons ending at 704 against the 740 usable line, on a screen whose
+`scrollHeight` equals the 844 viewport.
+
+- **2026-09-10, V5.6.** `heights.json` battle entries re-recorded a fourth and
+  last time in this stage: `battle.screenHeight` 595 → **587**, `decisionTop`
+  476 → **472**, `decisionBottom` 704 → **700**. `scrollHeight` stays at
+  **844** and `decisionCount` at 4.
+
+  Eight pixels, both of them margins, and they were found by the *loaded* board
+  rather than by SMOKE24. `gallery.html#screen=battle` drives a battle until
+  both panels carry a status and a stage — the state the plan's closing
+  assertion names and the smoke bot cannot ask for — and that board measured 602
+  against the plan's 600. The two gaps between the battle heading, the board and
+  the strip went from 12 to 8. Nothing moved closer to a thumb: both sit above
+  the move grid.
+
+  One defect went with them, also found by the loaded board: two long flag words
+  on one turn (`Paralysed` and `Badly poisoned`) wrapped *inside* their chips
+  and made the strip 35px. `flex-wrap: nowrap` stops a row breaking between
+  chips and says nothing about a chip breaking inside itself. The strip is one
+  24px band again.
+
+  **The map did not move**, on any of its five fields, at any point in V5. Runs,
+  the battle protocol and `data-digest.txt` are byte identical to `main` at
+  `f5c84fe` — `git diff origin/main -- src/core src/data` is empty, so no
+  version axis moved and no seed changed.
+
+  `bundle.json` is **not** re-recorded, per this file's own rule: it is the
+  pre-V0 baseline and each stage states its delta against it. V5's own delta,
+  measured against `main` rather than against V0, is **+3,598 raw / +633
+  gzipped**.

@@ -1,0 +1,60 @@
+V5 battle stage composition — done 2026-09-10, branch claude/zen-mayer-9sp9bn.
+
+Report: docs/visual/reports/v5-battle-stage.md
+Prompt: docs/spec/gymrun-stage-v5-preflight-reconcile-execute.md, amending the
+V5 section of docs/spec/gymrun-visual-identity-plan.md.
+
+HEIGHTS, 390x844, SMOKE24, docs/visual/baseline/heights.json
+
+  field                 before      after     delta
+  battle.screenHeight   1182.5        587    -595.5
+  battle.scrollHeight     1376        844      -532
+  battle.decisionTop     681.5        472    -209.5
+  battle.decisionBottom  947.5        700    -247.5
+  battle.decisionCount       4          4         0
+  map (all five fields)  unchanged
+
+  Element-by-element totals, from the top of the document:
+  before 1327.5 -> after 739 (-588.5).
+
+LOADED WORST CASE, gallery.html#seed=V5-LOADED&screen=battle
+A battle driven until both panels carry a status chip and a stage chip, which
+is the state the plan's test 1 names and a played seed cannot be asked for.
+
+  battle screen layout height   594   (plan asserts <= 600)
+  strip                          24   one band, two long flag words on it
+  document scrollHeight         844   nothing below the fold
+
+GATES
+
+  full suite                    75 files, 974 tests, all pass
+  tsc --noEmit                  clean
+  eslint .                      clean
+  npm run build                 clean
+  npm run smoke                 exit 0, one xfail (4.7's map fold, unrelated)
+  strict-trim build             clean
+  strict-trim vitest            excluded, open item 8, red on main before V5
+  guarded heights               re-recorded in the commits that moved them
+  seeded output                 byte identical, both instruments
+  core/ and data/               byte identical to main (git diff empty)
+  version axes                  none moved
+  duration pin                  18 -> 17, one hardcoded length retired
+
+BUNDLE, dist/, against main at f5c84fe
+
+  assets/index.js    raw +1297   gz +280
+  assets/index.css   raw +2301   gz +358
+  TOTAL              raw +3598   gz +633
+
+  The plan estimated +2 kB for V5. Raw is +3.6 kB and gzipped +0.6 kB.
+  docs/visual/baseline/bundle.json is not re-recorded: it is the pre-V0
+  baseline and every stage states its delta against it.
+
+WHAT V5 TOOK AWAY
+
+  The six-row stat block leaves both battle panels. Stat stages render as V2
+  chips instead, and only when they are not zero. The player's six stats are a
+  tap away in the party drawer; the opponent's are now the archetype label
+  alone. That is the plan's own budget. It would cost the budget nothing to
+  give back, because the panels are overlaid rather than stacked — see the
+  report's V5.3 section.
