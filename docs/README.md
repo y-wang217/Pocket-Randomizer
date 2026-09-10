@@ -84,7 +84,7 @@ says why they are their own release.
 - **Re-reading the gym currency pick rate** is blocked on R13, the simulator's
   move-reward scorer defect, in Release A. Any figure taken before that fix is
   confounded.
-- **The type wheel decision** is blocked on Release B, which forces it.
+- **The type wheel change** is decided but unbuilt, and lands in Release B.
 
 **No longer blocked.** Release A was a hard dependency of 4.6c under the HM
 design, because HM teaching was going to be the move reward flow. Relics removed
@@ -108,10 +108,9 @@ One line each. The analysis lives where the pointer goes, not here.
    `BattleView` carries no speed. Its own pass, its own `AI_VERSION` bump, kept
    outside 4.6 so its effect on the table stays separable.
    [`spec/gymrun-stage4.6-claude-code-prompts.md`](spec/gymrun-stage4.6-claude-code-prompts.md).
-5. **The type wheel decision.** Keep it but drop the trigger from the two
-   Pokemon panel type badges, delete it, or leave it. Option 1 was recommended.
-   It now competes with the band tooltip for the same layer.
-   [`spec/gymrun-qol-release-plan-rev2.md`](spec/gymrun-qol-release-plan-rev2.md).
+5. **The type wheel. Decided, not yet built.** Keep it, and drop the trigger
+   from the two Pokemon panel type badges. It is UI work and belongs to
+   Release B. Recorded in [`spec/README.md`](spec/README.md).
 6. **Party threat readout. Shipped.** Carried as open in the QoL plan, which
    predates the merge. It is live on the party screen and the map, and covered
    by `test/threat-readout.test.ts`. The plan is a historical record and is not
