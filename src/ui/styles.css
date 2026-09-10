@@ -44,7 +44,9 @@ body {
 }
 
 .shell {
+  /* Above the world (V3), which sits at the root's z-index 0. */
   position: relative;
+  z-index: 1;
   max-width: 1040px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-4) var(--space-12);
@@ -2491,3 +2493,95 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * rendered stamp collides). None collided on the first measurement; the
  * rules go here when one does, keyed by `.shell[data-screen]`.
  */
+
+/* ==========================================================================
+   Stage V3 — the world
+   ========================================================================== */
+
+/*
+ * The place behind the screens, from ui/scene.ts's world scene. Fixed, full
+ * viewport, under the shell, no pointer events. Three layers of inline SVG,
+ * each filling the viewport and anchored to its bottom, scaled from a 96x48
+ * grid with crisp edges: the pixel look, from geometry rather than rasters.
+ */
+.world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.world[hidden] { display: none; }
+
+.world__layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.world__layer > svg {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+
+/*
+ * One fill per layer, set here and read by every shape in the art through
+ * `--layer-fill`. Depth is the mix: the far layer carries the most glow and
+ * sits at the top of the frame against the deep tone, the mid layer a little
+ * less against the mid tone, the near layer is the deep tone itself, a
+ * silhouette against everything behind it.
+ */
+.world__layer--far { --layer-fill: color-mix(in srgb, var(--locale-glow) 22%, var(--locale-mid)); opacity: 0.85; }
+.world__layer--mid { --layer-fill: color-mix(in srgb, var(--locale-glow) 34%, var(--locale-mid)); opacity: 0.9; }
+.world__layer--near { --layer-fill: var(--locale-deep); }
+.world__drift { --layer-fill: var(--locale-deep); }
+
+/*
+ * The darkening scrim under the content column. V3.5 measures every locale's
+ * text against the V0 baseline and sets its opacity; where the scene never
+ * reached a text style, it stays at the default.
+ */
+.world__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--locale-deep) 0%, transparent 28%, transparent 62%, var(--locale-deep) 100%);
+  opacity: var(--scrim-opacity);
+}
+
+/*
+ * The one drifting element per locale: a small SVG on the mid layer,
+ * carried across the viewport on a loop of at least twenty seconds, low in
+ * the frame so it never leads the eye to a control. Not mounted under
+ * reduced motion; the rule below is belt and braces for a preference that
+ * changed after the region was entered.
+ */
+.world__drift {
+  position: absolute;
+  top: 58%;
+  left: -8%;
+  width: var(--drift-size);
+  height: var(--drift-size);
+  animation: world-drift var(--drift-period) linear infinite;
+}
+
+.world__drift > svg {
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+}
+
+@keyframes world-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(120vw, -4vh, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world__drift { display: none; }
+  .world__layer { transform: none !important; }
+}
