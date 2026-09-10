@@ -271,7 +271,8 @@ async function playRun(label) {
           const release = capture.locator('.button--danger').last();
           if (await release.count()) {
             await release.click();
-            await release.click();
+            // The confirm is the shared band since V2: its primary commits.
+            await page.locator('.confirm-band .primary-action').click();
             releases++;
             acquisitions++;
           } else {

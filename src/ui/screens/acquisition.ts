@@ -47,6 +47,7 @@ import type { PokemonSpec, PokemonState } from '../../core/types';
 import { PARTY_SIZE } from '../../data/partyTuning';
 import { el } from '../scene';
 import { statLine, typeChip } from './starter-select';
+import { openBand } from '../band';
 
 /** What the offer's source says about where it came from. Never what it is worth. */
 const SOURCE_BLURB: Record<AcquisitionOffer['source'], string> = {
@@ -241,14 +242,16 @@ function renderExisting(
     release.type = 'button';
     release.className = 'button button--small button--danger';
     release.textContent = `Release ${detail.species}`;
-    release.addEventListener('click', () => {
-      if (release.dataset['confirm'] === 'true') {
-        onDecide({ kind: 'release', slot: index });
-        return;
-      }
-      release.dataset['confirm'] = 'true';
-      release.textContent = 'Release for good?';
-    });
+    // The shared band confirms it (ui/band.ts). Stage V2.
+    release.addEventListener('click', () =>
+      openBand({
+        title: `Release ${detail.species}?`,
+        detail: 'For good, to make room. Anything held goes back to the bag.',
+        confirm: 'Release',
+        cancel: 'Keep',
+        onConfirm: () => onDecide({ kind: 'release', slot: index }),
+      }),
+    );
     const actions = el('div', 'party__actions');
     actions.append(release);
     card.append(actions);

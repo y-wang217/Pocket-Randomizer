@@ -55,6 +55,7 @@ import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
 import { itemById } from '../../data/items';
 import { statInfo, STAT_ORDER } from '../../data/statInfo';
 import type { Tuning } from '../../data/tuning';
+import { openBand } from '../band';
 import { genderMark, el } from '../scene';
 import { showsNumbers } from '../settings';
 import { typeChip } from './starter-select';
@@ -395,14 +396,18 @@ function renderManaged(
   // The last member cannot be released: an empty party is neither wiped nor
   // alive, which is a state reached by a button rather than by losing.
   release.disabled = size <= 1;
-  release.addEventListener('click', () => {
-    if (release.dataset['confirm'] === 'true') {
-      handlers.onRelease(index);
-      return;
-    }
-    release.dataset['confirm'] = 'true';
-    release.textContent = 'Release for good?';
-  });
+  // The confirm is the shared band (ui/band.ts), not a second click on this
+  // button. Stage V2. The question names the Pokemon, because "for good?"
+  // over the wrong card is exactly the misclick the confirm exists to catch.
+  release.addEventListener('click', () =>
+    openBand({
+      title: `Release ${spec.species}?`,
+      detail: 'For good. There is no box. Anything held goes back to the bag.',
+      confirm: 'Release',
+      cancel: 'Keep',
+      onConfirm: () => handlers.onRelease(index),
+    }),
+  );
 
   actions.append(lead, release);
   card.append(header, track, meta, itemRow, stats, moves, actions);
@@ -608,16 +613,17 @@ function renderBackpack(
       drop.type = 'button';
       drop.className = 'button button--small button--danger';
       drop.textContent = 'Discard';
-      drop.addEventListener('click', () => {
-        // Two-step, like Release, and for the same reason: a discard is the one
-        // irreversible thing on this screen.
-        if (drop.dataset['confirm'] === 'true') {
-          handlers.onDiscard(id);
-          return;
-        }
-        drop.dataset['confirm'] = 'true';
-        drop.textContent = 'Discard for good?';
-      });
+      // Confirmed through the band, like Release, and for the same reason: a
+      // discard is the one irreversible thing on this screen.
+      drop.addEventListener('click', () =>
+        openBand({
+          title: `Discard ${entry?.name ?? id}?`,
+          detail: 'For good. It leaves the run.',
+          confirm: 'Discard',
+          cancel: 'Keep',
+          onConfirm: () => handlers.onDiscard(id),
+        }),
+      );
 
       row.append(name, effect, give, drop);
       return row;
