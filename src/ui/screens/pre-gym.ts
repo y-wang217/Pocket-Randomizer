@@ -38,6 +38,25 @@ import { el } from '../scene';
 import { memberCardContents } from '../member-card';
 import { typeChip } from './starter-select';
 
+/**
+ * The slot the screen confirms when the player changes nothing.
+ *
+ * The lowest living slot, which is exactly who `battleMembersFor` would send
+ * first — `sendOrder` filters fainted members, so confirming this slot is a
+ * reorder the battle would have performed anyway, and never a pick
+ * `core/run.chooseLead` refuses. Slot 0 in every ordinary case; the first
+ * living member behind it when the party walked out of the last node with its
+ * lead down.
+ *
+ * Exported because the confirm's answer has to be the same answer a headless
+ * run gives, and `test/pre-gym-confirm.test.ts` asserts that against a real
+ * run rather than against a copy of this rule.
+ */
+export function defaultLeadSlot(party: readonly PokemonState[]): number {
+  const living = party.findIndex((member) => !member.fainted);
+  return living === -1 ? 0 : living;
+}
+
 export interface PreGymView {
   gym: GymDefinition;
   /** 0-based, so the header can say "gym 4 of 8". */
@@ -75,12 +94,31 @@ export function createPreGymScreen(): PreGymScreen {
   prompt.textContent = 'Who leads?';
   const members = el('div', 'pre-gym__party');
 
+  /*
+   * The confirm, and the reason the screen needs one.
+   *
+   * Slot 0's own button is inert because slot 0 already leads, so on a party of
+   * one *every* button on this screen was disabled and there was no way off it
+   * at all. The default being "change nothing" does not submit itself: a screen
+   * whose decision has a default still needs the control that commits it.
+   *
+   * It names the member it sends rather than saying "continue", so the player
+   * reads who is going in from the button they press. That is a fact about the
+   * party order, not a recommendation about it.
+   */
+  const confirm = document.createElement('button');
+  confirm.type = 'button';
+  confirm.className = 'button primary-action pre-gym__confirm';
+
   const manage = document.createElement('button');
   manage.type = 'button';
   manage.className = 'button button--small';
   manage.textContent = 'Party screen (items)';
 
-  root.append(heading, blurb, prompt, members, manage);
+  const actions = el('div', 'pre-gym__actions');
+  actions.append(confirm, manage);
+
+  root.append(heading, blurb, prompt, members, actions);
 
   return {
     root,
@@ -94,6 +132,10 @@ export function createPreGymScreen(): PreGymScreen {
       blurb.textContent = view.gym.blurb;
 
       manage.onclick = () => handlers.onManageParty();
+
+      const lead = defaultLeadSlot(view.party);
+      confirm.textContent = `Send ${view.party[lead]?.spec.species ?? 'the lead'} in`;
+      confirm.onclick = () => handlers.onLead(lead);
 
       members.replaceChildren(
         ...view.party.map((member, index) => {

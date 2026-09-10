@@ -199,13 +199,14 @@ export async function stepOnce(page) {
       await page.locator(`${visible('party')} .primary-action, ${visible('party')} .button--primary`).first().click();
       return screen;
     case 'pre-gym': {
-      // 4.7's lead pick. Slot 0 is preferred, the way the headless runs answer
-      // `chooseLead`. On the merged tree slot 0's own button is disabled
-      // ("Leading") and no other control submits the default, so the only way
-      // off the screen is to hand the lead to the lowest enabled slot. That is
-      // a 4.7 gap on main, recorded in the V-report, not a choice this bot made.
-      const slots = page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not(:disabled)`);
-      if (await slots.count()) await slots.first().click();
+      // 4.7's lead pick, answered the way the headless runs answer `chooseLead`:
+      // confirm the current lead. The confirm submits the lowest living slot, so
+      // the bot's run and a headless run walk the same party order. Before the
+      // confirm existed the bot had to hand the lead to the lowest *enabled*
+      // slot, because slot 0's own button is disabled ("Leading") — which on a
+      // party of one left no enabled control at all.
+      const confirm = page.locator(`${visible('pre-gym')} .pre-gym__confirm:not(:disabled)`);
+      if (await confirm.count()) await confirm.first().click();
       else await page.waitForTimeout(40);
       return screen;
     }

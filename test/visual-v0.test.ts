@@ -36,13 +36,22 @@ describe('the vertical budget', () => {
   /*
    * The plan's budget in absolute terms: the decision point ends above the fold
    * on a 390x844 phone, with room under it for a thumb. Marked `fails` because
-   * it does not hold on this tree and the baseline test above cannot say so: the
-   * baseline was re-recorded after Stage 4.7 merged, and 4.7's drawer bar,
-   * archetype chips, move tag rows and effect lines put the map's offered nodes
-   * at 728 and the battle's fourth move button at 946. Measured and itemised in
-   * `docs/visual/reports/merge-4.7.md`. When main takes those rows back this
-   * test starts passing, vitest reports the `fails` as an error, and the marker
-   * comes off. That is the intended way to notice.
+   * it does not hold on this tree and the baseline test above cannot say so —
+   * the baseline records where the rows *are*, not where they should be.
+   *
+   * **It is not 4.7's to give back, and that is the 2026-09-10 correction.**
+   * Stage 4.7's drawer bar, archetype chips and move tag rows are worth 106.5px
+   * on this screen and the map's tier copy 29.69 on the other, itemised in
+   * `docs/visual/reports/merge-4.7.md`. But the same measurer run against `main`
+   * *before* any of it — `2468769`, the commit before PR #10 — puts the fourth
+   * move button at 840, already 100px past this line. Rolling 4.7 back reaches
+   * 840, not 740. The three trees are in
+   * `docs/visual/reports/phone-regressions-4.7.md`.
+   *
+   * So the marker stays until something decides about the rows that predate the
+   * stage: the battle heading, the two Pokemon panels, and the move grid itself.
+   * The day the number reaches 740 vitest reports the `fails` as an error and
+   * the marker comes off. That is still the intended way to notice.
    */
   it.fails('ends both decision points above y=740 at 390x844', async () => {
     const measured = await measureGuardedScreens(harness.url, harness.browser);
@@ -134,7 +143,10 @@ describe('one accent', () => {
     seen.set('summary', await count());
     await context.close();
 
-    for (const screen of ['party', 'shop', 'event', 'result', 'summary']) {
+    // `pre-gym` joined this list on 2026-09-10: its confirm is the control
+    // that leaves the screen, so it is the one that carries the accent, and a
+    // pre-gym screen with no primary is the softlock coming back.
+    for (const screen of ['party', 'shop', 'event', 'result', 'summary', 'pre-gym']) {
       if (!seen.has(screen)) continue;
       expect(seen.get(screen), `${screen} has a primary action`).toBe(1);
     }
