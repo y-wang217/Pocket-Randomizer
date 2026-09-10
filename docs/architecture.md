@@ -43,11 +43,17 @@ TypeScript is strict, with `noUncheckedIndexedAccess` on and no `any` in
 ## Layers
 
 ```
-data/                 A leaf. Values and balance numbers, no logic.
-  mons.ts             Curated species pools. Stage 2 replaces these with rolls.
+data/                 A leaf. Values, balance numbers and player-facing copy,
+                      no logic. Generated pools, scaling curves, override
+                      tables, tooltip text — one concern per file. Read the
+                      directory rather than a list here; three entries are
+                      named below only because each is an exception to the
+                      line above.
+  tuning.ts           EVERY balance number a sweep can vary, in one typed
+                      object, passed in rather than imported.
   starters.ts         getStarterPool(unlocked?) — a function, for Stage 5.
-  gyms.ts             Leader, type, segment index, team.
-  tuning.ts           EVERY balance number in the game, in one typed object.
+  mons.ts             NOT balance data. Stage 0's fixed Snorlax/Milotic
+                      matchup, pinned by the determinism and replay tests.
       ^
       | read by
       |
@@ -68,9 +74,9 @@ core/battle/
   ai.ts               Greedy damage-maximising policy over @smogon/calc.
       |
       v
-ui/                   A thin DOM layer. Eleven screens and a router.
-  screens/            starter-select, locale-select, run-map, battle,
-                      summary, and six more.
+ui/                   A thin DOM layer. Fourteen screens and a router.
+  screens/            One file per screen, plus router.ts. Read the
+                      directory.
   scene.ts            The battlefield. Reads BattleUiView and nothing else.
   tooltips.ts         One delegated tap-first layer. Content all from data/.
 ```
