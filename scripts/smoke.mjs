@@ -1052,6 +1052,32 @@ if (await phone.locator(visible('battle')).count()) {
       // PP and effectiveness live on the button face, not behind a hover.
       withPp: globalThis.document.querySelectorAll('.moves .move__pp').length,
       /*
+       * R12: the band badge, on the face, and *fitting* on it.
+       *
+       * The per-surface assertion that it renders at all is a jsdom test. What
+       * only a browser can answer is whether it fits — `.move__meta` wraps, so
+       * a badge one character too wide grows the button, the 2x2 grid, and the
+       * distance from the top of the screen to the decision. So the check is
+       * the pair the prompt names: one badge per damaging move, and neither the
+       * 44px target nor the two columns moved to make room.
+       *
+       * Counted against damaging moves rather than all four, because a status
+       * move has no bracket and prints nothing — the fourth button on this turn
+       * is Sweet Kiss, and a check that expected four badges would be asserting
+       * that a status move grows a band.
+       */
+      damagingMoves: buttons.filter((move) => move.dataset.category !== 'status').length,
+      withBand: globalThis.document.querySelectorAll('.moves .move .band').length,
+      bandOverflow: buttons.filter((move) => {
+        const badge = move.querySelector('.band');
+        if (!badge) return false;
+        // The badge inside the face it is drawn on, with the face's own padding
+        // allowed for by comparing against the content box.
+        const face = move.getBoundingClientRect();
+        const chip = badge.getBoundingClientRect();
+        return chip.right > face.right || chip.left < face.left;
+      }).length,
+      /*
        * Stage 4.7, Part 6. Tags on the face, capped, and a status move showing
        * an effect readout where its base power would have been.
        *
@@ -1081,6 +1107,15 @@ if (await phone.locator(visible('battle')).count()) {
     `${battle.count} buttons, ${battle.columns} columns`);
   phoneCheck('move buttons meet the 44px touch target', battle.minHeight >= 44, `${battle.minHeight}px`);
   phoneCheck('every move button shows PP', battle.withPp === battle.count, `${battle.withPp}/${battle.count}`);
+  // R12. Every damaging move wears its band, and none of them overhangs the
+  // face it is drawn on.
+  phoneCheck(
+    'every damaging move button shows its band',
+    battle.withBand === battle.damagingMoves && battle.damagingMoves > 0,
+    `${battle.withBand}/${battle.damagingMoves} damaging`,
+  );
+  phoneCheck('no band badge overhangs its move button', battle.bandOverflow === 0,
+    `${battle.bandOverflow} overhanging of ${battle.withBand}`);
   phoneCheck('both stat panels are above the fold', battle.panelsBottom <= battle.innerHeight,
     `panels end at y=${battle.panelsBottom} of ${battle.innerHeight}`);
   phoneCheck('the move grid is above the fold', battle.movesBottom <= battle.innerHeight,

@@ -30,7 +30,7 @@ import {
   type MoveUiView,
 } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
-import { categoryChip, effectChip, neutralChip, statusChip, typeChip } from './chip';
+import { bandChip, categoryChip, effectChip, neutralChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
 import { showsNumbers } from './settings';
 import { SCENES } from './theme/scenes';
@@ -764,6 +764,22 @@ function renderMove(
   if (move.effect) meta.append(moveEffectLine(move.effect));
   else meta.append(power);
 
+  /*
+   * The band, next to the base power it can disagree with. **R12.**
+   *
+   * Beside `BP` rather than up by the name, because the two numbers only make
+   * sense together: Population Bomb reads `20 BP` and `BAND 4`, and a player
+   * who meets those two facts in different regions of the card learns to
+   * distrust both. Before the effectiveness marker, because that one is about
+   * the Pokemon standing opposite and belongs at the situational end of the
+   * row.
+   *
+   * `powerBand` off the projection, so the button resolves a band through the
+   * same `bandOfMove` read as every card outside the fight.
+   */
+  const band = moveBandChip(move.powerBand);
+  if (band) meta.append(band);
+
   // Effectiveness, computed live against whatever is actually standing there.
   // Neutral prints nothing: a row where every button carries a badge is a row
   // where the badges stop being read, and the 0x goes unread with them.
@@ -809,6 +825,36 @@ function renderMove(
   button.append(name, meta, ...(tags ? [tags] : []), pp);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
+}
+
+/**
+ * The band badge on a move card. **One insertion point, both card shapes.** R12.
+ *
+ * The same rule `moveTagRow` below states, and for the same reason. Until R12
+ * `bandChip` had exactly one caller — `screens/reward.ts`, which appended it to
+ * the reward's *name* and computed it with a `bandOfMove` call of its own. So a
+ * band was a property of one screen rather than of a move: the player met
+ * `BAND 3` on the offer, then compared it against four unlabelled cards on the
+ * replacement screen and four unlabelled buttons in the fight.
+ *
+ * Now it renders wherever a move renders, because `moveFacts` and `renderMove`
+ * both come through here. **Neither resolves a band itself.** The number
+ * arrives already resolved by `bandOfMove`, once, in the adapter — off the
+ * battle screen through `MoveCardData.band`, on it through
+ * `MoveUiView.powerBand` — and this function only decides whether there is a
+ * badge to draw.
+ *
+ * Null renders nothing rather than an empty chip. A status move has no band,
+ * and a placeholder for a bracket that does not apply is a symbol the player
+ * has to learn in order to ignore.
+ *
+ * The tooltip comes with the chip and is not attached here: `bandChip` sets
+ * `data-tip`, the one delegated layer in `ui/tooltips.ts` resolves it, and the
+ * words are in `data/bandInfo.ts`. One mechanism, one text, both unchanged by
+ * this stage — the badge simply now carries them onto seven more surfaces.
+ */
+export function moveBandChip(band: number | null | undefined): HTMLElement | null {
+  return band === null || band === undefined ? null : bandChip(band);
 }
 
 /**
@@ -908,6 +954,18 @@ export function moveFacts(move: {
   tags?: readonly MoveTag[];
   /** The status readout that fills the empty base-power region. Part 6a. */
   effect?: MoveEffectFields | null;
+  /**
+   * The base-power band, already resolved by `bandOfMove`. **R12.**
+   *
+   * Handed in rather than derived, for the reason `tags` is: this file may not
+   * reach for `describeMove` — `test/boundaries.test.ts` holds it to the
+   * projection and four vocabulary modules — and the caller has already asked.
+   * Every off-battle surface asks through `ui/move-detail.ts`.
+   *
+   * Optional, so a caller that has no band to give omits it and gets no badge.
+   * Absent and null render identically and both mean "no bracket applies".
+   */
+  band?: number | null;
 }): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement; tags: HTMLElement | null } {
   const name = el('span', 'move__name');
   name.textContent = move.name;
@@ -927,6 +985,10 @@ export function moveFacts(move: {
     power.textContent = '—';
     meta.append(power);
   } else meta.append(power);
+  // The band, in the same place on the card as on the button: after the base
+  // power, before the region only a battle can fill.
+  const band = moveBandChip(move.band);
+  if (band) meta.append(band);
 
   const pp = el('span', 'move__pp');
   pp.textContent = `PP ${move.maxPp}`;
@@ -949,6 +1011,8 @@ export function moveCard(move: {
   maxPp: number;
   tags?: readonly MoveTag[];
   effect?: MoveEffectFields | null;
+  /** The base-power band. Passed straight through to `moveFacts`. R12. */
+  band?: number | null;
 }): HTMLElement {
   const card = el('div', `move move--card move--${move.type.toLowerCase()}`);
   card.dataset['category'] = move.category.toLowerCase();

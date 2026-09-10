@@ -45,21 +45,24 @@ import { moveCardData } from '../move-detail';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
-import { bandOfMove } from '../../data/moveOverrides';
-import { bandChip, tierChip } from '../chip';
+import { tierChip } from '../chip';
 import { el, moveCard } from '../scene';
 import { typeChip } from './starter-select';
 
-/**
- * The band chip: which of four base-power brackets a move sits in.
+/*
+ * `bandBadge` lived here and is gone. **R12.**
  *
- * Exported alongside `tierBadge` and styled the same way, because the two are
- * the same kind of thing — a one-word attribute the player learns to read at a
- * glance. Neither says whether the thing it labels is good.
+ * It was this file's own wrapper around `bandChip`, fed by this file's own
+ * `bandOfMove` call, appended to this file's own `.reward__name` — three ways
+ * in which a band was a property of the reward screen rather than of a move.
+ * The badge now comes with the card: `moveBandChip` in `ui/scene.ts` draws it
+ * for every surface, and the number arrives on `MoveCardData.band` from the
+ * one `bandOfMove` read in the adapter.
+ *
+ * Nothing was lost in the move. The chip is the same chip, the tooltip is the
+ * same tooltip, and the badge is still on this screen — one region lower, in
+ * the move card, beside the base power it can disagree with.
  */
-export function bandBadge(band: number): HTMLElement {
-  return bandChip(band);
-}
 
 /** The tier chip, shared with the map so the two screens agree at a glance. */
 export function tierBadge(tier: string): HTMLElement {
@@ -120,7 +123,7 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
           ? 'A strong move. You choose who learns it, and what it replaces.'
           : 'A new move. You choose who learns it, and what it replaces.';
       /*
-       * The band, next to the name. **Stage 4.6b, and it is an attribute.**
+       * The band. **Stage 4.6b's badge, on R12's insertion point.**
        *
        * "Band 3" says which of four power brackets the move sits in, and Part 4
        * governs it exactly as it governs everything else on this card: a band
@@ -135,11 +138,15 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
        * beside them is offering something they cannot get for free — which is
        * the whole decision Stage 4.6b added, and it is unreadable from `95 BP`
        * alone.
+       *
+       * **R12 moved where it renders, not whether.** It used to be appended
+       * here, to the reward's name. It now arrives inside the move card below,
+       * from `moveCardData`, which is what makes the same badge appear on the
+       * four moves the player is comparing this one against. That comparison
+       * was the point of the badge and it was the half that was missing.
        */
-      const band = bandOfMove(reward.move);
-      if (band !== null) name.append(document.createTextNode(' '), bandBadge(band));
-      // Type, base power, PP and category, through the same component the
-      // battle screen uses. No comparison against anything the player owns.
+      // Type, base power, band, PP and category, through the same component
+      // the battle screen uses. No comparison against anything the player owns.
       /*
        * The card, with tags. **Stage 4.7, Part 6b.**
        *

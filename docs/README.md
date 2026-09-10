@@ -90,8 +90,8 @@ on trees that predate Stage 4.7 entirely.
 [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md)
 has the three measurements; `generation.md` section 12b records the deviation.
 
-**Working branch:** `claude/release-c-battle-feedback-ji40l7`, **Release C:
-battle feedback visuals**, PR #16. Presentation only — the HP chunk and its
+**Merged since that:** Release C, PR #16 (`846975c`), **battle feedback
+visuals**. Presentation only — the HP chunk and its
 shadow, the turn order jiggle, post-resolution flag words off a new pure reader
 in `core/battle/flags.ts`, and the berry flag off the `-enditem` reader 4.6b
 already had. No `core/` state change, no version axis moved, seeded output byte
@@ -105,8 +105,28 @@ entirely", and Release C measured the same check reporting the same number on a
 tree with 4.7 in and no visual pass on top. Neither release owns it. Release C's
 smoke marker is the countdown; see `reports/release-c-battle-feedback.md` §0.
 
-**Unblocked by Release C, in order:** R12 (`BAND n` on the shared move card,
-display only, one commit) and then V5. Both are named in
+**Working branch:** `claude/band-badge-move-card-t02z1t`, **R12: the band badge
+on every move card**
+([`spec/gymrun-patch-r12-band-badge-move-card.md`](spec/gymrun-patch-r12-band-badge-move-card.md)).
+Display only, one commit, no version axis moved, seeded output byte identical by
+both instruments. `bandChip` had one caller — the reward screen, which resolved
+the band itself and hung the badge off its own name line — so `BAND 3` was
+readable on the offer and absent from the four moves the player was comparing it
+against. It now renders on all eight surfaces that draw a move, through one
+insertion point (`moveBandChip` in `ui/scene.ts`) and one resolution path
+(`bandOfMove`, read once in the adapter). **The badge fits on the battle button
+at 390 wide**: `.move__meta` was already wrapping, so the whole cost is 1px on
+the move grid and the decision point does not move. Deltas and the measurement
+are in [`visual/baseline/README.md`](visual/baseline/README.md); `generation.md`
+section 12c records the one-pixel reading of the prompt's height rule.
+
+**Still unblocked by Release C, and now by R12:** V5, whose test 5 assumes R12
+is on `main`. Its prompt needs the four amendments in section 2 of the R12
+document applied before it is pasted — the event strip Release C already built
+is V5's strip and must not be built twice, the 36px it costs is already spent
+against V5's budget, test 4 becomes a same-weight rule rather than a
+chip-on-every-button rule, and the open V0.5 `--font-body` decision has to be
+answered before V5 or after it, never inside it. Both R12 and V5 are named in
 [`spec/gymrun-release-c-battle-feedback-amended.md`](spec/gymrun-release-c-battle-feedback-amended.md).
 
 **Next scheduled work:** the `contentHash` release. It bundles four things that
