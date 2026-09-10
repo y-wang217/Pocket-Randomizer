@@ -79,7 +79,9 @@ export {
   type AbilityTypeEffect,
   type RevealPolicy,
 } from './effectiveness';
-import type { Gender, StatName, StatStages, StatusName, SwitchView } from '../types';
+import type { Gender, StatName, StatsTable, StatStages, StatusName, SwitchView } from '../types';
+import { archetypeOf } from '../archetype';
+import type { Archetype } from '../../data/archetypes';
 
 // ---------------------------------------------------------------------------
 // The input: a plain-data snapshot from the adapter
@@ -129,8 +131,14 @@ export interface ActiveFacts {
    * which is exact too, because GYMRUN has one fixed spread. See that file.
    */
   stats: Record<StatName, number>;
-  /** Species base stats, carried so the visibility fallback can recompute. */
-  baseStats: Record<StatName, number>;
+  /**
+   * Species base stats, carried so the visibility fallback can recompute.
+   *
+   * Widened to include HP in Stage 4.7: `core/archetypeOf` reads it, and a
+   * classification that skipped HP would call every bulky Pokemon with modest
+   * defences an attacker.
+   */
+  baseStats: StatsTable;
   boosts: StatStages;
   /** Volatile condition ids currently on this Pokemon: `confusion`, `substitute`, ... */
   volatiles: string[];
@@ -257,6 +265,21 @@ export interface ActiveUiView {
   ability: RevealedView | null;
   item: RevealedView | null;
   fainted: boolean;
+  /**
+   * What this stat block is built to do. **Stage 4.7, Part 7.**
+   *
+   * Computed here rather than in the screen, because `core/` is where the
+   * classification lives and rule 5 says the battle UI reads this projection
+   * and nothing else. A screen that imported `archetypeOf` would be a screen
+   * that could feed it something other than the stats it is showing.
+   *
+   * Not gated by the reveal policy, and that is the point of deriving it from
+   * base stats: it is a restatement of numbers already on both panels since
+   * Stage 4.5, not a peek at anything. `revealOpponentAbility` and
+   * `revealOpponentItem` gate the two facts a player genuinely could not
+   * otherwise know, and this is not one of them.
+   */
+  archetype: Archetype;
 }
 
 export interface MoveUiView {
@@ -435,6 +458,7 @@ function toActiveUiView(facts: ActiveFacts, reveal: RevealPolicy): ActiveUiView 
       : null,
     item: facts.item ? { id: facts.item.id, name: facts.item.name, revealed: reveal.item } : null,
     fainted: facts.fainted,
+    archetype: archetypeOf(facts.baseStats),
   };
 }
 

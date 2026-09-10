@@ -49,7 +49,8 @@ function active(overrides: Partial<ActiveFacts> = {}): ActiveFacts {
     fainted: false,
     status: null,
     stats: { atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
-    baseStats: { atk: 48, def: 48, spa: 48, spd: 48, spe: 48 },
+    // Stage 4.7 widened `baseStats` to include HP, for `archetypeOf`.
+    baseStats: { hp: 48, atk: 48, def: 48, spa: 48, spd: 48, spe: 48 },
     boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 },
     volatiles: [],
     ability: null,
@@ -325,7 +326,7 @@ describe('the speed readout', () => {
     const player = active({ speed: { engine: 200, abilityModified: false } });
     const boosted = active({
       species: 'Ninjask',
-      baseStats: { atk: 90, def: 45, spa: 50, spd: 50, spe: 160 },
+      baseStats: { hp: 61, atk: 90, def: 45, spa: 50, spd: 50, spe: 160 },
       speed: { engine: 330, abilityModified: true },
       ability: { id: 'speedboost', name: 'Speed Boost' },
     });
@@ -338,7 +339,7 @@ describe('the speed readout', () => {
   it('folds paralysis into the hidden-ability fallback', () => {
     const player = active({ speed: { engine: 100, abilityModified: false } });
     const paralysed = active({
-      baseStats: { atk: 90, def: 45, spa: 50, spd: 50, spe: 160 },
+      baseStats: { hp: 61, atk: 90, def: 45, spa: 50, spd: 50, spe: 160 },
       status: 'par',
       speed: { engine: 400, abilityModified: true },
       ability: { id: 'quickfeet', name: 'Quick Feet' },

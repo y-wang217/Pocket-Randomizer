@@ -349,6 +349,71 @@ export interface MoveSpec {
   maxPp: number;
 }
 
+/**
+ * Everything a move card can say about a move before it is used.
+ *
+ * Stage 4.7, Part 6, and it is the **Release B `MoveExplanation` pulled
+ * forward** rather than a second mechanism beside it. The QoL release plan
+ * specifies this field set; that release is not merged, so `describeMove`
+ * — which existed since Stage 1 as the narrow `MoveSpec` read — is widened to
+ * return it. `MoveSpec` stays as the narrow view its existing callers consume,
+ * so there is one lookup path and one description of a move.
+ *
+ * **Structured fields, never a prose blob.** `core/` returns data, `data/`
+ * holds the wording, `ui/` renders. A sentence written here would be a sentence
+ * a copy change could not reach without a code change, and a sentence a test
+ * would have to assert by substring.
+ *
+ * **Absent rather than empty.** A move with no boosts has no `boosts` key, not
+ * an empty array. The status readout renders a row per present field, and a
+ * present-but-empty field is how a card grows a blank row.
+ */
+export interface MoveExplanation extends MoveSpec {
+  /** PP at full, and the priority bracket. 0 is the ordinary bracket. */
+  priority: number;
+  /** The sim's own target keyword: `normal`, `self`, `allAdjacentFoes`, ... */
+  target: string;
+  /**
+   * The base-power band, from `bandOfMove` and never recomputed.
+   *
+   * Null for a status move and for a move outside the generated pool. **It can
+   * disagree with `basePower` without either being wrong**: banding happens on
+   * a multi-hit move's *total* power, so Population Bomb is band 4 at 20 base
+   * power. Anything rendering one must render the other or the badge reads as
+   * a bug — which is the failure the Release B brief already named.
+   */
+  band: number | null;
+  /** `[min, max]` hits for a multi-hit move; absent for a single-hit one. */
+  multiHit?: readonly [number, number];
+  /** Recoil as a fraction of damage dealt, e.g. 1/3 for Double-Edge. */
+  recoil?: number;
+  /** Healing as a fraction of damage dealt, e.g. 1/2 for Giga Drain. */
+  drain?: number;
+  /** Healing as a fraction of the user's max HP, e.g. 1/2 for Roost. */
+  heal?: number;
+  /** Turns of charge or recharge this move costs. */
+  chargeTurns?: number;
+  rechargeTurns?: number;
+  /** Stat stages this move changes, and on which side. */
+  boosts?: readonly { stat: string; stages: number; target: 'self' | 'foe' }[];
+  /** A status condition the move inflicts outright, e.g. `tox` for Toxic. */
+  status?: string;
+  /** A volatile the move applies, e.g. `confusion`, `substitute`, `protect`. */
+  volatile?: string;
+  /** A field or side condition the move sets, e.g. `trickroom`, `reflect`. */
+  fieldEffect?: string;
+  /** Chance and effect of a secondary, e.g. 30% burn on Flamethrower. */
+  secondary?: { chance: number; status?: string; volatile?: string; boosts?: readonly { stat: string; stages: number }[] };
+  /** Behavioural flags, by the sim's own names: `contact`, `sound`, `bullet`. */
+  flags: readonly string[];
+  /** True when the move ignores Protect and its family. */
+  bypassesProtect: boolean;
+  /** True when the move's crit rate is raised, e.g. Slash. */
+  highCrit: boolean;
+  /** The dex's own one-line description. Last, and never the only readout. */
+  shortDesc: string;
+}
+
 /** Remaining PP for one move slot, carried between encounters. */
 export interface MoveState {
   id: string;
