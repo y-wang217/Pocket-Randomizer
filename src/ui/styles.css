@@ -8,12 +8,34 @@
  */
 
 @import './theme/tokens.css';
+@import './theme/locales.css';
 
 * { box-sizing: border-box; }
 
+/*
+ * The world. Stage V1.
+ *
+ * Deep at the top, mid below, and one horizon band of the glow between them:
+ * a two-stop gradient with a third stop, the whole scene until V3 puts a place
+ * in it. Fixed to the viewport so the horizon is a horizon and not a stripe
+ * that scrolls with the page. The colour transition is the V0 motion token,
+ * which is 0 until data/tuning.ts carries a duration.
+ */
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--locale-deep);
+  background-image: linear-gradient(
+    to bottom,
+    var(--locale-deep) 0%,
+    var(--locale-mid) var(--horizon),
+    var(--locale-glow) var(--horizon),
+    var(--locale-glow) calc(var(--horizon) + var(--horizon-band)),
+    var(--locale-mid) calc(var(--horizon) + var(--horizon-band)),
+    var(--locale-mid) 100%
+  );
+  background-attachment: fixed;
+  min-height: 100vh;
+  transition: background-color var(--motion-duration) ease;
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--fs-lg);
@@ -1084,9 +1106,11 @@ body {
 
 .rail__gym--upcoming { opacity: 0.62; }
 
+/* Dim rather than faint since V1: it is the one sub-AA style that sat on the
+   world, and a tinted world took it under 4:1. Faint text stays on cards. */
 .map__blurb {
   margin: var(--space-h) 0 0;
-  color: var(--text-faint);
+  color: var(--text-dim);
   font-size: var(--fs-md);
   font-style: italic;
 }
@@ -2258,3 +2282,61 @@ body {
 }
 
 .header__title { letter-spacing: var(--tracking-title); }
+
+/* ==========================================================================
+   Stage V1 — the world behind the map
+   ========================================================================== */
+
+/*
+ * The locale name, ghosted behind the chain. Texture, not information: the
+ * region is named in the heading above it. Absolutely positioned, so it has
+ * no layout footprint and the guarded map height does not move; no pointer
+ * events, so nothing under it is harder to tap; the glow token at a low
+ * opacity, so it is the world showing through rather than a label.
+ */
+.screen--map {
+  position: relative;
+}
+
+.screen--map::before {
+  content: attr(data-watermark);
+  position: absolute;
+  z-index: -1;
+  right: 0;
+  top: 56%;
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--fs-watermark);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: var(--tracking-title);
+  text-transform: uppercase;
+  color: var(--locale-glow);
+  opacity: var(--watermark-opacity);
+  pointer-events: none;
+  user-select: none;
+}
+
+.screen--map:not([data-watermark])::before { content: none; }
+
+/* The screens sit above the watermark's negative z-index. */
+.screens { isolation: isolate; }
+
+/*
+ * The palette swatch on a locale card: deep, mid, glow, in that order, the
+ * same width on every card. The card's own `.locale--<id>` class carries the
+ * three tokens, so the strip previews the region without the page changing.
+ */
+.locale__swatch {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: var(--space-1h);
+  width: 100%;
+  border-radius: var(--radius-chip);
+  overflow: hidden;
+}
+
+.locale__swatch-deep { background: var(--locale-deep); }
+.locale__swatch-mid { background: var(--locale-mid); }
+.locale__swatch-glow { background: var(--locale-glow); }

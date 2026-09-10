@@ -206,6 +206,11 @@ export function createRunMap(): RunMap {
         const label = el('span', 'map__region-name');
         label.textContent = definition.name;
         region.replaceChildren(label, ...definition.types.map(typeChip));
+        // The ghosted watermark behind the chain reads this. Stage V1. Text
+        // only, no layout, no interaction: the stylesheet draws it.
+        root.dataset['watermark'] = definition.name;
+      } else {
+        delete root.dataset['watermark'];
       }
 
       chain.replaceChildren(...renderChain(state, segment, onChoose));

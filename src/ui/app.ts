@@ -21,6 +21,7 @@ import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
   isReplayable,
+  localeOf,
   playRun,
   resumeRun,
   type BattleReview,
@@ -32,6 +33,7 @@ import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
 import { getVerbosity, initSettings, onSettingsChange, setVerbosity } from './settings';
+import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
 import { el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
@@ -131,6 +133,8 @@ export function mountApp(root: HTMLElement): void {
     setPhase('running');
     seedBar.setSeed(seed);
     writeSeedToLocation(seed);
+    // A new run starts in no region; the first state with a locale sets one.
+    applyLocale(null);
 
     const starterPick = createPending<number>();
     const localePick = createPending<number>();
@@ -408,6 +412,13 @@ export function mountApp(root: HTMLElement): void {
       // what makes a rest node visible: it resolves without a decision, so the
       // only evidence it happened is the party panel refilling.
       live = state;
+      /*
+       * The world's palette, from the same projection the map names the
+       * region with. Stage V1. Set here rather than on the locale screen's
+       * click so a resumed run, which replays its decisions through this same
+       * hook, wears its region before the map is ever shown.
+       */
+      applyLocale(localeOf(state));
       mapScreen.render(state, (index) => nodePick.submit(index), showParty);
     };
 
@@ -441,6 +452,8 @@ export function mountApp(root: HTMLElement): void {
       // Leave the map showing the run as it finished, behind the summary.
       mapScreen.render(result.state, () => undefined, () => undefined);
       summaryScreen.render(result);
+      // The summary is locale neutral.
+      applyLocale(null);
       router.show('summary');
       // The run is over, so the seed controls are wanted again: the summary is
       // where a player picks the next seed or replays this one.

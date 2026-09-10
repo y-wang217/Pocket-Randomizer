@@ -1,0 +1,76 @@
+/*
+ * The eight locale palettes. Stage V1 of the visual identity pass.
+ *
+ * **Exactly three tokens per locale, and nothing else.** A deep background,
+ * a mid background, and a glow. Text, the accent, the chips and every card
+ * surface are the same in every region, so a decision screen reads the same
+ * wherever the run is; only the world behind it changes.
+ * `test/visual-locales.test.ts` parses this file and fails on a fourth token.
+ *
+ * Each palette is declared twice on one rule: on `<html data-locale>` for the
+ * world the run is standing in, and on the locale card, so the select screen
+ * can preview a region's palette while the page is still wearing the last
+ * segment's. Same three numbers either way.
+ *
+ * The deep tones stay near the luminance of the base palette on purpose. The
+ * V0 contrast baseline was measured on that base, and text that sits directly
+ * on the world (the screen titles, the blurbs) has to keep its ratio; the
+ * hue is where the region lives, and the glow band is what the corner of the
+ * eye picks up.
+ */
+
+:root[data-locale='cave'],
+.locale--cave {
+  --locale-deep: #0b0a12;
+  --locale-mid: #1b1626;
+  --locale-glow: #7a6aa3;
+}
+
+:root[data-locale='shore'],
+.locale--shore {
+  --locale-deep: #061019;
+  --locale-mid: #0c2032;
+  --locale-glow: #7fc4d8;
+}
+
+:root[data-locale='summit'],
+.locale--summit {
+  --locale-deep: #0a0e17;
+  --locale-mid: #1b2331;
+  --locale-glow: #d6dbe6;
+}
+
+:root[data-locale='city'],
+.locale--city {
+  --locale-deep: #0c0912;
+  --locale-mid: #221a2e;
+  --locale-glow: #e3a651;
+}
+
+:root[data-locale='forest'],
+.locale--forest {
+  --locale-deep: #060d08;
+  --locale-mid: #122419;
+  --locale-glow: #7fb56a;
+}
+
+:root[data-locale='ruins'],
+.locale--ruins {
+  --locale-deep: #110a0b;
+  --locale-mid: #2a181b;
+  --locale-glow: #d9a46f;
+}
+
+:root[data-locale='marsh'],
+.locale--marsh {
+  --locale-deep: #080e09;
+  --locale-mid: #182518;
+  --locale-glow: #a3b86a;
+}
+
+:root[data-locale='badlands'],
+.locale--badlands {
+  --locale-deep: #120705;
+  --locale-mid: #33170f;
+  --locale-glow: #f0913f;
+}

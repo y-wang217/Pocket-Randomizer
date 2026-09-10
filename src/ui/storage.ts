@@ -61,12 +61,45 @@ function isRunLog(value: unknown): value is RunLog {
   );
 }
 
+/**
+ * One decision, by kind. Every kind `core/types.ts` can log, named here.
+ *
+ * **This list was three kinds long from Stage 1 to Stage V1**, and it cost the
+ * resume path silently: the moment 4.6a logged a `locale` decision, every
+ * saved run failed this check, `loadRunLog` returned null, and the app started
+ * a fresh seed on every reload with the log sitting in storage. Nothing
+ * reported it, because "no saved run" is a legitimate answer. V1's save and
+ * reload test is what found it (`test/visual-locales.test.ts`).
+ */
 function isRunDecision(value: unknown): boolean {
   if (typeof value !== 'object' || value === null) return false;
-  const decision = value as { kind?: unknown; index?: unknown; choice?: { kind?: unknown; slot?: unknown } };
-  if (decision.kind === 'starter' || decision.kind === 'node') return typeof decision.index === 'number';
-  if (decision.kind === 'battle') {
-    return decision.choice?.kind === 'move' && typeof decision.choice.slot === 'number';
+  const decision = value as { kind?: unknown } & Record<string, unknown>;
+  switch (decision.kind) {
+    case 'starter':
+    case 'locale':
+    case 'node':
+    case 'reward':
+    case 'event':
+    case 'target':
+      return typeof decision.index === 'number';
+    case 'battle': {
+      const choice = decision.choice as { kind?: unknown; slot?: unknown } | undefined;
+      return (choice?.kind === 'move' || choice?.kind === 'switch') && typeof choice.slot === 'number';
+    }
+    case 'shop':
+      return Array.isArray(decision.indexes) && decision.indexes.every((index) => typeof index === 'number');
+    case 'acquisition': {
+      const inner = decision.decision as { kind?: unknown; slot?: unknown } | undefined;
+      if (inner?.kind === 'decline' || inner?.kind === 'accept') return true;
+      return inner?.kind === 'release' && typeof inner.slot === 'number';
+    }
+    case 'items': {
+      const plan = decision.plan as { assignments?: unknown; discards?: unknown } | undefined;
+      return Array.isArray(plan?.assignments) && Array.isArray(plan?.discards);
+    }
+    case 'replace':
+      return typeof decision.slot === 'number';
+    default:
+      return false;
   }
-  return false;
 }
