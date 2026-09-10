@@ -57,6 +57,8 @@ import { statInfo, STAT_ORDER } from '../../data/statInfo';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
 import { genderMark, el } from '../scene';
+import { renderSlots, slotNumber } from '../slots';
+import { PARTY_SIZE } from '../../data/partyTuning';
 import { showsNumbers } from '../settings';
 import { typeChip } from './starter-select';
 import { createThreatReadout } from './threats';
@@ -131,6 +133,10 @@ export function createPartyScreen(): PartyScreen {
    */
   const threats = createThreatReadout();
 
+  // The hotbar: one slot per party position, the held item as an icon in
+  // its member's slot. Stage V2. Above the cards, which carry the same
+  // numbers, so the two read as one collection seen at two sizes.
+  const partySlots = el('div', 'party__slots');
   const list = el('div', 'party party--manage');
   const bag = el('section', 'backpack');
   const relics = el('section', 'relics');
@@ -140,7 +146,7 @@ export function createPartyScreen(): PartyScreen {
   done.className = 'button primary-action';
   done.textContent = 'Back to the map';
 
-  root.append(title, blurb, threats.root, list, bag, relics, done);
+  root.append(title, blurb, threats.root, partySlots, list, bag, relics, done);
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -197,6 +203,17 @@ export function createPartyScreen(): PartyScreen {
       }
 
       const draw = (): void => {
+        partySlots.replaceChildren(
+          renderSlots(
+            'party',
+            view.party.map((member, slot) => ({
+              label: member.spec.species,
+              item: held[slot] ?? null,
+              tip: held[slot] ? `item:${held[slot]}` : undefined,
+            })),
+            PARTY_SIZE,
+          ),
+        );
         list.replaceChildren(
           ...view.party.map((member, index) =>
             renderManaged(member, index, view.party.length, held[index] ?? null, {
@@ -286,7 +303,8 @@ function renderManaged(
   // same function — a Pokemon that read "Lv30 ♀" in a fight and "Lv30" here
   // would look like two Pokemon.
   level.textContent = `Lv${spec.level}${genderMark(spec.gender)}`;
-  header.append(name, level, ...spec.types.map(typeChip));
+  // The slot number, the same marker the hotbar above wears. A position.
+  header.append(slotNumber(index), name, level, ...spec.types.map(typeChip));
   if (index === 0) {
     const lead = el('span', 'badge badge--lead');
     lead.textContent = 'Lead';
@@ -550,6 +568,14 @@ function renderBackpack(
   const heading = el('h3', 'backpack__title');
   heading.textContent = 'Backpack';
 
+  // The hotbar: capacity slots, the loose items in acquisition order, the
+  // rest empty. Stage V2. A berry's slot looks like any other slot.
+  const slots = renderSlots(
+    'backpack',
+    loose.map((id) => ({ label: itemById(id)?.name ?? id, item: id, tip: `item:${id}` })),
+    capacity,
+  );
+
   const count = el('p', 'backpack__count');
   count.textContent = `${loose.length} of ${capacity} carried`;
   if (loose.length > capacity) {
@@ -562,9 +588,10 @@ function renderBackpack(
 
   const rows = el('ul', 'backpack__list');
   rows.replaceChildren(
-    ...loose.map((id) => {
+    ...loose.map((id, index) => {
       const entry = itemById(id);
       const row = el('li', 'backpack__item');
+      row.append(slotNumber(index));
 
       const name = el('span', 'badge badge--item');
       name.textContent = entry?.name ?? id;
@@ -630,7 +657,7 @@ function renderBackpack(
     }),
   );
 
-  const children: HTMLElement[] = [heading, count, rows];
+  const children: HTMLElement[] = [heading, count, slots, rows];
   if (loose.length === 0) {
     const empty = el('p', 'backpack__empty');
     empty.textContent = 'Nothing loose. Items you win arrive here.';
