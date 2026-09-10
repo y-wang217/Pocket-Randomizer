@@ -49,7 +49,15 @@ describe('the party screen', () => {
   it('renders party and backpack slots in state order, and reorders with the state', () => {
     const screen = createPartyScreen();
     let party = [member('Bulbasaur', 'leftovers'), member('Charmander'), member('Squirtle', 'sitrusberry')];
-    const view = { party, backpack: ['oranberry', 'charcoal'], relics: [], tuning: DEFAULT_TUNING, slots: OPENING_SLOTS, plan: null };
+    const view = {
+      party,
+      backpack: ['oranberry', 'charcoal'],
+      relics: [],
+      tuning: DEFAULT_TUNING,
+      slots: OPENING_SLOTS,
+      backTo: 'Back to the map',
+      plan: null,
+    };
 
     screen.render(view, handlers);
     expect(labels(screen.root, '.slots--party')).toEqual(['Bulbasaur', 'Charmander', 'Squirtle', ...Array(OPENING_SLOTS - 3).fill('')]);

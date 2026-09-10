@@ -53,6 +53,7 @@ import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
 import { createStamps } from './stamps';
 import { createPreGymScreen } from './screens/pre-gym';
+import type { GymDefinition } from '../data/gyms';
 import { createDrawer, type DrawerView } from './drawer';
 import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf } from './party-layout';
@@ -313,19 +314,22 @@ export function mountApp(root: HTMLElement): void {
        * RNG.
        */
       chooseLead: (party, gym, state) => {
-        preGymScreen.render(
-          {
-            gym,
-            segment: state.currentSegment,
-            party,
-            holding: itemLayoutOf(party, pendingPlan),
-            tuning: state.tuning,
-          },
-          {
-            onLead: (slot) => leadPick.submit(slot),
-            onManageParty: showParty,
-          },
-        );
+        /*
+         * The gym is held rather than closed over, because the screen has to be
+         * able to redraw itself after the player has been somewhere else.
+         *
+         * `party` and `state` are deliberately unused past this point, the same
+         * way `chooseNode` ignores its options: `renderPreGym` reads `live`,
+         * which at this call is the very object `playRun` passed — nothing
+         * reassigns its `state` between the previous iteration's `onState` and
+         * this branch. Reading it there rather than here is what makes the
+         * redraw on the way back from the party screen show the party as it
+         * *is*, since a reorder or a release replaces the array these name.
+         */
+        void party;
+        void state;
+        pendingGym = gym;
+        renderPreGym();
         showScreen('pre-gym');
         return leadPick.wait();
       },
@@ -512,9 +516,78 @@ export function mountApp(root: HTMLElement): void {
      */
     let pendingPlan: ItemPlan | null = null;
 
-    const showParty = (): void => {
+    /**
+     * The gym the pre-gym screen is asking about, while it is asking.
+     *
+     * Held for the same reason `lastReview` is: the screen outlives the call
+     * that rendered it, because the player can leave it for the party screen
+     * and come back. Null whenever the pre-gym screen does not own the run.
+     */
+    let pendingGym: GymDefinition | null = null;
+
+    /**
+     * Draw the pre-gym screen from live run state.
+     *
+     * Separate from `chooseLead` so that returning from the party screen redraws
+     * it rather than revealing the render `chooseLead` left behind. That is not
+     * cosmetic: the lead is a **slot index**, `defaultLeadSlot` computes it from
+     * the party it is handed, and a release shifts every slot behind it. A stale
+     * render would offer a confirm whose label named one Pokemon and whose slot
+     * named another — the same hazard `onReorder` and `onRelease` already handle
+     * by dropping `pendingPlan`, one screen further out.
+     */
+    const renderPreGym = (): void => {
+      const state = live;
+      if (!state || !pendingGym) return;
+      preGymScreen.render(
+        {
+          gym: pendingGym,
+          segment: state.currentSegment,
+          party: state.party,
+          holding: itemLayoutOf(state.party, pendingPlan),
+          tuning: state.tuning,
+        },
+        {
+          onLead: (slot) => {
+            pendingGym = null;
+            leadPick.submit(slot);
+          },
+          onManageParty: () => showParty('pre-gym'),
+        },
+      );
+    };
+
+    /**
+     * Where the party screen's Done goes back to.
+     *
+     * Remembered rather than passed to `onDone`, because two things redraw an
+     * already-open party screen — a reorder or release, and the verbosity toggle
+     * — and a redraw must not quietly retarget the way out.
+     */
+    let partyReturn: ScreenName = 'map';
+
+    /*
+     * The party screen, and **the way back out of it is a parameter**.
+     *
+     * It has two entrances: the map's Manage button, and the pre-gym screen's.
+     * Done used to be `showScreen('map')` for both, which softlocked the second
+     * one. At the gym `state.position` is past every step, so `run-map.ts` arms
+     * no node row — the gym row is appended with no `onChoose` and renders as a
+     * div rather than a button — and `nodeOptions` is empty by design, so
+     * `nodePick` is never armed either. The map is therefore a screen with no
+     * control that advances the run, while the only thing that can resolve
+     * `leadPick` is the pre-gym screen the player just left. Map to party to map,
+     * with a pending promise and no way to reach it: recoverable only by a
+     * reload.
+     *
+     * Same class of bug as the one 4.7's phone-regression step 1 fixed — that
+     * added the control that submits a lead; this makes the detour come back to
+     * it.
+     */
+    const showParty = (returnTo: ScreenName): void => {
       const state = live;
       if (!state) return;
+      partyReturn = returnTo;
       partyScreen.render(
         {
           party: state.party,
@@ -522,6 +595,7 @@ export function mountApp(root: HTMLElement): void {
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
+          backTo: returnTo === 'pre-gym' ? 'Back to the gym' : 'Back to the map',
           plan: pendingPlan,
         },
         {
@@ -538,8 +612,8 @@ export function mountApp(root: HTMLElement): void {
           onReorder: (from, to) => {
             pendingPlan = null;
             state.party = reorderParty(state.party, from, to);
-            showParty();
-            mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+            showParty(partyReturn);
+            mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
           },
           onRelease: (slot) => {
             pendingPlan = null;
@@ -547,13 +621,21 @@ export function mountApp(root: HTMLElement): void {
             state.party = released.party;
             // Their item goes to the bag, not with them.
             if (released.freed) state.backpack = [...state.backpack, released.freed];
-            showParty();
-            mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+            showParty(partyReturn);
+            mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
           },
           onPlan: (plan) => {
             pendingPlan = plan;
           },
-          onDone: () => showScreen('map'),
+          /*
+           * Back to whichever screen sent us, and redraw it first when that
+           * screen is the pre-gym one. See `renderPreGym` for why the redraw is
+           * load-bearing rather than tidy.
+           */
+          onDone: () => {
+            if (partyReturn === 'pre-gym') renderPreGym();
+            showScreen(partyReturn);
+          },
         },
       );
       showScreen('party');
@@ -570,8 +652,8 @@ export function mountApp(root: HTMLElement): void {
     const unsubscribe = onSettingsChange(() => {
       const state = live;
       if (!state) return;
-      mapScreen.render(state, (index) => nodePick.submit(index), showParty);
-      if (router.current() === 'party') showParty();
+      mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+      if (router.current() === 'party') showParty(partyReturn);
     });
 
     const previousAbandon = abandon;
@@ -598,7 +680,7 @@ export function mountApp(root: HTMLElement): void {
         segments: state.segments.length,
         seed: state.seed,
       });
-      mapScreen.render(state, (index) => nodePick.submit(index), showParty);
+      mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
     };
 
     const onBattle = (session: BattleSession, node: NodeSpec, state: RunState): void => {

@@ -79,7 +79,7 @@ export interface PartyScreen {
        * The item layout the player has settled on, handed upward to be logged.
        *
        * Called on every change rather than on leaving the screen, so the caller
-       * always holds the current plan and the "Back to the map" button does not
+       * always holds the current plan and the way-out button does not
        * have to be the thing that commits it. See the header on why this is a
        * plan rather than a mutation.
        */
@@ -104,6 +104,14 @@ export interface PartyView {
    * would draw three cells for a party of four.
    */
   slots: number;
+  /**
+   * Where the way out goes, as the words on the button.
+   *
+   * The screen has two entrances — the map's Manage button and the pre-gym
+   * screen's — and the caller is the only thing that knows which one was used.
+   * It is the label only: `onDone` does the navigating.
+   */
+  backTo: string;
   /**
    * A layout the player already composed and has not yet spent, or null.
    *
@@ -149,7 +157,8 @@ export function createPartyScreen(): PartyScreen {
   const done = document.createElement('button');
   done.type = 'button';
   done.className = 'button primary-action';
-  done.textContent = 'Back to the map';
+  // Text set per render, from `view.backTo`: the screen has two entrances and a
+  // label naming the wrong one is the softlock told to the player in advance.
 
   root.append(title, blurb, threats.root, partySlots, list, bag, relics, done);
 
@@ -173,6 +182,7 @@ export function createPartyScreen(): PartyScreen {
     root,
     render(view, handlers) {
       onDone = handlers.onDone;
+      done.textContent = view.backTo;
       /*
        * From the party alone, and redrawn here rather than in `draw()`.
        *

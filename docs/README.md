@@ -90,6 +90,29 @@ on trees that predate Stage 4.7 entirely.
 [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md)
 has the three measurements; `generation.md` section 12b records the deviation.
 
+**Merged since that, and ahead of Stage 4.8:** the pre-gym screen's *second*
+softlock. 4.7's phone patch gave that screen a control that submits a lead; it
+did not give the screen's detour a way back. The party screen's Done was
+`showScreen('map')` for both of its entrances, and from the gym the map arms no
+node row and never arms `nodePick`, so the way out of the party screen led to a
+screen with no control that advances the run and a `leadPick` nothing could
+resolve — a reload was the only recovery. `showParty` now takes and remembers its
+return screen, the pre-gym screen is redrawn on the way back rather than revealed
+as it was left (the lead is a slot index and a release shifts every slot behind
+it), and the Done button's label names where it actually goes. Presentation only,
+no `core/` change, no version bump. Found while surveying the tree for Stage 4.8,
+and the regression cases are the two added to
+[`../test/pre-gym-browser.test.ts`](../test/pre-gym-browser.test.ts) — in
+Chromium, because the bug is in `src/ui/app.ts`'s wiring between two screens and
+a test that mounts either screen alone cannot see it.
+
+The same branch cleared the one failure the suite was carrying, in
+[`../test/boundaries.test.ts`](../test/boundaries.test.ts)'s doc path check.
+That failure was the check being wrong rather than a document: the file it
+called unresolvable is really at `docs/visual/baseline/heights.json`, and the
+index of bare filenames walked `docs/` for Markdown only while `looksLikePath`
+accepted seven extensions. The suite is 935/935 from here.
+
 **Merged since that:** Release C, PR #16 (`846975c`), **battle feedback
 visuals**. Presentation only — the HP chunk and its
 shadow, the turn order jiggle, post-resolution flag words off a new pure reader

@@ -233,6 +233,7 @@ describe('every decision surface', () => {
             tuning: state.tuning,
             // Stage 4.8: the slot grid is sized by the run, not a constant.
             slots: partyCapacityAfter(0),
+            backTo: 'Back to the map',
             plan: null,
           },
           {
