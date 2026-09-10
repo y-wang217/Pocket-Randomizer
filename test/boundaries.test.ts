@@ -588,8 +588,31 @@ describe('documentation paths', () => {
    * What none of them can be is absent. A token that resolves under no spelling
    * is a reader sent nowhere, which is the whole point.
    */
+  /*
+   * Indexed over **every extension the check recognises**, not only `.ts` and
+   * `.md`.
+   *
+   * The narrower index was the bug behind the one failure this check carried:
+   * `generation.md` quotes R12's prompt naming `heights.json`, the file really is
+   * at `docs/visual/baseline/heights.json`, and the bare-filename spelling could
+   * not resolve because the docs walk collected `.md` only. So the check reported
+   * "a reader sent nowhere" about a path that sends the reader somewhere, which is
+   * the failure mode that teaches people to stop reading a test's output.
+   *
+   * The asymmetry was never intentional: `looksLikePath` accepts seven extensions
+   * and the index recognised two of them. Widening it can only make more bare
+   * names resolve, with one exception that is the check working rather than
+   * failing — a basename that now appears twice stops resolving, which is the
+   * right answer for a reader who would have to guess as well.
+   */
   const byBasename = new Map<string, number>();
-  for (const file of [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'test')), ...walk(join(ROOT, 'docs'), ['.md'])]) {
+  const indexed = [
+    ...walk(join(ROOT, 'src'), EXTENSIONS),
+    ...walk(join(ROOT, 'test'), EXTENSIONS),
+    ...walk(join(ROOT, 'docs'), EXTENSIONS),
+    ...walk(join(ROOT, 'scripts'), EXTENSIONS),
+  ];
+  for (const file of indexed) {
     const base = file.slice(file.lastIndexOf('/') + 1);
     byBasename.set(base, (byBasename.get(base) ?? 0) + 1);
   }
