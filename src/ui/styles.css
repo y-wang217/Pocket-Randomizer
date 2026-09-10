@@ -1642,9 +1642,15 @@ body {
 /*
  * The one overlay, from ui/band.ts. Stage V2.
  *
+ * A dim over the world and one translucent strip across its middle, edged
+ * top and bottom by a hairline of the glow so it reads as a band of the
+ * world rather than a box on a page. Text only: the question, one line, two
+ * buttons. The primary is the accent; its sibling is hollow. While the band
+ * is up, every other primary action on the page goes hollow too, so the
+ * band's is the one accent on screen.
+ *
  * The Stage 0 end-of-battle overlay's rules lived here unused since the
- * result screen replaced it in 4.5.2; they are gone. This is the only
- * overlay the stylesheet knows.
+ * result screen replaced it in 4.5.2; they are gone.
  */
 .confirm-band {
   position: fixed;
@@ -1657,14 +1663,34 @@ body {
 
 .confirm-band__body {
   width: 100%;
-  padding: var(--space-4);
+  padding: var(--space-5) var(--space-4);
   text-align: center;
-  background: var(--bg-raised);
+  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
+  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
 }
 
 .confirm-band__title { margin: 0 0 var(--space-1h); font-size: var(--fs-3xl); }
-.confirm-band__detail { margin: 0 0 var(--space-3); color: var(--text-dim); font-size: var(--fs-base); }
-.confirm-band__actions { display: flex; gap: var(--space-2); justify-content: center; flex-wrap: wrap; }
+.confirm-band__detail { margin: 0 0 var(--space-3h); color: var(--text-dim); font-size: var(--fs-base); }
+.confirm-band__actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
+.confirm-band__actions .button { min-height: 44px; min-width: 120px; }
+
+/* Text-only buttons: the hollow secondary, and every button inside a band. */
+.button--hollow {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.confirm-band .button:not(.primary-action) { background: transparent; }
+
+/* One accent per screen holds while a band is up: the primaries behind it go
+   hollow until it closes. */
+body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
 
 /*
  * The compact stat row on a pick screen. Item F, part 4.
