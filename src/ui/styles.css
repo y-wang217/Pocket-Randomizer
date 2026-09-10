@@ -1648,6 +1648,11 @@ body {
   z-index: 30;
   display: grid;
   place-items: center;
+  /* The body sits below the viewport's centre, not on it: 4.7's drawer bar
+     pushed the move replacement screen's pinned incoming card down to 388px,
+     and the band must never cover that card (V2.2). Half of this padding is
+     how far the centred body drops. */
+  padding-top: calc(var(--space-12) * 2 + var(--space-8));
   background: var(--dim);
 }
 
@@ -2774,6 +2779,8 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   font-size: var(--fs-xs);
   color: var(--text-dim);
   white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------------------
  * Stage 4.7 — legibility
  *
@@ -2790,12 +2797,12 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .shell__drawer-bar {
   display: flex;
   justify-content: flex-end;
-  padding: 0 12px 6px;
+  padding: 0 var(--space-3) var(--space-1h);
 }
 
 .drawer__trigger {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--emphasis);
+  color: var(--emphasis);
 }
 
 .drawer[hidden] {
@@ -2833,7 +2840,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .drawer__scrim {
   position: absolute;
   inset: 0;
-  background: rgba(3, 5, 8, 0.72);
+  background: var(--dim);
 }
 
 .drawer__sheet {
@@ -2841,94 +2848,88 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   max-height: 86vh;
   overflow-y: auto;
   background: var(--bg);
-  border-top: 1px solid var(--border);
-  border-radius: 14px 14px 0 0;
-  padding: 14px 12px 20px;
+  border-top: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  padding: var(--space-3h) var(--space-3) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2h);
 }
 
 .drawer__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   /* Sticky so Close is reachable without scrolling a three-card sheet back up. */
   position: sticky;
-  top: -14px;
+  top: calc(-1 * var(--space-3h));
   background: var(--bg);
-  padding-top: 4px;
+  padding-top: var(--space-1);
 }
 
-.drawer__title { margin: 0; font-size: 16px; }
-.drawer__blurb { margin: 0; color: var(--text-dim); font-size: 12px; }
-.drawer__note { margin: 0; color: var(--text-faint); font-size: 11px; }
-.drawer__section { margin: 6px 0 0; font-size: 12px; color: var(--text-dim); }
+.drawer__title { margin: 0; font-size: var(--fs-2xl); }
+.drawer__blurb { margin: 0; color: var(--text-dim); font-size: var(--fs-md); }
+.drawer__note { margin: 0; color: var(--text-faint); font-size: var(--fs-sm); }
+.drawer__section { margin: var(--space-1h) 0 0; font-size: var(--fs-md); color: var(--text-dim); }
 
 .drawer__members {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2h);
 }
 
 .drawer__relic-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
-.badge--relic { background: var(--bg-sunken); color: var(--accent); }
+.badge--relic { background: var(--bg-sunken); color: var(--emphasis); }
 
 /* Contribution: raw counts, evenly weighted. No cell is emphasised over
  * another, because an emphasis is a claim about which number matters. */
 .party__contribution {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
-  font-family: var(--mono);
-  font-size: 11px;
+  gap: var(--space-2h);
+  padding-top: var(--space-1h);
+  border-top: var(--hairline) solid var(--border);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
 }
 
-.party__contribution-cell { display: flex; gap: 4px; }
+.party__contribution-cell { display: flex; gap: var(--space-1); }
 .party__contribution-label { color: var(--text-faint); }
 .party__contribution-value { color: var(--text-dim); }
 
-/* The archetype chip, beside a level on both battle panels and every card. */
-.badge--archetype {
-  background: var(--bg-sunken);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  cursor: pointer;
-}
+/* The archetype chip, beside a level on both battle panels and every card.
+   It wears the one neutral chip recipe from `.chip`; only the cursor is its own. */
+.badge--archetype { cursor: pointer; }
 
 /* Move tags. Deliberately quiet: they are context on a button whose job is
  * still to be pressed, and a row of loud chips would out-shout the move name. */
 .move__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .badge--tag {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-faint);
-  font-size: 10px;
-  padding: 0 5px;
+  font-size: var(--fs-xs);
+  padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
 }
 
-/* Accuracy is the one tag most likely to explain a miss, so it is the one tag
- * that is not quiet. Still a colour, never a word like "risky". */
-.badge--tag-accuracy { color: var(--accent); border-color: var(--accent); }
+/* 4.7 gave the accuracy tag its own colour so it would not be quiet. The
+ * visual stages allow one neutral chip recipe and one coloured chip (the
+ * type), so the accuracy tag reads like every other tag; its tooltip still
+ * says what it is. */
 
 /* The status move's effect line, in the region base power would have used. */
 .move__effect {
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   line-height: 1.3;
 }
 
@@ -2937,22 +2938,22 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.pre-gym__counter { font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
-.pre-gym__prompt { margin: 12px 0 6px; font-size: 14px; }
+.pre-gym__counter { font-family: var(--font-body); font-size: var(--fs-md); color: var(--text-faint); }
+.pre-gym__prompt { margin: var(--space-3) 0 var(--space-1h); font-size: var(--fs-lg); }
 
 .pre-gym__party {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2h);
 }
 
 .pre-gym__slot {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
 /* Locale select's new context: the gym rail and the party strip. */
@@ -2960,20 +2961,20 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2h);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
   background: var(--bg-sunken);
 }
 
-.locale__gym-label { color: var(--text-faint); font-size: 12px; }
+.locale__gym-label { color: var(--text-faint); font-size: var(--fs-md); }
 .locale__gym-leader { font-weight: 600; }
 
 .locale__party {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 /* A row per member, not a grid: three rows read top to bottom in the same order
@@ -2982,8 +2983,8 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
-  font-size: 12px;
+  gap: var(--space-1h);
+  font-size: var(--fs-md);
 }
 
 .locale__party-member--fainted { opacity: 0.55; }
@@ -2993,6 +2994,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   /* The sheet takes more of the viewport on a phone, but never all of it: the
    * strip of the screen underneath is what says this is an overlay. */
   .drawer__sheet { max-height: 90vh; }
-  .move__tags { gap: 3px; }
-  .badge--tag { font-size: 9px; }
+  .move__tags { gap: var(--space-1); }
+  .badge--tag { font-size: var(--fs-2xs); }
 }

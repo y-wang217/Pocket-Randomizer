@@ -76,8 +76,7 @@ export function mountApp(root: HTMLElement): void {
   const summaryScreen = createSummary();
 
   const shell = el('main', 'shell');
-  const router = createRouter(
-    {
+
   /*
    * The party drawer, mounted once at the shell and toggled. **Stage 4.7, Part 1.**
    *
@@ -91,7 +90,8 @@ export function mountApp(root: HTMLElement): void {
    */
   const drawer = createDrawer();
 
-  const router = createRouter({
+  const router = createRouter(
+    {
     starter: starterScreen.root,
     locale: localeScreen.root,
     map: mapScreen.root,
@@ -113,13 +113,9 @@ export function mountApp(root: HTMLElement): void {
   const seedBar = createSeedBar();
   // The corner stamps, fixed to the viewport, updated with the run. Stage V2.
   const stamps = createStamps();
-  shell.append(createHeader(), seedBar.root, router.root, stamps.root);
   // The world behind everything, mounted once beside the shell, following
   // <html data-locale>. Stage V3.
   const world = createWorldScene();
-  root.replaceChildren(world.root, shell);
-  stamps.update({ locale: null, segment: null, segments: 0, seed: null });
-  const shell = el('main', 'shell');
 
   /*
    * The drawer trigger: **one button, mounted at the shell, not one per screen.**
@@ -137,7 +133,7 @@ export function mountApp(root: HTMLElement): void {
   const drawerTrigger = drawer.trigger();
   drawerBar.append(drawerTrigger);
 
-  shell.append(createHeader(), seedBar.root, drawerBar, router.root, drawer.root);
+  shell.append(createHeader(), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
 
   /** Surfaces that ask for a decision and have a party to show while asking. */
   const DRAWER_SURFACES: readonly ScreenName[] = [
@@ -188,7 +184,8 @@ export function mountApp(root: HTMLElement): void {
     if (!view) return;
     drawer.open({ ...view, inBattle: router.current() === 'battle' });
   });
-  root.replaceChildren(shell);
+  root.replaceChildren(world.root, shell);
+  stamps.update({ locale: null, segment: null, segments: 0, seed: null });
 
   /*
    * Which phase the app is in, so CSS can reclaim the setup chrome on a phone.
@@ -629,7 +626,6 @@ export function mountApp(root: HTMLElement): void {
         segments: result.state.segments.length,
         seed: result.state.seed,
       });
-      router.show('summary');
       showScreen('summary');
       // The run is over, so the seed controls are wanted again: the summary is
       // where a player picks the next seed or replays this one.

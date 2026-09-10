@@ -27,8 +27,9 @@ import type { Tuning } from '../data/tuning';
 import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
 import { archetypeChip } from './archetype-chip';
+import { neutralChip, statusChip, typeChip } from './chip';
 import { showsNumbers } from './settings';
-import { typeChip } from './screens/starter-select';
+import { slotNumber } from './slots';
 
 export interface MemberCardOptions {
   /** What this member is holding once a pending item plan is applied. */
@@ -36,6 +37,12 @@ export interface MemberCardOptions {
   tuning: Tuning;
   /** Marks the card as the run's current lead. Slot 0, and nothing else. */
   isLead?: boolean;
+  /**
+   * The card's position in the collection it stands in, 0-based, when it
+   * stands in one. Stage V2: the header then opens with the slot number the
+   * hotbar wears, and `data-slot` carries it. A position, never a rank.
+   */
+  index?: number;
   /**
    * A running contribution readout, or nothing. **Stage 4.7, Part 5.**
    *
@@ -82,12 +89,11 @@ export function memberCardContents(
    * the adapter already returned. This file is not the battle UI, so it is not
    * under the rule that keeps `scene.ts` on the projection.
    */
-  header.append(name, level, archetypeChip(spec.baseStats), ...spec.types.map(typeChip));
-  if (options.isLead) {
-    const lead = el('span', 'badge badge--lead');
-    lead.textContent = 'Lead';
-    header.append(lead);
-  }
+  // The slot number first, when the card stands for a slot (V2): a position,
+  // the same marker the hotbar above it wears.
+  if (options.index !== undefined) header.append(slotNumber(options.index));
+  header.append(name, level, archetypeChip(spec.baseStats), ...spec.types.map((type) => typeChip(type)));
+  if (options.isLead) header.append(neutralChip('Lead', 'lead'));
 
   const ability = el('span', 'party__ability');
   ability.textContent = spec.ability;
@@ -109,17 +115,11 @@ export function memberCardContents(
     : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
   meta.append(hp);
 
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.dataset['tip'] = `status:${member.status}`;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
+  if (member.status) meta.append(statusChip(member.status, undefined, { tip: `status:${member.status}` }));
 
   card.append(header, track, meta, itemRow(options.holding), statBlock(spec, member), moveList(member, spec, options.tuning));
   if (options.contribution) card.append(contributionRow(member));
-  card.dataset['slot'] = '';
+  card.dataset['slot'] = options.index === undefined ? '' : String(options.index);
   return card;
 }
 
@@ -127,10 +127,7 @@ export function memberCardContents(
 function itemRow(holding: ItemId | null): HTMLElement {
   const row = el('div', 'party__item');
   const entry = holding ? itemById(holding) : null;
-  const chip = el('span', 'badge badge--item');
-  chip.textContent = entry ? entry.name : 'No item';
-  if (!entry) chip.classList.add('badge--muted');
-  if (entry) chip.dataset['tip'] = `item:${entry.id}`;
+  const chip = entry ? neutralChip(entry.name, 'item', { tip: `item:${entry.id}` }) : neutralChip('No item', 'item', { extra: 'badge--muted' });
   row.append(chip);
 
   if (entry) {

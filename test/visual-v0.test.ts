@@ -32,6 +32,23 @@ describe('the vertical budget', () => {
     expect(measured.map).toEqual(expected.map);
     expect(measured.battle).toEqual(expected.battle);
   }, 180_000);
+
+  /*
+   * The plan's budget in absolute terms: the decision point ends above the fold
+   * on a 390x844 phone, with room under it for a thumb. Marked `fails` because
+   * it does not hold on this tree and the baseline test above cannot say so: the
+   * baseline was re-recorded after Stage 4.7 merged, and 4.7's drawer bar,
+   * archetype chips, move tag rows and effect lines put the map's offered nodes
+   * at 728 and the battle's fourth move button at 946. Measured and itemised in
+   * `docs/visual/reports/merge-4.7.md`. When main takes those rows back this
+   * test starts passing, vitest reports the `fails` as an error, and the marker
+   * comes off. That is the intended way to notice.
+   */
+  it.fails('ends both decision points above y=740 at 390x844', async () => {
+    const measured = await measureGuardedScreens(harness.url, harness.browser);
+    expect(measured.map.decisionBottom, 'map: last offered node card').toBeLessThanOrEqual(740);
+    expect(measured.battle.decisionBottom, 'battle: fourth move button').toBeLessThanOrEqual(740);
+  }, 180_000);
 });
 
 /** The computed properties the plan names for sibling cards. */

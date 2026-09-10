@@ -36,8 +36,8 @@
 :root[data-locale='summit'],
 .locale--summit {
   --locale-deep: #0a0e17;
-  --locale-mid: #1b2331;
-  --locale-glow: #d6dbe6;
+  --locale-mid: #131a25;
+  --locale-glow: #aab1be;
 }
 
 :root[data-locale='city'],

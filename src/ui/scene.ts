@@ -206,8 +206,9 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    * computes no labels — and it is not gated by the reveal policy, because it
    * restates base stats the stat block beside it has printed since Stage 4.5.
    */
-  const archetype = el('span', 'badge badge--archetype');
-  archetype.dataset['tip'] = 'archetype:all';
+  // The archetype label, through the one chip component (V2), neutral like
+  // every label that is not a type.
+  const archetype = neutralChip('', 'archetype', { tip: 'archetype:all' });
   archetype.tabIndex = 0;
   archetype.setAttribute('role', 'button');
   const types = el('span', 'panel__types');
@@ -662,12 +663,10 @@ export function moveTagRow(tags: readonly MoveTag[]): HTMLElement | null {
   if (tags.length === 0) return null;
   const row = el('span', 'move__tags');
   for (const tag of tags) {
-    const chip = el('span', `badge badge--tag badge--tag-${tag.id.toLowerCase()}`);
-    chip.textContent = moveTagLabel(tag.id, tag.value);
     // A tooltip trigger like every other badge on screen. The words are in
     // `data/moveTags.ts`; the layer that shows them is `ui/tooltips.ts`, and
-    // there is exactly one of those.
-    chip.dataset['tip'] = `movetag:${tag.id}`;
+    // there is exactly one of those. Built through the one chip component.
+    const chip = neutralChip(moveTagLabel(tag.id, tag.value), 'tag', { tip: `movetag:${tag.id}`, extra: `badge--tag-${tag.id.toLowerCase()}` });
     chip.tabIndex = 0;
     chip.setAttribute('role', 'button');
     row.append(chip);

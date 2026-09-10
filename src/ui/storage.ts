@@ -77,6 +77,7 @@ function isRunDecision(value: unknown): boolean {
   switch (decision.kind) {
     case 'starter':
     case 'locale':
+    case 'lead':
     case 'node':
     case 'reward':
     case 'event':

@@ -718,7 +718,7 @@ shared seed. `docs/keyed-streams.md` tracks what is missing.
 **The hash's input must be an explicit file list, not a directory glob.**
 
 4.7 added three files under `data/` that consume no RNG and feed no
-generation — `archetypes.ts`, `moveTags.ts` and `moveCopy.ts`. They are display
+generation — `archetypes.ts`, `data/moveTags.ts` and `moveCopy.ts`. They are display
 tables: thresholds for a stat label, a tag vocabulary, and the sentences a
 status move's readout is composed from. Two players on one seed holding
 different copies of any of them play the **identical run** with different words
@@ -732,7 +732,7 @@ down as a requirement before the release that has to honour it.
 
 The test is not "is it in `data/`" but **"can editing this change what a seed
 produces"**. `scaling.ts`, `speciesPools.ts`, `movePools.ts` and `tuning.ts` can.
-`archetypes.ts`, `moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
+`archetypes.ts`, `data/moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
 and `categoryInfo.ts` cannot.
 
 
