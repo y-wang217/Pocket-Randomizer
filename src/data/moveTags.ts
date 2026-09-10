@@ -215,6 +215,23 @@ export interface MoveTagValue {
 }
 
 /**
+ * One tag on a card: which tag, and the number it carries if it carries one.
+ *
+ * **Declared here rather than beside the derivation in `core/moveTags.ts`**,
+ * and the reason is a boundary rather than taste. `src/ui/scene.ts` may import
+ * from `core/battle/view`, `core/battle/effectiveness`, `core/battle/stats`,
+ * `core/hpCopy` and `core/types` and from nothing else under `core/` — see
+ * `test/boundaries.test.ts`. The scene renders tags, so it needs this type, so
+ * the type lives on the side of the line the scene can reach. The *derivation*
+ * stays in `core/`, and the tags reach the scene on the projection like every
+ * other fact it draws.
+ */
+export interface MoveTag {
+  id: MoveTagId;
+  value?: MoveTagValue;
+}
+
+/**
  * The one line a multi-hit move needs next to its band badge.
  *
  * Both numbers or the badge reads as a bug — Population Bomb is band 4 at 20

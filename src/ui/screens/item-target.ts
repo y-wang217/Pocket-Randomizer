@@ -13,6 +13,7 @@
  * show them because it does not know who is getting it yet.
  */
 import { describeSpecCard } from '../../core/battle/driver';
+import { archetypeChip } from '../archetype-chip';
 import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
 import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
@@ -74,7 +75,7 @@ function renderTarget(
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  header.append(name, level, ...detail.types.map(typeChip));
+  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
 
   const track = el('div', 'hp');
   const fill = el('div', 'hp__fill');

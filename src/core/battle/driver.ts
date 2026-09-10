@@ -987,6 +987,17 @@ export function createBattle(options: BattleOptions): BattleSession {
       usable: move.usable,
       flags: Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(move.id).flags),
       typeMultiplier: typeMultiplier(move.type, defenderTypes),
+      /*
+       * The full explanation, carried so the projection can derive tags and a
+       * status readout. **Stage 4.7, Part 6.**
+       *
+       * The adapter is where a dex read belongs, and `describeMove` is already
+       * the one door onto a move's fields — so this is that door, opened once
+       * per move per turn and cached inside `describeSpecCard` for the life of
+       * the process. The alternative was `view.ts` reaching for the dex, which
+       * would put a second lookup path in front of the same table.
+       */
+      explanation: describeMove(move.id),
     }));
 
     const forceSwitch =

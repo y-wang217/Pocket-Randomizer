@@ -95,6 +95,17 @@ page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 
 const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
 
+/**
+ * `tuning.maxMoveTagsOnFace`, restated here rather than imported.
+ *
+ * This script is plain ESM run under Node against a *built* bundle, so it has
+ * no access to the source module. A number restated in two places is a number
+ * that can drift, which is exactly what this assertion would then stop
+ * catching — so if the tuning value moves, this moves with it, and the
+ * assertion below names the constant so the failure says which.
+ */
+const MAX_MOVE_TAGS = 3;
+
 const check = async (label, selector) => {
   const count = await page.locator(selector).count();
   console.log(`  ${count > 0 ? 'ok  ' : 'FAIL'} ${label} (${selector} x${count})`);
@@ -147,6 +158,7 @@ async function playRun(label) {
   let acquisitions = 0;
   let releases = 0;
   let locales = 0;
+  let preGyms = 0;
   let partyVisits = 0;
   let switches = 0;
   let sawSavedLog = false;
@@ -218,6 +230,34 @@ async function playRun(label) {
         await page.waitForTimeout(25);
         continue;
       }
+    }
+
+    /*
+     * The pre-gym screen. **Stage 4.7, Part 2.**
+     *
+     * Every gym is preceded by exactly one of these, so a bot that did not know
+     * about it would stall at the first gym of every run — which is what it did
+     * the first time this was run, and is why the screen list in this file is
+     * the one place a new screen has to be registered.
+     *
+     * It picks the *last* selectable member rather than the first, for the same
+     * reason the locale branch takes the last card: the default is slot 0, and
+     * a bot that also chose slot 0 would agree with the default by accident and
+     * stop proving a choice was applied at all.
+     */
+    if (await page.locator(visible('pre-gym')).count()) {
+      const choose = page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not([disabled])`).last();
+      if (preGyms === 0) await page.screenshot({ path: `stats/${label}-pre-gym.png`, fullPage: true });
+      if (await choose.count()) {
+        await choose.click();
+      } else {
+        // Every other member has fainted, so slot 0 is the only legal lead and
+        // its button is inert. The screen still has to be left.
+        await page.locator(`${visible('pre-gym')} .pre-gym__slot .button`).first().click({ force: true });
+      }
+      preGyms++;
+      await page.waitForTimeout(25);
+      continue;
     }
 
     /*
@@ -510,7 +550,19 @@ async function bulkiestStarter() {
   return cards.nth(best);
 }
 
-/** The usable move with the highest base power, ties to the lowest slot. */
+/**
+ * The usable move with the highest base power, ties to the lowest slot.
+ *
+ * **A status move has no `.move__power` from Stage 4.7**, and that is the point
+ * of Part 6a rather than an oversight: the region that held an em dash now
+ * holds the move's effect readout, because three blank regions in a row read as
+ * a card that failed to load. A missing power element therefore means zero
+ * base power, which is exactly what a status move has — so this bot keeps
+ * choosing the hardest hit and never picks a status move by accident.
+ *
+ * It used to read the element unconditionally and hang for thirty seconds on
+ * the first party member holding a Growl.
+ */
 async function hardestMove() {
   const buttons = page.locator(`${visible('battle')} .move:not(:disabled)`);
   const count = await buttons.count();
@@ -519,7 +571,8 @@ async function hardestMove() {
   let best = 0;
   let bestPower = -1;
   for (let i = 0; i < count; i++) {
-    const text = (await buttons.nth(i).locator('.move__power').textContent()) ?? '';
+    const power$ = buttons.nth(i).locator('.move__power');
+    const text = (await power$.count()) > 0 ? ((await power$.textContent()) ?? '') : '';
     const power = Number(/^(\d+)/.exec(text.trim())?.[1] ?? 0);
     if (power > bestPower) {
       bestPower = power;
@@ -939,6 +992,27 @@ if (await phone.locator(visible('battle')).count()) {
       panelsBottom: panels.length ? Math.round(Math.max(...panels.map((r) => r.bottom))) : 0,
       // PP and effectiveness live on the button face, not behind a hover.
       withPp: globalThis.document.querySelectorAll('.moves .move__pp').length,
+      /*
+       * Stage 4.7, Part 6. Tags on the face, capped, and a status move showing
+       * an effect readout where its base power would have been.
+       *
+       * `maxTags` is the number the cap is asserted against: no face may carry
+       * more than `tuning.maxMoveTagsOnFace`, and a phone is the reason that
+       * number exists at all — four buttons in a 2x2 grid cannot carry twelve
+       * tags and a 44px touch target.
+       */
+      maxTags: Math.max(
+        0,
+        ...[...globalThis.document.querySelectorAll('.moves .move')].map(
+          (move) => move.querySelectorAll('.badge--tag').length,
+        ),
+      ),
+      statusMoves: globalThis.document.querySelectorAll('.moves .move[data-category="status"]').length,
+      statusReadouts: globalThis.document.querySelectorAll('.moves .move__effect').length,
+      // Part 7: the label beside the level, on both panels.
+      archetypes: globalThis.document.querySelectorAll('.panel .badge--archetype').length,
+      // Part 1: the drawer trigger, in the same place on every surface.
+      drawerTrigger: globalThis.document.querySelectorAll('[data-drawer-trigger]').length,
       scrollWidth: globalThis.document.documentElement.scrollWidth,
       innerWidth: globalThis.window.innerWidth,
     };
@@ -954,6 +1028,23 @@ if (await phone.locator(visible('battle')).count()) {
     `moves end at y=${battle.movesBottom} of ${battle.innerHeight}`);
   phoneCheck('no horizontal overflow in a battle', battle.scrollWidth <= battle.innerWidth,
     `${battle.scrollWidth}px in ${battle.innerWidth}px`);
+
+  // Stage 4.7. The cap is the phone assertion: the number exists because of
+  // this viewport, so this is the viewport it is checked on.
+  phoneCheck(
+    `no move face carries more than ${MAX_MOVE_TAGS} tags`,
+    battle.maxTags <= MAX_MOVE_TAGS,
+    `most on one face: ${battle.maxTags}`,
+  );
+  phoneCheck(
+    'every status move says what it does',
+    battle.statusReadouts >= battle.statusMoves,
+    `${battle.statusReadouts} readouts for ${battle.statusMoves} status moves`,
+  );
+  phoneCheck('both Pokemon carry an archetype label', battle.archetypes === 2, `${battle.archetypes} labels`);
+  phoneCheck('the party drawer is reachable in a battle', battle.drawerTrigger === 1,
+    `${battle.drawerTrigger} triggers`);
+
   await phone.screenshot({ path: 'stats/phone-battle.png' });
 } else {
   problems.push('phone: never reached a battle');

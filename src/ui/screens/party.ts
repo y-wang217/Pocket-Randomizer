@@ -45,19 +45,14 @@
  * That is why `onPlan` hands a plan upward instead of mutating the party the
  * way `onReorder` does.
  */
-import { describeSpecCard } from '../../core/battle/driver';
+import { memberCardContents } from '../member-card';
 import { backpackCapacity } from '../../core/items';
 import { relicById, type RelicId } from '../../data/relics';
 import type { Capability } from '../../data/capabilities';
-import { FAINTED, hpState, ppState } from '../../core/hpCopy';
-import { hpFraction, ppTotals } from '../../core/party';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
 import { itemById } from '../../data/items';
-import { statInfo, STAT_ORDER } from '../../data/statInfo';
 import type { Tuning } from '../../data/tuning';
-import { genderMark, el } from '../scene';
-import { showsNumbers } from '../settings';
-import { typeChip } from './starter-select';
+import { el } from '../scene';
 import { createThreatReadout } from './threats';
 
 export interface PartyScreen {
@@ -198,7 +193,7 @@ export function createPartyScreen(): PartyScreen {
       const draw = (): void => {
         list.replaceChildren(
           ...view.party.map((member, index) =>
-            renderManaged(member, index, view.party.length, held[index] ?? null, {
+            renderManaged(member, index, view.party.length, held[index] ?? null, view.tuning, {
               ...handlers,
               onUnequip: () => {
                 const item = held[index];
@@ -260,99 +255,43 @@ function remaining(owned: readonly ItemId[], taken: readonly ItemId[]): ItemId[]
   return left;
 }
 
+/**
+ * One managed member: the shared card, plus the two things only this screen can
+ * do to it.
+ *
+ * **The card itself is `ui/member-card.ts` and is byte-identical to the
+ * drawer's.** Stage 4.7 extracted it, and the reason is Part 1's rule: do not
+ * build a reduced variant, because a reduced variant is where a verdict gets
+ * smuggled in as an emphasis choice. Two hand-maintained copies of a card is
+ * the same failure arriving slowly.
+ *
+ * What this screen adds is *writes*: the item control, the lead reorder and the
+ * release. The drawer adds none of them, which is what read-only means — not a
+ * shorter card.
+ */
 function renderManaged(
   member: PokemonState,
   index: number,
   size: number,
   holding: ItemId | null,
+  tuning: Tuning,
   handlers: {
     onReorder: (from: number, to: number) => void;
     onRelease: (slot: number) => void;
     onUnequip: () => void;
   },
 ): HTMLElement {
-  const card = el('div', 'party__member');
-  if (index === 0) card.classList.add('party__member--lead');
-  if (member.fainted) card.classList.add('party__member--fainted');
-
-  const spec = describeSpecCard(member.spec);
-
-  const header = el('div', 'panel__header');
-  const name = el('span', 'panel__name');
-  name.textContent = spec.species;
-  const level = el('span', 'panel__level');
-  // Gender next to the level, exactly as the battle panel prints it, and via the
-  // same function — a Pokemon that read "Lv30 ♀" in a fight and "Lv30" here
-  // would look like two Pokemon.
-  level.textContent = `Lv${spec.level}${genderMark(spec.gender)}`;
-  header.append(name, level, ...spec.types.map(typeChip));
-  if (index === 0) {
-    const lead = el('span', 'badge badge--lead');
-    lead.textContent = 'Lead';
-    header.append(lead);
-  }
-
-  const ability = el('span', 'party__ability');
-  ability.textContent = spec.ability;
-  // Reachable here and not only mid-battle. An ability the player can only read
-  // about while a fight is running is one they cannot plan around.
-  ability.dataset['tip'] = `ability:${spec.abilityId}`;
-  header.append(ability);
-
-  const track = el('div', 'hp');
-  const fill = el('div', 'hp__fill');
-  const fraction = hpFraction(member);
-  fill.style.width = `${fraction * 100}%`;
-  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
-  track.append(fill);
-
-  const meta = el('div', 'panel__meta');
-  const hp = el('span', 'panel__hp-text');
-  const pp = ppTotals(member);
-  hp.textContent = member.fainted
-    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
-    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
-  meta.append(hp);
-
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
-
-  if (member.status) {
-    // Status tooltips reachable outside a battle, for the same reason as
-    // abilities: a burn the player can only read about while burning is one
-    // they learn nothing from.
-    const chip = meta.querySelector('.badge--status');
-    if (chip instanceof HTMLElement) chip.dataset['tip'] = `status:${member.status}`;
-  }
+  const card = memberCardContents(member, { holding, tuning, isLead: index === 0 });
 
   /*
-   * The held item, inline, with the assignment on the same card.
+   * The "to bag" control, added onto the shared card's item row.
    *
-   * Stage 4 put the item name here so a targeting decision could be audited
-   * afterwards. Stage 4.5.1 puts the *control* here too, because the decision
-   * is no longer made elsewhere — this is where it is made, next to the stats
-   * and moves that are the reason to make it one way or the other.
+   * Appended rather than passed in, because the shared card is read-only by
+   * construction: a card component that took an optional write handler would be
+   * one refactor away from the drawer passing one.
    */
-  const entry = holding ? itemById(holding) : null;
-  const itemRow = el('div', 'party__item');
-  const itemChip = el('span', 'badge badge--item');
-  itemChip.textContent = entry ? entry.name : 'No item';
-  if (!entry) itemChip.classList.add('badge--muted');
-  if (entry) itemChip.dataset['tip'] = `item:${entry.id}`;
-  itemRow.append(itemChip);
-
-  if (entry) {
-    // The plain-language effect line, from `data/items.ts` rather than written
-    // here — the same string the reward card shows, so an item reads the same
-    // wherever it appears.
-    const effect = el('span', 'party__item-effect');
-    effect.textContent = entry.blurb;
-    itemRow.append(effect);
-
+  const itemRow = card.querySelector('.party__item');
+  if (holding && itemRow instanceof HTMLElement) {
     const off = document.createElement('button');
     off.type = 'button';
     off.className = 'button button--small';
@@ -360,22 +299,6 @@ function renderManaged(
     off.addEventListener('click', () => handlers.onUnequip());
     itemRow.append(off);
   }
-
-  const stats = renderStats(spec, member);
-
-  const moves = el('ul', 'party__moves');
-  moves.replaceChildren(
-    ...member.moves.map((move) => {
-      const row = el('li', 'party__move');
-      const label = el('span', '');
-      label.textContent = move.name;
-      const count = el('span', 'move__pp');
-      count.textContent = `${move.pp}/${move.maxPp}`;
-      if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) count.classList.add('move__pp--low');
-      row.append(label, count);
-      return row;
-    }),
-  );
 
   const actions = el('div', 'party__actions');
 
@@ -405,84 +328,11 @@ function renderManaged(
   });
 
   actions.append(lead, release);
-  card.append(header, track, meta, itemRow, stats, moves, actions);
+  card.append(actions);
   card.dataset['slot'] = String(index);
   return card;
 }
 
-/**
- * The full six-stat block, using the same labels and the same tooltips as the
- * battle panel.
- *
- * **Reuses the battle screen's vocabulary rather than its component**, and the
- * distinction is worth naming. `scene.ts`'s stat rows are built against an
- * `ActiveUiView` — a Pokemon that is *in a battle*, carrying stat stages, a
- * speed reading from the engine and a faster-side marker. None of those exist
- * for a party member between nodes, and inventing them would mean printing a
- * boosted Attack for a Pokemon that is not boosted.
- *
- * What is shared is everything that matters to the reader: the labels, the
- * order, the `stat:` tooltip on every one of them, and the Simple/Detailed
- * behaviour. A player who learned what SpA means from the battle screen finds
- * the same word and the same tooltip here.
- */
-function renderStats(spec: ReturnType<typeof describeSpecCard>, member: PokemonState): HTMLElement {
-  const root = el('div', 'stats stats--party');
-  const values: Record<string, number> = { ...spec.baseStatsAtLevel, hp: member.maxHp };
-
-  for (const stat of STAT_ORDER) {
-    const info = statInfo(stat);
-    const row = el('div', 'stat');
-    row.dataset['stat'] = stat;
-
-    const label = el('span', 'stat__label');
-    label.textContent = info?.abbreviation ?? stat;
-    label.dataset['tip'] = `stat:${stat}`;
-
-    const value = el('span', 'stat__value');
-    const amount = values[stat] ?? 0;
-    value.textContent = `${amount}`;
-
-    const bar = el('div', 'stat__bar');
-    const fill = el('div', 'stat__bar-fill');
-    fill.style.width = `${Math.max(0, Math.min(1, amount / STAT_BAR_CEILING)) * 100}%`;
-    bar.append(fill);
-
-    // The one branch the verbosity flag takes on this screen, and it swaps
-    // which child is hidden rather than computing anything differently.
-    value.hidden = !showsNumbers();
-    bar.hidden = showsNumbers();
-
-    row.append(label, value, bar);
-    root.append(row);
-  }
-  return root;
-}
-
-/** Kept in step with `scene.ts`'s ceiling so a bar means the same on both screens. */
-const STAT_BAR_CEILING = 200;
-
-/**
- * The backpack: what is loose, where it can go, and what the cap is.
- *
- * The capacity line states the number rather than warning about it. Part 4
- * again — "4 of 5 carried" is a fact and "your bag is nearly full" is the UI
- * telling the player what to think about it.
- */
-/**
- * The run's relics, listed and not interactive.
- *
- * Beneath the backpack and visibly not part of it, because the single most
- * important thing this section says is that these are *not* items: nothing
- * here can be equipped, discarded, swapped or spent, and the absence of a
- * button on every row is what says so more clearly than a sentence would.
- *
- * Each row names the relic, the capability it grants and what its passive
- * does. All three are attributes. There is no ordering, no highlight on the
- * one that has paid off most, and no note about which capability the map is
- * about to ask for — that last one is the map's job, on the node, where the
- * decision actually is.
- */
 function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
   root.replaceChildren();
   if (held.length === 0) {

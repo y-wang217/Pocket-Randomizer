@@ -39,6 +39,7 @@
  */
 import { describeOffer, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
 import { describeSpecCard } from '../../core/battle/driver';
+import { archetypeChip } from '../archetype-chip';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
 import { hpState } from '../../core/hpCopy';
 import { heldItem } from '../../core/items';
@@ -159,7 +160,7 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  header.append(name, level, ...detail.types.map(typeChip));
+  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
 
   const ability = el('span', 'party__ability');
   ability.textContent = detail.ability;
@@ -209,7 +210,7 @@ function renderExisting(
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  header.append(name, level, ...detail.types.map(typeChip));
+  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
 
   const track = el('div', 'hp');
   const fill = el('div', 'hp__fill');

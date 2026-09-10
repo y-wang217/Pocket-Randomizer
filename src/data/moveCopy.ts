@@ -175,3 +175,57 @@ function close(a: number, b: number): boolean {
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+/**
+ * The structured fields a status readout is composed from.
+ *
+ * Declared here rather than in `core/` for the boundary reason
+ * `data/moveTags.ts` gives about `MoveTag`: `src/ui/scene.ts` renders this and
+ * may not import `core/moveTags`. The *derivation* is still `core/`'s —
+ * `core/moveTags.statusEffectFields` decides which fields are present — and
+ * this is the shape they travel in.
+ */
+export interface MoveEffectFields {
+  boosts?: readonly { stat: string; stages: number; target: 'self' | 'foe' }[];
+  heal?: number;
+  status?: string;
+  volatile?: string;
+  fieldEffect?: string;
+  priority: number;
+}
+
+/**
+ * A status move's effect, as the lines a card renders.
+ *
+ * **This is what fills the three empty regions.** On a damaging move the card
+ * carries base power, a band badge and an effectiveness marker; on a status
+ * move all three are blank, and three blanks in a row reads as a card that
+ * failed to load. The same region carries these lines instead.
+ *
+ * One line per present field, in a fixed order, and **absent fields produce no
+ * line** rather than an empty one. Priority is last because it qualifies
+ * everything above it: what the move does first, then when it happens.
+ */
+export function statusReadout(effect: MoveEffectFields): string[] {
+  const lines: string[] = [];
+  for (const boost of effect.boosts ?? []) {
+    lines.push(boostPhrase(boost.stat, boost.stages, boost.target));
+  }
+  if (effect.heal) lines.push(healPhrase(effect.heal));
+  if (effect.status) lines.push(statusPhrase(effect.status));
+  if (effect.volatile) lines.push(effectPhrase(effect.volatile));
+  if (effect.fieldEffect) lines.push(effectPhrase(effect.fieldEffect));
+  if (effect.priority !== 0) lines.push(priorityPhrase(effect.priority));
+  return lines;
+}
+
+/**
+ * The same readout as one line, for a button face with room for one.
+ *
+ * Joined with a middot rather than truncated to the first line: a Protect that
+ * said only "Protects the user this turn" and dropped its +4 bracket would be
+ * hiding the half of it that decides turns.
+ */
+export function statusReadoutLine(effect: MoveEffectFields): string {
+  return statusReadout(effect).join(' · ');
+}

@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { createBattle, typeChart, typeMultiplier } from '../src/core/battle/driver';
+import { createBattle, describeMove, typeChart, typeMultiplier } from '../src/core/battle/driver';
 import {
   applyAbilityEffects,
   buildBattleUiView,
@@ -74,6 +74,12 @@ function move(overrides: Partial<MoveFacts> = {}): MoveFacts {
     usable: true,
     flags: ['contact', 'protect'],
     typeMultiplier: 1,
+    /*
+     * Stage 4.7: the adapter carries `describeMove`'s answer so the projection
+     * can derive tags and a status readout. Real here rather than null, because
+     * a null would make every tag assertion in this file vacuously pass.
+     */
+    explanation: describeMove('Tackle'),
     ...overrides,
   };
 }

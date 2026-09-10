@@ -10,18 +10,10 @@
  * move is described and one place its tags are decided, and the second is a
  * function of the first.
  */
-import {
-  MOVE_TAG_PRIORITY,
-  type MoveTagId,
-  type MoveTagValue,
-} from '../data/moveTags';
+import { MOVE_TAG_PRIORITY, type MoveTag } from '../data/moveTags';
 import type { MoveExplanation } from './types';
 
-/** One tag on a card: which tag, and the number it carries if it carries one. */
-export interface MoveTag {
-  id: MoveTagId;
-  value?: MoveTagValue;
-}
+export type { MoveTag };
 
 /**
  * The holder a move is attached to, when there is one.
