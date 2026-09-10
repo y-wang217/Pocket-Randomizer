@@ -14,3 +14,6 @@ stats/
 # Ad-hoc runs still land here, so commit deliberately rather than with `git add -A`.
 sim-reports/*
 !sim-reports/benchmarks/
+
+# The gallery build (src/ui/gallery.ts), never shipped.
+dist-gallery/
