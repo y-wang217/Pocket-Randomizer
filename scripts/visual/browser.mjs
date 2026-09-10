@@ -236,6 +236,11 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
 }
 
 async function measureScreen(page, name, decisionSelector) {
+  // The pointer rests where the last click landed. A card under it wears its
+  // hover lift, which is 1px of translate, so park it and let the 120ms
+  // transition settle before reading a single box.
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(200);
   return page.evaluate(
     ([screenSelector, decision]) => {
       const screen = globalThis.document.querySelector(screenSelector);

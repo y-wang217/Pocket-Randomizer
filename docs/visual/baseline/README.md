@@ -15,3 +15,12 @@ visual stage diffs against this directory and never regenerates it.
 and fails on any byte that differs. Heights are compared by
 `scripts/visual/measure.mjs --compare docs/visual/baseline/heights.json` after
 `npm run build`, and each stage's done marker records the delta from this file.
+
+## Corrections
+
+- **2026-09-10, V1.** `heights.json` `battle.decisionTop` corrected from 611 to
+  612. The V0.0 recording left the pointer where the last click landed, on the
+  first move button, whose hover state lifts it by one pixel. The driver now
+  parks the pointer before every measurement, and the untouched V0.0 build
+  re-measured with the parked pointer reads 612. No layout changed; the ruler
+  did. Every other number re-measured identical.
