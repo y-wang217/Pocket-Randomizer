@@ -35,25 +35,29 @@ describe('the vertical budget', () => {
 
   /*
    * The plan's budget in absolute terms: the decision point ends above the fold
-   * on a 390x844 phone, with room under it for a thumb. Marked `fails` because
-   * it does not hold on this tree and the baseline test above cannot say so —
-   * the baseline records where the rows *are*, not where they should be.
+   * on a 390x844 phone, with room under it for a thumb.
    *
-   * **It is not 4.7's to give back, and that is the 2026-09-10 correction.**
-   * Stage 4.7's drawer bar, archetype chips and move tag rows are worth 106.5px
-   * on this screen and the map's tier copy 29.69 on the other, itemised in
-   * `docs/visual/reports/merge-4.7.md`. But the same measurer run against `main`
-   * *before* any of it — `2468769`, the commit before PR #10 — puts the fourth
-   * move button at 840, already 100px past this line. Rolling 4.7 back reaches
-   * 840, not 740. The three trees are in
-   * `docs/visual/reports/phone-regressions-4.7.md`.
+   * **The marker came off at V5.4, and it came off the way it was designed
+   * to.** This was `it.fails` from V0 until 2026-09-10, with a comment saying
+   * the miss was not Stage 4.7's to give back — the same measurer against the
+   * commit before PR #10 puts the fourth move button at 840, already 100px past
+   * this line, so rolling 4.7 back reaches 840 and not 740. The three trees are
+   * in `docs/visual/reports/phone-regressions-4.7.md`. The comment ended: "the
+   * marker stays until something decides about the rows that predate the stage:
+   * the battle heading, the two Pokemon panels, and the move grid itself. The
+   * day the number reaches 740 vitest reports the `fails` as an error and the
+   * marker comes off."
    *
-   * So the marker stays until something decides about the rows that predate the
-   * stage: the battle heading, the two Pokemon panels, and the move grid itself.
-   * The day the number reaches 740 vitest reports the `fails` as an error and
-   * the marker comes off. That is still the intended way to notice.
+   * V5 is that decision, and all three rows are what it spent. The log left the
+   * board for a sheet, the two panels left the column and float inside a 260px
+   * stage, and the move grid tightened by margin and gap. The fourth move
+   * button ends at 704 and the map's last offered card at 728.22, so vitest
+   * reported the expected failure as an error — which is exactly how this was
+   * meant to be noticed — and it is a real assertion from here.
+   *
+   * `docs/visual/reports/v5-battle-stage.md` has the numbers per step.
    */
-  it.fails('ends both decision points above y=740 at 390x844', async () => {
+  it('ends both decision points above y=740 at 390x844', async () => {
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.map.decisionBottom, 'map: last offered node card').toBeLessThanOrEqual(740);
     expect(measured.battle.decisionBottom, 'battle: fourth move button').toBeLessThanOrEqual(740);

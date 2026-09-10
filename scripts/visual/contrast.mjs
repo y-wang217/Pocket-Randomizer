@@ -128,8 +128,32 @@ export async function measureContrast(url, browser, { seed: runSeed = 'SMOKE24',
     await page.waitForTimeout(600);
     results[screen] = {};
     for (const [selector, label] of STYLES[screen]) {
+      /*
+       * The log moved into a sheet at V5.2, and a text style behind a tap
+       * still has to meet the contrast rule — it is read for longer than
+       * anything on the board. So the sheet is opened for this one selector
+       * rather than `.log-entry` being dropped from the table: a selector
+       * quietly skipped is a style quietly unchecked, and not doing that is
+       * this instrument's whole job.
+       *
+       * **Opened last and for one reading**, not for the whole screen. The
+       * sheet lays a scrim over the board, and every selector above it would
+       * otherwise be photographed through a dim overlay — a contrast number
+       * for a surface no player ever reads.
+       */
+      if (screen === 'battle' && selector === '.log-entry') {
+        const history = page.locator(`${visible(screen)} .flags__history`);
+        if (await history.count()) {
+          await history.click();
+          await page.waitForTimeout(250);
+        }
+      }
       const target = page.locator(`${visible(screen)} ${selector}`).first();
       if (!(await target.count())) continue;
+      // Present but not rendered — behind a closed overlay, or on a turn that
+      // did not produce one. `scrollIntoViewIfNeeded` waits for stability on
+      // such an element and times the whole run out rather than skipping it.
+      if (!(await target.isVisible())) continue;
       await target.scrollIntoViewIfNeeded();
       const text = parseColor(await target.evaluate((el) => globalThis.getComputedStyle(el).color));
       const box = await target.boundingBox();

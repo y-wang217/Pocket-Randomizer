@@ -14,9 +14,23 @@
  *   gallery.html#seed=SMOKE24&screen=result            three cards, no capture
  *   gallery.html#seed=SMOKE24&screen=result-capture    the capture offer, no cards
  *   gallery.html#seed=SMOKE24&screen=result-both       both at once, which the app never shows
+ *   gallery.html#seed=V5-LOADED&screen=battle          both panels fully loaded
+ *
+ * **V5.6 added the battle screen**, and for the reason this file exists. The
+ * plan's closing assertion is a layout height "with a full status and stage
+ * chip row on both sides", and the smoke bot cannot ask for that: it plays a
+ * seed, and whether both Pokemon happen to be statused and boosted on the turn
+ * it stops is the seed's business. Here the battle is driven deliberately —
+ * Swords Dance and Toxic against Rock Polish and Thunder Wave — until both
+ * sides carry a status and a stage, and *then* it is measured. That is the
+ * worst case for panel height, played rather than fabricated.
  */
 import { greedyAiPolicy } from '../core/battle/ai';
+import { createBattle } from '../core/battle/driver';
+import type { NodeSpec } from '../core/encounters';
 import { localeOf, playRun, scriptedRunPolicy, type BattleReview, type RunState } from '../core/run';
+import { moveChoice, type TeamSpec } from '../core/types';
+import { createBattleScreen } from './screens/battle';
 import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
 import type { PokemonState } from '../core/types';
@@ -46,6 +60,14 @@ async function main(): Promise<void> {
   const world = createWorldScene();
   root.replaceChildren(world.root, shell);
   createTooltips(shell);
+
+  if (screen === 'battle') {
+    mountLoadedBattle(screens, seed);
+    applyLocale(null);
+    stamps.update({ locale: null, segment: 1, segments: 8, seed });
+    document.documentElement.dataset['galleryReady'] = 'true';
+    return;
+  }
 
   // The first review that carries three cards, and the first capture offer:
   // the result screen's two decision points, held so they render together.
@@ -101,6 +123,72 @@ async function main(): Promise<void> {
     );
   }
   document.documentElement.dataset['galleryReady'] = 'true';
+}
+
+/**
+ * A battle with both panels carrying everything they can carry.
+ *
+ * The four moves are chosen so the state is reached by *playing*, not by
+ * constructing a projection: Swords Dance and Rock Polish are boosts that
+ * cannot miss, Toxic and Thunder Wave are the statuses each side can land on
+ * the other. Golem is Rock/Ground so Toxic applies; Snorlax is Normal so
+ * Thunder Wave does. Both are 90% accurate, which is why this loops rather
+ * than taking four turns and hoping — it stops the moment both panels are
+ * loaded, and gives up after enough turns that a run of misses is not what
+ * a red measurement would be reporting.
+ *
+ * Level 100 on both sides, because the panel's widest line is the HP readout
+ * and three digits either side of the slash is the longest it gets.
+ */
+const LOADED_P1: TeamSpec = [
+  { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Toxic', 'Body Slam', 'Rest'], level: 100 },
+];
+const LOADED_P2: TeamSpec = [
+  { species: 'Golem', ability: 'Sturdy', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
+];
+
+function mountLoadedBattle(screens: HTMLElement, seed: string): void {
+  const session = createBattle({ teams: { p1: LOADED_P1, p2: LOADED_P2 }, seed });
+  const battle = createBattleScreen();
+  battle.root.dataset['screen'] = 'battle';
+  battle.root.hidden = false;
+  screens.append(battle.root);
+
+  const node = {
+    id: 's1-1-0',
+    kind: 'battle',
+    tier: 'normal',
+    label: 'A loaded board',
+    // A plain name. `boundaries.test.ts` reads every string literal under
+    // `src/ui/` for verdict vocabulary and does not care that this one is a
+    // harness — which is right, because the check cannot tell and should not
+    // have to.
+    encounter: { team: LOADED_P2, opponent: 'A trainer', simSeed: seed },
+    rewards: [],
+  } as unknown as NodeSpec;
+  battle.attach(session, node, { ability: true, item: true }, () => undefined);
+
+  const loaded = (): boolean => {
+    const facts = session.factsFor('p1');
+    const sides = [facts.player, facts.opponent] as { status: string | null; boosts: Record<string, number> }[];
+    return sides.every((side) => Boolean(side.status) && Object.values(side.boosts).some((stage) => stage !== 0));
+  };
+
+  /*
+   * Slot 1 is each side's own boost and slot 2 is the status it lands on the
+   * other. **Boost first**, because it cannot miss and a panel carrying a
+   * status but no stage is only half the worst case; then the status, until it
+   * sticks. Neither side ever picks a damaging move, so nobody faints and the
+   * loop ends on the state rather than on the battle.
+   */
+  const boosted = (side: { boosts: Record<string, number> }): boolean =>
+    Object.values(side.boosts).some((stage) => stage !== 0);
+
+  for (let turn = 0; turn < 24 && !session.ended && !loaded(); turn++) {
+    const facts = session.factsFor('p1');
+    if (session.viewFor('p1').awaitingChoice) session.submit('p1', moveChoice(boosted(facts.player) ? 2 : 1));
+    if (session.viewFor('p2').awaitingChoice) session.submit('p2', moveChoice(boosted(facts.opponent) ? 2 : 1));
+  }
 }
 
 void main();

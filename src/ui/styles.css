@@ -139,30 +139,38 @@ body {
 
 /* ---------- layout ---------- */
 
+/* The battle screen's own vertical rhythm. **V5.6.**
+
+   Two gaps of 12 sat between the heading, the board and the strip, and the
+   plan's budget line for all of that is 40. Eight is still a visible break
+   between three things that are not the same thing, and the four pixels each
+   are the last two the loaded worst case needed: with a status chip and a stage
+   chip on both panels the screen measured 602 against the plan's 600, and the
+   only rows left to take it from were margins. Nothing is removed and nothing
+   moves closer to a thumb — the two gaps sit above the move grid, not inside
+   it.
+
+   `.screen.screen--battle` rather than `.screen--battle`, which was the first
+   attempt and did nothing: `.screen { gap: var(--space-3) }` is declared later
+   in this file and ties on specificity, so the bare class lost on source order.
+   The same shape of mistake the drawer's `[hidden]` note records twice, caught
+   here by the measurement rather than by the rule looking wrong. */
+.screen.screen--battle { gap: var(--space-2); }
+.screen--battle .board { gap: var(--space-2); }
+
+/* V5.2: two children, one column, every viewport.
+
+   The board was a two-column grid because the persistent log sat beside the
+   scene on a wide screen and under it on a phone, and Release C's strip needed
+   named areas so auto-placement did not drop it into the log's column. The log
+   is a sheet now (`ui/log-sheet.ts`), so there is no second column to name and
+   no reading order to restate: scene, then strip, in the order the DOM already
+   has them. */
 .board {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  /* Named, because Release C's flag strip is a third child and auto-placement
-     would put it beside the scene rather than under it. The log spans both
-     rows so it keeps the full height it had before the strip existed. */
-  grid-template-areas:
-    "scene log"
-    "flags log";
-  grid-template-rows: auto auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  align-items: start;
-}
-
-.board > .scene { grid-area: scene; }
-.board > .flags { grid-area: flags; }
-.board > .log { grid-area: log; }
-
-@media (max-width: 760px) {
-  .board {
-    grid-template-columns: minmax(0, 1fr);
-    /* One column: the same reading order the DOM already has. */
-    grid-template-areas: "scene" "flags" "log";
-  }
+  align-items: stretch;
 }
 
 .scene {
@@ -170,6 +178,45 @@ body {
   flex-direction: column;
   gap: var(--space-3);
 }
+
+/* An empty bench takes no room at all. **V5.3.**
+
+   It was already invisible — `renderBench` leaves the container empty on a
+   party of one and between turns — but an empty flex child still earns the
+   column's 12px gap, and on the one screen whose whole stage is a budget that
+   is 12px of nothing. `display: none` takes it out of the flex flow, gap
+   included; `visibility: hidden` would not. The panel is back the moment it has
+   a row, including the turns where every row is disabled, because "you cannot
+   switch right now" is information and an absent panel is not. */
+.bench:empty { display: none; }
+
+/* ---------- the stage ----------
+   V5.3. Two sprites standing in the world V3 already draws behind every
+   screen, with the two panels floating over the same band.
+
+   A fixed height, and that is the whole reason it is a token: the band is a
+   budgeted number, and a stage that grew when a sprite finished loading would
+   move the move grid under a thumb already descending. Everything inside is
+   absolutely positioned against it, so nothing here can reflow anything below.
+
+   Opposite corners: opponent panel upper left with its sprite upper right,
+   player sprite lower left with its panel lower right. That is a layout
+   decision and not an emphasis one — both sprites are one size, both panels
+   wear one scrim, and no rule in this block draws one side heavier than the
+   other. */
+.stage {
+  position: relative;
+  height: var(--stage-height);
+}
+
+.stage__actor {
+  position: absolute;
+  width: var(--sprite-size);
+  height: var(--sprite-size);
+}
+
+.stage__actor--foe { top: 0; right: 0; }
+.stage__actor--me { bottom: 0; left: 0; }
 
 /* ---------- side panels ---------- */
 
@@ -183,6 +230,77 @@ body {
 .panel--foe,
 .panel--me { border-left: var(--space-1) solid var(--border-strong); }
 
+/* The floating panels. **V5.3, Reference B: a scrim, not a card.**
+
+   Everything that made these boxes goes — the raised surface, the outline, the
+   heavy left rule — and what is left is the panel's own text on a translucent
+   ground with the scene showing through it. The blur is what makes that
+   readable over a busy locale without the scrim having to be opaque enough to
+   become a card again.
+
+   Absolutely positioned inside the stage, which is why they cost the layout
+   nothing: the plan's budget only closes with the panels *in* the 260 band
+   rather than above and below it. `--panel-float` keeps each one clear of the
+   sprite in the opposite corner, so neither ever covers the other and no
+   z-order decides which side is legible.
+
+   Identical on both sides, deliberately. The scrim, the padding, the radius
+   and the width are one rule for both panels; the only thing that differs is
+   which corner each sits in. */
+.stage .panel {
+  position: absolute;
+  padding: var(--space-1h) var(--space-2);
+  background: var(--panel-scrim);
+  backdrop-filter: blur(var(--panel-blur));
+  border: 0;
+  border-left: 0;
+  border-radius: var(--radius-card);
+}
+
+/* Each panel runs from its own edge of the band to where the sprite opposite
+   it begins, rather than to a percentage. The sprite's width is the constraint,
+   so stating it that way means a panel cannot overlap a sprite even if either
+   number changes — and it gives the text every pixel the sprite does not want,
+   which is what keeps the header on one line at 390. */
+.stage .panel--foe {
+  top: 0;
+  left: 0;
+  right: calc(var(--sprite-size) + var(--space-2));
+}
+
+.stage .panel--me {
+  bottom: 0;
+  right: 0;
+  left: calc(var(--sprite-size) + var(--space-2));
+}
+
+/* Inside a floating panel every line is a line of the stage it covers, so the
+   header's block margin goes and the rows are separated by one gap instead. */
+.stage .panel__header { margin-bottom: 0; }
+
+.stage .panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-h);
+}
+
+/* Stat stages, revealed traits and volatiles on one row. Three containers
+   because they are three kinds of fact with three emptiness rules; one row
+   because the panel is over a sprite now. */
+.panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.panel__stages {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .panel__header {
   display: flex;
   align-items: center;
@@ -193,7 +311,10 @@ body {
 
 .panel__name { font-weight: 600; }
 .panel__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
-.panel__types { display: inline-flex; gap: var(--space-1); margin-left: auto; }
+/* `margin-left: auto` pushed the types to the far end of the header. On the
+   chip row they are the first thing read, so the push goes: it would otherwise
+   throw them to the opposite end of the row from the labels they belong with. */
+.panel__types { display: inline-flex; gap: var(--space-1); }
 
 .hp {
   height: 9px;
@@ -236,13 +357,84 @@ body {
    container with its one-line event strip and the chips inside are unchanged. */
 .flags {
   display: flex;
-  flex-wrap: wrap;
+  /* V5.2: **never wraps.** The plan's rule is that the strip is one line and
+     that overflow truncates, with the sheet holding the full text. A wrap here
+     would spend a second 24px band on the one screen whose budget is the whole
+     stage. */
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   /* Holds its height when empty. `--space-6` is one chip's line box plus its
      padding, so a turn with nothing to report and a turn with three words
      occupy the same band and the board never jumps. */
   min-height: var(--space-6);
+  /* The clip that makes truncation truthful: a chip that does not fit is cut
+     off rather than pushing the history control off the end of the row. */
+  overflow: hidden;
+}
+
+/* The most recent action, in words. `ui/copy/events.ts`.
+
+   `min-width: 0` because a flex item's default `min-width: auto` refuses to
+   shrink below its content, which would push the words and the control out of
+   the row instead of truncating. This is the item that gives way: the flag
+   words are a closed vocabulary and short, the sentence is neither. */
+.flags__event {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+}
+
+/* Whose Pokemon acted, in the same mark the chips wear one line over: the
+   player's side in the heavier neutral, the opponent's left dim. Not a weight
+   axis between kinds — there is only one event line — and not a verdict. */
+.flags__event[data-side='p1'] { color: var(--emphasis); }
+
+/* Release C's chips, unchanged, in a row that does not wrap either. */
+.flags__words {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* **A chip does not wrap its own words, and this is not the same rule as the
+   one above.** `flex-wrap: nowrap` stops the row breaking between chips; it
+   does nothing about a chip being squeezed narrow enough that `Badly poisoned`
+   breaks *inside* it. Two long flag words on one turn — `Paralysed` and `Badly
+   poisoned` together — did exactly that at 390 and made the strip 35px, which
+   is two lines by any reading of the plan's rule.
+
+   `flex: 0 0 auto` so a chip keeps its natural width and the row's own
+   `overflow: hidden` does the truncating, which is what the plan asks for: the
+   strip clips and the sheet has the full text. */
+.flags .chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* The tap that opens the history. Last in the row and never shrinks: a
+   truncated affordance is one the player cannot be sure is there.
+
+   Its own vertical padding rather than `.button--small`'s, so the control fits
+   inside the strip's 24px band instead of setting it. `--space-6` is one chip's
+   line box, the strip has held that height since Release C, and a control that
+   made the band 2.5px taller would be V5 spending budget on furniture. The
+   horizontal padding and every other button property are untouched, so it is
+   still visibly the same control as the drawer trigger above it. */
+.flags__history {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: var(--space-6);
+  font-size: var(--fs-2xs);
 }
 
 /* Whose flag it is, in the log's own vocabulary — `.log-entry__order` marks
@@ -753,10 +945,35 @@ body {
 
 /* ---------- moves ---------- */
 
+/* ---------- the move grid ----------
+   V5.4. The same four buttons through the same component, tightened until they
+   finish above the fold.
+
+   **Tightened by margin and gap only.** The 44px minimum touch target is
+   untouched (a button measures 110), and so is the two-line `.move__meta` — the
+   band badge sits on that second line between base power and the effectiveness
+   marker, and it is the first thing that overhangs if the face is squeezed.
+   What came out is vertical padding and the three internal gaps, which are the
+   two things on this control that carry no information.
+
+   Scoped to `.moves`, so it is the *battle grid* that tightens and not every
+   move card in the app. The reward offer and the replacement screen draw the
+   same component and are not under a vertical budget; a card there that lost
+   4px of breathing room would be paying for a fold it is not near. */
 .moves {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
+  gap: var(--space-1h);
+}
+
+.moves .move {
+  gap: var(--space-h);
+  padding-top: var(--space-1h);
+  padding-bottom: var(--space-1h);
+}
+
+.moves .move__meta {
+  gap: var(--space-1);
 }
 
 .move {
@@ -802,10 +1019,15 @@ body {
 
 /* ---------- log ---------- */
 
+/* The log panel. Inside the sheet since V5.2, and it is the same panel: the
+   renderer appends the same `.log-entry` children and scrolls the same
+   container. What went are the three rules that made it a fixture of the board
+   — the 320px floor, the 100% height and the 520px ceiling — because a sheet
+   sizes to its own overlay and a floor that tall would make the history open
+   at the same height on a turn with two lines in it. */
 .log {
-  height: 100%;
-  min-height: 320px;
-  max-height: 520px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-3) var(--space-3h);
   background: var(--bg-sunken);
@@ -895,22 +1117,55 @@ body {
 }
 
 /*
- * The sprite-swap beat.
+ * The species swap, on the stage. **V5.5, and the one thing V5 adds to Release
+ * C's motion.**
  *
- * A switch changes the whole panel at once and, without a beat, reads as the
- * screen glitching. One short fade-and-rise, and — per the spec — it must not
- * block input: this is a CSS animation on a panel nobody has to wait for, no
- * timer gates the move buttons, and tapping anywhere cancels it (`scene.ts`
- * clears the attribute on pointerdown).
+ * A switch changes a whole side at once and, without a beat, reads as the
+ * screen glitching. Until V5 that beat was a fade-and-rise on the panel, at a
+ * hardcoded 260ms. The panel is a scrim over a body now, so the beat belongs to
+ * the body: **the outgoing sprite sinks into the near layer of the world and
+ * the incoming one rises out of it.** Two sprites, because a swap is two things
+ * happening at once and one element cannot be both — `scene.ts` paints the
+ * Pokemon that left onto `.sprite--ghost` and the arriving one over it.
+ *
+ * `--motion-swap` is `--motion-duration`, which is `data/tuning.ts`'s one
+ * added-time-per-turn number written onto the root at startup. **The 260 is
+ * gone**, and the duration pin in `test/visual-tokens.test.ts` comes down with
+ * it: that is what the pin is for.
+ *
+ * **It costs a turn with no switch nothing at all.** The attribute is set only
+ * when the species on a side changes, so on an ordinary turn there is no
+ * animation to run. Even when it fires nothing waits for it: the bar, the
+ * numbers and the buttons are correct and interactive on the first frame, and
+ * a tap anywhere cancels it (`scene.ts` settles both actors on pointerdown).
+ *
+ * `transform` and `opacity` only, so the beat runs on the compositor and cannot
+ * reflow the stage or move a move button under a descending thumb.
  */
-@keyframes panel-swap {
-  from { opacity: 0.25; transform: translateY(-4px); }
+@keyframes sprite-rise {
+  from { opacity: 0; transform: translateY(var(--sprite-swap-travel)) scale(0.94); }
   to { opacity: 1; transform: none; }
 }
 
-.panel[data-swapped='true'] .panel__header,
-.panel[data-swapped='true'] .hp {
-  animation: panel-swap 260ms ease-out;
+@keyframes sprite-sink {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(var(--sprite-swap-travel)) scale(0.94); }
+}
+
+/* At rest the ghost is not drawn at all, so a body that has left the fight is
+   never one repaint away from being back on the stage. */
+.sprite--ghost {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.stage__actor[data-swapped='true'] .sprite--ghost {
+  animation: sprite-sink var(--motion-swap) ease-in;
+}
+
+.stage__actor[data-swapped='true'] .sprite:not(.sprite--ghost) {
+  animation: sprite-rise var(--motion-swap) ease-out;
 }
 
 
@@ -1860,11 +2115,18 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      restores the setup phase — but it does not sit above a live battle. */
   .shell[data-phase='running'] .seedbar { display: none; }
 
-  /* Both battle panels tighten so the two of them plus the move grid fit
-     without scrolling. Nothing is removed: the six stats, the stages, the
-     status chips and the HP numbers are all still there. */
-  .shell[data-phase='running'] .panel { padding: var(--space-2h) var(--space-3); gap: var(--space-1h); }
-  .shell[data-phase='running'] .panel .stats { gap: var(--space-h) var(--space-2h); }
+  /* **Retired at V5.4.** Stage 4.7 tightened both battle panels here "so the
+     two of them plus the move grid fit without scrolling", and paired it with a
+     rule squeezing the six-stat block inside them. V5 answered the same
+     question a different way — the panels float inside the stage band and the
+     six-stat block is gone — so the second rule now matches nothing at all and
+     the first was quietly winning on specificity (0,2,1 against `.stage
+     .panel`'s 0,2,0) and holding the floating panels at 4.7's metrics. That is
+     how the two panels came to overlap each other inside the band.
+
+     Not left behind a narrower selector: a superseded rule is deleted, and the
+     metrics a floating panel wears now live in one place, beside the rest of
+     what makes it float. */
 
   /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
      four buttons in a column is a scroll, and a scroll is what this pass is
@@ -1898,6 +2160,18 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      one would have been a nineteenth hardcoded duration in a stylesheet whose
      count is pinned. */
   .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; }
+  /* V5.5: the species swap resolves instantly. Selectors matched to the rules
+     they override rather than to the elements, for the reason the chunk's own
+     note gives — a media query adds no specificity and a plain `.sprite` would
+     have lost to `.stage__actor[data-swapped='true'] .sprite`.
+
+     **The arriving sprite is still there.** `sprite-rise` ends at the resting
+     state, so cancelling it leaves the new body on the stage at full opacity;
+     `sprite-sink` ends at nothing, and the ghost is `opacity: 0` at rest
+     anyway, so the outgoing body simply is not drawn. Reduced motion removes
+     the movement, not the Pokemon. */
+  .stage__actor[data-swapped='true'] .sprite,
+  .stage__actor[data-swapped='true'] .sprite--ghost { animation: none; }
 }
 
 /* ==========================================================================
@@ -2925,6 +3199,67 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * viewport so the screen underneath stays visible — the whole point of an
  * overlay rather than a route is that the player can see they have not left.
  * ------------------------------------------------------------------------- */
+
+/* ---------- the history sheet ----------
+   V5.2. The battle log, behind a tap on the event strip.
+
+   The same bottom-sheet recipe as the party drawer above, and deliberately the
+   same one: a phone has one place an overlay belongs, and a second set of
+   metrics for a second sheet would drift from it. It stops short of the top of
+   the viewport for the drawer's reason too — the player can see they have not
+   left the fight.
+
+   `[hidden]` carries its own `display: none`, which the drawer's rule set
+   already explains at length and which the smoke script has caught twice: any
+   `display` rule beats the UA `hidden` style, so an overlay toggled with
+   `hidden` and laid out with `display: flex` is an invisible scrim eating every
+   tap on the board underneath. Third occurrence, same guard. */
+.log-sheet[hidden] {
+  display: none;
+}
+
+.log-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.log-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--dim);
+}
+
+.log-sheet__sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2h);
+  max-height: 72vh;
+  background: var(--bg);
+  border-top: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  padding: var(--space-3h) var(--space-3) var(--space-5);
+}
+
+.log-sheet__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.log-sheet__title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+}
+
+.log-sheet__close {
+  flex: 0 0 auto;
+}
 
 /* The drawer trigger, in the same place on every decision surface. */
 .shell__drawer-bar {

@@ -22,6 +22,7 @@ import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
+import { createLogSheet, type LogSheet } from '../log-sheet';
 import { createScene, el, type Scene } from '../scene';
 
 /**
@@ -56,16 +57,36 @@ export function createBattleScreen(): BattleScreen {
   const board = el('div', 'board');
   const scene: Scene = createScene();
   /*
-   * The strip sits between the board and the log, which is where V5's
-   * one-line event strip goes. Putting it there now means V5 re-homes a
-   * container rather than restyling chips.
+   * The strip sits under the scene, where Release C put it and where V5's
+   * one-line event strip goes. V5 re-homed a container rather than restyling
+   * chips, exactly as that placement predicted.
    */
   const flags: FlagStrip = createFlagStrip();
-  const logPanel = el('div', 'log');
-  const log: BattleLogView = createBattleLog(logPanel);
-  board.append(scene.root, flags.root, logPanel);
+  /*
+   * The log is no longer on the board. **V5.2.**
+   *
+   * It was a persistent multi-line panel costing 320px of an 844px phone, on
+   * the screen the player sees most, and the plan's budget spends all of it:
+   * the turn's outcome is on the strip above, the history is in here behind a
+   * tap. The renderer is unchanged — `createBattleLog` is handed the sheet's
+   * container and does not know it moved.
+   */
+  const sheet: LogSheet = createLogSheet();
+  const log: BattleLogView = createBattleLog(sheet.panel);
+  board.append(scene.root, flags.root);
 
-  root.append(header, board);
+  /*
+   * The one place a tap becomes an open, and the reason the strip exposes its
+   * control rather than wiring it. The sheet never opens on its own: `open`
+   * has this single caller, and it is a click handler.
+   *
+   * The control is in the strip, which is outside `.moves`. That is the sharp
+   * case `ui/drawer.ts` names — a move button is a submission, and a trigger
+   * inside the grid would be one keystroke from spending a turn.
+   */
+  flags.history.addEventListener('click', () => sheet.open());
+
+  root.append(header, board, sheet.root);
 
   return {
     root,
@@ -119,6 +140,10 @@ export function createBattleScreen(): BattleScreen {
 
       log.clear();
       flags.clear();
+      // A sheet left open across a battle would put the last fight's history
+      // over the first turn of the next one. Same rule `app.ts` applies to the
+      // party drawer on navigation, for the same reason.
+      sheet.close();
       show(session.protocolFor('p1'), false);
 
       return session.subscribe((update) => {

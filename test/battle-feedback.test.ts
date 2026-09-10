@@ -450,7 +450,22 @@ describe('the flag strip', () => {
     strip.show(readFlags(['|move|p1a: Snorlax|Splash|p1a: Snorlax', '|upkeep'], FLAGS));
     expect(strip.root.dataset['empty']).toBe('true');
     strip.clear();
-    expect(strip.root.children.length).toBe(0);
+    /*
+     * **Amended at V5.2, and the assertion it replaces was about the same
+     * thing.** Release C wrote `strip.root.children.length === 0`, because at
+     * the time the strip's only children were its chips and "cleared" and
+     * "empty of elements" were the same sentence. V5 gave the container two
+     * pieces of permanent furniture — the event line and the control that
+     * opens the history — and a control that came and went with the turn
+     * would be unreachable on the screen where the opening switch-ins are the
+     * only thing that has happened.
+     *
+     * So the question is asked directly: after a clear there is no word and no
+     * sentence to read. `data-empty` above still carries the height rule, and
+     * `test/event-strip.test.ts` asserts the furniture survives.
+     */
+    expect(strip.root.querySelectorAll('.chip')).toHaveLength(0);
+    expect(strip.root.querySelector('.flags__event')?.textContent).toBe('');
   });
 
   it('opens a tooltip keyed by kind, not by the word it printed', () => {

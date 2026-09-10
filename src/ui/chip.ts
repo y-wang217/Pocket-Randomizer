@@ -70,10 +70,20 @@ export function statusChip(id: string, label: string = id.toUpperCase(), options
   return node;
 }
 
-/** A stat stage, `+2` or `-1`. For the battle panel to adopt in V5. */
-export function stageChip(stage: number): HTMLElement {
+/**
+ * A stat stage, `+2` or `-1`. Adopted by the battle panel at V5.3.
+ *
+ * `label` names the stat the stage is on, and it is optional because the two
+ * callers ask different questions: a summary row already sits beside the stat
+ * it belongs to, and the battle panel's row is a mixed handful of chips where
+ * `+2` alone would not say +2 of what. One chip either way — the label is part
+ * of the same text, not a second element beside it, so nothing on the row can
+ * be a different size or weight from anything else on it.
+ */
+export function stageChip(stage: number, label?: string): HTMLElement {
   const sign = stage > 0 ? '+' : '';
-  return build('stage', `badge badge--${stage > 0 ? 'up' : 'down'}`, `${sign}${stage}`);
+  const text = `${sign}${stage}`;
+  return build('stage', `badge badge--${stage > 0 ? 'up' : 'down'}`, label ? `${label} ${text}` : text);
 }
 
 /** The capability a node requires, on the node's gate line. */

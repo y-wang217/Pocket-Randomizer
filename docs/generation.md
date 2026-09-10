@@ -1111,7 +1111,7 @@ the measurement is in
 correction.
 
 **What the prompt asked.** "Report the height delta per surface from
-`heights.json`; the battle decision point must not move." And, as its own stop
+heights.json; the battle decision point must not move." And, as its own stop
 condition: the badge fits on the move button's face without changing the 44px
 minimum touch target or the 2x2 grid, and if it does not fit at 390 wide, report
 the measurement and stop rather than shrinking the target.
@@ -1143,3 +1143,85 @@ explicitly because V5's budget arithmetic is already being re-done: the R12
 amendment to the V5 prompt says to re-measure at V5 step 1 rather than reuse the
 audit's figure, and the starting height that re-measurement will find is 1327.5
 rather than the 1326.5 the amendment names — Release C's 36 plus R12's 1.
+
+## 12d. Deviation: V5 met the budget's total and not its rows
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompts are the V5 section of
+[`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md) and
+[`spec/gymrun-stage-v5-preflight-reconcile-execute.md`](spec/gymrun-stage-v5-preflight-reconcile-execute.md),
+whose section 2 carries the seven amendments. The measurements are in
+[`visual/reports/v5-battle-stage.md`](visual/reports/v5-battle-stage.md).
+
+**What the prompt asked.** A pixel budget of six rows summing to 584: opponent
+panel 56, scene with both sprites 260, player panel 64, event strip 36, move
+grid 128, margins and safe area 40. Two assertions on top of it — layout height
+at or under 600 with a full status and stage chip row on both sides, and four
+move buttons plus the strip above the fold.
+
+**What was built. Both assertions hold; three of the six rows do not.**
+
+| row | budget | shipped | note |
+|---|---|---|---|
+| opponent panel | 56 | 121 | overlaid on the band, so it reaches no total |
+| scene with both sprites | 260 | **260** | as written |
+| player panel | 64 | 121 | overlaid, as above |
+| event strip | 36 | **24 + 8 gap = 32** | Release C's strip, already spent |
+| move grid, 2x2 | 128 | **228** | below |
+| margins and safe area | 40 | 63 | `.battle__header` 47 plus two 8px gaps |
+| **total** | **584** | **587** | `battle.screenHeight`, SMOKE24 |
+| | | **594** | the same figure on a loaded board |
+
+**The panels are overlaid rather than stacked, and that is a reading of the
+plan rather than a departure from it.** Its own sentence is *"stat panels float
+over the scene with no chrome"*, Reference B, text on a scrim. Read as three
+stacked bands the budget does not close and fails on the gate that matters: 47 +
+12 + 260 + 12 + 56 + 64 + 36 + 128 puts the move grid at 632..760, past the 740
+line the same table claims 156px of headroom against. Overlaid, the two panels
+stop reaching the total at all, both gates collapse onto the move grid, and the
+arithmetic works. The report's V5.1 section carries the calculation, and it was
+written **before** any code moved, which is what makes it a reading rather than
+a rationalisation.
+
+**The move grid is 228 and not 128, and this is the real miss.** 128 is two rows
+of 61 plus a gap. A move button's face carries a name (21) and a two-line
+`.move__meta` (42) before any padding at all, so 63 of content will not fit in
+61 — the plan's number is unreachable without dropping content from the face or
+shrinking the 44px touch target, and amendment A6 forbids the second explicitly:
+*"Tighten by margin and gap, not by shrinking the 44px target or the two-line
+meta."* Both instructions cannot be satisfied, so A6 won, on the argument that
+it is the later and more specific of the two and that it names the failure
+(R12's band badge overhangs first) rather than a target. The grid tightened by
+20px a button out of padding and gaps and stopped there.
+
+**The margins row is 63 and not 40** for the same kind of reason: 40 does not
+cover `.battle__header` at 47, and V5 was not asked to remove the battle
+heading. Two of its three gaps came down from 12 to 8 at V5.6 when the loaded
+board measured 602.
+
+**Why this was read as satisfying the stage rather than missing it.** The
+budget table is a means and the two assertions are the end, and the prompt
+states the end twice — in the tests and again in the definition of done, which
+says what the player can do rather than what anything measures. Both hold, on
+the played board and on a deliberately loaded one:
+
+- layout height **587** played, **594** loaded, against 600;
+- the fourth move button ends at **700** and the strip at **732**, against the
+  740 usable line and the 844 fold, on a document whose `scrollHeight` is 844.
+
+**One thing V5 removed that the budget's notes column implies and its prose
+does not.** The six-row stat block is gone from both battle panels; stat stages
+render as V2 chips instead, and only when non-zero. 89.75px of rows cannot sit
+inside a 56px row, so the budget requires it. **The opponent's exact stats
+therefore leave the battle screen** — the player's are a tap away in the party
+drawer, the opponent's are now the archetype label alone. It is recorded here
+rather than only in the report because it is the one piece of information the
+stage takes away, and because giving it back costs the budget nothing: the
+panels are overlaid, so a collapsed one-row readout adds about 19px inside a
+260px band that has room and changes neither gate. That is the shape step 3 of
+the restore-the-fold patch prompt describes — a document that is **not in this
+tree**: it sits unbuilt on the unmerged `claude/strict-trim-startup-fix-46g74x`
+branch, archived there at `305e5b5`, and its step 3 says of itself "this is the
+V5 budget brought forward; note it in the report so V5 does not redo it". It is
+the obvious answer if a playtest misses the numbers.

@@ -128,15 +128,21 @@ describe('the token rule', () => {
    * that is the same one V0 used for colours: pin the survivors, so the next
    * hardcoded value is the one that fails.
    *
-   * The 18 are 16 × 120ms (the shared hover/press beat), one 380ms (the HP
+   * The 18 were 16 × 120ms (the shared hover/press beat), one 380ms (the HP
    * fill's colour crossfade) and one 260ms (the swap beat). Release C's own two
    * lengths are `var(--motion-hp-shadow)` and `var(--motion-jiggle)`, both
-   * derived from `--motion-duration`, which is why the count did not move.
+   * derived from `--motion-duration`, which is why the count did not move then.
    *
    * If this fails because the number went **down**, that is a stage retiring a
    * hardcoded length and the pin comes down with it.
+   *
+   * **17 since V5.5**, and that is exactly what happened: the swap beat's 260ms
+   * is gone. The beat moved off the panel and onto the sprite, where it reads
+   * `var(--motion-swap)` — `--motion-duration`, the one added-time-per-turn
+   * number in `data/tuning.ts`. V5 added no duration of its own, so the pin
+   * moved down by one and by nothing else.
    */
-  const PRE_RELEASE_C_DURATIONS = 18;
+  const PRE_RELEASE_C_DURATIONS = 17;
 
   it('adds no duration that is not a token', () => {
     const found: string[] = [];
@@ -159,9 +165,11 @@ describe('the token rule', () => {
     expect(tokens).toMatch(/--motion-duration:\s*\d+ms;/);
     expect(tokens).toMatch(/--motion-hp-shadow:\s*var\(--motion-duration\)/);
     expect(tokens).toMatch(/--motion-jiggle:\s*calc\(var\(--motion-duration\)/);
+    // V5.5's swap, the third length off the one number.
+    expect(tokens).toMatch(/--motion-swap:\s*var\(--motion-duration\)/);
 
     const styles = cssFiles.map((file) => stripCss(readFileSync(file, 'utf8'))).join('\n');
-    for (const rule of ['--motion-hp-shadow', '--motion-jiggle']) {
+    for (const rule of ['--motion-hp-shadow', '--motion-jiggle', '--motion-swap']) {
       expect(styles, `${rule} is used`).toContain(`var(${rule})`);
     }
   });
