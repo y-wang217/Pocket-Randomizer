@@ -640,6 +640,28 @@ Until then the hand bump stands, with the failure mode the seeds document names
 and this paragraph does not solve: a forgotten bump silently reinterprets a
 shared seed. `docs/keyed-streams.md` tracks what is missing.
 
+### A constraint on that release, from Stage 4.7
+
+**The hash's input must be an explicit file list, not a directory glob.**
+
+4.7 added three files under `data/` that consume no RNG and feed no
+generation — `archetypes.ts`, `moveTags.ts` and `moveCopy.ts`. They are display
+tables: thresholds for a stat label, a tag vocabulary, and the sentences a
+status move's readout is composed from. Two players on one seed holding
+different copies of any of them play the **identical run** with different words
+on it.
+
+A glob over `data/` would pull all three in, and a comma added to a blurb would
+then move the hash and invalidate every shared seed for a copy edit. The seeds
+document already implies the list form — it speaks of `hmLearnsets.ts` as "the
+first entry on the hash's file list" — and this is that implication written
+down as a requirement before the release that has to honour it.
+
+The test is not "is it in `data/`" but **"can editing this change what a seed
+produces"**. `scaling.ts`, `speciesPools.ts`, `movePools.ts` and `tuning.ts` can.
+`archetypes.ts`, `moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
+and `categoryInfo.ts` cannot.
+
 
 ## 10. Relics, and the shape of a capability gate
 
