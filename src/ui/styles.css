@@ -1893,7 +1893,11 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      `test/visual-release-c.test.ts`, which reads the computed animation rather
      than trusting the rule to have applied. */
   .hp__shadow, .hp__shadow[data-fading] { animation: none; }
-  .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; animation-delay: 0s; }
+  /* `animation: none` is the shorthand, so it resets the delay too — the
+     second step's `animation-delay` needs no separate override, and writing
+     one would have been a nineteenth hardcoded duration in a stylesheet whose
+     count is pinned. */
+  .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; }
 }
 
 /* ==========================================================================

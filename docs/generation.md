@@ -764,11 +764,13 @@ the `contentHash` release has to decide. `tuning.ts` is on the "can change what
 a seed produces" side of the test above, correctly — `stepsPerSegment` is in it.
 It now also holds `battleFeedbackMs` and `maxMoveTagsOnFace`, which cannot. **A
 per-file list is not fine-grained enough for `tuning.ts`.** Either the hash
-needs a per-field split of that one file, or the display numbers move out of it
-into a `data/display.ts` that is simply never on the list. The second is
-cheaper and is the recommendation; it is not made here because moving a field
-out of `Tuning` changes what the simulator can sweep, which is a decision with
-its own argument.
+needs a per-field split of that one file, or the display numbers move out of it into a
+display-only module that is simply never on the list. The second is cheaper and
+is the recommendation; it is deliberately not named as a file here, because
+choosing where those fields land is the `contentHash` release's decision and a
+path invented in a note is a path the next reader goes looking for. Moving a
+field out of `Tuning` also changes what the simulator can sweep, which is an
+argument that release has to make rather than inherit.
 
 Written up in full, with the digests, in
 [`reports/release-c-battle-feedback.md`](reports/release-c-battle-feedback.md) §4.

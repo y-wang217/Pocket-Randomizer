@@ -90,7 +90,7 @@ good. Asserted both ways in `test/battle-feedback.test.ts`.
 
 ---
 
-## 2. Three bugs the tests found, each of which would have shipped
+## 2. Four bugs the tests found, each of which would have shipped
 
 Recorded because each was invisible to the obvious test and each is the kind
 that reaches a player.
@@ -129,6 +129,18 @@ rather than unmounted, so a battle that ended one turn in leaves its markup and
 its last shadow in the document. `playATurn` now waits on the **log** growing —
 an independent witness that knows nothing about Release C — rather than on the
 screen merely being `battle`.
+
+Two more were caught by the **full** suite after the targeted runs were all
+green, which is the argument for running it rather than trusting a subset. Both
+were mine and both are fixed: a nineteenth hardcoded duration, `animation-delay:
+0s` written beside an `animation: none` that already resets the delay — caught
+by the very duration pin added in the same step; and a path named in this
+release's own `generation.md` note, `data/display.ts`, which does not exist,
+because the note speculated about where display fields might move. The
+absent-path registry in `test/boundaries.test.ts` is size-asserted and may
+shrink but never grow, so the fix was to stop naming an invented file rather
+than to register one — which is the better note anyway, since where those
+fields land is the `contentHash` release's decision.
 
 ---
 
@@ -232,7 +244,7 @@ out of it. That is a design question, and it is now a concrete one.
 
 | Gate | Result |
 |---|---|
-| Full suite | see §6 |
+| Full suite | **69 files, 913 tests** (866 before Release C, plus 47) |
 | `tsc --noEmit` | clean |
 | `eslint .` | clean |
 | `npm run build` | clean |
