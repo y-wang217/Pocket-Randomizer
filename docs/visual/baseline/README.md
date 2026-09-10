@@ -58,3 +58,28 @@ and fails on any byte that differs. Heights are compared by
   shorter, so `battle.screenHeight` 1149.5 → 1145.5, `scrollHeight` 1343 →
   1339, `decisionBottom` 950.5 → 946.5. The map did not move. Runs and the
   digest are unchanged.
+
+- **2026-09-10, R12.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that put the `BAND n` badge on every move
+  card: `battle.screenHeight` 1181.5 → 1182.5, `scrollHeight` 1375 → 1376,
+  `decisionBottom` 946.5 → 947.5. **The decision point did not move**:
+  `decisionTop` is 681.5, and `decisionCount` is still 4.
+
+  One pixel, and the reason it is one and not twenty-four: `.move__meta` was
+  already wrapping to two lines before this stage, so the badge joined the
+  second line rather than starting a third. Measured at 390x844 on SMOKE24, a
+  move button is 176 wide with 150 of usable face; line one holds the type
+  chip, the category badge and `NN BP` in about 126 of it, and the band chip is
+  45.9 wide and 19 tall against the 17 and 18.5 of the chips beside it. That
+  0.5 is the whole delta — twice, once per grid row — and it lands on the move
+  grid alone: `.moves` 265 → 266, each button 129.5 → 130, and the flag strip
+  and log below simply shift down with it.
+
+  Nothing else was touched. The 44px minimum target is untouched at 130, the
+  2x2 grid still fills the width at two 176-wide columns, and the badge is
+  absent from the fourth button on this turn because that move is a status
+  move with no bracket. **The map did not move**, on any of its five fields.
+  Runs, the battle protocol and `data-digest.txt` are byte identical — R12
+  changed no file under `src/data/`, and the projection field it added
+  (`MoveUiView.powerBand`) is not recorded by `baseline.ts`, which serializes
+  run state and protocol rather than the view.

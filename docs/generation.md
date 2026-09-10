@@ -1028,3 +1028,47 @@ the one that answers "what did the stage cost the fold".
 named yet: the battle heading, the two Pokemon panels at 239.25 and 214.25, and
 the 2x2 move grid. Reaching 740 is a decision about those, and it belongs to a
 prompt that says so rather than to a 4.7 rollback.
+
+## 12c. Deviation: R12 moved `decisionBottom` by one pixel
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-r12-band-badge-move-card.md`](spec/gymrun-patch-r12-band-badge-move-card.md);
+the measurement is in
+[`visual/baseline/README.md`](visual/baseline/README.md) under the R12
+correction.
+
+**What the prompt asked.** "Report the height delta per surface from
+`heights.json`; the battle decision point must not move." And, as its own stop
+condition: the badge fits on the move button's face without changing the 44px
+minimum touch target or the 2x2 grid, and if it does not fit at 390 wide, report
+the measurement and stop rather than shrinking the target.
+
+**What was built, and the one number that moved.** The badge fits. At 390x844
+on `SMOKE24` a move button is 176 wide with 150 of usable face; the band chip is
+45.9 wide and joins the second line of a `.move__meta` row that was already
+wrapping before this stage, so it costs 0.5px per grid row rather than a third
+line's 24. `battle.decisionTop` is **unmoved at 681.5** and `decisionCount` is
+still 4, but `battle.decisionBottom` is **946.5 → 947.5**, and `screenHeight`
+and `scrollHeight` each move 1 with it. The 44px target reads 130 and the grid
+still fills the width in two 176-wide columns; neither was touched, because R12
+added no CSS at all.
+
+**Why this was read as satisfying the rule rather than tripping the stop
+condition.** "The decision point" is taken to be `decisionTop` — where the
+decision begins, and the number V5's fold budget is keyed off. Release C's own
+note in `visual/baseline/README.md` uses the phrase the same way. The stop
+condition is about *fit*: it is triggered by a badge that does not fit on the
+face, and the failure it exists to prevent is somebody shrinking the touch
+target or the chip to make room. Nothing was shrunk, and one pixel of chip
+height is not a fit failure. **It is recorded here rather than absorbed**
+because a reader who takes "the decision point" to mean both edges of the block
+would call this a miss, and that reading deserves the number in front of it
+instead of having to re-measure to find it.
+
+**What this changes for V5.** Nothing structural, and it is worth saying so
+explicitly because V5's budget arithmetic is already being re-done: the R12
+amendment to the V5 prompt says to re-measure at V5 step 1 rather than reuse the
+audit's figure, and the starting height that re-measurement will find is 1327.5
+rather than the 1326.5 the amendment names — Release C's 36 plus R12's 1.

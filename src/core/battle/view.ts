@@ -345,6 +345,26 @@ export interface MoveUiView {
    */
   band: Effectiveness | null;
   /**
+   * The move's base-power band, 1 to 4. **R12, and not the field above it.**
+   *
+   * `band` is the live effectiveness reading against whatever is standing
+   * opposite; this is which of four power brackets the move itself sits in.
+   * They are different kinds of fact — one is about the present board, the
+   * other is a property of the move — and the two names had to be told apart
+   * before a renderer could carry both.
+   *
+   * **Passed through from `MoveExplanation.band`, which is `bandOfMove` and
+   * never a recomputation.** The adapter reads the table once
+   * (`core/battle/driver.ts`); this hands the answer to the button so the
+   * battle screen resolves a band the same way every other surface does.
+   *
+   * Null for a status move and for a move outside the generated pool. It can
+   * disagree with `basePower` without either being wrong — banding is on a
+   * multi-hit move's total — which is why anything printing one prints the
+   * other.
+   */
+  powerBand: number | null;
+  /**
    * True when a *visible* ability changed `effectiveness` away from the type
    * chart. The button says so, because "Ground does nothing to this Rhydon"
    * needs a reason attached or it reads as a bug.
@@ -610,6 +630,9 @@ function toMoveUiView(
     ...base,
     effectiveness: result.multiplier,
     band: result.band,
+    // From the explanation the adapter already fetched, which took it from
+    // `bandOfMove`. The projection looks nothing up here.
+    powerBand: move.explanation?.band ?? null,
     abilityAffected: result.abilityAffected,
     tags: move.explanation ? tagsForFace(move.explanation, maxTags, { types: holder.types }) : [],
     effect:

@@ -53,8 +53,8 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-visual-identity-plan.md`](gymrun-visual-identity-plan.md) | release plan | `active` | | V0 to V4 built on the overnight branch; V5 waits on Release C; V6 not started |
 | [`gymrun-visual-identity-overnight-prompts.md`](gymrun-visual-identity-overnight-prompts.md) | stage prompt | `active` | | V0 to V4 done, V5 skipped, see `docs/visual/reports/` |
 | [`gymrun-patch-4.7-phone-regressions.md`](gymrun-patch-4.7-phone-regressions.md) | patch prompt | `active` | | step 1 built; steps 2-4 stopped on the prompt's own stop condition, see `../generation.md` section 12b |
-| [`gymrun-release-c-battle-feedback-amended.md`](gymrun-release-c-battle-feedback-amended.md) | stage prompt | `active` | supersedes section 6 of the QoL release plan | items 1-4 built; R12 and V5 are its named follow-ons |
-| [`gymrun-patch-r12-band-badge-move-card.md`](gymrun-patch-r12-band-badge-move-card.md) | patch prompt | `draft` | | |
+| [`gymrun-release-c-battle-feedback-amended.md`](gymrun-release-c-battle-feedback-amended.md) | stage prompt | `merged` | supersedes section 6 of the QoL release plan | `846975c` (items 1-4); R12 and V5 are its named follow-ons, R12 with its own row below |
+| [`gymrun-patch-r12-band-badge-move-card.md`](gymrun-patch-r12-band-badge-move-card.md) | patch prompt | `active` | | section 1 built; section 2 amends the V5 prompt and is not yet consumed |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
