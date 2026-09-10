@@ -36,8 +36,15 @@ import type { BattleKind, Range } from './tuning';
  * it into opponent team sizes.
  */
 
-/** The sim's hard ceiling on a side. Team sizes are clamped to it. */
-const MAX_TEAM_SIZE = 6;
+/**
+ * The sim's hard ceiling on a side. Team sizes are clamped to it.
+ *
+ * Exported from Stage 4.8, because it stopped being an implementation detail:
+ * `EXPECTED_PARTY_SIZE` must stay strictly under it or the tier gradient in team
+ * size has nowhere to go, and `test/tiers.test.ts` asserts that relationship
+ * against this name rather than against a literal six.
+ */
+export const MAX_TEAM_SIZE = 6;
 
 /** How many segments a run is. Eight gyms, eight segments. */
 export const SEGMENT_COUNT = 8;
@@ -584,7 +591,7 @@ function shift(bands: readonly number[], by: number, ceiling: number): readonly 
  * levels and the band windows, where a balance pass can see it, not in a
  * mis-stated premise.
  */
-const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 6];
+const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 5];
 
 /*
  * **Stage 4.8 moved the back half of that table, and only the back half.**
@@ -606,12 +613,25 @@ const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 6];
  * Carried on from 3 at segment 3 that rate gives 3.7, 4.4, 5.1, 5.8, which is
  * the 4, 4, 5, 6 below.
  *
- * **The last row reaches the ceiling, and that is load-bearing rather than
- * rounding.** `test/randomizer.test.ts` asserts that by the final segment the
- * curve assumes a full party and the final gym still fields more than it; a row
- * of 5 against a ceiling of 6 would have quietly retired that claim and made the
- * endgame easier than the schedule intends, which is the opposite of what growth
- * is for. The first cut of this table did end at 5 and that test caught it.
+ * **The last row stops one short of the slot ceiling, and that is forced by the
+ * engine rather than chosen.** `opponentTeamSize` is
+ * `min(MAX_TEAM_SIZE, assumed + advantage)` and `MAX_TEAM_SIZE` is 6, because six
+ * a side is the engine's limit. So a row of 6 leaves the clamp with no headroom
+ * and **every tier collapses onto the same team size**: at segment 7 a normal, a
+ * hard and an elite node would all field six, which is Stage 3's entire risk
+ * gradient disappearing at the end of the run. `test/tiers.test.ts` caught it —
+ * "orders normal < hard < elite at every segment" is exactly that invariant — and
+ * the first cut of this table did end at 6.
+ *
+ * So the curve deliberately assumes **one fewer than the player may field**, and
+ * the slot schedule still reaches six. A player who fills every slot is a Pokemon
+ * ahead of what the last two gyms are sized for, which is a reward for having
+ * filled it rather than a miscalibration: the alternative is a flat endgame where
+ * the elite node and the ordinary one are the same fight.
+ *
+ * The rule is `EXPECTED_PARTY_SIZE[last] < MAX_TEAM_SIZE`, not the number 5, and
+ * `test/party-slots.test.ts` asserts it in that form so that raising either
+ * constant cannot quietly reintroduce the flat endgame.
  *
  * It is still a *claim*, and still held to account by the simulator's
  * `party.sizeBySegment` section, which prints the measured party beside this

@@ -109,6 +109,12 @@ and fails on any byte that differs. Heights are compared by
   | `SMOKE24` | 4 | 3 | 5 |
   | `RESULT-0` | 4 | 3 | 5 |
 
+  Re-recorded once more in the same step after `EXPECTED_PARTY_SIZE`'s last row
+  came down from 6 to 5 — see `../../generation.md` section 7b: a curve that
+  assumed the engine's own six-a-side limit left the tier clamp no headroom and
+  flattened every tier onto one team size at the final segment. The run figures
+  above are the shipped ones.
+
   `test/fixtures/sim-report.json` says the same thing independently: of its three
   seeds, `FIXTURE-BRAVO` dies at gym 1 and is byte identical, and the two that
   clear past gym 2 field five where they fielded three. Two instruments, the same

@@ -41,7 +41,7 @@ import { assertReplayable, createRun, isReplayable, RUN_LOG_VERSION } from '../s
 import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { DAMAGING_MOVES } from '../src/data/movePools';
-import { expectedPartySize, opponentTeamSize, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
+import { expectedPartySize, MAX_TEAM_SIZE, opponentTeamSize, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
 import { partyCapacityAfter } from '../src/data/partyTuning';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -347,35 +347,27 @@ describe('5. gym identity', () => {
      * it. A weaker assertion here would have shipped an endgame sized for a party
      * one Pokemon narrower than the one the slot schedule hands the player.
      */
-    const slots = partyCapacityAfter(last.segment);
-    expect(expectedPartySize(last.segment)).toBe(slots);
-
     /*
-     * **This assertion was `toBeGreaterThan(slots)` and Stage 4.8 broke it. The
-     * change is recorded here rather than softened, because what broke it is a
-     * balance finding and not a detail of this test.**
+     * **Stage 4.8: against the slots that segment has, and one short of them.**
      *
-     * `opponentTeamSize` is `min(MAX_TEAM_SIZE, assumed + advantage)`, and
-     * `MAX_TEAM_SIZE` is 6 because that is the engine's hard limit on a side. The
-     * slot schedule takes the player to 6 by gym 6, so at the last segment the
-     * clamp binds and the gym's `teamAdvantage` of +2 buys **nothing**: both sides
-     * field six. Segment 6 loses half of it the same way, +2 to +1.
+     * The original claim was that by the last segment the curve assumes a *full*
+     * party and the final gym still fields more than it. The second half survives
+     * intact. The first is now deliberately off by one, and the reason is the
+     * engine: `opponentTeamSize` clamps at `MAX_TEAM_SIZE`, so a curve that
+     * assumed the full six would leave the clamp no headroom and every tier would
+     * collapse onto six at this segment — `test/tiers.test.ts` is the test that
+     * caught that, and `data/scaling.ts` carries the argument.
      *
-     * That matters because Stage 3's largest finding is that team size is the
-     * dominant lever and *the number that matters is the difference, not the
-     * count* (see `data/scaling.ts`). A ceiling equal to the engine's limit spends
-     * that difference down to zero at the two hardest fights in the game, and the
-     * levers that could compensate are encounter difficulty, which Stage 4.8 puts
-     * out of scope.
-     *
-     * So the test now asserts what is true and pins the consequence: the gym never
-     * fields fewer than the player, and at the ceiling the two are equal. If the
-     * schedule's ceiling drops below `MAX_TEAM_SIZE`, the first assertion starts
-     * passing strictly again and this comment is the thing to delete.
+     * So: the curve assumes as much as it can while still leaving the gym and the
+     * elite tier somewhere to go, which is one under the ceiling. The gym is
+     * strictly larger again, which is the relationship this test exists for.
      */
-    const gymTeam = opponentTeamSize('gym', last.segment, 'normal', last.teamSize);
-    expect(gymTeam).toBeGreaterThanOrEqual(slots);
-    expect(gymTeam, 'the engine caps a side at six, so a party of six ends the advantage').toBe(6);
+    const slots = partyCapacityAfter(last.segment);
+    expect(expectedPartySize(last.segment)).toBe(slots - 1);
+    expect(expectedPartySize(last.segment)).toBeLessThan(MAX_TEAM_SIZE);
+    expect(opponentTeamSize('gym', last.segment, 'normal', last.teamSize)).toBeGreaterThan(
+      expectedPartySize(last.segment),
+    );
   });
 
   it('never outnumbers the player before they have had a chance to fill the party', () => {

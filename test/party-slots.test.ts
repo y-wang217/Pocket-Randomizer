@@ -46,7 +46,7 @@ import {
   partyCapacityAfter,
   SLOT_UNLOCK_SCHEDULE,
 } from '../src/data/partyTuning';
-import { expectedPartySize, opponentTeamSize } from '../src/data/scaling';
+import { expectedPartySize, MAX_TEAM_SIZE, opponentTeamSize } from '../src/data/scaling';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
 const ROSTER = ['Bulbasaur', 'Squirtle', 'Charmander', 'Pidgey', 'Rattata', 'Zubat'];
@@ -339,6 +339,38 @@ describe('the curve and the schedule are one number asked once', () => {
     // Decision 4: segments 0-3 unchanged, so the early benchmark rows stay
     // comparable across this patch and a move in them means something else broke.
     expect([0, 1, 2, 3].map(expectedPartySize)).toEqual([1, 2, 2, 3]);
+  });
+
+  it('always leaves the clamp headroom, so the tier gradient cannot flatten', () => {
+    /*
+     * **The invariant that forced the curve's last row down, stated as a rule
+     * rather than as the number 5.**
+     *
+     * `opponentTeamSize` is `min(MAX_TEAM_SIZE, assumed + advantage)`. If the
+     * curve ever assumes `MAX_TEAM_SIZE`, the clamp binds for every tier at once
+     * and a normal, a hard and an elite node all field the same team — which is
+     * Stage 3's whole risk gradient gone at the end of a run. The slot schedule
+     * may reach six; what the curve *assumes* may not.
+     *
+     * Written against both constants by name so that raising either one fails
+     * here, rather than silently flattening the endgame and being noticed by
+     * `tiers.test.ts` a stage later.
+     */
+    for (let segment = 0; segment < SEGMENTS_PER_RUN; segment++) {
+      expect(expectedPartySize(segment), `segment ${segment} leaves the clamp no room`).toBeLessThan(
+        MAX_TEAM_SIZE,
+      );
+    }
+  });
+
+  it('keeps the tiers ordered by team size wherever the clamp is not binding', () => {
+    // The gradient this protects, read directly: an elite node fields more than
+    // an ordinary one at every segment, which is the reason to take one.
+    for (let segment = 0; segment < SEGMENTS_PER_RUN; segment++) {
+      const normal = opponentTeamSize('trainer', segment, 'normal');
+      const elite = opponentTeamSize('trainer', segment, 'elite');
+      expect(elite, `segment ${segment}: elite does not out-number normal`).toBeGreaterThan(normal);
+    }
   });
 
   it('keeps opponent teams clamped to the sim\'s six at every segment and tier', () => {
