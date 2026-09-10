@@ -2440,3 +2440,60 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 }
 
 .backpack__item > .slot__number { flex: none; }
+
+/* ==========================================================================
+   Stage V2 — corner stamps
+   ========================================================================== */
+
+/*
+ * Four marks in the safe-area corners, fixed to the viewport, out of flow.
+ * The smallest size the display face is legible at, low contrast: texture.
+ * No pointer events, except the seed, which is the one stamp that does
+ * something when tapped.
+ */
+.stamps { display: contents; }
+
+.stamp {
+  position: fixed;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  pointer-events: none;
+  user-select: none;
+}
+
+.stamp[hidden] { display: none; }
+
+.stamp--tl { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
+.stamp--tr { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
+.stamp--bl { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
+.stamp--br { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
+
+/* The seed: copy on tap, and it says so for a moment. */
+.stamp--seed {
+  pointer-events: auto;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+}
+
+.stamp--seed:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.stamp--seed[data-copied='true']::after { content: ' · copied'; }
+.stamp--seed[data-copied='false']::after { content: ' · select and copy'; }
+
+/*
+ * Per-screen drops. A stamp whose corner a screen's flow content reaches at
+ * 390x844 is dropped on that screen, never the content
+ * (`scripts/visual/stamps.mjs` measures; `test/visual-v2.test.ts` asserts no
+ * rendered stamp collides). None collided on the first measurement; the
+ * rules go here when one does, keyed by `.shell[data-screen]`.
+ */

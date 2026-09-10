@@ -190,6 +190,7 @@
   --fs-gate: 0.78rem;
 
   /* ---------- spacing: 4px scale, 2px half steps ---------- */
+  --space-0: 0px;
   --hairline: 1px;
   --space-h: 2px;
   --space-1: 4px;

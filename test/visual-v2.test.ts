@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { measureGuardedScreens, openApp, playUntil, visible } from '../scripts/visual/browser.mjs';
+import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import { stampCollisions } from '../scripts/visual/stamps.mjs';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -98,4 +99,59 @@ describe('the band', () => {
     expect((card?.y ?? 0) + (card?.height ?? 0)).toBeLessThan(top);
     await context.close();
   }, 300_000);
+});
+
+describe('the corner stamps', () => {
+  it('are fixed, out of flow, and clear of painted content on every screen', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const positions = await page.evaluate(() => [...globalThis.document.querySelectorAll('.stamp')].map((s) => globalThis.getComputedStyle(s).position));
+    expect(positions.length).toBe(4);
+    expect(new Set(positions)).toEqual(new Set(['fixed']));
+
+    const seen = new Set<string>();
+    const collisions: string[] = [];
+    let opened = false;
+    for (let step = 0; step < 600; step++) {
+      const screen = await openScreen(page);
+      if (!screen) {
+        await page.waitForTimeout(40);
+        continue;
+      }
+      if (screen === 'map' && !opened) {
+        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.waitForTimeout(50);
+        opened = true;
+        continue;
+      }
+      if (!seen.has(screen)) {
+        seen.add(screen);
+        await page.mouse.move(0, 0);
+        await page.waitForTimeout(250);
+        const report = await stampCollisions(page);
+        for (const result of report.results) {
+          if (result.hits.length) collisions.push(`${screen} ${result.stamp}: ${result.hits.join(', ')}`);
+        }
+      }
+      if (screen === 'summary') break;
+      await stepOnce(page);
+      await page.waitForTimeout(25);
+    }
+    await context.close();
+    expect(collisions).toEqual([]);
+    expect([...seen]).toEqual(expect.arrayContaining(['starter', 'locale', 'map', 'party', 'battle', 'result', 'summary']));
+  }, 600_000);
+
+  it('copy the full seed string from the seed stamp', async () => {
+    const context = await harness.browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] });
+    const page = await context.newPage();
+    await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
+    await page.waitForSelector(`${visible('starter')} .starter`);
+    const shown = await page.locator('.stamp--seed').textContent();
+    expect(shown).toBe('SMOKE24');
+    await page.locator('.stamp--seed').click();
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => globalThis.navigator.clipboard.readText())).toBe('SMOKE24');
+    expect(await page.locator('.stamp--seed').getAttribute('data-copied')).toBe('true');
+    await context.close();
+  }, 120_000);
 });
