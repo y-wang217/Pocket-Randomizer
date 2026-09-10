@@ -179,13 +179,20 @@ One line each. The analysis lives where the pointer goes, not here.
    predates the merge. It is live on the party screen and the map, and covered
    by `test/threat-readout.test.ts`. The plan is a historical record and is not
    edited to match; this row is the deviation note.
-7. **The 390x844 vertical budget, missed by 206.5px and not by Stage 4.7.** The
-   visual plan asks both decision points to end at or above y=740. The battle's
-   fourth move button ends at 946.5 on `main`, of which 106.5 is 4.7's and 100
-   predates it: the same measurer puts it at 840 on the commit before PR #10.
-   Reaching 740 is a decision about the battle heading, the two Pokemon panels
-   and the move grid, and it needs its own prompt.
-   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+7. **The 390x844 vertical budget. Met at V5.4, and the marker came off.** The
+   visual plan asks both decision points to end at or above y=740. This was
+   carried as a 206.5px miss that was *not* Stage 4.7's to give back — the same
+   measurer puts the fourth move button at 840 on the commit before PR #10 — and
+   the row said reaching 740 was a decision about the battle heading, the two
+   Pokemon panels and the move grid. V5 is that decision and it spent all three:
+   the fourth move button ends at **704** and the map's last offered card at
+   **728.22**, so `test/visual-v0.test.ts`'s `it.fails` reported its expected
+   failure as an error and is a real assertion from here. Numbers per step:
+   [`visual/reports/v5-battle-stage.md`](visual/reports/v5-battle-stage.md).
+   History: [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+   **The SMOKE24 map `xfail` is a different check and stays**: it measures the
+   offered cards against the 844 fold in the scrolled view, not against the 740
+   usable line, and still reports y=869.
 8. **Strict trim is red, and the app does not boot under it.** `CLAUDE.md`
    names it an absolute gate. `GYMRUN_TRIM_STRICT=1 vitest run` fails 22 tests
    across the five browser test files on `9296ba7`, every one of them at

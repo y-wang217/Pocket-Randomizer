@@ -262,7 +262,7 @@ body {
 .stage .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-h);
 }
 
 /* Stat stages, revealed traits and volatiles on one row. Three containers
@@ -292,7 +292,10 @@ body {
 
 .panel__name { font-weight: 600; }
 .panel__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
-.panel__types { display: inline-flex; gap: var(--space-1); margin-left: auto; }
+/* `margin-left: auto` pushed the types to the far end of the header. On the
+   chip row they are the first thing read, so the push goes: it would otherwise
+   throw them to the opposite end of the row from the labels they belong with. */
+.panel__types { display: inline-flex; gap: var(--space-1); }
 
 .hp {
   height: 9px;
@@ -908,10 +911,35 @@ body {
 
 /* ---------- moves ---------- */
 
+/* ---------- the move grid ----------
+   V5.4. The same four buttons through the same component, tightened until they
+   finish above the fold.
+
+   **Tightened by margin and gap only.** The 44px minimum touch target is
+   untouched (a button measures 110), and so is the two-line `.move__meta` — the
+   band badge sits on that second line between base power and the effectiveness
+   marker, and it is the first thing that overhangs if the face is squeezed.
+   What came out is vertical padding and the three internal gaps, which are the
+   two things on this control that carry no information.
+
+   Scoped to `.moves`, so it is the *battle grid* that tightens and not every
+   move card in the app. The reward offer and the replacement screen draw the
+   same component and are not under a vertical budget; a card there that lost
+   4px of breathing room would be paying for a fold it is not near. */
 .moves {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
+  gap: var(--space-1h);
+}
+
+.moves .move {
+  gap: var(--space-h);
+  padding-top: var(--space-1h);
+  padding-bottom: var(--space-1h);
+}
+
+.moves .move__meta {
+  gap: var(--space-1);
 }
 
 .move {
@@ -2020,11 +2048,18 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      restores the setup phase — but it does not sit above a live battle. */
   .shell[data-phase='running'] .seedbar { display: none; }
 
-  /* Both battle panels tighten so the two of them plus the move grid fit
-     without scrolling. Nothing is removed: the six stats, the stages, the
-     status chips and the HP numbers are all still there. */
-  .shell[data-phase='running'] .panel { padding: var(--space-2h) var(--space-3); gap: var(--space-1h); }
-  .shell[data-phase='running'] .panel .stats { gap: var(--space-h) var(--space-2h); }
+  /* **Retired at V5.4.** Stage 4.7 tightened both battle panels here "so the
+     two of them plus the move grid fit without scrolling", and paired it with a
+     rule squeezing the six-stat block inside them. V5 answered the same
+     question a different way — the panels float inside the stage band and the
+     six-stat block is gone — so the second rule now matches nothing at all and
+     the first was quietly winning on specificity (0,2,1 against `.stage
+     .panel`'s 0,2,0) and holding the floating panels at 4.7's metrics. That is
+     how the two panels came to overlap each other inside the band.
+
+     Not left behind a narrower selector: a superseded rule is deleted, and the
+     metrics a floating panel wears now live in one place, beside the rest of
+     what makes it float. */
 
   /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
      four buttons in a column is a scroll, and a scroll is what this pass is

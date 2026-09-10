@@ -264,7 +264,22 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   archetype.tabIndex = 0;
   archetype.setAttribute('role', 'button');
   const types = el('span', 'panel__types');
-  header.append(name, level, archetype, types);
+  /*
+   * The header is the name and the level, and nothing else. **V5.3/V5.4.**
+   *
+   * The archetype chip and the type badges used to sit up here beside them,
+   * which was right on a panel that owned the full width of the screen. A
+   * floating panel owns the width the sprite opposite it does not want — 254 at
+   * 390 — and `Opposing Mudbray Lv22` plus a `PHYS. ATTACKER` chip is more than
+   * that, so the header wrapped to a second line on every panel and the two
+   * panels grew until they overlapped each other inside the band.
+   *
+   * They are chips, and the panel has a row for chips. Moving them there costs
+   * a line rather than buying one, and it puts the three kinds of label a
+   * Pokemon wears — what it is, what it is built for, what it is carrying — on
+   * one row in that order.
+   */
+  header.append(name, level);
 
   const hpTrack = el('div', 'hp');
   /*
@@ -300,7 +315,13 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   // here rather than upstream so one source decides it.
   const traits = el('div', 'panel__traits');
   const volatiles = el('div', 'panel__volatiles');
-  chips.append(stages, traits, volatiles);
+  /*
+   * Reading order: what it is, what it is built for, what it is carrying, what
+   * is happening to it, and what the board has done to it. Fixed properties
+   * first and the turn's own facts last, so a row that grows during a fight
+   * grows at the end rather than pushing the identity along.
+   */
+  chips.append(types, archetype, traits, volatiles, stages);
 
   root.append(header, hpTrack, meta, chips);
   return { root, name, level, archetype, types, hpFill, hpShadow, hpText, status, volatiles, traits, stages };

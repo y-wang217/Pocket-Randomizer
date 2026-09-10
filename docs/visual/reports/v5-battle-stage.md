@@ -545,3 +545,128 @@ absolute number rather than a scrolled one. Baseline re-recorded in this commit.
 **Both gates now rest on the move grid alone**, which is V5.4:
 `screenHeight` 633 wants 33 off it, `decisionBottom` 742 wants 2 off it against
 the fold and 38 against the 740 line. One cut answers all three.
+
+## V5.4 Move grid — the last cut, and both gates close
+
+**Cut 5 taken: −38.** `screenHeight` 633 → **595**, `decisionBottom` 742 →
+**704**. `decisionTop` and `scrollHeight` do not move: the screen already fitted
+the viewport at V5.3, and everything this step removes is inside the grid.
+
+| gate | target | measured |
+|---|---|---|
+| `battle.screenHeight` (plan test 1) | ≤ 600 | **595** |
+| `battle.decisionBottom` (A3, the 740 line) | ≤ 740 | **704** |
+| `battle.decisionTop` (A3 gates on this) | ≤ 740 − 228 = 512 | **476** |
+| `scrollHeight` against the fold | ≤ 844 | **844** |
+| move button height (44px target) | ≥ 44 | **111** |
+| band badges overhanging their face (R12) | 0 | **0** |
+
+### Tightened by margin and gap, and by nothing else
+
+Amendment A6 names the failure mode exactly: the band badge sits on the second
+line of `.move__meta`, so a grid squeezed by shrinking the button is a grid
+where R12's smoke check goes red first. So the 38 came from the two things on
+the control that carry no information —
+
+| what | from | to | per button |
+|---|---|---|---|
+| `.move` vertical padding | `--space-2h` (10) | `--space-1h` (6) | −8 |
+| the three gaps inside a button | 5 | `--space-h` (2) | −9 |
+| the gap inside `.move__meta` | `--space-1h` (6) | `--space-1` (4) | −2 |
+| the grid's own row gap | `--space-2` (8) | `--space-1h` (6) | −2 (once) |
+
+— and a button reads 111 with its two-line meta intact.
+
+**Scoped to `.moves`.** The reward offer and the replacement screen draw the
+same component through `moveFacts` and are not under a vertical budget; a card
+there losing 4px of air would be paying for a fold it is nowhere near. Part 5's
+rule is that a move shows the same *facts* everywhere, and it still does — the
+battle button already differs in carrying live PP and an effectiveness marker.
+
+### The composition fix that came with it
+
+Two panels at 145 do not fit in a 260 band, and at V5.3 they overlapped by 30px
+— the player's panel sat on top of the opponent's lower corner and hid a chip.
+Two things caused it and both are fixed here:
+
+1. **The header wrapped.** `Opposing Mudbray Lv22 ♂` plus a `PHYS. ATTACKER`
+   chip is wider than the 254 a floating panel gets, so every panel spent a
+   second line on it. The archetype chip and the type badges are chips, and the
+   panel has a row for chips: they moved there, in reading order — what it is,
+   what it is built for, what it is carrying, what is happening to it, what the
+   board has done to it. Fixed properties first, the turn's own facts last, so a
+   row that grows mid-fight grows at the end.
+2. **Stage 4.7's `@media` rule was still winning.** `.shell[data-phase='running']
+   .panel { padding: …; gap: … }` is specificity (0,2,1) against `.stage
+   .panel`'s (0,2,0), so the floating panels were quietly wearing 4.7's metrics
+   — 10px padding and a 6px gap where the stage asks for 6 and 2. Its stated
+   purpose was "so the two of them plus the move grid fit without scrolling",
+   which is the question V5 has now answered a different way, and the rule
+   beside it squeezed a `.stats` block that no longer exists in a battle.
+   **Deleted, not narrowed**: a superseded rule is deleted, and a floating
+   panel's metrics now live in one place.
+
+Panels read **121** each with 18px of clear air between them.
+
+### Test 4, as amendment A4 rewrites it
+
+The plan asked for "an effectiveness chip renders on every button". The tree
+deliberately does the opposite, and says so at the bottom of `renderMove`: *"a
+row where every button carries a badge is a row where the badges stop being
+read, and the 0x goes unread with them."* The audit found that collision; A4
+resolves it as **sameness rather than presence**, and the neutral suppression
+stays byte-for-byte unchanged.
+
+Asserted in both places it can be:
+
+- **jsdom** — Alakazam into Golem gives one of each reading: Psychic 1x
+  (suppressed), Surf 4x, Thunderbolt 0x, Body Slam 0.5x. Three markers across
+  three different bands, one class list between them
+  (`chip chip--effect badge badge--effect`), no inline style, and `data-band`
+  the only thing that differs — a hook, not a style.
+- **Chromium** — every rendered marker has one computed font size, one weight,
+  one box height and one colour, and each one's ink is measured against a
+  neutral chip's on the same screen and is **not brighter**. Relative luminance,
+  the same formula the V1 contrast instrument uses.
+
+The `[data-ability="true"]` outline survives untouched: a 0x with no reason
+attached reads as a bug, and tapping the marker still answers "because
+Levitate".
+
+### Gates at V5.4
+
+Full suite **75 files, 965 tests, all pass** — 960 plus 5: 3 more in
+`test/battle-stage.test.ts`, 2 more in `test/visual-v5.test.ts`. `tsc` and
+`eslint` clean. `npm run smoke` exits 0 with the 4.7 map fold as its
+only `xfail`; `move buttons meet the 44px touch target (111px)`, `every damaging
+move button shows its band (4/4)`, `no band badge overhangs its move button (0
+of 4)`, and `the move grid is above the fold (moves end at y=704 of 844)` — an
+absolute number now, because the screen does not scroll. Baseline re-recorded in
+this commit.
+
+### The V0 marker came off, the way it was designed to
+
+`test/visual-v0.test.ts` has carried `it.fails('ends both decision points above
+y=740 at 390x844')` since V0, with a comment ending:
+
+> the marker stays until something decides about the rows that predate the
+> stage: the battle heading, the two Pokemon panels, and the move grid itself.
+> The day the number reaches 740 vitest reports the `fails` as an error and the
+> marker comes off. That is still the intended way to notice.
+
+That is exactly what happened at V5.4. The full suite went red on a test that
+was supposed to fail and did not, because the battle's fourth move button now
+ends at **704** and the map's last offered card at **728.22**. It is a real
+assertion from here, and open item 7 in `docs/README.md` is closed with the
+numbers.
+
+V5 spent all three rows the marker named: the battle heading is the only one
+still standing, the log left the board at V5.2, the two panels left the column
+at V5.3, and the grid tightened at V5.4.
+
+**The SMOKE24 map `xfail` is a different check and stays.** It measures the
+offered cards against the 844 fold in the scrolled view rather than against the
+740 usable line, and still reports `y=869`. Release C's own note in
+`docs/reports/release-c-battle-feedback.md` §0 is explicit that the two markers
+are different findings waiting on different work, and V5 touched only the battle
+screen.

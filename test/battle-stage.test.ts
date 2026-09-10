@@ -159,3 +159,80 @@ describe('the floating panel', () => {
     }
   });
 });
+
+/**
+ * The effectiveness marker. **V5.4, and the plan's test 4 as amendment A4
+ * rewrites it.**
+ *
+ * The plan asked for "an effectiveness chip renders on every button", which
+ * contradicts what the tree deliberately built: the round 2 patch's neutral
+ * suppression, at the bottom of `renderMove`, whose own comment says "a row
+ * where every button carries a badge is a row where the badges stop being
+ * read, and the 0x goes unread with them". The audit found that collision and
+ * A4 resolves it — the rule is **sameness**, not presence: every marker that
+ * does render is the same size and weight as every other, and none of them is
+ * brighter than the neutral state.
+ *
+ * Suppression stays exactly as it was. This file asserts that too, because a
+ * rule that is only a comment is a rule until somebody reads the plan instead.
+ */
+describe('the effectiveness marker', () => {
+  /**
+   * Golem is Rock/Ground, and these four moves are one of each reading:
+   * Psychic 1x (neutral, and therefore suppressed), Water 4x, Electric 0x,
+   * Normal 0.5x. Three markers across three different bands, so sameness is
+   * asserted across bands rather than across one band three times.
+   */
+  const SPREAD: TeamSpec = [
+    {
+      species: 'Alakazam',
+      ability: 'Synchronize',
+      moves: ['Psychic', 'Surf', 'Thunderbolt', 'Body Slam'],
+      level: 50,
+    },
+  ];
+
+  function markers(): { scene: Scene; badges: HTMLElement[] } {
+    const session = createBattle({ teams: { p1: SPREAD, p2: FOE }, seed: 'EFFECT01' });
+    const scene = createScene();
+    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+    return { scene, badges: [...scene.root.querySelectorAll('.moves .badge--effect')] as HTMLElement[] };
+  }
+
+  it('prints nothing for a neutral damaging move, exactly as before', () => {
+    const { scene, badges } = markers();
+    expect(scene.root.querySelectorAll('.moves .move')).toHaveLength(4);
+    // Psychic is 1x into Golem and carries no marker. The other three do.
+    expect(badges).toHaveLength(3);
+    expect(scene.root.querySelector('.move--psychic .badge--effect'), 'the neutral move is bare').toBeNull();
+  });
+
+  it('draws every marker it does draw as the same chip', () => {
+    const { badges } = markers();
+    const bands = badges.map((badge) => badge.dataset['band']);
+    expect(new Set(bands)).toEqual(new Set(['super', 'none', 'resisted']));
+    /*
+     * One class list for all of them. `data-band` is the only thing that
+     * differs, and it is a hook rather than a style: no `--chip` override, no
+     * size modifier, no per-band variant. A super effective marker larger or
+     * brighter than a 0x would turn a reading into a recommendation, and the
+     * accent belongs to `.primary-action`.
+     */
+    expect(new Set(badges.map((badge) => badge.className)).size).toBe(1);
+    for (const badge of badges) {
+      expect(badge.className).toBe('chip chip--effect badge badge--effect');
+      expect(badge.getAttribute('style')).toBeNull();
+    }
+  });
+
+  it('still names the ability when one is the reason', () => {
+    // The 0x on Thunderbolt into a Ground type is the type chart's, not an
+    // ability's, so nothing is outlined here — the point is that the branch
+    // survives the restyle rather than that it fires on this board.
+    const { badges } = markers();
+    for (const badge of badges) {
+      if (badge.dataset['ability'] === 'true') expect(badge.dataset['tip']).toMatch(/^ability:/);
+    }
+    expect(badges.some((badge) => badge.getAttribute('aria-label')?.includes(':'))).toBe(true);
+  });
+});

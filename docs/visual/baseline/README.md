@@ -127,3 +127,35 @@ and fails on any byte that differs. Heights are compared by
 
   **The map did not move**, on any of its five fields. Runs, the battle protocol
   and `data-digest.txt` are byte identical.
+
+- **2026-09-10, V5.4.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that tightened the move grid:
+  `battle.screenHeight` 633 → **595**, `decisionBottom` 742 → **704**.
+  `scrollHeight` is unchanged at **844** because the screen already fitted the
+  viewport at V5.3; `decisionTop` is unchanged at **476** and `decisionCount` is
+  still 4.
+
+  38 exactly, and none of it came off the touch target. `.moves` is 228 and a
+  button is 111 — the 44px minimum is untouched, `.move__meta` still wraps to
+  two lines and the band badge still sits on the second of them with nothing
+  overhanging. What came out is 8px of vertical padding, 9px across the three
+  internal gaps and 2px inside the meta row, per button, plus 2 off the grid's
+  own row gap. Amendment A6's rule, followed literally.
+
+  A second thing moved in the same commit and did not change any of the five
+  numbers: the archetype chip and the type badges left the panel header for the
+  panel's chip row. On a floating panel 254 wide the header wrapped to a second
+  line, and both panels grew to 145 — enough that they overlapped each other
+  inside the 260 band. They read 121 now, with 18px of clear air between them.
+  Stage 4.7's `@media` rule holding both battle panels at its own padding and
+  gap was retired at the same time; it was winning on specificity over the
+  floating panel's own metrics, and the rule beside it referred to a `.stats`
+  block that no longer exists in a battle.
+
+  **The map did not move**, on any of its five fields. Runs, the battle protocol
+  and `data-digest.txt` are byte identical.
+
+**Both guarded assertions now hold on the battle screen for the first time in
+this project's history**: layout height 595 against the plan's 600, and all four
+move buttons ending at 704 against the 740 usable line, on a screen whose
+`scrollHeight` equals the 844 viewport.
