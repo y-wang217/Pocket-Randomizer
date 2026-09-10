@@ -670,3 +670,88 @@ offered cards against the 844 fold in the scrolled view rather than against the
 `docs/reports/release-c-battle-feedback.md` §0 is explicit that the two markers
 are different findings waiting on different work, and V5 touched only the battle
 screen.
+
+## V5.5 Motion — one beat, moved to the thing that changed
+
+The plan gives V5 exactly one addition to Release C's motion: *"the species swap
+animation that `scene.ts` already triggers gets a scene-aware version, the
+outgoing sprite sinks into the near layer and the incoming rises from it."*
+Release C still owns the HP chunk, the jiggle and the flag words, and none of
+them is touched.
+
+**No height moved.** `measure.mjs --compare` reports the guarded screens equal
+to the pixel: the ghost is `position: absolute; inset: 0` inside an actor whose
+box is already fixed, and the beat is `transform` and `opacity` only, so it runs
+on the compositor and cannot reflow the stage or move a move button under a
+descending thumb.
+
+### Two sprites, because a swap is two things at once
+
+An actor now holds the body standing there and, while a swap is running, the one
+that just left. `scene.ts` paints the outgoing Pokemon onto `.sprite--ghost` and
+the arriving one over it; `sprite-sink` takes the ghost down and out,
+`sprite-rise` brings the new body up from the same place. At rest the ghost is
+`opacity: 0` and carries no `src` at all — a stage still holding a Pokemon that
+is no longer in the fight is one repaint away from showing it again.
+
+### The beat left the panel
+
+It was a fade-and-rise on `.panel__header` and `.hp` at a hardcoded 260ms. The
+panel is a scrim over a body now, and two animations for one event is noise, so
+the beat belongs to the body. The panel still *reads* the swap — a swap draws no
+HP chunk, because the difference between two different bodies' bars is not
+damage — it just no longer animates it. Nothing is left behind a flag: the
+`.panel[data-swapped]` rule is deleted.
+
+### The duration pin came **down**, which is what it is for
+
+`--motion-swap` is `var(--motion-duration)`, which is `data/tuning.ts`'s one
+added-time-per-turn number written onto the root by `ui/theme/motion.ts` at
+startup. The 260 is gone, so `PRE_RELEASE_C_DURATIONS` moves **18 → 17** in this
+commit, with the comment naming why. The pin's own note anticipated exactly
+this: *"If this fails because the number went down, that is a stage retiring a
+hardcoded length and the pin comes down with it."* **V5 added no duration of its
+own**, so the pin moved by one and in the one direction.
+
+`test/visual-tokens.test.ts` now also asserts `--motion-swap` derives from
+`--motion-duration` and is used, alongside the shadow and the jiggle. Three
+lengths, one number.
+
+### Skippable, and reduced-motion instant
+
+A tap anywhere settles both actors — the same capture-phase `pointerdown`
+handler that already cleared the HP shadow and the jiggle — and settling clears
+the ghost's `src` with the marker.
+
+Under `prefers-reduced-motion: reduce` both rules resolve to `animation: none`,
+with the selectors matched to the rules they override rather than to the
+elements, for the reason Release C's chunk note records: a media query adds no
+specificity of its own, and a plain `.sprite` would lose to
+`.stage__actor[data-swapped='true'] .sprite`. **The arriving Pokemon is still
+there**: `sprite-rise` ends at the resting state, so cancelling it leaves the
+new body at full opacity, and the ghost is invisible at rest anyway. Reduced
+motion removes the movement, not the Pokemon.
+
+### Test 5, in the strongest form it has
+
+The plan asks that the swap "fires only on switch and adds zero time to a turn
+with no switch, measured". Both halves are asserted, and the second is
+structural rather than a stopwatch: **the animation exists only while
+`data-swapped` is on the actor**, so a turn that never sets it has no animation
+to run and nothing to wait for. Not "it is fast" — "there is nothing there".
+
+- jsdom (`test/battle-stage.test.ts`, 5 more): nothing fires on the opening
+  switch-in, because an arrival is not a swap; a turn where both sides moved
+  leaves both actors unmarked and no ghost carrying a `src`; a switch marks the
+  side that switched **and only that side**, with the outgoing species on the
+  ghost and the incoming one on the sprite; a tap clears both; and no
+  `[data-swapped]` is left on either panel.
+- Chromium (`test/visual-v5.test.ts`, 2 more): `--motion-swap` resolves to
+  `DEFAULT_TUNING.battleFeedbackMs`, and after an ordinary turn every sprite on
+  the stage reports `animation-name: none`.
+
+### Gates at V5.5
+
+Full suite **75 files, 972 tests, all pass** — 965 plus 7: 5 more in
+`test/battle-stage.test.ts`, 2 more in `test/visual-v5.test.ts`. Guarded heights
+equal to the pixel, so no baseline re-record. `tsc` and `eslint` clean. `npm run smoke` exits 0 with the 4.7 map fold as its only `xfail`.

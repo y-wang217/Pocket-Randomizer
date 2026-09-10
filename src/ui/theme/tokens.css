@@ -262,6 +262,11 @@
      pair finishes inside the shadow's window and the budget stays one number.
      Release C item 2. */
   --motion-jiggle: calc(var(--motion-duration) / 4);
+  /* The species swap: the outgoing sprite sinking and the incoming one rising.
+     V5.5. The whole budget, like the shadow, because it is the same kind of
+     event — a thing on the board resolving — and because the two never happen
+     on the same turn: a swap draws no HP chunk. */
+  --motion-swap: var(--motion-duration);
 
   /* ---------- battle feedback surfaces ----------
      The shadow is the track's own sunken ground lifted just clear of it, not a
@@ -273,4 +278,8 @@
      enough to register at the edge of vision, near enough that the panel never
      looks like it came loose from the layout. */
   --jiggle-distance: 2px;
+  /* How far a sprite travels as it sinks into the near layer or rises out of
+     it. Far enough to read as depth, near enough that the body never appears to
+     leave the stage it is standing on. */
+  --sprite-swap-travel: 14px;
 }

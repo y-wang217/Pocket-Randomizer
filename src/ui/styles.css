@@ -1083,22 +1083,55 @@ body {
 }
 
 /*
- * The sprite-swap beat.
+ * The species swap, on the stage. **V5.5, and the one thing V5 adds to Release
+ * C's motion.**
  *
- * A switch changes the whole panel at once and, without a beat, reads as the
- * screen glitching. One short fade-and-rise, and — per the spec — it must not
- * block input: this is a CSS animation on a panel nobody has to wait for, no
- * timer gates the move buttons, and tapping anywhere cancels it (`scene.ts`
- * clears the attribute on pointerdown).
+ * A switch changes a whole side at once and, without a beat, reads as the
+ * screen glitching. Until V5 that beat was a fade-and-rise on the panel, at a
+ * hardcoded 260ms. The panel is a scrim over a body now, so the beat belongs to
+ * the body: **the outgoing sprite sinks into the near layer of the world and
+ * the incoming one rises out of it.** Two sprites, because a swap is two things
+ * happening at once and one element cannot be both — `scene.ts` paints the
+ * Pokemon that left onto `.sprite--ghost` and the arriving one over it.
+ *
+ * `--motion-swap` is `--motion-duration`, which is `data/tuning.ts`'s one
+ * added-time-per-turn number written onto the root at startup. **The 260 is
+ * gone**, and the duration pin in `test/visual-tokens.test.ts` comes down with
+ * it: that is what the pin is for.
+ *
+ * **It costs a turn with no switch nothing at all.** The attribute is set only
+ * when the species on a side changes, so on an ordinary turn there is no
+ * animation to run. Even when it fires nothing waits for it: the bar, the
+ * numbers and the buttons are correct and interactive on the first frame, and
+ * a tap anywhere cancels it (`scene.ts` settles both actors on pointerdown).
+ *
+ * `transform` and `opacity` only, so the beat runs on the compositor and cannot
+ * reflow the stage or move a move button under a descending thumb.
  */
-@keyframes panel-swap {
-  from { opacity: 0.25; transform: translateY(-4px); }
+@keyframes sprite-rise {
+  from { opacity: 0; transform: translateY(var(--sprite-swap-travel)) scale(0.94); }
   to { opacity: 1; transform: none; }
 }
 
-.panel[data-swapped='true'] .panel__header,
-.panel[data-swapped='true'] .hp {
-  animation: panel-swap 260ms ease-out;
+@keyframes sprite-sink {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(var(--sprite-swap-travel)) scale(0.94); }
+}
+
+/* At rest the ghost is not drawn at all, so a body that has left the fight is
+   never one repaint away from being back on the stage. */
+.sprite--ghost {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.stage__actor[data-swapped='true'] .sprite--ghost {
+  animation: sprite-sink var(--motion-swap) ease-in;
+}
+
+.stage__actor[data-swapped='true'] .sprite:not(.sprite--ghost) {
+  animation: sprite-rise var(--motion-swap) ease-out;
 }
 
 
@@ -2093,6 +2126,18 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      one would have been a nineteenth hardcoded duration in a stylesheet whose
      count is pinned. */
   .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; }
+  /* V5.5: the species swap resolves instantly. Selectors matched to the rules
+     they override rather than to the elements, for the reason the chunk's own
+     note gives — a media query adds no specificity and a plain `.sprite` would
+     have lost to `.stage__actor[data-swapped='true'] .sprite`.
+
+     **The arriving sprite is still there.** `sprite-rise` ends at the resting
+     state, so cancelling it leaves the new body on the stage at full opacity;
+     `sprite-sink` ends at nothing, and the ghost is `opacity: 0` at rest
+     anyway, so the outgoing body simply is not drawn. Reduced motion removes
+     the movement, not the Pokemon. */
+  .stage__actor[data-swapped='true'] .sprite,
+  .stage__actor[data-swapped='true'] .sprite--ghost { animation: none; }
 }
 
 /* ==========================================================================

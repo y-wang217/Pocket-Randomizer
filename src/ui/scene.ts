@@ -64,6 +64,15 @@ const STATUS_LABELS: Record<string, string> = {
 interface Actor {
   root: HTMLElement;
   img: HTMLImageElement;
+  /**
+   * The body that just left, held only while it is sinking. **V5.5.**
+   *
+   * A swap is two things happening at once and one element cannot be both, so
+   * the outgoing sprite is painted here and the incoming one on `img`. It is
+   * empty at rest: the ghost's `src` is cleared when the beat ends, so nothing
+   * on the stage is holding a Pokemon that is no longer in the fight.
+   */
+  ghost: HTMLImageElement;
   /** `p1` faces away, `p2` faces the player. The protocol's own sides. */
   side: 'p1' | 'p2';
 }
@@ -153,8 +162,9 @@ export function createScene(): Scene {
   root.addEventListener(
     'pointerdown',
     () => {
-      delete foe.root.dataset['swapped'];
-      delete me.root.dataset['swapped'];
+      // The swap beat is the sprites' since V5.5, so this is what cancels it.
+      settleActor(foeActor);
+      settleActor(meActor);
       /*
        * The HP shadow resolves on the same tap. It is the one thing on this
        * screen that stays on the glass after the numbers are already right, so
@@ -222,9 +232,12 @@ const BLOCK_LABELS: Record<NonNullable<SwitchView['block']>, string> = {
 function createActor(kind: 'me' | 'foe', side: 'p1' | 'p2'): Actor {
   const root = el('div', `stage__actor stage__actor--${kind}`);
   root.setAttribute('aria-hidden', 'true');
+  const ghost = spriteImg('', side);
+  ghost.classList.add('sprite--ghost');
   const img = spriteImg('', side);
-  root.append(img);
-  return { root, img, side };
+  // Ghost first, so the arriving sprite paints over the one it replaced.
+  root.append(ghost, img);
+  return { root, img, ghost, side };
 }
 
 /**
@@ -237,11 +250,56 @@ function createActor(kind: 'me' | 'foe', side: 'p1' | 'p2'): Actor {
  * to decide whether a body changed.
  */
 function updateActor(actor: Actor, active: ActiveUiView): void {
-  if (actor.root.dataset['species'] === active.species) return;
+  const previous = actor.root.dataset['species'];
+  if (previous === active.species) return;
   actor.root.dataset['species'] = active.species;
+
+  /*
+   * The swap beat, scene-aware. **V5.5, and it is the one thing V5 adds to
+   * Release C's motion.**
+   *
+   * The outgoing body sinks into the near layer of the world V3 draws behind
+   * the stage and the incoming one rises out of it. Two sprites for two
+   * halves: `ghost` keeps the Pokemon that left just long enough to leave, and
+   * `img` arrives over it.
+   *
+   * **Never on the first draw.** `previous` is undefined until a species has
+   * been drawn once, and an opening switch-in is not a swap — animating it
+   * would sink a body that was never on the field at the start of every
+   * battle. Same rule, same reason, as the panel beat this replaces.
+   *
+   * **It fires on a switch and on nothing else**, which is what makes the
+   * plan's "adds nothing to the per-turn budget" true rather than aspirational:
+   * a turn where both sides used a move never sets the attribute, so there is
+   * no animation to run and nothing to wait for. Nothing waits for it even
+   * when it does fire — the bar, the numbers and the move buttons are correct
+   * and interactive on the first frame, and a tap anywhere cancels it.
+   */
+  if (previous !== undefined) {
+    actor.ghost.src = actor.img.src;
+    // Restart rather than extend: re-setting an attribute an element already
+    // carries does not replay a CSS animation, and two switches in consecutive
+    // turns must each get their own beat.
+    delete actor.root.dataset['swapped'];
+    void actor.root.offsetWidth;
+    actor.root.dataset['swapped'] = 'true';
+  }
+
   actor.img.src = spriteUrl(active.species, actor.side);
   actor.img.alt = active.species;
   delete actor.img.dataset['missing'];
+}
+
+/**
+ * End the swap beat and let go of the body that left.
+ *
+ * Called on a tap and when the animation finishes. Clearing the ghost's `src`
+ * matters beyond tidiness: a stage still holding a Pokemon that is no longer in
+ * the fight is one repaint away from showing it again.
+ */
+function settleActor(actor: Actor): void {
+  delete actor.root.dataset['swapped'];
+  actor.ghost.removeAttribute('src');
 }
 
 function createSidePanel(kind: 'me' | 'foe'): SidePanel {
@@ -334,28 +392,26 @@ function updateSidePanel(
   isFaster: boolean,
 ): void {
   /*
-   * The sprite-swap beat, when the body on this side changed.
+   * Whether the body on this side changed. **The panel reads it; it no longer
+   * animates it. V5.5.**
    *
    * Detected from the species the panel last drew rather than from a switch
    * event, because the panel is updated from a projection and has no event
    * stream — and because that makes it correct for every way a Pokemon can be
    * replaced: a voluntary switch, a forced one after a faint, and whatever
-   * Stage 5 adds. The log line beside it is the *narration*; this is only the
-   * beat that stops the panel changing wholesale looking like a glitch.
+   * Stage 5 adds. `updateActor` reads it the same way and for the same reason.
    *
-   * Never on the first draw: an opening switch-in is not a swap, and animating
-   * it would flash both panels at the start of every battle.
+   * The beat itself moved to the sprite, which is the thing that changed: the
+   * panel is a scrim over a body now, and two animations for one event is
+   * noise. What the panel still uses the flag for is the HP chunk — a swap
+   * draws none, because the difference between two different bodies' bars is
+   * not damage.
+   *
+   * Never on the first draw: an opening switch-in is not a swap.
    */
   const previous = panel.root.dataset['species'];
   const swapped = previous !== undefined && previous !== active.species;
   panel.root.dataset['species'] = active.species;
-  if (swapped) {
-    // Restart rather than extend: re-setting the attribute on an element that
-    // already carries it does not replay a CSS animation.
-    delete panel.root.dataset['swapped'];
-    void panel.root.offsetWidth;
-    panel.root.dataset['swapped'] = 'true';
-  }
 
   panel.name.textContent = isFoe ? `Opposing ${active.name}` : active.name;
   // Gender sits with the level because it is the same kind of fact: a fixed

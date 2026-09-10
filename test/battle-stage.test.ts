@@ -57,8 +57,11 @@ describe('the sprites', () => {
 
   it('faces the player on the near side and the player on the far side', () => {
     const { scene } = sceneFor();
+    // `:not(.sprite--ghost)` because an actor holds two sprites since V5.5 —
+    // the one standing there and the one that just left. The ghost is empty at
+    // rest, so a bare `img` here would read the wrong element.
     const src = (kind: string): string =>
-      (scene.root.querySelector(`.stage__actor--${kind} img`) as HTMLImageElement).src;
+      (scene.root.querySelector(`.stage__actor--${kind} .sprite:not(.sprite--ghost)`) as HTMLImageElement).src;
     // `p1` is the near side and wears the back sprite; `p2` faces the player.
     // The protocol's own sides, so nothing here translates between two
     // vocabularies.
@@ -79,7 +82,7 @@ describe('the sprites', () => {
 
   it('does not re-request an image on a turn that changed nobody', () => {
     const { scene, view } = sceneFor();
-    const img = scene.root.querySelector('.stage__actor--me img') as HTMLImageElement;
+    const img = scene.root.querySelector('.stage__actor--me .sprite:not(.sprite--ghost)') as HTMLImageElement;
     const first = img.src;
     let requests = 0;
     Object.defineProperty(img, 'src', {
@@ -234,5 +237,97 @@ describe('the effectiveness marker', () => {
       if (badge.dataset['ability'] === 'true') expect(badge.dataset['tip']).toMatch(/^ability:/);
     }
     expect(badges.some((badge) => badge.getAttribute('aria-label')?.includes(':'))).toBe(true);
+  });
+});
+
+/**
+ * The species swap. **V5.5, and the plan's test 5.**
+ *
+ * Two claims, and the second is the one that matters: it fires **only** on a
+ * switch, and it adds **zero** time to a turn without one. The second follows
+ * from the first here rather than from a measurement of milliseconds — the
+ * animation exists only while `data-swapped` is on the actor, so a turn that
+ * never sets it has no animation to run and nothing to wait for. That is the
+ * strongest form the claim has: not "it is fast", but "there is nothing there".
+ *
+ * `test/visual-v5.test.ts` reads the resolved `animation-duration` in Chromium,
+ * where the token chain from `data/tuning.ts` actually resolves.
+ */
+describe('the species swap', () => {
+  const TWO: TeamSpec = [
+    { species: 'Snorlax', ability: 'Thick Fat', moves: ['Body Slam'], level: 50 },
+    { species: 'Gengar', ability: 'Levitate', moves: ['Shadow Ball'], level: 50 },
+  ];
+
+  const swapped = (scene: Scene): string[] =>
+    [...scene.root.querySelectorAll('.stage__actor')].map((actor) => (actor as HTMLElement).dataset['swapped'] ?? '');
+
+  function opened(seed: string): { session: ReturnType<typeof createBattle>; scene: Scene; draw: () => void } {
+    const session = createBattle({ teams: { p1: TWO, p2: FOE }, seed });
+    const scene = createScene();
+    const draw = (): void =>
+      scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+    draw();
+    return { session, scene, draw };
+  }
+
+  it('does not fire on the opening switch-in', () => {
+    const { scene } = opened('SWAP01');
+    // An arrival is not a swap, and sinking a body that was never on the field
+    // at the start of every battle is the failure this guard exists for.
+    expect(swapped(scene)).toEqual(['', '']);
+  });
+
+  it('adds nothing to a turn where nobody switched', () => {
+    const { session, scene, draw } = opened('SWAP02');
+    for (const side of ['p1', 'p2'] as const) {
+      if (session.viewFor(side).awaitingChoice) session.submit(side, { kind: 'move', slot: 1 } as never);
+    }
+    draw();
+    // No attribute, so no animation, so no time. The plan's "adds nothing to
+    // the per-turn budget" is a structural fact rather than a measurement.
+    expect(swapped(scene)).toEqual(['', '']);
+    expect(scene.root.querySelectorAll('.sprite--ghost[src]')).toHaveLength(0);
+  });
+
+  it('fires on the side that switched, and only that side', () => {
+    const { session, scene, draw } = opened('SWAP03');
+    session.submit('p1', { kind: 'switch', slot: 2 } as never);
+    if (session.viewFor('p2').awaitingChoice) session.submit('p2', { kind: 'move', slot: 1 } as never);
+    draw();
+
+    const actors = [...scene.root.querySelectorAll('.stage__actor')] as HTMLElement[];
+    const me = actors.find((actor) => actor.classList.contains('stage__actor--me'));
+    const foe = actors.find((actor) => actor.classList.contains('stage__actor--foe'));
+    expect(me?.dataset['swapped'], 'the side that switched').toBe('true');
+    expect(foe?.dataset['swapped'], 'and only that side').toBeUndefined();
+    // The body that left is held only while it is leaving.
+    const ghost = me?.querySelector('.sprite--ghost') as HTMLImageElement;
+    expect(ghost.getAttribute('src')).toContain('snorlax');
+    expect((me?.querySelector('.sprite:not(.sprite--ghost)') as HTMLImageElement).src).toContain('gengar');
+  });
+
+  it('is cancelled by a tap, like every other transition on this screen', () => {
+    const { session, scene, draw } = opened('SWAP04');
+    session.submit('p1', { kind: 'switch', slot: 2 } as never);
+    if (session.viewFor('p2').awaitingChoice) session.submit('p2', { kind: 'move', slot: 1 } as never);
+    draw();
+    expect(swapped(scene)).toContain('true');
+
+    scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
+    expect(swapped(scene)).toEqual(['', '']);
+    // And the stage lets go of the body that left, rather than keeping it one
+    // repaint away from being back.
+    expect(scene.root.querySelectorAll('.sprite--ghost[src]')).toHaveLength(0);
+  });
+
+  it('leaves no swap marker on either panel', () => {
+    const { session, scene, draw } = opened('SWAP05');
+    session.submit('p1', { kind: 'switch', slot: 2 } as never);
+    if (session.viewFor('p2').awaitingChoice) session.submit('p2', { kind: 'move', slot: 1 } as never);
+    draw();
+    // The beat is the sprite's now. Two animations for one event is noise, and
+    // a stale marker on the panel would be a rule left behind a flag.
+    expect(scene.root.querySelectorAll('.panel[data-swapped]')).toHaveLength(0);
   });
 });

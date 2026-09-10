@@ -375,3 +375,42 @@ describe('the move grid', () => {
     await context.close();
   }, 300_000);
 });
+
+describe('the species swap', () => {
+  it('reads its length off the one tuning number, and nothing of its own', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playUntil(page, (screen) => screen === 'battle');
+
+    const resolved = await page.evaluate(() =>
+      globalThis.getComputedStyle(globalThis.document.documentElement).getPropertyValue('--motion-swap').trim(),
+    );
+    // `ui/theme/motion.ts` writes `data/tuning.ts`'s number onto the root at
+    // startup and `--motion-swap` is `var(--motion-duration)`. One number, and
+    // this is it arriving at V5's own beat.
+    expect(resolved).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
+    await context.close();
+  }, 300_000);
+
+  it('runs no animation at all on a turn where nobody switched', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playATurn(page);
+
+    const state = await page.evaluate((sel) => {
+      const actors = [...globalThis.document.querySelectorAll(`${sel} .stage__actor`)];
+      return actors.flatMap((actor) => [
+        ...[...actor.querySelectorAll('.sprite')].map((sprite) => globalThis.getComputedStyle(sprite).animationName),
+        (actor as HTMLElement).dataset['swapped'] ?? 'none',
+      ]);
+    }, visible('battle'));
+
+    expect(state.length, 'both actors are on the stage').toBeGreaterThan(0);
+    /*
+     * The plan's "adds zero time to a turn with no switch", measured as the
+     * strongest thing it can be: not a small duration but no animation. The
+     * marker is never set on a turn without a switch, so there is nothing for
+     * the rule to attach to.
+     */
+    for (const value of state) expect(value).toBe('none');
+    await context.close();
+  }, 300_000);
+});
