@@ -69,10 +69,19 @@ import {
 import { generateEncounterAcquisition, generateEventAcquisition, type AcquisitionOffer } from './acquisition';
 import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
+import { named } from './nicknames';
 import type { Reward } from './rewards';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
-import { gymRewardKey, localeOfferKey, nodeKey, nodeRewardKey, routeKey, STARTERS_KEY } from './streamKeys';
+import {
+  gymRewardKey,
+  localeOfferKey,
+  nicknameKey,
+  nodeKey,
+  nodeRewardKey,
+  routeKey,
+  STARTERS_KEY,
+} from './streamKeys';
 import type { PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import {
@@ -365,7 +374,21 @@ const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
  * about reacting to one.
  */
 export function generateStarterOptions(rng: Rng, tuning: Tuning, unlocked?: readonly string[]): PokemonSpec[] {
-  return generateStarters(tuning.starterOptionCount, starterLevel(), rng.randomizer.at(STARTERS_KEY), unlocked);
+  const options = generateStarters(
+    tuning.starterOptionCount,
+    starterLevel(),
+    rng.randomizer.at(STARTERS_KEY),
+    unlocked,
+  );
+  /*
+   * **Named here, on its own key per option. Stage 4.8, item 5.**
+   *
+   * Keyed by the option's index rather than by which one was picked, because the
+   * key must not depend on player behaviour: all three options are named, the
+   * player keeps one, and the two unnamed roads stay reconstructible. Drawing from
+   * `STARTERS_KEY` instead would have moved every starter in every recorded seed.
+   */
+  return options.map((spec, index) => named(spec, rng.randomizer.at(nicknameKey(`starter/${index}`))));
 }
 
 // ---------------------------------------------------------------------------
@@ -538,7 +561,14 @@ export function generateSegment(
         node.id,
         rng.rewards.at(nodeRewardKey(node.id, 'event')),
         tuning,
-        () => generateEventAcquisition(node.id, index, captureStream, tuning),
+        () =>
+          generateEventAcquisition(
+            node.id,
+            index,
+            captureStream,
+            tuning,
+            rng.randomizer.at(nicknameKey(node.id)),
+          ),
       );
     }
   }
@@ -559,7 +589,15 @@ export function generateSegment(
   for (const node of nodesOf(segment)) {
     const lead = node.encounter?.team[0];
     if (node.kind !== 'wild' || !lead) continue;
-    node.acquisition = generateEncounterAcquisition(node.id, lead, tuning);
+    node.acquisition = generateEncounterAcquisition(
+      node.id,
+      lead,
+      tuning,
+      // Named on the node's own nickname key, the same one an event capture at
+      // this node would use: a node offers at most one Pokemon, so one key is
+      // enough and the two routes cannot both consume it.
+      rng.randomizer.at(nicknameKey(node.id)),
+    );
   }
 
   // --- pass 6: the gym clear offer, also from the `rewards` stream ----------

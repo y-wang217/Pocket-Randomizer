@@ -348,7 +348,7 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Krokorok",
+              "name": "Rook",
               "bySpecies": "Raichu",
               "byMove": "Surging Strikes"
             }
@@ -385,7 +385,7 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Krokorok",
+              "name": "Rook",
               "bySpecies": "Chimecho",
               "byMove": "Magical Leaf"
             }
@@ -482,7 +482,7 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Golduck",
+              "name": "Clover",
               "bySpecies": "Palossand",
               "byMove": "Stomping Tantrum"
             }
@@ -509,31 +509,31 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Golduck",
+              "name": "Clover",
               "bySpecies": "Armarouge",
               "byMove": "Eerie Spell"
             },
             {
               "side": "p1",
-              "name": "Krokorok",
+              "name": "Rook",
               "bySpecies": "Emboar",
               "byMove": "Fire Punch"
             },
             {
               "side": "p1",
-              "name": "Grafaiai",
+              "name": "Gorse",
               "bySpecies": "Chandelure",
               "byMove": "Fire Pledge"
             },
             {
               "side": "p1",
-              "name": "Quaquaval",
+              "name": "Lichen",
               "bySpecies": "Emboar",
               "byMove": "Spark"
             },
             {
               "side": "p1",
-              "name": "Litleo",
+              "name": "Moss",
               "bySpecies": "Cinderace",
               "byMove": "Temper Flare"
             }
@@ -2291,13 +2291,13 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Golurk",
+              "name": "Hollow",
               "bySpecies": "Rampardos",
               "byMove": "Payback"
             },
             {
               "side": "p1",
-              "name": "Poliwag",
+              "name": "Grist",
               "bySpecies": "Flamigo",
               "byMove": "Branch Poke"
             }
@@ -2314,19 +2314,19 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Skeledirge",
+              "name": "Sorrel",
               "bySpecies": "Lumineon",
               "byMove": "Brine"
             },
             {
               "side": "p1",
-              "name": "Golurk",
+              "name": "Hollow",
               "bySpecies": "Lumineon",
               "byMove": "Brine"
             },
             {
               "side": "p1",
-              "name": "Poliwag",
+              "name": "Grist",
               "bySpecies": "Lumineon",
               "byMove": "Relic Song"
             }
@@ -3015,7 +3015,7 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Dusknoir",
+              "name": "Onyx",
               "bySpecies": "Ludicolo",
               "byMove": "Chilling Water"
             }
@@ -3032,19 +3032,19 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Dusknoir",
+              "name": "Onyx",
               "bySpecies": "Corphish",
               "byMove": "Brine"
             },
             {
               "side": "p1",
-              "name": "Nacli",
+              "name": "Ivy",
               "bySpecies": "Froakie",
               "byMove": "Water Pulse"
             },
             {
               "side": "p1",
-              "name": "Delibird",
+              "name": "Fennel",
               "bySpecies": "Froakie",
               "byMove": "Water Pulse"
             }

@@ -51,6 +51,7 @@
 import { describeSpecCard } from './battle/driver';
 import { generateWildTeam } from './randomizer';
 import type { RngStream } from './rng';
+import { named } from './nicknames';
 import { createPartyMember } from './party';
 import type { ItemId, PokemonSpec, PokemonState } from './types';
 
@@ -184,12 +185,21 @@ export function generateEncounterAcquisition(
   nodeId: string,
   lead: PokemonSpec,
   tuning: Tuning,
+  /**
+   * The node's nickname stream. **Stage 4.8, item 5.**
+   *
+   * Handed in rather than opened here, because `core/acquisition.ts` is handed a
+   * spec and knows nothing about which node's keys are which. The name lands on
+   * the *copy*: `lead` is the wild team's own spec, and naming it in place would
+   * name the opponent the player is about to fight.
+   */
+  nicknames: RngStream,
 ): AcquisitionOffer | null {
   if (!tuning.allowEncounterAcquisitions) return null;
   return {
     nodeId,
     source: 'encounter',
-    spec: { ...lead, moves: [...lead.moves] },
+    spec: named(lead, nicknames),
   };
 }
 
@@ -215,11 +225,13 @@ export function generateEventAcquisition(
   segment: number,
   stream: RngStream,
   tuning: Tuning,
+  /** The node's nickname stream. See `generateEncounterAcquisition`. */
+  nicknames: RngStream,
 ): AcquisitionOffer | null {
   if (!tuning.allowEncounterAcquisitions) return null;
   const team = generateWildTeam(segment, 'normal', stream);
   const spec = team[0];
-  return spec ? { nodeId, source: 'event', spec } : null;
+  return spec ? { nodeId, source: 'event', spec: named(spec, nicknames) } : null;
 }
 
 /**

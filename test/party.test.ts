@@ -711,7 +711,20 @@ describe('save during a forced switch', () => {
         `resuming from switch save ${index}`,
       ).toEqual(original.state.party.map((member) => [member.spec.species, member.hp]));
     }
-  });
+    /*
+     * **Stage 4.8 raised the budget rather than narrowing the sweep.**
+     *
+     * This replays the entire run once per switch save, so its cost is quadratic in
+     * the number of switches — and the patch made both factors bigger: item 3's
+     * step curve makes a run about a quarter longer, and item 1's slot schedule
+     * puts up to six Pokemon on the field instead of three, which is more forced
+     * switches per battle. It timed out at 60s on the default budget.
+     *
+     * The sweep is the test: "every forced switch" is the claim, and checking a
+     * sample of them would be checking a different, weaker one. So the timeout
+     * moves and the coverage does not.
+     */
+  }, 240_000);
 
   it('replays the whole run to the same state, switches and all', async () => {
     const original = await playRun('FORCED-4', collector());

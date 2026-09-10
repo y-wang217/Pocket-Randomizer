@@ -12,7 +12,7 @@
     "segment": 1,
     "leader": "Marina",
     "kind": "gym",
-    "species": "Gastly",
+    "species": "Bramble",
     "bySpecies": "Bruxish",
     "byMove": "Aqua Cutter",
     "indirect": null
@@ -156,7 +156,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Cloyster",
+          "name": "Brook",
           "bySpecies": "Araquanid",
           "byMove": "Grassy Glide",
           "indirect": null
@@ -208,21 +208,21 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Cloyster",
+          "name": "Brook",
           "bySpecies": "Bruxish",
           "byMove": "Burning Jealousy",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Slakoth",
+          "name": "Ivy",
           "bySpecies": "Bruxish",
           "byMove": "Aqua Cutter",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Gastly",
+          "name": "Bramble",
           "bySpecies": "Bruxish",
           "byMove": "Aqua Cutter",
           "indirect": null

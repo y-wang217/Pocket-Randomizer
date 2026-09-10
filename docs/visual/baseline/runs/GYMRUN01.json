@@ -12,7 +12,7 @@
     "segment": 1,
     "leader": "Marina",
     "kind": "gym",
-    "species": "Cufant",
+    "species": "Dusk",
     "bySpecies": "Buizel",
     "byMove": "Aqua Cutter",
     "indirect": null
@@ -167,7 +167,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Tyranitar",
+          "name": "Cedar",
           "bySpecies": null,
           "byMove": null,
           "indirect": "Recoil"
@@ -186,7 +186,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Tyranitar",
+          "name": "Cedar",
           "bySpecies": "Hariyama",
           "byMove": "Arm Thrust",
           "indirect": null
@@ -205,21 +205,21 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Tyranitar",
+          "name": "Cedar",
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Murkrow",
+          "name": "Moss",
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Cufant",
+          "name": "Dusk",
           "bySpecies": "Buizel",
           "byMove": "Aqua Cutter",
           "indirect": null

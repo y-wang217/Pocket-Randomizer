@@ -143,6 +143,19 @@ and fails on any byte that differs. Heights are compared by
   map is item 3's UI work, in step 7, and that is where the guarded heights move.
   `bundle.json` is not re-recorded either, per this file's own rule.
 
+- **2026-09-10, Stage 4.8 steps 4 and 5.** `data-digest.txt` re-recorded; the runs
+  moved only by gaining nicknames. Two new files under `src/data/` — `scoring.ts`
+  (the score weights) and `nicknames.ts` (the name pool) — so the digest over
+  `src/data/**` moves even though neither changes a draw. That a pure table moves
+  this digest is the same note Release C made about `flagWords.ts`, and it is on the
+  `contentHash` release's list.
+
+  The runs themselves change because every Pokemon now carries a nickname, which
+  `baseline.ts` serializes as part of the final party. **No draw moved for it**: the
+  nickname key is new, so it shifts no other key's output, and that is the property
+  the keyed refactor was built to buy. `heights.json` and `bundle.json` are not
+  re-recorded; neither step touches a pixel.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.

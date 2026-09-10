@@ -12,7 +12,7 @@
     "segment": 4,
     "leader": "Cinder",
     "kind": "gym",
-    "species": "Snorunt",
+    "species": "Hollow",
     "bySpecies": "Scovillain",
     "byMove": "Heat Wave",
     "indirect": null
@@ -296,7 +296,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Poliwrath",
+          "name": "Fallow",
           "bySpecies": "Flaaffy",
           "byMove": "Rising Voltage",
           "indirect": null
@@ -370,14 +370,14 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Vikavolt",
+          "name": "Jasper",
           "bySpecies": "Grotle",
           "byMove": "Flamethrower",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Snorunt",
+          "name": "Hollow",
           "bySpecies": "Jumpluff",
           "byMove": "Energy Ball",
           "indirect": null
@@ -418,7 +418,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Vikavolt",
+          "name": "Jasper",
           "bySpecies": "Feraligatr",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -448,21 +448,21 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Vikavolt",
+          "name": "Jasper",
           "bySpecies": "Sneasler",
           "byMove": "Poison Tail",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Poliwrath",
+          "name": "Fallow",
           "bySpecies": "Sneasler",
           "byMove": "Poison Tail",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Glimmora",
+          "name": "Inkcap",
           "bySpecies": "Hippowdon",
           "byMove": "Sand Tomb",
           "indirect": null
@@ -492,35 +492,35 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Vikavolt",
+          "name": "Jasper",
           "bySpecies": "Delphox",
           "byMove": "Surf",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Glimmora",
+          "name": "Inkcap",
           "bySpecies": "Emboar",
           "byMove": "Waterfall",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Poliwrath",
+          "name": "Fallow",
           "bySpecies": "Scovillain",
           "byMove": "Apple Acid",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Shieldon",
+          "name": "Heather",
           "bySpecies": "Scovillain",
           "byMove": "Apple Acid",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Snorunt",
+          "name": "Hollow",
           "bySpecies": "Scovillain",
           "byMove": "Heat Wave",
           "indirect": null

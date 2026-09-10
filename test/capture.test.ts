@@ -24,6 +24,7 @@ import {
   type AcquisitionOffer,
 } from '../src/core/acquisition';
 import { nodesOf } from '../src/core/encounters';
+import { createRng } from '../src/core/rng';
 import { createParty } from '../src/core/party';
 import {
   createRun,
@@ -102,7 +103,7 @@ describe('the offer', () => {
 
   it('carries the level, moveset and held item it was fought with', () => {
     const lead = spec('Poliwag', { level: 31, item: 'leftovers', moves: ['Surf', 'Ice Beam'] });
-    const offer = generateEncounterAcquisition('n', lead, DEFAULT_TUNING);
+    const offer = generateEncounterAcquisition('n', lead, DEFAULT_TUNING, createRng('NAME').randomizer.at('n'));
     expect(offer?.spec.level).toBe(31);
     expect(offer?.spec.item).toBe('leftovers');
     expect(offer?.spec.moves).toEqual(['Surf', 'Ice Beam']);
@@ -112,7 +113,14 @@ describe('the offer', () => {
   });
 
   it('makes no offer when captures are switched off, and draws nothing either way', () => {
-    expect(generateEncounterAcquisition('n', spec('Zubat'), { ...DEFAULT_TUNING, allowEncounterAcquisitions: false })).toBeNull();
+    expect(
+      generateEncounterAcquisition(
+        'n',
+        spec('Zubat'),
+        { ...DEFAULT_TUNING, allowEncounterAcquisitions: false },
+        createRng('NAME').randomizer.at('n'),
+      ),
+    ).toBeNull();
   });
 });
 
@@ -263,9 +271,12 @@ function catcher(caught: string[]): RunPolicy {
       const wild = options.findIndex((option) => option.kind === 'wild');
       return wild === -1 ? 0 : wild;
     },
-    chooseAcquisition: async (offer, party) => {
+    // Stage 4.8, item 1: the capacity the run hands in. Against the opening width
+    // this asks to release from a party that has room the moment a gym unlocks a
+    // slot, and `decisionRefusal` throws rather than clamping.
+    chooseAcquisition: async (offer, party, capacity) => {
       caught.push(offer.spec.species);
-      if (hasRoom(party, OPENING_SLOTS)) return { kind: 'accept' };
+      if (hasRoom(party, capacity)) return { kind: 'accept' };
       let lowest = 0;
       party.forEach((member, index) => {
         if (member.spec.level < (party[lowest]?.spec.level ?? 0)) lowest = index;

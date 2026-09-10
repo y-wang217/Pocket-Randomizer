@@ -12,7 +12,7 @@
     "segment": 4,
     "leader": "Cinder",
     "kind": "gym",
-    "species": "Grubbin",
+    "species": "Loam",
     "bySpecies": "Talonflame",
     "byMove": "Drill Peck",
     "indirect": null
@@ -230,7 +230,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Serperior",
+          "name": "Mire",
           "bySpecies": "Corphish",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -458,35 +458,35 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Drednaw",
+          "name": "Loam",
           "bySpecies": "Flareon",
           "byMove": "Lunge",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Pawmot",
+          "name": "Thistle",
           "bySpecies": "Camerupt",
           "byMove": "Stomping Tantrum",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Serperior",
+          "name": "Mire",
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Rabsca",
+          "name": "Bramble",
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Grubbin",
+          "name": "Loam",
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null

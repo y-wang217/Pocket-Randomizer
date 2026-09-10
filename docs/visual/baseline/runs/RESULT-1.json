@@ -12,7 +12,7 @@
     "segment": 1,
     "leader": "Marina",
     "kind": "gym",
-    "species": "Medicham",
+    "species": "Fallow",
     "bySpecies": "Skrelp",
     "byMove": "Jet Punch",
     "indirect": null
@@ -170,7 +170,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Medicham",
+          "name": "Fallow",
           "bySpecies": "Oinkologne",
           "byMove": "Fury Attack",
           "indirect": null
@@ -200,21 +200,21 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Hatterene",
+          "name": "Cedar",
           "bySpecies": "Oshawott",
           "byMove": "Surging Strikes",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Volbeat",
+          "name": "Gale",
           "bySpecies": "Oshawott",
           "byMove": "Surging Strikes",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Medicham",
+          "name": "Fallow",
           "bySpecies": "Skrelp",
           "byMove": "Jet Punch",
           "indirect": null
