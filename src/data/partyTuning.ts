@@ -1,10 +1,13 @@
 /**
  * The party: how many slots it has, what joins it, and what a faint costs.
  *
- * Four numbers, and every one of them is a Stage 4 balance lever rather than a
- * structural constant. They live together because they are one question asked
- * four ways — *how much does losing a Pokemon cost you?* — and answering it in
- * four files is how the four answers drift apart.
+ * What is left of it is one number. Four lived here once, and every one of them
+ * was a Stage 4 balance lever rather than a structural constant; they lived
+ * together because they were one question asked four ways — *how much does
+ * losing a Pokemon cost you?* — and answering it in four files is how the four
+ * answers drift apart. Two moved to `tuning.ts` in 4.5.1 and the third was
+ * deleted in 4.7; both notes are below, because where a lever went is the part
+ * a later pass needs and the part a deletion normally destroys.
  *
  * Separate from `data/tuning.ts` on purpose. `Tuning` is *passed* into
  * generation and the run state machine so a sweep can vary it per run; these
@@ -40,16 +43,19 @@ export const PARTY_SIZE = readSizeOverride() ?? 3;
 export interface PartyTuning {
   /** Party slots. The same number as `PARTY_SIZE`; see the note there. */
   size: number;
-  /**
-   * How far below the segment's curve level an acquired member arrives.
+  /*
+   * `joinLevelOffset` used to live here — how far *below* the segment's curve
+   * an acquired member arrived, as the price of a free Pokemon. **Stage 4.7
+   * deleted it rather than setting it to zero**, because the two are different
+   * statements: a zero is a lever a tuning pass is invited to move, and the
+   * rule now is that a joining Pokemon is simply a party member and the party
+   * is at `playerLevel(segment)`. `core/acquisition.joinLevelFor` carries the
+   * argument and the measurement.
    *
-   * The cost of a free Pokemon. Zero would make every acquisition strictly
-   * better than declining, which is not a decision; too large and the new
-   * member is a slot that cannot fight, which is also not a decision. It is
-   * levelled up to the curve at the next gym like everything else, so the
-   * penalty is paid for the rest of the current segment and no longer.
+   * The lever for "captures are too cheap", if the report ever says so, is the
+   * *cost* of a capture — the party slot, or the step the wild encounter
+   * occupies in a segment of four or five. It is deliberately not this number.
    */
-  joinLevelOffset: number;
   /*
    * `reviveHpFraction` and `freeRevive` used to live here. **They moved to
    * `tuning.reviveHpPercent` in Stage 4.5.1**, and the two of them collapsed
@@ -66,7 +72,6 @@ export interface PartyTuning {
 
 export const PARTY_TUNING: PartyTuning = {
   size: PARTY_SIZE,
-  joinLevelOffset: 3,
 };
 
 

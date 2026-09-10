@@ -27,12 +27,15 @@ import {
   type Decision,
   type Gender,
   type ItemId,
-  type MoveSpec,
+  type MoveExplanation,
   type MoveState,
   type MoveView,
+  type BattleMemberState,
+  type Contribution,
   type PokemonState,
   type SideId,
   type StatName,
+  type StatsTable,
   type StatStages,
   type StatusName,
   type PokemonSpec,
@@ -40,7 +43,9 @@ import {
   type TeamSpec,
 } from '../types';
 import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
+import { bandOfMove } from '../../data/moveOverrides';
 import type { Policy } from './policy';
+import { readContribution } from './contribution';
 import { statsAtLevel } from './stats';
 import { rejectionReason } from './switching';
 import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
@@ -172,6 +177,22 @@ export interface SpecCard {
    * the same number outside a battle.
    */
   baseStatsAtLevel: Record<StatName, number>;
+  /**
+   * The species' **base** stats, level-independent. **Stage 4.7, Part 7.**
+   *
+   * Not the same thing as `baseStatsAtLevel`, and the names are unfortunate:
+   * that field is the *computed* spread at this level, which is what a stat
+   * panel shows. This is the dex's own six numbers, which is what
+   * `core/archetypeOf` classifies — and it has to be the level-independent
+   * ones or a Pokemon would change archetype as it levelled, which is the
+   * opposite of the stability the label exists for.
+   *
+   * Read off the dex through the probe, like everything else here. It costs
+   * nothing: the Pokedex table is not stripped by
+   * `build-config/trim-sim-data.ts`, which strips learnsets, legality and
+   * Pokemon GO data and nothing else.
+   */
+  baseStats: StatsTable;
   moves: MoveView[];
 }
 
@@ -222,6 +243,14 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
     abilityId: dex.abilities.get(mon.ability).id,
     types: mon.getTypes(),
     maxHp: mon.maxhp,
+    baseStats: {
+      hp: mon.species.baseStats.hp,
+      atk: mon.species.baseStats.atk,
+      def: mon.species.baseStats.def,
+      spa: mon.species.baseStats.spa,
+      spd: mon.species.baseStats.spd,
+      spe: mon.species.baseStats.spe,
+    },
     baseStatsAtLevel: {
       atk: mon.storedStats.atk,
       def: mon.storedStats.def,
@@ -275,7 +304,7 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
  * can be handed any move — and the result is cached by that function, so the
  * cost is one battle per distinct move for the life of the process.
  */
-export function describeMove(nameOrId: string): MoveSpec | null {
+export function describeMove(nameOrId: string): MoveExplanation | null {
   const data = Dex.forGen(GYMRUN_GEN).moves.get(nameOrId);
   if (!data.exists) return null;
 
@@ -288,6 +317,19 @@ export function describeMove(nameOrId: string): MoveSpec | null {
   const slot = probe.moves[0];
   if (!slot) return null;
 
+  /*
+   * A narrow structural read of the dex entry.
+   *
+   * `@pkmn/sim`'s `Move` class declares the metadata half; `self`,
+   * `secondaries`, `pseudoWeather` and friends arrive at runtime from
+   * `MoveData` and are not all re-declared on it. Cast through `unknown` rather
+   * than through `any`, which `core/` bans, and narrowed to `SimMoveData` —
+   * the exact field list this function reads, declared below.
+   */
+  const move = data as unknown as SimMoveData;
+  const flags = Object.keys(move.flags ?? {});
+  const multi = move.multihit;
+
   return {
     id: slot.id,
     name: slot.name,
@@ -296,8 +338,151 @@ export function describeMove(nameOrId: string): MoveSpec | null {
     basePower: slot.basePower,
     accuracy: slot.accuracy,
     maxPp: slot.maxPp,
+    priority: move.priority ?? 0,
+    target: move.target,
+    // From `bandOfMove`, never a second computation. See the field's note on
+    // why this can disagree with `basePower` without either being wrong.
+    band: bandOfMove(slot.name),
+    ...(Array.isArray(multi)
+      ? { multiHit: [multi[0] ?? 0, multi[1] ?? multi[0] ?? 0] as [number, number] }
+      : typeof multi === 'number'
+        ? { multiHit: [multi, multi] as [number, number] }
+        : {}),
+    ...(move.recoil ? { recoil: fractionOf(move.recoil) } : {}),
+    ...(move.drain ? { drain: fractionOf(move.drain) } : {}),
+    ...(typeof move.heal !== 'undefined' && move.heal ? { heal: fractionOf(move.heal) } : {}),
+    ...readTurns(move),
+    ...readBoosts(move),
+    ...(typeof move.status === 'string' ? { status: move.status } : {}),
+    ...(typeof move.volatileStatus === 'string' ? { volatile: move.volatileStatus } : {}),
+    ...readFieldEffect(move),
+    ...readSecondary(move),
+    flags,
+    // `breaksProtect` is Feint's own flag; the `protect` flag being *absent* is
+    // the sim's way of saying a move is not blocked by Protect at all, which is
+    // true of every status move that targets the user and would be noise on a
+    // card. So this is the narrow reading: moves that go through Protect when
+    // Protect is up.
+    bypassesProtect: Boolean(move.breaksProtect),
+    highCrit: (move.critRatio ?? 1) > 1,
+    shortDesc: move.shortDesc || move.desc || '',
   };
 }
+
+/**
+ * The sim spells a fraction as `[numerator, denominator]`. This is the number.
+ *
+ * Recoil, drain and heal all use the pair form, and every one of them reads
+ * better on a card as `1/3` computed than as two integers a template has to
+ * know how to join.
+ */
+function fractionOf(pair: readonly [number, number] | number): number {
+  if (!Array.isArray(pair)) return pair as number;
+  const [numerator, denominator] = pair as readonly [number, number];
+  return denominator === 0 ? 0 : numerator / denominator;
+}
+
+/** Charge and recharge turns, from the two places the sim records them. */
+function readTurns(data: SimMoveData): { chargeTurns?: number; rechargeTurns?: number } {
+  const charge = data.flags?.['charge'] ? 1 : 0;
+  const recharge = data.self?.volatileStatus === 'mustrecharge' ? 1 : 0;
+  return {
+    ...(charge ? { chargeTurns: charge } : {}),
+    ...(recharge ? { rechargeTurns: recharge } : {}),
+  };
+}
+
+/**
+ * Stat changes, from both places a move can put them.
+ *
+ * `data.boosts` is what the move does to its *target*; `data.self.boosts` is
+ * what it does to the user. Swords Dance is the second form and Growl the
+ * first, and a reader that only knew one of them would render half the status
+ * moves in the game as doing nothing.
+ */
+function readBoosts(data: SimMoveData): { boosts?: { stat: string; stages: number; target: 'self' | 'foe' }[] } {
+  const entries: { stat: string; stages: number; target: 'self' | 'foe' }[] = [];
+  for (const [stat, stages] of Object.entries(data.boosts ?? {})) {
+    if (typeof stages === 'number') {
+      entries.push({ stat, stages, target: data.target === 'self' ? 'self' : 'foe' });
+    }
+  }
+  for (const [stat, stages] of Object.entries(data.self?.boosts ?? {})) {
+    if (typeof stages === 'number') entries.push({ stat, stages, target: 'self' });
+  }
+  return entries.length > 0 ? { boosts: entries } : {};
+}
+
+/** A field, side or slot condition the move sets: Trick Room, Reflect, Wish. */
+function readFieldEffect(data: SimMoveData): { fieldEffect?: string } {
+  const effect =
+    (typeof data.pseudoWeather === 'string' ? data.pseudoWeather : null) ??
+    (typeof data.sideCondition === 'string' ? data.sideCondition : null) ??
+    (typeof data.slotCondition === 'string' ? data.slotCondition : null) ??
+    (typeof data.terrain === 'string' ? data.terrain : null) ??
+    (typeof data.weather === 'string' ? data.weather : null);
+  return effect ? { fieldEffect: effect } : {};
+}
+
+/** The first secondary effect and its chance. */
+function readSecondary(data: SimMoveData): { secondary?: MoveExplanation['secondary'] } {
+  const secondary = data.secondary ?? data.secondaries?.[0];
+  if (!secondary || typeof secondary.chance !== 'number') return {};
+  const boosts = Object.entries(secondary.boosts ?? {})
+    .filter(([, stages]) => typeof stages === 'number')
+    .map(([stat, stages]) => ({ stat, stages: stages as number }));
+  return {
+    secondary: {
+      chance: secondary.chance,
+      ...(typeof secondary.status === 'string' ? { status: secondary.status } : {}),
+      ...(typeof secondary.volatileStatus === 'string' ? { volatile: secondary.volatileStatus } : {}),
+      ...(boosts.length > 0 ? { boosts } : {}),
+    },
+  };
+}
+
+/**
+ * The shape of a dex move as this file reads it.
+ *
+ * @pkmn/sim's `Move` typing is the metadata half; several of the fields a move
+ * card needs (`self`, `secondaries`, `pseudoWeather`) arrive at runtime from
+ * `MoveData` and are not all re-declared on the class. This is a narrow
+ * structural read of exactly the fields used above, cast through the class
+ * rather than through `any` — `core/` bans `any` — for the same reason
+ * `hasHandler` above is a structural read rather than a property access.
+ */
+type SimMoveData = {
+  priority?: number;
+  target: string;
+  flags?: Record<string, number | undefined>;
+  multihit?: number | number[];
+  recoil?: [number, number];
+  drain?: [number, number];
+  heal?: [number, number] | null;
+  boosts?: Record<string, number | undefined> | null;
+  self?: { boosts?: Record<string, number | undefined>; volatileStatus?: string } | null;
+  status?: string;
+  volatileStatus?: string;
+  pseudoWeather?: string;
+  sideCondition?: string;
+  slotCondition?: string;
+  terrain?: string;
+  weather?: string;
+  secondary?: SimSecondary | null;
+  secondaries?: SimSecondary[] | null;
+  condition?: { duration?: number };
+  breaksProtect?: boolean;
+  critRatio?: number;
+  shortDesc?: string;
+  desc?: string;
+};
+
+type SimSecondary = {
+  chance?: number;
+  status?: string;
+  volatileStatus?: string;
+  boosts?: Record<string, number | undefined>;
+};
 
 /**
  * The body `describeMove` hands its move to. Nothing about it is read.
@@ -415,7 +600,7 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     fainted: pokemon.fainted,
     status: readStatus(pokemon),
     stats,
-    baseStats: { atk: base.atk, def: base.def, spa: base.spa, spd: base.spd, spe: base.spe },
+    baseStats: { hp: base.hp, atk: base.atk, def: base.def, spa: base.spa, spd: base.spd, spe: base.spe },
     boosts: readStatStages(pokemon),
     volatiles: Object.keys(pokemon.volatiles),
     ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
@@ -615,6 +800,16 @@ export interface BattleSession {
   factsFor(side: SideId): BattleFacts;
   /** All protocol lines so far, from `side`'s perspective. */
   protocolFor(side: SideId): readonly string[];
+  /**
+   * The side's battle names, in the order the team was submitted.
+   *
+   * The key that turns a protocol identifier into a party slot, which is what
+   * `core/battle/contribution.ts` needs and what a name alone cannot give: a
+   * protocol says `p1a: Pikachu` and a party has three members. Read off the
+   * *submitted* order for the same reason `readPartyState` is — `side.pokemon`
+   * reorders itself on every switch.
+   */
+  rosterFor(side: SideId): readonly string[];
   /** Submit a decision. Both sides must submit before the turn resolves. */
   submit(side: SideId, choice: Choice): void;
   subscribe(listener: (update: BattleUpdate) => void): () => void;
@@ -625,7 +820,7 @@ export interface BattleSession {
    * every member, mapped back onto the specs the battle was built from. It is
    * the only thing that crosses a node boundary.
    */
-  partyState(side: SideId): PokemonState[];
+  partyState(side: SideId): BattleMemberState[];
   /** The replayable record of this battle. */
   toBattleLog(): BattleLog;
 }
@@ -792,6 +987,17 @@ export function createBattle(options: BattleOptions): BattleSession {
       usable: move.usable,
       flags: Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(move.id).flags),
       typeMultiplier: typeMultiplier(move.type, defenderTypes),
+      /*
+       * The full explanation, carried so the projection can derive tags and a
+       * status readout. **Stage 4.7, Part 6.**
+       *
+       * The adapter is where a dex read belongs, and `describeMove` is already
+       * the one door onto a move's fields — so this is that door, opened once
+       * per move per turn and cached inside `describeSpecCard` for the life of
+       * the process. The alternative was `view.ts` reaching for the dex, which
+       * would put a second lookup path in front of the same table.
+       */
+      explanation: describeMove(move.id),
     }));
 
     const forceSwitch =
@@ -837,6 +1043,7 @@ export function createBattle(options: BattleOptions): BattleSession {
     viewFor: buildView,
     factsFor: buildFacts,
     protocolFor: (side) => protocol[side],
+    rosterFor: (side) => submitted[side].map((mon) => mon.name),
     /*
      * Submit a decision, checked against the view first.
      *
@@ -916,7 +1123,7 @@ function applyCarryOver(battle: Battle, party: readonly PokemonState[]): void {
  * battle that switched still maps each spec to the Pokemon that was built from
  * it.
  */
-function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): PokemonState[] {
+function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): BattleMemberState[] {
   return specs.map((spec, index) => {
     const mon = order[index];
     if (!mon) throw new Error(`No Pokemon at slot ${index} to read back`);
@@ -1223,6 +1430,15 @@ export interface BattleRun {
    * state out of, so reading it would be reading the engine's own bookkeeping.
    */
   consumed: ItemId[];
+  /**
+   * Per-member counters for the player's side, in send order. **Stage 4.7.**
+   *
+   * Send order, not party order, because that is the order everything else that
+   * maps a battle result onto a party uses — `readPartyState` reads back in it
+   * and `party.applyBattleState` maps in it. `core/battle/contribution.ts` is
+   * the reducer and says what each counter counts.
+   */
+  contribution: Contribution[];
   session: BattleSession;
 }
 
@@ -1283,6 +1499,7 @@ export async function runBattle(
     protocol,
     casualties: readCasualties(protocol),
     consumed: readConsumedItems(protocol, 'p1'),
+    contribution: readContribution(protocol, session.rosterFor('p1')),
     session,
   };
 }

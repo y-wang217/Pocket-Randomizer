@@ -278,12 +278,12 @@ guarantees exactly one wild encounter and it occupies one of that segment's
 limited steps — so the question becomes "is this worth a slot", which is a
 decision, rather than "did the seed feel like it", which is not.
 
-The offer is the node's own lead, **exactly as it was fought**: level, moveset,
-ability, gender and held item. 4.5.1 re-levelled it down to
-`joinLevelFor(segment)` as the price of a free Pokemon; the price is the step and
-the slot now, and a captured Pokemon weaker than the one just beaten is a readout
-the player cannot square with what they watched. Species *reward cards* still
-join at the discount — they cost no step at all.
+The offer is the node's own lead: moveset, ability, gender and held item, exactly
+as they were fought.
+
+**The level is the exception, and Stage 4.7 made it one.** A joining Pokemon
+arrives at `playerLevel(segment)` — the same level the rest of the party is
+sitting at — whatever level it was fought at. See §11.
 
 Two properties survive from Stage 4, and both are asserted in
 `test/capture.test.ts`:
@@ -412,7 +412,8 @@ The offsets that ship were measured, not guessed — see docs/balance.md.
 | `elite` never appears in segments 0-1 | Not for fairness — the player can decline it — but for legibility. A tier label is worthless to someone with no baseline for what a normal fight costs |
 | Only wild nodes carry an `acquisition` | A trainer does not hand over their Pokemon, and the offer is the *defeated* species, so a node with no encounter has nothing to offer |
 | **Every** wild node carries one | Stage 4.6a: capture is guaranteed, not rolled. A capture roll on a seeded run is a punch with no counterplay; the cost is the step the encounter occupies. See pass 5 |
-| An acquisition offer is the node's own lead, at its own level | One species generation path, not two, and no discount — the price is the step and the slot |
+| An acquisition offer is the node's own lead | One species generation path, not two — the price is the step and the slot |
+| An acquired Pokemon joins at `playerLevel(segment)` | Stage 4.7. Only the level normalizes; moveset, ability and item are the ones that were fought. See §11 |
 | Exactly one wild step per route, all of its options wild | The guaranteed encounter has to be reachable whatever the player picks. Its options carry different tiers, so it is still a decision. See §1c |
 | At least one event and one reachable rest per route | The floor under capability events and under the 4.5.1 rest cut |
 | The party can never exceed `PARTY_SIZE` | Enforced in `acquisition.applyAcquisition`, which *refuses* an illegal decision rather than clamping it — a decision silently turned into a different decision is a log that replays into a different run |
@@ -712,6 +713,28 @@ Until then the hand bump stands, with the failure mode the seeds document names
 and this paragraph does not solve: a forgotten bump silently reinterprets a
 shared seed. `docs/keyed-streams.md` tracks what is missing.
 
+### A constraint on that release, from Stage 4.7
+
+**The hash's input must be an explicit file list, not a directory glob.**
+
+4.7 added three files under `data/` that consume no RNG and feed no
+generation — `archetypes.ts`, `moveTags.ts` and `moveCopy.ts`. They are display
+tables: thresholds for a stat label, a tag vocabulary, and the sentences a
+status move's readout is composed from. Two players on one seed holding
+different copies of any of them play the **identical run** with different words
+on it.
+
+A glob over `data/` would pull all three in, and a comma added to a blurb would
+then move the hash and invalidate every shared seed for a copy edit. The seeds
+document already implies the list form — it speaks of `hmLearnsets.ts` as "the
+first entry on the hash's file list" — and this is that implication written
+down as a requirement before the release that has to honour it.
+
+The test is not "is it in `data/`" but **"can editing this change what a seed
+produces"**. `scaling.ts`, `speciesPools.ts`, `movePools.ts` and `tuning.ts` can.
+`archetypes.ts`, `moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
+and `categoryInfo.ts` cannot.
+
 
 ## 9b. Deviation: keyed streams shipped two levels, not one
 
@@ -832,3 +855,100 @@ says so where it prints it.
 
 Today every capability is named by exactly one event, which is a flat starting
 point rather than a tuned one.
+
+
+## 11. Acquisition levelling, and the rule it replaced
+
+Stage 4.7, 2026-09-10.
+
+**Anything entering the party after run start arrives at
+`scaling.SEGMENTS[segment].playerLevel`, and every member re-normalizes to the
+segment level at each segment boundary.** Only the level moves. Moveset, ability
+and held item are the ones the Pokemon was fought with.
+
+The second half of that sentence is not new — `party.levelParty` has re-levelled
+the whole party on every gym clear since Stage 2, which is why
+`data/partyTuning.ts` says there is no bench experience to model. The first half
+is, and it replaces the 4.6a clause "the offer is the node's own lead, exactly as
+it was fought: level, moveset, ability, gender and held item". That clause is
+deleted from §Pass 5 above rather than annotated, because a rule that has been
+superseded and left in place is a rule two readers will disagree about.
+
+### What the deleted clause actually did
+
+It read as generosity and was the opposite. Wild encounter level is
+`playerLevel + draw(levelOffset.wild) + TIER_MODIFIERS[tier].level`, and
+`levelOffset.wild` runs from `-11..-9` in segment 0 to `-26..-21` in segment 7.
+So a capture in segment 3 joined a party of 48s at **level 28 to 32**, and sat
+there for the remainder of the segment — including that segment's gym, the one
+fight in a segment where a party slot is worth anything. The party-wide re-level
+then corrected it at the next gym clear, which is why the tax was invisible to
+anyone reading a finished run: by gym 8 every member is at 72 whatever it joined
+at.
+
+The tax was unchooseable, unsignposted, and paid at the worst available moment.
+That is the same objection 4.6a made to the capture *roll* it removed, and it
+survived that stage by accident rather than by argument.
+
+### The hypothesis, and the fact that it was wrong
+
+Stated as a hypothesis because it is a balance claim: that the tax made swapping
+worse than it looked, so runs converged on the starter and the party was
+decoration.
+
+**The pre-patch numbers do not support it**, and they were checked before the
+change rather than after. `docs/balance.md` §10.5 already had `catch-greedy`
+(1.68 mean gyms) ahead of `catch-averse` (1.42) at 200 seeds, and the pinned
+randomizer-11 benchmark already showed a 33% take rate, 0.76 releases per run,
+and 81 distinct species across the 37 parties that reached gym 8. Runs were not
+converging on the starter.
+
+So this ships as a **correctness fix** and the swap question is still open. The
+likelier cause is in that same §10.5 finding: an always-take policy reaches half
+the depth of a selective one, which is a statement about *move quality* rather
+than level. A caught Pokemon carries a wild moveset; a starter has been fed
+banded reward moves for several segments. `docs/balance.md` §12 has the
+post-patch measurement.
+
+### The lever this is not
+
+If captures now arrive at the cap and the report shows the take rate going to
+100%, the wild encounter has become strictly better than any move reward. **The
+lever for that is the cost of a capture** — the party slot, or the step the
+encounter occupies in a segment of four or five — and not the level rule.
+Reintroducing the tax would reintroduce all three of the objections above.
+`PARTY_TUNING.joinLevelOffset` was deleted rather than set to zero for that
+reason: a zero is an invitation.
+
+
+## 12. The standing rule for decision screens
+
+Stage 4.7, Part 1. Not a generation rule, recorded here because this is the
+document a new screen is written against and the rule is one every future screen
+inherits.
+
+**Any screen that asks the player for a decision must expose current party state
+without leaving the decision.**
+
+Before 4.7 the player picked a locale, a node, a reward, a recipient, a
+replacement and a shop purchase, and on none of those screens could they see
+what their party currently looked like. Every one of those decisions was being
+made from memory. That is not difficulty — the information is not hidden by any
+rule, it is merely absent — and a game that makes a player hold six stat blocks
+in their head is measuring the wrong thing.
+
+The implementation is **one drawer, not one panel per screen**: a persistent
+trigger in the same position on every decision surface, opening an overlay over
+the current screen. Three properties are what make it a readout rather than a
+mechanic, and all three are asserted per surface in
+`test/party-drawer.test.ts`:
+
+- Opening it **never advances run state**.
+- Opening it **never submits a decision** — including in battle, where a move
+  button is a submission and a drawer trigger must not be one.
+- Opening it **consumes no RNG**.
+
+It is read-only in v1. Item reassignment stays on the party management screen,
+which is where 4.5.1 put it, so there is exactly one write path for party state.
+A drawer that could reassign would need its own carve-out from the first rule
+above, and that is a v2 decision with its own playtest.

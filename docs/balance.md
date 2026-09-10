@@ -1253,3 +1253,177 @@ shuffle luck as of design.
 Neither is acted on here. The lever, when it is pulled, is event counts in
 `data/events.ts` — today every capability is named by exactly one event, which
 is a flat starting point and not a tuned one.
+
+---
+
+## 13. Stage 4.7 — acquisition levelling, and two questions the report answered "no" to
+
+2026-09-10. `gymrun-randomizer-12`, `gymrun-run-11`, `gymrun-ai-2-switching`,
+`PARTY_SIZE` 3. Every figure below carries its seed prefix and seed count,
+because two of them are compared against numbers taken under a different prefix
+and that has to be visible rather than implied.
+
+The stage is a legibility pass with one balance change in it: **anything joining
+the party arrives at the segment's player level** (`docs/generation.md` §11).
+Nothing else in the patch touches generation — the tags, the labels, the drawer
+and the pre-gym screen add no draws, and `tuning.maxMoveTagsOnFace` is a display
+number.
+
+### 13.1 The headline, against the pinned 4.6c benchmark
+
+400 seeds, `RETUNE` prefix, `greedy`/`rest` — the same sample and the same
+prefix as the randomizer-11 benchmark it is compared with, so this row is
+controlled.
+
+| | randomizer-11 | randomizer-12 |
+|---|---|---|
+| completion | 5.25% | **9.8%** |
+| mean gyms cleared | 3.03 | **3.41** |
+| capture take rate | 32.9% | 29.4% |
+| parties reaching gym 8 | 37 | **54** |
+
+Completion nearly doubled off one rule. That is a larger move than a levelling
+fix sounds like, and the size of it is the measurement of how much the tax was
+costing: a capture used to be a slot that could not fight for the rest of the
+segment it was taken in, *including that segment's gym*.
+
+Note what did **not** happen. The second-order effect the brief flagged was that
+captures arriving at cap might make the wild encounter strictly better than any
+move reward and drive the take rate to 100%. It went the other way, to 29.4%
+from 32.9% — the value-based bot is no *more* eager to catch than before. The
+lever if that ever changes is the cost of a capture, meaning the party slot or
+the step the encounter occupies, and never the level rule.
+
+### 13.2 The hypothesis was wrong, and it was wrong before the patch
+
+The change was proposed on a hypothesis: that capture carried a hidden level
+tax, so swapping was worse than it looked, so runs converged on the starter and
+the party was decoration.
+
+**The pre-patch numbers already disagreed, and they were checked before the code
+was written.** §10.5 had `catch-greedy` (1.68 mean gyms) ahead of `catch-averse`
+(1.42) at 200 seeds, and the randomizer-11 benchmark showed 0.76 releases per
+run and 81 distinct species across the 37 parties that reached gym 8. Runs were
+not converging on the starter.
+
+So it shipped as a correctness fix — the tax was invisible, unchooseable and
+paid at the worst available moment — with the swap question open. Churn at gym 8
+after the patch, 400 seeds, `RETUNE`, n=54 parties:
+
+| measure | value |
+|---|---|
+| members that are not the starter | 1.61 of 3 |
+| parties carrying only the starter | 0.0% |
+| starter still alive | 98.1% |
+
+The party is built rather than inherited, and it was before too.
+
+### 13.3 What the catch pair says now, and the §10.5 finding it damages
+
+200 seeds, `CATCH47` prefix. **The prefix differs from §10.5's**, so this is
+indicative rather than a controlled before-and-after; the direction is far
+larger than a prefix change accounts for, but the exact deltas are not clean.
+
+| policy | §10.5 (200 seeds) | now (200 seeds, `CATCH47`) |
+|---|---|---|
+| `catch-greedy` | 0.0% · 1.68 gyms | **7.5% · 3.04 gyms** |
+| `catch-averse` | 0.0% · 1.42 gyms | 0.0% · 1.24 gyms |
+| `greedy`, for scale | 7.1% · 3.35 gyms | 9.8% · 3.41 gyms |
+
+The gap between the pair went from 0.26 gyms to **1.80**. Capture is now doing
+most of what keeps a run alive, which is the intended reading.
+
+**The uncomfortable part is what it does to §10.5's finding.** That section
+concluded that "the value in the capture system is not in the catching, it is in
+the declining", on the evidence that a selective catcher (`greedy`, 3.35)
+reached roughly twice as deep as an indiscriminate one (`catch-greedy`, 1.68).
+That gap is now 3.41 against 3.04. Declining is worth about a third of a gym,
+not one and two thirds.
+
+So **the level tax was most of the punishment for indiscriminate catching**, and
+removing it removed most of the reason to decline. That is a real cost of this
+patch and it is not being fixed here. It is also the correct order of
+operations: the tax was an invisible punishment for a decision the player could
+not see they were making, and replacing it with a *visible* cost is a design
+question rather than a levelling one. The party slot and the step are the
+levers.
+
+### 13.4 The pre-gym decision does not measure
+
+200 seeds, `LEAD47` prefix, `--policy leads`.
+
+| policy | completion | mean gyms |
+|---|---|---|
+| `lead-static` | 7.0% | 3.19 |
+| `lead-swap` | 5.0% | **3.19** |
+
+**Identical mean gyms.** The completion difference is 14 runs against 10 at
+n=200 and is noise. An earlier 60-seed run showed `lead-static` ahead by a third
+of a gym; that was noise too, in the other direction, which is the useful thing
+about running the pair at a real sample size.
+
+Part 2 asked for exactly this measurement and named the conclusion in advance:
+*if there is no gap, the pre-gym screen is a nice screen attached to a
+non-decision, and that is worth knowing before it gets polished.* At this sample
+size, under this heuristic, there is no gap.
+
+Two qualifications, neither of which rescues it:
+
+- **The heuristic is deliberately crude** and is written down at `leadFor`: best
+  damaging move's multiplier against the gym's type, minus the gym type's
+  multiplier against the member's types, ties to the earlier slot. It does not
+  read the leader's actual team — the player cannot either — and ignores HP,
+  speed and items. A smarter bot might find a gap this one cannot.
+- **The bot leads and then plays the fight with the switching AI**, which will
+  switch away from a bad matchup on turn one. A lead choice matters most to a
+  player who *cannot* cheaply undo it, and this bot can.
+
+What it does not license is deleting the screen. The screen also carries the
+leader's identity and type, which is information the player did not previously
+have at all, and the drawer trigger on the last screen before the hardest fight
+in the segment. But the *decision* on it is unproven, and nothing should be
+built on the assumption that it is load-bearing until a better bot or a
+playtest says otherwise.
+
+### 13.5 Contribution: the party is closer to a carry than to a team
+
+400 seeds, `RETUNE`, n=390 runs with a final party that dealt damage.
+
+| measure | value |
+|---|---|
+| top member's share of run damage | **65.6%** |
+| runs where one member dealt >60% | **59.2%** |
+| members dealing >10% | 2.31 of 3 |
+
+Distribution of the top member's share: 3.1% of runs in the 30–40% band, 14.1%
+in 40–50%, 23.6% in 50–60%, then 21.5%, 15.9%, 12.8% and 9.0% climbing to
+90–100%.
+
+**Reported plainly and not fixed here**, per the standing instruction: if
+concentration is high, the party is decoration, and that is a much larger
+finding than the patch that surfaced it.
+
+One confound is stated in the report itself where it prints these numbers, and
+it is not corrected for: **tenure**. The starter has been in the party for the
+whole run and a member caught in segment 5 has had three segments to deal
+damage, so some of the 65.6% is time rather than carry. The gym-8 age
+distribution says how much: 46.3% of members entering gym 8 have been there for
+seven segments, against 16.0% that joined that same segment. A run's damage is
+not evenly available across those.
+
+The honest summary is that 2.31 of 3 members clear 10% of a run's damage, which
+is not decoration, while one member usually clears more than 60%, which is not a
+team either. It is worth measuring again with a tenure-normalised statistic
+before anything is done about it.
+
+### 13.6 What this stage did not measure
+
+No tuning number moved. `data/scaling.ts` is untouched, `data/tuning.ts` gained
+one display number, and `PARTY_TUNING.joinLevelOffset` was deleted rather than
+retuned. The completion rate moved 4.5 points off a rule change, which means
+**the next balance pass has a new baseline** and the randomizer-11 figures are
+no longer the comparison for anything.
+
+Balance is not a gate, per the standing decision, and this stage does not retune
+on top of its own change: a retune landing in the same patch as the thing it is
+correcting for would leave the next report unable to say which moved which.

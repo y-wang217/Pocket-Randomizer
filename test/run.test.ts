@@ -38,11 +38,25 @@ import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 import { moveChoice, type PokemonState } from '../src/core/types';
 
+/**
+ * A hand-built `NodeResult` reporting no per-member counters. **Stage 4.7.**
+ *
+ * An empty array rather than one zeroed entry per member, and the difference is
+ * a statement: `applyBattleState` reads `contribution[index]` and leaves a
+ * member's running total alone when there is nothing at that index, so this
+ * says "this fixture is not about contribution" rather than "every member did
+ * nothing". The fixtures below are about state transitions — a wipe, a heal, a
+ * berry — and a zero would be an assertion they are not making.
+ */
+const NO_CONTRIBUTION: never[] = [];
+
+
 /** Prefers a node kind when it is offered, so a test can steer a run. */
 function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): RunPolicy {
   return {
     chooseStarter: async () => 0,
     chooseLocale: async () => 0,
+    chooseLead: async () => 0,
     chooseNode: async (options) => {
       const index = options.findIndex((option) => option.kind === kind);
       return index === -1 ? 0 : index;
@@ -88,6 +102,7 @@ describe('headless run', () => {
     const policy: RunPolicy = {
       chooseStarter: async () => 0,
       chooseLocale: async () => 0,
+      chooseLead: async () => 0,
       chooseNode: async (options) => {
         // Every node the player is *offered* must be choosable; the gym is not.
         for (const option of options) expect(option.kind).not.toBe('gym');
@@ -238,7 +253,7 @@ describe('run outcomes', () => {
 
     const next = resolveNode(state, {
       node,
-      battle: { result: { winner: 'p2', turns: 4, cause: 'faint' }, party: dead },
+      battle: { result: { winner: 'p2', turns: 4, cause: 'faint' }, party: dead, contribution: NO_CONTRIBUTION },
     });
 
     expect(next.outcome).toBe('defeat');
@@ -249,7 +264,7 @@ describe('run outcomes', () => {
     const state = atTheGym(withStarter('RUN-WIN'));
     const next = resolveNode(state, {
       node: segmentOf(state).gym,
-      battle: { result: { winner: 'p1', turns: 9, cause: 'faint' }, party: state.party },
+      battle: { result: { winner: 'p1', turns: 9, cause: 'faint' }, party: state.party, contribution: NO_CONTRIBUTION },
     });
 
     // Eight gyms: clearing the first advances rather than wins.
@@ -270,7 +285,7 @@ describe('run outcomes', () => {
       state = atTheGym(
         resolveNode(state, {
           node: segmentOf(state).gym,
-          battle: { result: { winner: 'p1', turns: 5, cause: 'faint' }, party: state.party },
+          battle: { result: { winner: 'p1', turns: 5, cause: 'faint' }, party: state.party, contribution: NO_CONTRIBUTION },
         }),
       );
     }
@@ -278,7 +293,7 @@ describe('run outcomes', () => {
 
     const next = resolveNode(state, {
       node: segmentOf(state).gym,
-      battle: { result: { winner: 'p1', turns: 9, cause: 'faint' }, party: state.party },
+      battle: { result: { winner: 'p1', turns: 9, cause: 'faint' }, party: state.party, contribution: NO_CONTRIBUTION },
     });
     expect(next.outcome).toBe('victory');
     expect(gymsCleared(next)).toBe(SEGMENTS_PER_RUN);
@@ -289,7 +304,7 @@ describe('run outcomes', () => {
     const state = atTheGym(withStarter('RUN-DRAW'));
     const next = resolveNode(state, {
       node: segmentOf(state).gym,
-      battle: { result: { winner: null, turns: 200, cause: 'turn-limit' }, party: state.party },
+      battle: { result: { winner: null, turns: 200, cause: 'turn-limit' }, party: state.party, contribution: NO_CONTRIBUTION },
     });
 
     expect(next.outcome).toBe('defeat');
@@ -306,7 +321,7 @@ describe('run outcomes', () => {
 
     const next = resolveNode(state, {
       node,
-      battle: { result: { winner: 'p2', turns: 3, cause: 'faint' }, party: dead },
+      battle: { result: { winner: 'p2', turns: 3, cause: 'faint' }, party: dead, contribution: NO_CONTRIBUTION },
     });
     expect(next.outcome).toBe('defeat');
     expect(next.party[0]?.fainted).toBe(true);

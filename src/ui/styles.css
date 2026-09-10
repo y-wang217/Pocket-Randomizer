@@ -2253,3 +2253,226 @@ body {
   align-self: start;
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------------------
+ * Stage 4.7 — legibility
+ *
+ * The drawer, the pre-gym screen, the locale screen's new context, and the two
+ * new chips: a move tag and an archetype label.
+ *
+ * Everything here is laid out for a 390x844 phone first. The drawer is a bottom
+ * sheet because that is where a thumb is, and it stops short of the top of the
+ * viewport so the screen underneath stays visible — the whole point of an
+ * overlay rather than a route is that the player can see they have not left.
+ * ------------------------------------------------------------------------- */
+
+/* The drawer trigger, in the same place on every decision surface. */
+.shell__drawer-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 6px;
+}
+
+.drawer__trigger {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.drawer[hidden] {
+  /*
+   * **`hidden` is a UA style, and any `display` rule beats it.**
+   *
+   * The rule below sets `display: flex`, which silently un-hides the overlay:
+   * the sheet is off-screen but the scrim covers the viewport and eats every
+   * click on the screen underneath. `npm run smoke` found it on the starter
+   * screen within seconds of the drawer landing, which is exactly what that
+   * script is for — jsdom has no pointer-event model and every unit test
+   * passed.
+   *
+   * This file already carries the same note about `.rewards`. Two occurrences
+   * is a pattern: anything toggled with `hidden` needs the guard next to its
+   * `display` rule.
+   *
+   * `.drawer[hidden]` and not `:where(.drawer)[hidden]`, which was the first
+   * attempt and did nothing: `:where()` zeroes its argument's specificity, so
+   * the guard tied with `.drawer` on (0,1,0) and lost on source order. The
+   * smoke test failed identically twice, which is the useful kind of failure.
+   */
+  display: none;
+}
+
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.drawer__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 8, 0.72);
+}
+
+.drawer__sheet {
+  position: relative;
+  max-height: 86vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+  padding: 14px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drawer__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  /* Sticky so Close is reachable without scrolling a three-card sheet back up. */
+  position: sticky;
+  top: -14px;
+  background: var(--bg);
+  padding-top: 4px;
+}
+
+.drawer__title { margin: 0; font-size: 16px; }
+.drawer__blurb { margin: 0; color: var(--text-dim); font-size: 12px; }
+.drawer__note { margin: 0; color: var(--text-faint); font-size: 11px; }
+.drawer__section { margin: 6px 0 0; font-size: 12px; color: var(--text-dim); }
+
+.drawer__members {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drawer__relic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge--relic { background: var(--bg-sunken); color: var(--accent); }
+
+/* Contribution: raw counts, evenly weighted. No cell is emphasised over
+ * another, because an emphasis is a claim about which number matters. */
+.party__contribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.party__contribution-cell { display: flex; gap: 4px; }
+.party__contribution-label { color: var(--text-faint); }
+.party__contribution-value { color: var(--text-dim); }
+
+/* The archetype chip, beside a level on both battle panels and every card. */
+.badge--archetype {
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+/* Move tags. Deliberately quiet: they are context on a button whose job is
+ * still to be pressed, and a row of loud chips would out-shout the move name. */
+.move__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.badge--tag {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 10px;
+  padding: 0 5px;
+  cursor: pointer;
+}
+
+/* Accuracy is the one tag most likely to explain a miss, so it is the one tag
+ * that is not quiet. Still a colour, never a word like "risky". */
+.badge--tag-accuracy { color: var(--accent); border-color: var(--accent); }
+
+/* The status move's effect line, in the region base power would have used. */
+.move__effect {
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+/* The pre-gym screen. */
+.pre-gym__header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pre-gym__counter { font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
+.pre-gym__prompt { margin: 12px 0 6px; font-size: 14px; }
+
+.pre-gym__party {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pre-gym__slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Locale select's new context: the gym rail and the party strip. */
+.locale__gym {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-sunken);
+}
+
+.locale__gym-label { color: var(--text-faint); font-size: 12px; }
+.locale__gym-leader { font-weight: 600; }
+
+.locale__party {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* A row per member, not a grid: three rows read top to bottom in the same order
+ * as the party, and an order the screen chose would imply a ranking. */
+.locale__party-member {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.locale__party-member--fainted { opacity: 0.55; }
+.locale__party-name { font-weight: 600; }
+
+@media (max-width: 420px) {
+  /* The sheet takes more of the viewport on a phone, but never all of it: the
+   * strip of the screen underneath is what says this is an overlay. */
+  .drawer__sheet { max-height: 90vh; }
+  .move__tags { gap: 3px; }
+  .badge--tag { font-size: 9px; }
+}

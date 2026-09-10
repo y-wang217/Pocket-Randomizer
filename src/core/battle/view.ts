@@ -79,7 +79,24 @@ export {
   type AbilityTypeEffect,
   type RevealPolicy,
 } from './effectiveness';
-import type { Gender, StatName, StatStages, StatusName, SwitchView } from '../types';
+import type {
+  Gender,
+  MoveExplanation,
+  StatName,
+  StatsTable,
+  StatStages,
+  StatusName,
+  SwitchView,
+} from '../types';
+import { hasStatusReadout, tagsForFace } from '../moveTags';
+import type { MoveTag } from '../../data/moveTags';
+import type { MoveEffectFields } from '../../data/moveCopy';
+import { DEFAULT_TUNING } from '../../data/tuning';
+
+/** The shipped face cap, for the `buildBattleUiView` default. See there. */
+const DEFAULT_MAX_MOVE_TAGS = DEFAULT_TUNING.maxMoveTagsOnFace;
+import { archetypeOf } from '../archetype';
+import type { Archetype } from '../../data/archetypes';
 
 // ---------------------------------------------------------------------------
 // The input: a plain-data snapshot from the adapter
@@ -129,8 +146,14 @@ export interface ActiveFacts {
    * which is exact too, because GYMRUN has one fixed spread. See that file.
    */
   stats: Record<StatName, number>;
-  /** Species base stats, carried so the visibility fallback can recompute. */
-  baseStats: Record<StatName, number>;
+  /**
+   * Species base stats, carried so the visibility fallback can recompute.
+   *
+   * Widened to include HP in Stage 4.7: `core/archetypeOf` reads it, and a
+   * classification that skipped HP would call every bulky Pokemon with modest
+   * defences an attacker.
+   */
+  baseStats: StatsTable;
   boosts: StatStages;
   /** Volatile condition ids currently on this Pokemon: `confusion`, `substitute`, ... */
   volatiles: string[];
@@ -160,6 +183,23 @@ export interface MoveFacts {
    * Ability effects are layered on here, under the visibility rule.
    */
   typeMultiplier: number;
+  /**
+   * Everything `describeMove` knows about this move. **Stage 4.7, Part 6.**
+   *
+   * The adapter is where a dex read belongs, and `describeMove` is already the
+   * one door onto a move's fields — so the adapter opens it and the projection
+   * derives tags and the status readout from what comes back. `view.ts`
+   * reaching for the dex itself would be a second lookup path in front of one
+   * table.
+   *
+   * It does **not** pass through to `MoveUiView`. A screen handed the whole
+   * explanation is a screen that can render a field the projection decided not
+   * to show, which is the seam `test/boundaries.test.ts` exists to keep shut.
+   *
+   * Null only for a move the dex does not have, which cannot happen for a move
+   * the engine just offered — the null is the return type being honest.
+   */
+  explanation: MoveExplanation | null;
 }
 
 /**
@@ -257,6 +297,21 @@ export interface ActiveUiView {
   ability: RevealedView | null;
   item: RevealedView | null;
   fainted: boolean;
+  /**
+   * What this stat block is built to do. **Stage 4.7, Part 7.**
+   *
+   * Computed here rather than in the screen, because `core/` is where the
+   * classification lives and rule 5 says the battle UI reads this projection
+   * and nothing else. A screen that imported `archetypeOf` would be a screen
+   * that could feed it something other than the stats it is showing.
+   *
+   * Not gated by the reveal policy, and that is the point of deriving it from
+   * base stats: it is a restatement of numbers already on both panels since
+   * Stage 4.5, not a peek at anything. `revealOpponentAbility` and
+   * `revealOpponentItem` gate the two facts a player genuinely could not
+   * otherwise know, and this is not one of them.
+   */
+  archetype: Archetype;
 }
 
 export interface MoveUiView {
@@ -295,6 +350,32 @@ export interface MoveUiView {
    * needs a reason attached or it reads as a bug.
    */
   abilityAffected: boolean;
+  /**
+   * The tags on this move's button face. **Stage 4.7, Part 6b.**
+   *
+   * Capped at `tuning.maxMoveTagsOnFace` and in table priority order, so the
+   * face is a prefix of the full set rather than a different selection. The
+   * full set is reachable from the tap-to-expand explanation.
+   *
+   * STAB is resolved here, against the *player's* active Pokemon, because STAB
+   * is a property of the move and its holder together. On a battle button there
+   * is always a holder, which is why this is the one surface where the tag is
+   * unconditional rather than dependent on a recipient having been chosen.
+   */
+  tags: readonly MoveTag[];
+  /**
+   * The structured effect readout for a status move, or null. **Part 6a.**
+   *
+   * A status move renders three empty regions where base power, band and the
+   * effectiveness marker sit on a damaging move, so it reads as broken. This is
+   * what fills them. Structured rather than composed: the sentences live in
+   * `data/moveCopy.ts` and the screen joins them, so a copy change stays a
+   * one-file change.
+   *
+   * Null for every damaging move. A damaging move's secondary belongs in the
+   * explanation, not in a region that already has a base power in it.
+   */
+  effect: MoveEffectFields | null;
 }
 
 export interface BattleUiView {
@@ -387,6 +468,17 @@ export function buildBattleUiView(
   facts: BattleFacts,
   reveal: RevealPolicy,
   abilityEffects: AbilityEffects,
+  /**
+   * How many tags a move button's face may carry. `tuning.maxMoveTagsOnFace`.
+   *
+   * A parameter with a default rather than an import, for the reason
+   * `docs/architecture.md` gives about `Tuning`: it is *passed into* the things
+   * that read it so a sweep can vary it, never reached for from inside a
+   * function. The default is the shipped value and exists so the dozen
+   * hand-built views in `test/battle-view.test.ts` do not each have to state a
+   * number that is not what they are testing.
+   */
+  maxMoveTagsOnFace: number = DEFAULT_MAX_MOVE_TAGS,
 ): BattleUiView {
   const player = toActiveUiView(facts.player, { ability: true, item: true });
   const opponent = toActiveUiView(facts.opponent, reveal);
@@ -397,7 +489,7 @@ export function buildBattleUiView(
     player,
     opponent,
     moves: facts.moves.map((move) =>
-      toMoveUiView(move, facts.opponent, reveal, abilityEffects),
+      toMoveUiView(move, facts.opponent, facts.player, maxMoveTagsOnFace, reveal, abilityEffects),
     ),
     fasterSide: fasterSide(facts, reveal),
     switches: facts.switches,
@@ -435,6 +527,7 @@ function toActiveUiView(facts: ActiveFacts, reveal: RevealPolicy): ActiveUiView 
       : null,
     item: facts.item ? { id: facts.item.id, name: facts.item.name, revealed: reveal.item } : null,
     fainted: facts.fainted,
+    archetype: archetypeOf(facts.baseStats),
   };
 }
 
@@ -476,6 +569,8 @@ function statViews(facts: ActiveFacts): Record<StatName, StatView> {
 function toMoveUiView(
   move: MoveFacts,
   defender: ActiveFacts,
+  holder: ActiveFacts,
+  maxTags: number,
   reveal: RevealPolicy,
   abilityEffects: AbilityEffects,
 ): MoveUiView {
@@ -516,6 +611,18 @@ function toMoveUiView(
     effectiveness: result.multiplier,
     band: result.band,
     abilityAffected: result.abilityAffected,
+    tags: move.explanation ? tagsForFace(move.explanation, maxTags, { types: holder.types }) : [],
+    effect:
+      move.explanation && hasStatusReadout(move.explanation)
+        ? {
+            ...(move.explanation.boosts ? { boosts: move.explanation.boosts } : {}),
+            ...(move.explanation.heal ? { heal: move.explanation.heal } : {}),
+            ...(move.explanation.status ? { status: move.explanation.status } : {}),
+            ...(move.explanation.volatile ? { volatile: move.explanation.volatile } : {}),
+            ...(move.explanation.fieldEffect ? { fieldEffect: move.explanation.fieldEffect } : {}),
+            priority: move.explanation.priority,
+          }
+        : null,
   };
 }
 

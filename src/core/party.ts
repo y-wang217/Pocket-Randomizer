@@ -19,14 +19,30 @@
  * to make a replay disagree with the run it replays.
  */
 import { describeSpec } from './battle/driver';
+import { addContribution, emptyContribution } from './battle/contribution';
 import { battleSpecFor } from './items';
-import type { ItemId, MoveState, PokemonSpec, PokemonState, TeamSpec } from './types';
+import type {
+  BattleMemberState,
+  Contribution,
+  ItemId,
+  MoveState,
+  PokemonSpec,
+  PokemonState,
+  TeamSpec,
+} from './types';
 import { MOVESET } from '../data/scaling';
 import { PARTY_SIZE } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
 
-/** A fresh party member at full HP and PP. */
-export function createPartyMember(spec: PokemonSpec): PokemonState {
+/**
+ * A fresh party member at full HP and PP.
+ *
+ * `joinedSegment` defaults to 0 because the overwhelming majority of callers
+ * are building a starter or a test fixture, both of which joined at run start.
+ * `acquisition.applyAcquisition` is the one caller that passes something else,
+ * and it is also the one path by which a party can gain a member mid-run.
+ */
+export function createPartyMember(spec: PokemonSpec, joinedSegment = 0): PokemonState {
   const vitals = describeSpec(spec);
   return {
     spec,
@@ -35,11 +51,16 @@ export function createPartyMember(spec: PokemonSpec): PokemonState {
     moves: vitals.moves.map((move) => ({ ...move })),
     status: null,
     fainted: false,
+    joinedSegment,
+    contribution: emptyContribution(),
   };
 }
 
 export function createParty(specs: readonly PokemonSpec[]): PokemonState[] {
-  return specs.map(createPartyMember);
+  // `specs.map(createPartyMember)` would hand the array index in as
+  // `joinedSegment`, which is the classic form of this bug and would quietly
+  // stamp the second starter option as a segment-1 join.
+  return specs.map((spec) => createPartyMember(spec));
 }
 
 /**
@@ -135,21 +156,44 @@ export function carryOverFor(party: readonly PokemonState[]): PokemonState[] {
  * read-back, because the read-back carries the merged battle spec and the party
  * carries the identity. Merging one back over the other is how the two would
  * quietly converge.
+ *
+ * **The merge names the five fields it takes, rather than spreading the
+ * read-back and naming the exceptions.** Stage 4.7 inverted it, and the reason
+ * is that the two forms fail in opposite directions. Spreading means every
+ * field a later stage adds to `PokemonState` is taken from the battle by
+ * default, and a battle does not know when a member joined the party or what it
+ * has contributed to the run — so the default is wrong and silently so. Naming
+ * means a later stage that adds a genuinely battle-derived field has to come
+ * here and say so, which is a compile-time-shaped omission rather than a
+ * runtime-shaped one. `after` is `BattleMemberState` for the same reason: the
+ * sim is not allowed to claim it knows the rest.
  */
 export function applyBattleState(
   party: readonly PokemonState[],
-  after: readonly PokemonState[],
+  after: readonly BattleMemberState[],
+  contribution: readonly Contribution[],
 ): PokemonState[] {
   const sent = sendOrder(party);
-  const updates = new Map<PokemonState, PokemonState>();
+  const updates = new Map<PokemonState, { state: BattleMemberState; delta: Contribution | undefined }>();
   for (const [index, member] of sent.entries()) {
     const updated = after[index];
-    if (updated) updates.set(member, updated);
+    if (updated) updates.set(member, { state: updated, delta: contribution[index] });
   }
 
   return party.map((member) => {
     const updated = updates.get(member);
-    return updated ? { ...updated, spec: member.spec, item: member.item } : member;
+    if (!updated) return member;
+    return {
+      ...member,
+      maxHp: updated.state.maxHp,
+      hp: updated.state.hp,
+      moves: updated.state.moves,
+      status: updated.state.status,
+      fainted: updated.state.fainted,
+      contribution: updated.delta
+        ? addContribution(member.contribution, updated.delta)
+        : member.contribution,
+    };
   });
 }
 
@@ -417,8 +461,14 @@ export function teachMove(
  * be reintroducing a mechanic the party was built to replace.
  */
 
-/** 0..1, for a HP bar that never divides by a zero max. */
-export function hpFraction(member: PokemonState): number {
+/**
+ * 0..1, for a HP bar that never divides by a zero max.
+ *
+ * Takes `BattleMemberState`, not `PokemonState`: it reads two vitals and a
+ * result screen renders it over a battle read-back that has no run-scoped
+ * fields. Every `PokemonState` is one of these, so nothing else changes.
+ */
+export function hpFraction(member: BattleMemberState): number {
   if (member.maxHp <= 0) return 0;
   return Math.max(0, Math.min(1, member.hp / member.maxHp));
 }
@@ -454,6 +504,42 @@ export function reorderParty(
 }
 
 /**
+ * Put a member in front. **The one definition of who leads.** Stage 4.7.
+ *
+ * A thin call to `reorderParty`, and thin on purpose: lead selection is a
+ * *reorder*, so it has to go through the function the party screen's drag order
+ * already goes through. A `leadIndex` field on `RunState` would have been the
+ * other design and it is the one that rots — it would disagree with the party
+ * order the first time a player dragged a member after choosing a lead, and
+ * `battleMembersFor` reads order, so the order would win and the field would be
+ * a lie nobody noticed.
+ *
+ * The consequence, which is a real cost and not hidden: a lead chosen before
+ * gym 3 is still leading at the first node of segment 4. That is the price of
+ * one source of truth, and it is cheaper than two.
+ */
+export function setLead(party: readonly PokemonState[], index: number): PokemonState[] {
+  return reorderParty(party, index, 0);
+}
+
+/**
+ * Whether a member can be chosen as the lead, or why not.
+ *
+ * Returns the reason or null, in the shape `acquisition.decisionRefusal` uses,
+ * and for the same reason: a decision that is silently turned into a different
+ * decision is a log that replays into a different run. A fainted member cannot
+ * lead — the sim would refuse to send it and `battleMembersFor` filters it out,
+ * so accepting the choice and then quietly leading with somebody else is the
+ * exact failure this refuses.
+ */
+export function leadRefusal(party: readonly PokemonState[], index: number): string | null {
+  const member = party[index];
+  if (!member) return `no party member in slot ${index}`;
+  if (member.fainted) return `${member.spec.species} has fainted and cannot lead`;
+  return null;
+}
+
+/**
  * Drop a member. **Permanent for the run: there is no box.**
  *
  * Refuses to empty the party, which is the one guard that matters. A party of
@@ -477,8 +563,8 @@ export function releaseMember(
   };
 }
 
-/** Total remaining PP across a member's moves, and its ceiling. */
-export function ppTotals(member: PokemonState): { pp: number; maxPp: number } {
+/** Total remaining PP across a member's moves, and its ceiling. Vitals only. */
+export function ppTotals(member: BattleMemberState): { pp: number; maxPp: number } {
   return member.moves.reduce(
     (totals, move) => ({ pp: totals.pp + move.pp, maxPp: totals.maxPp + move.maxPp }),
     { pp: 0, maxPp: 0 },

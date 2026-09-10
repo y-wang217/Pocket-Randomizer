@@ -24,6 +24,7 @@ import { causeOfDeath, gymsCleared, type CauseOfDeath, type RunResult, type RunS
 import { GYMS } from '../../data/gyms';
 import { el } from '../scene';
 import { typeChip } from './starter-select';
+import { archetypeChip } from '../archetype-chip';
 
 export interface Summary {
   root: HTMLElement;
@@ -200,7 +201,7 @@ function renderMember(member: RunState['party'][number]): HTMLElement {
   level.textContent = `Lv${detail.level}`;
   const types = el('span', 'panel__types');
   types.replaceChildren(...detail.types.map(typeChip));
-  header.append(name, level, types);
+  header.append(name, level, archetypeChip(detail.baseStats), types);
 
   const meta = el('div', 'starter__meta');
   meta.textContent = `${detail.ability} · ${hpState(member.hp, member.maxHp)}`;
@@ -224,8 +225,48 @@ function renderMember(member: RunState['party'][number]): HTMLElement {
     }),
   );
 
-  card.append(header, meta, moves);
+  card.append(header, meta, moves, renderContribution(member));
   return card;
+}
+
+/**
+ * What this member did across the whole run. **Stage 4.7, Part 5.**
+ *
+ * The run summary is the first of contribution's three surfaces, and it is the
+ * one the numbers were built for: the question is whether the run had a party
+ * or a solo carry with three passengers, and this is where a player finds out.
+ *
+ * **Raw counts, in party order, with no share and no score.** Percentages are
+ * computed at render *when a denominator has been agreed on*, and this row has
+ * not agreed on one — damage dealt as a share of what? The run's total? The
+ * party's? A composite would hide the arithmetic inside a single number, which
+ * is a verdict wearing a statistic.
+ *
+ * The Part 4 amendment is what makes this allowed at all: a factual readout of
+ * what has already happened is an attribute. What stays forbidden, here and
+ * everywhere: calling a member underperforming, marking a swap candidate,
+ * ordering this list by contribution, or projecting any of it forward.
+ */
+function renderContribution(member: RunState['party'][number]): HTMLElement {
+  const row = el('div', 'party__contribution');
+  const counters = member.contribution;
+  const entries: [string, number][] = [
+    ['Dealt', counters.damageDealt],
+    ['Taken', counters.damageTaken],
+    ['KOs', counters.kos],
+    ['Faints', counters.faints],
+    ['Turns', counters.turnsOnField],
+  ];
+  for (const [label, value] of entries) {
+    const cell = el('span', 'party__contribution-cell');
+    const name = el('span', 'party__contribution-label');
+    name.textContent = label;
+    const count = el('span', 'party__contribution-value');
+    count.textContent = String(value);
+    cell.append(name, count);
+    row.append(cell);
+  }
+  return row;
 }
 
 function renderVisit(visit: RunState['history'][number], state: RunState): HTMLElement {

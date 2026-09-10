@@ -32,6 +32,19 @@ import { GYMS } from '../src/data/gyms';
 import { BERRIES, ITEMS, itemById } from '../src/data/items';
 import { berryHoldRate, SEGMENT_COUNT } from '../src/data/scaling';
 
+/**
+ * A hand-built `NodeResult` reporting no per-member counters. **Stage 4.7.**
+ *
+ * An empty array rather than one zeroed entry per member, and the difference is
+ * a statement: `applyBattleState` reads `contribution[index]` and leaves a
+ * member's running total alone when there is nothing at that index, so this
+ * says "this fixture is not about contribution" rather than "every member did
+ * nothing". The fixtures below are about state transitions — a wipe, a heal, a
+ * berry — and a zero would be an assertion they are not making.
+ */
+const NO_CONTRIBUTION: never[] = [];
+
+
 const dex = Dex.forGen(9);
 
 // ---------------------------------------------------------------------------
@@ -197,6 +210,7 @@ describe('spending a consumed item', () => {
         battle: {
           result: { winner: 'p1', turns: 3, cause: 'faint' },
           party,
+          contribution: NO_CONTRIBUTION,
           consumed: ['oranberry'],
         },
       },
