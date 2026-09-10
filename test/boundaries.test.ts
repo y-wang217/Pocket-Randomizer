@@ -509,6 +509,10 @@ describe('documentation paths', () => {
 
   function looksLikePath(token: string): boolean {
     if (/\s/.test(token)) return false;
+    // A glob is a pattern, not a reference to a file. `src/data/**` names a rule
+    // about a directory; there is nothing at that path to resolve, and a check
+    // that demanded one would be reading the wrong kind of token.
+    if (token.includes('*')) return false;
     return ROOTS.some((root) => token.startsWith(root)) || EXTENSIONS.some((ext) => token.endsWith(ext));
   }
 
