@@ -62,6 +62,14 @@ type TipKind =
   /** A move tag on a card face. Stage 4.7, Part 6b. */
   | 'movetag'
   /**
+   * The tags a narrow card face had no room for, as one panel.
+   *
+   * The id is a comma-separated list of tag ids rather than one, because the
+   * question the `+2` chip is asked is "which two", and a panel that named the
+   * vocabulary instead of this move's own tags would answer a different one.
+   */
+  | 'movetags'
+  /**
    * The six-label stat shorthand. Stage 4.7, Part 7.
    *
    * The one tip with no id of its own: every chip raises the same panel,
@@ -80,11 +88,21 @@ const KINDS: readonly TipKind[] = [
   'stat',
   'band',
   'movetag',
+  'movetags',
   'archetype',
 ];
 
 export interface TooltipLayer {
   root: HTMLElement;
+  /**
+   * Dismiss whatever is open, if anything.
+   *
+   * For the router to call on navigation. `ui/drawer.ts` is closed the same way
+   * and for the same reason: a panel left open across a screen change is an
+   * overlay over a decision the player has already made, and this one is worse
+   * than the drawer because it also eats the first tap on the new screen.
+   */
+  close(): void;
   /** Detach the delegated listeners. */
   destroy(): void;
 }
@@ -195,6 +213,7 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
 
   return {
     root,
+    close,
     destroy() {
       host.removeEventListener('click', onClick, true);
       host.removeEventListener('keydown', onKeyDown, true);
@@ -234,6 +253,8 @@ function render(tip: string): HTMLElement | null {
       return renderBand(id);
     case 'movetag':
       return renderMoveTag(id);
+    case 'movetags':
+      return renderMoveTags(id);
     case 'archetype':
       return renderArchetypes();
   }
@@ -251,6 +272,29 @@ function renderMoveTag(id: string): HTMLElement | null {
   if (!tag) return null;
   const body = panel(tag.long);
   body.append(line(tag.blurb, 'tip__text'));
+  return body;
+}
+
+/**
+ * Several tags in one panel: what a narrow face folded behind its `+N` chip.
+ *
+ * Same words as `renderMoveTag`, same source, listed. An id that no longer
+ * names a tag is dropped rather than rendered blank, and a list that resolves
+ * to nothing renders no panel at all.
+ */
+function renderMoveTags(ids: string): HTMLElement | null {
+  const tags = ids
+    .split(',')
+    .map((id) => MOVE_TAG_BY_ID[id as MoveTagId])
+    .filter((tag): tag is NonNullable<typeof tag> => Boolean(tag));
+  const first = tags[0];
+  if (!first) return null;
+
+  const body = panel(first.long);
+  body.append(line(first.blurb, 'tip__text'));
+  for (const tag of tags.slice(1)) {
+    body.append(line(tag.long, 'tip__title'), line(tag.blurb, 'tip__text'));
+  }
   return body;
 }
 

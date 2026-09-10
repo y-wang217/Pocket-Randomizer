@@ -168,6 +168,25 @@ body {
 .panel--foe,
 .panel--me { border-left: var(--space-1) solid var(--border-strong); }
 
+/*
+ * One line, and it does not wrap. **The second fold cut.**
+ *
+ * The header carries a name, a level, the Part 7 archetype chip and the type
+ * badges. On the foe panel the name is prefixed with "Opposing", and at 390px
+ * that was enough to push the chip and the badges onto a second line: the foe
+ * panel measured 239.25px against the player's 214.25 for the same content, and
+ * the whole 25px was one wrapped row on one of the two panels.
+ *
+ * `nowrap`, and the archetype chip moves to the meta row rather than the name
+ * giving way. `nowrap` alone was not enough: name, level, chip and types want
+ * 358px of a 329px header at 390px, so the name ellipsized and "Opposing
+ * Mudbray" rendered as "Opposing Mu…". The species being fought is the one
+ * thing on this panel that must not be abbreviated. Without the chip the header
+ * wants 248px and nothing clips; the ellipsis stays as the valve for a name
+ * longer than any the game ships.
+ *
+ * See the note in `ui/scene.ts` on `panel__meta` for what moving the chip cost.
+ */
 .panel__header {
   display: flex;
   align-items: center;
@@ -179,6 +198,29 @@ body {
 .panel__name { font-weight: 600; }
 .panel__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
 .panel__types { display: inline-flex; gap: var(--space-1); margin-left: auto; }
+
+/*
+ * **The no-wrap rule is the scene's, not every header's.**
+ *
+ * `panel__header` and `panel__name` are borrowed by `ui/member-card.ts`, the
+ * acquisition cards and the item-target cards — four surfaces whose headers
+ * wrap happily and are nowhere near the fold. Applied to all of them, `nowrap`
+ * reflowed every one of those cards, and a shifted card slides a different
+ * pixel under the player's thumb: on the result screen the new centre was an
+ * archetype chip, which opens a tooltip and picks nothing. The battle panels
+ * are the ones over the fold, so they are the ones that pay.
+ */
+.scene .panel__header { flex-wrap: nowrap; }
+
+.scene .panel__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene .panel__level,
+.scene .panel__types { flex: none; }
 
 .hp {
   height: 9px;
@@ -292,6 +334,102 @@ body {
  */
 .stat[data-stat="hp"] { grid-column: 1 / -1; }
 .stat[data-stat="spe"] { grid-column: 1 / -1; }
+
+/*
+ * The collapsed stat block. **Fold cut 3.**
+ *
+ * On a phone the four-row block is the single largest reclaimable thing on the
+ * battle screen: 71.5px per panel, 143 across the two, out of the 206.5 the
+ * fourth move button was over the fold by. Collapsed it is one row of six
+ * values plus the toggle, and **nothing is removed from the screen** — every
+ * number the expanded block prints is still printed, and the stage colouring
+ * rides on `.stat__value`, so a boosted stat still reads as boosted.
+ *
+ * This is the V5 vertical budget spent early. `docs/visual/reports/` records
+ * it so V5 does not spend it twice.
+ *
+ * Three things the collapsed rules deliberately do not touch:
+ *
+ *   - `display` on `.stat__value` and `.stat__bar`. Those two are swapped by
+ *     `hidden` in Simple mode (`applyVerbosity`), and any `display` rule here
+ *     would beat the UA's `[hidden]` and print both. The bar is narrowed, never
+ *     hidden — in Simple mode it *is* the readout.
+ *   - the tooltip triggers on `.stat__label`. The abbreviations still explain
+ *     themselves at one row, which is where a player is most likely to need it.
+ *   - the speed marker. Only its word is dropped; `▲` stays on the Speed cell,
+ *     with the same `title`.
+ *
+ * **The scope is `[data-expanded]`, not `.stats`, and that is load-bearing.**
+ * There are two stat blocks in the app: this one and `stats--party`, the one
+ * `ui/member-card.ts` puts on every party, drawer and result card. Only the
+ * panel's block carries the attribute, because only it has a toggle — written
+ * as `:not([data-expanded="true"])` the rules collapsed the member cards too,
+ * squeezing six rows into one with no control anywhere to open them again.
+ * That is how it was found: the geometry it moved put an archetype chip under
+ * a point the browser bot taps, the tooltip it raised covered the screen, and
+ * four visual tests timed out clicking through it.
+ */
+@media (max-width: 760px) {
+  .stats[data-expanded="false"] {
+    /* Six values and the toggle, which is `auto` so the six share what is left. */
+    grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+    gap: var(--space-1);
+    align-items: center;
+  }
+
+  .stats[data-expanded="false"] .stat {
+    justify-content: center;
+    gap: var(--space-h);
+    font-size: var(--fs-2xs);
+    line-height: 1.5;
+    min-width: 0;
+  }
+
+  /* The two full-width rows rejoin the row when there is only one. */
+  .stats[data-expanded="false"] .stat[data-stat="hp"],
+  .stats[data-expanded="false"] .stat[data-stat="spe"] { grid-column: auto; }
+
+  .stats[data-expanded="false"] .stat__label { min-width: 0; }
+  .stats[data-expanded="false"] .stat__bar { min-width: 0; height: 4px; }
+  .stats[data-expanded="false"] .stat__marker-word { display: none; }
+
+  .stats__toggle {
+    grid-column: 1 / -1;
+    justify-self: end;
+    min-width: 44px;
+    min-height: 22px;
+    padding: 0 var(--space-1h);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-chip);
+    background: var(--bg-sunken);
+    color: var(--text-dim);
+    font: inherit;
+    font-size: var(--fs-2xs);
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .stats[data-expanded="false"] .stats__toggle {
+    grid-column: auto;
+    justify-self: stretch;
+    min-width: 22px;
+    padding: 0 var(--space-h);
+  }
+
+  .stats__toggle:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+}
+
+/*
+ * Wide viewports keep the four-row block and never show a control for it. The
+ * button is in the DOM at every width — one scene, not one per breakpoint — and
+ * hidden here rather than conditionally built.
+ */
+@media (min-width: 761px) {
+  .stats__toggle { display: none; }
+}
+
+/* The marker's two halves sit together; only the word is dropped when narrow. */
+.stat__marker-glyph + .stat__marker-word { margin-left: var(--space-h); }
 
 /*
  * Simple mode: the bar that stands in for the number.
@@ -2793,11 +2931,42 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * overlay rather than a route is that the player can see they have not left.
  * ------------------------------------------------------------------------- */
 
-/* The drawer trigger, in the same place on every decision surface. */
+/*
+ * The drawer trigger, in the same place on every decision surface — and out of
+ * the flow, which is the first of the fold cuts.
+ *
+ * It used to be a full-width bar between the seed bar and the screens, and it
+ * cost every screen 44.5px of vertical budget for one 26.5px button. A fixed
+ * pill in the bottom-right safe area costs nothing, and lands the trigger where
+ * a thumb already is rather than at the top of a phone screen where it was
+ * furthest from one. It sits directly above `.stamp--br`, the build stamp, at
+ * `--space-5` rather than the stamps' `--space-1h`, so the two share the corner
+ * instead of colliding in it. `z-index` 30: over the stamps at 20, under the
+ * drawer overlay at 40.
+ *
+ * **`[hidden]` needs its own rule here, and this is the third occurrence of
+ * that trap in this file.** `display: flex` beats the UA's `[hidden]` rule, so
+ * `drawerBar.hidden = true` did nothing: the Party button rendered on the
+ * starter screen, where there is no party, and on the summary, where the run is
+ * over. That was already true as a flow bar and merely looked like spacing; as
+ * a fixed pill it would float over both. The guard is not a precaution.
+ */
 .shell__drawer-bar {
+  position: fixed;
+  right: calc(var(--space-3) + env(safe-area-inset-right, var(--space-0)));
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom, var(--space-0)));
+  z-index: 30;
   display: flex;
   justify-content: flex-end;
-  padding: 0 var(--space-3) var(--space-1h);
+  padding: 0;
+}
+
+.shell__drawer-bar[hidden] { display: none; }
+
+/* Over content now, so it carries its own ground rather than borrowing one. */
+.shell__drawer-bar .drawer__trigger {
+  background: var(--bg-raised);
+  box-shadow: 0 var(--space-h) var(--space-3) var(--shadow);
 }
 
 .drawer__trigger {
@@ -2915,7 +3084,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   gap: var(--space-1);
 }
 
-.badge--tag {
+/* `--tag-more` is sized with the tags, not with the badges: it stands in for
+   them on a narrow face and a taller chip would cost the line back. */
+.badge--tag,
+.badge--tag-more {
   font-size: var(--fs-xs);
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
@@ -3008,5 +3180,85 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * strip of the screen underneath is what says this is an overlay. */
   .drawer__sheet { max-height: 90vh; }
   .move__tags { gap: var(--space-1); }
-  .badge--tag { font-size: var(--fs-2xs); }
+  .badge--tag,
+  .badge--tag-more { font-size: var(--fs-2xs); }
 }
+
+/*
+ * The move card on a phone. **Fold cut 4.**
+ *
+ * A move card is four stacked rows — name, meta, tags, PP — and the tag row was
+ * costing a line of its own on a screen 206.5px over the fold. Two changes take
+ * that line back, and between them they are worth 37px on the fourth move
+ * button, the same 37 the 4.7 patch prompt estimated for this cut.
+ *
+ * **The tags share the PP line.** Both are short and neither fills its half, so
+ * the card becomes a two-column grid whose last row carries the tags on the
+ * left and the PP on the right. Nothing is dropped to do it; the row simply
+ * stops being empty on the right.
+ *
+ * **One tag on the face.** Without this the card's height is a function of how
+ * many tags a move happens to carry rather than a fixed number: at the
+ * `maxMoveTagsOnFace` ceiling of 3, measured by cloning real chips onto every
+ * face, the fourth move button goes back to 751.5 and over the line. The rest
+ * are folded behind the `+N` chip `scene.moveTagRow` builds, which carries all
+ * of them in one tip — see the note there for why that is a tooltip and not a
+ * toggle.
+ *
+ * `.badge--tag-more` is hidden above this breakpoint because nothing is folded
+ * there: the face has room for all three and the chip would be a control that
+ * repeats what is already on screen.
+ */
+/*
+ * **Scoped to `.moves`, the battle grid, and not to every move card.**
+ *
+ * `.move--card` on the reward screen, `.move--victim` on the replacement
+ * screen and the cards in the drawer are the same component, and the first
+ * version of this cut reached all of them. It cost nothing in height that
+ * mattered — none of those screens is over the fold — and it moved every one of
+ * those cards' geometry, which turns out not to be free: a move card is a
+ * button whose face is mostly chips, every chip stops the click from reaching
+ * the button under it, and shortening a card slides a different pixel under the
+ * player's thumb. The replacement cards went to 86.5px and their centre landed
+ * on the category badge, so tapping the middle of a card opened a tooltip and
+ * replaced nothing.
+ *
+ * The battle grid is the screen the fold patch is about, so it is the only one
+ * that pays for it. See the note on `clickMoveCard` in
+ * `scripts/visual/browser.mjs` for the other half of this, and
+ * `docs/visual/reports/restore-the-fold.md` section 3 for the whole account —
+ * the same shape caught two other cuts in this patch.
+ */
+@media (max-width: 760px) {
+  .moves .move {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: start;
+  }
+
+  .moves .move__name,
+  .moves .move__meta { grid-column: 1 / -1; }
+
+  .moves .move__tags {
+    grid-column: 1;
+    align-self: center;
+    min-width: 0;
+  }
+
+  .moves .move__pp {
+    grid-column: 2;
+    justify-self: end;
+    align-self: center;
+  }
+
+  /* One on the face; `.badge--tag-more` is the way to the others. */
+  .moves .move__tags > .badge--tag:nth-child(n + 2) { display: none; }
+  .moves .badge--tag-more { display: inline; }
+}
+
+/*
+ * The overflow chip is built on every card and shown on one. Off the battle
+ * grid nothing is folded, so a chip saying `+2` beside two visible tags would
+ * be a control that repeats what is already on screen.
+ */
+.badge--tag-more { display: none; }

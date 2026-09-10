@@ -162,6 +162,22 @@ export function mountApp(root: HTMLElement): void {
     // Closing on navigation, not on open: a drawer left open across a screen
     // change would be an overlay over a decision the player has already made.
     drawer.close();
+    /*
+     * And the tooltip, for the same reason and one more.
+     *
+     * A tip explaining a badge on the result screen has nothing to say about
+     * the locale screen it is still hovering over, and unlike the drawer it
+     * also **eats the first tap on the new screen** — the panel sits over the
+     * content and the tap that would have dismissed it is the tap the player
+     * meant for the card underneath. The browser bot found it exactly that way:
+     * a tip raised on a result card, the run advanced to locale select, and the
+     * click on a locale card landed on a dialog about something else.
+     *
+     * The bug is older than the fold patch that surfaced it — the same walk on
+     * the tree before it leaves tips open across a screen change too, and gets
+     * away with it because of where the cards happened to sit.
+     */
+    tooltips.close();
   };
 
   /*
@@ -221,7 +237,7 @@ export function mountApp(root: HTMLElement): void {
    * the wheel answered a question about the type that said nothing true about
    * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
-  createTooltips(shell);
+  const tooltips = createTooltips(shell);
 
   /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;

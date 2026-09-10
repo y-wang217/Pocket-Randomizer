@@ -35,28 +35,77 @@ describe('the vertical budget', () => {
 
   /*
    * The plan's budget in absolute terms: the decision point ends above the fold
-   * on a 390x844 phone, with room under it for a thumb. Marked `fails` because
-   * it does not hold on this tree and the baseline test above cannot say so —
-   * the baseline records where the rows *are*, not where they should be.
+   * on a 390x844 phone, with room under it for a thumb.
    *
-   * **It is not 4.7's to give back, and that is the 2026-09-10 correction.**
-   * Stage 4.7's drawer bar, archetype chips and move tag rows are worth 106.5px
-   * on this screen and the map's tier copy 29.69 on the other, itemised in
-   * `docs/visual/reports/merge-4.7.md`. But the same measurer run against `main`
-   * *before* any of it — `2468769`, the commit before PR #10 — puts the fourth
-   * move button at 840, already 100px past this line. Rolling 4.7 back reaches
-   * 840, not 740. The three trees are in
-   * `docs/visual/reports/phone-regressions-4.7.md`.
+   * **Real assertions since 2026-09-10, and the `it.fails` marker is gone.**
+   * They were marked expected-to-fail for as long as the tree missed the line,
+   * with a note saying the day it reached 740 vitest would report the `fails` as
+   * an error and the marker would come off. That is what happened: the fold
+   * patch took the fourth move button from 946.5 to 722.5 and the map's last
+   * offered node card from 728.22 to 683.72, in five measured cuts of which four
+   * were needed. `docs/visual/reports/restore-the-fold.md` itemises them.
    *
-   * So the marker stays until something decides about the rows that predate the
-   * stage: the battle heading, the two Pokemon panels, and the move grid itself.
-   * The day the number reaches 740 vitest reports the `fails` as an error and
-   * the marker comes off. That is still the intended way to notice.
+   * Two assertions rather than one. The screens miss this line for unrelated
+   * reasons and are cut back by unrelated changes — the stat block is the
+   * battle's and the party HUD is the map's — so a single test that failed would
+   * not say which screen moved, and the map's margin is thinner than it looks.
+   *
+   * These are a *budget*, not a baseline: the test above pins the exact heights,
+   * and this one says the heights are on the right side of a line. A cut that
+   * takes more is welcome here and will still be caught there.
    */
-  it.fails('ends both decision points above y=740 at 390x844', async () => {
+  it('ends the battle screen decision point above y=740 at 390x844', async () => {
+    const measured = await measureGuardedScreens(harness.url, harness.browser);
+    expect(measured.battle.decisionBottom, 'battle: fourth move button').toBeLessThanOrEqual(740);
+  }, 180_000);
+
+  it('ends the map screen decision point above y=740 at 390x844', async () => {
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.map.decisionBottom, 'map: last offered node card').toBeLessThanOrEqual(740);
-    expect(measured.battle.decisionBottom, 'battle: fourth move button').toBeLessThanOrEqual(740);
+  }, 180_000);
+
+  /**
+   * The collapsed stat block belongs to the battle panels and to nothing else.
+   *
+   * There are two stat blocks in the app. `ui/scene.ts` builds the panel's, one
+   * per side, with a toggle and a `data-expanded` attribute; `ui/member-card.ts`
+   * builds `stats--party`, on every party, drawer and result card, with neither.
+   * The fold patch's one-row form is scoped to the attribute for that reason —
+   * written against `.stats` it squeezed the member cards into one row as well,
+   * with no control anywhere to open them again.
+   *
+   * **This is a test because the way that regression announced itself was
+   * useless.** It did not fail as a squashed card. The geometry it moved put an
+   * archetype chip under a point the browser bot taps, the tooltip that raised
+   * covered the screen, and four visual tests in three files timed out clicking
+   * through a dialog — none of them anywhere near the stylesheet. One assertion
+   * at 390px on the shape of the grid says it in one line instead.
+   */
+  it('collapses the panel stat block and leaves the member cards alone', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playUntil(page, (screen) => screen === 'map');
+    await page.locator('[data-drawer-trigger]').click();
+    await page.waitForTimeout(200);
+
+    const shape = await page.evaluate(() => {
+      const columns = (node: Element | null): number =>
+        node ? globalThis.getComputedStyle(node).gridTemplateColumns.split(' ').length : -1;
+      const card = globalThis.document.querySelector('.drawer .stats--party');
+      return {
+        cardBlocks: globalThis.document.querySelectorAll('.stats--party').length,
+        cardColumns: columns(card),
+        cardToggles: card?.querySelectorAll('.stats__toggle').length ?? -1,
+        cardHasAttribute: card?.hasAttribute('data-expanded') ?? true,
+      };
+    });
+    await context.close();
+
+    expect(shape.cardBlocks, 'the drawer draws a stat block per member').toBeGreaterThan(0);
+    // Two columns is the four-row layout the member cards have always had. The
+    // collapsed form is seven: six values and the toggle.
+    expect(shape.cardColumns, 'member cards keep the two-column block').toBe(2);
+    expect(shape.cardToggles, 'a member card has no control to open a block with').toBe(0);
+    expect(shape.cardHasAttribute, 'only a block with a toggle is collapsible').toBe(false);
   }, 180_000);
 });
 

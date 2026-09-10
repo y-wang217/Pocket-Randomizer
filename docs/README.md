@@ -133,13 +133,14 @@ One line each. The analysis lives where the pointer goes, not here.
    predates the merge. It is live on the party screen and the map, and covered
    by `test/threat-readout.test.ts`. The plan is a historical record and is not
    edited to match; this row is the deviation note.
-7. **The 390x844 vertical budget, missed by 206.5px and not by Stage 4.7.** The
-   visual plan asks both decision points to end at or above y=740. The battle's
-   fourth move button ends at 946.5 on `main`, of which 106.5 is 4.7's and 100
-   predates it: the same measurer puts it at 840 on the commit before PR #10.
-   Reaching 740 is a decision about the battle heading, the two Pokemon panels
-   and the move grid, and it needs its own prompt.
-   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+7. **The 390x844 vertical budget. Closed.** Both decision points end above
+   y=740: the fourth move button at 722.5 from 946.5, the map's last offered
+   node card at 683.72 from 728.22. Four cuts — the drawer trigger out of the
+   flow bar, the foe panel header's wrap, the stat block collapsed to one row,
+   the tag row onto the PP line — and the fifth was not needed. **Cut 3 is V5's
+   stat-block budget spent early; V5 should not spend it again.** The fold
+   assertion in `test/visual-v0.test.ts` is real now rather than `it.fails`.
+   [`visual/reports/restore-the-fold.md`](visual/reports/restore-the-fold.md).
 8. **Strict trim. Fixed, and it was the instrument.** The app did not boot under
    `GYMRUN_TRIM_STRICT=1` and every browser test file timed out at `openApp`. No
    GYMRUN module was reading the tables: `@pkmn/sim`'s own dex module builds its

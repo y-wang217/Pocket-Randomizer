@@ -1037,3 +1037,84 @@ same way. Inlining it (`test.server.deps.inline`) makes the trim real in node an
 costs about 3s of transform per test file; `trimmed-data.test.ts` passes under
 strict trim with it on. That is a gate change with its own blast radius across
 60 test files and is not made here.
+
+## 14. Deviation: the fold patch took four of five cuts, and cut 4 grew a half
+
+**Dated 2026-09-10.** The prompt is
+[`spec/gymrun-patch-restore-the-fold.md`](spec/gymrun-patch-restore-the-fold.md);
+every number is in
+[`visual/reports/restore-the-fold.md`](visual/reports/restore-the-fold.md).
+
+**What the prompt asked.** Five cuts in a named order, measuring after each,
+stopping when the fourth move button and the map's last offered node card both
+end at or above y=740 at 390x844 on `SMOKE24`.
+
+**Both targets pass** — battle 946.5 → 722.5, map 728.22 → 683.72 — and three
+things about how differ from the prompt.
+
+**Cut 5 was not built.** The map cleared the line at cut 1, with 56.28px to
+spare, and never came near it again. Truncating the tier copy on node cards
+would have been a cut taken for its own sake, on the one screen whose whole job
+is to let the player weigh a trade before committing to it. The prompt says to
+stop when both targets pass, and this is that stop.
+
+**Cut 4 is two changes, not one.** The prompt asks for one tag on the face at
+narrow widths, with the rest behind the existing tooltip, and estimated ~37px.
+The 37px is really the tag row's *line*, not the chips on it: moving the row
+onto the PP line reclaims all of it with every tag still on the face. That was
+built first and would have been enough for `SMOKE24`. It was not enough as a
+guarantee — with three chips on every face, which `maxMoveTagsOnFace` permits,
+the button measured 751.5 and went back over the line — so the prompt's cut went
+in on top of it and the button now holds at 722.5 at one tag or at three. The
+deviation is that the height came from the layout and the *bound* came from the
+cap, rather than both coming from the cap.
+
+**Cut 2 moved a chip the prompt did not mention.** "No wrap under the archetype
+chip" was first built as `nowrap` on the header, which reclaims the 25px and
+clips the foe's name — `Opposing Mudbray` renders as `Opposing Mu…`, because the
+header is 329px and its children want 358. The species being fought must not be
+abbreviated, so the chip moved to the meta row, which is what the 4.7 prompt
+offered as its alternative for the same cut. The chip is still on both panels
+and still ungated; the header keeps `nowrap` with the ellipsis as a valve for a
+name longer than any the game ships.
+
+**Cut 3 spends a budget belonging to a later stage.** The prompt says so and
+this records it where a V5 session will look: the stat-block collapse is built,
+it is worth 117.5px, and V5 must not plan to reclaim it again.
+
+**Cuts 2, 3 and 4 each first reached past the screen they were for.** Each was
+written against the class the battle screen uses, and each of those classes is
+shared: `panel__header` and `panel__name` by the member, acquisition and
+item-target cards, `.stats` by `stats--party`, `.move` by `move--card` and
+`move--victim`. They are scoped to `.scene`, to `[data-expanded]` and to
+`.moves` now, so only the screen that is over the fold pays for them.
+
+Worth recording for the shape of the failure rather than the fixes. None of the
+three reported as a squashed card. Each reflowed cards on a screen nobody was
+measuring, the new centre of one landed on a badge, and a badge stops a click
+from reaching the button under it — so four browser tests in three files timed
+out on a tooltip dialog intercepting pointer events, three steps downstream of
+the stylesheet. `test/visual-v0.test.ts` asserts cut 3's scope directly now.
+
+**Two defects behind those failures are older than this patch**, established
+against a worktree at the pre-patch commit rather than assumed:
+
+- **The tooltip outlived the screen it explained.** `showScreen` has closed the
+  drawer on navigation since 4.7, on the argument that a panel left open across
+  a screen change is an overlay over a decision already made. The tip layer was
+  never closed there, and it is worse than the drawer — it eats the first tap on
+  the new screen, because the tap that would dismiss it is the tap meant for the
+  card underneath. It closes now.
+- **The browser bot never moved its pointer.** Chromium leaves the mouse where
+  the last click put it, the app re-renders under it, and `ui/tooltips.ts` opens
+  a tip on the `mouseover` that follows. A phone has no hover, so nothing a
+  player at 390x844 can reach — but the bot spent the whole walk raising panels
+  it had not tapped. `stepOnce` parks the pointer now, which is what
+  `measureScreen` already did before reading a box.
+
+**One defect was fixed in passing, because cut 1 could not be built over it.**
+`.shell__drawer-bar` set `display: flex`, which beats the UA's `[hidden]` rule,
+so `drawerBar.hidden = true` did nothing and the Party trigger rendered on the
+starter screen and on the summary. As a flow bar that read as spacing; as a
+fixed pill it would have floated over both. It is the third occurrence of that
+trap in `ui/styles.css`, which the file already carries two notes about.

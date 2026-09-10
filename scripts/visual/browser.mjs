@@ -97,6 +97,32 @@ async function hardestMove(page) {
   return buttons.nth(best);
 }
 
+/**
+ * Click a move card by its name, not by its middle.
+ *
+ * A move card is a button whose face is mostly chips, and every chip is a
+ * tooltip trigger that stops the click from reaching the button under it. That
+ * is deliberate and load-bearing in a battle — `src/ui/drawer.ts` has the
+ * argument, a control inside the move grid is one mistap away from spending a
+ * turn — so the card genuinely does not submit when a chip is tapped.
+ *
+ * Which pixel is a chip depends on how the meta row wraps at the viewport in
+ * play. After the fold patch the replacement cards are 86.5px tall and their
+ * geometric centre lands on the category badge, so a bot aiming at the middle
+ * opened a tooltip and picked nothing, over and over. `.move__name` is the one
+ * region of the face that is never a trigger and never wraps out from under
+ * itself, which makes it the stable place to aim.
+ *
+ * This is the bot learning where the card is, not the card being made easier to
+ * hit. That a card's centre can be inert is a real thing about the screens and
+ * is recorded as an open item rather than papered over here.
+ */
+async function clickMoveCard(card) {
+  const name = card.locator('.move__name');
+  if (await name.count()) await name.first().click();
+  else await card.click();
+}
+
 async function chooseNode(page) {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
@@ -118,6 +144,29 @@ async function chooseNode(page) {
  * only knows how to answer whichever screen is up.
  */
 export async function stepOnce(page) {
+  const screen = await act(page);
+  /*
+   * Park the pointer after every decision. **A phone has no hover.**
+   *
+   * Chromium keeps the mouse wherever the last click left it, and the app
+   * re-renders under it — a new turn, a new screen — so whatever lands beneath
+   * that stationary pointer gets a `mouseover` it never asked for. Half the
+   * badges in this game are tooltip triggers, and `ui/tooltips.ts` opens on
+   * hover as a desktop enhancement, so the bot kept raising tip panels it had
+   * not tapped and then failing to click through them.
+   *
+   * That is an artifact of driving a desktop browser at a phone viewport, not
+   * something a player at 390x844 can experience, and it is luck rather than
+   * design that it did not bite sooner: the same walk on the tree before the
+   * fold patch raises a dozen tips this way and gets away with all of them.
+   * `measureScreen` already parks the pointer before reading a box, for the
+   * neighbouring reason. This is the same move for the same cause.
+   */
+  await page.mouse.move(0, 0);
+  return screen;
+}
+
+async function act(page) {
   const screen = await openScreen(page);
   switch (screen) {
     case 'starter':
@@ -135,7 +184,7 @@ export async function stepOnce(page) {
         return screen;
       }
       const move = await hardestMove(page);
-      if (move) await move.click();
+      if (move) await clickMoveCard(move);
       else await page.waitForTimeout(40);
       return screen;
     }
@@ -192,7 +241,7 @@ export async function stepOnce(page) {
     }
     case 'replace': {
       const victim = page.locator(`${visible('replace')} .move--victim`).last();
-      if (await victim.count()) await victim.click();
+      if (await victim.count()) await clickMoveCard(victim);
       return screen;
     }
     case 'party':

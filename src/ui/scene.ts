@@ -63,6 +63,9 @@ interface StatRow {
   bar: HTMLElement;
   barFill: HTMLElement;
   marker: HTMLElement;
+  /** The glyph half of the speed marker; the only half a collapsed row shows. */
+  markerGlyph: HTMLElement;
+  markerWord: HTMLElement;
 }
 
 interface SidePanel {
@@ -169,6 +172,13 @@ function createStatRow(stat: string): StatRow {
   // The speed marker lives on every row so the arrow can move without the
   // layout shifting under it. Only the Speed row ever fills it in.
   const marker = el('span', 'stat__marker');
+  // Two halves, because the collapsed stat row has room for the arrow and not
+  // for the word. Split in the DOM rather than swapped at update time: a
+  // renderer that wrote different text at different viewport widths would be a
+  // second source of truth about how wide the panel is.
+  const markerGlyph = el('span', 'stat__marker-glyph');
+  const markerWord = el('span', 'stat__marker-word');
+  marker.append(markerGlyph, markerWord);
   marker.hidden = true;
   // The Simple-mode bar. Always built, never rebuilt — the toggle flips which
   // of `value` and `bar` is hidden, so switching modes cannot reflow the panel.
@@ -176,7 +186,7 @@ function createStatRow(stat: string): StatRow {
   const barFill = el('div', 'stat__bar-fill');
   bar.append(barFill);
   root.append(label, value, bar, marker);
-  return { root, label, value, bar, barFill, marker };
+  return { root, label, value, bar, barFill, marker, markerGlyph, markerWord };
 }
 
 /**
@@ -212,23 +222,64 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   archetype.tabIndex = 0;
   archetype.setAttribute('role', 'button');
   const types = el('span', 'panel__types');
-  header.append(name, level, archetype, types);
+  header.append(name, level, types);
 
   const hpTrack = el('div', 'hp');
   const hpFill = el('div', 'hp__fill');
   hpTrack.append(hpFill);
 
+  /*
+   * The archetype chip rides the meta row, not the header. **Fold cut 2.**
+   *
+   * It was next to the level, which is where it belongs by meaning — a fixed
+   * property of this Pokemon, like the level and the types beside it. At 390px
+   * it did not fit there. The foe's name carries an "Opposing" prefix, and name,
+   * level, chip and type badges want 358px of a 329px header: the chip wrapped
+   * to a second line and the foe panel measured 25px taller than the player's
+   * for the same content, on a screen already over the fold.
+   *
+   * Both ways out cost something. Keeping it in the header and refusing to wrap
+   * clips the name — measured, "Opposing Mudbray" renders as "Opposing Mu…" —
+   * and the species the player is fighting is the one thing on the panel that
+   * must not be abbreviated. Moving it down costs the adjacency, and the meta
+   * row has 109px of slack after the HP text and a status chip, so it does not
+   * cost a line.
+   *
+   * So the chip moves and the header does not wrap. It is still on **both**
+   * panels, still ungated by the reveal policy, and still one tap from the
+   * `archetype:all` tip; only the row it sits on changed.
+   */
   const meta = el('div', 'panel__meta');
   const hpText = el('span', 'panel__hp-text');
   const status = statusChip('', '');
-  meta.append(hpText, status);
+  meta.append(hpText, status, archetype);
 
   // Ability and item, on their own line. Both are revealable, and the reveal
   // flag is honoured here rather than upstream so one source decides it.
   const traits = el('div', 'panel__traits');
   const volatiles = el('div', 'panel__volatiles');
 
+  /*
+   * The six-stat block, collapsed by default on a phone. **Fold cut 3, and it
+   * is the V5 budget brought forward — V5 should not spend it again.**
+   *
+   * Expanded, the block is four rows on a 390px screen and the two panels
+   * together were 143px of the 206.5px the battle screen was over the fold by.
+   * Collapsed it is one row of six values, which keeps every number on screen
+   * — nothing here is hidden, only tightened — and the stage colouring rides on
+   * `.stat__value`, so a boosted stat still reads as boosted at one row.
+   *
+   * The toggle lives *inside* the grid rather than under it, as a seventh
+   * column, so opening the block costs a row and closing it gives that row
+   * back. A control mounted below would have cost its own row permanently,
+   * which is the height this cut exists to reclaim.
+   *
+   * Wide viewports never collapse: the media query in `styles.css` carries the
+   * one-row form, so on a desktop the block is the four-row layout it has been
+   * since Stage 4.5 and the toggle is not rendered at all.
+   */
   const statsRoot = el('div', 'stats');
+  statsRoot.dataset['expanded'] = 'false';
   const hpRow = createStatRow('hp');
   const rows = {} as Record<StatName, StatRow>;
   statsRoot.append(hpRow.root);
@@ -237,6 +288,21 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
     rows[stat] = row;
     statsRoot.append(row.root);
   }
+
+  const statsToggle = document.createElement('button');
+  statsToggle.type = 'button';
+  statsToggle.className = 'stats__toggle';
+  statsToggle.setAttribute('aria-expanded', 'false');
+  statsToggle.setAttribute('aria-label', 'Expand the stat block');
+  statsToggle.textContent = '⌄';
+  statsToggle.addEventListener('click', () => {
+    const expanded = statsRoot.dataset['expanded'] !== 'true';
+    statsRoot.dataset['expanded'] = String(expanded);
+    statsToggle.setAttribute('aria-expanded', String(expanded));
+    statsToggle.setAttribute('aria-label', expanded ? 'Collapse the stat block' : 'Expand the stat block');
+    statsToggle.textContent = expanded ? '⌃' : '⌄';
+  });
+  statsRoot.append(statsToggle);
 
   root.append(header, hpTrack, meta, traits, volatiles, statsRoot);
   return { root, name, level, archetype, types, hpFill, hpText, status, volatiles, traits, hpRow, rows };
@@ -355,7 +421,8 @@ function updateSidePanel(
     const marksSpeed = stat === 'spe' && isFaster;
     row.marker.hidden = !marksSpeed;
     if (marksSpeed) {
-      row.marker.textContent = '▲ first';
+      row.markerGlyph.textContent = '▲';
+      row.markerWord.textContent = 'first';
       row.marker.title = 'Moves first at this Speed';
     }
   }
@@ -671,6 +738,45 @@ export function moveTagRow(tags: readonly MoveTag[]): HTMLElement | null {
     chip.setAttribute('role', 'button');
     row.append(chip);
   }
+
+  /*
+   * The overflow chip. **Fold cut 4, and it is built here rather than in CSS.**
+   *
+   * At 390px the face shows one tag and this chip stands for the rest, which is
+   * what keeps a move card's height a fixed number instead of a function of how
+   * many tags the move happens to carry: measured, three tags on every face put
+   * the fourth move button back at 751.5, over the fold line, where one tag
+   * holds it at 722.5.
+   *
+   * **Nothing is lost, which is why this is a chip and not a CSS `display:
+   * none`.** The chip names how many were folded and carries all of them in one
+   * `movetags:` tip, so a player on a phone reaches the same words a player on a
+   * desktop reads off the face. Its `data-tip` is the layer every other badge on
+   * this card already uses, and the words are still `data/moveTags.ts`'s.
+   *
+   * It is a tooltip trigger and not a disclosure toggle on purpose. In a battle
+   * the card *is* the submit button, and `ui/drawer.ts` has the argument: a
+   * control inside the move grid is one mistap away from spending a turn. A tip
+   * opens a panel over the screen and submits nothing.
+   *
+   * Always rendered, never conditional on width. The stylesheet shows it only
+   * where the face is narrow enough to have folded anything, so the DOM is the
+   * same at every viewport and no resize can leave a stale row behind.
+   */
+  const folded = tags.slice(1);
+  if (folded.length > 0) {
+    // `tag-more`, not `tag`: it is a way to the tags, not one of them, and
+    // `scripts/smoke.mjs` counts `.badge--tag` against `maxMoveTagsOnFace`. A
+    // chip that stood for two tags and counted as a third would make the cap
+    // read one higher than the face actually carries.
+    const more = neutralChip(`+${folded.length}`, 'tag-more', {
+      tip: `movetags:${folded.map((tag) => tag.id).join(',')}`,
+    });
+    more.tabIndex = 0;
+    more.setAttribute('role', 'button');
+    row.append(more);
+  }
+
   return row;
 }
 

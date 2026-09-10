@@ -41,3 +41,17 @@ and fails on any byte that differs. Heights are compared by
   shorter, so `battle.screenHeight` 1149.5 → 1145.5, `scrollHeight` 1343 →
   1339, `decisionBottom` 950.5 → 946.5. The map did not move. Runs and the
   digest are unchanged.
+- **2026-09-10, the fold patch.** `heights.json` re-recorded on both screens,
+  and this time the layout is what moved — the whole point of the patch. The
+  battle's four move buttons now end at 722.5 (was 946.5) and the map's offered
+  nodes at 683.72 (was 728.22), so both decision points clear the 740 line and
+  the plan's vertical budget holds for the first time on any tree measured here.
+  Four cuts: the drawer trigger out of the flow bar, the foe panel header's
+  wrap, the stat block collapsed to one row on a phone, and the move card's tag
+  row onto the PP line. `screenHeight` 1145.5 → 966 and 976.69 unchanged;
+  `scrollHeight` 1339 → 1115 and 1170 → 1125; `decisionTop` 681.5 → 494.5 and
+  614.5 → 570. Runs and the digest are unchanged — nothing in `src/data/` or in
+  `core/` was touched. **V5's before table starts from here, and its stat-block
+  budget is already spent:** see
+  [`../reports/restore-the-fold.md`](../reports/restore-the-fold.md).
+

@@ -54,7 +54,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-visual-identity-overnight-prompts.md`](gymrun-visual-identity-overnight-prompts.md) | stage prompt | `active` | | V0 to V4 done, V5 skipped, see `docs/visual/reports/` |
 | [`gymrun-patch-4.7-phone-regressions.md`](gymrun-patch-4.7-phone-regressions.md) | patch prompt | `active` | | step 1 built; steps 2-4 stopped on the prompt's own stop condition, see `../generation.md` section 12b |
 | [`gymrun-patch-strict-trim.md`](gymrun-patch-strict-trim.md) | patch prompt | `active` | | |
-| [`gymrun-patch-restore-the-fold.md`](gymrun-patch-restore-the-fold.md) | patch prompt | `active` | | |
+| [`gymrun-patch-restore-the-fold.md`](gymrun-patch-restore-the-fold.md) | patch prompt | `active` | | cuts 1-4 built, cut 5 not needed, see `../generation.md` section 14 |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
