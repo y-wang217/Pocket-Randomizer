@@ -28,9 +28,11 @@ import {
   type BattleUiView,
   type MoveUiView,
 } from '../core/battle/view';
+import type { LocaleId } from '../data/locales';
 import { categoryChip, effectChip, neutralChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
 import { showsNumbers } from './settings';
+import { SCENES } from './theme/scenes';
 import {
   moveChoice,
   switchChoice,
@@ -703,3 +705,120 @@ export function genderMark(gender: Gender): string {
 }
 
 export { el } from './dom';
+
+// ---------------------------------------------------------------------------
+// The world. Stage V3.
+// ---------------------------------------------------------------------------
+
+/**
+ * The place behind every screen: a fixed, full-viewport container under the
+ * shell, three layers of inline SVG silhouettes in the locale's tokens, and
+ * one drifting element. Decorative. `pointer-events: none`, so nothing under
+ * it is harder to tap; no information, so a player who cannot see it loses
+ * nothing. It does not appear on the summary, which stays locale neutral.
+ *
+ * Mounted once by `app.ts` beside the shell, so it survives every screen
+ * switch (the router toggles screens inside the shell). It follows
+ * `<html data-locale>`, the one projection `theme/locale.ts` writes, through
+ * a MutationObserver, so the app has a single writer for the region and any
+ * instrument that re-tags the attribute re-tags the world too. `setLocale`
+ * swaps the art; `null` empties it.
+ *
+ * Named `world`, not `scene`, because `.scene` is the battlefield above and
+ * the two must not share a rule. The plan's word is scene; this file is
+ * where the plan said it should live.
+ *
+ * Motion is V3.4's: the parallax listener and the drift loop. Under reduced
+ * motion the drifting element is not mounted at all and the layers do not
+ * move; `prefersReducedMotion` is read once per `setLocale`, so a change of
+ * preference takes effect at the next region.
+ */
+export interface WorldScene {
+  root: HTMLElement;
+  setLocale(locale: LocaleId | null): void;
+  /** The locale the art currently shows, or null. */
+  current(): LocaleId | null;
+  destroy(): void;
+}
+
+export const PARALLAX = { far: 0.2, mid: 0.5, near: 1 } as const;
+
+function prefersReducedMotion(): boolean {
+  return typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+export function createWorldScene(follow: HTMLElement | null = document.documentElement): WorldScene {
+  const root = el('div', 'world');
+  root.setAttribute('aria-hidden', 'true');
+  // Empty until a region arrives.
+  root.hidden = true;
+  const far = el('div', 'world__layer world__layer--far');
+  const mid = el('div', 'world__layer world__layer--mid');
+  const near = el('div', 'world__layer world__layer--near');
+  const scrim = el('div', 'world__scrim');
+  root.append(far, mid, near, scrim);
+
+  let locale: LocaleId | null = null;
+  let reduced = prefersReducedMotion();
+
+  /*
+   * Parallax, from a passive scroll listener. One transform per layer per
+   * scroll event, on the compositor (`translate3d`), never a layout. Under
+   * reduced motion the listener does nothing and the layers stay put.
+   */
+  const onScroll = (): void => {
+    if (reduced || !locale) return;
+    const y = globalThis.scrollY || 0;
+    far.style.transform = `translate3d(0, ${-y * PARALLAX.far}px, 0)`;
+    mid.style.transform = `translate3d(0, ${-y * PARALLAX.mid}px, 0)`;
+    near.style.transform = `translate3d(0, ${-y * PARALLAX.near}px, 0)`;
+  };
+  globalThis.addEventListener('scroll', onScroll, { passive: true });
+
+  const readAttribute = (): LocaleId | null => (follow?.getAttribute('data-locale') as LocaleId | null) || null;
+  const observer =
+    follow && typeof MutationObserver === 'function'
+      ? new MutationObserver(() => scene.setLocale(readAttribute()))
+      : null;
+  observer?.observe(follow as HTMLElement, { attributes: true, attributeFilter: ['data-locale'] });
+
+  const scene: WorldScene = {
+    root,
+    current: () => locale,
+    setLocale(next) {
+      if (next === locale) return;
+      locale = next;
+      reduced = prefersReducedMotion();
+      root.dataset['locale'] = next ?? '';
+      root.hidden = !next;
+      if (!next) {
+        far.replaceChildren();
+        mid.replaceChildren();
+        near.replaceChildren();
+        return;
+      }
+      const art = SCENES[next];
+      far.innerHTML = art.far;
+      mid.innerHTML = art.mid;
+      near.innerHTML = art.near;
+      // The drifting element rides the mid layer, and is not mounted at all
+      // under reduced motion: not paused, not hidden, absent.
+      if (!reduced) {
+        const drift = el('div', 'world__drift');
+        drift.innerHTML = art.drift;
+        mid.append(drift);
+      }
+      far.style.transform = '';
+      mid.style.transform = '';
+      near.style.transform = '';
+      onScroll();
+    },
+    destroy() {
+      observer?.disconnect();
+      globalThis.removeEventListener('scroll', onScroll);
+      root.remove();
+    },
+  };
+  scene.setLocale(readAttribute());
+  return scene;
+}

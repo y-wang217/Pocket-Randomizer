@@ -35,7 +35,7 @@ import { createPending } from './pending';
 import { getVerbosity, initSettings, onSettingsChange, setVerbosity } from './settings';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
-import { el } from './scene';
+import { createWorldScene, el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
@@ -94,7 +94,10 @@ export function mountApp(root: HTMLElement): void {
   // The corner stamps, fixed to the viewport, updated with the run. Stage V2.
   const stamps = createStamps();
   shell.append(createHeader(), seedBar.root, router.root, stamps.root);
-  root.replaceChildren(shell);
+  // The world behind everything, mounted once beside the shell, following
+  // <html data-locale>. Stage V3.
+  const world = createWorldScene();
+  root.replaceChildren(world.root, shell);
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
 
   /*

@@ -1,0 +1,456 @@
+{
+  "map": {
+    "map title": {
+      "selector": ".screen__title",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        14,
+        14
+      ],
+      "backgroundShare": 0.42,
+      "ratio": 15.34
+    },
+    "map blurb": {
+      "selector": ".screen__blurb",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        26,
+        14,
+        18
+      ],
+      "backgroundShare": 0.32,
+      "ratio": 7.18
+    },
+    "gym blurb": {
+      "selector": ".map__blurb",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        26,
+        14,
+        18
+      ],
+      "backgroundShare": 0.37,
+      "ratio": 7.18
+    },
+    "region name": {
+      "selector": ".map__region-name",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        30,
+        18,
+        18
+      ],
+      "backgroundShare": 0.4,
+      "ratio": 14.71
+    },
+    "wallet label": {
+      "selector": ".party__wallet-label",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        10,
+        14,
+        18
+      ],
+      "backgroundShare": 0.69,
+      "ratio": 7.38
+    },
+    "wallet value": {
+      "selector": ".party__wallet-value",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        10,
+        14,
+        18
+      ],
+      "backgroundShare": 0.63,
+      "ratio": 15.6
+    },
+    "party member name": {
+      "selector": ".panel__name",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.7,
+      "ratio": 13.56
+    },
+    "party hp text": {
+      "selector": ".panel__hp-text",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.78,
+      "ratio": 6.42
+    },
+    "party move row": {
+      "selector": ".party__move",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.91,
+      "ratio": 13.56
+    },
+    "node label": {
+      "selector": ".step--current .node__label",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.68,
+      "ratio": 13.56
+    },
+    "node detail": {
+      "selector": ".step--current .node__detail",
+      "text": [
+        120,
+        117,
+        110
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.81,
+      "ratio": 3.66
+    },
+    "tier chip": {
+      "selector": ".step--current .tier",
+      "text": [
+        189,
+        180,
+        164
+      ],
+      "background": [
+        46,
+        50,
+        54
+      ],
+      "backgroundShare": 0.66,
+      "ratio": 6.29
+    },
+    "upcoming node label": {
+      "selector": ".step--upcoming .node__label",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        50,
+        42,
+        42
+      ],
+      "backgroundShare": 0.42,
+      "ratio": 11.28
+    },
+    "type chip": {
+      "selector": ".map__region .type",
+      "text": [
+        199,
+        182,
+        101
+      ],
+      "background": [
+        50,
+        38,
+        22
+      ],
+      "backgroundShare": 0.31,
+      "ratio": 7.24
+    },
+    "rail label": {
+      "selector": ".rail__label",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        34,
+        34,
+        38
+      ],
+      "backgroundShare": 0.61,
+      "ratio": 12.77
+    },
+    "step marker": {
+      "selector": ".step__marker",
+      "text": [
+        11,
+        15,
+        23
+      ],
+      "background": [
+        238,
+        230,
+        210
+      ],
+      "backgroundShare": 0.94,
+      "ratio": 15.42
+    },
+    "threat summary": {
+      "selector": ".threats__summary",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        34,
+        22,
+        22
+      ],
+      "backgroundShare": 0.42,
+      "ratio": 6.7
+    }
+  },
+  "battle": {
+    "battle title": {
+      "selector": ".screen__title",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        14,
+        14
+      ],
+      "backgroundShare": 0.69,
+      "ratio": 15.34
+    },
+    "battle blurb": {
+      "selector": ".screen__blurb",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        22,
+        14,
+        14
+      ],
+      "backgroundShare": 0.85,
+      "ratio": 7.26
+    },
+    "panel name": {
+      "selector": ".panel__name",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.7,
+      "ratio": 13.56
+    },
+    "panel level": {
+      "selector": ".panel__level",
+      "text": [
+        120,
+        117,
+        110
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.81,
+      "ratio": 3.66
+    },
+    "hp text": {
+      "selector": ".panel__hp-text",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.8,
+      "ratio": 6.42
+    },
+    "stat label": {
+      "selector": ".stat__label",
+      "text": [
+        120,
+        117,
+        110
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.86,
+      "ratio": 3.66
+    },
+    "stat value": {
+      "selector": ".stat__value",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.68,
+      "ratio": 6.42
+    },
+    "move name": {
+      "selector": ".move__name",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.83,
+      "ratio": 13.56
+    },
+    "move power": {
+      "selector": ".move__power",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.74,
+      "ratio": 6.42
+    },
+    "move pp": {
+      "selector": ".move__pp",
+      "text": [
+        167,
+        159,
+        144
+      ],
+      "background": [
+        22,
+        30,
+        38
+      ],
+      "backgroundShare": 0.91,
+      "ratio": 6.42
+    },
+    "category chip": {
+      "selector": ".badge--category",
+      "text": [
+        189,
+        180,
+        164
+      ],
+      "background": [
+        46,
+        50,
+        54
+      ],
+      "backgroundShare": 0.63,
+      "ratio": 6.29
+    },
+    "panel type chip": {
+      "selector": ".panel__types .type",
+      "text": [
+        230,
+        203,
+        134
+      ],
+      "background": [
+        54,
+        54,
+        50
+      ],
+      "backgroundShare": 0.63,
+      "ratio": 7.66
+    },
+    "log entry": {
+      "selector": ".log-entry",
+      "text": [
+        239,
+        230,
+        210
+      ],
+      "background": [
+        10,
+        14,
+        18
+      ],
+      "backgroundShare": 0.9,
+      "ratio": 15.6
+    }
+  }
+}
