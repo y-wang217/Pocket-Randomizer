@@ -195,6 +195,15 @@ and the run log structure. It is the owner, and this file used to restate it.
 - What is drawn where and when: [`docs/generation.md`](docs/generation.md).
 - `@pkmn/sim` findings and the bundle: [`docs/engine-notes.md`](docs/engine-notes.md).
 
+## Typeface
+
+The display face is [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans),
+copyright 2021 The Pixelify Sans Project Authors, used under the SIL Open Font
+License 1.1. Two latin-subset weights are self-hosted under `public/fonts/` with
+the licence beside them in `OFL.txt`. Numbers and body copy render in the system
+monospace stack; `--font-body` in `src/ui/theme/tokens.css` is the one line that
+changes that.
+
 ## Balance
 
 **The centrepiece is not a game feature. It is the simulator.** You cannot
