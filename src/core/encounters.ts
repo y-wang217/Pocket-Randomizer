@@ -69,6 +69,7 @@ import {
 import { generateEncounterAcquisition, generateEventAcquisition, type AcquisitionOffer } from './acquisition';
 import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
+import type { Reward } from './rewards';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
 import { gymRewardKey, localeOfferKey, nodeKey, nodeRewardKey, routeKey, STARTERS_KEY } from './streamKeys';
@@ -81,7 +82,15 @@ import {
   type LocaleOfferContext,
 } from '../data/locales';
 import { starterLevel } from '../data/scaling';
-import { tierWeightsFor, type ChoosableKind, type NodeKind, type Range, type Tuning } from '../data/tuning';
+import {
+  restFloorFor,
+  stepsRangeFor,
+  tierWeightsFor,
+  type ChoosableKind,
+  type NodeKind,
+  type Range,
+  type Tuning,
+} from '../data/tuning';
 
 /** What a battle node fights. Generated eagerly; see the header. */
 export interface EncounterSpec {
@@ -142,6 +151,20 @@ export interface NodeSpec {
    * `playRun`.
    */
   reward: RewardOffer | null;
+  /**
+   * The move a gym clear hands over regardless of which card is picked.
+   *
+   * **Stage 4.8, item 2 Part A.** Non-null on gyms and null everywhere else, which
+   * is the same shape `reward` has for the opposite reason: a gym is the one node
+   * that pays twice. Drawn in pass 6 from the same stream as the cards beside it,
+   * before them, so the order inside that stream is fixed.
+   *
+   * It is a `Reward` rather than a `MoveReward` because `resolveRewardEntry`
+   * returns the union and narrowing here would be a second place that knows a
+   * tutor entry resolves to a tutor card. `run.ts` narrows it with `isTargeted`,
+   * which is the single definition of "this card needs a target".
+   */
+  gymMove: Reward | null;
   /** The shelf, for a shop node. Null for everything else. */
   shop: ShopStock | null;
   /**
@@ -364,7 +387,9 @@ const EMPTY_OFFER_CONTEXT: LocaleOfferContext = { previous: [], seen: [] };
 function buildRoute(segment: number, locale: LocaleId, rng: Rng, tuning: Tuning): LocaleRoute {
   // --- pass 1: shape, from `map`, keyed to this route ----------------------
   const shapeStream = rng.map.at(routeKey(segment, locale));
-  const stepCount = drawRange(shapeStream, tuning.stepsPerSegment);
+  // Per segment from Stage 4.8, item 3. The draw is one value either way, so the
+  // curve changes what the shape stream produces without moving anything after it.
+  const stepCount = drawRange(shapeStream, stepsRangeFor(tuning, segment));
   const shape: ChoosableKind[][] = [];
 
   for (let step = 0; step < stepCount; step++) {
@@ -460,6 +485,7 @@ export function generateSegment(
     shop: null,
     event: null,
     acquisition: null,
+    gymMove: null,
   };
 
   const segment: Segment = {
@@ -547,12 +573,14 @@ export function generateSegment(
    * A gym has no tier, so pass 4's `if (node.tier)` skips it; that is why this
    * is a pass rather than a condition relaxed there.
    */
-  segment.gym.reward = generateGymRewardOffer(
+  const gymPays = generateGymRewardOffer(
     segment.gym.id,
     index,
     rng.rewards.at(gymRewardKey(index)),
     tuning,
   );
+  segment.gym.reward = gymPays.offer;
+  segment.gym.gymMove = gymPays.move;
 
   return segment;
 }
@@ -608,7 +636,16 @@ function enforceComposition(shape: ChoosableKind[][], stream: RngStream, tuning:
   }
 
   ensureKind(shape, 'event', tuning.minEventSteps, stream, claimed, 0);
-  ensureKind(shape, 'rest', tuning.minRestSteps, stream, claimed, tuning.restEarliestStep);
+  /*
+   * **The rest floor is a function of the segment's length. Stage 4.8, item 3.**
+   *
+   * It was `tuning.minRestSteps`, a flat count, which was the same statement as a
+   * density while every segment was the same length. With a curve it is not: one
+   * rest across a seven-step segment is a different amount of recovery from one
+   * across a four-step one, and the guarantee 4.6a wrote is about recovery.
+   * `restFloorFor` takes the larger of the count and the density.
+   */
+  ensureKind(shape, 'rest', restFloorFor(tuning, shape.length), stream, claimed, tuning.restEarliestStep);
 }
 
 /**
@@ -732,6 +769,7 @@ function buildNode(
       shop: null,
       event: null,
       acquisition: null,
+      gymMove: null,
     };
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
@@ -766,6 +804,7 @@ function buildNode(
     shop: null,
     event: null,
     acquisition: null,
+    gymMove: null,
   };
 }
 

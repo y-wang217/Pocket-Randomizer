@@ -789,7 +789,12 @@ describe('a full eight-gym run, headless', () => {
    * Neither can tell you whether the game is winnable. `npm run sim` is what
    * tells you that, and it is the thing that should.
    */
-  const VICTORY_TUNING = withTuning({ stepsPerSegment: { min: 1, max: 1 } });
+  // Stage 4.8, item 3: a per-segment table now, so the one-step fixture is eight
+  // rows of one rather than one range of one. Every segment, so the run is the
+  // shortest eight-gym run the generator can make.
+  const VICTORY_TUNING = withTuning({
+    stepsPerSegment: Array.from({ length: SEGMENTS_PER_RUN }, () => ({ min: 1, max: 1 })),
+  });
 
   /** An opponent that never attacks, so the run's *transitions* are the subject. */
   const pacifist: Policy = async (view) => {

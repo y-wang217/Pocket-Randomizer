@@ -42,7 +42,7 @@ import type { RunState } from './run';
 import type { PokemonState, Tier } from './types';
 import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import { itemById } from '../data/items';
-import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
+import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
 import { rewardMoveBands } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
@@ -111,6 +111,21 @@ export interface RewardOffer {
 /** How many cards an offer holds. Three is a spec constant, not a taste. */
 export const OFFER_SIZE = 3;
 
+/**
+ * How many cards a **gym** clear offers. **Stage 4.8, item 2 Part B.**
+ *
+ * Two, and this is the only offer in the game that is not three. The exception is
+ * deliberate and recorded in `docs/generation.md` section 7c so that a later
+ * reader does not meet it as a bug and normalise it back: a relic against a
+ * currency lump is a cleaner decision than either of them against a padded third
+ * option, and the gym already pays a guaranteed move beside it.
+ *
+ * Every other offer in the game stays at `OFFER_SIZE`. A single constant covering
+ * both would have made "how many cards does this offer have" a question with one
+ * answer, which is exactly what stopped being true.
+ */
+export const GYM_OFFER_SIZE = 2;
+
 // ---------------------------------------------------------------------------
 // Generating an offer
 // ---------------------------------------------------------------------------
@@ -173,68 +188,83 @@ export function generateRewardOffer(
 }
 
 /**
- * Draw the three cards for a gym clear.
+ * Draw what a gym clear pays: one guaranteed move, then two cards to choose from.
+ *
+ * **Stage 4.8, item 2. A gym pays twice now**, and both halves are drawn here, in
+ * this order, from the one `rewards` stream the gym has always used. Nothing is
+ * drawn at gym completion — that would make the roll depend on how the fight went,
+ * which is the failure the whole eager-generation contract exists to prevent.
  *
  * **A separate function from `generateRewardOffer` rather than a branch inside
- * it**, for the reason `NodeSpec.tier` is nullable at all: a gym has no tier,
- * and threading a `Tier | null` through the shared path would make
- * `rewardEntriesFor(null, segment)` a thing that has to be handled rather than
- * a thing that cannot be said. The offer it returns is the *same shape* — three
- * distinct options, one pick, no skip, no reroll — because a gym reward is a
- * reward, and every screen and policy downstream reads `RewardOffer` and must
- * not learn a second one.
+ * it**, for the reason `NodeSpec.tier` is nullable at all: a gym has no tier, and
+ * threading a `Tier | null` through the shared path would make
+ * `rewardEntriesFor(null, segment)` a thing that has to be handled rather than a
+ * thing that cannot be said.
  *
  * `tier` on the returned offer is `'elite'`, and that is a display fact rather
  * than a draw: nothing here consulted it (the pool came from
- * `gymRewardEntriesFor`), but `RewardOffer.tier` is what the reward screen
- * badges, and a gym offer that badged as `normal` would be the screen
- * contradicting the cards in front of it. The alternative — widening the field
- * to `Tier | 'gym'` — would touch every consumer to say something they would
- * then have to render anyway.
+ * `gymRewardEntriesFor`), but `RewardOffer.tier` is what the reward screen badges,
+ * and a gym offer that badged as `normal` would be the screen contradicting the
+ * cards in front of it.
  *
- * Called from `generateSegment`'s pass 6, from `rng.rewards`, exactly as pass 4
- * draws every other offer. Drawing at gym *completion* would make the roll
- * depend on how the fight went, which is the failure the whole eager-generation
- * contract exists to prevent.
+ * ## Why the move is drawn first
+ *
+ * Order inside a stream is the stream's contract. The move is the guaranteed half,
+ * so it is drawn first and the choice second — which is also the order the player
+ * meets them. Swapping them later would reshuffle every gym in every recorded
+ * seed for no gain.
  */
 export function generateGymRewardOffer(
   nodeId: string,
   segment: number,
   stream: RngStream,
   tuning: Tuning,
-): RewardOffer {
+): { offer: RewardOffer; move: Reward } {
   void tuning;
-  const pool = gymRewardEntriesFor(segment);
 
+  /*
+   * Part A, drawn first and never a choice.
+   *
+   * Resolved at `elite` for the same reason the cards below are: the *bands* are a
+   * function of the tier (`rewardMoveBands`), so resolving the entry's
+   * `GYM_MOVE_BAND_BONUS` against `normal` would quietly hand back a mid-tier move
+   * and the "strictly better than elite" rule would fail silently in the one place
+   * nobody looks.
+   */
+  const move = resolveRewardEntry(
+    GYM_MOVE_ENTRY,
+    segment,
+    'elite',
+    stream,
+    new Set<string>(),
+    new Set<string>(),
+    [GYM_MOVE_ENTRY],
+  );
+  if (!move) {
+    throw new RangeError(`Gym at segment ${segment} could not resolve its guaranteed move`);
+  }
+
+  const pool = gymRewardEntriesFor(segment);
   const options: Reward[] = [];
   const takenMoves = new Set<string>();
   const takenItems = new Set<string>();
   let remaining = [...pool];
 
-  for (let card = 0; card < OFFER_SIZE; card++) {
+  for (let card = 0; card < GYM_OFFER_SIZE; card++) {
     if (remaining.length === 0) break;
     const entry = pickWeighted(remaining, stream);
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
-
-    /*
-     * Resolved at `elite`, which is what makes the entries land where the pool
-     * intends. `resolveRewardEntry` takes a tier because the *move and species
-     * bands* are a function of it (`rewardMoveBands`, `rewardSpeciesBands`), so
-     * resolving a gym's `bandOffset: 3` tutor against `normal` would quietly
-     * hand back a mid-tier move and the "strictly better than elite" rule would
-     * fail silently in the one place nobody looks.
-     */
     const reward = resolveRewardEntry(entry, segment, 'elite', stream, takenItems, takenMoves, pool);
     if (reward) options.push(reward);
   }
 
-  if (options.length < OFFER_SIZE) {
+  if (options.length < GYM_OFFER_SIZE) {
     throw new RangeError(
-      `Gym reward pool at segment ${segment} produced ${options.length} options, need ${OFFER_SIZE}`,
+      `Gym reward pool at segment ${segment} produced ${options.length} options, need ${GYM_OFFER_SIZE}`,
     );
   }
-  return { nodeId, tier: 'elite', options };
+  return { offer: { nodeId, tier: 'elite', options }, move };
 }
 
 /**

@@ -192,8 +192,30 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * `RANDOMIZER_VERSION` moved in the same patch, for acquisition levelling, and
  * the split is the usual one: this says the questions changed, that says the
  * same answers would now build a different party.
+ *
+ * ## `-12`: Stage 4.8, item 2, and a deviation from its own prompt
+ *
+ * A gym clear pays twice now — a guaranteed move, then a choice of two cards — and
+ * the guaranteed move routes through the existing move-learning flow, which means
+ * a `target` and sometimes a `replace` entry **immediately after every gym win**.
+ *
+ * The prompt for Stage 4.8 states that run log version does not bump, and lists
+ * why: capacity, nicknames, death records and the score are all derived rather
+ * than logged. That reasoning is correct and all four are derived. It simply does
+ * not cover item 2 Part A, which adds a reward the player has to aim — up to
+ * sixteen new questions in a run, the first at the end of segment 0.
+ *
+ * This guard's rule decides it, and the rule is two paragraphs up: it "does not
+ * ask whether the schema changed; it asks whether the *questions* changed, and a
+ * new question in a new place is a changed sequence even when every entry in it is
+ * an old shape". That is this case exactly, and it is the same case `-11` was for.
+ * A 4.7 log replayed against this build would answer the gym's move target with
+ * whatever its next entry happened to be.
+ *
+ * The deviation is recorded in `docs/generation.md` section 7c rather than by
+ * editing the prompt, per protocol 4.
  */
-export const RUN_LOG_VERSION = `gymrun-run-11/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-12/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -604,6 +626,24 @@ export interface NodeResult {
    */
   rewardReplaceSlot?: number;
   /**
+   * The move a gym clear hands over, and where it landed.
+   *
+   * **Stage 4.8, item 2 Part A.** Present only on a gym the player won. It is the
+   * same shape as `reward`/`rewardTarget`/`rewardReplaceSlot` beside it and for the
+   * same reason: `playRun` resolves the questions and `resolveNode` applies the
+   * answers, so a replayed answer and a clicked one are the same value before
+   * anything downstream can tell them apart.
+   *
+   * Separate fields rather than reusing the reward ones, because a gym now pays
+   * *both* and they land on possibly different members. Sharing them would make
+   * the guaranteed move and the chosen card fight over one slot.
+   */
+  gymMove?: Reward;
+  /** Which party slot the gym's guaranteed move lands on. */
+  gymMoveTarget?: number;
+  /** Which of that member's move slots it displaces, 0-based, or absent. */
+  gymMoveReplaceSlot?: number;
+  /**
    * Recipients and displaced slots for any taught moves in the shop basket, in
    * shelf order.
    *
@@ -830,6 +870,24 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      *
      * Gyms paid nothing before Stage 4.5.2, so this branch returned here.
      */
+    /*
+     * **Part A before Part B. Stage 4.8, item 2.**
+     *
+     * The guaranteed move applies first, in the order the player was asked, so a
+     * replay folds the two in the same order the live run did. It matters in one
+     * direction and it is the same direction the comment above describes: both
+     * land on a member whose `maxHp` has just moved, and a chosen card that
+     * happened to target the same member must see the move already taught rather
+     * than race it.
+     */
+    if (result.gymMove) {
+      cleared = applyReward(
+        cleared,
+        result.gymMove,
+        result.gymMoveTarget ?? 0,
+        result.gymMoveReplaceSlot ?? null,
+      );
+    }
     if (result.reward) {
       cleared = applyReward(
         cleared,
@@ -1381,6 +1439,35 @@ export async function playRun(
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
       if (offer) reviewedIndex = picked ?? 0;
+    }
+
+    /*
+     * **Part A of a gym clear, asked before the cards. Stage 4.8, item 2.**
+     *
+     * A gym pays twice: a guaranteed move at the gym band chain, then a choice of
+     * two. The move is asked first because it is the unconditional half — the
+     * player is told what they got, then asked what they want — and because the
+     * order inside the decision log has to be fixed by the code rather than by
+     * which branch happened to run.
+     *
+     * Gated on the win, like every other payout: `node.gymMove` is drawn for every
+     * gym at map generation, and a gym that was not beaten ends the run.
+     *
+     * **This is what moved `RUN_LOG_VERSION`.** The questions are the existing
+     * `target` and `replace` pair, but they are asked in a place no earlier log has
+     * an answer for, and the guard's own comment is explicit that "a new question
+     * in a new place is a changed sequence even when every entry in it is an old
+     * shape". `docs/generation.md` section 7c records the deviation from the
+     * prompt, which expected no bump.
+     */
+    if (result.node.kind === 'gym' && result.node.gymMove && result.battle?.result.winner === 'p1') {
+      const granted = result.node.gymMove;
+      result.gymMove = granted;
+      if (isTargeted(granted)) {
+        const answers = await askMoveQuestions(granted, state, state.party, policy, record);
+        result.gymMoveTarget = answers.target;
+        result.gymMoveReplaceSlot = answers.replaceSlot ?? undefined;
+      }
     }
 
     if (offer) {

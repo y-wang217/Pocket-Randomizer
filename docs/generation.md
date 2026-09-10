@@ -616,6 +616,105 @@ is the use its header reserves for exactly this case: the diff on that file is t
 evidence that the draws moved, and the version string moving beside it is what
 stops a recorded seed being silently reinterpreted.
 
+## 7c. The gym pays twice, and segments get longer
+
+**Stage 4.8, items 2 and 3.** Both land under `gymrun-randomizer-13`, which
+section 7b already stamped: a version axis names a content state, not a changeset.
+
+### Item 2: a gym clear pays a move *and* a choice of two
+
+| half | what | where it is drawn |
+|---|---|---|
+| **Part A** | one move, guaranteed, no choice | `GYM_MOVE_ENTRY`, `data/rewardPools.ts` |
+| **Part B** | exactly two cards: a relic, or a currency lump | the `GYM` bands, same file |
+
+Both are drawn in pass 6 from the one stream a gym has always used,
+`rewards.at(gymRewardKey(segment))`, **Part A first**. Order inside a stream is
+the stream's contract, and the move is the guaranteed half, so it is drawn first
+and the choice second — which is also the order the player meets them.
+
+**Part A's band reads the existing numbers and introduces none.** The entry's
+`bandOffset` is `GYM_MOVE_BAND_BONUS` (+1, `data/scaling.ts`) and it resolves at
+tier `elite`, so `REWARD_BAND_OFFSET.elite` adds +2 — the same +3 chain the gym's
+own *tutor card* paid at before this item replaced it. `test/gym-rewards.test.ts`
+asserts the composition rather than the number 3, so moving either constant moves
+the test with it.
+
+**Two cards, not three, and this is the only offer in the game that breaks the
+rule.** `GYM_OFFER_SIZE` is its own constant beside `OFFER_SIZE` for that reason —
+"how many cards does an offer have" stopped having one answer, and a single
+constant covering both would hide it. A relic against a currency lump is a cleaner
+decision than either against a padded third option, and the gym already pays a
+move beside it. **Do not normalise this back to three.**
+
+What Part B cost, named rather than tidied away: the gym pool's `item` and `tutor`
+entries are gone. Premium and Choice items now reach a player through `ELITE` and
+the shop alone. The tutor is no longer a card because it *is* Part A. The first is
+a narrowing a tuning pass may want to undo; the second is the item working.
+
+### Deviation: item 2 moved `RUN_LOG_VERSION`, which its prompt said it would not
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a prompt
+is not edited to match what was built, so the deviation is written here instead.**
+The prompt is
+[`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md).
+
+**What the prompt asked.** Under "Version axes": run log version does not bump,
+because "party capacity is derived, nicknames are derived, death records are
+derived, score is derived", with an instruction to stop and report before bumping
+"because it means something in the derivation is not actually deterministic".
+
+**What was built.** `RUN_LOG_VERSION` is `gymrun-run-12`. All four derived things
+are still derived and none of them is logged — that half of the prompt is intact
+and `test/party-slots.test.ts` asserts it for capacity. The bump is item 2 Part A's.
+
+**Why.** Part A says the guaranteed move "routes through the existing move
+learning flow: recipient selection, then replacement". Those are logged decisions.
+A gym win now records a `target`, and a `replace` when the recipient's moveset is
+full, **immediately after the gym and before the card pick** — up to sixteen new
+entries in a run, the first at the end of segment 0. `RUN_LOG_VERSION`'s own rule
+decides it: the guard "does not ask whether the schema changed; it asks whether the
+*questions* changed, and a new question in a new place is a changed sequence even
+when every entry in it is an old shape". A 4.7 log replayed against this build
+would read the gym's move target as whatever its next entry happened to be.
+
+The prompt's stated reason for the stop condition — a derivation that turned out
+not to be deterministic — **does not apply**: nothing here is derived. It is a new
+reward the player has to aim, and the only way to avoid the bump would have been
+to build Part A as a second move-granting path that asks nobody, which the same
+item forbids in the same paragraph.
+
+### Item 3: `stepsPerSegment` is a curve
+
+A table in `data/tuning.ts`, one row per segment, read through `stepsRangeFor`:
+
+| segment | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| steps | 4-5 | 4-5 | 5-6 | 5-6 | 5-6 | 6-7 | 6-7 | 6-7 |
+
+45 steps across a run against the old flat 36, so 53 nodes against 44. **Segments
+0 and 1 are unchanged**, so the early benchmark rows stay comparable.
+
+It stops well short of Stage 1's shape deliberately. Six to eight was sized for
+Stage 1's *single* segment and eight of those measured as "an attrition countdown
+rather than a curve"; `test/node-curve.test.ts` guards the run's total against
+approaching it again rather than guarding one row.
+
+**The rest guarantee became a density.** It was `minRestSteps`, a flat count,
+which was the same statement as a density only because every segment was the same
+length. `restFloorFor` takes the larger of the count floor and one rest per
+`restStepsPerGuarantee` steps (three), so a 4-5 step segment still guarantees one
+and a 6-7 step segment guarantees two. One rest across seven steps is not the
+recovery one rest across four is, and the 4.6a guarantee is about recovery.
+
+The other two guarantees stay **absolute per segment** — one reachable wild step,
+one event — and `test/node-curve.test.ts` asserts they stay absolute, because
+"scale it with length" is the plausible wrong change. The wild step is the capture
+the segment owes the player, not a rate.
+
+Every guarantee is checked at **every length the curve can draw**, by driving the
+generator at a fixed length rather than hoping real seeds visit the ends.
+
 ## 8. Capabilities, and why `latent` is not a learnset
 
 > **Superseded 2026-09-10. Kept because the measurements are still good.**

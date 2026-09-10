@@ -1,7 +1,7 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-11/gymrun-0.3.0",
+    "runLog": "gymrun-run-12/gymrun-0.3.0",
     "randomizer": "gymrun-randomizer-13",
     "ai": "gymrun-ai-2-switching",
     "engine": "gymrun-0.3.0"
@@ -59,7 +59,7 @@
   ],
   "log": {
     "seed": "SEED-B",
-    "version": "gymrun-run-11/gymrun-0.3.0",
+    "version": "gymrun-run-12/gymrun-0.3.0",
     "randomizerVersion": "gymrun-randomizer-13",
     "decisions": [
       {

@@ -59,6 +59,7 @@
  */
 import type { Tier } from '../core/types';
 import { BERRIES, CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
+import { GYM_MOVE_BAND_BONUS } from './scaling';
 
 /**
  * One drawable entry in a pool: a weight, and enough parameters for
@@ -322,32 +323,53 @@ const ELITE: readonly RewardBand[] = [
  */
 const GYM: readonly RewardBand[] = [
   {
-    // The opening three gyms. No Choice items, for the reason ELITE gives: a
-    // whole-battle move lock is a trap for a player who has not yet learned
-    // what their moveset does, and gym 1 is where that player is.
+    /*
+     * **Stage 4.8, item 2 Part B: two kinds, not four.** A gym clear pays twice
+     * now — a guaranteed move first (Part A, `GYM_MOVE_ENTRY` below), then a
+     * choice of exactly two cards — and the choice is deliberately a relic
+     * against a currency lump rather than a padded field.
+     *
+     * The `item` and `tutor` entries that used to be here are gone from the gym
+     * pool, and that is a real loss worth naming rather than a tidy-up: premium
+     * and Choice items now reach a player through `ELITE` and the shop alone, and
+     * the tutor is no longer a card because it is the thing Part A hands over
+     * unconditionally. The first is a narrowing a tuning pass may want to undo;
+     * the second is the item working.
+     */
     throughSegment: 2,
     entries: [
-      { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
-      // The one `bandOffset` left in the file, and the reason it survived: a
-      // gym offer resolves at `elite`, so the tier rule already pays +2, and
-      // "strictly better than elite" needs one more. It clamps at the ceiling
-      // in the late segments, where the pool's own premium items and larger
-      // currency carry the strictness instead.
       { kind: 'relic', weight: 5 },
-      { kind: 'tutor', weight: 5, bandOffset: 1 },
       { kind: 'currency', weight: 3, min: 110, max: 165 },
     ],
   },
   {
     throughSegment: 7,
     entries: [
-      { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
       { kind: 'relic', weight: 5 },
-      { kind: 'tutor', weight: 5, bandOffset: 1 },
       { kind: 'currency', weight: 3, min: 150, max: 230 },
     ],
   },
 ];
+
+/**
+ * The move a gym clear hands over, win or pick. **Stage 4.8, item 2 Part A.**
+ *
+ * One entry rather than a band table, because there is nothing to weight: every
+ * gym pays exactly this, and what varies is the segment the bands are resolved
+ * against.
+ *
+ * `bandOffset` is `GYM_MOVE_BAND_BONUS` and the resolution tier is `elite`, which
+ * is **the same chain the gym's tutor card used before this item existed**: the
+ * tier rule pays +2 and the gym bonus pays one more, so the move is at +3 as it
+ * always was. Item 2 says to read that number rather than introduce a second one,
+ * and this is the reading — `data/scaling.ts` owns the +1 and `REWARD_BAND_OFFSET`
+ * owns the +2, and neither is restated here.
+ */
+export const GYM_MOVE_ENTRY: Extract<RewardEntry, { kind: 'tutor' }> = {
+  kind: 'tutor',
+  weight: 1,
+  bandOffset: GYM_MOVE_BAND_BONUS,
+};
 
 /**
  * The entries a gym clear draws from, by segment.

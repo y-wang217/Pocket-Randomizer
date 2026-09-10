@@ -128,6 +128,21 @@ and fails on any byte that differs. Heights are compared by
   for is step 7's, with the rest of the UI. `bundle.json` is not re-recorded
   either, per this file's own rule.
 
+- **2026-09-10, Stage 4.8 step 3.** `runs/`, `battles/` and `data-digest.txt`
+  re-recorded again, same reasoning as the step 2 entry above: a content stage that
+  moves seeded output on purpose, under the same `gymrun-randomizer-13`.
+
+  Two changes reach the draws. Item 2 makes a gym pay a guaranteed move *and* a
+  two-card choice from the one gym stream, so every gym's roll moves; item 3 makes
+  `stepsPerSegment` a per-segment curve, so the number of steps — and therefore
+  every node after the first — moves from segment 2 on. `RESULT-1` drops from three
+  gyms to one, which is the curve: a longer segment 2 is more nodes to survive
+  before gym 3, and this run does not.
+
+  `heights.json` is again **not** re-recorded. Step 3 is a no-UI step; the taller
+  map is item 3's UI work, in step 7, and that is where the guarded heights move.
+  `bundle.json` is not re-recorded either, per this file's own rule.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.

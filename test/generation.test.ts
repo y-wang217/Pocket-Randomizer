@@ -19,7 +19,7 @@ import { isBattleKind } from '../src/core/economy';
 import { createRng } from '../src/core/rng';
 import { playerLevel, SEGMENT_COUNT, segmentScaling, starterLevel } from '../src/data/scaling';
 import { getStarterPool } from '../src/data/starters';
-import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
+import { stepsRangeFor, DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
 function generate(seed: string, tuning = DEFAULT_TUNING): { starters: unknown; segment: Segment } {
   const rng = createRng(seed);
@@ -106,9 +106,16 @@ describe('generation rules', () => {
   it('respects the tuned step and option counts', () => {
     for (const seed of seeds) {
       const { segment } = generate(seed);
+      /*
+       * **Stage 4.8, item 3: the range is the segment's own row, not one number.**
+       * `generate` builds segment 0, so this reads row 0; the whole curve is
+       * walked by `test/node-curve.test.ts`, which also checks the guarantees at
+       * every length in it.
+       */
+      const range = stepsRangeFor(DEFAULT_TUNING, segment.index);
       for (const route of segment.routes) {
-        expect(route.steps.length).toBeGreaterThanOrEqual(DEFAULT_TUNING.stepsPerSegment.min);
-        expect(route.steps.length).toBeLessThanOrEqual(DEFAULT_TUNING.stepsPerSegment.max);
+        expect(route.steps.length).toBeGreaterThanOrEqual(range.min);
+        expect(route.steps.length).toBeLessThanOrEqual(range.max);
       }
       for (const step of routeStepsOf(segment)) {
         expect(step.options.length).toBeGreaterThanOrEqual(2);

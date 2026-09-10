@@ -63,11 +63,52 @@ export interface Range {
   max: number;
 }
 
+/**
+ * The step range a segment draws its length from. **Stage 4.8, item 3.**
+ *
+ * The one reader of `tuning.stepsPerSegment`'s table, so the clamp at the end
+ * lives in exactly one place. A segment index past the last row reads the last
+ * row rather than returning `undefined` — the same rule `segmentScaling` applies
+ * to its own eight rows, and for the same reason: a run length that changed would
+ * make a missing row a `NaN` step count rather than an error anyone sees.
+ */
+export function stepsRangeFor(tuning: Tuning, segment: number): Range {
+  const rows = tuning.stepsPerSegment;
+  if (rows.length === 0) throw new RangeError('tuning.stepsPerSegment is empty');
+  const row = rows[Math.max(0, Math.min(rows.length - 1, Math.floor(segment)))];
+  if (!row) throw new RangeError(`No step range for segment ${segment}`);
+  return row;
+}
+
+/**
+ * How many rests a segment of `steps` steps must offer.
+ *
+ * The larger of the count floor and the density floor, which is what makes the
+ * 4.6a guarantee hold at every length in the curve rather than only at the length
+ * it was written against. See `restStepsPerGuarantee`.
+ */
+export function restFloorFor(tuning: Tuning, steps: number): number {
+  const byDensity = Math.floor(steps / Math.max(1, tuning.restStepsPerGuarantee));
+  return Math.max(tuning.minRestSteps, byDensity);
+}
+
 export interface Tuning {
   // --- map shape -----------------------------------------------------------
 
-  /** Steps before the gym. Each step is one choice between nodes. */
-  stepsPerSegment: Range;
+  /**
+   * Steps before the gym, **per segment**. Each step is one choice between nodes.
+   *
+   * **Stage 4.8, item 3: a table rather than one range.** A segment used to be
+   * the same length at gym 8 as at gym 1, so a run did not physically grow —
+   * the roster widened and the opponents scaled, and the road stayed the same
+   * road. One row per segment, read by index, so a tuning pass edits numbers
+   * rather than logic; a formula here would make "how long is segment 5" a thing
+   * to derive rather than a thing to look at.
+   *
+   * Indexed by segment, and a segment past the end reads the last row — the same
+   * clamp `segmentScaling` uses, for the same reason.
+   */
+  stepsPerSegment: readonly Range[];
   /** How many nodes a step offers. The spec calls for 2 or 3. */
   nodeChoiceCount: Range;
   /**
@@ -174,6 +215,19 @@ export interface Tuning {
    * guarantee.
    */
   minRestSteps: number;
+  /**
+   * One rest guaranteed per this many steps. **Stage 4.8, item 3.**
+   *
+   * `minRestSteps` is a floor on the *count* and this is a floor on the
+   * *density*, and a segment gets whichever is larger. Before item 3 they were
+   * the same thing because every segment was the same length; with a curve they
+   * are not, and one rest across a seven-step segment is a different amount of
+   * recovery from one rest across a four-step one.
+   *
+   * Three, so a 4 or 5 step segment still guarantees exactly one — the opening
+   * is unchanged, deliberately — and a 6 or 7 step segment guarantees two.
+   */
+  restStepsPerGuarantee: number;
 
   // --- difficulty tiers ----------------------------------------------------
 
@@ -462,7 +516,30 @@ export const DEFAULT_TUNING: Tuning = {
   // is a sixty-node run on one Pokemon, which the simulator measured as an
   // attrition countdown rather than a curve. Four to five puts a full run at
   // roughly forty nodes, which is the length the genre actually uses.
-  stepsPerSegment: { min: 4, max: 5 },
+  /*
+   * **Stage 4.8, item 3: the run gets physically longer as it goes.**
+   *
+   * Segments 0 and 1 are unchanged at 4-5, which is what 4.6c measured, so the
+   * early benchmark rows stay comparable and a move in them means something else
+   * landed. From there it rises in two steps to 6-7.
+   *
+   * It stops well short of Stage 1's shape, and that is deliberate rather than
+   * timid. Six to eight was sized for Stage 1's *single* segment, and eight of
+   * those measured as "an attrition countdown rather than a curve" — the note on
+   * the old flat value above is the record of it. This curve is 45 steps across a
+   * run against today's 36, so 53 nodes against 44: a quarter longer, with the
+   * growth where the player has a wide roster and a full bag to spend on it.
+   */
+  stepsPerSegment: [
+    { min: 4, max: 5 },
+    { min: 4, max: 5 },
+    { min: 5, max: 6 },
+    { min: 5, max: 6 },
+    { min: 5, max: 6 },
+    { min: 6, max: 7 },
+    { min: 6, max: 7 },
+    { min: 6, max: 7 },
+  ],
   nodeChoiceCount: { min: 2, max: 3 },
   /*
    * Shops and events are deliberately scarcer than fights.
@@ -482,6 +559,7 @@ export const DEFAULT_TUNING: Tuning = {
   wildStepOptionCount: 2,
   minEventSteps: 1,
   minRestSteps: 1,
+  restStepsPerGuarantee: 3,
 
   /*
    * Elite is locked out of segments 0-1 and the weight climbs from there.
