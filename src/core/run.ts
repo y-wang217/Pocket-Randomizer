@@ -40,7 +40,9 @@ import {
   carryOverFor,
   createParty,
   isWiped,
+  leadRefusal,
   levelParty,
+  setLead,
   replacementNeeded,
   recoverParty,
   restParty,
@@ -90,6 +92,7 @@ import type {
   RunLog,
 } from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
+import { gymForSegment, type GymDefinition } from '../data/gyms';
 import type { LocaleId } from '../data/locales';
 import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
 
@@ -177,8 +180,19 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * Which is exactly what this guard is for. It does not ask whether the schema
  * changed; it asks whether the *questions* changed, and a new question in a new
  * place is a changed sequence even when every entry in it is an old shape.
+ *
+ * Went to `-11` in Stage 4.7, for lead selection. A `{ kind: 'lead' }` entry is
+ * recorded once per gym, immediately before the gym node, which is the plainest
+ * version of this guard's case: eight new questions in a run, the first of them
+ * at the end of segment 0, and a 4.6c log has an answer to none of them. The
+ * cursor slips at the first gym and every entry after it is read as an answer
+ * to the wrong question.
+ *
+ * `RANDOMIZER_VERSION` moved in the same patch, for acquisition levelling, and
+ * the split is the usual one: this says the questions changed, that says the
+ * same answers would now build a different party.
  */
-export const RUN_LOG_VERSION = `gymrun-run-10/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-11/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -498,6 +512,25 @@ export function chooseLocale(state: RunState, index: number): RunState {
   const localeChoices = [...state.localeChoices];
   localeChoices[state.currentSegment] = index;
   return { ...state, localeChoices };
+}
+
+/**
+ * Put the chosen member in front of the gym battle. **Stage 4.7, Part 2.**
+ *
+ * The state transition for a `{ kind: 'lead' }` decision, and it is a reorder:
+ * `party.setLead` moves the member to slot 0, `battleMembersFor` sends the
+ * party in order, and that is the entire mechanism. There is no lead flag to
+ * keep in agreement with the party order.
+ *
+ * Refuses a fainted member rather than clamping to a legal one, like every
+ * other decision in this file that can be handed something illegal. A choice
+ * silently turned into a different choice is a log that replays into a
+ * different run.
+ */
+export function chooseLead(state: RunState, index: number): RunState {
+  const refusal = leadRefusal(state.party, index);
+  if (refusal) throw new RangeError(`Cannot lead with slot ${index}: ${refusal}`);
+  return { ...state, party: setLead(state.party, index) };
 }
 
 /**
@@ -1030,6 +1063,30 @@ export interface RunPolicy {
     party: readonly PokemonState[],
   ) => Promise<AcquisitionDecision>;
   /**
+   * Who leads the gym battle. A party slot. **Stage 4.7, Part 2.**
+   *
+   * Asked once per gym, between the last node of a segment and the gym itself,
+   * on a screen that is not a node: it costs no step from the node budget, it
+   * carries no tier, it pays nothing, and it consumes no RNG. A gym was
+   * previously just another node the player walked into, and this is the one
+   * decision that belongs in front of it.
+   *
+   * Takes the `GymDefinition` because the leader's type is the whole of what
+   * makes one lead better than another here, and takes the state like every
+   * other question on this interface. What it does *not* do is annotate,
+   * order, or mark the party by matchup — the leader's type is on screen, the
+   * party is on screen, and connecting them is the decision. See the Part 4
+   * editorial rule.
+   *
+   * The answer is applied with `party.setLead`, which is a reorder. Returning
+   * the slot of a fainted member is refused rather than clamped.
+   */
+  chooseLead: (
+    party: readonly PokemonState[],
+    gym: GymDefinition,
+    state: RunState,
+  ) => Promise<number>;
+  /**
    * What to do with the run's items, asked once at each node boundary.
    *
    * **One question per boundary, not one per swap.** The spec asks that items
@@ -1131,6 +1188,23 @@ export async function playRun(
     let node: NodeSpec;
     if (atGym(state)) {
       node = segmentOf(state).gym;
+      /*
+       * The pre-gym question, asked here and only here.
+       *
+       * Inside the node loop and *before* `playNode`, in the branch that
+       * already knows the gym is next, so "exactly one lead decision per gym"
+       * is a property of the control flow rather than of a counter somebody
+       * has to keep right. `atGym` is derived from state, so a replay asks at
+       * exactly the same points.
+       *
+       * It consumes no RNG and it is not a node: nothing about the map, the
+       * step budget or the payouts is touched by it.
+       */
+      const gym = gymForSegment(state.currentSegment);
+      const index = await policy.chooseLead(state.party, gym, state);
+      record({ kind: 'lead', index });
+      state = chooseLead(state, index);
+      options.onState?.(state);
     } else {
       const choice = await policy.chooseNode(nodeOptions(state), state);
       record({ kind: 'node', index: choice });
@@ -1643,6 +1717,14 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      */
     chooseLocale: async () => 0,
     chooseNode: async () => 0,
+    /*
+     * Slot 0, which is the party order the run already had. The baseline
+     * changes nothing about who leads, which is what makes it a baseline: a
+     * scripted answer with a matchup preference in it would put a routing
+     * heuristic into every sweep this policy appears in. `--policy lead-swap`
+     * in the simulator is where a real preference belongs.
+     */
+    chooseLead: async () => 0,
     chooseReward: async () => 0,
     // Buys nothing. A scripted baseline that spent money would make every
     // sweep it appears in a measurement of one shopping heuristic.
@@ -1790,6 +1872,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('acquisition');
       if (!decision) return live ? live.chooseAcquisition(offer, party) : exhausted('acquisition');
       return decision.kind === 'acquisition' ? decision.decision : exhausted('acquisition');
+    },
+    chooseLead: async (party, gym, state) => {
+      const decision = next('lead');
+      if (!decision) return live ? live.chooseLead(party, gym, state) : exhausted('lead');
+      return decision.kind === 'lead' ? decision.index : exhausted('lead');
     },
     chooseItemPlan: async (state) => {
       const decision = next('items');

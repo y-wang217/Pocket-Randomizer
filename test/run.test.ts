@@ -56,6 +56,7 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
   return {
     chooseStarter: async () => 0,
     chooseLocale: async () => 0,
+    chooseLead: async () => 0,
     chooseNode: async (options) => {
       const index = options.findIndex((option) => option.kind === kind);
       return index === -1 ? 0 : index;
@@ -101,6 +102,7 @@ describe('headless run', () => {
     const policy: RunPolicy = {
       chooseStarter: async () => 0,
       chooseLocale: async () => 0,
+      chooseLead: async () => 0,
       chooseNode: async (options) => {
         // Every node the player is *offered* must be choosable; the gym is not.
         for (const option of options) expect(option.kind).not.toBe('gym');

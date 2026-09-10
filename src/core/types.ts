@@ -642,7 +642,27 @@ export type RunDecision =
    * reconstructs exactly. See `party.replacementNeeded`, which is the single
    * definition shared by the question and the replay.
    */
-  | { kind: 'replace'; slot: number };
+  | { kind: 'replace'; slot: number }
+  /**
+   * Who leads the gym battle, as a party slot. **Stage 4.7, Part 2.**
+   *
+   * Asked once per gym, on the screen between the last node of a segment and
+   * the gym itself. An index like every other selection here, and this one is
+   * an index into the party rather than into something the seed generated —
+   * which is fine for the same reason `acquisition`'s release slot is: the
+   * party at that moment is fully reconstructed by the replay that is asking.
+   *
+   * **It is a reorder, not a battle flag.** `party.setLead` moves the chosen
+   * member to slot 0 and it stays there until something else moves it, so
+   * there is one source of truth for who leads and it is the same one the
+   * party screen's drag order writes to. A per-battle flag would be a second
+   * answer to "who is in front", and the two would disagree the first time a
+   * player reordered the party after choosing a lead.
+   *
+   * The visible consequence, flagged rather than hidden: the lead chosen for
+   * gym 3 is still leading at the first node of segment 4.
+   */
+  | { kind: 'lead'; index: number };
 
 /**
  * The replayable record of a whole run: a seed and a decision sequence.

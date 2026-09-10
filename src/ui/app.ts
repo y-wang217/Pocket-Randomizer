@@ -173,6 +173,7 @@ export function mountApp(root: HTMLElement): void {
         router.show('locale');
         return localePick.wait();
       },
+      chooseLead: async () => 0,
       chooseNode: (options: NodeSpec[]) => {
         // The map is already rendered by onState; this only arms the buttons.
         void options;

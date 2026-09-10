@@ -73,6 +73,7 @@ import {
   describeMove,
   describeSpecCard,
   readConsumedItems,
+  typeMultiplier,
   type BattleSession,
 } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
@@ -100,6 +101,7 @@ import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/d
 import { PARTY_SIZE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
+import type { GymDefinition } from '../src/data/gyms';
 
 
 /** Berry ids, as a set, for the two tallies that ask "is this a berry". */
@@ -183,7 +185,23 @@ type PolicyName =
    * If `relic-greedy` reaches fewer gyms than `tier-greedy`, the relic is
    * costing more in forgone cards than it pays back.
    */
-  | 'relic-greedy';
+  | 'relic-greedy'
+  /**
+   * The Stage 4.7 pair, and the crude measure of whether the pre-gym screen is
+   * a decision or a nice screen attached to a non-decision.
+   *
+   * Same seeds, same battle AI, same node policy, same locale picks, same catch
+   * rule. The only difference is the answer to one question asked eight times:
+   * `lead-static` never changes the lead and `lead-swap` applies the heuristic
+   * documented at `leadFor`.
+   *
+   * **If there is no gap, Part 2 is a screen attached to a non-decision**, and
+   * that is worth knowing before it is polished. A gap does not prove the
+   * screen is good — it proves the choice is worth something to a bot that can
+   * read the gym's type, which is exactly what the player can read.
+   */
+  | 'lead-static'
+  | 'lead-swap';
 type NodePolicyName = 'rest' | 'wild' | 'trainer' | 'first' | 'random' | 'tier-averse' | 'tier-greedy';
 
 /** The node policy a `--policy` name implies, if it implies one. */
@@ -214,6 +232,8 @@ const TIER_POLICIES: PolicyName[] = ['tier-averse', 'tier-greedy'];
 const CATCH_POLICIES: PolicyName[] = ['catch-greedy', 'catch-averse'];
 /** The Stage 4.6c headline: same seeds, same node appetite, relics on and off. */
 const RELIC_POLICIES: PolicyName[] = ['relic-greedy', 'tier-greedy'];
+/** The Stage 4.7 headline: same seeds, same everything, the lead chosen or not. */
+const LEAD_POLICIES: PolicyName[] = ['lead-static', 'lead-swap'];
 
 function parseArgs(argv: string[]): Options {
   const options: Options = {
@@ -253,7 +273,9 @@ function parseArgs(argv: string[]): Options {
                   ? CATCH_POLICIES
                   : name === 'relics'
                     ? RELIC_POLICIES
-                    : [assertPolicy(name)];
+                    : name === 'leads'
+                      ? LEAD_POLICIES
+                      : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -299,12 +321,13 @@ const POLICY_NAMES: readonly string[] = [
   ...SWITCH_POLICIES,
   ...CATCH_POLICIES,
   ...RELIC_POLICIES,
+  ...LEAD_POLICIES,
 ];
 
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
-      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics or all (got "${name}")`,
+      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics, leads or all (got "${name}")`,
     );
   }
   return name as PolicyName;
@@ -325,11 +348,14 @@ const USAGE = `
     --seeds N        how many seeds to play per policy (default 200)
     --policy NAME    greedy | random | switch-aware | no-switch | switching |
                      tier-averse | tier-greedy | tiers |
-                     catch-greedy | catch-averse | catching | all
+                     catch-greedy | catch-averse | catching |
+                     relic-greedy | relics |
+                     lead-static | lead-swap | leads | all
                      greedy/random and switch-aware/no-switch vary the battle
                      AI; tier-* vary node choice and catch-* vary whether a won
-                     wild encounter is taken — both always use the greedy
-                     battle AI                                (default all)
+                     wild encounter is taken; lead-* vary whether the pre-gym
+                     lead is ever changed — all of them use the greedy battle
+                     AI                                       (default all)
     --nodes NAME     rest | wild | trainer | first | random | tier-averse |
                      tier-greedy | all                        (default rest)
     --prefix TEXT    seed prefix, so two sweeps can use different populations
@@ -1050,6 +1076,16 @@ function buildPolicy(
   return {
     chooseStarter: async (options) =>
       randomBattle ? stream.nextInt(Math.max(1, options.length)) : bestStarter(options),
+
+    /*
+     * The pre-gym lead. `lead-static` never moves it; everything else swaps.
+     *
+     * `lead-static` returns 0, which is the party order the run already had, so
+     * it is literally the pre-4.7 behaviour. The gap between it and `lead-swap`
+     * is the measure of whether the pre-gym screen decides anything, which is
+     * why the two differ in this answer and in nothing else.
+     */
+    chooseLead: async (party, gym) => (policy === 'lead-static' ? 0 : leadFor(party, gym)),
 
     /*
      * The locale, drawn uniformly from the offer, for **every** policy.
@@ -1854,6 +1890,59 @@ interface Sample {
     };
   };
   durationMs: number;
+}
+
+/**
+ * Which party member the bot leads a gym with. **Stage 4.7, and deliberately
+ * crude.**
+ *
+ * The standing rule is that a greedy policy's heuristic is written down,
+ * because it appears in every balance report from here on and a number produced
+ * by an unstated rule is a number nobody can argue with. This is the rule, in
+ * full:
+ *
+ *   1. Fainted members are skipped. `battleMembersFor` would skip them anyway,
+ *      so leading with one is not a choice the game offers.
+ *   2. Score each remaining member as
+ *        (its best damaging move's multiplier against the gym's type)
+ *        minus (the gym type's best multiplier against that member's types).
+ *      Offence first, defence in the same units as the tie-breaker, which is
+ *      the simplest statement of "hits it, is not hit by it".
+ *   3. Ties go to the earlier party slot, so the answer is deterministic and a
+ *      bot that finds nothing to prefer changes nothing.
+ *
+ * It is not smart. It does not read the leader's actual team — the player
+ * cannot either — it ignores HP, speed and held items, and it will happily lead
+ * with a Pokemon that dies to the leader's coverage move. It is a floor: if the
+ * gap between `lead-static` and `lead-swap` is zero *even with a rule this
+ * crude*, the decision is not a decision.
+ *
+ * It consumes no RNG, which is what keeps the lead pair a controlled
+ * comparison: both bots draw the same locales from the same stream positions.
+ */
+function leadFor(party: readonly PokemonState[], gym: GymDefinition): number {
+  let best = 0;
+  let bestScore = -Infinity;
+
+  for (const [index, member] of party.entries()) {
+    if (member.fainted) continue;
+    const card = describeSpecCard(member.spec);
+
+    const offence = Math.max(
+      0,
+      ...card.moves
+        .filter((move) => move.category !== 'Status')
+        .map((move) => typeMultiplier(move.type, [gym.type])),
+    );
+    const defence = typeMultiplier(gym.type, card.types);
+    const score = offence - defence;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = index;
+    }
+  }
+  return best;
 }
 
 /**

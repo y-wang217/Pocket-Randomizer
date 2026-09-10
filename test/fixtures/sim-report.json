@@ -1,5 +1,5 @@
 {
-  "version": "gymrun-run-10/gymrun-0.3.0",
+  "version": "gymrun-run-11/gymrun-0.3.0",
   "randomizerVersion": "gymrun-randomizer-12",
   "aiVersion": "gymrun-ai-2-switching",
   "runs": [
@@ -446,6 +446,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -658,6 +662,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -900,6 +908,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -1648,6 +1660,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "switch",
@@ -1978,6 +1994,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -2562,6 +2582,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -2808,6 +2832,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",
@@ -3078,6 +3106,10 @@
           }
         },
         {
+          "kind": "lead",
+          "index": 0
+        },
+        {
           "kind": "battle",
           "choice": {
             "kind": "move",
@@ -3297,6 +3329,10 @@
             "assignments": [],
             "discards": []
           }
+        },
+        {
+          "kind": "lead",
+          "index": 0
         },
         {
           "kind": "battle",

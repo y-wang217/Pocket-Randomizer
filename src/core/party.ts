@@ -504,6 +504,42 @@ export function reorderParty(
 }
 
 /**
+ * Put a member in front. **The one definition of who leads.** Stage 4.7.
+ *
+ * A thin call to `reorderParty`, and thin on purpose: lead selection is a
+ * *reorder*, so it has to go through the function the party screen's drag order
+ * already goes through. A `leadIndex` field on `RunState` would have been the
+ * other design and it is the one that rots — it would disagree with the party
+ * order the first time a player dragged a member after choosing a lead, and
+ * `battleMembersFor` reads order, so the order would win and the field would be
+ * a lie nobody noticed.
+ *
+ * The consequence, which is a real cost and not hidden: a lead chosen before
+ * gym 3 is still leading at the first node of segment 4. That is the price of
+ * one source of truth, and it is cheaper than two.
+ */
+export function setLead(party: readonly PokemonState[], index: number): PokemonState[] {
+  return reorderParty(party, index, 0);
+}
+
+/**
+ * Whether a member can be chosen as the lead, or why not.
+ *
+ * Returns the reason or null, in the shape `acquisition.decisionRefusal` uses,
+ * and for the same reason: a decision that is silently turned into a different
+ * decision is a log that replays into a different run. A fainted member cannot
+ * lead — the sim would refuse to send it and `battleMembersFor` filters it out,
+ * so accepting the choice and then quietly leading with somebody else is the
+ * exact failure this refuses.
+ */
+export function leadRefusal(party: readonly PokemonState[], index: number): string | null {
+  const member = party[index];
+  if (!member) return `no party member in slot ${index}`;
+  if (member.fainted) return `${member.spec.species} has fainted and cannot lead`;
+  return null;
+}
+
+/**
  * Drop a member. **Permanent for the run: there is no box.**
  *
  * Refuses to empty the party, which is the one guard that matters. A party of
