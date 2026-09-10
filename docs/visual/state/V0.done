@@ -1,0 +1,8 @@
+V0 done.
+last checkpoint: 8a00c0f (V0.5)
+bundle delta vs docs/visual/baseline/bundle.json: +26,893 raw, +18,152 gzipped
+  assets/index.css +6,926 raw / +529 gz; fonts +19,989 raw / +17,619 gz (two woff2 + OFL)
+guarded screens at 390x844 (equal to baseline):
+  map    layout 947   scroll 1096  decision 570..654.03
+  battle layout 1083.5 scroll 1232 decision 611..840
+report: docs/visual/reports/V0.md
