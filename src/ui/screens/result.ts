@@ -55,7 +55,8 @@ import {
   RUN_ENDS,
   TAKE_ONE,
 } from '../../core/hpCopy';
-import { hpFraction, ppTotals } from '../../core/party';
+import { statusChip } from '../chip';
+import { ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
 import type { BattleMemberState, PokemonState } from '../../core/types';
@@ -260,34 +261,10 @@ function describeCost(review: BattleReview, state: RunState): string {
   return parts.join(' · ');
 }
 
-/**
- * A party member as the fight left it: HP as a bar and a number, and PP.
- *
- * The same card shape as the map's party panel rather than a lighter one, so
- * the player is comparing like with like across the two screens. PP is here
- * because it is the resource a run spends that nothing else on this screen
- * would show — HP is visible on the battle screen up to the last turn, and PP
- * is the one that quietly runs out four fights later.
- */
-function renderMemberRow(member: BattleMemberState): HTMLElement {
-  const row = el('div', 'party__member');
-
-  const header = el('div', 'panel__header');
-  const name = el('span', 'panel__name');
-  name.textContent = member.spec.species;
-  const level = el('span', 'panel__level');
-  level.textContent = `Lv${member.spec.level}`;
-  header.append(name, level);
-
-  const track = el('div', 'hp');
-  const fill = el('div', 'hp__fill');
-  const fraction = hpFraction(member);
-  fill.style.width = `${fraction * 100}%`;
-  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
-  track.append(fill);
-
-  const meta = el('div', 'panel__meta');
-  const text = el('span', 'panel__hp-text');
+/** HP and PP as the fight left them, for a slot's detail line. */
+function memberReading(member: BattleMemberState): string {
   const pp = ppTotals(member);
-  return member.fainted ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}` : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
+  return member.fainted
+    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
+    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
 }

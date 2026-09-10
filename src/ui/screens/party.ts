@@ -52,7 +52,11 @@ import type { Capability } from '../../data/capabilities';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
 import { itemById } from '../../data/items';
 import type { Tuning } from '../../data/tuning';
+import { openBand } from '../band';
+import { neutralChip } from '../chip';
 import { el } from '../scene';
+import { renderSlots, slotNumber } from '../slots';
+import { PARTY_SIZE } from '../../data/partyTuning';
 import { createThreatReadout } from './threats';
 
 export interface PartyScreen {
@@ -338,7 +342,7 @@ function renderManaged(
   // over the wrong card is exactly the misclick the confirm exists to catch.
   release.addEventListener('click', () =>
     openBand({
-      title: `Release ${spec.species}?`,
+      title: `Release ${member.spec.species}?`,
       detail: 'For good. There is no box. Anything held goes back to the bag.',
       confirm: 'Release',
       cancel: 'Keep',

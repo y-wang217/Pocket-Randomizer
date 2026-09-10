@@ -34,8 +34,6 @@ import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
 import { el, moveCard } from '../scene';
 import { itemIcon, slotNumber } from '../slots';
 import { spriteImg } from '../sprites';
-import { el } from '../scene';
-import { typeChip } from './starter-select';
 import { archetypeChip } from '../archetype-chip';
 
 export interface Summary {
