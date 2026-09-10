@@ -326,3 +326,160 @@ the map.
 `test/visual-v3.test.ts`, `test/visual-baseline.test.ts` and
 `test/visual-tokens.test.ts` all pass, including the byte-identical baseline
 re-recording check.
+
+---
+
+## 2. The chip legibility floor
+
+### 2.1 The two numbers
+
+`data/tuning.ts`, beside `maxMoveTagsOnFace` and `battleFeedbackMs`, the two
+display numbers already living there:
+
+```ts
+minChipFontSizePx: 11,
+minChipContrastRatio: 4.5,
+```
+
+4.5 is WCAG AA for normal-size text, which is what a chip is — the large-text
+relaxation to 3:1 starts at 18px and nothing is close.
+
+### 2.2 What was under the size floor, and what it cost
+
+| rule | was | now |
+|---|---|---|
+| `.type` | `--fs-xs` 10px | `--fs-sm` 11px |
+| `.band` | `--fs-xs` 10px | `--fs-sm` 11px |
+| `.badge--category` | `--fs-xs` 10px | inherits `.badge`, 11px |
+| `.badge--tag` | `--fs-xs` 10px | inherits `.badge`, 11px |
+| `.tier` | `--fs-2xs` 9px | `--fs-sm` 11px |
+| `.rail__gym .type` | `--fs-2xs` 9px | inherits `.type`, 11px |
+| `.log-entry__priority` | `--fs-2xs` 9px | inherits `.badge`, 11px |
+| `.badge--tag` under 420px | `--fs-2xs` 9px | **rule deleted** |
+
+The 420px rule is deleted rather than raised, per ruling 5. It made text smaller
+on the device every visual stage is measured at.
+
+**Two chip surfaces the pre-code report missed**, both found by the sweep:
+
+- **`.rail__gym .type`** overrode the type chip down to 9px for the gym rail's
+  sake. The rail is not a reason to print a chip the player cannot read.
+- **`.log-entry__priority`**, the battle log's `FIRST` marker, was **a chip
+  built by hand** — V2's entire recipe (`--chip`, the fill, the text mix, the
+  inset outline) copied into a stylesheet rule, on an `el('span', …)` that never
+  went near `ui/chip.ts`. It survived V2's "one chip component" rule because
+  `test/chip.test.ts` scans for chips assembled in *TypeScript* and this one was
+  assembled in CSS. It now goes through `neutralChip` with its legacy class as
+  `extra`, so every selector and every layout-only rule still resolves and the
+  duplicate recipe is gone.
+
+### 2.3 Contrast: `--chip-text` 70% → 60%, once
+
+Worst case per hue, label against its own fill over `--bg-raised`:
+
+| hue | at 70% | at 60% |
+|---|---|---|
+| dragon | **4.07** | **4.81** |
+| dark | 4.15 | 4.89 |
+| fighting | 4.20 | 4.94 |
+| ghost | 4.34 | 5.09 |
+| poison | 4.35 | 5.10 |
+
+Five of nineteen were under the floor; all nineteen clear it now, worst at 4.81.
+
+**Confirmed, as ruling 6 asks: the desaturation lands on the label and not the
+fill.** `--chip-text` is read by exactly one declaration, the `color` in `.chip`.
+The fill is `--chip-fill`, untouched at 16%, and the outline is `--chip-line`,
+untouched at 55%. A Dragon chip's *background* is the same colour it was; its
+*text* moved 10% further toward the cream. Lifted once rather than per hue
+because five hand-tuned values would be five to re-derive the first time a chip,
+a surface or a base colour moved, and the sixth hue to fall under the line would
+be the one nobody re-checked.
+
+### 2.4 The sweep
+
+`test/visual-chips.test.ts`, 23 assertions, all passing. Both floors read off
+`DEFAULT_TUNING`, asserted **per variant** — eleven variants × two floors, plus
+one assertion that the set of variants actually seen equals the set `ui/chip.ts`
+can build, so a run that stops reaching one fails rather than passing quietly.
+
+Contrast is measured **off rendered pixels**, not computed properties: a chip's
+fill is `color-mix(… transparent)` over whatever it sits on, which on the map is
+a gradient with a locale glow and a watermark through it. `ratio` is imported
+from `scripts/visual/contrast.mjs` rather than reimplemented.
+
+Two things the sweep had to learn, both worth recording because both were wrong
+in the obvious first version:
+
+- **One screenshot per screen, not per chip.** A chip-at-a-time sweep did not
+  finish in fifteen minutes. A full-page shot plus N box reads off one
+  `ImageData` does the same work in seconds.
+- **First visit is not enough.** Sampling only each screen's first render
+  collected eight variants of eleven and reported `stage`, `flag` and the gate
+  chips as never rendered — a stat stage needs a turn that moved a stat, a flag
+  word needs a turn that resolved into one, and the gate chips need a gated node.
+  None exists on the frame a screen first opens. The trigger is now "this screen
+  is showing a variant I have not measured", and it stops once all eleven are in.
+
+### 2.5 A pre-existing bot defect this uncovered
+
+The `visual-v0` failure reported at step 1 as a suspected flake **was not a
+flake**, and it cost two full-suite runs to say so properly.
+
+`stepOnce` clicks a card's geometric centre. On the item-target screen that
+centre is a member card's archetype chip; on the move-replace screen it is a
+move card's type or category badge. **A chip is a tooltip trigger, and
+`ui/tooltips.ts` calls `stopPropagation` on a trigger click by design** — so
+tapping a chip explains the chip instead of choosing the option it sits on. For
+a bot aiming at centres, that means the click opens a panel and selects nothing,
+forever. A traced run sat on `replace` from step 20 to step 600 opening and
+closing the same tooltip.
+
+**It reproduces against `main`'s stylesheet, so it predates this patch.** Fixed
+in the shared bot, two ways, both in `scripts/visual/browser.mjs`:
+
+- `dismissTooltip` presses Escape before each step. Playwright hit-tests before
+  dispatching and *refuses* to click through the panel, so the tap that would
+  have dismissed it never happens — where a real player's next tap dismisses it.
+- The `target` and `replace` cases now click the card's **name line**, the one
+  part of either card guaranteed present, non-empty and never a trigger. The
+  click bubbles to the button exactly as a tap on it would.
+
+The walk went from a 15-minute timeout to **13.6s**, and now reaches eleven
+screens instead of eight: `event`, `pre-gym` and `shop` were being visited by no
+visual test at all.
+
+### 2.6 The guarded screens
+
+| | main | after §12e | now | vs main |
+|---|---|---|---|---|
+| `battle.decisionTop` | 472 | 472 | **472** | **0** |
+| `battle.decisionBottom` | 700 | 700 | **712** | **+12** |
+| `battle.screenHeight` | 587 | 587 | 599 | +12 |
+| `map.decisionTop` | 614.5 | 614.5 | 616.5 | +2 |
+| `map.decisionBottom` | 728.22 | 698.53 | 701.53 | **−26.69** |
+
+**The stop condition is not met.** The fourth move button ends at 712 against
+the 740 line, clearing it by 28px; the map's last card ends at 701.53, clearing
+it by 38px. `battle.decisionTop` is unmoved. The +12 is three chip rows on a
+move button going from 10px to 11px — bought, not lost. Recorded as a dated
+deviation at [`../../generation.md`](../../generation.md) section 12f.
+
+### 2.7 The digest moved and nothing else did
+
+The two floors are `Tuning` fields, so they are under `src/data/` and the
+baseline's digest is a glob over it. Of the **eight** files in
+`visual/baseline/`, exactly one changed:
+
+```
+data-digest.txt  1bfa3d97…a82356  →  e07a4528…7c1a6
+```
+
+Every recorded run, every casualty list and the recorded battle protocol for
+`GYMRUN01` are byte identical. Two players on one seed holding different copies
+of `tuning.ts` play the identical run.
+
+This is the third instance of what `generation.md` §9 calls "the awkward case",
+after `flagWords.ts` and `battleFeedbackMs`, and it behaved exactly as Release C
+recorded. **The per-field split of `tuning.ts` remains the `contentHash`
+release's decision and is deliberately not pre-empted here.**

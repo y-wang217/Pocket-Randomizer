@@ -911,8 +911,9 @@ body {
  * buttons: a Pokemon with 150 Attack and 45 Sp. Atk has one good move on that
  * bar, and reading four labels to find it is the friction this removes.
  */
+/* No font-size of its own from 4.7.2: it inherits `.badge`'s --fs-sm, which is
+   the chip floor. It used to override to --fs-xs, which was under it. */
 .badge--category {
-  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
 }
 
@@ -947,7 +948,8 @@ body {
   padding: var(--hairline) calc(var(--space-1h) + var(--hairline));
   border-radius: var(--radius-chip);
   font-family: var(--font-display);
-  font-size: var(--fs-xs);
+  /* --fs-xs until 4.7.2, which is 10px and under the chip floor. */
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1131,18 +1133,15 @@ body {
 /* The ordinal says when; the colour says who. Two facts, one glyph. */
 .log-entry--action[data-side='p1'] .log-entry__order { color: var(--emphasis); border-color: var(--emphasis); }
 
+/*
+ * Layout only from 4.7.2. **The chip recipe that used to be duplicated here
+ * is gone**; the element carries `.chip` now and inherits it from the one
+ * place, which is what V2's rule says and what this rule was quietly the
+ * exception to. `--fs-2xs` went with it: 9px was the furthest under the chip
+ * legibility floor anything got, and `.badge` sets the floor size.
+ */
 .log-entry__priority {
   flex: none;
-  padding: 0 calc(var(--space-1) + var(--hairline));
-  border-radius: var(--radius-chip);
-  --chip: var(--cream-dim);
-  background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
-  color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
-  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
-  font-family: var(--font-display);
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
   cursor: help;
 }
 
@@ -1321,7 +1320,8 @@ body {
   padding: var(--hairline) var(--space-1h);
   border-radius: var(--radius-chip);
   font-family: var(--font-display);
-  font-size: var(--fs-xs);
+  /* --fs-xs until 4.7.2, which is 10px and under the chip floor. */
+  font-size: var(--fs-sm);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border: var(--hairline) solid transparent;
@@ -1466,7 +1466,9 @@ body {
   flex-basis: 100%;
   max-width: fit-content;
   padding: var(--hairline) calc(var(--space-1) + var(--hairline));
-  font-size: var(--fs-2xs);
+  /* No font-size from 4.7.2. It overrode `.type` down to --fs-2xs, 9px, for
+     the rail's sake; the rail is not a reason to print a chip the player
+     cannot read. */
 }
 
 .rail__number {
@@ -2229,7 +2231,9 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      edge; the .chip recipe draws the outline inside it. Stage V2. */
   border: var(--hairline) solid transparent;
   font-family: var(--font-display);
-  font-size: var(--fs-2xs);
+  /* --fs-2xs until 4.7.2, which is 9px and the furthest under the chip
+     floor anything got. */
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   vertical-align: var(--hairline);
@@ -3421,8 +3425,9 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   gap: var(--space-1);
 }
 
+/* No font-size of its own from 4.7.2: it inherits `.badge`'s --fs-sm. It used
+   to override to --fs-xs, and to --fs-2xs again under 420px. */
 .badge--tag {
-  font-size: var(--fs-xs);
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
 }
@@ -3514,5 +3519,14 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * strip of the screen underneath is what says this is an overlay. */
   .drawer__sheet { max-height: 90vh; }
   .move__tags { gap: var(--space-1); }
-  .badge--tag { font-size: var(--fs-2xs); }
+  /*
+   * **The `.badge--tag { font-size: var(--fs-2xs) }` that lived here is gone.
+   * Patch 4.7.2.**
+   *
+   * It dropped a tag to 9px on screens narrower than 420, which is to say it
+   * made the text smaller on the device the whole visual pass is measured at.
+   * A chip that does not fit is a chip that should be dropped or the row
+   * wrapped; shrinking it under the legibility floor answers the layout
+   * question by making the chip unreadable, which is not an answer.
+   */
 }

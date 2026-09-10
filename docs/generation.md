@@ -1210,3 +1210,66 @@ decision, not a budget win to spend: it arrived because the face is narrower,
 and it would go back the moment `--font-body` returns to the mono stack — which
 is one line, by design. Nothing should be laid out on the assumption that the
 map now has thirty spare pixels.
+
+## 12f. Deviation: 4.7.2's chip floor moved the battle decision point by 12px
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-4.7.2-font-stats-verbosity.md`](spec/gymrun-patch-4.7.2-font-stats-verbosity.md),
+step 2 and ruling 5; the measurement is
+[`visual/reports/patch-4.7.2.md`](visual/reports/patch-4.7.2.md) section 2.
+
+**What was asked.** A legibility floor for chips — a minimum font size with a
+floor of 11px and a minimum contrast ratio — as numbers in `data/tuning.ts`,
+applied to every chip surface. Ruling 5 accepted the baseline churn in advance,
+required `decisionTop` and `decisionBottom` before and after, and set one stop
+condition: **stop rather than ship if the decision point drops below the fold on
+390x844.**
+
+**What moved.** Five chip rules were under the floor and are now at it: `.type`,
+`.band`, `.badge--category` and `.badge--tag` at `--fs-xs` (10px), and `.tier` at
+`--fs-2xs` (9px). A move button carries three of those, so the button grew.
+
+| | main | after 12e | after this | vs 12e | vs main |
+|---|---|---|---|---|---|
+| `battle.decisionTop` | 472 | 472 | **472** | 0 | **0** |
+| `battle.decisionBottom` | 700 | 700 | **712** | **+12** | **+12** |
+| `battle.screenHeight` | 587 | 587 | 599 | +12 | +12 |
+| `map.decisionTop` | 614.5 | 614.5 | 616.5 | +2 | +2 |
+| `map.decisionBottom` | 728.22 | 698.53 | 701.53 | +3 | **−26.69** |
+
+`decisionCount` unchanged at 4 and 2; `battle.scrollHeight` unchanged at 844.
+
+**Why this ships.** The stop condition is the fold, and the fold is the 740
+usable line `test/visual-v0.test.ts` asserts. The fourth move button ends at
+**712**, clearing it by 28px; the map's last offered card ends at 701.53,
+clearing it by 38px. **`decisionTop` is unmoved on the battle screen** — the
+number V5's budget arithmetic is keyed off, and what both R12's note and
+Release C take "the decision point" to mean. Against `main` the map is 26.69px
+better off and the battle screen 12px worse, and the pair still clears.
+
+**The 12px is bought, not lost.** It is three chip rows on a move button going
+from 10px to 11px, which is the thing the patch exists to do. Reading it back as
+a regression to reclaim would mean reclaiming it from the floor.
+
+**Also deleted here: the `@media (max-width: 420px)` rule that dropped
+`.badge--tag` to 9px.** Per ruling 5, and worth its own sentence: it made text
+*smaller* on the device every visual stage is measured at. A chip that does not
+fit is a chip to drop or a row to wrap, not a chip to shrink under the floor.
+
+**`--chip-text` moved 70% to 60%, once and globally.** At 70% five of nineteen
+hues put their label under 4.5:1 against their own fill. Per hue would have been
+five values to re-derive the first time a chip, a surface or a base colour
+moved. It desaturates the **label** only — `--chip-fill` is untouched — so a
+Dragon chip still reads as Dragon.
+
+**`data-digest.txt` moved and nothing else did.** The two floors are `Tuning`
+fields, so they are under `src/data/` and the digest is a glob over it. This is
+the third instance of the case §9 calls "the awkward case", after `flagWords.ts`
+and `battleFeedbackMs`, and it behaved the same way: of the eight files in
+`visual/baseline/`, only the digest changed. Every recorded run, every casualty
+list and the recorded battle protocol are byte identical, so two players on one
+seed holding different copies of `tuning.ts` still play the identical run. **The
+per-field split of that file is still the `contentHash` release's decision and
+is deliberately not pre-empted here.**

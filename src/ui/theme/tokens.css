@@ -170,11 +170,30 @@
   --type-fairy: #d685ad;
   --type-stellar: #40b5a5;
 
-  /* How far a chip's hue is pulled toward the neutrals. One number for every
-     coloured chip, so no chip is more saturated than another. */
+  /*
+   * How far a chip's hue is pulled toward the neutrals. One number for every
+   * coloured chip, so no chip is more saturated than another.
+   *
+   * **`--chip-text` went 70% to 60% at patch 4.7.2, once and globally.** At
+   * 70% the darkest five type hues put their label under 4.5:1 against their
+   * own fill — dragon 4.07, dark 4.15, fighting 4.20, ghost 4.34, poison 4.35
+   * — which is `tuning.minChipContrastRatio` missed on a quarter of the wheel.
+   * 60% clears it on every hue with the worst at 4.81.
+   *
+   * **Lifted here rather than per hue**, which is the whole reason it is one
+   * number: five hand-tuned exceptions would be five values to re-derive the
+   * first time a chip, a surface or a base colour moves, and the sixth hue to
+   * fall under the line would be the one nobody re-checked.
+   *
+   * **It desaturates the label and not the fill.** `--chip-text` is read only
+   * by the `color` in `.chip`; the fill is `--chip-fill` and is untouched, so
+   * a Dragon chip still reads as Dragon at a glance and its *text* is what
+   * moved toward the cream. Measured per chip surface in
+   * `test/visual-chips.test.ts`.
+   */
   --chip-fill: 16%;
   --chip-line: 55%;
-  --chip-text: 70%;
+  --chip-text: 60%;
 
   /* ---------- faces ---------- */
   --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
