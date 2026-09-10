@@ -3,12 +3,12 @@
  *
  * A run gains a party member by beating a wild Pokemon and keeping it. This
  * file is the decision: an offer, the three answers a player can give it, and
- * the rule that no answer can leave the party over `PARTY_SIZE`.
+ * the rule that no answer can leave the party over its current capacity.
  *
  * ## There were two routes, and Stage 4.6b closed one
  *
  * A `species` reward card was the other. Stage 3 wrote it and gated it off at
- * `PARTY_SIZE` 1, where it was a forced swap of the run's only Pokemon rather
+ * a capacity of 1, where it was a forced swap of the run's only Pokemon rather
  * than an addition; Stage 4 turned it on once a swap cost a slot instead of the
  * whole run; and 4.6a made it redundant by guaranteeing a wild encounter per
  * segment and a capture on every wild victory.
@@ -53,7 +53,7 @@ import { generateWildTeam } from './randomizer';
 import type { RngStream } from './rng';
 import { createPartyMember } from './party';
 import type { ItemId, PokemonSpec, PokemonState } from './types';
-import { PARTY_SIZE } from '../data/partyTuning';
+
 import { playerLevel } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
@@ -98,9 +98,16 @@ export type AcquisitionDecision =
   /** Take it and release the member in this slot. Illegal at anything else. */
   | { kind: 'release'; slot: number };
 
-/** Whether the party has room without releasing anything. */
-export function hasRoom(party: readonly PokemonState[]): boolean {
-  return party.length < PARTY_SIZE;
+/**
+ * Whether the party has room without releasing anything.
+ *
+ * **Takes the capacity rather than reading a constant. Stage 4.8, item 1.**
+ * This is the call the prompt singles out: slots unlock on gym clears, and a
+ * capture flow still reading a fixed size is a player told they have room and
+ * then asked to replace someone. Callers pass `partyCapacity(state)`.
+ */
+export function hasRoom(party: readonly PokemonState[], capacity: number): boolean {
+  return party.length < capacity;
 }
 
 /**
@@ -226,12 +233,13 @@ export function generateEventAcquisition(
 export function decisionRefusal(
   party: readonly PokemonState[],
   decision: AcquisitionDecision,
+  capacity: number,
 ): string | null {
   if (decision.kind === 'decline') return null;
   if (decision.kind === 'accept') {
-    return hasRoom(party) ? null : `party is full (${party.length}/${PARTY_SIZE})`;
+    return hasRoom(party, capacity) ? null : `party is full (${party.length}/${capacity})`;
   }
-  if (hasRoom(party)) return 'party has room, so nothing needs releasing';
+  if (hasRoom(party, capacity)) return 'party has room, so nothing needs releasing';
   if (!party[decision.slot]) return `no party member in slot ${decision.slot}`;
   return null;
 }
@@ -258,8 +266,9 @@ export function applyAcquisition(
   offer: AcquisitionOffer,
   decision: AcquisitionDecision,
   segment: number,
+  capacity: number,
 ): { party: PokemonState[]; freed: ItemId[] } {
-  const refusal = decisionRefusal(party, decision);
+  const refusal = decisionRefusal(party, decision, capacity);
   if (refusal) throw new RangeError(`Cannot apply acquisition decision: ${refusal}`);
 
   if (decision.kind === 'decline') return { party: [...party], freed: [] };

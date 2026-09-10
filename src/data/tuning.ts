@@ -12,7 +12,7 @@
  */
 
 import type { Tier } from '../core/types';
-import { PARTY_SIZE } from './partyTuning';
+
 
 /**
  * The kinds of node a step can offer. `gym` is never an option, only a cap.
@@ -327,14 +327,22 @@ export interface Tuning {
   // --- the backpack --------------------------------------------------------
 
   /**
-   * How many *loose* items the run may carry. Held items do not count.
+   * How many *loose* items the run may carry **on top of its party slots**.
    *
-   * Party size plus two, which is the smallest number that is still a decision:
+   * Two, which with the slots is the smallest capacity that is still a decision:
    * enough to re-equip a full party from scratch, plus two spare to choose
    * between. Counting only loose items is the deliberate half — a capacity that
    * counted held ones would make equipping a Pokemon a way to dodge the limit,
    * and the limit exists so that *acquisition* stays a choice rather than pure
    * accumulation.
+   *
+   * **Stage 4.8 made this the slack rather than the whole number, and that is
+   * the fix rather than a rename.** It was `backpackCapacity: PARTY_SIZE + 2`, a
+   * literal evaluated once at module load and frozen into `DEFAULT_TUNING` — so
+   * the bag was sized from the party at *import* time and could not follow a
+   * party that grows. `Tuning` is passed into a run and must not change inside
+   * one, so the derived half cannot live here; only the slack can.
+   * `core/items.backpackCapacity` adds the run's live slots to it.
    *
    * Stage 3 refused to build a bag at all, on the grounds that a bag needs "a
    * screen, a capacity rule, and an answer to what happens on a wipe". This is
@@ -346,7 +354,7 @@ export interface Tuning {
    * number being wrong, not the cap being pointless — see the note in
    * `core/items.ts` on why the finite version is the interesting one.
    */
-  backpackCapacity: number;
+  backpackSlack: number;
 
   // --- selection -----------------------------------------------------------
 
@@ -512,7 +520,7 @@ export const DEFAULT_TUNING: Tuning = {
   reviveFaintedBetweenNodes: true,
   reviveHpPercent: 0.5,
 
-  backpackCapacity: PARTY_SIZE + 2,
+  backpackSlack: 2,
 
   starterOptionCount: 3,
 

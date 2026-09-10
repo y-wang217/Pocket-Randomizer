@@ -56,7 +56,7 @@ import { openBand } from '../band';
 import { neutralChip } from '../chip';
 import { el } from '../scene';
 import { renderSlots, slotNumber } from '../slots';
-import { PARTY_SIZE } from '../../data/partyTuning';
+
 import { createThreatReadout } from './threats';
 
 export interface PartyScreen {
@@ -95,6 +95,14 @@ export interface PartyView {
   /** The run's relics. Not the backpack — they are neither carried nor spent. */
   relics: readonly RelicId[];
   tuning: Tuning;
+  /**
+   * The party slots the run has right now, from `core/run.partyCapacity`.
+   *
+   * **Stage 4.8, item 1.** The slot grid draws this many cells and the backpack
+   * derives its own capacity from it, so a gym clear widens both. A constant here
+   * would draw three cells for a party of four.
+   */
+  slots: number;
   /**
    * A layout the player already composed and has not yet spent, or null.
    *
@@ -207,7 +215,7 @@ export function createPartyScreen(): PartyScreen {
               item: held[slot] ?? null,
               tip: held[slot] ? `item:${held[slot]}` : undefined,
             })),
-            PARTY_SIZE,
+            view.slots,
           ),
         );
         list.replaceChildren(
@@ -413,7 +421,7 @@ function renderBackpack(
     onDiscard: (item: ItemId) => void;
   },
 ): void {
-  const capacity = backpackCapacity(view.tuning);
+  const capacity = backpackCapacity(view.slots, view.tuning);
   const heading = el('h3', 'backpack__title');
   heading.textContent = 'Backpack';
 

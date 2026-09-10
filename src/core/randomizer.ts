@@ -179,8 +179,34 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * an ordinary card pick, so no question was added and no question moved — the
  * two axes disagreeing here is the two axes working. See its comment in
  * `core/run.ts` for the other half of that argument.
+ *
+ * ## 13: Stage 4.8, and it is the one bump for the whole patch
+ *
+ * Party slots became a schedule (`data/partyTuning.SLOT_UNLOCK_SCHEDULE`), and
+ * the difficulty curve reads it: `scaling.expectedPartySize` now caps at the
+ * slots a segment has, and its measured-growth rows moved in segments 4 to 7 to
+ * track them. **Opponent team sizes are a function of that number**, so from
+ * segment 4 on a trainer fields a different count — which changes how many
+ * Pokemon are drawn, which moves every draw in that node's sequence after it.
+ *
+ * Draw *order* under the keyed sub-streams does not shift, and no key is added or
+ * renamed by this step; the values do shift, and every seed in circulation dies
+ * with it. That is expected and accepted: seeds are disposable until the freeze,
+ * which has still not happened.
+ *
+ * It is stamped once for Stage 4.8 rather than once per item. The later items of
+ * that patch move `tuning.stepsPerSegment`, `data/rewardPools.ts` and
+ * `data/scoring.ts` and add the nickname key, all of which land under this same
+ * number — a version axis names a content *state*, not a changeset, and bumping
+ * it twice inside one patch would invent a state nobody ever played.
+ *
+ * `RUN_LOG_VERSION` again does not move. Party capacity, nicknames, death records
+ * and the score are all derived from the log rather than written into it, so no
+ * question was added, removed, reordered or reshaped. `test/party-slots.test.ts`
+ * asserts the derivation directly, which is what makes that claim checkable
+ * rather than a promise.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-12';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-13';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

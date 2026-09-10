@@ -30,6 +30,7 @@ import { greedyAiPolicy } from '../src/core/battle/ai';
 import { hasRoom, joinLevelFor } from '../src/core/acquisition';
 import { playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 import type { PokemonState } from '../src/core/types';
+import { partyCapacityAfter } from '../src/data/partyTuning';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
@@ -42,7 +43,7 @@ function catcher(): RunPolicy {
       return wild === -1 ? 0 : wild;
     },
     chooseAcquisition: async (_offer, party) => {
-      if (hasRoom(party)) return { kind: 'accept' };
+      if (hasRoom(party, partyCapacityAfter(0))) return { kind: 'accept' };
       let lowest = 0;
       party.forEach((member, index) => {
         if (member.spec.level < (party[lowest]?.spec.level ?? 0)) lowest = index;
@@ -125,12 +126,12 @@ describe('an acquired Pokemon', () => {
       const base = catcher();
       const policy: RunPolicy = {
         ...base,
-        chooseAcquisition: async (offer, party) => {
+        chooseAcquisition: async (offer, party, capacity) => {
           offers.set(offer.spec.species, {
             ability: offer.spec.ability,
             moves: [...offer.spec.moves],
           });
-          return base.chooseAcquisition(offer, party);
+          return base.chooseAcquisition(offer, party, capacity);
         },
       };
 

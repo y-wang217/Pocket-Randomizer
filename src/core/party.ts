@@ -31,7 +31,7 @@ import type {
   TeamSpec,
 } from './types';
 import { MOVESET } from '../data/scaling';
-import { PARTY_SIZE } from '../data/partyTuning';
+import { MAX_PARTY_CAPACITY } from '../data/partyTuning';
 import type { Tuning } from '../data/tuning';
 
 /**
@@ -86,11 +86,11 @@ export function leadOf(party: readonly PokemonState[]): PokemonState | null {
  * Stage 1 sent the lead and only the lead, because the driver had no switch
  * choice and a second Pokemon would have produced a forced-switch request no
  * policy could answer. Stage 2 gave the driver that choice — gym leaders need
- * it — so this now sends the party, capped at `PARTY_SIZE`.
+ * it — so this now sends the party, capped at the ceiling the sim will accept.
  *
- * At `PARTY_SIZE = 1` that is the same one Pokemon it always was. The point is
- * that it is the same *code path*: Stage 4 raising the constant changes what
- * this returns without changing anything that calls it.
+ * At a ceiling of 1 that is the same one Pokemon it always was. The point is
+ * that it is the same *code path*: raising the ceiling changes what this returns
+ * without changing anything that calls it.
  */
 export function battleMembersFor(party: readonly PokemonState[]): PokemonState[] {
   const sent = sendOrder(party);
@@ -109,9 +109,23 @@ export function battleMembersFor(party: readonly PokemonState[]): PokemonState[]
  * `battleMembersFor` keeps the throw because starting a battle with nothing to
  * send is a bug; reading a result back is a query and answers with an empty
  * list.
+ *
+ * ## Why this slices at the ceiling and not at the run's live capacity
+ *
+ * Stage 4.8 put party slots on a schedule, and every other site that asked "how
+ * many slots" now asks the run. This one deliberately does not, and the reason is
+ * that **it is not a capacity check.** A party can only exceed its slots through
+ * `core/acquisition.ts`, which refuses to, so by the time a party reaches a
+ * battle it is already within capacity; the slice is here to protect the *sim*,
+ * whose hard limit is six a side. Truncating to live capacity instead would hide
+ * an invariant violation rather than enforce one — and worse, it would be a
+ * second rule that `battleTeamFor` and `applyBattleState` both have to agree
+ * about, since one sends the members and the other maps the result back onto
+ * them. A parameter those two could disagree on is damage written to the wrong
+ * Pokemon, which is the one bug this shared helper exists to make impossible.
  */
 function sendOrder(party: readonly PokemonState[]): PokemonState[] {
-  return party.filter((member) => !member.fainted).slice(0, PARTY_SIZE);
+  return party.filter((member) => !member.fainted).slice(0, MAX_PARTY_CAPACITY);
 }
 
 /**

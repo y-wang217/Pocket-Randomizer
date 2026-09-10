@@ -62,6 +62,7 @@ import { createRng, type RngStream } from '../src/core/rng';
 import {
   causeOfDeath,
   gymsCleared,
+  partyCapacity,
   playRun,
   RUN_LOG_VERSION,
   SEGMENTS_PER_RUN,
@@ -77,7 +78,7 @@ import {
   type BattleSession,
 } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
-import { itemSuitsTypes } from '../src/core/items';
+import { backpackCapacity, itemSuitsTypes } from '../src/core/items';
 import type { MoveReward, Reward } from '../src/core/rewards';
 import { hasRoom } from '../src/core/acquisition';
 import {
@@ -98,7 +99,7 @@ import type { CapabilityBand } from '../src/core/capabilities';
 import { RELIC_IDS, relicById } from '../src/data/relics';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
-import { PARTY_SIZE } from '../src/data/partyTuning';
+import { MAX_PARTY_CAPACITY, SLOT_UNLOCK_SCHEDULE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
 import type { GymDefinition } from '../src/data/gyms';
@@ -747,7 +748,7 @@ function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number)
      * Not zero at a full party, because `release` is a real answer.
      */
     case 'acquisition':
-      return hasRoom(state.party) ? 140 : 40;
+      return hasRoom(state.party, partyCapacity(state)) ? 140 : 40;
     case 'currency':
       return (outcome.amount / priceAt(130, segment)) * 85;
     case 'heal': {
@@ -1025,7 +1026,7 @@ function greedyItemPlan(state: RunState): ItemPlan {
     if (state.party[slot]?.item !== undefined) assignments.push({ slot, item: null });
   }
 
-  const capacity = Math.max(0, Math.floor(state.tuning.backpackCapacity));
+  const capacity = backpackCapacity(partyCapacity(state), state.tuning);
   const overflow = Math.max(0, remaining.length - capacity);
   if (overflow === 0) return { assignments, discards: [] };
 
@@ -1213,13 +1214,21 @@ function buildPolicy(
      * report a party that fills at segment 1 and never changes again, and the
      * "did the player ever fill the party" metric would be a constant.
      */
-    chooseAcquisition: async (offer, party) => {
+    chooseAcquisition: async (offer, party, capacity) => {
       collect.acquisitionsOffered++;
       if (offer.source === 'encounter') collect.capturesOffered++;
 
       if (catchRule === 'averse') return { kind: 'decline' };
 
-      if (hasRoom(party)) {
+      /*
+       * Stage 4.8: the room test reads the capacity it is handed.
+       *
+       * A bot still asking about a flat three would decline every offer from the
+       * first unlock onward and report a party that stops growing at gym 2 —
+       * which would make the whole slot schedule invisible to the benchmark it
+       * exists to be measured by.
+       */
+      if (hasRoom(party, capacity)) {
         collect.acquisitionsTaken++;
         if (offer.source === 'encounter') collect.capturesTaken++;
         return { kind: 'accept' };
@@ -1322,7 +1331,17 @@ interface RunRecord {
   acquisitionsOffered: number;
   acquisitionsTaken: number;
   releases: number;
-  /** Whether the party ever reached PARTY_SIZE. Splits the completion rate. */
+  /**
+   * Whether the party ever filled **the slots it had at the time**.
+   *
+   * Stage 4.8 made that a moving target, and the question had to move with it.
+   * Against a fixed three this read "did the run ever get to three"; against a
+   * schedule that ends at six, the same test would be asking whether the run
+   * reached its *endgame* width, which most runs never get the chance to, and the
+   * metric would stop splitting the completion rate and start restating it.
+   * Filling four of four at gym 3 is the thing this is for: the party was the
+   * binding constraint and the run answered it.
+   */
   everFilled: boolean;
   /** Party size when the last battle of the run began. */
   partyAtEnd: number;
@@ -1482,7 +1501,7 @@ async function playSample(
         }
       },
       onState: (state) => {
-        if (state.party.length >= PARTY_SIZE) everFilled = true;
+        if (state.party.length >= partyCapacity(state)) everFilled = true;
       },
     });
     const { state } = run;
@@ -2542,7 +2561,7 @@ function render(sample: Sample): string {
           party.takeRate < 0.5 ? 'join penalty or release cost too harsh' : '',
         ],
         ['releases / run', party.releasesPerRun.toFixed(2), ''],
-        ['mean party at last battle', party.meanPartyAtEnd.toFixed(2), `of ${PARTY_SIZE}`],
+        ['mean party at last battle', party.meanPartyAtEnd.toFixed(2), `of up to ${MAX_PARTY_CAPACITY}`],
         ['mean type coverage', party.meanTypeCoverage.toFixed(2), 'distinct types on the final party'],
       ],
     ),
@@ -2736,7 +2755,7 @@ function render(sample: Sample): string {
           [
             `members dealing >${pct(CONTRIBUTOR_FLOOR)}`,
             contribution.meanContributors.toFixed(2),
-            `of ${PARTY_SIZE} slots`,
+            `of up to ${MAX_PARTY_CAPACITY} slots`,
           ],
         ],
       ),
@@ -2802,7 +2821,7 @@ function render(sample: Sample): string {
         [
           [
             'members not the starter',
-            `${churn.meanNonStarters.toFixed(2)} of ${PARTY_SIZE}`,
+            `${churn.meanNonStarters.toFixed(2)} of up to ${MAX_PARTY_CAPACITY}`,
             churn.meanNonStarters < 0.5
               ? 'the party is the starter and decoration'
               : 'the run is being built, not inherited',
@@ -3260,7 +3279,17 @@ const report = {
    * stamps. This is the one that says the bot changed.
    */
   aiVersion: AI_VERSION,
-  partySize: PARTY_SIZE,
+  /*
+   * The slot ceiling and the schedule that reaches it. **Both, from Stage 4.8.**
+   *
+   * One number was enough when the party was one number. It is not now: two
+   * reports can share a ceiling of six and disagree about when the fourth slot
+   * arrives, and that difference moves every figure below. Stamping only the
+   * ceiling would make those two reports look comparable, which is the exact
+   * failure every other stamp in this block exists to prevent.
+   */
+  partySize: MAX_PARTY_CAPACITY,
+  slotUnlockSchedule: [...SLOT_UNLOCK_SCHEDULE],
   segments: SEGMENTS_PER_RUN,
   seedPrefix: options.prefix,
   seeds: options.seeds,

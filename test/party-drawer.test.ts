@@ -27,6 +27,7 @@ import { createLocaleSelect } from '../src/ui/screens/locale-select';
 import { chooseStarter, createRun, type RunState } from '../src/core/run';
 import { createRng } from '../src/core/rng';
 import { gymForSegment } from '../src/data/gyms';
+import { partyCapacityAfter } from '../src/data/partyTuning';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { createParty } from '../src/core/party';
 import type { PokemonState } from '../src/core/types';
@@ -230,6 +231,8 @@ describe('every decision surface', () => {
             backpack: [],
             relics: [],
             tuning: state.tuning,
+            // Stage 4.8: the slot grid is sized by the run, not a constant.
+            slots: partyCapacityAfter(0),
             plan: null,
           },
           {

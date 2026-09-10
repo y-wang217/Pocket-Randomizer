@@ -38,7 +38,6 @@ import {
   type RunState,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
-import { PARTY_SIZE } from '../src/data/partyTuning';
 
 const snorlax = (moves: string[]): PokemonState =>
   createPartyMember({ species: 'Snorlax', ability: 'Thick Fat', moves, level: 50 } as PokemonSpec);
@@ -381,9 +380,10 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
       },
       // Take everything: accept while there is room, release slot 0 once full,
       // so a party swap really happens.
-      chooseAcquisition: async (_offer, party) => {
+      chooseAcquisition: async (_offer, party, capacity) => {
         seen.add('acquisition');
-        if (party.length < PARTY_SIZE) return { kind: 'accept' };
+        // Stage 4.8: the capacity the run hands the policy, not a constant.
+        if (party.length < capacity) return { kind: 'accept' };
         seen.add('release');
         return { kind: 'release', slot: 0 };
       },

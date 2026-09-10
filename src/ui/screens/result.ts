@@ -58,7 +58,7 @@ import {
 import { statusChip } from '../chip';
 import { ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
-import type { BattleReview, RunState } from '../../core/run';
+import { partyCapacity, type BattleReview, type RunState } from '../../core/run';
 import type { BattleMemberState, PokemonState } from '../../core/types';
 import { el } from '../scene';
 import { renderSlots } from '../slots';
@@ -193,7 +193,14 @@ export function createResultScreen(): ResultScreen {
       capture.hidden = !capturePrompt;
       if (capturePrompt) {
         capture.replaceChildren(
-          renderCaptureOffer(capturePrompt.offer, capturePrompt.party, capturePrompt.onDecide),
+          renderCaptureOffer(
+            capturePrompt.offer,
+            capturePrompt.party,
+            capturePrompt.onDecide,
+            // The slots the run has now, not a constant: a capture resolving in
+            // the same segment a gym unlocked a slot must see the new one.
+            partyCapacity(state),
+          ),
         );
       } else {
         capture.replaceChildren();

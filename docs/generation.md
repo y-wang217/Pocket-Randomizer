@@ -511,6 +511,77 @@ moved band window, a changed level curve, a new draw inside `rollMoveset`, a
 reordered data table. It went to `-2` on the first balance pass, where not one
 draw changed position and every seed rolled a different team anyway.
 
+## 7b. Party slots, and the one number the curve reads
+
+**Stage 4.8, item 1. `RANDOMIZER_VERSION` is `gymrun-randomizer-13` from here.**
+
+Party capacity used to be `PARTY_SIZE`, a module-scope constant in
+`data/partyTuning.ts`, and the whole of item 1 is that it is now a function of
+**gyms cleared**:
+
+| gyms cleared | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| party slots | 3 | 3 | 4 | 4 | 5 | 5 | 6 | 6 | 6 |
+| backpack (`+ backpackSlack`) | 5 | 5 | 6 | 6 | 7 | 7 | 8 | 8 | 8 |
+
+`SLOT_UNLOCK_SCHEDULE` is the table; `partyCapacityAfter(gyms)` is the only thing
+that reads it; `core/run.ts`'s `partyCapacity` is the `RunState` form and composes
+it with `gymsCleared`. Nothing else in the codebase computes a capacity.
+
+**`PARTY_SIZE` was deleted rather than kept beside the schedule.** A constant
+named for the party's size is what a later call site reads instead of asking how
+wide the roster is now, and the prompt names the consequence exactly: a slot
+unlock that does not reach the capture flow means a player is told they have room
+and then asked to replace someone. Removing the name is what forced all sixteen
+read sites through review; the compiler found them, not a grep.
+
+### Why this moves a version axis
+
+`scaling.expectedPartySize` reads the schedule as its **cap**, and
+`opponentTeamSize` is `expectedPartySize(segment) + advantage`. So the schedule
+reaches opponent team sizes, team sizes decide how many Pokemon are drawn, and a
+different count moves every draw after it in that node's sequence.
+
+Two quantities meet there and they are **not the same number**, which is the
+distinction section 3 of `balance.md` paid for once already:
+
+- `partyCapacityAfter(segment)` is what the player is *allowed* to field.
+- `EXPECTED_PARTY_SIZE` is what they are *measured* to field.
+
+The second may never exceed the first, and `test/party-slots.test.ts` asserts it
+at every segment. Sizing opponents against the ceiling instead of the measurement
+is the largest single finding of the Stage 4 balance pass, pointed the other way.
+
+`EXPECTED_PARTY_SIZE` moved from `[1, 2, 2, 3, 3, 3, 3, 3]` to
+`[1, 2, 2, 3, 4, 4, 5, 5]`. **Segments 0 to 3 are unchanged to the number**, so
+the early benchmark rows stay comparable across the patch and a move in them
+means something other than this landed. The four rows that did move track the
+schedule one unlock behind it, because a slot is capacity and filling it takes a
+wild encounter — one guaranteed per segment, and decliners exist. That lag is a
+*claim*, and the simulator's `party.sizeBySegment` section is what holds it to
+account: it prints the measured party beside this column, segment by segment.
+
+### What did not move
+
+`RUN_LOG_VERSION` is unchanged and asserted unchanged. Capacity is derived from
+gyms cleared, gyms cleared from history, history from the decision log — so it
+reconstructs identically without being stored, consumes no RNG, and adds no
+logged decision. The same will hold for nicknames, death records and the score,
+which is why this patch moves one axis in total rather than one per item. A
+version axis names a content *state*, not a changeset.
+
+`tuning.backpackCapacity` is gone, replaced by `tuning.backpackSlack: 2`. The old
+field was `PARTY_SIZE + 2` **evaluated once at module load** and frozen into
+`DEFAULT_TUNING`, so the bag was sized from the party at import time and could
+not have followed a growing one however the schedule was written. `Tuning` is
+passed into a run and must not change inside one, so only the slack can live
+there; `core/items.backpackCapacity(slots, tuning)` adds the run's live slots.
+
+`test/fixtures/sim-report.json` is re-minted in the same commit as the bump, which
+is the use its header reserves for exactly this case: the diff on that file is the
+evidence that the draws moved, and the version string moving beside it is what
+stops a recorded seed being silently reinterpreted.
+
 ## 8. Capabilities, and why `latent` is not a learnset
 
 > **Superseded 2026-09-10. Kept because the measurements are still good.**

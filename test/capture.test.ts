@@ -35,8 +35,17 @@ import {
   type RunPolicy,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
-import { PARTY_SIZE } from '../src/data/partyTuning';
+import { partyCapacityAfter } from '../src/data/partyTuning';
 import { DEFAULT_TUNING } from '../src/data/tuning';
+
+/**
+ * The slots a run opens with. **Stage 4.8, item 1**, was `PARTY_SIZE`.
+ *
+ * These fixtures mean "a party with no room left", and at the opening width that
+ * is still three. That capacity now *moves* is asserted in
+ * `test/party-slots.test.ts`, including that this flow reads the live value.
+ */
+const OPENING_SLOTS = partyCapacityAfter(0);
 
 const spec = (species: string, extra: Partial<PokemonSpec> = {}): PokemonSpec => ({
   species,
@@ -114,11 +123,11 @@ describe('the offer', () => {
 describe('the three answers', () => {
   const partyOf = (...names: string[]): PokemonState[] => createParty(names.map((name) => spec(name)));
   /** Real species, because `createParty` asks the dex for max HP. */
-  const FULL_PARTY = ['Bulbasaur', 'Squirtle', 'Charmander', 'Pidgey', 'Rattata', 'Zubat'].slice(0, PARTY_SIZE);
+  const FULL_PARTY = ['Bulbasaur', 'Squirtle', 'Charmander', 'Pidgey', 'Rattata', 'Zubat'].slice(0, OPENING_SLOTS);
 
   it('fills an empty slot on accept', () => {
     const party = partyOf('Bulbasaur');
-    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'accept' }, SEGMENT);
+    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'accept' }, SEGMENT, OPENING_SLOTS);
 
     expect(after.map((member) => member.spec.species)).toEqual(['Bulbasaur', 'Poliwag']);
     expect(freed).toEqual([]);
@@ -128,10 +137,10 @@ describe('the three answers', () => {
 
   it('replaces the chosen member at a full party, and that member is gone', () => {
     const full = partyOf(...FULL_PARTY);
-    expect(hasRoom(full)).toBe(false);
+    expect(hasRoom(full, OPENING_SLOTS)).toBe(false);
 
-    const { party: after } = applyAcquisition(full, offerOf('Poliwag'), { kind: 'release', slot: 1 }, SEGMENT);
-    expect(after).toHaveLength(PARTY_SIZE);
+    const { party: after } = applyAcquisition(full, offerOf('Poliwag'), { kind: 'release', slot: 1 }, SEGMENT, OPENING_SLOTS);
+    expect(after).toHaveLength(OPENING_SLOTS);
     expect(after.map((member) => member.spec.species)).not.toContain(FULL_PARTY[1]);
     expect(after.map((member) => member.spec.species)).toContain('Poliwag');
     // Appended rather than slotted in: release is a release, not a swap in
@@ -141,7 +150,7 @@ describe('the three answers', () => {
 
   it('changes nothing on decline', () => {
     const party = partyOf('Bulbasaur', 'Squirtle');
-    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'decline' }, SEGMENT);
+    const { party: after, freed } = applyAcquisition(party, offerOf('Poliwag'), { kind: 'decline' }, SEGMENT, OPENING_SLOTS);
     expect(after.map((member) => member.spec.species)).toEqual(['Bulbasaur', 'Squirtle']);
     expect(freed).toEqual([]);
   });
@@ -150,12 +159,12 @@ describe('the three answers', () => {
     const full = partyOf(...FULL_PARTY);
     const roomy = partyOf('Bulbasaur');
 
-    expect(decisionRefusal(full, { kind: 'accept' })).toMatch(/full/);
-    expect(decisionRefusal(roomy, { kind: 'release', slot: 0 })).toMatch(/has room/);
-    expect(decisionRefusal(full, { kind: 'release', slot: 99 })).toMatch(/no party member/);
+    expect(decisionRefusal(full, { kind: 'accept' }, OPENING_SLOTS)).toMatch(/full/);
+    expect(decisionRefusal(roomy, { kind: 'release', slot: 0 }, OPENING_SLOTS)).toMatch(/has room/);
+    expect(decisionRefusal(full, { kind: 'release', slot: 99 }, OPENING_SLOTS)).toMatch(/no party member/);
     // Refused rather than clamped: a decision silently turned into a different
     // decision is a log that replays into a different run.
-    expect(() => applyAcquisition(full, offerOf('Poliwag'), { kind: 'accept' }, SEGMENT)).toThrow(RangeError);
+    expect(() => applyAcquisition(full, offerOf('Poliwag'), { kind: 'accept' }, SEGMENT, OPENING_SLOTS)).toThrow(RangeError);
   });
 });
 
@@ -171,6 +180,7 @@ describe('what the items do', () => {
       offerOf('Poliwag', { item: 'leftovers' }),
       { kind: 'accept' },
       SEGMENT,
+      OPENING_SLOTS,
     );
 
     expect(freed).toEqual(['leftovers']);
@@ -182,7 +192,7 @@ describe('what the items do', () => {
 
   it('frees both items when a capture releases a member who was holding one', () => {
     const full = createParty(
-      ['Bulbasaur', 'Squirtle', 'Charmander', 'Pidgey', 'Rattata', 'Zubat'].slice(0, PARTY_SIZE).map((name) => spec(name)),
+      ['Bulbasaur', 'Squirtle', 'Charmander', 'Pidgey', 'Rattata', 'Zubat'].slice(0, OPENING_SLOTS).map((name) => spec(name)),
     ).map((member, index) => (index === 1 ? { ...member, item: 'choiceband' } : member));
 
     const { freed } = applyAcquisition(
@@ -190,6 +200,7 @@ describe('what the items do', () => {
       offerOf('Poliwag', { item: 'leftovers' }),
       { kind: 'release', slot: 1 },
       SEGMENT,
+      OPENING_SLOTS,
     );
     expect([...freed].sort()).toEqual(['choiceband', 'leftovers']);
   });
@@ -254,7 +265,7 @@ function catcher(caught: string[]): RunPolicy {
     },
     chooseAcquisition: async (offer, party) => {
       caught.push(offer.spec.species);
-      if (hasRoom(party)) return { kind: 'accept' };
+      if (hasRoom(party, OPENING_SLOTS)) return { kind: 'accept' };
       let lowest = 0;
       party.forEach((member, index) => {
         if (member.spec.level < (party[lowest]?.spec.level ?? 0)) lowest = index;

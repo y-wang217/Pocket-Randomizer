@@ -62,9 +62,9 @@ async function main(): Promise<void> {
         if (!held.offer && review.offer && review.offer.options.length === 3) held.offer = { review, offer: review.offer, state };
         return review.offer ? 0 : null;
       },
-      chooseAcquisition: async (offer, party) => {
+      chooseAcquisition: async (offer, party, capacity) => {
         if (!held.capture) held.capture = { offer, party };
-        return policy.chooseAcquisition(offer, party);
+        return policy.chooseAcquisition(offer, party, capacity);
       },
     },
     DEFAULT_TUNING,

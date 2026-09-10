@@ -44,7 +44,7 @@ import { heldItem } from '../../core/items';
 import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared, localeOf, stepsOf } from '../../core/run';
+import { gymsCleared, localeOf, partyCapacity, stepsOf } from '../../core/run';
 import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityBand, type CapabilityContext } from '../../core/capabilities';
 import type { Capability } from '../../data/capabilities';
@@ -52,7 +52,7 @@ import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { TIER_INFO } from '../../data/tierInfo';
-import { PARTY_SIZE } from '../../data/partyTuning';
+import { nextSlotUnlock } from '../../data/partyTuning';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
 import { el } from '../scene';
 import { tierBadge } from './reward';
@@ -218,7 +218,7 @@ export function createRunMap(): RunMap {
       threats.render(state.party);
       party.replaceChildren(
         renderWallet(state),
-        renderPartyHeader(state.party.length, onManage),
+        renderPartyHeader(state.party.length, state, onManage),
         ...state.party.map((member, index) => renderMember(member, index)),
       );
     },
@@ -430,11 +430,24 @@ function renderWallet(state: RunState): HTMLElement {
   return card;
 }
 
-/** The party's own heading, with the way into the party screen. */
-function renderPartyHeader(size: number, onManage: () => void): HTMLElement {
+/**
+ * The party's own heading, with the way into the party screen.
+ *
+ * **States the next unlock plainly, and says nothing about it. Stage 4.8, item 1.**
+ * "Party 3 / 4 · next slot at gym 4" is three attributes of the present board:
+ * what you have, what you can hold, and when that changes. Part 4 governs the
+ * sentence that is *not* here — nothing about whether a slot is worth saving, or
+ * whether the player should be catching more, because that is the decision the
+ * readout exists to inform rather than to make.
+ *
+ * The clause disappears at the ceiling rather than reading "no more slots", which
+ * would be a line about an absence on every screen for the last two gyms.
+ */
+function renderPartyHeader(size: number, state: RunState, onManage: () => void): HTMLElement {
   const row = el('div', 'party__header');
   const label = el('span', 'party__wallet-label');
-  label.textContent = `Party ${size} / ${PARTY_SIZE}`;
+  const next = nextSlotUnlock(gymsCleared(state));
+  label.textContent = `Party ${size} / ${partyCapacity(state)}${next ? ` · next slot at gym ${next.atGym}` : ''}`;
   const manage = document.createElement('button');
   manage.type = 'button';
   manage.className = 'button button--small';

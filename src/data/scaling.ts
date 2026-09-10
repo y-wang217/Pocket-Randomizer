@@ -19,16 +19,16 @@
  *     that at level 30 a fully evolved Pokemon's best move one-shots another
  *     one, so the level gap mostly decides *who* one-shots. Capping base power
  *     early is what buys a fight that lasts more than a turn.
- *   - **Team sizes**, as a function of PARTY_SIZE. See below.
+ *   - **Team sizes**, as a function of the slot schedule. See below.
  */
 import type { PokemonSpec, TeamSpec, Tier } from '../core/types';
 import { MAX_MOVE_BAND, MIN_MOVE_BAND } from './moveOverrides';
 import { SPECIES_POOL } from './speciesPools';
-import { PARTY_SIZE } from './partyTuning';
+import { MAX_PARTY_CAPACITY, partyCapacityAfter } from './partyTuning';
 import type { BattleKind, Range } from './tuning';
 
 /*
- * `PARTY_SIZE` used to be declared here and now lives in `data/partyTuning.ts`,
+ * The party's size used to be declared here and now lives in `data/partyTuning.ts`,
  * next to the join level and the revive rules. Stage 4 made it a balance
  * question rather than a structural constant — how much a faint costs, how far
  * below the curve an acquisition arrives, and how many slots there are are one
@@ -98,7 +98,7 @@ export interface SegmentScaling {
    * The number that matters is the difference, not the count. A gym with six
    * Pokemon against a solo player is not a difficulty curve, it is a wall; the
    * same gym against a party of six is an even fight. So the table stores the
-   * advantage and `opponentTeamSize` adds `PARTY_SIZE`, which means Stage 4
+   * advantage and `opponentTeamSize` adds the player's own party, which means Stage 4
    * raising the party keeps the *shape* of the curve rather than trivialising
    * the back half of the run.
    */
@@ -550,13 +550,15 @@ function shift(bands: readonly number[], by: number, ceiling: number): readonly 
 /**
  * How big the player's party actually is at this point in the run.
  *
- * **Not `PARTY_SIZE`, and the difference is the largest single finding of the
- * Stage 4 balance pass.** A run starts with one Pokemon and grows toward
- * `PARTY_SIZE` by acquiring; it does not begin full. Sizing every opponent
- * against `PARTY_SIZE` therefore aimed the entire difficulty curve at a player
- * who does not exist for the first third of the run.
+ * **Not the slot count, and the difference is the largest single finding of the
+ * Stage 4 balance pass.** A run starts with one Pokemon and grows toward its
+ * slots by acquiring; it does not begin full. Sizing every opponent against the
+ * slot count therefore aimed the entire difficulty curve at a player who does
+ * not exist for the first third of the run. Stage 4.8 made the slot count itself
+ * a curve, which changes nothing about that argument: a ceiling that rises is
+ * still a ceiling, and this is still the measurement under it.
  *
- * The simulator was blunt about it. At `PARTY_SIZE` 3 the first baseline
+ * The simulator was blunt about it. At a flat three slots the first baseline
  * produced an *inverted* curve — 74% clear at gym 1 rising to 96% at gym 8 —
  * because the opening was a solo Pokemon against three while the back half was
  * a full party against three. Mean party size walking into a battle was 1.54.
@@ -582,19 +584,53 @@ function shift(bands: readonly number[], by: number, ceiling: number): readonly 
  * levels and the band windows, where a balance pass can see it, not in a
  * mis-stated premise.
  */
-const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 3, 3, 3, 3];
+const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 5];
+
+/*
+ * **Stage 4.8 moved the back half of that table, and only the back half.**
+ *
+ * Item 1 put party slots on a schedule — three, then four at gym 2, five at gym
+ * 4, six at gym 6 — so from segment 4 on, a player who has been capturing fields
+ * more than three. The old rows said 3 for all five of those segments, which
+ * would have re-created the inverted curve this section exists to describe,
+ * pointing the other way: opponents sized for three against a real party of five
+ * makes the back half *easier* as the roster widens, which is the opposite of
+ * what growth is for.
+ *
+ * Segments 0 to 3 are **unchanged, to the number**, so the early benchmark rows
+ * stay comparable across the patch and a change in them is attributable to
+ * something else. The four rows that moved track the schedule one unlock behind
+ * it, because a slot is capacity and filling it takes a wild encounter — there
+ * is one guaranteed per segment and a player may decline it, which is the same
+ * lag the original rows measured when the ceiling was three.
+ *
+ * It is still a *claim*, and still held to account by the simulator's
+ * `party.sizeBySegment` section, which prints the measured party beside this
+ * column. The benchmark at the end of 4.8 is what says whether the lag is right.
+ */
 
 /**
- * The party size the curve assumes at a segment, capped at `PARTY_SIZE`.
+ * The party size the curve assumes at a segment, capped at the slots it has.
  *
- * The cap is what keeps this honest when `PARTY_SIZE` moves: at 1 every row
- * collapses to 1 and the Stage 3 curve is reproduced exactly, which is what
- * makes `GYMRUN_PARTY_SIZE=1 npm run sim` a valid comparison rather than a
- * different game.
+ * **Two different quantities, and the cap is the only place they meet.** The row
+ * is what the player is *measured* to field; the cap is what the slot schedule
+ * *allows*. Stage 4.8 made the second a curve of its own, and reading it here is
+ * what makes `partyCapacityAfter` the single source of the ceiling — edit the
+ * schedule and this follows, with no second table to keep in agreement.
+ *
+ * Capped by gyms cleared rather than by segment index as a separate idea: at
+ * segment N the run has cleared N gyms, because clearing gym N is what opens
+ * segment N+1. So the segment index *is* the gym count here, and passing it
+ * straight through is correct rather than convenient.
+ *
+ * The cap is also what keeps this honest when the ceiling moves: at
+ * `GYMRUN_PARTY_SIZE=1` every row collapses to 1 and the Stage 3 curve is
+ * reproduced exactly, which is what makes that sweep a valid comparison rather
+ * than a different game.
  */
 export function expectedPartySize(segment: number): number {
-  const row = EXPECTED_PARTY_SIZE[Math.min(segment, EXPECTED_PARTY_SIZE.length - 1)] ?? PARTY_SIZE;
-  return Math.max(1, Math.min(PARTY_SIZE, row));
+  const row = EXPECTED_PARTY_SIZE[Math.min(segment, EXPECTED_PARTY_SIZE.length - 1)] ?? MAX_PARTY_CAPACITY;
+  return Math.max(1, Math.min(partyCapacityAfter(segment), row));
 }
 
 /**

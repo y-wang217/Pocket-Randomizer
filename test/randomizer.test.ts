@@ -42,7 +42,7 @@ import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, SEGMENTS, starterLevel, TIER_MODIFIERS } from '../src/data/scaling';
-import { PARTY_SIZE } from '../src/data/partyTuning';
+import { partyCapacityAfter } from '../src/data/partyTuning';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
@@ -333,8 +333,18 @@ describe('5. gym identity', () => {
     // The back half is not trivial: once the player is expected to be at full
     // strength, the gym outnumbers them.
     const last = GYMS[GYMS.length - 1]!;
-    expect(expectedPartySize(last.segment)).toBe(PARTY_SIZE);
-    expect(opponentTeamSize('gym', last.segment, 'normal', last.teamSize)).toBeGreaterThan(PARTY_SIZE);
+    /*
+     * **Stage 4.8: against the slots that segment has, not a flat constant.**
+     *
+     * The claim is unchanged — by the last segment the curve assumes a full
+     * party, and the final gym still fields more than it — but "full" is now a
+     * function of gyms cleared, and at the last segment that is the schedule's
+     * own ceiling. Asserting against `partyCapacityAfter(last.segment)` keeps the
+     * test measuring the relationship rather than a number that moved.
+     */
+    const slots = partyCapacityAfter(last.segment);
+    expect(expectedPartySize(last.segment)).toBe(slots);
+    expect(opponentTeamSize('gym', last.segment, 'normal', last.teamSize)).toBeGreaterThan(slots);
   });
 
   it('never outnumbers the player before they have had a chance to fill the party', () => {

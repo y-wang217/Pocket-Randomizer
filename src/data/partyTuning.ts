@@ -1,47 +1,111 @@
 /**
  * The party: how many slots it has, what joins it, and what a faint costs.
  *
- * What is left of it is one number. Four lived here once, and every one of them
- * was a Stage 4 balance lever rather than a structural constant; they lived
- * together because they were one question asked four ways — *how much does
- * losing a Pokemon cost you?* — and answering it in four files is how the four
- * answers drift apart. Two moved to `tuning.ts` in 4.5.1 and the third was
+ * What is left of it is one schedule. Four numbers lived here once, and every
+ * one of them was a Stage 4 balance lever rather than a structural constant;
+ * they lived together because they were one question asked four ways — *how much
+ * does losing a Pokemon cost you?* — and answering it in four files is how the
+ * four answers drift apart. Two moved to `tuning.ts` in 4.5.1 and the third was
  * deleted in 4.7; both notes are below, because where a lever went is the part
- * a later pass needs and the part a deletion normally destroys.
+ * a later pass needs and the part a deletion normally destroys. The fourth, the
+ * party's size, became the schedule in Stage 4.8.
  *
  * Separate from `data/tuning.ts` on purpose. `Tuning` is *passed* into
  * generation and the run state machine so a sweep can vary it per run; these
  * are read at module scope by `data/scaling.ts`, which computes opponent team
- * sizes from `PARTY_SIZE` and cannot take a tuning object without threading one
- * through every curve function. That is the honest split: a value the curve
- * itself is a function of is not a per-run knob.
+ * sizes from the capacity schedule and cannot take a tuning object without
+ * threading one through every curve function. That is the honest split: a value
+ * the curve itself is a function of is not a per-run knob.
+ *
+ * ## Stage 4.8: the size became a schedule
+ *
+ * `PARTY_SIZE` lived here and was a single constant. It is **deleted rather than
+ * kept alongside the schedule**, because a constant named for the party's size
+ * is exactly what a later call site reads instead of asking how many slots the
+ * run has *now* — and a slot unlock that does not reach the capture flow means a
+ * player is told they have room and then asked to replace someone. Removing the
+ * name is what forced every one of its sixteen read sites through review.
  */
 
 /**
- * How many Pokemon the player fields. **The Stage 4 constant.**
+ * How many party slots the run has, by **gyms cleared**. Stage 4.8, item 1.
  *
- * Three, and the recommendation is held rather than raised for two reasons the
- * simulator can check. Battle length is now multiplied by both party size and
- * switch turns, and a thousand-seed sweep has to stay usable. And three keeps
- * every acquisition consequential: the party fills early, so the release choice
- * — take the new member and lose one, or decline — arrives in most runs rather
- * than in the tail of them.
+ * Indexed by gym count, zero through eight, so the row is read directly and
+ * there is no formula to get wrong at the ends. Before this the party was one
+ * number all run, which made a gym clear structurally identical to any other
+ * node completion and made the first half of a run play at the roster width of
+ * the second.
  *
- * What would change it is the party-composition metric in the simulator report.
- * Losses at a full healthy bench mean the party is not the binding constraint
- * and a fourth slot buys nothing; losses at zero or one member alive with the
- * bench chewed through are a depth signal worth testing 4 against.
+ * **Three at the start, and that is held rather than lowered.** The opening is
+ * what 4.6c measured, and narrowing it would make every early benchmark row
+ * incomparable for no gain — the thing this item adds is growth, not a harder
+ * opening. The first unlock is at gym 2 because that is the earliest a player
+ * has seen enough of the game for another slot to mean something, and because
+ * it puts the moment inside the stretch most runs actually reach.
  *
- * Everything that would otherwise assume a single player Pokemon reads this:
- * `party.battleTeamFor`, `party.carryOverFor`, `acquisition`, and
- * `scaling.opponentTeamSize`, which adds the segment's *advantage* to it so
- * that raising the party keeps the shape of the difficulty curve rather than
- * trivialising the back half of the run.
+ * **Six by gym 6, so the last two gyms are played at full width** rather than
+ * still growing. An unlock at gym 7 would arrive with one segment left to use
+ * it, which is a reward the run has no time to spend.
+ *
+ * Every number here is a balance number. What would move them is the
+ * simulator's `party.sizeBySegment` section, which prints the measured party
+ * beside what the curve assumed, segment by segment.
  */
-export const PARTY_SIZE = readSizeOverride() ?? 3;
+export const SLOT_UNLOCK_SCHEDULE: readonly number[] = [3, 3, 4, 4, 5, 5, 6, 6, 6];
+
+/**
+ * The most slots a run can ever have. The schedule's own ceiling.
+ *
+ * Derived rather than written down, so that editing the schedule cannot leave a
+ * constant behind disagreeing with it. Clamped by the environment override,
+ * which is what keeps `GYMRUN_PARTY_SIZE=1 npm run sim` a valid Stage 3
+ * comparison: at 1 every row of the schedule collapses to 1.
+ */
+export const MAX_PARTY_CAPACITY = Math.min(
+  readSizeOverride() ?? Number.POSITIVE_INFINITY,
+  SLOT_UNLOCK_SCHEDULE.reduce((top, slots) => Math.max(top, slots), 0),
+);
+
+/**
+ * Party slots after clearing `gymsCleared` gyms. **The one place that answers.**
+ *
+ * Pure, and a function of a number rather than of a `RunState`, so that
+ * `data/scaling.ts` can read it at module scope and a test can ask it directly.
+ * `core/party.partyCapacity` is the `RunState` form and derives the gym count
+ * from history; nothing else may compute a capacity.
+ *
+ * Clamped at both ends rather than trusted: a negative count and a count past
+ * the last gym both read the nearest row, because the alternative is an
+ * `undefined` that becomes a `NaN` three frames into a render.
+ *
+ * **Capacity is not the same quantity as the party the player actually has**,
+ * and conflating the two is the documented Stage 4 balance bug — see
+ * `scaling.expectedPartySize`. This is the ceiling. That is the measurement.
+ */
+export function partyCapacityAfter(gymsCleared: number): number {
+  const index = Math.max(0, Math.min(SLOT_UNLOCK_SCHEDULE.length - 1, Math.floor(gymsCleared)));
+  const slots = SLOT_UNLOCK_SCHEDULE[index] ?? MAX_PARTY_CAPACITY;
+  return Math.max(1, Math.min(MAX_PARTY_CAPACITY, slots));
+}
+
+/**
+ * The next gym that grants a slot, and what it grants, or null at the ceiling.
+ *
+ * Here rather than in `ui/` because it is a fact about the schedule, and the map
+ * and the result screen both state it. An attribute readout — "Party slots: 4.
+ * Next slot at Gym 6." — and deliberately not advice about whether to save one.
+ */
+export function nextSlotUnlock(gymsCleared: number): { atGym: number; slots: number } | null {
+  const current = partyCapacityAfter(gymsCleared);
+  for (let gyms = Math.max(0, Math.floor(gymsCleared)) + 1; gyms < SLOT_UNLOCK_SCHEDULE.length; gyms++) {
+    const slots = partyCapacityAfter(gyms);
+    if (slots > current) return { atGym: gyms, slots };
+  }
+  return null;
+}
 
 export interface PartyTuning {
-  /** Party slots. The same number as `PARTY_SIZE`; see the note there. */
+  /** The slots a run opens with, which is `partyCapacityAfter(0)`. */
   size: number;
   /*
    * `joinLevelOffset` used to live here — how far *below* the segment's curve
@@ -71,7 +135,7 @@ export interface PartyTuning {
 }
 
 export const PARTY_TUNING: PartyTuning = {
-  size: PARTY_SIZE,
+  size: partyCapacityAfter(0),
 };
 
 
@@ -96,7 +160,7 @@ export const PARTY_TUNING: PartyTuning = {
  */
 
 /**
- * A party size from the environment, for the Stage 4 re-baseline and nothing else.
+ * A party ceiling from the environment, for the Stage 4 re-baseline and nothing else.
  *
  * The Stage 2 and Stage 3 balance numbers were all measured at `PARTY_SIZE` 1,
  * and the first thing Stage 4 has to establish is that the switching code

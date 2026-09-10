@@ -54,6 +54,7 @@ import {
   type AcquisitionDecision,
   type AcquisitionOffer,
 } from './acquisition';
+import { partyCapacityAfter } from '../data/partyTuning';
 import type { RelicId } from '../data/relics';
 import { RANDOMIZER_VERSION } from './randomizer';
 import {
@@ -436,6 +437,27 @@ export function nextNode(state: RunState, choice: number): NodeSpec {
  */
 export function gymsCleared(state: RunState): number {
   return state.history.filter((visit) => visit.node.kind === 'gym' && visit.result?.winner === 'p1').length;
+}
+
+/**
+ * How many party slots this run has **right now**. Stage 4.8, item 1.
+ *
+ * `partyCapacityAfter(gymsCleared(state))`, and that composition is the whole of
+ * it. Nothing else in the codebase may compute a capacity: this is the function
+ * the capture flow, the item plan, the drawer and the map all read, so a slot
+ * unlock reaches every one of them by reaching none of them specially.
+ *
+ * ## Derived, and deliberately not logged
+ *
+ * Capacity is a function of gyms cleared, gyms cleared is a function of history,
+ * and history is what a replay rebuilds from the decision log. So capacity
+ * reconstructs identically without being stored, consumes no RNG, and adds no
+ * logged decision — which is why `RUN_LOG_VERSION` does not move for this patch.
+ * Storing it would create a second copy of a derived number, and the failure mode
+ * of that is a saved run whose capacity disagrees with its own gym count.
+ */
+export function partyCapacity(state: RunState): number {
+  return partyCapacityAfter(gymsCleared(state));
 }
 
 /**
@@ -826,6 +848,24 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         // and a member joining at the old segment's level would be the 4.7 tax
         // reintroduced on exactly one branch.
         cleared.currentSegment,
+        /*
+         * The capacity as it was when the decision was *asked*, which is
+         * `state` and deliberately not `cleared`.
+         *
+         * `cleared.history` already contains this gym, so `partyCapacity`
+         * would read one slot more here than `playRun` read when it checked
+         * the same decision for legality — and a decision accepted by the
+         * check and refused by the application is a thrown `RangeError` on a
+         * replay. Reading the pre-resolution state makes the two provably the
+         * same number rather than the same number by coincidence.
+         *
+         * It is unreachable today: a gym node is not a wild node and carries
+         * no event, so `result.acquisition` is always null on this branch. It
+         * is written correctly anyway, because "unreachable because of another
+         * knob" is not a guarantee, and `test/capture.test.ts` asserts the two
+         * capacities agree rather than trusting this comment.
+         */
+        partyCapacity(state),
       );
       cleared = {
         ...cleared,
@@ -898,6 +938,9 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       result.acquisition.offer,
       result.acquisition.decision,
       advanced.currentSegment,
+      // Pre-resolution, matching `playRun`'s legality check and the gym branch
+      // above. Nothing on this path clears a gym, so it is also `advanced`'s.
+      partyCapacity(state),
     );
     /*
      * Every item the decision freed goes to the backpack, not with anybody.
@@ -1061,6 +1104,16 @@ export interface RunPolicy {
   chooseAcquisition: (
     offer: AcquisitionOffer,
     party: readonly PokemonState[],
+    /**
+     * The party slots the run has right now. **Stage 4.8, item 1.**
+     *
+     * Handed in rather than left for the policy to work out, because the policy
+     * is where "is there room" is decided and a policy reading a fixed size is
+     * the exact failure the item warns about: a bot that declines at three while
+     * the run has five slots measures a game nobody is playing. It is the same
+     * number `decisionRefusal` then checks the answer against.
+     */
+    capacity: number,
   ) => Promise<AcquisitionDecision>;
   /**
    * Who leads the gym battle. A party slot. **Stage 4.7, Part 2.**
@@ -1384,9 +1437,9 @@ export async function playRun(
     const offered = acquisitionOffered(result, state);
     const earned = result.battle ? result.battle.result.winner === 'p1' : true;
     if (offered && earned) {
-      const decision = await policy.chooseAcquisition(offered, state.party);
+      const decision = await policy.chooseAcquisition(offered, state.party, partyCapacity(state));
       record({ kind: 'acquisition', decision });
-      const refusal = decisionRefusal(state.party, decision);
+      const refusal = decisionRefusal(state.party, decision, partyCapacity(state));
       if (refusal) throw new RangeError(`Acquisition decision is not legal: ${refusal}`);
       result.acquisition = { offer: offered, decision };
     }
@@ -1415,7 +1468,7 @@ export async function playRun(
     if (!state.outcome && needsItemPlan(state)) {
       const plan = await policy.chooseItemPlan(state);
       record({ kind: 'items', plan: clonePlan(plan) });
-      state = applyItemPlan(state, plan);
+      state = applyItemPlan(state, plan, backpackCapacity(partyCapacity(state), state.tuning));
     }
 
     options.onState?.(state);
@@ -1683,7 +1736,7 @@ export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec)
  * `RangeError` rather than on a decision.
  */
 export function defaultItemPlan(state: RunState): ItemPlan {
-  const capacity = backpackCapacity(state.tuning);
+  const capacity = backpackCapacity(partyCapacity(state), state.tuning);
   const assignments: ItemAssignment[] = [];
 
   let taken = 0;
@@ -1747,7 +1800,8 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      * while there is room is the floor on competent play, which is what a
      * baseline wants.
      */
-    chooseAcquisition: async (_offer, party) => (hasRoom(party) ? { kind: 'accept' } : { kind: 'decline' }),
+    chooseAcquisition: async (_offer, party, capacity) =>
+      hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
     chooseItemPlan: async (state) => defaultItemPlan(state),
     battle,
   };
@@ -1868,9 +1922,9 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       if (!decision) return live ? live.chooseMoveToReplace(member, incoming, state) : exhausted('replace');
       return decision.kind === 'replace' ? decision.slot : exhausted('replace');
     },
-    chooseAcquisition: async (offer, party) => {
+    chooseAcquisition: async (offer, party, capacity) => {
       const decision = next('acquisition');
-      if (!decision) return live ? live.chooseAcquisition(offer, party) : exhausted('acquisition');
+      if (!decision) return live ? live.chooseAcquisition(offer, party, capacity) : exhausted('acquisition');
       return decision.kind === 'acquisition' ? decision.decision : exhausted('acquisition');
     },
     chooseLead: async (party, gym, state) => {
