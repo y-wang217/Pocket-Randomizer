@@ -29,10 +29,19 @@ Gastly, which learns neither move in any generation, against Snorlax:
 ```
 
 No `|-fail|`, no `|-immune|`, no `cant`. Cut deals damage, Flash lands its
-accuracy drop. Both were also run under `GYMRUN_TRIM_STRICT=1`, which replaces
-the stripped learnset and legality tables with proxies that throw on any read —
-so nothing consulted a learnset to decide whether a Gastly may swing a blade.
-The tables are not merely empty-tolerant; they are never touched.
+accuracy drop.
+
+**The strict-trim half of this claim was not what it said, and the correction is
+dated 2026-09-10.** Both runs were described here as having been taken under
+`GYMRUN_TRIM_STRICT=1`, with the stripped tables replaced by proxies that throw
+on any read, and the conclusion drawn that the tables are never touched rather
+than merely empty-tolerant. They were taken in Node, where vitest externalises
+`@pkmn/sim` and the trim plugin's `load` hook is never called for it — so both
+runs went against the *full* dex and the proxies were never installed. The
+protocol lines above are real and unaffected; the sentence about the proxies
+proved nothing, and is retracted rather than restated. `generation.md`
+section 13 has the measurement and names the gate change that would make it
+true.
 
 This is the same claim `build-config/trim-sim-data.ts` rests on, verified from
 the other direction. The trim drops ~450 kB gzipped on the grounds that those

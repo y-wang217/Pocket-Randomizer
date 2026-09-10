@@ -12,12 +12,17 @@
  * Boomburst. Move legality is not a rule we enforce; it is a rule we exist to
  * break. So this plugin replaces those modules with empty tables.
  *
- * That is a real claim about the engine, not a hope, so it is tested: the whole
- * suite runs with this plugin active (see vite.config.ts), and
- * test/trimmed-data.test.ts asserts both that the tables are empty and that a
- * full battle still plays out. It was also verified once with the stubs
- * replaced by throwing proxies, which confirmed nothing reads them at all
- * rather than merely tolerating an empty read.
+ * That is a real claim about the engine, not a hope, so it is tested — but
+ * read what the test actually covers before trusting it. The plugin is
+ * declared for the test run as well as the build (see vite.config.ts), and
+ * `test/trimmed-data.test.ts` plays a full battle including the moves that
+ * acquire another move at runtime. **In Node that runs against the untrimmed
+ * dex**: vitest externalises @pkmn/sim, so this hook is never called for it and
+ * `Dex.data.Learnsets` still has its 1288 entries. The trim is exercised for
+ * real only where it ships — in the browser build, which the visual test files
+ * launch — and `GYMRUN_TRIM_STRICT=1` is what makes those runs load-bearing.
+ * docs/generation.md section 13 has the measurement and names the gate change
+ * that would close the gap.
  *
  * If a later stage adds team validation, set GYMRUN_FULL_DEX=1 to turn this
  * off — that is the whole rollback.
@@ -46,9 +51,40 @@ export function trimSimData(): Plugin {
       // `legality.mjs` also carries a couple of small tables alongside the big
       // one; exporting an empty object for each keeps the shape the Dex expects.
       if (process.env['GYMRUN_TRIM_STRICT'] === '1') {
-        return `const t=new Proxy({},{get(_,k){throw new Error('read trimmed ${name}.'+String(k));},has(_,k){throw new Error('probed trimmed ${name}.'+String(k));},ownKeys(){throw new Error('enumerated trimmed ${name}');}});\nexport const ${EXPORTS[name]} = t;\nexport default t;\n`;
+        return strictStub(name, EXPORTS[name] ?? 'default');
       }
       return `export const ${EXPORTS[name]} = {};\nexport default {};\n`;
     },
   };
+}
+
+/**
+ * The strict stub: an empty table that throws the moment a value is read.
+ *
+ * `ownKeys` returns nothing rather than throwing, and that is a correction
+ * rather than a relaxation. `@pkmn/sim`'s `sim/dex.mjs` builds its `dexData`
+ * literal at module evaluation, and every generation that has a legality table
+ * is assembled by a `merge(learnsets, legality)` that runs `for (const id in
+ * legality.Legality)` over it. That happens on import, unconditionally, six
+ * generations deep, before a line of GYMRUN runs — and it is structural, not a
+ * read: under the shipping trim the loop walks zero keys and contributes
+ * nothing. A trap that threw on it could never go green under any trim, so it
+ * was reporting the engine's own import rather than a read of the data.
+ *
+ * Every trap that could hand back a *value* still throws, which is the claim
+ * the trim actually rests on: no species, no learnset entry and no legality
+ * flag is ever read out of these tables. `has` throws too, so a `move in
+ * Learnsets[species]` probe is still caught.
+ */
+function strictStub(name: string, exported: string): string {
+  return [
+    'const table = new Proxy({}, {',
+    `  get(_, key) { throw new Error('read trimmed ${name}.' + String(key)); },`,
+    `  has(_, key) { throw new Error('probed trimmed ${name}.' + String(key)); },`,
+    '  ownKeys() { return []; },',
+    '});',
+    `export const ${exported} = table;`,
+    'export default table;',
+    '',
+  ].join('\n');
 }

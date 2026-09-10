@@ -988,3 +988,52 @@ the one that answers "what did the stage cost the fold".
 named yet: the battle heading, the two Pokemon panels at 239.25 and 214.25, and
 the 2x2 move grid. Reaching 740 is a decision about those, and it belongs to a
 prompt that says so rather than to a 4.7 rollback.
+
+## 13. Deviation: the strict-trim boot failure was in the stub, not in a module
+
+**Dated 2026-09-10.** The prompt is
+[`spec/gymrun-patch-strict-trim.md`](spec/gymrun-patch-strict-trim.md).
+
+**What the prompt asked.** Find what reads the trimmed `learnsets` / `legality`
+tables at start-up, bisecting by module import; four candidates named, in order
+— `core/capabilities.ts`, the `hmLearnsets` generation, `describeMove`,
+`tierInfo`. Make the read lazy, or move the data into a generated table under
+`build-config/`.
+
+**What was found.** None of the four, and no GYMRUN module at all. Every one of
+the four imports clean under `GYMRUN_TRIM_STRICT=1`, and `hmLearnsets.ts` has
+never existed — section 9 of this document says it is not being built, and
+`test/boundaries.test.ts` carries it in `NAMED_AS_ABSENT` for that reason.
+
+The read is in `@pkmn/sim` itself, in the module it publishes as
+build/esm/sim/dex.mjs. That module builds its `dexData` literal at module
+evaluation, and every generation that has a legality table is assembled
+by a local `merge(learnsets, legality)` whose first line is `for (const id in
+legality.Legality)`. That is a `for...in`, so it hits the proxy's `ownKeys`
+trap, which threw. It runs on import, unconditionally, for six generations,
+before `mountApp` is reached — hence a page with no `.starter` on it and an
+`openApp` timeout rather than a broken screen.
+
+**So there was nothing to make lazy.** The enumeration is the engine's own
+import, not a GYMRUN lookup, and it happens under every trim: it is how the
+`Learnsets` the Dex exposes gets built. Under the shipping stub it walks an
+empty object, contributes nothing, and the trim's claim holds exactly as
+written. A trap that threw on it could not have gone green under any trim, which
+makes it a defect in the instrument rather than a finding about the bundle.
+
+**What was changed.** One trap. `ownKeys` returns `[]` instead of throwing;
+`get` and `has` still throw, so no species, learnset entry or legality flag can
+be read or probed without the suite saying so. The trim itself — what ships, and
+what the non-strict stub returns — is untouched, and the bundle is the same size
+to the byte.
+
+**A second finding, unfixed and its own patch.** The node half of the suite has
+never exercised the trim at all. Vitest externalises `@pkmn/sim`, so the plugin's
+`load` hook is never called for it and every test outside a browser runs against
+the *full* dex — `Dex.data.Learnsets` has 1288 keys under `GYMRUN_TRIM_STRICT=1`
+in `vite-node`. `test/trimmed-data.test.ts` therefore proves nothing it claims
+to, and the verification recorded in `engine-notes.md` section 2 was taken the
+same way. Inlining it (`test.server.deps.inline`) makes the trim real in node and
+costs about 3s of transform per test file; `trimmed-data.test.ts` passes under
+strict trim with it on. That is a gate change with its own blast radius across
+60 test files and is not made here.

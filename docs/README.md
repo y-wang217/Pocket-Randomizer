@@ -140,13 +140,20 @@ One line each. The analysis lives where the pointer goes, not here.
    Reaching 740 is a decision about the battle heading, the two Pokemon panels
    and the move grid, and it needs its own prompt.
    [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
-8. **Strict trim is red, and the app does not boot under it.** `CLAUDE.md`
-   names it an absolute gate. `GYMRUN_TRIM_STRICT=1 vitest run` fails 22 tests
-   across the five browser test files on `9296ba7`, every one of them at
-   `openApp` waiting for the starter screen: something in the bundle reads the
-   trimmed `learnsets`/`legality` tables at start-up and the strict proxy throws.
-   Its own patch — find the read and make it lazy or remove it.
-   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+8. **Strict trim. Fixed, and it was the instrument.** The app did not boot under
+   `GYMRUN_TRIM_STRICT=1` and every browser test file timed out at `openApp`. No
+   GYMRUN module was reading the tables: `@pkmn/sim`'s own dex module builds its
+   `dexData` at module evaluation with a `for...in` over `Legality`, which
+   hit the strict proxy's `ownKeys` trap before `mountApp` ran. That trap now
+   returns `[]`; `get` and `has` still throw. The shipping trim is unchanged.
+   [`generation.md`](generation.md) section 13.
+9. **The trim is not exercised outside the browser, and the gate says it is.**
+   Found while fixing item 8 and left unfixed on purpose. Vitest externalises
+   `@pkmn/sim`, so the plugin never loads for it and every node test runs against
+   the full dex — 1288 learnset entries under strict trim. `test/trimmed-data.test.ts`
+   and the `engine-notes.md` verification both rest on that. Inlining the package
+   makes it real at about 3s of transform per file. Its own patch.
+   [`generation.md`](generation.md) section 13.
 
 Five audit findings, where the tree does not currently satisfy an invariant in
 `CLAUDE.md`, are recorded in the message of the commit that added that file.
