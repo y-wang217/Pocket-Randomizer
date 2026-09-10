@@ -1,8 +1,8 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-10/gymrun-0.3.0",
-    "randomizer": "gymrun-randomizer-11",
+    "runLog": "gymrun-run-11/gymrun-0.3.0",
+    "randomizer": "gymrun-randomizer-12",
     "ai": "gymrun-ai-2-switching",
     "engine": "gymrun-0.3.0"
   },
@@ -84,7 +84,7 @@
       "opponent": "Trainer's Chinchou",
       "turns": 1,
       "winner": "p1",
-      "hpAfter": 171,
+      "hpAfter": 201,
       "casualties": []
     },
     {
@@ -95,7 +95,7 @@
       "opponent": "Wild Murkrow",
       "turns": 1,
       "winner": "p1",
-      "hpAfter": 171,
+      "hpAfter": 201,
       "casualties": []
     },
     {
@@ -106,7 +106,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 233,
+      "hpAfter": 286,
       "casualties": []
     },
     {
@@ -117,7 +117,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 233,
+      "hpAfter": 286,
       "casualties": []
     },
     {
@@ -128,7 +128,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 201,
+      "hpAfter": 254,
       "casualties": []
     },
     {
@@ -211,8 +211,8 @@
   ],
   "log": {
     "seed": "GYMRUN01",
-    "version": "gymrun-run-10/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-11",
+    "version": "gymrun-run-11/gymrun-0.3.0",
+    "randomizerVersion": "gymrun-randomizer-12",
     "decisions": [
       {
         "kind": "starter",
@@ -347,6 +347,10 @@
           "assignments": [],
           "discards": []
         }
+      },
+      {
+        "kind": "lead",
+        "index": 0
       },
       {
         "kind": "battle",
@@ -553,6 +557,10 @@
           "assignments": [],
           "discards": []
         }
+      },
+      {
+        "kind": "lead",
+        "index": 0
       },
       {
         "kind": "battle",

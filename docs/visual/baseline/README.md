@@ -24,3 +24,14 @@ and fails on any byte that differs. Heights are compared by
   parks the pointer before every measurement, and the untouched V0.0 build
   re-measured with the parked pointer reads 612. No layout changed; the ruler
   did. Every other number re-measured identical.
+- **2026-09-10, after PR #10 and PR #12 merged into the branch.** Every file
+  re-recorded from the merged tree with no visual change on top (the same
+  thing V0.0 did). `main` moved seeded output (the keyed-stream port) and
+  `src/data/` (`tierInfo.ts`, 4.7's display tables), so the runs and the
+  digest differ from the first recording. **The guarded heights moved too,
+  and it is 4.7's layout, not the visual stages':** the drawer bar above every
+  decision surface and the archetype chip on every panel put the map's
+  decision point at 614.5..728.22 (was 570..654.03) and the battle's four move
+  buttons at 681.5..950.5 (was 612..840). The move grid now ends 106px below
+  the 844 fold. The plan's vertical budget, "four move buttons above the
+  fold", does not hold on this tree, and V5's before table starts from here.

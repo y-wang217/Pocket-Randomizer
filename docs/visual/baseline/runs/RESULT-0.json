@@ -1,8 +1,8 @@
 {
   "seed": "RESULT-0",
   "versions": {
-    "runLog": "gymrun-run-10/gymrun-0.3.0",
-    "randomizer": "gymrun-randomizer-11",
+    "runLog": "gymrun-run-11/gymrun-0.3.0",
+    "randomizer": "gymrun-randomizer-12",
     "ai": "gymrun-ai-2-switching",
     "engine": "gymrun-0.3.0"
   },
@@ -110,7 +110,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 153,
+      "hpAfter": 174,
       "casualties": []
     },
     {
@@ -121,7 +121,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 138,
+      "hpAfter": 159,
       "casualties": []
     },
     {
@@ -143,7 +143,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 267,
+      "hpAfter": 298,
       "casualties": []
     },
     {
@@ -154,7 +154,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 295,
+      "hpAfter": 326,
       "casualties": []
     },
     {
@@ -165,7 +165,7 @@
       "opponent": "Wild Meditite",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 295,
+      "hpAfter": 326,
       "casualties": []
     },
     {
@@ -176,7 +176,7 @@
       "opponent": "Wild Trevenant",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 235,
+      "hpAfter": 266,
       "casualties": []
     },
     {
@@ -187,7 +187,7 @@
       "opponent": "Marina (Water)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 295,
+      "hpAfter": 326,
       "casualties": []
     },
     {
@@ -336,8 +336,8 @@
   ],
   "log": {
     "seed": "RESULT-0",
-    "version": "gymrun-run-10/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-11",
+    "version": "gymrun-run-11/gymrun-0.3.0",
+    "randomizerVersion": "gymrun-randomizer-12",
     "decisions": [
       {
         "kind": "starter",
@@ -446,6 +446,10 @@
           "assignments": [],
           "discards": []
         }
+      },
+      {
+        "kind": "lead",
+        "index": 0
       },
       {
         "kind": "battle",
@@ -658,6 +662,10 @@
           "assignments": [],
           "discards": []
         }
+      },
+      {
+        "kind": "lead",
+        "index": 0
       },
       {
         "kind": "battle",
@@ -946,6 +954,10 @@
         }
       },
       {
+        "kind": "lead",
+        "index": 0
+      },
+      {
         "kind": "battle",
         "choice": {
           "kind": "move",
@@ -1200,6 +1212,10 @@
           "assignments": [],
           "discards": []
         }
+      },
+      {
+        "kind": "lead",
+        "index": 0
       },
       {
         "kind": "battle",

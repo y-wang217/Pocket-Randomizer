@@ -1,14 +1,29 @@
 {
   "files": [
     {
-      "file": "assets/index.js",
-      "raw": 3543988,
-      "gz": 750148
+      "file": "assets/index.css",
+      "raw": 53688,
+      "gz": 9355
     },
     {
-      "file": "assets/index.css",
-      "raw": 34042,
-      "gz": 6572
+      "file": "assets/index.js",
+      "raw": 3586745,
+      "gz": 765537
+    },
+    {
+      "file": "fonts/OFL.txt",
+      "raw": 4393,
+      "gz": 1977
+    },
+    {
+      "file": "fonts/PixelifySans-Bold-latin.woff2",
+      "raw": 7904,
+      "gz": 7927
+    },
+    {
+      "file": "fonts/PixelifySans-Regular-latin.woff2",
+      "raw": 7692,
+      "gz": 7715
     },
     {
       "file": "index.html",
@@ -17,7 +32,7 @@
     }
   ],
   "total": {
-    "raw": 3579067,
-    "gz": 757337
+    "raw": 3661459,
+    "gz": 793128
   }
 }
