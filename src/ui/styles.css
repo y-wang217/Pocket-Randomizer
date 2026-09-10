@@ -139,30 +139,19 @@ body {
 
 /* ---------- layout ---------- */
 
+/* V5.2: two children, one column, every viewport.
+
+   The board was a two-column grid because the persistent log sat beside the
+   scene on a wide screen and under it on a phone, and Release C's strip needed
+   named areas so auto-placement did not drop it into the log's column. The log
+   is a sheet now (`ui/log-sheet.ts`), so there is no second column to name and
+   no reading order to restate: scene, then strip, in the order the DOM already
+   has them. */
 .board {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  /* Named, because Release C's flag strip is a third child and auto-placement
-     would put it beside the scene rather than under it. The log spans both
-     rows so it keeps the full height it had before the strip existed. */
-  grid-template-areas:
-    "scene log"
-    "flags log";
-  grid-template-rows: auto auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  align-items: start;
-}
-
-.board > .scene { grid-area: scene; }
-.board > .flags { grid-area: flags; }
-.board > .log { grid-area: log; }
-
-@media (max-width: 760px) {
-  .board {
-    grid-template-columns: minmax(0, 1fr);
-    /* One column: the same reading order the DOM already has. */
-    grid-template-areas: "scene" "flags" "log";
-  }
+  align-items: stretch;
 }
 
 .scene {
@@ -236,13 +225,69 @@ body {
    container with its one-line event strip and the chips inside are unchanged. */
 .flags {
   display: flex;
-  flex-wrap: wrap;
+  /* V5.2: **never wraps.** The plan's rule is that the strip is one line and
+     that overflow truncates, with the sheet holding the full text. A wrap here
+     would spend a second 24px band on the one screen whose budget is the whole
+     stage. */
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   /* Holds its height when empty. `--space-6` is one chip's line box plus its
      padding, so a turn with nothing to report and a turn with three words
      occupy the same band and the board never jumps. */
   min-height: var(--space-6);
+  /* The clip that makes truncation truthful: a chip that does not fit is cut
+     off rather than pushing the history control off the end of the row. */
+  overflow: hidden;
+}
+
+/* The most recent action, in words. `ui/copy/events.ts`.
+
+   `min-width: 0` because a flex item's default `min-width: auto` refuses to
+   shrink below its content, which would push the words and the control out of
+   the row instead of truncating. This is the item that gives way: the flag
+   words are a closed vocabulary and short, the sentence is neither. */
+.flags__event {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+}
+
+/* Whose Pokemon acted, in the same mark the chips wear one line over: the
+   player's side in the heavier neutral, the opponent's left dim. Not a weight
+   axis between kinds — there is only one event line — and not a verdict. */
+.flags__event[data-side='p1'] { color: var(--emphasis); }
+
+/* Release C's chips, unchanged, in a row that does not wrap either. */
+.flags__words {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* The tap that opens the history. Last in the row and never shrinks: a
+   truncated affordance is one the player cannot be sure is there.
+
+   Its own vertical padding rather than `.button--small`'s, so the control fits
+   inside the strip's 24px band instead of setting it. `--space-6` is one chip's
+   line box, the strip has held that height since Release C, and a control that
+   made the band 2.5px taller would be V5 spending budget on furniture. The
+   horizontal padding and every other button property are untouched, so it is
+   still visibly the same control as the drawer trigger above it. */
+.flags__history {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: var(--space-6);
+  font-size: var(--fs-2xs);
 }
 
 /* Whose flag it is, in the log's own vocabulary — `.log-entry__order` marks
@@ -802,10 +847,15 @@ body {
 
 /* ---------- log ---------- */
 
+/* The log panel. Inside the sheet since V5.2, and it is the same panel: the
+   renderer appends the same `.log-entry` children and scrolls the same
+   container. What went are the three rules that made it a fixture of the board
+   — the 320px floor, the 100% height and the 520px ceiling — because a sheet
+   sizes to its own overlay and a floor that tall would make the history open
+   at the same height on a turn with two lines in it. */
 .log {
-  height: 100%;
-  min-height: 320px;
-  max-height: 520px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-3) var(--space-3h);
   background: var(--bg-sunken);
@@ -2925,6 +2975,67 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * viewport so the screen underneath stays visible — the whole point of an
  * overlay rather than a route is that the player can see they have not left.
  * ------------------------------------------------------------------------- */
+
+/* ---------- the history sheet ----------
+   V5.2. The battle log, behind a tap on the event strip.
+
+   The same bottom-sheet recipe as the party drawer above, and deliberately the
+   same one: a phone has one place an overlay belongs, and a second set of
+   metrics for a second sheet would drift from it. It stops short of the top of
+   the viewport for the drawer's reason too — the player can see they have not
+   left the fight.
+
+   `[hidden]` carries its own `display: none`, which the drawer's rule set
+   already explains at length and which the smoke script has caught twice: any
+   `display` rule beats the UA `hidden` style, so an overlay toggled with
+   `hidden` and laid out with `display: flex` is an invisible scrim eating every
+   tap on the board underneath. Third occurrence, same guard. */
+.log-sheet[hidden] {
+  display: none;
+}
+
+.log-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.log-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--dim);
+}
+
+.log-sheet__sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2h);
+  max-height: 72vh;
+  background: var(--bg);
+  border-top: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  padding: var(--space-3h) var(--space-3) var(--space-5);
+}
+
+.log-sheet__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.log-sheet__title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+}
+
+.log-sheet__close {
+  flex: 0 0 auto;
+}
 
 /* The drawer trigger, in the same place on every decision surface. */
 .shell__drawer-bar {

@@ -83,3 +83,24 @@ and fails on any byte that differs. Heights are compared by
   changed no file under `src/data/`, and the projection field it added
   (`MoveUiView.powerBand`) is not recorded by `baseline.ts`, which serializes
   run state and protocol rather than the view.
+
+- **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
+  that moved them, which is the one that took the persistent log off the board:
+  `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.
+  **The decision point did not move**: `decisionTop` is 681.5, `decisionBottom`
+  947.5, `decisionCount` 4, all unchanged, because the log sat *below* the move
+  grid and removing it takes height off the bottom of the screen rather than out
+  from under the buttons. The fold is V5.3's and V5.4's to move.
+
+  332 exactly, and it is the log's 320 plus the one `.board` gap that separated
+  it from the strip. The strip itself is unmoved at 24 (`--space-6`, one chip's
+  line box): the history control it gained is sized to the band rather than
+  setting it, which is deliberate — a control that made the strip 26.5 tall
+  would have been V5 spending its own budget on furniture. The board went from a
+  two-column grid to a one-column flex column in the same change, because with
+  the log gone there is no second column to name.
+
+  **The map did not move**, on any of its five fields. Runs, the battle protocol
+  and `data-digest.txt` are byte identical: V5.2 changed no file under
+  `src/data/`, and the one new copy module is `src/ui/copy/events.ts`, which is
+  under `ui/` for exactly that reason.

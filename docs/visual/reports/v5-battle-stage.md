@@ -282,3 +282,145 @@ is the fallback if padding alone does not reach. The band badge sits on the
 second line of `.move__meta` and must not overhang: R12's smoke check watches
 exactly that, and it stays green through every step below.
 
+
+## V5.2 Log collapse — the strip is Release C's strip
+
+**Cut 1, taken in full: −332.** `screenHeight` 1182.5 → **850.5**,
+`scrollHeight` 1376 → 1044. The decision point did not move: the log sat below
+the move grid, so its 320px plus one 12px board gap came off the bottom of the
+screen rather than out from under the buttons. 681.5 and 947.5 are V5.3's and
+V5.4's to move.
+
+### There is one strip, and Release C built it
+
+Amendment A1, and Release C's own comment predicted the shape of this change:
+*"V5 replaces the multi-line log with a one-line event strip and reuses this for
+its content. Rendering through the V2 chip component now means that swap is a
+change of container, not a restyle."* It was. The chips are byte-identical —
+same `flagChip`, same `data-side` mark, same words out of `data/flagWords.ts` —
+and `.flags` gained two children beside them:
+
+| child | what | where its words come from |
+|---|---|---|
+| `.flags__event` | the most recent action, in one line | `src/ui/copy/events.ts` |
+| `.flags__words` | Release C's flag chips, unchanged | `src/data/flagWords.ts` |
+| `.flags__history` | the tap that opens the log | — |
+
+**No second reading of the protocol.** The event line comes off a `TurnAction`
+the group the strip is already showing already carries — the same object the
+log renders from and the jiggle orders by, from the screen's one
+`createFlagReader`. `boundaries.test.ts` still finds exactly one reader in
+`screens/battle.ts` and none in the scene or the log.
+
+**The copy is under `ui/`, not `data/`.** `src/ui/copy/events.ts`, beside V4's
+`copy/summary.ts`, for the reason the visual plan's rule 2 gives: `contentHash`
+is computed over `data/`, and a word changed here must not move a seed.
+`data-digest.txt` is byte identical after this step, which is the check that the
+rule was actually followed. Release C's `data/flagWords.ts` moved that digest
+when it landed and its report writes that up for the `contentHash` release; V5
+does not add a second instance of it.
+
+### The group the strip reports grew one clause
+
+Release C picked the last group with flags or residual. V5 keeps that exactly —
+so every word the strip printed before this stage it still prints — and adds a
+fallback for the turn where nothing was flagged at all: the last group with any
+actions, which is **the jiggle's own rule**. On such a turn the panel that
+twitches and the name in the line are the same side by construction. Release C
+showed an empty band there; V5 has a sentence for it.
+
+### One line, and truncation that tells the truth
+
+`flex-wrap: nowrap` on the strip, `overflow: hidden` on the row, and
+`min-width: 0` on both the sentence and the word row so a flex item's default
+refusal to shrink below its content cannot push the history control off the
+end. The sentence is written in full and clipped with an ellipsis; the sheet
+has all of it. A wording cut to fit 390 would be cut on every viewport, so
+nothing is shortened before it is written.
+
+The band is still 24px — `--space-6`, one chip's line box, what Release C set.
+The history control is sized to fit the band rather than setting it; left on
+`.button--small`'s padding it measured 26.5 and made the strip 2.5px taller,
+which would have been V5 spending its own budget on furniture.
+
+### The history sheet
+
+`src/ui/log-sheet.ts`, on the party drawer's recipe and deliberately not a
+second set of metrics: a phone has one place an overlay belongs. The log
+renderer is untouched — `createBattleLog` is handed the sheet's container and
+does not know it moved.
+
+**It never opens on its own.** `open` has exactly one caller, the strip's
+control, and it is a click handler. The control sits outside `.moves`, which is
+the sharp case `ui/drawer.ts` names: a move button is a submission, and a
+trigger inside the grid would be one keystroke from spending a turn.
+
+`.log-sheet[hidden]` carries its own `display: none`. Third occurrence of that
+guard in the stylesheet, and the two before it are both recorded as having been
+caught by `npm run smoke` rather than by a unit test — `hidden` is a UA style
+and any `display` rule beats it, so an overlay toggled with `hidden` and laid
+out with `display: flex` is an invisible scrim eating every tap on the board.
+
+### The board is one column now
+
+The two-column grid existed because the persistent log sat beside the scene on a
+wide screen and under it on a phone, and Release C needed named areas so
+auto-placement did not drop its strip into the log's column. With the log gone
+there is no second column to name: `.board` is a flex column of scene and strip,
+same reading order the DOM already had, every viewport.
+
+### Tests
+
+New, `test/event-strip.test.ts` (jsdom, 10) and `test/visual-v5.test.ts`
+(Chromium, 3). The plan's V5.2 tests are the two named ones:
+
+- **Opening the sheet does not submit a move or advance the turn.** Asserted
+  against a real session: no choice reaches `onChoose`, the engine emits no
+  protocol, `viewFor('p1').turn` does not move, and the scene's `outerHTML` is
+  byte-identical across the open. Plus the structural half — the control is not
+  inside `.moves` — because that is a property of where the trigger sits rather
+  than of what it does.
+- **The strip never exceeds one line.** Measured in Chromium at 390x844 after a
+  resolved turn: the strip is 24px, `flex-wrap` is `nowrap`, and every child
+  begins and ends inside the band.
+
+**Three existing checks moved with the log, and each is recorded rather than
+absorbed.**
+
+1. **`test/band.test.ts`, the overlay allowlist.** `src/ui/log-sheet.ts` is a
+   fourth file that builds a dialog, and the list grows one deliberate line. It
+   is the drawer's kind, not the band's: it asks nothing, submits nothing and
+   resolves no pending decision. *The band is still the one overlay that carries
+   a decision.* The list's whole value is that a fourth overlay cannot arrive
+   without somebody writing down why.
+2. **`scripts/visual/contrast.mjs`, the V1 legibility instrument.** It reads
+   `.log-entry` on the battle screen, and the log is now behind a tap, so the
+   locator waited for an element that would never become stable. The instrument
+   opens the sheet **for that one reading and last**, rather than dropping the
+   selector: a style behind a tap still has to meet the contrast rule, and it is
+   read for longer than anything on the board. Last, because the sheet lays a
+   scrim over the board and every selector above it would otherwise have been
+   photographed through a dim overlay — a contrast number for a surface no
+   player ever reads. A visibility guard went in beside it so a present-but-
+   unrendered target is skipped rather than timing the run out.
+3. **One Release C assertion, and it was about the same thing.**
+   `battle-feedback.test.ts` asserted `strip.root.children.length === 0` after
+   a clear, written when the strip's only children were its chips and
+   "cleared" and "empty of elements" were one sentence. The strip now has
+   permanent furniture, so the question is asked directly instead: after a
+   clear there is no word and no sentence to read. A control that came and
+   went with the turn would be unreachable on the screen where the opening
+   switch-ins are the only thing that has happened. `data-empty` still means
+   what it has always meant — whether there were flag words — and still holds
+   the band's height.
+
+### Gates at V5.2
+
+Full suite **74 files, 948 tests, all pass** — the 935 floor plus 13 new: 10 in
+`test/event-strip.test.ts`, 3 in `test/visual-v5.test.ts`. `tsc` and `eslint`
+clean. `npm run smoke` exits 0 with the 4.7 map fold as its
+only `xfail`, and every R12 check green: four buttons in a 2x2 grid, the 44px
+target at 130, `4/4 damaging` carrying a band, `0 overhanging of 4`. Baseline
+re-recorded in this commit. The move grid is now reported above the fold by the
+smoke script (`moves end at y=748`) because that check measures within the
+scrolled view; `heights.json` is the absolute ruler and still reads 947.5.
