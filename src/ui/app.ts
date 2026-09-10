@@ -21,6 +21,7 @@ import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
   isReplayable,
+  localeOf,
   playRun,
   resumeRun,
   type BattleReview,
@@ -32,8 +33,9 @@ import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
 import { getVerbosity, initSettings, onSettingsChange, setVerbosity } from './settings';
+import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
-import { el } from './scene';
+import { createWorldScene, el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
@@ -48,6 +50,7 @@ import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
+import { createStamps } from './stamps';
 import { createPreGymScreen } from './screens/pre-gym';
 import { createDrawer, type DrawerView } from './drawer';
 import { gymForSegment } from '../data/gyms';
@@ -72,6 +75,9 @@ export function mountApp(root: HTMLElement): void {
   const preGymScreen = createPreGymScreen();
   const summaryScreen = createSummary();
 
+  const shell = el('main', 'shell');
+  const router = createRouter(
+    {
   /*
    * The party drawer, mounted once at the shell and toggled. **Stage 4.7, Part 1.**
    *
@@ -98,9 +104,21 @@ export function mountApp(root: HTMLElement): void {
     shop: shopScreen.root,
     event: eventScreen.root,
     summary: summaryScreen.root,
-  });
+    },
+    (name) => {
+      shell.dataset['screen'] = name;
+    },
+  );
 
   const seedBar = createSeedBar();
+  // The corner stamps, fixed to the viewport, updated with the run. Stage V2.
+  const stamps = createStamps();
+  shell.append(createHeader(), seedBar.root, router.root, stamps.root);
+  // The world behind everything, mounted once beside the shell, following
+  // <html data-locale>. Stage V3.
+  const world = createWorldScene();
+  root.replaceChildren(world.root, shell);
+  stamps.update({ locale: null, segment: null, segments: 0, seed: null });
   const shell = el('main', 'shell');
 
   /*
@@ -217,6 +235,9 @@ export function mountApp(root: HTMLElement): void {
     setPhase('running');
     seedBar.setSeed(seed);
     writeSeedToLocation(seed);
+    // A new run starts in no region; the first state with a locale sets one.
+    applyLocale(null);
+    stamps.update({ locale: null, segment: null, segments: 0, seed });
 
     const starterPick = createPending<number>();
     const localePick = createPending<number>();
@@ -554,6 +575,19 @@ export function mountApp(root: HTMLElement): void {
       // what makes a rest node visible: it resolves without a decision, so the
       // only evidence it happened is the party panel refilling.
       live = state;
+      /*
+       * The world's palette, from the same projection the map names the
+       * region with. Stage V1. Set here rather than on the locale screen's
+       * click so a resumed run, which replays its decisions through this same
+       * hook, wears its region before the map is ever shown.
+       */
+      applyLocale(localeOf(state));
+      stamps.update({
+        locale: localeOf(state),
+        segment: state.currentSegment + 1,
+        segments: state.segments.length,
+        seed: state.seed,
+      });
       mapScreen.render(state, (index) => nodePick.submit(index), showParty);
     };
 
@@ -587,6 +621,15 @@ export function mountApp(root: HTMLElement): void {
       // Leave the map showing the run as it finished, behind the summary.
       mapScreen.render(result.state, () => undefined, () => undefined);
       summaryScreen.render(result);
+      // The summary is locale neutral, and its stamps say so too.
+      applyLocale(null);
+      stamps.update({
+        locale: null,
+        segment: result.state.currentSegment + 1,
+        segments: result.state.segments.length,
+        seed: result.state.seed,
+      });
+      router.show('summary');
       showScreen('summary');
       // The run is over, so the seed controls are wanted again: the summary is
       // where a player picks the next seed or replays this one.
@@ -711,7 +754,7 @@ function createSeedBar(): SeedBar {
 
   const apply = document.createElement('button');
   apply.type = 'submit';
-  apply.className = 'button button--primary';
+  apply.className = 'button';
   apply.textContent = 'Start run';
 
   const reroll = document.createElement('button');

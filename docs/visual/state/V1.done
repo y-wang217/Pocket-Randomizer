@@ -1,0 +1,7 @@
+V1 done.
+last checkpoint: 3e8a443 (V1.4–V1.5)
+bundle delta vs V0: +3,113 raw, +860 gzipped (stylesheet only)
+guarded screens at 390x844 (equal to baseline, ruler corrected in V1.1):
+  map    layout 947   scroll 1096  decision 570..654.03
+  battle layout 1083.5 scroll 1232 decision 612..840
+report: docs/visual/reports/V1.md

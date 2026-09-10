@@ -28,7 +28,11 @@ import {
   type BattleUiView,
   type MoveUiView,
 } from '../core/battle/view';
+import type { LocaleId } from '../data/locales';
+import { categoryChip, effectChip, neutralChip, statusChip, typeChip } from './chip';
+import { el } from './dom';
 import { showsNumbers } from './settings';
+import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import { moveTagLabel, type MoveTag } from '../data/moveTags';
 import { statusReadoutLine, type MoveEffectFields } from '../data/moveCopy';
@@ -215,7 +219,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
 
   const meta = el('div', 'panel__meta');
   const hpText = el('span', 'panel__hp-text');
-  const status = el('span', 'badge badge--status');
+  const status = statusChip('', '');
   meta.append(hpText, status);
 
   // Ability and item, on their own line. Both are revealable, and the reveal
@@ -274,7 +278,7 @@ function updateSidePanel(
   panel.level.textContent = `Lv${active.level}${genderMark(active.gender)}`;
   panel.archetype.textContent = ARCHETYPE_DISPLAY[active.archetype].short;
 
-  panel.types.replaceChildren(...active.types.map((type) => typeChip(type)));
+  panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
   panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
   panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
@@ -304,12 +308,7 @@ function updateSidePanel(
   renderTraits(panel.traits, active);
 
   panel.volatiles.replaceChildren(
-    ...active.volatiles.map((volatile) => {
-      const chip = el('span', 'badge badge--volatile');
-      chip.textContent = volatile.label;
-      chip.dataset['tip'] = `volatile:${volatile.id}`;
-      return chip;
-    }),
+    ...active.volatiles.map((volatile) => neutralChip(volatile.label, 'volatile', { tip: `volatile:${volatile.id}` })),
   );
   panel.volatiles.hidden = active.volatiles.length === 0;
 
@@ -392,26 +391,18 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
   const chips: HTMLElement[] = [];
 
   if (active.ability) {
-    const chip = el('span', 'badge badge--ability');
-    if (active.ability.revealed) {
-      chip.textContent = active.ability.name;
-      chip.dataset['tip'] = `ability:${active.ability.id}`;
-    } else {
-      chip.textContent = 'Ability ?';
-      chip.dataset['hidden'] = 'true';
-    }
+    const chip = active.ability.revealed
+      ? neutralChip(active.ability.name, 'ability', { tip: `ability:${active.ability.id}` })
+      : neutralChip('Ability ?', 'ability');
+    if (!active.ability.revealed) chip.dataset['hidden'] = 'true';
     chips.push(chip);
   }
 
   if (active.item) {
-    const chip = el('span', 'badge badge--item');
-    if (active.item.revealed) {
-      chip.textContent = active.item.name;
-      chip.dataset['tip'] = `item:${active.item.id}`;
-    } else {
-      chip.textContent = 'Item ?';
-      chip.dataset['hidden'] = 'true';
-    }
+    const chip = active.item.revealed
+      ? neutralChip(active.item.name, 'item', { tip: `item:${active.item.id}` })
+      : neutralChip('Item ?', 'item');
+    if (!active.item.revealed) chip.dataset['hidden'] = 'true';
     chips.push(chip);
   }
 
@@ -445,10 +436,8 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
  * `el` from, so reaching the other way would invert the dependency and close a
  * cycle. The rule the two share is that a type badge is a *label*.
  */
-function typeChip(type: string): HTMLElement {
-  const chip = el('span', `type type--${type.toLowerCase()}`);
-  chip.textContent = type;
-  return chip;
+function panelTypeChip(type: string): HTMLElement {
+  return typeChip(type);
 }
 
 function hpBand(fraction: number): 'high' | 'mid' | 'low' {
@@ -533,7 +522,7 @@ function renderBenchMember(
   level.textContent = `Lv${member.level}${genderMark(member.gender)}`;
 
   const types = el('span', 'bench__types');
-  types.replaceChildren(...member.types.map((type) => typeChip(type)));
+  types.replaceChildren(...member.types.map((type) => panelTypeChip(type)));
 
   const track = el('div', 'hp hp--slim');
   const fill = el('div', 'hp__fill');
@@ -544,11 +533,7 @@ function renderBenchMember(
   const meta = el('span', 'bench__meta');
   meta.textContent = `${member.hp} / ${member.maxHp}`;
   if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.dataset['tip'] = `status:${member.status}`;
-    status.textContent = STATUS_LABELS[member.status] ?? member.status.toUpperCase();
-    meta.append(' ', status);
+    meta.append(' ', statusChip(member.status, STATUS_LABELS[member.status] ?? member.status.toUpperCase(), { tip: `status:${member.status}` }));
   }
   // The reason a row is disabled, spelled out on the row itself.
   if (member.block) {
@@ -578,9 +563,7 @@ function renderMove(
   name.textContent = move.name;
 
   const meta = el('span', 'move__meta');
-  const type = el('span', `type type--${move.type.toLowerCase()}`);
-  type.textContent = move.type;
-  type.dataset['tip'] = `type:${move.type}`;
+  const type = typeChip(move.type, { tip: `type:${move.type}` });
 
   /*
    * The category badge, and the whole reason this stage exists.
@@ -594,14 +577,10 @@ function renderMove(
   // `badge--cat-status`, not `badge--status`: the latter is already the burn /
   // paralysis chip, and a move category sharing a class with a condition would
   // have been a colour bug waiting for the first status move on the bar.
-  const category = el('span', `badge badge--category badge--cat-${move.category.toLowerCase()}`);
-  category.textContent = CATEGORY_LABELS[move.category];
   // A tooltip trigger rather than a `title`: three letters are enough to
   // compare four buttons and not enough to learn from, and `title` is invisible
   // on the phone Stage 5 is about. Text lives in data/categoryInfo.ts.
-  category.dataset['tip'] = `category:${move.category.toLowerCase()}`;
-  category.tabIndex = 0;
-  category.setAttribute('role', 'button');
+  const category = categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` });
 
   const power = el('span', 'move__power');
   /*
@@ -629,9 +608,7 @@ function renderMove(
    */
   const label = move.band === null || move.band === 'neutral' ? null : formatEffectiveness(move.effectiveness);
   if (label && move.band) {
-    const badge = el('span', 'badge badge--effect');
-    badge.textContent = label;
-    badge.dataset['band'] = move.band;
+    const badge = effectChip(label, move.band);
     badge.setAttribute('aria-label', `${move.name}: ${EFFECTIVENESS_LABELS[move.band]}`);
     if (move.abilityAffected && cause) {
       /*
@@ -769,15 +746,8 @@ export function moveFacts(move: {
   name.textContent = move.name;
 
   const meta = el('span', 'move__meta');
-  const type = el('span', `type type--${move.type.toLowerCase()}`);
-  type.textContent = move.type;
-  type.dataset['tip'] = `type:${move.type}`;
-
-  const category = el('span', `badge badge--category badge--cat-${move.category.toLowerCase()}`);
-  category.textContent = CATEGORY_LABELS[move.category];
-  category.dataset['tip'] = `category:${move.category.toLowerCase()}`;
-  category.tabIndex = 0;
-  category.setAttribute('role', 'button');
+  const type = typeChip(move.type, { tip: `type:${move.type}` });
+  const category = categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` });
 
   const power = el('span', 'move__power');
   power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
@@ -838,11 +808,121 @@ export function genderMark(gender: Gender): string {
   return '';
 }
 
-export function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  return node;
+export { el } from './dom';
+
+// ---------------------------------------------------------------------------
+// The world. Stage V3.
+// ---------------------------------------------------------------------------
+
+/**
+ * The place behind every screen: a fixed, full-viewport container under the
+ * shell, three layers of inline SVG silhouettes in the locale's tokens, and
+ * one drifting element. Decorative. `pointer-events: none`, so nothing under
+ * it is harder to tap; no information, so a player who cannot see it loses
+ * nothing. It does not appear on the summary, which stays locale neutral.
+ *
+ * Mounted once by `app.ts` beside the shell, so it survives every screen
+ * switch (the router toggles screens inside the shell). It follows
+ * `<html data-locale>`, the one projection `theme/locale.ts` writes, through
+ * a MutationObserver, so the app has a single writer for the region and any
+ * instrument that re-tags the attribute re-tags the world too. `setLocale`
+ * swaps the art; `null` empties it.
+ *
+ * Named `world`, not `scene`, because `.scene` is the battlefield above and
+ * the two must not share a rule. The plan's word is scene; this file is
+ * where the plan said it should live.
+ *
+ * Motion is V3.4's: the parallax listener and the drift loop. Under reduced
+ * motion the drifting element is not mounted at all and the layers do not
+ * move; `prefersReducedMotion` is read once per `setLocale`, so a change of
+ * preference takes effect at the next region.
+ */
+export interface WorldScene {
+  root: HTMLElement;
+  setLocale(locale: LocaleId | null): void;
+  /** The locale the art currently shows, or null. */
+  current(): LocaleId | null;
+  destroy(): void;
+}
+
+export const PARALLAX = { far: 0.2, mid: 0.5, near: 1 } as const;
+
+function prefersReducedMotion(): boolean {
+  return typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+export function createWorldScene(follow: HTMLElement | null = document.documentElement): WorldScene {
+  const root = el('div', 'world');
+  root.setAttribute('aria-hidden', 'true');
+  // Empty until a region arrives.
+  root.hidden = true;
+  const far = el('div', 'world__layer world__layer--far');
+  const mid = el('div', 'world__layer world__layer--mid');
+  const near = el('div', 'world__layer world__layer--near');
+  const scrim = el('div', 'world__scrim');
+  root.append(far, mid, near, scrim);
+
+  let locale: LocaleId | null = null;
+  let reduced = prefersReducedMotion();
+
+  /*
+   * Parallax, from a passive scroll listener. One transform per layer per
+   * scroll event, on the compositor (`translate3d`), never a layout. Under
+   * reduced motion the listener does nothing and the layers stay put.
+   */
+  const onScroll = (): void => {
+    if (reduced || !locale) return;
+    const y = globalThis.scrollY || 0;
+    far.style.transform = `translate3d(0, ${-y * PARALLAX.far}px, 0)`;
+    mid.style.transform = `translate3d(0, ${-y * PARALLAX.mid}px, 0)`;
+    near.style.transform = `translate3d(0, ${-y * PARALLAX.near}px, 0)`;
+  };
+  globalThis.addEventListener('scroll', onScroll, { passive: true });
+
+  const readAttribute = (): LocaleId | null => (follow?.getAttribute('data-locale') as LocaleId | null) || null;
+  const observer =
+    follow && typeof MutationObserver === 'function'
+      ? new MutationObserver(() => scene.setLocale(readAttribute()))
+      : null;
+  observer?.observe(follow as HTMLElement, { attributes: true, attributeFilter: ['data-locale'] });
+
+  const scene: WorldScene = {
+    root,
+    current: () => locale,
+    setLocale(next) {
+      if (next === locale) return;
+      locale = next;
+      reduced = prefersReducedMotion();
+      root.dataset['locale'] = next ?? '';
+      root.hidden = !next;
+      if (!next) {
+        far.replaceChildren();
+        mid.replaceChildren();
+        near.replaceChildren();
+        return;
+      }
+      const art = SCENES[next];
+      far.innerHTML = art.far;
+      mid.innerHTML = art.mid;
+      near.innerHTML = art.near;
+      // The drifting element rides the mid layer, and is not mounted at all
+      // under reduced motion: not paused, not hidden, absent.
+      if (!reduced) {
+        const drift = el('div', 'world__drift');
+        drift.innerHTML = art.drift;
+        mid.append(drift);
+      }
+      far.style.transform = '';
+      mid.style.transform = '';
+      near.style.transform = '';
+      onScroll();
+    },
+    destroy() {
+      observer?.disconnect();
+      globalThis.removeEventListener('scroll', onScroll);
+      root.remove();
+    },
+  };
+  scene.setLocale(readAttribute());
+  return scene;
 }

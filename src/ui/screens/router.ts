@@ -53,7 +53,7 @@ export interface Router {
   current(): ScreenName | null;
 }
 
-export function createRouter(screens: Record<ScreenName, HTMLElement>): Router {
+export function createRouter(screens: Record<ScreenName, HTMLElement>, onShow?: (name: ScreenName) => void): Router {
   const root = document.createElement('div');
   root.className = 'screens';
 
@@ -73,6 +73,9 @@ export function createRouter(screens: Record<ScreenName, HTMLElement>): Router {
         element.hidden = key !== name;
       }
       active = name;
+      // Stage V2: the shell learns which screen is up, so a stylesheet rule
+      // can drop a corner stamp on the one screen whose content reaches it.
+      onShow?.(name);
     },
     current: () => active,
   };

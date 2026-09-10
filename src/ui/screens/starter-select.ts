@@ -18,6 +18,7 @@ import { describeSpecCard } from '../../core/battle/driver';
 import { archetypeChip } from '../archetype-chip';
 import type { PokemonSpec, StatName } from '../../core/types';
 import { el } from '../scene';
+import { typeChip as chip } from '../chip';
 
 export interface StarterSelect {
   root: HTMLElement;
@@ -141,7 +142,5 @@ export function statLine(stats: Record<StatName, number>, maxHp: number): HTMLEl
 }
 
 export function typeChip(type: string): HTMLElement {
-  const chip = el('span', `type type--${type.toLowerCase()}`);
-  chip.textContent = type;
-  return chip;
+  return chip(type);
 }

@@ -1,0 +1,21 @@
+{
+  "locale": null,
+  "throttle": 4,
+  "frames": 101,
+  "frameWorkMs": {
+    "mean": 1.07,
+    "p95": 5.81,
+    "max": 11.06
+  },
+  "paintMs": {
+    "mean": 0.2,
+    "p95": 1.14,
+    "max": 3.41
+  },
+  "frameIntervalMs": {
+    "mean": 50.22,
+    "p95": 53.44,
+    "max": 1081.12
+  },
+  "paintEvents": 63
+}

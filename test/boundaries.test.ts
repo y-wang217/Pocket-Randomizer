@@ -159,6 +159,18 @@ describe('core/ boundaries', () => {
     expect(offenders.map((f) => relative(ROOT, f))).toEqual([]);
   });
 
+  /**
+   * No timers, either. The invariant in CLAUDE.md is "no DOM access, no timers
+   * and no side effects", and the visual identity stages add motion in `ui/`
+   * whose one duration number lives in `data/tuning.ts`; the way that rule
+   * dies is a timer in `core/` waiting on a duration it should not know.
+   */
+  it('sets no timers', () => {
+    const timers = /\b(setTimeout|setInterval|requestAnimationFrame|requestIdleCallback)\s*\(/;
+    const offenders = coreFiles.filter((file) => timers.test(stripComments(readFileSync(file, 'utf8'))));
+    expect(offenders.map((f) => relative(ROOT, f))).toEqual([]);
+  });
+
   it('confines @pkmn/sim to the adapter', () => {
     // Everything above driver.ts speaks core/types.ts. If a second file starts
     // importing the sim, the adapter has stopped being an adapter.

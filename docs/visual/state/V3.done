@@ -1,0 +1,8 @@
+V3 done.
+last checkpoint: 49da6d8 (V3.2–V3.6)
+bundle delta vs V2: +9,315 raw, +2,886 gzipped
+guarded screens at 390x844 (equal to baseline):
+  map    layout 947   scroll 1096  decision 570..654.03
+  battle layout 1083.5 scroll 1232 decision 612..840
+performance (4x throttled proxy): busiest locale forest, p95 work 8.65ms, mean paint 0.34ms; gate 16 / 4
+report: docs/visual/reports/V3.md

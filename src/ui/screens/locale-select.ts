@@ -174,7 +174,17 @@ function renderCard(id: LocaleId, onPick: () => void): HTMLElement {
   const blurb = el('span', 'locale__blurb');
   blurb.textContent = locale.blurb;
 
-  card.append(name, types, blurb);
+  /*
+   * The palette swatch. Stage V1. Three blocks, deep, mid and glow, drawn
+   * from the card's own locale tokens (`theme/locales.css` declares each
+   * palette on the card class as well as on the page). A fact about the
+   * region, the same size on every card, and no more of one than a type chip.
+   */
+  const swatch = el('span', 'locale__swatch');
+  swatch.setAttribute('aria-hidden', 'true');
+  for (const tone of ['deep', 'mid', 'glow']) swatch.append(el('span', `locale__swatch-${tone}`));
+
+  card.append(name, types, blurb, swatch);
   card.addEventListener('click', onPick);
   return card;
 }

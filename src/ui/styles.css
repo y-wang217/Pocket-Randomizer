@@ -1,106 +1,75 @@
 /*
- * One stylesheet, no framework, CSS variables for the palette.
+ * One stylesheet, no framework. Every value is a token from theme/tokens.css.
  *
- * Type colours are declared once as variables and referenced by the `.type--*`
- * classes so a Stage 2 randomizer showing arbitrary types needs no new CSS.
+ * Stage V0 of the visual identity pass moved the palette, the faces, the type
+ * scale, the radii and the spacing scale into that file and left this one with
+ * nothing but references to them. `test/visual-tokens.test.ts` keeps it that
+ * way: a raw colour, face, size, radius or spacing value here fails the suite.
  */
 
-:root {
-  color-scheme: dark;
-
-  --bg: #0d1117;
-  --bg-raised: #161b22;
-  --bg-sunken: #0a0d12;
-  --border: #262d38;
-  --border-strong: #384252;
-
-  --text: #e6edf3;
-  --text-dim: #8b949e;
-  --text-faint: #6a737d;
-
-  --accent: #ef7d3b;
-  --accent-ink: #1a1005;
-
-  --hp-high: #3fb950;
-  --hp-mid: #d29922;
-  --hp-low: #f85149;
-
-  --win: #3fb950;
-  --loss: #f85149;
-
-  --status-brn: #f0603c;
-  --status-par: #e0c341;
-  --status-slp: #9a8fa8;
-  --status-frz: #63c7e0;
-  --status-psn: #b163c9;
-  --status-tox: #b163c9;
-
-  --stage-up: #3fb950;
-  --stage-down: #f85149;
-
-  --type-normal: #9099a1;
-  --type-fire: #ee8130;
-  --type-water: #6390f0;
-  --type-electric: #f7d02c;
-  --type-grass: #7ac74c;
-  --type-ice: #96d9d6;
-  --type-fighting: #c22e28;
-  --type-poison: #a33ea1;
-  --type-ground: #e2bf65;
-  --type-flying: #a98ff3;
-  --type-psychic: #f95587;
-  --type-bug: #a6b91a;
-  --type-rock: #b6a136;
-  --type-ghost: #735797;
-  --type-dragon: #6f35fc;
-  --type-dark: #705746;
-  --type-steel: #b7b7ce;
-  --type-fairy: #d685ad;
-  --type-stellar: #40b5a5;
-
-  --radius: 8px;
-  --gap: 12px;
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-}
+@import './theme/tokens.css';
+@import './theme/locales.css';
 
 * { box-sizing: border-box; }
 
+/*
+ * The world. Stage V1.
+ *
+ * Deep at the top, mid below, and one horizon band of the glow between them:
+ * a two-stop gradient with a third stop, the whole scene until V3 puts a place
+ * in it. Fixed to the viewport so the horizon is a horizon and not a stripe
+ * that scrolls with the page. The colour transition is the V0 motion token,
+ * which is 0 until data/tuning.ts carries a duration.
+ */
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--locale-deep);
+  background-image: linear-gradient(
+    to bottom,
+    var(--locale-deep) 0%,
+    var(--locale-mid) var(--horizon),
+    var(--locale-glow) var(--horizon),
+    var(--locale-glow) calc(var(--horizon) + var(--horizon-band)),
+    var(--locale-mid) calc(var(--horizon) + var(--horizon-band)),
+    var(--locale-mid) 100%
+  );
+  background-attachment: fixed;
+  min-height: 100vh;
+  transition: background-color var(--motion-duration) ease;
   color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: var(--fs-lg);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
 .shell {
+  /* Above the world (V3), which sits at the root's z-index 0. */
   position: relative;
+  z-index: 1;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: var(--space-6) var(--space-4) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 /* ---------- header ---------- */
 
 .header__title {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-6xl);
   letter-spacing: 0.16em;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--emphasis);
 }
 
 .header__subtitle {
-  margin: 2px 0 0;
+  margin: var(--space-h) 0 0;
   color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
 }
 
 /* ---------- seed bar ---------- */
@@ -108,17 +77,17 @@ body {
 .seedbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  padding: 10px 12px;
+  padding: var(--space-2h) var(--space-3);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
 }
 
 .seedbar__label {
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--fs-md);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -126,46 +95,46 @@ body {
 .seedbar__input {
   flex: 1 1 180px;
   min-width: 140px;
-  padding: 7px 10px;
+  padding: calc(var(--space-1h) + var(--hairline)) var(--space-2h);
   background: var(--bg-sunken);
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
   letter-spacing: 0.08em;
 }
 
 .seedbar__input:focus-visible,
 .button:focus-visible,
 .move:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--space-h) solid var(--emphasis);
+  outline-offset: var(--space-h);
 }
 
 .button {
-  padding: 7px 14px;
+  padding: calc(var(--space-1h) + var(--hairline)) var(--space-3h);
   background: var(--bg-sunken);
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-base);
   cursor: pointer;
 }
 
-.button:hover:not(:disabled) { border-color: var(--accent); }
+.button:hover:not(:disabled) { border-color: var(--emphasis); }
 
 /* Disabled rather than hidden, everywhere: a control that disappears from one
    row and not another reads as a bug, and the greyed-out version is what tells
    the player the action exists at all. */
 .button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.button--primary {
+.primary-action {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ---------- layout ---------- */
@@ -173,7 +142,7 @@ body {
 .board {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: var(--gap);
+  gap: var(--space-3);
   align-items: start;
 }
 
@@ -184,43 +153,43 @@ body {
 .scene {
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 /* ---------- side panels ---------- */
 
 .panel {
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-3h);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
 }
 
-.panel--foe { border-left: 3px solid var(--loss); }
-.panel--me { border-left: 3px solid var(--accent); }
+.panel--foe,
+.panel--me { border-left: var(--space-1) solid var(--border-strong); }
 
 .panel__header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .panel__name { font-weight: 600; }
-.panel__level { color: var(--text-faint); font-family: var(--mono); font-size: 12px; }
-.panel__types { display: inline-flex; gap: 4px; margin-left: auto; }
+.panel__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
+.panel__types { display: inline-flex; gap: var(--space-1); margin-left: auto; }
 
 .hp {
   height: 9px;
   background: var(--bg-sunken);
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   overflow: hidden;
 }
 
 .hp__fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--hp-high);
   /* The bar is the main read on how a turn went, so it animates rather than
      jumping; the colour crossfades with it. */
@@ -233,23 +202,23 @@ body {
 .panel__meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+  gap: var(--space-2);
+  margin-top: var(--space-1h);
   min-height: 20px;
 }
 
 .panel__hp-text {
   color: var(--text-dim);
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
 }
 
 .panel__traits,
 .panel__volatiles {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: var(--space-1h);
 }
 
 /* ---------- the six-stat panel ---------- */
@@ -262,18 +231,18 @@ body {
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 12px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
+  gap: var(--space-h) var(--space-3);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--hairline) solid var(--border);
 }
 
 .stat {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  font-family: var(--mono);
-  font-size: 11px;
+  gap: var(--space-1h);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   line-height: 1.7;
 }
 
@@ -305,9 +274,9 @@ body {
  * stage there was no way to answer it short of losing the fight once.
  */
 .stat__marker {
-  color: var(--accent);
+  color: var(--emphasis);
   font-weight: 700;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
@@ -337,14 +306,14 @@ body {
   flex: 1;
   height: 6px;
   min-width: 40px;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--bg-sunken);
   overflow: hidden;
 }
 
 .stat__bar-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--text-faint);
   transition: width 120ms ease-out;
 }
@@ -359,8 +328,8 @@ body {
 .stats--party {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px 12px;
-  margin: 8px 0;
+  gap: var(--space-h) var(--space-3);
+  margin: var(--space-2) 0;
 }
 
 /*
@@ -373,13 +342,13 @@ body {
 .verbosity {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .verbosity__label {
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -409,15 +378,15 @@ body {
  * of it.
  */
 .threats {
-  margin: 4px 0 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  margin: var(--space-1) 0 var(--space-3h);
+  padding-top: var(--space-3);
+  border-top: var(--hairline) solid var(--border);
 }
 
 .threats__title,
 .threats__summary {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0 0 var(--space-1h);
+  font-size: var(--fs-base);
   letter-spacing: 0.04em;
 }
 
@@ -429,8 +398,8 @@ body {
 }
 
 .threats__summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--space-h) solid var(--emphasis);
+  outline-offset: var(--space-h);
 }
 
 .threats__list {
@@ -439,7 +408,7 @@ body {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 10px;
+  gap: var(--space-2) var(--space-2h);
 }
 
 /* Chip and count on one line, so a type and its reach read as one entry rather
@@ -447,38 +416,38 @@ body {
 .threats__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
 .threats__count {
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   color: var(--text-faint);
 }
 
 .threats__none,
 .threats__explainer {
-  margin: 8px 0 0;
-  font-size: 11px;
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-sm);
   color: var(--text-faint);
 }
 
 .backpack {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  margin-top: var(--space-4h);
+  padding-top: var(--space-3h);
+  border-top: var(--hairline) solid var(--border);
 }
 
 .backpack__title {
-  margin: 0 0 4px;
-  font-size: 13px;
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-base);
   letter-spacing: 0.04em;
 }
 
 .backpack__count {
-  margin: 0 0 10px;
-  font-family: var(--mono);
-  font-size: 11px;
+  margin: 0 0 var(--space-2h);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   color: var(--text-faint);
 }
 
@@ -492,36 +461,36 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .backpack__item {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2h);
+  border-radius: var(--radius-card);
   background: var(--bg-sunken);
 }
 
 .backpack__effect {
   flex: 1;
   min-width: 180px;
-  font-size: 12px;
+  font-size: var(--fs-md);
   color: var(--text-dim);
 }
 
 .backpack__give {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1h);
   flex-wrap: wrap;
 }
 
 .backpack__empty,
 .backpack__discarded {
-  margin: 8px 0 0;
-  font-size: 12px;
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-md);
   color: var(--text-faint);
 }
 
@@ -530,14 +499,14 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
 }
 
 .party__item-effect {
   flex: 1;
   min-width: 160px;
-  font-size: 12px;
+  font-size: var(--fs-md);
   color: var(--text-dim);
 }
 
@@ -555,41 +524,43 @@ body {
 }
 
 .badge {
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
+  padding: var(--hairline) calc(var(--space-1h) + var(--hairline));
+  border-radius: var(--radius-chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.badge--status { background: var(--text-faint); color: #0d1117; }
-.badge--status[data-status="brn"] { background: var(--status-brn); }
-.badge--status[data-status="par"] { background: var(--status-par); }
-.badge--status[data-status="slp"] { background: var(--status-slp); }
-.badge--status[data-status="frz"] { background: var(--status-frz); }
-.badge--status[data-status="psn"],
-.badge--status[data-status="tox"] { background: var(--status-psn); }
-
-.badge--up { background: color-mix(in srgb, var(--stage-up) 22%, transparent); color: var(--stage-up); }
-.badge--down { background: color-mix(in srgb, var(--stage-down) 22%, transparent); color: var(--stage-down); }
-
-.badge--ability {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
+/*
+ * The chip recipe, on `.chip`, which every chip carries since V2 (ui/chip.ts
+ * is the one place one is built). **Stage V0 wrote it; Stage V2 made it the
+ * one style.** An outline over a faint fill, the hue pulled toward the
+ * neutrals by the three `--chip-*` numbers in tokens.css. `--chip` is the
+ * only thing a variant sets, and only the type chip sets it: a status, a
+ * tier, a band, a stage, a category and an effectiveness marker are all the
+ * neutral cream, because a label is a word and not a colour. The outline is
+ * an inset shadow rather than a border so it costs no layout.
+ */
+.chip {
+  --chip: var(--cream-dim);
+  background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
+  color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
+  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
 }
 
-.badge--volatile {
-  background: color-mix(in srgb, var(--type-psychic) 18%, transparent);
-  color: var(--type-psychic);
-}
+/* The one exception to the neutral chip: the accent recipe on the lead. No —
+   the lead is a fact too. It stays neutral like everything else. */
 
 /* A hidden trait is a placeholder, not an absence: "this Pokemon has no item"
    and "it has one you have not been told about" are different facts. */
 .badge[data-hidden="true"] {
   background: var(--bg-sunken);
   color: var(--text-faint);
-  border: 1px dashed var(--border-strong);
+  box-shadow: none;
+  outline: var(--hairline) dashed var(--border-strong);
+  outline-offset: calc(-1 * var(--hairline));
 }
 
 /* ---------- move category and effectiveness ---------- */
@@ -603,109 +574,91 @@ body {
  * bar, and reading four labels to find it is the friction this removes.
  */
 .badge--category {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
 }
 
-.badge--cat-physical {
-  background: color-mix(in srgb, var(--type-fighting) 26%, transparent);
-  color: #ff9a94;
-}
-
-.badge--cat-special {
-  background: color-mix(in srgb, var(--type-water) 26%, transparent);
-  color: #9dc0ff;
-}
-
-.badge--cat-status {
-  background: var(--bg-sunken);
-  color: var(--text-dim);
-}
+/* Stage V2: no hue per category. PHYS and SPEC are three letters each, and
+   the tooltip behind them says what they mean. */
 
 .badge--effect {
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--fs-sm);
 }
 
-.badge--effect[data-band="super"] {
-  background: color-mix(in srgb, var(--stage-up) 26%, transparent);
-  color: var(--stage-up);
-}
-
-.badge--effect[data-band="resisted"] {
-  background: color-mix(in srgb, var(--text-faint) 26%, transparent);
-  color: var(--text-dim);
-}
-
-/* 0x is the one badge allowed to shout. A move that does literally nothing is
-   a wasted turn, and it is the case a new player most needs told. */
-.badge--effect[data-band="none"] {
-  background: var(--hp-low);
-  color: #1a0505;
-}
+/* Stage V2: no hue per effectiveness either. The word is the marker, and the
+   same chip at the same weight carries 2x, ½x and 0x alike. */
 
 /* An effectiveness the type chart alone does not explain gets an outline, so
    "this does nothing" arrives with "because of something on the field". */
 .badge--effect[data-ability="true"] {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
+  outline: var(--hairline) solid var(--emphasis);
+  outline-offset: var(--hairline);
 }
 
+/*
+ * The type chip: the one coloured chip, and it is an outline.
+ *
+ * **Stage V0.** Solid type fills were the only saturated colour on most
+ * screens, and eighteen of them made any accent a nineteenth type. The same
+ * recipe as `.badge`: a faint fill, a desaturated outline, the type's hue in
+ * the text. The chip still reads as its type at a glance; it no longer reads
+ * as a button.
+ */
 .type {
-  padding: 1px 7px;
-  border-radius: 4px;
-  font-size: 10px;
+  padding: var(--hairline) calc(var(--space-1h) + var(--hairline));
+  border-radius: var(--radius-chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #12151a;
-  background: var(--type-normal);
 }
 
-.type--normal { background: var(--type-normal); }
-.type--fire { background: var(--type-fire); }
-.type--water { background: var(--type-water); }
-.type--electric { background: var(--type-electric); }
-.type--grass { background: var(--type-grass); }
-.type--ice { background: var(--type-ice); }
-.type--fighting { background: var(--type-fighting); color: #fff; }
-.type--poison { background: var(--type-poison); color: #fff; }
-.type--ground { background: var(--type-ground); }
-.type--flying { background: var(--type-flying); }
-.type--psychic { background: var(--type-psychic); }
-.type--bug { background: var(--type-bug); }
-.type--rock { background: var(--type-rock); }
-.type--ghost { background: var(--type-ghost); color: #fff; }
-.type--dragon { background: var(--type-dragon); color: #fff; }
-.type--dark { background: var(--type-dark); color: #fff; }
-.type--steel { background: var(--type-steel); }
-.type--fairy { background: var(--type-fairy); }
-.type--stellar { background: var(--type-stellar); }
+.type--normal { --chip: var(--type-normal); }
+.type--fire { --chip: var(--type-fire); }
+.type--water { --chip: var(--type-water); }
+.type--electric { --chip: var(--type-electric); }
+.type--grass { --chip: var(--type-grass); }
+.type--ice { --chip: var(--type-ice); }
+.type--fighting { --chip: var(--type-fighting); }
+.type--poison { --chip: var(--type-poison); }
+.type--ground { --chip: var(--type-ground); }
+.type--flying { --chip: var(--type-flying); }
+.type--psychic { --chip: var(--type-psychic); }
+.type--bug { --chip: var(--type-bug); }
+.type--rock { --chip: var(--type-rock); }
+.type--ghost { --chip: var(--type-ghost); }
+.type--dragon { --chip: var(--type-dragon); }
+.type--dark { --chip: var(--type-dark); }
+.type--steel { --chip: var(--type-steel); }
+.type--fairy { --chip: var(--type-fairy); }
+.type--stellar { --chip: var(--type-stellar); }
 
 /* ---------- moves ---------- */
 
 .moves {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .move {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 10px 12px;
+  gap: calc(var(--space-1) + var(--hairline));
+  padding: var(--space-2h) var(--space-3);
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.move:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.move:hover:not(:disabled) { border-color: var(--emphasis); transform: translateY(-1px); }
 
 .move:disabled {
   opacity: 0.42;
@@ -717,7 +670,7 @@ body {
 .move__meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1h);
   flex-wrap: wrap;
 }
 
@@ -725,8 +678,8 @@ body {
 .move__power,
 .move__pp {
   color: var(--text-dim);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
 }
 
 .move__pp--low { color: var(--hp-low); }
@@ -738,34 +691,34 @@ body {
   min-height: 320px;
   max-height: 520px;
   overflow-y: auto;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-3h);
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 13px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
+  font-size: var(--fs-base);
   scroll-behavior: smooth;
 }
 
-.log-entry { margin: 0 0 4px; }
+.log-entry { margin: 0 0 var(--space-1); }
 .log-entry strong { color: var(--text); font-weight: 600; }
-.log-entry--detail { color: var(--text-dim); padding-left: 10px; }
+.log-entry--detail { color: var(--text-dim); padding-left: var(--space-2h); }
 
 /* The HP state line: what is left, after the sentence that changed it. Quiet,
    monospaced and indented, because it is a readout rather than a narration. */
 .log-entry--hp {
   color: var(--text-dim);
-  padding-left: 10px;
-  font-family: var(--mono);
-  font-size: 11px;
+  padding-left: var(--space-2h);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
 }
 
 .log-entry--turn {
-  margin: 14px 0 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  color: var(--accent);
-  font-family: var(--mono);
-  font-size: 11px;
+  margin: var(--space-3h) 0 var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--hairline) solid var(--border);
+  color: var(--emphasis);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -784,32 +737,34 @@ body {
 .log-entry--action {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
 .log-entry__order {
   flex: none;
   min-width: 14px;
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-align: center;
   color: var(--text-faint);
-  border-radius: 3px;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  border: var(--hairline) solid var(--border);
 }
 
 /* The ordinal says when; the colour says who. Two facts, one glyph. */
-.log-entry--action[data-side='p1'] .log-entry__order { color: var(--accent); border-color: var(--accent); }
+.log-entry--action[data-side='p1'] .log-entry__order { color: var(--emphasis); border-color: var(--emphasis); }
 
 .log-entry__priority {
   flex: none;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--stage-up);
-  color: var(--bg);
-  font-family: var(--mono);
-  font-size: 9px;
+  padding: 0 calc(var(--space-1) + var(--hairline));
+  border-radius: var(--radius-chip);
+  --chip: var(--cream-dim);
+  background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
+  color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
+  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
+  font-family: var(--font-display);
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   cursor: help;
@@ -818,9 +773,9 @@ body {
 /* A switch is a different kind of event from a hit, and gets a rule of its own
    rather than a colour — colour is already carrying whose turn it was. */
 .log-entry--switch {
-  border-left: 2px solid var(--border-strong);
-  padding-left: 6px;
-  margin-left: -8px;
+  border-left: var(--space-h) solid var(--border-strong);
+  padding-left: var(--space-1h);
+  margin-left: calc(-1 * var(--space-2));
 }
 
 /*
@@ -854,7 +809,7 @@ body {
 .screen {
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 .screen[hidden] { display: none; }
@@ -880,7 +835,7 @@ body {
 
 .screen__title {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-3xl);
   letter-spacing: 0.02em;
 }
 
@@ -888,10 +843,10 @@ body {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1h);
   flex-wrap: wrap;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 /* ---------- starter select ---------- */
@@ -899,31 +854,31 @@ body {
 .starters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 .starter {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
+  gap: var(--space-2);
+  padding: var(--space-3h);
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.starter:hover { border-color: var(--accent); transform: translateY(-1px); }
-.starter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.starter:hover { border-color: var(--emphasis); transform: translateY(-1px); }
+.starter:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
-.starter__header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.starter__name { font-weight: 600; font-size: 15px; }
-.starter__level { color: var(--text-faint); font-family: var(--mono); font-size: 12px; }
-.starter__meta { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+.starter__header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.starter__name { font-weight: 600; font-size: var(--fs-xl); }
+.starter__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
+.starter__meta { color: var(--text-dim); font-family: var(--font-body); font-size: var(--fs-sm); }
 
 .starter__moves {
   margin: 0;
@@ -931,14 +886,14 @@ body {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
+  gap: calc(var(--space-1) + var(--hairline));
+  border-top: var(--hairline) solid var(--border);
+  padding-top: var(--space-2);
 }
 
-.starter__move { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
-.starter__move-name { font-size: 13px; }
-.starter__move-stats { display: inline-flex; align-items: center; gap: 6px; }
+.starter__move { display: flex; align-items: center; gap: var(--space-2); justify-content: space-between; }
+.starter__move-name { font-size: var(--fs-base); }
+.starter__move-stats { display: inline-flex; align-items: center; gap: var(--space-1h); }
 
 /* ---------- bands and berries ---------- */
 
@@ -954,20 +909,21 @@ body {
 .band {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-family: var(--mono);
-  font-size: 10px;
+  padding: var(--hairline) var(--space-1h);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
   letter-spacing: 0.04em;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-sunken);
-  color: var(--text-dim);
+  text-transform: uppercase;
+  border: var(--hairline) solid transparent;
 }
 
-.band--1 { opacity: 0.72; }
-.band--2 { opacity: 0.82; }
-.band--3 { opacity: 0.92; }
-.band--4 { opacity: 1; border-color: var(--accent); color: var(--text); }
+/* Stage V0: the four bands render identically. The opacity ramp that used to
+   distinguish them was an ordering, and an ordering is a verdict. */
+.band--1,
+.band--2,
+.band--3,
+.band--4 { opacity: 1; }
 
 /* A berry in the bag. Dashed, because the thing it marks is impermanence. */
 .badge--consumable {
@@ -988,31 +944,31 @@ body {
 .locales {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--gap);
+  gap: var(--space-3);
   width: 100%;
 }
 
 .locale {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px 14px;
+  gap: var(--space-2h);
+  padding: var(--space-4) var(--space-3h);
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.locale:hover { border-color: var(--accent); transform: translateY(-1px); }
-.locale:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.locale:hover { border-color: var(--emphasis); transform: translateY(-1px); }
+.locale:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
-.locale__name { font-weight: 600; font-size: 16px; }
-.locale__types { display: flex; flex-wrap: wrap; gap: 4px; }
-.locale__blurb { color: var(--text-dim); font-size: 12px; }
+.locale__name { font-weight: 600; font-size: var(--fs-2xl); }
+.locale__types { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.locale__blurb { color: var(--text-dim); font-size: var(--fs-md); }
 
 /* 44px of touch target on a phone, like every other primary control. */
 @media (max-width: 760px) {
@@ -1027,12 +983,12 @@ body {
   /* The chain spans two rows so the threat readout can sit under the party
      column without the cards losing height to it. */
   grid-template-areas: "rail rail" "heading heading" "chain party" "chain threats";
-  gap: var(--gap);
+  gap: var(--space-3);
   align-items: start;
 }
 
 .rail { grid-area: rail; }
-.map__heading { grid-area: heading; display: flex; flex-direction: column; gap: 2px; }
+.map__heading { grid-area: heading; display: flex; flex-direction: column; gap: var(--space-h); }
 
 /* The region this segment is being walked through, as one line above the
    chain. One line rather than a badge per node: the locale is a property of the
@@ -1041,11 +997,11 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--space-1h);
+  margin-top: var(--space-1);
 }
 
-.map__region-name { font-weight: 600; font-size: 13px; }
+.map__region-name { font-weight: 600; font-size: var(--fs-base); }
 .chain { grid-area: chain; }
 .party { grid-area: party; }
 .threats--map { grid-area: threats; }
@@ -1070,10 +1026,10 @@ body {
    progression and a wrapped progression stops reading as one. */
 .rail {
   margin: 0;
-  padding: 0 0 4px;
+  padding: 0 0 var(--space-1);
   list-style: none;
   display: flex;
-  gap: 6px;
+  gap: var(--space-1h);
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -1088,20 +1044,20 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 5px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: var(--space-1) calc(var(--space-1) + var(--hairline));
+  padding: var(--space-1h) var(--space-2);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
   background: var(--bg-sunken);
-  font-size: 11px;
+  font-size: var(--fs-sm);
   white-space: nowrap;
 }
 
 .rail__gym .type {
   flex-basis: 100%;
   max-width: fit-content;
-  padding: 1px 5px;
-  font-size: 9px;
+  padding: var(--hairline) calc(var(--space-1) + var(--hairline));
+  font-size: var(--fs-2xs);
 }
 
 .rail__number {
@@ -1111,11 +1067,11 @@ body {
   justify-content: center;
   min-width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: var(--radius-chip);
   background: var(--border-strong);
   color: var(--text-dim);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
 }
 
 .rail__label { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; }
@@ -1128,30 +1084,32 @@ body {
 }
 
 .rail__gym--done { border-color: color-mix(in srgb, var(--win) 45%, var(--border)); }
-.rail__gym--done .rail__number { background: var(--win); color: #0d1117; }
+.rail__gym--done .rail__number { background: var(--win); color: var(--emphasis-ink); }
 .rail__gym--done .rail__label { color: var(--text); }
 
 .rail__gym--current {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-sunken));
+  border-color: var(--emphasis);
+  background: color-mix(in srgb, var(--emphasis) 10%, var(--bg-sunken));
 }
-.rail__gym--current .rail__number { background: var(--accent); color: #0d1117; }
+.rail__gym--current .rail__number { background: var(--emphasis); color: var(--emphasis-ink); }
 .rail__gym--current .rail__label { color: var(--text); font-weight: 600; }
 
 .rail__gym--upcoming { opacity: 0.62; }
 
+/* Dim rather than faint since V1: it is the one sub-AA style that sat on the
+   world, and a tinted world took it under 4:1. Faint text stays on cards. */
 .map__blurb {
-  margin: 2px 0 0;
-  color: var(--text-faint);
-  font-size: 12px;
+  margin: var(--space-h) 0 0;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
   font-style: italic;
 }
 
 .party__ability {
   margin-left: auto;
   color: var(--text-dim);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
 }
 
 .chain {
@@ -1160,13 +1118,13 @@ body {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
 .step {
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: var(--space-2h);
 }
 
 .step__marker {
@@ -1175,18 +1133,18 @@ body {
   place-items: center;
   align-self: center;
   height: 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
+  border: var(--hairline) solid var(--border);
   color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
 }
 
 .step--current .step__marker {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--emphasis);
+  border-color: var(--emphasis);
+  color: var(--emphasis-ink);
   font-weight: 700;
 }
 
@@ -1196,34 +1154,33 @@ body {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
 .node {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 11px;
+  gap: var(--space-h);
+  padding: var(--space-2) calc(var(--space-2h) + var(--hairline));
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-left: var(--space-1) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
 }
 
-.node--wild { border-left-color: var(--type-grass); }
-.node--trainer { border-left-color: var(--type-fire); }
-.node--rest { border-left-color: var(--hp-high); }
-.node--gym { border-left-color: var(--accent); }
+/* Stage V0: every node wears the same border. Kind and tier are the label and
+   the chip; a coloured edge per kind was four of the type hues doing a second
+   job, and the elite edge was a verdict. */
 
-.node__label { font-weight: 600; font-size: 13px; }
+.node__label { font-weight: 600; font-size: var(--fs-base); }
 
 .node__detail {
   color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   line-height: 1.35;
 }
 
@@ -1233,8 +1190,8 @@ body {
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.node--current:hover { border-color: var(--accent); transform: translateY(-1px); }
-.node--current:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.node--current:hover { border-color: var(--emphasis); transform: translateY(-1px); }
+.node--current:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
 /* Upcoming steps show the kind but never the contents: enough to plan around,
    not enough to remove the encounter. */
@@ -1246,32 +1203,32 @@ body {
 .party {
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 .party__member {
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-3h);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-left: var(--space-1) solid var(--border-strong);
+  border-radius: var(--radius-card);
 }
 
 .party__moves {
-  margin: 8px 0 0;
-  padding: 8px 0 0;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) 0 0;
   list-style: none;
-  border-top: 1px solid var(--border);
+  border-top: var(--hairline) solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .party__move {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
+  gap: var(--space-2);
+  font-size: var(--fs-md);
 }
 
 /* ---------- bench: the switch panel, beside the moves ---------- */
@@ -1281,12 +1238,12 @@ body {
 .bench {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .bench__heading {
   grid-column: 1 / -1;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -1295,17 +1252,17 @@ body {
 /* A forced switch is the only question on screen, so the panel says so with a
    border rather than by hiding the moves — the player can still see what they
    would have been able to do. */
-.bench[data-forced='true'] .bench__heading { color: var(--accent); }
+.bench[data-forced='true'] .bench__heading { color: var(--emphasis); }
 
 .bench__member {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2h);
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
   cursor: pointer;
@@ -1313,7 +1270,7 @@ body {
 }
 
 .bench[data-forced='true'] .bench__member:not(:disabled) { border-color: var(--border-strong); }
-.bench__member:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.bench__member:hover:not(:disabled) { border-color: var(--emphasis); transform: translateY(-1px); }
 
 /* Disabled, never hidden: a row that vanishes teaches the player that the bench
    is unreliable; a row that says "Trapped" teaches them what Arena Trap does. */
@@ -1321,8 +1278,8 @@ body {
 
 .bench__name { font-weight: 600; }
 .bench__level,
-.bench__meta { font-size: 11px; color: var(--text-dim); }
-.bench__types { display: flex; gap: 4px; flex-wrap: wrap; }
+.bench__meta { font-size: var(--fs-sm); color: var(--text-dim); }
+.bench__types { display: flex; gap: var(--space-1); flex-wrap: wrap; }
 .bench__block { color: var(--hp-low); }
 
 .hp--slim { height: 4px; }
@@ -1333,20 +1290,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.party__member--lead { border-left-color: var(--accent); }
-.party__member--fainted { opacity: 0.55; border-left-color: var(--hp-low); }
+.party__member--lead { border-left-color: var(--emphasis); }
+.party__member--fainted { opacity: 0.55; }
 
-.party__actions { display: flex; gap: 8px; margin-top: 10px; }
+.party__actions { display: flex; gap: var(--space-2); margin-top: var(--space-2h); }
 
-.badge--lead {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
 
-.badge--item { background: var(--bg-sunken); color: var(--text-dim); }
 .badge--muted { opacity: 0.6; }
 
 .button--danger { border-color: var(--hp-low); color: var(--hp-low); }
@@ -1357,7 +1309,8 @@ body {
    deliberately the same card so the player is looking at one thing throughout. */
 .party--manage,
 .party--compare,
-.party--target {
+.party--target,
+.party__slots {
   width: min(760px, 100%);
 }
 
@@ -1373,16 +1326,16 @@ body {
 .screen__title[data-outcome='loss'] { color: var(--hp-low); }
 
 .result__heading {
-  margin: 18px 0 8px;
-  font-size: 12px;
+  margin: var(--space-4h) 0 var(--space-2);
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-.result__party { display: grid; gap: 8px; }
+.result__party { display: grid; gap: var(--space-2); }
 
-.result__actions { display: flex; gap: 8px; margin-top: 18px; }
+.result__actions { display: flex; gap: var(--space-2); margin-top: var(--space-4h); }
 
 /* 44px of touch target: this is the button a phone player presses after every
    fight, and it is the only way off the screen when no cards are offered. */
@@ -1390,17 +1343,23 @@ body {
 
 /* The offered Pokemon, in the same card shape as the party it is measured
    against — anything else makes the comparison a matter of squinting. */
-.party__member--offered { border-left-color: var(--accent); background: var(--bg-sunken); }
+/* The offered Pokemon is a sibling of every other offer card in the game —
+   starter, locale, reward — and wears exactly their surface. Stage V0. */
+.party__member--offered {
+  background: var(--bg-raised);
+  border-color: var(--border-strong);
+  border-left-width: var(--hairline);
+}
 
 .acquire__heading {
-  margin: 18px 0 0;
-  font-size: 12px;
+  margin: var(--space-4h) 0 0;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-.acquire__actions { display: flex; gap: 8px; margin-top: 18px; }
+.acquire__actions { display: flex; gap: var(--space-2); margin-top: var(--space-4h); }
 .acquire__actions .button { min-height: 44px; }
 
 /*
@@ -1410,19 +1369,19 @@ body {
  * above it, what the fight left you is beside it.
  */
 .result__capture {
-  margin-top: 18px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
+  margin-top: var(--space-4h);
+  padding-top: var(--space-2);
+  border-top: var(--hairline) solid var(--border);
 }
 
-.acquire__blurb { color: var(--text-dim); font-size: 13px; margin: 4px 0 12px; }
+.acquire__blurb { color: var(--text-dim); font-size: var(--fs-base); margin: var(--space-1) 0 var(--space-3); }
 
 /* The coverage line: a readout, never a verdict — so no colour that says which
    direction is better, and no arrow. Same treatment as the species card's. */
 .acquire__coverage {
-  margin: 10px 0 0;
-  font-family: var(--mono);
-  font-size: 11px;
+  margin: var(--space-2h) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   color: var(--text-dim);
 }
 
@@ -1436,18 +1395,18 @@ body {
   transition: border-color 120ms ease;
 }
 
-.party__member--target:hover { border-color: var(--accent); }
+.party__member--target:hover { border-color: var(--emphasis); }
 
 .target__effect {
   display: block;
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: var(--space-2);
+  font-size: var(--fs-md);
   color: var(--text-dim);
 }
 
 /* A near-dud that announces itself is a legible choice; one that hides is a
    lottery the player loses four fights later. */
-.target__effect--dud { color: var(--hp-mid); }
+.target__effect--dud { color: var(--text-dim); }
 
 /* ---------- move replacement ---------- */
 
@@ -1458,8 +1417,8 @@ body {
 .screen--replace > * { width: min(760px, 100%); }
 
 .replace__heading {
-  margin: 18px 0 0;
-  font-size: 12px;
+  margin: var(--space-4h) 0 0;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -1473,16 +1432,16 @@ body {
 .replace__moves {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .replace__owner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-  font-size: 13px;
+  gap: var(--space-2);
+  margin-top: var(--space-4h);
+  font-size: var(--fs-base);
 }
 
 /* Minimum 44px of touch target, because this screen is a phone screen: four
@@ -1493,7 +1452,7 @@ body {
 
 /* ---------- battle screen ---------- */
 
-.battle__header { display: flex; flex-direction: column; gap: 2px; }
+.battle__header { display: flex; flex-direction: column; gap: var(--space-h); }
 
 /* ---------- summary ---------- */
 
@@ -1501,18 +1460,18 @@ body {
 
 .summary {
   width: min(680px, 100%);
-  padding: 24px;
+  padding: var(--space-6);
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   text-align: center;
 }
 
-.summary__title { margin: 0 0 6px; font-size: 26px; letter-spacing: 0.04em; }
+.summary__title { margin: 0 0 var(--space-1h); font-size: var(--fs-7xl); letter-spacing: 0.04em; }
 .screen--summary[data-outcome="victory"] .summary__title { color: var(--win); }
 .screen--summary[data-outcome="defeat"] .summary__title { color: var(--loss); }
 
-.summary__detail { margin: 0 0 4px; color: var(--text-dim); font-size: 13px; }
+.summary__detail { margin: 0 0 var(--space-1); color: var(--text-dim); font-size: var(--fs-base); }
 
 /* The seed is the one thing that makes a run shareable, so it gets a row of
    its own and a copy button rather than a line of small grey text. */
@@ -1520,52 +1479,52 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin: 12px 0;
-  padding: 8px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   background: var(--bg-sunken);
 }
 
 .summary__seed-label {
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--fs-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .summary__seed-value {
-  font-family: var(--mono);
-  font-size: 16px;
+  font-family: var(--font-body);
+  font-size: var(--fs-2xl);
   letter-spacing: 0.12em;
   color: var(--text);
   word-break: break-all;
 }
 
-.button--small { padding: 4px 10px; font-size: 11px; }
+.button--small { padding: var(--space-1) var(--space-2h); font-size: var(--fs-sm); }
 
 .summary__progress {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  margin-bottom: 10px;
+  gap: calc(var(--space-1) + var(--hairline));
+  margin-bottom: var(--space-2h);
 }
 
 .summary__count {
-  font-family: var(--mono);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
   color: var(--text);
-  margin-right: 4px;
+  margin-right: var(--space-1);
 }
 
 .summary__badge {
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  border: 1px solid var(--border);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-chip);
+  font-size: var(--fs-sm);
+  border: var(--hairline) solid var(--border);
 }
 
 .summary__badge--won {
@@ -1577,13 +1536,13 @@ body {
 .summary__badge--missed { color: var(--text-faint); opacity: 0.6; }
 
 .summary__cause {
-  margin: 0 0 16px;
-  padding: 8px 12px;
-  border-left: 3px solid var(--loss);
-  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--space-1) solid var(--loss);
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
   background: var(--bg-sunken);
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: var(--fs-base);
   text-align: left;
 }
 
@@ -1591,8 +1550,8 @@ body {
 .summary__cause[hidden] { display: none; }
 
 .summary__section {
-  margin: 18px 0 8px;
-  font-size: 11px;
+  margin: var(--space-4h) 0 var(--space-2);
+  font-size: var(--fs-sm);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-faint);
@@ -1602,28 +1561,28 @@ body {
 .summary__team {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px;
+  gap: var(--space-2h);
   text-align: left;
 }
 
 .summary__member {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
 }
 
 .summary__nodes {
-  margin: 0 0 18px;
+  margin: 0 0 var(--space-4h);
   padding: 0;
   list-style: none;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
   /* A full run is now around forty nodes, so this scrolls by design. Capped
      rather than uncapped so the actions and the final team stay reachable
      without paging past the whole run first. */
@@ -1634,12 +1593,12 @@ body {
 .summary__node {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
-  gap: 10px;
+  gap: var(--space-2h);
   align-items: baseline;
-  padding: 5px 8px;
-  border-radius: 6px;
+  padding: calc(var(--space-1) + var(--hairline)) var(--space-2);
+  border-radius: var(--radius-card);
   background: var(--bg-sunken);
-  font-size: 12px;
+  font-size: var(--fs-md);
 }
 
 .summary__node-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1652,58 +1611,76 @@ body {
   justify-content: center;
   min-width: 16px;
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: var(--border-strong);
   color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
 }
 
 .summary__node-outcome,
-.summary__node-hp { color: var(--text-faint); font-family: var(--mono); font-size: 11px; }
+.summary__node-hp { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-sm); }
 
 .summary__node-outcome[data-won="true"] { color: var(--win); }
 .summary__node-outcome[data-won="false"] { color: var(--loss); }
 
-.summary__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.summary__actions { display: flex; gap: var(--space-2); justify-content: center; flex-wrap: wrap; }
 .summary__nodes { margin-bottom: 0; }
 
-/* ---------- end-of-battle overlay ---------- */
+/* ---------- the band ---------- */
 
-.overlay {
+/*
+ * The one overlay, from ui/band.ts. Stage V2.
+ *
+ * A dim over the world and one translucent strip across its middle, edged
+ * top and bottom by a hairline of the glow so it reads as a band of the
+ * world rather than a box on a page. Text only: the question, one line, two
+ * buttons. The primary is the accent; its sibling is hollow. While the band
+ * is up, every other primary action on the page goes hollow too, so the
+ * band's is the one accent on screen.
+ *
+ * The Stage 0 end-of-battle overlay's rules lived here unused since the
+ * result screen replaced it in 4.5.2; they are gone.
+ */
+.confirm-band {
   position: fixed;
   inset: 0;
+  z-index: 30;
   display: grid;
   place-items: center;
-  padding: 16px;
-  background: rgb(6 9 13 / 78%);
-  z-index: 10;
+  background: var(--dim);
 }
 
-.overlay[hidden] { display: none; }
-
-.overlay__card {
-  width: min(360px, 100%);
-  padding: 26px 24px;
+.confirm-band__body {
+  width: 100%;
+  padding: var(--space-5) var(--space-4);
   text-align: center;
-  background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
+  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
 }
 
-.overlay__title { margin: 0 0 6px; font-size: 26px; letter-spacing: 0.06em; }
-.overlay[data-outcome="win"] .overlay__title { color: var(--win); }
-.overlay[data-outcome="loss"] .overlay__title { color: var(--loss); }
+.confirm-band__title { margin: 0 0 var(--space-1h); font-size: var(--fs-3xl); }
+.confirm-band__detail { margin: 0 0 var(--space-3h); color: var(--text-dim); font-size: var(--fs-base); }
+.confirm-band__actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
+.confirm-band__actions .button { min-height: 44px; min-width: 120px; }
 
-.overlay__detail {
-  margin: 0 0 18px;
-  color: var(--text-dim);
-  font-family: var(--mono);
-  font-size: 12px;
-  word-break: break-all;
+/* Text-only buttons: the hollow secondary, and every button inside a band. */
+.button--hollow {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
-.overlay__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.confirm-band .button:not(.primary-action) { background: transparent; }
+
+/* One accent per screen holds while a band is up: the primaries behind it go
+   hollow until it closes. */
+body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
 
 /*
  * The compact stat row on a pick screen. Item F, part 4.
@@ -1716,23 +1693,23 @@ body {
 .statline {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-  margin: 8px 0 0;
-  padding: 8px 0 0;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) 0 0;
   list-style: none;
-  border-top: 1px solid var(--border);
+  border-top: var(--hairline) solid var(--border);
 }
 
-.statline__stat { display: flex; flex-direction: column; gap: 1px; }
+.statline__stat { display: flex; flex-direction: column; gap: var(--hairline); }
 
 .statline__label {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.04em;
   color: var(--text-faint);
   cursor: help;
 }
 
-.statline__value { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.statline__value { font-family: var(--font-body); font-size: var(--fs-md); color: var(--text); }
 
 /* ---------- the phone pass ---------- */
 
@@ -1755,7 +1732,7 @@ body {
   /* The title shrinks and the stage blurb goes. It is a description of the
      build for someone reading over your shoulder, not something a player in a
      fight needs on screen. */
-  .shell[data-phase='running'] .header__title { font-size: 20px; letter-spacing: 0.18em; }
+  .shell[data-phase='running'] .header__title { font-size: var(--fs-5xl); letter-spacing: 0.18em; }
   .shell[data-phase='running'] .header__subtitle { display: none; }
 
   /* The seed box is a setup control. It stays reachable — the summary screen
@@ -1765,20 +1742,20 @@ body {
   /* Both battle panels tighten so the two of them plus the move grid fit
      without scrolling. Nothing is removed: the six stats, the stages, the
      status chips and the HP numbers are all still there. */
-  .shell[data-phase='running'] .panel { padding: 10px 12px; gap: 6px; }
-  .shell[data-phase='running'] .panel .stats { gap: 2px 10px; }
+  .shell[data-phase='running'] .panel { padding: var(--space-2h) var(--space-3); gap: var(--space-1h); }
+  .shell[data-phase='running'] .panel .stats { gap: var(--space-h) var(--space-2h); }
 
   /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
      four buttons in a column is a scroll, and a scroll is what this pass is
      removing. */
   .move { min-height: 44px; }
-  .moves { gap: 6px; }
+  .moves { gap: var(--space-1h); }
 
   /* The map's decision point is what the player came to the screen for, so the
      current step's cards keep their full size while the rest of the chain
      tightens around them. */
   .step--done .node,
-  .step--upcoming .node { padding: 6px 8px; }
+  .step--upcoming .node { padding: var(--space-1h) var(--space-2); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1796,28 +1773,25 @@ body {
 
 .tier {
   display: inline-block;
-  padding: 1px 5px;
-  border-radius: 3px;
-  border: 1px solid currentColor;
-  font-family: var(--mono);
-  font-size: 9px;
+  padding: var(--hairline) calc(var(--space-1) + var(--hairline));
+  border-radius: var(--radius-chip);
+  /* A transparent border keeps the box the chip had when it drew its own
+     edge; the .chip recipe draws the outline inside it. Stage V2. */
+  border: var(--hairline) solid transparent;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
-  vertical-align: 1px;
+  vertical-align: var(--hairline);
 }
 
-.tier--normal { color: var(--text-faint); }
-.tier--hard { color: var(--hp-mid); }
-.tier--elite { color: var(--loss); }
+/*
+ * **Stage V0: no colour per tier.** `hard` in amber and `elite` in red was a
+ * ramp, and a ramp is the stylesheet saying which node is better. The word is
+ * the attribute; the chip is the same chip on every node.
+ */
+/* The chip recipe colours the tier; nothing here does. */
 
-/* The whole node is tinted too, so the shape of a step reads before the text
-   does — you should be able to see a risky step from across the room. */
-.node--tier-hard { border-left-color: var(--hp-mid); }
-.node--tier-elite { border-left-color: var(--loss); }
-.node--shop { border-left-color: var(--type-electric); }
-.node--event { border-left-color: var(--type-psychic); }
-
-.node--current.node--tier-elite { box-shadow: inset 0 0 0 1px rgb(248 81 73 / 18%); }
 
 /* ---------- coins on the party panel ---------- */
 
@@ -1825,20 +1799,20 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-2);
+  padding: var(--space-2h) var(--space-3);
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--type-electric);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-left: var(--space-1) solid var(--border-strong);
+  border-radius: var(--radius-card);
 }
 
-.party__wallet-label { color: var(--text-dim); font-size: 12px; }
+.party__wallet-label { color: var(--text-dim); font-size: var(--fs-md); }
 .party__wallet-value {
-  font-family: var(--mono);
-  font-size: 18px;
+  font-family: var(--font-body);
+  font-size: var(--fs-4xl);
   font-weight: 600;
-  color: var(--type-electric);
+  color: var(--text);
 }
 
 /* ---------- reward screen ---------- */
@@ -1846,94 +1820,89 @@ body {
 .rewards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 .reward {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 14px;
+  gap: var(--space-1h);
+  padding: var(--space-3h);
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-left: 3px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.reward:hover { border-color: var(--accent); transform: translateY(-1px); }
-.reward:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reward:hover { border-color: var(--emphasis); transform: translateY(-1px); }
+.reward:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
-.reward--item { border-left-color: var(--type-steel); }
-.reward--currency { border-left-color: var(--type-electric); }
-.reward--heal { border-left-color: var(--hp-high); }
-.reward--tm,
-.reward--tutor { border-left-color: var(--type-psychic); }
-.reward--species { border-left-color: var(--accent); }
+/* Stage V0: sibling cards in an offer are identical. The kind is printed on
+   the card; it is not a colour on its edge. */
 
 .reward__kind {
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-.reward__name { font-weight: 600; font-size: 15px; }
-.reward__detail { color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+.reward__name { font-weight: 600; font-size: var(--fs-xl); }
+.reward__detail { color: var(--text-dim); font-size: var(--fs-md); line-height: 1.45; }
 
 .reward__note {
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: var(--space-1);
   color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   line-height: 1.4;
 }
 
 /* A card that is weak *for this run* says so. A near-dud that announces itself
    is a legibly low reward; one that hides is a lottery. */
-.reward__note--warn { color: var(--hp-mid); }
+.reward__note--warn { color: var(--text-dim); }
 
 /* ---------- shop ---------- */
 
 .shop__wallet {
   display: flex;
-  gap: var(--gap);
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
 .shop__coin {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-h);
   min-width: 90px;
-  padding: 10px 12px;
+  padding: var(--space-2h) var(--space-3);
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
 }
 
 .shop__coin-label {
   color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.shop__coin-value { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+.shop__coin-value { font-family: var(--font-body); font-size: var(--fs-4xl); font-weight: 600; }
 .shop__coin--warn .shop__coin-value { color: var(--hp-mid); }
 
 .shop__shelf {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1942,29 +1911,29 @@ body {
 .shop__item {
   display: flex;
   align-items: center;
-  gap: var(--gap);
-  padding: 10px 12px;
+  gap: var(--space-3);
+  padding: var(--space-2h) var(--space-3);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border);
+  border-left: var(--space-1) solid var(--border-strong);
+  border-radius: var(--radius-card);
 }
 
 .shop__item--chosen {
-  border-color: var(--accent);
-  border-left-color: var(--accent);
+  border-color: var(--emphasis);
+  border-left-color: var(--emphasis);
   background: var(--bg-sunken);
 }
 
-.shop__item-label { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.shop__item-name { font-weight: 600; font-size: 13px; }
-.shop__item-detail { color: var(--text-dim); font-size: 11px; line-height: 1.4; }
+.shop__item-label { display: flex; flex-direction: column; gap: var(--space-h); flex: 1; min-width: 0; }
+.shop__item-name { font-weight: 600; font-size: var(--fs-base); }
+.shop__item-detail { color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.4; }
 
 .shop__price {
-  font-family: var(--mono);
-  font-size: 15px;
+  font-family: var(--font-body);
+  font-size: var(--fs-xl);
   font-weight: 600;
-  color: var(--type-electric);
+  color: var(--text);
   min-width: 48px;
   text-align: right;
 }
@@ -1980,33 +1949,33 @@ body {
 .event__prompt {
   max-width: 62ch;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-xl);
   line-height: 1.6;
 }
 
 .event__choices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 .event__choice {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
+  gap: var(--space-1h);
+  padding: var(--space-3h);
   text-align: left;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.event__choice:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
-.event__choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.event__choice:hover:not(:disabled) { border-color: var(--emphasis); transform: translateY(-1px); }
+.event__choice:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 .event__choice:disabled { cursor: default; opacity: 0.4; }
 
 /* The choice that was taken stays lit while the outcome is read, so the player
@@ -2015,26 +1984,26 @@ body {
    the choices the player did not take. */
 .event__choice.event__choice--taken:disabled {
   opacity: 1;
-  border-color: var(--accent);
+  border-color: var(--emphasis);
   background: var(--bg-sunken);
 }
 
-.event__choice-label { font-weight: 600; font-size: 14px; }
-.event__choice-hint { color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+.event__choice-label { font-weight: 600; font-size: var(--fs-lg); }
+.event__choice-hint { color: var(--text-dim); font-size: var(--fs-md); line-height: 1.45; }
 
 .event__result {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--gap);
+  gap: var(--space-3);
   flex-wrap: wrap;
-  padding: 14px;
+  padding: var(--space-3h);
   background: var(--bg-sunken);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
 }
 
-.event__outcome { margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 600; }
+.event__outcome { margin: 0; font-family: var(--font-body); font-size: var(--fs-3xl); font-weight: 600; }
 .event__outcome--good { color: var(--hp-high); }
 .event__outcome--bad { color: var(--hp-low); }
 .event__outcome--flat { color: var(--text-faint); }
@@ -2053,50 +2022,50 @@ body {
   position: fixed;
   z-index: 40;
   max-width: min(420px, calc(100vw - 16px));
-  padding: 10px 12px;
+  padding: var(--space-2h) var(--space-3);
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 55%);
-  font-size: 12px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: 0 var(--space-2h) var(--space-8) var(--shadow);
+  font-size: var(--fs-md);
   line-height: 1.5;
 }
 
 .tip__title {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0 0 var(--space-1h);
+  font-size: var(--fs-base);
   font-weight: 700;
   color: var(--text);
 }
 
-.tip__text { margin: 0 0 6px; color: var(--text); }
+.tip__text { margin: 0 0 var(--space-1h); color: var(--text); }
 
 /* The advice line, called out. It is the half of the tooltip that turns a fact
    into a decision, and it is the half a hurried reader would otherwise skip. */
 .tip__advice {
   margin: 0;
-  padding-left: 8px;
-  border-left: 2px solid var(--accent);
+  padding-left: var(--space-2);
+  border-left: var(--space-h) solid var(--emphasis);
   color: var(--text-dim);
 }
 
 .tip__note {
-  margin: 8px 0 0;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-1h);
+  border-top: var(--hairline) solid var(--border);
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--fs-sm);
 }
 
 /* Anything that opens a tooltip should look like it does. */
 [data-tip] { cursor: help; }
 [data-tip]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--space-h) solid var(--emphasis);
+  outline-offset: var(--space-h);
 }
 [data-tip][aria-expanded='true'] {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
+  outline: var(--hairline) solid var(--emphasis);
+  outline-offset: var(--hairline);
 }
 
 /* ---------- the type reference wheel ---------- */
@@ -2111,7 +2080,7 @@ body {
 .tip__body--wheel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 4px 18px;
+  gap: var(--space-1) var(--space-4h);
   /*
    * The panel is otherwise shrink-to-fit, so `auto-fit` never found room for a
    * second column and the wheel came out as one tall list. A floor wide enough
@@ -2124,8 +2093,8 @@ body {
 .tip__body--wheel .tip__title { grid-column: 1 / -1; }
 
 .wheel__heading {
-  margin: 4px 0 4px;
-  font-size: 11px;
+  margin: var(--space-1) 0 var(--space-1);
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2135,14 +2104,14 @@ body {
 .wheel__row {
   display: grid;
   grid-template-columns: 88px 1fr;
-  gap: 6px;
+  gap: var(--space-1h);
   align-items: start;
-  margin-bottom: 5px;
+  margin-bottom: calc(var(--space-1) + var(--hairline));
 }
 
 .wheel__label {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--fs-sm);
 }
 
 .wheel__row[data-band='super'] .wheel__label { color: var(--stage-up); }
@@ -2151,7 +2120,7 @@ body {
 .wheel__types {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 /* An empty row is rendered with a dash rather than dropped: "immune to
@@ -2173,50 +2142,57 @@ body {
 .node__gate {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
+  gap: var(--space-1) var(--space-2);
   align-items: baseline;
-  margin-top: 0.35rem;
-  padding-top: 0.35rem;
-  border-top: 1px dashed var(--border);
-  font-size: 0.78rem;
+  margin-top: var(--space-gate);
+  padding-top: var(--space-gate);
+  border-top: var(--hairline) dashed var(--border);
+  font-size: var(--fs-gate);
   line-height: 1.3;
 }
 
-.node__gate-need {
-  font-weight: 600;
-  letter-spacing: 0.01em;
+/*
+ * The gate's two chips keep the gate line's own metrics: body face, the
+ * gate size, no padding, the line height 4.6c set. Stage V2 gave them the
+ * chip recipe and nothing else, because the event node is on the guarded map
+ * and a taller or wider chip there wraps the line and moves the decision
+ * point. The outline hugs the text; that is the price of the pixel.
+ */
+.node__gate-need,
+.node__gate-band {
+  padding: 0 var(--space-h);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-body);
+  font-size: var(--fs-gate);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-.node__gate-band {
-  color: var(--text-dim);
-}
+.node__gate-need { font-weight: 600; }
 
 /* Only the top band gets emphasis, and only because it changes what happens. */
-.node__gate--known .node__gate-band {
-  color: var(--text);
-  font-weight: 600;
-}
+.node__gate--known .node__gate-band { font-weight: 600; }
 
 .relics {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--border);
 }
 
 .relics__title {
-  margin: 0 0 0.6rem;
-  font-size: 0.95rem;
+  margin: 0 0 var(--space-2h);
+  font-size: var(--fs-xl);
 }
 
 .relics__empty {
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: var(--fs-base);
 }
 
 .relics__list {
   display: grid;
-  gap: 0.6rem;
+  gap: var(--space-2h);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2230,10 +2206,10 @@ body {
 .relics__item {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.2rem 0.5rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2h) var(--space-3);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
   background: var(--bg-raised);
 }
 
@@ -2245,7 +2221,7 @@ body {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.82rem;
+  font-size: var(--fs-base);
   line-height: 1.4;
 }
 
@@ -2254,6 +2230,550 @@ body {
   white-space: nowrap;
 }
 
+/* ==========================================================================
+   Stage V0 — the faces
+   ========================================================================== */
+
+/*
+ * Two faces, one rule each. Headings and labels are the display face, upper
+ * case and letterspaced; numbers, names and prose are the body face and keep
+ * their case. Move names and species names are names, not labels, so they
+ * stay in the body face in the case the dex gives them.
+ *
+ * Nothing here sets a size or a line-height: the type scale is unchanged from
+ * before this stage, and a unitless line-height makes the line box a function
+ * of the size rather than of the face, which is what keeps the two guarded
+ * screens at the same pixel height under a different font.
+ */
+.header__title,
+.screen__title,
+.result__heading,
+.acquire__heading,
+.replace__heading,
+.summary__section,
+.summary__title,
+.confirm-band__title,
+.backpack__title,
+.relics__title,
+.tip__title,
+.wheel__heading,
+.seedbar__label,
+.verbosity__label,
+.bench__heading,
+.reward__kind,
+.shop__coin-label,
+.summary__seed-label,
+.stat__label,
+.statline__label,
+.node__label,
+.map__region-name,
+.locale__name,
+.party__wallet-label,
+.rail__number,
+.step__marker,
+.summary__node-segment,
+.log-entry--turn,
+.log-entry__order,
+.threats__title,
+.threats__summary,
+.button {
+  font-family: var(--font-display);
+}
+
+.screen__title,
+.summary__title,
+.confirm-band__title,
+.backpack__title,
+.relics__title,
+.tip__title,
+.node__label,
+.map__region-name,
+.locale__name,
+.threats__title,
+.party__wallet-label,
+.button {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.header__title { letter-spacing: var(--tracking-title); }
+
+/* ==========================================================================
+   Stage V1 — the world behind the map
+   ========================================================================== */
+
+/*
+ * The locale name, ghosted behind the chain. Texture, not information: the
+ * region is named in the heading above it. Absolutely positioned, so it has
+ * no layout footprint and the guarded map height does not move; no pointer
+ * events, so nothing under it is harder to tap; the glow token at a low
+ * opacity, so it is the world showing through rather than a label.
+ */
+.screen--map {
+  position: relative;
+}
+
+.screen--map::before {
+  content: attr(data-watermark);
+  position: absolute;
+  z-index: -1;
+  right: 0;
+  top: 56%;
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--fs-watermark);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: var(--tracking-title);
+  text-transform: uppercase;
+  color: var(--locale-glow);
+  opacity: var(--watermark-opacity);
+  pointer-events: none;
+  user-select: none;
+}
+
+.screen--map:not([data-watermark])::before { content: none; }
+
+/* The screens sit above the watermark's negative z-index. */
+.screens { isolation: isolate; }
+
+/*
+ * The palette swatch on a locale card: deep, mid, glow, in that order, the
+ * same width on every card. The card's own `.locale--<id>` class carries the
+ * three tokens, so the strip previews the region without the page changing.
+ */
+.locale__swatch {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: var(--space-1h);
+  width: 100%;
+  border-radius: var(--radius-chip);
+  overflow: hidden;
+}
+
+.locale__swatch-deep { background: var(--locale-deep); }
+.locale__swatch-mid { background: var(--locale-mid); }
+.locale__swatch-glow { background: var(--locale-glow); }
+
+/* ==========================================================================
+   Stage V2 — numbered slots
+   ========================================================================== */
+
+/*
+ * The hotbar. One row, one slot per position, the number in the corner, the
+ * item icon and the label beneath. Every slot the same width and height,
+ * filled or empty: a position is a position.
+ */
+.slots {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-1h);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-h);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-1) var(--space-1);
+  background: var(--bg-sunken);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
+  color: var(--text);
+  text-align: center;
+}
+
+.slot--empty { border-style: dashed; border-color: var(--border); }
+
+.slot[data-tip] { cursor: help; }
+.slot[data-tip]:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+
+/* The number. Where the hotbar wears it, and where a card wears the same one. */
+.slot__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-chip);
+  background: var(--border-strong);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  line-height: 1;
+}
+
+.slot > .slot__number {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+}
+
+.slot__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+/* The item icon: a cell of Showdown's sheet, sized by @pkmn/img. */
+.slot__icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+}
+
+.backpack__item > .slot__number { flex: none; }
+
+/* ==========================================================================
+   Stage V2 — corner stamps
+   ========================================================================== */
+
+/*
+ * Four marks in the safe-area corners, fixed to the viewport, out of flow.
+ * The smallest size the display face is legible at, low contrast: texture.
+ * No pointer events, except the seed, which is the one stamp that does
+ * something when tapped.
+ */
+.stamps { display: contents; }
+
+.stamp {
+  position: fixed;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  pointer-events: none;
+  user-select: none;
+}
+
+.stamp[hidden] { display: none; }
+
+.stamp--tl { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
+.stamp--tr { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
+.stamp--bl { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
+.stamp--br { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
+
+/* The seed: copy on tap, and it says so for a moment. */
+.stamp--seed {
+  pointer-events: auto;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+}
+
+.stamp--seed:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.stamp--seed[data-copied='true']::after { content: ' · copied'; }
+.stamp--seed[data-copied='false']::after { content: ' · select and copy'; }
+
+/*
+ * Per-screen drops. A stamp whose corner a screen's flow content reaches at
+ * 390x844 is dropped on that screen, never the content
+ * (`scripts/visual/stamps.mjs` measures; `test/visual-v2.test.ts` asserts no
+ * rendered stamp collides). None collided on the first measurement; the
+ * rules go here when one does, keyed by `.shell[data-screen]`.
+ */
+
+/* ==========================================================================
+   Stage V3 — the world
+   ========================================================================== */
+
+/*
+ * The place behind the screens, from ui/scene.ts's world scene. Fixed, full
+ * viewport, under the shell, no pointer events. Three layers of inline SVG,
+ * each filling the viewport and anchored to its bottom, scaled from a 96x48
+ * grid with crisp edges: the pixel look, from geometry rather than rasters.
+ */
+.world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.world[hidden] { display: none; }
+
+.world__layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.world__layer > svg {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+
+/*
+ * One fill per layer, set here and read by every shape in the art through
+ * `--layer-fill`. Depth is the mix: the far layer carries the most glow and
+ * sits at the top of the frame against the deep tone, the mid layer a little
+ * less against the mid tone, the near layer is the deep tone itself, a
+ * silhouette against everything behind it.
+ */
+.world__layer--far { --layer-fill: color-mix(in srgb, var(--locale-glow) 22%, var(--locale-mid)); opacity: 0.85; }
+.world__layer--mid { --layer-fill: color-mix(in srgb, var(--locale-glow) 34%, var(--locale-mid)); opacity: 0.9; }
+.world__layer--near { --layer-fill: var(--locale-deep); }
+.world__drift { --layer-fill: var(--locale-deep); }
+
+/*
+ * The darkening scrim under the content column. V3.5 measures every locale's
+ * text against the V0 baseline and sets its opacity; where the scene never
+ * reached a text style, it stays at the default.
+ */
+.world__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--locale-deep) 0%, transparent 28%, transparent 62%, var(--locale-deep) 100%);
+  opacity: var(--scrim-opacity);
+}
+
+/*
+ * The one drifting element per locale: a small SVG on the mid layer,
+ * carried across the viewport on a loop of at least twenty seconds, low in
+ * the frame so it never leads the eye to a control. Not mounted under
+ * reduced motion; the rule below is belt and braces for a preference that
+ * changed after the region was entered.
+ */
+.world__drift {
+  position: absolute;
+  top: 58%;
+  left: -8%;
+  width: var(--drift-size);
+  height: var(--drift-size);
+  animation: world-drift var(--drift-period) linear infinite;
+}
+
+.world__drift > svg {
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+}
+
+@keyframes world-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(120vw, -4vh, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world__drift { display: none; }
+  .world__layer { transform: none !important; }
+}
+
+/* ==========================================================================
+   Stage V4 — the run summary as payoff, and the compact result
+   ========================================================================== */
+
+/*
+ * A strip: the V2 band's surface, static. The cause of death wears it on the
+ * summary; the confirm band wears it as a dialog. One recipe.
+ */
+.strip,
+.confirm-band__body {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
+  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+}
+
+/* The summary card loses its box: it is the page now, not a card on it. */
+.summary {
+  width: min(680px, 100%);
+  padding: var(--space-4) 0 var(--space-6);
+  background: transparent;
+  border: 0;
+}
+
+/* The outcome, one word, as large as the display face goes here. */
+.summary__outcome {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-outcome);
+  line-height: 1;
+  letter-spacing: var(--tracking-title);
+  text-transform: uppercase;
+}
+
+.screen--summary[data-outcome='victory'] .summary__outcome { color: var(--win); }
+.screen--summary[data-outcome='defeat'] .summary__outcome { color: var(--loss); }
+
+/* Gyms cleared: a large number over eight. */
+.summary__gyms {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+
+.summary__gyms-count { font-size: var(--fs-gyms); }
+.summary__gyms-of { font-size: var(--fs-2xl); color: var(--text-dim); letter-spacing: var(--tracking-label); }
+
+.summary__detail { margin: var(--space-2) 0 var(--space-3); }
+
+/*
+ * The route: eight bands across, one per segment, each in its locale's
+ * tokens (the `.locale--<id>` class carries them, the same rule the select
+ * cards use), a dot per node taken, the gym dot larger, the death dot marked
+ * with the loss colour. A segment never reached is the neutral band.
+ */
+.route {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-h);
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route__band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 40px;
+  padding: var(--space-1h) var(--space-h);
+  background: linear-gradient(to bottom, var(--locale-mid), var(--locale-deep));
+  border-top: var(--space-h) solid var(--locale-glow);
+  border-radius: var(--radius-chip);
+}
+
+.route__band--unreached { opacity: 0.35; }
+
+.route__dot {
+  width: var(--space-1h);
+  height: var(--space-1h);
+  border-radius: var(--radius-chip);
+  background: var(--cream);
+}
+
+.route__dot--gym {
+  width: var(--space-3);
+  height: var(--space-3);
+  background: var(--locale-glow);
+}
+
+.route__dot--death {
+  background: var(--loss);
+  box-shadow: 0 0 0 var(--space-h) color-mix(in srgb, var(--loss) 40%, transparent);
+}
+
+/*
+ * The tier table: five rows, the player's bold. No colour per row and no
+ * ordering beyond the ranges themselves, which are what they are.
+ */
+.tiers {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.tiers__row {
+  display: grid;
+  grid-template-columns: 16px 44px minmax(0, 1fr);
+  gap: var(--space-2h);
+  align-items: center;
+  padding: var(--space-1h) var(--space-2);
+  border-radius: var(--radius-card);
+  color: var(--text-dim);
+  font-size: var(--fs-base);
+}
+
+.tiers__row--here {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-strong);
+}
+
+.tiers__icon { display: inline-flex; width: 16px; height: 16px; }
+.tiers__icon > svg { width: 100%; height: 100%; }
+.tiers__range { font-family: var(--font-display); letter-spacing: var(--tracking-label); }
+.tiers__copy { line-height: 1.4; }
+
+.summary__cause {
+  margin: var(--space-3) 0;
+  color: var(--text);
+  font-size: var(--fs-base);
+  border-left: 0;
+  border-radius: 0;
+}
+
+/* The final party: numbered cards with a sprite, in the slot's grammar. */
+.summary__member {
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
+.summary__member-header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.summary__member-figure { display: flex; justify-content: center; }
+.summary__member-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--fs-md); color: var(--text-dim); }
+.summary__member-item { display: inline-flex; }
+.summary__member-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1h); }
+
+.sprite {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+.sprite[data-missing='true'] { visibility: hidden; }
+
+/* The coverage wheel: eighteen spokes, the reached ones filled. A reading. */
+.coverage__box { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; text-align: left; }
+.coverage__wheel { flex: none; }
+.coverage__spoke { stroke: var(--border-strong); stroke-width: 1; }
+.coverage__spoke--covered { stroke: var(--text-dim); stroke-width: 2; }
+.coverage__tip { fill: var(--border-strong); }
+.coverage__tip--covered { fill: var(--cream); }
+.coverage__legend { margin: 0; flex: 1; min-width: 160px; font-size: var(--fs-md); color: var(--text-dim); }
+
+/* The compact result header: outcome, cost and coins on one line. */
+.result__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2h);
+  flex-wrap: wrap;
+}
+
+.result__header .screen__blurb { margin: 0; }
+.result__party .slot[data-fainted='true'] { opacity: 0.55; }
+
+.slot__detail {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  white-space: nowrap;
 /* ---------------------------------------------------------------------------
  * Stage 4.7 — legibility
  *

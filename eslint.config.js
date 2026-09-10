@@ -14,10 +14,10 @@ const noMathRandom = {
 };
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'stats/**'] },
+  { ignores: ['dist/**', 'dist-gallery/**', 'node_modules/**', 'coverage/**', 'stats/**'] },
   {
     // Build tooling runs in Node, not the browser.
-    files: ['scripts/**/*.mjs', 'build-config/**/*.ts', 'eslint.config.js', 'vite.config.ts'],
+    files: ['scripts/**/*.mjs', 'build-config/**/*.ts', 'eslint.config.js', 'vite.config.ts', 'vite.gallery.config.ts'],
     languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
   },
   js.configs.recommended,

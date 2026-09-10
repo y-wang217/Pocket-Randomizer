@@ -60,6 +60,7 @@ import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
 import type { BattleMemberState, PokemonState } from '../../core/types';
 import { el } from '../scene';
+import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
 import { renderRewardCard, tierBadge } from './reward';
 
@@ -102,11 +103,21 @@ export interface ResultScreen {
 export function createResultScreen(): ResultScreen {
   const root = el('section', 'screen screen--result');
 
+  /*
+   * One line of header. Stage V4: the outcome word, the cost line and the
+   * coins earned as a chip sit on one row, so the cards and the capture
+   * offer, which are the decisions on this screen, start higher and stay
+   * above the fold on a phone.
+   */
+  const header = el('div', 'result__header');
   const title = el('h2', 'screen__title');
   const blurb = el('p', 'screen__blurb');
+  header.append(title, blurb);
 
   const partyHeading = el('h3', 'result__heading');
   partyHeading.textContent = 'Your party';
+  // The party as the fight left it, as the V2 slot row: one slot a member,
+  // HP and PP as the slot's detail line. Stage V4.
   const party = el('div', 'result__party');
 
   const cardsHeading = el('h3', 'result__heading');
@@ -115,7 +126,7 @@ export function createResultScreen(): ResultScreen {
   const capture = el('div', 'result__capture');
   const actions = el('div', 'result__actions');
 
-  root.append(title, blurb, partyHeading, party, cardsHeading, cards, capture, actions);
+  root.append(header, partyHeading, party, cardsHeading, cards, capture, actions);
 
   return {
     root,
@@ -137,7 +148,22 @@ export function createResultScreen(): ResultScreen {
       partyHeading.textContent = PARTY_AFTER;
       partyHeading.hidden = !review;
       party.hidden = !review;
-      party.replaceChildren(...(review?.party ?? []).map((member) => renderMemberRow(member)));
+      party.replaceChildren(
+        renderSlots(
+          'party',
+          (review?.party ?? []).map((member) => ({
+            label: member.spec.species,
+            item: member.item ?? null,
+            detail: memberReading(member),
+          })),
+          review?.party.length ?? 0,
+        ),
+      );
+      for (const [index, member] of (review?.party ?? []).entries()) {
+        const slot = party.querySelectorAll<HTMLElement>('.slot')[index];
+        if (slot && member.status) slot.append(statusChip(member.status));
+        if (slot && member.fainted) slot.dataset['fainted'] = 'true';
+      }
 
       cardsHeading.hidden = !offer;
       cards.hidden = !offer;
@@ -188,7 +214,7 @@ export function createResultScreen(): ResultScreen {
       } else {
         const carry = document.createElement('button');
         carry.type = 'button';
-        carry.className = 'button button--primary';
+        carry.className = 'button primary-action';
         carry.textContent = won ? 'Carry on' : 'See how it ended';
         carry.addEventListener('click', () => onDone(null));
         actions.replaceChildren(carry);
@@ -263,18 +289,5 @@ function renderMemberRow(member: BattleMemberState): HTMLElement {
   const meta = el('div', 'panel__meta');
   const text = el('span', 'panel__hp-text');
   const pp = ppTotals(member);
-  text.textContent = member.fainted
-    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
-    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
-  meta.append(text);
-
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
-
-  row.append(header, track, meta);
-  return row;
+  return member.fainted ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}` : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
 }

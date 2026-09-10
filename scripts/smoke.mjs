@@ -89,7 +89,12 @@ const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const page = await browser.newPage();
 const problems = [];
 page.on('console', (msg) => {
-  if (msg.type() === 'error') problems.push(`console: ${msg.text()}`);
+  if (msg.type() !== 'error') return;
+  // Item icons are cells of Showdown's sprite sheet (V2, via @pkmn/img). A
+  // sandbox with no route to that host logs a failed load; that is the
+  // network, not the app, and the slot renders without the image.
+  if (/Failed to load resource/.test(msg.text()) && /play\.pokemonshowdown\.com/.test(msg.location()?.url ?? '')) return;
+  problems.push(`console: ${msg.text()}`);
 });
 page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 
@@ -301,7 +306,7 @@ async function playRun(label) {
       const capture = page.locator(`${visible('result')} .result__capture`);
       if ((await capture.count()) && !(await capture.first().isHidden())) {
         if (acquisitions === 0) await page.screenshot({ path: `stats/${label}-capture.png`, fullPage: true });
-        const take = capture.locator('.acquire__actions .button--primary');
+        const take = capture.locator('.acquire__actions .primary-action');
         if (await take.count()) {
           await take.click();
           acquisitions++;
@@ -311,7 +316,8 @@ async function playRun(label) {
           const release = capture.locator('.button--danger').last();
           if (await release.count()) {
             await release.click();
-            await release.click();
+            // The confirm is the shared band since V2: its primary commits.
+            await page.locator('.confirm-band .primary-action').click();
             releases++;
             acquisitions++;
           } else {
@@ -416,7 +422,7 @@ async function playRun(label) {
     if (await page.locator(visible('party')).count()) {
       if (partyVisits === 0) await page.screenshot({ path: `stats/${label}-party.png`, fullPage: true });
       partyVisits++;
-      await page.locator(`${visible('party')} .button--primary`).click();
+      await page.locator(`${visible('party')} .primary-action`).click();
       await page.waitForTimeout(25);
       continue;
     }
@@ -513,16 +519,16 @@ async function playRun(label) {
     sawSavedLog,
     mapStructure,
     outcome: await page.getAttribute(visible('summary'), 'data-outcome'),
-    title: await page.textContent('.summary__title'),
+    title: await page.textContent('.summary__outcome'),
     detail: await page.textContent('.summary__detail'),
     seedLine: await page.textContent('.summary__seed'),
     visits: await page.locator('.summary__node').allTextContents(),
     railHigh,
-    count: await page.textContent('.summary__count'),
+    count: (await page.getAttribute('.summary__gyms', 'aria-label')) ?? '',
     cause: await page.textContent('.summary__cause'),
-    badgesWon: await page.locator('.summary__badge--won').count(),
+    badgesWon: await page.locator('.route__band:not(.route__band--unreached)').count(),
     teamCards: await page.locator('.summary__member').count(),
-    teamMoves: await page.locator('.summary__member .starter__move').count(),
+    teamMoves: await page.locator('.summary__member .move--card').count(),
   };
 }
 
@@ -647,9 +653,10 @@ console.log('\nStage 2 UI:');
 await check('gym rail', '.rail__gym');
 console.log(`  ${first.railHigh >= 1 ? 'ok  ' : 'FAIL'} rail marked ${first.railHigh} gym(s) cleared during the run`);
 if (first.railHigh < 1) problems.push('the gym rail never marked a gym cleared');
-await check('summary progress badges', '.summary__badge');
+await check('summary route bands', '.route__band');
+await check('summary tier row', '.tiers__row--here');
 await check('summary final team', '.summary__member');
-if (!/\d+ \/ 8 gyms/.test(first.count ?? '')) {
+if (!/\d+ of 8 gyms/.test(first.count ?? '')) {
   problems.push(`summary did not report gyms cleared out of eight (saw "${first.count}")`);
 }
 if (first.teamCards < 1) problems.push('summary showed no final team');
@@ -661,7 +668,7 @@ if (first.outcome === 'defeat' && !/fainted/.test(first.cause ?? '')) {
   problems.push(`a defeat did not name what killed the run (saw "${first.cause}")`);
 }
 if (first.outcome === 'victory' && first.badgesWon !== 8) {
-  problems.push(`a victory marked ${first.badgesWon} gym badges, expected 8`);
+  problems.push(`a victory walked ${first.badgesWon} route bands, expected 8`);
 }
 console.log(`  ok   cause of death: ${first.cause?.trim()}`);
 
@@ -726,7 +733,7 @@ await page.screenshot({ path: 'stats/summary.png', fullPage: true });
 
 // The property everything rests on, checked where a player would meet it.
 console.log('\nsame seed, same clicks, again:');
-await page.click('.summary__actions .button--primary');
+await page.click('.summary__actions .primary-action');
 const second = await playRun('run2');
 
 const same = (label, a, b) => {
@@ -965,7 +972,7 @@ if (await phone.locator(visible('party')).count()) {
       `${partyMetrics.chips} type badges`,
     );
   }
-  await phone.locator(`${visible('party')} .button--primary`).first().click();
+  await phone.locator(`${visible('party')} .primary-action`).first().click();
   await phone.waitForSelector(visible('map'));
 }
 

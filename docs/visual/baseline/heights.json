@@ -1,0 +1,21 @@
+{
+  "seed": "SMOKE24",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "map": {
+    "screenHeight": 947,
+    "scrollHeight": 1096,
+    "decisionCount": 2,
+    "decisionTop": 570,
+    "decisionBottom": 654.03
+  },
+  "battle": {
+    "screenHeight": 1083.5,
+    "scrollHeight": 1232,
+    "decisionCount": 4,
+    "decisionTop": 612,
+    "decisionBottom": 840
+  }
+}

@@ -65,6 +65,16 @@ in `sim-reports/benchmarks/`.
 
 **Head of `main`:** `559fb6b`.
 
+**Visual identity, V0 to V4, on `claude/gymrun-visual-identity-overnight-fllr8n`.**
+An overnight run under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built
+the first five stages of
+[`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md):
+tokens and the display face, locale palettes, world chrome, the scene layer,
+and the run summary. Each stage's report in `visual/reports/` opens with its
+morning decisions. V5 is skipped until Release C merges. The branch is the
+morning's pull request; nothing there touches `core/` or `data/`, and every
+seeded run in `visual/baseline/` is byte identical.
+
 **Working branch:** `claude/gymrun-docs-pass-arsdr7`, this documentation pass.
 It is Release 0 of the QoL plan, continued: the prompts landed in `spec/`
 already, and this pass adds the orientation layer over them. Documentation only,

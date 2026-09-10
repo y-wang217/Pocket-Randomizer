@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "GYMRUN \u2014 a browser-based seeded Pokemon roguelike.",
+  "description": "GYMRUN — a browser-based seeded Pokemon roguelike.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -19,6 +19,7 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@pkmn/img": "^0.3.4",
     "@pkmn/protocol": "^0.7.3",
     "@pkmn/sim": "^0.10.11",
     "@pkmn/view": "^0.7.3",

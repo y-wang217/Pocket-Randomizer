@@ -50,10 +50,17 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-stage4.5.1-claude-code-prompt.md`](gymrun-stage4.5.1-claude-code-prompt.md) | stage prompt | `merged` | | `42c6961` |
 | [`gymrun-stage4.6-claude-code-prompts.md`](gymrun-stage4.6-claude-code-prompts.md) | stage prompt | `merged` | Part C only, by the relics prompt | `dfa18dc` (A), `c6d730a` (B) |
 | [`gymrun-stage4.6c-relics-claude-code-prompt.md`](gymrun-stage4.6c-relics-claude-code-prompt.md) | stage prompt | `merged` | | `4b63528` |
+| [`gymrun-visual-identity-plan.md`](gymrun-visual-identity-plan.md) | release plan | `active` | | V0 to V4 built on the overnight branch; V5 waits on Release C; V6 not started |
+| [`gymrun-visual-identity-overnight-prompts.md`](gymrun-visual-identity-overnight-prompts.md) | stage prompt | `active` | | V0 to V4 done, V5 skipped, see `docs/visual/reports/` |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
 lists them.
+
+The visual identity plan and its overnight prompts were pasted into the
+session that ran them and committed here on 2026-09-10 before that run began.
+Neither was in the repo before that. The working copies the overnight runner
+reads live under `docs/visual/`; these two files are the record.
 
 The relics prompt sat at the repo root until 2026-09-10 and was moved here.
 Rule 1 below was always satisfied for it: it was committed at `47d4d0e`, before

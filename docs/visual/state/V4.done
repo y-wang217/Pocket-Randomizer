@@ -1,0 +1,8 @@
+V4 done.
+last checkpoint: 12af46c (V4.1–V4.5)
+bundle delta vs V3: +11,695 raw, +3,449 gzipped
+guarded screens at 390x844 (equal to baseline):
+  map    layout 947   scroll 1096  decision 570..654.03
+  battle layout 1083.5 scroll 1232 decision 612..840
+result screen at 390x844: three cards end at 737, capture buttons end at 742
+report: docs/visual/reports/V4.md

@@ -53,6 +53,7 @@ import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { TIER_INFO } from '../../data/tierInfo';
 import { PARTY_SIZE } from '../../data/partyTuning';
+import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
 import { el } from '../scene';
 import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
@@ -195,6 +196,11 @@ export function createRunMap(): RunMap {
         const label = el('span', 'map__region-name');
         label.textContent = definition.name;
         region.replaceChildren(label, ...definition.types.map(typeChip));
+        // The ghosted watermark behind the chain reads this. Stage V1. Text
+        // only, no layout, no interaction: the stylesheet draws it.
+        root.dataset['watermark'] = definition.name;
+      } else {
+        delete root.dataset['watermark'];
       }
 
       chain.replaceChildren(...renderChain(state, segment, onChoose));
@@ -381,11 +387,7 @@ function renderNode(
   if (node.event) {
     const band = resolveCapability(run, node.event.requires);
     const gate = el('span', `node__gate node__gate--${band}`);
-    const need = el('span', 'node__gate-need');
-    need.textContent = `Requires ${CAPABILITY_LABELS[node.event.requires]}`;
-    const reads = el('span', 'node__gate-band');
-    reads.textContent = BAND_LABELS[band];
-    gate.append(need, reads);
+    gate.append(capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`), capabilityBandChip(BAND_LABELS[band]));
     element.append(gate);
   }
 
@@ -460,11 +462,7 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   // randomizer it is not flavour — it is half of what the Pokemon *is*, it was
   // rolled rather than chosen, and it is the thing a player forgets between the
   // starter select and segment 6.
-  if (index === 0) {
-    const lead = el('span', 'badge badge--lead');
-    lead.textContent = 'Lead';
-    header.append(lead);
-  }
+  if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
   const ability = el('span', 'party__ability');
   ability.textContent = member.spec.ability;
@@ -484,17 +482,8 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   // What they are holding, because Stage 4 lets the player choose who holds
   // what and a targeting decision you cannot audit is one you cannot learn from.
   const item = heldItem(member);
-  if (item) {
-    const chip = el('span', 'badge badge--item');
-    chip.textContent = item.name;
-    meta.append(chip);
-  }
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
+  if (item) meta.append(neutralChip(item.name, 'item'));
+  if (member.status) meta.append(statusChip(member.status));
 
   const moves = el('ul', 'party__moves');
   moves.replaceChildren(

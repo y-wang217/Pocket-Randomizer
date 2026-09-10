@@ -86,7 +86,7 @@ export function createEventScreen(): EventScreen {
 
         const carry = document.createElement('button');
         carry.type = 'button';
-        carry.className = 'button button--primary';
+        carry.className = 'button primary-action';
         carry.textContent = 'Carry on';
         carry.addEventListener('click', () => onDone(index));
 
