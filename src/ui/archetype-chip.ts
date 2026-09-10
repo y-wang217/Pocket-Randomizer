@@ -20,11 +20,12 @@
 import { archetypeOf } from '../core/archetype';
 import type { StatsTable } from '../core/types';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
-import { el } from './scene';
+import { neutralChip } from './chip';
 
 export function archetypeChip(baseStats: StatsTable): HTMLElement {
-  const chip = el('span', 'badge badge--archetype');
-  chip.textContent = ARCHETYPE_DISPLAY[archetypeOf(baseStats)].short;
+  // Through the one chip component (V2): a neutral label, like every label
+  // that is not a type.
+  const chip = neutralChip(ARCHETYPE_DISPLAY[archetypeOf(baseStats)].short, 'archetype');
   // Every chip raises the same panel: what a player taps a label for is what
   // the *set* is, and one label in isolation says nothing about whether there
   // is a sixth or a sixtieth. `ui/tooltips.ts` renders all six plus the caveat.

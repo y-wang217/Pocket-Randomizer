@@ -300,7 +300,7 @@ function renderManaged(
     onUnequip: () => void;
   },
 ): HTMLElement {
-  const card = memberCardContents(member, { holding, tuning, isLead: index === 0 });
+  const card = memberCardContents(member, { holding, tuning, isLead: index === 0, index });
 
   /*
    * The "to bag" control, added onto the shared card's item row.

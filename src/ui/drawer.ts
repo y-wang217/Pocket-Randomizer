@@ -172,6 +172,7 @@ export function createDrawer(): Drawer {
             holding: view.holding[index] ?? null,
             tuning: view.tuning,
             isLead: index === 0,
+            index,
             // Segment-to-date contribution, compact, on every card. A fact
             // about what already happened — see the note on the row itself.
             contribution: 'segment',

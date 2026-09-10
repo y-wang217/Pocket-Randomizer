@@ -103,6 +103,7 @@ export function createPreGymScreen(): PreGymScreen {
             holding: view.holding[index] ?? null,
             tuning: view.tuning,
             isLead: index === 0,
+            index,
           });
 
           const choose = document.createElement('button');
