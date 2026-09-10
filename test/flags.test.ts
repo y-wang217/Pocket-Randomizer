@@ -24,7 +24,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createBattle, moveIdentity, movePriority, speciesTypes, type BattleSession } from '../src/core/battle/driver';
-import { readFlags, type FlagDeps, type FlagKind, type FlaggedTurn } from '../src/core/battle/flags';
+import { createFlagReader, readFlags, type FlagDeps, type FlagKind, type FlaggedTurn } from '../src/core/battle/flags';
 import { flagWord } from '../src/data/flagWords';
 import { moveChoice, type TeamSpec } from '../src/core/types';
 
@@ -357,5 +357,50 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
     const turns = readFlags(protocol, STUB);
     expect(turns.map((turn) => turn.turn)).toEqual([4]);
     expect(turns[0]?.actions[0]?.flags.map((flag) => flag.kind)).toContain('crit');
+  });
+});
+
+describe('reading a battle one update at a time', () => {
+  /**
+   * The case that broke the first cut, kept as a regression.
+   *
+   * A battle's updates arrive one turn at a time, and the protocol names a
+   * species exactly once — on the `|switch|` that brought it in. A turn where
+   * nobody switched carries no `|switch|` line at all, so a reader that
+   * started fresh on every batch knew the species only on switch turns and
+   * printed STAB on those and nowhere else. An intermittent flag is worse than
+   * a missing one: it teaches the player that STAB is intermittent.
+   */
+  const SNORLAX: TeamSpec = [{ species: 'Snorlax', ability: 'Immunity', moves: ['Body Slam'], level: 50 }];
+  const MILOTIC: TeamSpec = [{ species: 'Milotic', ability: 'Marvel Scale', moves: ['Scald'], level: 50 }];
+
+  it('still knows what is standing on a turn that carried no switch', () => {
+    const session = createBattle({ teams: { p1: SNORLAX, p2: MILOTIC }, seed: 'STREAM01' });
+    const reader = createFlagReader(DEPS);
+
+    // The opening batch: switch-ins and `|turn|1`, and no move.
+    const opening = session.protocolFor('p1').filter((line) => !line.startsWith('|t:|'));
+    expect(opening.some((line) => line.startsWith('|switch|'))).toBe(true);
+    reader.read(opening);
+
+    // Two turns of moves, each in its own batch, neither carrying a `|switch|`.
+    for (let turn = 0; turn < 2; turn++) {
+      const before = session.protocolFor('p1').length;
+      for (const side of ['p1', 'p2'] as const) {
+        if (session.viewFor(side).awaitingChoice) session.submit(side, moveChoice(1));
+      }
+      const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
+      expect(batch.some((line) => line.startsWith('|switch|')), 'batch carries no switch').toBe(false);
+
+      const slam = all(reader.read(batch)).filter((flag) => flag.kind === 'stab');
+      // Body Slam is Normal on a Normal Snorlax, every turn, not just the
+      // turn it walked in on.
+      expect(slam.length, `turn ${turn + 1} STAB`).toBeGreaterThan(0);
+    }
+  });
+
+  it('the one-shot form is the reader over one batch, and nothing else', () => {
+    const protocol = play(SNORLAX, MILOTIC, 2, 'STREAM01');
+    expect(kinds(readFlags(protocol, DEPS))).toEqual(kinds(createFlagReader(DEPS).read(protocol)));
   });
 });

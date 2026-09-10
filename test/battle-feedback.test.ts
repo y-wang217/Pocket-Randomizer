@@ -25,11 +25,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createBattle, moveIdentity, movePriority, speciesTypes } from '../src/core/battle/driver';
-import { readFlags, type FlagDeps, type FlaggedTurn } from '../src/core/battle/flags';
+import { createFlagReader, readFlags, type FlagDeps, type FlaggedTurn } from '../src/core/battle/flags';
 import { buildBattleUiView, type ActiveUiView, type BattleUiView } from '../src/core/battle/view';
 import { moveChoice, type TeamSpec } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
+import { createFlagStrip, type FlagStrip } from '../src/ui/flag-strip';
 import { createScene, type Scene } from '../src/ui/scene';
 import { resetSettings } from '../src/ui/settings';
 
@@ -288,5 +289,135 @@ describe('the turn order jiggle', () => {
     expect(nudges(scene).me).toBe('1');
     scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
     expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
+  });
+});
+
+describe('the flag strip', () => {
+  function words(strip: FlagStrip): string[] {
+    return [...strip.root.querySelectorAll('.chip')].map((chip) => chip.textContent ?? '');
+  }
+
+  /** Play one turn and hand the strip the same reading the app would. */
+  function stripFor(p1: TeamSpec, p2: TeamSpec, slot: number, seed: string, turns = 1): FlagStrip {
+    const session = createBattle({ teams: { p1, p2 }, seed });
+    const strip = createFlagStrip();
+    /*
+     * One reader for the battle, and the opening protocol read first — exactly
+     * what `ui/screens/battle.ts` does. Both matter: the opening batch is the
+     * only place the protocol names each side's species, and an incremental
+     * batch after it carries no `|switch|` at all.
+     */
+    const reader = createFlagReader(FLAGS);
+    reader.read(session.protocolFor('p1').filter((line) => !line.startsWith('|t:|')));
+
+    for (let i = 0; i < turns && !session.ended; i++) {
+      const before = session.protocolFor('p1').length;
+      for (const side of ['p1', 'p2'] as const) {
+        if (session.viewFor(side).awaitingChoice) session.submit(side, moveChoice(slot));
+      }
+      const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
+      strip.show(reader.read(batch));
+    }
+    return strip;
+  }
+
+  it('names what the turn did, in the protocol’s order', () => {
+    const strip = stripFor(
+      [{ species: 'Kingler', ability: 'Hyper Cutter', moves: ['Crabhammer'], level: 50 }],
+      [{ species: 'Golem', ability: 'Sturdy', moves: ['Tackle'], level: 50 }],
+      1,
+      'STRIP01',
+    );
+    const shown = words(strip);
+    expect(shown).toContain('STAB');
+    expect(shown).toContain('Contact');
+    expect(shown).toContain('Super effective');
+  });
+
+  it('names the berry that fired', () => {
+    /*
+     * The turn shape a real Oran Berry produces, taken off a played battle in
+     * `test/flags.test.ts`: `-enditem` and a separate `-heal`, inside the move
+     * that took the HP down. Driven directly here because the strip holds only
+     * the latest turn and a 30-turn chip race would assert on whichever turn
+     * happened to be last.
+     */
+    const protocol = [
+      '|move|p2a: Rattata|Tackle|p1a: Snorlax',
+      '|-damage|p1a: Snorlax|20/235',
+      '|-enditem|p1a: Snorlax|Oran Berry|[eat]',
+      '|-heal|p1a: Snorlax|30/235|[from] item: Oran Berry',
+      '|upkeep',
+    ];
+    const strip = createFlagStrip();
+    strip.show(readFlags(protocol, FLAGS));
+    // The berry names itself: "Oran Berry" says more than "Berry" and is
+    // shorter than both together.
+    expect(words(strip)).toContain('Oran Berry');
+  });
+
+  it('draws every flag on one chip recipe, with no per-kind weight or hue', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|switch|p2a: Golem|Golem, L50, F|155/155',
+      '|turn|1',
+      '|move|p1a: Snorlax|Body Slam|p2a: Golem',
+      '|-resisted|p2a: Golem',
+      '|-crit|p2a: Golem',
+      '|-damage|p2a: Golem|100/155',
+      '|-status|p2a: Golem|par',
+      '|upkeep',
+    ];
+    const strip = createFlagStrip();
+    strip.show(readFlags(protocol, FLAGS));
+
+    const chips = [...strip.root.querySelectorAll('.chip')];
+    expect(chips.length).toBeGreaterThan(2);
+    /*
+     * The visual-weight rule, as an assertion. Every chip carries the same two
+     * classes and nothing else that could carry a style, so none of them can
+     * be larger, heavier or a different colour than another. A `--chip` here
+     * would be a hue per kind; a size modifier would be a rank.
+     */
+    for (const chip of chips) {
+      expect([...chip.classList].sort()).toEqual(['badge', 'badge--flag', 'chip', 'chip--flag']);
+      expect((chip as HTMLElement).style.cssText).toBe('');
+    }
+    // And the accent is nowhere near them.
+    expect(strip.root.innerHTML).not.toContain('accent');
+  });
+
+  it('shows the turn that just resolved, not the one the batch opens', () => {
+    // An incremental batch ends with the `|turn|` that starts the next turn,
+    // so a strip that selected by turn number would show an empty group and
+    // print nothing at all.
+    const protocol = [
+      '|move|p1a: Snorlax|Body Slam|p2a: Golem',
+      '|-crit|p2a: Golem',
+      '|-damage|p2a: Golem|100/155',
+      '|upkeep',
+      '|turn|2',
+    ];
+    const strip = createFlagStrip();
+    strip.show(readFlags(protocol, FLAGS));
+    expect(words(strip)).toContain('Critical hit');
+  });
+
+  it('holds its height and says so when a turn had nothing to report', () => {
+    const strip = createFlagStrip();
+    strip.show(readFlags(['|move|p1a: Snorlax|Splash|p1a: Snorlax', '|upkeep'], FLAGS));
+    expect(strip.root.dataset['empty']).toBe('true');
+    strip.clear();
+    expect(strip.root.children.length).toBe(0);
+  });
+
+  it('opens a tooltip keyed by kind, not by the word it printed', () => {
+    const protocol = ['|move|p1a: Gengar|Thunder Wave|p2a: Snorlax', '|-status|p2a: Snorlax|par', '|upkeep'];
+    const strip = createFlagStrip();
+    strip.show(readFlags(protocol, FLAGS));
+    const chip = strip.root.querySelector('.chip');
+    // The word folds in the detail; the tip asks what the category claims.
+    expect(chip?.textContent).toBe('Paralysed');
+    expect((chip as HTMLElement).dataset['tip']).toBe('flag:status');
   });
 });

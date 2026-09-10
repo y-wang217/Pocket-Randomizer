@@ -35,6 +35,23 @@ and fails on any byte that differs. Heights are compared by
   buttons at 681.5..950.5 (was 612..840). The move grid now ends 106px below
   the 844 fold. The plan's vertical budget, "four move buttons above the
   fold", does not hold on this tree, and V5's before table starts from here.
+- **2026-09-10, Release C item 3.** `heights.json` battle entries re-recorded in
+  the commit that moved them, which is the one that added the flag strip:
+  `battle.screenHeight` 1145.5 → 1181.5 and `scrollHeight` 1339 → 1375. The
+  whole 36px is the strip's own band (`--space-6`, held whether or not the turn
+  had anything to report) plus one `.board` gap. **The decision point did not
+  move**: `decisionTop` 681.5 and `decisionBottom` 946.5 are unchanged, because
+  the strip is placed under `.scene` in the board grid and the move buttons are
+  inside `.scene`. V5's fold budget starts from the same numbers it did before.
+  Runs, the battle protocol and the map are all unchanged.
+
+  `data-digest.txt` moved one commit earlier, when `src/data/flagWords.ts` was
+  added. Nothing else in the baseline moved with it — seeded output is byte
+  identical — and the fact that a pure display table moves a digest computed
+  over `src/data/**` is written up in
+  [`../../reports/release-c-battle-feedback.md`](../../reports/release-c-battle-feedback.md)
+  for the `contentHash` release.
+
 - **2026-09-10, later the same day.** `heights.json` battle entries re-recorded
   after the archetype chip lost 4.7's own `border` and took the `.chip` recipe
   (an inset shadow, which costs no layout): each battle panel header is 2px

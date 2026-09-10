@@ -142,12 +142,27 @@ body {
 .board {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  /* Named, because Release C's flag strip is a third child and auto-placement
+     would put it beside the scene rather than under it. The log spans both
+     rows so it keeps the full height it had before the strip existed. */
+  grid-template-areas:
+    "scene log"
+    "flags log";
+  grid-template-rows: auto auto;
   gap: var(--space-3);
   align-items: start;
 }
 
+.board > .scene { grid-area: scene; }
+.board > .flags { grid-area: flags; }
+.board > .log { grid-area: log; }
+
 @media (max-width: 760px) {
-  .board { grid-template-columns: minmax(0, 1fr); }
+  .board {
+    grid-template-columns: minmax(0, 1fr);
+    /* One column: the same reading order the DOM already has. */
+    grid-template-areas: "scene" "flags" "log";
+  }
 }
 
 .scene {
@@ -203,6 +218,31 @@ body {
   transition: background-color 380ms ease;
   /* Over the shadow, which is painted first. */
   position: relative;
+}
+
+/* ---------- the flag strip ----------
+   Release C item 3. What the turn that just resolved actually did, as a row of
+   words between the board and the log.
+
+   **Every chip in here is the same chip**, which is the rule and not an
+   accident of this rule set: no `--chip`, no per-kind hue, no size or weight
+   modifier. `.badge--flag` sets nothing the `.chip` recipe has not already
+   set, and it exists so the strip's chips can be found rather than styled. A
+   super effective flag drawn heavier than a not-very-effective one would make
+   the strip a recommendation, and the accent belongs to `.primary-action`.
+
+   The strip holds its height when empty, so the board does not jump between a
+   turn that had something to say and one that did not. V5 replaces this
+   container with its one-line event strip and the chips inside are unchanged. */
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  /* Holds its height when empty. `--space-6` is one chip's line box plus its
+     padding, so a turn with nothing to report and a turn with three words
+     occupy the same band and the board never jumps. */
+  min-height: var(--space-6);
 }
 
 /* ---------- the turn order nudge ----------

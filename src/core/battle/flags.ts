@@ -141,13 +141,65 @@ const UPKEEP = /^\|upkeep/;
 const BERRY = /\bBerry$/;
 
 /**
- * Read a protocol stream as turns of flagged actions.
+ * A reader that remembers what is standing on each side between calls.
  *
- * The stream may be a whole battle or one update's worth, exactly as
- * `readTurns` accepts, and the grouping is `readTurns`' own — this walks the
- * same lines a second time only to attach what each action produced.
+ * ## Why this is stateful when `readTurns` is not
+ *
+ * STAB needs the species that used the move, and the protocol names a species
+ * exactly once — on the `|switch|` that brought it in. A battle's updates
+ * arrive one turn at a time, and a turn in which nobody switched carries no
+ * `|switch|` line at all. A reader that started fresh on every batch would
+ * therefore know the species only on switch turns and print STAB on those and
+ * nowhere else, which is worse than never printing it: an intermittent flag
+ * teaches the player that STAB is intermittent.
+ *
+ * So the standing bodies persist across `read` calls, in exactly the way
+ * `battle-log.ts`'s `HpTracker` persists across appends and for exactly the
+ * same reason — the fact needed to describe line N arrived on a line long
+ * before it. One reader per battle; `ui/screens/battle.ts` makes it in
+ * `attach`, beside the log's `clear`.
+ *
+ * Nothing else is remembered. Turn grouping, ordering and priority are all
+ * per-call, because `readTurns` derives them from the lines in front of it.
+ */
+export interface FlagReader {
+  /** Read one batch — a whole battle, or one update's worth. */
+  read(protocol: readonly string[]): FlaggedTurn[];
+}
+
+export function createFlagReader(deps: FlagDeps): FlagReader {
+  /** The species standing on each side, for STAB. Tracked, never guessed. */
+  const standing: Record<ActorSide, string | null> = { p1: null, p2: null };
+  /**
+   * A type change the protocol reported, which outranks the species' own types.
+   *
+   * Soak and Protean are the reason. They are rare, and a STAB flag that
+   * disagreed with the damage the player just watched is worse than no flag —
+   * the same argument `turnOrder.ts` makes for inferring priority from brackets
+   * rather than from Speed.
+   */
+  const typeOverride: Record<ActorSide, readonly string[] | null> = { p1: null, p2: null };
+
+  return { read: (protocol) => readBatch(protocol, deps, standing, typeOverride) };
+}
+
+/**
+ * Read a protocol stream as turns of flagged actions, from a clean slate.
+ *
+ * The one-shot form, for a whole battle and for tests. A consumer reading a
+ * battle incrementally wants `createFlagReader` instead — see the note there
+ * on why STAB cannot survive a fresh start on every batch.
  */
 export function readFlags(protocol: readonly string[], deps: FlagDeps): FlaggedTurn[] {
+  return createFlagReader(deps).read(protocol);
+}
+
+function readBatch(
+  protocol: readonly string[],
+  deps: FlagDeps,
+  standing: Record<ActorSide, string | null>,
+  typeOverride: Record<ActorSide, readonly string[] | null>,
+): FlaggedTurn[] {
   const groups = readTurns(protocol, deps.priorityOf);
 
   /*
@@ -170,18 +222,6 @@ export function readFlags(protocol: readonly string[], deps: FlagDeps): FlaggedT
    * cases, and `|turn|N` starts exactly one group.
    */
   const residual = new Map<number | null, Flag[]>();
-
-  /** The species standing on each side, for STAB. Tracked, never guessed. */
-  const standing: Record<ActorSide, string | null> = { p1: null, p2: null };
-  /**
-   * A type change the protocol reported, which outranks the species' own types.
-   *
-   * Soak and Protean are the reason. They are rare, and a STAB flag that
-   * disagreed with the damage the player just watched is worse than no flag —
-   * the same argument `turnOrder.ts` makes for inferring priority from brackets
-   * rather than from Speed.
-   */
-  const typeOverride: Record<ActorSide, readonly string[] | null> = { p1: null, p2: null };
 
   let index = 0;
   let turnNumber: number | null = null;

@@ -52,6 +52,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-stage4.6c-relics-claude-code-prompt.md`](gymrun-stage4.6c-relics-claude-code-prompt.md) | stage prompt | `merged` | | `4b63528` |
 | [`gymrun-visual-identity-plan.md`](gymrun-visual-identity-plan.md) | release plan | `active` | | V0 to V4 built on the overnight branch; V5 waits on Release C; V6 not started |
 | [`gymrun-visual-identity-overnight-prompts.md`](gymrun-visual-identity-overnight-prompts.md) | stage prompt | `active` | | V0 to V4 done, V5 skipped, see `docs/visual/reports/` |
+| [`gymrun-release-c-battle-feedback-amended.md`](gymrun-release-c-battle-feedback-amended.md) | stage prompt | `active` | supersedes section 6 of the QoL release plan | items 1-4 built; R12 and V5 are its named follow-ons |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
