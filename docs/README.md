@@ -129,6 +129,11 @@ chip-on-every-button rule, and the open V0.5 `--font-body` decision has to be
 answered before V5 or after it, never inside it. Both R12 and V5 are named in
 [`spec/gymrun-release-c-battle-feedback-amended.md`](spec/gymrun-release-c-battle-feedback-amended.md).
 
+**V5 is running now**, on `claude/zen-mayer-9sp9bn`, and its state — preflight,
+measurements, cuts and gates — is in
+[`visual/reports/v5-battle-stage.md`](visual/reports/v5-battle-stage.md) rather
+than in this section.
+
 **Next scheduled work:** the `contentHash` release. It bundles four things that
 are specified but unbuilt: `contentHash` itself, seed strings that carry it,
 `previewRun`, and deleting the unkeyed stream API. It runs after 4.6c and
