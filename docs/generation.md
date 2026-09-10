@@ -735,6 +735,46 @@ produces"**. `scaling.ts`, `speciesPools.ts`, `movePools.ts` and `tuning.ts` can
 `archetypes.ts`, `data/moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
 and `categoryInfo.ts` cannot.
 
+### Release C ran the experiment, twice, and `tuning.ts` is the awkward case
+
+**2026-09-10, Release C.** The two paragraphs above contradict each other and
+neither is marked superseded — the audit
+(`docs/reports/v5-unblock-audit.md` divergence 2) calls that the single
+highest-value fix in the tree, and it is still not made here, because resolving
+it belongs to the `contentHash` release and `CLAUDE.md` requires the losing half
+to be *deleted* with a dated note rather than out-argued in a third paragraph.
+
+What Release C adds is evidence, from the one instrument that already hashes
+`src/data/` today: `docs/visual/baseline/data-digest.txt`, a sha256 over every
+file under it — a glob, in other words, and therefore a live rehearsal of the
+glob reading.
+
+Release C added two things under `src/data/`: `flagWords.ts`, a vocabulary of
+nine post-resolution words, and `tuning.ts`'s `battleFeedbackMs`, which is how
+long an HP shadow lingers. **Each moved the digest, and each time the digest was
+the only thing in the whole baseline that moved** — every recorded run and the
+recorded battle protocol were byte identical both times. Two players on one seed
+holding different copies of either file play the identical run.
+
+Under the glob reading, a player who prefers a 300ms shadow could not share a
+seed. That settles the direction: **the explicit file list is right.**
+
+It also exposes what the file list alone does not solve, and this is the part
+the `contentHash` release has to decide. `tuning.ts` is on the "can change what
+a seed produces" side of the test above, correctly — `stepsPerSegment` is in it.
+It now also holds `battleFeedbackMs` and `maxMoveTagsOnFace`, which cannot. **A
+per-file list is not fine-grained enough for `tuning.ts`.** Either the hash
+needs a per-field split of that one file, or the display numbers move out of it into a
+display-only module that is simply never on the list. The second is cheaper and
+is the recommendation; it is deliberately not named as a file here, because
+choosing where those fields land is the `contentHash` release's decision and a
+path invented in a note is a path the next reader goes looking for. Moving a
+field out of `Tuning` also changes what the simulator can sweep, which is an
+argument that release has to make rather than inherit.
+
+Written up in full, with the digests, in
+[`reports/release-c-battle-feedback.md`](reports/release-c-battle-feedback.md) §4.
+
 
 ## 9b. Deviation: keyed streams shipped two levels, not one
 

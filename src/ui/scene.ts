@@ -19,6 +19,7 @@
  * reason: a row that is replaced cannot pulse when its stage changes.
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
+import type { FlaggedTurn } from '../core/battle/flags';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -73,6 +74,8 @@ interface SidePanel {
   archetype: HTMLElement;
   types: HTMLElement;
   hpFill: HTMLElement;
+  /** The chunk the last hit took, marking where the bar used to end. */
+  hpShadow: HTMLElement;
   hpText: HTMLElement;
   status: HTMLElement;
   volatiles: HTMLElement;
@@ -90,8 +93,14 @@ export interface Scene {
    * being distinguishable by shape — a switch and a move are both "a slot" —
    * and passing the union through means the app never has to guess which panel
    * a number came from.
+   *
+   * `turns` is the screen's one reading of the protocol batch that produced
+   * this view, the same object the log is rendering from. Release C item 2
+   * drives the jiggle off it, and the point of passing it rather than reading
+   * it here is that there is then no second reading to disagree with the log.
+   * Omitted on a redraw that is not the result of new protocol.
    */
-  update(view: BattleUiView, onChoose: (choice: Choice) => void): void;
+  update(view: BattleUiView, onChoose: (choice: Choice) => void, turns?: readonly FlaggedTurn[]): void;
 }
 
 export function createScene(): Scene {
@@ -114,18 +123,31 @@ export function createScene(): Scene {
     () => {
       delete foe.root.dataset['swapped'];
       delete me.root.dataset['swapped'];
+      /*
+       * The HP shadow resolves on the same tap. It is the one thing on this
+       * screen that stays on the glass after the numbers are already right, so
+       * a player who taps to get on with the turn should not still be looking
+       * at the last one's damage.
+       */
+      for (const panel of [foe, me]) {
+        delete panel.hpShadow.dataset['fading'];
+        panel.hpShadow.style.width = '0%';
+        // The nudge stops mid-swing and the panel sits back where it belongs.
+        delete panel.root.dataset['jiggle'];
+      }
     },
     true,
   );
 
   return {
     root,
-    update(view, onChoose) {
+    update(view, onChoose, turns) {
       updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent');
       updateSidePanel(me, view.player, false, view.fasterSide === 'player');
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
+      jiggle({ me, foe }, turns);
     },
   };
 }
@@ -215,8 +237,17 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   header.append(name, level, archetype, types);
 
   const hpTrack = el('div', 'hp');
+  /*
+   * The shadow goes in **before** the fill, so the fill paints over it.
+   *
+   * The two overlap by a hairline at the boundary — a fraction is a float and
+   * the track is a few hundred device pixels — and a shadow drawn on top would
+   * put a seam on the leading edge of the bar on exactly the frames the player
+   * is watching it.
+   */
+  const hpShadow = el('div', 'hp__shadow');
   const hpFill = el('div', 'hp__fill');
-  hpTrack.append(hpFill);
+  hpTrack.append(hpShadow, hpFill);
 
   const meta = el('div', 'panel__meta');
   const hpText = el('span', 'panel__hp-text');
@@ -239,7 +270,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   }
 
   root.append(header, hpTrack, meta, traits, volatiles, statsRoot);
-  return { root, name, level, archetype, types, hpFill, hpText, status, volatiles, traits, hpRow, rows };
+  return { root, name, level, archetype, types, hpFill, hpShadow, hpText, status, volatiles, traits, hpRow, rows };
 }
 
 function updateSidePanel(
@@ -262,8 +293,9 @@ function updateSidePanel(
    * it would flash both panels at the start of every battle.
    */
   const previous = panel.root.dataset['species'];
+  const swapped = previous !== undefined && previous !== active.species;
   panel.root.dataset['species'] = active.species;
-  if (previous !== undefined && previous !== active.species) {
+  if (swapped) {
     // Restart rather than extend: re-setting the attribute on an element that
     // already carries it does not replay a CSS animation.
     delete panel.root.dataset['swapped'];
@@ -281,8 +313,39 @@ function updateSidePanel(
 
   panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
+  /*
+   * The chunk, and the shadow behind it. **Item 1.**
+   *
+   * The bar goes to the new value on the frame the update arrives, with no
+   * width transition at all, and a shadow segment is left standing across the
+   * span it vacated. That is the swap the playtest wanted: a sliding bar tells
+   * you the number is changing and hides how much it changed, because by the
+   * time you look at it the evidence has already been animated away. A chunk
+   * that drops and leaves its outline says *how big the hit was* — one read, no
+   * arithmetic, no log.
+   *
+   * The shadow fades over `--motion-hp-shadow`, and it is the only thing here
+   * that takes time. Nothing waits for it: the bar, the numbers and the buttons
+   * are all correct and interactive on the first frame.
+   *
+   * **Damage only.** A heal gets no shadow, because a shadow behind a bar that
+   * grew would mark ground the Pokemon just gained as ground it lost. The
+   * restore line from the round 2 patch already narrates a heal and is
+   * untouched — see `hpLine` in `battle-log.ts`.
+   */
+  const before = Number(panel.hpFill.dataset['fraction'] ?? active.hp.fraction);
   panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
+  panel.hpFill.dataset['fraction'] = String(active.hp.fraction);
   panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
+  /*
+   * A swap draws no chunk, and this is not a nicety.
+   *
+   * The two bars belong to two different bodies, so the difference between them
+   * is not damage — a healthy replacement coming in for a Pokemon at 10% would
+   * paint nine tenths of the track as a hit that never happened, on the one
+   * turn the player most needs to read the board correctly.
+   */
+  markHpChunk(panel.hpShadow, swapped ? active.hp.fraction : before, active.hp.fraction);
   /*
    * Both sides now show exact HP.
    *
@@ -439,6 +502,111 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
  */
 function panelTypeChip(type: string): HTMLElement {
   return typeChip(type);
+}
+
+/**
+ * Nudge each panel in the order its side acted. **Item 2.**
+ *
+ * ## What it is for
+ *
+ * The log has said who went first since the round 2 patch, in an ordinal at the
+ * head of each entry. That is correct and it is *reading*, and the thing the
+ * playtest actually reported — "priority doesn't exist" — was never fixed by a
+ * number you have to go and look at. A panel that twitches when its Pokemon
+ * acts puts the sequence where the player is already looking: on the board.
+ *
+ * ## It never computes an order
+ *
+ * The order is `turns`, which the screen read once and gave to the log as well.
+ * There is no sort here, no Speed comparison and no second call to `readTurns`
+ * — the panels move in the order the actions are already in, so the jiggle and
+ * the log's ordinals cannot disagree. Priority marking is not this function's
+ * business at all: it is the log's rule, applied by the reader, and the flag
+ * strip surfaces it. A same-bracket turn is unmarked there and unremarkable
+ * here — both sides jiggle either way, because both sides acted either way.
+ *
+ * ## Which turn, and which sides
+ *
+ * The last group in the batch that has any actions, and **not** the last group
+ * with a turn number — those are different, and the difference is the whole
+ * bug this comment exists to stop somebody reintroducing. An incremental
+ * update arrives as `|move| … |move| … |upkeep| |turn|N+1`: the actions that
+ * just resolved sit in the leading group, which has no number yet because the
+ * line that would have numbered it came at the *start* of the previous batch,
+ * and the trailing `|turn|` opens an empty group for a turn nobody has played.
+ * Reading a turn number here nudges nothing, forever.
+ *
+ * The opening replay is skipped by its caller passing no reading at all, which
+ * is the right place for it: an arrival is not a turn, and nudging both panels
+ * at the start of every battle is noise.
+ *
+ * A side is placed by its *first* action in that turn, so a replacement switch
+ * after a faint does not re-nudge a panel that has already moved. That caps the
+ * sequence at two, which is what the two `data-jiggle` steps in the stylesheet
+ * are: the delay is a token, not a number written from here.
+ */
+function jiggle(panels: { me: SidePanel; foe: SidePanel }, turns: readonly FlaggedTurn[] | undefined): void {
+  for (const panel of [panels.me, panels.foe]) delete panel.root.dataset['jiggle'];
+  if (!turns) return;
+
+  const latest = [...turns].reverse().find((turn) => turn.actions.length > 0);
+  if (!latest) return;
+
+  const seen: ('p1' | 'p2')[] = [];
+  for (const { action } of latest.actions) {
+    if (!seen.includes(action.side)) seen.push(action.side);
+  }
+
+  // Restart rather than extend, the same as the swap beat and the HP chunk:
+  // re-setting an attribute an element already carries does not replay a CSS
+  // animation, and two turns running must each get their own nudge.
+  void panels.me.root.offsetWidth;
+  for (const [index, side] of seen.entries()) {
+    // `p1` is the player throughout: the projection, the log formatter and the
+    // protocol all take p1's view.
+    const panel = side === 'p1' ? panels.me : panels.foe;
+    panel.root.dataset['jiggle'] = String(index + 1);
+  }
+}
+
+/**
+ * The smallest drop worth drawing, as a fraction of the track.
+ *
+ * Below this the shadow is thinner than the rounding on its own corners and
+ * reads as a rendering artefact rather than as a hit. Sand damage on a 300 HP
+ * Pokemon is a real event and the log says so in words; a two-pixel smear on
+ * the bar is not the place to say it a second time.
+ */
+const MIN_CHUNK = 0.005;
+
+/**
+ * Mark the span the bar just vacated, and fade it.
+ *
+ * Absolute inside the track and measured from the left in the same units the
+ * fill uses, so the two agree by construction rather than by a shared
+ * calculation: the shadow starts where the fill now ends and runs to where the
+ * fill used to end.
+ *
+ * The animation is restarted rather than extended — re-setting an attribute an
+ * element already carries does not replay a CSS animation, which is the same
+ * thing the swap beat does above and for the same reason. Two hits in
+ * consecutive turns each get their own fade.
+ */
+function markHpChunk(shadow: HTMLElement, before: number, after: number): void {
+  const lost = before - after;
+  if (lost < MIN_CHUNK) {
+    // A heal, or nothing that happened. Clearing rather than leaving the last
+    // chunk standing: a shadow that outlives the hit it describes is a lie
+    // about the current turn.
+    delete shadow.dataset['fading'];
+    shadow.style.width = '0%';
+    return;
+  }
+  shadow.style.left = `${after * 100}%`;
+  shadow.style.width = `${lost * 100}%`;
+  delete shadow.dataset['fading'];
+  void shadow.offsetWidth;
+  shadow.dataset['fading'] = 'true';
 }
 
 function hpBand(fraction: number): 'high' | 'mid' | 'low' {

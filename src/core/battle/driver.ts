@@ -1292,6 +1292,49 @@ export function movePriority(nameOrId: string): number {
   return move.exists ? move.priority : 0;
 }
 
+/**
+ * The three dex facts a protocol reader cannot get from the protocol.
+ *
+ * `core/battle/flags.ts` reads what happened; two of the words it has to say —
+ * STAB and contact — are properties of the *move*, and the protocol reports
+ * neither. `|move|p1a: Snorlax|Body Slam|p2a: Milotic` carries no type, no
+ * category and no flag list, and no later line adds one.
+ *
+ * Same shape and same argument as `movePriority` above: the reader takes this
+ * as an injected lookup so it stays a leaf with no `@pkmn/sim` import, and so
+ * every case in it is assertable from a hand-written protocol log. Read
+ * straight off the dex rather than through `describeMove`, which builds a probe
+ * battle per move to get a `maxPp` this does not need.
+ */
+export interface MoveIdentity {
+  /** The move's own type, which is half of the STAB question. */
+  type: string;
+  /** `Physical`, `Special` or `Status`. A status move earns no STAB. */
+  category: string;
+  /** The dex `contact` flag. */
+  contact: boolean;
+}
+
+/** A move's type, category and contact flag. Null when the dex has no such move. */
+export function moveIdentity(nameOrId: string): MoveIdentity | null {
+  const move = Dex.forGen(GYMRUN_GEN).moves.get(nameOrId);
+  if (!move.exists) return null;
+  return { type: move.type, category: move.category, contact: Boolean(move.flags.contact) };
+}
+
+/**
+ * A species' types, which is the other half of the STAB question.
+ *
+ * The protocol names the *body* on each side — `|switch|p1a: Snorlax|Snorlax,
+ * L50, M|235/235` carries the species in its details field — and never its
+ * types. Empty for a species the dex does not know, which makes the flag reader
+ * print no STAB rather than a wrong one.
+ */
+export function speciesTypes(species: string): readonly string[] {
+  const data = Dex.forGen(GYMRUN_GEN).species.get(species);
+  return data.exists ? data.types : [];
+}
+
 /** A move's one-line description, for the move tooltip. */
 export function moveShortDesc(id: string): string {
   return Dex.forGen(GYMRUN_GEN).moves.get(id).shortDesc ?? '';

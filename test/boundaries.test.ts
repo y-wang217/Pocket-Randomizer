@@ -280,9 +280,28 @@ describe('the battle UI boundary', () => {
      * projection, which is the split item G asks for — one file to change a
      * string, and no screen deciding what a number means.
      */
+    /*
+     * `core/battle/flags` joined in Release C, and it is the narrowest
+     * addition of the three: **the scene imports the type and never the
+     * function.**
+     *
+     * The rule this list enforces is that the scene must not become a second
+     * source of truth about the turn it is drawing. `FlaggedTurn` is the
+     * shape of a reading the scene is *handed* by `screens/battle.ts`, which
+     * makes exactly one per protocol batch and gives the same object to the
+     * log. The scene derives nothing from it: `jiggle` walks the actions in
+     * the order they already have and calls no reader. Declaring the shape
+     * again under `ui/` would be the version that violates the rule — two
+     * declarations of one structure, free to drift, with the scene's copy
+     * quietly becoming the authority on what a turn looks like.
+     *
+     * If a future change has the scene call `readFlags` or `createFlagReader`,
+     * that is a widening and this comment does not cover it.
+     */
     const allowed = new Set([
       'core/battle/view',
       'core/battle/effectiveness',
+      'core/battle/flags',
       'core/battle/stats',
       'core/hpCopy',
       'core/types',
@@ -294,6 +313,25 @@ describe('the battle UI boundary', () => {
 
     expect(imports.length).toBeGreaterThan(0);
     expect(imports.filter((path) => !allowed.has(path))).toEqual([]);
+  });
+
+  /**
+   * And `core/battle/flags` stays a *type* import in the scene.
+   *
+   * The allowance above rests entirely on the scene being handed a reading
+   * rather than taking one. That is a claim about behaviour, and a claim
+   * about behaviour with no test is a comment — so this is the test. The
+   * scene may name the shape; the moment it calls the reader it has become
+   * the second source of truth the list exists to prevent.
+   */
+  it('never reads the protocol itself, in the scene or in the log', () => {
+    for (const file of ['src/ui/scene.ts', 'src/ui/battle-log.ts']) {
+      const source = stripComments(sourceOf(file));
+      expect(/\breadFlags\s*\(|\bcreateFlagReader\s*\(|\breadTurns\s*\(/.test(source), file).toBe(false);
+    }
+    // `screens/battle.ts` is the one caller, and it makes exactly one reader.
+    const screen = stripComments(sourceOf('src/ui/screens/battle.ts'));
+    expect([...screen.matchAll(/\bcreateFlagReader\s*\(/g)]).toHaveLength(1);
   });
 
   /**

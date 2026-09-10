@@ -35,6 +35,8 @@
 import { abilityInfo, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
 import { bandInfo, BAND_MULTIHIT_NOTE } from '../data/bandInfo';
+import { FLAG_BLURBS, flagWord } from '../data/flagWords';
+import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
@@ -61,6 +63,15 @@ type TipKind =
   | 'band'
   /** A move tag on a card face. Stage 4.7, Part 6b. */
   | 'movetag'
+  /**
+   * A post-resolution flag word on the battle strip. Release C item 3.
+   *
+   * Keyed by the flag *kind* rather than by the word shown, because the word
+   * folds in a detail — `Paralysed`, `Oran Berry`, `Priority +1` — and the
+   * question a player taps a chip for is what the category claims, not what
+   * this instance of it said.
+   */
+  | 'flag'
   /**
    * The six-label stat shorthand. Stage 4.7, Part 7.
    *
@@ -234,6 +245,8 @@ function render(tip: string): HTMLElement | null {
       return renderBand(id);
     case 'movetag':
       return renderMoveTag(id);
+    case 'flag':
+      return renderFlag(id);
     case 'archetype':
       return renderArchetypes();
   }
@@ -251,6 +264,21 @@ function renderMoveTag(id: string): HTMLElement | null {
   if (!tag) return null;
   const body = panel(tag.long);
   body.append(line(tag.blurb, 'tip__text'));
+  return body;
+}
+
+/**
+ * What one flag word claims.
+ *
+ * `data/flagWords.ts`'s sentence, like every other tip here — the layer is a
+ * lookup and a positioner and carries no prose of its own, which
+ * `test/boundaries.test.ts` checks.
+ */
+function renderFlag(id: string): HTMLElement | null {
+  const blurb = FLAG_BLURBS[id as FlagKind];
+  if (!blurb) return null;
+  const body = panel(flagWord(id as FlagKind, null));
+  body.append(line(blurb, 'tip__text'));
   return body;
 }
 

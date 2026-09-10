@@ -142,12 +142,27 @@ body {
 .board {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  /* Named, because Release C's flag strip is a third child and auto-placement
+     would put it beside the scene rather than under it. The log spans both
+     rows so it keeps the full height it had before the strip existed. */
+  grid-template-areas:
+    "scene log"
+    "flags log";
+  grid-template-rows: auto auto;
   gap: var(--space-3);
   align-items: start;
 }
 
+.board > .scene { grid-area: scene; }
+.board > .flags { grid-area: flags; }
+.board > .log { grid-area: log; }
+
 @media (max-width: 760px) {
-  .board { grid-template-columns: minmax(0, 1fr); }
+  .board {
+    grid-template-columns: minmax(0, 1fr);
+    /* One column: the same reading order the DOM already has. */
+    grid-template-areas: "scene" "flags" "log";
+  }
 }
 
 .scene {
@@ -185,15 +200,116 @@ body {
   background: var(--bg-sunken);
   border-radius: var(--radius-chip);
   overflow: hidden;
+  /* The chunk is positioned against the track. Release C item 1. */
+  position: relative;
 }
 
 .hp__fill {
   height: 100%;
   border-radius: var(--radius-chip);
   background: var(--hp-high);
-  /* The bar is the main read on how a turn went, so it animates rather than
-     jumping; the colour crossfades with it. */
-  transition: width 380ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 380ms ease;
+  /* Release C item 1: **the width no longer transitions.** A sliding bar tells
+     the player the number is changing and hides how much it changed, because by
+     the time they look, the evidence has been animated away. The bar now falls
+     on the frame the update arrives and `.hp__shadow` marks the span it left,
+     which is one read instead of a guess. The colour still crossfades: a band
+     boundary is a threshold, not a quantity, and snapping it reads as a flicker.
+     */
+  transition: background-color 380ms ease;
+  /* Over the shadow, which is painted first. */
+  position: relative;
+}
+
+/* ---------- the flag strip ----------
+   Release C item 3. What the turn that just resolved actually did, as a row of
+   words between the board and the log.
+
+   **Every chip in here is the same chip**, which is the rule and not an
+   accident of this rule set: no `--chip`, no per-kind hue, no size or weight
+   modifier. `.badge--flag` sets nothing the `.chip` recipe has not already
+   set, and it exists so the strip's chips can be found rather than styled. A
+   super effective flag drawn heavier than a not-very-effective one would make
+   the strip a recommendation, and the accent belongs to `.primary-action`.
+
+   The strip holds its height when empty, so the board does not jump between a
+   turn that had something to say and one that did not. V5 replaces this
+   container with its one-line event strip and the chips inside are unchanged. */
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  /* Holds its height when empty. `--space-6` is one chip's line box plus its
+     padding, so a turn with nothing to report and a turn with three words
+     occupy the same band and the board never jumps. */
+  min-height: var(--space-6);
+}
+
+/* Whose flag it is, in the log's own vocabulary — `.log-entry__order` marks
+   the player's side with `--emphasis` and leaves the opponent's neutral, and
+   this is the same mark on the same fact. Without it a turn where both sides
+   used a same-type move prints `STAB` twice with nothing saying which is which.
+
+   It is not the weight axis and must not become one: every *kind* is identical
+   to every other kind within a side, which is the rule Release C is holding.
+   A side is not a verdict. */
+.flags .chip[data-side='p1'] {
+  --chip: var(--emphasis);
+}
+
+/* ---------- the turn order nudge ----------
+   Release C item 2. A panel twitches when its Pokemon acts, in the order the
+   actions resolved, so the sequence is on the board rather than only in the
+   log's ordinals.
+
+   Two steps and no more: `scene.ts` places a side by its first action in the
+   turn, which caps the sequence at the two sides. The second waits one nudge
+   before starting, so the pair reads as "then" rather than as a shudder.
+
+   The distance is a token and it is deliberately tiny — 2px is a twitch that
+   registers at the edge of vision without the panel appearing to come loose.
+   `transform` only: no layout property is touched, so a nudge cannot reflow the
+   screen or move the move buttons under a thumb that is already descending. */
+.panel[data-jiggle] {
+  animation: panel-nudge var(--motion-jiggle) ease-in-out;
+}
+
+.panel[data-jiggle="2"] {
+  animation-delay: var(--motion-jiggle);
+}
+
+@keyframes panel-nudge {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(calc(var(--jiggle-distance) * -1)); }
+  70% { transform: translateX(var(--jiggle-distance)); }
+  100% { transform: translateX(0); }
+}
+
+/* ---------- the chunk a hit took ----------
+   Sized and placed from `scene.ts`, which knows both fractions; the stylesheet
+   owns only how it looks and how long it stays. Zero width until something is
+   lost, so an untouched bar carries no artefact.
+
+   Deliberately **not** animated in reverse or slid anywhere: it appears at full
+   strength across exactly the span that was lost, and fades in place. Motion
+   here would put a second moving thing next to a bar that just stopped moving. */
+.hp__shadow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  border-radius: var(--radius-chip);
+  background: var(--hp-shadow);
+  opacity: 0;
+}
+
+.hp__shadow[data-fading] {
+  animation: hp-chunk var(--motion-hp-shadow) ease-out forwards;
+}
+
+@keyframes hp-chunk {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .hp__fill[data-band="mid"] { background: var(--hp-mid); }
@@ -1765,6 +1881,23 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
+  /* Release C: the chunk resolves instantly rather than fading, and the panels
+     do not move. Both resting states are the animations' own end states, so
+     "instant" here means the thing the animation would have arrived at, not a
+     different outcome — and every flag word still renders, because a flag is
+     text and not an animation. */
+  /* Selectors matched to the rules they override, not to the elements.
+     `.hp__shadow[data-fading]` outranks a bare `.hp__shadow` and a media query
+     adds no specificity of its own, so the plain form lost and the chunk went
+     on fading for anybody who had asked it not to. Caught by
+     `test/visual-release-c.test.ts`, which reads the computed animation rather
+     than trusting the rule to have applied. */
+  .hp__shadow, .hp__shadow[data-fading] { animation: none; }
+  /* `animation: none` is the shorthand, so it resets the delay too — the
+     second step's `animation-delay` needs no separate override, and writing
+     one would have been a nineteenth hardcoded duration in a stylesheet whose
+     count is pinned. */
+  .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; }
 }
 
 /* ==========================================================================
