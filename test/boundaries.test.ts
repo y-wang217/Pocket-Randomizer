@@ -80,6 +80,63 @@ describe('core/ boundaries', () => {
     }
   });
 
+  /**
+   * **Every stream a shipped draw comes off has a key.** Release 0.5.
+   *
+   * The seeds design asks for the unkeyed stream API to be deleted outright so
+   * that nobody reaches for it. That deletion is still owed and has its own
+   * release: five test files read the unkeyed root, two of them precisely to
+   * prove a key cannot collide with it, so removing the API is a question about
+   * the test suite rather than a cleanup.
+   *
+   * This asserts the half that does not have to wait. A key is what makes a
+   * draw's position independent of everything drawn before it, so a stream
+   * handed anywhere without one is a draw with a global position — which is the
+   * property 4.6a removed and the only thing the deletion was protecting.
+   *
+   * The check is textual because the type system cannot express it: a root and
+   * its sub-streams share an interface by design, so `rng.map` and
+   * `rng.map.at(k)` are equally well typed and equally passable. It matches the
+   * *stream access* rather than the draw, because the first version of this
+   * check looked for `.pick(` next to `.map` and missed both real callers —
+   * `formatSeed(createRng(m).map)` and `battleStreamFor` below draw inside a
+   * function, one line away from the access that fed them.
+   */
+  it('opens every stream in src/ through a key', () => {
+    /*
+     * `driver.ts` is the one exception and it is listed rather than excused.
+     *
+     * `battleStreamFor` backs `createBattle`'s `simSeed` fallback. No shipped
+     * path reaches it — `run.ts` always passes `node.encounter.simSeed`, which
+     * `encounters.ts` draws through `nodeKey`, so the fallback exists for
+     * callers that start a battle with no generated node behind it, meaning the
+     * Stage 0 fixtures and the determinism tests. Porting it would move every
+     * one of those battles, which is a test-suite change and not a cleanup, so
+     * it goes to the release that owns the deletion.
+     *
+     * Listed as one entry, asserted as one entry: an allowlist nobody counts is
+     * how the next caller joins it.
+     */
+    const ALLOWED = new Set(['src/core/battle/driver.ts']);
+
+    // An rng-shaped receiver, so `result.battle` and `specs.map(...)` are not
+    // stream accesses. Both spellings the codebase uses are covered.
+    const ACCESS = /(?:\brng|createRng\s*\([^)]*\))\s*\.\s*(map|rewards|battle|randomizer|policy)\b(?!\s*\.\s*at\s*\()/;
+
+    const offenders: string[] = [];
+    for (const file of srcFiles) {
+      const name = relative(ROOT, file);
+      stripComments(readFileSync(file, 'utf8'))
+        .split('\n')
+        .forEach((line, index) => {
+          if (ACCESS.test(line) && !ALLOWED.has(name)) offenders.push(`${name}:${index + 1}`);
+        });
+    }
+
+    expect(offenders, 'open the stream with .at(key) from core/streamKeys.ts').toEqual([]);
+    expect(ALLOWED.size, 'the unkeyed exception list may shrink, never grow').toBe(1);
+  });
+
   it('never references Math.random', () => {
     const offenders = seededFiles
       .flatMap(({ files }) => files)
