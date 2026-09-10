@@ -715,6 +715,100 @@ the segment owes the player, not a rate.
 Every guarantee is checked at **every length the curve can draw**, by driving the
 generator at a fixed length rather than hoping real seeds visit the ends.
 
+## 7d. The score, the names, the graveyard, and the map that had to make room
+
+**Stage 4.8, items 4 to 7.** None of these moves a version axis: every one is
+derived from a `RunState` a replay rebuilds, which is the argument item 2 could not
+make and section 7c records separately.
+
+### Item 4: the score
+
+`core/scoring.ts` counts, `data/scoring.ts` weighs, and neither does the other's
+job. The total is the sum of the components **as returned**, in one pass, so the
+number a player reads is the list a player reads added up.
+
+Seven components: gyms cleared, elite and hard nodes taken, captures, relics,
+survivors, turns. Risk pays because a score that only paid for gyms would teach
+players to route around every hard node, which is the opposite of what the tier
+system is for.
+
+`turns` is weighted **zero and still computed**, still listed, still rendered. The
+data exists for a later decision about pace without this patch taking a position on
+fight length. A component that was simply absent would have to be measured from
+nothing; one recorded at zero is a column the next pass reads history out of.
+
+Score is a verdict about a *finished* run, so it appears on the result screen and
+nowhere else. `test/scoring.test.ts` asserts that per surface and twice over: no
+node card, tier badge, reward card, locale screen or pre-gym screen may import either
+scoring module, and none may carry the word in a string literal either — the second
+catches a surface that computed "+30" inline, which would pass the first.
+
+### Item 5: nicknames, and why they are a correctness feature
+
+`nicknameKey` is the one new RNG key in Stage 4.8. A name is drawn at map
+generation beside the draw that created the spec — starters by option index,
+captures by node id — so the key names *the thing that offers the Pokemon* and never
+the moment the player took it. Being a new key, it shifts no other key's output:
+every Pokemon in the game gained a name and no recorded map moved.
+
+**The graveyard is why they exist.** The battle protocol names its victim by
+`spec.nickname ?? spec.species`, so before item 5, two Weepinbells in one party were
+the same string in every line of the log — `core/battle/contribution.ts` has said so
+since 4.7. No work on the death record fixes that, because the ambiguity is upstream.
+
+One real bug fell out of it, found by reading rather than by a test:
+`describeSpecCard`'s vitals cache keyed on species, ability, moves, level and item
+but **not the nickname**. Free while no spec had one; with every Pokemon named, two
+otherwise-identical Pidgeys collide and the second renders under the first one's
+name, on every surface at once, from a single cache hit. The nickname is in the key.
+
+`core/graveyard.ts` records **every** faint, not only unrecovered ones.
+`reviveFaintedBetweenNodes` is true, so the only faints never recovered are those in
+the wipe that ends a run; read literally the graveyard would hold one node's
+casualties. Revives are out of scope, so changing recovery to justify a readout was
+not available and would have been a readout deciding a mechanic. Two imprecisions
+are recorded in the file rather than hidden: the level is the member's level *now*
+rather than when it fell, and a member released since does not match and reads null.
+The exact fix for both is a party snapshot per `NodeVisit`, which is a copy of the
+whole party per node to improve one line of a readout.
+
+### Item 6: the shareable result
+
+`ui/copy/share.ts`, pure, and under `ui/` rather than `data/` so a word changed
+there cannot move a seed. Text on a clipboard is the whole feature: no image, no
+canvas, no share sheet. The destination is a chat client, which decides the format —
+no monospace assumption, no column alignment, and the graveyard capped at
+`GRAVE_LIMIT` so a long run is not a wall. `seedLine` is the single place a seed is
+rendered into shared text, so `contentHash` replaces it in one function.
+
+### Item 7: the readout moved, and the map had to make room
+
+The threat readout is **off the map** and on the party screen alone. The map renders
+the gym leader's name and type chip, so a readout there paired "watch for Ground"
+with "the next gym is Ground" — a routing recommendation. Three smoke checks retired
+with the placement they protected.
+
+**The map's fold `xfail` is closed**, and it took three changes, each of which bounds
+the decision's position rather than shaving pixels off it:
+
+| change | why it is structural |
+|---|---|
+| taken steps collapse to one line | the current step stops moving down as a segment is walked, so the fix holds at any length in item 3's curve |
+| the map's party cards lose their move lists and go to three columns | item 1's six-member roster had made that panel 697px of an 844px phone; ~250px now |
+| a step's option cards stop wrapping (grid floor 150px → 96px) | the third card on its own row cost 119px and broke the comparison the row exists to make |
+
+Measured: offered cards end at **737 of 844** on the smoke's own point and **788** at
+the worst position a real run reaches; `heights.json`'s `map.decisionBottom` went
+728.22 → 669.72. The battle did not move on any field. The `xfail` marker is removed
+rather than re-marked, and `phoneCheckExpectedFail` is deleted with it — it worked as
+designed on the way out, reporting "passes now; take the marker off" rather than
+letting the marker hide a real assertion.
+
+`test/map-fold.test.ts` is the check the fixed-seed ones could not be: it drives the
+app to the worst position a run reaches and asserts the two *properties* that bound
+the height, not a pixel count that would pass for the wrong reason the first time a
+font changed.
+
 ## 8. Capabilities, and why `latent` is not a learnset
 
 > **Superseded 2026-09-10. Kept because the measurements are still good.**

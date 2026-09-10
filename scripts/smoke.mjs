@@ -814,30 +814,21 @@ const phoneCheck = (label, ok, detail) => {
   if (!ok) problems.push(`phone: ${label} — ${detail}`);
 };
 
-/**
- * A check that is known to fail, with the reason attached. Release C, Step 0.
+/*
+ * `phoneCheckExpectedFail` lived here and is **deleted, not kept for later**.
  *
- * The same instrument `test/visual-v0.test.ts:47` uses inside the suite, which
- * marks the absolute-fold assertion `it.fails` rather than deleting it. This
- * script had no equivalent, so an absolute gate named in `CLAUDE.md` was
- * failing with nothing on screen saying it was expected — which is how a red
- * gate stops being read.
+ * Release C added it so that the map's fold miss could be an `xfail` with its reason
+ * on screen, rather than a red absolute gate nobody read. Stage 4.8 item 3 closed
+ * that miss — the only marked check this script ever had — and the helper went with
+ * it, because lint is right that an unused helper is dead code and because a marker
+ * mechanism sitting ready is an invitation to mark the next failure instead of fixing
+ * it.
  *
- * The semantics are vitest's, deliberately: a marked check that *passes* is
- * itself a problem, because the layout it was waiting for has arrived and the
- * marker is now hiding a real assertion. **That is the intended way to
- * notice.** Nothing here suppresses a failure permanently; it converts one into
- * a countdown.
+ * It worked exactly as designed on the way out: the check started passing, the helper
+ * turned that into a reported problem ("passes now; take the marker off"), and that
+ * is how the marker came off rather than being noticed months later. If another gate
+ * ever needs the same countdown, it is eleven lines and it is in this file's history.
  */
-const phoneCheckExpectedFail = (label, ok, detail, reason) => {
-  if (ok) {
-    console.log(`  FAIL ${label}${detail ? ` (${detail})` : ''} — passes now; take the marker off`);
-    problems.push(`phone: ${label} passes now — remove the expected-failure marker (${reason})`);
-    return;
-  }
-  console.log(`  xfail ${label}${detail ? ` (${detail})` : ''}`);
-  console.log(`        expected: ${reason}`);
-};
 
 // Starter cards carry base stats, so a pick is not a coin flip.
 const starterStats = await phone.locator('.starter .statline__stat').count();
