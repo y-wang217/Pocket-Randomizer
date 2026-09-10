@@ -553,13 +553,44 @@ at every segment. Sizing opponents against the ceiling instead of the measuremen
 is the largest single finding of the Stage 4 balance pass, pointed the other way.
 
 `EXPECTED_PARTY_SIZE` moved from `[1, 2, 2, 3, 3, 3, 3, 3]` to
-`[1, 2, 2, 3, 4, 4, 5, 5]`. **Segments 0 to 3 are unchanged to the number**, so
+`[1, 2, 2, 3, 4, 4, 5, 6]`. **Segments 0 to 3 are unchanged to the number**, so
 the early benchmark rows stay comparable across the patch and a move in them
-means something other than this landed. The four rows that did move track the
-schedule one unlock behind it, because a slot is capacity and filling it takes a
-wild encounter — one guaranteed per segment, and decliners exist. That lag is a
+means something other than this landed. The four rows that did move extend the
+*rate* the original rows measured — `[1, 2, 2, 3]` is about seven tenths of a
+Pokemon per segment, not one, because filling a slot takes a wild encounter and
+players decline — which carried on from 3 gives 3.7, 4.4, 5.1, 5.8. That lag is a
 *claim*, and the simulator's `party.sizeBySegment` section is what holds it to
 account: it prints the measured party beside this column, segment by segment.
+
+### The finding the clamp produced, which is the one thing here worth arguing about
+
+`opponentTeamSize` is `min(MAX_TEAM_SIZE, expectedPartySize + advantage)`, and
+`MAX_TEAM_SIZE` is **6 because that is the engine's hard limit on a side**. A
+schedule whose ceiling is also 6 therefore spends the gym's team advantage down
+to nothing at the end of the run:
+
+| segment | gym advantage before 4.8 | after |
+|---|---|---|
+| 0–4 | +0, +0, +1, +1, +1 | unchanged |
+| 5 | +2 | +2 |
+| 6 | +2 | **+1** |
+| 7 | +2 | **+0** |
+
+At the last gym both sides field six. That is in direct tension with Stage 3's
+largest finding — team size is the dominant lever, and *the number that matters is
+the difference, not the count* — and with item 1's own intent that the last two
+gyms be played at full width, since the opponent cannot match a width of six. The
+levers that would compensate are levels and band windows, which Stage 4.8 puts out
+of scope.
+
+It is **recorded rather than fixed here**, because the fix is a number the review
+owns: a ceiling of 5 keeps +1 at every gym, at the cost of the party of six. The
+assertion in `test/randomizer.test.ts` pins the current behaviour and names the
+condition under which it reverts, so the decision cannot be lost.
+
+It was also the first cut's silent bug and that test caught it: the back half
+originally ended at 5, which left the curve assuming a party narrower than the
+schedule grants even before the clamp was considered.
 
 ### What did not move
 

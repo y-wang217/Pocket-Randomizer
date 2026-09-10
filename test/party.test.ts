@@ -407,9 +407,14 @@ function collector(): RunPolicy & { readonly taken: number; readonly released: n
     // everything.
     chooseMoveRecipient: async (_offer, party) => party.length - 1,
     chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
-    chooseAcquisition: async (_offer, party) => {
+    /*
+     * Stage 4.8: the capacity the run hands in, not the width it started at.
+     * Against the opening width this policy asks to release from a party that
+     * has room the moment a gym unlocks a slot, and the run refuses it.
+     */
+    chooseAcquisition: async (_offer, party, capacity) => {
       taken++;
-      if (party.length < OPENING_SLOTS) return { kind: 'accept' };
+      if (hasRoom(party, capacity)) return { kind: 'accept' };
       released++;
       return { kind: 'release', slot: party.length - 1 };
     },
@@ -750,8 +755,10 @@ describe('a full eight-gym run, headless', () => {
       },
       chooseMoveRecipient: async (_offer, party) => party.length - 1,
       chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
-      chooseAcquisition: async (_offer, party) =>
-        hasRoom(party, OPENING_SLOTS) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
+      // Stage 4.8: live capacity, or a run that unlocks a slot starts refusing
+      // this policy's answers partway through.
+      chooseAcquisition: async (_offer, party, capacity) =>
+        hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
     };
   }
 
@@ -830,7 +837,15 @@ describe('a full eight-gym run, headless', () => {
     expect(run.state.party[0]?.spec.level).toBe(playerLevel(SEGMENTS_PER_RUN - 1));
     expect(acquisitions.length, 'never acquired').toBeGreaterThan(0);
     expect(releases.length, 'never released').toBeGreaterThan(0);
-    expect(run.state.party.length).toBe(OPENING_SLOTS);
+    /*
+     * **Stage 4.8: the capacity the run ended at, not the width it began at.**
+     *
+     * A run that clears seven gyms has unlocked every slot, so `everything()`
+     * fills six rather than three. Asserting the opening width here would have
+     * been asserting that the slot schedule does not work.
+     */
+    expect(run.state.party.length).toBe(partyCapacity(run.state));
+    expect(run.state.party.length).toBeGreaterThan(OPENING_SLOTS);
   });
 
   it('ends in victory when the last gym falls', () => {

@@ -52,7 +52,6 @@ import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { TIER_INFO } from '../../data/tierInfo';
-import { nextSlotUnlock } from '../../data/partyTuning';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
 import { el } from '../scene';
 import { tierBadge } from './reward';
@@ -433,21 +432,19 @@ function renderWallet(state: RunState): HTMLElement {
 /**
  * The party's own heading, with the way into the party screen.
  *
- * **States the next unlock plainly, and says nothing about it. Stage 4.8, item 1.**
- * "Party 3 / 4 · next slot at gym 4" is three attributes of the present board:
- * what you have, what you can hold, and when that changes. Part 4 governs the
- * sentence that is *not* here — nothing about whether a slot is worth saving, or
- * whether the player should be catching more, because that is the decision the
- * readout exists to inform rather than to make.
+ * **Reads the run's live slots. Stage 4.8, item 1.** A constant here would show
+ * `3 / 3` to a player who has just been granted a fourth slot.
  *
- * The clause disappears at the ceiling rather than reading "no more slots", which
- * would be a line about an absence on every screen for the last two gyms.
+ * The *next* unlock is not stated here yet, deliberately: item 1 asks for "Party
+ * slots: 4. Next slot at Gym 6." on the map or the result screen, and that is a
+ * new sentence on a screen rather than a call site reading the right number. The
+ * patch's own order of work puts all UI in step 7, so `nextSlotUnlock` ships in
+ * `data/partyTuning.ts` with its tests and nothing renders it until then.
  */
 function renderPartyHeader(size: number, state: RunState, onManage: () => void): HTMLElement {
   const row = el('div', 'party__header');
   const label = el('span', 'party__wallet-label');
-  const next = nextSlotUnlock(gymsCleared(state));
-  label.textContent = `Party ${size} / ${partyCapacity(state)}${next ? ` · next slot at gym ${next.atGym}` : ''}`;
+  label.textContent = `Party ${size} / ${partyCapacity(state)}`;
   const manage = document.createElement('button');
   manage.type = 'button';
   manage.className = 'button button--small';

@@ -30,7 +30,6 @@ import { greedyAiPolicy } from '../src/core/battle/ai';
 import { hasRoom, joinLevelFor } from '../src/core/acquisition';
 import { playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 import type { PokemonState } from '../src/core/types';
-import { partyCapacityAfter } from '../src/data/partyTuning';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
@@ -42,8 +41,19 @@ function catcher(): RunPolicy {
       const wild = options.findIndex((option) => option.kind === 'wild');
       return wild === -1 ? 0 : wild;
     },
-    chooseAcquisition: async (_offer, party) => {
-      if (hasRoom(party, partyCapacityAfter(0))) return { kind: 'accept' };
+    /*
+     * **Reads the capacity `playRun` hands it. Stage 4.8, item 1.**
+     *
+     * This policy asked `partyCapacityAfter(0)` for one commit, and the run
+     * refused its answers: at a party of three with five slots unlocked it
+     * reported no room and asked to release somebody, and `decisionRefusal`
+     * threw `party has room, so nothing needs releasing`. That is the bug item 1
+     * exists to prevent, reproduced in a fixture, and the throw is the guard
+     * working — a decision that silently became a different decision would be a
+     * log that replays into a different run.
+     */
+    chooseAcquisition: async (_offer, party, capacity) => {
+      if (hasRoom(party, capacity)) return { kind: 'accept' };
       let lowest = 0;
       party.forEach((member, index) => {
         if (member.spec.level < (party[lowest]?.spec.level ?? 0)) lowest = index;

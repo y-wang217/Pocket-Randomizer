@@ -584,7 +584,7 @@ function shift(bands: readonly number[], by: number, ceiling: number): readonly 
  * levels and the band windows, where a balance pass can see it, not in a
  * mis-stated premise.
  */
-const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 5];
+const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 6];
 
 /*
  * **Stage 4.8 moved the back half of that table, and only the back half.**
@@ -599,10 +599,19 @@ const EXPECTED_PARTY_SIZE: readonly number[] = [1, 2, 2, 3, 4, 4, 5, 5];
  *
  * Segments 0 to 3 are **unchanged, to the number**, so the early benchmark rows
  * stay comparable across the patch and a change in them is attributable to
- * something else. The four rows that moved track the schedule one unlock behind
- * it, because a slot is capacity and filling it takes a wild encounter — there
- * is one guaranteed per segment and a player may decline it, which is the same
- * lag the original rows measured when the ceiling was three.
+ * something else. The four rows that moved extend the *rate* the original rows
+ * measured rather than inventing one: `[1, 2, 2, 3]` is roughly seven tenths of
+ * a Pokemon per segment, not one — a slot is capacity and filling it takes a
+ * wild encounter, there is one guaranteed per segment, and players decline.
+ * Carried on from 3 at segment 3 that rate gives 3.7, 4.4, 5.1, 5.8, which is
+ * the 4, 4, 5, 6 below.
+ *
+ * **The last row reaches the ceiling, and that is load-bearing rather than
+ * rounding.** `test/randomizer.test.ts` asserts that by the final segment the
+ * curve assumes a full party and the final gym still fields more than it; a row
+ * of 5 against a ceiling of 6 would have quietly retired that claim and made the
+ * endgame easier than the schedule intends, which is the opposite of what growth
+ * is for. The first cut of this table did end at 5 and that test caught it.
  *
  * It is still a *claim*, and still held to account by the simulator's
  * `party.sizeBySegment` section, which prints the measured party beside this

@@ -84,6 +84,44 @@ and fails on any byte that differs. Heights are compared by
   (`MoveUiView.powerBand`) is not recorded by `baseline.ts`, which serializes
   run state and protocol rather than the view.
 
+- **2026-09-10, Stage 4.8 step 2.** `runs/` and `data-digest.txt` re-recorded.
+  **Not a visual stage, and that is the whole reason this entry exists.** This
+  file's rule is that every visual stage diffs against this directory and never
+  regenerates it, because a presentation change cannot move these bytes. Stage 4.8
+  item 1 is a content change that moves them on purpose: party slots became a
+  function of gyms cleared, `scaling.expectedPartySize` reads that schedule as its
+  cap, and opponent team sizes are a function of the result — so seeded output
+  moves and `RANDOMIZER_VERSION` goes to `gymrun-randomizer-13` in the same
+  commit. The precedent is the PR #10/#12 entry above, where `main` moving seeded
+  output was handled the same way.
+
+  **Three of the six runs changed only the version stamp, and that is the finding
+  rather than a footnote.** `SEED-B` clears no gyms, `GYMRUN01` and `SEED-A` clear
+  one; the first slot unlock is at gym 2, so the schedule cannot reach them — and
+  it did not, to the byte. The three that moved all clear three or four gyms:
+
+  | run | gyms | party before | party after |
+  |---|---|---|---|
+  | `SEED-B` | 0 | 1 | 1 (version stamp only) |
+  | `GYMRUN01` | 1 | 3 | 3 (version stamp only) |
+  | `SEED-A` | 1 | 3 | 3 (version stamp only) |
+  | `RESULT-1` | 3 | 3 | 4 |
+  | `SMOKE24` | 4 | 3 | 5 |
+  | `RESULT-0` | 4 | 3 | 5 |
+
+  `test/fixtures/sim-report.json` says the same thing independently: of its three
+  seeds, `FIXTURE-BRAVO` dies at gym 1 and is byte identical, and the two that
+  clear past gym 2 field five where they fielded three. Two instruments, the same
+  boundary.
+
+  `data-digest.txt` moves because `src/data/partyTuning.ts`, `scaling.ts` and
+  `tuning.ts` all changed. **`heights.json` is not re-recorded and must not be**:
+  step 2 is a no-UI step and the one thing it touches on a screen is the party
+  header reading live slots instead of a constant, which at the opening width is
+  the same `3 / 3` it printed before. The map's next-unlock readout item 1 asks
+  for is step 7's, with the rest of the UI. `bundle.json` is not re-recorded
+  either, per this file's own rule.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.
