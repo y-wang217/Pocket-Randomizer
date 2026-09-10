@@ -340,7 +340,13 @@ export function mountApp(root: HTMLElement): void {
       const state = live;
       if (!state) return;
       partyScreen.render(
-        { party: state.party, backpack: state.backpack, tuning: state.tuning, plan: pendingPlan },
+        {
+          party: state.party,
+          backpack: state.backpack,
+          relics: state.relics,
+          tuning: state.tuning,
+          plan: pendingPlan,
+        },
         {
           /*
            * Both of these drop the pending plan, and they have to.

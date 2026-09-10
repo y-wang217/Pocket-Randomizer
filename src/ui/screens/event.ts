@@ -14,7 +14,8 @@
  * result — "could be anything, could be something that bites" is a decision;
  * saying nothing at all is a coin flip with extra steps.
  */
-import { describeOutcome, type EventInstance, type EventOutcome } from '../../core/events';
+import { describeOutcome, outcomeAt, type EventInstance, type EventOutcome } from '../../core/events';
+import { resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
 import { el } from '../scene';
 
@@ -38,6 +39,15 @@ export function createEventScreen(): EventScreen {
   return {
     root,
     render(event, state, onDone) {
+      /*
+       * The band this run is at, read once when the screen opens.
+       *
+       * It selects which of the three drawn outcomes this event pays. Read
+       * here rather than per click so that the answer cannot change between
+       * rendering the buttons and revealing the result — the run does not move
+       * while this screen is open, but reading it once says so.
+       */
+      const band = resolveCapability(state, event.requires);
       void state;
       prompt.textContent = event.prompt;
       result.hidden = true;
@@ -70,8 +80,9 @@ export function createEventScreen(): EventScreen {
           button.classList.toggle('event__choice--taken', i === index);
         }
 
-        const outcome = el('p', `event__outcome event__outcome--${toneOf(choice.outcome)}`);
-        outcome.textContent = describeOutcome(choice.outcome);
+        const paid = outcomeAt(choice, band);
+        const outcome = el('p', `event__outcome event__outcome--${toneOf(paid)}`);
+        outcome.textContent = describeOutcome(paid);
 
         const carry = document.createElement('button');
         carry.type = 'button';

@@ -125,7 +125,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  *
  * It is the bump the whole refactor was done to spend *once*. 4.6b and 4.6c add
  * draws under new keys and inside existing ones, and neither can move a draw
- * this version stamps — see `gymrun-seeds-and-mappability.md` for why that is a
+ * this version stamps — see `docs/spec/gymrun-seeds-and-mappability.md` for why that is a
  * property of the construction rather than a promise.
  *
  * The rest of 4.6a rides on the same 7: locales narrow the wild species pool,
@@ -141,8 +141,46 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * picking four moves out of one flat window. The third is the one that moves
  * draws: every slot costs a band draw it did not cost before, so every roll
  * after the first moveset in a seed sits somewhere new.
+ *
+ * Went to 9 for admitting Cut and Flash ahead of Stage 4.6c, on the argument
+ * that a capability is only a decision if the move proving it costs something
+ * to carry. Two rows added to two generated tables — but the pools are sorted
+ * by id and a moveset draws an *index* into them, so `cut` renumbered every
+ * damaging move after it and every seed rolled different movesets from the
+ * first Pokemon onward.
+ *
+ * Went to 10 taking them back out, and this one needs saying carefully.
+ *
+ * Capabilities are satisfied by **relics** now — permanent, run-scoped, passive
+ * objects that occupy no move slot — so there is no such thing as a capability
+ * move, and the argument that admitted Cut and Flash no longer exists. They are
+ * ordinary nonstandard moves again and the generator excludes them again.
+ *
+ * **The tables that produces are byte-identical to version 8's.** They are not
+ * version 8. A seed recorded under 8, 9 or 10 was recorded against a different
+ * game, and the fact that two of those three happen to share a move table is a
+ * coincidence of arithmetic, not a statement about the run: `RUN_LOG_VERSION`
+ * has moved since, the level offsets have moved since, and a version string
+ * that went backwards to reuse a number would make two distinct content states
+ * indistinguishable — which is the single failure this axis exists to prevent.
+ * The number only ever goes up. It is a name, not a hash.
+ *
+ * Rock Smash, Strength, Surf and Waterfall were never touched by any of this.
+ * They are standard gen 9 moves, they stayed in the damaging pool throughout,
+ * and they are ordinary moves with no second meaning.
+ *
+ * Went to 11 in Stage 4.6c for relics. Reward pool composition changed — the
+ * elite and gym tables carry a `relic` entry now, and the later shop band
+ * stocks one — so the weighted pick at every offer in the game lands
+ * somewhere new, and a relic card costs a shuffle and a fallback draw on top.
+ * Every reward roll moves; nothing else about what a Pokemon *is* changed.
+ *
+ * `RUN_LOG_VERSION` deliberately did **not** move with it. Taking a relic is
+ * an ordinary card pick, so no question was added and no question moved — the
+ * two axes disagreeing here is the two axes working. See its comment in
+ * `core/run.ts` for the other half of that argument.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-8';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-11';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

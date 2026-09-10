@@ -34,7 +34,7 @@
  *     hold is that a given key draws the same things in the same order, which
  *     is a local property of one function rather than a whole-file contract.
  *
- * `gymrun-seeds-and-mappability.md` is the long form, including why 4.6b and
+ * `docs/spec/gymrun-seeds-and-mappability.md` is the long form, including why 4.6b and
  * 4.6c should not need a `randomizerVersion` bump between them.
  *
  * The separator between the stream name and the key is `#`, which appears in

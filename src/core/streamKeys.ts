@@ -28,7 +28,7 @@
  * add draws *inside* a key that already exists, or under a new key. The first
  * moves only that node's own later draws in that one purpose; the second moves
  * nothing. Neither can reach the map shape, the teams or the battle seeds.
- * `gymrun-seeds-and-mappability.md` is the long form of that argument.
+ * `docs/spec/gymrun-seeds-and-mappability.md` is the long form of that argument.
  */
 
 /** The starter options, drawn once per run before the map. */

@@ -173,4 +173,5 @@ const KIND_LABELS: Record<Reward['kind'], string> = {
   heal: 'Restore',
   tm: 'TM',
   tutor: 'Move tutor',
+  relic: 'Relic',
 };

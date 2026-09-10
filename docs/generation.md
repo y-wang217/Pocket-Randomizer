@@ -40,7 +40,7 @@ below stay in the same order.
 no longer one sequence per run: `rng.map.at('seg3/cave/route')` is a sequence of
 its own, derived from the seed, the stream name and the key, and independent of
 every other key. `src/core/streamKeys.ts` is the namespace and
-[`gymrun-seeds-and-mappability.md`](../gymrun-seeds-and-mappability.md) is the
+[`gymrun-seeds-and-mappability.md`](spec/gymrun-seeds-and-mappability.md) is the
 argument.
 
 Three things follow, and the third is the reason the stage did it:
@@ -494,101 +494,221 @@ moved band window, a changed level curve, a new draw inside `rollMoveset`, a
 reordered data table. It went to `-2` on the first balance pass, where not one
 draw changed position and every seed rolled a different team anyway.
 
----
+## 8. Capabilities, and why `latent` is not a learnset
 
-## 2026-09-09 — Stage 4.6c, checkpoint 0: capability tables
+> **Superseded 2026-09-10. Kept because the measurements are still good.**
+>
+> Capabilities have been designed three times. Both earlier versions are still
+> in `docs/spec/`, and both are wrong.
+>
+> **Version 1 — HMs as items** (original Stage 4.6c Part C). A separate item
+> class: permanent, exempt from backpack capacity, taught into a move slot.
+> Retired because it needed a teaching flow, a legality table, and a
+> build-config artifact to answer which species could legally learn what.
+>
+> **Version 2 — HMs as ordinary moves** (QoL rev2 §7, and what the section
+> below describes). Capability moves join the general move pools and band
+> normally; `known` means a party member has the move slotted. Retired because
+> it made capability value track move quality. Surf is a move a player keeps
+> anyway, so Surf gates resolved `known` constantly and cost nothing; Cut is a
+> move nobody keeps, so Cut gates resolved `none` constantly and were passable
+> only by luck. The premise the whole mechanic rested on — that a utility slot
+> is a real sacrifice — held for one half of the capability list and collapsed
+> for the other, and the same mechanic behaving oppositely depending on which
+> move it names is not a mechanic.
+>
+> **Version 3 — capabilities as relics** (current). A capability is granted by
+> a permanent, run-scoped, passive object that occupies no move slot, costs no
+> backpack capacity, is never displaced and is never taught. It grants one
+> capability and carries one small always-on effect for the rest of the run.
+> Chosen over a third variation of the same idea because accumulating passives
+> that are not always applicable are the thing that makes a roguelike run feel
+> like it is building toward something: a relic that does nothing in six fights
+> and wins the seventh is a better object than a move slot that is dead weight
+> in all seven.
+>
+> So there is no such thing as a capability move, and **knowing a
+> capability-named move grants nothing** — Surf-the-move and
+> Surf-the-capability are unrelated systems that share a name. The `known` band
+> as described below is wrong, and the slots-before-types ordering it justified
+> is moot, because relics are neither slots nor types. `resolveCapability` now
+> takes a `RunState` rather than a party, because a relic belongs to the run.
+>
+> The type table survives intact, moved from `data/capabilityTypes.ts` to
+> `data/capabilities.ts`, and still answers `latent`. Nothing measured here is
+> lost.
+>
+> Two things below stay true and are the reason this section was not deleted.
+> The first is the learnset investigation: the 12.8 kB measurement, the prevo
+> finding, the generation-source finding, and the argument that legality is the
+> wrong question for a game that runs Custom Game. All of it applies to any
+> future scheme that wants to ask what a Pokemon could learn. The second is the
+> type-affinity ranking the table was derived from, which is real data about the
+> games and cost a dex query to produce.
+>
+> The admission of Cut and Flash to the move pools, which this section's
+> reasoning led to, was reverted the same day for the same reason: no move
+> proves a capability, so neither move has any special claim on a pool slot.
+> `RANDOMIZER_VERSION` went to 9 admitting them and to 10 removing them. See
+> `docs/engine-notes.md` for the durable half of that work — the engine will run
+> a move the current generation calls nonstandard, which is a fact worth keeping
+> even though the feature that needed it is gone.
+>
+> Under version 3 those two moves are back to being ordinary moves excluded by
+> ordinary curation rules, with no relationship to capabilities whatsoever.
 
-Capabilities are the 4.6c gate mechanic: an event asks for Cut, and the party
-answers `known`, `latent` or `none`. This entry records two deviations from the
-4.6 amendment, both taken deliberately, and one deferral.
+Stage 4.6c gates some routes on a capability — Surf, Fly, Cut and five others.
+A party reads at one of three bands for each: `known` if a member has the move
+in a slot, `latent` if nobody has it but somebody could plausibly carry it,
+`none` otherwise. `core/capabilities.ts` resolves it; `data/capabilityTypes.ts`
+holds the table.
 
-### `latent` is type-based, and there is no generated learnset table
+`known` needs no table. `latent` is the one that had to be decided, and the
+obvious answer was a real gen 7 learnset: ask the dex which species can
+legally learn Surf, and let a party of eligible species read `latent`.
 
-The amendment's `latent` was "some party member could legally learn the move",
-which implies a generated `hmLearnsets.ts`. That was built as far as a
-measurement — 12.8 kB over the reachable species pool — and rejected.
+**That was built as far as measuring it, and then rejected.** The measurements,
+so the decision can be re-opened on evidence rather than re-derived:
 
-Move legality is already fiction here: the randomizer hands moves to species
-that cannot learn them, and `core/battle/format.ts` runs Custom Game precisely
-so no validator objects. A learnset-derived `latent` would be the one place in
-the game where legality counted, and it would disagree with the moveset on the
-party screen. A type is also legible — the party screen shows every member's
-types and the map shows a locale's four — so a player can predict the answer
-before the event asks.
+- A generated table keyed by capability over the 635 species reachable through
+  `speciesPools.ts`, `starters.ts` and `locales.ts` costs **12.8 kB** of source.
+  The full national dex costs 26.2 kB. Size was never the problem.
+- It needs a codegen script, because the bundle has no learnsets: the Vite
+  plugin in `build-config/trim-sim-data.ts` strips them, correctly, and turning
+  that off to answer a map-screen question would trade ~5 MB for one band.
+- It needs a prevo walk. A species learnset entry holds only that species' own
+  moves, so Raichu resolves `none` for Surf and for Fly without one — both sit
+  on Pikachu. Kleavor inherits Cut from Scyther, Annihilape Strength from
+  Primeape. This is not an edge case; it is most of the third stage of the pool.
+- It needs a generation filter. `Dex.forGen(7)` and `Dex.mod('gen7')` return the
+  *same* modern learnset table, with sources tagged per generation
+  (`gyarados.surf → ['9M','8M','8V','7M','7V','6M','5M','4M','3M']`), so a
+  plain `!!learnset[move]` answers yes for moves only learnable in gen 8 or 9.
+- It needs a drift test, byte-identical against a regenerated table, because a
+  dependency bump that quietly moves a species between bands is exactly the
+  failure this project spends effort preventing elsewhere.
 
-There is a third reason worth recording because it is easy to rediscover the
-hard way: `build-config/trim-sim-data.ts` strips the learnset tables from the
-bundle, about 450 kB gzipped, and `test/trimmed-data.test.ts` holds the build to
-never reading them. A learnset-based `latent` would have put them back.
+None of that is prohibitive. The reason it was dropped is that **legality is
+the wrong question for this game.** GYMRUN runs Custom Game specifically so the
+randomizer can hand the engine a Magikarp with Levitate and Boomburst. Move
+legality is not a rule this project enforces; it is a rule it exists to break.
+A `latent` band read off a legality table would be the single place in the game
+that asked whether a Pokemon is *allowed* to know something, and it would have
+answered out of a table nothing else consults.
 
-So `data/capabilityTypes.ts` maps each capability to the types that satisfy it.
-No generator, no codegen artifact, no drift test.
+It is also worse to play against. A player who sees a Water type pass a Surf
+gate has learned the rule. A player who sees one specific Water type fail it
+has learned only that there is a table they cannot see.
 
-### Capability moves are an overlay, not a regeneration
+So `latent` is type-based, and the type sets were derived from the gen 7
+learnsets rather than invented — queried once, offline, ranked by which types
+can actually learn each move, then edited where the ranking was an artifact
+rather than a theme. `data/capabilityTypes.ts` carries both the ranking and the
+edits, and names the one lever that was deliberately not pulled: `surf`,
+`waterfall` and `dive` are all Water alone, so one type clears three of the
+eight gates. 4.6c ships the simulator's per-band gate pass rate, which is the
+instrument that would say whether that needs splitting. Splitting it first
+would be guessing.
 
-The amendment said capability moves join `data/movePools.ts`. That file is
-generated and its first line forbids hand-editing, so as written it could only
-have meant relaxing the filters in `scripts/gen-pools.ts` and regenerating.
-That is not what happened, for two reasons.
+**Slots are checked before types**, and the order is load-bearing rather than
+an optimisation: teaching a capability move always yields `known`, whatever the
+member is. A fix the map screen offered and the party screen refused for some
+species would be a broken promise, and it is exactly what a legality-based
+`latent` would have produced. `test/capabilities.test.ts` asserts it as a
+property across all eight capabilities, from both prior bands.
 
-The exclusions that drop these moves are correct. Cut is `isNonstandard:
-'Unobtainable'` in gen 9 and Flash is `'Past'` — dex hygiene worth keeping
-through every future regeneration. Fly and Dive, **cut from the capability set
-entirely**, carry `flags.charge`, excluded because @smogon/calc scores one turn
-of a two-turn move; relaxing a filter that protects a number in the balance
-report in order to reach two moves is a bad trade.
+The decision is not scheduled for revisiting. If it is revisited, the numbers
+above are the starting point.
 
-And a regenerated pool feeds `rollMoveset`, so every trainer and gym leader
-would start rolling Cut and Flash. On an opponent both are close to a wasted
-slot, which makes an encounter easier for a reason the player cannot see and the
-report cannot attribute. The mechanic only has a cost if the moves nobody keeps
-are offered to the *player*.
+## 9. `contentHash`, deferred
 
-`data/capabilityMoves.ts` is therefore an overlay drawn by reward offers, shop
-stock and starter preslots and by nothing else. It is a **delta**: Rock Smash,
-Strength and Surf are already in `DAMAGING_MOVES`, so the file carries two rows,
-Cut and Flash. `bandOfMove` searches the generated pool first and the overlay
-second, so a capability move bands and displaces exactly like any other move —
-the amendment's actual intent — and a future regeneration that brought Cut
-through would take over silently.
+`gymrun-seeds-and-mappability.md` specifies a `contentHash` computed over the
+data tables, replacing the hand-bumped `RANDOMIZER_VERSION`, plus seed strings
+that carry that hash and a `previewRun` that builds a map without playing it.
+None of the three is built. `RANDOMIZER_VERSION` is still hand-edited, and the
+`hmLearnsets.ts` that would have been the first entry on the hash's file list
+is not being built either.
 
-Both play correctly in `gen9customgame`: Custom Game applies no team validator,
-so `isNonstandard` keeps a move out of the generator without keeping it out of
-the engine. @smogon/calc scores both, so the greedy AI ranks them normally.
+They are **their own release, scheduled after 4.6c and before the freeze**, for
+the reason the seeds document gives: the freeze stamps a `contentHash` as the
+first shareable baseline, and it cannot be stamped without one. They are
+deliberately not bundled into a data-generation step — a hash mechanism built
+as a side effect of shipping a table is a mechanism nobody reviewed.
 
-### The set is five, and every one is reachable
+Until then the hand bump stands, with the failure mode the seeds document names
+and this paragraph does not solve: a forgotten bump silently reinterprets a
+shared seed. `docs/keyed-streams.md` tracks what is missing.
 
-| capability | move | band | satisfying types | locales offering one |
-|---|---|---|---|---|
-| `cut` | Cut | 1 | Grass, Bug | forest, marsh |
-| `flash` | Flash | status (`pressure`) | Electric, Fire, Fairy | city, ruins, badlands |
-| `rockSmash` | Rock Smash | 1 | Fighting, Rock | cave, summit, forest, badlands |
-| `strength` | Strength | 3 | Fighting, Steel | cave, forest, badlands |
-| `surf` | Surf | 3 | Water | shore, marsh |
 
-Every capability is supplied by at least two locales, asserted rather than
-trusted in `test/capabilities.test.ts`. Two matters rather than one: a segment
-offers two or three locales and the player commits to one, so a capability
-reachable through a single locale would be a gate whose answer was fixed several
-steps earlier by a decision made for other reasons.
+## 10. Relics, and the shape of a capability gate
 
-Cut, Flash and Rock Smash are band 1 or status, so the starter preslot path
-works inside the existing `STARTER_MOVE_BANDS = [1]` rule and no exception to it
-is needed. A band-3 preslot would reintroduce the dead-card failure that
-`data/starters.ts` narrowed `[1, 2]` to `[1]` to prevent.
+Stage 4.6c, 2026-09-10. Section 8 above is the history of how this was decided
+and why the two earlier designs were retired; this is what shipped.
 
-### `known` pays an ordinary outcome — the encounter is deferred
+### The three bands
 
-Part C designed the `known` branch as a spawned encounter. It is descoped, and
-the reason is structural rather than preferential: `playNode` returns at
-`run.ts:1326` before any event handling, and `playRun` asks `chooseEventOption`
-at `run.ts:1129` *after* it has returned. An event that spawns a battle needs
-re-entry into `playNode`, which is a run state machine change — a second battle
-folded into one `NodeResult`, and a `RUN_LOG_VERSION` bump on an axis another
-branch owns.
+An event names exactly one capability and pays at one of three bands.
 
-So `known` pays an ordinary `EventOutcome`, a better one, from the same union,
-and the feature stays inside `core/events.ts` and `data/events.ts`. **`known`
-was not designed as an item payout** — it is an encounter deferred to a stage
-that builds `playNode` re-entry for its own sake. The comment at `run.ts:1273`
-stays true as a note about that future stage.
+- **`known`** — the run holds a relic granting it. An encounter: a Pokemon
+  offered with no fight in front of it, through the mechanism built for band 3.
+- **`latent`** — no relic, but a party member's species carries a satisfying
+  type. A real payout.
+- **`none`** — neither. A small payout, and never nothing. A player who cannot
+  answer the requirement is unrewarded, not punished: an event that cost a run
+  something for a routing decision made four segments earlier and now
+  un-makeable would be a node the player can only lose at.
+
+**Nothing a Pokemon knows grants a capability.** A party member holding Surf
+does not make `surf` read `known`. Surf-the-move and Surf-the-capability are
+unrelated systems that share a name, and if that confuses a playtester the fix
+is to rename the capabilities rather than to reconnect them — reconnecting them
+is exactly the version-2 design that failed.
+
+### All three outcomes are drawn, one is used
+
+Every band's outcome is drawn when the map is built, and the band selects
+between them at resolution. This is the rule the feature rests on: **RNG
+consumption is identical regardless of which band applies.** If the band were
+consulted before drawing, two players on the same seed with different parties
+would diverge on a roll neither of them made, and a seed would stop describing
+one run.
+
+`test/event-bands.test.ts` asserts it directly rather than arguing it: two runs
+on one seed, one holding every relic and one holding none, generate
+byte-identical events.
+
+The same rule governs relic *offers*, from the other direction. A relic already
+held must never be offered again, but what a run holds is unknown when the map
+is built — so a relic card is drawn abstract (a shuffled relic order, plus an
+ordinary fallback card from the same pool) and collapsed at resolution by
+`concreteReward`. Filtering at draw time would have made a relic taken in
+segment 2 silently move every reward roll after it.
+
+### Where relics come from
+
+Elite and gym reward pools, and the later shop shelf. **There is no tier check
+anywhere in the code**: relics are elite-and-gym-only because those are the only
+tables carrying a `relic` entry, which is how every other tier restriction in
+`data/rewardPools.ts` already works. Putting one in the normal pool would
+decouple relics from the risk gradient Stage 3 exists to protect.
+
+Taking one is an ordinary card pick and adds no logged decision. That is why
+`RUN_LOG_VERSION` did not move for this stage while `RANDOMIZER_VERSION` did:
+the questions are unchanged, the answers mean something different.
+
+### The common-type skew, and the lever for it
+
+`latent` is satisfied by type, so capabilities keyed to common types resolve
+`latent` more often. Water is common and covers `surf`, `waterfall` and `dive`
+between them; Ghost and Dragon are not. Measured over 120 seeds the per-capability
+`latent` rate spreads roughly 29% to 50%.
+
+**This is corrected by how many events name each capability, in
+`data/events.ts`, and never by narrowing the type sets in
+`data/capabilities.ts`.** Narrowing those would make them say something false
+about the games in order to fix a different table's problem. The simulator
+reports a per-capability band split for exactly this purpose, and the report
+says so where it prints it.
+
+Today every capability is named by exactly one event, which is a flat starting
+point rather than a tuned one.

@@ -85,7 +85,23 @@ export type RewardEntry =
   /** The same mechanism, aimed higher. See the note on why both exist. */
   | { kind: 'tutor'; weight: number; bandOffset?: number }
   /** Restore this fraction of max HP and PP. */
-  | { kind: 'heal'; weight: number; fraction: number };
+  | { kind: 'heal'; weight: number; fraction: number }
+  /**
+   * A relic: a permanent capability grant. Elite and gym pools only.
+   *
+   * Carries no pool of ids. Which relic a card shows is decided at *offer
+   * resolution* rather than at draw time, because a relic already held must
+   * not be offered twice and what the run holds is not known when the map is
+   * built. `core/rewards.ts` does the filtering; the draw is invariant either
+   * way, so the filter cannot shift a later roll.
+   *
+   * **Absence from the normal and hard pools is the restriction.** There is no
+   * tier check anywhere in the code — a relic is elite-and-gym-only because
+   * those are the only two tables it appears in, which is how every other tier
+   * restriction in this file already works. Adding it to `NORMAL` would
+   * decouple relics from the risk gradient Stage 3 exists to protect.
+   */
+  | { kind: 'relic'; weight: number };
 
 /*
  * Every `tm` and `tutor` entry used to carry a `bandOffset` of at least 1, and
@@ -244,6 +260,7 @@ const ELITE: readonly RewardBand[] = [
     throughSegment: 2,
     entries: [
       { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
+      { kind: 'relic', weight: 4 },
       { kind: 'tutor', weight: 8 },
       { kind: 'currency', weight: 2, min: 62, max: 95 },
       { kind: 'heal', weight: 6, fraction: 1 },
@@ -253,6 +270,7 @@ const ELITE: readonly RewardBand[] = [
     throughSegment: 7,
     entries: [
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
+      { kind: 'relic', weight: 4 },
       { kind: 'tutor', weight: 8 },
       { kind: 'currency', weight: 2, min: 85, max: 135 },
       { kind: 'heal', weight: 7, fraction: 1 },
@@ -315,6 +333,7 @@ const GYM: readonly RewardBand[] = [
       // "strictly better than elite" needs one more. It clamps at the ceiling
       // in the late segments, where the pool's own premium items and larger
       // currency carry the strictness instead.
+      { kind: 'relic', weight: 5 },
       { kind: 'tutor', weight: 5, bandOffset: 1 },
       { kind: 'currency', weight: 3, min: 110, max: 165 },
     ],
@@ -323,6 +342,7 @@ const GYM: readonly RewardBand[] = [
     throughSegment: 7,
     entries: [
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
+      { kind: 'relic', weight: 5 },
       { kind: 'tutor', weight: 5, bandOffset: 1 },
       { kind: 'currency', weight: 3, min: 150, max: 230 },
     ],

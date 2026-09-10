@@ -28,7 +28,7 @@
  *     not every node's.
  *   - Reordering the passes is now a refactor rather than a break, which is
  *     precisely what makes 4.6b and 4.6c cheap. `core/streamKeys.ts` holds the
- *     namespace and `gymrun-seeds-and-mappability.md` holds the argument.
+ *     namespace and `docs/spec/gymrun-seeds-and-mappability.md` holds the argument.
  *
  * What has *not* changed is eagerness. Contents are still generated for every
  * option the player will never take, because the alternative makes the number
@@ -66,7 +66,7 @@ import {
   generateTrainerTeam,
   generateWildTeam,
 } from './randomizer';
-import { generateEncounterAcquisition, type AcquisitionOffer } from './acquisition';
+import { generateEncounterAcquisition, generateEventAcquisition, type AcquisitionOffer } from './acquisition';
 import { generateShopStock, type ShopStock } from './economy';
 import { generateEvent, type EventInstance } from './events';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
@@ -493,7 +493,27 @@ export function generateSegment(
     } else if (node.kind === 'shop') {
       node.shop = generateShopStock(node.id, index, rng.rewards.at(nodeRewardKey(node.id, 'shop')), tuning);
     } else if (node.kind === 'event') {
-      node.event = generateEvent(node.id, rng.rewards.at(nodeRewardKey(node.id, 'event')), tuning);
+      /*
+       * The capture sub-stream, finally used.
+       *
+       * Pass 5's comment predicted this: it kept the capture *key* alive
+       * against the day an offer needed a draw again. Band 3 is that day, and
+       * because the draw lands under `capture` rather than `event`, an event
+       * that offers a Pokemon consumes exactly as much of the `event` stream as
+       * one that does not. Adding this outcome kind moved no existing draw.
+       *
+       * Drawn from the segment's wild pool with no locale filter. An event
+       * Pokemon is not a route encounter — it did not come out of the terrain
+       * the player chose to walk through — so narrowing it to the locale's four
+       * types would be claiming a connection the fiction does not have.
+       */
+      const captureStream = rng.rewards.at(nodeRewardKey(node.id, 'capture'));
+      node.event = generateEvent(
+        node.id,
+        rng.rewards.at(nodeRewardKey(node.id, 'event')),
+        tuning,
+        () => generateEventAcquisition(node.id, index, captureStream, tuning),
+      );
     }
   }
 

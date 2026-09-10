@@ -27,6 +27,9 @@
  * offer.
  */
 
+import type { Capability } from './capabilities';
+import { BERRIES } from './items';
+
 /**
  * What an outcome does, before its randomised parts are drawn.
  *
@@ -42,7 +45,43 @@ export type EventOutcomeTemplate =
   | { kind: 'heal'; percent: number }
   /** One item, drawn from this pool of ids. */
   | { kind: 'item'; pool: readonly string[] }
+  /**
+   * A Pokemon on the table, take it or leave it.
+   *
+   * Carries no data: the spec is drawn at map generation, on the node's own
+   * `capture` sub-stream, and lands on the resolved `EventOutcome`. There is
+   * nothing here to tune because there is nothing here to choose — an event
+   * that offers a Pokemon offers whatever that node's segment would have
+   * produced.
+   */
+  | { kind: 'acquisition' }
   | { kind: 'nothing' };
+
+/**
+ * The outcome sets a choice carries, one per capability band.
+ *
+ * **All three are drawn at map generation and one is selected at resolution.**
+ * That ordering is the rule the whole feature rests on: if the band were
+ * consulted before drawing, RNG consumption would depend on the party, and a
+ * seed would stop describing one run. Two runs on the same seed with
+ * deliberately different parties draw byte-identically and differ only in
+ * which of the three already-drawn outcomes is used.
+ *
+ * The bands escalate, and the escalation is the design:
+ *
+ * - `none` — a minor payout. The event still resolves and still pays. A player
+ *   with nothing is unrewarded, not punished.
+ * - `latent` — a real payout. The party can improvise the job.
+ * - `known` — the encounter. A Pokemon, and an item that arrives whether or not
+ *   the Pokemon is taken.
+ */
+export interface BandedOutcomes {
+  none: readonly WeightedOutcome[];
+  latent: readonly WeightedOutcome[];
+  known: readonly WeightedOutcome[];
+}
+
+export type WeightedOutcome = { weight: number; outcome: EventOutcomeTemplate };
 
 /** One thing the player can do, and the outcomes it may produce. */
 export interface EventChoiceDefinition {
@@ -56,15 +95,68 @@ export interface EventChoiceDefinition {
    * decision; saying nothing at all is a coin flip with extra steps.
    */
   hint: string;
-  /** Weighted; exactly one is drawn at map generation. */
-  outcomes: readonly { weight: number; outcome: EventOutcomeTemplate }[];
+  /**
+   * The `latent` payout: weighted, exactly one drawn at map generation.
+   *
+   * Named `outcomes` rather than `latent` because it is the set every event in
+   * this file was authored against, and `latent` is the band a party lands on
+   * most often. The other two bands are derived from the shared tables below
+   * rather than written per choice — see `bandsFor`.
+   */
+  outcomes: readonly WeightedOutcome[];
 }
 
 export interface EventDefinition {
   id: string;
   prompt: string;
+  /**
+   * The one capability this event's payout scales with.
+   *
+   * Exactly one, never a set: a gate the player has to satisfy two ways is a
+   * gate they cannot read off the map, and the map shows the requirement.
+   *
+   * **How often each capability appears here is the tuning lever for the
+   * common-type skew.** Water and Flying are common types, so `surf`, `dive`,
+   * `waterfall` and `fly` resolve at `latent` more often than `flash` or
+   * `cut` do. That is corrected by how many events name each capability, not
+   * by narrowing the type sets in `data/capabilities.ts` — narrowing those
+   * would make them say something false about the games to fix a problem that
+   * belongs to this table. The simulator reports a per-capability `latent`
+   * rate, which is the measurement this weighting is set from.
+   */
+  requires: Capability;
   /** Two or three. One choice is not an event, it is a cutscene. */
   choices: readonly EventChoiceDefinition[];
+}
+
+/**
+ * The `none` payout, shared by every event.
+ *
+ * Small, and never nothing. An event a player cannot answer still pays,
+ * because the alternative is a node that punishes a run for a routing decision
+ * it made four segments ago and cannot now undo.
+ */
+const BERRY_POOL: readonly string[] = BERRIES.map((berry) => berry.id);
+
+const BAND_NONE: readonly WeightedOutcome[] = [
+  { weight: 4, outcome: { kind: 'item', pool: BERRY_POOL } },
+  { weight: 3, outcome: { kind: 'heal', percent: 0.15 } },
+  { weight: 3, outcome: { kind: 'currency', amount: 18 } },
+];
+
+/**
+ * The `known` payout, shared by every event.
+ *
+ * The encounter mechanism built in Stage 4.6c step 2's predecessor: a Pokemon
+ * offered with no fight in front of it. The item that comes with it is granted
+ * separately and unconditionally — `core/events.ts` says why declining still
+ * yields it.
+ */
+const BAND_KNOWN: readonly WeightedOutcome[] = [{ weight: 1, outcome: { kind: 'acquisition' } }];
+
+/** The three outcome sets for one choice. Two are shared; `latent` is authored. */
+export function bandsFor(choice: EventChoiceDefinition): BandedOutcomes {
+  return { none: BAND_NONE, latent: choice.outcomes, known: BAND_KNOWN };
 }
 
 /** Shorthand for a choice whose outcome is certain. */
@@ -91,6 +183,7 @@ const REAL_ITEMS: readonly string[] = ['leftovers', 'shellbell', 'muscleband', '
 export const EVENTS: readonly EventDefinition[] = [
   {
     id: 'abandoned-ball',
+    requires: 'flash',
     prompt: 'A dented Poke Ball sits in the long grass. Something is rattling inside it.',
     choices: [
       {
@@ -111,6 +204,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'roadside-berries',
+    requires: 'cut',
     prompt: 'Berries, heavy on the branch. You do not recognise the variety.',
     choices: [
       {
@@ -130,6 +224,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'toll-bridge',
+    requires: 'surf',
     prompt: 'A gatekeeper wants payment to cross. The river looks shallow enough.',
     choices: [
       {
@@ -152,6 +247,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'old-trainer',
+    requires: 'strength',
     prompt: 'An old trainer offers to run drills with you. She does not offer to go easy.',
     choices: [
       {
@@ -179,6 +275,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'hot-spring',
+    requires: 'dive',
     prompt: 'Steam rises off a pool tucked into the rocks. It smells strongly of sulphur.',
     choices: [
       {
@@ -198,6 +295,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'card-sharp',
+    requires: 'fly',
     prompt: 'A man with a folding table wants to bet you on which cup the coin is under.',
     choices: [
       {
@@ -217,6 +315,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'storm-shelter',
+    requires: 'rockSmash',
     prompt: 'The sky opens. There is a cave, and there is a longer road around it.',
     choices: [
       {
@@ -240,6 +339,7 @@ export const EVENTS: readonly EventDefinition[] = [
   },
   {
     id: 'scrap-heap',
+    requires: 'waterfall',
     prompt: 'A heap of discarded trainer gear behind a gym. Most of it is junk.',
     choices: [
       {

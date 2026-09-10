@@ -21,7 +21,8 @@
  * never played. That is the exact failure the whole replay design exists to
  * prevent.
  */
-import { applyReward, isTargeted, resolveRewardEntry, type Reward } from './rewards';
+import { applyReward, concreteReward, isTargeted, resolveRewardEntry, type Reward } from './rewards';
+import type { RelicId } from '../data/relics';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import type { NodeSpec } from './encounters';
@@ -122,7 +123,7 @@ export function generateShopStock(
     // A shop sells at `normal` tier bands: the shelf is a function of how far
     // into the run you are, not of the node you fought to get here. A shop node
     // has no tier of its own, so there is nothing else it could use.
-    const reward = resolveRewardEntry(chosen, segment, 'normal', stream, takenItems, takenMoves);
+    const reward = resolveRewardEntry(chosen, segment, 'normal', stream, takenItems, takenMoves, entries);
     if (!reward) continue;
 
     const signature = JSON.stringify(reward);
@@ -132,6 +133,28 @@ export function generateShopStock(
   }
 
   return { nodeId, segment, items };
+}
+
+/**
+ * A shelf with every relic collapsed against what the run already holds.
+ *
+ * The shop's half of `resolveOffer`, and it exists for the same reason: a
+ * relic card is drawn abstract at map generation, and the shelf a player is
+ * shown has to be the shelf that gets charged for. `playRun` calls this once
+ * and puts the result on the `NodeResult`, because a shop is read twice — once
+ * to ask what to buy and once to apply it — and resolving separately at each
+ * site is how the two would come to disagree the day a player buys a relic and
+ * the second resolution skips past it.
+ *
+ * Pure, no RNG, idempotent, and returns the stock unchanged when no relic is
+ * on the shelf.
+ */
+export function resolveStock(stock: ShopStock, relics: readonly RelicId[]): ShopStock {
+  if (!stock.items.some((item) => item.reward.kind === 'relic')) return stock;
+  return {
+    ...stock,
+    items: stock.items.map((item) => ({ ...item, reward: concreteReward(item.reward, relics) })),
+  };
 }
 
 // ---------------------------------------------------------------------------

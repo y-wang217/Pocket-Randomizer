@@ -26,13 +26,16 @@
  * that had to run a function to find out what a button does could not compare
  * two buttons, and the report's event numbers would be measuring a coin toss.
  */
+import type { AcquisitionOffer } from './acquisition';
 import { stow } from './items';
 import { recoverParty } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import { hpEventDelta } from './hpCopy';
 import { itemById } from '../data/items';
-import { EVENTS, type EventDefinition, type EventOutcomeTemplate } from '../data/events';
+import { EVENTS, bandsFor, type EventDefinition, type EventOutcomeTemplate } from '../data/events';
+import type { Capability } from '../data/capabilities';
+import type { CapabilityBand } from './capabilities';
 import type { Tuning } from '../data/tuning';
 
 /**
@@ -46,14 +49,35 @@ export type EventOutcome =
   | { kind: 'damage'; percent: number }
   | { kind: 'heal'; percent: number }
   | { kind: 'item'; item: string }
+  /**
+   * A Pokemon offered with no fight in front of it.
+   *
+   * The offer is a complete `AcquisitionOffer`, drawn at map generation like
+   * every other outcome, and it is handled by the run's **existing** capture
+   * step rather than by `applyEventOutcome` below. That is the whole design:
+   * `playRun` already asks `chooseAcquisition` once per node, after the event
+   * decision and before `resolveNode`, so an event-sourced offer reaches it by
+   * being visible to `acquisitionOffered` — not by opening a second path
+   * through which a node can complete.
+   */
+  | { kind: 'acquisition'; offer: AcquisitionOffer }
   | { kind: 'nothing' };
 
-/** One button on the event screen, with the outcome it is already bound to. */
+/**
+ * One button on the event screen, with all three of its outcomes already
+ * drawn.
+ *
+ * Three, not one, and **all three are drawn whatever the party looks like.**
+ * The band picks between them at resolution. Drawing only the band that
+ * applies would make RNG consumption a function of party state, and a seed
+ * would stop describing one run — two players on the same seed would diverge
+ * on a roll neither of them made.
+ */
 export interface EventChoice {
   label: string;
   /** Shown before picking. Says the shape of the risk, never the drawn outcome. */
   hint: string;
-  outcome: EventOutcome;
+  outcomes: Readonly<Record<CapabilityBand, EventOutcome>>;
 }
 
 /** An event as it exists on a generated map. */
@@ -61,7 +85,21 @@ export interface EventInstance {
   nodeId: string;
   eventId: string;
   prompt: string;
+  /** The capability whose band selects which outcome each choice pays. */
+  requires: Capability;
   choices: EventChoice[];
+}
+
+/**
+ * The outcome a choice pays at this band. **The single accessor.**
+ *
+ * Every consumer goes through it — the run's fold, the event screen, the
+ * simulator's scorer — so that "which of the three" is answered once. Two
+ * places indexing the record directly is two places for the band to be
+ * computed against a stale party.
+ */
+export function outcomeAt(choice: EventChoice, band: CapabilityBand): EventOutcome {
+  return choice.outcomes[band];
 }
 
 // ---------------------------------------------------------------------------
@@ -81,7 +119,12 @@ export interface EventInstance {
  * the event table would do anyway. What it must never do is shift `map`,
  * `randomizer` or `battle`, and it cannot: it never touches them.
  */
-export function generateEvent(nodeId: string, stream: RngStream, tuning: Tuning): EventInstance {
+export function generateEvent(
+  nodeId: string,
+  stream: RngStream,
+  tuning: Tuning,
+  offerPokemon: () => AcquisitionOffer | null = () => null,
+): EventInstance {
   void tuning;
   const definition = stream.pick(EVENTS);
 
@@ -89,11 +132,28 @@ export function generateEvent(nodeId: string, stream: RngStream, tuning: Tuning)
     nodeId,
     eventId: definition.id,
     prompt: definition.prompt,
-    choices: definition.choices.map((choice) => ({
-      label: choice.label,
-      hint: choice.hint,
-      outcome: resolveOutcome(drawOutcome(choice.outcomes, stream), stream),
-    })),
+    requires: definition.requires,
+    choices: definition.choices.map((choice) => {
+      /*
+       * Three draws per choice, in a fixed band order, every time.
+       *
+       * The order is `none`, `latent`, `known` and it is fixed because it is a
+       * draw order: reading it in a different order would reshuffle every
+       * recorded seed. Every band is drawn even though at most one is used,
+       * which is the whole point — the cost of an event is a function of its
+       * shape and never of the party standing in front of it.
+       */
+      const bands = bandsFor(choice);
+      return {
+        label: choice.label,
+        hint: choice.hint,
+        outcomes: {
+          none: resolveOutcome(drawOutcome(bands.none, stream), stream, offerPokemon),
+          latent: resolveOutcome(drawOutcome(bands.latent, stream), stream, offerPokemon),
+          known: resolveOutcome(drawOutcome(bands.known, stream), stream, offerPokemon),
+        },
+      };
+    }),
   };
 }
 
@@ -111,8 +171,29 @@ function drawOutcome(
   return outcomes[outcomes.length - 1]?.outcome ?? { kind: 'nothing' };
 }
 
-/** Collapse a template's remaining randomness. Only `item` has any. */
-function resolveOutcome(template: EventOutcomeTemplate, stream: RngStream): EventOutcome {
+/**
+ * Collapse a template's remaining randomness.
+ *
+ * `item` draws off the event's own stream, as it always has. `acquisition` does
+ * **not**: `offerPokemon` draws off the node's `capture` sub-stream instead, so
+ * adding or removing an acquisition outcome cannot shift a single one of this
+ * event's other draws. That is the keyed-stream discipline paying for itself —
+ * under the old sequential streams this outcome kind would have moved every
+ * reward draw after it in the run.
+ *
+ * A null offer degrades to `nothing` rather than throwing, for the same reason
+ * an empty item pool does: an event that cannot pay is a dull event, not a
+ * broken run.
+ */
+function resolveOutcome(
+  template: EventOutcomeTemplate,
+  stream: RngStream,
+  offerPokemon: () => AcquisitionOffer | null,
+): EventOutcome {
+  if (template.kind === 'acquisition') {
+    const offer = offerPokemon();
+    return offer ? { kind: 'acquisition', offer } : { kind: 'nothing' };
+  }
   if (template.kind !== 'item') return template;
   const available = template.pool.filter((id) => itemById(id));
   if (available.length === 0) return { kind: 'nothing' };
@@ -135,6 +216,20 @@ function resolveOutcome(template: EventOutcomeTemplate, stream: RngStream): Even
 export function applyEventOutcome(state: RunState, outcome: EventOutcome, tuning: Tuning): RunState {
   switch (outcome.kind) {
     case 'nothing':
+      return state;
+
+    /*
+     * Deliberately nothing, and this is the load-bearing line of the whole
+     * mechanism.
+     *
+     * The party change for an accepted capture is `applyAcquisition`, called
+     * once by `resolveNode` from `result.acquisition` — the same call that has
+     * handled every wild capture since 4.6a. Folding a second party change in
+     * here would mean an event-sourced Pokemon joined by a different code path
+     * than a wild one, and the first divergence between the two would be
+     * invisible. The offer travels; the application does not move.
+     */
+    case 'acquisition':
       return state;
 
     case 'currency':
@@ -202,6 +297,10 @@ export function describeOutcome(outcome: EventOutcome): string {
       return hpEventDelta(outcome.percent);
     case 'item':
       return itemById(outcome.item)?.name ?? outcome.item;
+    // The species and nothing else: what taking it costs is a party question,
+    // and the capture card is where the party is on screen to answer it.
+    case 'acquisition':
+      return outcome.offer.spec.species;
     case 'nothing':
       return 'Nothing happens';
   }

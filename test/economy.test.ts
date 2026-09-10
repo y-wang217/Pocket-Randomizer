@@ -344,8 +344,12 @@ describe('events', () => {
         expect(event.choices).toHaveLength(definition?.choices.length ?? 0);
         for (const choice of event.choices) {
           // Resolved: a concrete kind and a concrete payload, no pool left.
-          expect(describeOutcome(choice.outcome).length).toBeGreaterThan(0);
-          if (choice.outcome.kind === 'item') expect(typeof choice.outcome.item).toBe('string');
+          // All three bands, since Stage 4.6c draws all three at generation
+          // and any of them can be the one this run is paid at.
+          for (const outcome of Object.values(choice.outcomes)) {
+            expect(describeOutcome(outcome).length).toBeGreaterThan(0);
+            if (outcome.kind === 'item') expect(typeof outcome.item).toBe('string');
+          }
         }
       }
     }
@@ -355,7 +359,9 @@ describe('events', () => {
     // The whole point of resolving at generation. Two `createRun` calls on one
     // seed — which is what a reload is — must produce the same outcomes.
     const outcomes = (seed: string): EventOutcome[] =>
-      allNodes(seed).flatMap((node) => node.event?.choices.map((choice) => choice.outcome) ?? []);
+      allNodes(seed).flatMap((node) =>
+        node.event?.choices.flatMap((choice) => Object.values(choice.outcomes)) ?? [],
+      );
     expect(outcomes('ECON-EVENT')).toEqual(outcomes('ECON-EVENT'));
     expect(outcomes('ECON-EVENT').length).toBeGreaterThan(0);
   });
@@ -366,8 +372,10 @@ describe('events', () => {
     for (const seed of seeds) {
       for (const node of allNodes(seed)) {
         for (const choice of node.event?.choices ?? []) {
-          const round = JSON.parse(JSON.stringify(choice.outcome)) as EventOutcome;
-          expect(round).toEqual(choice.outcome);
+          // Every band, since a callback smuggled into one of the two the
+          // player is less likely to reach would be exactly as fatal.
+          const round = JSON.parse(JSON.stringify(choice.outcomes)) as Record<string, EventOutcome>;
+          expect(round).toEqual(choice.outcomes);
         }
       }
     }

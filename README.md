@@ -84,7 +84,7 @@ given.**
   fought — level, moveset, ability, held item.
 - **Keyed RNG sub-streams**, which is the change nothing on screen shows and
   everything later depends on. See "Determinism" below and
-  [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md).
+  [`gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md).
 
 The measured result is that parties **fill by gym 2** and **diversify**: 94 runs
 reached the eighth gym carrying 152 distinct species between them, and the most
@@ -176,30 +176,62 @@ At 400 seeds, the `greedy` policy:
 
 | gym | leader | type | team | reached | clear rate | drop |
 |---|---|---|---|---|---|---|
-| 1 | Garnet | Rock | 1 | 374 | 95.2% | — |
-| 2 | Marina | Water | 2 | 348 | 86.8% | -8pt |
-| 3 | Volta | Electric | 3 | 301 | 76.4% | -10pt |
-| 4 | Fern | Grass | 4 | 223 | 78.5% | +2pt |
-| 5 | Cinder | Fire | 4 | 170 | 61.2% | -17pt |
-| 6 | Solene | Psychic | 5 | 97 | 75.3% | +14pt |
-| 7 | Vesper | Ghost | 5 | 68 | 58.8% | -16pt |
-| 8 | Draven | Dragon | 5 | 37 | 78.4% | +20pt |
+| 1 | Garnet | Rock | 1 | 368 | 92.4% | — |
+| 2 | Marina | Water | 2 | 334 | 86.5% | -6pt |
+| 3 | Volta | Electric | 3 | 281 | 78.3% | -8pt |
+| 4 | Fern | Grass | 4 | 211 | 74.9% | -3pt |
+| 5 | Cinder | Fire | 4 | 145 | 54.5% | -20pt |
+| 6 | Solene | Psychic | 5 | 76 | 59.2% | +5pt |
+| 7 | Vesper | Ghost | 5 | 43 | 65.1% | +6pt |
+| 8 | Draven | Dragon | 5 | 26 | 61.5% | -4pt |
 
-Run completion **7.2%**, mean 3.27 gyms of 8, worst gym-to-gym drop 17 points —
-against 4.6a's 7.1%, 3.35 and 26. **Stage 4.6b lands where it started with a
-smoother curve**, which is the honest summary of a ramp: it redistributes
-difficulty rather than adding it.
+Run completion **7.2%**, mean 3.27 gyms of 8, worst gym-to-gym drop 17 points.
+400 seeds, `--prefix RETUNE`, greedy policy.
 
-The player's mean move band entering each gym climbs **1.03 → 2.89** over those
-eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has the
-retune — three measured passes, of which only the third moved anything — and
-the two findings that turned out to be about the simulator rather than the game.
-A `random` policy completes **0.0%** of runs and clears gym 6 in **0.8%** of
-them, which is the depth test: if a random policy cleared gym 6, move choice
-would not matter. Every Stage 2 target passes on both policies.
+**A correction, recorded rather than quietly fixed.** An earlier version of this
+section reported 4.0% completion and attributed a 3.2-point drop to admitting
+Cut and Flash to the move pools ahead of Stage 4.6c. **That attribution was
+wrong, and the comparison behind it was invalid**: the 7.2% baseline was
+measured with `--prefix RETUNE` and the 4.0% with the default `--prefix SIM`.
+Those are two different populations of 400 seeds, so the two numbers were never
+comparable, and the difference between them was the seed set rather than
+anything in the game.
 
-The randomizer draws from 635 species, 397 damaging moves and all 310
-abilities, and across 13,594 encounters at 400 seeds the sweep saw **632 of the
+Measured properly, on one population:
+
+| build | prefix | completion | mean gyms |
+|---|---|---|---|
+| `randomizer-9`, Cut and Flash in | SIM | 4.0% | 2.94 |
+| `randomizer-10`, Cut and Flash out | SIM | 4.0% | 2.82 |
+| `randomizer-8`, before either | RETUNE | 7.2% | 3.27 |
+| `randomizer-10`, Cut and Flash out | RETUNE | 7.2% | 3.27 |
+
+**Admitting the two moves cost nothing measurable** — same completion, and mean
+gyms moved by 0.12 in the noise. The `SIM` population simply sits lower than the
+`RETUNE` one. The reasoning in the original note was plausible and it was
+checked against a number that could not support it.
+
+Cut and Flash have since been removed for an unrelated reason: capabilities are
+satisfied by relics now, not by moves, so neither move has any special claim on
+a pool slot. `randomizer-10`'s move tables are byte-identical to `randomizer-8`'s
+— which is why the RETUNE rows match to every digit — but the version string
+still moved forward, because two distinct content states must never share a
+name.
+
+Completion is inside the simulator's 5-15% target band. It is no longer a gate
+either way; see [`docs/balance.md`](docs/balance.md) §0.
+
+The player's mean move band entering each gym climbs **1.03 → 3.04** over those
+eight fights, and climbs faster on the risky path. `docs/balance.md` §11 has
+4.6b's retune — three measured passes, of which only the third moved anything —
+and the two findings that turned out to be about the simulator rather than the
+game. A `random` policy completes **0.0%** of runs and clears gym 6 in **0.0%**
+of them, which is the depth test: if a random policy cleared gym 6, move choice
+would not matter. Every Stage 2 target passes on both policies; the completion
+band is the one miss.
+
+The randomizer draws from 635 species, 398 damaging moves and all 310
+abilities, and across 12,298 encounters at 400 seeds the sweep saw **630 of the
 635 species and all 310 abilities**. That is the diversity claim
 worth making, because win rate cannot measure it at all: a narrow pool that
 happened to be balanced would pass every other number in the report.
@@ -356,7 +388,7 @@ From Stage 4.6a a stream opens sub-streams **by key** —
 the stream name and the key. A draw under one key cannot move a draw under any
 other, so adding a *new* key is free and adding a draw inside an existing one
 moves that node's rolls and nothing else. `src/core/streamKeys.ts` is the
-namespace; [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md)
+namespace; [`gymrun-seeds-and-mappability.md`](docs/spec/gymrun-seeds-and-mappability.md)
 is the argument, including why the two sub-stages after this one should not need
 a structural bump of their own.
 
@@ -451,7 +483,7 @@ retunes once, against this number, and that is the last retune planned.
    Note that it is no longer *only* a gap: one fixed spread is what lets
    `core/battle/stats.ts` compute the opponent's stats exactly rather than
    estimate them, so the exclusion is now load-bearing for a feature.
-2. **`random` clears gym 3 in 17.2% of runs**, against a target of "rarely".
+2. **`random` clears gym 3 in 19.8% of runs**, against a target of "rarely".
    Tightening the early gyms would push `greedy`'s completion out of its band,
    so the trade was declined; the depth test that matters passes at 0.8%.
 3. **Gym 1 clears at 94.5%** against a ~90% target. It was the single MISS on

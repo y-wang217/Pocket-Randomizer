@@ -41,14 +41,23 @@
  * run is the one shape of randomness this design cannot defend.
  */
 import { describeSpecCard } from './battle/driver';
+import { generateWildTeam } from './randomizer';
+import type { RngStream } from './rng';
 import { createPartyMember } from './party';
 import type { ItemId, PokemonSpec, PokemonState } from './types';
 import { PARTY_SIZE, PARTY_TUNING } from '../data/partyTuning';
 import { playerLevel } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
 
-/** Where an offer came from. Display and metrics only; the decision is the same. */
-export type AcquisitionSource = 'reward' | 'encounter';
+/**
+ * Where an offer came from. Display and metrics only; the decision is the same.
+ *
+ * `event` arrived with band 3: a Pokemon offered by an event node, with no
+ * fight in front of it. It is a third *source*, not a third kind of decision —
+ * accept, decline and release mean exactly what they mean everywhere else, and
+ * `applyAcquisition` cannot tell the three apart.
+ */
+export type AcquisitionSource = 'reward' | 'encounter' | 'event';
 
 /**
  * A Pokemon on the table, and what taking it would cost.
@@ -144,6 +153,35 @@ export function generateEncounterAcquisition(
     source: 'encounter',
     spec: { ...lead, moves: [...lead.moves] },
   };
+}
+
+/**
+ * The Pokemon an event offers, drawn at map generation.
+ *
+ * Sibling of `generateEncounterAcquisition`, and the difference between them is
+ * the whole of what band 3 changed. That one *reads back* the wild team the
+ * node already generated, because the species has to be the one just defeated.
+ * This one has no fight to read back from, so it rolls — on the node's capture
+ * sub-stream, which nothing else consumes.
+ *
+ * A normal-tier draw at the segment's own level: an event Pokemon is neither a
+ * reward for clearing something hard nor a discount, so it is simply what that
+ * stretch of the map produces. It then joins at `joinLevelFor` like every other
+ * acquisition, so the slot still costs what a slot costs.
+ *
+ * `tuning.allowEncounterAcquisitions` gates this too. Turning captures off and
+ * leaving an event able to hand one over would be one switch with two answers.
+ */
+export function generateEventAcquisition(
+  nodeId: string,
+  segment: number,
+  stream: RngStream,
+  tuning: Tuning,
+): AcquisitionOffer | null {
+  if (!tuning.allowEncounterAcquisitions) return null;
+  const team = generateWildTeam(segment, 'normal', stream);
+  const spec = team[0];
+  return spec ? { nodeId, source: 'event', spec } : null;
 }
 
 /**

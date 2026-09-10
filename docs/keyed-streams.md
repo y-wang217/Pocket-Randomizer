@@ -1,14 +1,20 @@
-# Seeds and mappability
+# Keyed streams: what Stage 4.6a shipped
 
 How a GYMRUN seed becomes a run, why that stopped scaling at Stage 4.5.2, and
 what Stage 4.6a changed about it.
 
-This document was written *as part of* Stage 4.6a rather than before it. The
-4.6 prompt referred to it as an existing file; it did not exist in the
-repository, so what follows is the refactor as designed and shipped, recorded
-here in the place the prompt expected to find it. Read
-[`docs/generation.md`](docs/generation.md) alongside it — that one says what a
-seed produces, this one says why the draws are arranged the way they are.
+This is the **implementation record**. The design it implements is
+[`gymrun-seeds-and-mappability.md`](spec/gymrun-seeds-and-mappability.md) in
+`docs/spec/`, which the 4.6 prompts reference by name.
+
+This file was written during Stage 4.6a, before that design document was
+available — the prompt referred to it as existing and it was not in the
+repository, so 4.6a was built from the prompt's description of it and the
+reasoning was recorded here. The design document has since arrived, and the
+two do not agree everywhere: three of its requirements were not built, and
+they are listed under "Not yet built" at the end. Read
+[`generation.md`](generation.md) alongside this — that one says what a seed
+produces, this one says why the draws are arranged the way they are.
 
 ---
 
@@ -207,3 +213,44 @@ answers would now mean something different.
 Property 6 is the one that catches the regression that matters: a new draw added
 straight onto `rng.map` instead of onto a key would pass every other test in the
 suite and quietly reintroduce the global order.
+
+
+---
+
+## Not yet built
+
+Three requirements of `gymrun-seeds-and-mappability.md` are not implemented,
+because 4.6a was built before that document was available. None of them is
+contradicted by what shipped; all three are additive.
+
+**`contentHash`.** The design replaces the hand-bumped `RANDOMIZER_VERSION`
+with a hash computed over the data tables, on the grounds that a hand bump is a
+discipline and disciplines fail. `RANDOMIZER_VERSION` is still a hand-edited
+string in `core/randomizer.ts`, and it has already been bumped eight times.
+
+**Seed strings that carry their content hash.** Seeds are still bare strings,
+so a foreign seed is only caught at replay time rather than at paste time.
+
+**`previewRun`.** Generating a whole map without playing it is possible now
+that draws are keyed — nothing structural depends on a battle outcome — but the
+function does not exist.
+
+The design also asks that the unkeyed stream API be deleted outright, so that
+nobody reaches for it. It is still exported and still drawable; nothing in
+generation uses it. Deliberately left for its own commit: nothing in generation
+draws off it, so it is not urgent, and deleting an exported API inside a stage
+that is changing behaviour makes one commit answer two questions.
+
+### When the three land
+
+All three are **one release, scheduled after 4.6c and before the freeze.** That
+ordering is forced rather than chosen: the freeze stamps a `contentHash` as the
+first shareable baseline, so the freeze cannot happen until the hash exists.
+
+They are explicitly not to be built inside a data step. The decision came up at
+the 4.6c prerequisite, where the prompt asked for a new generated table to be
+added to "the `contentHash` file list" — a list that does not exist. Building
+the hash mechanism there would have shipped it as a side effect of a table
+nobody was reviewing it for. The hand bump carries 4.6c instead, with the
+failure mode the design names: a forgotten bump silently reinterprets a shared
+seed. `docs/generation.md` section 9 records it from the other side.

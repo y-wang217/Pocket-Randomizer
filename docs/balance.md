@@ -7,11 +7,72 @@ policies and prints the report this document summarises. Stage 3 adds
 `--policy tiers`, which is the question that stage exists to answer; see §6. The JSON goes to
 `sim-reports/`, stamped with the randomizer version that produced it.
 
-Those JSON files are not committed, and do not need to be: the simulator is
+Ad-hoc reports are not committed, and do not need to be: the simulator is
 deterministic given a seed prefix, so that one command regenerates the exact
 report quoted below. The findings are what is worth keeping, and they are here.
+**Benchmark** reports are the exception and live in `sim-reports/benchmarks/`;
+§0 says why.
 
 ---
+
+## 0. Balance is not a gate
+
+**Standing policy, 2026-09-09. This overrides every "target" in the sections
+below.**
+
+The simulator keeps running and keeps reporting. **A completion rate outside
+its target band no longer blocks a checkpoint, a commit or a merge.** Record the
+number, note the direction, continue.
+
+Two things follow from that, and both are rules rather than suggestions:
+
+- **Do not retune between checkpoints.** A mid-stage tuning pass tunes against a
+  curve that is about to move. Mechanics are landing faster than the table can
+  settle, so a number chased today is a number re-chased next week, and the work
+  in between is attributed to the wrong cause.
+- **Do not move a target to make a miss disappear.** A target that follows the
+  measurement is not a target. If a band is wrong, it gets changed deliberately,
+  in its own change, with the reason written down — never as a side effect of
+  missing it.
+
+### What replaced the gate
+
+A benchmark comparison at each major release: a pinned seed set and policy set,
+run, and the report committed to `sim-reports/benchmarks/` stamped with
+`RANDOMIZER_VERSION` and — once it exists — `contentHash`, then diffed against
+the last recorded one. The question stops being "did we pass" and becomes "what
+moved, and does the direction make sense given what changed".
+
+The recorded points so far:
+
+**The prefix is part of the stamp.** `--prefix` selects which 400 seeds get
+played, and two prefixes are two populations that sit at different completion
+rates for no reason but the draw. A comparison across prefixes measures nothing.
+This was learned by making the mistake: a 3.2-point "regression" was attributed
+to a move-pool change and written into the README before anyone noticed that
+the two runs used `RETUNE` and `SIM`.
+
+| stamp | prefix | completion | mean gyms | note |
+|---|---|---|---|---|
+| `randomizer-8`, 400 | RETUNE | 7.2% | 3.27 | Stage 4.6b, after the level-offset retune |
+| `randomizer-9`, 400 | SIM | 4.0% | 2.94 | Cut and Flash admitted |
+| `randomizer-10`, 400 | SIM | 4.0% | 2.82 | Cut and Flash removed |
+| `randomizer-10`, 400 | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
+| `randomizer-11`, 400 | RETUNE | 5.3% | **3.03** | Stage 4.6c relics |
+
+Read down a prefix, never across. On `SIM`, admitting the two moves cost
+nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
+returned the exact v8 numbers to every digit, which is what byte-identical move
+tables should do and is a decent check that the benchmark is measuring the game
+rather than the weather.
+
+Every row stays, including the ones produced by a bad comparison. A benchmark
+that keeps only its good numbers measures nothing.
+
+### What still gates, absolutely
+
+Determinism. Stream isolation. The two version guards. The full test suite.
+Those are correctness, and correctness is a gate. Balance is a number.
 
 ## 1. Why this document exists before the UI does
 
@@ -1095,3 +1156,100 @@ wrong and that is the bug to fix first.
 **Changing any of those changes what every recorded seed produces.** Bump
 `RANDOMIZER_VERSION` in `src/core/randomizer.ts` when you do, or a shared seed
 quietly becomes a different run.
+
+
+## 12. Stage 4.6c — relics, and what the report now measures
+
+**Benchmarked on mean gyms cleared, not completion rate.** Completion is a
+rare-event statistic sitting at a few percent, and it throws away every run
+that died at gym 3 — which is most of them. Mean gyms uses the whole sample and
+moves on changes completion cannot see. Completion stays in the report; it is
+no longer the number a change is judged on.
+
+Every figure below is stamped with its seed prefix and count, in the table,
+next to the number. Reading across prefixes has already produced one false
+finding in this project (see §0) and the stamp is what stops it happening
+twice.
+
+### What the report gained
+
+- **Gate band per capability.** The share of events resolving `none`, `latent`
+  and `known`, broken out per capability rather than as one number, because it
+  splits hard and the split is the point. If `known` fires in under about 5% of
+  events across the sample, relics are too rare and the mechanic is decoration;
+  the report prints that verdict itself.
+- **Relic acquisition rate**, and the distribution of how many relics a run
+  ends holding.
+- **A never-offered check**, in the same spirit as the locale UNREACHABLE line:
+  a relic that never appears on a card anywhere in the sample is named.
+- **Mean gyms, holders against non-holders.** Correlational and confounded —
+  relics come from elite and gym nodes, so a holder already survived the risky
+  path — and printed with both sample sizes and a line saying so. A flag, not a
+  finding.
+- **`--policy relics`**, running `relic-greedy` against `tier-greedy`. Same
+  node appetite, same seeds; the only difference is whether the pick is spent
+  on the relic. It exists because `valueOfReward` prices a relic at a flat
+  guess — the bot cannot see whether an event needing that capability is still
+  ahead of it — and a guess should not be the only measurement of the thing it
+  guesses at.
+
+### The benchmark, 400 seeds, prefix RETUNE, greedy
+
+**Mean gyms 3.03, down from 3.27 at `randomizer-10`.** Completion 5.3%, up from
+7.2%. Both moved; mean gyms is the one this is read on, and it is down 0.24.
+
+The direction is unsurprising and the cause is structural rather than a
+mistuning: a relic entry in the elite and gym pools is a card competing with
+the tutor and the item beside it, so a run that takes relics takes fewer of
+the things that were carrying the ramp. Relics pay back in capability and a
+small passive, and capability only pays when an event needing it turns up.
+
+Not acted on, per §0. Recorded, direction noted, moving on. The controlled
+version of the question is `--policy relics`, which is what should settle
+whether the trade is worth it.
+
+### Relics and gates, same run
+
+| measure | value |
+|---|---|
+| relic offers per run | 2.76 (1000 taken of 1104) |
+| mean relics held at run end | 2.49 |
+| events resolving `known` | 19.3% |
+| events resolving `latent` | 30.5% |
+| relics never offered | none |
+
+`known` at 19.3% clears the 5% decoration threshold comfortably.
+
+### The per-capability split, which is the finding worth acting on later
+
+| capability | events | none | latent | known |
+|---|---|---|---|---|
+| cut | 58 | 31.0% | 53.4% | 15.5% |
+| surf | 71 | 64.8% | 21.1% | 14.1% |
+| strength | 38 | 36.8% | 52.6% | 10.5% |
+| rockSmash | 56 | 50.0% | 48.2% | **1.8%** |
+| fly | 41 | 70.7% | 24.4% | 4.9% |
+| waterfall | 68 | 66.2% | 27.9% | 5.9% |
+| dive | 62 | 64.5% | 29.0% | 6.5% |
+
+The spread is much wider than the 5% band the whole-sample number suggests:
+`cut` reaches `known` in 15.5% of its events and `rockSmash` in 1.8%. Two
+things are mixed together here and they want separating before anything is
+tuned.
+
+The first is the intended type skew — `surf`, `waterfall` and `dive` all sit
+near 65% `none` because Water is one type and a party either has it or does
+not, while `cut` and `strength` draw on three types each and sit near half
+that.
+
+The second is not about types at all: **`rockSmash` has exactly one relic and
+so does every other capability, but the relic granting it is one of ten in a
+shuffled order.** A run holding 2.49 relics on average holds a quarter of the
+table, so any *particular* capability reads `known` about a quarter of the
+time at best — and which quarter is luck. That is the mechanic working, but it
+means per-capability `known` rates at this sample are as much a measure of
+shuffle luck as of design.
+
+Neither is acted on here. The lever, when it is pulled, is event counts in
+`data/events.ts` — today every capability is named by exactly one event, which
+is a flat starting point and not a tuned one.

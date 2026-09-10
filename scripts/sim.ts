@@ -51,6 +51,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { outcomeAt } from '../src/core/events';
+import { resolveCapability } from '../src/core/capabilities';
 import { AI_VERSION, greedyAiPolicy } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
 import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
@@ -90,6 +92,9 @@ import {
 import { GYMS } from '../src/data/gyms';
 import { BERRIES, itemById, ITEMS } from '../src/data/items';
 import { localeById, LOCALE_IDS, type LocaleId } from '../src/data/locales';
+import { CAPABILITIES, type Capability } from '../src/data/capabilities';
+import type { CapabilityBand } from '../src/core/capabilities';
+import { RELIC_IDS, relicById } from '../src/data/relics';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
 import { PARTY_SIZE } from '../src/data/partyTuning';
@@ -163,13 +168,30 @@ type PolicyName =
    * some other way — and `party.sizeBySegment` says which.
    */
   | 'catch-greedy'
-  | 'catch-averse';
+  | 'catch-averse'
+  /**
+   * The Stage 4.6c measure of whether a relic is worth its offer slot.
+   *
+   * Takes a relic whenever one is on the card, and otherwise plays exactly
+   * like `tier-greedy`. Both walk into elite nodes, so the comparison isolates
+   * the one decision that differs: spending the pick on a permanent
+   * capability-and-passive rather than on the tutor or the item beside it.
+   *
+   * It exists because `valueOfReward` prices a relic at a flat guess — the bot
+   * cannot see whether an event needing that capability is still ahead of it —
+   * and a guess should not be the only measurement of the thing it guesses at.
+   * If `relic-greedy` reaches fewer gyms than `tier-greedy`, the relic is
+   * costing more in forgone cards than it pays back.
+   */
+  | 'relic-greedy';
 type NodePolicyName = 'rest' | 'wild' | 'trainer' | 'first' | 'random' | 'tier-averse' | 'tier-greedy';
 
 /** The node policy a `--policy` name implies, if it implies one. */
 const NODE_POLICY_FOR: Partial<Record<PolicyName, NodePolicyName>> = {
   'tier-averse': 'tier-averse',
   'tier-greedy': 'tier-greedy',
+  // Same node appetite as tier-greedy, so the pair differs only on the card.
+  'relic-greedy': 'tier-greedy',
 };
 
 interface Options {
@@ -190,6 +212,8 @@ const ALL_NODE_POLICIES: NodePolicyName[] = ['rest', 'wild', 'trainer', 'first']
 const TIER_POLICIES: PolicyName[] = ['tier-averse', 'tier-greedy'];
 /** The Stage 4.6a headline: same seeds, same everything, capture on and off. */
 const CATCH_POLICIES: PolicyName[] = ['catch-greedy', 'catch-averse'];
+/** The Stage 4.6c headline: same seeds, same node appetite, relics on and off. */
+const RELIC_POLICIES: PolicyName[] = ['relic-greedy', 'tier-greedy'];
 
 function parseArgs(argv: string[]): Options {
   const options: Options = {
@@ -227,7 +251,9 @@ function parseArgs(argv: string[]): Options {
                 ? SWITCH_POLICIES
                 : name === 'catching'
                   ? CATCH_POLICIES
-                  : [assertPolicy(name)];
+                  : name === 'relics'
+                    ? RELIC_POLICIES
+                    : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -272,12 +298,13 @@ const POLICY_NAMES: readonly string[] = [
   ...TIER_POLICIES,
   ...SWITCH_POLICIES,
   ...CATCH_POLICIES,
+  ...RELIC_POLICIES,
 ];
 
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
-      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching or all (got "${name}")`,
+      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics or all (got "${name}")`,
     );
   }
   return name as PolicyName;
@@ -316,6 +343,7 @@ const USAGE = `
   The Stage 3 headline:
 
     npm run sim -- --seeds 1000 --policy tiers
+    npm run sim -- --seeds 1000 --policy relics
 
   The Stage 4 headline, and the one number this stage is judged on — the same
   battle AI with the bench visible and with it hidden:
@@ -588,6 +616,23 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
       const missing = lead.maxHp > 0 ? 1 - lead.hp / lead.maxHp : 0;
       return missing * reward.fraction * 190;
     }
+    /*
+     * A relic, priced flat and priced high.
+     *
+     * Flat because the bot cannot see what it is worth: the capability only
+     * pays out if an event that needs it turns up later, and the passive is a
+     * trickle rather than a swing. Any cleverer number here would be the
+     * scorer inventing a forecast the game does not give it.
+     *
+     * High because a relic is permanent and everything it competes with is
+     * consumed, spent, or displaced by the next card of its kind. The value is
+     * deliberately above a good item and below a tutor at the top band, so a
+     * `greedy` bot takes relics without taking only relics — and
+     * `--policy relic-greedy` exists precisely because this guess should not
+     * be the only measurement of whether they are worth the slot.
+     */
+    case 'relic':
+      return 150;
 
     case 'currency':
       // Valued at what it buys: a share of a good item at this segment's
@@ -667,6 +712,16 @@ function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number)
   switch (outcome.kind) {
     case 'nothing':
       return 0;
+    /*
+     * Worth a roster slot, priced as one.
+     *
+     * The bot scores a party slot the same way the capture step already does
+     * elsewhere in this file: a free member is worth a lot with room to spare
+     * and much less at a full party, where taking it means releasing something.
+     * Not zero at a full party, because `release` is a real answer.
+     */
+    case 'acquisition':
+      return hasRoom(state.party) ? 140 : 40;
     case 'currency':
       return (outcome.amount / priceAt(130, segment)) * 85;
     case 'heal': {
@@ -712,6 +767,16 @@ interface RunCollector {
    */
   capturesOffered: number;
   capturesTaken: number;
+
+  // --- Stage 4.6c ---------------------------------------------------------
+  /** Every event this run resolved, with the band it was paid at. */
+  gates: { capability: Capability; band: CapabilityBand; segment: number }[];
+  /** Relic cards offered and taken, and the held count at the end of the run. */
+  relicsOffered: number;
+  relicsTaken: number;
+  relicsHeld: number;
+  /** Which relics were ever on a card, so the report can name one that never is. */
+  relicsSeen: string[];
 }
 
 function newCollector(): RunCollector {
@@ -726,6 +791,11 @@ function newCollector(): RunCollector {
     localesOffered: [],
     capturesOffered: 0,
     capturesTaken: 0,
+    gates: [],
+    relicsOffered: 0,
+    relicsTaken: 0,
+    relicsHeld: 0,
+    relicsSeen: [],
   };
 }
 
@@ -1008,7 +1078,16 @@ function buildPolicy(
 
     chooseReward: async (offer, state) => {
       const segment = state.currentSegment;
-      const best = bestBy(offer.options, (option) => valueOfReward(option, state, segment));
+      // `relic-greedy` takes the relic on sight, whatever it is priced at.
+      // That is the point of the policy: it removes the scorer's guess from
+      // the comparison entirely.
+      for (const option of offer.options) {
+        if (option.kind === 'relic') collect.relicsSeen.push(option.relic);
+      }
+      if (offer.options.some((option) => option.kind === 'relic')) collect.relicsOffered++;
+      const forced = policy === 'relic-greedy' ? offer.options.findIndex((o) => o.kind === 'relic') : -1;
+      const best =
+        forced !== -1 ? forced : bestBy(offer.options, (option) => valueOfReward(option, state, segment));
       const chosen = offer.options[best];
       if (chosen) {
         /*
@@ -1025,6 +1104,7 @@ function buildPolicy(
          */
         collect.rewards.push({ kind: chosen.kind, segment, gym: offer.nodeId.endsWith('-gym') });
         if (chosen.kind === 'item') collect.itemsAcquired.push(chosen.item);
+        if (chosen.kind === 'relic') collect.relicsTaken++;
       }
       return best;
     },
@@ -1060,8 +1140,14 @@ function buildPolicy(
 
     chooseEventOption: async (event, state) => {
       const segment = state.currentSegment;
-      const best = bestBy(event.choices, (choice) => valueOfOutcome(choice.outcome, state, segment));
-      const outcome = event.choices[best]?.outcome;
+      // Scored at the band this run is actually at, which is the only band it
+      // can be paid at. Scoring the best of the three would be the bot
+      // comparing buttons against a payout it cannot reach.
+      const band = resolveCapability(state, event.requires);
+      collect.gates.push({ capability: event.requires, band, segment });
+      const best = bestBy(event.choices, (choice) => valueOfOutcome(outcomeAt(choice, band), state, segment));
+      const chosen = event.choices[best];
+      const outcome = chosen ? outcomeAt(chosen, band) : undefined;
       if (outcome?.kind === 'item') collect.itemsAcquired.push(outcome.item);
       return best;
     },
@@ -1223,6 +1309,16 @@ interface RunRecord {
   /** Wild victories that offered a capture, and how many were taken. */
   capturesOffered: number;
   capturesTaken: number;
+
+  // --- Stage 4.6c ---------------------------------------------------------
+  /** Every event this run resolved, with the band it was paid at. */
+  gates: { capability: Capability; band: CapabilityBand; segment: number }[];
+  /** Relic cards offered and taken, and the held count at the end of the run. */
+  relicsOffered: number;
+  relicsTaken: number;
+  relicsHeld: number;
+  /** Which relics were ever on a card, so the report can name one that never is. */
+  relicsSeen: string[];
   /**
    * The party walking into each gym: size, species and types.
    *
@@ -1327,6 +1423,10 @@ async function playSample(
       },
     });
     const { state } = run;
+    // Read off the finished run rather than counted as they arrive: the held
+    // set is the authority on what a run ended with, and a counter could drift
+    // from it the day something other than a card grants one.
+    collect.relicsHeld = state.relics.length;
 
     /*
      * Voluntary switches only — the session counts them as it plays.
@@ -1405,6 +1505,11 @@ async function playSample(
       localesOffered: collect.localesOffered.map((offer) => [...offer]),
       capturesOffered: collect.capturesOffered,
       capturesTaken: collect.capturesTaken,
+      gates: [...collect.gates],
+      relicsOffered: collect.relicsOffered,
+      relicsTaken: collect.relicsTaken,
+      relicsHeld: collect.relicsHeld,
+      relicsSeen: [...new Set(collect.relicsSeen)],
       gymParties,
       berriesEaten,
     });
@@ -1591,6 +1696,55 @@ interface Sample {
     berriesPerSegment: { segment: number; eaten: number; perRun: number }[];
     /** Berries carried into gym 6 and later, and the share of the bag they hold. */
     lateBerries: { parties: number; meanCarried: number; shareOfRuns: number };
+  };
+  /**
+   * Relics and the gates they open. **Stage 4.6c's measurements.**
+   *
+   * Two questions, kept apart because they fail differently. `gates` asks
+   * whether the three-band structure produces three bands in practice or
+   * collapses onto one; `relics` asks whether relics are rare enough to be
+   * worth routing for and common enough to exist.
+   */
+  relics: {
+    /** Relic cards offered and taken across the sample, and per run. */
+    offered: number;
+    taken: number;
+    offersPerRun: number;
+    /** Distribution of how many relics a run was holding when it ended. */
+    heldDistribution: { held: number; runs: number }[];
+    meanHeld: number;
+    /**
+     * Per capability: how the events requiring it resolved.
+     *
+     * **Expected to split hard by capability rather than showing one number.**
+     * `latent` tracks how common the satisfying types are, so Water-keyed
+     * capabilities sit high and the rest sit low, and that spread is the
+     * input to weighting event counts in `data/events.ts`.
+     */
+    byCapability: {
+      capability: Capability;
+      events: number;
+      none: number;
+      latent: number;
+      known: number;
+    }[];
+    /** The whole-sample share, which is the "is the mechanic decoration" test. */
+    knownRate: number;
+    latentRate: number;
+    /**
+     * Mean gyms for holders against non-holders. **Confounded on purpose.**
+     *
+     * Relics come from elite and gym nodes, so a run holding one already
+     * survived the risky path and the gap measures that too. Carried with its
+     * sample sizes so the number cannot be quoted without them, and reported
+     * as a flag rather than a finding. `--policy relics` is the controlled
+     * version of this question.
+     */
+    holders: { runs: number; meanGyms: number };
+    nonHolders: { runs: number; meanGyms: number };
+    totalRuns: number;
+    /** Relics that never appeared on a card anywhere in the sample. */
+    neverOffered: string[];
   };
   capture: {
     /** Wild victories that offered a capture, per run and in total. */
@@ -1818,6 +1972,7 @@ function summarize(
     ramp: summarizeRamp(records),
     locales: summarizeLocales(records),
     capture: summarizeCapture(records),
+    relics: summarizeRelics(records),
     durationMs,
   };
 }
@@ -1975,6 +2130,54 @@ function summarizeLocales(records: RunRecord[]): Sample['locales'] {
  * into the same handful reports a small number no matter how many types each
  * individual party covers.
  */
+function summarizeRelics(records: RunRecord[]): Sample['relics'] {
+  const runs = Math.max(1, records.length);
+  const offered = sum(records.map((record) => record.relicsOffered));
+  const taken = sum(records.map((record) => record.relicsTaken));
+
+  const held = records.map((record) => record.relicsHeld);
+  const maxHeld = Math.max(0, ...held);
+  const heldDistribution = Array.from({ length: maxHeld + 1 }, (_, count) => ({
+    held: count,
+    runs: held.filter((value) => value === count).length,
+  }));
+
+  const gates = records.flatMap((record) => record.gates);
+  const byCapability = CAPABILITIES.map((capability) => {
+    const rows = gates.filter((gate) => gate.capability === capability);
+    return {
+      capability,
+      events: rows.length,
+      none: rows.filter((gate) => gate.band === 'none').length,
+      latent: rows.filter((gate) => gate.band === 'latent').length,
+      known: rows.filter((gate) => gate.band === 'known').length,
+    };
+  });
+
+  const total = Math.max(1, gates.length);
+  const meanGyms = (rows: RunRecord[]): number =>
+    rows.length === 0 ? 0 : sum(rows.map((row) => row.gymsCleared)) / rows.length;
+  const withRelic = records.filter((record) => record.relicsHeld > 0);
+  const without = records.filter((record) => record.relicsHeld === 0);
+
+  return {
+    offered,
+    taken,
+    offersPerRun: offered / runs,
+    heldDistribution,
+    meanHeld: sum(held) / runs,
+    byCapability,
+    knownRate: gates.filter((gate) => gate.band === 'known').length / total,
+    latentRate: gates.filter((gate) => gate.band === 'latent').length / total,
+    holders: { runs: withRelic.length, meanGyms: meanGyms(withRelic) },
+    nonHolders: { runs: without.length, meanGyms: meanGyms(without) },
+    totalRuns: records.length,
+    neverOffered: RELIC_IDS.filter(
+      (id) => !records.some((record) => record.relicsSeen.includes(id)),
+    ).map((id) => relicById(id)?.name ?? id),
+  };
+}
+
 function summarizeCapture(records: RunRecord[]): Sample['capture'] {
   const runs = Math.max(1, records.length);
   const offered = sum(records.map((record) => record.capturesOffered));
@@ -2185,6 +2388,80 @@ function render(sample: Sample): string {
     locales.neverPicked.length > 0
       ? `  never picked: ${locales.neverPicked.join(', ')}`
       : `  every locale was picked   ·   mean distinct locales per run: ${locales.meanDistinctPerRun.toFixed(2)}`,
+  );
+
+  const relics = sample.relics;
+  out.push('', 'Relics — the permanent grants, and the gates they open');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['relic offers / run', relics.offersPerRun.toFixed(2), `${relics.taken} taken of ${relics.offered}`],
+        ['relics held at end', relics.meanHeld.toFixed(2), 'mean across every run, however it ended'],
+        [
+          'events at known',
+          pct(relics.knownRate),
+          relics.knownRate < 0.05
+            ? 'DECORATION: relics are too rare for the top band to matter'
+            : 'the top band fires',
+        ],
+        ['events at latent', pct(relics.latentRate), 'party type alone, no relic'],
+      ],
+    ),
+  );
+  out.push(
+    relics.neverOffered.length > 0
+      ? `  UNREACHABLE: never offered anywhere in the sample — ${relics.neverOffered.join(', ')}`
+      : '  every relic in the table was offered at least once',
+  );
+
+  out.push('', 'How many relics a run ended holding');
+  out.push(
+    table(
+      ['held', 'runs', 'share'],
+      relics.heldDistribution.map((row) => [
+        String(row.held),
+        String(row.runs),
+        pct(row.runs / Math.max(1, relics.totalRuns)),
+      ]),
+    ),
+  );
+
+  out.push(
+    '',
+    'Gate band per capability — expected to split, not to converge',
+    '  latent tracks how common the satisfying types are, which is the input to',
+    '  weighting event counts in data/events.ts. Do not flatten it by editing',
+    '  the type sets.',
+  );
+  out.push(
+    table(
+      ['capability', 'events', 'none', 'latent', 'known'],
+      relics.byCapability.map((row) => [
+        row.capability,
+        String(row.events),
+        pct(row.none / Math.max(1, row.events)),
+        pct(row.latent / Math.max(1, row.events)),
+        pct(row.known / Math.max(1, row.events)),
+      ]),
+    ),
+  );
+
+  /*
+   * Relic holders against non-holders. **A flag, not a finding.**
+   *
+   * Correlational and confounded: relics come from elite and gym nodes, so a
+   * run holding one is a run that already survived the risky path, and the
+   * gap measures both things at once. It is printed with its sample sizes so
+   * nobody can quote the number without them.
+   */
+  out.push(
+    '',
+    'Mean gyms, holders against non-holders — CONFOUNDED, a flag not a finding',
+    `  holding a relic:  ${relics.holders.meanGyms.toFixed(2)}   (n=${relics.holders.runs})`,
+    `  holding none:     ${relics.nonHolders.meanGyms.toFixed(2)}   (n=${relics.nonHolders.runs})`,
+    '  Relics come from elite and gym nodes, so holders already survived the',
+    '  risky path. The gap measures that too. Use --policy relics instead.',
   );
 
   const capture = sample.capture;

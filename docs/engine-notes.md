@@ -1,253 +1,63 @@
 # Engine notes
 
-Findings from Stage 0's verification spike, plus the bundle measurements that
-came out of it. Everything here was measured on this repo, not recalled — the
-commands to reproduce each number are given.
+Standing facts about the Pokemon Showdown engine as GYMRUN drives it. Things
+that were established by experiment, are unlikely to change, and would
+otherwise have to be rediscovered.
 
-Versions: `@pkmn/sim` 0.10.11, `@pkmn/protocol` 0.7.3, `@pkmn/view` 0.7.3,
-`@smogon/calc` 0.11.0, Vite 7, Node 22.
+Each entry says how it was established. A claim about an engine is worth what
+the evidence behind it is worth, and "we think so" is worth nothing.
 
 ---
 
-## 1. Does `@pkmn/sim` run in a browser?
+## Custom Game runs no validator, and `isNonstandard` is not a gate
 
-**Yes, with no polyfills and no shims.** This was the single risk Stage 0
-existed to retire, and it is retired.
+Established 2026-09-09, by running it.
 
-`npm run build` produces a static bundle with no `rollupOptions.external`, no
-`vite-plugin-node-polyfills`, and no `define` shims for `process` or `global`.
-`scripts/smoke.mjs` then loads that bundle in Chromium, plays a battle to
-completion, and fails on any console error or page exception. It passes clean.
+`@pkmn/sim` marks a move `isNonstandard` when the current generation cannot
+obtain it — gen 9 marks Cut `Unobtainable` and Flash `Past`, because Scarlet
+and Violet removed them. **That is a legality verdict, and the battle engine
+does not consult it.** A team built with either move resolves normally.
 
-Two things that would normally require Node shims turn out not to:
+Gastly, which learns neither move in any generation, against Snorlax:
 
-- **The PRNG.** `@pkmn/sim`'s default `sodium` seed sounds like it needs
-  libsodium. It does not — `prng.js` implements
-  `randombytes_buf_deterministic` on top of `ts-chacha20`, in pure JS,
-  explicitly to avoid native modules. The `gen5` LCG seed is pure JS too.
-- **Streams.** `lib/streams` is a hand-rolled async-iterator implementation,
-  not Node's `stream`. The one place Node types leak in is
-  `BattleTextStream._write(message: string | Buffer)`, and we never touch it:
-  `core/battle/driver.ts` drives the `Battle` class directly and reads
-  `battle.log`, which is synchronous and Buffer-free.
+```
+|move|p1a: Gastly|Cut|p2a: Snorlax
+|-damage|p2a: Snorlax|221/235
 
-Load time in headless Chromium is ~380 ms from navigation to the first
-enabled move button.
+|move|p1a: Gastly|Flash|p2a: Snorlax
+|-unboost|p2a: Snorlax|accuracy|1
+```
 
-## 2. Is the sim deterministic under an explicit seed?
+No `|-fail|`, no `|-immune|`, no `cant`. Cut deals damage, Flash lands its
+accuracy drop. Both were also run under `GYMRUN_TRIM_STRICT=1`, which replaces
+the stripped learnset and legality tables with proxies that throw on any read —
+so nothing consulted a learnset to decide whether a Gastly may swing a blade.
+The tables are not merely empty-tolerant; they are never touched.
 
-**Yes, byte for byte, with one documented exception.**
+This is the same claim `build-config/trim-sim-data.ts` rests on, verified from
+the other direction. The trim drops ~450 kB gzipped on the grounds that those
+tables exist for `TeamValidator` and GYMRUN never validates a team.
+`test/trimmed-data.test.ts` holds the trim to it for the moves that acquire
+another move at runtime — Metronome, Mimic, Sketch, Transform, Copycat, Assist.
 
-Two runs with the same seed and the same choice sequence produce identical
-protocol output. `test/determinism.test.ts` asserts it for a scripted policy
-and for the AI on both sides, and asserts that two different seeds do *not*
-agree (otherwise the seed would not be reaching the engine at all).
+**Why this is prose and not a test.** It was a test, briefly:
+`test/nonstandard-moves.test.ts` asserted both protocol lines while Cut and
+Flash were admitted to the move pools ahead of Stage 4.6c. Capabilities became
+relics, no move proves a capability any more, and the two moves went back out of
+the pools — so the test's subject no longer exists in the game and a test that
+generates its own team to prove a property of a move nothing rolls is testing
+the sim rather than GYMRUN.
 
-The exception: the sim stamps `|t:|<unix seconds>` into the protocol. That is
-wall-clock time and is the only non-deterministic line. `stripNondeterministic()`
-in the driver filters it, and every determinism assertion compares through it.
-Two runs that straddle a second boundary would otherwise "fail" for a reason
-that has nothing to do with the engine.
+The finding is durable even though the feature was not. If a later stage wants
+a move the current generation calls nonstandard, this is the note that says the
+engine will run it, and the exclusion in `scripts/gen-pools.ts` is a curation
+choice rather than a constraint.
 
-Both seed formats work: `sodium,<64 hex chars>` (ChaCha20, the modern default)
-and `gen5,<16 hex chars>` (the on-cartridge LCG). GYMRUN uses sodium, derived
-from the run seed's `battle` stream in `core/rng.ts`.
+## Charge moves are excluded by scoring, not by the engine
 
-## 3. Can a team be built with arbitrary species, ability and moves?
-
-**Yes, including combinations no format would allow.**
-
-`[Gen 9] Custom Game` applies no banlist and no legality check, and
-`TeamValidator` is a separate step we never run. `test/headless.test.ts` plays
-a full battle with Magikarp holding Levitate and using Boomburst, Judgment,
-Recover and Splash — none of which it can learn, and one of which
-(Levitate) changes its type interactions. The engine takes it without complaint
-and applies all of it correctly.
-
-Teams are passed as `PokemonSet[]` objects via `PlayerOptions.team`. **No
-Showdown export string is ever built or parsed**, which is what lets Stage 2's
-randomizer emit `TeamSpec` values directly.
-
-## 4. Bundle size
-
-Bundle size is a named project risk, so it is measured rather than estimated.
-Reproduce with `npm run measure`. The method builds stub entrypoints that add
-one dependency at a time and diffs the gzipped output, so a module shared by
-two packages is not charged to both.
-
-### Shipped bundle
-
-| Asset | Minified | Gzipped |
-|---|---|---|
-| JS | 3309 kB | **696 kB** |
-| CSS | 7.6 kB | 2.3 kB |
-
-Those are Vite's own numbers from `npm run build`, taken at Stage 0. The curve
-since, at each stage that measured (same command, same units — Vite counts a kB
-as 1000 bytes):
-
-| Stage | JS gzipped | CSS gzipped |
-|---|---|---|
-| 4 | 731.62 kB | 4.74 kB |
-| 4.5, before the tooltip layer | 740.22 kB | 5.08 kB |
-| 4.5, shipped | 743.85 kB | 5.36 kB |
-
-Four stages of gameplay have cost 48 kB gzipped on top of Stage 0. The engine
-is still the bundle. `npm run measure` reports
-674 kB for the same JS because it compresses at gzip level 9 and Vite does not;
-the comparisons below are all level 9 and so are internally consistent.
-
-### Marginal cost per dependency (gzipped)
-
-| Dependency | Cost | What it buys |
-|---|---|---|
-| `@pkmn/sim` | 532 kB | The entire battle engine and dex |
-| `@smogon/calc` | 111 kB | The AI's damage estimates |
-| `@pkmn/view` + `@pkmn/protocol` | 24 kB | Protocol → readable log text |
-| app code + CSS | ~7 kB | Everything we wrote |
-
-`@pkmn/sim` is 79% of the bundle. That is the shape of this project: we are
-shipping a Pokémon engine, and the engine is mostly data.
-
-### What tree shaking removed: nothing, and why
-
-The honest answer to "what did tree shaking remove from the dex" is **nothing
-measurable**, and it is worth being precise about why, because it is not a
-configuration mistake.
-
-`@pkmn/sim`'s `sim/dex.mjs` statically imports every generation's data —
-`gen1` through `gen9`, plus `gen8bdsp` and `gen8legends` — and every learnset
-and legality table, then assembles them into one lookup object. Rollup cannot
-drop any of it: the modules are all genuinely *referenced*. They are simply
-never *read* by us. Tree shaking removes unreachable code, and none of this is
-unreachable.
-
-So the saving had to be taken deliberately. `build-config/trim-sim-data.ts` is a
-Vite plugin that replaces the learnset, legality and Pokémon GO tables with
-empty objects. Those exist for exactly one consumer, `TeamValidator`, and
-GYMRUN never validates a team — it runs Custom Game precisely so the randomizer
-can break legality.
-
-| | Gzipped |
-|---|---|
-| Without the trim | 1121 kB |
-| With the trim | **668 kB** |
-| Saved | **454 kB (40%)** |
-
-That claim is tested, not assumed. The whole suite runs with the plugin active,
-and `npm run test:trim-strict` re-runs it with the stubs replaced by proxies
-that **throw on any property access, probe or enumeration**. It passes — which
-proves the tables are never read at all, rather than merely that empty reads
-are survivable. `test/trimmed-data.test.ts` additionally exercises Metronome,
-Mimic, Sketch, Transform, Copycat and Assist, the moves most likely to reach for
-a move pool at runtime, plus a held item.
-
-To turn the trim off (a later stage that adds real team validation would need
-to): `GYMRUN_FULL_DEX=1 npm run build`.
-
-### `@pkmn/dex` and `@pkmn/client`: evaluated, not shipped
-
-Both were installed and their type definitions read during the spike, then
-dropped.
-
-`@pkmn/dex` alone costs **723 kB gzipped** — more than our entire trimmed
-`@pkmn/sim`. It would be a second complete copy of the Pokédex alongside the one
-the engine already carries. `@pkmn/client` needs it (it builds on
-`@pkmn/data`'s `Generations`, which wraps a dex).
-
-The only thing `@pkmn/client` was wanted for was acting as a `Tracker` for
-`LogFormatter`, so damage lines read "lost 30.0% of its health" instead of "was
-hurt". `src/ui/battle-log.ts` implements the ~40 lines of that interface we
-actually use instead. The full tracker would additionally handle forme changes,
-Illusion and mid-battle type changes; when a later stage needs those, this is
-the trade to revisit — but at roughly double the bundle.
-
-**Stage 4.5 was that later stage, and the answer was still no — for a better
-reason than cost.** The stage needed live boosts, volatiles, status, abilities,
-items and exact stats on screen, which is precisely the state `@pkmn/client`
-reconstructs. It reconstructs it *from protocol text*, because that is all a
-real Showdown client ever receives. We run the engine in-process and the driver
-holds the authoritative `Battle`: every one of those fields is a property read
-away. Adding a package to re-derive state we already hold, at the cost of a
-second Pokédex, would have been worse than the bundle argument alone suggests.
-
-For the record, since the same question will come round again:
-`@pkmn/view` 0.7.3 exports exactly five things — `LogFormatter`,
-`ChoiceBuilder`, `toID`, and the `Tracker` and `Data` interfaces. It carries no
-battle state at all. There is nothing in it beyond the formatter, and `Tracker`
-is an interface you implement rather than one it provides.
-
-### Ability and status text: free, and worth knowing why
-
-Stage 4.5 put ability descriptions in tooltips and expected to pay for the
-dataset. It costs **nothing**. `@pkmn/sim`'s `Dex` statically imports its text
-tables (`data/text/abilities.mjs` is 163 kB unminified, 26 kB gzipped on its
-own) and `build-config/trim-sim-data.ts` only trims learnsets, legality and
-pokemongo — so every `shortDesc` in the generation was already in the Stage 4
-bundle before anything read one. Verified by building the Stage 4 commit and
-grepping its output for Levitate's description.
-
-The whole tooltip layer — the panel, the type wheel, the status data and the
-ability lookup — came to 3.6 kB gzipped, which is our own code. The lazy-loading
-contingency the stage brief called for does not apply, and would have added a
-loading state to buy back nothing.
-
-### If ~700 kB becomes a problem
-
-In rough order of payoff per unit of effort:
-
-1. **Stub the unused generation mods.** Gen-locking (see below) makes eight of
-   the ten mod trees dead weight. `gen8bdsp` alone is 1.7 MB unminified. Same
-   plugin, wider pattern.
-2. **Drop `@smogon/calc` (111 kB).** Its damage formula could be replaced by
-   running the sim itself against a cloned battle state, which would also make
-   the AI's estimates exact rather than approximate.
-3. **Code-split the engine** behind a dynamic import so the shell paints first.
-   Helps perceived load, not total transfer.
-
-None of these are Stage 0's problem. ~700 kB gzipped is roughly one mid-sized
-photograph, it is cached after first load, and it arrives in under half a second
-on the test rig.
-
-## 5. Format and the Gen 3 lock
-
-`core/battle/format.ts` owns the generation number, the format id and the clause
-list, and it is the only file that does. Gen-locking to Gen 3, which the spec
-plans for a later stage, is changing `GYMRUN_GEN` from `9` to `3`:
-`gen3customgame` exists and takes the same custom-rule syntax.
-
-Base format: `gen9customgame`. Custom Game is the right base because it applies
-no banlist and no legality check — the two things a randomizer must be free of.
-
-Clauses stripped: **Team Preview** (via Showdown's `@@@!Team Preview` custom
-rule syntax, verified to clear `teampreview` from the resolved rule table).
-Revealing the enemy team before a roguelike encounter would be wrong, and with
-one Pokémon a side it is also a purely ceremonial extra request the driver would
-have to answer.
-
-Custom Game carries no Sleep, Species, Evasion or Endless Battle clause to begin
-with, which is why the stripped list has one entry rather than five. That is not
-an oversight. What it *does* carry and we keep: `Cancel Mod`, `Max Team Size 24`,
-`Max Move Count 24`, `Max Level 9999`, `Default Level 100`.
-
-## 6. Caveats carried forward
-
-- **`|t:|` timestamps** are the one non-deterministic protocol line. Compare
-  through `stripNondeterministic()`.
-- **Opponent ability is hidden from the AI.** `BattleView.foe.ability` is always
-  `null`, because Stage 0 does not track what an ability has revealed about
-  itself. The greedy AI therefore estimates damage without it. Filling this in
-  properly means reveal tracking, not exposing the sim's value — handing the bot
-  information no player has would make a balance sweep measure the wrong thing.
-- **The AI's damage estimate is currently exact**, because Stage 0 gives every
-  Pokémon a Serious nature, 31 IVs and 0 EVs, so `@smogon/calc`'s reconstruction
-  of the opponent matches the sim. Once spreads exist it becomes an
-  approximation, which is the correct behaviour anyway.
-- **Weather and terrain are not in `BattleView`**, so the AI's calc runs on an
-  empty `Field`. Irrelevant with the Stage 0 movesets; it is a real gap the
-  moment a randomizer can roll Drought or Electric Surge.
-- **`@pkmn/sim` is CJS-first.** Its `exports` map offers ESM (`build/esm/*.mjs`)
-  and Vite resolves that automatically. The trim plugin's path pattern matches
-  the ESM build; if a future Vite config resolves the CJS entry instead, the
-  pattern needs updating and the bundle would silently grow by 454 kB.
-  `npm run measure` would catch it.
+`scripts/gen-pools.ts` drops moves with `flags.charge` — Fly, Dive, Solar Beam
+and the rest. The engine runs them; the exclusion is that `@smogon/calc` scores
+one turn of a two-turn move, so a policy that picks them looks twice as strong
+as it plays. Fly and Dive are otherwise standard gen 9 moves and would need no
+other change to admit. Whether to admit them belongs to the AI pass, alongside
+priority-blindness and speed-blindness, because it is a scoring question.

@@ -47,6 +47,8 @@
  */
 import { describeSpecCard } from '../../core/battle/driver';
 import { backpackCapacity } from '../../core/items';
+import { relicById, type RelicId } from '../../data/relics';
+import type { Capability } from '../../data/capabilities';
 import { FAINTED, hpState, ppState } from '../../core/hpCopy';
 import { hpFraction, ppTotals } from '../../core/party';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
@@ -91,6 +93,8 @@ export interface PartyScreen {
 export interface PartyView {
   party: readonly PokemonState[];
   backpack: readonly ItemId[];
+  /** The run's relics. Not the backpack — they are neither carried nor spent. */
+  relics: readonly RelicId[];
   tuning: Tuning;
   /**
    * A layout the player already composed and has not yet spent, or null.
@@ -128,13 +132,14 @@ export function createPartyScreen(): PartyScreen {
 
   const list = el('div', 'party party--manage');
   const bag = el('section', 'backpack');
+  const relics = el('section', 'relics');
 
   const done = document.createElement('button');
   done.type = 'button';
   done.className = 'button button--primary';
   done.textContent = 'Back to the map';
 
-  root.append(title, blurb, threats.root, list, bag, done);
+  root.append(title, blurb, threats.root, list, bag, relics, done);
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -205,6 +210,7 @@ export function createPartyScreen(): PartyScreen {
             }),
           ),
         );
+        renderRelics(relics, view.relics);
         renderBackpack(bag, view, loose, discarded, {
           onEquip: (item, slot) => {
             const displaced = held[slot] ?? null;
@@ -463,6 +469,68 @@ const STAT_BAR_CEILING = 200;
  * again — "4 of 5 carried" is a fact and "your bag is nearly full" is the UI
  * telling the player what to think about it.
  */
+/**
+ * The run's relics, listed and not interactive.
+ *
+ * Beneath the backpack and visibly not part of it, because the single most
+ * important thing this section says is that these are *not* items: nothing
+ * here can be equipped, discarded, swapped or spent, and the absence of a
+ * button on every row is what says so more clearly than a sentence would.
+ *
+ * Each row names the relic, the capability it grants and what its passive
+ * does. All three are attributes. There is no ordering, no highlight on the
+ * one that has paid off most, and no note about which capability the map is
+ * about to ask for — that last one is the map's job, on the node, where the
+ * decision actually is.
+ */
+function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
+  root.replaceChildren();
+  if (held.length === 0) {
+    // Rendered rather than hidden, and phrased as a fact. A player who has
+    // taken none should learn the category exists and where they will appear.
+    const empty = el('p', 'relics__empty');
+    empty.textContent = 'No relics yet. They come from elite nodes, gyms, and occasionally a shop.';
+    root.append(empty);
+    return;
+  }
+
+  const title = el('h3', 'relics__title');
+  title.textContent = `Relics (${held.length})`;
+  const list = el('ul', 'relics__list');
+
+  for (const id of held) {
+    const relic = relicById(id);
+    if (!relic) continue;
+    const row = el('li', 'relics__item');
+
+    const name = el('span', 'relics__name');
+    name.textContent = relic.name;
+
+    const grants = el('span', 'badge badge--capability');
+    grants.textContent = CAPABILITY_LABELS[relic.grants];
+
+    const body = el('p', 'relics__text');
+    body.textContent = relic.playerDescription;
+
+    row.append(name, grants, body);
+    list.append(row);
+  }
+
+  root.append(title, list);
+}
+
+/** The capability names, as a player reads them. Mirrors the map's labels. */
+const CAPABILITY_LABELS: Record<Capability, string> = {
+  cut: 'Cut',
+  surf: 'Surf',
+  strength: 'Strength',
+  rockSmash: 'Rock Smash',
+  fly: 'Fly',
+  waterfall: 'Waterfall',
+  dive: 'Dive',
+  flash: 'Flash',
+};
+
 function renderBackpack(
   host: HTMLElement,
   view: PartyView,

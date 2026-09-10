@@ -17,6 +17,7 @@
 import { basketCost, type ShopStock } from '../../core/economy';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
+import { relicById } from '../../data/relics';
 import { itemById } from '../../data/items';
 import { el } from '../scene';
 
@@ -127,6 +128,8 @@ function coin(label: string, amount: number, tone?: 'warn'): HTMLElement {
 /** The shelf name. A shop sells rewards, so this mirrors the reward card. */
 function describeStock(reward: Reward): string {
   switch (reward.kind) {
+    case 'relic':
+      return relicById(reward.relic)?.name ?? reward.relic;
     case 'item':
       return itemById(reward.item)?.name ?? reward.item;
     case 'heal':

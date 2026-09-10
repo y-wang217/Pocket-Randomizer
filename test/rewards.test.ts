@@ -601,7 +601,20 @@ describe('rewards in a played run', () => {
     for (const decision of rewardDecisions) {
       expect(Object.keys(decision).sort()).toEqual(['index', 'kind']);
     }
-    expect(JSON.stringify(run.log)).not.toContain('leftovers');
+    /*
+     * The same claim from the other side: nothing a reward *resolved to* is in
+     * the log.
+     *
+     * This was `expect(JSON.stringify(run.log)).not.toContain('leftovers')`
+     * over the whole log, which was always a crude backstop and became a wrong
+     * one in Stage 4.6c: an item plan legitimately names item ids, because the
+     * ids *are* the player's answer, and a pool change moved this seed onto a
+     * run where the bot discards a Leftovers. That is the log storing a
+     * decision, which is exactly what it should do.
+     *
+     * So the check is scoped to the decisions it was ever about.
+     */
+    expect(JSON.stringify(rewardDecisions)).not.toMatch(/leftovers|relic|move|item/i);
   });
 
   it('replays a run with rewards to exactly the same state', async () => {

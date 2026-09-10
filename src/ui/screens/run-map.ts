@@ -46,6 +46,8 @@ import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
 import { gymsCleared, localeOf, stepsOf } from '../../core/run';
 import { localeById } from '../../data/locales';
+import { resolveCapability, type CapabilityBand, type CapabilityContext } from '../../core/capabilities';
+import type { Capability } from '../../data/capabilities';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState, Tier } from '../../core/types';
 import { GYMS } from '../../data/gyms';
@@ -271,18 +273,18 @@ function renderChain(
 
   const rows = steps.map((step) => {
     const done = visits[step.index];
-    if (done) return renderStep(step.index, [done.node], 'done', segment.index, done);
+    if (done) return renderStep(step.index, [done.node], 'done', segment.index, state, done);
     if (step.index === state.position && !state.outcome) {
-      return renderStep(step.index, step.options, 'current', segment.index, undefined, onChoose);
+      return renderStep(step.index, step.options, 'current', segment.index, state, undefined, onChoose);
     }
-    return renderStep(step.index, step.options, 'upcoming', segment.index);
+    return renderStep(step.index, step.options, 'upcoming', segment.index, state);
   });
 
   const gymVisit = state.history.find(
     (visit) => visit.segment === state.currentSegment && visit.node.kind === 'gym',
   );
   const gymPhase = gymVisit ? 'done' : state.position >= steps.length ? 'current' : 'upcoming';
-  rows.push(renderStep(steps.length, [segment.gym], gymPhase, segment.index, gymVisit));
+  rows.push(renderStep(steps.length, [segment.gym], gymPhase, segment.index, state, gymVisit));
   return rows;
 }
 
@@ -293,6 +295,7 @@ function renderStep(
   options: readonly NodeSpec[],
   phase: Phase,
   segment: number,
+  run: CapabilityContext,
   visit?: NodeVisit,
   onChoose?: (index: number) => void,
 ): HTMLElement {
@@ -304,7 +307,7 @@ function renderStep(
   const nodes = el('div', 'step__nodes');
   nodes.append(
     ...options.map((node, option) =>
-      renderNode(node, phase, segment, visit, onChoose ? () => onChoose(option) : undefined),
+      renderNode(node, phase, segment, run, visit, onChoose ? () => onChoose(option) : undefined),
     ),
   );
 
@@ -316,6 +319,7 @@ function renderNode(
   node: NodeSpec,
   phase: Phase,
   segment: number,
+  run: CapabilityContext,
   visit?: NodeVisit,
   onChoose?: () => void,
 ): HTMLElement {
@@ -372,9 +376,58 @@ function renderNode(
   }
 
   element.append(label, detail);
+
+  /*
+   * The requirement, and the band the run reads at for it.
+   *
+   * **Shown on every phase, not only the current step**, for the same reason
+   * the tier badge is: routing toward an event two steps ahead is only a plan
+   * if you can see what it asks for. What is *not* shown is the payout — the
+   * player learns that the gate exists and where they stand against it, and
+   * finds out what it was worth by walking into it.
+   *
+   * Two attributes and no verdict. "Requires Cut — your run: latent" is a
+   * pair of facts; "you should route here" would be the screen deciding.
+   */
+  if (node.event) {
+    const band = resolveCapability(run, node.event.requires);
+    const gate = el('span', `node__gate node__gate--${band}`);
+    const need = el('span', 'node__gate-need');
+    need.textContent = `Requires ${CAPABILITY_LABELS[node.event.requires]}`;
+    const reads = el('span', 'node__gate-band');
+    reads.textContent = BAND_LABELS[band];
+    gate.append(need, reads);
+    element.append(gate);
+  }
+
   if (onChoose) element.addEventListener('click', onChoose);
   return element;
 }
+
+/** The capability names, as a player reads them rather than as ids. */
+const CAPABILITY_LABELS: Record<Capability, string> = {
+  cut: 'Cut',
+  surf: 'Surf',
+  strength: 'Strength',
+  rockSmash: 'Rock Smash',
+  fly: 'Fly',
+  waterfall: 'Waterfall',
+  dive: 'Dive',
+  flash: 'Flash',
+};
+
+/**
+ * What each band says about the run. Attributes, and deliberately flat.
+ *
+ * None of the three is phrased as good or bad. `latent` is not "almost" and
+ * `none` is not "you cannot" — the event pays at every band, and a player who
+ * reads `none` as a locked door has been told something untrue.
+ */
+const BAND_LABELS: Record<CapabilityBand, string> = {
+  known: 'you have the relic',
+  latent: 'your party has the type',
+  none: 'neither',
+};
 
 function renderWallet(state: RunState): HTMLElement {
   const card = el('div', 'party__wallet');

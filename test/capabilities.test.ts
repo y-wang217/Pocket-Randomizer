@@ -1,187 +1,164 @@
 /**
- * The capability tables, held to the three things they claim.
+ * The three capability bands, version 3.
  *
- * A capability is a gate an event puts in front of the party, and every one of
- * these tests exists because a table that fails it produces a gate nobody can
- * open — which is not a hard event, it is a dead one.
+ * **Rewritten for Stage 4.6c.** This file previously asserted that a party
+ * member with the capability move in a slot resolved `known` — including a case
+ * named "reads known off a species whose type does not answer", which was the
+ * point of the old design and is exactly backwards under this one. Capabilities
+ * are granted by relics now, and nothing a Pokemon knows grants one. The old
+ * assertions are replaced rather than deleted: the same situations are still
+ * covered, with the answers version 3 gives.
  *
- * 1. **The move resolves.** A capability naming a move no pool contains is a
- *    requirement the player can never satisfy.
- * 2. **The types are non-empty and reachable.** A capability no locale can
- *    supply resolves `none` for every party that did not buy the move, which
- *    makes `latent` decoration.
- * 3. **The hand-written rows match the dex.** `data/capabilityMoves.ts` carries
- *    two entries that `scripts/gen-pools.ts` did not generate, so nothing
- *    checks them against @pkmn/sim unless this file does.
+ * The property that matters most is the last one: holding the relic yields
+ * `known` from any prior band. That is the rule the whole feature rests on — a
+ * gate the run can see is a gate the run can open — and it is the one both
+ * earlier designs broke, each for a different half of the capability list.
  */
-import { Dex } from '@pkmn/sim';
 import { describe, expect, it } from 'vitest';
+import { createPartyMember } from '../src/core/party';
+import { resolveCapability, type CapabilityContext } from '../src/core/capabilities';
+import { CAPABILITIES, CAPABILITY_TYPES, capabilityTypes } from '../src/data/capabilities';
+import { RELICS, relicsGranting } from '../src/data/relics';
+import { SPECIES_POOL } from '../src/data/speciesPools';
+import { typesOfSpecies } from '../src/data/speciesTypes';
+import type { PokemonState } from '../src/core/types';
 
-import { describeMove } from '../src/core/battle/driver';
-import { GYMRUN_GEN } from '../src/core/battle/format';
-import {
-  CAPABILITY_MOVE,
-  CAPABILITY_ONLY_MOVES,
-  capabilityMoveEntry,
-  capabilityOfMove,
-} from '../src/data/capabilityMoves';
-import {
-  CAPABILITIES,
-  CAPABILITY_TYPES,
-  capabilityById,
-  typesSatisfy,
-  type CapabilityId,
-} from '../src/data/capabilityTypes';
-import { LOCALES } from '../src/data/locales';
-import { bandOf, bandOfMove, danglingOverrides } from '../src/data/moveOverrides';
-import { DAMAGING_MOVES, STATUS_MOVES } from '../src/data/movePools';
+function member(species: string, moves: string[]): PokemonState {
+  return createPartyMember({ species, ability: 'Levitate', moves, level: 30 });
+}
 
-/** The band the decisions table fixes for each capability. Null means status. */
-const EXPECTED_BAND: Readonly<Record<CapabilityId, number | null>> = {
-  cut: 1,
-  flash: null,
-  rockSmash: 1,
-  strength: 3,
-  surf: 3,
-};
+/** The first pool species carrying `type`, so the fixtures track the data. */
+function firstOf(type: string): string {
+  const entry = SPECIES_POOL.find((row) => row.types.includes(type));
+  if (!entry) throw new Error(`No pool species is ${type}`);
+  return entry.species;
+}
 
-describe('the capability move binding', () => {
-  it('resolves every capability to a move entry', () => {
+/** A species carrying none of `types`. */
+function firstWithout(types: readonly string[]): string {
+  const entry = SPECIES_POOL.find((row) => !row.types.some((type) => types.includes(type)));
+  if (!entry) throw new Error('Every pool species answers');
+  return entry.species;
+}
+
+const run = (relics: string[], party: PokemonState[]): CapabilityContext => ({ relics, party });
+
+describe('the three bands', () => {
+  it('reads none when neither a relic nor a type answers', () => {
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Ember', 'Tackle'])];
+    expect(resolveCapability(run([], party), 'surf')).toBe('none');
+  });
+
+  it('reads latent when a type answers but no relic does', () => {
+    expect(resolveCapability(run([], [member(firstOf('Water'), ['Tackle'])]), 'surf')).toBe('latent');
+  });
+
+  it('reads known when a relic grants it', () => {
+    const relic = relicsGranting('surf')[0];
+    if (!relic) throw new Error('fixture');
+    expect(resolveCapability(run([relic.id], []), 'surf')).toBe('known');
+  });
+
+  it('reads known on an empty party, because a relic is a run property', () => {
+    const relic = relicsGranting('fly')[0];
+    if (!relic) throw new Error('fixture');
+    expect(resolveCapability(run([relic.id], []), 'fly')).toBe('known');
+  });
+});
+
+describe('nothing a Pokemon knows grants a capability', () => {
+  it('does not read known off a slotted capability-named move', () => {
+    // The load-bearing rule of version 3, and the exact case the old file
+    // asserted the other way. A Fire type holding Surf is a Fire type holding
+    // an attack; it opens no water.
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Surf', 'Waterfall', 'Dive'])];
+    expect(resolveCapability(run([], party), 'surf')).toBe('none');
+  });
+
+  it('still reads latent off type alone, move or no move', () => {
+    const water = firstOf('Water');
+    expect(resolveCapability(run([], [member(water, ['Surf'])]), 'surf')).toBe('latent');
+    expect(resolveCapability(run([], [member(water, ['Tackle'])]), 'surf')).toBe('latent');
+  });
+
+  it('is unmoved by a relic that grants a different capability', () => {
+    const flyRelic = relicsGranting('fly')[0];
+    if (!flyRelic) throw new Error('fixture');
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Surf'])];
+    expect(resolveCapability(run([flyRelic.id], party), 'surf')).toBe('none');
+  });
+});
+
+describe('the property that makes a gate openable', () => {
+  it('yields known for every capability once the relic is held, from any prior band', () => {
     for (const capability of CAPABILITIES) {
-      const entry = capabilityMoveEntry(capability);
-      expect(entry.id, capability).toBe(CAPABILITY_MOVE[capability]);
+      const relic = relicsGranting(capability)[0];
+      expect(relic, `no relic grants ${capability}`).toBeTruthy();
+      if (!relic) continue;
+
+      const satisfying = capabilityTypes(capability);
+      const byType = firstOf(satisfying[0] ?? 'Water');
+      const notByType = firstWithout(satisfying);
+
+      // The three prior bands, each confirmed before the relic is added.
+      expect(resolveCapability(run([], [member(byType, ['Tackle'])]), capability)).toBe('latent');
+      expect(resolveCapability(run([], [member(notByType, ['Tackle'])]), capability)).toBe('none');
+      expect(resolveCapability(run([], []), capability)).toBe('none');
+
+      for (const party of [[member(byType, ['Tackle'])], [member(notByType, ['Tackle'])], []]) {
+        expect(resolveCapability(run([relic.id], party), capability)).toBe('known');
+      }
     }
   });
 
-  it('bands every capability move through bandOfMove, by name and by id', () => {
-    for (const capability of CAPABILITIES) {
-      const entry = capabilityMoveEntry(capability);
-      const expected = EXPECTED_BAND[capability];
-
-      // The band a reward card would print, looked up the way a screen does it.
-      expect(bandOfMove(entry.id), `${capability} by id`).toBe(expected);
-      expect(bandOfMove(entry.name), `${capability} by name`).toBe(expected);
-      // And the same answer through the entry-keyed function core uses.
-      expect(bandOf(entry), `${capability} by entry`).toBe(expected);
-    }
-  });
-
-  it('gives the status capability an impact instead of a band', () => {
-    // Flash has no base power, so banding it would be meaningless — offering it
-    // as a "band 1" card would read as the weakest move in the game.
-    const flash = capabilityMoveEntry('flash');
-    expect(flash.category).toBe('Status');
-    expect(flash.band).toBeNull();
-    expect(flash.impact).toBe('pressure');
-  });
-
-  it('maps a move id back to its capability, however it is spelled', () => {
-    for (const capability of CAPABILITIES) {
-      const entry = capabilityMoveEntry(capability);
-      expect(capabilityOfMove(entry.id)).toBe(capability);
-      expect(capabilityOfMove(entry.name)).toBe(capability);
-    }
-    expect(capabilityOfMove('flamethrower')).toBeNull();
-  });
-
-  it('describes every capability move, so the reward flow can offer one', () => {
-    // `askMoveQuestions` throws on a move `describeMove` cannot resolve, so a
-    // capability move that failed here would crash the run at the reward screen
-    // rather than at build time.
-    for (const capability of CAPABILITIES) {
-      const entry = capabilityMoveEntry(capability);
-      const spec = describeMove(entry.name);
-      expect(spec, capability).not.toBeNull();
-      expect(spec?.id).toBe(entry.id);
-      expect(spec?.maxPp).toBeGreaterThan(0);
+  it('holds for every relic in the table, not just the first per capability', () => {
+    for (const relic of RELICS) {
+      expect(resolveCapability(run([relic.id], []), relic.grants)).toBe('known');
     }
   });
 });
 
-describe('the overlay', () => {
-  it('carries only what the generated pools lack', () => {
-    // The overlay is a delta, not a second copy. Rock Smash, Strength and Surf
-    // are in DAMAGING_MOVES already; duplicating them here would be two rows
-    // that could disagree.
-    const pooled = new Set([...DAMAGING_MOVES, ...STATUS_MOVES].map((move) => move.id));
-    for (const move of CAPABILITY_ONLY_MOVES) {
-      expect(pooled.has(move.id), `${move.id} is already generated`).toBe(false);
-    }
-    expect(CAPABILITY_ONLY_MOVES.map((move) => move.id)).toEqual(['cut', 'flash']);
-  });
-
-  it('never reaches an opponent, because the generated pools do not carry it', () => {
-    // The whole reason this is an overlay rather than a regeneration. A trainer
-    // rolling Flash would be an encounter made easier for a reason the player
-    // cannot see and the report cannot attribute.
-    const rollable = new Set([...DAMAGING_MOVES, ...STATUS_MOVES].map((move) => move.id));
-    expect(rollable.has('cut')).toBe(false);
-    expect(rollable.has('flash')).toBe(false);
-  });
-
-  it('matches the dex on name, type, category, power and accuracy', () => {
-    const dex = Dex.forGen(GYMRUN_GEN);
-    for (const move of CAPABILITY_ONLY_MOVES) {
-      const data = dex.moves.get(move.id);
-      expect(data.exists, move.id).toBe(true);
-      expect(move.name).toBe(data.name);
-      expect(move.type).toBe(data.type);
-      expect(move.category).toBe(data.category);
-      expect(move.basePower).toBe(data.basePower);
-      expect(move.accuracy).toBe(data.accuracy === true ? 101 : data.accuracy);
+describe('the type table', () => {
+  it('covers every capability and has a relic for each', () => {
+    for (const capability of CAPABILITIES) {
+      expect(CAPABILITY_TYPES[capability].length).toBeGreaterThan(0);
+      expect(relicsGranting(capability).length).toBeGreaterThan(0);
     }
   });
 
-  it('leaves the override table dangling check passing', () => {
-    expect(danglingOverrides()).toEqual([]);
+  it('names only types the species pool actually carries', () => {
+    // A typo here would make a gate unreachable at latent and nothing else
+    // would say so.
+    const real = new Set(SPECIES_POOL.flatMap((entry) => entry.types));
+    for (const capability of CAPABILITIES) {
+      for (const type of CAPABILITY_TYPES[capability]) {
+        expect(real.has(type), `${capability} names an unknown type ${type}`).toBe(true);
+      }
+    }
+  });
+
+  it('leaves every capability reachable at latent and none automatic', () => {
+    for (const capability of CAPABILITIES) {
+      const types = capabilityTypes(capability);
+      const answering = SPECIES_POOL.filter((row) => row.types.some((type) => types.includes(type)));
+      expect(answering.length, `${capability} is unreachable`).toBeGreaterThan(0);
+      expect(answering.length, `${capability} is automatic`).toBeLessThan(SPECIES_POOL.length);
+    }
   });
 });
 
-describe('the capability type sets', () => {
-  it('gives every capability a non-empty set', () => {
-    for (const capability of CAPABILITIES) {
-      expect(CAPABILITY_TYPES[capability].types.length, capability).toBeGreaterThan(0);
-    }
+describe('the species type lookup', () => {
+  it('returns the pool entry types', () => {
+    const entry = SPECIES_POOL[0];
+    if (!entry) throw new Error('fixture');
+    expect(typesOfSpecies(entry.species)).toEqual(entry.types);
   });
 
-  it('is reachable: some locale offers a satisfying type for every capability', () => {
-    // The floor under the whole mechanic. A capability no locale can supply is
-    // one that resolves `none` for every party that did not buy the move.
-    for (const capability of CAPABILITIES) {
-      const locales = LOCALES.filter((locale) => typesSatisfy(capability, locale.types));
-      expect(locales.length, `${capability} is offered by no locale`).toBeGreaterThan(0);
-    }
+  it('returns empty for a species outside the pool rather than throwing', () => {
+    expect(typesOfSpecies('Missingno')).toEqual([]);
   });
 
-  it('is reachable from more than one locale, so a locale pick cannot lock it out', () => {
-    // A segment offers two or three locales and the player commits to one. A
-    // capability supplied by exactly one locale would be a gate whose answer
-    // was fixed by a decision made several steps earlier for other reasons.
-    for (const capability of CAPABILITIES) {
-      const locales = LOCALES.filter((locale) => typesSatisfy(capability, locale.types));
-      expect(locales.length, `${capability} is offered by only ${locales.length} locale`)
-        .toBeGreaterThanOrEqual(2);
-    }
-  });
-
-  it('answers typesSatisfy on either of a member type', () => {
-    // Same rule as `localeAdmits`: one matching type is enough, and a party
-    // member is not required to match on its primary.
-    expect(typesSatisfy('cut', ['Water', 'Grass'])).toBe(true);
-    expect(typesSatisfy('cut', ['Grass'])).toBe(true);
-    expect(typesSatisfy('cut', ['Water', 'Flying'])).toBe(false);
-    expect(typesSatisfy('surf', ['Water'])).toBe(true);
-    expect(typesSatisfy('surf', ['Ice'])).toBe(false);
-  });
-
-  it('names and labels every capability exactly once', () => {
-    expect(new Set(CAPABILITIES).size).toBe(CAPABILITIES.length);
-    for (const capability of CAPABILITIES) {
-      const definition = capabilityById(capability);
-      expect(definition, capability).not.toBeNull();
-      expect(definition?.id).toBe(capability);
-      expect(definition?.label.length).toBeGreaterThan(0);
-    }
-    expect(capabilityById('fly')).toBeNull();
+  it('resolves none for a party of an unknown species', () => {
+    expect(resolveCapability(run([], [member('Missingno', ['Tackle'])]), 'surf')).toBe('none');
   });
 });
