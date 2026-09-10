@@ -159,7 +159,7 @@ describe('the band badge renders on every surface that renders a move', () => {
   it('4. the party management screen — screens/party.ts, through member-card.ts', () => {
     const screen = createPartyScreen();
     screen.render(
-      { party: party(), backpack: [], relics: [], tuning: DEFAULT_TUNING, plan: null },
+      { party: party(), backpack: [], relics: [], tuning: DEFAULT_TUNING, backTo: 'Back to the map', plan: null },
       { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onDone: () => undefined },
     );
     bandsOn(screen.root, 'party screen');
