@@ -76,10 +76,18 @@ describe('the decoration', () => {
     expect((summary.root.querySelector('.summary__cause') as HTMLElement).hidden).toBe(true);
     expect(summary.root.querySelectorAll('.route__dot--death')).toHaveLength(0);
     expect(summary.root.querySelectorAll('.tiers__row--here .tiers__range')[0]?.textContent).toBe('8');
-    // One accent: rematch. Copy seed and new seed are hollow.
+    /*
+     * One accent: rematch. Everything else on the row is hollow.
+     *
+     * **Stage 4.8, item 6 added a third: "Copy result".** The count is updated rather
+     * than loosened to a minimum, because the thing worth asserting is that the new
+     * button did *not* become a second accent — two primary actions on a screen is
+     * two things claiming to be the way forward, and a `toBeGreaterThan` here would
+     * have stopped noticing.
+     */
     expect(summary.root.querySelectorAll('.primary-action')).toHaveLength(1);
     expect(summary.root.querySelector('.primary-action')?.textContent).toBe('Rematch this seed');
-    expect(summary.root.querySelectorAll('.summary__actions .button--hollow')).toHaveLength(2);
+    expect(summary.root.querySelectorAll('.summary__actions .button--hollow')).toHaveLength(3);
   }, 120_000);
 });
 
