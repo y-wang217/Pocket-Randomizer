@@ -177,43 +177,48 @@ says why they are their own release.
 design, because HM teaching was going to be the move reward flow. Relics removed
 teaching entirely, so that dependency dissolved and 4.6c shipped ahead of it.
 
-### In flight: Stage 4.8, steps 1 and 2
+### In flight: Stage 4.8, all eight steps
 
 Branch `claude/intelligent-fermat-hzt2gb`, prompt
 [`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md),
 step 1's report [`reports/stage-4.8-report.md`](reports/stage-4.8-report.md).
-Not merged.
+Not merged. Detail for every item is in [`generation.md`](generation.md) sections
+7b, 7c and 7d.
 
-**Step 2 (item 1, party slot unlocks) is built and green**: 1001 tests in 76
-files, typecheck, lint, build, strict trim and the browser smoke all pass, with
-only the known SMOKE24 map-overflow `xfail` — still 25px, **unmoved by V5**, and
-still item 3's UI checkpoint to close.
+**Both version axes moved, which the prompt did not expect.**
+`RANDOMIZER_VERSION` is `gymrun-randomizer-13` and `RUN_LOG_VERSION` is
+`gymrun-run-12`. The prompt states that the run log does not bump and gives four
+correct reasons — capacity, nicknames, death records and the score are all derived,
+and all four still are. It does not cover item 2 Part A, which hands over a
+guaranteed move at every gym through the existing move-learning flow: a `target`
+and sometimes a `replace` after every gym win, which is a changed question
+sequence. Recorded as a deviation in `generation.md` section 7c rather than by
+editing the prompt.
 
-Party capacity is a function of gyms cleared (`SLOT_UNLOCK_SCHEDULE`, 3 rising to
-6 by gym 6) rather than the old `PARTY_SIZE` constant, which is deleted so that no
-call site can read it by accident. `RANDOMIZER_VERSION` is
-`gymrun-randomizer-13`; `RUN_LOG_VERSION` is unchanged and asserted unchanged,
-because capacity is derived from the decision log rather than written into it.
-[`generation.md`](generation.md) section 7b is the detail.
+**Three findings worth carrying forward, none of them predicted:**
 
-**The finding worth carrying forward** is that the engine's six-a-side limit, not
-taste, fixes the top of the difficulty curve's party assumption. A curve that
-assumed the full six left `opponentTeamSize`'s clamp no headroom and flattened
-normal, hard and elite onto one team size at the final segment — Stage 3's risk
-gradient gone at the end of a run. `test/tiers.test.ts` was the only thing in the
-suite that caught it. The slot schedule still reaches six; the curve's assumption
-stops one short, and the rule is written as
-`EXPECTED_PARTY_SIZE[last] < MAX_TEAM_SIZE` rather than as a number.
+- **The engine's six-a-side limit fixes the top of the difficulty curve.** A curve
+  assuming a full six left `opponentTeamSize`'s clamp no headroom and flattened
+  normal, hard and elite onto one team size at the final segment — Stage 3's risk
+  gradient gone at the end of a run. `test/tiers.test.ts` was the only thing that
+  caught it. The slot schedule still reaches six; the curve's assumption stops one
+  short, written as `EXPECTED_PARTY_SIZE[last] < MAX_TEAM_SIZE`.
+- **The vitals cache collided on nickname.** `describeSpecCard` keyed on species,
+  ability, moves, level and item. Free while no spec had a name; with item 5 naming
+  every Pokemon, two identical Pidgeys would have rendered under one name on every
+  surface at once, from a single cache hit.
+- **The map's fold miss was closed by bounding, not shaving.** The `xfail` had sat
+  since Release C. Taken steps collapse to one line, the map's party cards lost
+  their move lists and went to three columns, and a step's options stopped wrapping.
+  Offered cards end at 737 of 844; `heights.json`'s `map.decisionBottom` went 728.22
+  to 669.72 and the battle did not move.
 
-**Open for review before step 3:** nothing blocking. Steps 3 to 8 — the gym clear
-reward, the per-segment node count curve, the score, the graveyard and nicknames,
-the threat readout's placement, all the UI, and the benchmark — are not started.
+**What the prompt asked for that was already built:** item 7. `partyThreats` shipped
+before this stage, more richly than the prompt specifies, and was on the map as well
+as the party screen. Step 6 therefore had no core work; the map placement was removed
+in step 7, with the three smoke checks that existed to protect it.
 
-Two of three sim-fixture seeds and two of six baseline runs now clear one gym
-further, so **mean gyms cleared will rise**. That is step 8's number to record
-against the pinned figure, not a thing to tune: balance is not a gate.
-
-## 5. Open items
+## 5.## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
 

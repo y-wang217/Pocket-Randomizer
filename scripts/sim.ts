@@ -79,6 +79,7 @@ import {
 } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
 import { backpackCapacity, itemSuitsTypes } from '../src/core/items';
+import { scoreRun } from '../src/core/scoring';
 import type { MoveReward, Reward } from '../src/core/rewards';
 import { hasRoom } from '../src/core/acquisition';
 import {
@@ -1273,6 +1274,14 @@ interface RunRecord {
   seed: string;
   outcome: 'victory' | 'defeat';
   gymsCleared: number;
+  /**
+   * The run's score. **Stage 4.8, item 4.**
+   *
+   * Recorded per run rather than only aggregated, because the median needs the
+   * distribution and because "which seed scored 900" is the first question a reading
+   * of the mean produces.
+   */
+  score: number;
   /** The 1-based gym this run actually fought last, or 0 if it never got there. */
   deepestGymFought: number;
   nodes: number;
@@ -1560,6 +1569,7 @@ async function playSample(
       seed,
       outcome: run.outcome,
       gymsCleared: gymsCleared(state),
+      score: scoreRun(state).total,
       deepestGymFought: gymFights.length === 0 ? 0 : (gymFights[gymFights.length - 1]?.segment ?? 0) + 1,
       nodes: state.history.length,
       totalTurns: battles.reduce((total, battle) => total + battle.turns, 0),
@@ -1629,6 +1639,17 @@ interface Sample {
   runs: number;
   completionRate: number;
   meanGymsCleared: number;
+  /**
+   * Mean and median score. **A second column, never a replacement.**
+   *
+   * The standing policy in `docs/balance.md` section 0 pins the benchmark to *mean
+   * gyms cleared*, and item 4 says so explicitly: score joins the report, it does not
+   * take over. The median is here because a score has a long right tail — a run that
+   * clears eight gyms scores several times one that dies at gym two — and a mean
+   * alone would hide the shape of that.
+   */
+  meanScore: number;
+  medianScore: number;
   perGym: GymRow[];
   turnsBySegment: { segment: number; battles: number; meanTurns: number }[];
   deaths: {
@@ -1987,6 +2008,25 @@ function completionOf(records: RunRecord[]): number {
   return records.length === 0 ? 0 : records.filter((r) => r.outcome === 'victory').length / records.length;
 }
 
+/**
+ * The middle value, for a distribution with a tail. **Stage 4.8, item 4.**
+ *
+ * Written here rather than imported because the one other median in this file is a
+ * different question (`median switches per battle`, which is per battle rather than
+ * per run) and folding them together would make one change move the other.
+ *
+ * Even counts average the two middles rather than picking the lower, which matters
+ * at the small seed counts a quick sweep uses: at `--seeds 2` picking one would make
+ * the median a coin toss on seed order.
+ */
+function medianOf(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[middle] ?? 0;
+  return ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}
+
 function tally(values: string[], top: number): Tally[] {
   const counts = new Map<string, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
@@ -2128,6 +2168,8 @@ function summarize(
     },
     items,
     meanGymsCleared: runs === 0 ? 0 : records.reduce((total, r) => total + r.gymsCleared, 0) / runs,
+    meanScore: runs === 0 ? 0 : records.reduce((total, r) => total + r.score, 0) / runs,
+    medianScore: medianOf(records.map((record) => record.score)),
     perGym,
     turnsBySegment,
     deaths: {
@@ -2522,6 +2564,9 @@ function render(sample: Sample): string {
   out.push(
     '',
     `Run completion: ${pct(sample.completionRate)}   ·   mean gyms cleared: ${sample.meanGymsCleared.toFixed(2)} / ${SEGMENTS_PER_RUN}`,
+    // Stage 4.8, item 4: a second column. Mean gyms cleared above stays the pinned
+    // figure, per the standing policy in docs/balance.md section 0.
+    `Score: mean ${sample.meanScore.toFixed(1)}   ·   median ${sample.medianScore.toFixed(1)}`,
   );
 
   /*
