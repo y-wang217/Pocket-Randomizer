@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "file": "assets/index.js",
+      "raw": 3543988,
+      "gz": 750148
+    },
+    {
+      "file": "assets/index.css",
+      "raw": 34042,
+      "gz": 6572
+    },
+    {
+      "file": "index.html",
+      "raw": 1037,
+      "gz": 617
+    }
+  ],
+  "total": {
+    "raw": 3579067,
+    "gz": 757337
+  }
+}

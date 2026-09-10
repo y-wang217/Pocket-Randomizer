@@ -1,0 +1,191 @@
+{
+  "seed": "SEED-B",
+  "versions": {
+    "runLog": "gymrun-run-10/gymrun-0.3.0",
+    "randomizer": "gymrun-randomizer-11",
+    "ai": "gymrun-ai-2-switching",
+    "engine": "gymrun-0.3.0"
+  },
+  "outcome": "defeat",
+  "gymsCleared": 0,
+  "causeOfDeath": {
+    "segment": 0,
+    "leader": "Garnet",
+    "kind": "wild",
+    "species": "Wyrdeer",
+    "bySpecies": "Clefairy",
+    "byMove": "Fairy Wind",
+    "indirect": null
+  },
+  "currency": 0,
+  "backpack": [],
+  "relics": [],
+  "party": [
+    {
+      "species": "Wyrdeer",
+      "level": 30,
+      "ability": "Shed Skin",
+      "moves": [
+        "Bind 32/32",
+        "Snore 8/24",
+        "Electroweb 24/24",
+        "Synthesis 8/8"
+      ],
+      "item": null,
+      "hp": "0/111",
+      "fainted": true
+    }
+  ],
+  "history": [
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "normal",
+      "opponent": "Wild Clefairy",
+      "turns": 16,
+      "winner": "p2",
+      "hpAfter": 0,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Wyrdeer",
+          "bySpecies": "Clefairy",
+          "byMove": "Fairy Wind",
+          "indirect": null
+        }
+      ]
+    }
+  ],
+  "log": {
+    "seed": "SEED-B",
+    "version": "gymrun-run-10/gymrun-0.3.0",
+    "randomizerVersion": "gymrun-randomizer-11",
+    "decisions": [
+      {
+        "kind": "starter",
+        "index": 0
+      },
+      {
+        "kind": "locale",
+        "index": 0
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      }
+    ]
+  }
+}
