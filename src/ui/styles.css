@@ -245,6 +245,18 @@ body {
   min-height: var(--space-6);
 }
 
+/* Whose flag it is, in the log's own vocabulary — `.log-entry__order` marks
+   the player's side with `--emphasis` and leaves the opponent's neutral, and
+   this is the same mark on the same fact. Without it a turn where both sides
+   used a same-type move prints `STAB` twice with nothing saying which is which.
+
+   It is not the weight axis and must not become one: every *kind* is identical
+   to every other kind within a side, which is the rule Release C is holding.
+   A side is not a verdict. */
+.flags .chip[data-side='p1'] {
+  --chip: var(--emphasis);
+}
+
 /* ---------- the turn order nudge ----------
    Release C item 2. A panel twitches when its Pokemon acts, in the order the
    actions resolved, so the sequence is on the board rather than only in the
@@ -1874,8 +1886,14 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      "instant" here means the thing the animation would have arrived at, not a
      different outcome — and every flag word still renders, because a flag is
      text and not an animation. */
-  .hp__shadow { animation: none; }
-  .panel[data-jiggle] { animation: none; }
+  /* Selectors matched to the rules they override, not to the elements.
+     `.hp__shadow[data-fading]` outranks a bare `.hp__shadow` and a media query
+     adds no specificity of its own, so the plain form lost and the chunk went
+     on fading for anybody who had asked it not to. Caught by
+     `test/visual-release-c.test.ts`, which reads the computed animation rather
+     than trusting the rule to have applied. */
+  .hp__shadow, .hp__shadow[data-fading] { animation: none; }
+  .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; animation-delay: 0s; }
 }
 
 /* ==========================================================================

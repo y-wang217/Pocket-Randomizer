@@ -63,22 +63,31 @@ power banding and berries (4.6b), and relics, capability events and band 3
 encounters (4.6c). The benchmark for the current randomizer version is recorded
 in `sim-reports/benchmarks/`.
 
-**Head of `main`:** `559fb6b`.
+**Head of `main`:** `67601e3`. The three facts this section carried before
+2026-09-10 were all stale, and the audit
+([`reports/v5-unblock-audit.md`](reports/v5-unblock-audit.md) divergence 1)
+listed them; they are corrected here.
 
-**Visual identity, V0 to V4, on `claude/gymrun-visual-identity-overnight-fllr8n`.**
-An overnight run under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built
-the first five stages of
-[`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md):
+**Visual identity, V0 to V4: merged**, as PR #13 (`9296ba7`). An overnight run
+under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built the first five stages
+of [`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md):
 tokens and the display face, locale palettes, world chrome, the scene layer,
 and the run summary. Each stage's report in `visual/reports/` opens with its
-morning decisions. V5 is skipped until Release C merges. The branch is the
-morning's pull request; nothing there touches `core/` or `data/`, and every
-seeded run in `visual/baseline/` is byte identical.
+morning decisions, **and two of those decisions are still open and still want a
+phone**: V0.5's `--font-body` and V3.6's performance check. V5 exited as a clean
+skip because Release C was not merged.
 
-**Working branch:** `claude/gymrun-docs-pass-arsdr7`, this documentation pass.
-It is Release 0 of the QoL plan, continued: the prompts landed in `spec/`
-already, and this pass adds the orientation layer over them. Documentation only,
-no source changes.
+**Working branch:** `claude/release-c-battle-feedback-ji40l7`, **Release C:
+battle feedback visuals**. Presentation only — the HP chunk and its shadow, the
+turn order jiggle, post-resolution flag words off a new pure reader in
+`core/battle/flags.ts`, and the berry flag off the `-enditem` reader 4.6b
+already had. No `core/` state change, no version axis moved, seeded output byte
+identical by both instruments. It is the last hard blocker in front of V5.
+Report: [`reports/release-c-battle-feedback.md`](reports/release-c-battle-feedback.md).
+
+**Unblocked by it, in order:** R12 (`BAND n` on the shared move card, display
+only, one commit) and then V5. Both are named in
+[`spec/gymrun-release-c-battle-feedback-amended.md`](spec/gymrun-release-c-battle-feedback-amended.md).
 
 **Next scheduled work:** the `contentHash` release. It bundles four things that
 are specified but unbuilt: `contentHash` itself, seed strings that carry it,

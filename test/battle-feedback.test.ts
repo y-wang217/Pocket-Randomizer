@@ -387,6 +387,48 @@ describe('the flag strip', () => {
     expect(strip.root.innerHTML).not.toContain('accent');
   });
 
+  it('marks whose flag it is, by side and never by kind', () => {
+    /*
+     * Both sides use a same-type move on the same turn, which prints `STAB`
+     * twice. Without the side marker the strip says two identical words about
+     * two different Pokemon and answers nothing.
+     */
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|switch|p2a: Persian|Persian, L50, F|155/155',
+      '|turn|1',
+      '|move|p1a: Snorlax|Body Slam|p2a: Persian',
+      '|-damage|p2a: Persian|100/155',
+      '|move|p2a: Persian|Slash|p1a: Snorlax',
+      '|-damage|p1a: Snorlax|200/235',
+      '|upkeep',
+    ];
+    const strip = createFlagStrip();
+    strip.show(readFlags(protocol, FLAGS));
+
+    const chips = [...strip.root.querySelectorAll('.chip')] as HTMLElement[];
+    const stab = chips.filter((chip) => chip.dataset['flag'] === 'stab');
+    expect(stab).toHaveLength(2);
+    // Two identical words, two different sides, and the strip says so.
+    expect(stab.map((chip) => chip.textContent)).toEqual(['STAB', 'STAB']);
+    expect(stab.map((chip) => chip.dataset['side'])).toEqual(['p1', 'p2']);
+    // The screen reader gets the name rather than the side code.
+    expect(stab[0]?.getAttribute('aria-label')).toBe('Snorlax: STAB');
+    expect(stab[1]?.getAttribute('aria-label')).toBe('Persian: STAB');
+
+    /*
+     * The rule the marker must not break: within one side, every kind is
+     * marked identically. A `data-side` that varied by kind would be the
+     * weight axis arriving through the side door.
+     */
+    for (const side of ['p1', 'p2']) {
+      const ofSide = chips.filter((chip) => chip.dataset['side'] === side);
+      expect(ofSide.length).toBeGreaterThan(1);
+      const recipes = new Set(ofSide.map((chip) => [...chip.classList].sort().join(' ')));
+      expect(recipes.size, `one recipe for every kind on ${side}`).toBe(1);
+    }
+  });
+
   it('shows the turn that just resolved, not the one the batch opens', () => {
     // An incremental batch ends with the `|turn|` that starts the next turn,
     // so a strip that selected by turn number would show an empty group and

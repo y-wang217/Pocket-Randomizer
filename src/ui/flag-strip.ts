@@ -60,9 +60,27 @@ export function createFlagStrip(): FlagStrip {
     show(turns) {
       const flags = latest(turns);
       root.replaceChildren(
-        ...flags.map((flag) =>
-          flagChip(flag.kind, flagWord(flag.kind, flag.detail), { tip: `flag:${flag.kind}` }),
-        ),
+        ...flags.map((flag) => {
+          const chip = flagChip(flag.kind, flagWord(flag.kind, flag.detail), { tip: `flag:${flag.kind}` });
+          /*
+           * Whose Pokemon the flag is about, in the vocabulary the log already
+           * taught: "the ordinal says when; the colour says who."
+           *
+           * Without it a turn where both sides used a same-type move prints
+           * `STAB` twice with nothing saying which is which, and the strip
+           * stops answering the question it exists for. The `subject` is on
+           * the flag for the same reason and rides along on the label a screen
+           * reader gets.
+           *
+           * **This is not the weight axis.** Every kind looks identical to
+           * every other kind, which is the rule; a side marker is a different
+           * fact, it is the one the log already marks, and it says nothing
+           * about whether what happened was good.
+           */
+          chip.dataset['side'] = flag.side;
+          chip.setAttribute('aria-label', `${flag.subject}: ${flagWord(flag.kind, flag.detail)}`);
+          return chip;
+        }),
       );
       // Empty rather than hidden: the strip holds its height so the board does
       // not jump between a turn that had something to say and one that did not.
