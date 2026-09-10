@@ -272,7 +272,7 @@ function renderMember(member: RunState['party'][number], index: number): HTMLEle
   level.textContent = `Lv${detail.level}`;
   const types = el('span', 'panel__types');
   types.replaceChildren(...detail.types.map((type) => typeChip(type)));
-  header.append(slotNumber(index), name, level, types);
+  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), types);
 
   const figure = el('div', 'summary__member-figure');
   figure.append(spriteImg(detail.species));
@@ -288,11 +288,6 @@ function renderMember(member: RunState['party'][number], index: number): HTMLEle
   const hp = el('span', 'summary__member-hp');
   hp.textContent = hpState(member.hp, member.maxHp);
   meta.append(hp);
-  types.replaceChildren(...detail.types.map(typeChip));
-  header.append(name, level, archetypeChip(detail.baseStats), types);
-
-  const meta = el('div', 'starter__meta');
-  meta.textContent = `${detail.ability} · ${hpState(member.hp, member.maxHp)}`;
 
   const moves = el('div', 'summary__member-moves');
   moves.replaceChildren(
@@ -302,8 +297,7 @@ function renderMember(member: RunState['party'][number], index: number): HTMLEle
     }),
   );
 
-  card.append(header, figure, meta, moves);
-  card.append(header, meta, moves, renderContribution(member));
+  card.append(header, figure, meta, moves, renderContribution(member));
   return card;
 }
 
@@ -334,6 +328,9 @@ function renderCoverage(state: RunState): HTMLElement {
   const box = el('div', 'coverage__box');
   box.append(wheel, legend);
   return box;
+}
+
+/**
  * What this member did across the whole run. **Stage 4.7, Part 5.**
  *
  * The run summary is the first of contribution's three surfaces, and it is the
