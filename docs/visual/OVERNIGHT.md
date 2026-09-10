@@ -22,6 +22,25 @@ Recorded once here rather than in each report.
   the Release B tooltip inventory, the Release C flag mapper) the report says
   what actually exists instead, and V5 skips per its own precondition.
 
+## What the morning merge needs to know
+
+`main` moved while the run was going: PR #10 (seven commits, `4343fe3`)
+landed `data/tierInfo.ts`, ported the last unkeyed draw to a key, and added
+`contentHash` by glob. A dry run of merging `main` into this branch is
+conflict-free (four files auto-merge). But the visual baseline in
+`docs/visual/baseline/` was recorded from the tree at the branch point, and
+those commits change `src/data/` (so `data-digest.txt`) and may change seeded
+output (the keyed port). After the merge, re-record the baseline **from the
+merged tree with no visual change on top**, which is the same thing V0.0 did:
+
+    npx vite-node scripts/visual/baseline.ts --write
+
+Then run the gate. Every visual stage touches nothing under `core/` or
+`data/`, so if a seeded run differs after the merge, `main` moved it, not
+this branch. Not done overnight because the preamble says the baseline is
+never regenerated, and this is the one case where that rule and `main`
+disagree.
+
 ## Preamble
 
 You are running unattended. There is no one to answer questions. Where the plan says "stop for review", write the report and continue. Where the plan says "decide" or "report first", take the default named in the plan's flagged-defaults section, record it, and continue. Never wait.
