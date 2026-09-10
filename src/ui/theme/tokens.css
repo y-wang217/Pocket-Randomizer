@@ -93,6 +93,19 @@
   --emphasis: var(--cream);
   --emphasis-ink: var(--base-deep);
 
+  /* ---------- the world ----------
+     What a locale overrides, three tokens, in theme/locales.css. These are the
+     neutral defaults: the run summary and the setup screens wear them. */
+  --locale-deep: var(--base-deep);
+  --locale-mid: color-mix(in srgb, var(--base-deep) 60%, var(--base-surface));
+  --locale-glow: color-mix(in srgb, var(--cream-dim) 45%, var(--base-surface));
+  /* Where the horizon sits, as a share of the viewport, and how tall the glow
+     band is. The ghosted locale name behind the map, its size and opacity. */
+  --horizon: 62%;
+  --horizon-band: 2px;
+  --fs-watermark: 88px;
+  --watermark-opacity: 0.07;
+
   /* The overlay dim and the one drop shadow, mixed from the deep base. */
   --dim: color-mix(in srgb, var(--base-deep) 78%, transparent);
   --shadow: color-mix(in srgb, #000 55%, transparent);
