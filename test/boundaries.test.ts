@@ -15,16 +15,37 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const CORE = join(ROOT, 'src/core');
 const SRC = join(ROOT, 'src');
 
-function walk(dir: string): string[] {
+function walk(dir: string, extensions: readonly string[] = ['.ts']): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) return walk(full);
-    return full.endsWith('.ts') ? [full] : [];
+    if (statSync(full).isDirectory()) return walk(full, extensions);
+    return extensions.some((extension) => full.endsWith(extension)) ? [full] : [];
   });
 }
 
 const coreFiles = walk(CORE);
 const srcFiles = walk(SRC);
+
+/**
+ * Every directory the unseeded-generator ban covers, and every extension.
+ *
+ * `src/` alone was the original scope and it was wrong in two directions at
+ * once. `scripts/measure-bundle.mjs` called `Math.random()` from Stage 2 until
+ * Release 0.5 and neither mechanism saw it: this test walked `src/`, and the
+ * ESLint rule matched TypeScript files only, so a `.mjs` file under `scripts/`
+ * fell through both. A ban two mechanisms agree to skip is worse than no ban,
+ * because the second mechanism reads as the backstop for the first.
+ *
+ * Build tooling is in scope for the same reason game code is. A probe filename
+ * drawn from the platform generator makes two bundle measurements two different
+ * builds, which is the same class of failure as an unreproducible run.
+ */
+const SEEDED_ROOTS = ['src', 'scripts', 'build-config'] as const;
+const SEEDED_EXTENSIONS = ['.ts', '.mjs', '.js'] as const;
+const seededFiles = SEEDED_ROOTS.map((dir) => ({
+  dir,
+  files: walk(join(ROOT, dir), SEEDED_EXTENSIONS),
+}));
 
 /**
  * Source with block and line comments removed.
@@ -51,8 +72,18 @@ describe('core/ boundaries', () => {
     expect(offenders.map((f) => relative(ROOT, f))).toEqual([]);
   });
 
+  it('walks every directory the RNG ban covers', () => {
+    // Or the assertion below passes because a root globbed to nothing, which is
+    // exactly how `scripts/` went unchecked for eight stages.
+    for (const { dir, files } of seededFiles) {
+      expect(files.length, `${dir}/ matched no files`).toBeGreaterThan(0);
+    }
+  });
+
   it('never references Math.random', () => {
-    const offenders = srcFiles.filter((file) => /Math\s*\.\s*random/.test(readFileSync(file, 'utf8')));
+    const offenders = seededFiles
+      .flatMap(({ files }) => files)
+      .filter((file) => /Math\s*\.\s*random/.test(readFileSync(file, 'utf8')));
     expect(offenders.map((f) => relative(ROOT, f))).toEqual([]);
   });
 

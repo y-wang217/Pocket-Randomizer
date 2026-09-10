@@ -45,9 +45,32 @@ function measureDir(dir) {
   return { raw, gz };
 }
 
+/*
+ * Probe entry files are numbered, not randomised.
+ *
+ * The name used to come from the platform's unseeded generator — banned
+ * repo-wide, and unflagged here since Stage 2 because both mechanisms that
+ * enforce the ban excluded this file. Release 0.5 closed that; the rule now
+ * reaches `scripts/` and `.mjs`.
+ *
+ * The ban is not the only reason to change it. The entry filename is an input
+ * to the build being measured, so a name that differs between two runs is a
+ * variable sitting inside a measurement whose whole purpose is to be diffed
+ * against last week's. A counter makes the nth probe of every run the same
+ * build, so a byte that moves is a byte the *bundle* moved.
+ *
+ * Uniqueness within a run is all this ever needed: the file is written and
+ * deleted inside `sizeOf`, and `npm run measure` is one process.
+ *
+ * (This comment names the call obliquely on purpose. The ban is asserted over
+ * the raw file with comments left in — `test/boundaries.test.ts` says why —
+ * so a file cannot spell it even to explain itself.)
+ */
+let probeCount = 0;
+
 async function sizeOf(source) {
   const out = mkdtempSync(join(tmpdir(), 'gymrun-probe-'));
-  const entry = join(ROOT, `.probe-${Math.random().toString(36).slice(2)}.ts`);
+  const entry = join(ROOT, `.probe-${probeCount++}.ts`);
   writeFileSync(entry, source);
   try {
     await build({
