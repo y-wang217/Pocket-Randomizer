@@ -992,3 +992,39 @@ It is read-only in v1. Item reassignment stays on the party management screen,
 which is where 4.5.1 put it, so there is exactly one write path for party state.
 A drawer that could reassign would need its own carve-out from the first rule
 above, and that is a v2 decision with its own playtest.
+
+
+## 12b. Deviation: the 4.7 phone regression patch stopped at step 2
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-4.7-phone-regressions.md`](spec/gymrun-patch-4.7-phone-regressions.md);
+the measurements are
+[`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+
+**What the prompt asked.** Four steps: close the pre-gym softlock; measure the
+fourth move button on three trees; if the measurement confirms 4.7 as the cause,
+take three named cuts until the button ends at or above y=740; then flip the
+fold assertion in `test/visual-v0.test.ts` from `it.fails` to a real assertion.
+
+**What was built.** Step 1 and step 2. **Steps 3 and 4 did not run, on the
+prompt's own stop condition** — "if the pre-PR-#10 number is already above 740,
+say so and stop". At 390x844 on `SMOKE24` the fourth move button ends at 840 on
+the tree before PR #10, 840 on `main` after PR #10, and 946.5 on `main` now. The
+first of those is 100px past the fold line, so the miss predates the stage and
+the three cuts, worth about 106.5px together, cannot reach 740 from 206.5px out.
+
+**Two corrections this carries, both about attribution rather than about a
+number.** Stage 4.7 did not arrive in PR #10 — PR #10 is the 0.5 verification
+release and changed the battle screen by nothing at all; 4.7 arrived in PR #12
+and reached `main` through PR #13. And
+[`visual/reports/merge-4.7.md`](visual/reports/merge-4.7.md) itemises 4.7's
++106.5 against `0aa2391`, the V4 branch tip, rather than against the pre-4.7
+`main`; the rows it names are right and the baseline it compares them to is not
+the one that answers "what did the stage cost the fold".
+
+**What is still open.** The 100px that predate 4.7 sit in rows no prompt has
+named yet: the battle heading, the two Pokemon panels at 239.25 and 214.25, and
+the 2x2 move grid. Reaching 740 is a decision about those, and it belongs to a
+prompt that says so rather than to a 4.7 rollback.
