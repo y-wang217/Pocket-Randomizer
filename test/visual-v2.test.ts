@@ -155,3 +155,34 @@ describe('the corner stamps', () => {
     await context.close();
   }, 120_000);
 });
+
+describe('the chips', () => {
+  it('share one neutral style everywhere but the type chip, which alone carries a hue', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const styles: Record<string, { neutral: string[]; typed: string[] }> = {};
+    for (const screen of ['map', 'battle'] as const) {
+      await playUntil(page, (open) => open === screen);
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(300);
+      styles[screen] = await page.evaluate((sel) => {
+        const read = (node: Element): string => {
+          const style = globalThis.getComputedStyle(node);
+          return `${style.color} ${style.backgroundColor} ${style.boxShadow}`;
+        };
+        const all = [...globalThis.document.querySelectorAll(`${sel} .chip`)].filter((node) => (node as HTMLElement).offsetParent !== null);
+        return {
+          neutral: [...new Set(all.filter((n) => !n.classList.contains('chip--type')).map(read))],
+          typed: [...new Set(all.filter((n) => n.classList.contains('chip--type')).map(read))],
+        };
+      }, visible(screen));
+    }
+    await context.close();
+    for (const [screen, { neutral, typed }] of Object.entries(styles)) {
+      expect(neutral.length, `${screen} has neutral chips`).toBeGreaterThan(0);
+      expect(neutral, `${screen}: one neutral style`).toHaveLength(1);
+      expect(typed.length, `${screen} has type chips`).toBeGreaterThan(0);
+      expect(typed, `${screen}: no type chip wears the neutral style`).not.toContain(neutral[0]);
+    }
+    expect(styles.map?.neutral[0]).toBe(styles.battle?.neutral[0]);
+  }, 180_000);
+});

@@ -529,30 +529,27 @@ body {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  /*
-   * The chip recipe. **Stage V0.** Every chip is an outline over a faint fill,
-   * its hue pulled toward the neutrals by the three `--chip-*` numbers in
-   * tokens.css. `--chip` is the only thing a variant sets, so no chip can be
-   * more saturated than another and none can be a solid fill. The outline is
-   * an inset shadow rather than a border so it costs no layout.
-   */
+}
+
+/*
+ * The chip recipe, on `.chip`, which every chip carries since V2 (ui/chip.ts
+ * is the one place one is built). **Stage V0 wrote it; Stage V2 made it the
+ * one style.** An outline over a faint fill, the hue pulled toward the
+ * neutrals by the three `--chip-*` numbers in tokens.css. `--chip` is the
+ * only thing a variant sets, and only the type chip sets it: a status, a
+ * tier, a band, a stage, a category and an effectiveness marker are all the
+ * neutral cream, because a label is a word and not a colour. The outline is
+ * an inset shadow rather than a border so it costs no layout.
+ */
+.chip {
   --chip: var(--cream-dim);
   background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
   color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
   box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
 }
 
-.badge--status[data-status="brn"] { --chip: var(--status-brn); }
-.badge--status[data-status="par"] { --chip: var(--status-par); }
-.badge--status[data-status="slp"] { --chip: var(--status-slp); }
-.badge--status[data-status="frz"] { --chip: var(--status-frz); }
-.badge--status[data-status="psn"],
-.badge--status[data-status="tox"] { --chip: var(--status-psn); }
-
-.badge--up { --chip: var(--stage-up); }
-.badge--down { --chip: var(--stage-down); }
-
-/* Ability and volatile chips are neutral: a name, not a reading. */
+/* The one exception to the neutral chip: the accent recipe on the lead. No —
+   the lead is a fact too. It stays neutral like everything else. */
 
 /* A hidden trait is a placeholder, not an absence: "this Pokemon has no item"
    and "it has one you have not been told about" are different facts. */
@@ -579,20 +576,16 @@ body {
   letter-spacing: 0.06em;
 }
 
-.badge--cat-physical { --chip: var(--type-fighting); }
-.badge--cat-special { --chip: var(--type-water); }
-.badge--cat-status { --chip: var(--cream-dim); }
+/* Stage V2: no hue per category. PHYS and SPEC are three letters each, and
+   the tooltip behind them says what they mean. */
 
 .badge--effect {
   font-weight: 700;
   font-size: var(--fs-sm);
 }
 
-.badge--effect[data-band="super"] { --chip: var(--stage-up); }
-.badge--effect[data-band="resisted"] { --chip: var(--cream-dim); }
-/* 0x carries the loss hue. Same outline, same size, same weight as the other
-   two: the reading is in the hue and the word, not in a louder chip. */
-.badge--effect[data-band="none"] { --chip: var(--hp-low); }
+/* Stage V2: no hue per effectiveness either. The word is the marker, and the
+   same chip at the same weight carries 2x, ½x and 0x alike. */
 
 /* An effectiveness the type chart alone does not explain gets an outline, so
    "this does nothing" arrives with "because of something on the field". */
@@ -618,10 +611,6 @@ body {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  --chip: var(--type-normal);
-  background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
-  color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
-  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
 }
 
 .type--normal { --chip: var(--type-normal); }
@@ -768,7 +757,7 @@ body {
   flex: none;
   padding: 0 calc(var(--space-1) + var(--hairline));
   border-radius: var(--radius-chip);
-  --chip: var(--stage-up);
+  --chip: var(--cream-dim);
   background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
   color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
   box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
@@ -923,9 +912,8 @@ body {
   font-family: var(--font-display);
   font-size: var(--fs-xs);
   letter-spacing: 0.04em;
-  border: var(--hairline) solid var(--border-strong);
-  background: var(--bg-sunken);
-  color: var(--text-dim);
+  text-transform: uppercase;
+  border: var(--hairline) solid transparent;
 }
 
 /* Stage V0: the four bands render identically. The opacity ramp that used to
@@ -1308,7 +1296,6 @@ body {
 
 .party__actions { display: flex; gap: var(--space-2); margin-top: var(--space-2h); }
 
-.badge--lead { --chip: var(--emphasis); }
 
 .badge--muted { opacity: 0.6; }
 
@@ -1786,7 +1773,9 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   display: inline-block;
   padding: var(--hairline) calc(var(--space-1) + var(--hairline));
   border-radius: var(--radius-chip);
-  border: var(--hairline) solid currentColor;
+  /* A transparent border keeps the box the chip had when it drew its own
+     edge; the .chip recipe draws the outline inside it. Stage V2. */
+  border: var(--hairline) solid transparent;
   font-family: var(--font-display);
   font-size: var(--fs-2xs);
   font-weight: 700;
@@ -1799,9 +1788,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * ramp, and a ramp is the stylesheet saying which node is better. The word is
  * the attribute; the chip is the same chip on every node.
  */
-.tier--normal,
-.tier--hard,
-.tier--elite { color: var(--text-dim); }
+/* The chip recipe colours the tier; nothing here does. */
 
 
 /* ---------- coins on the party panel ---------- */
@@ -2162,20 +2149,27 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   line-height: 1.3;
 }
 
-.node__gate-need {
-  font-weight: 600;
-  letter-spacing: 0.01em;
+/*
+ * The gate's two chips keep the gate line's own metrics: body face, the
+ * gate size, no padding, the line height 4.6c set. Stage V2 gave them the
+ * chip recipe and nothing else, because the event node is on the guarded map
+ * and a taller or wider chip there wraps the line and moves the decision
+ * point. The outline hugs the text; that is the price of the pixel.
+ */
+.node__gate-need,
+.node__gate-band {
+  padding: 0 var(--space-h);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-body);
+  font-size: var(--fs-gate);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-.node__gate-band {
-  color: var(--text-dim);
-}
+.node__gate-need { font-weight: 600; }
 
 /* Only the top band gets emphasis, and only because it changes what happens. */
-.node__gate--known .node__gate-band {
-  color: var(--text);
-  font-weight: 600;
-}
+.node__gate--known .node__gate-band { font-weight: 600; }
 
 .relics {
   margin-top: var(--space-5);

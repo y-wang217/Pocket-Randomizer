@@ -48,6 +48,7 @@ import { PARTY_SIZE } from '../../data/partyTuning';
 import { el } from '../scene';
 import { statLine, typeChip } from './starter-select';
 import { openBand } from '../band';
+import { neutralChip } from '../chip';
 
 /** What the offer's source says about where it came from. Never what it is worth. */
 const SOURCE_BLURB: Record<AcquisitionOffer['source'], string> = {
@@ -226,13 +227,11 @@ function renderExisting(
 
   const item = heldItem(member);
   if (item) {
-    const chip = el('span', 'badge badge--item');
     // Stage 4.5.1: the item is *not* part of the price. Releasing is still
     // permanent — there is no box and no retrieval — but what they were
     // holding goes back to the bag, because an item is destroyed only by an
     // explicit discard and letting a Pokemon go is not one.
-    chip.textContent = `${item.name} (returns to your bag)`;
-    meta.append(chip);
+    meta.append(neutralChip(`${item.name} (returns to your bag)`, 'item'));
   }
 
   card.append(header, track, meta);

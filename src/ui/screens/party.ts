@@ -57,6 +57,7 @@ import { statInfo, STAT_ORDER } from '../../data/statInfo';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
 import { genderMark, el } from '../scene';
+import { neutralChip, statusChip } from '../chip';
 import { renderSlots, slotNumber } from '../slots';
 import { PARTY_SIZE } from '../../data/partyTuning';
 import { showsNumbers } from '../settings';
@@ -305,11 +306,7 @@ function renderManaged(
   level.textContent = `Lv${spec.level}${genderMark(spec.gender)}`;
   // The slot number, the same marker the hotbar above wears. A position.
   header.append(slotNumber(index), name, level, ...spec.types.map(typeChip));
-  if (index === 0) {
-    const lead = el('span', 'badge badge--lead');
-    lead.textContent = 'Lead';
-    header.append(lead);
-  }
+  if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
   const ability = el('span', 'party__ability');
   ability.textContent = spec.ability;
@@ -333,20 +330,10 @@ function renderManaged(
     : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
   meta.append(hp);
 
-  if (member.status) {
-    const status = el('span', 'badge badge--status');
-    status.dataset['status'] = member.status;
-    status.textContent = member.status.toUpperCase();
-    meta.append(status);
-  }
-
-  if (member.status) {
-    // Status tooltips reachable outside a battle, for the same reason as
-    // abilities: a burn the player can only read about while burning is one
-    // they learn nothing from.
-    const chip = meta.querySelector('.badge--status');
-    if (chip instanceof HTMLElement) chip.dataset['tip'] = `status:${member.status}`;
-  }
+  // Status tooltips reachable outside a battle, for the same reason as
+  // abilities: a burn the player can only read about while burning is one
+  // they learn nothing from.
+  if (member.status) meta.append(statusChip(member.status, undefined, { tip: `status:${member.status}` }));
 
   /*
    * The held item, inline, with the assignment on the same card.
@@ -358,10 +345,7 @@ function renderManaged(
    */
   const entry = holding ? itemById(holding) : null;
   const itemRow = el('div', 'party__item');
-  const itemChip = el('span', 'badge badge--item');
-  itemChip.textContent = entry ? entry.name : 'No item';
-  if (!entry) itemChip.classList.add('badge--muted');
-  if (entry) itemChip.dataset['tip'] = `item:${entry.id}`;
+  const itemChip = entry ? neutralChip(entry.name, 'item', { tip: `item:${entry.id}` }) : neutralChip('No item', 'item', { extra: 'badge--muted' });
   itemRow.append(itemChip);
 
   if (entry) {
@@ -529,8 +513,7 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     const name = el('span', 'relics__name');
     name.textContent = relic.name;
 
-    const grants = el('span', 'badge badge--capability');
-    grants.textContent = CAPABILITY_LABELS[relic.grants];
+    const grants = neutralChip(CAPABILITY_LABELS[relic.grants], 'capability');
 
     const body = el('p', 'relics__text');
     body.textContent = relic.playerDescription;
@@ -593,9 +576,7 @@ function renderBackpack(
       const row = el('li', 'backpack__item');
       row.append(slotNumber(index));
 
-      const name = el('span', 'badge badge--item');
-      name.textContent = entry?.name ?? id;
-      if (entry) name.dataset['tip'] = `item:${entry.id}`;
+      const name = neutralChip(entry?.name ?? id, 'item', entry ? { tip: `item:${entry.id}` } : {});
       /*
        * A berry is marked, because it is the one row on this screen whose
        * *lifetime* differs from every other. **Stage 4.6b.**

@@ -30,6 +30,7 @@ import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { createScene, moveFacts } from '../src/ui/scene';
 import { resetSettings, setVerbosity } from '../src/ui/settings';
 import { createThreatReadout } from '../src/ui/screens/threats';
+import { typeChip } from '../src/ui/chip';
 
 function member(species: string, ability: string, moves: string[]): PokemonState {
   return createPartyMember({ species, ability, moves, level: 30 });
@@ -126,10 +127,12 @@ describe('nothing on screen implies a ranking or a severity', () => {
     readout.render(party);
 
     const chips = [...readout.root.querySelectorAll('.threats__item .type')];
-    expect(chips.map((chip) => chip.className)).toEqual([
-      'type type--electric',
-      'type type--rock',
-    ]);
+    // Exactly the class list ui/chip.ts gives a type chip anywhere else (from
+    // V2 that is `chip chip--type type type--<name>`), read from the component
+    // rather than spelled out, so the assertion is "the same as everywhere",
+    // and nothing appended to the worst entry.
+    expect(chips.map((chip) => chip.className)).toEqual([typeChip('Electric').className, typeChip('Rock').className]);
+    expect(chips.every((chip) => chip.className === typeChip(chip.textContent ?? '').className)).toBe(true);
 
     for (const item of readout.root.querySelectorAll('.threats__item')) {
       expect(item.className).toBe('threats__item');
