@@ -649,7 +649,24 @@ body {
   overflow: hidden;
 }
 
+/*
+ * **`display: block` is the whole of the stat-bar fix, and it is here rather
+ * than as a `div` in the component. Patch 4.7.2.**
+ *
+ * This rule shipped without it, on an `el('span', …)`, and `width` and `height`
+ * do not apply to a non-replaced *inline* box — so the fill computed to 0x0 and
+ * was never painted, whatever percentage the component wrote onto it. Measured
+ * on the real party screen: `width: 47%` set, `getBoundingClientRect()` 0x0.
+ * What the player saw was the track alone, a flat dark line, on all six rows.
+ * `.hp__fill` escaped the identical bug only by being a `div`.
+ *
+ * Fixed on the rule and not on the tag deliberately: the rule is the thing that
+ * asks for a width, so the rule is the thing that has to make the width mean
+ * something. A component that later swaps the element cannot reintroduce it,
+ * and `test/visual-inline-box.test.ts` now fails the whole class of bug.
+ */
 .stat__bar-fill {
+  display: block;
   height: 100%;
   border-radius: var(--radius-chip);
   background: var(--text-faint);

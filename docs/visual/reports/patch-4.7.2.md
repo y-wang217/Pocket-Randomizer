@@ -483,3 +483,81 @@ This is the third instance of what `generation.md` §9 calls "the awkward case",
 after `flagWords.ts` and `battleFeedbackMs`, and it behaved exactly as Release C
 recorded. **The per-field split of `tuning.ts` remains the `contentHash`
 release's decision and is deliberately not pre-empted here.**
+
+---
+
+## 3. The stat bars, and the guard for the class of bug
+
+### 3.1 The fix
+
+One declaration:
+
+```css
+.stat__bar-fill {
+  display: block;          /* ← this */
+  height: 100%;
+  ...
+}
+```
+
+**On the rule and not on the tag**, deliberately. The alternative was changing
+`el('span', …)` to `el('div', …)` in `member-card.ts`, which would have worked
+and would have left the rule still asking for a width it could not guarantee
+means anything. The rule is the thing that asks, so the rule is the thing that
+has to make the ask valid — and a component that later swaps the element cannot
+reintroduce the bug.
+
+### 3.2 Verified red first
+
+Both new tests were run against the tree with `display: block` removed, and both
+fail in the terms the bug actually presented:
+
+```
+× paints a fill with non-zero width and height on every row with a non-zero stat
+× paints each bar at the share the component asked for
+× never leaves an element with an inline width or height as an inline box
+    + "party   span.stat__bar-fill { width: 54.5% } is display: inline"
+    + "party   span.stat__bar-fill { width: 44.5% } is display: inline"   … ×6
+    + "pre-gym span.stat__bar-fill { width: 54.5% } is display: inline"   … ×6
+```
+
+Two things worth reading off that output. The guard names the **element, the
+declared width and the screen**, so the failure tells you what to fix rather
+than that something is wrong. And it found the bug on **two** surfaces — the
+party screen *and* pre-gym — where the report had only named the party drawer.
+
+With the declaration restored, all seven pass.
+
+### 3.3 Three tests, three different questions
+
+Split rather than merged, because each would let the others' failures through:
+
+| test | environment | asks |
+|---|---|---|
+| `party-stats.test.ts` | jsdom | are the six numbers **this member's**, checked against `describeSpecCard` |
+| `visual-stat-bars.test.ts` | Chromium | is the fill **painted**, and at the share the component asked for |
+| `visual-inline-box.test.ts` | Chromium | is **anything** given an inline width left as an inline box |
+
+- A browser test alone would compare on-screen text against on-screen text and
+  never touch `describeSpecCard`, so a card populated from the wrong member
+  would satisfy it perfectly. Hence the jsdom half, with an Alakazam at level 42
+  whose six stats are all different — a row read off the wrong key fails rather
+  than coinciding.
+- A jsdom test alone is exactly what the broken build would have passed.
+- **The guard is the one that matters for next time.** "The stat bar paints" is
+  a fact about one component; "a width that is set must be a width that can
+  paint" is the property the bug was an instance of, and it is checked over
+  every `[style]` element on every screen the run reaches. Replaced elements —
+  `img`, `svg`, `canvas`, `input` and the rest — are listed as the exception the
+  spec itself carves out, rather than left to trip a rule they do not violate.
+
+### 3.4 Pixels
+
+`node scripts/visual/measure.mjs --compare` reports **guarded screen heights
+equal to the baseline to the pixel.** Giving a zero-sized box its real size
+changes no layout: the fill sits inside a track that already had its own height
+and width, and painting into it displaces nothing.
+
+**What is still swapped rather than shown together is Detailed.** At this step
+`bar.hidden = detailed` still holds, so the browser test measures Simple — the
+only mode with a bar on screen — and says so in its header. Ruling 3 is step 4.
