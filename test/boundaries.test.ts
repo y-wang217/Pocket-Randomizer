@@ -316,6 +316,48 @@ describe('the battle UI boundary', () => {
     expect(offenders, 'format HP through core/hpCopy.ts instead').toEqual([]);
   });
 
+  /**
+   * **No screen renders a verdict about which option is better.** Part 4.
+   *
+   * The UI presents attributes. It does not recommend, rank, score, or mark one
+   * option as superior to another it is offering alongside it. The rule has one
+   * exception, live type effectiveness against the Pokemon currently on the
+   * field, and that is a fact about the present board rather than a forecast
+   * about a choice — it carries no vocabulary this check looks for.
+   *
+   * The check is over *string literals with the comments stripped*, not over
+   * the raw file, and that direction is deliberate and opposite to the
+   * `Math.random` rule above. That one bans the words too, because its value is
+   * that it cannot be talked past. This one must not: `screens/reward.ts` and
+   * `screens/starter-select.ts` carry header comments explaining the rule by
+   * quoting the copy it forbids, and a check that fired on those would push the
+   * explanation out of the two files that most need it. What ships to a player
+   * is the string, so the string is what is checked.
+   *
+   * Release 0.5 added this after `run-map.ts` was found rendering "The best
+   * rewards in the game" on the map screen — the single pixel Stage 3 built the
+   * whole risk gradient on — where it had sat since Stage 3 with nothing in the
+   * suite able to see it.
+   */
+  it('renders no verdict about an option the player is choosing', () => {
+    const VERDICT =
+      /\b(best|better|worse|worst|strongest|weakest|superior|inferior|optimal|ideal|recommend\w*|you should)\b/i;
+
+    const offenders: string[] = [];
+    for (const file of walk(join(ROOT, 'src/ui'))) {
+      const code = stripComments(readFileSync(file, 'utf8'));
+      code.split('\n').forEach((line, index) => {
+        for (const literal of line.match(/'[^']*'|"[^"]*"|`[^`]*`/g) ?? []) {
+          if (VERDICT.test(literal)) {
+            offenders.push(`${relative(ROOT, file)}:${index + 1} ${literal}`);
+          }
+        }
+      });
+    }
+
+    expect(offenders, 'state the attribute, not a judgement about it').toEqual([]);
+  });
+
   it('asks the player every question the human policy claims to ask', () => {
     const source = sourceOf('src/ui/app.ts');
 
