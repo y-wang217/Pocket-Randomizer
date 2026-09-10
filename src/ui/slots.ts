@@ -46,6 +46,8 @@ export interface SlotContent {
   item?: ItemId | null;
   /** A `data-tip` key for the slot, so a tap names what is in it. */
   tip?: string;
+  /** A second, smaller line under the label: an HP and PP reading, say. */
+  detail?: string;
 }
 
 /** The icon element for an item, positioned on the sheet by @pkmn/img. */
@@ -82,6 +84,11 @@ export function renderSlots(kind: 'party' | 'backpack', contents: readonly SlotC
       const label = el('span', 'slot__label');
       label.textContent = content.label;
       slot.append(label);
+      if (content.detail) {
+        const detail = el('span', 'slot__detail');
+        detail.textContent = content.detail;
+        slot.append(detail);
+      }
       if (content.tip) {
         slot.dataset['tip'] = content.tip;
         slot.tabIndex = 0;

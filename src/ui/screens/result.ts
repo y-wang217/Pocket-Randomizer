@@ -43,12 +43,13 @@
  */
 import type { AcquisitionDecision, AcquisitionOffer } from '../../core/acquisition';
 import { FAINTED, hpState, ppState } from '../../core/hpCopy';
-import { hpFraction, ppTotals } from '../../core/party';
+import { ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
 import type { BattleReview, RunState } from '../../core/run';
 import type { PokemonState } from '../../core/types';
-import { statusChip } from '../chip';
+import { neutralChip, statusChip } from '../chip';
 import { el } from '../scene';
+import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
 import { renderRewardCard, tierBadge } from './reward';
 
@@ -91,11 +92,21 @@ export interface ResultScreen {
 export function createResultScreen(): ResultScreen {
   const root = el('section', 'screen screen--result');
 
+  /*
+   * One line of header. Stage V4: the outcome word, the cost line and the
+   * coins earned as a chip sit on one row, so the cards and the capture
+   * offer, which are the decisions on this screen, start higher and stay
+   * above the fold on a phone.
+   */
+  const header = el('div', 'result__header');
   const title = el('h2', 'screen__title');
   const blurb = el('p', 'screen__blurb');
+  header.append(title, blurb);
 
   const partyHeading = el('h3', 'result__heading');
   partyHeading.textContent = 'Your party';
+  // The party as the fight left it, as the V2 slot row: one slot a member,
+  // HP and PP as the slot's detail line. Stage V4.
   const party = el('div', 'result__party');
 
   const cardsHeading = el('h3', 'result__heading');
@@ -104,7 +115,7 @@ export function createResultScreen(): ResultScreen {
   const capture = el('div', 'result__capture');
   const actions = el('div', 'result__actions');
 
-  root.append(title, blurb, partyHeading, party, cardsHeading, cards, capture, actions);
+  root.append(header, partyHeading, party, cardsHeading, cards, capture, actions);
 
   return {
     root,
@@ -114,7 +125,8 @@ export function createResultScreen(): ResultScreen {
       if (review) {
         title.textContent = won ? 'Victory' : 'Defeated';
         title.dataset['outcome'] = won ? 'win' : 'loss';
-        blurb.textContent = describeCost(review);
+        blurb.replaceChildren(document.createTextNode(describeCost(review)));
+        if (review.currencyEarned > 0) blurb.append(' ', neutralChip(`+${review.currencyEarned} coins`, 'coins'));
       } else {
         title.textContent = 'Choose a reward';
         delete title.dataset['outcome'];
@@ -125,7 +137,22 @@ export function createResultScreen(): ResultScreen {
       // there is no fight to report the cost of.
       partyHeading.hidden = !review;
       party.hidden = !review;
-      party.replaceChildren(...(review?.party ?? []).map((member) => renderMemberRow(member)));
+      party.replaceChildren(
+        renderSlots(
+          'party',
+          (review?.party ?? []).map((member) => ({
+            label: member.spec.species,
+            item: member.item ?? null,
+            detail: memberReading(member),
+          })),
+          review?.party.length ?? 0,
+        ),
+      );
+      for (const [index, member] of (review?.party ?? []).entries()) {
+        const slot = party.querySelectorAll<HTMLElement>('.slot')[index];
+        if (slot && member.status) slot.append(statusChip(member.status));
+        if (slot && member.fainted) slot.dataset['fainted'] = 'true';
+      }
 
       cardsHeading.hidden = !offer;
       cards.hidden = !offer;
@@ -195,51 +222,17 @@ export function createResultScreen(): ResultScreen {
  */
 function describeCost(review: BattleReview): string {
   const parts: string[] = [];
-  if (review.currencyEarned > 0) parts.push(`+${review.currencyEarned} coins`);
 
   const down = review.party.filter((member) => member.fainted).length;
   if (down > 0) parts.push(`${down} fainted — they revive at the next node`);
 
   if (!review.won) return parts.length > 0 ? parts.join(' · ') : 'The run ends here.';
-  return parts.length > 0 ? parts.join(' · ') : 'No coins, and nobody went down.';
+  if (parts.length > 0) return parts.join(' · ');
+  return review.currencyEarned > 0 ? 'Nobody went down.' : 'No coins, and nobody went down.';
 }
 
-/**
- * A party member as the fight left it: HP as a bar and a number, and PP.
- *
- * The same card shape as the map's party panel rather than a lighter one, so
- * the player is comparing like with like across the two screens. PP is here
- * because it is the resource a run spends that nothing else on this screen
- * would show — HP is visible on the battle screen up to the last turn, and PP
- * is the one that quietly runs out four fights later.
- */
-function renderMemberRow(member: PokemonState): HTMLElement {
-  const row = el('div', 'party__member');
-
-  const header = el('div', 'panel__header');
-  const name = el('span', 'panel__name');
-  name.textContent = member.spec.species;
-  const level = el('span', 'panel__level');
-  level.textContent = `Lv${member.spec.level}`;
-  header.append(name, level);
-
-  const track = el('div', 'hp');
-  const fill = el('div', 'hp__fill');
-  const fraction = hpFraction(member);
-  fill.style.width = `${fraction * 100}%`;
-  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
-  track.append(fill);
-
-  const meta = el('div', 'panel__meta');
-  const text = el('span', 'panel__hp-text');
+/** HP and PP as the fight left them, for a slot's detail line. */
+function memberReading(member: PokemonState): string {
   const pp = ppTotals(member);
-  text.textContent = member.fainted
-    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
-    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
-  meta.append(text);
-
-  if (member.status) meta.append(statusChip(member.status));
-
-  row.append(header, track, meta);
-  return row;
+  return member.fainted ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}` : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
 }

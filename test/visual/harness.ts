@@ -23,10 +23,15 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-export async function openHarness(): Promise<Harness> {
+/**
+ * `gallery: true` builds `gallery.html` (src/ui/gallery.ts) instead of the
+ * app: one screen, one seed, rendered from a scripted run, for the states the
+ * smoke bot cannot reach on demand.
+ */
+export async function openHarness(options: { gallery?: boolean } = {}): Promise<Harness> {
   const out = mkdtempSync(join(tmpdir(), 'gymrun-visual-'));
   await build({
-    configFile: join(process.cwd(), 'vite.config.ts'),
+    configFile: join(process.cwd(), options.gallery ? 'vite.gallery.config.ts' : 'vite.config.ts'),
     logLevel: 'silent',
     build: { outDir: out, emptyOutDir: true, sourcemap: false, reportCompressedSize: false },
   });

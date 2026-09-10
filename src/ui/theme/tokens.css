@@ -188,6 +188,9 @@
   --fs-5xl: 20px;
   --fs-6xl: 24px;
   --fs-7xl: 26px;
+  /* The run summary's two large sizes: the outcome word and the gym count. */
+  --fs-outcome: 44px;
+  --fs-gyms: 56px;
   /* The capability gate line on a node. 4.6c wrote it in rem (12.48px at the
      default root size) and the map's height depends on it, so it is pinned
      here rather than snapped to the 12px step. Morning decision: snapping it

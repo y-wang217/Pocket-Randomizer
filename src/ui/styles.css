@@ -2585,3 +2585,193 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   .world__drift { display: none; }
   .world__layer { transform: none !important; }
 }
+
+/* ==========================================================================
+   Stage V4 — the run summary as payoff, and the compact result
+   ========================================================================== */
+
+/*
+ * A strip: the V2 band's surface, static. The cause of death wears it on the
+ * summary; the confirm band wears it as a dialog. One recipe.
+ */
+.strip,
+.confirm-band__body {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
+  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+}
+
+/* The summary card loses its box: it is the page now, not a card on it. */
+.summary {
+  width: min(680px, 100%);
+  padding: var(--space-4) 0 var(--space-6);
+  background: transparent;
+  border: 0;
+}
+
+/* The outcome, one word, as large as the display face goes here. */
+.summary__outcome {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-outcome);
+  line-height: 1;
+  letter-spacing: var(--tracking-title);
+  text-transform: uppercase;
+}
+
+.screen--summary[data-outcome='victory'] .summary__outcome { color: var(--win); }
+.screen--summary[data-outcome='defeat'] .summary__outcome { color: var(--loss); }
+
+/* Gyms cleared: a large number over eight. */
+.summary__gyms {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+
+.summary__gyms-count { font-size: var(--fs-gyms); }
+.summary__gyms-of { font-size: var(--fs-2xl); color: var(--text-dim); letter-spacing: var(--tracking-label); }
+
+.summary__detail { margin: var(--space-2) 0 var(--space-3); }
+
+/*
+ * The route: eight bands across, one per segment, each in its locale's
+ * tokens (the `.locale--<id>` class carries them, the same rule the select
+ * cards use), a dot per node taken, the gym dot larger, the death dot marked
+ * with the loss colour. A segment never reached is the neutral band.
+ */
+.route {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-h);
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route__band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 40px;
+  padding: var(--space-1h) var(--space-h);
+  background: linear-gradient(to bottom, var(--locale-mid), var(--locale-deep));
+  border-top: var(--space-h) solid var(--locale-glow);
+  border-radius: var(--radius-chip);
+}
+
+.route__band--unreached { opacity: 0.35; }
+
+.route__dot {
+  width: var(--space-1h);
+  height: var(--space-1h);
+  border-radius: var(--radius-chip);
+  background: var(--cream);
+}
+
+.route__dot--gym {
+  width: var(--space-3);
+  height: var(--space-3);
+  background: var(--locale-glow);
+}
+
+.route__dot--death {
+  background: var(--loss);
+  box-shadow: 0 0 0 var(--space-h) color-mix(in srgb, var(--loss) 40%, transparent);
+}
+
+/*
+ * The tier table: five rows, the player's bold. No colour per row and no
+ * ordering beyond the ranges themselves, which are what they are.
+ */
+.tiers {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.tiers__row {
+  display: grid;
+  grid-template-columns: 16px 44px minmax(0, 1fr);
+  gap: var(--space-2h);
+  align-items: center;
+  padding: var(--space-1h) var(--space-2);
+  border-radius: var(--radius-card);
+  color: var(--text-dim);
+  font-size: var(--fs-base);
+}
+
+.tiers__row--here {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-strong);
+}
+
+.tiers__icon { display: inline-flex; width: 16px; height: 16px; }
+.tiers__icon > svg { width: 100%; height: 100%; }
+.tiers__range { font-family: var(--font-display); letter-spacing: var(--tracking-label); }
+.tiers__copy { line-height: 1.4; }
+
+.summary__cause {
+  margin: var(--space-3) 0;
+  color: var(--text);
+  font-size: var(--fs-base);
+  border-left: 0;
+  border-radius: 0;
+}
+
+/* The final party: numbered cards with a sprite, in the slot's grammar. */
+.summary__member {
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
+.summary__member-header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.summary__member-figure { display: flex; justify-content: center; }
+.summary__member-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--fs-md); color: var(--text-dim); }
+.summary__member-item { display: inline-flex; }
+.summary__member-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1h); }
+
+.sprite {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+.sprite[data-missing='true'] { visibility: hidden; }
+
+/* The coverage wheel: eighteen spokes, the reached ones filled. A reading. */
+.coverage__box { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; text-align: left; }
+.coverage__wheel { flex: none; }
+.coverage__spoke { stroke: var(--border-strong); stroke-width: 1; }
+.coverage__spoke--covered { stroke: var(--text-dim); stroke-width: 2; }
+.coverage__tip { fill: var(--border-strong); }
+.coverage__tip--covered { fill: var(--cream); }
+.coverage__legend { margin: 0; flex: 1; min-width: 160px; font-size: var(--fs-md); color: var(--text-dim); }
+
+/* The compact result header: outcome, cost and coins on one line. */
+.result__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2h);
+  flex-wrap: wrap;
+}
+
+.result__header .screen__blurb { margin: 0; }
+.result__party .slot[data-fainted='true'] { opacity: 0.55; }
+
+.slot__detail {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
