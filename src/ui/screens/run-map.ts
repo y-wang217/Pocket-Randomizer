@@ -49,8 +49,9 @@ import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityBand, type CapabilityContext } from '../../core/capabilities';
 import type { Capability } from '../../data/capabilities';
 import { nodePayout } from '../../core/economy';
-import type { PokemonState, Tier } from '../../core/types';
+import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
+import { TIER_INFO } from '../../data/tierInfo';
 import { PARTY_SIZE } from '../../data/partyTuning';
 import { el } from '../scene';
 import { tierBadge } from './reward';
@@ -73,18 +74,6 @@ const KIND_HINTS: Record<NodeSpec['kind'], string> = {
   gym: 'The gym leader. Beat them and the segment is over.',
   shop: 'Spend coins on items, healing and moves.',
   event: 'Something happens. You choose what to do about it.',
-};
-
-/**
- * What a tier means, in one line, in the player's terms.
- *
- * Not "+3 levels and a band shift" — that is `data/scaling.ts` talking to a
- * balance pass. This is what the number feels like from the outside.
- */
-const TIER_HINTS: Record<Tier, string> = {
-  normal: 'Ordinary. Modest reward.',
-  hard: 'Bulkier and a level up on you. Better reward.',
-  elite: 'Two of them. The best rewards in the game.',
 };
 
 export interface RunMap {
@@ -364,7 +353,7 @@ function renderNode(
     const payout = nodePayout(node, segment);
     const parts: string[] = [];
     if (payout > 0) parts.push(`${payout} coins`);
-    if (node.tier) parts.push(TIER_HINTS[node.tier]);
+    if (node.tier) parts.push(TIER_INFO[node.tier]);
     else parts.push(KIND_HINTS[node.kind]);
     if (node.kind === 'shop' && node.shop) {
       const cheapest = Math.min(...node.shop.items.map((item) => item.price));

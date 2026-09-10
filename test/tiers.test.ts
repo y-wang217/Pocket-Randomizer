@@ -35,6 +35,7 @@ import {
   speciesBandsFor,
   TIER_MODIFIERS,
 } from '../src/data/scaling';
+import { TIER_INFO } from '../src/data/tierInfo';
 import { DEFAULT_TUNING, tierWeightsFor, withTuning } from '../src/data/tuning';
 
 const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
@@ -327,5 +328,54 @@ describe('tier tuning', () => {
       }
     }
     expect(repeats).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The three lines the map shows for a tier.
+ *
+ * A missing entry renders as `undefined` on the node card, which is the most
+ * important pixel in the game and the one place a silent gap is least
+ * affordable — so the coverage is asserted rather than trusted to a
+ * `Record<Tier, string>` that a later tier could be added around.
+ *
+ * The second test is the Part 4 rule at its narrowest point. These three lines
+ * are the only copy in the game that describes options the player is actively
+ * choosing between, which makes them the copy most likely to slide back into a
+ * verdict — as `elite` did, reading "The best rewards in the game" from Stage 3
+ * until Release 0.5. The vocabulary check over `src/ui` in
+ * `test/boundaries.test.ts` is the general net; this is the specific one.
+ */
+describe('tier copy', () => {
+  const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
+
+  it('covers every tier', () => {
+    for (const tier of TIERS) {
+      expect(TIER_INFO[tier], `no TIER_INFO entry for ${tier}`).toBeTruthy();
+    }
+    expect(Object.keys(TIER_INFO).sort()).toEqual([...TIERS].sort());
+  });
+
+  it('states attributes and never a verdict', () => {
+    const verdict = /\b(best|better|worse|worst|strongest|weakest|superior|inferior|optimal|ideal|modest|recommend\w*)\b/i;
+    for (const tier of TIERS) {
+      expect(TIER_INFO[tier], `${tier} reads as a verdict`).not.toMatch(verdict);
+    }
+  });
+
+  /*
+   * Parallel shape, asserted rather than left to the next editor's eye.
+   *
+   * The whole repair was that three lines in three different grammars let one
+   * of them editorialise without looking out of place. Two sentences each, the
+   * second naming the reward band, is the shape that makes a superlative
+   * visibly not belong.
+   */
+  it('keeps all three lines in one shape', () => {
+    for (const tier of TIERS) {
+      const line = TIER_INFO[tier] ?? '';
+      expect(line, `${tier} does not open by naming the encounter`).toMatch(/^(One|Two) Pokemon,/);
+      expect(line, `${tier} does not state the reward band`).toMatch(/Pays a move .*band/);
+    }
   });
 });

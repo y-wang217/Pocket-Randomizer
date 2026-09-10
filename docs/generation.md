@@ -61,6 +61,22 @@ generation is still the rule, and a payout is still drawn when the map is built
 rather than when a node is completed. Those arguments were never about stream
 layout.
 
+### The one discipline keying requires
+
+**A key must be a stable string, never derived from anything that varies with
+player behaviour.** No turn counts, no party size, no visit counts. A key
+containing any of those reintroduces the exact coupling the refactor removed,
+and it does it invisibly: the draw still happens, the test still passes, and two
+players on one seed diverge because one of them switched more often.
+
+`core/streamKeys.ts` says the same thing from the other side — *a key names a
+thing that draws, never a moment in time* — and the two phrasings are one rule.
+`node/s3-cave-2-0` names a thing; "the fourth draw of segment 3" names a moment.
+The design document
+([`gymrun-seeds-and-mappability.md`](spec/gymrun-seeds-and-mappability.md)) asks
+for the rule to be recorded here specifically, and until Release 0.5 it was in
+`CLAUDE.md` and `keyed-streams.md` but not in the file the design named.
+
 ## 1c. Locales, and generating a road you will not walk
 
 **Stage 4.6a opens a segment on a locale choice.** Two or three regions are
@@ -629,6 +645,63 @@ None of the three is built. `RANDOMIZER_VERSION` is still hand-edited, and the
 `hmLearnsets.ts` that would have been the first entry on the hash's file list
 is not being built either.
 
+### It is computed over `src/data/**` by glob, not over a list
+
+**Decided 2026-09-10, Release 0.5. The design document's enumerated file list is
+superseded.** It named eleven tables: `speciesPools`, `movePools`, `scaling`,
+`rewardPools`, `locales`, `items`, `hms`, `events`, `blacklists`, `starters`,
+`tuning`. Every one was correct when it was written.
+
+Measured against the tree today, one of the eleven is gone — `hms` was deleted
+at 4.6c when capabilities became relics — and **eleven balance-bearing tables
+exist that the list does not name**, among them `relics`, `capabilityTypes`,
+`moveOverrides`, `abilityOverrides`, `shop`, `gyms` and `partyTuning`. Any of
+them can change what a seed rolls or pays without moving a hash built from that
+list. That is a silent seed reinterpretation, which is the exact failure
+`contentHash` was invented to prevent.
+
+The fix is not a corrected list of twenty-two files. **An enumerated file list
+is a hand bump wearing a hash costume.** The design rejected hand-bumping
+`RANDOMIZER_VERSION` on the grounds that "a forgotten bump is the failure mode
+that silently reinterprets a shared seed. The hand bump is a discipline problem
+and disciplines fail. A hash does not" — and a list somebody must remember to
+extend fails in precisely that way, for precisely that reason. This section is
+the evidence that it already did, over a single stage.
+
+So the hash is taken over every file the glob `src/data/**` matches, resolved at
+build time. A table added tomorrow is covered the day it lands, by construction,
+with nobody remembering anything.
+
+### What a glob needs that a list does not
+
+A list implies a judgement about each file. A glob makes one judgement once, so
+it has to be stated: **is everything in `src/data/` balance-bearing?**
+
+Not quite, and it does not matter, which is the point.
+
+Three kinds of file live there. Most change what a seed rolls or pays. Some are
+purely player-facing copy — `bandInfo.ts`, `statusInfo.ts`, `tierInfo.ts`,
+`categoryInfo.ts`, `statInfo.ts` — and cannot move a draw. One, `mons.ts`, is
+not game data at all: it is Stage 0's fixed matchup, pinned by the determinism
+and replay tests.
+
+Hashing all three kinds makes the hash **conservative**, and conservative in the
+one direction that is safe. Rewording a tooltip moves the hash and a seed shared
+across that edit is rejected, even though it would in fact have reproduced. That
+is a false rejection: visible, loud, and recoverable by re-sharing the seed.
+The opposite error — a balance table outside the hash, so a seed is accepted and
+silently plays as a different run — is the one the mechanism exists to make
+impossible.
+
+**The asymmetry is the whole argument.** `contentHash` may reject a seed that
+would have worked. It may never accept one that will not. A glob errs toward
+the first; a list errs toward the second, by omission, quietly. So there is no
+exception list for the copy files, because an exception list is an enumeration
+again with the same failure mode one level down.
+
+The implementation is still its own release, below. This section records the
+decision so that release builds the right thing.
+
 They are **their own release, scheduled after 4.6c and before the freeze**, for
 the reason the seeds document gives: the freeze stamps a `contentHash` as the
 first shareable baseline, and it cannot be stamped without one. They are
@@ -639,6 +712,53 @@ Until then the hand bump stands, with the failure mode the seeds document names
 and this paragraph does not solve: a forgotten bump silently reinterprets a
 shared seed. `docs/keyed-streams.md` tracks what is missing.
 
+
+## 9b. Deviation: keyed streams shipped two levels, not one
+
+**Recorded 2026-09-10, Release 0.5. Protocol 4 —
+[`spec/README.md`](spec/README.md) — a prompt is not edited to match what was
+built, so the deviation is written here instead.**
+
+**What the design said.** `gymrun-seeds-and-mappability.md` specifies a single
+flat keyed namespace. Named streams go away entirely and every draw comes off
+`rng.at(key)`, keys colon-separated:
+
+```ts
+rng.at('locale:segment3:offer')
+rng.at('rewards:segment3:node2:offer')
+```
+
+**What shipped.** 4.6a kept the five named streams and added keys one level
+underneath them, `#` between the stream and the key:
+
+```ts
+rng.map.at('seg3/cave/route')          // gymrun:map#seg3/cave/route:<seed>
+rng.rewards.at('node/s3-cave-2-0/offer')
+```
+
+4.6a was built before the design document was in the repository, from the
+prompt's description of it. [`keyed-streams.md`](keyed-streams.md) is the
+implementation record and section 1b above describes what exists; neither is
+wrong, and this note exists because the *design* the repo treats as canonical
+says something else.
+
+**Why it is not a seed break.** The two derivations produce different values,
+but no seed predates the keying: 4.6a was itself the one intentional break of
+the refactor, and `RANDOMIZER_VERSION` moved to `gymrun-randomizer-7` to
+announce it. Nothing in circulation was recorded against the flat form, because
+the flat form never ran. Every property the design bought — a new key moves
+nothing, a new draw's blast radius is one key, isolation is structural rather
+than tested per stage — holds identically in the two-level form, because it is
+the same construction applied twice.
+
+**The one consequence, and the reason this note exists.** A Stage 5 shared-seed
+scheme built by reading the design document would address sequences the code
+does not draw from. `rng.at('rewards:segment3:node2:offer')` is not the sequence
+`rng.rewards.at('node/s3-cave-2-0/offer')` returns — different domain string,
+different generator, different values, and no error anywhere, because both are
+legal keys. Seed sharing, daily seeds and `previewRun` all read off this
+derivation. **Build them against `core/streamKeys.ts` and `core/rng.ts`, never
+against the key spellings in the design document.**
 
 ## 10. Relics, and the shape of a capability gate
 
