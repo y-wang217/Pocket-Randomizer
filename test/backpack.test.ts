@@ -567,7 +567,24 @@ describe('item assignment replays identically', () => {
     }
     // The search has to have found something, or this test asserts nothing.
     expect(checked).toBeGreaterThan(0);
-  }, 120_000);
+    /*
+     * 240s, not the 120s this carried before Stage 4.8, and not because the test
+     * got slower at anything it does. It sweeps seeds and replays a whole run per
+     * save point, so its cost tracks run length and party width — and 4.8 raised
+     * both, with a per-segment step curve and a party ceiling of six.
+     *
+     * It was measured at **118.4s against the 120s budget**, 1.3% of margin, so
+     * it passed alone and timed out inside the full suite, where it competes for
+     * CPU. Same figure on `main` at 247b4df (117.8s), so this is the budget
+     * having been left behind by 4.8 rather than a regression in either place.
+     * 240s is the number `gym-pays-twice` and `nicknames-graveyard` already use
+     * for the same reason.
+     *
+     * Shortening the sweep instead would trade the property it proves — resume
+     * works from *any* boundary, not a convenient one — for a number in a test
+     * file. Same reasoning as the note in `vitest.config.ts`.
+     */
+  }, 240_000);
 
   it('carries the backpack through a save and reload as JSON', async () => {
     const saves: RunLog[] = [];
