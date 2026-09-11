@@ -53,7 +53,7 @@ import { join } from 'node:path';
 
 import { outcomeAt } from '../src/core/events';
 import { resolveCapability } from '../src/core/capabilities';
-import { AI_VERSION, decide } from '../src/core/battle/ai';
+import { AI_VERSION, decide, GREEDY_BASELINE, type AiProfile } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
 import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
@@ -143,6 +143,14 @@ function bandOfPower(basePower: number): number {
 type PolicyName =
   | 'greedy'
   | 'random'
+  /**
+   * One step of lookahead on the player's side. **The AI tiers patch, step 2.**
+   *
+   * `greedy` plus `oneStepLookahead` and nothing else, so the gap between the
+   * two is one rung of the published skill ladder measured on our own game. See
+   * `LOOKAHEAD_PROFILE` for why there is no `heuristic` beside it.
+   */
+  | 'lookahead'
   | 'tier-averse'
   | 'tier-greedy'
   /**
@@ -226,7 +234,14 @@ interface Options {
   quiet: boolean;
 }
 
+/*
+ * `--policy all` stays the pair it has always been, so every historical
+ * invocation means what it meant. The ladder is its own name below.
+ */
 const ALL_POLICIES: PolicyName[] = ['greedy', 'random'];
+
+/** The skill gradient, in one command: the floor, the pinned baseline, one step of lookahead. */
+const LADDER_POLICIES: PolicyName[] = ['random', 'greedy', 'lookahead'];
 /** The Stage 4 headline: same AI, same seeds, switching on and off. */
 const SWITCH_POLICIES: PolicyName[] = ['switch-aware', 'no-switch'];
 const ALL_NODE_POLICIES: NodePolicyName[] = ['rest', 'wild', 'trainer', 'first'];
@@ -269,17 +284,19 @@ function parseArgs(argv: string[]): Options {
         options.policies =
           name === 'all'
             ? ALL_POLICIES
-            : name === 'tiers'
-              ? TIER_POLICIES
-              : name === 'switching'
-                ? SWITCH_POLICIES
-                : name === 'catching'
-                  ? CATCH_POLICIES
-                  : name === 'relics'
-                    ? RELIC_POLICIES
-                    : name === 'leads'
-                      ? LEAD_POLICIES
-                      : [assertPolicy(name)];
+            : name === 'ladder'
+              ? LADDER_POLICIES
+              : name === 'tiers'
+                ? TIER_POLICIES
+                : name === 'switching'
+                  ? SWITCH_POLICIES
+                  : name === 'catching'
+                    ? CATCH_POLICIES
+                    : name === 'relics'
+                      ? RELIC_POLICIES
+                      : name === 'leads'
+                        ? LEAD_POLICIES
+                        : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -321,6 +338,7 @@ function parseArgs(argv: string[]): Options {
 
 const POLICY_NAMES: readonly string[] = [
   ...ALL_POLICIES,
+  ...LADDER_POLICIES,
   ...TIER_POLICIES,
   ...SWITCH_POLICIES,
   ...CATCH_POLICIES,
@@ -331,7 +349,7 @@ const POLICY_NAMES: readonly string[] = [
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
-      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics, leads or all (got "${name}")`,
+      `--policy must be one of ${[...new Set(POLICY_NAMES)].join(', ')}, ladder, tiers, switching, catching, relics, leads or all (got "${name}")`,
     );
   }
   return name as PolicyName;
@@ -350,7 +368,8 @@ const USAGE = `
   npm run sim -- [options]
 
     --seeds N        how many seeds to play per policy (default 200)
-    --policy NAME    greedy | random | switch-aware | no-switch | switching |
+    --policy NAME    greedy | random | lookahead | ladder |
+                     switch-aware | no-switch | switching |
                      tier-averse | tier-greedy | tiers |
                      catch-greedy | catch-averse | catching |
                      relic-greedy | relics |
@@ -369,6 +388,10 @@ const USAGE = `
 
   The balance levers themselves live in src/data/scaling.ts and are edited
   there; --set reaches the map-shape knobs in src/data/tuning.ts.
+
+  The AI tiers headline — the skill gradient, three rungs, one population:
+
+    npm run sim -- --seeds 400 --policy ladder --prefix RETUNE
 
   The Stage 3 headline:
 
@@ -851,13 +874,18 @@ interface PriorityTally {
  *
  * `greedyAiPolicy` is `decide(view).choice`; this is the same call with the
  * branch and the greedy alternative tallied, so the report can say how often
- * the priority rule fired and how often it changed the pick. Used for the
- * player's greedy bot and for the opponent alike — both are the same AI, so
- * the rate is over every AI-decided turn in the run.
+ * the priority rule fired and how often it changed the pick.
+ *
+ * **The profile is a parameter since the AI tiers patch, and `greedy` is
+ * pinned to `GREEDY_BASELINE` forever.** Until this patch the player's bot and
+ * the opponent were the same call with no argument, so every opponent AI change
+ * moved the control as well and the benchmark's own yardstick drifted
+ * underneath it. `--policy lookahead` and the opponent tiers pass their own
+ * profiles; `--policy greedy` does not and never will.
  */
-function countingGreedy(tally: PriorityTally): Policy {
+function countingGreedy(tally: PriorityTally, profile: AiProfile = GREEDY_BASELINE): Policy {
   return async (view) => {
-    const decision = decide(view);
+    const decision = decide(view, profile);
     tally.turns++;
     if (decision.branch === 'priority-escape') tally.escapes++;
     if (decision.branch === 'priority-kill') tally.kills++;
@@ -1081,6 +1109,29 @@ function greedyItemPlan(state: RunState): ItemPlan {
   return { assignments, discards: ranked.slice(0, overflow).map((entry) => entry.item) };
 }
 
+/**
+ * The player-side lookahead bot. **The disconfirmer for the whole AI patch.**
+ *
+ * `GREEDY_BASELINE` plus one flag, and nothing else — same damage model, same
+ * switching, same knowledge, no noise. The published ladder puts max base power
+ * at 885 Elo and one-step lookahead at 1107, a larger gap than every heuristic
+ * refinement between them combined, so if our own battles reward skill the gap
+ * between these two bots is where it shows.
+ *
+ * **`--policy heuristic` was cut and is deliberately absent.** The brief asked
+ * for it as "the medium feature set applied to the player side", on the
+ * assumption that `greedy` was a max-damage picker missing accuracy, stat
+ * ratios and boosts. It is not — it has had a full `@smogon/calc` estimate
+ * since Stage 0 — so a heuristic bot would land on top of `greedy` by
+ * construction and the number would invite exactly the wrong conclusion.
+ * Recorded in `docs/generation.md` section 13.
+ */
+const LOOKAHEAD_PROFILE: AiProfile = {
+  flags: [...GREEDY_BASELINE.flags, 'oneStepLookahead'],
+  noise: 0,
+  switchFailure: 0,
+};
+
 function buildPolicy(
   policy: PolicyName,
   nodes: NodePolicyName,
@@ -1103,7 +1154,9 @@ function buildPolicy(
     ? randomMovePolicy(stream)
     : policy === 'no-switch'
       ? withoutSwitching(countingGreedy(collect.priority))
-      : countingGreedy(collect.priority);
+      : policy === 'lookahead'
+        ? countingGreedy(collect.priority, LOOKAHEAD_PROFILE)
+        : countingGreedy(collect.priority);
 
   /*
    * How this bot treats a capture offer.

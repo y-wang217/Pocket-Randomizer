@@ -83,7 +83,12 @@ import type {
   SwitchView,
 } from '../types';
 import { moveChoice, switchChoice } from '../types';
+// The chart lookup, from the adapter that owns every dex read. `crudeDamageOf`
+// is the only caller here; nothing else in this file reads a type chart,
+// because the calc does it properly.
+import { typeMultiplier } from './driver';
 import { GYMRUN_GEN } from './format';
+import type { RngStream } from '../rng';
 import type { Policy } from './policy';
 import { turnOrderOf, type TurnOrder } from './speed';
 import { legalChoices, usableSwitches } from './switching';
@@ -112,6 +117,110 @@ const gen = Generations.get(GYMRUN_GEN);
  * own benchmark row, `docs/balance.md` section 16.
  */
 export const AI_VERSION = 'gymrun-ai-4-ability';
+
+// ---------------------------------------------------------------------------
+// Flags, and the one profile the whole file is parameterised by
+// ---------------------------------------------------------------------------
+
+/**
+ * One switchable piece of the scorer.
+ *
+ * **One pipeline, one flag space, three tiers.** Every tier runs the code
+ * below; what differs is which flags it holds. That is the shape every
+ * reference implementation converged on — pokeemerald-expansion's per-trainer
+ * flag sets, Essentials' cumulative skill bands — and the reason is that three
+ * scorers are three things to keep honest, and a report cannot say which one
+ * it measured.
+ *
+ * **Additive flags and handicap flags live in the same space, deliberately.**
+ * The expansion does the same thing (`AI_FLAG_CONSERVATIVE` and
+ * `AI_FLAG_SEQUENCE_SWITCHING` sit beside `AI_FLAG_TRY_TO_FAINT`), and it is
+ * the honest encoding here for a specific reason: **the baseline is the full
+ * `@smogon/calc` estimate, not a feature.** The AI has had a real damage
+ * calculation since Stage 0. Modelling "does full damage" as a flag to add
+ * would say the opposite, and the first thing a reader would do with it is
+ * write the reference implementations' base-power proxy — which is a *worse*
+ * estimate than the one already here, because poke-env writes that proxy
+ * having no calc on hand and we have one.
+ *
+ * So `crudeDamage` takes the calc away, and easy tier is built by holding it.
+ * Everything else is an addition to the frozen baseline below.
+ */
+export type AiFlag =
+  /** Never pick a move that does nothing: an immunity, a status onto a statused target. */
+  | 'avoidFailingMoves'
+  /** Prefer a move that faints, and the priority layer in the header. */
+  | 'takeTheKo'
+  /** No setup at low HP, no status into a target that is nearly dead. */
+  | 'hpAware'
+  /** Read held items — its own and any the battle has revealed — into the estimate and the kill line. */
+  | 'itemAware'
+  /** Remember what this battle has actually shown: moves, ability, item. Forgotten on a switch out. */
+  | 'seenKnowledge'
+  /** Score a choice against the board it produces, including the foe's expected reply. */
+  | 'oneStepLookahead'
+  /** Choose the send-in after a knockout by matchup rather than by party order. */
+  | 'smartSendIn'
+  /** Consider a voluntary switch at all. */
+  | 'smartSwitching'
+  /** **Handicap.** Base power and type effectiveness only: no stats, no boosts, no STAB, no accuracy. */
+  | 'crudeDamage';
+
+/** A tier's whole behaviour: which flags it holds, and how often it takes a lesser choice. */
+export interface AiProfile {
+  flags: readonly AiFlag[];
+  /**
+   * Probability of taking a move other than the top-scored one, weighted by
+   * score. Zero is deterministic. See `withNoise` for the weighting and
+   * `core/rng.ts` for where the roll comes from.
+   */
+  noise: number;
+  /**
+   * Probability that a voluntary switch this profile wanted is not taken.
+   *
+   * Independent of `noise` on purpose: the expansion's switch checks carry
+   * their own failure rate, because a switch is the decision a player can most
+   * easily bait. Never applies to a forced switch.
+   */
+  switchFailure: number;
+}
+
+function has(profile: AiProfile, flag: AiFlag): boolean {
+  return profile.flags.includes(flag);
+}
+
+/**
+ * The AI as it played before this patch, frozen.
+ *
+ * **This set is pinned and does not move again.** Every figure in
+ * `docs/balance.md` was measured with the simulator's `greedy` bot on *both*
+ * sides, and `greedy` is this file's `decide`. So until this patch, every
+ * opponent AI change silently moved the player-side control as well, and the
+ * benchmark was read down a column whose meaning was drifting underneath it.
+ * Two rows a month apart could differ because the game changed or because the
+ * yardstick did, and nothing in the report said which.
+ *
+ * From here the yardstick is this constant, `greedy` is bound to it
+ * permanently, and **`AI_VERSION` joins the seed prefix and seed count in
+ * every benchmark stamp**: read down an AI version the same way you read down
+ * a prefix. A future patch that wants a better baseline adds a *new* policy
+ * name beside `greedy` rather than improving it.
+ *
+ * The three flags are exactly what `gymrun-ai-3-priority` did: take the
+ * knockout and the priority layer in front of it, score a voluntary switch
+ * against every move, answer a forced switch by matchup. It holds no
+ * `avoidFailingMoves` because the pre-patch scorer had no such rule — a move
+ * the foe is immune to simply scored zero and lost to anything positive, which
+ * is not the same thing and is not asserted as though it were.
+ *
+ * `test/ai-tiers.test.ts` holds this set against the recorded fixture: the
+ * baseline profile reproduces the pre-refactor AI byte for byte.
+ */
+export const GREEDY_BASELINE: AiProfile = {
+  flags: ['takeTheKo', 'smartSendIn', 'smartSwitching'],
+  noise: 0,
+  switchFailure: 0,
+};
 
 // ---------------------------------------------------------------------------
 // Damage estimates
@@ -222,9 +331,29 @@ function midpoint(attacker: Pokemon, defender: Pokemon, move: Move, fallback: nu
   }
 }
 
-function expectedDamageOf(me: Pokemon, foe: Pokemon, move: MoveView): number {
+function expectedDamageOf(me: Pokemon, foe: Pokemon, move: MoveView, profile: AiProfile, foeTypes: readonly string[]): number {
   if (move.category === 'Status') return 0;
+  if (has(profile, 'crudeDamage')) return crudeDamageOf(move, foeTypes);
   return midpoint(me, foe, moveFor(move.name), move.basePower);
+}
+
+/**
+ * The handicapped estimate: base power and type effectiveness, nothing else.
+ *
+ * **A restriction, and the shape of the restriction is the point.** It is what
+ * a player knows on their first run — this move hits hard, that type chart
+ * says it is super effective — with none of what they learn later: whose
+ * attacking stat is better, what a +2 means, that a 70% move misses.
+ *
+ * The number is **not in HP** and is not meant to be. It is a ranking key, and
+ * every flag that would compare a damage estimate against a HP number
+ * (`takeTheKo`'s kill line, `smartSwitching`'s race, `oneStepLookahead`'s
+ * post-turn board) is a flag the tier holding this one does not have. If a
+ * future tier ever holds both, this becomes wrong and the tier table is what
+ * changed, not this function.
+ */
+function crudeDamageOf(move: MoveView, foeTypes: readonly string[]): number {
+  return move.basePower * typeMultiplier(move.type, foeTypes);
 }
 
 /**
@@ -363,6 +492,14 @@ export const AI_WEIGHTS = {
   switchCost: 3,
   /** A healthy body is worth a little; a real threat is worth more. */
   bulk: 0.35,
+  /**
+   * What a move that cannot do anything costs, under `avoidFailingMoves`.
+   *
+   * Large enough to lose to any move that does something, small enough that
+   * `-Infinity` stays reserved for switching into a kill — a penalty a big
+   * enough offensive term can outbid is a rule, and this is one.
+   */
+  failure: 50,
 };
 
 /*
@@ -425,12 +562,29 @@ function scoreMove(
   move: MoveView,
   stay: number,
   selfRisk: number,
+  profile: AiProfile,
 ): ChoiceEvaluation {
   const foeMaxHp = Math.max(1, view.foe.maxHp);
-  const damage = expectedDamageOf(bodies.me, bodies.foe, move);
-  const accuracy = move.accuracy === true ? 1 : Math.max(0, Math.min(100, move.accuracy)) / 100;
+  const damage = expectedDamageOf(bodies.me, bodies.foe, move, profile, view.foe.types);
+  // Accuracy is part of the full estimate and not of the crude one: a tier that
+  // cannot read a stat cannot read a percentage either.
+  const accuracy =
+    has(profile, 'crudeDamage') || move.accuracy === true
+      ? 1
+      : Math.max(0, Math.min(100, move.accuracy)) / 100;
   const offense = (damage / foeMaxHp) * accuracy;
   const kills = damage >= Math.max(1, view.foe.hp);
+  const takesTheKo = has(profile, 'takeTheKo');
+  /*
+   * `stay` is the race as it is *now*, identical across every move on the turn,
+   * so it can only ever move moves as a block against switches. `oneStepLookahead`
+   * replaces it with the race as it will be **after this particular move
+   * resolves**, which is the first term in this file that tells one move from
+   * another by anything other than damage.
+   */
+  const after = has(profile, 'oneStepLookahead')
+    ? lookahead(view, move, damage, threatOf(view, selfRisk))
+    : stay;
 
   return {
     choice: moveChoice(move.slot),
@@ -438,8 +592,101 @@ function scoreMove(
     offense,
     risk: selfRisk,
     kills,
-    score: offense + (kills ? AI_WEIGHTS.kill * accuracy : 0) + stay * AI_WEIGHTS.matchup,
+    score:
+      offense +
+      (kills && takesTheKo ? AI_WEIGHTS.kill * accuracy : 0) +
+      after * AI_WEIGHTS.matchup +
+      failurePenalty(view, move, damage, profile),
   };
+}
+
+/** The foe's best expected hit in HP, recovered from the per-turn risk the caller already computed. */
+function threatOf(view: BattleView, selfRisk: number): number {
+  return selfRisk * Math.max(1, view.me.hp);
+}
+
+/**
+ * One step of lookahead: the board this move produces, and the reply it invites.
+ *
+ * **The rung the published ladder says is worth more than every heuristic
+ * refinement put together** — max base power to one-step lookahead is the
+ * largest single gap in the PokeChamp table. What it means here, exactly:
+ *
+ *   1. Resolve *my* move: the foe's HP after it lands.
+ *   2. Decide whether the foe still gets to reply. It does, unless I act first
+ *      and the move knocks it out. Acting first is `battle/speed.ts`'s forecast,
+ *      plus the assumption the priority layer already makes — a bracket above
+ *      zero goes before an ordinary move. A tie reads as second, which is the
+ *      safe direction for a rule about not dying.
+ *   3. Resolve the reply: the same `incomingDamage` bound the switch logic uses,
+ *      applied to my remaining HP. Not a second damage model, and not a guess at
+ *      *which* move — the foe's moves are not public information, and a
+ *      lookahead that read them would be a different bot with a different score.
+ *   4. Score the board that leaves: the race, from the HP both sides actually
+ *      have after the turn.
+ *
+ * The gain is concentrated in two places, and they are the places a greedy
+ * picker loses fights it could win. A move that knocks the foe out **before it
+ * acts** scores the race at the cap rather than at whatever the current board
+ * says. And a move that leaves me dead when the reply lands scores from zero
+ * HP — so when another choice survives the turn, it wins, which is the
+ * "throwing away a winnable fight" the whole patch is measured against.
+ *
+ * No RNG. Pure in its arguments, as every scoring term in this file is.
+ */
+function lookahead(view: BattleView, move: MoveView, damage: number, threat: number): number {
+  const actsFirst = turnOrderOf(view) === 'first' || move.priority > 0;
+  const foeHpAfter = Math.max(0, view.foe.hp - damage);
+  const myHpAfter = Math.max(0, view.me.hp - threat);
+
+  /*
+   * **Resolved in order, and the order is the whole value of the step.** A
+   * knockout the foe never sees is a won turn; the identical knockout from the
+   * slower side, when the foe's hit lands first and finishes me, is a move that
+   * never happens. Scoring both as a win is how a bot throws a fight it could
+   * have won by switching, and the first cut of this function did exactly that
+   * — caught by a twelve-seed smoke before the benchmark, not after.
+   *
+   * `MATCHUP_CAP` either way: the race is over, and there is nothing beyond the
+   * cap on this scale by construction.
+   */
+  if (actsFirst) {
+    if (foeHpAfter <= 0) return MATCHUP_CAP;
+    if (myHpAfter <= 0) return -MATCHUP_CAP;
+  } else {
+    if (myHpAfter <= 0) return -MATCHUP_CAP;
+    if (foeHpAfter <= 0) return MATCHUP_CAP;
+  }
+
+  return matchupQuality(damage, threat, myHpAfter, foeHpAfter);
+}
+
+/**
+ * What a move that does nothing costs, or zero when the tier cannot tell.
+ *
+ * **`avoidFailingMoves`, and it is the one flag every tier holds.** The
+ * reference implementations' floor rule: do not pick the move that cannot do
+ * anything. An immunity, a status move aimed at an already-statused target.
+ *
+ * It is a penalty rather than a filter because a filter has to answer what
+ * happens when *every* move fails, and the answer "pick the least useless one"
+ * is a ranking, which is what this already is. The number is large enough to
+ * lose to any real option and small enough that `-Infinity` stays reserved for
+ * the one genuinely illegal outcome (switching into a kill).
+ *
+ * The pre-patch scorer had no such rule, which is why `GREEDY_BASELINE` does
+ * not hold the flag: an immune move scored zero and lost to anything positive,
+ * and that is a different behaviour that happens to agree most of the time.
+ */
+function failurePenalty(view: BattleView, move: MoveView, damage: number, profile: AiProfile): number {
+  if (!has(profile, 'avoidFailingMoves')) return 0;
+  if (move.category === 'Status') {
+    // A status move onto a target that already carries one does nothing. What
+    // each status move *does* is not in the view, so this is the one case the
+    // view can prove; everything finer belongs to a later pass.
+    return view.foe.status ? -AI_WEIGHTS.failure : 0;
+  }
+  return damage <= 0 ? -AI_WEIGHTS.failure : 0;
 }
 
 /**
@@ -453,7 +700,7 @@ function scoreMove(
  * is a hard rule rather than a large penalty because a large penalty is a rule
  * that a big enough offensive term eventually buys its way past.
  */
-function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView): ChoiceEvaluation {
+function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView, profile: AiProfile): ChoiceEvaluation {
   const foeMaxHp = Math.max(1, view.foe.maxHp);
   const memberMaxHp = Math.max(1, member.maxHp);
   const body = toCalcSwitch(member);
@@ -462,7 +709,14 @@ function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView): 
   for (const id of member.moves) {
     const move = moveFor(id);
     if (move.category === 'Status') continue;
-    best = Math.max(best, midpoint(body, bodies.foe, move, move.bp));
+    // The handicap reaches the bench too, or a tier that cannot judge a matchup
+    // on the field would judge one from it perfectly.
+    best = Math.max(
+      best,
+      has(profile, 'crudeDamage')
+        ? move.bp * typeMultiplier(move.type, view.foe.types)
+        : midpoint(body, bodies.foe, move, move.bp),
+    );
   }
   const offense = best / foeMaxHp;
   const arrivingHp = incomingDamage(bodies.foe, view.foe.types, body);
@@ -533,7 +787,7 @@ function scoreForcedSwitch(scored: ChoiceEvaluation, view: BattleView, member: S
  * the contract rather than an accident — an unspecified tie-break would make a
  * seed stop reproducing the same battle.
  */
-export function scoreChoices(view: BattleView): ChoiceEvaluation[] {
+export function scoreChoices(view: BattleView, profile: AiProfile = GREEDY_BASELINE): ChoiceEvaluation[] {
   const forced = view.forceSwitch;
   // Both active bodies built once per turn and shared by every branch below.
   // Constructing one is not free and the naive version rebuilt the foe for
@@ -551,20 +805,46 @@ export function scoreChoices(view: BattleView): ChoiceEvaluation[] {
    */
   const bestOutgoing = forced
     ? 0
-    : Math.max(0, ...view.moves.map((move) => expectedDamageOf(bodies.me, bodies.foe, move)));
+    : Math.max(0, ...view.moves.map((move) => expectedDamageOf(bodies.me, bodies.foe, move, profile, view.foe.types)));
   const stay = forced ? 0 : matchupQuality(bestOutgoing, threat, view.me.hp, view.foe.hp);
 
   return legalChoices(view).map((choice) => {
     if (choice.kind === 'switch') {
       const member = view.switches.find((entry) => entry.slot === choice.slot);
       if (!member) throw new Error(`No bench member in slot ${choice.slot}`);
-      const scored = scoreSwitch(view, bodies, member);
-      return forced ? scoreForcedSwitch(scored, view, member) : scored;
+      const scored = scoreSwitch(view, bodies, member, profile);
+      if (!forced) {
+        /*
+         * Without `smartSwitching` a voluntary switch is not considered at all
+         * — the pokeemerald handicap, where a trainer sends out in party order
+         * and stays there. Scored and then refused rather than hidden, because
+         * the evaluation is still what a test and the simulator read to ask how
+         * close the switch came; `-Infinity` is the same answer this file
+         * already gives to a switch it will not make.
+         */
+        return has(profile, 'smartSwitching') ? scored : { ...scored, score: Number.NEGATIVE_INFINITY };
+      }
+      return has(profile, 'smartSendIn')
+        ? scoreForcedSwitch(scored, view, member)
+        : sequenceSendIn(scored, member);
     }
     const move = view.moves.find((entry) => entry.slot === choice.slot);
     if (!move) throw new Error(`No move in slot ${choice.slot}`);
-    return scoreMove(view, bodies, move, stay, selfRisk);
+    return scoreMove(view, bodies, move, stay, selfRisk, profile);
   });
+}
+
+/**
+ * The send-in a tier without `smartSendIn` makes: the next one in party order.
+ *
+ * `AI_FLAG_SEQUENCE_SWITCHING`, and it is the largest single handicap in the
+ * table. The scores descend with the slot, so the lowest usable slot wins under
+ * `bestOf`'s existing tie-break and the whole thing stays one ranked list —
+ * a second code path for "who comes in" is the thing this file's header exists
+ * to refuse.
+ */
+function sequenceSendIn(scored: ChoiceEvaluation, member: SwitchView): ChoiceEvaluation {
+  return { ...scored, score: -member.slot };
 }
 
 /** The two active bodies, built once per turn and threaded through scoring. */
@@ -611,8 +891,8 @@ function mostDamaging(moves: readonly ChoiceEvaluation[]): ChoiceEvaluation | un
  * tests can assert the branch and not only the slot, and so the simulator can
  * count how often the priority layer fires and how often it changes the pick.
  */
-export function decide(view: BattleView): Decision {
-  const evaluations = scoreChoices(view);
+export function decide(view: BattleView, profile: AiProfile = GREEDY_BASELINE): Decision {
+  const evaluations = scoreChoices(view, profile);
   if (evaluations.length === 0) {
     throw new Error(view.forceSwitch ? 'AI is forced to switch with nothing to switch to' : 'AI has no legal choice');
   }
@@ -621,6 +901,12 @@ export function decide(view: BattleView): Decision {
   const base: Decision = { choice: greedy.choice, branch: 'greedy', greedy: greedy.choice, order };
   // A forced switch has no moves to order; the rule is about moves.
   if (view.forceSwitch) return base;
+
+  // The priority layer *is* the second half of `takeTheKo`: "do not die before
+  // acting, and take the guaranteed knockout over the probable one" is what
+  // TRY_TO_FAINT means in the reference implementations. A tier without the
+  // flag is priority-blind, which is what every tier was before `-3`.
+  if (!has(profile, 'takeTheKo')) return base;
 
   const moves = evaluations.filter((entry): entry is ChoiceEvaluation & { move: MoveView } => entry.move !== undefined);
   const withPriority = moves.filter((entry) => entry.move.priority > 0);
@@ -653,8 +939,117 @@ export function decide(view: BattleView): Decision {
  * the result. Adding hazard awareness or status pressure later means adding a
  * term to `scoreMove`, and nothing outside this file changes — the caller only
  * ever sees `Policy`.
+ *
+ * **Pinned to `GREEDY_BASELINE` permanently.** See that constant: this name is
+ * the yardstick every figure in `docs/balance.md` is measured with, and a
+ * yardstick that improves is not one.
  */
-export const greedyAiPolicy: Policy = async (view: BattleView): Promise<Choice> => decide(view).choice;
+export const greedyAiPolicy: Policy = async (view: BattleView): Promise<Choice> => decide(view, GREEDY_BASELINE).choice;
+
+// ---------------------------------------------------------------------------
+// Noise
+// ---------------------------------------------------------------------------
+
+/**
+ * Take a lesser choice, sometimes.
+ *
+ * **Not a defect and not a difficulty dial in disguise.** Every reference
+ * implementation is deliberately nondeterministic: the expansion's switch
+ * checks carry intentional failure rates so that, in its own words, the player
+ * cannot predict perfectly. A fully deterministic opponent is a puzzle with one
+ * solution — solved once, never hard again — which is directly against the axis
+ * this game is built on, that a player learns the system and gets better at it.
+ *
+ * Weighted by score, so noise is "a worse idea" rather than "a random idea": a
+ * player watching an easy trainer should see a plausible move that is not the
+ * best one, not Splash. The weights shift every candidate above zero by a tenth
+ * of the spread, because a straight shift makes the lowest candidate weigh
+ * nothing and a two-move set would then have no noise at all.
+ *
+ * **Moves only.** Whether to switch is a different decision with a different
+ * failure mode, and it has its own rate below. A noise roll that answered
+ * "switch" would be a tier making a strategic choice by accident, which is the
+ * opposite of a handicap.
+ */
+function withNoise(
+  evaluations: readonly ChoiceEvaluation[],
+  best: ChoiceEvaluation,
+  profile: AiProfile,
+  rng: RngStream | undefined,
+): ChoiceEvaluation {
+  if (!rng || profile.noise <= 0 || best.move === undefined) return best;
+  const alternatives = evaluations.filter(
+    (entry) => entry.move !== undefined && entry !== best && Number.isFinite(entry.score),
+  );
+  if (alternatives.length === 0) return best;
+  if (rng.nextFloat() >= profile.noise) return best;
+
+  const scores = alternatives.map((entry) => entry.score);
+  const low = Math.min(...scores);
+  const span = Math.max(...scores) - low;
+  const floor = (span > 0 ? span : 1) * 0.1;
+  const weights = scores.map((score) => score - low + floor);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+
+  let cursor = rng.nextFloat() * total;
+  for (const [index, weight] of weights.entries()) {
+    cursor -= weight;
+    if (cursor <= 0) return alternatives[index] ?? best;
+  }
+  return alternatives[alternatives.length - 1] ?? best;
+}
+
+/**
+ * The switch that does not happen. **An independent rate, per the expansion.**
+ *
+ * A switch is the decision a player can most easily read and pre-empt, so a
+ * hard tier that switches every single time it should is a hard tier that can
+ * be baited on every single turn. The rate is the probability that a voluntary
+ * switch is abandoned for the best move instead; it is independent of move
+ * noise and it never applies to a forced switch, which is not a decision.
+ */
+function withSwitchFailure(
+  evaluations: readonly ChoiceEvaluation[],
+  best: ChoiceEvaluation,
+  profile: AiProfile,
+  rng: RngStream | undefined,
+  forced: boolean,
+): ChoiceEvaluation {
+  if (!rng || forced || best.member === undefined || profile.switchFailure <= 0) return best;
+  if (rng.nextFloat() >= profile.switchFailure) return best;
+  const moves = evaluations.filter((entry) => entry.move !== undefined && Number.isFinite(entry.score));
+  if (moves.length === 0) return best;
+  return bestOf(moves);
+}
+
+/**
+ * A policy for one tier, in one battle.
+ *
+ * The stream is the battle's own (see `core/rng.ts`, `createAiStream`), so a
+ * profile with noise is reproducible from the seed and a profile without it
+ * draws nothing at all. A policy built without a stream is deterministic
+ * whatever its profile says, which is what every test and every player-side
+ * simulator bot wants.
+ */
+export function aiPolicy(profile: AiProfile, rng?: RngStream): Policy {
+  return async (view: BattleView): Promise<Choice> => decideWith(view, profile, rng).choice;
+}
+
+/** `decide`, plus the two rolls. Exported so the simulator can count branches. */
+export function decideWith(view: BattleView, profile: AiProfile, rng?: RngStream): Decision {
+  const decision = decide(view, profile);
+  if (!rng || (profile.noise <= 0 && profile.switchFailure <= 0)) return decision;
+
+  const evaluations = scoreChoices(view, profile);
+  const chosen = evaluations.find((entry) => sameChoice(entry.choice, decision.choice)) ?? bestOf(evaluations);
+  const afterSwitch = withSwitchFailure(evaluations, chosen, profile, rng, view.forceSwitch);
+  const afterNoise = withNoise(evaluations, afterSwitch, profile, rng);
+  return { ...decision, choice: afterNoise.choice };
+}
+
+function sameChoice(a: Choice, b: Choice): boolean {
+  return a.kind === b.kind && a.slot === b.slot;
+}
 
 // ---------------------------------------------------------------------------
 // Compatibility surface
@@ -681,9 +1076,9 @@ export interface MoveEvaluation {
   score: number;
 }
 
-export function evaluateMoves(view: BattleView): MoveEvaluation[] {
+export function evaluateMoves(view: BattleView, profile: AiProfile = GREEDY_BASELINE): MoveEvaluation[] {
   const foeMaxHp = Math.max(1, view.foe.maxHp);
-  return scoreChoices(view)
+  return scoreChoices(view, profile)
     .filter((evaluation): evaluation is ChoiceEvaluation & { move: MoveView } => evaluation.move !== undefined)
     .map((evaluation) => ({
       move: evaluation.move,
@@ -695,8 +1090,8 @@ export function evaluateMoves(view: BattleView): MoveEvaluation[] {
 }
 
 /** The switch half, likewise. */
-export function evaluateSwitches(view: BattleView): { member: SwitchView; score: number }[] {
-  return scoreChoices(view)
+export function evaluateSwitches(view: BattleView, profile: AiProfile = GREEDY_BASELINE): { member: SwitchView; score: number }[] {
+  return scoreChoices(view, profile)
     .filter((evaluation): evaluation is ChoiceEvaluation & { member: SwitchView } => evaluation.member !== undefined)
     .map((evaluation) => ({ member: evaluation.member, score: evaluation.score }));
 }

@@ -273,9 +273,20 @@ describe('the version axes', () => {
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-4-ability/);
   });
 
-  it('moved nothing else: RUN_LOG_VERSION and contentHash are the Branch 1 values, literally', () => {
+  /*
+   * **Updated by the AI tiers patch, not deleted.** `contentHash` moved because
+   * that patch added `src/data/ai.ts`, which is a data table under the glob and
+   * is therefore hashed the day it lands — the workflow `docs/generation.md`
+   * section 9 states for exactly this case. `RUN_LOG_VERSION` did not move and
+   * the assertion that it did not is the half of this test that still guards
+   * something: the AI patch changes no logged decision, so a log's schema is
+   * untouched and only the `aiVersion` and `contentHash` axes refuse it.
+   */
+  it('moved RUN_LOG_VERSION not at all, and contentHash only by a new data table', () => {
     expect(RUN_LOG_VERSION).toBe('gymrun-run-13/gymrun-0.3.0');
-    expect(CONTENT_HASH).toBe('b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf');
+    // Pinned literally, as the Branch 1 value was: a hash nobody can read off
+    // the tree by eye is exactly the kind that moves without anyone noticing.
+    expect(CONTENT_HASH).toBe('5b6131b01f7b5cd843f3006254ba8c693f1c8d77d51957461c1e3dc7af13f264');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

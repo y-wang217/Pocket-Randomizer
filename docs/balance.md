@@ -1649,7 +1649,7 @@ player-side bot took a priority kill with Mach Punch (+1) and the opponent
 answered with Feint (+2). The helper forecast Speed correctly — the bot was
 faster — and the rule's step 4 assumes a priority move lands first, which it
 does against any bracket-0 move. It does not see the foe's moves, by design
-(`ai.ts`, the header on incoming damage), so it cannot know a higher bracket is
+(`core/battle/ai.ts`, the header on incoming damage), so it cannot know a higher bracket is
 coming. That is a limit of the rule's information, recorded, not a bug in
 either the helper or Release C.
 
