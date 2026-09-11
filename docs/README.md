@@ -190,6 +190,30 @@ move knocks out where a slower one also would. `AI_VERSION` is
 `RANDOMIZER_VERSION` did not move. The benchmark moved by a recorded amount
 with one cause and was not retuned: [`balance.md`](balance.md) section 15.
 
+**The AI tiers patch: built**, on `claude/friendly-heisenberg-6m0986`, prompt
+[`spec/gymrun-patch-ai-tiers.md`](spec/gymrun-patch-ai-tiers.md), report
+[`reports/ai-tiers-report.md`](reports/ai-tiers-report.md), numbers
+[`balance.md`](balance.md) section 16, deviations
+[`generation.md`](generation.md) section 13. One flag-gated scorer with three
+opponent tiers — `Rookie`, `Seasoned`, `Ace` — assigned by node kind, node tier
+and segment in `data/ai.ts`, so **node tier now changes how a fight plays and
+not only what it pays**. Noise at every tier, drawn from a sequence derived
+from each battle's own sim seed; no keyed stream opened, no structural draw
+moved. `seenKnowledge` gives medium and up what the battle has actually shown
+them, forgotten on a switch out. `AI_VERSION` is `gymrun-ai-5-tiers`;
+`RUN_LOG_VERSION` did not move; `contentHash` moved because `data/ai.ts`
+landed.
+
+Three findings out of it are worth more than the patch. **The AI was never the
+max-damage picker the brief assumed** — full `@smogon/calc` estimate,
+matchup-scored send-ins, voluntary switching, all since Stage 4 or earlier.
+**One step of lookahead costs 0.21 mean gyms** on our game where the published
+ladder puts it at +222 Elo, and the reading that fits is that it spends its
+gain on switching, which section 7.6 measured as worth nothing. And **the
+player arrives at every gym at 93% HP and, by gym 8, thirteen levels above
+it** — a scaling shape, visible in one table, and deliberately not touched
+here.
+
 **The tutorial: built**, as Branch 3 of the overnight run, on
 `claude/overnight-3-tutorial`, handoff
 [`handoff/overnight-3-tutorial.md`](handoff/overnight-3-tutorial.md), which

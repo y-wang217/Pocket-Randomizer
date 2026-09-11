@@ -118,8 +118,16 @@ const gen = Generations.get(GYMRUN_GEN);
  * ability for a foe whose ability is not public, so damage estimates against a
  * randomized ability changed and with them the ranking. Its own commit and its
  * own benchmark row, `docs/balance.md` section 16.
+ *
+ * `-5`, the tiers: the scorer is one flag-gated pipeline and which flags a
+ * fight is played with comes from `data/ai.ts`, keyed by node kind, node tier
+ * and segment. Every tier also carries noise, so the same board no longer
+ * always produces the same choice — which is the whole reason this constant
+ * has to move: a `-4` log replayed here would not reproduce its own battles.
+ * `GREEDY_BASELINE` is the `-4` behaviour, frozen, and it is what the
+ * simulator's `greedy` bot is pinned to for good.
  */
-export const AI_VERSION = 'gymrun-ai-4-ability';
+export const AI_VERSION = 'gymrun-ai-5-tiers';
 
 // ---------------------------------------------------------------------------
 // Flags, and the one profile the whole file is parameterised by

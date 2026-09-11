@@ -238,6 +238,17 @@ interface Options {
   /** Flags forced on, and off, at every tier. One behaviour per row. */
   aiAdd: AiFlag[];
   aiDrop: AiFlag[];
+  /**
+   * Every tier's noise and switch failure forced to one value, or null to use
+   * the table's.
+   *
+   * Noise is the one part of a tier that is not a flag, so it needs its own
+   * knob or an attribution row cannot hold it still. `--ai-noise 0` is the
+   * deterministic version of whatever tier table is loaded, which is the
+   * control for "how much of this row is the reasoning and how much is the
+   * dice".
+   */
+  aiNoise: number | null;
 }
 
 /*
@@ -279,6 +290,7 @@ function parseArgs(argv: string[]): Options {
     ai: 'pinned',
     aiAdd: [],
     aiDrop: [],
+    aiNoise: null,
   };
   const overrides: string[] = [];
 
@@ -337,6 +349,12 @@ function parseArgs(argv: string[]): Options {
       case '--ai-drop':
         options.aiDrop = assertFlags(value());
         break;
+      case '--ai-noise': {
+        const raw = Number(value());
+        if (!Number.isFinite(raw) || raw < 0 || raw > 1) throw new Error('--ai-noise takes a number from 0 to 1');
+        options.aiNoise = raw;
+        break;
+      }
       case '--out':
         options.outDir = value();
         break;
@@ -438,6 +456,8 @@ const USAGE = `
                      that way                                 (default pinned)
     --ai-add FLAGS   comma-separated AI flags forced on at every tier
     --ai-drop FLAGS  comma-separated AI flags forced off at every tier
+    --ai-noise N     every tier's noise and switch failure forced to N, so a
+                     row can separate the reasoning from the dice
                      One behaviour per row: --ai table against
                      --ai table --ai-add smartSendIn,smartSwitching isolates
                      the easy tier's sequence switching and nothing else
@@ -1202,10 +1222,16 @@ function greedyItemPlan(state: RunState): ItemPlan {
  */
 type AiMode = 'pinned' | 'table';
 
-function tierProfile(tier: AiTier, add: readonly AiFlag[], drop: readonly AiFlag[]): AiProfile {
+function tierProfile(
+  tier: AiTier,
+  add: readonly AiFlag[],
+  drop: readonly AiFlag[],
+  noise: number | null,
+): AiProfile {
   const base = AI_TIERS[tier];
   const flags = [...new Set([...base.flags, ...add])].filter((flag) => !drop.includes(flag));
-  return { ...base, flags };
+  if (noise === null) return { ...base, flags };
+  return { flags, noise, switchFailure: noise };
 }
 
 const LOOKAHEAD_PROFILE: AiProfile = {
@@ -1685,7 +1711,7 @@ async function playSample(
       opponentFor: (node, segment) => {
         if (options.ai === 'pinned') return countingGreedy(collect.priority);
         const tier = aiTierFor(node.kind, node.tier, segment);
-        const profile = tierProfile(tier, options.aiAdd, options.aiDrop);
+        const profile = tierProfile(tier, options.aiAdd, options.aiDrop, options.aiNoise);
         const stream = node.encounter ? createAiStream(node.encounter.simSeed, 'p2') : undefined;
         return countingGreedy(collect.priority, profile, stream);
       },
@@ -3669,7 +3695,7 @@ const report = {
    * one `aiVersion` can now be two different experiments, and the stamp is what
    * tells them apart.
    */
-  ai: { mode: options.ai, add: options.aiAdd, drop: options.aiDrop },
+  ai: { mode: options.ai, add: options.aiAdd, drop: options.aiDrop, noise: options.aiNoise },
   /*
    * The slot ceiling and the schedule that reaches it. **Both, from Stage 4.8.**
    *

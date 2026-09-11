@@ -252,8 +252,8 @@ describe('the version axes', () => {
   /*
    * **Updated by the AI tiers patch, not deleted.** This assertion pinned
    * `gymrun-ai-3-priority` as the string the priority patch moved to, and the
-   * AI tiers patch moved it again — first to `-4` for the unknown-ability fix
-   * (`ai.ts`, `UNKNOWN_ABILITY`). What the test is *for* is unchanged and is
+   * AI tiers patch moved it twice — to `-4` for the unknown-ability fix
+   * (`ai.ts`, `UNKNOWN_ABILITY`) and to `-5` for the tiers and their noise. What the test is *for* is unchanged and is
    * what still runs: `AI_VERSION` moved when the AI's ranking moved, and a log
    * recorded on the previous string is refused by name with both values in the
    * message. The pre-patch log below is still a `-2` one, because a log two
@@ -261,7 +261,7 @@ describe('the version axes', () => {
    * it is one fewer thing to re-edit next time.
    */
   it('moved AI_VERSION, and refuses a pre-patch log naming aiVersion and both values', () => {
-    expect(AI_VERSION).toBe('gymrun-ai-4-ability');
+    expect(AI_VERSION).toBe('gymrun-ai-5-tiers');
     const prePatch: RunLog = {
       seed: 'PRE-PRIORITY',
       versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
@@ -270,7 +270,7 @@ describe('the version axes', () => {
     expect(isReplayable(prePatch)).toBe(false);
     expect(() => assertReplayable(prePatch)).toThrow(/mismatch on aiVersion/);
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-2-switching/);
-    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-4-ability/);
+    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-5-tiers/);
   });
 
   /*

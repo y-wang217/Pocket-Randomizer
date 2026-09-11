@@ -2110,3 +2110,107 @@ not edited; the argument for each is in
     `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,
     `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
     `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.
+
+## 13. The AI tiers patch, and six rulings that changed what it built
+
+**2026-09-11.** Prompt
+[`spec/gymrun-patch-ai-tiers.md`](spec/gymrun-patch-ai-tiers.md), committed
+verbatim before any work. Report
+[`reports/ai-tiers-report.md`](reports/ai-tiers-report.md). Numbers in
+[`balance.md`](balance.md) section 16.
+
+The prompt's five report questions came back with four answers that
+contradicted its picture of the tree, and the rulings on that report changed
+the patch. **Recorded here rather than by editing the prompt**, per protocol 4:
+the prompt is what was asked, and this is what was built.
+
+### 13a. `fullDamageModel` was withdrawn, and easy is built by subtraction
+
+The prompt specifies a `fullDamageModel` flag carrying "accuracy, expected
+hits, stat ratio, boost stages, STAB, item", on the brief's premise that the
+AI was a max-damage picker missing all six. **It was missing one.** `ai.ts`
+does not use a heuristic damage proxy at all — it calls `@smogon/calc`, which
+has given it accuracy, multi-hit sums, the real stat ratio, boost stages read
+off `ActiveView.statStages`, and STAB since Stage 0. Only the held item was
+genuinely absent.
+
+Porting the reference formula would therefore have replaced a real damage
+calculation with poke-env's approximation *of* one. So: the calc is the
+baseline, `crudeDamage` is a **handicap flag** that takes it away, easy tier
+holds it, and `itemAware` is the one additive piece of the original flag that
+survived. Handicaps and features share one flag space, as they do in
+pokeemerald-expansion.
+
+### 13b. `fullKnowledge` was cut
+
+The prompt's hard tier reads the player's full spec. That needs a privileged
+channel `BattleView` deliberately does not have, and the moment it exists the
+prompt's own definition of done — no opponent has information the same tier on
+the player side would not — depends on the simulator's player bot getting the
+identical construction. Cut. Hard is medium plus `oneStepLookahead`.
+
+`seenKnowledge` became the patch's real knowledge work instead, because the
+report found the AI was **below** it: no foe moves in the view, the foe's
+ability always null, and no reveal tracking anywhere. It is built in
+`core/battle/knowledge.ts`, folded out of each side's own channel of the
+protocol, and forgotten when the body leaves the field.
+
+### 13c. `RUN_LOG_VERSION` does not move, and `contentHash` needed nothing
+
+The prompt says to add `aiVersion` to the versions block and bump
+`RUN_LOG_VERSION`. **`aiVersion` has been in the block and guarded since the
+`contentHash` release** — `VERSION_AXES` lists it, `versionMismatch` checks it,
+`test/ai-priority.test.ts` already asserted the refusal. The bump is one
+string. No logged decision is added, removed, reordered or reshaped, so the
+schema is untouched and `RUN_LOG_VERSION` stays at `gymrun-run-13`.
+
+The prompt also says to add `data/ai.ts` to the hash composition "and to the
+list in section 9", and to resolve a glob-versus-explicit-list contradiction.
+Section 9 resolved it on 2026-09-11 in the glob's favour and states the
+workflow for exactly this case: "a balance file under `src/data/` needs
+nothing". It was hashed the day it landed; `contentHash` moved `b022fc` →
+`5b6131` and refuses seeds shared across the patch, correctly.
+
+The register's scope correction — "`AI_VERSION` is guarded nowhere, and
+guarding it is a log-version bump" — is stale as of the `contentHash` release
+and is closed by this patch.
+
+### 13d. `--policy heuristic` was never built
+
+Step 2 of the prompt asks for `heuristic` and `lookahead`. `heuristic` is
+defined as "the medium feature set applied to the player side", and the
+simulator's `greedy` bot **is** `decide(view)` with that feature set already.
+It would have landed on top of `greedy` by construction and the prompt's own
+reading of a sub-0.3-gym gap — "the battles do not reward skill" — would have
+been drawn from an artefact. Only `lookahead` was built. `--policy ladder` runs
+the three rungs that mean something: `random`, `greedy`, `lookahead`.
+
+### 13e. The order of work changed: the refactor landed before the disconfirmer
+
+The rulings put the lookahead benchmark before the scorer refactor. Building it
+that way would have meant writing the lookahead term twice — once bolted onto
+the old scorer, once as a flag — so the flag seam landed first, with the frozen
+baseline proven byte identical against the recorded fixture *before* any
+behaviour moved. The disconfirmer ran on the next commit. The ability fix still
+came first, and still has its own row, which is what the ruling was protecting.
+
+### 13f. Two defects found while reading, one fixed and one reported
+
+- **The unknown ability**, fixed first and alone, with its own benchmark row.
+  `docs/engine-notes.md` carries the finding.
+- **The threat probe's comment says 80 base power and its code says 65.**
+  Reported, not changed, per ruling 8. The number is load-bearing for every
+  switch decision in the game, so which of the two is intended is a question
+  for whoever wrote it and not a thing to guess at in a patch about something
+  else. `core/battle/ai.ts`, `probeFor`.
+
+### 13g. What did not move
+
+Map generation is untouched: no keyed stream is opened, no structural draw is
+added, and `previewRun` is a function of the tables alone. The AI's noise draws
+from a sequence derived from each battle's own sim seed — a value
+`encounters.ts` already drew under `nodeKey` — so a run log, which records the
+player's decisions and not the opponent's, still replays into the same run.
+That is asserted directly in `test/ai-tiers.test.ts` rather than left to
+inference, because noise made it load-bearing for save and resume rather than
+only for the benchmark.

@@ -63,7 +63,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-patch-4.8.0.2-readability.md`](gymrun-patch-4.8.0.2-readability.md) | patch prompt | `active` | | committed 2026-09-11 before any work, on `claude/nice-einstein-up1ltb`. Presentation and copy only: no `core/` change, no version axis moved. Status report, lift and the tracker report in [`../visual/reports/patch-4.8.0.2.md`](../visual/reports/patch-4.8.0.2.md) |
 | [`gymrun-patch-mobile-seed-bar.md`](gymrun-patch-mobile-seed-bar.md) | patch prompt | `active` | | committed 2026-09-11 before any work. Supersedes the 4.5.2 phone rule that hid the seed bar for the whole run; the collapsed bar is recorded in `../generation.md` section 12k |
 | [`gymrun-patch-density-modes.md`](gymrun-patch-density-modes.md) | patch prompt | `active` | | committed 2026-09-11 before any work, on `claude/bold-clarke-xcwko1`; all seven steps built the same day on that branch, every gate green, awaiting merge (flip to `built` then). Replaces the two valued 4.7.2 verbosity flag with a three valued density setting. Presentation only: no `core/` change, no version axis moves. Report [`../visual/reports/patch-density-modes.md`](../visual/reports/patch-density-modes.md); the six rulings on it are appended to the prompt file verbatim and their corrections recorded in `../generation.md` section 12l |
-| [`gymrun-patch-ai-tiers.md`](gymrun-patch-ai-tiers.md) | patch prompt | `draft` | | committed 2026-09-11 before any work, on `claude/friendly-heisenberg-6m0986`. Opponent AI tiers plus the player-side sim policy ladder. Adds `src/data/ai.ts`, so it moves `contentHash`; guards `aiVersion` and so bumps `RUN_LOG_VERSION`. Closes the register's "`AI_VERSION` is guarded nowhere" scope correction below |
+| [`gymrun-patch-ai-tiers.md`](gymrun-patch-ai-tiers.md) | patch prompt | `active` | | committed 2026-09-11 before any work, on `claude/friendly-heisenberg-6m0986`. Opponent AI tiers plus the player-side sim policy ladder. Adds `src/data/ai.ts`, so it moves `contentHash`. (The row's original claim that it would bump `RUN_LOG_VERSION` was written from the prompt and is wrong: see the correction at the end of this cell.) Built the same day: the report, then the ability fix, the scorer refactor, the tier table, the knowledge and item flags, tier assignment and the UI readout. Six rulings on the report changed what it built — `fullDamageModel` withdrawn, `fullKnowledge` cut, `--policy heuristic` never built, `RUN_LOG_VERSION` held still — all recorded in `../generation.md` section 13 rather than by editing the prompt. **Closes the register's "`AI_VERSION` is guarded nowhere" scope correction below: that correction is stale, `aiVersion` has been guarded since the `contentHash` release, and this patch's bump was one string** |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 it is a design note and not a stage prompt: its requirements are all built as
@@ -200,11 +200,20 @@ evidence that closed them.
 | **Type wheel** in `src/ui/tooltips.ts` | **Keep it, drop the trigger from the two Pokemon panel type badges.** Decided 2026-09-10. Not yet implemented: it is UI work and belongs to Release B. |
 | **`latent` definition** | **Type-based**, not a generated learnset table. Shipped in `src/data/capabilityTypes.ts`, whose header records the measurement and the three reasons. No `hmLearnsets.ts` exists or will. |
 | **Band 3 encounters** | **Node transition**, Option A. Shipped, covered by `test/band3.test.ts` and `test/event-bands.test.ts`, described in [`../generation.md`](../generation.md) section 10. |
+| **Keep, retune or revert the priority AI** | **Keep.** Decided 2026-09-11 by the AI tiers patch, which folds the priority layer in as the `takeTheKo` flag — it is what `TRY_TO_FAINT` is in every reference implementation. `balance.md` section 15 keeps its delta as the record of what it cost. |
 | **Priority-blind and speed-blind AI** | **Not a blocker.** Its own pass and its own `AI_VERSION` bump, deliberately outside 4.6. Carried in [`../README.md`](../README.md) section 5. **That pass also owns the unguarded `AI_VERSION`, and it is not the cheap fix the `8c3bff8` audit implies** — see below. |
 
 ## Scope corrections
 
 **`AI_VERSION` is guarded nowhere, and guarding it is a log-version bump.**
+**Closed 2026-09-11 by the AI tiers patch, and it was already wrong when it was
+written down.** The `contentHash` release put `aiVersion` in the run log's
+`versions` block and into `VERSION_AXES`, so the guard existed and the schema
+change had already been paid for; the AI tiers patch's bump was one string and
+`RUN_LOG_VERSION` did not move. The original text is kept below because a
+scope correction that turned out to be stale is worth seeing, and because the
+lesson is the one this file already teaches: check the tree, not the note.
+
 Recorded 2026-09-10, Release 0.5. The `8c3bff8` audit lists "`AI_VERSION` is
 stamped onto reports but never guarded at replay" beside four one-line defects,
 which reads as a one-line fix. It is not. `RunLog` in `core/types.ts` has no
