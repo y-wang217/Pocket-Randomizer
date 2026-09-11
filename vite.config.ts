@@ -1,11 +1,12 @@
 import { defineConfig } from 'vitest/config';
 
+import { contentHash } from './build-config/content-hash';
 import { trimSimData } from './build-config/trim-sim-data';
 
 export default defineConfig({
   // Applied to the test run as well as the build, so the suite proves the
   // trimmed data really is unused rather than assuming it.
-  plugins: [trimSimData()],
+  plugins: [trimSimData(), contentHash()],
   // Relative base so the static bundle deploys under any path on any host.
   base: './',
   build: {
