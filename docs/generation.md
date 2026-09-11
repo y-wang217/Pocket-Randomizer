@@ -1612,7 +1612,7 @@ they were.
 **The battle text.** The event strip, the history sheet and the flag chips'
 subjects print what the protocol says, and the protocol says the battle name.
 `ui/species-index.ts` learns name → species off each `|switch|` line and
-`screens/battle.ts` relabels the identifiers once per batch, before the turn
+`ui/screens/battle.ts` relabels the identifiers once per batch, before the turn
 reader, the log and the strip see them, so the three agree by construction.
 The session's own protocol is never rewritten. The one consequence is recorded
 in the file's header: the log's HP tracker keys two same-species members on one
