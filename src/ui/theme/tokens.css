@@ -38,20 +38,30 @@
  *
  * ## Faces
  *
- * **Three tokens, all Pixelify Sans, one line each to swap. Patch 4.7.2.**
- * `--font-display` is headings and labels, `--font-body` is names and prose,
- * `--font-numeral` is the counters that update in place. The overnight shipped
- * body on the system monospace stack as its conservative default and left the
- * swap as a morning decision; 4.7.2 took it, and the whole UI is one face.
+ * **Three tokens, all the system monospace stack, one line each to swap.
+ * Patch 4.8.0.2.** `--font-display` is headings and labels, `--font-body` is
+ * names and prose, `--font-numeral` is the counters that update in place.
  *
- * **`--font-numeral` points at the same face on purpose, and that is what it is
- * for.** Pixelify Sans is proportional and carries no `tnum` feature, so a
- * counter that rewrites in place — HP, PP, a stat number — reflows as its
- * digits change. Every rule that draws one reads this token instead of
- * `--font-body`, so the day that reflow is worse than the face is worth, the
- * fix is one line here rather than a hunt through the stylesheet for which of
- * the thirty-seven body rules happen to hold numbers. The measurement that says
- * it is not worse today is in `docs/visual/reports/patch-4.7.2.md`.
+ * The pixel face is gone, and the reason is a measurement rather than taste.
+ * V0 put Pixelify Sans on headings and chips and left body on the mono stack;
+ * 4.7.2 took the "morning decision" and set the whole UI in it. The playtest
+ * that followed read the phone as distorted — pixels not lining up, a `2`
+ * reading as an `8` — and `scripts/visual/font-grid.mjs` says why. The face is
+ * a pixel *look* drawn as outlines: each "pixel" is a rounded square of about
+ * 90 units on a 1000-unit em with a 10-unit gap to the next (39 in Bold), and
+ * the rows vary between 80 and 91 units. There is no uniform module, so no CSS
+ * size at any device pixel ratio puts those squares on whole device pixels:
+ * at 12px on a 3x phone the antialiased share of the ink is 43%, and at every
+ * size in the scale below 44px it is over 20%. A pixel face that cannot land
+ * on the pixel grid is the worst of both — the shapes of a bitmap font with
+ * the blur of a vector one. The mono stack at the same sizes is a face
+ * designed to be antialiased, and the digit crops in
+ * `docs/visual/reports/patch-4.8.0.2/` show the difference the player saw.
+ *
+ * The three tokens stay three because they are three jobs, and the day a face
+ * with real tabular figures and a real grid arrives, it is one line per job.
+ * `--font-numeral` is the escape hatch 4.7.2 built for exactly this: the
+ * counters that rewrite in place were the first thing to go back.
  *
  * ## Sizes and spacing hold the old pixel values
  *
@@ -60,24 +70,6 @@
  * out to the same pixel after it. The spacing scale is 4px with 2px half
  * steps; the half steps exist for that reason and are listed in the V0 report.
  */
-
-@font-face {
-  font-family: 'Pixelify Sans';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/PixelifySans-Regular-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Pixelify Sans';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/PixelifySans-Bold-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
 
 :root {
   color-scheme: dark;
@@ -197,13 +189,12 @@
 
   /* ---------- faces ---------- */
   --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  --font-display: 'Pixelify Sans', var(--font-mono-stack);
-  /* The morning decision, taken at patch 4.7.2: the phone screenshots read, so
-     body is the display face too. One line back to the mono stack. */
-  --font-body: var(--font-display);
-  /* Counters that update in place. Its own token *because* it points at the
-     same face: see the note above on why the escape hatch is the point. */
-  --font-numeral: var(--font-display);
+  /* Patch 4.8.0.2: the pixel face came off all three. See "Faces" above. */
+  --font-display: var(--font-mono-stack);
+  --font-body: var(--font-mono-stack);
+  /* Counters that update in place. Its own token because they are the first
+     thing to move when a face reflows: see the note above. */
+  --font-numeral: var(--font-mono-stack);
   --tracking-label: 0.08em;
   --tracking-title: 0.16em;
 

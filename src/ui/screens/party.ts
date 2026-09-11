@@ -48,7 +48,7 @@
 import { memberCardContents } from '../member-card';
 import { backpackCapacity } from '../../core/items';
 import { relicById, type RelicId } from '../../data/relics';
-import type { Capability } from '../../data/capabilities';
+import { CAPABILITY_LABELS } from '../../data/eventCopy';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
 import { itemById } from '../../data/items';
 import type { Tuning } from '../../data/tuning';
@@ -409,18 +409,6 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
 
   root.append(title, list);
 }
-
-/** The capability names, as a player reads them. Mirrors the map's labels. */
-const CAPABILITY_LABELS: Record<Capability, string> = {
-  cut: 'Cut',
-  surf: 'Surf',
-  strength: 'Strength',
-  rockSmash: 'Rock Smash',
-  fly: 'Fly',
-  waterfall: 'Waterfall',
-  dive: 'Dive',
-  flash: 'Flash',
-};
 
 function renderBackpack(
   host: HTMLElement,

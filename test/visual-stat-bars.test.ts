@@ -23,11 +23,11 @@
  *
  * ## Why this measures Simple mode
  *
- * **At this step the two are still mutually exclusive**: `bar.hidden = detailed`
- * means Detailed shows the number with the bar hidden, and Simple the reverse.
- * So the only mode in which there is a bar to measure is Simple, and the test
- * toggles into it. Step 4 of this patch is the ruling that Detailed must show
- * both, and it takes the toggle back out and asserts both modes.
+ * **The two modes are mutually exclusive**: Detailed shows the number with the
+ * bar hidden, and Simple the reverse. So the only mode in which there is a bar
+ * to measure is Simple, and the test toggles into it. (4.7.2's step 4 briefly
+ * had Detailed show both; patch 4.8.0.2 restored the Stage 4.5.1 definition,
+ * so the toggle here stays. `test/visual-verbosity.test.ts` asserts the modes.)
  */
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

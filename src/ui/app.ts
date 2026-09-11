@@ -462,8 +462,9 @@ export function mountApp(root: HTMLElement): void {
         showScreen('event');
         return eventPick.wait();
       },
-      chooseMoveRecipient: (offer, party) => {
-        targetScreen.render(offer, party, (slot) => targetPick.submit(slot));
+      chooseMoveRecipient: (offer, party, state) => {
+        // The run's tuning, for the move card's face-tag cap (4.8.0.2).
+        targetScreen.render(offer, party, (slot) => targetPick.submit(slot), state.tuning);
         showScreen('target');
         return targetPick.wait();
       },

@@ -7,15 +7,17 @@
  * surfaces the one insertion point actually got to, and that opening a panel on
  * each of them spends nothing.
  *
- * ## The six, and why the count is asserted rather than described
+ * ## The seven, and why the count is asserted rather than described
  *
  * `scene.moveCard` is the single insertion point, and the surfaces that call it
  * are the party screen, the party drawer, pre-gym, the move-replace incoming
- * card, the move reward card and the run summary. That list is a claim about
- * the call graph, and a claim about a call graph goes stale the first time a
- * screen is added. So the run walks until it has seen an expander on each, and
- * the assertion is the set — a surface that stops carrying one fails here
- * rather than being quietly dropped.
+ * card, the move reward card, the run summary and — from patch 4.8.0.2 — the
+ * recipient screen, where the gym's granted move had been arriving with no
+ * card at all. That list is a claim about the call graph, and a claim about a
+ * call graph goes stale the first time a screen is added. So the run walks
+ * until it has seen an expander on each, and the assertion is the set — a
+ * surface that stops carrying one fails here rather than being quietly
+ * dropped.
  *
  * ## The battle bar is asserted to have none
  *
@@ -47,9 +49,10 @@ afterAll(async () => {
  *
  * `party` covers the party screen and, through the same `memberCardContents`,
  * the drawer — which is opened explicitly below so it is measured rather than
- * assumed. `summary` is the sixth and arrives only at the end of a run.
+ * assumed. `summary` arrives only at the end of a run. `target` is the
+ * recipient screen, reached by every move reward and by every gym win.
  */
-const SURFACES = ['party', 'drawer', 'pre-gym', 'replace', 'result', 'summary'] as const;
+const SURFACES = ['party', 'drawer', 'pre-gym', 'replace', 'result', 'target', 'summary'] as const;
 
 /**
  * Expanders on the open screen, whether any panel is showing, and the face tags.
@@ -181,7 +184,7 @@ describe('the move explanation, across every surface it reaches', () => {
     spent = violations;
   }, 900_000);
 
-  it('reaches all six surfaces from the one insertion point', () => {
+  it('reaches all seven surfaces from the one insertion point', () => {
     expect(Object.keys(seen).sort()).toEqual([...SURFACES].sort());
   });
 

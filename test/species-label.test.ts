@@ -194,7 +194,7 @@ describe('the party surfaces', () => {
 
   it('recipient screen', () => {
     const screen = createItemTargetScreen();
-    screen.render({ kind: 'tm', move: 'Ice Beam' }, party(), () => undefined);
+    screen.render({ kind: 'tm', move: 'Ice Beam' }, party(), () => undefined, DEFAULT_TUNING);
     expect(texts(screen.root, '.panel__name')).toEqual(['Snorlax', 'Gengar']);
     noNickname(screen.root, 'the recipient screen');
   });

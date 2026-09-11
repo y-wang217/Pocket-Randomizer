@@ -36,10 +36,11 @@ try {
     const screen = await playUntil(page, (open) => remaining.has(open), 900);
     remaining.delete(screen);
     await page.waitForTimeout(650);
-    const fonts = await page.evaluate(() => globalThis.document.fonts.check('12px "Pixelify Sans"'));
+    // 4.8.0.2: no web font to wait for. The whole UI is the system monospace
+    // stack, which is present before the first paint.
     const file = join(out, `${prefix}${screen}.png`);
     await page.screenshot({ path: file, fullPage: full });
-    console.log(`${file} (display face ${fonts ? 'loaded' : 'NOT loaded'})`);
+    console.log(file);
   }
   if (problems.length) console.error('page problems:', problems);
   await context.close();

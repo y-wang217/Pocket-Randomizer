@@ -86,19 +86,23 @@ describe('the token rule', () => {
   });
 
   /**
-   * **One face across the whole UI. Patch 4.7.2, test 8.**
+   * **One face across the whole UI. Patch 4.7.2, test 8; the face changed at
+   * patch 4.8.0.2.**
    *
    * The rule above proves every `font-family` goes through *a* token. It does
-   * not prove the tokens agree, and before this patch they did not: display was
+   * not prove the tokens agree, and before 4.7.2 they did not: display was
    * Pixelify Sans and body was the system monospace stack, so the game was set
    * in two faces. This resolves each token to its terminal value and asserts
    * that every one a rule actually uses names the same first family.
    *
-   * **The fallback stack is not a second face** and is deliberately not counted.
-   * `--font-mono-stack` survives as what Pixelify Sans falls back to while the
-   * woff2 loads or if it fails; a rule may not reach for it directly, which the
-   * `usedTokens` check below is what enforces. What this test forbids is two
-   * *chosen* faces, not a chosen face with a fallback behind it.
+   * **4.8.0.2 took the pixel face off**, on the measurement in
+   * `scripts/visual/font-grid.mjs` and `tokens.css`'s "Faces" note: the face
+   * has no pixel module, so no size lands on a phone's grid and a `2` read as
+   * an `8`. The one face is now the mono stack, whose first family is
+   * `ui-monospace`. The tokens are still three, still the only route a rule may
+   * take, and `--font-mono-stack` may still not be reached for directly — the
+   * `usedTokens` check below enforces that, so the day a face comes back it is
+   * one line per token and not a hunt.
    */
   it('sets the whole UI in one face, through the tokens', () => {
     const tokens = stripCss(readFileSync(TOKENS, 'utf8'));
@@ -141,8 +145,9 @@ describe('the token rule', () => {
       faces.set(face, [...(faces.get(face) ?? []), token]);
     }
 
+    expect(usedTokens.has('--font-mono-stack'), 'a rule reached past the role tokens for the stack itself').toBe(false);
     expect(Object.fromEntries(faces)).toEqual({
-      'Pixelify Sans': expect.arrayContaining([...usedTokens]),
+      'ui-monospace': expect.arrayContaining([...usedTokens]),
     });
   });
 

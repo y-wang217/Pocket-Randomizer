@@ -308,6 +308,16 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   measured against `main` rather than against V0, is **+3,598 raw / +633
   gzipped**.
 
+- **2026-09-11, patch 4.8.0.2.** `heights.json` map entries re-recorded in
+  the commit that moved them, which is the one that took the pixel face off
+  every token: `map.screenHeight` 810.72 → 840.41, `scrollHeight` 1004 →
+  1033, `decisionBottom` 643.03 → 672.72. Exactly the −29.69 that 4.7.2's
+  swap onto the face recorded in `docs/generation.md` §12e, back. `decisionTop`
+  and every battle field are unchanged. Runs, the battle protocol and the
+  digest are byte identical. `bundle.json` is not re-recorded per the rule
+  above; the patch's delta against it is −15,596 B of font files and the
+  licence beside them.
+
 ## The data digest is `contentHash`
 
 **2026-09-11, overnight Branch 3.** `data-digest.txt` was a plain sha256 over
