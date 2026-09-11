@@ -17,7 +17,9 @@
  * test/trimmed-data.test.ts asserts both that the tables are empty and that a
  * full battle still plays out. It was also verified once with the stubs
  * replaced by throwing proxies, which confirmed nothing reads them at all
- * rather than merely tolerating an empty read.
+ * rather than merely tolerating an empty read. That one-off is now the standing
+ * `npm run test:trim-strict` gate, so the proxy's traps are chosen for the
+ * bundled browser path as well as the Node one.
  *
  * If a later stage adds team validation, set GYMRUN_FULL_DEX=1 to turn this
  * off — that is the whole rollback.
@@ -45,8 +47,25 @@ export function trimSimData(): Plugin {
       if (!name) return null;
       // `legality.mjs` also carries a couple of small tables alongside the big
       // one; exporting an empty object for each keeps the shape the Dex expects.
+      /*
+       * **`ownKeys` answers, it does not throw, and that is deliberate.**
+       *
+       * `get` and `has` are the traps that carry the claim: nothing reads or
+       * probes these tables. Enumeration is not a read by us — Rollup builds a
+       * module namespace object for the bundled entry, and building one
+       * enumerates the exports. So an `ownKeys` that throws fails while the app
+       * is still loading, on the bundler's own interop rather than on anything
+       * GYMRUN does: `enumerated trimmed legality`, before the first screen
+       * paints. It took the whole browser half of the suite with it — 49 tests,
+       * every one dying in `openApp`.
+       *
+       * `[]` is also what the non-strict path already answers, since `{}`
+       * enumerates to nothing. Strict mode therefore differs from it in exactly
+       * the way this file's header describes and in no other way: a read throws
+       * instead of quietly returning `undefined`.
+       */
       if (process.env['GYMRUN_TRIM_STRICT'] === '1') {
-        return `const t=new Proxy({},{get(_,k){throw new Error('read trimmed ${name}.'+String(k));},has(_,k){throw new Error('probed trimmed ${name}.'+String(k));},ownKeys(){throw new Error('enumerated trimmed ${name}');}});\nexport const ${EXPORTS[name]} = t;\nexport default t;\n`;
+        return `const t=new Proxy({},{get(_,k){throw new Error('read trimmed ${name}.'+String(k));},has(_,k){throw new Error('probed trimmed ${name}.'+String(k));},ownKeys(){return [];}});\nexport const ${EXPORTS[name]} = t;\nexport default t;\n`;
       }
       return `export const ${EXPORTS[name]} = {};\nexport default {};\n`;
     },

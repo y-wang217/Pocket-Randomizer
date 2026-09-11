@@ -1559,7 +1559,7 @@ export async function runBattle(
     result,
     battleLog: session.toBattleLog(),
     protocol,
-    casualties: readCasualties(protocol),
+    casualties: readCasualties(protocol, levelsOf(teamA, teamB)),
     consumed: readConsumedItems(protocol, 'p1'),
     contribution: readContribution(protocol, session.rosterFor('p1')),
     session,
@@ -1613,6 +1613,23 @@ export interface Casualty {
   side: SideId;
   /** The Pokemon that fainted, by its battle name. */
   name: string;
+  /**
+   * The level it fell at. **Captured here, at faint time, never read back later.**
+   *
+   * The protocol's `|faint|` line carries a name and nothing else, so this comes
+   * from the specs the battle was built with — which are the player's party as it
+   * stood when the node was entered, merged by `party.battleTeamFor`. That is the
+   * only moment the number is correct: `party.levelParty` raises the whole party at
+   * every gym clear, so a graveyard that looked a level up afterwards would print
+   * the level the member reached rather than the one it died at, and a member
+   * released since would have no level to find at all.
+   *
+   * Null only when the name matches no spec in the team, which for the player's
+   * side means the protocol named something the battle was not given. That is a bug
+   * rather than a state the run reaches, and `test/nicknames-graveyard.test.ts`
+   * asserts every player casualty carries a level.
+   */
+  level: number | null;
   /** The opposing Pokemon that landed the blow, or null for indirect damage. */
   bySpecies: string | null;
   /** The move that landed it, or null when nothing did. */
@@ -1625,6 +1642,30 @@ export interface Casualty {
 }
 
 /**
+ * Battle name to level, for both teams, as the battle was built.
+ *
+ * The battle name is `spec.nickname ?? spec.species` — the same rule
+ * `toPokemonSet` hands the sim and `core/nicknames.displayName` applies
+ * everywhere else — so these keys are exactly the strings a `|faint|` line
+ * carries. Nicknames are what make that mapping total: before Stage 4.8 named
+ * every Pokemon, two members of one species collapsed onto one key and one of
+ * them would have taken the other's level.
+ *
+ * Both sides, because a casualty record is written for both and the opponent's
+ * level is as real as the player's. Last spelling wins on a collision, which is
+ * unreachable for the player's party — `applyAcquisition` cannot produce two
+ * members with one name — and harmless for an opponent, whose level is not read
+ * by the graveyard.
+ */
+function levelsOf(...teams: readonly TeamSpec[]): Map<string, number> {
+  const levels = new Map<string, number>();
+  for (const team of teams) {
+    for (const spec of team) levels.set(spec.nickname ?? spec.species, spec.level);
+  }
+  return levels;
+}
+
+/**
  * Walk a protocol and pair every faint with what caused it.
  *
  * Deliberately forgiving. The sim has many ways to remove a Pokemon and a
@@ -1633,7 +1674,18 @@ export interface Casualty {
  * for the rest, because "died to something" is a better summary line than a
  * crashed screen.
  */
-export function readCasualties(protocol: readonly string[]): Casualty[] {
+export function readCasualties(
+  protocol: readonly string[],
+  /**
+   * Battle name to level, for every Pokemon either side was built with.
+   *
+   * Passed in rather than derived, because this function sees only protocol
+   * strings — which is the rule this whole file is organised around — and a level
+   * is a fact about the spec. `runBattle` builds it from the teams it was handed,
+   * so the numbers are the party as of node entry and cannot drift afterwards.
+   */
+  levels: ReadonlyMap<string, number> = new Map(),
+): Casualty[] {
   const casualties: Casualty[] = [];
   let lastMove: { by: string; move: string; target: string } | null = null;
   let lastIndirect: { target: string; from: string } | null = null;
@@ -1667,6 +1719,7 @@ export function readCasualties(protocol: readonly string[]): Casualty[] {
     casualties.push({
       side,
       name,
+      level: levels.get(name) ?? null,
       bySpecies: killedByMove?.by ?? null,
       byMove: killedByMove?.move ?? null,
       indirect: killedByMove ? null : (lastIndirect?.target === name ? lastIndirect.from : null),

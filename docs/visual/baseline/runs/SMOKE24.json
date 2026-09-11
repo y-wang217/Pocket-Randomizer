@@ -231,6 +231,7 @@
         {
           "side": "p1",
           "name": "Mire",
+          "level": 36,
           "bySpecies": "Corphish",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -459,6 +460,7 @@
         {
           "side": "p1",
           "name": "Loam",
+          "level": 54,
           "bySpecies": "Flareon",
           "byMove": "Lunge",
           "indirect": null
@@ -466,6 +468,7 @@
         {
           "side": "p1",
           "name": "Thistle",
+          "level": 54,
           "bySpecies": "Camerupt",
           "byMove": "Stomping Tantrum",
           "indirect": null
@@ -473,6 +476,7 @@
         {
           "side": "p1",
           "name": "Mire",
+          "level": 54,
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
@@ -480,6 +484,7 @@
         {
           "side": "p1",
           "name": "Bramble",
+          "level": 54,
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
@@ -487,6 +492,7 @@
         {
           "side": "p1",
           "name": "Loam",
+          "level": 54,
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
