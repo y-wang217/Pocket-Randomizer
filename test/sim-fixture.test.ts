@@ -37,6 +37,15 @@
  * measures against: it takes the first option at every question, so the
  * recording is a function of generation and battle resolution alone rather
  * than of a heuristic somebody may tune later.
+ *
+ * ## Re-minted for the priority and speed aware AI, `gymrun-ai-3-priority`
+ *
+ * Overnight Branch 2. The opponent now sees move priority and Speed, so its
+ * choices change and every battle after the first differing one plays out
+ * differently; the recording moved from the `contentHash` release's
+ * `fd91f8b7…` to this one deliberately, with `AI_VERSION` moving in the same
+ * commit. Generation did not move: `RANDOMIZER_VERSION` and `contentHash`
+ * are unchanged and the decision sequence differs only where a battle did.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
