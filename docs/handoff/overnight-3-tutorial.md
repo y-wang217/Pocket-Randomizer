@@ -6,7 +6,7 @@ Branch 3. Deviations: [`../generation.md`](../generation.md) section 12g.
 
 ## Merged at
 
-The branch's last code commit is `<<LAST_CODE>>`; this file is the commit
+The branch's last code commit is `655d193`; this file is the commit
 after it, and the merge is a fast-forward, so the integration branch's head
 after the merge is the commit that added this file:
 `git log -1 --format=%H -- docs/handoff/overnight-3-tutorial.md`. As for the
@@ -28,13 +28,22 @@ integration branch `claude/overnight-infrastructure-8r4nd4` carries all three.
   Branch 2 head (`e996db4`) was **1216 passed, 8 failed** — the inherited
   nine less the `backpack` resume timeout, which passed on that run; it is
   load-dependent. Fixture sha256 matched (`62a47924…`).
-- **Test count:** `<<TEST_COUNT>>` `<<TEST_FAILS>>`
+- **Test count:** 1261 tests in 97 files (Branch 2 had 1224 in 95). The full
+  suite on the branch at `4919315` was **1246 passed, 15 failed**, with four
+  vitest worker RPC timeouts under load that failed no test. Seven of the
+  fifteen were this branch's and are fixed in `655d193` — five by taking the
+  tutorial control out of its own header row, two by a duration token and an
+  overlay allowlist entry — each file re-run green (`band`, `visual-tokens`,
+  `visual-v0`, `visual-v2`, `visual-v3`, `visual-v5`, `map-fold`,
+  `tutorial-browser`). The eight left are `main`'s inherited failures, so
+  **1253 passed, 8 failed** is what a clean re-run of this head should
+  report. Build (`tsc` plus `vite build`) green; lint green.
 - **`test/fixtures/sim-report.json` sha256:**
   `62a4792448b3c897e6b73d66cdfacc965f9eae4244ee90e0b29d254299d6edca`, unchanged
   from Branch 2, as it must be. The visual baseline's run records and battle
   are unchanged; its `data-digest.txt` now reads `contentHash` (deviation 4)
   and holds `b022fc4e…`.
-- **SMOKE24:** `<<SMOKE>>` The smoke script seeds its browser with the tutorial
+- **SMOKE24:** **passed**, 47 checks in Chromium against the bundle built from `655d193`. The smoke script seeds its browser with the tutorial
   skipped, as the visual harness does; the tutorial's own browser test is the
   one that runs with it on.
 - **Benchmark:** unchanged from Branch 2 — mean gyms cleared **4.873**, prefix
