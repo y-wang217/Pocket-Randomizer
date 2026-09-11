@@ -76,6 +76,7 @@ import { Generations, Move, Pokemon, calculate } from '@smogon/calc';
 
 import type {
   ActiveView,
+  SeenKnowledge,
   BattleView,
   Choice,
   MoveView,
@@ -87,6 +88,7 @@ import { moveChoice, switchChoice } from '../types';
 // is the only caller here; nothing else in this file reads a type chart,
 // because the calc does it properly.
 import { typeMultiplier } from './driver';
+import { itemById } from '../../data/items';
 import { GYMRUN_GEN } from './format';
 import type { RngStream } from '../rng';
 import type { Policy } from './policy';
@@ -265,7 +267,7 @@ export const GREEDY_BASELINE: AiProfile = {
  */
 const UNKNOWN_ABILITY = '(unknown)';
 
-function toCalcPokemon(active: ActiveView): Pokemon {
+function toCalcPokemon(active: ActiveView, revealed?: string | null, item?: string | null): Pokemon {
   const boosts: Partial<StatsTable> = {
     atk: active.statStages.atk,
     def: active.statStages.def,
@@ -282,8 +284,20 @@ function toCalcPokemon(active: ActiveView): Pokemon {
     curHP: Math.max(1, active.hp),
     status: active.status ?? '',
     // Never omitted: an omitted ability is the species default, not an unknown
-    // one. See `UNKNOWN_ABILITY`.
-    ability: active.ability ?? UNKNOWN_ABILITY,
+    // one. See `UNKNOWN_ABILITY`. `revealed` is what `seenKnowledge` watched the
+    // protocol announce — an ability that has named itself is public, and a tier
+    // holding that flag is allowed to have noticed.
+    ability: active.ability ?? revealed ?? UNKNOWN_ABILITY,
+    /*
+     * `itemAware`. Undefined rather than a sentinel when nothing is known,
+     * because "no item" is the calc's own default and is the right assumption:
+     * unlike an ability, a Pokemon genuinely may be holding nothing, so
+     * assuming none is ignorance rather than a false fact. A Life Orb or a
+     * Choice Band changes what a turn does by half a bar, and berries are
+     * common enough on trainer mons after 4.6b that a bot blind to them
+     * misreads the kill line on a real share of turns.
+     */
+    ...(item ? { item: item as never } : {}),
   });
 }
 
@@ -412,10 +426,36 @@ function attackingSide(attacker: Pokemon): 'Physical' | 'Special' {
  * the AI switching into the kill — the spec's `never switch into a move that
  * kills the incoming member, when that is calculable`.
  */
-function incomingDamage(attacker: Pokemon, types: readonly string[], target: Pokemon): number {
+function incomingDamage(
+  attacker: Pokemon,
+  types: readonly string[],
+  target: Pokemon,
+  seen?: SeenKnowledge,
+): number {
   const category = attackingSide(attacker);
   let worst = 0;
+  /*
+   * `seenKnowledge`: what has actually been used is scored as itself, and only
+   * the types nothing has been seen from fall back to the generic probe.
+   *
+   * So the estimate sharpens in both directions, which is the point of an
+   * information axis over a damage one. A foe that has shown a weak move of its
+   * own type stops being feared at 65 base power; a foe that has shown a strong
+   * one is feared exactly as hard as it hits. It is still a bound on the
+   * unknown — a second, stronger move of a type already seen is invisible here,
+   * which is what "seen" means and is the same limit the player plays under.
+   */
+  const revealed = new Set<string>();
+  if (seen) {
+    for (const name of seen.moves) {
+      const move = moveFor(name);
+      if (move.category === 'Status') continue;
+      revealed.add(move.type);
+      worst = Math.max(worst, midpoint(attacker, target, move, move.bp));
+    }
+  }
   for (const type of types) {
+    if (revealed.has(type)) continue;
     worst = Math.max(worst, midpoint(attacker, target, probeFor(type, category), 0));
   }
   return worst;
@@ -573,7 +613,7 @@ function scoreMove(
       ? 1
       : Math.max(0, Math.min(100, move.accuracy)) / 100;
   const offense = (damage / foeMaxHp) * accuracy;
-  const kills = damage >= Math.max(1, view.foe.hp);
+  const kills = damage >= killLine(view, profile);
   const takesTheKo = has(profile, 'takeTheKo');
   /*
    * `stay` is the race as it is *now*, identical across every move on the turn,
@@ -598,6 +638,36 @@ function scoreMove(
       after * AI_WEIGHTS.matchup +
       failurePenalty(view, move, damage, profile),
   };
+}
+
+/**
+ * How much damage it actually takes to knock this foe out.
+ *
+ * Its remaining HP, plus whatever a held berry is about to put back — under
+ * `itemAware` and only when the item is known. **This is the "misreading the
+ * kill line" case:** a foe on 40 HP holding a Sitrus Berry does not faint to a
+ * 45-damage hit, it drops to low HP and heals a quarter of its bar, and a bot
+ * that called that a knockout has just spent its turn on the wrong move and
+ * will do it again next turn.
+ *
+ * Only a *known* item counts, so this sharpens exactly where the knowledge
+ * does: its own side always, the foe's once the battle has shown it.
+ */
+function killLine(view: BattleView, profile: AiProfile): number {
+  const hp = Math.max(1, view.foe.hp);
+  if (!has(profile, 'itemAware')) return hp;
+  const item = view.foe.item ?? (has(profile, 'seenKnowledge') ? (view.seen?.item ?? null) : null);
+  const restores = item ? (itemById(toItemId(item))?.restores ?? null) : null;
+  if (!restores) return hp;
+  // A berry fires below half, so it only saves a foe that is above nothing and
+  // below the line — which, for a damage estimate, is any foe this hit would
+  // otherwise finish.
+  return hp + (restores.flat ?? 0) + (restores.fraction ?? 0) * Math.max(1, view.foe.maxHp);
+}
+
+/** `Sitrus Berry` -> `sitrusberry`. The spelling `data/items.ts` keys on. */
+function toItemId(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 /** The foe's best expected hit in HP, recovered from the per-turn risk the caller already computed. */
@@ -700,7 +770,13 @@ function failurePenalty(view: BattleView, move: MoveView, damage: number, profil
  * is a hard rule rather than a large penalty because a large penalty is a rule
  * that a big enough offensive term eventually buys its way past.
  */
-function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView, profile: AiProfile): ChoiceEvaluation {
+function scoreSwitch(
+  view: BattleView,
+  bodies: CalcBodies,
+  member: SwitchView,
+  profile: AiProfile,
+  seen: SeenKnowledge | undefined,
+): ChoiceEvaluation {
   const foeMaxHp = Math.max(1, view.foe.maxHp);
   const memberMaxHp = Math.max(1, member.maxHp);
   const body = toCalcSwitch(member);
@@ -719,7 +795,7 @@ function scoreSwitch(view: BattleView, bodies: CalcBodies, member: SwitchView, p
     );
   }
   const offense = best / foeMaxHp;
-  const arrivingHp = incomingDamage(bodies.foe, view.foe.types, body);
+  const arrivingHp = incomingDamage(bodies.foe, view.foe.types, body, seen);
   const arriving = arrivingHp / memberMaxHp;
   // Measured in HP, not in fractions of the maximum: a body at 20% dies to a
   // hit worth 25% of its bar, and the comparison that says so is against what
@@ -792,10 +868,16 @@ export function scoreChoices(view: BattleView, profile: AiProfile = GREEDY_BASEL
   // Both active bodies built once per turn and shared by every branch below.
   // Constructing one is not free and the naive version rebuilt the foe for
   // every move, every bench member and every bench member's every move.
-  const bodies: CalcBodies = { me: toCalcPokemon(view.me), foe: toCalcPokemon(view.foe) };
+  const seen = has(profile, 'seenKnowledge') ? view.seen : undefined;
+  const knowsItems = has(profile, 'itemAware');
+  const foeItem = knowsItems ? (view.foe.item ?? seen?.item ?? null) : null;
+  const bodies: CalcBodies = {
+    me: toCalcPokemon(view.me, undefined, knowsItems ? view.me.item : null),
+    foe: toCalcPokemon(view.foe, seen?.ability, foeItem),
+  };
   // Likewise the question "am I about to be knocked out?" — one answer per
   // turn, shared by every move that has to be discounted by it.
-  const threat = forced ? 0 : incomingDamage(bodies.foe, view.foe.types, bodies.me);
+  const threat = forced ? 0 : incomingDamage(bodies.foe, view.foe.types, bodies.me, seen);
   const selfRisk = threat / Math.max(1, view.me.hp);
   /*
    * The race the active Pokemon is currently in — the term a switch trades
@@ -812,7 +894,7 @@ export function scoreChoices(view: BattleView, profile: AiProfile = GREEDY_BASEL
     if (choice.kind === 'switch') {
       const member = view.switches.find((entry) => entry.slot === choice.slot);
       if (!member) throw new Error(`No bench member in slot ${choice.slot}`);
-      const scored = scoreSwitch(view, bodies, member, profile);
+      const scored = scoreSwitch(view, bodies, member, profile, seen);
       if (!forced) {
         /*
          * Without `smartSwitching` a voluntary switch is not considered at all

@@ -16,6 +16,7 @@ import type { RngStream, SimSeed } from '../rng';
 import { createRng } from '../rng';
 import { FIXTURE_BATTLE_KEY } from '../streamKeys';
 import { speedView } from './speed';
+import { knowledgeFrom } from './knowledge';
 import {
   BOOST_NAMES,
   emptyStatStages,
@@ -563,6 +564,10 @@ function toActiveView(pokemon: SimPokemon, revealAbility: boolean): ActiveView {
     // the two together), so reading it off the foe leaks nothing.
     baseSpeed: pokemon.storedStats.spe,
     ability: revealAbility ? Dex.forGen(GYMRUN_GEN).abilities.get(pokemon.ability).name : null,
+    // Same rule as the ability, and for the same reason: an item the opponent
+    // has not shown is not public information. `itemAware` reads its own side's
+    // here and the foe's from `seen`.
+    item: revealAbility && pokemon.item ? pokemon.item : null,
   };
 }
 
@@ -984,6 +989,10 @@ export function createBattle(options: BattleOptions): BattleSession {
       forceSwitch,
       awaitingChoice: awaiting,
       trapped: awaiting && !forceSwitch && readTrapping(request) !== null,
+      // What this side has watched the other side do, folded out of its own
+      // channel of the protocol — never out of the teams. See
+      // `battle/knowledge.ts`.
+      seen: knowledgeFrom(protocol[side], opposingSide(side)),
     };
   }
 

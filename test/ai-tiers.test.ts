@@ -27,9 +27,13 @@ import {
 } from '../src/core/battle/ai';
 import { createBattle } from '../src/core/battle/driver';
 import { estimateMatchup } from '../src/core/battle/matchup';
+import { knowledgeFrom } from '../src/core/battle/knowledge';
 import { AI_TIERS, aiTierFor } from '../src/data/ai';
 import { createAiStream, createRng, type SimSeed } from '../src/core/rng';
 import { previewRun } from '../src/core/preview';
+import { playRun, replayRun, scriptedRunPolicy } from '../src/core/run';
+import { greedyAiPolicy } from '../src/core/battle/ai';
+import type { RunLog } from '../src/core/types';
 import { CONTENT_HASH } from '../src/core/contentHash';
 import type { ActiveView, BattleView, TeamSpec } from '../src/core/types';
 
@@ -305,6 +309,171 @@ describe('noise', () => {
     }
     expect(stream.draws).toBeGreaterThan(0);
   });
+});
+
+// ---------------------------------------------------------------------------
+// Knowledge
+// ---------------------------------------------------------------------------
+
+describe('seenKnowledge', () => {
+  /*
+   * The board: the AI's body is a Water type and the foe is a Grass type, so
+   * the type chart says the AI is about to be hit for 2x by something. Without
+   * knowledge that is all there is to go on and the threat is scored against a
+   * generic Grass attack. The foe's actual Grass move is Absorb, at 20 base
+   * power — so once it has been *used*, a profile that was watching replaces
+   * the probe with the real thing and the same board reads as far less
+   * dangerous.
+   *
+   * Same seed, same board, different reading, one flag apart. It sharpens in
+   * both directions: a foe that shows a strong move is feared exactly as hard
+   * as it hits.
+   */
+  const board = (seen?: { moves: string[]; ability: string | null; item: string | null }): BattleView => {
+    const view = viewOf(
+      [{ species: 'Sceptile', ability: 'Overgrow', moves: ['Absorb'], level: 50 }],
+      [
+        { species: 'Vaporeon', ability: 'Water Absorb', moves: ['Surf', 'Ice Beam'], level: 50 },
+        { species: 'Snorlax', ability: 'Thick Fat', moves: ['Body Slam'], level: 50 },
+      ],
+      'p2',
+    );
+    return seen ? { ...view, seen } : { ...view, seen: undefined };
+  };
+
+  const withKnowledge = profile([...GREEDY_BASELINE.flags, 'seenKnowledge']);
+
+  it('does not act on a move the player has not used yet', () => {
+    // Nothing revealed: both profiles read the same board, because knowledge of
+    // nothing is the same as no knowledge.
+    const blank = board({ moves: [], ability: null, item: null });
+    expect(scoreChoices(blank, withKnowledge)[0]!.risk).toBeCloseTo(
+      scoreChoices(blank, GREEDY_BASELINE)[0]!.risk,
+      10,
+    );
+  });
+
+  it('acts on one the player has, and the profile without the flag cannot', () => {
+    const revealed = board({ moves: ['Absorb'], ability: null, item: null });
+    const knowing = scoreChoices(revealed, withKnowledge)[0]!.risk;
+    const blind = scoreChoices(revealed, GREEDY_BASELINE)[0]!.risk;
+    // The blind profile is still afraid of a Grass move far stronger than the
+    // one the foe actually carries.
+    expect(knowing).toBeLessThan(blind);
+    // And the flag reads the view rather than the team: the same profile on a
+    // view with nothing revealed is back to the blind number.
+    expect(scoreChoices(board({ moves: [], ability: null, item: null }), withKnowledge)[0]!.risk).toBeCloseTo(
+      blind,
+      10,
+    );
+  });
+
+  it('forgets when the foe switches out, which is the vanilla rule', () => {
+    const protocol = [
+      '|switch|p1a: Sceptile|Sceptile, M|100/100',
+      '|move|p1a: Sceptile|Leaf Blade|p2a: Vaporeon',
+      '|-ability|p1a: Sceptile|Overgrow',
+      '|switch|p1a: Snorlax|Snorlax, M|100/100',
+      '|move|p1a: Snorlax|Body Slam|p2a: Vaporeon',
+    ];
+    const seen = knowledgeFrom(protocol, 'p1');
+    expect(seen.moves).toEqual(['Body Slam']);
+    expect(seen.ability).toBeNull();
+    // Struggle is never remembered: it is not a move the player chose to carry.
+    expect(knowledgeFrom([...protocol, '|move|p1a: Snorlax|Struggle|p2a: Vaporeon'], 'p1').moves).toEqual([
+      'Body Slam',
+    ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// itemAware
+// ---------------------------------------------------------------------------
+
+describe('itemAware', () => {
+  it('does not call a knockout that a known berry is about to undo', () => {
+    const view = viewOf(
+      [{ species: 'Blissey', ability: 'Natural Cure', moves: ['Tackle'], level: 50, item: 'sitrusberry' }],
+      [{ species: 'Garchomp', ability: 'Sand Veil', moves: ['Dragon Claw'], level: 50 }],
+      'p2',
+    );
+    /*
+     * The foe is put exactly on the edge rather than at a number I picked: its
+     * HP is set to what the move is estimated to do, so the hit finishes it by
+     * a hair. A hard-coded HP would be a test that passes until someone retunes
+     * a base stat.
+     */
+    const damage = evaluateMoves(view, GREEDY_BASELINE)[0]!.expectedDamage;
+    const edge: BattleView = {
+      ...view,
+      foe: { ...view.foe, hp: Math.max(1, Math.floor(damage)), item: 'sitrusberry' },
+      seen: { moves: [], ability: null, item: 'Sitrus Berry' },
+    };
+
+    const blind = scoreChoices(edge, GREEDY_BASELINE).find((entry) => entry.move)!;
+    const aware = scoreChoices(edge, profile([...GREEDY_BASELINE.flags, 'itemAware', 'seenKnowledge'])).find(
+      (entry) => entry.move,
+    )!;
+    expect(blind.kills).toBe(true);
+    expect(aware.kills).toBe(false);
+    // And the kill bonus goes with it, which is the point: the turn is no
+    // longer scored as a won one.
+    expect(aware.score).toBeLessThan(blind.score);
+  });
+
+  it('reads only what it knows: an unrevealed berry is not reasoned about', () => {
+    const view = viewOf(
+      [{ species: 'Blissey', ability: 'Natural Cure', moves: ['Tackle'], level: 50, item: 'sitrusberry' }],
+      [{ species: 'Garchomp', ability: 'Sand Veil', moves: ['Dragon Claw'], level: 50 }],
+      'p2',
+    );
+    const damage = evaluateMoves(view, GREEDY_BASELINE)[0]!.expectedDamage;
+    const hidden: BattleView = {
+      ...view,
+      foe: { ...view.foe, hp: Math.max(1, Math.floor(damage)), item: null },
+      seen: undefined,
+    };
+    const aware = scoreChoices(hidden, profile([...GREEDY_BASELINE.flags, 'itemAware', 'seenKnowledge'])).find(
+      (entry) => entry.move,
+    )!;
+    expect(aware.kills).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Replay, which noise made load-bearing
+// ---------------------------------------------------------------------------
+
+describe('replay with a noisy opponent', () => {
+  /*
+   * **The test ruling 5 asked for, and it guards save-and-resume rather than
+   * the benchmark.** A run log records the player's decisions and nothing else,
+   * on the stated grounds that the opponent is deterministic given a view. It
+   * is not deterministic any more — every tier carries noise — so what makes a
+   * log replayable is now that the opponent's *rolls* are reproducible from the
+   * seed. If that ever stops being true, a player reloading a save gets a
+   * different fight from the one they saved, and nothing else in the suite is
+   * pointed at that.
+   */
+  it('replays a log into the same run, turn for turn, with every tier noisy', async () => {
+    for (const tier of ['easy', 'medium', 'hard'] as const) expect(AI_TIERS[tier].noise).toBeGreaterThan(0);
+
+    const original = await playRun('NOISY-REPLAY', scriptedRunPolicy(greedyAiPolicy));
+    const replayed = await replayRun(JSON.parse(JSON.stringify(original.log)) as RunLog);
+
+    const history = (run: Awaited<ReturnType<typeof playRun>>): unknown =>
+      run.state.history.map((visit) => ({
+        id: visit.node.id,
+        winner: visit.result?.winner ?? null,
+        turns: visit.result?.turns ?? null,
+        hpAfter: visit.hpAfter,
+        casualties: visit.casualties.map((death) => `${death.name}/${death.byMove}`),
+      }));
+
+    expect(history(replayed)).toEqual(history(original));
+    expect(replayed.outcome).toBe(original.outcome);
+    expect(JSON.stringify(replayed.log)).toBe(JSON.stringify(original.log));
+  }, 120_000);
 });
 
 // ---------------------------------------------------------------------------
