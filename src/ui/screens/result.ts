@@ -42,7 +42,6 @@
  * carries the same review and no cards, because they have already been taken.
  */
 import type { AcquisitionDecision, AcquisitionOffer } from '../../core/acquisition';
-import { displayName } from '../../core/nicknames';
 import {
   CARDS_ONLY_BLURB,
   CARDS_ONLY_TITLE,
@@ -156,7 +155,7 @@ export function createResultScreen(): ResultScreen {
         renderSlots(
           'party',
           (review?.party ?? []).map((member) => ({
-            label: displayName(member.spec),
+            label: member.spec.species,
             item: member.item ?? null,
             detail: memberReading(member),
           })),

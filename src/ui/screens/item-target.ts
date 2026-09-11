@@ -95,8 +95,9 @@ function renderTarget(
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
-  // Stage 4.8: the projection's own name, which is the nickname when there is one.
-  name.textContent = detail.name;
+  // The species. 4.8.0.1: the recipient is picked by what it is, and the
+  // nickname is state this screen does not show.
+  name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
   header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));

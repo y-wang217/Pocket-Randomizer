@@ -112,7 +112,7 @@ taking it back returned exactly that.
 
 The map's last offered card clears the 740 line by 67px; the fourth move
 button by 28px, unmoved. `heights.json` re-recorded in the commit that moved
-it; `generation.md` §12i is the deviation note. The stat rule (section 3), the
+it; `generation.md` §12j is the deviation note. The stat rule (section 3), the
 recipient card (section 5) and the event screen (section 6) draw on no
 guarded screen and moved nothing.
 

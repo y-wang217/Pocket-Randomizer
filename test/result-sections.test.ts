@@ -91,13 +91,16 @@ describe('the result screen', () => {
     expect(grave?.hidden).toBe(deaths.length === 0);
 
     // Each row is the same line the clipboard gets, so the two cannot drift.
+    // 4.8.0.1: the line names the species, and the nickname the record still
+    // carries is not printed.
     rows.forEach((row, index) => {
       const death = deaths[index];
-      expect(row.textContent).toContain(death!.nickname);
+      expect(row.textContent).toContain(death!.species);
+      if (death!.nickname !== death!.species) expect(row.textContent).not.toContain(death!.nickname);
     });
   }, 240_000);
 
-  it('renders members by nickname, not by species alone', async () => {
+  it('renders members by species, never by the nickname the spec carries', async () => {
     const summary = createSummary();
     summary.render(result);
 
@@ -107,9 +110,8 @@ describe('the result screen', () => {
     expect(names.length).toBeGreaterThan(0);
     for (const [index, name] of names.entries()) {
       const member = result.state.party[index];
-      if (!member?.spec.nickname) continue;
-      expect(name, 'a member rendered as its species while it had a name').toBe(
-        member.spec.nickname,
+      expect(name, 'a member rendered under something other than its species').toBe(
+        member?.spec.species,
       );
     }
   }, 240_000);

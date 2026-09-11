@@ -1755,7 +1755,113 @@ One known gap, from the prompt's own default: the copy is written against
 Detailed mode. If Pocket mode is built, its marks point at the same anchors
 and may name things that mode hides.
 
-## 12i. Deviation: 4.8.0.2 took the pixel face off, and the map grew back by 29.69px
+## 12i. Deviation: 4.8.0.1 de-prioritised nicknames past what its prompt asked
+
+**Recorded 2026-09-11. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-4.8.0.1-species-stays-the-label.md`](spec/gymrun-patch-4.8.0.1-species-stays-the-label.md).
+
+**What was asked.** Species primary on every surface where the player is
+evaluating a Pokemon, the nickname secondary and subordinate; opponents species
+only; the graveyard and share text the one exception, nickname first with the
+species after it on the same line; a report before any code.
+
+**What the report found, and the ruling on it.** Case 1 of the prompt's two:
+`PokemonSpec` carries `species` and `nickname` as separate fields, every
+projection (`ActiveView`, `SwitchView`, `SpecCard`, `DeathRecord`) carries both,
+and the only place a nickname replaces a species is the sim's battle name at
+`toPokemonSet`, which is the protocol's identifier and is correct. The ruling on
+the report went past the prompt: **nicknames are de-prioritised everywhere,
+including the graveyard and share text. Every label is the species. The option is
+kept, not removed** — the draw, the key, the field on the spec and the sim's
+battle name are all untouched, and the name is state the screens do not show.
+No `core/` state change, no version axis moved, no new draw. Recorded runs, the
+recorded battle protocol and every casualty list are byte identical to the
+baseline by `test/visual-baseline.test.ts`.
+
+**The surfaces, as edited.** Both battle panels and the bench (`ui/scene.ts`);
+the member card and through it the drawer, party management and the pre-gym
+members list (`ui/member-card.ts`); the party and result slot strips, the
+release confirm and the give buttons (`ui/screens/party.ts`, `ui/screens/result.ts`);
+the map cards (`ui/screens/run-map.ts`); the pre-gym send-in control
+(`ui/screens/pre-gym.ts`); the recipient and replacement screens
+(`ui/screens/item-target.ts`, `ui/screens/move-replace.ts`); the final party, the
+graveyard rows and the closing sentence (`ui/screens/summary.ts`); the share text
+(`ui/copy/share.ts`, whose `ShareView.party` no longer carries a name). The
+capture card and starter select already rendered the species and were left as
+they were.
+
+**The battle text.** The event strip, the history sheet and the flag chips'
+subjects print what the protocol says, and the protocol says the battle name.
+`ui/species-index.ts` learns name → species off each `|switch|` line and
+`ui/screens/battle.ts` relabels the identifiers once per batch, before the turn
+reader, the log and the strip see them, so the three agree by construction.
+The session's own protocol is never rewritten. The one consequence is recorded
+in the file's header: the log's HP tracker keys two same-species members on one
+string again, which is how it keyed them before 4.8 named anything.
+
+**Heights.** `battle.decisionTop` **472, unchanged**; `decisionBottom` 712,
+`screenHeight` 599, `scrollHeight` 844, all unchanged. A species is one word
+where a nickname was one word, and no nameplate gained a line. The map did not
+move either — but see the next paragraph, because the pinned map numbers were
+not the merged tree's.
+
+**What the gates found on `main`, and what PR #24 did about it first.** This
+branch was cut from `0712032`, the merge of 4.7.2 into 4.8. Its typecheck gate
+found `tsc` red there — the merge kept 4.8's `state.party.map(renderMember)`
+against 4.7.2's three-argument signature — and its height gate found the map's
+pinned numbers and `data-digest.txt` were 4.8's, recorded on a tree without
+4.7.2's font swap (12e) and chip floor (12f). Both were fixed on this branch,
+and while it was open PR #24 (`c28d050`) fixed both on `main` independently:
+the same one-line restoration of 4.7.2's call, the same re-record. The merge
+takes `main`'s versions; 12g above and
+[`visual/reports/patch-4.7.2.md`](visual/reports/patch-4.7.2.md) §7 are the
+record. What this branch adds is the independent confirmation, measured on
+`main` at `0712032` from a `vite build` that bypassed the red `tsc`, and on the
+branch, agreeing to the hundredth:
+
+   | | pinned by 4.8 | `main` at `0712032` | this branch | PR #24 |
+   |---|---|---|---|---|
+   | `map.screenHeight` | 836.41 | 810.72 | 810.72 | **810.72** |
+   | `map.scrollHeight` | 1029 | 1004 | 1004 | **1004** |
+   | `map.decisionTop` | 556 | 558 | 558 | **558** |
+   | `map.decisionBottom` | 669.72 | 643.03 | 643.03 | **643.03** |
+   | `battle.decisionTop` | 472 | 472 | 472 | **472** |
+   | `battle.decisionBottom` | 712 | 712 | 712 | **712** |
+
+**Four suite failures this branch inherited, diagnosed wrong here and right in
+PR #24.** `visual-v1` "data-locale is absent on the summary", `visual-v3` "the
+world mounts once" and "is absent on the summary", and `visual-verbosity`
+"changes the threat readout" failed on `main` at `0712032` and on this branch
+identically. This branch's report blamed the visual bot clicking a chip at each
+move button's centre. That was wrong: the panel was opened by the tooltip
+layer's **hover** enhancement, with Playwright's mouse parked wherever the last
+click left it, on an ability chip 4.7.2's shorter map had moved under it — a
+state no phone can reach. PR #24 parks the pointer after every step
+(`scripts/visual/browser.mjs`) and re-aims the verbosity test at the party
+screen, where the readout has lived since 4.8. `visual/reports/patch-4.7.2.md`
+§7.4 has the trace. Recorded rather than deleted because a wrong diagnosis on
+the record is how the next reader avoids repeating it.
+
+**Two `core/` follow-ups this patch leaves, both older than it:**
+
+- `CauseOfDeath.species` (`core/run.ts`) is filled from the `|faint|` line, so it
+  is the battle name, not the species. Harmless while no spec had a name; wrong
+  since 4.8. The summary's closing sentence resolves it through the final party
+  display-side. The field wants renaming or filling from the member.
+- `deathsFrom` (`core/graveyard.ts`) falls back to `species: casualty.name` when a
+  casualty matches no current member. A member released after fainting would get
+  a tombstone naming its nickname as its species. `3ed2f66` on `main` captured
+  the casualty's *level* at faint time for exactly this case; the species still
+  comes from the party match, so recovering it is the same shape of `core/`
+  change, one field over.
+
+**Docs corrected on the way.** `docs/README.md` section 4 said 4.8 was in flight
+and not merged a day after it and 4.7.2 both landed; the register rows for both
+said the same. Both now say `merged` with their commits.
+
+## 12j. Deviation: 4.8.0.2 took the pixel face off, and the map grew back by 29.69px
 
 **Recorded 2026-09-11. Protocol 4 — [`spec/README.md`](spec/README.md) — a
 prompt is not edited to match what was built, so the deviation is written here
