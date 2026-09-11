@@ -2128,8 +2128,8 @@ the prompt is what was asked, and this is what was built.
 
 The prompt specifies a `fullDamageModel` flag carrying "accuracy, expected
 hits, stat ratio, boost stages, STAB, item", on the brief's premise that the
-AI was a max-damage picker missing all six. **It was missing one.** `ai.ts`
-does not use a heuristic damage proxy at all — it calls `@smogon/calc`, which
+AI was a max-damage picker missing all six. **It was missing one.**
+`core/battle/ai.ts` does not use a heuristic damage proxy at all — it calls `@smogon/calc`, which
 has given it accuracy, multi-hit sums, the real stat ratio, boost stages read
 off `ActiveView.statStages`, and STAB since Stage 0. Only the held item was
 genuinely absent.
@@ -2202,7 +2202,7 @@ came first, and still has its own row, which is what the ruling was protecting.
   Reported, not changed, per ruling 8. The number is load-bearing for every
   switch decision in the game, so which of the two is intended is a question
   for whoever wrote it and not a thing to guess at in a patch about something
-  else. `core/battle/ai.ts`, `probeFor`.
+  else. `src/core/battle/ai.ts`, `probeFor`.
 
 ### 13g. What did not move
 

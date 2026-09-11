@@ -50,12 +50,32 @@ export function emptyKnowledge(): SeenKnowledge {
  */
 export function knowledgeFrom(protocol: readonly string[], about: SideId): SeenKnowledge {
   const known = emptyKnowledge();
-  for (const line of protocol) {
+  for (const line of protocol) applyKnowledgeLine(known, line, about);
+  return known;
+}
+
+/**
+ * One protocol line, folded into a record in place.
+ *
+ * **The incremental half, and it is a performance fix rather than a style
+ * preference.** `knowledgeFrom` folds the whole protocol, and the driver builds
+ * a view several times per turn — so refolding made view construction O(turns)
+ * and a battle O(turns²), which showed up as a sixty-second timeout in the
+ * resume suite (`test/economy.test.ts` replays from *every* save point, so the
+ * quadratic became cubic). The driver keeps one record per side and pushes new
+ * lines into it as the protocol drains.
+ *
+ * `knowledgeFrom` stays as the fold over this function so that the two cannot
+ * disagree: there is one definition of what a line means, and the batch form is
+ * the loop around it.
+ */
+export function applyKnowledgeLine(known: SeenKnowledge, line: string, about: SideId): void {
+  {
     const parts = line.split('|');
     const tag = parts[1];
-    if (!tag) continue;
+    if (!tag) return;
     const identifier = parts[2] ?? '';
-    if (!identifier.startsWith(about)) continue;
+    if (!identifier.startsWith(about)) return;
 
     switch (tag) {
       case 'switch':
@@ -91,5 +111,4 @@ export function knowledgeFrom(protocol: readonly string[], about: SideId): SeenK
         break;
     }
   }
-  return known;
 }

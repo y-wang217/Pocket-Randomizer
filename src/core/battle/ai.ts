@@ -1012,7 +1012,18 @@ function mostDamaging(moves: readonly ChoiceEvaluation[]): ChoiceEvaluation | un
  * count how often the priority layer fires and how often it changes the pick.
  */
 export function decide(view: BattleView, profile: AiProfile = GREEDY_BASELINE): Decision {
-  const evaluations = scoreChoices(view, profile);
+  return decideFrom(view, profile, scoreChoices(view, profile));
+}
+
+/**
+ * The rule, applied to a choice set that has already been scored.
+ *
+ * Split out so that `decideWith` can score the turn **once** and then apply the
+ * rolls to the same list. The first cut called `decide` and then `scoreChoices`
+ * again, which doubled the cost of every AI turn — invisible in a unit test and
+ * a sixty-second timeout in the suite that replays a run from every save point.
+ */
+function decideFrom(view: BattleView, profile: AiProfile, evaluations: ChoiceEvaluation[]): Decision {
   if (evaluations.length === 0) {
     throw new Error(view.forceSwitch ? 'AI is forced to switch with nothing to switch to' : 'AI has no legal choice');
   }
@@ -1157,10 +1168,12 @@ export function aiPolicy(profile: AiProfile, rng?: RngStream): Policy {
 
 /** `decide`, plus the two rolls. Exported so the simulator can count branches. */
 export function decideWith(view: BattleView, profile: AiProfile, rng?: RngStream): Decision {
-  const decision = decide(view, profile);
+  // Scored once, whatever happens next: the rolls below re-rank a list, they do
+  // not re-derive one.
+  const evaluations = scoreChoices(view, profile);
+  const decision = decideFrom(view, profile, evaluations);
   if (!rng || (profile.noise <= 0 && profile.switchFailure <= 0)) return decision;
 
-  const evaluations = scoreChoices(view, profile);
   const chosen = evaluations.find((entry) => sameChoice(entry.choice, decision.choice)) ?? bestOf(evaluations);
   const afterSwitch = withSwitchFailure(evaluations, chosen, profile, rng, view.forceSwitch);
   const afterNoise = withNoise(evaluations, afterSwitch, profile, rng);

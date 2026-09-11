@@ -2,9 +2,9 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
+    "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-3-priority",
+    "ai": "gymrun-ai-5-tiers",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -403,8 +403,8 @@
     "seed": "SEED-B",
     "versions": {
       "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
-      "aiVersion": "gymrun-ai-3-priority",
+      "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
+      "aiVersion": "gymrun-ai-5-tiers",
       "randomizerVersion": "gymrun-randomizer-13"
     },
     "decisions": [

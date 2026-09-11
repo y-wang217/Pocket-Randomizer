@@ -2,9 +2,9 @@
   "seed": "SEED-A",
   "versions": {
     "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
+    "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-3-priority",
+    "ai": "gymrun-ai-5-tiers",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -19,9 +19,7 @@
     "indirect": null
   },
   "currency": 343,
-  "backpack": [
-    "sitrusberry"
-  ],
+  "backpack": [],
   "relics": [],
   "party": [
     {
@@ -31,7 +29,7 @@
       "moves": [
         "Gust 56/56",
         "Infestation 32/32",
-        "Clanging Scales 1/8",
+        "Clanging Scales 2/8",
         "Incinerate 22/24"
       ],
       "item": "blackbelt",
@@ -43,12 +41,12 @@
       "level": 36,
       "ability": "Magic Bounce",
       "moves": [
-        "Fury Attack 29/32",
+        "Fury Attack 26/32",
         "Feint 14/16",
         "Fairy Wind 48/48",
         "Scratch 56/56"
       ],
-      "item": null,
+      "item": "blackbelt",
       "hp": "0/100",
       "fainted": true
     },
@@ -62,7 +60,7 @@
         "Chilling Water 32/32",
         "Curse 16/16"
       ],
-      "item": "blackbelt",
+      "item": null,
       "hp": "0/78",
       "fainted": true
     }
@@ -151,9 +149,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Crawdaunt",
-      "turns": 4,
+      "turns": 9,
       "winner": "p1",
-      "hpAfter": 188,
+      "hpAfter": 169,
       "casualties": []
     },
     {
@@ -164,7 +162,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 188,
+      "hpAfter": 169,
       "casualties": []
     },
     {
@@ -175,7 +173,7 @@
       "opponent": "Trainer (2)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 188,
+      "hpAfter": 169,
       "casualties": []
     },
     {
@@ -184,9 +182,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Dartrix",
-      "turns": 4,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 156,
+      "hpAfter": 154,
       "casualties": []
     },
     {
@@ -195,7 +193,7 @@
       "label": "Marina's Gym",
       "tier": null,
       "opponent": "Marina (Water)",
-      "turns": 6,
+      "turns": 5,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -230,8 +228,8 @@
     "seed": "SEED-A",
     "versions": {
       "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
-      "aiVersion": "gymrun-ai-3-priority",
+      "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
+      "aiVersion": "gymrun-ai-5-tiers",
       "randomizerVersion": "gymrun-randomizer-13"
     },
     "decisions": [
@@ -536,15 +534,50 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 3
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
         }
       },
       {
@@ -562,7 +595,7 @@
         "plan": {
           "assignments": [
             {
-              "slot": 2,
+              "slot": 1,
               "item": "blackbelt"
             }
           ],
@@ -609,7 +642,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 2,
+              "item": "sitrusberry"
+            }
+          ],
           "discards": []
         }
       },
@@ -627,15 +665,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
@@ -686,13 +717,6 @@
         "choice": {
           "kind": "switch",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {

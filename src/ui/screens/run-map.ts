@@ -53,7 +53,7 @@ import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { TIER_INFO, TIER_INFO_SHORT } from '../../data/tierInfo';
-import { AI_TIER_DETAIL, AI_TIER_LABEL, aiTierFor } from '../../data/ai';
+import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
@@ -435,7 +435,12 @@ function renderNode(
      */
     if (node.encounter) {
       const tier = aiTierFor(node.kind, node.tier, segment);
-      parts.push({ long: `${AI_TIER_LABEL[tier]} · ${AI_TIER_DETAIL[tier]}`, short: AI_TIER_LABEL[tier] });
+      // **One word in every density, and the sentence deliberately not here.**
+      // `AI_TIER_DETAIL` is what the opponent does, and it is worth reading —
+      // but it wraps this card to a second line, and the map's vertical budget
+      // is a gate that V5 spent three decisions to meet. The sentence lives on
+      // the battle panel, where the fight it describes is.
+      parts.push(AI_TIER_LABEL[tier]);
     }
     if (node.tier) parts.push({ long: TIER_INFO[node.tier], short: TIER_INFO_SHORT[node.tier] });
     else parts.push(KIND_HINTS[node.kind]);

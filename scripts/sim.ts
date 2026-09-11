@@ -1885,6 +1885,22 @@ interface Sample {
   completionRate: number;
   meanGymsCleared: number;
   /**
+   * Gyms cleared by each run, in seed order. **The AI tiers patch.**
+   *
+   * The mean is one number over four hundred runs and says nothing about how
+   * wide the four hundred are. They are wide: a standard deviation near three
+   * gyms, so the standard error on any single row is about 0.15 and two rows
+   * differing by less than about 0.4 are not distinguishable *as levels*.
+   *
+   * They are, however, distinguishable as a **pair**. Every policy plays the
+   * same seeds, so the same maps, the same starters and the same gyms — and a
+   * paired difference cancels the map-to-map variance that dominates the
+   * spread above. In seed order so that a reader can subtract two rows
+   * element-wise and get the distribution of the difference itself, which is
+   * the only honest way to say whether a delta of a fifth of a gym is real.
+   */
+  gymsPerRun: number[];
+  /**
    * Mean and median score. **A second column, never a replacement.**
    *
    * The standing policy in `docs/balance.md` section 0 pins the benchmark to *mean
@@ -2450,6 +2466,7 @@ function summarize(
     },
     items,
     meanGymsCleared: runs === 0 ? 0 : records.reduce((total, r) => total + r.gymsCleared, 0) / runs,
+    gymsPerRun: records.map((record) => record.gymsCleared),
     meanScore: runs === 0 ? 0 : records.reduce((total, r) => total + r.score, 0) / runs,
     medianScore: medianOf(records.map((record) => record.score)),
     perGym,

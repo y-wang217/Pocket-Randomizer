@@ -1765,8 +1765,11 @@ strangely:
 | `lookahead` | .995 | .873 | .887 | .885 | .850 | .870 | .934 | .947 |
 
 The published ladder puts this step at +222 Elo, the largest single gap between
-any two rungs. On our game it is −0.21 gyms. Three readings, and the third is
-the one the numbers support:
+any two rungs. On our game it is −0.21 gyms, and **it is a real −0.21**: the
+two bots play the same 400 seeds, reach the identical gym count on 344 of them,
+and the paired difference over the other 56 sits 3.1 standard errors from zero
+(section 16.5a, which is also where this document first states its own error
+bars). Three readings, and the third is the one the numbers support:
 
 1. **The implementation is bad.** Possible and not dismissed. It was already
    wrong once — the first cut credited a knockout that never resolves because
@@ -1894,6 +1897,97 @@ there settles both. **The candidate change, not made here:** hard tier's
 distinguishing flag should not be `oneStepLookahead` until the switch model
 underneath it is understood, and nothing in `data/ai.ts` moves before that
 experiment runs.
+
+### 16.5a How "mean gyms cleared" is measured, and how much of it is noise
+
+**Asked during the patch and worth its own section, because nothing in this
+document had ever stated the spread.**
+
+The number is exactly what it sounds like: `gymsCleared` counts the gym nodes a
+run won, and the sample means it over 400 runs. What that hides is how wide the
+400 are.
+
+| row | mean | SD across runs | standard error |
+|---|---|---|---|
+| `random` | 2.2475 | 1.83 | 0.091 |
+| `greedy` | 4.8850 | 2.93 | 0.146 |
+| `lookahead` | 4.6725 | 2.93 | 0.147 |
+
+A run clears 0 to 8 gyms and the distribution is genuinely wide — 6.8% of
+`greedy` runs clear none at all, and a good fraction clear all eight. So **the
+standard error on any single row is about 0.15, and two rows read as levels
+need to differ by about 0.4 before the difference means anything.** By that
+reading, section 16.2's −0.21 would be noise.
+
+**It is not noise, because the comparison is paired and the document has never
+said so.** Every policy plays the identical seed set, so the identical maps,
+starters, gyms and reward offers. Subtracting the rows run by run cancels the
+map-to-map variance that produces almost all of that 2.93:
+
+| paired difference, 400 seeds | mean | SD of the difference | SE | t |
+|---|---|---|---|---|
+| `lookahead` − `greedy` | **−0.2125** | 1.354 | 0.068 | **−3.14** |
+| `greedy` − `random` | **+2.6375** | 3.08 | 0.154 | **+17.1** |
+
+`lookahead` and `greedy` **reach the identical gym count on 344 of the 400
+seeds**. The whole difference lives in 56 runs, and the paired test says it is
+real at about p = 0.002.
+
+Two rules follow, and they should have been here since Stage 2:
+
+1. **Compare rows by subtracting them run by run, never by eyeballing the
+   means.** The levels carry the map's variance; the difference does not. Every
+   sample now records `gymsPerRun` in seed order so the subtraction is
+   available to anyone reading the JSON.
+2. **A paired comparison is only valid down a fixed seed set** — which is the
+   `--prefix` rule this document already has, now with a reason attached beyond
+   "two prefixes sit at different rates".
+
+### 16.5b Does a better test bot make the benchmark more accurate?
+
+The question that prompted 16.5a, and the answer is that it improves one thing
+and destroys another, which is why the patch did both halves.
+
+**Validity** — does the number describe the game a person will actually play? —
+does improve with a better bot. `random` completing 2.5% of runs says almost
+nothing about a human's experience; `greedy` at 39% says considerably more. A
+bot that played like a good player would be the most informative proxy we could
+have, and building better ones is worth doing.
+
+**Precision does not improve at all.** The error bars above are a property of
+the seed population and the spread of run outcomes, not of the bot's skill:
+`random` has a *smaller* standard error than `greedy` precisely because it is
+worse and dies earlier, more predictably. A better bot moves the mean; it does
+not tighten it.
+
+**And comparability is actively destroyed by a bot that improves silently.**
+That is the trap sections 7 through 15 fell into: the yardstick and the thing
+being measured were the same function, so a row was never "the game got easier"
+or "the bot got better" — it was both, unattributably. This patch's own numbers
+show how badly that can mislead in both directions: a *better* policy on the
+published ladder (`lookahead`) makes the number go **down** here, so a
+benchmark that silently adopted it would have recorded a difficulty increase
+that never happened.
+
+So: **pin the yardstick, and add new bots beside it rather than into it.**
+`greedy` is frozen (16.5), `lookahead` is a new column, and a future bot that
+plays better gets a third. Reading three pinned columns across a release is
+strictly more information than reading one drifting column, and it costs a
+sweep that was already cheap.
+
+### 16.5c A test that got slower is a finding, not a flaky test
+
+`test/economy.test.ts` resumes a run from **every** save point, so it is
+quadratic in the run's length, and it went from half a minute to six. The cause
+is the patch's own headline: the tiered opponent is weaker, so the seed that
+test was pinned to stopped dying at gym 2 and started winning the run — 126
+decisions became 438.
+
+Recorded here because the same thing will happen again, to a different test,
+the next time the difficulty curve moves. The fix is the one the test's own
+comment already named — `scripts/scan-seed.ts spender` picks a seed whose run
+is bounded — and **not** a raised timeout, which would have hidden the fact that
+the game changed length.
 
 ### 16.5 `greedy` is pinned, and every row above is stamped with an AI version
 
