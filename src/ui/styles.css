@@ -892,7 +892,7 @@ body {
   align-items: center;
   column-gap: var(--space-2);
 }
-:root[data-density="pocket"] .density { margin: 0 0 0 auto; }
+:root[data-density="pocket"] .header__controls { margin: 0 0 0 auto; }
 :root[data-density="pocket"] .shell__drawer-bar { padding: 0; }
 
 /* The member card's head in Pocket: one line of identity — slot, name,
@@ -993,6 +993,9 @@ body {
 :root[data-density="pocket"] .backpack__item { gap: var(--space-1); }
 :root[data-density="pocket"] .backpack__item > .collapse__toggle,
 :root[data-density="pocket"] .party__member-toggle { padding: 0 var(--space-1h); }
+/* The drawer's mode picker in Pocket: the three choices at the fold controls'
+   height, so the sheet stays under its own gate with the picker on it. */
+:root[data-density="pocket"] .density__choice { padding: 0 var(--space-1h); }
 
 /* Relics in Pocket: the list folds behind the title, which carries the count
    (`party.ts`, `renderRelics`); opened, the rows flow as name chips and the
@@ -1042,26 +1045,26 @@ body {
 }
 
 /*
- * The Simple / Detailed toggle, in the header.
- *
- * Quiet by design: it is a reading preference, not a game action, and a control
- * that competes with the seed bar for attention is one that gets pressed by
- * accident.
+ * The header's control row: the tutorial replay and the seed bar's toggle.
+ * Quiet by design — setup affordances, not game actions, and a control that
+ * competes with the seed bar for attention is one that gets pressed by
+ * accident. The Detail toggle that lived here moved to the drawer as the
+ * three-valued picker (density modes patch, step 7).
  */
-.density {
+.header__controls {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin-top: calc(var(--space-2) * var(--density-gap));
 }
 
-.density__label {
-  font-family: var(--font-body);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
+/* The mode picker, in the drawer: three named options, a line each saying
+   what the mode does. The pressed one is the store's value. */
+.density__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--density-gap)); }
+.density__option { display: flex; align-items: baseline; gap: var(--space-2); }
+.density__choice { flex: none; }
+.density__choice[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.density__desc { font-size: var(--fs-sm); color: var(--text-dim); }
 
 /*
  * The backpack, below the party on the same screen.
@@ -3304,7 +3307,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .tip__title,
 .wheel__heading,
 .seedbar__label,
-.density__label,
 .bench__heading,
 .reward__kind,
 .shop__coin-label,

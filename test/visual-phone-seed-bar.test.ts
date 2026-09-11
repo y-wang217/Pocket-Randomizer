@@ -41,9 +41,11 @@ describe('the seed bar on a phone', () => {
     expect((toggle?.x ?? 0) + (toggle?.width ?? 0)).toBeLessThanOrEqual(PHONE.width);
     expect(await page.locator('.seedbar__toggle').getAttribute('aria-expanded')).toBe('false');
 
-    // On the same row as the Detail toggle, not a row of its own: the header's
-    // height is the battle's and the map's vertical budget.
-    const detail = await page.locator('.density__toggle').boundingBox();
+    // On the same row as the tutorial replay, not a row of its own: the
+    // header's height is the battle's and the map's vertical budget. (The
+    // Detail toggle that shared this row moved to the drawer: density modes
+    // patch, step 7.)
+    const detail = await page.locator('.tutorial__replay').boundingBox();
     expect(Math.abs((toggle?.y ?? 0) - (detail?.y ?? 0))).toBeLessThan(1);
     expect(await page.evaluate(() => globalThis.document.documentElement.scrollWidth)).toBe(PHONE.width);
 

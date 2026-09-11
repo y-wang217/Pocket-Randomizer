@@ -14,9 +14,9 @@
  * on screen is a computed-style question, and jsdom has no stylesheet to ask.
  *
  * Each mode is a fresh context with the mode stored, the same path the app
- * takes on a stored preference. The header toggle still flips Detailed and
- * Simple until the picker lands at step 7; the last case uses it to assert
- * that a mode change reaches a screen already open without a redraw.
+ * takes on a stored preference. The last two cases use the drawer's picker
+ * (step 7) to assert that a mode change reaches a screen already open
+ * without a redraw, and that it changes nothing about the run.
  */
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -219,11 +219,15 @@ describe('the density modes', () => {
   /**
    * Ruling 4's live case, on a non-modal screen the old subscription never
    * redrew: the attribute lands on `<html>` and an open pre-gym screen
-   * follows without navigating away. The header toggle flips Detailed and
-   * Simple, which is enough to prove the mechanism; the picker (step 7) is
-   * the same setter.
+   * follows without navigating away. The picker in the drawer is the
+   * setter, and the drawer is closed again before the screen is read so
+   * the screen, not the sheet, is what took the mode.
+   *
+   * And the prompt's test 6, on the same screen: a mode switch mid-run
+   * leaves the run where it was — the same screen, the same saved log, the
+   * same party on it.
    */
-  it('takes effect on pre-gym while it is open, without navigating away', async () => {
+  it('takes effect on pre-gym while it is open, without navigating away, and changes nothing about the run', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     let reached = false;
     for (let step = 0; step < 900; step++) {
@@ -238,13 +242,31 @@ describe('the density modes', () => {
     await page.waitForTimeout(200);
 
     const label = () => visibleText(page, `${visible('pre-gym')} .stat__label`);
+    const runState = () =>
+      page.evaluate(() => ({
+        screen: [...globalThis.document.querySelectorAll<HTMLElement>('.screen')].find((el) => !el.hidden)?.dataset['screen'],
+        log: globalThis.localStorage.getItem('gymrun.lastRun'),
+        party: [...globalThis.document.querySelectorAll('.screen--pre-gym .panel__name')].map((el) => el.textContent),
+      }));
+    const pick = async (density: Density): Promise<void> => {
+      await page.locator('.shell__drawer-bar [data-drawer-trigger]').click();
+      await page.waitForTimeout(120);
+      await page.locator(`.drawer .density__choice[data-density="${density}"]`).click();
+      await page.waitForTimeout(60);
+      await page.locator('.drawer .drawer__close').click();
+      await page.waitForTimeout(120);
+    };
+
+    const before = await runState();
+    expect(before.log, 'the run is saved before the switch').not.toBeNull();
     expect(await label()).toBe('Hit Points');
-    await page.locator('.density__toggle').first().click();
-    await page.waitForTimeout(120);
+    await pick('simple');
     expect(await mode(page)).toBe('simple');
     expect(await label(), 'the open screen took the mode with no redraw').toBe('HP');
-    await page.locator('.density__toggle').first().click();
-    await page.waitForTimeout(120);
+    await pick('pocket');
+    expect(await mode(page)).toBe('pocket');
+    expect(await runState(), 'two switches later the run is exactly where it was').toEqual(before);
+    await pick('detailed');
     expect(await label()).toBe('Hit Points');
     await context.close();
   }, 900_000);
