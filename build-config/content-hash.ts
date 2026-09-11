@@ -122,6 +122,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the per-band hints and conclusions on the event screen, and the capability and band labels the map and the event screen print; read by ui/screens/event.ts, ui/screens/run-map.ts and ui/screens/party.ts only, and a reworded sentence must not move the hash',
   },
   {
+    path: 'src/data/densityTuning.ts',
+    why: 'the three density modes\' chrome scales and the phone Pocket is measured on; read by ui/theme/density.ts only, and a display scale must not move the hash it sits beside',
+  },
+  {
     path: 'src/data/mons.ts',
     why: "Stage 0's fixed Snorlax-versus-Milotic matchup, pinned by the determinism tests; no run reads it",
   },

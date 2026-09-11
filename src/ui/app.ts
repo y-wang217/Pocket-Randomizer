@@ -12,7 +12,6 @@
  */
 import { greedyAiPolicy } from '../core/battle/ai';
 import type { BattleSession } from '../core/battle/driver';
-import { GYMRUN_FORMAT } from '../core/battle/format';
 
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
@@ -32,9 +31,10 @@ import {
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
-import { getVerbosity, initSettings, onSettingsChange, resetTutorial, setVerbosity } from './settings';
+import { initSettings, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
-import { TUTORIAL_COPY, TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
+import { createDensityGuard } from './density-guard';
+import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el } from './scene';
@@ -48,7 +48,8 @@ import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
-import { createRouter, type ScreenName } from './screens/router';
+import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
@@ -61,32 +62,35 @@ import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
-import { applyVerbosity } from './theme/verbosity';
+import { applyDensity } from './theme/density';
 
 export function mountApp(root: HTMLElement): void {
   /*
-   * The verbosity mode, once at startup and once per change. **Patch 4.7.2,
+   * The density mode, once at startup and once per change. **Patch 4.7.2,
    * ruling 4, and this is the whole of the subscription.**
    *
    * `initSettings` first so the attribute is written from the stored preference
    * before any screen is built, rather than the first frame rendering in the
    * default and flipping.
    *
-   * `onSettingsChange` here rather than inside a run, and unsubscribed nowhere,
-   * because the mode outlives every run: it is written onto `<html>` and read
-   * only by the stylesheet, so a screen drawn before a toggle, after it, or
-   * while it happens is correct without anything re-rendering. That is the
-   * difference from what this replaced — a subscription that redrew the map and
-   * the party screen and left the drawer, pre-gym, reward, summary and battle
+   * The subscription lives in the guard below (`ui/density-guard.ts`), at
+   * the shell rather than inside a run, and is unsubscribed nowhere, because
+   * the mode outlives every run: it is written onto `<html>` and read only by
+   * the stylesheet, so a screen drawn before a change, after it, or while it
+   * happens is correct without anything re-rendering. That is the difference
+   * from what this replaced — a subscription that redrew the map and the
+   * party screen and left the drawer, pre-gym, reward, summary and battle
    * screens showing the mode they were built in. Nothing registers with this
    * and nothing can forget to.
    *
-   * `ui/theme/verbosity.ts` carries the argument for the attribute over a
+   * `ui/theme/density.ts` carries the argument for the attribute over a
    * redraw, including why a shell-level redraw could not avoid being a
    * per-screen registration in this router.
    */
-  applyVerbosity(initSettings().verbosity);
-  onSettingsChange((settings) => applyVerbosity(settings.verbosity));
+  applyDensity(initSettings().density);
+  // The subscription itself is the tutorial's guard, created with the layer
+  // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
+  // screen's marks are up.
   /*
    * The one battle-feedback duration, from `data/tuning.ts` onto the root.
    *
@@ -172,20 +176,6 @@ export function mountApp(root: HTMLElement): void {
   const replayTutorial = document.createElement('button');
   shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
 
-  /** Surfaces that ask for a decision and have a party to show while asking. */
-  const DRAWER_SURFACES: readonly ScreenName[] = [
-    'locale',
-    'map',
-    'battle',
-    'result',
-    'target',
-    'replace',
-    'party',
-    'pre-gym',
-    'shop',
-    'event',
-  ];
-
   /*
    * The trigger's visibility follows the router, in one place.
    *
@@ -221,7 +211,7 @@ export function mountApp(root: HTMLElement): void {
     const view = readDrawer();
     if (!view) return;
     drawer.open({ ...view, inBattle: router.current() === 'battle' });
-    tutorial.showFor('drawer', drawer.root);
+    marks.showFor('drawer', drawer.root);
   });
 
   // "Show tutorial again": the flags go back to a first launch and the screen
@@ -230,7 +220,7 @@ export function mountApp(root: HTMLElement): void {
     resetTutorial();
     const name = router.current();
     if (name) showTutorialFor(name);
-    if (drawer.isOpen()) tutorial.showFor('drawer', drawer.root);
+    if (drawer.isOpen()) marks.showFor('drawer', drawer.root);
   });
   root.replaceChildren(world.root, shell);
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
@@ -286,13 +276,20 @@ export function mountApp(root: HTMLElement): void {
    * own when it opens. Presentation only: nothing here touches run state.
    */
   const tutorial = createTutorial(shell);
+  /*
+   * Ruling 6 on the density modes patch: Detailed on the root while a
+   * screen's unseen marks are up, applied before the marks resolve their
+   * anchors, the stored mode back when they finish or Skip fires. Every
+   * `showFor` goes through the guard so no path shows a mark in Pocket.
+   */
+  const marks = createDensityGuard(tutorial);
   const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
   const showTutorialFor = (name: ScreenName): void => {
     if (!isTutorialScreen(name)) return;
     const screen = router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`);
     if (!screen) return;
     queueMicrotask(() => {
-      if (router.current() === name) tutorial.showFor(name, screen);
+      if (router.current() === name) marks.showFor(name, screen);
     });
   };
 
@@ -625,7 +622,7 @@ export function mountApp(root: HTMLElement): void {
      * Where the party screen's Done goes back to.
      *
      * Remembered rather than passed to `onDone`, because two things redraw an
-     * already-open party screen — a reorder or release, and the verbosity toggle
+     * already-open party screen — a reorder or release, and the density toggle
      * — and a redraw must not quietly retarget the way out.
      */
     let partyReturn: ScreenName = 'map';
@@ -809,80 +806,3 @@ export function mountApp(root: HTMLElement): void {
   } else if (saved && isReplayable(saved)) void start(saved.seed, saved);
   else void start(newSeed());
 }
-
-function createHeader(replayTutorial: HTMLButtonElement, seedToggle: HTMLButtonElement): HTMLElement {
-  const header = el('header', 'header');
-  const title = el('h1', 'header__title');
-  title.textContent = 'GYMRUN';
-  const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 4.8 · ${GYMRUN_FORMAT} · a roster that grows, caught in eight regions, and scored`;
-  header.append(title, subtitle, createVerbosityToggle(replayTutorial, seedToggle));
-  return header;
-}
-
-/**
- * The Simple / Detailed toggle. **Presentation only, and global.**
- *
- * In the header rather than on a settings screen because it is a reading
- * preference rather than a game option: the player who wants it wants it
- * *while looking at* the numbers it hides, and a preference behind a menu is
- * one they set once and never revisit.
- *
- * It is a cross-run setting, persisted in `ui/settings.ts`, and it defaults to
- * Detailed on a first launch — a new player does not know the help exists, so
- * the mode that hides it is the mode they never leave.
- *
- * Nothing here touches run state. See the header of `ui/settings.ts` for the
- * rule and `test/verbosity.test.ts` for its enforcement.
- */
-function createVerbosityToggle(replayTutorial: HTMLButtonElement, seedToggle: HTMLButtonElement): HTMLElement {
-  const wrap = el('div', 'verbosity');
-  const label = el('span', 'verbosity__label');
-  label.textContent = 'Detail';
-
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'button button--small verbosity__toggle';
-
-  const paint = (): void => {
-    const detailed = getVerbosity() === 'detailed';
-    button.textContent = detailed ? 'Detailed' : 'Simple';
-    button.setAttribute('aria-pressed', String(detailed));
-    // Says what the *other* mode does, because the button already says which
-    // one is on. "Showing numbers" and "showing bars" are both facts.
-    button.title = detailed ? 'Showing stat numbers' : 'Showing relative bars';
-  };
-
-  button.addEventListener('click', () => {
-    setVerbosity(getVerbosity() === 'detailed' ? 'simple' : 'detailed');
-    paint();
-  });
-  paint();
-
-  /*
-   * The tutorial's one header control, on the same row. **Presentation
-   * only.** Here because it is the same kind of thing as the Detail toggle —
-   * a reading preference — and because the coach marks are written against
-   * Detailed mode. On the same row rather than its own, because the header's
-   * height is the battle's and the map's vertical budget: a second row moved
-   * the fourth move button past the 740 line on a phone. "Skip tutorial"
-   * lives on the first mark itself, where a player meets it.
-   */
-  replayTutorial.type = 'button';
-  replayTutorial.className = 'button button--small tutorial__replay';
-  replayTutorial.textContent = TUTORIAL_COPY.replayShort;
-  replayTutorial.setAttribute('aria-label', TUTORIAL_COPY.replay);
-  replayTutorial.title = TUTORIAL_COPY.replay;
-  replayTutorial.dataset['tutorialReplay'] = 'true';
-
-  /*
-   * The seed bar's toggle, on the same row and for the same reason: the row
-   * already exists on every screen, so a control on it costs the phone no
-   * height. The stylesheet shows it only at the phone width during a run,
-   * which is the only time the bar it controls is collapsed. See the header
-   * of `ui/seed-bar.ts`.
-   */
-  wrap.append(label, button, replayTutorial, seedToggle);
-  return wrap;
-}
-

@@ -1,86 +1,394 @@
 /**
- * The gallery: one screen, one seed, rendered from a scripted run. Stage V4.
+ * The gallery: one surface, one seed, one density mode, rendered in the app's
+ * own chrome. Stage V4; every surface since the density modes patch.
  *
  * Not part of the shipped build (`vite.gallery.config.ts` builds it to
  * `dist-gallery/`). It exists so a screenshot or a test can put a screen on
  * a phone viewport in a state the smoke bot cannot reach on demand: the
- * summary of a seed the scripted policy wins on, the summary of one it loses
- * at gym 5 on, a result screen with three cards and a capture offer on it at
- * once. The run is played in the browser by `playRun` under
- * `scriptedRunPolicy`, the same call the headless suite makes, so a seed
- * found by `scripts/visual/scan-summary-seeds.ts` renders the same run here.
+ * summary of a seed the scripted policy wins on, a result screen with three
+ * cards and a capture offer on it at once, and — from the density patch —
+ * every surface the shell can route to at its worst case, in any of the three
+ * modes.
  *
- *   gallery.html#seed=V4-42&screen=summary
- *   gallery.html#seed=SMOKE24&screen=result            three cards, no capture
- *   gallery.html#seed=SMOKE24&screen=result-capture    the capture offer, no cards
- *   gallery.html#seed=SMOKE24&screen=result-both       both at once, which the app never shows
- *   gallery.html#seed=V5-LOADED-1&screen=battle        both panels fully loaded
+ *   gallery.html#seed=SMOKE24&screen=party&density=pocket
+ *   gallery.html#seed=SMOKE24&screen=result-capture
+ *   gallery.html#seed=V5-LOADED-1&screen=battle
  *
- * **V5.6 added the battle screen**, and for the reason this file exists. The
- * plan's closing assertion is a layout height "with a full status and stage
- * chip row on both sides", and the smoke bot cannot ask for that: it plays a
- * seed, and whether both Pokemon happen to be statused and boosted on the turn
- * it stops is the seed's business. Here the battle is driven deliberately —
- * Swords Dance and Toxic against Rock Polish and Thunder Wave — until both
- * sides carry a status and a stage, and *then* it is measured. That is the
- * worst case for panel height, played rather than fabricated.
+ * `screen` is one of `ui/gallery-surfaces.ts`'s names; `density` is one of
+ * the three modes, read into the same settings holder the app reads, so a
+ * fixture in Pocket is rendered exactly as a stored Pocket preference renders
+ * it. A missing `density` is the stored one, which on a fresh context is the
+ * first-launch default.
+ *
+ * ## The same chrome as the app
+ *
+ * The header, the seed bar, the drawer bar, the drawer and the stamps are
+ * mounted here through the same functions `app.ts` mounts them with, in the
+ * same order, with the same phase attribute. The Pocket gate is a
+ * `scrollHeight` gate on a whole page, and a fixture that drew a screen
+ * without the header above it would measure a page the player never sees.
+ *
+ * ## Played where it can be, constructed where it must be
+ *
+ * The battle is played (V5.6: Swords Dance and Toxic against Rock Polish and
+ * Thunder Wave until both panels are loaded), and the result screen's first
+ * three-card offer and first capture offer are harvested from a real run of
+ * the seed. The worst-case party, backpack, relics and eight-gym history are
+ * constructed by `ui/gallery-fixtures.ts`, which says why and what the
+ * construction never touches.
  */
 import { greedyAiPolicy } from '../core/battle/ai';
 import { createBattle } from '../core/battle/driver';
 import type { NodeSpec } from '../core/encounters';
-import { localeOf, playRun, scriptedRunPolicy, type BattleReview, type RunState } from '../core/run';
-import { moveChoice, type TeamSpec } from '../core/types';
-import { createBattleScreen } from './screens/battle';
+import { localeOf, partyCapacity, playRun, scriptedRunPolicy, type BattleReview, type RunState } from '../core/run';
+import { moveChoice, type PokemonState, type TeamSpec } from '../core/types';
 import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
-import type { PokemonState } from '../core/types';
+import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
+import { createDensityGuard } from './density-guard';
+import { createDrawer } from './drawer';
+import {
+  anyShop,
+  finishedResult,
+  incomingMove,
+  lateState,
+  openingState,
+  targetedReward,
+  wordiestEvent,
+} from './gallery-fixtures';
+import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
+import { createHeader } from './header';
+import { createTutorial } from './tutorial';
+import type { TutorialScreen } from '../data/tutorial';
+import { itemLayoutOf } from './party-layout';
 import { createWorldScene, el } from './scene';
+import { createBattleScreen } from './screens/battle';
+import { createEventScreen } from './screens/event';
+import { createItemTargetScreen } from './screens/item-target';
+import { createLocaleSelect } from './screens/locale-select';
+import { createMoveReplaceScreen } from './screens/move-replace';
+import { createPartyScreen } from './screens/party';
+import { createPreGymScreen } from './screens/pre-gym';
 import { createResultScreen } from './screens/result';
+import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createRunMap } from './screens/run-map';
+import { createShopScreen } from './screens/shop';
+import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
+import { createSeedBar } from './seed-bar';
+import { DENSITIES, getDensity, initSettings, onSettingsChange, setDensity, type Density } from './settings';
 import { createStamps } from './stamps';
+import { applyDensity } from './theme/density';
 import { applyLocale } from './theme/locale';
+import { applyMotion } from './theme/motion';
 import { createTooltips } from './tooltips';
-import { initSettings } from './settings';
-import { applyVerbosity } from './theme/verbosity';
+
+const noop = (): void => undefined;
+
+function isSurface(value: string): value is GallerySurface {
+  return (GALLERY_SURFACES as readonly string[]).includes(value);
+}
+
+function isDensity(value: string | null): value is Density {
+  return value !== null && (DENSITIES as readonly string[]).includes(value);
+}
 
 async function main(): Promise<void> {
-  // The gallery renders one screen from a scripted run, so it never toggles —
-  // but it must still write the mode, or every card it captures would be
-  // Detailed-by-CSS-default regardless of the stored preference. Patch 4.7.2.
-  applyVerbosity(initSettings().verbosity);
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
   const seed = params.get('seed') ?? 'SMOKE24';
-  const screen = params.get('screen') ?? 'summary';
+  const requested = params.get('screen') ?? 'summary';
+  const surface: GallerySurface = isSurface(requested) ? requested : 'summary';
+
+  /*
+   * The mode, from the store and then from the URL. The same holder and the
+   * same root attribute the app uses, so nothing here is a second path: a
+   * `density=` parameter is exactly a stored preference for this one page.
+   */
+  initSettings();
+  const density = params.get('density');
+  if (isDensity(density)) setDensity(density);
+  /*
+   * `fixture=loaded` renders the constructed worst case (`ui/gallery-fixtures.ts`,
+   * ruling 3) under the app's whole chrome — header, seed bar, drawer bar —
+   * which is the page the Pocket gate measures. Without it the gallery is
+   * what it was before the density modes patch: the screen alone in the
+   * shell, in the walked state (the result screen's two shapes take the party
+   * the seed's own run had at that moment, and the loaded board stops the
+   * turn both panels are loaded). The V4 and V5 suites were written against
+   * that instrument and keep measuring what they measured.
+   */
+  const loaded = params.get('fixture') === 'loaded';
+  applyDensity(getDensity());
+  onSettingsChange((settings) => applyDensity(settings.density));
+  applyMotion(document.documentElement);
 
   const root = document.querySelector<HTMLElement>('#app');
   if (!root) throw new Error('Missing #app root element');
+
+  // The shell, in the app's order. See `app.ts` for why each piece is where it is.
+  const starterScreen = createStarterSelect();
+  const localeScreen = createLocaleSelect();
+  const mapScreen = createRunMap();
+  const battleScreen = createBattleScreen();
+  const resultScreen = createResultScreen();
+  const shopScreen = createShopScreen();
+  const eventScreen = createEventScreen();
+  const targetScreen = createItemTargetScreen();
+  const replaceScreen = createMoveReplaceScreen();
+  const partyScreen = createPartyScreen();
+  const preGymScreen = createPreGymScreen();
+  const summaryScreen = createSummary();
+
   const shell = el('main', 'shell');
-  shell.dataset['phase'] = screen === 'summary' ? 'setup' : 'running';
-  shell.dataset['screen'] = screen;
-  const screens = el('div', 'screens');
+  const drawer = createDrawer();
+  const router = createRouter(
+    {
+      starter: starterScreen.root,
+      locale: localeScreen.root,
+      map: mapScreen.root,
+      battle: battleScreen.root,
+      result: resultScreen.root,
+      target: targetScreen.root,
+      replace: replaceScreen.root,
+      party: partyScreen.root,
+      'pre-gym': preGymScreen.root,
+      shop: shopScreen.root,
+      event: eventScreen.root,
+      summary: summaryScreen.root,
+    },
+    (name) => {
+      shell.dataset['screen'] = name;
+    },
+  );
+  const seedBar = createSeedBar();
   const stamps = createStamps();
-  shell.append(screens, stamps.root);
   const world = createWorldScene();
+  const drawerBar = el('div', 'shell__drawer-bar');
+  drawerBar.append(drawer.trigger());
+  const replayTutorial = document.createElement('button');
+  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  else shell.append(router.root, drawer.root, stamps.root);
   root.replaceChildren(world.root, shell);
   createTooltips(shell);
 
-  if (screen === 'battle') {
-    mountLoadedBattle(screens, seed);
-    applyLocale(null);
-    stamps.update({ locale: null, segment: 1, segments: 8, seed });
-    document.documentElement.dataset['galleryReady'] = 'true';
-    return;
+  const show = (name: ScreenName): void => {
+    router.show(name);
+    drawerBar.hidden = !DRAWER_SURFACES.includes(name);
+  };
+  const setPhase = (phase: 'setup' | 'running'): void => {
+    shell.dataset['phase'] = phase;
+  };
+  const stamp = (state: RunState | null): void => {
+    stamps.update({
+      locale: state ? localeOf(state) : null,
+      segment: state ? state.currentSegment + 1 : null,
+      segments: state ? state.segments.length : 0,
+      seed,
+    });
+  };
+
+  seedBar.setSeed(seed);
+  seedBar.collapse();
+  setPhase(surface === 'summary' ? 'setup' : 'running');
+
+  switch (surface) {
+    case 'starter': {
+      const state = openingState(seed);
+      starterScreen.render(state.starterOptions, noop);
+      applyLocale(null);
+      stamp(null);
+      show('starter');
+      break;
+    }
+    case 'locale': {
+      const state = openingState(seed);
+      const segment = state.segments[0];
+      if (!segment) throw new Error('no segment');
+      localeScreen.render({ options: segment.localeOffer, segment: 0, gym: gymForSegment(0), party: state.party }, noop);
+      applyLocale(null);
+      stamp(null);
+      show('locale');
+      break;
+    }
+    case 'map':
+    case 'drawer': {
+      const state = openingState(seed);
+      mapScreen.render(state, noop, noop);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('map');
+      if (surface === 'drawer') {
+        drawer.open({ party: state.party, holding: itemLayoutOf(state.party, null), relics: state.relics, tuning: state.tuning });
+      }
+      break;
+    }
+    case 'battle':
+    case 'log-sheet': {
+      const state = openingState(seed);
+      mountLoadedBattle(battleScreen, seed, loaded ? state.party : [], { history: loaded && surface === 'log-sheet' });
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('battle');
+      if (surface === 'log-sheet') battleScreen.root.querySelector<HTMLElement>('.flags__history')?.click();
+      break;
+    }
+    case 'result':
+    case 'result-capture': {
+      const { offer, capture, last } = await harvestOffers(seed);
+      // Loaded: the party as the fight left it is the six-member party,
+      // hurt and statused, and the fight's own numbers come from the played
+      // review. Walked: the run's own state at its first three-card offer.
+      const state = loaded ? lateState(seed) : (offer?.state ?? last);
+      const review: BattleReview | null = offer ? (loaded ? { ...offer.review, party: state.party } : offer.review) : null;
+      const captureParty = loaded ? state.party : (capture?.party ?? state.party);
+      applyLocale(localeOf(state));
+      stamp(state);
+      if (surface === 'result') {
+        resultScreen.render(review, offer?.offer ?? null, state, noop);
+      } else {
+        resultScreen.render(
+          review,
+          null,
+          state,
+          noop,
+          capture ? { offer: capture.offer, party: captureParty, onDecide: noop } : null,
+        );
+      }
+      show('result');
+      break;
+    }
+    case 'target': {
+      const state = lateState(seed);
+      targetScreen.render(targetedReward(), state.party, noop, state.tuning);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('target');
+      break;
+    }
+    case 'replace': {
+      const state = lateState(seed);
+      const member = state.party[0];
+      if (!member) throw new Error('no party');
+      replaceScreen.render(member, incomingMove(), noop, state.tuning);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('replace');
+      break;
+    }
+    case 'party': {
+      const state = lateState(seed);
+      partyScreen.render(
+        {
+          party: state.party,
+          backpack: state.backpack,
+          relics: state.relics,
+          tuning: state.tuning,
+          slots: partyCapacity(state),
+          backTo: 'Back to the map',
+          plan: null,
+        },
+        { onReorder: noop, onRelease: noop, onPlan: noop, onDone: noop },
+      );
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('party');
+      break;
+    }
+    case 'pre-gym': {
+      const state = lateState(seed);
+      preGymScreen.render(
+        {
+          gym: gymForSegment(state.currentSegment),
+          segment: state.currentSegment,
+          party: state.party,
+          holding: itemLayoutOf(state.party, null),
+          tuning: state.tuning,
+        },
+        { onLead: noop, onManageParty: noop },
+      );
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('pre-gym');
+      break;
+    }
+    case 'shop': {
+      const state = lateState(seed);
+      const stock = anyShop(state);
+      if (!stock) throw new Error('the map has no shop');
+      shopScreen.render(stock, state, noop);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('shop');
+      break;
+    }
+    case 'event': {
+      const state = lateState(seed);
+      eventScreen.render(wordiestEvent(seed), state, noop);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('event');
+      // Revealed: the outcome block is on screen, which is the taller shape.
+      eventScreen.root.querySelector<HTMLElement>('.event__choice')?.click();
+      break;
+    }
+    case 'summary': {
+      const played = await playRun(seed, scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING, { opponent: greedyAiPolicy });
+      summaryScreen.render(finishedResult(seed, played.log));
+      applyLocale(null);
+      stamp(lateState(seed));
+      show('summary');
+      break;
+    }
   }
 
-  // The first review that carries three cards, and the first capture offer:
-  // the result screen's two decision points, held so they render together.
+  /*
+   * `tutorial=fresh`: the coach marks, as a first launch would show them on
+   * this surface, through the same guard the app uses (`ui/density-guard.ts`).
+   * `test/visual-tutorial-guard.test.ts` reads how many marks the layer
+   * shows against how many have an anchor on the page: the assertion
+   * ruling 6 asked for, that no mark is ever dropped without a trace.
+   */
+  if (params.get('tutorial') === 'fresh') {
+    const screen = TUTORIAL_SURFACE[surface];
+    if (screen) {
+      const marks = createDensityGuard(createTutorial(shell));
+      const within = screen === 'drawer' ? drawer.root : router.root.querySelector<HTMLElement>(`.screen[data-screen="${screen}"]`);
+      if (within) marks.showFor(screen, within);
+    }
+  }
+
+  document.documentElement.dataset['galleryReady'] = 'true';
+}
+
+/** Which tutorial screen a surface is, for the surfaces that have marks. */
+const TUTORIAL_SURFACE: Readonly<Partial<Record<GallerySurface, TutorialScreen>>> = {
+  starter: 'starter',
+  locale: 'locale',
+  map: 'map',
+  battle: 'battle',
+  result: 'result',
+  'result-capture': 'result',
+  party: 'party',
+  'pre-gym': 'pre-gym',
+  drawer: 'drawer',
+};
+
+/**
+ * The result screen's two decision points, from a real run of the seed: the
+ * first review that carries three cards, and the first capture offer.
+ */
+async function harvestOffers(seed: string): Promise<{
+  offer?: { review: BattleReview; offer: RewardOffer; state: RunState };
+  capture?: { offer: AcquisitionOffer; party: readonly PokemonState[] };
+  last: RunState;
+}> {
   const held: {
     offer?: { review: BattleReview; offer: RewardOffer; state: RunState };
     capture?: { offer: AcquisitionOffer; party: readonly PokemonState[] };
   } = {};
   const policy = scriptedRunPolicy(greedyAiPolicy);
-  const result = await playRun(
+  const played = await playRun(
     seed,
     {
       ...policy,
@@ -96,41 +404,12 @@ async function main(): Promise<void> {
     DEFAULT_TUNING,
     { opponent: greedyAiPolicy },
   );
-  const firstOffer = held.offer;
-  const firstCapture = held.capture;
-
-  if (screen === 'summary') {
-    const summary = createSummary();
-    summary.root.dataset['screen'] = 'summary';
-    screens.append(summary.root);
-    summary.render(result);
-    applyLocale(null);
-    stamps.update({ locale: null, segment: result.state.currentSegment + 1, segments: result.state.segments.length, seed });
-  } else {
-    const resultScreen = createResultScreen();
-    resultScreen.root.dataset['screen'] = 'result';
-    screens.append(resultScreen.root);
-    const state = firstOffer?.state ?? result.state;
-    applyLocale(localeOf(state));
-    stamps.update({ locale: localeOf(state), segment: state.currentSegment + 1, segments: state.segments.length, seed });
-    // The app renders the cards, then the capture on a second render with
-    // the cards gone; `result` and `result-capture` are those two shapes and
-    // `result-both` is the two together for a worst-case measurement.
-    const withCards = screen !== 'result-capture';
-    const withCapture = screen !== 'result';
-    resultScreen.render(
-      firstOffer?.review ?? null,
-      withCards ? (firstOffer?.offer ?? null) : null,
-      state,
-      () => undefined,
-      withCapture && firstCapture ? { offer: firstCapture.offer, party: firstCapture.party, onDecide: () => undefined } : null,
-    );
-  }
-  document.documentElement.dataset['galleryReady'] = 'true';
+  return { ...held, last: played.state };
 }
 
 /**
- * A battle with both panels carrying everything they can carry.
+ * A battle with both panels carrying everything they can carry, and a full
+ * bench behind the player's side.
  *
  * The four moves are chosen so the state is reached by *playing*, not by
  * constructing a projection: Swords Dance and Rock Polish are boosts that
@@ -142,21 +421,26 @@ async function main(): Promise<void> {
  * a red measurement would be reporting.
  *
  * Level 100 on both sides, because the panel's widest line is the HP readout
- * and three digits either side of the slash is the longest it gets.
+ * and three digits either side of the slash is the longest it gets. The bench
+ * is the worst-case party's other five members (density patch): a party of
+ * six is the widest the run allows and the switch panel is the one region of
+ * the battle screen that grows with it.
  */
-const LOADED_P1: TeamSpec = [
+const LOADED_LEAD: TeamSpec = [
   { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Toxic', 'Body Slam', 'Rest'], level: 100 },
 ];
 const LOADED_P2: TeamSpec = [
   { species: 'Golem', ability: 'Sturdy', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
 ];
 
-function mountLoadedBattle(screens: HTMLElement, seed: string): void {
-  const session = createBattle({ teams: { p1: LOADED_P1, p2: LOADED_P2 }, seed });
-  const battle = createBattleScreen();
-  battle.root.dataset['screen'] = 'battle';
-  battle.root.hidden = false;
-  screens.append(battle.root);
+function mountLoadedBattle(
+  battle: ReturnType<typeof createBattleScreen>,
+  seed: string,
+  party: readonly PokemonState[],
+  options: { history: boolean },
+): void {
+  const bench = party.slice(1).map((member) => member.spec);
+  const session = createBattle({ teams: { p1: [...LOADED_LEAD, ...bench], p2: LOADED_P2 }, seed });
 
   const node = {
     id: 's1-1-0',
@@ -188,10 +472,25 @@ function mountLoadedBattle(screens: HTMLElement, seed: string): void {
   const boosted = (side: { boosts: Record<string, number> }): boolean =>
     Object.values(side.boosts).some((stage) => stage !== 0);
 
-  for (let turn = 0; turn < 24 && !session.ended && !loaded(); turn++) {
+  /*
+   * The board stops the turn it is loaded, so the strip carries that turn's
+   * words (`test/visual-v5.test.ts` reads two of them at once on its seed).
+   * With `history`, for the log sheet's fixture, the loop keeps going past
+   * it, boosts only, while the poisoned side still has half its HP: a sheet
+   * that opened on a dozen lines had nothing to scroll, and a side that
+   * fainted would hand the board to the bench. Both panels stay loaded
+   * throughout — a stage does not unboost and a status does not lift.
+   */
+  const more = (): boolean => {
+    if (!loaded()) return true;
+    if (!options.history) return false;
+    const opponent = session.factsFor('p1').opponent;
+    return opponent.hp > opponent.maxHp / 2;
+  };
+  for (let turn = 0; turn < 24 && !session.ended && more(); turn++) {
     const facts = session.factsFor('p1');
-    if (session.viewFor('p1').awaitingChoice) session.submit('p1', moveChoice(boosted(facts.player) ? 2 : 1));
-    if (session.viewFor('p2').awaitingChoice) session.submit('p2', moveChoice(boosted(facts.opponent) ? 2 : 1));
+    if (session.viewFor('p1').awaitingChoice) session.submit('p1', moveChoice(!loaded() && boosted(facts.player) ? 2 : 1));
+    if (session.viewFor('p2').awaitingChoice) session.submit('p2', moveChoice(!loaded() && boosted(facts.opponent) ? 2 : 1));
   }
 }
 

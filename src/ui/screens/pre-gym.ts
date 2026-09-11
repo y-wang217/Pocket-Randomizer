@@ -128,6 +128,10 @@ export function createPreGymScreen(): PreGymScreen {
 
     render(view, handlers) {
       title.textContent = `${view.gym.leader}'s gym`;
+      // The leader's blurb, on tap, for Pocket. Same tip the map's title carries.
+      title.dataset['tip'] = `gym:${view.segment}`;
+      title.tabIndex = 0;
+      title.setAttribute('role', 'button');
       counter.textContent = `Gym ${view.segment + 1} of ${SEGMENT_COUNT}`;
       leaderType.replaceChildren(typeChip(view.gym.type));
       // The leader's own blurb, from `data/gyms.ts`. Flavour that says how the
@@ -154,7 +158,7 @@ export function createPreGymScreen(): PreGymScreen {
 
           const choose = document.createElement('button');
           choose.type = 'button';
-          choose.className = 'button button--small';
+          choose.className = 'button button--small pre-gym__choose';
           choose.textContent = index === 0 ? 'Leading' : 'Lead with this one';
           /*
            * Two reasons a button is disabled, and they are different states.

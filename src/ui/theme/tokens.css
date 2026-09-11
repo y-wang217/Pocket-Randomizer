@@ -262,6 +262,24 @@
   --panel-scrim: color-mix(in srgb, var(--bg) 72%, transparent);
   --panel-blur: 2px;
 
+  /* ---------- the density modes ----------
+     Three unitless multipliers the stylesheet applies to the chrome — card
+     padding, section gaps and margins, the two title sizes. The numbers live
+     in `data/densityTuning.ts` and `ui/theme/density.ts` writes them here at
+     startup beside `data-density`, the same bridge `--motion-duration` uses.
+     These are the fallbacks for a document that never ran that code, and they
+     are Detailed by definition: 1 is the layout the guarded screens are
+     measured against. */
+  --density-pad: 1;
+  --density-gap: 1;
+  --density-title: 1;
+  /* The two titles the mode scales, as tokens, because every `font-size` in
+     the stylesheet must be one (`test/visual-tokens.test.ts`). At scale 1
+     these are exactly `--fs-6xl`, `--fs-5xl` and `--fs-3xl`. */
+  --fs-apptitle: calc(var(--fs-6xl) * var(--density-title));
+  --fs-apptitlephone: calc(var(--fs-5xl) * var(--density-title));
+  --fs-screentitle: calc(var(--fs-3xl) * var(--density-title));
+
   /* ---------- two radii ---------- */
   --radius-card: 4px;
   --radius-chip: 2px;

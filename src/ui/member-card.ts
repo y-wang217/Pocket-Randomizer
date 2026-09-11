@@ -24,6 +24,7 @@ import type { ItemId, PokemonState } from '../core/types';
 import { itemById } from '../data/items';
 import { statInfo, STAT_ORDER } from '../data/statInfo';
 import type { Tuning } from '../data/tuning';
+import { collapsible } from './collapse';
 import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
 import { archetypeChip } from './archetype-chip';
@@ -115,14 +116,52 @@ export function memberCardContents(
   hp.textContent = member.fainted
     ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
     : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
+  if (member.fainted) hp.dataset['fainted'] = 'true';
+  hpTip(track, hp.textContent);
   meta.append(hp);
 
   if (member.status) meta.append(statusChip(member.status, undefined, { tip: `status:${member.status}` }));
 
-  card.append(header, track, meta, itemRow(options.holding), statBlock(spec, member), moveList(member, spec, options.tuning));
-  if (options.contribution) card.append(contributionRow(member));
+  card.append(header, track, meta, itemRow(options.holding));
+
+  /*
+   * The body: the stat block, the four move cards and the contribution row.
+   * **Density modes patch, Part 4.** On screen in Detailed and Simple; in
+   * Pocket it is one tap behind the head of the card, all of it together —
+   * never the stats without the moves or three cards without the fourth. The
+   * head keeps every primary fact: who this is, what it is built for, its
+   * types, its HP, its status and what it holds. `ui/collapse.ts` says why
+   * this is an expander rather than a tooltip.
+   */
+  const body: HTMLElement[] = [statBlock(spec, member), moveList(member, spec, options.tuning)];
+  if (options.contribution) body.push(contributionRow(member));
+  const fold = collapsible(card, body, spec.species);
+  fold.toggle.classList.add('party__member-toggle');
+  meta.append(fold.toggle);
+
   card.dataset['slot'] = options.index === undefined ? '' : String(options.index);
   return card;
+}
+
+/**
+ * The bar carries its own number. **Density modes patch, Part 4.**
+ *
+ * In Pocket a member card's HP line is off screen and the bar is the readout,
+ * the same rule the stat block follows there (bars on screen, the number one
+ * tap away on the row). The text goes onto the track as `data-value` and the
+ * `hp:` tip says it back verbatim, so the tap prints exactly the line Detailed
+ * prints, PP included. The stylesheet pads the 4px track out to a tappable
+ * height in Pocket; in the other two modes the tip is a harmless second way
+ * to read a line that is already on screen. A fainted member keeps the word
+ * on screen in every mode (`data-fainted`), because an empty bar and a bar at
+ * one hit point look the same at 4px.
+ */
+export function hpTip(track: HTMLElement, text: string): void {
+  track.dataset['tip'] = 'hp:member';
+  track.dataset['value'] = text;
+  track.tabIndex = 0;
+  track.setAttribute('role', 'button');
+  track.setAttribute('aria-label', text);
 }
 
 /** The held item and its effect line, read-only. */
@@ -158,25 +197,39 @@ function statBlock(spec: ReturnType<typeof describeSpecCard>, member: PokemonSta
 
   for (const stat of STAT_ORDER) {
     const row = el('div', 'stat');
+    // `data-row`, not `data-stat`: the stylesheet spans `.stat[data-stat="hp"]`
+    // across the battle panel's grid, and this block pairs its rows.
+    row.dataset['row'] = stat;
+    /*
+     * The label, in both of its forms. **Density modes patch, Part 4.**
+     * Detailed prints the full name and Simple the abbreviation; both are
+     * rendered and the stylesheet shows one, the same way every two-form
+     * string on a screen is drawn (`ui/dom.ts`, `prose`). In Pocket the row
+     * is a bar and the number is one tap away: the label carries the value
+     * so the stat tooltip can say it.
+     */
+    const info = statInfo(stat);
     const label = el('span', 'stat__label');
-    label.textContent = statInfo(stat)?.label ?? stat.toUpperCase();
+    const long = el('span', 'stat__label-long');
+    long.textContent = info?.label ?? stat.toUpperCase();
+    const short = el('span', 'stat__label-short');
+    short.textContent = info?.abbreviation ?? stat.toUpperCase();
+    label.append(long, short);
     label.dataset['tip'] = `stat:${stat}`;
+    label.dataset['value'] = String(values[stat] ?? 0);
     label.tabIndex = 0;
     label.setAttribute('role', 'button');
 
     /*
-     * **Both, always, in both modes. Patch 4.7.2, ruling 3.**
+     * **Both, always, in every mode. Patch 4.7.2, ruling 3; three modes since
+     * the density patch.**
      *
      * This used to swap them by `hidden` off `showsNumbers()`, which made
-     * Detailed and Simple mutually exclusive: the number *or* the bar, never
-     * the pair. Ruling 3 is that Detailed shows the bar and the number
-     * together and Simple shows the bar alone — a change to Detailed, not only
-     * to Simple.
-     *
-     * So this component no longer asks what mode it is in. It renders the
-     * whole readout and `[data-verbosity]` on the root decides what is shown,
-     * which is what lets a toggle reach a card that is already on screen
-     * without anything re-rendering it. See `ui/theme/verbosity.ts`.
+     * the modes mutually exclusive in the component. It renders the whole
+     * readout — the number and the bar — and `[data-density]` on the root
+     * decides what is shown: the number in Detailed and Simple, the bar in
+     * Pocket. That is what lets a mode change reach a card that is already
+     * on screen without anything re-rendering it. See `ui/theme/density.ts`.
      */
     const value = el('span', 'stat__value');
     value.textContent = String(values[stat] ?? 0);

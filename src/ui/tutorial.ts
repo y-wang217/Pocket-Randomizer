@@ -239,15 +239,18 @@ export function createTutorial(host: HTMLElement): TutorialLayer {
       });
       if (found.length === 0) return 0;
       // A screen shown while another's marks are up replaces them; the earlier
-      // screen was reached, so its first visit is spent.
-      if (screen && screen !== name) {
-        const previous = screen;
-        close();
-        markTutorialSeen(previous);
-      }
+      // screen was reached, so its first visit is spent. The layer stays open
+      // across the swap — the new queue is in place before the store hears
+      // the old screen is seen — so the density guard, which reads `isOpen`
+      // on every settings change, keeps Detailed under the marks about to
+      // be placed rather than swapping the mode between the two screens.
+      // Density modes patch.
+      const previous = screen && screen !== name ? screen : null;
+      clearTarget();
       screen = name;
       queue = found;
       index = 0;
+      if (previous) markTutorialSeen(previous);
       show();
       return found.length;
     },

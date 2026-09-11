@@ -51,6 +51,9 @@ import type { RelicId } from '../data/relics';
 import { relicById } from '../data/relics';
 import type { Tuning } from '../data/tuning';
 import { el } from './scene';
+import { setProse } from './dom';
+import { DENSITY_COPY, DENSITY_HEADING, DRAWER_COPY } from './copy/screens';
+import { DENSITIES, getDensity, onSettingsChange, setDensity } from './settings';
 import { memberCardContents } from './member-card';
 
 export interface DrawerView {
@@ -78,6 +81,53 @@ export interface Drawer {
   open(view: DrawerView): void;
   close(): void;
   isOpen(): boolean;
+}
+
+/**
+ * The mode picker. **Density modes patch, step 7.**
+ *
+ * In the drawer because the drawer is the one surface reachable from every
+ * screen of a run, and a reading preference belongs where the player is
+ * reading: the mode changes under the open drawer as it changes under the
+ * screen behind it. Three options, each named and each with one line saying
+ * what it does (`ui/copy/screens.ts`, `DENSITY_COPY`); the pressed one is
+ * the store's value, repainted on every settings change so a mode set by
+ * any other path — the migration, a reset — reads true here.
+ *
+ * Writes the setting and nothing else. Run state is not in reach of this
+ * function, and `test/party-drawer.test.ts` presses every control on the
+ * drawer to hold that. The root attribute is not written here either: the
+ * app's guard (`ui/density-guard.ts`) hears the store and decides what the
+ * root shows, which is how the tutorial keeps Detailed under its marks
+ * while a Pocket choice made here waits for them to finish.
+ */
+function createDensityPicker(): HTMLElement {
+  const root = el('div', 'density');
+  const heading = el('h3', 'drawer__section');
+  heading.textContent = DENSITY_HEADING;
+  const list = el('div', 'density__options');
+  const choices = DENSITIES.map((mode) => {
+    const row = el('div', 'density__option');
+    const choice = document.createElement('button');
+    choice.type = 'button';
+    choice.className = 'button button--small density__choice';
+    choice.dataset['density'] = mode;
+    choice.textContent = DENSITY_COPY[mode].name;
+    choice.addEventListener('click', () => setDensity(mode));
+    const description = el('span', 'density__desc');
+    description.textContent = DENSITY_COPY[mode].description;
+    row.append(choice, description);
+    list.append(row);
+    return choice;
+  });
+  const paint = (): void => {
+    const current = getDensity();
+    for (const choice of choices) choice.setAttribute('aria-pressed', String(choice.dataset['density'] === current));
+  };
+  onSettingsChange(paint);
+  paint();
+  root.append(heading, list);
+  return root;
 }
 
 export function createDrawer(): Drawer {
@@ -117,9 +167,9 @@ export function createDrawer(): Drawer {
   relics.dataset['tutorial'] = 'drawer-relics';
 
   const note = el('p', 'drawer__note');
-  note.textContent = 'Read only. Items are assigned on the party screen.';
+  setProse(note, DRAWER_COPY.note);
 
-  sheet.append(header, blurb, members, relics, note);
+  sheet.append(header, blurb, members, relics, note, createDensityPicker());
   root.append(scrim, sheet);
 
   let open = false;
@@ -164,9 +214,7 @@ export function createDrawer(): Drawer {
     open(view) {
       open = true;
       root.hidden = false;
-      blurb.textContent = view.inBattle
-        ? 'Your side, as the fight has left it.'
-        : 'What you are carrying right now.';
+      setProse(blurb, view.inBattle ? DRAWER_COPY.inBattle : DRAWER_COPY.carrying);
 
       members.replaceChildren(
         ...view.party.map((member, index) =>
@@ -192,6 +240,10 @@ export function createDrawer(): Drawer {
           if (!entry) continue;
           const chip = el('span', 'badge badge--relic');
           chip.textContent = entry.name;
+          // The description on tap: `ui/tooltips.ts`, `relic:`. Density patch.
+          chip.dataset['tip'] = `relic:${entry.id}`;
+          chip.tabIndex = 0;
+          chip.setAttribute('role', 'button');
           list.append(chip);
         }
         relics.append(heading, list);

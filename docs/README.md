@@ -347,7 +347,10 @@ One line each. The analysis lives where the pointer goes, not here.
    Its own patch — find the read and make it lazy or remove it.
    [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
 
-9. **R8 needs its own move-card insertion point.** Release B's "one insertion
+9. **R8 needs its own move-card insertion point. Closed** by the density
+   modes patch: the battle button carries a `?` chip on its PP line
+   (`scene.ts`, `renderMove`), its own insertion point, opening the same
+   rows the card's expander opens. The history: Release B's "one insertion
    point" rule is `scene.moveCard`, and the battle move buttons do not go
    through it — `renderMove` calls `scene.moveFacts` directly, because
    `test/boundaries.test.ts` holds `scene.ts` to the battle projection. So a
@@ -375,6 +378,14 @@ One line each. The analysis lives where the pointer goes, not here.
 13. **The shop shelf shows `Tutor: X` with no card.** Same gap 4.8.0.2 closed
    on the recipient screen, same two lines to close it; not in that patch's
    brief.
+14. **The density modes patch is built, on `claude/bold-clarke-xcwko1`, and
+   awaits review and merge.** All seven steps, every gate green, the
+   guarded Detailed heights unchanged to the pixel. On merge the register
+   row flips to `built`. What it leaves: the member card's HP line is on
+   the bar's tap in Pocket (a rule the prompt did not write; `generation.md`
+   12m item 4), and `data/densityTuning.ts` sits outside `contentHash` by
+   a reasoned exclusion rather than inside `tuning.ts` (item 1).
+   [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 
 ### The invariant register
 

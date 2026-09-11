@@ -53,3 +53,13 @@ export const TIER_INFO: Readonly<Record<Tier, string>> = {
   hard: 'One Pokemon, +1 level and +1 species band. Pays a move one band up.',
   elite: 'Two Pokemon, -3 levels, +1 species band and +1 move band. Pays a move two bands up.',
 };
+
+/**
+ * The same three facts in fewer words, for Simple and Pocket. Density modes
+ * patch: the short form sits beside the long one in the table it lives in.
+ */
+export const TIER_INFO_SHORT: Readonly<Record<Tier, string>> = {
+  normal: 'One Pokemon. Pays its own band.',
+  hard: 'One Pokemon, +1 level, +1 band. Pays one band up.',
+  elite: 'Two Pokemon, -3 levels, +1 band. Pays two bands up.',
+};

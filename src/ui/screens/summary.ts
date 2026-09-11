@@ -46,6 +46,7 @@ import { WHEEL_TYPES } from '../../core/battle/driver';
 import { neutralChip, typeChip } from '../chip';
 import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
 import { el, moveCard } from '../scene';
+import { setProse } from '../dom';
 import { moveCardData } from '../move-detail';
 import type { Tuning } from '../../data/tuning';
 import { itemIcon, slotNumber } from '../slots';
@@ -347,7 +348,7 @@ function renderTiers(cleared: number): HTMLElement[] {
     const range = el('span', 'tiers__range');
     range.textContent = row.range;
     const copy = el('span', 'tiers__copy');
-    copy.textContent = row.copy;
+    setProse(copy, { long: row.copy, short: row.short });
     item.append(icon, range, copy);
     return item;
   });

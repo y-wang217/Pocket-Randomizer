@@ -38,6 +38,8 @@ import { describeSpecCard } from '../../core/battle/driver';
 import type { MoveSpec, MoveView, PokemonState } from '../../core/types';
 import { el, genderMark, moveCard, moveFacts } from '../scene';
 import { moveCardData } from '../move-detail';
+import { setProse } from '../dom';
+import { REPLACE_COPY } from '../copy/screens';
 import type { Tuning } from '../../data/tuning';
 import { typeChip } from './starter-select';
 
@@ -65,7 +67,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
   const owner = el('div', 'replace__owner');
 
   const currentHeading = el('h3', 'replace__heading');
-  currentHeading.textContent = 'Currently knows — tap one to replace';
+  setProse(currentHeading, REPLACE_COPY.current);
   const current = el('div', 'replace__moves');
 
   root.append(title, blurb, incomingHeading, incomingSlot, owner, currentHeading, current);
@@ -76,7 +78,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
       const detail = describeSpecCard(member.spec);
 
       title.textContent = `${detail.species} learns ${incoming.name}`;
-      blurb.textContent = 'Four moves already. Pick the one it replaces — this cannot be undone.';
+      setProse(blurb, REPLACE_COPY.blurb);
 
       /*
        * The incoming move, with its tags, **and now with STAB** — because on

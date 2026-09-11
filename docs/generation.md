@@ -1979,3 +1979,134 @@ Superseded rule deleted, not flagged, per `CLAUDE.md`. The 4.5.2 prompt is not
 edited. Report and screenshots:
 [`visual/reports/patch-mobile-seed-bar.md`](visual/reports/patch-mobile-seed-bar.md).
 
+
+## 12l. Deviation: the density modes prompt describes a battle screen V5 had already fixed
+
+**2026-09-11, the density modes patch**
+([`spec/gymrun-patch-density-modes.md`](spec/gymrun-patch-density-modes.md)).
+
+The prompt's Part 3 says "Battle at 1376 is the hard case. It is roughly 530px
+over", and its closing sequencing note argues for landing Pocket before V5.
+Both were true when the prompt was drafted and neither was true when it was
+committed: V5 had merged to `main` (`docs/visual/state/V5.done`:
+`battle.scrollHeight 1376 → 844, -532`), so on the tree this patch started
+from the Detailed battle screen already fits a 390x844 phone with zero
+scroll, and `heights.json` matched to the pixel. The prompt is not edited,
+per protocol rule 4; the ruling on the report asked for the correction to be
+recorded, and this is it.
+
+**The real hard cases**, measured on SMOKE24 at the first moment the run
+reached each screen (samples of one run state, not worst cases):
+
+| screen | scrollHeight | over 844 by |
+|---|---|---|
+| pre-gym | 2608 | 1764 |
+| summary | 3741 | 2897 |
+| party (via Manage) | 1638 | 794 |
+| starter | 1083 | 239 |
+| map | 1033 | 189 |
+| result | 997 | 153 |
+
+**Six rulings on the report**, recorded here because three correct the
+prompt's own lists. The rulings are appended verbatim to the prompt file.
+
+1. The prompt file carries the rulings as an appendix rather than an edit.
+2. The coverage gate compares rendered output in a browser, because the mode
+   is a root attribute read only by the stylesheet (4.7.2 ruling 4) and the
+   DOM is identical across modes by design.
+3. Fixtures are worst case per screen: six members on party, pre-gym and the
+   drawer; six held items and the maximum relic count on the drawer; a full
+   backpack on the party screen; eight gyms cleared with a full graveyard on
+   the summary.
+4. **The Pocket gate is split.** Decision surfaces — starter, locale, map,
+   battle, result, target, replace, party, pre-gym, shop, event, and the
+   drawer gated on its sheet's own scroll extent — are zero scroll at
+   390x844, a hard gate with no exemptions. Archive surfaces — summary and
+   the log sheet — must hold the complete outcome in the first screenful (the
+   outcome block's bottom edge at or above 844) and may scroll below it. The
+   prompt's list named "reward", which is not a screen, omitted "replace",
+   and named "graveyard", which is a section of the summary.
+5. Two of the fourteen surfaces stay two-valued, with the measured reason in
+   the report: the log sheet (protocol lines, no labels, no descriptions, no
+   stat block) and the target screen (member buttons with no stat block and
+   one question). The coverage test asserts the exemption rather than
+   skipping it: Detailed differs from both, Simple equals Pocket.
+6. The tutorial guard is per screen: Detailed is forced only while a screen
+   still has unseen marks, applied before anchors resolve, and released when
+   that screen's marks finish or Skip fires. A browser assertion holds that
+   on the worst-case fixture no mark is ever silently dropped.
+
+## 12m. Deviations: what the density modes patch built against what it asked
+
+**2026-09-11, the density modes patch, step 4**
+([`spec/gymrun-patch-density-modes.md`](spec/gymrun-patch-density-modes.md)).
+Each is a place the built work departs from the prompt's words. The prompt is
+not edited; the argument for each is in
+[`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
+
+1. **The numbers live in `src/data/densityTuning.ts`, not `data/tuning.ts`.**
+   The prompt puts every number the patch introduces in `tuning.ts`. That
+   file is inside `contentHash` (it is imported under `core/`), so a padding
+   scale in it would move every seed on a tuning pass, which the prompt also
+   forbids. The scales sit in their own `data/` table, excluded from the hash
+   with a reason in `build-config/content-hash.ts`, and `test/density.test.ts`
+   holds that nothing under `core/` reaches it. A density pass is still a
+   table edit.
+2. **Fixtures are constructed, not walked.** Ruling 3 asks for the worst case
+   per screen; SMOKE24 reaches none of them. `ui/gallery-fixtures.ts` builds
+   each worst case from the seed's own draws (a six-member party with six
+   held items, a full backpack, every relic, eight gyms cleared with a full
+   graveyard, a 24-turn battle) and the gallery renders it through the app's
+   own screens. The seeded run is untouched: `test/density.test.ts` replays
+   SMOKE24 in all three modes and compares the run log byte for byte.
+3. **The stat line on a pick card keeps abbreviations in Detailed.** The
+   definition gives Detailed full labels. On the starter and capture cards the
+   six stats are one row at 390 wide, and six full names do not fit a row;
+   the six-row block on a member card has the full names. Recorded rather
+   than fixed, because a wrapped stat row is a worse readout than an
+   abbreviated one.
+4. **The member card's HP line is the bar in Pocket.** The prompt names stat
+   blocks and move cards as what folds. Measured on the worst case, a card's
+   HP line ("116 / 116 HP (100%) · PP 112/112") wrapped to two lines at half
+   a phone's width and put 33px under every card; six cards two-up did not
+   fit with it. In Pocket the bar is the readout and the number is the bar's
+   tap (`member-card.ts`, `hpTip`), the stat block's own rule applied to a
+   seventh number. A fainted member keeps its word on screen. The battle
+   scene's HP text and the target screen's buttons are not under this rule:
+   the scene is the live board, and a tip inside a button is a second tap
+   target inside a first.
+5. **Controls fold with the body.** The archetype chip, the ability, the
+   held item's "to bag" control, the lead and release controls, all sit in
+   the card's fold in Pocket, and every card on a surface folds together.
+6. **The relics list folds in Pocket** behind a title that carries the
+   count. Measured, every relic as a name chip ran 151px on a screen whose
+   decisions are the lead, the items and a release.
+7. **The result screen's slot row is off screen in Pocket while the capture
+   block is up.** The block's comparison list is the same six members; to
+   make it the row's equal the cards gained the slot number, the status chip
+   and PP on the bar's tap, in every mode. The held item's "(returns to your
+   bag)" became a chip and a two-form note, and the release control's label
+   is "Release" alone in Pocket, the species being the line above.
+8. **The battle button carries a `?` chip** on its PP line, so a Pocket
+   player reaches the base power, the category and the effect line in one
+   tap on the button that decides the turn. Open item 9 of 4.7.2 closed by it.
+9. **The two-valued exemption is empty.** Ruling 5 exempted the log sheet and
+   the target screen. Measured against pixels, both differ in all three modes
+   through the chrome scale, so `TWO_VALUED_SURFACES` is an empty list with
+   the assertion kept behind it.
+10. **The picker's lines are one line each**, not the fuller descriptions
+    first written: the drawer is under the Pocket gate and three wrapped
+    lines put its sheet over by 25px. The prompt's own example line is the
+    Pocket one.
+11. **The tutorial guard found nothing to guard on this tree.** Measured
+    without it on the worst-case fixtures, Pocket leaves all 29 anchors
+    painted. It is kept, as the prompt said it would be, because the copy
+    was written against Detailed, and its assertion
+    (`test/visual-tutorial-guard.test.ts`) is what makes a future fold that
+    hides an anchor fail loudly.
+12. **The existing two-valued suites were rewritten, not deleted**, each with
+    a comment naming this patch: `test/density.test.ts` (renamed from
+    4.7.2's verbosity suite), `test/visual-density.test.ts`,
+    `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,
+    `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
+    `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.

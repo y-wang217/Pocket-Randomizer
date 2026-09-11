@@ -4,6 +4,40 @@
     "width": 390,
     "height": 844
   },
+  "modes": {
+    "simple": {
+      "map": {
+        "screenHeight": 777.5,
+        "scrollHeight": 940,
+        "decisionCount": 2,
+        "decisionTop": 513.44,
+        "decisionBottom": 609.31
+      },
+      "battle": {
+        "screenHeight": 581.44,
+        "scrollHeight": 844,
+        "decisionCount": 4,
+        "decisionTop": 445.44,
+        "decisionBottom": 677.94
+      }
+    },
+    "pocket": {
+      "map": {
+        "screenHeight": 586.95,
+        "scrollHeight": 844,
+        "decisionCount": 2,
+        "decisionTop": 302.89,
+        "decisionBottom": 394.77
+      },
+      "battle": {
+        "screenHeight": 481.89,
+        "scrollHeight": 844,
+        "decisionCount": 4,
+        "decisionTop": 379.39,
+        "decisionBottom": 522.39
+      }
+    }
+  },
   "map": {
     "screenHeight": 840.41,
     "scrollHeight": 1033,

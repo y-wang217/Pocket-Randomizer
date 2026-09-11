@@ -20,6 +20,8 @@ import type { RunState } from '../../core/run';
 import { relicById } from '../../data/relics';
 import { itemById } from '../../data/items';
 import { el } from '../scene';
+import { prose, setProse } from '../dom';
+import { SHOP_COPY } from '../copy/screens';
 
 export interface ShopScreen {
   root: HTMLElement;
@@ -32,9 +34,7 @@ export function createShopScreen(): ShopScreen {
   const title = el('h2', 'screen__title');
   title.textContent = 'Shop';
   const blurb = el('p', 'screen__blurb');
-  blurb.textContent =
-    'Pick what you want, then leave. Nothing is bought until you do, and there is ' +
-    'no selling and no coming back.';
+  setProse(blurb, SHOP_COPY.blurb);
 
   const wallet = el('div', 'shop__wallet');
   const shelf = el('ul', 'shop__shelf');
@@ -89,7 +89,7 @@ export function createShopScreen(): ShopScreen {
           const name = el('span', 'shop__item-name');
           name.textContent = describeStock(item.reward);
           const detail = el('span', 'shop__item-detail');
-          detail.textContent = detailOf(item.reward);
+          detail.replaceChildren(detailOf(item.reward));
           label.append(name, detail);
 
           const price = el('span', 'shop__price');
@@ -143,19 +143,20 @@ function describeStock(reward: Reward): string {
   }
 }
 
-function detailOf(reward: Reward): string {
+/** The shelf line under a name: an item's own blurb, or the two-form copy. */
+function detailOf(reward: Reward): Node {
   switch (reward.kind) {
     case 'item':
-      return itemById(reward.item)?.blurb ?? '';
+      return document.createTextNode(itemById(reward.item)?.blurb ?? '');
     case 'heal':
-      return 'Heals HP and PP, and clears status.';
+      return prose(SHOP_COPY.heal);
     case 'tm':
     case 'tutor':
       // Stage 4.5.1: the shop asks the same two questions a reward card does —
       // who learns it, then what it displaces — so the shelf can no longer
       // promise which move goes.
-      return 'You choose who learns it, and what it replaces.';
+      return prose(SHOP_COPY.teach);
     default:
-      return '';
+      return document.createTextNode('');
   }
 }

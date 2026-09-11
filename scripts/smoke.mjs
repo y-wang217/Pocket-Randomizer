@@ -92,7 +92,7 @@ const browser = await chromium.launch(executablePath ? { executablePath } : {});
  * so the store is seeded with the tutorial skipped, the same way the visual
  * harness seeds its contexts. The tutorial has its own browser test.
  */
-const TUTORIAL_SKIPPED = JSON.stringify({ verbosity: 'detailed', tutorial: { skipped: true, seen: [] } });
+const TUTORIAL_SKIPPED = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
 const skipTutorial = (target) =>
   target.addInitScript((settings) => {
     try {

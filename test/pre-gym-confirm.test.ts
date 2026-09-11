@@ -132,7 +132,9 @@ describe('the pre-gym screen', () => {
     // The confirm is an addition, not a replacement: picking somebody else is
     // the decision the screen exists for and it still submits that slot.
     const { submitted, root } = mount(partyOf(3));
-    const slots = [...root.querySelectorAll<HTMLButtonElement>('.pre-gym__slot .button')];
+    // The lead controls alone: since the density modes patch each card also
+    // carries its Pocket fold toggle, which is a control about the card.
+    const slots = [...root.querySelectorAll<HTMLButtonElement>('.pre-gym__slot .pre-gym__choose')];
     expect(slots.map((button) => button.disabled)).toEqual([true, false, false]);
     slots[2]!.click();
     expect(submitted).toEqual([2]);

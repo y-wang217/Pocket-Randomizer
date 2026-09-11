@@ -18,6 +18,8 @@ import { describeSpecCard } from '../../core/battle/driver';
 import { archetypeChip } from '../archetype-chip';
 import type { PokemonSpec, StatName } from '../../core/types';
 import { el } from '../scene';
+import { setProse } from '../dom';
+import { STARTER_COPY } from '../copy/screens';
 import { typeChip as chip } from '../chip';
 
 export interface StarterSelect {
@@ -30,10 +32,7 @@ export function createStarterSelect(): StarterSelect {
   const heading = el('h2', 'screen__title');
   heading.textContent = 'Choose your starter';
   const blurb = el('p', 'screen__blurb');
-  blurb.textContent =
-    'One Pokemon carries the whole run, through eight gyms. Species, ability and ' +
-    'moves are all randomized. HP and PP persist between fights; a cleared gym ' +
-    'restores both.';
+  setProse(blurb, STARTER_COPY.blurb);
   const grid = el('div', 'starters');
   grid.dataset['tutorial'] = 'starters';
 
@@ -134,16 +133,36 @@ export function statLine(stats: Record<StatName, number>, maxHp: number): HTMLEl
       const name = el('span', 'statline__label');
       name.textContent = label;
       // The same tooltip the battle panel raises, so "what is SpA" has one
-      // answer in one place. Text lives in data/statInfo.ts.
+      // answer in one place. Text lives in data/statInfo.ts. The value rides
+      // on the trigger so the tooltip can say it where the row is bars
+      // (Pocket): the number is one tap away, never gone.
       name.dataset['tip'] = `stat:${label.toLowerCase()}`;
+      name.dataset['value'] = String(value);
       const number = el('span', 'statline__value');
       number.textContent = String(value);
-      cell.append(name, number);
+      /*
+       * The bar, rendered in every mode and shown in Pocket. **Density modes
+       * patch, Part 4.** The same ceiling the member card's bars use, so the
+       * two readouts of one stat agree. All six move together: the row is
+       * numbers or the row is bars, never a mix.
+       *
+       * The labels here stay abbreviations in Detailed, unlike the member
+       * card's, because six full names do not fit a card at 390 wide — the
+       * same reason Item F chose them. Recorded in the patch report.
+       */
+      const bar = el('span', 'statline__bar');
+      const fill = el('span', 'statline__bar-fill');
+      fill.style.width = `${Math.min(100, (value / STATLINE_CEILING) * 100)}%`;
+      bar.append(fill);
+      cell.append(name, number, bar);
       return cell;
     }),
   );
   return row;
 }
+
+/** The same ceiling `ui/member-card.ts` draws its bars against. */
+const STATLINE_CEILING = 200;
 
 export function typeChip(type: string): HTMLElement {
   return chip(type);

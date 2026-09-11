@@ -41,22 +41,20 @@ import { describeOffer, type AcquisitionDecision, type AcquisitionOffer } from '
 import { describeSpecCard } from '../../core/battle/driver';
 import { archetypeChip } from '../archetype-chip';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
-import { hpState } from '../../core/hpCopy';
+import { hpState, ppState } from '../../core/hpCopy';
 import { heldItem } from '../../core/items';
-import { createPartyMember, hpFraction } from '../../core/party';
+import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
 import { el } from '../scene';
+import { prose } from '../dom';
+import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
+import { hpTip } from '../member-card';
+import { slotNumber } from '../slots';
 import { statLine, typeChip } from './starter-select';
 import { openBand } from '../band';
-import { neutralChip } from '../chip';
+import { neutralChip, statusChip } from '../chip';
 
-/** What the offer's source says about where it came from. Never what it is worth. */
-const SOURCE_BLURB: Record<AcquisitionOffer['source'], string> = {
-  encounter: 'You beat it. You can take it with you.',
-  reward: 'Offered as your reward for the fight.',
-  event: 'It is here, and it will come with you.',
-};
 
 /**
  * Build the capture block for the result screen.
@@ -85,10 +83,11 @@ export function renderCaptureOffer(
   const title = el('h3', 'result__heading');
   title.textContent = describeOffer(offer);
 
+  // Where it came from, and at a full party the rule that follows. Both
+  // forms of both sentences, from `ui/copy/screens.ts`; never what it is worth.
   const blurb = el('p', 'acquire__blurb');
-  blurb.textContent = full
-    ? `${SOURCE_BLURB[offer.source]} Your party is full — someone has to go.`
-    : SOURCE_BLURB[offer.source];
+  blurb.replaceChildren(prose(CAPTURE_SOURCE[offer.source]));
+  if (full) blurb.append(prose(CAPTURE_FULL));
 
   const offered = el('div', 'acquire__offer');
   offered.replaceChildren(renderOffered(offer.spec));
@@ -227,7 +226,11 @@ function renderExisting(
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
+  // The slot number first, as on the party screen's cards: this list stands
+  // in for the result screen's slot row in Pocket, where that row is off
+  // screen, and a slot is the one fact the row had that the card did not.
+  // Density modes patch, Part 4.
+  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
 
   const track = el('div', 'hp');
   const fill = el('div', 'hp__fill');
@@ -239,7 +242,16 @@ function renderExisting(
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
   hp.textContent = hpState(member.hp, member.maxHp);
+  // The bar's tap carries PP as well: the slot row above says it in Detailed
+  // and Simple, and in Pocket that row is off screen, so this is where a
+  // Pocket player reads it. Same line the party card prints.
+  const pp = ppTotals(member);
+  hpTip(track, `${hp.textContent} · ${ppState(pp.pp, pp.maxPp)}`);
   meta.append(hp);
+  // The status, as the result screen's slot row shows it: in Pocket that row
+  // is off screen while this block is up, and a burn is a fact about who to
+  // keep. Density modes patch, Part 4.
+  if (member.status) meta.append(statusChip(member.status, undefined, { tip: `status:${member.status}` }));
 
   const item = heldItem(member);
   if (item) {
@@ -247,7 +259,9 @@ function renderExisting(
     // permanent — there is no box and no retrieval — but what they were
     // holding goes back to the bag, because an item is destroyed only by an
     // explicit discard and letting a Pokemon go is not one.
-    meta.append(neutralChip(`${item.name} (returns to your bag)`, 'item'));
+    const note = el('span', 'party__item-note');
+    note.append(prose(RETURNS_TO_BAG));
+    meta.append(neutralChip(item.name, 'item', { tip: `item:${item.id}` }), note);
   }
 
   card.append(header, track, meta);
@@ -256,7 +270,10 @@ function renderExisting(
     const release = document.createElement('button');
     release.type = 'button';
     release.className = 'button button--small button--danger';
-    release.textContent = `Release ${detail.species}`;
+    // The species in the label in Detailed; on a two-up card in Pocket the
+    // name is the line above and the word alone is the control (the band
+    // that confirms it names the species again).
+    release.append(prose(RELEASE_LABEL(detail.species)));
     // The shared band confirms it (ui/band.ts). Stage V2.
     release.addEventListener('click', () =>
       openBand({

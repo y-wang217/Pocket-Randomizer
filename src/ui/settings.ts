@@ -1,9 +1,9 @@
 /**
- * Cross-run settings. Currently one: how much the screens spell out.
+ * Cross-run settings. Currently one: how much space and prose a fact costs.
  *
- * ## The verbosity flag, and the rule it lives under
+ * ## The density setting, and the rule it lives under
  *
- * **It is presentation only. One flag, read by components, and it never reaches
+ * **It is presentation only. One value, read by components, and it never reaches
  * `core/`.** That is not a style preference, it is the property the whole
  * feature depends on: a run must play the same way whichever mode it is in, or
  * a shared seed stops being a shared run and the balance report stops
@@ -11,37 +11,51 @@
  *
  * The constraint is enforced two ways. Structurally, this file lives in `ui/`
  * and `core/` may not import from `ui/` — the dependency runs one way and
- * always has. And explicitly, `test/verbosity.test.ts` walks every file under
- * `src/core/` and fails if any of them mentions this module or its flag. A
+ * always has. And explicitly, `test/density.test.ts` walks every file under
+ * `src/core/` and fails if any of them mentions this module or its accessors. A
  * comment saying "do not read this from core" is a comment; the test is the
  * rule.
  *
- * ## What the two modes actually do
+ * ## The three modes
  *
- * **Detailed** shows raw stat numbers. **Simple** replaces them with relative
- * bars and keeps the faster-side marker from Stage 4.5.
+ * **Density modes patch, replacing 4.7.2's two-valued verbosity flag.** The
+ * old axis — "Simple hides raw stat numbers in favour of relative bars" — had
+ * nowhere to bite on the ten screens that carry no stat numbers. The new axis
+ * is how much space and prose a fact costs, which every screen has:
  *
- * Flagged in the stage prompt as an unspecified default, and this is that
- * default made concrete. The reasoning: the numbers are the thing a
- * non-player cannot use — 134 Attack means nothing without a distribution to
- * put it in — while the *comparison* between two panels is legible to anyone.
- * A bar is that comparison with the arithmetic already done. Nothing else
- * changes between the modes; tooltips, the speed arrow, HP text and every
- * effectiveness badge are present in both, because those are how a player
- * learns rather than what they already know.
+ *   - **Detailed.** Every fact on screen, zero taps, full labels and
+ *     descriptions.
+ *   - **Simple.** Every fact on screen, zero taps, reduced prose and chrome.
+ *     Labels abbreviate, descriptions shorten, padding tightens.
+ *   - **Pocket.** Zero scroll on a 390x844 phone. Secondary facts may cost one
+ *     tap; primary facts stay on screen.
+ *
+ * No mode removes a fact. What each mode does, per screen family, is the
+ * stylesheet's business (`styles.css`, "the density modes") and the shared
+ * primitives' in the component layer; this file only holds the value.
  *
  * ## Detailed is the first-launch default
  *
  * The usual instinct is to start simple and let people opt into detail, and it
  * is wrong here. A new player does not know the help exists, so the mode that
  * hides it is the mode they never leave. Starting Detailed means the first run
- * shows the numbers *and* the tooltips that explain them, and Simple is
+ * shows the labels *and* the tooltips that explain them, and the other two are
  * something you turn on once you no longer need either.
+ *
+ * ## Migration from `verbosity`
+ *
+ * The 4.7.2 store held `verbosity: 'simple' | 'detailed'`. A stored `simple`
+ * lands on `simple`, a stored `detailed` on `detailed`, and a stored `density`
+ * wins over a stored `verbosity` when both are present. The old field is read
+ * on the way in and never written again: one name, one read path.
  */
 
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 
-export type Verbosity = 'simple' | 'detailed';
+export type Density = 'detailed' | 'simple' | 'pocket';
+
+/** Every mode, in the order the picker lists them. Detailed first: the default. */
+export const DENSITIES: readonly Density[] = ['detailed', 'simple', 'pocket'];
 
 const KEY = 'gymrun.settings';
 
@@ -49,7 +63,7 @@ const KEY = 'gymrun.settings';
  * The tutorial's persisted flags. Overnight Branch 3.
  *
  * In this store rather than its own because the trigger is "first launch",
- * which is exactly what the verbosity default already keys off: a fresh
+ * which is exactly what the density default already keys off: a fresh
  * store. Never keyed to a seed. `seen` is per screen, so a player who skips
  * the map's marks still gets the battle's; `skipped` is the one control that
  * dismisses every screen at once.
@@ -60,7 +74,7 @@ export interface TutorialFlags {
 }
 
 export interface Settings {
-  verbosity: Verbosity;
+  density: Density;
   tutorial: TutorialFlags;
 }
 
@@ -70,7 +84,11 @@ export interface Settings {
  * Detailed, per the note above. Exported so a test asserts the default rather
  * than restating it.
  */
-export const DEFAULT_SETTINGS: Settings = { verbosity: 'detailed', tutorial: { skipped: false, seen: [] } };
+export const DEFAULT_SETTINGS: Settings = { density: 'detailed', tutorial: { skipped: false, seen: [] } };
+
+function isDensity(value: unknown): value is Density {
+  return (DENSITIES as readonly unknown[]).includes(value);
+}
 
 /**
  * Read the stored settings, falling back to the defaults on anything unexpected.
@@ -99,12 +117,21 @@ export function saveSettings(settings: Settings): void {
   }
 }
 
-/** Parse defensively. Stored settings are untrusted input like a stored log. */
-function readSettings(value: unknown): Partial<Settings> {
+/**
+ * Parse defensively. Stored settings are untrusted input like a stored log.
+ *
+ * Exported so the migration is asserted on the parser rather than through
+ * `localStorage`, which jsdom and a browser answer differently.
+ */
+export function readSettings(value: unknown): Partial<Settings> {
   if (typeof value !== 'object' || value === null) return {};
-  const candidate = value as { verbosity?: unknown; tutorial?: unknown };
+  const candidate = value as { density?: unknown; verbosity?: unknown; tutorial?: unknown };
   const read: Partial<Settings> = {};
-  if (candidate.verbosity === 'simple' || candidate.verbosity === 'detailed') read.verbosity = candidate.verbosity;
+  if (isDensity(candidate.density)) read.density = candidate.density;
+  // The 4.7.2 field. Both of its values are members of the new union with the
+  // same meaning, so the migration is the identity on them; anything else the
+  // old field could hold falls through to the default.
+  else if (candidate.verbosity === 'simple' || candidate.verbosity === 'detailed') read.density = candidate.verbosity;
   const tutorial = candidate.tutorial as { skipped?: unknown; seen?: unknown } | undefined;
   if (typeof tutorial === 'object' && tutorial !== null) {
     read.tutorial = {
@@ -121,7 +148,6 @@ function readSettings(value: unknown): Partial<Settings> {
  * The live setting, held in one place so components read rather than thread it.
  *
  * A module-level holder rather than a parameter on every render call, because
- * the flag is read by the stat rows, the party screen and the reward cards, and
  * threading a display preference through three layers of component signatures
  * would put it in the same argument lists as the game state it must never be
  * confused with.
@@ -139,28 +165,17 @@ export function initSettings(): Settings {
   return current;
 }
 
-export function getVerbosity(): Verbosity {
-  return current.verbosity;
+export function getDensity(): Density {
+  return current.density;
 }
 
-/** True when raw numbers should be shown. The one question components ask. */
-export function showsNumbers(): boolean {
-  return current.verbosity === 'detailed';
-}
-
-export function setVerbosity(verbosity: Verbosity): void {
-  if (current.verbosity === verbosity) return;
-  current = { ...current, verbosity };
+export function setDensity(density: Density): void {
+  if (current.density === density) return;
+  current = { ...current, density };
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }
 
-/**
- * Subscribe to changes, so an open screen redraws when the toggle flips.
- *
- * Returns an unsubscribe function. Without this the toggle would only take
- * effect on the next natural re-render, which on the party screen is never.
- */
 // ---------------------------------------------------------------------------
 // The tutorial flags
 // ---------------------------------------------------------------------------
@@ -197,6 +212,10 @@ export function tutorialFlags(): TutorialFlags {
   return { skipped: current.tutorial.skipped, seen: [...current.tutorial.seen] };
 }
 
+/**
+ * Subscribe to changes, so the shell writes the mode onto the root when it
+ * moves. Returns an unsubscribe function.
+ */
 export function onSettingsChange(listener: (settings: Settings) => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

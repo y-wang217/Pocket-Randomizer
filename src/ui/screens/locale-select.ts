@@ -61,6 +61,8 @@ import { ARCHETYPE_DISPLAY } from '../../data/archetypes';
 import type { GymDefinition } from '../../data/gyms';
 import { localeById, type LocaleId } from '../../data/locales';
 import { el } from '../scene';
+import { setProse } from '../dom';
+import { LOCALE_COPY } from '../copy/screens';
 import { typeChip } from './starter-select';
 
 export interface LocaleSelect {
@@ -81,10 +83,7 @@ export function createLocaleSelect(): LocaleSelect {
   const root = el('section', 'screen screen--locale');
   const heading = el('h2', 'screen__title');
   const blurb = el('p', 'screen__blurb');
-  blurb.textContent =
-    'Where this segment is walked. The region decides which wild Pokemon live ' +
-    'in it, and nothing else — trainers, shops, rests and the gym are the same ' +
-    'either way.';
+  setProse(blurb, LOCALE_COPY.blurb);
   const grid = el('div', 'locales');
   grid.dataset['tutorial'] = 'regions';
 

@@ -130,7 +130,11 @@ describe('the drawer itself', () => {
 
     const buttons = [...drawer.root.querySelectorAll('button')];
     const labels = [...new Set(buttons.map((button) => button.textContent))];
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['Close', 'Explain']);
+    // `+` is the Pocket fold on each card (`ui/collapse.ts`): it flips an
+    // attribute on the card and writes nothing. The three mode names are the
+    // picker (step 7): each writes the density setting, which is not party
+    // state, and the comparison below holds that. Density modes patch.
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close', 'Detailed', 'Explain', 'Pocket', 'Simple']);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —

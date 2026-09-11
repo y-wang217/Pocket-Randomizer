@@ -77,7 +77,9 @@ describe('a party of one at the gym', () => {
     // The shape the screen could not leave: one member, and every per-slot
     // control on it inert.
     expect(await page.locator(`${visible('pre-gym')} .pre-gym__slot`).count()).toBe(1);
-    expect(await page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not(:disabled)`).count()).toBe(0);
+    // The fold control (`ui/collapse.ts`, density modes patch) is a button on
+    // the card and not a per-slot control; it is excluded, not counted inert.
+    expect(await page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not(:disabled):not(.collapse__toggle)`).count()).toBe(0);
 
     const confirm = page.locator(`${visible('pre-gym')} .pre-gym__confirm`);
     await expect.poll(() => confirm.isEnabled()).toBe(true);
