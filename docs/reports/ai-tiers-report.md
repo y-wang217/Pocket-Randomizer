@@ -434,3 +434,20 @@ byte identical. `RUN_LOG_VERSION` unchanged at `gymrun-run-13`. `data/scaling.ts
 untouched. No opponent anywhere holds a stat, a damage roll, an accuracy bonus
 or a hidden number — asserted in `test/ai-tiers.test.ts` as a closed list of
 flags, so adding one means deleting that assertion on purpose.
+
+## Gates, at the end of the patch
+
+All absolute gates green on `302cded`, run after every fix above:
+
+| gate | result |
+|---|---|
+| type check | clean |
+| lint | clean |
+| full suite | **109 files, 1424 tests, all passing** |
+| strict trim (`GYMRUN_TRIM_STRICT=1`) | **109 files, 1424 tests, all passing** |
+| build | ok |
+| smoke run | passed |
+| determinism, stream isolation, version guards | passing, and extended: `test/ai-tiers.test.ts` adds a replay assertion for a noisy opponent, which save-and-resume now depends on |
+
+Balance is not a gate, per section 0 of `balance.md`. Every number this patch
+produced is recorded there with its cause, and nothing was retuned.
