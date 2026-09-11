@@ -110,6 +110,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the three tier sentences on the map; the numbers they restate live in scaling.ts, which is hashed',
   },
   {
+    path: 'src/data/seedCopy.ts',
+    why: 'the paste-time refusal wording for a foreign seed string; read by ui/seed-bar.ts only, and must not move the hash it names',
+  },
+  {
     path: 'src/data/mons.ts',
     why: "Stage 0's fixed Snorlax-versus-Milotic matchup, pinned by the determinism tests; no run reads it",
   },

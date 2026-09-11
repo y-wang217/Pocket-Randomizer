@@ -17,7 +17,6 @@ import { GYMRUN_FORMAT } from '../core/battle/format';
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
-import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
   isReplayable,
@@ -38,6 +37,7 @@ import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
+import { createSeedBar } from './seed-bar';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 
@@ -733,8 +733,10 @@ export function mountApp(root: HTMLElement): void {
     }
   }
 
-  seedBar.onSubmit((value) => {
-    void start(normalizeSeed(value) || newSeed());
+  // Already parsed: a bare seed or a versioned one with this build's hash.
+  // A foreign one never reaches here; the bar refuses it in place.
+  seedBar.onSubmit((seed) => {
+    void start(seed || newSeed());
   });
   seedBar.onReroll(() => {
     void start(newSeed());
@@ -755,9 +757,13 @@ export function mountApp(root: HTMLElement): void {
 
   const fromUrl = seedFromLocation(globalThis.location.href);
   // A seed in the URL is an explicit request for *that* run, so it wins over a
-  // save. Without one, an interrupted run is resumed where it left off.
-  if (fromUrl) void start(fromUrl);
-  else if (saved && isReplayable(saved)) void start(saved.seed, saved);
+  // save. Without one, an interrupted run is resumed where it left off. A
+  // versioned URL made on another build has no paste moment to refuse at, so
+  // the bare seed starts a fresh run and the bar says why it is not the same one.
+  if (fromUrl) {
+    void start(fromUrl.seed);
+    if (fromUrl.kind === 'foreign') seedBar.refuse(fromUrl);
+  } else if (saved && isReplayable(saved)) void start(saved.seed, saved);
   else void start(newSeed());
 }
 
@@ -814,67 +820,3 @@ function createVerbosityToggle(): HTMLElement {
   return wrap;
 }
 
-interface SeedBar {
-  root: HTMLElement;
-  setSeed(seed: string): void;
-  setResumable(resumable: boolean): void;
-  onSubmit(handler: (seed: string) => void): void;
-  onReroll(handler: () => void): void;
-  onResume(handler: () => void): void;
-}
-
-/**
- * The seed, displayed and editable at run start.
- *
- * A tester who can type a seed and get the identical run back is the cheapest
- * bug-reporting tool this project will ever have, which is why it is in the UI
- * rather than behind a debug flag.
- */
-function createSeedBar(): SeedBar {
-  const root = el('form', 'seedbar');
-  const label = el('label', 'seedbar__label');
-  label.textContent = 'Seed';
-
-  const input = document.createElement('input');
-  input.className = 'seedbar__input';
-  input.type = 'text';
-  input.spellcheck = false;
-  input.autocomplete = 'off';
-  input.setAttribute('aria-label', 'Run seed');
-  label.setAttribute('for', (input.id = 'seed-input'));
-
-  const apply = document.createElement('button');
-  apply.type = 'submit';
-  apply.className = 'button';
-  apply.textContent = 'Start run';
-
-  const reroll = document.createElement('button');
-  reroll.type = 'button';
-  reroll.className = 'button';
-  reroll.textContent = 'New seed';
-
-  const resume = document.createElement('button');
-  resume.type = 'button';
-  resume.className = 'button';
-  resume.textContent = 'Resume saved run';
-  resume.hidden = true;
-
-  root.append(label, input, apply, reroll, resume);
-
-  return {
-    root,
-    setSeed: (seed) => {
-      input.value = seed;
-    },
-    setResumable: (resumable) => {
-      resume.hidden = !resumable;
-    },
-    onSubmit: (handler) =>
-      root.addEventListener('submit', (event) => {
-        event.preventDefault();
-        handler(input.value);
-      }),
-    onReroll: (handler) => reroll.addEventListener('click', () => handler()),
-    onResume: (handler) => resume.addEventListener('click', () => handler()),
-  };
-}

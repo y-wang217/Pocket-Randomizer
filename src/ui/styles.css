@@ -105,6 +105,14 @@ body {
   letter-spacing: 0.08em;
 }
 
+.seedbar__notice {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  line-height: 1.4;
+}
+
 .seedbar__input:focus-visible,
 .button:focus-visible,
 .move:focus-visible {

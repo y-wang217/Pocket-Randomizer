@@ -132,7 +132,15 @@ await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
 console.log(`\nseed shown: ${seed}`);
-if (seed !== SEED) problems.push(`seed from the URL was not used (saw ${seed})`);
+/*
+ * The bar shows the versioned form since the contentHash release —
+ * `GYMRUN-<six hex>-<seed>` — so the check strips a well-formed prefix and
+ * compares the seed inside it. The prefix is asserted well-formed rather than
+ * ignored: a bar that showed the bare seed again would be a regression too.
+ */
+const versioned = /^GYMRUN-[0-9a-f]{6}-(.+)$/.exec(seed);
+if (!versioned) problems.push(`seed is not in the versioned GYMRUN-xxxxxx-<seed> form (saw ${seed})`);
+else if (versioned[1] !== SEED) problems.push(`seed from the URL was not used (saw ${seed})`);
 
 /**
  * Play a run competently, reading the screen the way a player would.

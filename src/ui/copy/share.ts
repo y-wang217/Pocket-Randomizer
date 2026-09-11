@@ -22,10 +22,11 @@
  *
  * ## The seed is rendered in one place
  *
- * `seedLine` exists so that when `contentHash` ships, the versioned seed string
- * replaces the bare seed in exactly one function rather than in however many
- * places a run is described. It is the bare seed today, deliberately.
+ * `seedLine` exists so that the versioned seed string is rendered in exactly
+ * one function rather than in however many places a run is described. It has
+ * been the `GYMRUN-<hash>-<seed>` form since the `contentHash` release.
  */
+import { formatSeedString } from '../../core/seedString';
 import type { DeathRecord } from '../../core/graveyard';
 import type { ScoreBreakdown } from '../../core/scoring';
 
@@ -57,10 +58,11 @@ export interface ShareView {
 /**
  * The seed, as one line. **The one place a seed is rendered into shared text.**
  *
- * See the header: `contentHash` replaces the bare seed here and nowhere else.
+ * See the header: the versioned form, so the text carries the balance version
+ * the run was made on.
  */
 export function seedLine(seed: string): string {
-  return `Seed ${seed}`;
+  return `Seed ${formatSeedString(seed)}`;
 }
 
 /** One death, as the result screen says it. Factual, and no commentary. */

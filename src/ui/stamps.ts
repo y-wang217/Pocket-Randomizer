@@ -9,13 +9,14 @@
  * seed ignores the pointer.
  *
  * The seed stamp is the exception, and the reason the stamps exist: one tap
- * copies the run's seed. `formatSeedStamp` is the one function to extend when
- * `contentHash` lands and seeds take the `GYMRUN-xxxxxx-nnnnnnn` form from
- * the seeds document; until then the stamp carries the seed exactly as the
- * seed bar accepts it, so what is copied is what can be pasted.
+ * copies the run's seed. Since the `contentHash` release it carries the
+ * versioned `GYMRUN-xxxxxx-nnnnnnn` form from the seeds document, rendered by
+ * `core/seedString.ts`, so what is copied is what the seed bar accepts and
+ * what names the balance version it was made on.
  */
 import { ENGINE_VERSION } from '../core/battle/driver';
 import { RANDOMIZER_VERSION } from '../core/randomizer';
+import { formatSeedString } from '../core/seedString';
 import { localeById, type LocaleId } from '../data/locales';
 import { el } from './scene';
 
@@ -32,9 +33,9 @@ export interface Stamps {
   update(state: StampState): void;
 }
 
-/** The shareable seed string. Today the bare seed; see the header. */
+/** The shareable seed string: the versioned form. */
 export function formatSeedStamp(seed: string): string {
-  return seed;
+  return formatSeedString(seed);
 }
 
 /** The build, as a stamp reads it: engine version and randomizer version. */
