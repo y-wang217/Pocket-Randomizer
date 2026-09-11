@@ -175,6 +175,18 @@ axes and one guard checks them all; `RUN_LOG_VERSION` is 13.
 `generation.md` section 9 is the record, including the three places the
 prompt's picture of the tree was stale.
 
+**The priority and speed aware AI: built**, as Branch 2 of the overnight run,
+on `claude/overnight-2-ai-priority`, handoff
+[`handoff/overnight-2-ai-priority.md`](handoff/overnight-2-ai-priority.md).
+`MoveView` carries the dex priority bracket and `BattleView` carries both
+sides' Speed from one pure helper (`core/battle/speed.ts`: stat, stages,
+paralysis, ties `unknown`); one layer in front of the greedy pick takes a
+priority move when the AI is slower and facing a knockout, or when a priority
+move knocks out where a slower one also would. `AI_VERSION` is
+`gymrun-ai-3-priority`; `RUN_LOG_VERSION`, `contentHash` and
+`RANDOMIZER_VERSION` did not move. The benchmark moved by a recorded amount
+with one cause and was not retuned: [`balance.md`](balance.md) section 15.
+
 **Blocked:**
 
 - **The freeze** is no longer blocked on `contentHash` existing; it is blocked
@@ -244,11 +256,12 @@ One line each. The analysis lives where the pointer goes, not here.
    against a banded field. The QoL plan reopens it: any figure taken before R13
    is confounded by the scorer defect, so it needs re-reading after Release A.
    Treat it as open with a closed-looking number.
-4. **Priority-blind and speed-blind AI.** `MoveView` carries no priority and
-   `BattleView` carries no speed. Its own pass, its own `AI_VERSION` bump, kept
-   outside 4.6 so its effect on the table stays separable. It is Branch 2 of
-   the overnight run, and `AI_VERSION` has been a guarded log axis since
-   Branch 1.
+4. **Priority-blind and speed-blind AI. Closed**, Branch 2 of the overnight
+   run, `AI_VERSION` `gymrun-ai-3-priority`. What stays open is the morning
+   decision its handoff carries — keep, retune or revert, against the delta in
+   [`balance.md`](balance.md) section 15 — and the out-of-scope passes the
+   patch names: switch logic, status valuation, secondary effects, Trick Room,
+   speed modifiers beyond stat, stage and paralysis.
    [`spec/gymrun-stage4.6-claude-code-prompts.md`](spec/gymrun-stage4.6-claude-code-prompts.md).
 5. **The type wheel. Decided, not yet built.** Keep it, and drop the trigger
    from the two Pokemon panel type badges. It is UI work and belongs to

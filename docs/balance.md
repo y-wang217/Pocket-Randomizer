@@ -1548,3 +1548,125 @@ figure and not a 4.8 one — it is measured against a different prefix in sectio
 — but a longer run visits more nodes, so a longer run is more chances for the same
 species to show up, and the next pool pass should expect the curve to have made it
 worse.
+
+## 15. The priority and speed aware AI — one cause, one recorded delta
+
+**Overnight Branch 2, 2026-09-11, `AI_VERSION` `gymrun-ai-2-switching` →
+`gymrun-ai-3-priority`.** Read down the prefix, never across: every figure
+here is 400 seeds, prefix `RETUNE`, nodes `rest`, the same population as the
+4.8 row in section 14 and the pinned row in section 0. Nothing else moved:
+`RANDOMIZER_VERSION` is 13 and `contentHash` is `b022fc` on both sides of the
+table, asserted literally in `test/ai-priority.test.ts`. Post-patch report:
+`sim-reports/benchmarks/2026-09-11T01-51-12-604Z-gymrun-randomizer-13-ai-3-400.json`.
+
+### 15.1 The pre-patch line, pinned before the rule was written
+
+| | `ai-2-switching` | `ai-3-priority` | delta |
+|---|---|---|---|
+| **mean gyms cleared**, `greedy` (the pinned figure) | **4.960** | **4.873** | **−0.088** |
+| run completion, `greedy` | 40.25% | 39.0% | −1.25 pts |
+| mean score, `greedy` | 726.5 | 708.1 | −18.4 |
+| mean gyms cleared, `random` | 2.198 | 2.263 | +0.065 |
+| run completion, `random` | 2.5% | 2.5% | 0 |
+| **`greedy` − `random` gap**, mean gyms | 2.76 | 2.61 | **−0.15** |
+
+The pre-patch `greedy` row is the 4.8 benchmark re-run on the `contentHash`
+release's head before this branch changed a line, and it reproduced to the
+digit; the pre-patch `random` row was run on that same head for this table.
+
+**Not retuned**, per section 0. The number is the deliverable.
+
+### 15.2 What the rule did, and how often
+
+`greedy` in the simulator is the same AI, so both sides of every fight got the
+rule; the rates are over every AI-decided turn on either side.
+
+| measure | value |
+|---|---|
+| AI-decided turns | 142,811 |
+| rule fired | **4.2%** |
+| step 3, a priority escape (slower or tied, facing a knockout) | 3.1% |
+| step 4, a priority knockout over a slower knockout | 1.1% |
+| pick differed from the greedy pick | 3.4% |
+
+It fires in about one turn in twenty-four, above the roughly 2% line the prompt
+set for "correct but nearly inert", so the rule is live, and three quarters of
+its firings are the escape case the patch exists for.
+
+### 15.3 Reading the delta
+
+The direction is the interesting part. A better opponent should make the game
+harder, and it did: the player-side `greedy` bot lost 0.088 gyms while facing
+an opponent that also plays better, and the gain it got from playing better
+itself did not cover the loss. `random` moved up 0.065, which is the bot that
+benefits from the rule on its own side without ever being able to exploit a
+slower opponent's mistake — a random player does not tackle into knockouts on
+purpose or by design, so a smarter opponent costs it little and a smarter self
+pays it a little.
+
+So **the skill gap narrowed by 0.15 gyms rather than widening.** The prompt
+expected the opposite. The reading that fits the numbers: the rule is a
+*defensive* improvement — its dominant case is "do not die before acting" — and
+a defensive improvement on the opponent's side taxes the competent player more
+than it taxes the random one, because the competent player is the one who was
+setting up knockouts the opponent now escapes. A rule that widened the gap
+would have to make the greedy bot's offence better, and this patch deliberately
+does not touch offence beyond step 4.
+
+Per gym, `greedy`:
+
+| gym | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| `ai-2-switching` | .995 | .877 | .921 | .927 | .836 | .896 | .914 | .958 |
+| `ai-3-priority` | .995 | .887 | .902 | .911 | .841 | .882 | .932 | .963 |
+
+Gym 1 is identical to three decimals, as it was in section 14, which is the
+control: a starter two bands above a band-0 gym is not decided by who moves
+first. The movement is in the middle, where the curve catches up and fights are
+close enough for a turn of order to decide them, and it is of the size the
+fire rate predicts — a rule that changes 3.4% of picks does not move a clear
+rate by ten points.
+
+### 15.4 The Release C interaction
+
+`scripts/priority-audit.ts`, 20 seeds (`RETUNE-0` to `RETUNE-19`), both sides
+greedy, 7,495 AI-decided turns. On every turn where the rule fired, the
+protocol was read back through `readTurns`, the reader the jiggle uses.
+
+| | |
+|---|---|
+| turns the rule fired | 293 |
+| jiggle order agrees with what the AI expected | **292** |
+| of those, the foe switched instead of attacking | 39 |
+| disagreements | 1 |
+| bracket-0 turns, both sides ordinary moves | 2,262 |
+| speed forecast right | 2,212 (97.8%) |
+| forecast `unknown` (a tie, reported as one) | 38 |
+| forecast wrong | 12 (0.5%) |
+
+The one disagreement is not the helper's: `RETUNE-0`, battle 5, turn 3, the
+player-side bot took a priority kill with Mach Punch (+1) and the opponent
+answered with Feint (+2). The helper forecast Speed correctly — the bot was
+faster — and the rule's step 4 assumes a priority move lands first, which it
+does against any bracket-0 move. It does not see the foe's moves, by design
+(`ai.ts`, the header on incoming damage), so it cannot know a higher bracket is
+coming. That is a limit of the rule's information, recorded, not a bug in
+either the helper or Release C.
+
+The twelve wrong forecasts on bracket-0 turns are the approximation doing what
+its comment says it does: Speed the sim modified by something outside stat,
+stage and paralysis — an item or an ability — and the jiggle showed the
+engine's order, which is the truth. 0.5% of ordinary turns is the price of not
+reimplementing the `ModifySpe` event, and the jiggle reads as a weird order on
+exactly those turns, which Release C's report already predicted and named the
+fix for (a flag word for a Speed-decided turn, not a change to the AI).
+
+### 15.5 Keep, retune, or revert
+
+A morning decision, carried in
+`docs/handoff/overnight-2-ai-priority.md`. The case for keeping it is that the
+definition of done holds — a slower opponent with Quick Attack in hand no
+longer tackles into its own knockout, on fixed positions and in 3.1% of all
+turns — and the cost is 0.088 mean gyms at one recorded cause. The case against
+is the direction of the gap. Neither is a tuning question, and nothing in
+`data/` moved.
