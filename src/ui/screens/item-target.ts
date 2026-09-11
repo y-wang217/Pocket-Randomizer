@@ -22,6 +22,8 @@ import type { PokemonState } from '../../core/types';
 import type { Tuning } from '../../data/tuning';
 import { moveCardData } from '../move-detail';
 import { el, moveCard } from '../scene';
+import { setProse, type Prose } from '../dom';
+import { TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
 import { typeChip } from './starter-select';
 
 export interface ItemTargetScreen {
@@ -53,7 +55,7 @@ export function createItemTargetScreen(): ItemTargetScreen {
       // assigned on the party screen, where the choice is free and reversible.
       // What is left is the two cards that teach a move, and that choice is
       // neither. See `rewards.isTargeted`.
-      blurb.textContent = 'Who learns it? You choose what it replaces next.';
+      setProse(blurb, TARGET_COPY.blurb);
 
       /*
        * The move itself, as the same card the reward screen draws. **Patch
@@ -115,8 +117,7 @@ function renderTarget(
   meta.append(hp);
 
   const effect = el('span', 'target__effect');
-  effect.textContent = effectOn(reward, member);
-  if (effect.textContent.startsWith('No use')) effect.classList.add('target__effect--dud');
+  setProse(effect, effectOn(reward, member));
 
   button.append(header, track, meta, effect);
   button.addEventListener('click', () => onTarget(index));
@@ -140,9 +141,9 @@ function renderTarget(
  * at all. `replacementNeeded` is the same function `playRun` gates the prompt
  * on, so the line and the flow cannot disagree.
  */
-function effectOn(reward: TargetedReward, member: PokemonState): string {
+function effectOn(reward: TargetedReward, member: PokemonState): Prose {
   const need = replacementNeeded(member, reward.move);
-  if (need === 'known') return `Already knows ${reward.move}. Taking it here restores its PP.`;
-  if (need === 'free') return `Has a free move slot. ${reward.move} goes straight in.`;
-  return `Knows four moves. You choose which one ${reward.move} replaces.`;
+  if (need === 'known') return TARGET_EFFECT.known(reward.move);
+  if (need === 'free') return TARGET_EFFECT.free(reward.move);
+  return TARGET_EFFECT.choose(reward.move);
 }

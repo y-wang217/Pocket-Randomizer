@@ -77,6 +77,8 @@ export function worstCaseParty(state: RunState): PokemonState[] {
     // Held items are on the spec, which is what the adapter reads. One of
     // each, from the top of the whitelist, so no two chips read the same.
     spec: { ...member.spec, item: ITEMS[index % ITEMS.length]?.id ?? member.spec.item },
+    // And on the member, which is what the party screen and the drawer read.
+    item: ITEMS[index % ITEMS.length]?.id,
     hp: index % 3 === 1 ? Math.max(1, Math.floor(member.maxHp * 0.4)) : member.maxHp,
     status: index === 1 ? 'brn' : index === 4 ? 'par' : null,
     contribution: {

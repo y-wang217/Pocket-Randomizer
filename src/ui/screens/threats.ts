@@ -34,12 +34,13 @@
  * file to change a wording, and two screens rendering this is exactly the count
  * at which a sentence written inline starts to drift.
  *
- * ## Verbosity
+ * ## Density
  *
  * Simple shows the type list. Detailed adds `hits 3 of 4, unanswered` per type.
- * Presentation only — the flag is read here, in `ui/`, and `partyThreats` has
- * no idea it exists. `test/verbosity.test.ts` greps `src/core/` for any mention
- * of it, so the split is enforced rather than intended.
+ * Presentation only — the mode is a root attribute the stylesheet reads, and
+ * `partyThreats` has no idea it exists. `test/density.test.ts` greps
+ * `src/core/` for any mention of it, so the split is enforced rather than
+ * intended.
  */
 import { partyThreats, threatDetail, threatDetailLine, threatLine, THREAT_EXPLAINER, THREAT_TITLE, type ThreatEntry } from '../../core/typeMatchup';
 import type { PokemonState } from '../../core/types';
@@ -81,6 +82,13 @@ export function createThreatReadout(options: ThreatOptions = {}): ThreatReadout 
   } else {
     const heading = el('h3', 'threats__title');
     heading.textContent = THREAT_TITLE;
+    // The explainer on the title's tip: Pocket hides the paragraph under the
+    // list and the title says it. The same `threat:` tip a chip carries, with
+    // the sentence on the trigger. Density modes patch.
+    heading.dataset['tip'] = 'threat:about';
+    heading.dataset['detail'] = THREAT_EXPLAINER;
+    heading.tabIndex = 0;
+    heading.setAttribute('role', 'button');
     root.append(heading, body);
   }
 
@@ -126,18 +134,30 @@ export function createThreatReadout(options: ThreatOptions = {}): ThreatReadout 
  * member's problem or the whole team's, and withholding it from the spoken
  * version would make Simple a different readout rather than a shorter one.
  *
- * **The count is always rendered from 4.7.2, and `[data-verbosity]` decides
+ * **The count is always rendered from 4.7.2, and `[data-density]` decides
  * whether it shows.** It used to take a `detailed` flag and omit the span in
  * Simple, which meant a toggle could only reach this list by re-rendering it —
  * and the map is one of exactly two screens the old subscription redrew. The
  * span is cheap, the aria-label already said the same thing in both modes, and
  * a mode that is a CSS concern is a mode that reaches a list already on screen.
- * See `ui/theme/verbosity.ts`.
+ * See `ui/theme/density.ts`.
  */
 function renderThreat(entry: ThreatEntry): HTMLElement {
   const item = el('li', 'threats__item');
   item.setAttribute('aria-label', threatDetailLine(entry));
-  item.append(typeChip(entry.type));
+  /*
+   * The chip carries the count for the tooltip layer. **Density modes patch.**
+   * Pocket hides the count beside the chip and a tap on the chip says it:
+   * the same sentence the `aria-label` speaks, from `core/typeMatchup.ts`,
+   * carried on the trigger rather than looked up, because the count is a
+   * fact about this party and this render and not a table entry.
+   */
+  const chip = typeChip(entry.type);
+  chip.dataset['tip'] = `threat:${entry.type}`;
+  chip.dataset['detail'] = threatDetailLine(entry);
+  chip.tabIndex = 0;
+  chip.setAttribute('role', 'button');
+  item.append(chip);
 
   const count = el('span', 'threats__count');
   count.textContent = threatDetail(entry);

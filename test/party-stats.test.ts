@@ -22,7 +22,7 @@ import type { PokemonState } from '../src/core/types';
 import { STAT_ORDER, statInfo } from '../src/data/statInfo';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { memberCardContents } from '../src/ui/member-card';
-import { resetSettings, setVerbosity } from '../src/ui/settings';
+import { resetSettings, setDensity } from '../src/ui/settings';
 
 function started(): RunState {
   return chooseStarter(createRun('PARTY-STATS', DEFAULT_TUNING), 0);
@@ -40,7 +40,8 @@ function distinctMember(): PokemonState {
 function rowsOf(member: PokemonState): { label: string; value: string; declared: string }[] {
   const card = memberCardContents(member, { holding: null, tuning: DEFAULT_TUNING });
   return [...card.querySelectorAll('.stats--party .stat')].map((row) => ({
-    label: row.querySelector('.stat__label')?.textContent ?? '',
+    // The long form; the short form is beside it for Simple. Density patch.
+    label: row.querySelector('.stat__label-long')?.textContent ?? '',
     value: row.querySelector('.stat__value')?.textContent ?? '',
     declared: (row.querySelector('.stat__bar-fill') as HTMLElement | null)?.style.width ?? '',
   }));
@@ -121,16 +122,16 @@ describe('the six stat rows on a member card', () => {
   });
 
   /*
-   * Verbosity is asserted here only as far as it is settled at this step: the
-   * bar's width is computed in both modes, because the component writes it
-   * before deciding what to show. Which of the two is *visible* is ruling 3's,
-   * and `test/verbosity.test.ts` owns it from step 4.
+   * Density is asserted here only as far as the component settles it: the
+   * bar's width is computed in every mode, because the component writes it
+   * before deciding what to show. Which is *visible* is the stylesheet's, and
+   * `test/visual-density.test.ts` owns it in a browser.
    */
   it('computes the bar width in both modes, since the mode decides display and not data', () => {
     const member = distinctMember();
-    setVerbosity('detailed');
+    setDensity('detailed');
     const detailed = rowsOf(member).map((row) => row.declared);
-    setVerbosity('simple');
+    setDensity('simple');
     const simple = rowsOf(member).map((row) => row.declared);
     expect(detailed).toEqual(simple);
     expect(detailed.every((declared) => declared.endsWith('%'))).toBe(true);

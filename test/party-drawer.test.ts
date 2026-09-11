@@ -130,7 +130,9 @@ describe('the drawer itself', () => {
 
     const buttons = [...drawer.root.querySelectorAll('button')];
     const labels = [...new Set(buttons.map((button) => button.textContent))];
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['Close', 'Explain']);
+    // `+` is the Pocket fold on each card (`ui/collapse.ts`): it flips an
+    // attribute on the card and writes nothing. Density modes patch.
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close', 'Explain']);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —

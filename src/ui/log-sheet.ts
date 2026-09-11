@@ -84,8 +84,14 @@ export function createLogSheet(): LogSheet {
       root.hidden = false;
       // The newest line, which is what a player opening the history is looking
       // for. The log scrolls itself on append, but a container that was hidden
-      // while the turn resolved had no height to scroll.
-      panel.scrollTop = panel.scrollHeight;
+      // while the turn resolved had no height to scroll. Instant rather than
+      // the panel's smooth `scroll-behavior`: a glide from turn one to turn
+      // twenty on every open is motion nobody asked for, and the Pocket gate
+      // reads the latest line the moment the sheet opens.
+      // jsdom has no `scrollTo` on an element; a browser has, and it is the
+      // one that has a smooth `scroll-behavior` to bypass.
+      if (typeof panel.scrollTo === 'function') panel.scrollTo({ top: panel.scrollHeight, behavior: 'instant' as ScrollBehavior });
+      else panel.scrollTop = panel.scrollHeight;
       close.focus();
     },
     close() {

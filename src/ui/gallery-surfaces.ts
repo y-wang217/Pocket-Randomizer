@@ -41,14 +41,19 @@ export const GALLERY_SURFACES = [...DECISION_SURFACES, ...OVERLAY_SURFACES, ...A
 export type GallerySurface = (typeof GALLERY_SURFACES)[number];
 
 /**
- * The surfaces with two honest densities rather than three (ruling 5).
+ * The surfaces with two honest densities rather than three.
  *
- * Detailed differs from both; Simple equals Pocket. The measured reason for
- * each is in the patch report, and `test/visual-coverage.test.ts` asserts the
- * equality so a surface that gains a third density is noticed rather than
- * quietly exempt.
+ * Ruling 5 on the report let the log sheet and the target screen be
+ * two-valued, on the report's finding that neither had a third density to
+ * give. Measured, both have three: the chrome scale is one global axis and
+ * it is visible on a sheet's padding and a member button's as on every other
+ * surface, so no per-screen difference was manufactured and nothing is
+ * exempt. The list is kept, empty, with the coverage test's equality
+ * assertion behind it, so a surface that genuinely has two densities is
+ * recorded here rather than made to differ. The measurement is in the patch
+ * report.
  */
-export const TWO_VALUED_SURFACES = ['log-sheet', 'target'] as const;
+export const TWO_VALUED_SURFACES = [] as const;
 
 /** The router's screens, for the count the density test holds. */
 export const ROUTER_SCREEN_COUNT = 12;

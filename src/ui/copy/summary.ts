@@ -21,6 +21,8 @@ export interface TierRow {
   range: string;
   /** One line. Sentence case, a fact about the distance. */
   copy: string;
+  /** The same fact in fewer words, for Simple and Pocket. Density modes patch. */
+  short: string;
   /** A tiny inline SVG glyph on a 12x12 grid, in the display's neutral. */
   icon: string;
 }
@@ -29,11 +31,11 @@ const glyph = (body: string): string =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" aria-hidden="true" shape-rendering="crispEdges">${body}</svg>`;
 
 export const TIER_ROWS: readonly TierRow[] = [
-  { min: 0, max: 2, range: '0 – 2', copy: 'The first gyms. The kit was still finding its shape.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/>') },
-  { min: 3, max: 4, range: '3 – 4', copy: 'Past the opening. The party had a plan, and the map had an answer.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/><rect x="4" y="6" width="4" height="3" fill="currentColor"/>') },
-  { min: 5, max: 6, range: '5 – 6', copy: 'The far side of the map. Most runs do not see it.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/><rect x="4" y="6" width="4" height="3" fill="currentColor"/><rect x="5" y="3" width="2" height="3" fill="currentColor"/>') },
-  { min: 7, max: 7, range: '7', copy: 'One gym short. The last leader is the whole run in one fight.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/><rect x="4" y="6" width="4" height="3" fill="currentColor"/><rect x="5" y="3" width="2" height="3" fill="currentColor"/><rect x="5" y="1" width="2" height="1" fill="currentColor"/>') },
-  { min: 8, max: 8, range: '8', copy: 'All eight. The run is finished, and the seed is worth sharing.', icon: glyph('<rect x="1" y="9" width="10" height="2" fill="currentColor"/><rect x="3" y="6" width="6" height="3" fill="currentColor"/><rect x="5" y="3" width="2" height="3" fill="currentColor"/><rect x="4" y="1" width="4" height="1" fill="currentColor"/><rect x="5" y="0" width="2" height="1" fill="currentColor"/>') },
+  { min: 0, max: 2, range: '0 – 2', copy: 'The first gyms. The kit was still finding its shape.', short: 'The first gyms.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/>') },
+  { min: 3, max: 4, range: '3 – 4', copy: 'Past the opening. The party had a plan, and the map had an answer.', short: 'Past the opening.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/><rect x="4" y="6" width="4" height="3" fill="currentColor"/>') },
+  { min: 5, max: 6, range: '5 – 6', copy: 'The far side of the map. Most runs do not see it.', short: 'The far side of the map.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/><rect x="4" y="6" width="4" height="3" fill="currentColor"/><rect x="5" y="3" width="2" height="3" fill="currentColor"/>') },
+  { min: 7, max: 7, range: '7', copy: 'One gym short. The last leader is the whole run in one fight.', short: 'One gym short.', icon: glyph('<rect x="2" y="9" width="8" height="2" fill="currentColor"/><rect x="4" y="6" width="4" height="3" fill="currentColor"/><rect x="5" y="3" width="2" height="3" fill="currentColor"/><rect x="5" y="1" width="2" height="1" fill="currentColor"/>') },
+  { min: 8, max: 8, range: '8', copy: 'All eight. The run is finished, and the seed is worth sharing.', short: 'All eight.', icon: glyph('<rect x="1" y="9" width="10" height="2" fill="currentColor"/><rect x="3" y="6" width="6" height="3" fill="currentColor"/><rect x="5" y="3" width="2" height="3" fill="currentColor"/><rect x="4" y="1" width="4" height="1" fill="currentColor"/><rect x="5" y="0" width="2" height="1" fill="currentColor"/>') },
 ];
 
 /** The row a count of cleared gyms lands on. Every value 0 to 8 lands on one. */

@@ -51,6 +51,8 @@ import type { RelicId } from '../data/relics';
 import { relicById } from '../data/relics';
 import type { Tuning } from '../data/tuning';
 import { el } from './scene';
+import { setProse } from './dom';
+import { DRAWER_COPY } from './copy/screens';
 import { memberCardContents } from './member-card';
 
 export interface DrawerView {
@@ -117,7 +119,7 @@ export function createDrawer(): Drawer {
   relics.dataset['tutorial'] = 'drawer-relics';
 
   const note = el('p', 'drawer__note');
-  note.textContent = 'Read only. Items are assigned on the party screen.';
+  setProse(note, DRAWER_COPY.note);
 
   sheet.append(header, blurb, members, relics, note);
   root.append(scrim, sheet);
@@ -164,9 +166,7 @@ export function createDrawer(): Drawer {
     open(view) {
       open = true;
       root.hidden = false;
-      blurb.textContent = view.inBattle
-        ? 'Your side, as the fight has left it.'
-        : 'What you are carrying right now.';
+      setProse(blurb, view.inBattle ? DRAWER_COPY.inBattle : DRAWER_COPY.carrying);
 
       members.replaceChildren(
         ...view.party.map((member, index) =>
@@ -192,6 +192,10 @@ export function createDrawer(): Drawer {
           if (!entry) continue;
           const chip = el('span', 'badge badge--relic');
           chip.textContent = entry.name;
+          // The description on tap: `ui/tooltips.ts`, `relic:`. Density patch.
+          chip.dataset['tip'] = `relic:${entry.id}`;
+          chip.tabIndex = 0;
+          chip.setAttribute('role', 'button');
           list.append(chip);
         }
         relics.append(heading, list);

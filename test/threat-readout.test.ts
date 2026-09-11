@@ -28,7 +28,7 @@ import type { PokemonState } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { createScene, moveFacts } from '../src/ui/scene';
-import { resetSettings, setVerbosity } from '../src/ui/settings';
+import { resetSettings, setDensity } from '../src/ui/settings';
 import { createThreatReadout } from '../src/ui/screens/threats';
 import { typeChip } from '../src/ui/chip';
 
@@ -160,16 +160,16 @@ describe('nothing on screen implies a ranking or a severity', () => {
  * readout built per mode can only follow a toggle by being re-rendered, and the
  * map was one of only two screens the old subscription redrew.
  *
- * The count is now always in the DOM and `:root[data-verbosity="simple"]` hides
+ * The count is now always in the DOM and `:root[data-density="simple"]` hides
  * it, so what these can still assert in jsdom is that the *data* is present and
  * identical in both modes. **Whether it is on screen is a computed-style
  * question and jsdom has no stylesheet**, so that half moved to
- * `test/visual-verbosity.test.ts`, which asserts it in a browser, per surface,
+ * `test/visual-density.test.ts`, which asserts it in a browser, per surface,
  * both ways.
  */
-describe('verbosity is presentation only', () => {
+describe('density is presentation only', () => {
   it('builds the same list in Simple as in Detailed, down to the counts', () => {
-    setVerbosity('simple');
+    setDensity('simple');
     const readout = createThreatReadout();
     readout.render(WATER);
 
@@ -179,7 +179,7 @@ describe('verbosity is presentation only', () => {
   });
 
   it('carries the members-hit figure per type, for the stylesheet to show or hide', () => {
-    setVerbosity('detailed');
+    setDensity('detailed');
     const readout = createThreatReadout();
     readout.render(WATER);
 
@@ -190,18 +190,18 @@ describe('verbosity is presentation only', () => {
   it('lists the same types in both modes, because the flag changes no fact', () => {
     const readout = createThreatReadout();
 
-    setVerbosity('simple');
+    setDensity('simple');
     readout.render(WATER);
     const simple = chipsOf(readout.root);
 
-    setVerbosity('detailed');
+    setDensity('detailed');
     readout.render(WATER);
 
     expect(chipsOf(readout.root)).toEqual(simple);
   });
 
   it('speaks the count in both modes, because a screen reader has no density problem', () => {
-    setVerbosity('simple');
+    setDensity('simple');
     const readout = createThreatReadout();
     readout.render(WATER);
 
@@ -322,7 +322,11 @@ describe('the type wheel', () => {
     readout.render(WATER);
 
     for (const chip of readout.root.querySelectorAll('.type')) {
-      expect((chip as HTMLElement).dataset['tip']).toBeUndefined();
+      // Not the wheel. The chip carries the `threat:` tip since the density
+      // modes patch — its own count, for Pocket — which is a fact about this
+      // party and exactly not the general fact the wheel would put beside it.
+      expect((chip as HTMLElement).dataset['tip']).not.toMatch(/^type:/);
+      expect((chip as HTMLElement).dataset['tip']).toMatch(/^threat:/);
     }
   });
 });

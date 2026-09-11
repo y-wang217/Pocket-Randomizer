@@ -1,31 +1,28 @@
 /**
- * The Simple / Detailed toggle, in a browser, per surface. **Patch 4.7.2.**
+ * The three density modes, in a browser, per surface. **Patch 4.7.2's test,
+ * rewritten by the density modes patch.**
  *
- * `test/verbosity.test.ts` owns the property that matters most — the flag is
- * unreachable from `core/` and a run plays identically in both modes — and it
- * does that by grepping and by replaying. This file owns the other half: that
- * the toggle *visibly does something*, on each of its two real readers, and
- * that flipping back restores what was there.
+ * `test/density.test.ts` owns the property that matters most — the mode is
+ * unreachable from `core/` and a run plays identically in every mode — and it
+ * does that by grepping and by replaying. `test/visual-coverage.test.ts` owns
+ * "every surface differs in every mode", against pixels. This file owns the
+ * definition, per primitive: what each mode *does* to a stat block, a threat
+ * readout, a member card — the facts the definition names, not the pixels.
  *
- * A browser rather than jsdom because from 4.7.2 the mode is a `data-verbosity`
- * attribute on `<html>` and the stylesheet is its only reader. Whether a stat
- * number is on screen is now a computed-style question, and jsdom has no
- * stylesheet to ask.
+ * A browser rather than jsdom because the mode is a `data-density` attribute
+ * on `<html>` and the stylesheet is its only reader. Whether a stat number is
+ * on screen is a computed-style question, and jsdom has no stylesheet to ask.
  *
- * ## The two surfaces, and the one that is not asserted
- *
- * **Ruling 2: the battle panel does not branch on verbosity in this patch.**
- * The original brief asked for it, and hiding the exact HP digits in Simple was
- * proposed and rejected — exact HP is the most decision-relevant number on the
- * screen and hiding it removes the read rather than decluttering it. V5.3 had
- * already taken the six-stat block off that panel, so there is nothing left
- * there for the flag to govern. The two real readers are the **party screen**
- * and the **threat readout**, and those are what is asserted.
+ * Each mode is a fresh context with the mode stored, the same path the app
+ * takes on a stored preference. The header toggle still flips Detailed and
+ * Simple until the picker lands at step 7; the last case uses it to assert
+ * that a mode change reaches a screen already open without a redraw.
  */
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import type { Density } from '../src/ui/settings';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -48,23 +45,26 @@ async function paintedCount(page: Page, selector: string): Promise<number> {
   }, selector);
 }
 
+/** The visible text of the first element matching a selector, or null. */
+async function visibleText(page: Page, selector: string): Promise<string | null> {
+  return page.evaluate((sel) => {
+    const node = globalThis.document.querySelector<HTMLElement>(sel);
+    return node ? node.innerText.trim() : null;
+  }, selector);
+}
+
 const mode = (page: Page): Promise<string | null> =>
-  page.evaluate(() => globalThis.document.documentElement.getAttribute('data-verbosity'));
+  page.evaluate(() => globalThis.document.documentElement.getAttribute('data-density'));
 
-const toggle = async (page: Page): Promise<void> => {
-  await page.locator('.verbosity__toggle').first().click();
-  // No re-render to wait for; this is the paint after the attribute lands.
-  await page.waitForTimeout(120);
-};
-
-/** Play to the map and open the party screen from its header. */
-async function toParty(page: Page): Promise<void> {
+/** Open the app with a stored mode and play to the party screen. */
+async function partyIn(density: Density): Promise<{ page: Page; close: () => Promise<void> }> {
+  const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density });
   for (let step = 0; step < 600; step++) {
     const screen = await openScreen(page);
     if (screen === 'map') {
       await page.locator(`${visible('map')} .party__header .button`).click();
       await page.waitForTimeout(200);
-      return;
+      return { page, close: () => context.close() };
     }
     if (!screen) {
       await page.waitForTimeout(40);
@@ -76,156 +76,152 @@ async function toParty(page: Page): Promise<void> {
   throw new Error('never reached the map');
 }
 
-describe('the verbosity toggle', () => {
-  it('starts in Detailed, which is the first-launch default', async () => {
+describe('the density modes', () => {
+  it('start in Detailed on a fresh store, which is the first-launch default', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     expect(await mode(page)).toBe('detailed');
     await context.close();
   }, 300_000);
 
   /**
-   * The two modes, on the surface the definition was written for.
-   *
-   * **Patch 4.8.0.2: Detailed shows the number alone, Simple the bar alone.**
-   * 4.7.2's ruling 3 had Detailed show both, and the playtest read a bar
-   * beside every number as "stats are bars now"; the Stage 4.5.1 Part 5
-   * definition is back. Neither mode renders a row with neither, and the two
-   * counts are equal across the flip because each row swaps one for the other.
+   * The stat block, per the definition: Detailed is six full labels and six
+   * numbers; Simple six abbreviations and six numbers; Pocket six bars with
+   * no number on screen. All six together in every mode — the counts are
+   * asserted as sixes, never as "some".
    */
-  it('changes the party screen, and changes it back', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    await toParty(page);
-
-    const bars = () => paintedCount(page, '.stats--party .stat__bar-fill');
-    const numbers = () => paintedCount(page, '.stats--party .stat__value');
-
-    const detailedNumbers = await numbers();
-    expect(detailedNumbers, 'Detailed must show numbers').toBeGreaterThan(0);
-    expect(await bars(), 'Detailed must show no bars (4.8.0.2)').toBe(0);
-
-    await toggle(page);
-    expect(await mode(page)).toBe('simple');
-    expect(await numbers(), 'Simple must drop the numbers').toBe(0);
-    expect(await bars(), 'Simple must show a bar per row').toBe(detailedNumbers);
-
-    await toggle(page);
+  it('Detailed: full stat labels and numbers, no bars', async () => {
+    const { page, close } = await partyIn('detailed');
     expect(await mode(page)).toBe('detailed');
-    expect(await numbers()).toBe(detailedNumbers);
-    expect(await bars()).toBe(0);
-    await context.close();
+    expect(await paintedCount(page, '.stats--party .stat__value')).toBeGreaterThanOrEqual(6);
+    expect(await paintedCount(page, '.stats--party .stat__bar-fill')).toBe(0);
+    expect(await visibleText(page, '.stats--party .stat__label')).toBe('Hit Points');
+    await close();
+  }, 600_000);
+
+  it('Simple: abbreviated stat labels and numbers, no bars', async () => {
+    const { page, close } = await partyIn('simple');
+    expect(await mode(page)).toBe('simple');
+    expect(await paintedCount(page, '.stats--party .stat__value')).toBeGreaterThanOrEqual(6);
+    expect(await paintedCount(page, '.stats--party .stat__bar-fill')).toBe(0);
+    expect(await visibleText(page, '.stats--party .stat__label')).toBe('HP');
+    await close();
+  }, 600_000);
+
+  it('Pocket: six bars per block and no number on screen', async () => {
+    const { page, close } = await partyIn('pocket');
+    expect(await mode(page)).toBe('pocket');
+    const cards = await paintedCount(page, '.screen--party .party__member');
+    expect(cards).toBeGreaterThan(0);
+    // The body folds in Pocket; open the first card to reach its stat block.
+    await page.locator(`${visible('party')} .party__member-toggle`).first().click();
+    await page.waitForTimeout(150);
+    expect(await paintedCount(page, '.stats--party .stat__value')).toBe(0);
+    expect(await paintedCount(page, '.stats--party .stat__bar-fill'), 'the opened card shows all six bars').toBe(6);
+    expect(await visibleText(page, '.stats--party .stat__label')).toBe('HP');
+    await close();
   }, 600_000);
 
   /**
-   * The other real reader: the per-type counts on the threat readout.
-   *
-   * **On the party screen, which is where the readout lives.** It was on the
-   * map as well until Stage 4.8, which landed while this patch was in flight
-   * and rebuilt that screen; `screens/party.ts` is now its only mount. Written
-   * against the map first, and the failure after merging 4.8 is what said so —
-   * a good argument for asserting against a screen rather than a coordinate.
-   *
-   * Walks until the readout actually has entries rather than stopping at the
-   * first party screen: a party of one on segment one can have no unanswered
-   * type to list, and an empty list would make this pass by vacuity.
+   * Uniform omission, asserted as the group (the prompt's test 8): every
+   * member card on the party screen folds in Pocket, and none is open until
+   * the player opens one. Counted against the number of cards, never as
+   * "some folded".
    */
-  it('changes the threat readout, and changes it back', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    const counts = () => paintedCount(page, '.threats__count');
-    let reached = false;
-    for (let step = 0; step < 900; step++) {
-      if ((await openScreen(page)) === 'map') {
-        await page.locator(`${visible('map')} .party__header .button`).click();
-        await page.waitForTimeout(200);
-        if ((await counts()) > 0) {
+  it('Pocket folds every member card together, and one tap opens one', async () => {
+    const { page, close } = await partyIn('pocket');
+    const cards = await paintedCount(page, '.screen--party .party__member');
+    expect(cards).toBeGreaterThan(0);
+    expect(await paintedCount(page, '.screen--party .party__member-toggle'), 'one fold control per card').toBe(cards);
+    expect(await paintedCount(page, '.screen--party .party__member .collapse__body'), 'no card starts open').toBe(0);
+    expect(await paintedCount(page, '.screen--party .party__member .panel__hp-text'), 'the HP line is on the bar in Pocket').toBe(0);
+    await page.locator(`${visible('party')} .party__member-toggle`).first().click();
+    await page.waitForTimeout(150);
+    expect(await paintedCount(page, '.screen--party .party__member .collapse__body'), 'the tap opens that card').toBe(1);
+    // The bar's tap says the line the card's text says in Detailed.
+    await page.locator(`${visible('party')} .party__member .hp[data-tip]`).first().click();
+    await page.waitForTimeout(120);
+    expect(await visibleText(page, '.tip .tip__text')).toMatch(/HP/);
+    await close();
+  }, 600_000);
+
+  /**
+   * The same rule on the battle buttons: in Pocket all four drop the category,
+   * the base power and the effect line together; in Detailed all four keep
+   * them. Asserted against the count of buttons, so a screen with three moves
+   * holds the rule for three.
+   */
+  it('Pocket drops the same regions from every move button together', async () => {
+    for (const density of ['detailed', 'pocket'] as const) {
+      const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density });
+      let reached = false;
+      for (let step = 0; step < 900; step++) {
+        if ((await openScreen(page)) === 'battle') {
           reached = true;
           break;
         }
-        // Nothing listed yet: leave the party screen and play on.
         await stepOnce(page);
         await page.waitForTimeout(25);
-        continue;
       }
-      await stepOnce(page);
-      await page.waitForTimeout(25);
+      expect(reached, `${density}: the run never reached a battle`).toBe(true);
+      await page.waitForTimeout(200);
+      const buttons = await paintedCount(page, `${visible('battle')} .moves .move`);
+      expect(buttons).toBeGreaterThan(0);
+      const categories = await paintedCount(page, `${visible('battle')} .moves .move .badge--category`);
+      const names = await paintedCount(page, `${visible('battle')} .moves .move .move__name`);
+      expect(names, `${density}: every button keeps its name`).toBe(buttons);
+      expect(categories, `${density}: the category goes from all or from none`).toBe(density === 'pocket' ? 0 : buttons);
+      await context.close();
     }
-    expect(reached, 'the run never reached a party screen with threats listed').toBe(true);
-    const chips = () => paintedCount(page, '.threats__item .type');
-
-    const detailedCounts = await counts();
-    const listed = await chips();
-
-    await toggle(page);
-    expect(await counts(), 'Simple must drop the counts').toBe(0);
-    expect(await chips(), 'Simple must keep the types: shorter, not different').toBe(listed);
-
-    await toggle(page);
-    expect(await counts()).toBe(detailedCounts);
-    await context.close();
-  }, 600_000);
+  }, 900_000);
 
   /**
-   * Ruling 4, on the drawer — and the one surface where "already open" is not
-   * a state a player can toggle from.
+   * The threat readout's counts: beside the chip in Detailed and Simple, on
+   * the chip's tap in Pocket. The chips themselves are in every mode.
    *
-   * The drawer is `aria-modal="true"` with a scrim over the whole viewport, and
-   * the toggle lives in the app header underneath it. Playwright refuses the
-   * click for exactly the reason a thumb would miss it: the surface is modal.
-   * So the live-change assertion belongs on the non-modal surfaces below and
-   * above, and what is asserted here is the property that *is* reachable —
-   * **the drawer shows the current mode every time it opens, in both modes.**
-   * That is the case ruling 4's own fallback names, "re-render on drawer open",
-   * and for a modal surface it is not a fallback but the whole of the case.
-   *
-   * It still exercises the mechanism rather than a redraw: the drawer's cards
-   * are built once on open, from `memberCardContents`, which no longer asks
-   * what mode it is in.
+   * Walks until the readout has entries rather than stopping at the first
+   * party screen: a party of one on segment one can have no unanswered type
+   * to list, and an empty list would make this pass by vacuity.
    */
-  it('shows the current mode every time the drawer opens', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    for (let step = 0; step < 600; step++) {
-      if ((await openScreen(page)) === 'map') break;
-      await stepOnce(page);
-      await page.waitForTimeout(25);
+  it('keeps the threat counts on screen through Simple and behind a tap in Pocket', async () => {
+    for (const density of ['detailed', 'simple', 'pocket'] as const) {
+      const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density });
+      let reached = false;
+      for (let step = 0; step < 900; step++) {
+        if ((await openScreen(page)) === 'map') {
+          await page.locator(`${visible('map')} .party__header .button`).click();
+          await page.waitForTimeout(200);
+          if ((await paintedCount(page, '.threats__item')) > 0) {
+            reached = true;
+            break;
+          }
+          await stepOnce(page);
+          await page.waitForTimeout(25);
+          continue;
+        }
+        await stepOnce(page);
+        await page.waitForTimeout(25);
+      }
+      expect(reached, `${density}: the run never reached a party screen with threats listed`).toBe(true);
+      const listed = await paintedCount(page, '.threats__item .type');
+      const counts = await paintedCount(page, '.threats__count');
+      if (density === 'pocket') {
+        expect(counts, 'Pocket moves the counts behind a tap').toBe(0);
+        await page.locator('.threats__item .type').first().click();
+        await page.waitForTimeout(120);
+        expect(await visibleText(page, '.tip .tip__text'), 'the tap says the count').toMatch(/hits \d+ of \d+/);
+      } else {
+        expect(counts, `${density} keeps every count on screen`).toBe(listed);
+      }
+      await context.close();
     }
-
-    const numbers = () => paintedCount(page, '.drawer .stat__value');
-    const bars = () => paintedCount(page, '.drawer .stat__bar-fill');
-    const open = async () => {
-      await page.locator('.drawer__trigger').first().click();
-      await page.waitForTimeout(200);
-    };
-    const close = async () => {
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(200);
-    };
-
-    await open();
-    const detailedNumbers = await numbers();
-    expect(detailedNumbers, 'the drawer must open with cards in it').toBeGreaterThan(0);
-    // 4.8.0.2: Detailed is numbers alone.
-    expect(await bars()).toBe(0);
-    await close();
-
-    await toggle(page);
-    await open();
-    expect(await numbers(), 'reopened in Simple: no numbers').toBe(0);
-    expect(await bars(), 'reopened in Simple: a bar per row').toBe(detailedNumbers);
-    await close();
-
-    await toggle(page);
-    await open();
-    expect(await numbers(), 'reopened in Detailed: the numbers are back').toBe(detailedNumbers);
-    await context.close();
-  }, 600_000);
+  }, 900_000);
 
   /**
    * Ruling 4's live case, on a non-modal screen the old subscription never
-   * redrew.
-   *
-   * pre-gym draws member cards, is not the map and is not the party screen, so
-   * before this patch a toggle flipped while it was open did nothing at all
-   * until the player navigated away and back. Nothing re-renders it here
-   * either — the attribute lands on `<html>` and the card follows.
+   * redrew: the attribute lands on `<html>` and an open pre-gym screen
+   * follows without navigating away. The header toggle flips Detailed and
+   * Simple, which is enough to prove the mechanism; the picker (step 7) is
+   * the same setter.
    */
   it('takes effect on pre-gym while it is open, without navigating away', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
@@ -241,20 +237,15 @@ describe('the verbosity toggle', () => {
     expect(reached, 'the run must reach a pre-gym screen').toBe(true);
     await page.waitForTimeout(200);
 
-    const numbers = () => paintedCount(page, `${visible('pre-gym')} .stat__value`);
-    const bars = () => paintedCount(page, `${visible('pre-gym')} .stat__bar-fill`);
-    const before = await numbers();
-    expect(before).toBeGreaterThan(0);
-    // 4.8.0.2: Detailed is numbers alone.
-    expect(await bars()).toBe(0);
-
-    await toggle(page);
-    expect(await numbers()).toBe(0);
-    expect(await bars()).toBe(before);
-
-    await toggle(page);
-    expect(await numbers()).toBe(before);
-    expect(await bars()).toBe(0);
+    const label = () => visibleText(page, `${visible('pre-gym')} .stat__label`);
+    expect(await label()).toBe('Hit Points');
+    await page.locator('.density__toggle').first().click();
+    await page.waitForTimeout(120);
+    expect(await mode(page)).toBe('simple');
+    expect(await label(), 'the open screen took the mode with no redraw').toBe('HP');
+    await page.locator('.density__toggle').first().click();
+    await page.waitForTimeout(120);
+    expect(await label()).toBe('Hit Points');
     await context.close();
   }, 900_000);
 });

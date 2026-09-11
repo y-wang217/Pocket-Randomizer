@@ -52,8 +52,11 @@ import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
-import { TIER_INFO } from '../../data/tierInfo';
+import { TIER_INFO, TIER_INFO_SHORT } from '../../data/tierInfo';
+import { prose, type Prose } from '../dom';
+import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
+import { hpTip } from '../member-card';
 import { el } from '../scene';
 import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
@@ -65,15 +68,6 @@ const KIND_LABELS: Record<NodeSpec['kind'], string> = {
   gym: 'Gym',
   shop: 'Shop',
   event: '?',
-};
-
-const KIND_HINTS: Record<NodeSpec['kind'], string> = {
-  wild: 'A wild Pokemon. Cheaper than a trainer, and still costs something.',
-  trainer: 'A trained Pokemon. Tougher, and the level band is higher.',
-  rest: 'Restore HP, PP and status in full.',
-  gym: 'The gym leader. Beat them and the segment is over.',
-  shop: 'Spend coins on items, healing and moves.',
-  event: 'Something happens. You choose what to do about it.',
 };
 
 export interface RunMap {
@@ -176,6 +170,11 @@ export function createRunMap(): RunMap {
       const gym = segment.gymDefinition;
       const team = segment.gym.encounter?.team.length ?? 1;
       title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${gym.leader}`;
+      // The leader's blurb, on tap. Pocket hides the flavour line under the
+      // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
+      title.dataset['tip'] = `gym:${state.currentSegment}`;
+      title.tabIndex = 0;
+      title.setAttribute('role', 'button');
       subtitle.replaceChildren(
         typeChip(gym.type),
         // The gym's team size is public and the level band is not. Size changes
@@ -418,15 +417,23 @@ function renderNode(
      * against costs nothing in surprise and buys the whole decision.
      */
     const payout = nodePayout(node, segment);
-    const parts: string[] = [];
+    // Numbers as text, prose in both of its forms (density modes patch): the
+    // tier sentence from `data/tierInfo.ts` and the kind's hint from
+    // `ui/copy/screens.ts`, separated by the same middle dot as before.
+    const parts: (string | Prose)[] = [];
     if (payout > 0) parts.push(`${payout} coins`);
-    if (node.tier) parts.push(TIER_INFO[node.tier]);
+    if (node.tier) parts.push({ long: TIER_INFO[node.tier], short: TIER_INFO_SHORT[node.tier] });
     else parts.push(KIND_HINTS[node.kind]);
     if (node.kind === 'shop' && node.shop) {
       const cheapest = Math.min(...node.shop.items.map((item) => item.price));
       parts.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
     }
-    detail.textContent = parts.join(' · ');
+    detail.replaceChildren(
+      ...parts.flatMap((part, index) => [
+        ...(index > 0 ? [document.createTextNode(' · ')] : []),
+        typeof part === 'string' ? document.createTextNode(part) : prose(part),
+      ]),
+    );
   } else {
     detail.textContent = '';
   }
@@ -544,6 +551,8 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
   hp.textContent = member.fainted ? FAINTED : hpState(member.hp, member.maxHp);
+  if (member.fainted) hp.dataset['fainted'] = 'true';
+  hpTip(track, hp.textContent);
   meta.append(hp);
   // What they are holding, because Stage 4 lets the player choose who holds
   // what and a targeting decision you cannot audit is one you cannot learn from.

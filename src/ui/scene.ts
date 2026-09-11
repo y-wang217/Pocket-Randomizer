@@ -920,8 +920,30 @@ function renderMove(
   pp.textContent = `PP ${move.pp}/${move.maxPp}`;
   if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
 
+  /*
+   * The battle bar's own explain affordance. **Density modes patch, and open
+   * item 9 (R8) closed by it.**
+   *
+   * A move card outside a fight carries 4.7.2's expander; the four buttons in
+   * one could not, because a tap on a button spends a turn. Pocket puts the
+   * category, the base power, the effect line and the tags one tap away, so
+   * the button needs a tap that is not the move: a chip on the PP line, a
+   * `data-tip` trigger like every badge on the board, which the tooltip layer
+   * opens and stops — the same rule that keeps a tap on a type chip from
+   * submitting the turn. On the PP line rather than the name, so it costs the
+   * button no height and the name stays the whole width of the tap that
+   * chooses. Present in every mode: the same panel `move:` opens on a card's
+   * expander, and a move looks identical everywhere the player meets it.
+   */
+  const footer = el('span', 'move__footer');
+  const ask = neutralChip('?', 'ask', { tip: `move:${move.id}` });
+  ask.tabIndex = 0;
+  ask.setAttribute('role', 'button');
+  ask.setAttribute('aria-label', `${move.name}: explain`);
+  footer.append(pp, ask);
+
   const tags = moveTagRow(move.tags);
-  button.append(name, meta, ...(tags ? [tags] : []), pp);
+  button.append(name, meta, ...(tags ? [tags] : []), footer);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }

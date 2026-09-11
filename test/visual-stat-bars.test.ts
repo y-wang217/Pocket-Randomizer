@@ -27,7 +27,7 @@
  * bar hidden, and Simple the reverse. So the only mode in which there is a bar
  * to measure is Simple, and the test toggles into it. (4.7.2's step 4 briefly
  * had Detailed show both; patch 4.8.0.2 restored the Stage 4.5.1 definition,
- * so the toggle here stays. `test/visual-verbosity.test.ts` asserts the modes.)
+ * so the toggle here stays. `test/visual-density.test.ts` asserts the modes.)
  */
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -66,7 +66,8 @@ async function statRows(page: Page, screen: string): Promise<Row[]> {
       const box = (node: Element | null) => (node ? node.getBoundingClientRect() : null);
       const text = (value?.textContent ?? '').trim();
       return {
-        label: (row.querySelector('.stat__label')?.textContent ?? '').trim(),
+        // The long form; the short one is beside it for Simple. Density patch.
+        label: (row.querySelector('.stat__label-long')?.textContent ?? '').trim(),
         value: text === '' ? null : Number(text),
         trackWidth: box(track)?.width ?? 0,
         fillWidth: box(fill)?.width ?? 0,
@@ -81,7 +82,9 @@ describe('the party screen stat bars', () => {
   let rows: Row[];
 
   beforeAll(async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    // In Pocket, where the bars are since the density modes patch (Detailed
+    // and Simple print the number). Stored, so the app starts in it.
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density: 'pocket' });
     // Straight to the party screen: it is the first surface a member card
     // reaches and the one the bug was reported on.
     for (let step = 0; step < 600; step++) {
@@ -98,12 +101,8 @@ describe('the party screen stat bars', () => {
       await stepOnce(page);
       await page.waitForTimeout(25);
     }
-    /*
-     * Into Simple, where the bar is the thing on screen. See the header: until
-     * step 4 the bar and the number are swapped rather than shown together, so
-     * Detailed has no bar to measure.
-     */
-    await page.locator('.verbosity__toggle').first().click();
+    // The card's body folds in Pocket; open the first card to reach its bars.
+    await page.locator(`${visible('party')} .party__member-toggle`).first().click();
     // The fill transitions its width over 120ms; measure after it lands.
     await page.waitForTimeout(300);
     rows = await statRows(page, 'party');

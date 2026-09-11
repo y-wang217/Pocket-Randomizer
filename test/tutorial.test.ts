@@ -341,7 +341,7 @@ describe('the first-launch flag', () => {
     layer.showFor('starter', root);
     tapThrough();
     expect(tutorialDue('starter')).toBe(false);
-    // Persisted in the same store as the verbosity toggle, and read back on the next launch.
+    // Persisted in the same store as the density setting, and read back on the next launch.
     expect(loadSettings().tutorial.seen).toContain('starter');
     resetSettings();
     initSettings();

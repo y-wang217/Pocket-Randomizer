@@ -43,7 +43,7 @@ describe('the seed bar on a phone', () => {
 
     // On the same row as the Detail toggle, not a row of its own: the header's
     // height is the battle's and the map's vertical budget.
-    const detail = await page.locator('.verbosity__toggle').boundingBox();
+    const detail = await page.locator('.density__toggle').boundingBox();
     expect(Math.abs((toggle?.y ?? 0) - (detail?.y ?? 0))).toBeLessThan(1);
     expect(await page.evaluate(() => globalThis.document.documentElement.scrollWidth)).toBe(PHONE.width);
 

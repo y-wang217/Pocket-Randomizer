@@ -32,8 +32,14 @@
  * generated from the dex type chart. A string describing a mechanic that lives
  * in a component is a string that drifts from the mechanic.
  */
-import { abilityInfo, typeChart } from '../core/battle/driver';
+import { abilityInfo, describeMove, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
+import { CAPABILITY_LABELS } from '../data/eventCopy';
+import { gymForSegment } from '../data/gyms';
+import { relicById } from '../data/relics';
+import { DEFAULT_TUNING } from '../data/tuning';
+import { moveExplanationRows } from './move-explanation';
+import { moveCardData } from './move-detail';
 import { bandInfo, BAND_MULTIHIT_NOTE } from '../data/bandInfo';
 import { FLAG_BLURBS, flagWord } from '../data/flagWords';
 import type { FlagKind } from '../core/battle/flags';
@@ -60,6 +66,12 @@ type TipKind =
   | 'item'
   | 'category'
   | 'stat'
+  /**
+   * A member card's HP readout, on its bar. Density modes patch, Part 4: in
+   * Pocket the card's HP line is off screen and the bar carries the number,
+   * the same way a stat row's label carries its value.
+   */
+  | 'hp'
   | 'band'
   /** A move tag on a card face. Stage 4.7, Part 6b. */
   | 'movetag'
@@ -79,7 +91,33 @@ type TipKind =
    * because what a player taps a label for is *what the labels are* rather than
    * what that one means. `archetype:all` is the trigger every chip carries.
    */
-  | 'archetype';
+  | 'archetype'
+  /**
+   * A move, explained, from a battle button. **Density modes patch; open item
+   * 9 (R8) closed.** The same rows `ui/move-explanation.ts` builds for a card's
+   * expander, in this layer because a tap on a battle button spends a turn and
+   * a badge tap is the one tap the board already stops. Keyed by move id.
+   */
+  | 'move'
+  /**
+   * A gym leader's blurb, from the map's and the pre-gym screen's title.
+   * Density modes patch: Pocket hides the flavour line and the title says it.
+   * Keyed by segment index; the words are `data/gyms.ts`'s.
+   */
+  | 'gym'
+  /**
+   * How many members a listed threat type reaches. Density modes patch: Pocket
+   * hides the count beside the chip and the chip says it. The sentence rides
+   * on the trigger (`data-detail`), written by `core/typeMatchup.ts`, because
+   * it is a fact about this party and this render rather than a table entry.
+   */
+  | 'threat'
+  /**
+   * A relic's description. Density modes patch: the party screen's relic rows
+   * fold in Pocket and the drawer prints relics as chips, so the words in
+   * `data/relics.ts` need a tap to reach them. Keyed by relic id.
+   */
+  | 'relic';
 
 const KINDS: readonly TipKind[] = [
   'type',
@@ -89,9 +127,14 @@ const KINDS: readonly TipKind[] = [
   'item',
   'category',
   'stat',
+  'hp',
   'band',
   'movetag',
   'archetype',
+  'move',
+  'gym',
+  'threat',
+  'relic',
 ];
 
 export interface TooltipLayer {
@@ -128,7 +171,7 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
   function open(trigger: HTMLElement, byHover: boolean): void {
     const tip = trigger.dataset['tip'];
     if (!tip) return;
-    const body = render(tip);
+    const body = render(tip, trigger);
     if (!body) return;
 
     if (openFor && openFor !== trigger) openFor.removeAttribute('aria-expanded');
@@ -220,7 +263,15 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
 // Content
 // ---------------------------------------------------------------------------
 
-function render(tip: string): HTMLElement | null {
+/**
+ * The panel for one trigger.
+ *
+ * `trigger` is passed for the two tips whose fact lives on the element rather
+ * than in a table — a stat label carries its value, a threat chip its count —
+ * because both are facts about *this* render. Every other tip is a lookup by
+ * id and ignores it.
+ */
+function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
   const separator = tip.indexOf(':');
   if (separator < 0) return null;
   const kind = tip.slice(0, separator) as TipKind;
@@ -240,7 +291,9 @@ function render(tip: string): HTMLElement | null {
     case 'category':
       return renderCategory(id);
     case 'stat':
-      return renderStat(id);
+      return renderStat(id, trigger?.dataset['value']);
+    case 'hp':
+      return renderHp(trigger?.dataset['value']);
     case 'band':
       return renderBand(id);
     case 'movetag':
@@ -249,7 +302,74 @@ function render(tip: string): HTMLElement | null {
       return renderFlag(id);
     case 'archetype':
       return renderArchetypes();
+    case 'move':
+      return renderMoveRows(id);
+    case 'gym':
+      return renderGym(id);
+    case 'threat':
+      return renderThreat(id, trigger?.dataset['detail']);
+    case 'relic':
+      return renderRelic(id);
   }
+}
+
+/**
+ * A move's explanation rows, as the card expander prints them.
+ *
+ * `moveCardData` derives the same tag set the expander is handed, uncapped,
+ * so the panel a battle button opens and the panel a card opens are one
+ * list from one function; `DEFAULT_TUNING` only reaches the face cap, which
+ * the full set does not read.
+ */
+function renderMoveRows(id: string): HTMLElement | null {
+  const move = describeMove(id);
+  if (!move) return null;
+  const body = panel(move.name, 'tip__body--rows');
+  const list = el('div', 'tip__rows');
+  for (const row of moveExplanationRows(move, moveCardData(move, DEFAULT_TUNING).allTags)) {
+    const line = el('div', 'tip__row');
+    const label = el('span', 'tip__row-label');
+    label.textContent = row.label;
+    const value = el('span', 'tip__row-value');
+    value.textContent = row.value;
+    line.append(label, value);
+    list.append(line);
+  }
+  body.append(list);
+  return body;
+}
+
+/** The leader's blurb, from `data/gyms.ts`, keyed by segment. */
+function renderGym(id: string): HTMLElement | null {
+  const segment = Number(id);
+  if (!Number.isInteger(segment) || segment < 0) return null;
+  const gym = gymForSegment(segment);
+  const body = panel(gym.leader);
+  body.append(line(gym.blurb, 'tip__text'));
+  return body;
+}
+
+/** The count a threat chip hides in Pocket, carried on the chip. */
+function renderThreat(type: string, detail: string | undefined): HTMLElement | null {
+  if (!detail) return null;
+  const body = panel(type);
+  body.append(line(detail, 'tip__text'));
+  return body;
+}
+
+/**
+ * A relic's description and what it grants, from `data/relics.ts` and the
+ * capability labels in `data/eventCopy.ts`. The grant is here because the
+ * party screen's relic rows fold to the name in Pocket and the drawer never
+ * printed it: one tap reaches both facts wherever a relic is tapped.
+ */
+function renderRelic(id: string): HTMLElement | null {
+  const relic = relicById(id as Parameters<typeof relicById>[0]);
+  if (!relic) return null;
+  const body = panel(relic.name);
+  body.append(line(relic.playerDescription, 'tip__text'));
+  body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
+  return body;
 }
 
 /**
@@ -374,10 +494,13 @@ function renderCategory(id: string): HTMLElement | null {
  * also the closest this file comes to advice, and it stays on the safe side of
  * Part 4 by naming a term in the damage formula rather than a course of action.
  */
-function renderStat(id: string): HTMLElement | null {
+function renderStat(id: string, value?: string): HTMLElement | null {
   const info = statInfo(id);
   if (!info) return null;
-  const body = panel(`${info.abbreviation} — ${info.label}`);
+  // The value, when the trigger carries one: in Pocket the row is a bar and
+  // this is where the number is. In the title, beside the name it belongs to,
+  // so no sentence is written here. Density modes patch.
+  const body = panel(value ? `${info.abbreviation} ${value} — ${info.label}` : `${info.abbreviation} — ${info.label}`);
   body.append(line(info.mechanics, 'tip__text'));
   if (info.pairsWith) {
     body.append(line(`Resolved against the defender's ${info.pairsWith}.`, 'tip__note'));
@@ -400,6 +523,18 @@ function renderBand(id: string): HTMLElement | null {
   const body = panel(`${info.label} — ${info.range}`);
   body.append(line(info.text, 'tip__text'));
   body.append(line(BAND_MULTIHIT_NOTE, 'tip__note'));
+  return body;
+}
+
+/**
+ * The HP line a member card carries, from the bar's `data-value`: the same
+ * string the card's own text shows, so a tap says exactly what Detailed
+ * prints. Nothing is composed here. Density modes patch, Part 4.
+ */
+function renderHp(value?: string): HTMLElement | null {
+  if (!value) return null;
+  const body = panel(statInfo('hp')?.label ?? value);
+  body.append(line(value, 'tip__text'));
   return body;
 }
 

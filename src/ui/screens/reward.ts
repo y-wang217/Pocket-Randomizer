@@ -47,6 +47,8 @@ import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { tierChip } from '../chip';
 import { el, moveCard } from '../scene';
+import { setProse } from '../dom';
+import { carryingLine, REWARD_COPY } from '../copy/screens';
 import { typeChip } from './starter-select';
 
 /*
@@ -99,29 +101,26 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
       // metadata rather than written here — `blurb` has been that field since
       // Stage 3, so no `playerDescription` was added alongside it.
       detail.textContent = entry?.blurb ?? '';
-      note.textContent = 'Goes to your backpack. Assign it on the party screen.';
+      setProse(note, REWARD_COPY.itemNote);
       break;
     }
 
     case 'currency':
       name.textContent = `${reward.amount} coins`;
-      detail.textContent = 'Spend it at a shop, on items, healing or a move.';
-      note.textContent = `You are carrying ${state.currency}.`;
+      setProse(detail, REWARD_COPY.coins);
+      setProse(note, carryingLine(state.currency));
       break;
 
     case 'heal':
       name.textContent =
         reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
-      detail.textContent = 'Heals HP and PP, and clears status, for the whole party.';
+      setProse(detail, REWARD_COPY.heal);
       break;
 
     case 'tm':
     case 'tutor': {
       name.textContent = reward.move;
-      detail.textContent =
-        reward.kind === 'tutor'
-          ? 'A strong move. You choose who learns it, and what it replaces.'
-          : 'A new move. You choose who learns it, and what it replaces.';
+      setProse(detail, reward.kind === 'tutor' ? REWARD_COPY.tutor : REWARD_COPY.tm);
       /*
        * The band. **Stage 4.6b's badge, on R12's insertion point.**
        *
@@ -164,7 +163,7 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
   }
 
   card.prepend(kind, name, detail);
-  if (note.textContent) card.append(note);
+  if (note.hasChildNodes()) card.append(note);
   if (reward.kind === 'item') {
     const entry = itemById(reward.item);
     if (entry?.boostsType) card.append(typeChip(entry.boostsType));

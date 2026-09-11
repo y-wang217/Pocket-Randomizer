@@ -83,27 +83,14 @@ async function capture(surface: GallerySurface, mode: Density): Promise<string> 
 }
 
 /**
- * Everything that could make two shots of the same mode differ by timing:
- * fonts, every image (the sprite CDN is unreachable here and hides its
- * images on error, which must have happened before either shot), the
- * pointer's hover lift, and the battle feedback window.
+ * Everything that could make two shots differ by timing: fonts, the pointer's
+ * hover lift, and the battle feedback window. Images are not waited on — the
+ * sprite route is refused above, a refused sprite hides itself at its fixed
+ * size, and a lazy image below the fold never starts at all, which a wait on
+ * `complete` would sit on forever.
  */
 async function settle(page: Page): Promise<void> {
   await page.evaluate(() => globalThis.document.fonts.ready);
-  await page.evaluate(() =>
-    Promise.all(
-      [...globalThis.document.images].map(
-        (image) =>
-          new Promise<void>((resolve) => {
-            if (image.complete) resolve();
-            else {
-              image.addEventListener('load', () => resolve(), { once: true });
-              image.addEventListener('error', () => resolve(), { once: true });
-            }
-          }),
-      ),
-    ),
-  );
   await page.mouse.move(0, 0);
   await page.waitForTimeout(700);
 }

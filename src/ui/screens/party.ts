@@ -54,7 +54,10 @@ import { itemById } from '../../data/items';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
 import { neutralChip } from '../chip';
+import { collapsible } from '../collapse';
 import { el } from '../scene';
+import { setProse } from '../dom';
+import { PARTY_COPY } from '../copy/screens';
 import { renderSlots, slotNumber } from '../slots';
 
 import { createThreatReadout } from './threats';
@@ -131,7 +134,7 @@ export function createPartyScreen(): PartyScreen {
   const title = el('h2', 'screen__title');
   title.textContent = 'Your party';
   const blurb = el('p', 'screen__blurb');
-  blurb.textContent = 'The first member leads the next battle. Releasing is permanent.';
+  setProse(blurb, PARTY_COPY.blurb);
 
   /*
    * The threat readout's home, open rather than behind a disclosure.
@@ -369,7 +372,10 @@ function renderManaged(
   );
 
   actions.append(lead, release);
-  card.append(actions);
+  // Into the card's fold (density modes patch): on screen in Detailed and
+  // Simple exactly where they were, one tap behind the head in Pocket with
+  // the stats and moves the decision is made on. Controls, not facts.
+  (card.querySelector('.collapse__body') ?? card).append(actions);
   card.dataset['slot'] = String(index);
   return card;
 }
@@ -380,7 +386,7 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     // Rendered rather than hidden, and phrased as a fact. A player who has
     // taken none should learn the category exists and where they will appear.
     const empty = el('p', 'relics__empty');
-    empty.textContent = 'No relics yet. They come from elite nodes, gyms, and occasionally a shop.';
+    setProse(empty, PARTY_COPY.noRelics);
     root.append(empty);
     return;
   }
@@ -397,6 +403,13 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
 
     const name = el('span', 'relics__name');
     name.textContent = relic.name;
+    // The description on tap, for Pocket, where the row is the name and what
+    // it grants and the paragraph is hidden. The same `relic:` tip the drawer's
+    // chips carry, so a relic reads the same wherever it is tapped. Density
+    // modes patch.
+    name.dataset['tip'] = `relic:${relic.id}`;
+    name.tabIndex = 0;
+    name.setAttribute('role', 'button');
 
     const grants = neutralChip(CAPABILITY_LABELS[relic.grants], 'capability');
 
@@ -407,7 +420,15 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     list.append(row);
   }
 
-  root.append(title, list);
+  root.append(title);
+  // The list folds in Pocket, all of it together, behind the title that
+  // carries the count: on a screen whose decisions are the lead, the items
+  // and a release, what the run has already banked is the secondary fact.
+  // Measured on the worst case, every relic as a name chip ran 151px.
+  // Density modes patch, Part 4.
+  const fold = collapsible(root, [list], 'Relics');
+  fold.toggle.classList.add('relics__toggle');
+  title.append(fold.toggle);
 }
 
 function renderBackpack(
@@ -507,7 +528,14 @@ function renderBackpack(
         }),
       );
 
-      row.append(name, effect, give, drop);
+      /*
+       * The item and its slot stay on the row in every mode; the effect line
+       * and the give and discard controls fold in Pocket, every row together.
+       * Density modes patch, through the one collapsible primitive.
+       */
+      row.append(name);
+      const fold = collapsible(row, [effect, give, drop], entry?.name ?? id);
+      row.append(fold.toggle);
       return row;
     }),
   );
@@ -515,7 +543,7 @@ function renderBackpack(
   const children: HTMLElement[] = [heading, count, slots, rows];
   if (loose.length === 0) {
     const empty = el('p', 'backpack__empty');
-    empty.textContent = 'Nothing loose. Items you win arrive here.';
+    setProse(empty, PARTY_COPY.emptyBag);
     children.push(empty);
   }
   if (discarded.length > 0) {
