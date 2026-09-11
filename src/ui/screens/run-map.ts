@@ -53,6 +53,7 @@ import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { TIER_INFO, TIER_INFO_SHORT } from '../../data/tierInfo';
+import { AI_TIER_DETAIL, AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
@@ -422,6 +423,20 @@ function renderNode(
     // `ui/copy/screens.ts`, separated by the same middle dot as before.
     const parts: (string | Prose)[] = [];
     if (payout > 0) parts.push(`${payout} coins`);
+    /*
+     * Who is across the field, on a fight node. **The AI tiers patch.**
+     *
+     * An attribute, not a verdict: the words name the opponent the way the
+     * kind names the node, and none of them says whether the fight is a good
+     * idea. This is the first thing on this card that describes how a fight
+     * will *play* rather than what it pays, and it is here for the reason the
+     * tier badge is — a risk gradient the player cannot see before the click
+     * is not a decision.
+     */
+    if (node.encounter) {
+      const tier = aiTierFor(node.kind, node.tier, segment);
+      parts.push({ long: `${AI_TIER_LABEL[tier]} · ${AI_TIER_DETAIL[tier]}`, short: AI_TIER_LABEL[tier] });
+    }
     if (node.tier) parts.push({ long: TIER_INFO[node.tier], short: TIER_INFO_SHORT[node.tier] });
     else parts.push(KIND_HINTS[node.kind]);
     if (node.kind === 'shop' && node.shop) {

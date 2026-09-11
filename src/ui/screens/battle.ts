@@ -20,6 +20,7 @@ import { buildBattleUiView, type RevealPolicy } from '../../core/battle/view';
 import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
+import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
@@ -44,6 +45,15 @@ export interface BattleScreen {
     node: NodeSpec,
     reveal: RevealPolicy,
     onChoose: (choice: Choice) => void,
+    /**
+     * Which segment this fight belongs to, so the panel can name the opponent's
+     * skill tier. **The AI tiers patch.**
+     *
+     * Optional, and absent means "do not say": the gallery and the fixed-board
+     * tests attach a session with no run behind it, and a tier invented for
+     * them would be a fact about nothing.
+     */
+    segment?: number,
   ): () => void;
 }
 
@@ -91,14 +101,28 @@ export function createBattleScreen(): BattleScreen {
 
   return {
     root,
-    attach(session, node, reveal, onChoose) {
+    attach(session, node, reveal, onChoose, segment) {
       title.textContent = node.label;
       // Team size on the header, because a gym with three Pokemon is a
       // different fight from one with one and the player is about to budget PP
       // against it.
       const size = node.encounter?.team.length ?? 0;
-      detail.textContent =
-        (node.encounter?.opponent ?? '') + (size > 1 ? ` · ${size} Pokemon` : '');
+      /*
+       * And who is playing it. **The AI tiers patch.**
+       *
+       * The same word the node card showed before the click, so the card's
+       * claim and the fight agree — a readout that changed between the two
+       * would be worse than no readout. An attribute: it names the opponent,
+       * it does not rate the fight.
+       */
+      const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
+      detail.textContent = [
+        node.encounter?.opponent ?? '',
+        ...(size > 1 ? [`${size} Pokemon`] : []),
+        ...(tier ? [AI_TIER_LABEL[tier]] : []),
+      ]
+        .filter((part) => part.length > 0)
+        .join(' · ');
 
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one

@@ -28,7 +28,7 @@ import {
 import { createBattle } from '../src/core/battle/driver';
 import { estimateMatchup } from '../src/core/battle/matchup';
 import { knowledgeFrom } from '../src/core/battle/knowledge';
-import { AI_TIERS, aiTierFor } from '../src/data/ai';
+import { AI_TIER_DETAIL, AI_TIER_LABEL, AI_TIERS, aiTierFor } from '../src/data/ai';
 import { createAiStream, createRng, type SimSeed } from '../src/core/rng';
 import { previewRun } from '../src/core/preview';
 import { playRun, replayRun, scriptedRunPolicy } from '../src/core/run';
@@ -529,6 +529,47 @@ describe('replay with a noisy opponent', () => {
     expect(replayed.outcome).toBe(original.outcome);
     expect(JSON.stringify(replayed.log)).toBe(JSON.stringify(original.log));
   }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// Copy
+// ---------------------------------------------------------------------------
+
+describe('what the player is told', () => {
+  const TIERS = ['easy', 'medium', 'hard'] as const;
+
+  it('names every tier, on both surfaces', () => {
+    for (const tier of TIERS) {
+      expect(AI_TIER_LABEL[tier], `no label for ${tier}`).toBeTruthy();
+      expect(AI_TIER_DETAIL[tier], `no detail for ${tier}`).toBeTruthy();
+    }
+    expect(Object.keys(AI_TIER_LABEL).sort()).toEqual([...TIERS].sort());
+    expect(Object.keys(AI_TIER_DETAIL).sort()).toEqual([...TIERS].sort());
+  });
+
+  it('states attributes and never a verdict', () => {
+    /*
+     * The Part 4 rule, applied to the one new readout in this patch. A tier is
+     * allowed to be *named* — that is a fact about who is across the field, the
+     * way the node's own tier badge is a fact about what it pays. It is not
+     * allowed to be *rated*: no "tough", no "easy", no "avoid", nothing that
+     * tells the player which node to take.
+     */
+    const verdict =
+      /\b(best|better|worse|worst|strong\w*|weak\w*|tough|easy|hard|dangerous|risky|superior|inferior|optimal|ideal|recommend\w*|avoid)\b/i;
+    for (const tier of TIERS) {
+      expect(AI_TIER_LABEL[tier], `${tier} label reads as a verdict`).not.toMatch(verdict);
+      expect(AI_TIER_DETAIL[tier], `${tier} detail reads as a verdict`).not.toMatch(verdict);
+    }
+  });
+
+  it('describes behaviour rather than difficulty, which is what makes it an attribute', () => {
+    // Each line says what the opponent *does*. A player can check it against
+    // the fight; a difficulty rating is not checkable against anything.
+    expect(AI_TIER_DETAIL.easy).toMatch(/Stays in/);
+    expect(AI_TIER_DETAIL.medium).toMatch(/switches/);
+    expect(AI_TIER_DETAIL.hard).toMatch(/turn after this one/);
+  });
 });
 
 // ---------------------------------------------------------------------------
