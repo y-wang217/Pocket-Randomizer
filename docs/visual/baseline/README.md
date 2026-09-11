@@ -18,6 +18,19 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-11, 4.8.0.1.** `heights.json` map entries and `data-digest.txt`
+  re-recorded to the merged tree's values, **because the merge of 4.7.2 into 4.8
+  (`0712032`) had not.** 4.8 pinned `map.screenHeight` 836.41, `scrollHeight`
+  1029, `decisionTop` 556 and `decisionBottom` 669.72 on a tree without 4.7.2's
+  font swap (12e) or chip floor (12f); `main` with both measures **810.72**,
+  **1004**, **558** and **643.03**, and so does the 4.8.0.1 branch, to the
+  hundredth. The digest is likewise 4.8's over a `src/data/` that 4.7.2's two
+  tuning floors had changed. **The battle did not move**: `decisionTop` 472,
+  `decisionBottom` 712, `screenHeight` 599, `scrollHeight` 844, on `main` and on
+  the branch. Runs, the battle protocol and the casualty lists were byte
+  identical throughout. `generation.md` section 12g has the table and the
+  measurement method.
+
 - **2026-09-10, V1.** `heights.json` `battle.decisionTop` corrected from 611 to
   612. The V0.0 recording left the pointer where the last click landed, on the
   first move button, whose hover state lifts it by one pixel. The driver now
