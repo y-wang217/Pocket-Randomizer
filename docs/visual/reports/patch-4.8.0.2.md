@@ -142,6 +142,29 @@ old face fitted — and no other line on the button moves. The loaded board
 reads **591.5, identical to the base**, and the guarded heights are unchanged
 to the pixel.
 
+### 2.2 A walker stall, same class as 4.7.2's, and the base was one chip away
+
+The second full suite failed two walks to the summary on `SEED-B`, in
+`visual-v1` and `visual-v3`, each giving up after 900 steps on the battle
+screen. Reproduced alone, so not load: on that seed's first battle the
+walker's hardest move is Electroweb, and under the monospace face's wider
+chips the button's geometric centre sits on its **band chip** — a tooltip
+trigger that stops the event by design. The walker dismissed the tooltip
+and clicked the same point, 900 times.
+
+4.7.2 §2.5 met this exact defect on the item-target and move-replace screens
+and fixed it by aiming at the card's name line instead of its centre; the
+battle case was the one it did not reach. `scripts/visual/browser.mjs` now
+clicks `.move__name` on the battle button too, which is always present and
+never a trigger, and the walk reaches the summary in 87 steps on both this
+build and the base's. A bot fix, not a product change: a player aims at a
+button, not at its centroid.
+
+One more assertion of the same shape moved with the map: `visual-v3`
+compared the parallax layers' transforms as strings, and 0.2 of the map's
+new scroll height is `37.800000000000004` in JS where the browser writes
+`-37.8`. Compared as numbers now.
+
 ## 3. Stats: Detailed is numbers, Simple is bars
 
 One rule beside 4.7.2's two:

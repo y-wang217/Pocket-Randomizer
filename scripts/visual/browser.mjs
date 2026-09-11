@@ -194,7 +194,18 @@ async function stepOnceUnparked(page) {
         return screen;
       }
       const move = await hardestMove(page);
-      if (move) await move.click();
+      /*
+       * The name line, not the button's centre. **Same rule as `target`,
+       * `replace` and `result`, extended here at 4.8.0.2 for the same
+       * reason.** A move button's centre falls in `.move__meta`, and which
+       * chip sits there depends on the face: the monospace stack's wider
+       * chips put the band chip under Electroweb's centre on SEED-B's first
+       * battle, a chip is a tooltip trigger that stops the event by design,
+       * and the walk opened the same tooltip for 900 steps. The name is
+       * always present and never a trigger, and the click bubbles to the
+       * button exactly as a tap on it would.
+       */
+      if (move) await move.locator('.move__name').first().click();
       else await page.waitForTimeout(40);
       return screen;
     }
