@@ -6,7 +6,10 @@ Branch 1. Record: [`../generation.md`](../generation.md) section 9.
 
 ## Merged at
 
-`<<MERGED_AT>>`
+The branch's last code commit is `a0b7b4c`; this file is the commit after it,
+and the merge is a fast-forward, so the integration branch's head after the
+merge is the commit that added this file:
+`git log -1 --format=%H -- docs/handoff/overnight-1-contenthash.md`.
 
 Merged into the integration branch `claude/overnight-infrastructure-8r4nd4`,
 which is the branch this session was told to push to. **`main` was not pushed
@@ -28,12 +31,19 @@ it into `main` is a fast-forward with no conflicts to resolve. Every later
 
 Every number below is from this branch's head, after step 5, on this machine.
 
-- **Test count:** `<<TEST_COUNT>>`. `<<TEST_FAILS>>`
+- **Test count:** 1208 tests in 94 files (`main` had 1166 in 90). The full
+  suite on the branch at `f83aeee` was 1194 passed, 14 failed, with three
+  unhandled vitest worker RPC timeouts under load. Five of the fourteen were
+  this branch's and are fixed in `a0b7b4c` (each fixed file re-run green:
+  `flags` 20/20, `lead-selection`, `visual-v2`'s stamp case, `visual-v5`'s
+  loaded board). The other nine are `main`'s, listed below, and are the
+  expected floor: **1199 passed, 9 failed** is what a clean re-run of this
+  head should report. Build (`tsc` plus `vite build`) is green.
 - **`test/fixtures/sim-report.json` sha256:** `fd91f8b7e6e1fb9924b14e6b62f13c37f751834c332deb916b16c1ed705c8715`.
   Its diff from `main` is two header lines (`version` and a new `contentHash`);
   every run in it is byte identical. Branch 2 changes opponent choices, so
   Branch 2 re-mints it and this hash is the one it must *differ* from.
-- **SMOKE24:** `<<SMOKE>>`. There is no xfail marker on it: Stage 4.8 step 7
+- **SMOKE24:** **passed**, 47 checks, in Chromium against the built bundle, with the seed bar showing `GYMRUN-b022fc-SMOKE24`. There is no xfail marker on it: Stage 4.8 step 7
   closed the map fold miss and deleted the marker helper, so the prompt's
   "expected xfail on the 4.7 map overflow" is stale. The smoke is pass or fail.
 - **Benchmark:** mean gyms cleared **4.96** (completion 40.25%), prefix
