@@ -53,7 +53,7 @@ import { join } from 'node:path';
 
 import { outcomeAt } from '../src/core/events';
 import { resolveCapability } from '../src/core/capabilities';
-import { AI_VERSION, greedyAiPolicy } from '../src/core/battle/ai';
+import { AI_VERSION, decide } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
 import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
@@ -798,6 +798,14 @@ interface RunCollector {
   capturesOffered: number;
   capturesTaken: number;
 
+  // --- overnight Branch 2, the priority layer ---------------------------------
+  /**
+   * How often the AI's priority rule fired, over every turn the greedy AI
+   * decided on either side. `escapes` and `kills` are the header's steps 3
+   * and 4; `differed` is how often the rule's pick was not the greedy pick.
+   */
+  priority: PriorityTally;
+
   // --- Stage 4.6c ---------------------------------------------------------
   /** Every event this run resolved, with the band it was paid at. */
   gates: { capability: Capability; band: CapabilityBand; segment: number }[];
@@ -826,6 +834,35 @@ function newCollector(): RunCollector {
     relicsTaken: 0,
     relicsHeld: 0,
     relicsSeen: [],
+    priority: { turns: 0, escapes: 0, kills: 0, differed: 0 },
+  };
+}
+
+/** The priority layer's tally for one run; summed per sample. */
+interface PriorityTally {
+  turns: number;
+  escapes: number;
+  kills: number;
+  differed: number;
+}
+
+/**
+ * The greedy AI with its decisions counted.
+ *
+ * `greedyAiPolicy` is `decide(view).choice`; this is the same call with the
+ * branch and the greedy alternative tallied, so the report can say how often
+ * the priority rule fired and how often it changed the pick. Used for the
+ * player's greedy bot and for the opponent alike — both are the same AI, so
+ * the rate is over every AI-decided turn in the run.
+ */
+function countingGreedy(tally: PriorityTally): Policy {
+  return async (view) => {
+    const decision = decide(view);
+    tally.turns++;
+    if (decision.branch === 'priority-escape') tally.escapes++;
+    if (decision.branch === 'priority-kill') tally.kills++;
+    if (decision.choice.kind !== decision.greedy.kind || decision.choice.slot !== decision.greedy.slot) tally.differed++;
+    return decision.choice;
   };
 }
 
@@ -1065,8 +1102,8 @@ function buildPolicy(
   const battlePolicy: Policy = randomBattle
     ? randomMovePolicy(stream)
     : policy === 'no-switch'
-      ? withoutSwitching(greedyAiPolicy)
-      : greedyAiPolicy;
+      ? withoutSwitching(countingGreedy(collect.priority))
+      : countingGreedy(collect.priority);
 
   /*
    * How this bot treats a capture offer.
@@ -1319,6 +1356,8 @@ interface RunRecord {
    */
   playerSwitches: number;
   aiSwitches: number;
+  /** The priority layer's tally, both sides. Overnight Branch 2. */
+  priority: PriorityTally;
   /** Battles fought, so the two above can be reported per battle. */
   battleCount: number;
   /**
@@ -1482,6 +1521,8 @@ async function playSample(
     const gymParties: RunRecord['gymParties'] = [];
 
     const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning, {
+      // The same greedy AI playRun would default to, counted.
+      opponent: countingGreedy(collect.priority),
       onBattle: (session, node, before) => {
         sessions.push(session);
         sessionSegments.push(before.currentSegment);
@@ -1587,6 +1628,7 @@ async function playSample(
       currency: state.currency,
       playerSwitches,
       aiSwitches,
+      priority: collect.priority,
       battleCount: battles.length,
       switchesPerBattle,
       partyBySegment,
@@ -1730,6 +1772,19 @@ interface Sample {
    * Every number here answers a question the earlier stages could not even
    * ask, because at one slot the party was a Pokemon and not a party.
    */
+  /**
+   * The priority layer, as rates over every AI-decided turn. Overnight
+   * Branch 2: `fired` is steps 3 and 4 together, `differed` is how often the
+   * pick was not the greedy pick. A rule that fires under about 2% of turns
+   * may be correct and still nearly inert, which the report says out loud.
+   */
+  priority: {
+    turns: number;
+    fireRate: number;
+    escapeRate: number;
+    killRate: number;
+    differedRate: number;
+  };
   party: {
     /** Voluntary switches per battle, both sides. */
     playerSwitchesPerBattle: number;
@@ -2046,6 +2101,16 @@ function runShare(records: RunRecord[], pick: (record: RunRecord) => string[], l
   return records.filter((record) => pick(record).includes(label)).length / records.length;
 }
 
+/** The priority layer's rates over a sample. Zero turns reads as zero rates, not NaN. */
+function priorityRates(records: RunRecord[]): Sample['priority'] {
+  const turns = sum(records.map((record) => record.priority.turns));
+  const escapes = sum(records.map((record) => record.priority.escapes));
+  const kills = sum(records.map((record) => record.priority.kills));
+  const differed = sum(records.map((record) => record.priority.differed));
+  const rate = (n: number): number => (turns === 0 ? 0 : n / turns);
+  return { turns, fireRate: rate(escapes + kills), escapeRate: rate(escapes), killRate: rate(kills), differedRate: rate(differed) };
+}
+
 function summarize(
   policy: PolicyName,
   nodes: NodePolicyName,
@@ -2175,6 +2240,7 @@ function summarize(
     meanScore: runs === 0 ? 0 : records.reduce((total, r) => total + r.score, 0) / runs,
     medianScore: medianOf(records.map((record) => record.score)),
     perGym,
+    priority: priorityRates(records),
     turnsBySegment,
     deaths: {
       byGym: tally(deaths.map((death) => `gym ${death.segment + 1} (${death.leader})`), SEGMENTS_PER_RUN),
@@ -2582,6 +2648,22 @@ function render(sample: Sample): string {
    * rate.
    */
   const party = sample.party;
+  const priority = sample.priority;
+  out.push(
+    '',
+    'Priority layer — how often the AI\'s priority rule decided a turn (both sides, every AI-decided turn)',
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['AI-decided turns', String(priority.turns), '—'],
+        ['rule fired', pct(priority.fireRate), priority.fireRate < 0.02 ? 'under ~2%: correct or not, nearly inert' : 'a live rule'],
+        ['  step 3, escape (slower, facing a KO)', pct(priority.escapeRate), '—'],
+        ['  step 4, priority kill over a slower kill', pct(priority.killRate), '—'],
+        ['pick differed from the greedy pick', pct(priority.differedRate), '—'],
+      ],
+    ),
+  );
+
   out.push('', 'Party — switching, acquisition, and what the run was carrying');
   out.push(
     table(
