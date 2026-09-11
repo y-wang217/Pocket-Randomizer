@@ -47,8 +47,9 @@ import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
 import { gymsCleared, localeOf, partyCapacity, stepsOf } from '../../core/run';
 import { localeById } from '../../data/locales';
-import { resolveCapability, type CapabilityBand, type CapabilityContext } from '../../core/capabilities';
-import type { Capability } from '../../data/capabilities';
+import { resolveCapability, type CapabilityContext } from '../../core/capabilities';
+// The two label tables the event screen prints too, from one file (4.8.0.2).
+import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
@@ -456,31 +457,6 @@ function renderNode(
   if (onChoose) element.addEventListener('click', onChoose);
   return element;
 }
-
-/** The capability names, as a player reads them rather than as ids. */
-const CAPABILITY_LABELS: Record<Capability, string> = {
-  cut: 'Cut',
-  surf: 'Surf',
-  strength: 'Strength',
-  rockSmash: 'Rock Smash',
-  fly: 'Fly',
-  waterfall: 'Waterfall',
-  dive: 'Dive',
-  flash: 'Flash',
-};
-
-/**
- * What each band says about the run. Attributes, and deliberately flat.
- *
- * None of the three is phrased as good or bad. `latent` is not "almost" and
- * `none` is not "you cannot" — the event pays at every band, and a player who
- * reads `none` as a locked door has been told something untrue.
- */
-const BAND_LABELS: Record<CapabilityBand, string> = {
-  known: 'you have the relic',
-  latent: 'your party has the type',
-  none: 'neither',
-};
 
 function renderWallet(state: RunState): HTMLElement {
   const card = el('div', 'party__wallet');

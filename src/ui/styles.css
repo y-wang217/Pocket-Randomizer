@@ -2666,6 +2666,26 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 /* ---------- event ---------- */
 
+/* The requirement and the run's standing for it, the same two chips the map
+   card shows (4.8.0.2). A player who routed here on a chip reads the same
+   chip on arrival. */
+.event__gate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* What the standing bought, in a sentence, above the outcome label. */
+.event__conclusion {
+  margin: 0;
+  flex: 1 1 100%;
+  max-width: 62ch;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
 .event__prompt {
   max-width: 62ch;
   color: var(--text);

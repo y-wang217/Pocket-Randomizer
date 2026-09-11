@@ -13,10 +13,24 @@
  * `data/events.ts` are honest about the shape of the risk without naming the
  * result — "could be anything, could be something that bites" is a decision;
  * saying nothing at all is a coin flip with extra steps.
+ *
+ * ## The standing, on the screen it pays on. Patch 4.8.0.2.
+ *
+ * Every event names a capability, and the run's standing for it — `known`,
+ * `latent` or `none` — selects which of three drawn outcomes each choice
+ * pays. The map card has shown that pair of chips since 4.6c; this screen did
+ * not, and its hints were the authored ones, written against `latent`, so at
+ * `none` a hint promising coins paid a berry with no word about why. Now the
+ * same two chips sit under the title, the hint is the band's own where the
+ * authored one is wrong for it, and the reveal opens with a sentence naming
+ * what the standing bought before the label says what it paid. All of it from
+ * `data/eventCopy.ts`, which `core/` never reads.
  */
 import { describeOutcome, outcomeAt, type EventInstance, type EventOutcome } from '../../core/events';
 import { resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
+import { BAND_LABELS, CAPABILITY_LABELS, eventConclusion, eventHint } from '../../data/eventCopy';
+import { capabilityBandChip, capabilityChip } from '../chip';
 import { el } from '../scene';
 
 export interface EventScreen {
@@ -29,12 +43,13 @@ export function createEventScreen(): EventScreen {
 
   const title = el('h2', 'screen__title');
   title.textContent = 'Something happens';
+  const gate = el('div', 'event__gate');
   const prompt = el('p', 'event__prompt');
   const choices = el('div', 'event__choices');
   const result = el('div', 'event__result');
   result.hidden = true;
 
-  root.append(title, prompt, choices, result);
+  root.append(title, gate, prompt, choices, result);
 
   return {
     root,
@@ -48,7 +63,10 @@ export function createEventScreen(): EventScreen {
        * while this screen is open, but reading it once says so.
        */
       const band = resolveCapability(state, event.requires);
-      void state;
+      gate.replaceChildren(
+        capabilityChip(`Requires ${CAPABILITY_LABELS[event.requires]}`),
+        capabilityBandChip(BAND_LABELS[band]),
+      );
       prompt.textContent = event.prompt;
       result.hidden = true;
       result.replaceChildren();
@@ -61,7 +79,7 @@ export function createEventScreen(): EventScreen {
         const label = el('span', 'event__choice-label');
         label.textContent = choice.label;
         const hint = el('span', 'event__choice-hint');
-        hint.textContent = choice.hint;
+        hint.textContent = eventHint(event.eventId, band, index, choice.hint);
 
         button.append(label, hint);
         button.addEventListener('click', () => reveal(index));
@@ -81,6 +99,8 @@ export function createEventScreen(): EventScreen {
         }
 
         const paid = outcomeAt(choice, band);
+        const conclusion = el('p', 'event__conclusion');
+        conclusion.textContent = eventConclusion(event.eventId, band, index, paid);
         const outcome = el('p', `event__outcome event__outcome--${toneOf(paid)}`);
         outcome.textContent = describeOutcome(paid);
 
@@ -90,7 +110,7 @@ export function createEventScreen(): EventScreen {
         carry.textContent = 'Carry on';
         carry.addEventListener('click', () => onDone(index));
 
-        result.replaceChildren(outcome, carry);
+        result.replaceChildren(...(conclusion.textContent ? [conclusion] : []), outcome, carry);
         result.hidden = false;
         carry.focus();
       }
