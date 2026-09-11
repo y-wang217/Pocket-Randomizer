@@ -30,6 +30,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
 import { openHarness, type Harness } from './visual/harness';
+import { DEFAULT_TUNING } from '../src/data/tuning';
 
 let harness: Harness;
 
@@ -50,14 +51,30 @@ afterAll(async () => {
  */
 const SURFACES = ['party', 'drawer', 'pre-gym', 'replace', 'result', 'summary'] as const;
 
-/** Expanders on the open screen, and whether any panel is showing. */
-async function expanders(page: Page, scope: string): Promise<{ triggers: number; open: number }> {
+/**
+ * Expanders on the open screen, whether any panel is showing, and the face tags.
+ *
+ * **The tag count is here because the expander count could not have caught
+ * #24's bug.** A surface whose `moveCardData` call got something other than a
+ * `Tuning` still renders an expander — that comes off `explanation` — while
+ * `tagsForFace` silently returns nothing, because the cap arrives as `undefined`
+ * and `slice(0, NaN)` is empty. So this sweep proved the insertion point was
+ * reached and not that real data came through it. `faceMax` is what separates
+ * the two. See `docs/generation.md` section 12g.
+ */
+async function expanders(page: Page, scope: string): Promise<{ triggers: number; open: number; faceMax: number }> {
   return page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
-    if (!root) return { triggers: 0, open: 0 };
+    if (!root) return { triggers: 0, open: 0, faceMax: 0 };
     const triggers = [...root.querySelectorAll('.move__explain-toggle')];
     const panels = [...root.querySelectorAll('.move__explain')];
+    // Per face, not per screen: the cap in `tuning.maxMoveTagsOnFace` is a
+    // per-card number, so a screen total would not test it.
+    const faces = [...root.querySelectorAll('.move')].map(
+      (face) => face.querySelectorAll('.move__tags .badge').length,
+    );
     return {
+      faceMax: faces.length === 0 ? 0 : Math.max(...faces),
       triggers: triggers.length,
       // **Painted, not `.hidden`.** The property said closed while the panel
       // laid out at full height, because `.move__explain` sets `display: grid`
@@ -81,12 +98,15 @@ async function runState(page: Page): Promise<string> {
 
 describe('the move explanation, across every surface it reaches', () => {
   let seen: Record<string, number>;
+  let faceTags: Record<string, number>;
   let spent: string[];
   let battleTriggers: number;
 
   beforeAll(async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     const found: Record<string, number> = {};
+    /** Most face tags on any one move card, per surface. */
+    const tags: Record<string, number> = {};
     const violations: string[] = [];
     let openedParty = false;
     let openedDrawer = false;
@@ -97,6 +117,7 @@ describe('the move explanation, across every surface it reaches', () => {
       const before = await expanders(page, scope);
       if (before.triggers === 0) return;
       found[label] = Math.max(found[label] ?? 0, before.triggers);
+      tags[label] = Math.max(tags[label] ?? 0, before.faceMax);
 
       const stateBefore = await runState(page);
       await page.locator(`${scope} .move__explain-toggle`).first().click();
@@ -156,6 +177,7 @@ describe('the move explanation, across every surface it reaches', () => {
 
     await context.close();
     seen = found;
+    faceTags = tags;
     spent = violations;
   }, 900_000);
 
@@ -168,6 +190,40 @@ describe('the move explanation, across every surface it reaches', () => {
     expect(empty).toEqual([]);
     // A party member has four moves, so the surfaces that draw one carry four.
     expect(seen['party'], 'the party screen draws a full moveset').toBeGreaterThanOrEqual(4);
+  });
+
+  /*
+   * **The tag row, per surface, which is the assertion that was missing.**
+   *
+   * #24's bug was a surface handed something other than a `Tuning`: the expander
+   * still rendered, and `tagsForFace` silently returned nothing. The test above
+   * passed on a summary whose tag row had gone. See `generation.md` section 12g.
+   *
+   * Asserted only on the four surfaces that draw a held Pokemon's full moveset.
+   * `result` and a reward card are excluded deliberately rather than for
+   * convenience: a card with no recipient chosen yet passes no holder, which is
+   * the documented STAB rule in `ui/move-detail.ts`, so a legitimately untagged
+   * face is reachable there and a floor would be asserting the wrong thing.
+   */
+  const HOLDER_SURFACES = ['party', 'drawer', 'pre-gym', 'summary'] as const;
+
+  it('fills the tag row on every surface that draws a held moveset', () => {
+    // Non-vacuity first. If nothing anywhere carries a tag the per-surface
+    // assertion below is comparing zeroes and proves nothing — which is exactly
+    // how the bug survived a green sweep the first time.
+    const best = Math.max(0, ...Object.values(faceTags));
+    expect(best, 'no surface carried a single face tag, so this test proves nothing').toBeGreaterThan(0);
+
+    const bare = HOLDER_SURFACES.filter((label) => (faceTags[label] ?? 0) === 0);
+    expect(bare, 'a surface drew move cards with no face tags at all').toEqual([]);
+  });
+
+  it('keeps every face at or under the tuning cap', () => {
+    // The ceiling the smoke run also checks, here across all six surfaces
+    // rather than the battle screen alone. A ceiling alone is not enough — zero
+    // satisfies it — which is why it sits beside the floor above, not instead.
+    const over = Object.entries(faceTags).filter(([, most]) => most > DEFAULT_TUNING.maxMoveTagsOnFace);
+    expect(over).toEqual([]);
   });
 
   /**
