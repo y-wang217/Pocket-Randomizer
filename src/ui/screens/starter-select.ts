@@ -35,6 +35,7 @@ export function createStarterSelect(): StarterSelect {
     'moves are all randomized. HP and PP persist between fights; a cleared gym ' +
     'restores both.';
   const grid = el('div', 'starters');
+  grid.dataset['tutorial'] = 'starters';
 
   root.append(heading, blurb, grid);
 
@@ -55,6 +56,7 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
   const name = el('span', 'starter__name');
   const level = el('span', 'starter__level');
   const types = el('span', 'panel__types');
+  types.dataset['tutorial'] = 'types';
   // The archetype chip on the first screen of the run, which is where the
   // vocabulary is worth learning: the player is comparing three stat blocks
   // and this is the one word that says what each is shaped for.
@@ -63,6 +65,7 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
 
   const meta = el('div', 'starter__meta');
   const moves = el('ul', 'starter__moves');
+  moves.dataset['tutorial'] = 'moves';
 
   const detail = describeSpecCard(spec);
   name.textContent = detail.species;
@@ -114,6 +117,7 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
  */
 export function statLine(stats: Record<StatName, number>, maxHp: number): HTMLElement {
   const row = el('ul', 'statline');
+  row.dataset['tutorial'] = 'stats';
 
   const entries: [string, number][] = [
     ['HP', maxHp],

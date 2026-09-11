@@ -16,6 +16,8 @@ import { greedyAiPolicy } from '../src/core/battle/ai';
 import { gymsCleared, playRun, scriptedRunPolicy, type RunResult } from '../src/core/run';
 import { TIER_ROWS, tierRowFor } from '../src/ui/copy/summary';
 import { createSummary } from '../src/ui/screens/summary';
+import { describeMove, describeSpecCard } from '../src/core/battle/driver';
+import { moveCardData } from '../src/ui/move-detail';
 
 const run = (seed: string): Promise<RunResult> => playRun(seed, scriptedRunPolicy(greedyAiPolicy), undefined, { opponent: greedyAiPolicy });
 
@@ -89,6 +91,55 @@ describe('the decoration', () => {
     expect(summary.root.querySelector('.primary-action')?.textContent).toBe('Rematch this seed');
     expect(summary.root.querySelectorAll('.summary__actions .button--hollow')).toHaveLength(3);
   }, 120_000);
+});
+
+/**
+ * The final party's move cards get the run's tuning, not `map`'s third argument.
+ *
+ * V5 gave `renderMember` a `tuning` parameter and left the call site a bare
+ * `state.party.map(renderMember)`, which handed it the party array. The symptom
+ * was silent rather than a crash: `tagsForFace` does
+ * `slice(0, Math.max(0, undefined))`, `Math.max(0, undefined)` is `NaN`, and
+ * `slice(0, NaN)` is empty — so every move card on this screen lost its face
+ * tags while the other five surfaces kept up to three.
+ *
+ * This asserts the tags are *there*, against the count `moveCardData` produces
+ * from the real tuning, rather than asserting "more than zero": a cap of 3 read
+ * as 0 and a cap of 3 read as 3 are both non-crashing, and only the comparison
+ * tells them apart. The guard below keeps the test from passing on a party whose
+ * moves happen to carry no tags at all.
+ */
+describe('the final party cards are built against the run\'s tuning', () => {
+  it('gives the summary the same face tags every other surface draws', async () => {
+    const result = await run('SMOKE24');
+    const summary = createSummary();
+    summary.render(result);
+
+    const members = [...summary.root.querySelectorAll('.summary__member')];
+    expect(members.length).toBe(result.state.party.length);
+    expect(members.length).toBeGreaterThan(0);
+
+    let expectedTotal = 0;
+    for (const member of result.state.party) {
+      const detail = describeSpecCard(member.spec);
+      for (const move of member.moves) {
+        const facts = describeMove(move.name);
+        if (!facts) continue;
+        expectedTotal += moveCardData(
+          { ...facts, maxPp: move.maxPp },
+          result.state.tuning,
+          { types: detail.types },
+        ).tags.length;
+      }
+    }
+
+    // Without this the assertion below could hold at 0 === 0 on a party that
+    // simply has no tagged moves, which is the shape of the bug it is here for.
+    expect(expectedTotal, 'this party must carry tagged moves or the test proves nothing').toBeGreaterThan(0);
+
+    const drawn = summary.root.querySelectorAll('.summary__member-moves .move__tags .badge--tag, .summary__member-moves .move__tags .badge');
+    expect(drawn.length).toBe(expectedTotal);
+  }, 60_000);
 });
 
 describe('nothing under data/ moved', () => {

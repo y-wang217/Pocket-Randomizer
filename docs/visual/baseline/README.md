@@ -18,9 +18,10 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
-- **2026-09-11, 4.8.0.1.** `heights.json` map entries and `data-digest.txt`
-  re-recorded to the merged tree's values, **because the merge of 4.7.2 into 4.8
-  (`0712032`) had not.** 4.8 pinned `map.screenHeight` 836.41, `scrollHeight`
+- **2026-09-11, 4.8.0.1.** An independent confirmation of PR #24's re-record,
+  not a second one: this branch was cut from `0712032`, found the same stale map
+  entries and digest, re-recorded them, and PR #24 landed the same numbers on
+  `main` first; the merge keeps `main`'s. 4.8 had pinned `map.screenHeight` 836.41, `scrollHeight`
   1029, `decisionTop` 556 and `decisionBottom` 669.72 on a tree without 4.7.2's
   font swap (12e) or chip floor (12f); `main` with both measures **810.72**,
   **1004**, **558** and **643.03**, and so does the 4.8.0.1 branch, to the
@@ -28,7 +29,7 @@ and fails on any byte that differs. Heights are compared by
   tuning floors had changed. **The battle did not move**: `decisionTop` 472,
   `decisionBottom` 712, `screenHeight` 599, `scrollHeight` 844, on `main` and on
   the branch. Runs, the battle protocol and the casualty lists were byte
-  identical throughout. `generation.md` section 12g has the table and the
+  identical throughout. `generation.md` section 12i has the table and the
   measurement method.
 
 - **2026-09-10, V1.** `heights.json` `battle.decisionTop` corrected from 611 to
@@ -194,6 +195,14 @@ and fails on any byte that differs. Heights are compared by
   `xfail` marker is removed rather than moved, per the prompt. `bundle.json` is not
   re-recorded, per this file's own rule.
 
+- **2026-09-11, Stage 4.8 review follow-up.** `runs/` re-recorded. `Casualty` gained a
+  `level` field, captured at faint time from the specs the battle was built with, and
+  `baseline.ts` serializes each visit's casualties whole — so every run that lost a
+  Pokemon gains one number per death. **No draw moved**: the level is read off a spec
+  the battle already had, it consumes no RNG, and the decision logs are byte identical.
+  `data-digest.txt`, `heights.json` and `bundle.json` are unchanged — the change is in
+  `src/core/`, touches no file under `src/data/`, and moves no pixel.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.
@@ -298,3 +307,12 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   pre-V0 baseline and each stage states its delta against it. V5's own delta,
   measured against `main` rather than against V0, is **+3,598 raw / +633
   gzipped**.
+
+## The data digest is `contentHash`
+
+**2026-09-11, overnight Branch 3.** `data-digest.txt` was a plain sha256 over
+every file under `src/data/`; it is now the value `core/contentHash.ts`
+carries, computed by `build-config/content-hash.ts` over the same directory
+minus the exclusion list. A presentation stage moves it exactly when it moves
+the version axis, and never for a reworded tooltip or a new coach mark.
+`docs/generation.md` section 12g.

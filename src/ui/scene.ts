@@ -356,6 +356,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
 
   const meta = el('div', 'panel__meta');
   const hpText = el('span', 'panel__hp-text');
+  hpText.dataset['tutorial'] = 'hp';
   const status = statusChip('', '');
   meta.append(hpText, status);
 
@@ -370,6 +371,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    * and every line it takes is a line of the stage it covers.
    */
   const chips = el('div', 'panel__chips');
+  chips.dataset['tutorial'] = 'status';
   const stages = el('div', 'panel__stages');
   // Ability and item. Both are revealable, and the reveal flag is honoured
   // here rather than upstream so one source decides it.
@@ -820,6 +822,7 @@ function renderMove(
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `move move--${move.type.toLowerCase()}`;
+  button.dataset['tutorial'] = 'move';
   button.disabled = !enabled || !move.usable;
   button.dataset['category'] = move.category.toLowerCase();
 
@@ -913,6 +916,7 @@ function renderMove(
   }
 
   const pp = el('span', 'move__pp');
+  pp.dataset['tutorial'] = 'pp';
   pp.textContent = `PP ${move.pp}/${move.maxPp}`;
   if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
 

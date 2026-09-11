@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
+import { formatSeedString } from '../src/core/seedString';
 import { stampCollisions } from '../scripts/visual/stamps.mjs';
 import { openHarness, type Harness } from './visual/harness';
 
@@ -143,14 +144,18 @@ describe('the corner stamps', () => {
 
   it('copy the full seed string from the seed stamp', async () => {
     const context = await harness.browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] });
+    await skipTutorialIn(context);
     const page = await context.newPage();
     await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`);
+    // The versioned form since the contentHash release: what is shown is what
+    // is copied, and both carry the build's hash in front of the seed.
     const shown = await page.locator('.stamp--seed').textContent();
-    expect(shown).toBe('SMOKE24');
+    expect(shown).toBe(formatSeedString('SMOKE24'));
+    expect(shown).toMatch(/^GYMRUN-[0-9a-f]{6}-SMOKE24$/);
     await page.locator('.stamp--seed').click();
     await page.waitForTimeout(100);
-    expect(await page.evaluate(() => globalThis.navigator.clipboard.readText())).toBe('SMOKE24');
+    expect(await page.evaluate(() => globalThis.navigator.clipboard.readText())).toBe(formatSeedString('SMOKE24'));
     expect(await page.locator('.stamp--seed').getAttribute('data-copied')).toBe('true');
     await context.close();
   }, 120_000);

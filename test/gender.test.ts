@@ -78,15 +78,15 @@ describe('the randomizer rolls gender', () => {
   it('gives every generated Pokemon a gender', () => {
     const rng = createRng('GENDER-ROLL');
     for (let i = 0; i < 40; i++) {
-      const mon = generateWildMon(2, 'normal', rng.randomizer);
+      const mon = generateWildMon(2, 'normal', rng.randomizer.at('test'));
       expect(mon.gender === 'M' || mon.gender === 'F' || mon.gender === null, mon.species).toBe(true);
     }
   });
 
   it('gives starters and trainer teams one too, not only wild encounters', () => {
     const rng = createRng('GENDER-EVERYWHERE');
-    for (const spec of generateStarters(3, 5, rng.randomizer)) expect(spec.gender).not.toBeUndefined();
-    for (const spec of generateTrainerTeam(3, 'hard', rng.randomizer)) expect(spec.gender).not.toBeUndefined();
+    for (const spec of generateStarters(3, 5, rng.randomizer.at('test'))) expect(spec.gender).not.toBeUndefined();
+    for (const spec of generateTrainerTeam(3, 'hard', rng.randomizer.at('test'))) expect(spec.gender).not.toBeUndefined();
   });
 
   it('rolls null for a genderless species and never M or F', () => {
@@ -95,7 +95,7 @@ describe('the randomizer rolls gender', () => {
     const rng = createRng('GENDERLESS');
     let checked = 0;
     for (let i = 0; i < 400; i++) {
-      const mon = generateWildMon(4, 'hard', rng.randomizer);
+      const mon = generateWildMon(4, 'hard', rng.randomizer.at('test'));
       const entry = SPECIES_POOL.find((e) => e.species === mon.species);
       if (entry?.maleChance !== null) continue;
       checked++;
@@ -117,7 +117,7 @@ describe('the randomizer rolls gender', () => {
     let male = 0;
     let checked = 0;
     for (let i = 0; i < 300; i++) {
-      const mon = generateWildMon(5, 'elite', rng.randomizer);
+      const mon = generateWildMon(5, 'elite', rng.randomizer.at('test'));
       const entry = SPECIES_POOL.find((e) => e.species === mon.species);
       if (entry?.maleChance !== 1) continue;
       checked++;
@@ -138,9 +138,9 @@ describe('the randomizer rolls gender', () => {
 
     for (const entry of [gendered, genderless]) {
       const rng = createRng('ONE-DRAW');
-      const before = rng.randomizer.draws;
-      rollGender(entry, rng.randomizer);
-      expect(rng.randomizer.draws - before, entry.species).toBe(1);
+      const before = rng.randomizer.at('test').draws;
+      rollGender(entry, rng.randomizer.at('test'));
+      expect(rng.randomizer.at('test').draws - before, entry.species).toBe(1);
     }
   });
 
@@ -152,7 +152,7 @@ describe('the randomizer rolls gender', () => {
     const rng = createRng('COMBEE-RATIO');
     let male = 0;
     for (let i = 0; i < 1000; i++) {
-      if (rollGender(combee, rng.randomizer) === 'M') male++;
+      if (rollGender(combee, rng.randomizer.at('test')) === 'M') male++;
     }
     expect(male / 1000).toBeGreaterThan(0.82);
     expect(male / 1000).toBeLessThan(0.93);
@@ -166,7 +166,7 @@ describe('the randomizer rolls gender', () => {
 describe('gender is stable', () => {
   it('is the same on the spec across many reads', () => {
     const rng = createRng('STABLE');
-    const mon = generateWildMon(2, 'normal', rng.randomizer);
+    const mon = generateWildMon(2, 'normal', rng.randomizer.at('test'));
     for (let i = 0; i < 5; i++) expect(mon.gender).toBe(mon.gender);
     expect(describeSpecCard(mon).gender).toBe(mon.gender);
   });
@@ -193,7 +193,7 @@ describe('gender is stable', () => {
     // because the roll was `battle.sample` off the battle PRNG. The spec's
     // value is now read straight through, so a probe cannot disagree with it.
     const rng = createRng('NOT-THE-BATTLE');
-    const mon = generateWildMon(3, 'normal', rng.randomizer);
+    const mon = generateWildMon(3, 'normal', rng.randomizer.at('test'));
     expect(describeSpecCard({ ...mon }).gender).toBe(mon.gender);
     expect(describeSpecCard({ ...mon, level: mon.level + 1 }).gender).toBe(mon.gender);
   });

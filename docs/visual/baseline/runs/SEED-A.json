@@ -1,9 +1,10 @@
 {
   "seed": "SEED-A",
   "versions": {
-    "runLog": "gymrun-run-12/gymrun-0.3.0",
+    "runLog": "gymrun-run-13/gymrun-0.3.0",
+    "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-2-switching",
+    "ai": "gymrun-ai-3-priority",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -28,10 +29,10 @@
       "level": 36,
       "ability": "Supreme Overlord",
       "moves": [
-        "Gust 52/56",
+        "Gust 56/56",
         "Infestation 32/32",
-        "Clanging Scales 0/8",
-        "Incinerate 21/24"
+        "Clanging Scales 1/8",
+        "Incinerate 22/24"
       ],
       "item": "blackbelt",
       "hp": "0/93",
@@ -43,9 +44,9 @@
       "ability": "Magic Bounce",
       "moves": [
         "Fury Attack 29/32",
-        "Feint 16/16",
+        "Feint 14/16",
         "Fairy Wind 48/48",
-        "Scratch 55/56"
+        "Scratch 56/56"
       ],
       "item": null,
       "hp": "0/100",
@@ -57,7 +58,7 @@
       "ability": "Trace",
       "moves": [
         "Poison Sting 56/56",
-        "Absorb 39/40",
+        "Absorb 38/40",
         "Chilling Water 32/32",
         "Curse 16/16"
       ],
@@ -86,7 +87,7 @@
       "opponent": "Trainer's Indeedee",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 57,
+      "hpAfter": 45,
       "casualties": []
     },
     {
@@ -97,7 +98,7 @@
       "opponent": "Wild Slakoth",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 73,
+      "hpAfter": 70,
       "casualties": []
     },
     {
@@ -108,7 +109,7 @@
       "opponent": "Wild Gastly",
       "turns": 1,
       "winner": "p1",
-      "hpAfter": 158,
+      "hpAfter": 155,
       "casualties": []
     },
     {
@@ -119,7 +120,7 @@
       "opponent": "Wild Victreebel",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 213,
+      "hpAfter": 210,
       "casualties": []
     },
     {
@@ -130,7 +131,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 181,
+      "hpAfter": 178,
       "casualties": []
     },
     {
@@ -141,7 +142,7 @@
       "opponent": "Wild Swampert",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 230,
+      "hpAfter": 228,
       "casualties": []
     },
     {
@@ -150,18 +151,10 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Crawdaunt",
-      "turns": 5,
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 178,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Brook",
-          "bySpecies": "Araquanid",
-          "byMove": "Grassy Glide",
-          "indirect": null
-        }
-      ]
+      "hpAfter": 188,
+      "casualties": []
     },
     {
       "segment": 1,
@@ -171,7 +164,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 225,
+      "hpAfter": 188,
       "casualties": []
     },
     {
@@ -182,7 +175,7 @@
       "opponent": "Trainer (2)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 225,
+      "hpAfter": 188,
       "casualties": []
     },
     {
@@ -191,9 +184,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Dartrix",
-      "turns": 5,
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 180,
+      "hpAfter": 156,
       "casualties": []
     },
     {
@@ -202,13 +195,14 @@
       "label": "Marina's Gym",
       "tier": null,
       "opponent": "Marina (Water)",
-      "turns": 7,
+      "turns": 6,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
           "name": "Brook",
+          "level": 36,
           "bySpecies": "Bruxish",
           "byMove": "Burning Jealousy",
           "indirect": null
@@ -216,6 +210,7 @@
         {
           "side": "p1",
           "name": "Ivy",
+          "level": 36,
           "bySpecies": "Bruxish",
           "byMove": "Aqua Cutter",
           "indirect": null
@@ -223,6 +218,7 @@
         {
           "side": "p1",
           "name": "Bramble",
+          "level": 36,
           "bySpecies": "Bruxish",
           "byMove": "Aqua Cutter",
           "indirect": null
@@ -232,8 +228,12 @@
   ],
   "log": {
     "seed": "SEED-A",
-    "version": "gymrun-run-12/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-13",
+    "versions": {
+      "runLog": "gymrun-run-13/gymrun-0.3.0",
+      "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
+      "aiVersion": "gymrun-ai-3-priority",
+      "randomizerVersion": "gymrun-randomizer-13"
+    },
     "decisions": [
       {
         "kind": "starter",
@@ -317,7 +317,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 3
         }
       },
       {
@@ -481,7 +481,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
@@ -530,27 +530,6 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
           "slot": 2
         }
       },
@@ -558,7 +537,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {
@@ -641,8 +627,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 4
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
@@ -656,14 +642,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+          "slot": 2
         }
       },
       {
@@ -699,7 +678,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {
@@ -727,14 +706,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+          "slot": 2
         }
       },
       {

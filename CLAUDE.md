@@ -60,9 +60,11 @@ Four axes, each with its own meaning:
   values. **Never silently reinterpret a seed.**
 - A run log version bumps only when a logged decision is added, removed,
   reordered or reshaped.
-- `contentHash` is specified but not yet built. It is its own release, after
-  4.6c and before the freeze, and it is not to be built as a side effect of a
-  data step. See [`docs/generation.md`](docs/generation.md) section 9.
+- `contentHash` is computed at build time by `build-config/content-hash.ts`
+  over `src/data/**`, never at runtime from bundled data. A file is excluded
+  only if nothing under `core/` imports it at any depth, the exclusions are one
+  list with a reason per entry, and the test holds the rule. See
+  [`docs/generation.md`](docs/generation.md) section 9.
 
 ## Player-facing copy
 

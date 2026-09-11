@@ -103,6 +103,7 @@ export function createDrawer(): Drawer {
   header.append(title, close);
 
   const members = el('div', 'drawer__members');
+  members.dataset['tutorial'] = 'drawer-party';
 
   /*
    * The relic slot, left in the layout deliberately.
@@ -113,6 +114,7 @@ export function createDrawer(): Drawer {
    * the brief says so.
    */
   const relics = el('div', 'drawer__relics');
+  relics.dataset['tutorial'] = 'drawer-relics';
 
   const note = el('p', 'drawer__note');
   note.textContent = 'Read only. Items are assigned on the party screen.';

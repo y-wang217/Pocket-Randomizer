@@ -52,6 +52,7 @@ import {
   type RunResult,
   chooseLocale,
   stepsOf,
+  currentVersions,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
 import { partyCapacityAfter } from '../src/data/partyTuning';
@@ -65,7 +66,6 @@ import { partyCapacityAfter } from '../src/data/partyTuning';
  * that care about capacity *moving* are in `test/party-slots.test.ts`.
  */
 const OPENING_SLOTS = partyCapacityAfter(0);
-import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
@@ -520,8 +520,7 @@ describe('the version guard', () => {
   it('refuses a Stage 3 log by name rather than replaying it as something else', () => {
     const stale: RunLog = {
       seed: 'STAGE3',
-      version: 'gymrun-run-5/gymrun-0.1.0',
-      randomizerVersion: 'gymrun-randomizer-4',
+      versions: { ...currentVersions(), runLog: 'gymrun-run-5/gymrun-0.1.0', randomizerVersion: 'gymrun-randomizer-4' },
       decisions: [],
     };
     // Thrown synchronously, before `playRun` is entered: `replayRunPolicy`
@@ -534,7 +533,7 @@ describe('the version guard', () => {
     // something else, which is how a guard gets edited without being thought
     // about. Line 462 below already does it this way.
     expect(() => replayRun(stale)).toThrow(
-      new RegExp(`this build replays ${RUN_LOG_VERSION.replace(/[.\\/]/g, '\\$&')}`),
+      new RegExp(`this build is ${RUN_LOG_VERSION.replace(/[.\\/]/g, '\\$&')}`),
     );
   });
 
@@ -551,13 +550,12 @@ describe('the version guard', () => {
   it('refuses a Stage 4.5 log by name, naming both versions', () => {
     const stale: RunLog = {
       seed: 'STAGE45',
-      version: 'gymrun-run-6/gymrun-0.2.0',
-      randomizerVersion: RANDOMIZER_VERSION,
+      versions: { ...currentVersions(), runLog: 'gymrun-run-6/gymrun-0.2.0' },
       decisions: [],
     };
     expect(() => replayRun(stale)).toThrow(/gymrun-run-6\/gymrun-0\.2\.0/);
     expect(() => replayRun(stale)).toThrow(
-      new RegExp(`this build replays ${RUN_LOG_VERSION.replace(/[.\\/]/g, '\\$&')}`),
+      new RegExp(`this build is ${RUN_LOG_VERSION.replace(/[.\\/]/g, '\\$&')}`),
     );
   });
 });

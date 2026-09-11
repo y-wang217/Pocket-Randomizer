@@ -1,9 +1,10 @@
 {
   "seed": "RESULT-0",
   "versions": {
-    "runLog": "gymrun-run-12/gymrun-0.3.0",
+    "runLog": "gymrun-run-13/gymrun-0.3.0",
+    "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-2-switching",
+    "ai": "gymrun-ai-3-priority",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -13,8 +14,8 @@
     "leader": "Cinder",
     "kind": "gym",
     "species": "Hollow",
-    "bySpecies": "Scovillain",
-    "byMove": "Heat Wave",
+    "bySpecies": "Emboar",
+    "byMove": "Sacred Sword",
     "indirect": null
   },
   "currency": 1048,
@@ -45,9 +46,9 @@
       "ability": "Toxic Boost",
       "moves": [
         "Ice Shard 47/48",
-        "Powder Snow 39/40",
+        "Powder Snow 40/40",
         "Struggle Bug 32/32",
-        "Icy Wind 23/24"
+        "Icy Wind 22/24"
       ],
       "item": "shellbell",
       "hp": "0/134",
@@ -58,7 +59,7 @@
       "level": 54,
       "ability": "Multiscale",
       "moves": [
-        "Triple Kick 3/16",
+        "Triple Kick 5/16",
         "Weather Ball 16/16",
         "Salt Cure 22/24",
         "Hone Claws 24/24"
@@ -86,7 +87,7 @@
       "level": 54,
       "ability": "Natural Cure",
       "moves": [
-        "Venoshock 4/16",
+        "Venoshock 3/16",
         "Fire Spin 24/24",
         "Triple Kick 16/16",
         "Bite 40/40"
@@ -202,9 +203,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Trevenant",
-      "turns": 5,
+      "turns": 8,
       "winner": "p1",
-      "hpAfter": 308,
+      "hpAfter": 311,
       "casualties": []
     },
     {
@@ -292,13 +293,14 @@
       "opponent": "Volta (Electric)",
       "turns": 10,
       "winner": "p1",
-      "hpAfter": 238,
+      "hpAfter": 226,
       "casualties": [
         {
           "side": "p1",
           "name": "Fallow",
+          "level": 42,
           "bySpecies": "Flaaffy",
-          "byMove": "Rising Voltage",
+          "byMove": "Thunderclap",
           "indirect": null
         }
       ]
@@ -344,7 +346,7 @@
       "opponent": "Wild Komala",
       "turns": 7,
       "winner": "p1",
-      "hpAfter": 399,
+      "hpAfter": 475,
       "casualties": []
     },
     {
@@ -355,7 +357,7 @@
       "opponent": "Wild Pachirisu",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 370,
+      "hpAfter": 414,
       "casualties": []
     },
     {
@@ -364,21 +366,15 @@
       "label": "Fern's Gym",
       "tier": null,
       "opponent": "Fern (Grass)",
-      "turns": 11,
+      "turns": 13,
       "winner": "p1",
-      "hpAfter": 141,
+      "hpAfter": 64,
       "casualties": [
         {
           "side": "p1",
-          "name": "Jasper",
-          "bySpecies": "Grotle",
-          "byMove": "Flamethrower",
-          "indirect": null
-        },
-        {
-          "side": "p1",
           "name": "Hollow",
-          "bySpecies": "Jumpluff",
+          "level": 48,
+          "bySpecies": "Gloom",
           "byMove": "Energy Ball",
           "indirect": null
         }
@@ -392,7 +388,7 @@
       "opponent": "Wild Glimmora",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 519,
+      "hpAfter": 504,
       "casualties": []
     },
     {
@@ -403,7 +399,7 @@
       "opponent": "Wild Glimmora",
       "turns": 13,
       "winner": "p1",
-      "hpAfter": 487,
+      "hpAfter": 472,
       "casualties": []
     },
     {
@@ -414,11 +410,12 @@
       "opponent": "Wild Feraligatr",
       "turns": 11,
       "winner": "p1",
-      "hpAfter": 268,
+      "hpAfter": 276,
       "casualties": [
         {
           "side": "p1",
           "name": "Jasper",
+          "level": 54,
           "bySpecies": "Feraligatr",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -433,7 +430,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 350,
+      "hpAfter": 358,
       "casualties": []
     },
     {
@@ -444,11 +441,12 @@
       "opponent": "Wild Slaking",
       "turns": 14,
       "winner": "p1",
-      "hpAfter": 130,
+      "hpAfter": 118,
       "casualties": [
         {
           "side": "p1",
           "name": "Jasper",
+          "level": 54,
           "bySpecies": "Sneasler",
           "byMove": "Poison Tail",
           "indirect": null
@@ -456,15 +454,9 @@
         {
           "side": "p1",
           "name": "Fallow",
+          "level": 54,
           "bySpecies": "Sneasler",
           "byMove": "Poison Tail",
-          "indirect": null
-        },
-        {
-          "side": "p1",
-          "name": "Inkcap",
-          "bySpecies": "Hippowdon",
-          "byMove": "Sand Tomb",
           "indirect": null
         }
       ]
@@ -477,7 +469,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 250,
+      "hpAfter": 160,
       "casualties": []
     },
     {
@@ -486,43 +478,48 @@
       "label": "Cinder's Gym",
       "tier": null,
       "opponent": "Cinder (Fire)",
-      "turns": 9,
+      "turns": 8,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
           "name": "Jasper",
+          "level": 54,
           "bySpecies": "Delphox",
           "byMove": "Surf",
           "indirect": null
         },
         {
           "side": "p1",
+          "name": "Fallow",
+          "level": 54,
+          "bySpecies": "Scovillain",
+          "byMove": "Apple Acid",
+          "indirect": null
+        },
+        {
+          "side": "p1",
           "name": "Inkcap",
+          "level": 54,
           "bySpecies": "Emboar",
           "byMove": "Waterfall",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Fallow",
-          "bySpecies": "Scovillain",
-          "byMove": "Apple Acid",
-          "indirect": null
-        },
-        {
-          "side": "p1",
           "name": "Heather",
-          "bySpecies": "Scovillain",
-          "byMove": "Apple Acid",
+          "level": 54,
+          "bySpecies": "Emboar",
+          "byMove": "Sacred Sword",
           "indirect": null
         },
         {
           "side": "p1",
           "name": "Hollow",
-          "bySpecies": "Scovillain",
-          "byMove": "Heat Wave",
+          "level": 54,
+          "bySpecies": "Emboar",
+          "byMove": "Sacred Sword",
           "indirect": null
         }
       ]
@@ -530,8 +527,12 @@
   ],
   "log": {
     "seed": "RESULT-0",
-    "version": "gymrun-run-12/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-13",
+    "versions": {
+      "runLog": "gymrun-run-13/gymrun-0.3.0",
+      "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
+      "aiVersion": "gymrun-ai-3-priority",
+      "randomizerVersion": "gymrun-randomizer-13"
+    },
     "decisions": [
       {
         "kind": "starter",
@@ -812,6 +813,27 @@
       {
         "kind": "node",
         "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
       },
       {
         "kind": "battle",
@@ -1387,7 +1409,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
@@ -1436,6 +1458,13 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -1444,13 +1473,6 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 4
         }
       },
@@ -1458,7 +1480,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 1
         }
       },
       {
@@ -1466,20 +1488,6 @@
         "choice": {
           "kind": "move",
           "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
         }
       },
       {
@@ -1500,7 +1508,28 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -1926,13 +1955,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -1954,6 +1976,13 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "switch",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "move",
           "slot": 1
         }
@@ -1961,15 +1990,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       },
       {
@@ -2034,6 +2056,27 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 5
         }
       },
@@ -2055,34 +2098,6 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
           "slot": 4
         }
       },
@@ -2090,7 +2105,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {

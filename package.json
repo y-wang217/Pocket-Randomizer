@@ -15,6 +15,7 @@
     "test:trim-strict": "GYMRUN_TRIM_STRICT=1 vitest run",
     "sim": "vite-node scripts/sim.ts",
     "gen:pools": "vite-node scripts/gen-pools.ts",
+    "content-hash": "vite-node scripts/content-hash.ts",
     "measure": "npm run build && node scripts/measure-bundle.mjs",
     "smoke": "node scripts/smoke.mjs"
   },

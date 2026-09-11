@@ -62,7 +62,7 @@ export function named<T extends { nickname?: string; moves: string[] }>(spec: T,
  * label is the species, and the battle text is relabelled to match
  * (`ui/species-index.ts`). The name is still drawn, still on the spec and still
  * what the sim prints; it is state the screens do not show. `docs/generation.md`
- * section 12g.
+ * section 12i.
  */
 export function displayName(spec: { species: string; nickname?: string }): string {
   return spec.nickname ?? spec.species;

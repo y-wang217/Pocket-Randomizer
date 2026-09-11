@@ -14,7 +14,7 @@
  *   gallery.html#seed=SMOKE24&screen=result            three cards, no capture
  *   gallery.html#seed=SMOKE24&screen=result-capture    the capture offer, no cards
  *   gallery.html#seed=SMOKE24&screen=result-both       both at once, which the app never shows
- *   gallery.html#seed=V5-LOADED&screen=battle          both panels fully loaded
+ *   gallery.html#seed=V5-LOADED-1&screen=battle        both panels fully loaded
  *
  * **V5.6 added the battle screen**, and for the reason this file exists. The
  * plan's closing assertion is a layout height "with a full status and stage

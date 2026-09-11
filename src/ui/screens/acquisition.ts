@@ -104,6 +104,7 @@ export function renderCaptureOffer(
    * the moment they are reading this.
    */
   const coverage = el('p', 'acquire__coverage');
+  coverage.dataset['tutorial'] = 'coverage';
   coverage.textContent = captureCoverageLine(offer, party, capacity);
 
   const compare = el('h4', 'acquire__heading');

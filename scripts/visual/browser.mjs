@@ -149,7 +149,33 @@ async function dismissTooltip(page) {
   await page.waitForTimeout(30);
 }
 
+/**
+ * Act, then **park the pointer**. Patch 4.7.2.
+ *
+ * `dismissTooltip` above closes a panel a *click* opened. This closes the other
+ * half, which is subtler: the tooltip layer offers hover as a desktop
+ * enhancement over its tap interaction, Playwright drives a desktop Chromium
+ * with a real mouse, and the pointer stays wherever the last click left it. So
+ * the bot sits hovering whatever is under that point and a panel opens with
+ * nobody having asked — a state no phone can reach, which is the device every
+ * one of these measurements is taken at.
+ *
+ * Reached rather than theoretical, and it is why this wraps the switch instead
+ * of living in one branch: after 4.7.2 shortened the map, the pointer's resting
+ * place after a node click landed on a party panel's ability chip, and
+ * `visual-v3`'s "every visible control is what a tap at its centre lands on"
+ * failed on the *battle* screen two steps later, against a panel opened on the
+ * map. The parking is what stops the hover, and `mouse.move(0, 0)` is the move
+ * `visual-v0`, `visual-v2` and `contrast.mjs` already make before they measure,
+ * each with a comment saying why.
+ */
 export async function stepOnce(page) {
+  const screen = await stepOnceUnparked(page);
+  await page.mouse.move(0, 0);
+  return screen;
+}
+
+async function stepOnceUnparked(page) {
   await dismissTooltip(page);
   const screen = await openScreen(page);
   switch (screen) {
@@ -309,8 +335,33 @@ export async function playUntil(page, predicate, maxSteps = 600) {
 }
 
 /** Open the app on a seed, at the phone viewport, and wait for the starters. */
+/**
+ * The settings a fresh store would hold with the tutorial already skipped.
+ *
+ * The coach marks (overnight Branch 3) show on a first launch, which is what
+ * every fresh browser context is. A mark is a tappable panel over the screen,
+ * and a scripted click that lands on it advances the tutorial instead of the
+ * thing it meant to tap — so every harness context starts with the tutorial
+ * skipped unless a test asks for it (`openApp(..., { tutorial: true })`), and
+ * the tutorial's own browser test is the one that asks.
+ */
+export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ verbosity: 'detailed', tutorial: { skipped: true, seen: [] } });
+
+/** Seed a context's storage so the app's first launch is a returning one, tutorial-wise. */
+export async function skipTutorialIn(context) {
+  await context.addInitScript((settings) => {
+    try {
+      if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
+    } catch {
+      // Storage unavailable: the app falls back to defaults and the marks show.
+    }
+  }, TUTORIAL_SKIPPED_SETTINGS);
+}
+
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const context = await browser.newContext({ viewport, ...contextOptions });
+  const { tutorial = false, ...rest } = contextOptions;
+  const context = await browser.newContext({ viewport, ...rest });
+  if (!tutorial) await skipTutorialIn(context);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {

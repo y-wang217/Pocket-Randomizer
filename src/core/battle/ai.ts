@@ -38,6 +38,39 @@
  *
  * Damage numbers come from @smogon/calc rather than from a formula written
  * here, for the same reason the battle engine comes from @pkmn/sim.
+ *
+ * ## Priority and speed, `gymrun-ai-3-priority` (overnight Branch 2)
+ *
+ * Until this version the AI was priority-blind and speed-blind: `MoveView`
+ * carried no bracket and `BattleView` no Speed, so the greedy damage-max pick
+ * could not know it was about to be outsped, or that it held a move that
+ * would go first anyway. A slower opponent with Quick Attack in hand tackled
+ * into its own knockout. **The whole rule, in front of the greedy pick and in
+ * this order** — it is written here because every policy heuristic appears in
+ * every balance report from this version on:
+ *
+ *   1. Compute expected damage for every legal choice, exactly as before
+ *      (`scoreChoices`). Nothing below changes a score.
+ *   2. Determine whether the AI acts first, second or `unknown` this turn from
+ *      `battle/speed.ts` — Speed after stages and paralysis, ties `unknown`,
+ *      move priority ignored.
+ *   3. If the AI acts second or `unknown`, **and** the foe's best expected hit
+ *      would knock the AI out this turn (`risk >= 1`: the same `incomingDamage`
+ *      bound the switch logic already uses, evaluated from the foe's side — not
+ *      a second damage model), then among the AI's moves with priority above
+ *      zero pick the one with the highest expected damage. If it holds none,
+ *      fall through.
+ *   4. If any priority move knocks the foe out, pick it over a non-priority
+ *      move that also would. A guaranteed first knockout beats a probable
+ *      second one.
+ *   5. Otherwise, the greedy pick.
+ *
+ * That is all of it. Out of scope, each its own pass and its own bump: switch
+ * logic changes, status move valuation, secondary effects, Trick Room, and any
+ * speed modifier beyond the three the helper models. The value of this version
+ * is that its balance delta has one cause. `decide` reports which branch
+ * produced a choice so the simulator can say how often the rule fired and how
+ * often it changed the pick.
  */
 import { Generations, Move, Pokemon, calculate } from '@smogon/calc';
 
@@ -52,6 +85,7 @@ import type {
 import { moveChoice, switchChoice } from '../types';
 import { GYMRUN_GEN } from './format';
 import type { Policy } from './policy';
+import { turnOrderOf, type TurnOrder } from './speed';
 import { legalChoices, usableSwitches } from './switching';
 
 const gen = Generations.get(GYMRUN_GEN);
@@ -64,9 +98,14 @@ const gen = Generations.get(GYMRUN_GEN);
  * and the two are indistinguishable in a report that does not name them: two
  * balance runs a week apart showing a six-point completion gap could be a move
  * pool edit or could be this file, and there is no way to tell after the fact.
- * Bump it whenever `scoreChoices` would rank a choice set differently.
+ * Bump it whenever `scoreChoices` would rank a choice set differently, or —
+ * since `-3` — whenever `decide` would pick differently from the same scores.
+ *
+ * `-3`, the priority patch: the layer in the header. Recorded into every run
+ * log's `versions.aiVersion` since the `contentHash` release, so a `-2` log
+ * is refused at replay by name.
  */
-export const AI_VERSION = 'gymrun-ai-2-switching';
+export const AI_VERSION = 'gymrun-ai-3-priority';
 
 // ---------------------------------------------------------------------------
 // Damage estimates
@@ -507,21 +546,77 @@ export function bestOf(evaluations: readonly ChoiceEvaluation[]): ChoiceEvaluati
   return best;
 }
 
+/** Which step of the header's rule produced a choice. */
+export type DecisionBranch = 'greedy' | 'priority-escape' | 'priority-kill';
+
+/** A choice, the branch that made it, and what the greedy pick alone would have been. */
+export interface Decision {
+  choice: Choice;
+  branch: DecisionBranch;
+  /** Step 5's answer, so a report can say how often the rule changed the pick. */
+  greedy: Choice;
+  /** Step 2's answer, for the Release C audit. */
+  order: TurnOrder;
+}
+
+/** The highest-offense entry, ties toward the earlier one — the same tie-break as `bestOf`. */
+function mostDamaging(moves: readonly ChoiceEvaluation[]): ChoiceEvaluation | undefined {
+  let best: ChoiceEvaluation | undefined;
+  for (const entry of moves) {
+    if (!best || entry.offense > best.offense) best = entry;
+  }
+  return best;
+}
+
 /**
- * The opponent policy.
- *
- * Two lines, because the structure above is the whole design: build the legal
- * set, score it on one scale, take the max. Adding hazard awareness or status
- * pressure later means adding a term to `scoreMove`, and nothing outside this
- * file changes — the caller only ever sees `Policy`.
+ * The rule in the header, applied to one turn. Exported so the fixed-position
+ * tests can assert the branch and not only the slot, and so the simulator can
+ * count how often the priority layer fires and how often it changes the pick.
  */
-export const greedyAiPolicy: Policy = async (view: BattleView): Promise<Choice> => {
+export function decide(view: BattleView): Decision {
   const evaluations = scoreChoices(view);
   if (evaluations.length === 0) {
     throw new Error(view.forceSwitch ? 'AI is forced to switch with nothing to switch to' : 'AI has no legal choice');
   }
-  return bestOf(evaluations).choice;
-};
+  const greedy = bestOf(evaluations);
+  const order = turnOrderOf(view);
+  const base: Decision = { choice: greedy.choice, branch: 'greedy', greedy: greedy.choice, order };
+  // A forced switch has no moves to order; the rule is about moves.
+  if (view.forceSwitch) return base;
+
+  const moves = evaluations.filter((entry): entry is ChoiceEvaluation & { move: MoveView } => entry.move !== undefined);
+  const withPriority = moves.filter((entry) => entry.move.priority > 0);
+  if (withPriority.length === 0) return base;
+
+  // Step 3. `risk` on a move evaluation is the foe's best expected hit over
+  // the AI's remaining HP, the same for every move this turn; at or above 1 it
+  // is a knockout.
+  const facingKo = moves.some((entry) => entry.risk >= 1);
+  if (order !== 'first' && facingKo) {
+    const escape = mostDamaging(withPriority);
+    if (escape) return { ...base, choice: escape.choice, branch: 'priority-escape' };
+  }
+
+  // Step 4. Only when the greedy pick was not itself a priority knockout;
+  // otherwise the rule changed nothing and says so.
+  const priorityKills = withPriority.filter((entry) => entry.kills);
+  if (priorityKills.length > 0 && !(greedy.move && greedy.move.priority > 0 && greedy.kills)) {
+    const kill = mostDamaging(priorityKills);
+    if (kill) return { ...base, choice: kill.choice, branch: 'priority-kill' };
+  }
+
+  return base;
+}
+
+/**
+ * The opponent policy.
+ *
+ * Build the legal set, score it on one scale, apply the priority layer, take
+ * the result. Adding hazard awareness or status pressure later means adding a
+ * term to `scoreMove`, and nothing outside this file changes — the caller only
+ * ever sees `Policy`.
+ */
+export const greedyAiPolicy: Policy = async (view: BattleView): Promise<Choice> => decide(view).choice;
 
 // ---------------------------------------------------------------------------
 // Compatibility surface

@@ -86,6 +86,7 @@ export function createLocaleSelect(): LocaleSelect {
     'in it, and nothing else — trainers, shops, rests and the gym are the same ' +
     'either way.';
   const grid = el('div', 'locales');
+  grid.dataset['tutorial'] = 'regions';
 
   /*
    * The gym rail, above the cards.
@@ -95,6 +96,7 @@ export function createLocaleSelect(): LocaleSelect {
    * made the pick by the time they learn what it was for.
    */
   const rail = el('div', 'locale__gym');
+  rail.dataset['tutorial'] = 'gym';
   const railLabel = el('span', 'locale__gym-label');
   railLabel.textContent = 'This segment ends at';
   const railLeader = el('span', 'locale__gym-leader');

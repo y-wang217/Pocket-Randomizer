@@ -37,6 +37,15 @@
  * measures against: it takes the first option at every question, so the
  * recording is a function of generation and battle resolution alone rather
  * than of a heuristic somebody may tune later.
+ *
+ * ## Re-minted for the priority and speed aware AI, `gymrun-ai-3-priority`
+ *
+ * Overnight Branch 2. The opponent now sees move priority and Speed, so its
+ * choices change and every battle after the first differing one plays out
+ * differently; the recording moved from the `contentHash` release's
+ * `fd91f8b7…` to this one deliberately, with `AI_VERSION` moving in the same
+ * commit. Generation did not move: `RANDOMIZER_VERSION` and `contentHash`
+ * are unchanged and the decision sequence differs only where a battle did.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -45,6 +54,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { AI_VERSION, greedyAiPolicy } from '../src/core/battle/ai';
+import { CONTENT_HASH } from '../src/core/contentHash';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { gymsCleared, playRun, RUN_LOG_VERSION, scriptedRunPolicy } from '../src/core/run';
 
@@ -112,7 +122,7 @@ async function buildReport(): Promise<string> {
   const runs = [];
   for (const seed of SEEDS) runs.push(await report(seed));
   return `${JSON.stringify(
-    { version: RUN_LOG_VERSION, randomizerVersion: RANDOMIZER_VERSION, aiVersion: AI_VERSION, runs },
+    { version: RUN_LOG_VERSION, randomizerVersion: RANDOMIZER_VERSION, contentHash: CONTENT_HASH, aiVersion: AI_VERSION, runs },
     null,
     2,
   )}\n`;

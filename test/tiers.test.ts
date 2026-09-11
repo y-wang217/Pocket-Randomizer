@@ -100,7 +100,7 @@ describe('tier stream isolation', () => {
       if (drained === 'map') continue;
       const state = createRun('TIER-ISOLATE');
       const noisy = createRng('TIER-ISOLATE');
-      for (let i = 0; i < 5_000; i++) noisy[drained].nextUint32();
+      for (let i = 0; i < 5_000; i++) noisy[drained].at('drain').nextUint32();
       expect(
         state.segments.flatMap((segment) => nodesOf(segment).map((node) => node.tier)),
         `draining ${drained} moved the tiers`,
@@ -216,7 +216,8 @@ describe('tier scaling is monotonic', () => {
     let total = 0;
     for (let seed = 0; seed < seeds; seed++) {
       const rng = createRng(`POWER-${segment}-${seed}`);
-      const team = kind === 'wild' ? generateWildTeam(segment, tier, rng.randomizer) : generateTrainerTeam(segment, tier, rng.randomizer);
+      const team =
+        kind === 'wild' ? generateWildTeam(segment, tier, rng.randomizer.at('test')) : generateTrainerTeam(segment, tier, rng.randomizer.at('test'));
       total += encounterPower(team);
     }
     return total / seeds;

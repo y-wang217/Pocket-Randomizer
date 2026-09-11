@@ -25,6 +25,7 @@ import { describeSpecCard, describeMove } from '../../core/battle/driver';
 import { offensiveCoverage } from '../../core/coverage';
 import { routeAt } from '../../core/encounters';
 import { hpState } from '../../core/hpCopy';
+import { formatSeedString } from '../../core/seedString';
 import {
   causeOfDeath,
   gymsCleared,
@@ -193,7 +194,7 @@ export function createSummary(): Summary {
       done(false);
       return;
     }
-    clipboard.writeText(seed).then(
+    clipboard.writeText(formatSeedString(seed)).then(
       () => done(true),
       () => {
         selectText(seedValue);
@@ -241,7 +242,8 @@ export function createSummary(): Summary {
       count.replaceChildren(numberOf(cleared), fractionOf(GYMS.length));
       count.setAttribute('aria-label', `${cleared} of ${GYMS.length} gyms cleared`);
       detail.textContent = describeRun(state, cleared);
-      seedValue.textContent = seed;
+      // The versioned form: what is shown is what is copied and what can be pasted.
+      seedValue.textContent = formatSeedString(seed);
 
       route.replaceChildren(...renderRoute(state));
       tiers.replaceChildren(...renderTiers(cleared));
@@ -262,10 +264,9 @@ export function createSummary(): Summary {
         ? `Party slots: ${capacity}. Next slot at gym ${next.atGym}.`
         : `Party slots: ${capacity}.`;
 
-      // The 4.7.2 call, restored. The merge of 4.7.2 into 4.8 kept 4.8's
-      // `map(renderMember)` against 4.7.2's three-argument signature, so the
-      // party array was arriving where the tuning goes and `tsc` was red on
-      // `main`. Found by 4.8.0.1's typecheck gate; recorded in generation.md 12g.
+      // 4.7.2 threads the index and the tuning through, so the member card can
+      // fill its move cards via `moveCardData` — the shared filler that carries
+      // the tap-to-explain panel and the tag row.
       team.replaceChildren(...state.party.map((member, index) => renderMember(member, index, state.tuning)));
 
       const deaths = deathsFrom(state);
@@ -374,7 +375,7 @@ function describeDeath(death: CauseOfDeath, state: RunState): string {
    * the run ended with, by the same match `core/graveyard.ts` makes, because
    * the member that fell in the final wipe is always still in it. Correcting
    * the field's name and contents is a `core/` change and is not this patch;
-   * `generation.md` section 12g records it as an open item.
+   * `generation.md` section 12i records it as an open item.
    */
   const species = state.party.find((member) => displayName(member.spec) === death.species)?.spec.species ?? death.species;
   const where =

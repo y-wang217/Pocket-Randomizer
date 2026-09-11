@@ -138,6 +138,7 @@ export function createRunMap(): RunMap {
   heading.append(title, subtitle, blurb, region);
 
   const chain = el('ol', 'chain');
+  chain.dataset['tutorial'] = 'chain';
   const party = el('div', 'party');
 
   /*
@@ -352,6 +353,8 @@ function renderStep(
   marker.textContent = String(index + 1);
 
   const nodes = el('div', 'step__nodes');
+  // The tutorial's anchors sit on the current step only: the decision, not the context.
+  if (phase === 'current') nodes.dataset['tutorial'] = 'options';
   nodes.append(
     ...options.map((node, option) =>
       renderNode(node, phase, segment, run, visit, onChoose ? () => onChoose(option) : undefined),
@@ -376,6 +379,7 @@ function renderNode(
   element.className = `node node--${node.kind} node--${phase}${node.tier ? ` node--tier-${node.tier}` : ''}`;
 
   const label = el('span', 'node__label');
+  if (phase === 'current') label.dataset['tutorial'] = 'kinds';
   // The gym is named; the rest are a kind, because naming them would reveal
   // what a node contains before the player has chosen it. A gym's team size is
   // named too — see the heading.
@@ -388,7 +392,11 @@ function renderNode(
   // The tier, on the label line, on every step the player can still see. Not
   // only the current one: taking a fight now is a different decision when you
   // can see an elite two steps ahead.
-  if (node.tier) label.append(document.createTextNode(' '), tierBadge(node.tier));
+  if (node.tier) {
+    const badge = tierBadge(node.tier);
+    if (phase === 'current') badge.dataset['tutorial'] = 'tier';
+    label.append(document.createTextNode(' '), badge);
+  }
 
   const detail = el('span', 'node__detail');
   if (visit?.result) {
@@ -439,6 +447,7 @@ function renderNode(
   if (node.event) {
     const band = resolveCapability(run, node.event.requires);
     const gate = el('span', `node__gate node__gate--${band}`);
+    if (phase === 'current') gate.dataset['tutorial'] = 'gate';
     gate.append(capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`), capabilityBandChip(BAND_LABELS[band]));
     element.append(gate);
   }

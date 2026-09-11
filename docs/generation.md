@@ -766,11 +766,28 @@ name, on every surface at once, from a single cache hit. The nickname is in the 
 `reviveFaintedBetweenNodes` is true, so the only faints never recovered are those in
 the wipe that ends a run; read literally the graveyard would hold one node's
 casualties. Revives are out of scope, so changing recovery to justify a readout was
-not available and would have been a readout deciding a mechanic. Two imprecisions
-are recorded in the file rather than hidden: the level is the member's level *now*
-rather than when it fell, and a member released since does not match and reads null.
-The exact fix for both is a party snapshot per `NodeVisit`, which is a copy of the
-whole party per node to improve one line of a readout.
+not available and would have been a readout deciding a mechanic.
+
+**The level is captured at faint time, in `Casualty` itself**, beside the killing
+move the 4.7 attribution work already wrote there. `runBattle` reads it off the specs
+the battle was built with — the party as of node entry — and `readCasualties` takes a
+name-to-level map rather than deriving one, because nothing in that file may see
+anything but protocol strings.
+
+The first cut looked the level up in the live party instead, and was wrong twice:
+`levelParty` raises the whole party at every gym clear, so a survivor reported the
+level it had *climbed to*; and a member released since matched nothing and read null.
+One field fixed both, and **a released member now keeps a complete record** — which a
+party snapshot per `NodeVisit` would also have done, at the cost of a copy of the
+whole party per node.
+
+Both failure modes are pinned in `test/nicknames-graveyard.test.ts`, and both tests
+were rewritten once because the first versions were **vacuous**: the level test ran on
+a seed with no stale survivor, and the release test's set of no-longer-held victims
+came back empty on every seed, so both passed against the broken lookup. The level
+test now sweeps every seed and asserts the discriminating case was present; the
+release case is a hand-built fixture, because a state that specific is one a fixture
+should construct rather than one a sweep should hope for.
 
 ### Item 6: the shareable result
 
@@ -935,144 +952,200 @@ property across all eight capabilities, from both prior bands.
 The decision is not scheduled for revisiting. If it is revisited, the numbers
 above are the starting point.
 
-## 9. `contentHash`, deferred
+## 9. `contentHash`, built
 
-`gymrun-seeds-and-mappability.md` specifies a `contentHash` computed over the
-data tables, replacing the hand-bumped `RANDOMIZER_VERSION`, plus seed strings
-that carry that hash and a `previewRun` that builds a map without playing it.
-None of the three is built. `RANDOMIZER_VERSION` is still hand-edited, and the
-`hmLearnsets.ts` that would have been the first entry on the hash's file list
-is not being built either.
+**Built 2026-09-11, Branch 1 of the overnight run, on
+`claude/overnight-1-contenthash`**, from
+[`spec/gymrun-overnight-contenthash-ai-tutorial.md`](spec/gymrun-overnight-contenthash-ai-tutorial.md).
+The mechanism `gymrun-seeds-and-mappability.md` specified at 4.6a: a hash over
+the data tables, seed strings that carry it, `previewRun`, and the deletion of
+the unkeyed stream API. This section says one thing about each.
 
-### It is computed over `src/data/**` by glob, not over a list
+Until this date the section carried two readings of what the hash covers — a
+glob over `src/data/`, argued at Release 0.5, and an explicit file list,
+required at 4.7 and re-argued at Release C — and neither was marked superseded.
+Both are deleted here, per `CLAUDE.md`: a superseded rule is removed and
+recorded with a dated note, not out-argued in a third paragraph. The record of
+the two is the git history of this file; the decision is below.
 
-**Decided 2026-09-10, Release 0.5. The design document's enumerated file list is
-superseded.** It named eleven tables: `speciesPools`, `movePools`, `scaling`,
-`rewardPools`, `locales`, `items`, `hms`, `events`, `blacklists`, `starters`,
-`tuning`. Every one was correct when it was written.
+### What it is
 
-Measured against the tree today, one of the eleven is gone — `hms` was deleted
-at 4.6c when capabilities became relics — and **eleven balance-bearing tables
-exist that the list does not name**, among them `relics`, `capabilityTypes`,
-`moveOverrides`, `abilityOverrides`, `shop`, `gyms` and `partyTuning`. Any of
-them can change what a seed rolls or pays without moving a hash built from that
-list. That is a silent seed reinterpretation, which is the exact failure
-`contentHash` was invented to prevent.
+`CONTENT_HASH` is a sha256 over the source files under `src/data/`, computed
+**at build time** by [`build-config/content-hash.ts`](../build-config/content-hash.ts)
+and served to the app as the virtual module `virtual:gymrun/content-hash`, of
+which [`core/contentHash.ts`](../src/core/contentHash.ts) is the one importer.
+Vitest, `vite-node` and `vite build` all load `vite.config.ts`, so the suite,
+the simulator and the bundle see one constant, and nothing is checked in that
+could go stale. It is never computed at runtime from bundled data, because the
+trimmed bundle is not the source of truth.
 
-The fix is not a corrected list of twenty-two files. **An enumerated file list
-is a hand bump wearing a hash costume.** The design rejected hand-bumping
-`RANDOMIZER_VERSION` on the grounds that "a forgotten bump is the failure mode
-that silently reinterprets a shared seed. The hand bump is a discipline problem
-and disciplines fail. A hash does not" — and a list somebody must remember to
-extend fails in precisely that way, for precisely that reason. This section is
-the evidence that it already did, over a single stage.
+It is stable across machines: paths are sorted and hashed as repo-relative
+posix paths, contents are hashed rather than mtimes, and line endings are
+folded to `\n`. The display form is the first six hex characters; the log
+stores the full hash. `npm run content-hash` prints both, and `--files` lists
+what it covers. `test/content-hash.test.ts` shuffles the file order, rewrites
+the line endings, edits a number, adds a table, renames one, edits a `core/`
+comment and edits every excluded file, and asserts the hash moves exactly when
+it should.
 
-So the hash is taken over every file the glob `src/data/**` matches, resolved at
-build time. A table added tomorrow is covered the day it lands, by construction,
-with nobody remembering anything.
+### Decided: a glob over `src/data/**`, with one exclusion list
 
-### What a glob needs that a list does not
+**Decided 2026-09-11.** The hash covers every file under `src/data/` minus one
+list in `build-config/content-hash.ts`, each entry carrying the reason.
 
-A list implies a judgement about each file. A glob makes one judgement once, so
-it has to be stated: **is everything in `src/data/` balance-bearing?**
+The glob is the design document's own argument applied to itself. The hand
+bump was rejected because "a forgotten bump is the failure mode that silently
+reinterprets a shared seed"; an enumerated file list that somebody must
+remember to extend fails in precisely that way, and had already failed by one
+full stage — the design's list of eleven tables was missing eleven
+balance-bearing files and naming one that no longer existed. A table added
+tomorrow is hashed the day it lands, by construction.
 
-Not quite, and it does not matter, which is the point.
+The exclusion list answers the objection Release C raised against the glob,
+that a copy edit would invalidate every shared seed, and it answers it with a
+rule a test can hold rather than a judgement per file: **a file is excluded
+only if nothing under `src/core/` imports it, directly or transitively.** A
+file only `ui/` reads cannot change what a seed generates, resolves or pays,
+because none of that happens in `ui/`. `test/content-hash.test.ts` walks the
+import graph of `src/` and refuses an entry the moment a `core/` module
+reaches it, so the list cannot rot quietly. The list today, ten files:
 
-Three kinds of file live there. Most change what a seed rolls or pays. Some are
-purely player-facing copy — `bandInfo.ts`, `statusInfo.ts`, `tierInfo.ts`,
-`categoryInfo.ts`, `statInfo.ts` — and cannot move a draw. One, `mons.ts`, is
-not game data at all: it is Stage 0's fixed matchup, pinned by the determinism
-and replay tests.
+| excluded | why |
+|---|---|
+| `abilityOverrides.ts` | tooltip prose; `ui/tooltips.ts` only |
+| `bandInfo.ts` | the BAND badge's sentences; `ui/tooltips.ts` only |
+| `categoryInfo.ts` | what PHYS, SPEC and STAT mean; `ui/` only |
+| `flagWords.ts` | the words a flag is shown as; the truths are read in `core/battle/flags.ts`, which does not import it |
+| `moveTargets.ts` | a target keyword as a sentence; `ui/move-explanation.ts` only |
+| `statInfo.ts` | the six stat abbreviations explained; `ui/` only |
+| `statusInfo.ts` | what each status does, in prose; `ui/tooltips.ts` only |
+| `tierInfo.ts` | the three tier sentences; the numbers they restate are in `scaling.ts`, which is hashed |
+| `seedCopy.ts` | the paste-time refusal for a foreign seed string; `ui/seed-bar.ts` only |
+| `mons.ts` | Stage 0's fixed matchup, pinned by the determinism tests; no run reads it |
 
-Hashing all three kinds makes the hash **conservative**, and conservative in the
-one direction that is safe. Rewording a tooltip moves the hash and a seed shared
-across that edit is rejected, even though it would in fact have reproduced. That
-is a false rejection: visible, loud, and recoverable by re-sharing the seed.
-The opposite error — a balance table outside the hash, so a seed is accepted and
-silently plays as a different run — is the one the mechanism exists to make
-impossible.
+Four copy-shaped files are **hashed although they are copy**, because `core/`
+reaches them: `archetypes.ts`, `moveCopy.ts` and `data/moveTags.ts` through
+`core/battle/view.ts`, and `abilityEffects.ts` through `core/typeMatchup.ts`.
+Their values are believed to flow nowhere that decides a roll or a turn, and
+"believed" is the failure mode the rule exists to remove. Rewording one moves
+the hash and a seed shared across that edit is refused; that is a false
+rejection, visible and recoverable, and the safe direction. The hash may refuse
+a seed that would have reproduced. It may never accept one that will not.
 
-**The asymmetry is the whole argument.** `contentHash` may reject a seed that
-would have worked. It may never accept one that will not. A glob errs toward
-the first; a list errs toward the second, by omission, quietly. So there is no
-exception list for the copy files, because an exception list is an enumeration
-again with the same failure mode one level down.
+`tuning.ts` is hashed whole, display fields included. Release C recommended
+moving `battleFeedbackMs` and `maxMoveTagsOnFace` into a display-only module;
+that is not done here, because moving a field out of `Tuning` changes what the
+simulator can sweep and what every report's `tuning` block records, and that is
+a decision with its own release rather than a side effect of this one. The cost
+is a false rejection when a display number moves. **Open, small.**
 
-The implementation is still its own release, below. This section records the
-decision so that release builds the right thing.
+The workflow this implies, for the next table: a balance file under
+`src/data/` needs nothing; a copy-only file wants an exclusion entry with a
+reason, and the test says no if `core/` imports it.
 
-They are **their own release, scheduled after 4.6c and before the freeze**, for
-the reason the seeds document gives: the freeze stamps a `contentHash` as the
-first shareable baseline, and it cannot be stamped without one. They are
-deliberately not bundled into a data-generation step — a hash mechanism built
-as a side effect of shipping a table is a mechanism nobody reviewed.
+### The versions block
 
-Until then the hand bump stands, with the failure mode the seeds document names
-and this paragraph does not solve: a forgotten bump silently reinterprets a
-shared seed. `docs/keyed-streams.md` tracks what is missing.
+`RunLog` is `{ seed, versions, decisions }`, and `versions` is
 
-### A constraint on that release, from Stage 4.7
+```ts
+{ runLog: string; contentHash: string; aiVersion: string; randomizerVersion: string }
+```
 
-**The hash's input must be an explicit file list, not a directory glob.**
+written by `currentVersions()` in `core/run.ts` and read by `versionMismatch`
+in the same file, so the stamp and the guard cannot disagree. One guard, the
+axes checked in that order, one message format naming the axis and both
+values. A log with no block — every log from before this release — is refused
+on `runLog` with its old loose `version` quoted. `RUN_LOG_VERSION` moved from
+`gymrun-run-12` to `gymrun-run-13`; the decision sequence did not change, the
+header that carries it did.
 
-4.7 added three files under `data/` that consume no RNG and feed no
-generation — `archetypes.ts`, `data/moveTags.ts` and `moveCopy.ts`. They are display
-tables: thresholds for a stat label, a tag vocabulary, and the sentences a
-status move's readout is composed from. Two players on one seed holding
-different copies of any of them play the **identical run** with different words
-on it.
+`aiVersion` is recorded from `AI_VERSION` in `core/battle/ai.ts`, which closes
+the audit's unguarded-`AI_VERSION` finding and means the AI patch that follows
+bumps one constant and the guard picks it up.
 
-A glob over `data/` would pull all three in, and a comma added to a blurb would
-then move the hash and invalidate every shared seed for a copy edit. The seeds
-document already implies the list form — it speaks of `hmLearnsets.ts` as "the
-first entry on the hash's file list" — and this is that implication written
-down as a requirement before the release that has to honour it.
+**Two deviations from the prompt, recorded here rather than by editing it.**
+The prompt's block has `runLog: number` and three axes. `runLog` is a string,
+because `RUN_LOG_VERSION` composes the engine version into itself
+(`gymrun-run-13/gymrun-0.3.0`) and a number would drop the half that says the
+*battle* would replay differently. And the block carries a fourth axis,
+`randomizerVersion`, for the reason in the next paragraph.
 
-The test is not "is it in `data/`" but **"can editing this change what a seed
-produces"**. `scaling.ts`, `speciesPools.ts`, `movePools.ts` and `tuning.ts` can.
-`archetypes.ts`, `data/moveTags.ts`, `moveCopy.ts`, `statusInfo.ts`, `bandInfo.ts`
-and `categoryInfo.ts` cannot.
+### `randomizerVersion` is kept, not retired
 
-### Release C ran the experiment, twice, and `tuning.ts` is the awkward case
+The prompt allowed retirement if the only readers were the replay guard and
+the sim report stamp. They are not: `ui/stamps.ts` renders it in the build
+stamp, `scripts/visual/baseline.ts` stamps every baseline record with it, the
+sim fixture's header carries it, and the benchmark filename is built from it.
+So it stays, and it stays in the log as a guarded axis rather than as a loose
+constant, because it names something the hash cannot see: **draw
+composition**. A draw added, removed or relocated in `core/` with no table
+edited rolls a different run under an identical `contentHash`. `CLAUDE.md`
+lists it as its own axis for that reason, and a guard that dropped it would be
+a regression.
 
-**2026-09-10, Release C.** The two paragraphs above contradict each other and
-neither is marked superseded — the audit
-(`docs/reports/v5-unblock-audit.md` divergence 2) calls that the single
-highest-value fix in the tree, and it is still not made here, because resolving
-it belongs to the `contentHash` release and `CLAUDE.md` requires the losing half
-to be *deleted* with a dated note rather than out-argued in a third paragraph.
+### Seed strings, and `previewRun`
 
-What Release C adds is evidence, from the one instrument that already hashes
-`src/data/` today: `docs/visual/baseline/data-digest.txt`, a sha256 over every
-file under it — a glob, in other words, and therefore a live rehearsal of the
-glob reading.
+`GYMRUN-<hash first 6>-<seed>`, rendered by `formatSeedString` in
+[`core/seedString.ts`](../src/core/seedString.ts) and rendered nowhere else:
+the seed bar, the corner stamp, the summary's copy button, the share text and
+the URL all call it. `parseSeedString` reads one back, case-insensitively, as
+`bare`, `match` or `foreign`. The seed bar
+([`ui/seed-bar.ts`](../src/ui/seed-bar.ts)) refuses a `foreign` string before
+a run starts, with the wording in [`data/seedCopy.ts`](../src/data/seedCopy.ts)
+naming both hashes, and leaves the bare seed in the box so a second Start is a
+fresh run on it. A bare seed is unchanged.
 
-Release C added two things under `src/data/`: `flagWords.ts`, a vocabulary of
-nine post-resolution words, and `tuning.ts`'s `battleFeedbackMs`, which is how
-long an HP shadow lingers. **Each moved the digest, and each time the digest was
-the only thing in the whole baseline that moved** — every recorded run and the
-recorded battle protocol were byte identical both times. Two players on one seed
-holding different copies of either file play the identical run.
+`previewRun` did not exist — the 4.6a refactor never built it — so it exists
+now, in [`core/preview.ts`](../src/core/preview.ts): `previewRun(seed,
+contentHash)` over `createRun`, which already draws every structural thing up
+front, refusing a foreign hash by the same `matchesContentHash` the seed bar
+uses and accepting the full hash or its display form.
 
-Under the glob reading, a player who prefers a 300ms shadow could not share a
-seed. That settles the direction: **the explicit file list is right.**
+### The unkeyed sequence is deleted
 
-It also exposes what the file list alone does not solve, and this is the part
-the `contentHash` release has to decide. `tuning.ts` is on the "can change what
-a seed produces" side of the test above, correctly — `stepsPerSegment` is in it.
-It now also holds `battleFeedbackMs` and `maxMoveTagsOnFace`, which cannot. **A
-per-file list is not fine-grained enough for `tuning.ts`.** Either the hash
-needs a per-field split of that one file, or the display numbers move out of it into a
-display-only module that is simply never on the list. The second is cheaper and
-is the recommendation; it is deliberately not named as a file here, because
-choosing where those fields land is the `contentHash` release's decision and a
-path invented in a note is a path the next reader goes looking for. Moving a
-field out of `Tuning` also changes what the simulator can sweep, which is an
-argument that release has to make rather than inherit.
+A named stream is `at(key)`, `keys` and `totalDraws`, and is not drawable
+itself. The audit's "one src caller" in `ui/seed.ts` had already been ported
+at Release 0.5; the one left was the sim-seed fallback in
+`core/battle/driver.ts`, reached by the Stage 0 fixture battles and the
+determinism suite and never by a run. It draws through `FIXTURE_BATTLE_KEY`
+now, the boundary test's exception list is empty and asserts it stays empty,
+and the recorded fixture battle (`docs/visual/baseline/battles/GYMRUN01.json`)
+moved once with it. The simulator's scripted bots draw through
+`SIM_POLICY_KEY`. Tests that drew off a root now draw off a key; the two
+determinism cases that only exercised the root are deleted, held at the key
+level by `test/stream-keys.test.ts` groups 2 and 4; and the deletion itself is
+asserted at runtime and at the type level, in `test/determinism.test.ts` and
+`test/stream-keys.test.ts` group 5.
 
-Written up in full, with the digests, in
-[`reports/release-c-battle-feedback.md`](reports/release-c-battle-feedback.md) §4.
+### What did not move
 
+Seeded run output is byte identical to the branch's Step 0 baseline. The sim
+fixture's diff is its two header lines (`version`, and a new `contentHash`);
+the visual baseline's run records differ in the `versions` stamp and nothing
+else; SMOKE24 plays the same run. The benchmark at RETUNE, 400 seeds,
+reproduced the 4.8 row to the digit (mean gyms 4.96, completion 40.25%) before
+any code was written, and `contentHash` changes what is recorded, not what is
+generated.
+
+### Three things the prompt assumed that the tree did not satisfy
+
+Recorded as deviations because they change what the next reader should expect,
+not because anything was built differently.
+
+- **Stage 4.8 is in the tree.** The prompt says it "does not exist in the
+  tree"; all eight steps were merged as PR #21 before this branch started, so
+  the baseline is `RANDOMIZER_VERSION` 13 and `RUN_LOG_VERSION` 12, not the
+  4.7 pair.
+- **SMOKE24 has no xfail marker.** The prompt expects one on the 4.7 map
+  overflow; 4.8 step 7 closed that miss and deleted the marker helper, so the
+  smoke is a plain pass-or-fail.
+- **`main` did not typecheck, and one visual test was red.** `ui/screens/summary.ts`
+  passed `renderMember` straight to `party.map`, so its third argument was
+  the party array where a `Tuning` was declared; fixed as the branch's first
+  commit. And `docs/visual/baseline/data-digest.txt` had not been re-recorded
+  after 4.7.2's merge touched `src/data/`, so `test/visual-baseline.test.ts`
+  and `test/summary.test.ts`'s digest check were red on `main`; re-recorded
+  here with the rest of the baseline.
 
 ## 9b. Deviation: keyed streams shipped two levels, not one
 
@@ -1571,8 +1644,95 @@ list and the recorded battle protocol are byte identical, so two players on one
 seed holding different copies of `tuning.ts` still play the identical run. **The
 per-field split of that file is still the `contentHash` release's decision and
 is deliberately not pre-empted here.**
+## 12g. The summary's move cards, and the gap that let them go empty
 
-## 12g. Deviation: 4.8.0.1 de-prioritised nicknames past what its prompt asked
+**2026-09-11.** The fix is not recorded here. It is PR #24's, and
+[`visual/reports/patch-4.7.2.md`](visual/reports/patch-4.7.2.md) §7.1 is
+where the merge that caused it is written up. This section records the **test**,
+because the fix shipped without one and the reason it was needed is not obvious
+from the diff.
+
+**The attribution matters and my first draft of this section got it wrong.**
+4.7.2 did not leave the call site short of an argument. Its own tip carries
+`state.party.map((member, index) => renderMember(member, index, state.tuning))`
+at `f52a057` and still at `1539841`. The merge commit `afa2b1f`, resolving 4.7.2
+against 4.8's rewritten block, is what reduced it to `map(renderMember)` — and
+`Array.prototype.map` passes the array as its callback's third argument, so
+`tuning` became `state.party`. A merge resolution dropped it, which is why
+§7.1's table can describe the resolution as keeping the tuning and the committed
+tree not have it.
+
+**The interesting part is that the surface was under test and the test passed.**
+`tagsForFace` computes `slice(0, Math.max(0, tuning.maxMoveTagsOnFace))`; the
+field is absent on an array, `Math.max(0, undefined)` is `NaN`, and
+`slice(0, NaN)` is empty. So the summary drew **zero** face tags where the other
+five surfaces draw up to three — no crash, no blank region, just a missing row.
+
+4.7.2 step 5's claim is that the shared filler reaches six card surfaces, and
+`test/visual-move-cards.test.ts` does walk all six. What it asserts on each is
+that an expander is present, and an expander comes off `explanation` rather than
+off the tags, so it stayed green on a surface whose tag row had gone. The smoke
+run's `no move face carries more than 3 tags` is a ceiling, which zero also
+satisfies, and it only covers the battle screen. **Between them the two checks
+proved the insertion point was reached and not that real data came through it.**
+
+So the gap was 4.7.2's to close rather than 4.8's, and closing it is what these
+tests do:
+
+- `test/summary.test.ts` compares the face tags the screen draws against what
+  `moveCardData` returns for the same party under the run's tuning. Not "more
+  than zero": a cap of three read as zero and a cap of three read as three are
+  both non-crashing, and only the comparison separates them. It also asserts the
+  expected total is itself above zero, so it cannot pass at `0 === 0` on a party
+  whose moves carry no tags — the shape of the bug it exists for. Verified red
+  against the pre-#24 call site.
+- `test/visual-move-cards.test.ts` gains a tag count per surface beside the
+  expander count it already takes, so the next surface to lose its tuning fails
+  on the surface that lost it rather than on a screen two steps later.
+
+`state.tuning` and not `DEFAULT_TUNING`, on the rule `ui/app.ts` already states
+for the opponent reveal policy: a run started with a swept tuning has to show
+what that run was.
+
+## 12h. Deviations: the tutorial (overnight Branch 3)
+
+**Recorded 2026-09-11. Protocol 4 — the prompt is not edited; the five
+places the built tutorial differs from
+[`spec/gymrun-overnight-contenthash-ai-tutorial.md`](spec/gymrun-overnight-contenthash-ai-tutorial.md)
+Branch 3 are written here.**
+
+1. **The move-category sentence lives on the battle screen, not the starter
+   card.** The prompt puts "a move is Physical, Special or Status and which
+   stat that uses" under starter and party cards; the starter card shows a
+   move's type, base power and PP and carries no category chip, so there is
+   nothing to point at. The battle's move button carries the chip, and the
+   `move` mark there says it. The starter's `moves` mark says what a move
+   has and what Status means.
+2. **The drawer is read only, and its marks say so.** The prompt's drawer
+   section says items are reassigned there; since 4.7 the drawer is a view
+   and the party screen is where assignment happens (`ui/drawer.ts` says the
+   same in its note). The `items` and `backpack` marks are on the party
+   screen; the drawer's `party` mark states that items are assigned on the
+   party screen and locked in battle.
+3. **The seed mark has two anchors.** On a phone the seed bar is hidden once
+   a run starts (`.shell[data-phase='running'] .seedbar`), so the corner seed
+   stamp carries the same `data-tutorial="seed"` and the layer takes the first
+   painted anchor. One mark, one sentence, two places it can point.
+4. **The visual baseline's data digest is `contentHash` now.** It was a plain
+   sha256 over every file under `src/data/`, so `data/tutorial.ts` — copy, on
+   the exclusion list, read by `ui/` only — moved it without moving anything a
+   seed reads. `scripts/visual/baseline.ts` reads the axis instead; the
+   recorded digest is `b022fc4e…`, unchanged since Branch 1, and it moves
+   exactly when the axis does.
+5. **The forbidden list carries twelve words, not ten.** `recommended` and
+   `usually` are the prompt's own examples of advice spelled differently from
+   the ten it listed, so they are in the data.
+
+One known gap, from the prompt's own default: the copy is written against
+Detailed mode. If Pocket mode is built, its marks point at the same anchors
+and may name things that mode hides.
+
+## 12i. Deviation: 4.8.0.1 de-prioritised nicknames past what its prompt asked
 
 **Recorded 2026-09-11. Protocol 4 — [`spec/README.md`](spec/README.md) — a
 prompt is not edited to match what was built, so the deviation is written here
@@ -1624,53 +1784,42 @@ where a nickname was one word, and no nameplate gained a line. The map did not
 move either — but see the next paragraph, because the pinned map numbers were
 not the merged tree's.
 
-**Two things the gates found on `main`, both at the merge of 4.7.2 into 4.8
-(`0712032`), neither this patch's, both carried here because the patch touches
-the files and the alternative was pushing red:**
+**What the gates found on `main`, and what PR #24 did about it first.** This
+branch was cut from `0712032`, the merge of 4.7.2 into 4.8. Its typecheck gate
+found `tsc` red there — the merge kept 4.8's `state.party.map(renderMember)`
+against 4.7.2's three-argument signature — and its height gate found the map's
+pinned numbers and `data-digest.txt` were 4.8's, recorded on a tree without
+4.7.2's font swap (12e) and chip floor (12f). Both were fixed on this branch,
+and while it was open PR #24 (`c28d050`) fixed both on `main` independently:
+the same one-line restoration of 4.7.2's call, the same re-record. The merge
+takes `main`'s versions; 12g above and
+[`visual/reports/patch-4.7.2.md`](visual/reports/patch-4.7.2.md) §7 are the
+record. What this branch adds is the independent confirmation, measured on
+`main` at `0712032` from a `vite build` that bypassed the red `tsc`, and on the
+branch, agreeing to the hundredth:
 
-1. **`tsc` was red on `main`.** 4.7.2 gave the summary's `renderMember` a third
-   argument, the tuning, and 4.8 mapped `state.party.map(renderMember)`; the
-   merge kept both, so the party array arrived where the tuning goes, `npm run
-   build` could not start, and the move cards on the final party were reading
-   their tuning off an array. Restored to 4.7.2's own call. Found by the
-   typecheck gate on this branch.
-2. **The visual baseline was not re-recorded for the merged tree.** 12e records
-   4.7.2 shortening the map by 29.69px and 12f the chip floor's +3 on it; 4.8
-   pinned its own map numbers on a tree without either, and the merge combined
-   the code without combining the record. `data-digest.txt` was likewise 4.8's
-   digest over a `src/data/` that 4.7.2's two tuning floors had since changed.
-   Measured on `main` itself, from a `vite build` that bypasses the red `tsc`,
-   and on this branch, and the two agree to the hundredth:
+   | | pinned by 4.8 | `main` at `0712032` | this branch | PR #24 |
+   |---|---|---|---|---|
+   | `map.screenHeight` | 836.41 | 810.72 | 810.72 | **810.72** |
+   | `map.scrollHeight` | 1029 | 1004 | 1004 | **1004** |
+   | `map.decisionTop` | 556 | 558 | 558 | **558** |
+   | `map.decisionBottom` | 669.72 | 643.03 | 643.03 | **643.03** |
+   | `battle.decisionTop` | 472 | 472 | 472 | **472** |
+   | `battle.decisionBottom` | 712 | 712 | 712 | **712** |
 
-   | | pinned by 4.8 | `main` at `0712032` | this branch |
-   |---|---|---|---|
-   | `map.screenHeight` | 836.41 | 810.72 | **810.72** |
-   | `map.scrollHeight` | 1029 | 1004 | **1004** |
-   | `map.decisionTop` | 556 | 558 | **558** |
-   | `map.decisionBottom` | 669.72 | 643.03 | **643.03** |
-   | `battle.decisionTop` | 472 | 472 | **472** |
-   | `battle.decisionBottom` | 712 | 712 | **712** |
-
-   `heights.json` and `data-digest.txt` are re-recorded to the merged tree's
-   values. Runs, the battle protocol and the casualty lists in `visual/baseline/`
-   were byte identical throughout and are untouched.
-
-**Four failures inherited from `main` and left standing, with the fix proposed
-rather than made.** `visual-v1` "data-locale is absent on the summary",
-`visual-v3` "the world mounts once" and "is absent on the summary", and
-`visual-verbosity` "changes the threat readout" all fail on `main` at `0712032`
-identically, and all four are one defect in the visual bot, not in the product:
-`scripts/visual/browser.mjs` clicks each battle move button at its geometric
-centre, and since R12 put the band chip on the battle button and 4.7.2 raised the
-chip floor, that centre is a chip. A chip is a tooltip trigger and stops the
-click by design, so the panel opens, Playwright refuses to click through it, and
-the run never leaves the battle. 4.7.2's report section 2 found and fixed exactly
-this for the target and replace screens by clicking the card's name line; the
-battle grid needs the same. On a phone none of this happens, because a thumb on
-the move's name uses the move. The patch is four lines in the shared bot's
-battle case, clicking `.move__name` rather than the button's centre, and it
-belongs to whichever session next touches the harness, not to a patch whose
-scope is labels.
+**Four suite failures this branch inherited, diagnosed wrong here and right in
+PR #24.** `visual-v1` "data-locale is absent on the summary", `visual-v3` "the
+world mounts once" and "is absent on the summary", and `visual-verbosity`
+"changes the threat readout" failed on `main` at `0712032` and on this branch
+identically. This branch's report blamed the visual bot clicking a chip at each
+move button's centre. That was wrong: the panel was opened by the tooltip
+layer's **hover** enhancement, with Playwright's mouse parked wherever the last
+click left it, on an ability chip 4.7.2's shorter map had moved under it — a
+state no phone can reach. PR #24 parks the pointer after every step
+(`scripts/visual/browser.mjs`) and re-aims the verbosity test at the party
+screen, where the readout has lived since 4.8. `visual/reports/patch-4.7.2.md`
+§7.4 has the trace. Recorded rather than deleted because a wrong diagnosis on
+the record is how the next reader avoids repeating it.
 
 **Two `core/` follow-ups this patch leaves, both older than it:**
 
@@ -1680,8 +1829,10 @@ scope is labels.
   display-side. The field wants renaming or filling from the member.
 - `deathsFrom` (`core/graveyard.ts`) falls back to `species: casualty.name` when a
   casualty matches no current member. A member released after fainting would get
-  a tombstone naming its nickname as its species. The visit record carries no
-  species for a casualty, so recovering it is a `core/` change.
+  a tombstone naming its nickname as its species. `3ed2f66` on `main` captured
+  the casualty's *level* at faint time for exactly this case; the species still
+  comes from the party match, so recovering it is the same shape of `core/`
+  change, one field over.
 
 **Docs corrected on the way.** `docs/README.md` section 4 said 4.8 was in flight
 and not merged a day after it and 4.7.2 both landed; the register rows for both

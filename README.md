@@ -43,6 +43,18 @@ npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
 
+## What the `contentHash` release adds
+
+Seeds carry their balance version. The seed bar, the corner stamp, the summary
+and the share text all show `GYMRUN-<six hex>-<seed>`, where the six characters
+are the head of a hash over the data tables computed at build time. Paste one
+made on another build and the game says so before the run starts, and offers
+the bare seed for a fresh run instead. The run log carries a `versions` block —
+run log, content hash, AI version, randomizer version — and a log from another
+build is refused at replay naming which axis moved. `previewRun(seed,
+contentHash)` draws a seed's whole map without playing it. Nothing about the
+generated run moved. [`docs/generation.md`](docs/generation.md) section 9.
+
 ## What Stage 4.7 adds
 
 **The player was making decisions without being able to see the state those
@@ -289,6 +301,7 @@ because a number copied into two files disagrees with itself within two stages.
 | `npm run check` | Lint, typecheck, both test runs |
 | `npm run sim` | Play N runs headless and report the balance |
 | `npm run gen:pools` | Regenerate the species, move and ability tables from the dex |
+| `npm run content-hash` | Print the `contentHash` of the working tree; `--files` lists what it covers |
 | `npm run smoke` | Browser smoke test against `dist/` (build first) |
 | `npm run measure` | Gzipped bundle size per dependency (build first) |
 | `GYMRUN_FULL_DEX=1 npm run build` | Build without the bundle trim |

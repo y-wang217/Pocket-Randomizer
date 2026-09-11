@@ -13,7 +13,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
-import { isReplayable, playRun, scriptedRunPolicy } from '../src/core/run';
+import { currentVersions, isReplayable, playRun, scriptedRunPolicy } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
 import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
 
@@ -43,12 +43,12 @@ describe('the run log round trip', () => {
   it('still rejects a log whose decisions are not decisions', () => {
     globalThis.localStorage.setItem(
       'gymrun.lastRun',
-      JSON.stringify({ seed: 'X', version: 'v', randomizerVersion: 'r', decisions: [{ kind: 'locale' }] }),
+      JSON.stringify({ seed: 'X', versions: currentVersions(), decisions: [{ kind: 'locale' }] }),
     );
     expect(loadRunLog()).toBeNull();
     globalThis.localStorage.setItem(
       'gymrun.lastRun',
-      JSON.stringify({ seed: 'X', version: 'v', randomizerVersion: 'r', decisions: [{ kind: 'wish', index: 1 }] }),
+      JSON.stringify({ seed: 'X', versions: currentVersions(), decisions: [{ kind: 'wish', index: 1 }] }),
     );
     expect(loadRunLog()).toBeNull();
   });

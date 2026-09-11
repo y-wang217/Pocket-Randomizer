@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest';
 import type { DeathRecord } from '../src/core/graveyard';
 import { scoreRun } from '../src/core/scoring';
 import { createRun } from '../src/core/run';
+import { formatSeedString } from '../src/core/seedString';
 import { deathLine, GRAVE_LIMIT, seedLine, shareText, type ShareView } from '../src/ui/copy/share';
 
 const death = (over: Partial<DeathRecord> = {}): DeathRecord => ({
@@ -49,10 +50,11 @@ const view = (over: Partial<ShareView> = {}): ShareView => ({
 });
 
 describe('the seed is rendered in one place', () => {
-  it('is the bare seed today', () => {
-    // When `contentHash` ships, the versioned seed string replaces it here and
-    // nowhere else — which is the whole reason this function exists.
-    expect(seedLine('SMOKE24')).toBe('Seed SMOKE24');
+  it('is the versioned seed string', () => {
+    // The `contentHash` release put the versioned form here and nowhere else
+    // — which is the whole reason this function exists.
+    expect(seedLine('SMOKE24')).toBe(`Seed ${formatSeedString('SMOKE24')}`);
+    expect(seedLine('SMOKE24')).toMatch(/^Seed GYMRUN-[0-9a-f]{6}-SMOKE24$/);
   });
 
   it('is the only thing in the text that names the seed', () => {
@@ -101,7 +103,7 @@ describe('the whole artifact', () => {
     const lines = text.split('\n');
     expect(lines[0]).toBe('GYMRUN — cleared');
     expect(lines[1]).toContain('8 of 8 gyms');
-    expect(lines[2]).toBe('Seed SMOKE24');
+    expect(lines[2]).toBe(`Seed ${formatSeedString('SMOKE24')}`);
   });
 
   it('says "fell" on a defeat rather than dressing it up', () => {
