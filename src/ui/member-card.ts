@@ -197,7 +197,9 @@ function statBlock(spec: ReturnType<typeof describeSpecCard>, member: PokemonSta
 
   for (const stat of STAT_ORDER) {
     const row = el('div', 'stat');
-    row.dataset['stat'] = stat;
+    // `data-row`, not `data-stat`: the stylesheet spans `.stat[data-stat="hp"]`
+    // across the battle panel's grid, and this block pairs its rows.
+    row.dataset['row'] = stat;
     /*
      * The label, in both of its forms. **Density modes patch, Part 4.**
      * Detailed prints the full name and Simple the abbreviation; both are

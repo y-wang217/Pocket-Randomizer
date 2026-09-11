@@ -801,10 +801,8 @@ body {
   gap: var(--space-h);
   line-height: 1.2;
 }
-:root[data-density="pocket"] .stat[data-stat="hp"],
-:root[data-density="pocket"] .stat[data-stat="spe"] { grid-column: auto; }
 :root[data-density="pocket"] .stat__label { min-width: 0; font-size: var(--fs-xs); }
-:root[data-density="pocket"] .stat__bar { min-width: 0; }
+:root[data-density="pocket"] .stat__bar { min-width: 0; flex: none; }
 
 /* The compact stat row on a pick card (starter, capture): bars in Pocket, the
    same six together, the number on the label's tip. */
@@ -931,7 +929,7 @@ body {
    buttons are excluded above. */
 :root[data-density="pocket"] .party__member:not(.party__member--target) .panel__hp-text:not([data-fainted]) { display: none; }
 :root[data-density="pocket"] .party__member .hp[data-tip] { overflow: visible; cursor: help; }
-:root[data-density="pocket"] .party__member .hp[data-tip]::after { content: ''; position: absolute; inset: -8px 0; }
+:root[data-density="pocket"] .party__member .hp[data-tip]::after { content: ''; position: absolute; inset: calc(-1 * var(--space-2)) 0; }
 /* The item's "to bag" control folds with the body: a control on a card is
    one tap away in Pocket, as the lead and release controls are. */
 :root[data-density="pocket"] .party__member:not([data-expanded="true"]) .party__item .button { display: none; }

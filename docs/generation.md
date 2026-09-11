@@ -2095,8 +2095,8 @@ not edited; the argument for each is in
    through the chrome scale, so `TWO_VALUED_SURFACES` is an empty list with
    the assertion kept behind it.
 10. **The existing two-valued suites were rewritten, not deleted**, each with
-    a comment naming this patch: `test/density.test.ts` (was
-    `verbosity.test.ts`), `test/visual-density.test.ts`,
+    a comment naming this patch: `test/density.test.ts` (renamed from
+    4.7.2's verbosity suite), `test/visual-density.test.ts`,
     `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,
     `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
     `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.

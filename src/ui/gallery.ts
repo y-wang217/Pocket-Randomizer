@@ -105,6 +105,15 @@ async function main(): Promise<void> {
   initSettings();
   const density = params.get('density');
   if (isDensity(density)) setDensity(density);
+  /*
+   * `fixture=worst` renders the constructed worst case (`ui/gallery-fixtures.ts`,
+   * ruling 3) on the surfaces that have a walked state as well: the result
+   * screen's two shapes take the party the seed's own run had at that
+   * moment, and the loaded board stops the turn both panels are loaded. The
+   * density gates ask for the worst case; the V4 and V5 suites, written
+   * against the walked state, keep measuring what they measured.
+   */
+  const worst = params.get('fixture') === 'worst';
   applyDensity(getDensity());
   onSettingsChange((settings) => applyDensity(settings.density));
   applyMotion(document.documentElement);
@@ -211,7 +220,7 @@ async function main(): Promise<void> {
     case 'battle':
     case 'log-sheet': {
       const state = openingState(seed);
-      mountLoadedBattle(battleScreen, seed, state.party);
+      mountLoadedBattle(battleScreen, seed, worst ? state.party : [], { history: worst && surface === 'log-sheet' });
       applyLocale(localeOf(state));
       stamp(state);
       show('battle');
@@ -220,11 +229,13 @@ async function main(): Promise<void> {
     }
     case 'result':
     case 'result-capture': {
-      const { offer, capture } = await harvestOffers(seed);
-      const state = lateState(seed);
-      // The party as the fight left it is the worst-case party, hurt and
-      // statused; the fight's own numbers come from the played review.
-      const review: BattleReview | null = offer ? { ...offer.review, party: state.party } : null;
+      const { offer, capture, last } = await harvestOffers(seed);
+      // Worst case: the party as the fight left it is the six-member party,
+      // hurt and statused, and the fight's own numbers come from the played
+      // review. Walked: the run's own state at its first three-card offer.
+      const state = worst ? lateState(seed) : (offer?.state ?? last);
+      const review: BattleReview | null = offer ? (worst ? { ...offer.review, party: state.party } : offer.review) : null;
+      const captureParty = worst ? state.party : (capture?.party ?? state.party);
       applyLocale(localeOf(state));
       stamp(state);
       if (surface === 'result') {
@@ -235,7 +246,7 @@ async function main(): Promise<void> {
           null,
           state,
           noop,
-          capture ? { offer: capture.offer, party: state.party, onDecide: noop } : null,
+          capture ? { offer: capture.offer, party: captureParty, onDecide: noop } : null,
         );
       }
       show('result');
@@ -333,20 +344,21 @@ async function main(): Promise<void> {
  * first review that carries three cards, and the first capture offer.
  */
 async function harvestOffers(seed: string): Promise<{
-  offer?: { review: BattleReview; offer: RewardOffer };
+  offer?: { review: BattleReview; offer: RewardOffer; state: RunState };
   capture?: { offer: AcquisitionOffer; party: readonly PokemonState[] };
+  last: RunState;
 }> {
   const held: {
-    offer?: { review: BattleReview; offer: RewardOffer };
+    offer?: { review: BattleReview; offer: RewardOffer; state: RunState };
     capture?: { offer: AcquisitionOffer; party: readonly PokemonState[] };
   } = {};
   const policy = scriptedRunPolicy(greedyAiPolicy);
-  await playRun(
+  const played = await playRun(
     seed,
     {
       ...policy,
-      reviewBattle: async (review) => {
-        if (!held.offer && review.offer && review.offer.options.length === 3) held.offer = { review, offer: review.offer };
+      reviewBattle: async (review, state) => {
+        if (!held.offer && review.offer && review.offer.options.length === 3) held.offer = { review, offer: review.offer, state };
         return review.offer ? 0 : null;
       },
       chooseAcquisition: async (offer, party, capacity) => {
@@ -357,7 +369,7 @@ async function harvestOffers(seed: string): Promise<{
     DEFAULT_TUNING,
     { opponent: greedyAiPolicy },
   );
-  return held;
+  return { ...held, last: played.state };
 }
 
 /**
@@ -386,7 +398,12 @@ const LOADED_P2: TeamSpec = [
   { species: 'Golem', ability: 'Sturdy', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
 ];
 
-function mountLoadedBattle(battle: ReturnType<typeof createBattleScreen>, seed: string, party: readonly PokemonState[]): void {
+function mountLoadedBattle(
+  battle: ReturnType<typeof createBattleScreen>,
+  seed: string,
+  party: readonly PokemonState[],
+  options: { history: boolean },
+): void {
   const bench = party.slice(1).map((member) => member.spec);
   const session = createBattle({ teams: { p1: [...LOADED_LEAD, ...bench], p2: LOADED_P2 }, seed });
 
@@ -421,14 +438,21 @@ function mountLoadedBattle(battle: ReturnType<typeof createBattleScreen>, seed: 
     Object.values(side.boosts).some((stage) => stage !== 0);
 
   /*
-   * Past the loaded state the loop keeps going, boosts only, until the turn
-   * cap or the toxic ticks end it: the log sheet's fixture needs a history
-   * long enough to scroll, and a board that stopped the moment it was loaded
-   * had a dozen lines. Both panels stay loaded throughout — a stage does not
-   * unboost and a status does not lift — so the battle fixture measures the
-   * same worst case it did.
+   * The board stops the turn it is loaded, so the strip carries that turn's
+   * words (`test/visual-v5.test.ts` reads two of them at once on its seed).
+   * With `history`, for the log sheet's fixture, the loop keeps going past
+   * it, boosts only, while the poisoned side still has half its HP: a sheet
+   * that opened on a dozen lines had nothing to scroll, and a side that
+   * fainted would hand the board to the bench. Both panels stay loaded
+   * throughout — a stage does not unboost and a status does not lift.
    */
-  for (let turn = 0; turn < 24 && !session.ended; turn++) {
+  const more = (): boolean => {
+    if (!loaded()) return true;
+    if (!options.history) return false;
+    const opponent = session.factsFor('p1').opponent;
+    return opponent.hp > opponent.maxHp / 2;
+  };
+  for (let turn = 0; turn < 24 && !session.ended && more(); turn++) {
     const facts = session.factsFor('p1');
     if (session.viewFor('p1').awaitingChoice) session.submit('p1', moveChoice(!loaded() && boosted(facts.player) ? 2 : 1));
     if (session.viewFor('p2').awaitingChoice) session.submit('p2', moveChoice(!loaded() && boosted(facts.opponent) ? 2 : 1));
