@@ -22,6 +22,13 @@
  * doing nothing if it is handed a full moveset with no slot, and that is the
  * contract this screen exists to satisfy.
  *
+ * **And no heading that reads like one.** Until patch 4.8.0.2 the label over
+ * the four current moves said `Give up` — a section heading, styled like every
+ * other, and the first thing a playtester tapped, expecting it to be the
+ * decline this screen does not have. A heading over a row of buttons must
+ * describe the row, not issue an instruction the row does not carry; the four
+ * cards are the control, and each says `Replace <move>` to a screen reader.
+ *
  * Reached only when `party.replacementNeeded` says `'choose'`. A member with a
  * free slot or one that already knows the move never gets here — `playRun`
  * gates the question on the same function the target screen's one-liner reads,
@@ -58,7 +65,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
   const owner = el('div', 'replace__owner');
 
   const currentHeading = el('h3', 'replace__heading');
-  currentHeading.textContent = 'Give up';
+  currentHeading.textContent = 'Currently knows — tap one to replace';
   const current = el('div', 'replace__moves');
 
   root.append(title, blurb, incomingHeading, incomingSlot, owner, currentHeading, current);

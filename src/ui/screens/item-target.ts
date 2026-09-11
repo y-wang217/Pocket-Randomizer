@@ -12,14 +12,16 @@
  * the pairing, not about the card, and the reward screen structurally cannot
  * show them because it does not know who is getting it yet.
  */
-import { describeSpecCard } from '../../core/battle/driver';
+import { describeMove, describeSpecCard } from '../../core/battle/driver';
 import { archetypeChip } from '../archetype-chip';
 import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
 import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
 import { describeReward } from '../../core/rewards';
 import type { PokemonState } from '../../core/types';
-import { el } from '../scene';
+import type { Tuning } from '../../data/tuning';
+import { moveCardData } from '../move-detail';
+import { el, moveCard } from '../scene';
 import { typeChip } from './starter-select';
 
 export interface ItemTargetScreen {
@@ -28,6 +30,8 @@ export interface ItemTargetScreen {
     reward: TargetedReward,
     party: readonly PokemonState[],
     onTarget: (slot: number) => void,
+    /** For `tuning.maxMoveTagsOnFace`. See `ui/move-detail.ts`. */
+    tuning: Tuning,
   ): void;
 }
 
@@ -36,19 +40,38 @@ export function createItemTargetScreen(): ItemTargetScreen {
 
   const title = el('h2', 'screen__title');
   const blurb = el('p', 'screen__blurb');
+  const offer = el('div', 'target__move');
   const list = el('div', 'party party--target');
 
-  root.append(title, blurb, list);
+  root.append(title, blurb, offer, list);
 
   return {
     root,
-    render(reward, party, onTarget) {
+    render(reward, party, onTarget, tuning) {
       title.textContent = describeReward(reward);
       // Items no longer reach this screen — they go to the backpack and are
       // assigned on the party screen, where the choice is free and reversible.
       // What is left is the two cards that teach a move, and that choice is
       // neither. See `rewards.isTargeted`.
       blurb.textContent = 'Who learns it? You choose what it replaces next.';
+
+      /*
+       * The move itself, as the same card the reward screen draws. **Patch
+       * 4.8.0.2.** Stage 4.8 made the gym's move a grant rather than an offer,
+       * so it skips the reward screen — the one surface that described a
+       * tutor — and the first thing a player saw of it was this title. A
+       * player choosing between a physical attacker and a special one needs
+       * the category, the type and the power in front of them, and the card's
+       * `Explain` panel carries what each category reads off.
+       *
+       * **No holder is passed, and that is the STAB rule** (`ui/move-detail.ts`):
+       * nobody has been picked yet. The card is drawn outside the member
+       * buttons, so its expander cannot reach one — `moveExplanation` stops the
+       * event regardless, and `test/visual-move-cards.test.ts` counts this as
+       * the seventh surface.
+       */
+      const facts = describeMove(reward.move);
+      offer.replaceChildren(...(facts ? [moveCard(moveCardData(facts, tuning))] : []));
 
       list.replaceChildren(...party.map((member, index) => renderTarget(reward, member, index, onTarget)));
     },
