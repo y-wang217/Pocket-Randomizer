@@ -45,8 +45,8 @@ export interface ShareView {
   gymsCleared: number;
   gymTotal: number;
   score: ScoreBreakdown;
-  /** Final party, in party order: the name and what it is. */
-  party: readonly { nickname: string; species: string; level: number }[];
+  /** Final party, in party order: what each is, and its level. */
+  party: readonly { species: string; level: number }[];
   deaths: readonly DeathRecord[];
   /** Relic names, already resolved — this file does not know the relic table. */
   relics: readonly string[];
@@ -63,9 +63,16 @@ export function seedLine(seed: string): string {
   return `Seed ${seed}`;
 }
 
-/** One death, as the result screen says it. Factual, and no commentary. */
+/**
+ * One death, as the result screen says it. Factual, and no commentary.
+ *
+ * Species, not the nickname the record also carries. **4.8.0.1.** The 4.8 line
+ * read "Bramble, Weepinbell, Lv31"; the ruling on 4.8.0.1's report de-prioritised
+ * nicknames on every surface, the tombstone included, and `DeathRecord.nickname`
+ * is kept in `core/` unread rather than removed. `generation.md` section 12g.
+ */
 export function deathLine(death: DeathRecord): string {
-  const who = death.level === null ? `${death.nickname}, ${death.species}` : `${death.nickname}, ${death.species}, Lv${death.level}`;
+  const who = death.level === null ? death.species : `${death.species}, Lv${death.level}`;
   const where = death.nodeKind === 'gym' ? `at Gym ${death.segment + 1}` : `in region ${death.segment + 1}`;
   const cause = death.byMove
     ? ` to ${death.bySpecies ?? 'something'}, ${death.byMove}`
@@ -105,7 +112,7 @@ export function shareText(view: ShareView): string {
   if (view.party.length > 0) {
     lines.push('Party');
     for (const member of view.party) {
-      lines.push(`· ${member.nickname}, ${member.species}, Lv${member.level}`);
+      lines.push(`· ${member.species}, Lv${member.level}`);
     }
     lines.push('');
   }

@@ -415,7 +415,9 @@ function updateSidePanel(
   const swapped = previous !== undefined && previous !== active.species;
   panel.root.dataset['species'] = active.species;
 
-  panel.name.textContent = isFoe ? `Opposing ${active.name}` : active.name;
+  // Species, never the battle name. **4.8.0.1: species stays the label.** The
+  // projection carries both; the nickname is state the panel does not show.
+  panel.name.textContent = isFoe ? `Opposing ${active.species}` : active.species;
   // Gender sits with the level because it is the same kind of fact: a fixed
   // property of this Pokemon, not a thing the fight is doing to it. Genderless
   // renders nothing at all rather than a dash or an "N" — a placeholder for
@@ -779,7 +781,7 @@ function renderBenchMember(
   button.disabled = !view.awaitingChoice || !member.usable;
 
   const name = el('span', 'bench__name');
-  name.textContent = member.name;
+  name.textContent = member.species;
   const level = el('span', 'bench__level');
   level.textContent = `Lv${member.level}${genderMark(member.gender)}`;
 

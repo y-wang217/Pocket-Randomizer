@@ -72,9 +72,10 @@ export function memberCardContents(
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
-  // Stage 4.8, item 5: the nickname when the spec has one. `SpecCard.name` is
-  // `mon.name`, which the sim built from the same rule `displayName` applies.
-  name.textContent = spec.name;
+  // The species, on every card. **4.8.0.1.** 4.8 put the nickname here; the
+  // ruling on 4.8.0.1's report is that species is the identity and the name is
+  // state the card does not show. `SpecCard.name` is still the battle name.
+  name.textContent = spec.species;
 
   const level = el('span', 'panel__level');
   // Gender next to the level, exactly as the battle panel prints it and via the

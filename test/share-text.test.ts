@@ -41,7 +41,7 @@ const view = (over: Partial<ShareView> = {}): ShareView => ({
   gymsCleared: 4,
   gymTotal: 8,
   score: scoreRun(createRun('SHARE-A')),
-  party: [{ nickname: 'Cinder', species: 'Charmander', level: 40 }],
+  party: [{ species: 'Charmander', level: 40 }],
   deaths: [],
   relics: [],
   locales: [],
@@ -64,7 +64,7 @@ describe('the seed is rendered in one place', () => {
 
 describe('a death line', () => {
   it('states the facts and nothing about them', () => {
-    expect(deathLine(death())).toBe('Bramble, Weepinbell, Lv31, fell at Gym 5 to Arcanine, Flare Blitz.');
+    expect(deathLine(death())).toBe('Weepinbell, Lv31, fell at Gym 5 to Arcanine, Flare Blitz.');
   });
 
   it('says where it fell when it was not a gym', () => {
@@ -78,12 +78,12 @@ describe('a death line', () => {
 
   it('says nothing about a cause it does not know', () => {
     const line = deathLine(death({ byMove: null, bySpecies: null, indirect: null }));
-    expect(line).toBe('Bramble, Weepinbell, Lv31, fell at Gym 5.');
+    expect(line).toBe('Weepinbell, Lv31, fell at Gym 5.');
   });
 
   it('omits a level it could not read rather than printing one', () => {
     expect(deathLine(death({ level: null }))).toBe(
-      'Bramble, Weepinbell, fell at Gym 5 to Arcanine, Flare Blitz.',
+      'Weepinbell, fell at Gym 5 to Arcanine, Flare Blitz.',
     );
   });
 
@@ -120,8 +120,8 @@ describe('the whole artifact', () => {
         relics: ['Ironbound Gauntlet'],
         locales: ['The Marsh', 'The Cave'],
         party: [
-          { nickname: 'Cinder', species: 'Charmander', level: 40 },
-          { nickname: 'Quill', species: 'Pidgeotto', level: 40 },
+          { species: 'Charmander', level: 40 },
+          { species: 'Pidgeotto', level: 40 },
         ],
       }),
     );
@@ -176,8 +176,7 @@ describe('the whole artifact', () => {
       view({
         gymsCleared: 8,
         outcome: 'victory',
-        party: Array.from({ length: 6 }, (_u, i) => ({
-          nickname: `Name${i}`,
+        party: Array.from({ length: 6 }, () => ({
           species: 'Pidgeotto',
           level: 60,
         })),

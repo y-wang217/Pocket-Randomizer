@@ -177,13 +177,26 @@ says why they are their own release.
 design, because HM teaching was going to be the move reward flow. Relics removed
 teaching entirely, so that dependency dissolved and 4.6c shipped ahead of it.
 
-### In flight: Stage 4.8, all eight steps
+### Merged: Stage 4.8, all eight steps
 
-Branch `claude/intelligent-fermat-hzt2gb`, prompt
+PR #21 (`e5243d7`), from `claude/intelligent-fermat-hzt2gb`, prompt
 [`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md),
 step 1's report [`reports/stage-4.8-report.md`](reports/stage-4.8-report.md).
-Not merged. Detail for every item is in [`generation.md`](generation.md) sections
-7b, 7c and 7d.
+4.7.2 merged after it as PR #22 (`0712032`). This section said "not merged" until
+2026-09-11, a day after both landed; corrected by 4.8.0.1's docs pass. Detail for
+every item is in [`generation.md`](generation.md) sections 7b, 7c and 7d.
+
+**Merged on top of both: 4.8.0.1, species stays the label**
+([`spec/gymrun-patch-4.8.0.1-species-stays-the-label.md`](spec/gymrun-patch-4.8.0.1-species-stays-the-label.md)).
+Presentation only, no `core/` state change, no version axis moved, seeded output
+byte identical. 4.8's nicknames rendered in place of the species on every surface
+that names a Pokemon; the ruling on the patch's report went further than the
+prompt and de-prioritised them everywhere: species on every label, the graveyard
+and share text included, and the battle text relabelled to match. The nickname
+is still drawn, still on the spec and still the sim's battle name — the option is
+kept, unread. `generation.md` section 12g has the ruling, the surface list, the
+two things the typecheck and height gates found on `main`, and the two `core/`
+follow-ups it leaves.
 
 **Both version axes moved, which the prompt did not expect.**
 `RANDOMIZER_VERSION` is `gymrun-randomizer-13` and `RUN_LOG_VERSION` is
@@ -218,7 +231,7 @@ before this stage, more richly than the prompt specifies, and was on the map as 
 as the party screen. Step 6 therefore had no core work; the map placement was removed
 in step 7, with the three smoke checks that existed to protect it.
 
-## 5.## 5. Open items
+## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
 

@@ -247,7 +247,7 @@ export function createSummary(): Summary {
       tiers.replaceChildren(...renderTiers(cleared));
 
       const death = causeOfDeath(state);
-      cause.textContent = death ? describeDeath(death) : '';
+      cause.textContent = death ? describeDeath(death, state) : '';
       // Absent on victory: hidden, and empty, so nothing reads a stale line.
       cause.hidden = !death;
 
@@ -262,7 +262,11 @@ export function createSummary(): Summary {
         ? `Party slots: ${capacity}. Next slot at gym ${next.atGym}.`
         : `Party slots: ${capacity}.`;
 
-      team.replaceChildren(...state.party.map(renderMember));
+      // The 4.7.2 call, restored. The merge of 4.7.2 into 4.8 kept 4.8's
+      // `map(renderMember)` against 4.7.2's three-argument signature, so the
+      // party array was arriving where the tuning goes and `tsc` was red on
+      // `main`. Found by 4.8.0.1's typecheck gate; recorded in generation.md 12g.
+      team.replaceChildren(...state.party.map((member, index) => renderMember(member, index, state.tuning)));
 
       const deaths = deathsFrom(state);
       grave.replaceChildren(...deaths.map(renderDeath));
@@ -362,19 +366,29 @@ function describeRun(state: RunState, cleared: number): string {
  * killing move is a real outcome — poison, recoil, a burn — and saying
  * "something" is more honest than inventing an attacker.
  */
-function describeDeath(death: CauseOfDeath): string {
+function describeDeath(death: CauseOfDeath, state: RunState): string {
+  /*
+   * `CauseOfDeath.species` is the casualty's *battle name* — `core/run.ts`
+   * fills it from the `|faint|` line, which is the only thing the protocol
+   * says — and since 4.8 that is the nickname. Resolved here through the party
+   * the run ended with, by the same match `core/graveyard.ts` makes, because
+   * the member that fell in the final wipe is always still in it. Correcting
+   * the field's name and contents is a `core/` change and is not this patch;
+   * `generation.md` section 12g records it as an open item.
+   */
+  const species = state.party.find((member) => displayName(member.spec) === death.species)?.spec.species ?? death.species;
   const where =
     death.kind === 'gym'
       ? `fighting ${death.leader} at gym ${death.segment + 1}`
       : `at a ${death.kind} node in segment ${death.segment + 1}, on the way to ${death.leader}`;
 
   if (death.byMove && death.bySpecies) {
-    return `${death.species} fainted to ${death.bySpecies}'s ${death.byMove}, ${where}.`;
+    return `${species} fainted to ${death.bySpecies}'s ${death.byMove}, ${where}.`;
   }
   if (death.indirect) {
-    return `${death.species} fainted to ${death.indirect}, ${where}.`;
+    return `${species} fainted to ${death.indirect}, ${where}.`;
   }
-  return `${death.species} fainted ${where}.`;
+  return `${species} fainted ${where}.`;
 }
 
 /**
@@ -393,9 +407,9 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
 
   const header = el('div', 'summary__member-header');
   const name = el('span', 'starter__name');
-  // Stage 4.8, item 5: the nickname, which `SpecCard.name` carries. A member the
-  // graveyard names as Bramble must be Bramble in the final party beside it.
-  name.textContent = detail.name;
+  // The species. **4.8.0.1.** The graveyard beside this list names the same
+  // Pokemon by species too, so the two still agree — by species now, not name.
+  name.textContent = detail.species;
   const level = el('span', 'starter__level');
   level.textContent = `Lv${detail.level}`;
   const types = el('span', 'panel__types');
@@ -581,7 +595,6 @@ function shareViewOf(
     gymTotal: GYMS.length,
     score,
     party: state.party.map((member) => ({
-      nickname: displayName(member.spec),
       species: member.spec.species,
       level: member.spec.level,
     })),
