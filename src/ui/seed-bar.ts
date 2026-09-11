@@ -19,6 +19,18 @@
  *     paste-time check the seeds document asks for: the player learns the seed
  *     will not reproduce *before* committing to it, not at replay.
  *
+ * ## The phone, since the mobile seed bar patch
+ *
+ * 4.5.2's phone pass hid the bar for the whole of a run to win back the 350px
+ * the setup chrome cost above every screen. A run starts at page load, so on a
+ * phone that hid Start, Copy, New seed and Resume from the first screen until
+ * the run ended. The bar now *collapses* instead: `data-collapsed` on the root
+ * and a `toggle` button the shell mounts on the header's control row, where
+ * it costs no height. The stylesheet reads both only at the phone width during
+ * a run, so on a desktop and during setup the attribute is inert and the bar
+ * is exactly what it was. `collapse()` is called at every run start so each
+ * run begins with the space back.
+ *
  * Extracted from `app.ts` so the parse-and-refuse can be tested in jsdom
  * without mounting the whole shell.
  */
@@ -29,6 +41,13 @@ import { el } from './scene';
 
 export interface SeedBar {
   root: HTMLElement;
+  /**
+   * Expands and collapses the bar on a phone during a run. Not inside `root`,
+   * because `root` is what it hides: the shell mounts it on the header row.
+   */
+  toggle: HTMLButtonElement;
+  /** Collapse the bar. Called at every run start; a no-op where the stylesheet ignores it. */
+  collapse(): void;
   /** Show the run's seed, in the versioned form. */
   setSeed(seed: string): void;
   setResumable(resumable: boolean): void;
@@ -43,6 +62,20 @@ export interface SeedBar {
 export function createSeedBar(): SeedBar {
   const root = el('form', 'seedbar');
   root.dataset['tutorial'] = 'seed';
+  root.id = 'seedbar';
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'button button--small seedbar__toggle';
+  toggle.textContent = SEED_COPY.toggle;
+  toggle.setAttribute('aria-controls', root.id);
+  const setCollapsed = (collapsed: boolean): void => {
+    root.dataset['collapsed'] = String(collapsed);
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.title = collapsed ? SEED_COPY.toggleShow : SEED_COPY.toggleHide;
+  };
+  setCollapsed(true);
+  toggle.addEventListener('click', () => setCollapsed(root.dataset['collapsed'] !== 'true'));
   const label = el('label', 'seedbar__label');
   label.textContent = 'Seed';
 
@@ -124,6 +157,8 @@ export function createSeedBar(): SeedBar {
 
   return {
     root,
+    toggle,
+    collapse: () => setCollapsed(true),
     setSeed: (seed) => {
       input.value = formatSeedString(seed, CONTENT_HASH);
       clearNotice();

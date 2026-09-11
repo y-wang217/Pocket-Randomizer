@@ -1837,3 +1837,54 @@ the record is how the next reader avoids repeating it.
 **Docs corrected on the way.** `docs/README.md` section 4 said 4.8 was in flight
 and not merged a day after it and 4.7.2 both landed; the register rows for both
 said the same. Both now say `merged` with their commits.
+
+## 12j. Superseded: 4.5.2's phone rule hid the seed bar for the whole run
+
+**2026-09-11, the mobile seed bar patch**
+([`spec/gymrun-patch-mobile-seed-bar.md`](spec/gymrun-patch-mobile-seed-bar.md)).
+
+4.5.2 checkpoint 6 (`8a7897d`, item F of the playtest round 2 patch) measured
+that the header and the seed bar cost a phone about 350px above every screen,
+and reclaimed it with `.shell[data-phase='running'] .seedbar { display: none; }`
+under the 760px media query. Its note said the bar "stays reachable — the
+summary screen restores the setup phase".
+
+**What that missed.** `app.ts` starts a run at page load, so the phase is
+`running` before the player has seen the starter screen, and the only return to
+`setup` is the summary. On a phone, Start run, Copy seed, New seed and Resume
+saved run were therefore unreachable from the first screen to the last. The
+player's own screenshot (Safari, iPhone 14 Pro Max, the starter screen, no bar)
+is in the prompt file. The summary screen's action row was never affected.
+
+**The rule now.** The bar collapses rather than vanishing. `ui/seed-bar.ts`
+carries `data-collapsed` on its root and a `toggle` button that the shell mounts
+on the header's Detail row (`app.ts`, `createVerbosityToggle`). The stylesheet
+reads both only under the same media query and phase as before:
+
+```css
+.shell[data-phase='running'] .seedbar[data-collapsed='true'] { display: none; }
+.shell[data-phase='running'] .seedbar__toggle { display: inline-block; margin-left: auto; }
+```
+
+so a desktop and the setup phase see exactly what they saw. `start()` collapses
+the bar at every run start, so each run begins with the space reclaimed. The
+copy for the toggle lives in `data/seedCopy.ts`, which is on the `contentHash`
+exclusion list: no axis moved.
+
+**Why the header row and not a row of its own.** The header's height is the
+map's and the battle's vertical budget (12c, 12e, 12f). A toggle row under the
+header would have moved `decisionTop` on both guarded screens and forced a
+re-record of `docs/visual/baseline/heights.json`. On the Detail row it costs
+nothing: `test/visual-v2.test.ts` reads the baseline unchanged to the pixel, and
+`test/visual-phone-seed-bar.test.ts` asserts the toggle shares the Detail
+toggle's `y`.
+
+**The tutorial's seed mark is unchanged.** 12h point 3 gave the mark a second
+anchor on the corner stamp because the bar was hidden during a run. The bar is
+still hidden while collapsed, so the layer still takes the stamp; when expanded
+it takes the bar. Both carry `data-tutorial="seed"` as before.
+
+Superseded rule deleted, not flagged, per `CLAUDE.md`. The 4.5.2 prompt is not
+edited. Report and screenshots:
+[`visual/reports/patch-mobile-seed-bar.md`](visual/reports/patch-mobile-seed-bar.md).
+

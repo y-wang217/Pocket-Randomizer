@@ -170,7 +170,7 @@ export function mountApp(root: HTMLElement): void {
   drawerBar.append(drawerTrigger);
 
   const replayTutorial = document.createElement('button');
-  shell.append(createHeader(replayTutorial), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
 
   /** Surfaces that ask for a decision and have a party to show while asking. */
   const DRAWER_SURFACES: readonly ScreenName[] = [
@@ -251,6 +251,14 @@ export function mountApp(root: HTMLElement): void {
    * simply no room left by the time the screen got its turn. It is set here
    * rather than in each screen because it is a fact about the *app*, and
    * because a screen that had to remember to set it would eventually forget.
+   *
+   * **What 4.5.2 got wrong, and the mobile seed bar patch corrected.** The
+   * phase is `running` from the first `start()`, which is page load, so the
+   * rule that hid the seed bar during a run hid it on the starter screen too
+   * and left a phone with no Start, New seed or Resume until the run ended.
+   * The bar now collapses under the phase rather than vanishing, with a
+   * toggle on the header row; see `ui/seed-bar.ts`. The phase itself is
+   * unchanged.
    */
   const setPhase = (phase: 'setup' | 'running'): void => {
     shell.dataset['phase'] = phase;
@@ -295,6 +303,9 @@ export function mountApp(root: HTMLElement): void {
     abandon?.();
 
     setPhase('running');
+    // Every run begins with the phone's space reclaimed; the toggle brings
+    // the bar back when the player wants it.
+    seedBar.collapse();
     seedBar.setSeed(seed);
     writeSeedToLocation(seed);
     // A new run starts in no region; the first state with a locale sets one.
@@ -798,13 +809,13 @@ export function mountApp(root: HTMLElement): void {
   else void start(newSeed());
 }
 
-function createHeader(replayTutorial: HTMLButtonElement): HTMLElement {
+function createHeader(replayTutorial: HTMLButtonElement, seedToggle: HTMLButtonElement): HTMLElement {
   const header = el('header', 'header');
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
   subtitle.textContent = `Stage 4.8 · ${GYMRUN_FORMAT} · a roster that grows, caught in eight regions, and scored`;
-  header.append(title, subtitle, createVerbosityToggle(replayTutorial));
+  header.append(title, subtitle, createVerbosityToggle(replayTutorial, seedToggle));
   return header;
 }
 
@@ -823,7 +834,7 @@ function createHeader(replayTutorial: HTMLButtonElement): HTMLElement {
  * Nothing here touches run state. See the header of `ui/settings.ts` for the
  * rule and `test/verbosity.test.ts` for its enforcement.
  */
-function createVerbosityToggle(replayTutorial: HTMLButtonElement): HTMLElement {
+function createVerbosityToggle(replayTutorial: HTMLButtonElement, seedToggle: HTMLButtonElement): HTMLElement {
   const wrap = el('div', 'verbosity');
   const label = el('span', 'verbosity__label');
   label.textContent = 'Detail';
@@ -863,7 +874,14 @@ function createVerbosityToggle(replayTutorial: HTMLButtonElement): HTMLElement {
   replayTutorial.title = TUTORIAL_COPY.replay;
   replayTutorial.dataset['tutorialReplay'] = 'true';
 
-  wrap.append(label, button, replayTutorial);
+  /*
+   * The seed bar's toggle, on the same row and for the same reason: the row
+   * already exists on every screen, so a control on it costs the phone no
+   * height. The stylesheet shows it only at the phone width during a run,
+   * which is the only time the bar it controls is collapsed. See the header
+   * of `ui/seed-bar.ts`.
+   */
+  wrap.append(label, button, replayTutorial, seedToggle);
   return wrap;
 }
 
