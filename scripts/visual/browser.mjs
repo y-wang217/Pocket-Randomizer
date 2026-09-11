@@ -356,23 +356,36 @@ export async function playUntil(page, predicate, maxSteps = 600) {
  * skipped unless a test asks for it (`openApp(..., { tutorial: true })`), and
  * the tutorial's own browser test is the one that asks.
  */
-export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ verbosity: 'detailed', tutorial: { skipped: true, seen: [] } });
+export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
 
-/** Seed a context's storage so the app's first launch is a returning one, tutorial-wise. */
-export async function skipTutorialIn(context) {
-  await context.addInitScript((settings) => {
-    try {
-      if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
-    } catch {
-      // Storage unavailable: the app falls back to defaults and the marks show.
-    }
-  }, TUTORIAL_SKIPPED_SETTINGS);
+/** The three density modes, in the order the settings store lists them. Density modes patch. */
+export const DENSITIES = ['detailed', 'simple', 'pocket'];
+
+/**
+ * Seed a context's storage so the app's first launch is a returning one,
+ * tutorial-wise, in the density mode asked for.
+ *
+ * The mode goes in through the store rather than through a hook on the page,
+ * so the bot measures exactly what a stored preference renders: the app reads
+ * it at startup and writes the root attribute itself.
+ */
+export async function skipTutorialIn(context, density = 'detailed') {
+  await context.addInitScript(
+    (settings) => {
+      try {
+        if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
+      } catch {
+        // Storage unavailable: the app falls back to defaults and the marks show.
+      }
+    },
+    JSON.stringify({ density, tutorial: { skipped: true, seen: [] } }),
+  );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, ...rest } = contextOptions;
+  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
   const context = await browser.newContext({ viewport, ...rest });
-  if (!tutorial) await skipTutorialIn(context);
+  if (!tutorial) await skipTutorialIn(context, density);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -419,10 +432,33 @@ async function measureScreen(page, name, decisionSelector) {
  * The two guarded screens at 390x844: the map with the current step's offered
  * nodes, and a battle with four move buttons. Same seed, same clicks, so the
  * only variable between two builds is the stylesheet.
+ *
+ * **In all three density modes since the density patch.** The top-level `map`
+ * and `battle` are Detailed, unchanged in shape so every reader of
+ * `heights.json` before the patch reads the same numbers; `modes.simple` and
+ * `modes.pocket` are the same two screens under the other two stored
+ * preferences, each on a fresh context.
  */
 export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
-  const { page, context, problems } = await openApp(browser, url, seed);
-  const result = { seed, viewport: { ...PHONE } };
+  const result = { seed, viewport: { ...PHONE }, modes: {} };
+  const problems = [];
+  for (const density of DENSITIES) {
+    const measured = await measureGuardedScreensIn(url, browser, seed, density);
+    problems.push(...measured.problems);
+    if (density === 'detailed') {
+      result.map = measured.map;
+      result.battle = measured.battle;
+    } else {
+      result.modes[density] = { map: measured.map, battle: measured.battle };
+    }
+  }
+  if (problems.length) result.problems = problems;
+  return result;
+}
+
+async function measureGuardedScreensIn(url, browser, seed, density) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
+  const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');
   await page.waitForTimeout(100);
@@ -434,6 +470,5 @@ export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
   result.battle = await measureScreen(page, 'battle', `${visible('battle')} .moves .move`);
 
   await context.close();
-  if (problems.length) result.problems = problems;
   return result;
 }

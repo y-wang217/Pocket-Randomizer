@@ -1,5 +1,5 @@
 /**
- * The two guarded screens, measured at 390x844.
+ * The two guarded screens, measured at 390x844, in all three density modes.
  *
  * The plan's vertical budget names two screens: the battle screen with four
  * move buttons above the fold, and the map screen with the current step's
@@ -40,10 +40,17 @@ try {
   if (compare) {
     const expected = JSON.parse(readFileSync(compare, 'utf8'));
     const differences = [];
-    for (const screen of ['map', 'battle']) {
-      for (const key of Object.keys(expected[screen])) {
-        if (round(expected[screen][key]) !== round(measured[screen][key])) {
-          differences.push(`${screen}.${key}: expected ${expected[screen][key]}, measured ${measured[screen][key]}`);
+    // Detailed at the top level, the other two modes under `modes`. Density patch.
+    const readings = [
+      ['', expected, measured],
+      ...Object.keys(expected.modes ?? {}).map((mode) => [`modes.${mode}.`, expected.modes[mode], measured.modes?.[mode] ?? {}]),
+    ];
+    for (const [prefix, want, got] of readings) {
+      for (const screen of ['map', 'battle']) {
+        for (const key of Object.keys(want[screen] ?? {})) {
+          if (round(want[screen][key]) !== round(got[screen]?.[key])) {
+            differences.push(`${prefix}${screen}.${key}: expected ${want[screen][key]}, measured ${got[screen]?.[key]}`);
+          }
         }
       }
     }

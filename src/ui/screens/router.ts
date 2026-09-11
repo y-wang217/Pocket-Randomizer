@@ -47,6 +47,27 @@ export type ScreenName =
   | 'event'
   | 'summary';
 
+/**
+ * Surfaces that ask for a decision and have a party to show while asking.
+ *
+ * Lived in `app.ts`; moved here by the density modes patch so the gallery
+ * mounts the drawer bar on exactly the screens the app does. Starter select
+ * is a decision with no party yet; the summary is a finished run. Both hide
+ * the trigger rather than showing an empty drawer.
+ */
+export const DRAWER_SURFACES: readonly ScreenName[] = [
+  'locale',
+  'map',
+  'battle',
+  'result',
+  'target',
+  'replace',
+  'party',
+  'pre-gym',
+  'shop',
+  'event',
+];
+
 export interface Router {
   root: HTMLElement;
   show(name: ScreenName): void;
