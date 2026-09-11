@@ -164,6 +164,15 @@ export interface MoveView {
   maxPp: number;
   /** False when the move is disabled, out of PP, or otherwise unusable now. */
   usable: boolean;
+  /**
+   * The move's priority bracket, as the dex reports it: +1 for Quick Attack,
+   * +2 for Extreme Speed, -6 for Trick Room, 0 for almost everything.
+   *
+   * Read for the priority-aware AI patch. The trim strips learnsets, legality
+   * and GO data only, so the bracket survives into the bundle with no
+   * generated table; `test/ai-priority.test.ts` sweeps it.
+   */
+  priority: number;
 }
 
 /**
@@ -224,6 +233,15 @@ export interface ActiveView {
   statStages: StatStages;
   fainted: boolean;
   /**
+   * The Speed stat at this level, before stages and status.
+   *
+   * Public information on both sides: every Pokemon in the game has one fixed
+   * spread (Serious, 31 IVs, 0 EVs, `battle/stats.ts`), so the number follows
+   * from species and level alone. `battle/speed.ts` turns it into the
+   * approximation the AI orders a turn by.
+   */
+  baseSpeed: number;
+  /**
    * Known ability, or null when it is not public information.
    *
    * Your own Pokemon always reports its ability. The opponent's reports null:
@@ -244,6 +262,12 @@ export interface ActiveView {
  * same way a person does. Keeping that honest now means the Stage 2 balance
  * sweep measures something real.
  */
+/** The two effective Speeds a policy compares. See `battle/speed.ts`. */
+export interface SpeedView {
+  me: number;
+  foe: number;
+}
+
 export interface BattleView {
   /** Which side this view belongs to. */
   side: SideId;
@@ -264,6 +288,13 @@ export interface BattleView {
   forceSwitch: boolean;
   /** True when this side owes the sim a decision. */
   awaitingChoice: boolean;
+  /**
+   * Each side's effective Speed as far as a policy may see it: the stat after
+   * stages and paralysis, and nothing else. `battle/speed.ts` computes it and
+   * says why it is an approximation; `orderOf` there turns it into who acts
+   * first, or `unknown` on a tie.
+   */
+  speed: SpeedView;
   /**
    * True when the sim says the active Pokemon may not switch out.
    *
