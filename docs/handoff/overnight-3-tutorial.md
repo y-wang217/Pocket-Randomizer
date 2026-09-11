@@ -2,7 +2,7 @@
 
 Branch `claude/overnight-3-tutorial`, from
 [`../spec/gymrun-overnight-contenthash-ai-tutorial.md`](../spec/gymrun-overnight-contenthash-ai-tutorial.md),
-Branch 3. Deviations: [`../generation.md`](../generation.md) section 12g.
+Branch 3. Deviations: [`../generation.md`](../generation.md) section 12h.
 
 ## Merged at
 

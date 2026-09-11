@@ -152,6 +152,7 @@
         {
           "side": "p1",
           "name": "Jasper",
+          "level": 30,
           "bySpecies": "Pupitar",
           "byMove": "Ancient Power",
           "indirect": null
@@ -159,6 +160,7 @@
         {
           "side": "p1",
           "name": "Fennel",
+          "level": 30,
           "bySpecies": "Pupitar",
           "byMove": "Ancient Power",
           "indirect": null
@@ -365,6 +367,7 @@
         {
           "side": "p1",
           "name": "Umber",
+          "level": 48,
           "bySpecies": "Shiftry",
           "byMove": "Crunch",
           "indirect": null
@@ -372,6 +375,7 @@
         {
           "side": "p1",
           "name": "Fennel",
+          "level": 48,
           "bySpecies": "Scovillain",
           "byMove": "Bitter Blade",
           "indirect": null
@@ -379,6 +383,7 @@
         {
           "side": "p1",
           "name": "Kestrel",
+          "level": 48,
           "bySpecies": "Scovillain",
           "byMove": "Fire Pledge",
           "indirect": null
@@ -386,6 +391,7 @@
         {
           "side": "p1",
           "name": "Jasper",
+          "level": 48,
           "bySpecies": "Scovillain",
           "byMove": "Bitter Blade",
           "indirect": null

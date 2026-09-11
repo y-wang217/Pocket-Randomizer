@@ -149,7 +149,33 @@ async function dismissTooltip(page) {
   await page.waitForTimeout(30);
 }
 
+/**
+ * Act, then **park the pointer**. Patch 4.7.2.
+ *
+ * `dismissTooltip` above closes a panel a *click* opened. This closes the other
+ * half, which is subtler: the tooltip layer offers hover as a desktop
+ * enhancement over its tap interaction, Playwright drives a desktop Chromium
+ * with a real mouse, and the pointer stays wherever the last click left it. So
+ * the bot sits hovering whatever is under that point and a panel opens with
+ * nobody having asked — a state no phone can reach, which is the device every
+ * one of these measurements is taken at.
+ *
+ * Reached rather than theoretical, and it is why this wraps the switch instead
+ * of living in one branch: after 4.7.2 shortened the map, the pointer's resting
+ * place after a node click landed on a party panel's ability chip, and
+ * `visual-v3`'s "every visible control is what a tap at its centre lands on"
+ * failed on the *battle* screen two steps later, against a panel opened on the
+ * map. The parking is what stops the hover, and `mouse.move(0, 0)` is the move
+ * `visual-v0`, `visual-v2` and `contrast.mjs` already make before they measure,
+ * each with a comment saying why.
+ */
 export async function stepOnce(page) {
+  const screen = await stepOnceUnparked(page);
+  await page.mouse.move(0, 0);
+  return screen;
+}
+
+async function stepOnceUnparked(page) {
   await dismissTooltip(page);
   const screen = await openScreen(page);
   switch (screen) {

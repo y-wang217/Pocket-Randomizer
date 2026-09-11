@@ -232,6 +232,7 @@
         {
           "side": "p1",
           "name": "Mire",
+          "level": 36,
           "bySpecies": "Corphish",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -394,6 +395,7 @@
         {
           "side": "p1",
           "name": "Mire",
+          "level": 54,
           "bySpecies": null,
           "byMove": null,
           "indirect": "psn"
@@ -413,6 +415,7 @@
         {
           "side": "p1",
           "name": "Mire",
+          "level": 54,
           "bySpecies": "Hippowdon",
           "byMove": "Smart Strike",
           "indirect": null
@@ -432,6 +435,7 @@
         {
           "side": "p1",
           "name": "Loam",
+          "level": 54,
           "bySpecies": "Muk",
           "byMove": "Bulldoze",
           "indirect": null
@@ -484,6 +488,7 @@
         {
           "side": "p1",
           "name": "Loam",
+          "level": 54,
           "bySpecies": "Incineroar",
           "byMove": "Crunch",
           "indirect": null
@@ -491,6 +496,7 @@
         {
           "side": "p1",
           "name": "Thistle",
+          "level": 54,
           "bySpecies": "Camerupt",
           "byMove": "Stomping Tantrum",
           "indirect": null
@@ -498,6 +504,7 @@
         {
           "side": "p1",
           "name": "Mire",
+          "level": 54,
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
@@ -505,6 +512,7 @@
         {
           "side": "p1",
           "name": "Bramble",
+          "level": 54,
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null
@@ -512,6 +520,7 @@
         {
           "side": "p1",
           "name": "Loam",
+          "level": 54,
           "bySpecies": "Talonflame",
           "byMove": "Drill Peck",
           "indirect": null

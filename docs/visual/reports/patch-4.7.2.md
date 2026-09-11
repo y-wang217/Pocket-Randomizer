@@ -924,3 +924,152 @@ branch: the battle bar needs its own insertion point for R8, and the
 move-replace screen explains the incoming move but not the four it is compared
 against — an asymmetry on the one screen whose purpose is that comparison, and
 Release A's to resolve.
+
+---
+
+## 7. Merged with Stage 4.8, and re-measured against it
+
+**4.7.2 and Stage 4.8 ran in parallel.** 4.8 landed on `main` first — 23
+commits, 80 files, party slot unlocks, the run score, nicknames, the graveyard,
+a per-segment step curve and `RANDOMIZER_VERSION` 13. Everything in sections 0
+to 6 above was measured against `76b9550`, which is no longer `main`, so this
+section re-takes the numbers that matter.
+
+`docs/spec/README.md`'s parallel-session protocol says two sessions must not be
+`active` on prompts touching the same data tables at once, because `contentHash`
+moves for both and neither report is attributable. That is what happened, and
+it is recorded rather than glossed: 4.8 owns every balance figure, 4.7.2 owns
+none, and the two touched `tuning.ts` from opposite ends — 4.8 the step curve
+and the score, 4.7.2 two display floors.
+
+### 7.1 The merge
+
+Five conflicts, all resolved toward the obvious owner:
+
+| file | resolution |
+|---|---|
+| `docs/spec/README.md` | both register rows kept, 4.8's first |
+| `docs/visual/baseline/heights.json` | 4.8's taken, then re-recorded from a measurement |
+| `docs/visual/baseline/data-digest.txt` | same |
+| `src/ui/app.ts` | **4.7.2's deletion wins.** 4.8 edited the two-screen redraw subscription; step 4 deleted it, because the attribute replaced it |
+| `src/ui/screens/summary.ts` | **4.8's block wins**, with 4.7.2's one line inside it — the score, slots and graveyard rows are theirs, and `renderMember` still takes the index and the tuning so its move cards go through `moveCardData` |
+
+### 7.2 The deltas did not move
+
+The same measurement against the new base, beside what it was against the old:
+
+| | vs `76b9550` | vs 4.8 `main` |
+|---|---|---|
+| `map.decisionTop` | +2 | **+2** |
+| `map.decisionBottom` | −26.69 | **−26.69** |
+| `map.screenHeight` | −24.69 | **−25.69** |
+| `battle.decisionTop` | 0 | **0** |
+| `battle.decisionBottom` | +12 | **+12** |
+| `battle.screenHeight` | +12 | **+12** |
+
+**Every figure this patch is responsible for is the same against both bases**,
+which is the result worth having: 4.7.2's effect on the two guarded screens does
+not depend on anything 4.8 did. The one-pixel difference in `map.screenHeight`
+is 4.8's map, not this patch's arithmetic.
+
+Absolute, on the current head:
+
+```
+map.decisionBottom     643.03   clears the 740 line by 96.97
+battle.decisionBottom  712      clears it by 28
+```
+
+Both well clear, and `battle.decisionTop` is still unmoved at 472. §12e and §12f
+in `generation.md` are left as written — they record what was measured when they
+were measured, which is protocol 4 — and this section is where a reader finds
+the numbers against the base that is live.
+
+### 7.3 The baseline after the merge
+
+Of the eight files in `visual/baseline/`, **only `heights.json` and
+`data-digest.txt` differ from 4.8's.** Every recorded run, every casualty list
+and the `GYMRUN01` battle protocol are byte identical *after* merging a stage
+that bumped `RANDOMIZER_VERSION` to 13 — which is the strongest form of the
+claim this patch has been making all along: it changes no run.
+
+### 7.4 Three suites the merge broke, and what each turned out to be
+
+The merge was clean to typecheck and lint and still failed five assertions
+across four files. Each was chased to a cause rather than re-run until green.
+
+**`visual-verbosity > changes the threat readout` — mine, and a stale
+assumption.** The readout was on the map *and* the party screen when this test
+was written; **Stage 4.8 rebuilt the map and `screens/party.ts` is now its only
+mount.** The test walked the map looking for something that had moved. It walks
+to the party screen now, and keeps walking until the list has entries rather
+than stopping at the first one — a party of one on segment one can have no
+unanswered type, and an empty list would make the test pass by vacuity.
+
+Worth writing down as an argument rather than a fix: a test that names a
+*screen* survives another stage rebuilding the map; one that names a coordinate
+does not.
+
+**`visual-v1` and `visual-v3` — the tooltip layer's hover enhancement, exposed
+by this patch.** Both failed on `visual-v3`'s rule that "every visible control
+is what a tap at its centre lands on", with a `.tip__text` panel over the battle
+screen's move buttons. Traced, and the cause is not a click:
+
+```
+the step on map opened: "Sand Force…"
+  activeElement=BODY  hovered=["SPAN.chip.badge--ability | ability:sandforce"]
+```
+
+**Hover.** `ui/tooltips.ts` offers hover as a desktop enhancement over its tap
+interaction; Playwright drives a desktop Chromium with a real mouse, and the
+pointer stays where the last click left it. After this patch shortened the map,
+that resting place landed on a party panel's ability chip — so a panel opened
+with nobody asking, and was still open two steps later on the battle screen.
+
+**A state no phone can reach**, on the device every one of these measurements is
+taken at. `stepOnce` now parks the pointer after acting, which is the same
+`mouse.move(0, 0)` that `visual-v0`, `visual-v2` and `contrast.mjs` each already
+make before measuring, each with its own comment saying why. That makes three
+pointer-hygiene fixes in the shared driver from this patch — dismiss a
+click-opened panel, aim at a name instead of a centre, and park after acting —
+and together they are the reason the walk is deterministic now.
+
+**`backpack > resumes identically from a save…` — not this patch's, and not
+really a failure.** It fails in a full parallel run and passes alone, **on
+`origin/main` as well as here**, verified in a clean worktree at `e5243d7`. A
+resume test that replays a run from every save point is the slowest thing in the
+suite; under contention it is the first to time out. Left alone: it is 4.8's to
+look at if it keeps happening, and this patch has no claim on it.
+
+### 7.5 What the toggle actually changes, per screen
+
+Asked directly after the merge, because a player pressed it and saw nothing.
+Every screen, flipped both ways, counting painted elements:
+
+| screen | mode flips | stat numbers | threat counts | anything visible? |
+|---|---|---|---|---|
+| party | yes | 6 → 0 | 5 → 0 | **yes** |
+| pre-gym | yes | 18 → 0 | — | **yes** |
+| drawer | yes | 4 per member → 0 | — | **yes** |
+| starter, locale, map, battle, result, target, replace, event, shop, summary | yes | 0 → 0 | 0 → 0 | **no** |
+
+**The mechanism is correct on all thirteen** — `data-verbosity` flips on `<html>`
+every time and the toggle is visible everywhere. What is thin is the *coverage*:
+the flag governs raw stat numbers and threat counts, and those exist only on
+member cards and the threat readout. Ten screens carry neither, so the toggle is
+a control that does nothing where it is standing.
+
+Three reasons, only one of them this patch's:
+
+1. **Member cards are the only place stat numbers live.** Party, pre-gym and the
+   drawer. That has been true since 4.7.
+2. **Ruling 2 took the battle panel out of scope**, and V5.3 had already removed
+   its six-stat block, so there is nothing there to govern.
+3. **Stage 4.8 moved the threat readout off the map**, which is the one that
+   changed under this patch. At step 4 the map *did* respond to the toggle — the
+   counts were there. After 4.8 they are on the party screen only, and the map
+   became one of the ten.
+
+So the toggle got quieter between being built and being merged, and the screen
+it got quieter on is the map — where a player spends most of the run and is
+most likely to press it. That is a product question rather than a defect, and
+it is put to the reviewer rather than answered here.

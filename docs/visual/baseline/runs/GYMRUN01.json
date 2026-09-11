@@ -169,6 +169,7 @@
         {
           "side": "p1",
           "name": "Cedar",
+          "level": 36,
           "bySpecies": null,
           "byMove": null,
           "indirect": "Recoil"
@@ -188,6 +189,7 @@
         {
           "side": "p1",
           "name": "Cedar",
+          "level": 36,
           "bySpecies": "Hariyama",
           "byMove": "Arm Thrust",
           "indirect": null
@@ -207,6 +209,7 @@
         {
           "side": "p1",
           "name": "Cedar",
+          "level": 36,
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -214,6 +217,7 @@
         {
           "side": "p1",
           "name": "Moss",
+          "level": 36,
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -221,6 +225,7 @@
         {
           "side": "p1",
           "name": "Dusk",
+          "level": 36,
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null

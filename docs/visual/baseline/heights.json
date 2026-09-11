@@ -5,11 +5,11 @@
     "height": 844
   },
   "map": {
-    "screenHeight": 836.41,
-    "scrollHeight": 1029,
+    "screenHeight": 810.72,
+    "scrollHeight": 1004,
     "decisionCount": 2,
-    "decisionTop": 556,
-    "decisionBottom": 669.72
+    "decisionTop": 558,
+    "decisionBottom": 643.03
   },
   "battle": {
     "screenHeight": 599,

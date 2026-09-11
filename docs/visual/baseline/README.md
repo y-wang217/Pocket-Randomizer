@@ -181,6 +181,14 @@ and fails on any byte that differs. Heights are compared by
   `xfail` marker is removed rather than moved, per the prompt. `bundle.json` is not
   re-recorded, per this file's own rule.
 
+- **2026-09-11, Stage 4.8 review follow-up.** `runs/` re-recorded. `Casualty` gained a
+  `level` field, captured at faint time from the specs the battle was built with, and
+  `baseline.ts` serializes each visit's casualties whole — so every run that lost a
+  Pokemon gains one number per death. **No draw moved**: the level is read off a spec
+  the battle already had, it consumes no RNG, and the decision logs are byte identical.
+  `data-digest.txt`, `heights.json` and `bundle.json` are unchanged — the change is in
+  `src/core/`, touches no file under `src/data/`, and moves no pixel.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.

@@ -766,11 +766,28 @@ name, on every surface at once, from a single cache hit. The nickname is in the 
 `reviveFaintedBetweenNodes` is true, so the only faints never recovered are those in
 the wipe that ends a run; read literally the graveyard would hold one node's
 casualties. Revives are out of scope, so changing recovery to justify a readout was
-not available and would have been a readout deciding a mechanic. Two imprecisions
-are recorded in the file rather than hidden: the level is the member's level *now*
-rather than when it fell, and a member released since does not match and reads null.
-The exact fix for both is a party snapshot per `NodeVisit`, which is a copy of the
-whole party per node to improve one line of a readout.
+not available and would have been a readout deciding a mechanic.
+
+**The level is captured at faint time, in `Casualty` itself**, beside the killing
+move the 4.7 attribution work already wrote there. `runBattle` reads it off the specs
+the battle was built with — the party as of node entry — and `readCasualties` takes a
+name-to-level map rather than deriving one, because nothing in that file may see
+anything but protocol strings.
+
+The first cut looked the level up in the live party instead, and was wrong twice:
+`levelParty` raises the whole party at every gym clear, so a survivor reported the
+level it had *climbed to*; and a member released since matched nothing and read null.
+One field fixed both, and **a released member now keeps a complete record** — which a
+party snapshot per `NodeVisit` would also have done, at the cost of a copy of the
+whole party per node.
+
+Both failure modes are pinned in `test/nicknames-graveyard.test.ts`, and both tests
+were rewritten once because the first versions were **vacuous**: the level test ran on
+a seed with no stale survivor, and the release test's set of no-longer-held victims
+came back empty on every seed, so both passed against the broken lookup. The level
+test now sweeps every seed and asserts the discriminating case was present; the
+release case is a hand-built fixture, because a state that specific is one a fixture
+should construct rather than one a sweep should hope for.
 
 ### Item 6: the shareable result
 
@@ -1627,8 +1644,57 @@ list and the recorded battle protocol are byte identical, so two players on one
 seed holding different copies of `tuning.ts` still play the identical run. **The
 per-field split of that file is still the `contentHash` release's decision and
 is deliberately not pre-empted here.**
+## 12g. The summary's move cards, and the gap that let them go empty
 
-## 12g. Deviations: the tutorial (overnight Branch 3)
+**2026-09-11.** The fix is not recorded here. It is PR #24's, and
+[`visual/reports/patch-4.7.2.md`](visual/reports/patch-4.7.2.md) §7.1 is
+where the merge that caused it is written up. This section records the **test**,
+because the fix shipped without one and the reason it was needed is not obvious
+from the diff.
+
+**The attribution matters and my first draft of this section got it wrong.**
+4.7.2 did not leave the call site short of an argument. Its own tip carries
+`state.party.map((member, index) => renderMember(member, index, state.tuning))`
+at `f52a057` and still at `1539841`. The merge commit `afa2b1f`, resolving 4.7.2
+against 4.8's rewritten block, is what reduced it to `map(renderMember)` — and
+`Array.prototype.map` passes the array as its callback's third argument, so
+`tuning` became `state.party`. A merge resolution dropped it, which is why
+§7.1's table can describe the resolution as keeping the tuning and the committed
+tree not have it.
+
+**The interesting part is that the surface was under test and the test passed.**
+`tagsForFace` computes `slice(0, Math.max(0, tuning.maxMoveTagsOnFace))`; the
+field is absent on an array, `Math.max(0, undefined)` is `NaN`, and
+`slice(0, NaN)` is empty. So the summary drew **zero** face tags where the other
+five surfaces draw up to three — no crash, no blank region, just a missing row.
+
+4.7.2 step 5's claim is that the shared filler reaches six card surfaces, and
+`test/visual-move-cards.test.ts` does walk all six. What it asserts on each is
+that an expander is present, and an expander comes off `explanation` rather than
+off the tags, so it stayed green on a surface whose tag row had gone. The smoke
+run's `no move face carries more than 3 tags` is a ceiling, which zero also
+satisfies, and it only covers the battle screen. **Between them the two checks
+proved the insertion point was reached and not that real data came through it.**
+
+So the gap was 4.7.2's to close rather than 4.8's, and closing it is what these
+tests do:
+
+- `test/summary.test.ts` compares the face tags the screen draws against what
+  `moveCardData` returns for the same party under the run's tuning. Not "more
+  than zero": a cap of three read as zero and a cap of three read as three are
+  both non-crashing, and only the comparison separates them. It also asserts the
+  expected total is itself above zero, so it cannot pass at `0 === 0` on a party
+  whose moves carry no tags — the shape of the bug it exists for. Verified red
+  against the pre-#24 call site.
+- `test/visual-move-cards.test.ts` gains a tag count per surface beside the
+  expander count it already takes, so the next surface to lose its tuning fails
+  on the surface that lost it rather than on a screen two steps later.
+
+`state.tuning` and not `DEFAULT_TUNING`, on the rule `ui/app.ts` already states
+for the opponent reveal policy: a run started with a swept tuning has to show
+what that run was.
+
+## 12h. Deviations: the tutorial (overnight Branch 3)
 
 **Recorded 2026-09-11. Protocol 4 — the prompt is not edited; the five
 places the built tutorial differs from

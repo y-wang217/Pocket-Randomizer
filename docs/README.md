@@ -198,7 +198,7 @@ toggle, "Skip tutorial" on the first mark and "Show tutorial again" in the
 header. Presentation only: no `core/` change, no version axis moved, the sim
 fixture and the visual baseline's runs byte identical. The visual baseline's
 data digest now reads `contentHash`, so a copy file on the exclusion list moves
-nothing; `generation.md` section 12g records that and the other four
+nothing; `generation.md` section 12h records that and the other four
 deviations.
 
 **Blocked:**
