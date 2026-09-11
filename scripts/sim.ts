@@ -1468,6 +1468,26 @@ interface RunRecord {
      * caught once in segment 1, and those are opposite findings.
      */
     joinedSegments: number[];
+    /**
+     * What the party walked in with, and what it walked in against.
+     * **The AI tiers patch, ruling 4.**
+     *
+     * `hpFraction` is the mean live HP fraction of the party entering the gym,
+     * and it is here because an AI change that makes the *road* cheaper — easy
+     * tier on wilds and normal trainers is most of the fights in a run —
+     * arrives at the gym with a healthier party and clears more gyms without
+     * the gym having changed at all. That is an attrition change wearing an AI
+     * costume, and mean gyms cleared alone cannot tell the two apart.
+     *
+     * `levels` and `opponentLevels` are the same argument pointed at the other
+     * standing question: the party is habitually above the curve, so a level
+     * delta that moves under an AI patch is the thing to look at before
+     * anything in `scaling.ts` is blamed. Read as a delta per gym, never as an
+     * absolute.
+     */
+    hpFraction: number;
+    levels: number[];
+    opponentLevels: number[];
   }[];
 
   // --- Stage 4.6b ---------------------------------------------------------
@@ -1551,6 +1571,13 @@ async function playSample(
             berries: carried.filter((item) => BERRY_IDS.has(item)).length,
             backpack: before.backpack.length,
             joinedSegments: before.party.map((member) => member.joinedSegment),
+            // Live members only: a fainted member is at zero by definition and
+            // averaging it in would report party *size* as if it were health.
+            hpFraction: meanOf(
+              before.party.filter((member) => !member.fainted).map((member) => member.hp / Math.max(1, member.maxHp)),
+            ),
+            levels: before.party.filter((member) => !member.fainted).map((member) => member.spec.level),
+            opponentLevels: (node.encounter?.team ?? []).map((spec) => spec.level),
           });
         }
       },
@@ -1859,6 +1886,20 @@ interface Sample {
     berriesPerSegment: { segment: number; eaten: number; perRun: number }[];
     /** Berries carried into gym 6 and later, and the share of the bag they hold. */
     lateBerries: { parties: number; meanCarried: number; shareOfRuns: number };
+    /**
+     * How the party arrives at each gym: health, level, and the gym's level.
+     * **The AI tiers patch, ruling 4.** See `RunRecord.gymParties` for why an
+     * AI row needs both columns to be readable.
+     */
+    arrivalAtGym: {
+      gym: number;
+      parties: number;
+      hpFraction: number;
+      meanLevel: number;
+      meanOpponentLevel: number;
+      /** Player mean minus gym mean. Positive is overlevelled. */
+      levelDelta: number;
+    }[];
   };
   /**
    * Relics and the gates they open. **Stage 4.6c's measurements.**
@@ -2385,9 +2426,25 @@ function summarizeRamp(records: RunRecord[]): Sample['ramp'] {
 
   // Gym 6 and later: the point the berry design says they should be gone by.
   const late = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym >= 6));
+  const arrivalAtGym = Array.from({ length: SEGMENTS_PER_RUN }, (_, index) => {
+    const gym = index + 1;
+    const rows = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym === gym));
+    const meanLevel = meanOf(rows.flatMap((row) => row.levels));
+    const meanOpponentLevel = meanOf(rows.flatMap((row) => row.opponentLevels));
+    return {
+      gym,
+      parties: rows.length,
+      hpFraction: meanOf(rows.map((row) => row.hpFraction)),
+      meanLevel,
+      meanOpponentLevel,
+      levelDelta: meanLevel - meanOpponentLevel,
+    };
+  });
+
   return {
     bandsAtGym,
     berriesPerSegment,
+    arrivalAtGym,
     lateBerries: {
       parties: late.length,
       meanCarried: late.length === 0 ? 0 : sum(late.map((entry) => entry.berries)) / late.length,
@@ -2594,6 +2651,11 @@ function sum(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
 
+/** Mean, or 0 for an empty list. Zero rather than NaN so a row still renders. */
+function meanOf(values: readonly number[]): number {
+  return values.length === 0 ? 0 : sum(values) / values.length;
+}
+
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
@@ -2744,6 +2806,42 @@ function render(sample: Sample): string {
               : '',
         ]),
     ),
+  );
+
+  /*
+   * The arrival row. **The AI tiers patch, ruling 4.**
+   *
+   * Printed next to the ramp because it answers the same question from the
+   * other side: the ramp says what the party is carrying when it arrives, this
+   * says how much of the party is left and how far above the gym it is. An AI
+   * change that never touches a gym still moves both, because most of a run is
+   * the road.
+   */
+  out.push('', 'Arrival — how the party reaches each gym');
+  out.push(
+    table(
+      ['gym', 'parties', 'party HP', 'party lvl', 'gym lvl', 'delta', 'reads as'],
+      ramp.arrivalAtGym
+        .filter((row) => row.parties > 0)
+        .map((row) => [
+          String(row.gym),
+          String(row.parties),
+          pct(row.hpFraction),
+          row.meanLevel.toFixed(1),
+          row.meanOpponentLevel.toFixed(1),
+          `${row.levelDelta >= 0 ? '+' : ''}${row.levelDelta.toFixed(1)}`,
+          // A readout, not a verdict on the tables: it says which side of even
+          // the party is, and how far. What to do about it is a scaling
+          // question and this patch does not touch scaling.
+          row.levelDelta >= 5 ? 'well above the gym' : row.levelDelta <= -5 ? 'well below the gym' : '',
+        ]),
+    ),
+  );
+  out.push(
+    `  mean level delta across every gym reached: ` +
+      `${meanOf(ramp.arrivalAtGym.filter((row) => row.parties > 0).map((row) => row.levelDelta)).toFixed(2)}` +
+      `   ·   mean party HP on arrival: ` +
+      `${pct(meanOf(ramp.arrivalAtGym.filter((row) => row.parties > 0).map((row) => row.hpFraction)))}`,
   );
 
   out.push('', 'Berries — eaten per run, by the segment they fired in');
