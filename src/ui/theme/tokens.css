@@ -38,10 +38,20 @@
  *
  * ## Faces
  *
- * `--font-display` is Pixelify Sans for headings and labels. `--font-body` is
- * what numbers and prose render in, and it is the overnight's conservative
- * default: the system monospace stack, because the legibility gate needs a
- * phone. Swapping body to the display face is one line, `--font-body`.
+ * **Three tokens, all Pixelify Sans, one line each to swap. Patch 4.7.2.**
+ * `--font-display` is headings and labels, `--font-body` is names and prose,
+ * `--font-numeral` is the counters that update in place. The overnight shipped
+ * body on the system monospace stack as its conservative default and left the
+ * swap as a morning decision; 4.7.2 took it, and the whole UI is one face.
+ *
+ * **`--font-numeral` points at the same face on purpose, and that is what it is
+ * for.** Pixelify Sans is proportional and carries no `tnum` feature, so a
+ * counter that rewrites in place — HP, PP, a stat number — reflows as its
+ * digits change. Every rule that draws one reads this token instead of
+ * `--font-body`, so the day that reflow is worse than the face is worth, the
+ * fix is one line here rather than a hunt through the stylesheet for which of
+ * the thirty-seven body rules happen to hold numbers. The measurement that says
+ * it is not worse today is in `docs/visual/reports/patch-4.7.2.md`.
  *
  * ## Sizes and spacing hold the old pixel values
  *
@@ -160,17 +170,40 @@
   --type-fairy: #d685ad;
   --type-stellar: #40b5a5;
 
-  /* How far a chip's hue is pulled toward the neutrals. One number for every
-     coloured chip, so no chip is more saturated than another. */
+  /*
+   * How far a chip's hue is pulled toward the neutrals. One number for every
+   * coloured chip, so no chip is more saturated than another.
+   *
+   * **`--chip-text` went 70% to 60% at patch 4.7.2, once and globally.** At
+   * 70% the darkest five type hues put their label under 4.5:1 against their
+   * own fill — dragon 4.07, dark 4.15, fighting 4.20, ghost 4.34, poison 4.35
+   * — which is `tuning.minChipContrastRatio` missed on a quarter of the wheel.
+   * 60% clears it on every hue with the worst at 4.81.
+   *
+   * **Lifted here rather than per hue**, which is the whole reason it is one
+   * number: five hand-tuned exceptions would be five values to re-derive the
+   * first time a chip, a surface or a base colour moves, and the sixth hue to
+   * fall under the line would be the one nobody re-checked.
+   *
+   * **It desaturates the label and not the fill.** `--chip-text` is read only
+   * by the `color` in `.chip`; the fill is `--chip-fill` and is untouched, so
+   * a Dragon chip still reads as Dragon at a glance and its *text* is what
+   * moved toward the cream. Measured per chip surface in
+   * `test/visual-chips.test.ts`.
+   */
   --chip-fill: 16%;
   --chip-line: 55%;
-  --chip-text: 70%;
+  --chip-text: 60%;
 
   /* ---------- faces ---------- */
   --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --font-display: 'Pixelify Sans', var(--font-mono-stack);
-  /* Morning decision: `var(--font-display)` if the phone screenshots read. */
-  --font-body: var(--font-mono-stack);
+  /* The morning decision, taken at patch 4.7.2: the phone screenshots read, so
+     body is the display face too. One line back to the mono stack. */
+  --font-body: var(--font-display);
+  /* Counters that update in place. Its own token *because* it points at the
+     same face: see the note above on why the escape hatch is the point. */
+  --font-numeral: var(--font-display);
   --tracking-label: 0.08em;
   --tracking-title: 0.16em;
 

@@ -517,7 +517,7 @@ body {
 
 .panel__hp-text {
   color: var(--text-dim);
-  font-family: var(--font-body);
+  font-family: var(--font-numeral);
   font-size: var(--fs-md);
 }
 
@@ -561,9 +561,39 @@ body {
 
 .stat__value {
   color: var(--text-dim);
-  /* Tabular figures: the numbers change every turn and a panel that reflows
-     under the reader is a panel they stop trusting to compare against. */
+  font-family: var(--font-numeral);
+  /*
+   * **This line is a no-op under Pixelify Sans and is kept deliberately.
+   * Patch 4.7.2.**
+   *
+   * It arrived with a comment claiming tabular figures stop the panel
+   * reflowing under the reader. That was true of the system monospace stack
+   * and is not true now: the face carries no `tnum` feature, and asking for
+   * one measures identically to not asking — every digit is the same advance
+   * except `1`, which is 31% narrower. So the request is inert here, and the
+   * reflow it used to prevent is prevented by reserved width instead, on the
+   * rule below.
+   *
+   * Kept rather than deleted because it costs nothing and is correct the
+   * moment `--font-numeral` points at a face that has the feature — which is
+   * the entire reason that token is separate. Measurements:
+   * `docs/visual/reports/patch-4.7.2.md`.
+   */
   font-variant-numeric: tabular-nums;
+  /*
+   * The reservation that actually holds the column still. **Patch 4.7.2.**
+   *
+   * `1ch` is the advance of `0`, which under this face is the advance of every
+   * digit but `1`, so three of them is the widest a stat number gets and the
+   * box never has to grow. Right-aligned inside it, because from this patch the
+   * bar sits beside the number rather than instead of it, and a bar whose left
+   * edge moved with the digit count of the number in front of it would defeat
+   * the one thing six bars are for — being comparable down the column at a
+   * glance. In `ch` rather than px so it tracks the face rather than needing a
+   * new number the next time `--font-numeral` moves.
+   */
+  min-width: 3ch;
+  text-align: right;
 }
 
 /*
@@ -602,13 +632,19 @@ body {
 .stat[data-stat="spe"] { grid-column: 1 / -1; }
 
 /*
- * Simple mode: the bar that stands in for the number.
+ * The bar, shown in both modes. **Patch 4.7.2, ruling 3.**
  *
- * It occupies the same row slot the number does — the two are swapped by
- * `hidden`, never both shown — so flipping the toggle cannot reflow the panel
- * under the reader. `flex: 1` rather than a fixed width so the bar fills
- * whatever the label leaves, which keeps the two halves of a stat pair the same
- * length and therefore comparable at a glance.
+ * Through V5 the bar and the number were swapped by `hidden` and never both
+ * shown, so Detailed was the number alone. Ruling 3 is that Detailed shows the
+ * pair and Simple the bar alone — a change to Detailed, not only to Simple —
+ * so the component now renders both and the two rules at the end of this block
+ * decide what is visible.
+ *
+ * `flex: 1` rather than a fixed width so the bar fills whatever the label and
+ * the number leave, which keeps the two halves of a stat pair the same length
+ * and therefore comparable at a glance. The number's box is reserved at `3ch`
+ * (see `.stat__value`), so the bar starts at the same x on all six rows and
+ * flipping the mode cannot reflow the row under the reader.
  */
 .stat__bar {
   flex: 1;
@@ -619,7 +655,24 @@ body {
   overflow: hidden;
 }
 
+/*
+ * **`display: block` is the whole of the stat-bar fix, and it is here rather
+ * than as a `div` in the component. Patch 4.7.2.**
+ *
+ * This rule shipped without it, on an `el('span', …)`, and `width` and `height`
+ * do not apply to a non-replaced *inline* box — so the fill computed to 0x0 and
+ * was never painted, whatever percentage the component wrote onto it. Measured
+ * on the real party screen: `width: 47%` set, `getBoundingClientRect()` 0x0.
+ * What the player saw was the track alone, a flat dark line, on all six rows.
+ * `.hp__fill` escaped the identical bug only by being a `div`.
+ *
+ * Fixed on the rule and not on the tag deliberately: the rule is the thing that
+ * asks for a width, so the rule is the thing that has to make the width mean
+ * something. A component that later swaps the element cannot reintroduce it,
+ * and `test/visual-inline-box.test.ts` now fails the whole class of bug.
+ */
 .stat__bar-fill {
+  display: block;
   height: 100%;
   border-radius: var(--radius-chip);
   background: var(--text-faint);
@@ -630,6 +683,31 @@ body {
    digits must not hide that something changed them. */
 .stat[data-stage="up"] .stat__bar-fill { background: var(--stage-up); }
 .stat[data-stage="down"] .stat__bar-fill { background: var(--stage-down); }
+
+/* ---------- the verbosity modes ---------- */
+
+/*
+ * **What each mode shows, in one place. Patch 4.7.2.**
+ *
+ * `data-verbosity` is written onto `<html>` by the shell, from one
+ * subscription, and this is its only reader — see `ui/theme/verbosity.ts` for
+ * why the mode is an attribute rather than a re-render. Components render the
+ * whole readout in every mode; these rules take things away.
+ *
+ * **Detailed is the default and appears in no rule below**, deliberately: it is
+ * the mode that shows everything, so it is the absence of a rule rather than a
+ * selector that has to be kept in sync with one. That is also the seam a third
+ * mode arrives through — a new value, its own block here, and nothing else in
+ * the codebase branches.
+ *
+ * Simple: the raw stat numbers go and the bars stand in for them, and the
+ * threat readout drops its per-type counts. Everything else — the faster-side
+ * marker, the stage chips, HP, PP, every effectiveness badge and every tooltip
+ * — is present in both, because those are how a player learns rather than what
+ * they already know.
+ */
+:root[data-verbosity="simple"] .stat__value { display: none; }
+:root[data-verbosity="simple"] .threats__count { display: none; }
 
 /* The party screen's stat block: six rows, two columns, same rows as a battle
    panel so the two read as the same object seen in two places. */
@@ -881,8 +959,9 @@ body {
  * buttons: a Pokemon with 150 Attack and 45 Sp. Atk has one good move on that
  * bar, and reading four labels to find it is the friction this removes.
  */
+/* No font-size of its own from 4.7.2: it inherits `.badge`'s --fs-sm, which is
+   the chip floor. It used to override to --fs-xs, which was under it. */
 .badge--category {
-  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
 }
 
@@ -917,7 +996,8 @@ body {
   padding: var(--hairline) calc(var(--space-1h) + var(--hairline));
   border-radius: var(--radius-chip);
   font-family: var(--font-display);
-  font-size: var(--fs-xs);
+  /* --fs-xs until 4.7.2, which is 10px and under the chip floor. */
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1008,10 +1088,18 @@ body {
 }
 
 .move__category,
-.move__power,
-.move__pp {
+.move__power {
   color: var(--text-dim);
   font-family: var(--font-body);
+  font-size: var(--fs-sm);
+}
+
+/* PP splits out of the row above at 4.7.2. Category and base power are facts
+   about the move and never change; PP is the one of the three that counts
+   down under the reader, so it is the one that reads --font-numeral. */
+.move__pp {
+  color: var(--text-dim);
+  font-family: var(--font-numeral);
   font-size: var(--fs-sm);
 }
 
@@ -1093,18 +1181,15 @@ body {
 /* The ordinal says when; the colour says who. Two facts, one glyph. */
 .log-entry--action[data-side='p1'] .log-entry__order { color: var(--emphasis); border-color: var(--emphasis); }
 
+/*
+ * Layout only from 4.7.2. **The chip recipe that used to be duplicated here
+ * is gone**; the element carries `.chip` now and inherits it from the one
+ * place, which is what V2's rule says and what this rule was quietly the
+ * exception to. `--fs-2xs` went with it: 9px was the furthest under the chip
+ * legibility floor anything got, and `.badge` sets the floor size.
+ */
 .log-entry__priority {
   flex: none;
-  padding: 0 calc(var(--space-1) + var(--hairline));
-  border-radius: var(--radius-chip);
-  --chip: var(--cream-dim);
-  background: color-mix(in srgb, var(--chip) var(--chip-fill), transparent);
-  color: color-mix(in srgb, var(--chip) var(--chip-text), var(--cream));
-  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--chip) var(--chip-line), var(--border-strong));
-  font-family: var(--font-display);
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
   cursor: help;
 }
 
@@ -1202,6 +1287,25 @@ body {
 .rewards[hidden],
 .result__party[hidden],
 .result__capture[hidden],
+/*
+ * And a third time, at 4.7.2. `.move__explain` sets `display: grid`, so the
+ * panel laid out at full height while `hidden` was set on it — three reward
+ * cards ran 70px past the 844 fold and the V2 band lost its clearance, with
+ * the DOM insisting the panels were closed.
+ *
+ * **The three below it are older and were found by the test written for the
+ * third.** `test/visual-inline-box.test.ts` now sweeps every `[hidden]`
+ * element on every screen and fails any that still lays out, which is how a
+ * note that had been written twice became a rule that holds. `.event__result`
+ * was drawing a 30px empty box on the event screen; the two battle panel rows
+ * were 0px only because they happened to be empty, which is a latent version
+ * of the same thing — the first row of chips to arrive while one was hidden
+ * would have shown.
+ */
+.move__explain[hidden],
+.event__result[hidden],
+.panel__volatiles[hidden],
+.panel__stages[hidden],
 .map__region[hidden] { display: none; }
 
 .screen__title {
@@ -1283,7 +1387,8 @@ body {
   padding: var(--hairline) var(--space-1h);
   border-radius: var(--radius-chip);
   font-family: var(--font-display);
-  font-size: var(--fs-xs);
+  /* --fs-xs until 4.7.2, which is 10px and under the chip floor. */
+  font-size: var(--fs-sm);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border: var(--hairline) solid transparent;
@@ -1428,7 +1533,9 @@ body {
   flex-basis: 100%;
   max-width: fit-content;
   padding: var(--hairline) calc(var(--space-1) + var(--hairline));
-  font-size: var(--fs-2xs);
+  /* No font-size from 4.7.2. It overrode `.type` down to --fs-2xs, 9px, for
+     the rail's sake; the rail is not a reason to print a chip the player
+     cannot read. */
 }
 
 .rail__number {
@@ -2217,7 +2324,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   cursor: help;
 }
 
-.statline__value { font-family: var(--font-body); font-size: var(--fs-md); color: var(--text); }
+.statline__value { font-family: var(--font-numeral); font-size: var(--fs-md); color: var(--text); }
 
 /* ---------- the phone pass ---------- */
 
@@ -2323,7 +2430,9 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      edge; the .chip recipe draws the outline inside it. Stage V2. */
   border: var(--hairline) solid transparent;
   font-family: var(--font-display);
-  font-size: var(--fs-2xs);
+  /* --fs-2xs until 4.7.2, which is 9px and the furthest under the chip
+     floor anything got. */
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   vertical-align: var(--hairline);
@@ -2440,7 +2549,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   text-transform: uppercase;
 }
 
-.shop__coin-value { font-family: var(--font-body); font-size: var(--fs-4xl); font-weight: 600; }
+.shop__coin-value { font-family: var(--font-numeral); font-size: var(--fs-4xl); font-weight: 600; }
 .shop__coin--warn .shop__coin-value { color: var(--hp-mid); }
 
 .shop__shelf {
@@ -3501,7 +3610,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 .party__contribution-cell { display: flex; gap: var(--space-1); }
 .party__contribution-label { color: var(--text-faint); }
-.party__contribution-value { color: var(--text-dim); }
+.party__contribution-value { color: var(--text-dim); font-family: var(--font-numeral); }
 
 /* The archetype chip, beside a level on both battle panels and every card.
    It wears the one neutral chip recipe from `.chip`; only the cursor is its own. */
@@ -3515,10 +3624,90 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   gap: var(--space-1);
 }
 
+/* No font-size of its own from 4.7.2: it inherits `.badge`'s --fs-sm. It used
+   to override to --fs-xs, and to --fs-2xs again under 420px. */
 .badge--tag {
-  font-size: var(--fs-xs);
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
+}
+
+/* ---------- the move explanation ---------- */
+
+/*
+ * Tap to expand, on every move card. **Patch 4.7.2, step 5.**
+ *
+ * A region inside the card, not a floating panel: it needs no positioning, no
+ * dismissal and no delegated listener, which is what lets it stay out of
+ * `ui/tooltips.ts` — the ruling forbids a third mechanism there and the type
+ * wheel decision is Release B's.
+ *
+ * The trigger is a full-width control rather than a small glyph. A move card is
+ * drawn on six surfaces and on one of them, the reward screen, it sits inside
+ * an element that submits a choice on click; a trigger the thumb can find
+ * without aiming is what keeps "explain this" and "take this" from being the
+ * same gesture at slightly different coordinates.
+ */
+/*
+ * The PP line and the trigger, one row.
+ *
+ * `space-between` puts PP at the left where it has always been and the control
+ * at the right, so nothing about the card's existing readout moves.
+ */
+.move__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.move__explain-toggle {
+  flex: 0 0 auto;
+  padding: var(--space-h) var(--space-1h);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-chip);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.move__explain-toggle[aria-expanded='true'] {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.move__explain {
+  display: grid;
+  /* The label column sizes to the longest label and the value takes the rest,
+     so every row's fact starts at the same x and the panel reads as a table
+     rather than as a paragraph with bold words in it. */
+  grid-template-columns: auto 1fr;
+  gap: var(--space-h) var(--space-2);
+  margin-top: var(--space-1);
+  padding-top: var(--space-1h);
+  border-top: var(--hairline) solid var(--border);
+}
+
+.move__explain-row {
+  display: contents;
+}
+
+.move__explain-label {
+  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.move__explain-value {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
 }
 
 /* 4.7 gave the accuracy tag its own colour so it would not be quiet. The
@@ -3608,5 +3797,14 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * strip of the screen underneath is what says this is an overlay. */
   .drawer__sheet { max-height: 90vh; }
   .move__tags { gap: var(--space-1); }
-  .badge--tag { font-size: var(--fs-2xs); }
+  /*
+   * **The `.badge--tag { font-size: var(--fs-2xs) }` that lived here is gone.
+   * Patch 4.7.2.**
+   *
+   * It dropped a tag to 9px on screens narrower than 420, which is to say it
+   * made the text smaller on the device the whole visual pass is measured at.
+   * A chip that does not fit is a chip that should be dropped or the row
+   * wrapped; shrinking it under the legibility floor answers the layout
+   * question by making the chip unreadable, which is not an answer.
+   */
 }

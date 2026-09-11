@@ -36,11 +36,13 @@ import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import { moveTagLabel, type MoveTag } from '../data/moveTags';
 import { statusReadoutLine, type MoveEffectFields } from '../data/moveCopy';
+import { moveExplanation } from './move-explanation';
 import {
   moveChoice,
   switchChoice,
   type Choice,
   type Gender,
+  type MoveExplanation,
   type SwitchView,
 } from '../core/types';
 
@@ -1104,13 +1106,62 @@ export function moveCard(move: {
   effect?: MoveEffectFields | null;
   /** The base-power band. Passed straight through to `moveFacts`. R12. */
   band?: number | null;
+  /**
+   * The full explanation, and the full tag set. **Patch 4.7.2, step 5.**
+   *
+   * **This is the one insertion point.** Every off-battle surface fills its
+   * card through `ui/move-detail.moveCardData`, which already carried both of
+   * these and had no reader; passing the whole object to this function — which
+   * all six callers already did — is what turns them on everywhere at once.
+   * Nothing was added to any screen.
+   *
+   * Optional, so a caller with nothing to explain gets a card with no expander
+   * rather than an empty one. `explanation` is null for a move outside the
+   * dex, which is the only case that produces one.
+   *
+   * **The battle bar is deliberately out of reach.** `renderMove` builds its
+   * buttons from `moveFacts` directly, not from here, so a move button cannot
+   * grow an expander by accident — a tap on it spends a turn. That the two
+   * paths differ is recorded as open item 9: R8 needs its own insertion point.
+   */
+  explanation?: MoveExplanation | null;
+  allTags?: readonly MoveTag[];
 }): HTMLElement {
   const card = el('div', `move move--card move--${move.type.toLowerCase()}`);
   card.dataset['category'] = move.category.toLowerCase();
   const facts = moveFacts(move);
-  card.append(facts.name, facts.meta, ...(facts.tags ? [facts.tags] : []), facts.pp);
+  card.append(facts.name, facts.meta, ...(facts.tags ? [facts.tags] : []));
+
+  if (move.explanation) {
+    /*
+     * **The trigger shares the PP row rather than taking one of its own, and
+     * that is a measurement rather than a preference.**
+     *
+     * The first version gave it a full-width row. Three reward cards on the
+     * result screen then ran 951.75px deep against an 844 fold, and the V2
+     * confirm band lost its clearance over a pinned card — two guarded
+     * properties, one cause. A move card is drawn three-up on the result
+     * screen and four-up on a party card, so anything that costs a row here
+     * costs three or four rows on a phone.
+     *
+     * PP is a short string on its own line with the rest of the line empty, so
+     * the control fits beside it for nothing.
+     */
+    const footer = el('div', 'move__footer');
+    // A stable id per card instance, so `aria-controls` points at this panel
+    // and not at the first one on a screen showing four.
+    explainSeq += 1;
+    const { trigger, panel } = moveExplanation(move.explanation, move.allTags ?? [], `move-explain-${explainSeq}`);
+    footer.append(facts.pp, trigger);
+    card.append(footer, panel);
+  } else {
+    card.append(facts.pp);
+  }
   return card;
 }
+
+/** Ids for the expander panels. Per document, never serialized, never logged. */
+let explainSeq = 0;
 
 
 /**

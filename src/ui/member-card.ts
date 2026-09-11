@@ -28,7 +28,6 @@ import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
 import { archetypeChip } from './archetype-chip';
 import { neutralChip, statusChip, typeChip } from './chip';
-import { showsNumbers } from './settings';
 import { slotNumber } from './slots';
 
 export interface MemberCardOptions {
@@ -154,7 +153,6 @@ function itemRow(holding: ItemId | null): HTMLElement {
 function statBlock(spec: ReturnType<typeof describeSpecCard>, member: PokemonState): HTMLElement {
   const root = el('div', 'stats stats--party');
   const values: Record<string, number> = { ...spec.baseStatsAtLevel, hp: member.maxHp };
-  const detailed = showsNumbers();
 
   for (const stat of STAT_ORDER) {
     const row = el('div', 'stat');
@@ -164,16 +162,28 @@ function statBlock(spec: ReturnType<typeof describeSpecCard>, member: PokemonSta
     label.tabIndex = 0;
     label.setAttribute('role', 'button');
 
+    /*
+     * **Both, always, in both modes. Patch 4.7.2, ruling 3.**
+     *
+     * This used to swap them by `hidden` off `showsNumbers()`, which made
+     * Detailed and Simple mutually exclusive: the number *or* the bar, never
+     * the pair. Ruling 3 is that Detailed shows the bar and the number
+     * together and Simple shows the bar alone — a change to Detailed, not only
+     * to Simple.
+     *
+     * So this component no longer asks what mode it is in. It renders the
+     * whole readout and `[data-verbosity]` on the root decides what is shown,
+     * which is what lets a toggle reach a card that is already on screen
+     * without anything re-rendering it. See `ui/theme/verbosity.ts`.
+     */
     const value = el('span', 'stat__value');
     value.textContent = String(values[stat] ?? 0);
-    value.hidden = !detailed;
 
     const bar = el('span', 'stat__bar');
     const barFill = el('span', 'stat__bar-fill');
     const magnitude = values[stat] ?? 0;
     barFill.style.width = `${Math.min(100, (magnitude / STAT_BAR_CEILING) * 100)}%`;
     bar.append(barFill);
-    bar.hidden = detailed;
 
     row.append(label, value, bar);
     root.append(row);

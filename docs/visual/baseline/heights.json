@@ -12,10 +12,10 @@
     "decisionBottom": 669.72
   },
   "battle": {
-    "screenHeight": 587,
+    "screenHeight": 599,
     "scrollHeight": 844,
     "decisionCount": 4,
     "decisionTop": 472,
-    "decisionBottom": 700
+    "decisionBottom": 712
   }
 }

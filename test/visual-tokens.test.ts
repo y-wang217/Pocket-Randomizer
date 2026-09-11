@@ -85,6 +85,67 @@ describe('the token rule', () => {
     expect(offenders).toEqual([]);
   });
 
+  /**
+   * **One face across the whole UI. Patch 4.7.2, test 8.**
+   *
+   * The rule above proves every `font-family` goes through *a* token. It does
+   * not prove the tokens agree, and before this patch they did not: display was
+   * Pixelify Sans and body was the system monospace stack, so the game was set
+   * in two faces. This resolves each token to its terminal value and asserts
+   * that every one a rule actually uses names the same first family.
+   *
+   * **The fallback stack is not a second face** and is deliberately not counted.
+   * `--font-mono-stack` survives as what Pixelify Sans falls back to while the
+   * woff2 loads or if it fails; a rule may not reach for it directly, which the
+   * `usedTokens` check below is what enforces. What this test forbids is two
+   * *chosen* faces, not a chosen face with a fallback behind it.
+   */
+  it('sets the whole UI in one face, through the tokens', () => {
+    const tokens = stripCss(readFileSync(TOKENS, 'utf8'));
+    const declared = new Map<string, string>();
+    for (const match of tokens.matchAll(/(--font-[a-z-]+)\s*:\s*([^;{}]+)(?=;|\})/g)) {
+      declared.set(match[1] ?? '', (match[2] ?? '').trim());
+    }
+
+    /** Follow `var(--x)` until a real family list falls out. */
+    const resolve = (value: string, seen = new Set<string>()): string => {
+      const via = /^var\((--font-[a-z-]+)\)$/.exec(value)?.[1];
+      if (!via) return value;
+      // A token pointing at itself would otherwise hang the suite rather than
+      // fail it, and a cycle is a defect this test should name.
+      if (seen.has(via)) throw new Error(`--font token cycle at ${via}`);
+      seen.add(via);
+      return resolve(declared.get(via) ?? '', seen);
+    };
+
+    /** The first family in a list, unquoted. The one the reader actually sees. */
+    const firstFamily = (list: string): string =>
+      (list.split(',')[0] ?? '').trim().replace(/^['"]|['"]$/g, '');
+
+    const usedTokens = new Set<string>();
+    for (const file of cssFiles) {
+      const source = stripCss(readFileSync(file, 'utf8'));
+      for (const { prop, value } of declarations(source)) {
+        if (prop !== 'font-family') continue;
+        const name = /^var\((--font-[a-z-]+)\)$/.exec(value)?.[1];
+        if (name) usedTokens.add(name);
+      }
+    }
+
+    // Vacuously passing on an empty set would make this test decoration.
+    expect(usedTokens.size).toBeGreaterThan(1);
+
+    const faces = new Map<string, string[]>();
+    for (const token of usedTokens) {
+      const face = firstFamily(resolve(`var(${token})`));
+      faces.set(face, [...(faces.get(face) ?? []), token]);
+    }
+
+    expect(Object.fromEntries(faces)).toEqual({
+      'Pixelify Sans': expect.arrayContaining([...usedTokens]),
+    });
+  });
+
   it('keeps every font-size in tokens.css', () => {
     const offenders: string[] = [];
     for (const file of cssFiles) {

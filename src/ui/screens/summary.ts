@@ -45,6 +45,8 @@ import { WHEEL_TYPES } from '../../core/battle/driver';
 import { neutralChip, typeChip } from '../chip';
 import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
 import { el, moveCard } from '../scene';
+import { moveCardData } from '../move-detail';
+import type { Tuning } from '../../data/tuning';
 import { itemIcon, slotNumber } from '../slots';
 import { spriteImg } from '../sprites';
 import { archetypeChip } from '../archetype-chip';
@@ -384,7 +386,7 @@ function describeDeath(death: CauseOfDeath): string {
  * moves without their types would be hiding the half of a randomizer roll
  * that makes it interesting.
  */
-function renderMember(member: RunState['party'][number], index: number): HTMLElement {
+function renderMember(member: RunState['party'][number], index: number, tuning: Tuning): HTMLElement {
   const card = el('div', 'summary__member');
   card.dataset['slot'] = String(index + 1);
   const detail = describeSpecCard(member.spec);
@@ -418,8 +420,19 @@ function renderMember(member: RunState['party'][number], index: number): HTMLEle
   const moves = el('div', 'summary__member-moves');
   moves.replaceChildren(
     ...member.moves.map((move) => {
+      /*
+       * Through `moveCardData` from 4.7.2, not straight off `describeMove`.
+       *
+       * This was the one of the six move-card surfaces that built its argument
+       * by hand, so it was the one that would have been left without a tap-to-
+       * explain while the other five gained it. The shared filler is what
+       * carries the explanation and the full tag set, and routing through it is
+       * also what gives the summary the same tag row every other card wears.
+       */
       const facts = describeMove(move.name);
-      return facts ? moveCard({ ...facts, maxPp: move.maxPp }) : el('span', 'move move--card');
+      return facts
+        ? moveCard(moveCardData({ ...facts, maxPp: move.maxPp }, tuning, { types: detail.types }))
+        : el('span', 'move move--card');
     }),
   );
 

@@ -14,6 +14,7 @@ import type { Tracker } from '@pkmn/view';
 import type { FlaggedTurn } from '../core/battle/flags';
 import type { TurnAction } from '../core/battle/turnOrder';
 import { hpAfterDamage, hpAfterHeal } from '../core/hpCopy';
+import { neutralChip } from './chip';
 import { el } from './scene';
 
 /**
@@ -275,8 +276,21 @@ function renderEntry(text: string, action?: TurnAction, variant?: 'hp'): HTMLEle
      * away without spending a line on it.
      */
     if (action.kind === 'move' && action.priority) {
-      const tag = el('span', 'log-entry__priority');
-      tag.textContent = 'FIRST';
+      /*
+       * **Through `neutralChip` from 4.7.2, not built by hand.**
+       *
+       * It was an `el('span', …)` with V2's whole chip recipe — the `--chip`
+       * variable, the fill, the text mix and the inset outline — copied into
+       * `.log-entry__priority` in the stylesheet. That is the one thing V2's
+       * "one chip component" rule forbids, and it survived because
+       * `test/chip.test.ts` scans for chips built by hand in TypeScript and
+       * this one was assembled in CSS. The chip legibility sweep found it.
+       *
+       * The legacy class rides along as `extra`, so every selector and every
+       * layout-only rule that names it still resolves; what it no longer
+       * carries is a second copy of the recipe.
+       */
+      const tag = neutralChip('FIRST', 'priority', { extra: 'log-entry__priority' });
       const sign = action.bracket > 0 ? '+' : '';
       tag.title = `Priority ${sign}${action.bracket} — moved before a faster Pokemon`;
       tag.setAttribute('aria-label', tag.title);

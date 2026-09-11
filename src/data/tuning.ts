@@ -498,6 +498,44 @@ export interface Tuning {
    * `docs/reports/release-c-battle-feedback.md`.
    */
   battleFeedbackMs: number;
+
+  /**
+   * The smallest a chip's text may render, in CSS pixels. **Patch 4.7.2.**
+   *
+   * A chip is the densest text in the game: three to twelve upper-case
+   * letterspaced characters in a pixel face, read at a glance and often the
+   * only thing distinguishing two options from each other. Below about 11px
+   * that face stops resolving on a phone and the failure is specific rather
+   * than general — letters become confusable with each other, which turns a
+   * misread chip into a misread *option*.
+   *
+   * 11 is the brief's floor, not a measurement, and it is the number to move if
+   * a playtest says the chips are still tight. `test/visual-chips.test.ts`
+   * asserts it against the computed style of every chip on every surface, so
+   * raising it here is what makes the assertion bite rather than a comment.
+   *
+   * A display number, so it changes no seed. Same `contentHash` caveat as
+   * `battleFeedbackMs` above.
+   */
+  minChipFontSizePx: number;
+
+  /**
+   * The smallest contrast ratio, WCAG 2, between a chip's text and the colour
+   * actually rendered behind it. **Patch 4.7.2.**
+   *
+   * 4.5 is the AA threshold for normal-size text, which is what a chip is —
+   * the large-text relaxation to 3:1 starts at 18px and no chip is close.
+   *
+   * Measured off rendered pixels rather than computed properties, because a
+   * chip's fill is `color-mix(… transparent)` over whatever the surface behind
+   * it happens to be — a panel, the map's gradient, a locale's glow — and no
+   * computed value says what that came out as. `scripts/visual/contrast.mjs`
+   * already samples that way for the V1 text rule and this reuses it.
+   *
+   * A display number, so it changes no seed. Same `contentHash` caveat as
+   * `battleFeedbackMs` above.
+   */
+  minChipContrastRatio: number;
 }
 
 /**
@@ -607,6 +645,9 @@ export const DEFAULT_TUNING: Tuning = {
 
   maxMoveTagsOnFace: 3,
   battleFeedbackMs: 500,
+
+  minChipFontSizePx: 11,
+  minChipContrastRatio: 4.5,
 };
 
 /** A tuning derived from the default. Stage 2's sweep builds variants this way. */

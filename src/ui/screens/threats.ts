@@ -44,7 +44,6 @@
 import { partyThreats, threatDetail, threatDetailLine, threatLine, THREAT_EXPLAINER, THREAT_TITLE, type ThreatEntry } from '../../core/typeMatchup';
 import type { PokemonState } from '../../core/types';
 import { el } from '../scene';
-import { showsNumbers } from '../settings';
 import { typeChip } from './starter-select';
 
 export interface ThreatReadout {
@@ -111,32 +110,38 @@ export function createThreatReadout(options: ThreatOptions = {}): ThreatReadout 
       }
 
       const list = el('ul', 'threats__list');
-      list.replaceChildren(...threats.map((entry) => renderThreat(entry, showsNumbers())));
+      list.replaceChildren(...threats.map((entry) => renderThreat(entry)));
       body.replaceChildren(list, explainer);
     },
   };
 }
 
 /**
- * One type, as the badge it wears everywhere else plus — in Detailed — how many
- * members it reaches.
+ * One type, as the badge it wears everywhere else plus how many members it
+ * reaches.
  *
  * The `aria-label` carries the detailed reading in **both** modes. Simple is a
  * choice about density on a small screen, and a screen reader has no density
  * problem; the count is the part that says whether a listed type is one
  * member's problem or the whole team's, and withholding it from the spoken
  * version would make Simple a different readout rather than a shorter one.
+ *
+ * **The count is always rendered from 4.7.2, and `[data-verbosity]` decides
+ * whether it shows.** It used to take a `detailed` flag and omit the span in
+ * Simple, which meant a toggle could only reach this list by re-rendering it —
+ * and the map is one of exactly two screens the old subscription redrew. The
+ * span is cheap, the aria-label already said the same thing in both modes, and
+ * a mode that is a CSS concern is a mode that reaches a list already on screen.
+ * See `ui/theme/verbosity.ts`.
  */
-function renderThreat(entry: ThreatEntry, detailed: boolean): HTMLElement {
+function renderThreat(entry: ThreatEntry): HTMLElement {
   const item = el('li', 'threats__item');
   item.setAttribute('aria-label', threatDetailLine(entry));
   item.append(typeChip(entry.type));
 
-  if (detailed) {
-    const count = el('span', 'threats__count');
-    count.textContent = threatDetail(entry);
-    item.append(count);
-  }
+  const count = el('span', 'threats__count');
+  count.textContent = threatDetail(entry);
+  item.append(count);
 
   return item;
 }

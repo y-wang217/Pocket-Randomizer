@@ -59,11 +59,32 @@ import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
+import { applyVerbosity } from './theme/verbosity';
 
 export function mountApp(root: HTMLElement): void {
-  // Before any screen is built, so the first render already reflects the
-  // stored preference rather than flipping to it a frame later.
-  initSettings();
+  /*
+   * The verbosity mode, once at startup and once per change. **Patch 4.7.2,
+   * ruling 4, and this is the whole of the subscription.**
+   *
+   * `initSettings` first so the attribute is written from the stored preference
+   * before any screen is built, rather than the first frame rendering in the
+   * default and flipping.
+   *
+   * `onSettingsChange` here rather than inside a run, and unsubscribed nowhere,
+   * because the mode outlives every run: it is written onto `<html>` and read
+   * only by the stylesheet, so a screen drawn before a toggle, after it, or
+   * while it happens is correct without anything re-rendering. That is the
+   * difference from what this replaced — a subscription that redrew the map and
+   * the party screen and left the drawer, pre-gym, reward, summary and battle
+   * screens showing the mode they were built in. Nothing registers with this
+   * and nothing can forget to.
+   *
+   * `ui/theme/verbosity.ts` carries the argument for the attribute over a
+   * redraw, including why a shell-level redraw could not avoid being a
+   * per-screen registration in this router.
+   */
+  applyVerbosity(initSettings().verbosity);
+  onSettingsChange((settings) => applyVerbosity(settings.verbosity));
   /*
    * The one battle-feedback duration, from `data/tuning.ts` onto the root.
    *
@@ -639,27 +660,6 @@ export function mountApp(root: HTMLElement): void {
         },
       );
       showScreen('party');
-    };
-
-    /*
-     * Redraw the open screen when the toggle flips.
-     *
-     * Without this the new mode would only appear at the next natural
-     * re-render, which on the party screen is never — the player would flip the
-     * switch and watch nothing happen. The battle screen redraws every turn and
-     * would have caught up on its own; the map and party screens would not.
-     */
-    const unsubscribe = onSettingsChange(() => {
-      const state = live;
-      if (!state) return;
-      mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
-      if (router.current() === 'party') showParty(partyReturn);
-    });
-
-    const previousAbandon = abandon;
-    abandon = () => {
-      unsubscribe();
-      previousAbandon();
     };
 
     const onState = (state: RunState): void => {

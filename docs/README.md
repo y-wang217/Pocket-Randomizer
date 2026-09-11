@@ -265,6 +265,22 @@ One line each. The analysis lives where the pointer goes, not here.
    Its own patch — find the read and make it lazy or remove it.
    [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
 
+9. **R8 needs its own move-card insertion point.** Release B's "one insertion
+   point" rule is `scene.moveCard`, and the battle move buttons do not go
+   through it — `renderMove` calls `scene.moveFacts` directly, because
+   `test/boundaries.test.ts` holds `scene.ts` to the battle projection. So a
+   tap-to-explain wired into `moveCard` reaches six surfaces and *not* the
+   battle bar. R8 is a separate insertion point, not a wider version of this
+   one. Recorded by patch 4.7.2, branch `claude/cool-dijkstra-apme8u`.
+   [`spec/gymrun-patch-4.7.2-font-stats-verbosity.md`](spec/gymrun-patch-4.7.2-font-stats-verbosity.md).
+10. **The move-replace screen explains the incoming move and not the four it is
+   compared against.** Same cause as item 9: the incoming card is a `moveCard`
+   and the four current moves are `moveFacts` submit buttons. The asymmetry
+   lands on the one screen whose entire purpose is that comparison, and is
+   worse than neither side explaining. Release A's to fix, with R8. Recorded by
+   patch 4.7.2, branch `claude/cool-dijkstra-apme8u`.
+   [`spec/gymrun-patch-4.7.2-font-stats-verbosity.md`](spec/gymrun-patch-4.7.2-font-stats-verbosity.md).
+
 Five audit findings, where the tree does not currently satisfy an invariant in
 `CLAUDE.md`, are recorded in the message of the commit that added that file.
 They are unfixed on purpose and each needs its own patch.

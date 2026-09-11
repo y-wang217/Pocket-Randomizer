@@ -117,7 +117,40 @@ async function chooseNode(page) {
  * clickable (a transition in flight). The caller decides when to stop; this
  * only knows how to answer whichever screen is up.
  */
+/**
+ * Close an open tooltip before acting. **Added at patch 4.7.2.**
+ *
+ * The tooltip layer is tap-to-open, tap-outside-or-Escape-to-dismiss, and a
+ * real player's next tap dismisses it whether or not it lands on anything.
+ * Playwright's actionability check does not work that way: it hit-tests the
+ * point first and *refuses to dispatch* when the panel covers it, so the tap
+ * that would have dismissed the panel never happens and every retry sees the
+ * same panel. The bot then spends its timeout on a screen a player would have
+ * walked straight through.
+ *
+ * This is reached rather than theoretical. `stepOnce` clicks a card's centre,
+ * and on the result screen that centre is a member card's archetype chip — so
+ * the run opens `Stat shapes` on its way past, carries it to the item-target
+ * screen, and stalls there against its own tooltip. It cost a `visual-v0`
+ * failure that read as a flake before it was traced.
+ *
+ * Escape rather than a click on the backdrop: it is the dismissal the layer
+ * documents, it cannot land on a trigger and re-open something else, and it
+ * leaves the pointer where it was so no hover state changes under a
+ * measurement.
+ */
+async function dismissTooltip(page) {
+  const open = await page.evaluate(() => {
+    const tip = globalThis.document.querySelector('.tip');
+    return Boolean(tip && !tip.hidden);
+  });
+  if (!open) return;
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(30);
+}
+
 export async function stepOnce(page) {
+  await dismissTooltip(page);
   const screen = await openScreen(page);
   switch (screen) {
     case 'starter':
@@ -142,7 +175,22 @@ export async function stepOnce(page) {
     case 'result': {
       const card = page.locator(`${visible('result')} .reward`).first();
       if (await card.count()) {
-        await card.click();
+        /*
+         * The name, not the card. **Same rule as `target` and `replace` below,
+         * extended here at 4.7.2 step 5 for the same reason.**
+         *
+         * A reward card's centre is inside the move card it carries, and from
+         * step 5 that region holds the "what does this do?" expander — which
+         * stops the event by design, so a click on the geometric centre
+         * explains a move and picks nothing. The run stalled on `result` for
+         * 900 steps before this line named a target that is always the card
+         * and never a control inside it.
+         */
+        // Near the top-left corner rather than at the centre: every reward
+        // kind has its own chrome there, and `.reward__name` is empty on some
+        // of them — an empty span is not clickable, which is a second way to
+        // stall on the same screen.
+        await card.click({ position: { x: 8, y: 8 } });
         return screen;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);
@@ -185,14 +233,38 @@ export async function stepOnce(page) {
       await carry.click();
       return screen;
     }
+    /*
+     * **Both of these click the card's *name*, not the card. Patch 4.7.2.**
+     *
+     * `card.click()` targets the element's centre, and on both of these screens
+     * the centre of the card is a chip — the archetype label on a member card,
+     * a type or category badge on a move card. A chip is a tooltip trigger, and
+     * `ui/tooltips.ts` calls `stopPropagation` on a trigger click precisely so
+     * that tapping a chip explains the chip instead of choosing the option it
+     * sits on. That is the interaction working; what it means for a bot aiming
+     * at geometric centres is that the click opens a panel and selects nothing,
+     * forever.
+     *
+     * Measured rather than guessed: a run stalled on `replace` from step 20 to
+     * step 600, opening and closing the same tooltip, and it reproduces against
+     * `main`'s stylesheet as well as this patch's.
+     *
+     * The name line is the right target because it is the one part of either
+     * card guaranteed to be present, non-empty and never a trigger. The click
+     * bubbles to the button exactly as a tap on it would.
+     */
     case 'target': {
       const card = page.locator(`${visible('target')} .party__member--target`).first();
-      if (await card.count()) await card.click();
+      if (!(await card.count())) return screen;
+      const name = card.locator('.panel__name').first();
+      await ((await name.count()) ? name : card).click();
       return screen;
     }
     case 'replace': {
       const victim = page.locator(`${visible('replace')} .move--victim`).last();
-      if (await victim.count()) await victim.click();
+      if (!(await victim.count())) return screen;
+      const name = victim.locator('.move__name').first();
+      await ((await name.count()) ? name : victim).click();
       return screen;
     }
     case 'party':
