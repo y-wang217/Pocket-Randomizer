@@ -68,7 +68,7 @@ describe('2. a key is stable', () => {
     for (const key of ['a', 'b', 'c', 'd']) {
       for (let i = 0; i < 1000; i++) busy.rewards.at(key).nextUint32();
     }
-    busy.rewards.nextUint32();
+    busy.rewards.at('elsewhere').nextUint32();
 
     expect(take(busy.rewards.at('target'))).toEqual(take(quiet.rewards.at('target')));
   });
@@ -123,42 +123,61 @@ describe('4. keys do not leak', () => {
   });
 });
 
-describe('5. a key cannot collide with the unkeyed sequence', () => {
-  it('keeps the root sequence separate from every key', () => {
-    const root = createRng('KEYS-ROOT');
-    const keyed = createRng('KEYS-ROOT');
-    expect(take(keyed.policy.at(''))).not.toEqual(take(root.policy));
+describe('5. there is no unkeyed sequence', () => {
+  /**
+   * This group used to prove a key could not collide with the root sequence
+   * of its stream. The `contentHash` release deleted the root, so there is
+   * nothing to collide with; what is asserted instead is the deletion, from
+   * the side of the surface a caller sees. `test/determinism.test.ts` asserts
+   * it from the side of the object's own keys.
+   */
+  it('gives a named stream no way to draw except through a key', () => {
+    const rng = createRng('KEYS-ROOT');
+    for (const name of RNG_STREAMS) {
+      expect('nextUint32' in rng[name], name).toBe(false);
+      expect('nextSimSeed' in rng[name], name).toBe(false);
+      expect('draws' in rng[name], name).toBe(false);
+      expect(typeof rng[name].at, name).toBe('function');
+    }
+    // Every draw a whole map costs is a keyed draw, so the two counters agree
+    // with each other and with nothing else.
+    expect(rng.map.totalDraws).toBe(0);
+    take(rng.map.at('one'));
+    expect(rng.map.totalDraws).toBe(8);
+    expect(rng.map.keys).toBe(1);
   });
 
   /**
-   * The `#` separator, which is what makes the claim above structural.
+   * The `#` separator, which is what keeps the derivation structural.
    *
-   * A key is hashed as `gymrun:<stream>#<key>:<seed>` and the root as
-   * `gymrun:<stream>:<seed>`. Neither a stream name nor a normalized seed can
-   * contain a `#`, so no (stream, key, seed) triple can produce the same domain
-   * string as a different one — which a plain `:` separator would allow, since
-   * `map:a` + seed `b` and `map` + seed `a:b` are the same string.
+   * A key is hashed as `gymrun:<stream>#<key>:<seed>`. Neither a stream name
+   * nor a normalized seed can contain a `#`, so no (stream, key, seed) triple
+   * can produce the same domain string as a different one — which a plain `:`
+   * separator would allow, since `map:a` + seed `b` and `map` + seed `a:b`
+   * are the same string.
    */
   it('separates a key from a seed that looks like one', () => {
-    expect(take(createRng('B').map.at('A'))).not.toEqual(take(createRng('A:B').map));
+    expect(take(createRng('B').map.at('A'))).not.toEqual(take(createRng('A:B').map.at('')));
+    expect(take(createRng('B').map.at('A'))).not.toEqual(take(createRng('A').map.at('B')));
   });
 });
 
-describe('6. generation draws from keys and not from the raw streams', () => {
-  it('leaves every unkeyed sequence untouched by a whole run', () => {
+describe('6. generation draws from keys', () => {
+  it('opens a key per segment and draws every roll through one', () => {
+    /*
+     * Until the `contentHash` release this asserted that a whole run left
+     * every *unkeyed* sequence at zero draws. There is no unkeyed sequence
+     * now (group 5), so the property is structural rather than observed, and
+     * what is left to check is that generation really happened through keys.
+     */
     const rng = createRng('KEYS-GENERATION');
     generateStarterOptions(rng, DEFAULT_TUNING);
     for (let index = 0; index < 8; index++) generateSegment(index, rng, DEFAULT_TUNING);
 
-    for (const name of RNG_STREAMS) {
-      // `draws` is the unkeyed sequence alone. Every one of them must be zero:
-      // a draw off a raw stream is a draw whose position depends on everything
-      // generated before it, which is the failure this stage removed.
-      expect(rng[name].draws, `${name} drew off its unkeyed sequence`).toBe(0);
-    }
-    // ...and the run really was generated, or the four zeroes above are vacuous.
     expect(rng.randomizer.totalDraws).toBeGreaterThan(0);
+    expect(rng.map.totalDraws).toBeGreaterThan(0);
     expect(rng.map.keys).toBeGreaterThanOrEqual(8);
+    expect(rng.battle.keys).toBeGreaterThan(0);
   });
 
   it('keys one segment independently of every other', () => {

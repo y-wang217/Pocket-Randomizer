@@ -214,7 +214,7 @@ describe('the segment ramp', () => {
     for (const segment of [0, 3, 6]) {
       const gym = GYMS[segment]!;
       const gymBands = new Set(
-        generateGymTeam(gym, segment, createRng(`GYM-BAND-${segment}`).randomizer)
+        generateGymTeam(gym, segment, createRng(`GYM-BAND-${segment}`).randomizer.at('test'))
           .flatMap((spec) => describeSpecCard(spec).moves)
           .filter((move) => move.category !== 'Status')
           .map((move) => bandFromPower(move.basePower)),
@@ -237,8 +237,8 @@ describe('generated movesets under banding', () => {
       for (const segment of SEGMENT_INDEXES) {
         const rng = createRng(`${seed}-${segment}`);
         const team = [
-          ...generateWildTeam(segment, 'normal', rng.randomizer),
-          ...generateTrainerTeam(segment, 'elite', rng.randomizer),
+          ...generateWildTeam(segment, 'normal', rng.randomizer.at('test')),
+          ...generateTrainerTeam(segment, 'elite', rng.randomizer.at('test')),
         ];
         for (const spec of team) {
           const damaging = describeSpecCard(spec).moves.filter((move) => move.category !== 'Status');
@@ -251,7 +251,7 @@ describe('generated movesets under banding', () => {
   it('never gives a starter a move above band 1', () => {
     expect(STARTER_MOVE_BANDS).toEqual([1]);
     for (const seed of SEEDS) {
-      for (const spec of generateStarters(3, starterLevel(), createRng(seed).randomizer)) {
+      for (const spec of generateStarters(3, starterLevel(), createRng(seed).randomizer.at('test'))) {
         for (const move of describeSpecCard(spec).moves) {
           if (move.category === 'Status') continue;
           expect(bandFromPower(move.basePower), `${spec.species} knows ${move.name}`).toBe(1);
@@ -272,21 +272,21 @@ describe('generated movesets under banding', () => {
     // is the number every later roll in the seed is positioned by.
     const cost = (segment: number): number => {
       const rng = createRng('BAND-COST');
-      const before = rng.randomizer.draws;
-      generateTrainerTeam(segment, 'normal', rng.randomizer);
-      return rng.randomizer.draws - before;
+      const before = rng.randomizer.at('test').draws;
+      generateTrainerTeam(segment, 'normal', rng.randomizer.at('test'));
+      return rng.randomizer.at('test').draws - before;
     };
     // Segment 0 draws one band; segment 6 draws from two. Team sizes differ by
     // segment, so this compares per-member cost.
     const perMember = (segment: number): number =>
-      cost(segment) / generateTrainerTeam(segment, 'normal', createRng('BAND-COST').randomizer).length;
+      cost(segment) / generateTrainerTeam(segment, 'normal', createRng('BAND-COST').randomizer.at('test')).length;
     expect(perMember(0)).toBe(perMember(6));
   });
 
   it('produces the same moveset for the same stream position, twice', () => {
     for (const segment of SEGMENT_INDEXES) {
-      const first = generateWildTeam(segment, 'hard', createRng('BAND-DET').randomizer);
-      const second = generateWildTeam(segment, 'hard', createRng('BAND-DET').randomizer);
+      const first = generateWildTeam(segment, 'hard', createRng('BAND-DET').randomizer.at('test'));
+      const second = generateWildTeam(segment, 'hard', createRng('BAND-DET').randomizer.at('test'));
       expect(second).toEqual(first);
     }
   });

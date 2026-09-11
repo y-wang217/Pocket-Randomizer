@@ -59,6 +59,7 @@ import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../s
 import type { NodeSpec } from '../src/core/encounters';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { CONTENT_HASH } from '../src/core/contentHash';
+import { SIM_POLICY_KEY } from '../src/core/streamKeys';
 import { createRng, type RngStream } from '../src/core/rng';
 import {
   causeOfDeath,
@@ -1049,7 +1050,9 @@ function buildPolicy(
   seed: string,
   collect: RunCollector,
 ): RunPolicy {
-  const stream = createRng(seed).policy;
+  // Through a key since the contentHash release deleted the unkeyed sequence:
+  // the bot's own draws are a thing that draws, and `SIM_POLICY_KEY` names it.
+  const stream = createRng(seed).policy.at(SIM_POLICY_KEY);
   const randomBattle = policy === 'random';
   /*
    * The battle AI this policy plays with.

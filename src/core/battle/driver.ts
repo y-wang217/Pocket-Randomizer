@@ -14,6 +14,7 @@ import type { Pokemon as SimPokemon, PokemonSet, SideID } from '@pkmn/sim';
 
 import type { RngStream, SimSeed } from '../rng';
 import { createRng } from '../rng';
+import { FIXTURE_BATTLE_KEY } from '../streamKeys';
 import {
   BOOST_NAMES,
   emptyStatStages,
@@ -1158,7 +1159,7 @@ function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): BattleMe
 }
 
 function battleStreamFor(seed: string): RngStream {
-  return createRng(seed).battle;
+  return createRng(seed).battle.at(FIXTURE_BATTLE_KEY);
 }
 
 /** `Choice` -> the sim's choice grammar. The only place those strings are built. */

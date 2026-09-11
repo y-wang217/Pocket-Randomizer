@@ -116,3 +116,28 @@ export const SEED_KEY = 'seed';
 export function nicknameKey(id: string): string {
   return `nickname/${id}`;
 }
+
+/**
+ * The sim seed of a battle started with no generated node behind it.
+ *
+ * `createBattle` derives its own sim seed when a caller hands it a run seed
+ * and no `simSeed` — the Stage 0 fixture battles and the determinism suite,
+ * never a run, which always passes the seed `encounters.ts` drew under
+ * `nodeKey`. Until the `contentHash` release that fallback drew off the
+ * unkeyed root of `battle`, and it was the one unkeyed draw left in `src/`;
+ * the root is gone, so it draws here. A stable key, named for the thing that
+ * draws, never for a moment: the same fixture seed gives the same battle.
+ */
+export const FIXTURE_BATTLE_KEY = 'fixture-battle';
+
+/**
+ * The balance simulator's scripted bots: the `random` battle policy's move
+ * picks, and every bot's uniform locale and node draws.
+ *
+ * The `policy` stream exists so a scripted policy can be reproducible without
+ * borrowing a stream that belongs to a game system, and until the
+ * `contentHash` release the simulator drew off its unkeyed root. The root is
+ * gone; this is the one key the simulator opens on it. Nothing in a run reads
+ * it — a run's policy is the player — so moving it moves no seed.
+ */
+export const SIM_POLICY_KEY = 'sim-policy';

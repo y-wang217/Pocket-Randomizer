@@ -37,10 +37,20 @@
  * `docs/spec/gymrun-seeds-and-mappability.md` is the long form, including why 4.6b and
  * 4.6c should not need a `randomizerVersion` bump between them.
  *
+ * ## The unkeyed sequence is gone, contentHash release
+ *
+ * From 4.6a to the `contentHash` release a named stream was *also* drawable
+ * directly — `rng.map.nextUint32()` — as a root sequence with a global
+ * position. Nothing in generation used it, but it was exported, and the seeds
+ * document's reason for deleting it stands: leaving both means someone uses
+ * the old one. A draw off the root is a draw whose position depends on
+ * everything drawn before it, which is the exact coupling keying removed. So a
+ * named stream now has `at(key)` and two counters, and nothing else. There is
+ * no root to collide with a key, and no sequential API to reach for.
+ *
  * The separator between the stream name and the key is `#`, which appears in
  * neither a stream name nor a normalized seed — so no `(name, key, seed)`
- * triple can hash to the same domain string as a different one, and no key can
- * collide with the unkeyed root sequence.
+ * triple can hash to the same domain string as a different one.
  */
 
 /**
@@ -85,7 +95,7 @@ export interface RngStream {
 export type SimSeed = `sodium,${string}`;
 
 /**
- * A named stream, plus the sub-streams it can open.
+ * A named stream: the sub-streams it can open, and nothing drawable itself.
  *
  * `at(key)` is the Stage 4.6a addition and the reason the whole refactor
  * exists. Each key gets an independent sequence derived from the run seed, the
@@ -99,22 +109,20 @@ export type SimSeed = `sodium,${string}`;
  * happened to ask, which is the exact class of bug the keying is here to
  * remove.
  *
- * The stream itself is still drawable. Nothing in generation uses the unkeyed
- * form after 4.6a, but tests do, and `formatSeed` does — it wants one sequence
- * off `policy` and has no meaningful key to give.
+ * The stream itself is **not** drawable. Every draw goes through a key —
+ * `core/streamKeys.ts` names them — and a caller with "no meaningful key to
+ * give" names the thing that is drawing, which is a key. See the header.
  */
-export interface KeyedRngStream extends RngStream {
+export interface KeyedRngStream {
   /** The sub-stream for `key`, created on first use and memoized after. */
   at(key: string): RngStream;
   /** How many distinct keys have been opened. Diagnostics and tests only. */
   readonly keys: number;
   /**
-   * Draws on this stream and every sub-stream it has opened.
+   * Draws on every sub-stream this stream has opened.
    *
-   * The number an isolation test wants. `draws` counts the *unkeyed* sequence
-   * alone, so after 4.6a it reads zero for a stream the whole map was generated
-   * from — a test asserting "the battle stream was not touched" would then pass
-   * for the wrong reason, which is worse than failing.
+   * The number an isolation test wants: "the battle stream was not touched"
+   * is a claim about every key under it, and this is the sum.
    */
   readonly totalDraws: number;
 }
@@ -219,27 +227,21 @@ function createStream(domain: string): RngStream {
 /**
  * A named stream and its keyed sub-streams.
  *
- * The root sequence keeps the domain string it had before 4.6a, so an unkeyed
- * draw off `map` produces exactly what it always did. Sub-streams take a
- * different shape entirely (`#` between name and key), which is what keeps a
- * key from ever colliding with the root.
+ * Every sub-stream's domain is `gymrun:<name>#<key>:<seed>`, the shape it has
+ * had since 4.6a, so deleting the root moved no keyed draw anywhere. The one
+ * sequence the deletion did move is the sim-seed fallback in
+ * `core/battle/driver.ts`, which drew off the root and now draws through
+ * `FIXTURE_BATTLE_KEY`; no run reaches it.
  */
 function createKeyedStream(seed: string, name: RngStreamName): KeyedRngStream {
-  const root = createStream(`gymrun:${name}:${seed}`);
   const subs = new Map<string, RngStream>();
 
   return {
-    ...root,
-    // Spreading copies the getter's *value*, so `draws` has to be re-declared
-    // here or it would freeze at zero.
-    get draws() {
-      return root.draws;
-    },
     get keys() {
       return subs.size;
     },
     get totalDraws() {
-      let total = root.draws;
+      let total = 0;
       for (const sub of subs.values()) total += sub.draws;
       return total;
     },

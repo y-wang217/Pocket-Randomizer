@@ -179,7 +179,7 @@ describe('reward determinism', () => {
     const baseline = offersOf('REW-ISOLATE').map((o) => o.offer);
     for (const stream of ['map', 'battle', 'randomizer', 'policy'] as const) {
       const noisy = createRng('REW-ISOLATE');
-      for (let i = 0; i < 5_000; i++) noisy[stream].nextUint32();
+      for (let i = 0; i < 5_000; i++) noisy[stream].at('drain').nextUint32();
       expect(offersOf('REW-ISOLATE').map((o) => o.offer), `draining ${stream}`).toEqual(baseline);
     }
   });
