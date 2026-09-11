@@ -1979,3 +1979,59 @@ Superseded rule deleted, not flagged, per `CLAUDE.md`. The 4.5.2 prompt is not
 edited. Report and screenshots:
 [`visual/reports/patch-mobile-seed-bar.md`](visual/reports/patch-mobile-seed-bar.md).
 
+
+## 12l. Deviation: the density modes prompt describes a battle screen V5 had already fixed
+
+**2026-09-11, the density modes patch**
+([`spec/gymrun-patch-density-modes.md`](spec/gymrun-patch-density-modes.md)).
+
+The prompt's Part 3 says "Battle at 1376 is the hard case. It is roughly 530px
+over", and its closing sequencing note argues for landing Pocket before V5.
+Both were true when the prompt was drafted and neither was true when it was
+committed: V5 had merged to `main` (`docs/visual/state/V5.done`:
+`battle.scrollHeight 1376 → 844, -532`), so on the tree this patch started
+from the Detailed battle screen already fits a 390x844 phone with zero
+scroll, and `heights.json` matched to the pixel. The prompt is not edited,
+per protocol rule 4; the ruling on the report asked for the correction to be
+recorded, and this is it.
+
+**The real hard cases**, measured on SMOKE24 at the first moment the run
+reached each screen (samples of one run state, not worst cases):
+
+| screen | scrollHeight | over 844 by |
+|---|---|---|
+| pre-gym | 2608 | 1764 |
+| summary | 3741 | 2897 |
+| party (via Manage) | 1638 | 794 |
+| starter | 1083 | 239 |
+| map | 1033 | 189 |
+| result | 997 | 153 |
+
+**Six rulings on the report**, recorded here because three correct the
+prompt's own lists. The rulings are appended verbatim to the prompt file.
+
+1. The prompt file carries the rulings as an appendix rather than an edit.
+2. The coverage gate compares rendered output in a browser, because the mode
+   is a root attribute read only by the stylesheet (4.7.2 ruling 4) and the
+   DOM is identical across modes by design.
+3. Fixtures are worst case per screen: six members on party, pre-gym and the
+   drawer; six held items and the maximum relic count on the drawer; a full
+   backpack on the party screen; eight gyms cleared with a full graveyard on
+   the summary.
+4. **The Pocket gate is split.** Decision surfaces — starter, locale, map,
+   battle, result, target, replace, party, pre-gym, shop, event, and the
+   drawer gated on its sheet's own scroll extent — are zero scroll at
+   390x844, a hard gate with no exemptions. Archive surfaces — summary and
+   the log sheet — must hold the complete outcome in the first screenful (the
+   outcome block's bottom edge at or above 844) and may scroll below it. The
+   prompt's list named "reward", which is not a screen, omitted "replace",
+   and named "graveyard", which is a section of the summary.
+5. Two of the fourteen surfaces stay two-valued, with the measured reason in
+   the report: the log sheet (protocol lines, no labels, no descriptions, no
+   stat block) and the target screen (member buttons with no stat block and
+   one question). The coverage test asserts the exemption rather than
+   skipping it: Detailed differs from both, Simple equals Pocket.
+6. The tutorial guard is per screen: Detailed is forced only while a screen
+   still has unseen marks, applied before anchors resolve, and released when
+   that screen's marks finish or Skip fires. A browser assertion holds that
+   on the worst-case fixture no mark is ever silently dropped.

@@ -117,3 +117,60 @@ Sequencing note, for you and not for Claude Code
 This patch and V5 pull in opposite directions on the same axis. Pocket sets a height budget on every screen. V5 spends height composing sprites into the scene with floating panels. Both re-record `docs/visual/baseline/` and `heights.json`.
 Landing Pocket first means V5 builds against a stated budget and inherits a gate it has to honour. Landing V5 first means Pocket's battle screen target moves before it is measured and the 530px figure above is wrong on arrival.
 My read is Pocket first, and V5's prompt gains one line: the Pocket zero scroll assertion must still pass after the scene composes. That is the cheaper order, and it is the one where the constraint is written down before the work that would violate it.
+
+## The rulings on the report, verbatim
+
+Given in the session on 2026-09-11, after the report in
+[`../visual/reports/patch-density-modes.md`](../visual/reports/patch-density-modes.md).
+The prompt above is not edited; where a ruling below corrects it, this section
+and `generation.md` section 12l are the record.
+
+so some changes have occured since we started. here are my responses below. validate them against current state to see if anything is extraneous/wrong. don't adjust anything in the current codebase based on these instructions if they contradict. instead, flag them and report back to me Six things back to Claude Code. Four are decisions, two are corrections.
+1. Amend the committed prompt. Part 3's battle figures are wrong now that V5 has landed and taken the 532px. The doc is in `docs/spec/` and future prompts read it, so a stale 1376/530px in there will mislead someone. Have it commit a correction replacing the battle paragraph with the real hard-case table: pre-gym 2608, summary 3741, party 1638. Also strike the sequencing note at the bottom, since Pocket-before-V5 is moot.
+2. Coverage test in a browser: yes. DOM identical across modes is exactly what 4.7.2 built, so comparing DOM would assert nothing. Computed styles or rendered screenshots, its call, but it has to be a browser.
+3. Fixture: worst case per screen, not one global fixture. Six-member party is right for party and pre-gym. Summary's worst case is eight gyms cleared with a full graveyard, and the drawer's is a full backpack. One shared fixture will under-measure at least two screens, and Pocket is a gate on the worst case or it is nothing.
+4. Split the Pocket gate in two. Summary at 3741 cannot reach zero scroll without gutting it, and gutting a post-run artifact the player reads and shares is the wrong trade. My recommendation:
+
+* Decision surfaces (battle, map, starter, pre-gym, result, shop, event, reward, party, target, locale): zero scroll, hard gate, no exemptions.
+* Archive surfaces (summary, log sheet, graveyard): the first screenful holds the complete outcome, everything below it may scroll.
+
+That keeps the gate honest and still testable. Pre-gym stays on the hard side and has to fit at six members, which is the real work in this patch.
+5. The two screens without three honest densities: let them be two. Twelve of fourteen is "nearly every page," and a manufactured difference on the log sheet is exactly the cosmetic pass the prompt forbids. Have it record both as documented exemptions with the measured reason, in the report, not as a silent skip in the test.
+6. Tutorial: per screen, not per run. Force Detailed only on a screen that still has unseen marks, and release that screen to the player's mode once its marks are done. "Until every screen is seen or Skip is pressed" means a Pocket player spends their entire first run in Detailed and never sees the mode they picked. The finding that matters here is the one it found on its own: a mark whose anchor is behind a tap gets dropped with no trace. Ask it to add an assertion that no mark is ever silently dropped, so the guard failing is loud rather than invisible.
+Nothing else is blocking. Heights matching `heights.json` to the pixel and the tutorial resolving anchors from live geometry are both clean results.
+
+## The validation of the rulings, and the answers
+
+The session's validation, item by item, followed by the ruling on each.
+
+1. Editing the prompt contradicts `CLAUDE.md` and protocol rule 4 ("do not edit
+   the prompt; record the deviation in `docs/generation.md`"). Offered instead:
+   this appendix, verbatim, plus a dated `generation.md` note carrying the
+   correction. **Ruling: yes, both.**
+2. Browser coverage test: consistent. **Ruling: good.**
+3. Worst case per screen: consistent, one correction. The drawer does not show
+   the backpack (its view is party, held items, relics, tuning); its worst case
+   is six members each holding an item plus the maximum relic count. The full
+   backpack is the party screen's worst case. Feasibility note: the gallery's
+   rule is "played rather than fabricated" and a summary with eight gyms
+   cleared and a full graveyard may not exist as a played seed; if none is
+   found the fixture is constructed state, recorded as a deviation.
+   **Ruling: sure.**
+4. Split gate: consistent in principle, three list errors. "reward" is not a
+   screen (cards render inside `result` since 4.5.2). "replace" was missing
+   and belongs on the hard side. "graveyard" is a section inside `summary`,
+   so the archive side is summary and the log sheet. The drawer was on
+   neither side; proposed hard side, gated on the sheet's own scroll extent.
+   "First screenful holds the complete outcome" proposed as: the outcome
+   block's bottom edge at or above 844, named per archive screen.
+   **Ruling: okay, go with the proposal.**
+5. Two-valued exemptions: consistent. To keep it loud, the test asserts the
+   exemption rather than omitting it: log sheet and target differ Detailed
+   against the other two and are identical Simple against Pocket.
+   **Ruling: okay.**
+6. Per-screen tutorial guard: consistent, two build notes. Detailed must be
+   applied before `showFor` resolves anchors, since the visibility check reads
+   computed style. "Never silently dropped" needs the worst-case fixture from
+   item 3, because three marks are conditional by design (`relics`, `capture`,
+   `coverage`) and `seed` has two anchors on purpose; on that fixture every
+   screen shows exactly its mark count. **Ruling: yes.**
