@@ -73,7 +73,9 @@ export interface TutorialMark {
 function statSentences(): string {
   return STAT_ORDER.map((stat) => {
     const entry = STAT_INFO[stat];
-    return entry ? `${entry.abbreviation} is ${entry.label}: ${entry.mechanics}` : '';
+    // The first sentence of each tooltip: the abbreviation, its name, what the number does.
+    const first = entry?.mechanics.split(/(?<=\.)\s/)[0] ?? '';
+    return entry ? `${entry.abbreviation} is ${entry.label}: ${first}` : '';
   })
     .filter(Boolean)
     .join(' ');

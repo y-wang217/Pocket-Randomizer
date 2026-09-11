@@ -54,6 +54,8 @@ export function createStamps(): Stamps {
   const seed = document.createElement('button');
   seed.type = 'button';
   seed.className = 'stamp stamp--bl stamp--seed';
+  // The seed mark's anchor on a phone, where the seed bar is hidden during a run.
+  seed.dataset['tutorial'] = 'seed';
   seed.title = 'Copy the seed';
   const build = el('span', 'stamp stamp--br stamp--build');
   build.textContent = formatBuildStamp();

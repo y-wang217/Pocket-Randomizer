@@ -27,9 +27,9 @@
  *
  * The panel and the anchor's outline use one short transition, disabled under
  * `prefers-reduced-motion` in the stylesheet. The anchor is scrolled into
- * view before the mark is placed, with `behavior: 'auto'` when the viewer
- * prefers reduced motion, so a mark's target and its text are both on a
- * 390x844 screen without the player scrolling.
+ * view instantly before the mark is placed — never smoothly, see `place` —
+ * so a mark's target and its text are both on a 390x844 screen without the
+ * player scrolling, under reduced motion and without it alike.
  */
 import { TUTORIAL, TUTORIAL_COPY, type TutorialMark, type TutorialScreen } from '../data/tutorial';
 import { el } from './scene';
@@ -54,17 +54,29 @@ export interface TutorialLayer {
 
 const ACTIVE = 'coachTarget';
 
-function prefersReducedMotion(): boolean {
-  return typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 /**
- * An element is anchorable when it is in the document and nothing above it is
- * hidden. Screens the router has put away carry `hidden`, so a mark whose
- * anchor lives on another screen does not show.
+ * An element is anchorable when it is in the document and actually painted.
+ *
+ * In a browser `checkVisibility` answers that, `display: none` included —
+ * which matters on a phone, where the seed bar is hidden once a run starts
+ * and the seed mark has to anchor to the corner stamp instead. jsdom has no
+ * layout, so there the test is connected and under no `hidden` ancestor,
+ * which is what the router sets on a screen it has put away.
  */
 function present(element: Element): boolean {
-  return element.isConnected && element.closest('[hidden]') === null;
+  if (!element.isConnected || element.closest('[hidden]') !== null) return false;
+  const check = (element as { checkVisibility?: () => boolean }).checkVisibility;
+  return typeof check === 'function' ? check.call(element) : true;
+}
+
+/** The first painted element matching `selector`, searching the screen first and then the shell. */
+function anchorFor(selector: string, within: ParentNode, host: ParentNode): HTMLElement | null {
+  for (const scope of [within, host]) {
+    for (const candidate of scope.querySelectorAll<HTMLElement>(selector)) {
+      if (present(candidate)) return candidate;
+    }
+  }
+  return null;
 }
 
 export function createTutorial(host: HTMLElement): TutorialLayer {
@@ -105,24 +117,58 @@ export function createTutorial(host: HTMLElement): TutorialLayer {
     root.hidden = true;
   }
 
+  /**
+   * Put the panel beside its anchor with both on screen: below the anchor if
+   * that fits, above it if that fits, and otherwise scroll the anchor to the
+   * top of the viewport and cap the panel's height to the room beneath it.
+   * The panel never covers the top edge of the thing it points at.
+   */
   function place(anchor: HTMLElement): void {
-    // jsdom has no scrollIntoView; a browser always does.
-    if (typeof anchor.scrollIntoView === 'function') {
-      anchor.scrollIntoView({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-    }
     const margin = 8;
-    const box = anchor.getBoundingClientRect();
-    root.style.left = '0px';
-    root.style.top = '0px';
-    const own = root.getBoundingClientRect();
+    /*
+     * `instant`, never `smooth` and never `auto`: the numbers below are read
+     * right after the scroll, and `auto` defers to the container's
+     * `scroll-behavior`, which the map sets to smooth — a panel placed against
+     * an anchor still gliding into view lands on top of it. An instant scroll
+     * is also what reduced motion asks for, so the same call serves both.
+     * jsdom has no scrollIntoView and no layout; a browser has both.
+     */
+    const scroll =
+      typeof anchor.scrollIntoView === 'function'
+        ? (block: ScrollLogicalPosition) => anchor.scrollIntoView({ block, behavior: 'instant' as ScrollBehavior })
+        : () => undefined;
+    scroll('nearest');
     const viewportHeight = globalThis.innerHeight || 0;
     const viewportWidth = globalThis.innerWidth || 0;
-    const spaceBelow = viewportHeight - box.bottom;
-    const above = spaceBelow < own.height + margin && box.top > own.height + margin;
-    let top = above ? box.top - own.height - margin : box.bottom + margin;
-    // Neither above nor below fits on a short screen: sit over the lower half,
-    // keeping the anchor's top edge clear so the thing pointed at is visible.
-    if (top + own.height > viewportHeight - margin) top = Math.max(margin, viewportHeight - own.height - margin);
+    root.style.left = '0px';
+    root.style.top = '0px';
+    root.style.maxHeight = '';
+    let box = anchor.getBoundingClientRect();
+    let own = root.getBoundingClientRect();
+
+    let top: number;
+    if (box.bottom + margin + own.height <= viewportHeight - margin) {
+      top = box.bottom + margin;
+    } else if (box.top - margin - own.height >= margin) {
+      top = box.top - margin - own.height;
+    } else {
+      // Anchor to the top, panel beneath, capped to what is left.
+      scroll('start');
+      box = anchor.getBoundingClientRect();
+      const room = viewportHeight - box.bottom - 2 * margin;
+      if (room >= 120) {
+        root.style.maxHeight = `${room}px`;
+        own = root.getBoundingClientRect();
+        top = box.bottom + margin;
+      } else {
+        // The anchor fills the screen (a grid of cards, a whole chain). The
+        // panel sits over its lower part with the top edge of the thing it
+        // points at left clear, and never more than half the screen tall.
+        root.style.maxHeight = `${Math.floor(viewportHeight * 0.45)}px`;
+        own = root.getBoundingClientRect();
+        top = viewportHeight - own.height - margin;
+      }
+    }
     const left = Math.max(margin, Math.min(box.left, viewportWidth - own.width - margin));
     root.style.left = `${left}px`;
     root.style.top = `${Math.max(margin, top)}px`;
@@ -188,8 +234,8 @@ export function createTutorial(host: HTMLElement): TutorialLayer {
       if (!tutorialDue(name)) return 0;
       const marks = TUTORIAL[name];
       const found = marks.flatMap((mark) => {
-        const anchor = within.querySelector<HTMLElement>(mark.anchor) ?? host.querySelector<HTMLElement>(mark.anchor);
-        return anchor && present(anchor) ? [{ mark, anchor }] : [];
+        const anchor = anchorFor(mark.anchor, within, host);
+        return anchor ? [{ mark, anchor }] : [];
       });
       if (found.length === 0) return 0;
       // A screen shown while another's marks are up replaces them; the earlier

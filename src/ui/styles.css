@@ -127,7 +127,11 @@ body {
   font-size: var(--fs-md);
   line-height: 1.5;
   cursor: pointer;
-  transition: top 160ms ease, left 160ms ease;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  /* No transition on position: a panel that glides from the last mark to the
+     next crosses the element it is about to point at, and for 160ms the
+     target is covered. It appears where it belongs. */
 }
 
 .coach__title {
@@ -2444,7 +2448,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
-  .coach, [data-coach-target] { transition: none; }
+  [data-coach-target] { transition: none; }
   /* Release C: the chunk resolves instantly rather than fading, and the panels
      do not move. Both resting states are the animations' own end states, so
      "instant" here means the thing the animation would have arrived at, not a
