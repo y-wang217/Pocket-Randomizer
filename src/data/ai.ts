@@ -123,6 +123,21 @@ export const MATCHUP = {
 };
 
 /**
+ * When a move that is not an attack is the wrong move. **`hpAware`.**
+ *
+ * The reference implementations' CHECK_BAD_MOVE, in the three cases a
+ * `BattleView` can actually prove. Fractions of a full bar.
+ */
+export const HP_AWARE = {
+  /** Above this, healing gives back less than the turn costs. */
+  healAbove: 0.65,
+  /** Below this, spending a turn on setup is spending a turn you do not have. */
+  setupBelow: 0.35,
+  /** Below this on the *foe*, a status that ticks will never get to tick. */
+  statusFoeBelow: 0.25,
+};
+
+/**
  * Which tier plays which fight.
  *
  * **The first time node tier changes how a fight plays rather than only what it

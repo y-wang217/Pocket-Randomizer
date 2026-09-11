@@ -87,8 +87,9 @@ import { moveChoice, switchChoice } from '../types';
 // The chart lookup, from the adapter that owns every dex read. `crudeDamageOf`
 // is the only caller here; nothing else in this file reads a type chart,
 // because the calc does it properly.
-import { typeMultiplier } from './driver';
+import { describeMove, typeMultiplier } from './driver';
 import { itemById } from '../../data/items';
+import { HP_AWARE } from '../../data/ai';
 import { GYMRUN_GEN } from './format';
 import type { RngStream } from '../rng';
 import type { Policy } from './policy';
@@ -749,14 +750,43 @@ function lookahead(view: BattleView, move: MoveView, damage: number, threat: num
  * and that is a different behaviour that happens to agree most of the time.
  */
 function failurePenalty(view: BattleView, move: MoveView, damage: number, profile: AiProfile): number {
-  if (!has(profile, 'avoidFailingMoves')) return 0;
-  if (move.category === 'Status') {
-    // A status move onto a target that already carries one does nothing. What
-    // each status move *does* is not in the view, so this is the one case the
-    // view can prove; everything finer belongs to a later pass.
-    return view.foe.status ? -AI_WEIGHTS.failure : 0;
+  let penalty = 0;
+  if (has(profile, 'avoidFailingMoves')) {
+    if (move.category === 'Status') {
+      // A status move onto a target that already carries one does nothing.
+      if (view.foe.status) penalty -= AI_WEIGHTS.failure;
+    } else if (damage <= 0) {
+      penalty -= AI_WEIGHTS.failure;
+    }
   }
-  return damage <= 0 ? -AI_WEIGHTS.failure : 0;
+  if (has(profile, 'hpAware')) penalty += hpPenalty(view, move);
+  return penalty;
+}
+
+/**
+ * The three bad ideas a HP bar makes obvious. **`hpAware`.**
+ *
+ * CHECK_BAD_MOVE's other half, restricted to what this view can prove: healing
+ * at nearly full HP gives back less than the turn costs, setting up at low HP
+ * spends a turn you are about to run out of, and a status that ticks over time
+ * never ticks on a target that is one hit from fainting.
+ *
+ * The move's shape comes from `describeMove`, which is the one door onto a
+ * move's fields and is already cached for the life of the process — so this is
+ * a table lookup per move per turn, not a dex read.
+ */
+function hpPenalty(view: BattleView, move: MoveView): number {
+  if (move.category !== 'Status') return 0;
+  const shape = describeMove(move.id);
+  if (!shape) return 0;
+
+  let penalty = 0;
+  if (shape.heal && view.me.hpFraction > HP_AWARE.healAbove) penalty -= AI_WEIGHTS.failure;
+  if (shape.boosts?.some((boost) => boost.target === 'self' && boost.stages > 0)) {
+    if (view.me.hpFraction < HP_AWARE.setupBelow) penalty -= AI_WEIGHTS.failure;
+  }
+  if (shape.status && view.foe.hpFraction < HP_AWARE.statusFoeBelow) penalty -= AI_WEIGHTS.failure;
+  return penalty;
 }
 
 /**

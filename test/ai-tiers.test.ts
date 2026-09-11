@@ -37,6 +37,9 @@ import type { RunLog } from '../src/core/types';
 import { CONTENT_HASH } from '../src/core/contentHash';
 import type { ActiveView, BattleView, TeamSpec } from '../src/core/types';
 
+/** `AI_WEIGHTS.failure`, quoted rather than imported: the test asserts the contract, not the constant. */
+const AI_WEIGHTS_FAILURE = 50;
+
 const SIM_SEED = 'sodium,0011223344556677889900aabbccddeeff0011223344556677889900aabbccdd' as SimSeed;
 
 function profile(flags: AiProfile['flags'], noise = 0, switchFailure = 0): AiProfile {
@@ -383,6 +386,58 @@ describe('seenKnowledge', () => {
     expect(knowledgeFrom([...protocol, '|move|p1a: Snorlax|Struggle|p2a: Vaporeon'], 'p1').moves).toEqual([
       'Body Slam',
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hpAware
+// ---------------------------------------------------------------------------
+
+describe('hpAware', () => {
+  const hpAware = profile([...GREEDY_BASELINE.flags, 'avoidFailingMoves', 'hpAware']);
+
+  it('does not heal at full HP, and does heal once the bar is low', () => {
+    const view = viewOf(
+      [{ species: 'Snorlax', ability: 'Thick Fat', moves: ['Tackle'], level: 50 }],
+      [{ species: 'Milotic', ability: 'Marvel Scale', moves: ['Recover', 'Surf'], level: 50 }],
+      'p2',
+    );
+    const at = (fraction: number): BattleView => ({
+      ...view,
+      me: { ...view.me, hpFraction: fraction, hp: Math.max(1, Math.round(view.me.maxHp * fraction)) },
+    });
+    const scoreOf = (v: BattleView, name: string): number =>
+      scoreChoices(v, hpAware).find((entry) => entry.move?.name === name)!.score;
+
+    // At full HP the heal is marked as the bad move it is; at a quarter it is
+    // not marked at all. The attack is untouched either way — this flag is
+    // about the moves that do nothing, not about preferring damage.
+    expect(scoreOf(at(1), 'Recover')).toBeLessThan(scoreOf(at(0.25), 'Recover'));
+    /*
+     * Measured as the *difference the flag makes* on each board rather than as
+     * a raw score. Every score on a low-HP board differs from the same score on
+     * a full one, because the race term reads the bar too — so comparing raw
+     * numbers across the two would be comparing two things at once.
+     */
+    const blind = (v: BattleView): number =>
+      scoreChoices(v, GREEDY_BASELINE).find((entry) => entry.move?.name === 'Recover')!.score;
+    expect(scoreOf(at(1), 'Recover') - blind(at(1))).toBeCloseTo(-AI_WEIGHTS_FAILURE, 10);
+    expect(scoreOf(at(0.25), 'Recover') - blind(at(0.25))).toBeCloseTo(0, 10);
+  });
+
+  it('does not put a status on a target that is one hit from fainting', () => {
+    const view = viewOf(
+      [{ species: 'Snorlax', ability: 'Thick Fat', moves: ['Tackle'], level: 50 }],
+      [{ species: 'Gengar', ability: 'Cursed Body', moves: ['Toxic', 'Shadow Ball'], level: 50 }],
+      'p2',
+    );
+    const foeAt = (fraction: number): BattleView => ({
+      ...view,
+      foe: { ...view.foe, hpFraction: fraction, hp: Math.max(1, Math.round(view.foe.maxHp * fraction)) },
+    });
+    const toxic = (v: BattleView): number =>
+      scoreChoices(v, hpAware).find((entry) => entry.move?.name === 'Toxic')!.score;
+    expect(toxic(foeAt(0.1))).toBeLessThan(toxic(foeAt(0.9)));
   });
 });
 

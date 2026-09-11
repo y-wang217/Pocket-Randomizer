@@ -53,14 +53,14 @@ import { join } from 'node:path';
 
 import { outcomeAt } from '../src/core/events';
 import { resolveCapability } from '../src/core/capabilities';
-import { AI_VERSION, decide, GREEDY_BASELINE, type AiProfile } from '../src/core/battle/ai';
+import { AI_VERSION, decideWith, GREEDY_BASELINE, type AiFlag, type AiProfile } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
 import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { CONTENT_HASH } from '../src/core/contentHash';
 import { SIM_POLICY_KEY } from '../src/core/streamKeys';
-import { createRng, type RngStream } from '../src/core/rng';
+import { createAiStream, createRng, type RngStream } from '../src/core/rng';
 import {
   causeOfDeath,
   gymsCleared,
@@ -94,6 +94,7 @@ import {
   type PokemonState,
   type Tier,
 } from '../src/core/types';
+import { AI_TIERS, aiTierFor, type AiTier } from '../src/data/ai';
 import { GYMS } from '../src/data/gyms';
 import { BERRIES, itemById, ITEMS } from '../src/data/items';
 import { localeById, LOCALE_IDS, type LocaleId } from '../src/data/locales';
@@ -232,6 +233,11 @@ interface Options {
   outDir: string;
   tuning: Tuning;
   quiet: boolean;
+  /** Which opponent plays the fights. See `AiMode`. */
+  ai: AiMode;
+  /** Flags forced on, and off, at every tier. One behaviour per row. */
+  aiAdd: AiFlag[];
+  aiDrop: AiFlag[];
 }
 
 /*
@@ -263,6 +269,16 @@ function parseArgs(argv: string[]): Options {
     outDir: 'sim-reports',
     tuning: structuredClone(DEFAULT_TUNING),
     quiet: false,
+    /*
+     * **`pinned` is the default, and that is not laziness.** Every figure in
+     * `docs/balance.md` was taken against one opponent in every fight, and a
+     * default that quietly changed the opponent would make `npm run sim` mean
+     * something different from what it meant last week without anyone typing a
+     * new flag. A tiered row says so on the command line.
+     */
+    ai: 'pinned',
+    aiAdd: [],
+    aiDrop: [],
   };
   const overrides: string[] = [];
 
@@ -307,6 +323,20 @@ function parseArgs(argv: string[]): Options {
       case '--prefix':
         options.prefix = value();
         break;
+      case '--ai': {
+        const name = value();
+        if (name !== 'pinned' && name !== 'table') {
+          throw new Error(`--ai must be pinned or table (got "${name}")`);
+        }
+        options.ai = name;
+        break;
+      }
+      case '--ai-add':
+        options.aiAdd = assertFlags(value());
+        break;
+      case '--ai-drop':
+        options.aiDrop = assertFlags(value());
+        break;
       case '--out':
         options.outDir = value();
         break;
@@ -346,6 +376,26 @@ const POLICY_NAMES: readonly string[] = [
   ...LEAD_POLICIES,
 ];
 
+const AI_FLAGS: readonly AiFlag[] = [
+  'avoidFailingMoves',
+  'takeTheKo',
+  'hpAware',
+  'itemAware',
+  'seenKnowledge',
+  'oneStepLookahead',
+  'smartSendIn',
+  'smartSwitching',
+  'crudeDamage',
+];
+
+function assertFlags(raw: string): AiFlag[] {
+  return raw.split(',').map((name) => {
+    const flag = AI_FLAGS.find((known) => known === name.trim());
+    if (!flag) throw new Error(`Unknown AI flag "${name}". One of ${AI_FLAGS.join(', ')}`);
+    return flag;
+  });
+}
+
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
@@ -382,6 +432,15 @@ const USAGE = `
     --nodes NAME     rest | wild | trainer | first | random | tier-averse |
                      tier-greedy | all                        (default rest)
     --prefix TEXT    seed prefix, so two sweeps can use different populations
+    --ai MODE        pinned | table — which opponent plays the fights.
+                     pinned is the frozen pre-tier AI in every fight and is
+                     the default, because every historical row was measured
+                     that way                                 (default pinned)
+    --ai-add FLAGS   comma-separated AI flags forced on at every tier
+    --ai-drop FLAGS  comma-separated AI flags forced off at every tier
+                     One behaviour per row: --ai table against
+                     --ai table --ai-add smartSendIn,smartSwitching isolates
+                     the easy tier's sequence switching and nothing else
     --out DIR        where the JSON report lands   (default sim-reports)
     --set path=value override a Tuning field, e.g. --set stepsPerSegment.min=4
     --quiet          JSON only, no table
@@ -883,9 +942,9 @@ interface PriorityTally {
  * underneath it. `--policy lookahead` and the opponent tiers pass their own
  * profiles; `--policy greedy` does not and never will.
  */
-function countingGreedy(tally: PriorityTally, profile: AiProfile = GREEDY_BASELINE): Policy {
+function countingGreedy(tally: PriorityTally, profile: AiProfile = GREEDY_BASELINE, rng?: RngStream): Policy {
   return async (view) => {
-    const decision = decide(view, profile);
+    const decision = decideWith(view, profile, rng);
     tally.turns++;
     if (decision.branch === 'priority-escape') tally.escapes++;
     if (decision.branch === 'priority-kill') tally.kills++;
@@ -1126,6 +1185,29 @@ function greedyItemPlan(state: RunState): ItemPlan {
  * construction and the number would invite exactly the wrong conclusion.
  * Recorded in `docs/generation.md` section 13.
  */
+/**
+ * How the opponent is chosen for a sweep, and why it is a flag rather than a
+ * second code path.
+ *
+ * `pinned` is the pre-tier opponent — `GREEDY_BASELINE` in every fight — and it
+ * is what every historical row in `docs/balance.md` was measured against.
+ * `table` reads `data/ai.ts`'s assignment, which is what the game ships.
+ *
+ * `--ai-add` and `--ai-drop` then move one flag on every tier at once, which is
+ * how a row isolates a single behaviour. The easy tier's sequence switching is
+ * the case this was built for: it is the *absence* of `smartSendIn` and
+ * `smartSwitching`, so the controlled comparison is `--ai table` against
+ * `--ai table --ai-add smartSendIn,smartSwitching`, and the difference between
+ * those two rows is that handicap and nothing else.
+ */
+type AiMode = 'pinned' | 'table';
+
+function tierProfile(tier: AiTier, add: readonly AiFlag[], drop: readonly AiFlag[]): AiProfile {
+  const base = AI_TIERS[tier];
+  const flags = [...new Set([...base.flags, ...add])].filter((flag) => !drop.includes(flag));
+  return { ...base, flags };
+}
+
 const LOOKAHEAD_PROFILE: AiProfile = {
   flags: [...GREEDY_BASELINE.flags, 'oneStepLookahead'],
   noise: 0,
@@ -1594,8 +1676,19 @@ async function playSample(
     const gymParties: RunRecord['gymParties'] = [];
 
     const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning, {
-      // The same greedy AI playRun would default to, counted.
-      opponent: countingGreedy(collect.priority),
+      /*
+       * The opponent, counted. `pinned` hands every fight the frozen baseline —
+       * one bot, as every row before this patch was measured with. `table`
+       * builds one per node from `data/ai.ts`, with its own noise stream from
+       * that battle's sim seed, exactly as `core/run.ts` does for a real run.
+       */
+      opponentFor: (node, segment) => {
+        if (options.ai === 'pinned') return countingGreedy(collect.priority);
+        const tier = aiTierFor(node.kind, node.tier, segment);
+        const profile = tierProfile(tier, options.aiAdd, options.aiDrop);
+        const stream = node.encounter ? createAiStream(node.encounter.simSeed, 'p2') : undefined;
+        return countingGreedy(collect.priority, profile, stream);
+      },
       onBattle: (session, node, before) => {
         sessions.push(session);
         sessionSegments.push(before.currentSegment);
@@ -3568,6 +3661,15 @@ const report = {
    * stamps. This is the one that says the bot changed.
    */
   aiVersion: AI_VERSION,
+  /*
+   * *Which* opponent played, beside *which version* it was. **The AI tiers
+   * patch.** `AI_VERSION` says the code changed; this says what that code was
+   * asked to be for this row — the frozen baseline in every fight, or the tier
+   * table, and any flag forced on or off to isolate one behaviour. Two rows on
+   * one `aiVersion` can now be two different experiments, and the stamp is what
+   * tells them apart.
+   */
+  ai: { mode: options.ai, add: options.aiAdd, drop: options.aiDrop },
   /*
    * The slot ceiling and the schedule that reaches it. **Both, from Stage 4.8.**
    *
