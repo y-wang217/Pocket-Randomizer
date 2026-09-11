@@ -326,3 +326,111 @@ boost-aware stats, accuracy weighting, priority awareness, matchup-scored
 send-ins and voluntary switching — so if `lookahead` moves the number by a gym
 or more, the gain is lookahead alone, and if it does not, the 4.873 figure is a
 real reading of the difficulty curve rather than an artefact of a weak proxy.
+
+---
+
+# Part 2: what was built, and what it measured
+
+Written after the work, below the report the rulings were made on. The report
+above is not edited: it is what was known before the code.
+
+## The six rulings, and where each one landed
+
+| ruling | built |
+|---|---|
+| 1. `fullDamageModel` withdrawn; easy built by subtraction; `itemAware` its own flag | `crudeDamage` is a handicap flag, easy holds it, `itemAware` is additive at medium and up. `data/ai.ts` |
+| 2. Fix the null-ability substitution first, alone, with its own row | `829c42e`, `AI_VERSION` `-4`, row R1. Worth +0.0125 gyms |
+| 3. `fullKnowledge` cut; `seenKnowledge` is the real work | `core/battle/knowledge.ts`, folded from the protocol, forgotten on switch out |
+| 4. Easy tier's sequence switching lands alone, with gym-entry HP beside it | Rows R4/R5, and the arrival readout is in every row from R0 on |
+| 5. AI PRNG per battle from the node's sim seed | `createAiStream`, and the replay test that noise made load-bearing |
+| 6. `greedy` pinned permanently; `AI_VERSION` in every stamp | `GREEDY_BASELINE`, and the AI column in `balance.md` section 0 |
+| 7. Version findings accepted as reported | `RUN_LOG_VERSION` did not move; `contentHash` needed no list edit |
+| 8. Threat probe: report which of 80 or 65 is intended, change neither | Below. Neither changed |
+
+Order deviation: the flag seam landed **before** the lookahead row rather than
+after, because building lookahead first would have meant writing it twice. The
+ability fix still came first and still has its own row. `generation.md` section
+13e.
+
+## The three numbers that matter
+
+**1. One step of lookahead costs 0.21 mean gyms.** The published ladder puts
+this step at +222 Elo, the largest gap between any two rungs in the literature.
+On our game it loses, broadly rather than at one gym. The strongest reading is
+that it spends its gain on switching — it switches 5.9% more, and section 7.6
+measured switching as worth nothing here. **The experiment that settles it:**
+`lookahead` against `greedy` with the bench hidden on both sides. Not run, per
+the standing no-retune policy; it is one command.
+
+**2. The easy tier's sequence switching is worth nothing: +0.02 gyms.** My own
+report predicted it would be the largest mover in the patch. It fired — the
+opponent switches 62% more often without it — and changed neither the outcome
+nor the party's HP on arrival. Switching does not pay for either side.
+
+**3. The tier table as specified makes the game easier, by +0.50 gyms.** Sixty
+percent of that is noise, which is the price of the unpredictability the design
+argues for and is a first-guess number that has not been tuned. The other forty
+percent is the flags, and it lands in the wrong place: gyms 5 and 6, the hard
+tier, got **easier** by seven and three points, because the hard tier's one
+distinguishing flag is the lookahead from finding 1.
+
+So the definition of done is **half met and measured as half met**. A wild
+plays visibly worse than a route trainer. An elite does not play visibly better
+than the pre-patch baseline. That is the same open question as finding 1, and
+nothing in `data/ai.ts` should move until the experiment above has run.
+
+## The answer to the question the patch was asked
+
+> Were the gyms ever too hard, or were we measuring them with a bad bot?
+
+**Neither.** The bot was never the 885-Elo max-damage picker the brief assumed,
+so there was no measurement error to recover; and the rung above it makes
+things worse here, so there is no headroom above it either. The gyms are not
+too hard: the pinned baseline clears 4.885 of eight and completes 39%.
+
+What the patch found instead, in the readout added for ruling 4:
+
+| gym | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| party HP on arrival | 96.7% | 92.3% | 94.8% | 92.5% | 92.7% | 92.5% | 93.0% | 92.9% |
+| party level − gym level | +2.5 | +3.5 | +7.0 | +8.0 | +11.0 | +12.5 | +12.5 | **+13.5** |
+
+**The party arrives at every gym at 93% health and, by gym 8, thirteen levels
+above it, and the gap widens monotonically from segment 2.** The road costs
+nothing and the curve never catches up. Every AI question in this patch is
+downstream of that: a thirteen-level advantage decides fights before a move is
+chosen, which is the most likely reason a better policy on either side moves
+the number so little in either direction.
+
+That is a `data/scaling.ts` question and this patch does not touch it, for the
+reason the prompt gives: a scaling change beside an AI change makes the next
+report unattributable. **It is the first thing the next report should look at**,
+and the instrumentation to read it is now in every sweep.
+
+## Ruling 8: the threat probe
+
+`core/battle/ai.ts`, `probeFor`. The header says "a generic 80 BP attack of
+each of its types, which is close to the average STAB move in the shipped
+pools"; the code builds it at `basePower: 65`. **Neither was changed.**
+
+What can be said from the tree, and the rest is for whoever wrote it:
+
+- The comment's *justification* is checkable and points at 80: the shipped move
+  pools' band structure puts the average damaging move above 65, and the
+  sentence explains the number by that average.
+- The code's 65 has been in every balance figure since Stage 4, so changing it
+  to match the comment is a behaviour change with its own row, not a typo fix.
+- The number is load-bearing: it is the whole threat estimate, and therefore
+  every switch decision in the game, at every tier.
+
+If the code is right, the fix is one word in a comment and belongs in a docs
+sweep. If the comment is right, the fix is a balance change and belongs in its
+own patch with its own benchmark row.
+
+## What did not move
+
+Map generation: no keyed stream opened, no structural draw added, `previewRun`
+byte identical. `RUN_LOG_VERSION` unchanged at `gymrun-run-13`. `data/scaling.ts`
+untouched. No opponent anywhere holds a stat, a damage roll, an accuracy bonus
+or a hidden number — asserted in `test/ai-tiers.test.ts` as a closed list of
+flags, so adding one means deleting that assertion on purpose.
