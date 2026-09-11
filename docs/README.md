@@ -187,6 +187,20 @@ move knocks out where a slower one also would. `AI_VERSION` is
 `RANDOMIZER_VERSION` did not move. The benchmark moved by a recorded amount
 with one cause and was not retuned: [`balance.md`](balance.md) section 15.
 
+**The tutorial: built**, as Branch 3 of the overnight run, on
+`claude/overnight-3-tutorial`, handoff
+[`handoff/overnight-3-tutorial.md`](handoff/overnight-3-tutorial.md), which
+carries the full copy table for the morning review. First-run coach marks,
+not a scripted seed: 29 marks over eight screens in `data/tutorial.ts`,
+anchored by `data-tutorial` attribute to the real element, one at a time,
+advanced by tap, per-screen flags in the settings store beside the verbosity
+toggle, "Skip tutorial" on the first mark and "Show tutorial again" in the
+header. Presentation only: no `core/` change, no version axis moved, the sim
+fixture and the visual baseline's runs byte identical. The visual baseline's
+data digest now reads `contentHash`, so a copy file on the exclusion list moves
+nothing; `generation.md` section 12g records that and the other four
+deviations.
+
 **Blocked:**
 
 - **The freeze** is no longer blocked on `contentHash` existing; it is blocked

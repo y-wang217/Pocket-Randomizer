@@ -1627,3 +1627,41 @@ list and the recorded battle protocol are byte identical, so two players on one
 seed holding different copies of `tuning.ts` still play the identical run. **The
 per-field split of that file is still the `contentHash` release's decision and
 is deliberately not pre-empted here.**
+
+## 12g. Deviations: the tutorial (overnight Branch 3)
+
+**Recorded 2026-09-11. Protocol 4 — the prompt is not edited; the five
+places the built tutorial differs from
+[`spec/gymrun-overnight-contenthash-ai-tutorial.md`](spec/gymrun-overnight-contenthash-ai-tutorial.md)
+Branch 3 are written here.**
+
+1. **The move-category sentence lives on the battle screen, not the starter
+   card.** The prompt puts "a move is Physical, Special or Status and which
+   stat that uses" under starter and party cards; the starter card shows a
+   move's type, base power and PP and carries no category chip, so there is
+   nothing to point at. The battle's move button carries the chip, and the
+   `move` mark there says it. The starter's `moves` mark says what a move
+   has and what Status means.
+2. **The drawer is read only, and its marks say so.** The prompt's drawer
+   section says items are reassigned there; since 4.7 the drawer is a view
+   and the party screen is where assignment happens (`ui/drawer.ts` says the
+   same in its note). The `items` and `backpack` marks are on the party
+   screen; the drawer's `party` mark states that items are assigned on the
+   party screen and locked in battle.
+3. **The seed mark has two anchors.** On a phone the seed bar is hidden once
+   a run starts (`.shell[data-phase='running'] .seedbar`), so the corner seed
+   stamp carries the same `data-tutorial="seed"` and the layer takes the first
+   painted anchor. One mark, one sentence, two places it can point.
+4. **The visual baseline's data digest is `contentHash` now.** It was a plain
+   sha256 over every file under `src/data/`, so `data/tutorial.ts` — copy, on
+   the exclusion list, read by `ui/` only — moved it without moving anything a
+   seed reads. `scripts/visual/baseline.ts` reads the axis instead; the
+   recorded digest is `b022fc4e…`, unchanged since Branch 1, and it moves
+   exactly when the axis does.
+5. **The forbidden list carries twelve words, not ten.** `recommended` and
+   `usually` are the prompt's own examples of advice spelled differently from
+   the ten it listed, so they are in the data.
+
+One known gap, from the prompt's own default: the copy is written against
+Detailed mode. If Pocket mode is built, its marks point at the same anchors
+and may name things that mode hides.
