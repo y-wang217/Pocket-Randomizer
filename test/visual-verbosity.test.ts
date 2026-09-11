@@ -116,19 +116,43 @@ describe('the verbosity toggle', () => {
     await context.close();
   }, 600_000);
 
-  /** The other real reader: the per-type counts on the threat readout. */
+  /**
+   * The other real reader: the per-type counts on the threat readout.
+   *
+   * **On the party screen, which is where the readout lives.** It was on the
+   * map as well until Stage 4.8, which landed while this patch was in flight
+   * and rebuilt that screen; `screens/party.ts` is now its only mount. Written
+   * against the map first, and the failure after merging 4.8 is what said so —
+   * a good argument for asserting against a screen rather than a coordinate.
+   *
+   * Walks until the readout actually has entries rather than stopping at the
+   * first party screen: a party of one on segment one can have no unanswered
+   * type to list, and an empty list would make this pass by vacuity.
+   */
   it('changes the threat readout, and changes it back', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    for (let step = 0; step < 600; step++) {
-      if ((await openScreen(page)) === 'map') break;
+    const counts = () => paintedCount(page, '.threats__count');
+    let reached = false;
+    for (let step = 0; step < 900; step++) {
+      if ((await openScreen(page)) === 'map') {
+        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.waitForTimeout(200);
+        if ((await counts()) > 0) {
+          reached = true;
+          break;
+        }
+        // Nothing listed yet: leave the party screen and play on.
+        await stepOnce(page);
+        await page.waitForTimeout(25);
+        continue;
+      }
       await stepOnce(page);
       await page.waitForTimeout(25);
     }
-    const counts = () => paintedCount(page, '.threats__count');
+    expect(reached, 'the run never reached a party screen with threats listed').toBe(true);
     const chips = () => paintedCount(page, '.threats__item .type');
 
     const detailedCounts = await counts();
-    expect(detailedCounts, 'the run must reach a map with threats listed').toBeGreaterThan(0);
     const listed = await chips();
 
     await toggle(page);
