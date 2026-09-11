@@ -1,8 +1,8 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-11/gymrun-0.3.0",
-    "randomizer": "gymrun-randomizer-12",
+    "runLog": "gymrun-run-12/gymrun-0.3.0",
+    "randomizer": "gymrun-randomizer-13",
     "ai": "gymrun-ai-2-switching",
     "engine": "gymrun-0.3.0"
   },
@@ -12,24 +12,26 @@
     "segment": 1,
     "leader": "Marina",
     "kind": "gym",
-    "species": "Cufant",
-    "bySpecies": "Lumineon",
-    "byMove": "Surging Strikes",
+    "species": "Dusk",
+    "bySpecies": "Buizel",
+    "byMove": "Aqua Cutter",
     "indirect": null
   },
-  "currency": 360,
+  "currency": 243,
   "backpack": [],
-  "relics": [],
+  "relics": [
+    "woodsmans-hatchet"
+  ],
   "party": [
     {
       "species": "Tyranitar",
       "level": 36,
       "ability": "Mimicry",
       "moves": [
-        "Pounce 32/32",
         "Vine Whip 40/40",
-        "Grassy Glide 30/32",
-        "Bubble Beam 32/32"
+        "Bubble Beam 32/32",
+        "Grassy Glide 31/32",
+        "Volt Tackle 21/24"
       ],
       "item": "payapaberry",
       "hp": "0/129",
@@ -40,12 +42,12 @@
       "level": 36,
       "ability": "Contrary",
       "moves": [
-        "Metal Claw 56/56",
-        "Bullet Punch 47/48",
-        "Fury Attack 31/32",
+        "Metal Claw 55/56",
+        "Bullet Punch 46/48",
+        "Fury Attack 32/32",
         "Hypnosis 32/32"
       ],
-      "item": null,
+      "item": "lumberry",
       "hp": "0/109",
       "fainted": true
     },
@@ -54,10 +56,10 @@
       "level": 36,
       "ability": "Sand Force",
       "moves": [
-        "Gust 54/56",
+        "Gust 55/56",
         "Tackle 56/56",
         "Weather Ball 16/16",
-        "Snarl 22/24"
+        "Snarl 21/24"
       ],
       "item": "eviolite",
       "hp": "0/100",
@@ -150,7 +152,7 @@
       "opponent": "Wild Larvesta",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 272,
+      "hpAfter": 248,
       "casualties": []
     },
     {
@@ -159,10 +161,18 @@
       "label": "Trainer battle",
       "tier": "normal",
       "opponent": "Trainer (2)",
-      "turns": 2,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 256,
-      "casualties": []
+      "hpAfter": 176,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Cedar",
+          "bySpecies": null,
+          "byMove": null,
+          "indirect": "Recoil"
+        }
+      ]
     },
     {
       "segment": 1,
@@ -170,10 +180,18 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Hariyama",
-      "turns": 5,
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 216,
-      "casualties": []
+      "hpAfter": 163,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Cedar",
+          "bySpecies": "Hariyama",
+          "byMove": "Arm Thrust",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 1,
@@ -181,29 +199,29 @@
       "label": "Marina's Gym",
       "tier": null,
       "opponent": "Marina (Water)",
-      "turns": 5,
+      "turns": 6,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
-          "name": "Tyranitar",
+          "name": "Cedar",
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Murkrow",
+          "name": "Moss",
           "bySpecies": "Lumineon",
           "byMove": "Surging Strikes",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Cufant",
-          "bySpecies": "Lumineon",
-          "byMove": "Surging Strikes",
+          "name": "Dusk",
+          "bySpecies": "Buizel",
+          "byMove": "Aqua Cutter",
           "indirect": null
         }
       ]
@@ -211,8 +229,8 @@
   ],
   "log": {
     "seed": "GYMRUN01",
-    "version": "gymrun-run-11/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-12",
+    "version": "gymrun-run-12/gymrun-0.3.0",
+    "randomizerVersion": "gymrun-randomizer-13",
     "decisions": [
       {
         "kind": "starter",
@@ -367,6 +385,14 @@
         }
       },
       {
+        "kind": "target",
+        "index": 0
+      },
+      {
+        "kind": "replace",
+        "slot": 3
+      },
+      {
         "kind": "reward",
         "index": 0
       },
@@ -450,7 +476,7 @@
       },
       {
         "kind": "replace",
-        "slot": 3
+        "slot": 1
       },
       {
         "kind": "acquisition",
@@ -473,6 +499,20 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 2
         }
       },
@@ -480,7 +520,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
@@ -493,7 +533,7 @@
       },
       {
         "kind": "replace",
-        "slot": 1
+        "slot": 0
       },
       {
         "kind": "items",
@@ -509,15 +549,15 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 3
+          "kind": "move",
+          "slot": 4
         }
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 3
         }
       },
       {
@@ -566,7 +606,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 4
         }
       },
       {
@@ -574,6 +614,13 @@
         "choice": {
           "kind": "switch",
           "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
         }
       },
       {
@@ -601,7 +648,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {

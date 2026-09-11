@@ -84,6 +84,103 @@ and fails on any byte that differs. Heights are compared by
   (`MoveUiView.powerBand`) is not recorded by `baseline.ts`, which serializes
   run state and protocol rather than the view.
 
+- **2026-09-10, Stage 4.8 step 2.** `runs/` and `data-digest.txt` re-recorded.
+  **Not a visual stage, and that is the whole reason this entry exists.** This
+  file's rule is that every visual stage diffs against this directory and never
+  regenerates it, because a presentation change cannot move these bytes. Stage 4.8
+  item 1 is a content change that moves them on purpose: party slots became a
+  function of gyms cleared, `scaling.expectedPartySize` reads that schedule as its
+  cap, and opponent team sizes are a function of the result — so seeded output
+  moves and `RANDOMIZER_VERSION` goes to `gymrun-randomizer-13` in the same
+  commit. The precedent is the PR #10/#12 entry above, where `main` moving seeded
+  output was handled the same way.
+
+  **Three of the six runs changed only the version stamp, and that is the finding
+  rather than a footnote.** `SEED-B` clears no gyms, `GYMRUN01` and `SEED-A` clear
+  one; the first slot unlock is at gym 2, so the schedule cannot reach them — and
+  it did not, to the byte. The three that moved all clear three or four gyms:
+
+  | run | gyms | party before | party after |
+  |---|---|---|---|
+  | `SEED-B` | 0 | 1 | 1 (version stamp only) |
+  | `GYMRUN01` | 1 | 3 | 3 (version stamp only) |
+  | `SEED-A` | 1 | 3 | 3 (version stamp only) |
+  | `RESULT-1` | 3 | 3 | 4 |
+  | `SMOKE24` | 4 | 3 | 5 |
+  | `RESULT-0` | 4 | 3 | 5 |
+
+  Re-recorded once more in the same step after `EXPECTED_PARTY_SIZE`'s last row
+  came down from 6 to 5 — see `../../generation.md` section 7b: a curve that
+  assumed the engine's own six-a-side limit left the tier clamp no headroom and
+  flattened every tier onto one team size at the final segment. The run figures
+  above are the shipped ones.
+
+  `test/fixtures/sim-report.json` says the same thing independently: of its three
+  seeds, `FIXTURE-BRAVO` dies at gym 1 and is byte identical, and the two that
+  clear past gym 2 field five where they fielded three. Two instruments, the same
+  boundary.
+
+  `data-digest.txt` moves because `src/data/partyTuning.ts`, `scaling.ts` and
+  `tuning.ts` all changed. **`heights.json` is not re-recorded and must not be**:
+  step 2 is a no-UI step and the one thing it touches on a screen is the party
+  header reading live slots instead of a constant, which at the opening width is
+  the same `3 / 3` it printed before. The map's next-unlock readout item 1 asks
+  for is step 7's, with the rest of the UI. `bundle.json` is not re-recorded
+  either, per this file's own rule.
+
+- **2026-09-10, Stage 4.8 step 3.** `runs/`, `battles/` and `data-digest.txt`
+  re-recorded again, same reasoning as the step 2 entry above: a content stage that
+  moves seeded output on purpose, under the same `gymrun-randomizer-13`.
+
+  Two changes reach the draws. Item 2 makes a gym pay a guaranteed move *and* a
+  two-card choice from the one gym stream, so every gym's roll moves; item 3 makes
+  `stepsPerSegment` a per-segment curve, so the number of steps — and therefore
+  every node after the first — moves from segment 2 on. `RESULT-1` drops from three
+  gyms to one, which is the curve: a longer segment 2 is more nodes to survive
+  before gym 3, and this run does not.
+
+  `heights.json` is again **not** re-recorded. Step 3 is a no-UI step; the taller
+  map is item 3's UI work, in step 7, and that is where the guarded heights move.
+  `bundle.json` is not re-recorded either, per this file's own rule.
+
+- **2026-09-10, Stage 4.8 steps 4 and 5.** `data-digest.txt` re-recorded; the runs
+  moved only by gaining nicknames. Two new files under `src/data/` — `scoring.ts`
+  (the score weights) and `nicknames.ts` (the name pool) — so the digest over
+  `src/data/**` moves even though neither changes a draw. That a pure table moves
+  this digest is the same note Release C made about `flagWords.ts`, and it is on the
+  `contentHash` release's list.
+
+  The runs themselves change because every Pokemon now carries a nickname, which
+  `baseline.ts` serializes as part of the final party. **No draw moved for it**: the
+  nickname key is new, so it shifts no other key's output, and that is the property
+  the keyed refactor was built to buy. `heights.json` and `bundle.json` are not
+  re-recorded; neither step touches a pixel.
+
+- **2026-09-10, Stage 4.8 step 7.** `heights.json` **map** entries re-recorded, in
+  the commit that moved them, which is the one that closed the map's fold `xfail`:
+  `map.screenHeight` 976.69 → **819.19**, `scrollHeight` 1170 → **1012**,
+  `decisionTop` 614.5 → **513.5**, `decisionBottom` 728.22 → **627.22**.
+  `decisionCount` is still 2. **The battle did not move**, on any of its five
+  fields — step 7 touches nothing inside a fight.
+
+  101 pixels off the decision point, and they came from two places rather than from
+  shaving a margin:
+
+  - **The steps already taken collapse to one line** instead of one card each. That
+    is worth more than its pixel count, because it changes the *shape* of the
+    problem: the current step no longer moves down the page as a segment is walked,
+    so the fix holds at item 3's longest segment rather than only at today's length.
+  - **The map's party cards lost their move lists and abilities** and went into a
+    two-column grid. Item 1 took the roster to six, which had made that panel 697px
+    of a 844px screen; it measures ~320px now. PP and abilities are one tap away in
+    the drawer, which is reachable from this screen and every other.
+
+  This is the event `test/visual-v0.test.ts` and `scripts/smoke.mjs` were both
+  waiting on since Release C — the map's rows being taken back. The smoke check
+  reports `cards end at y=768 of 844` at its own deeper point in the run, and its
+  `xfail` marker is removed rather than moved, per the prompt. `bundle.json` is not
+  re-recorded, per this file's own rule.
+
 - **2026-09-10, V5.2.** `heights.json` battle entries re-recorded in the commit
   that moved them, which is the one that took the persistent log off the board:
   `battle.screenHeight` 1182.5 → **850.5** and `scrollHeight` 1376 → **1044**.

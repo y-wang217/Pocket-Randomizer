@@ -204,6 +204,8 @@ describe('currency earned per node', () => {
       shop: null,
       event: null,
       acquisition: null,
+      // Stage 4.8, item 2: only a gym carries one, and payout does not read it.
+      gymMove: null,
     });
 
     expect(nodePayout(node('wild', 'hard'), 0)).toBeGreaterThan(nodePayout(node('wild', 'normal'), 0));

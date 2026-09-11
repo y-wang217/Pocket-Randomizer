@@ -275,7 +275,14 @@ describe('the version guard', () => {
   });
 
   it('has bumped the log version for this patch', () => {
-    expect(RUN_LOG_VERSION).toMatch(/^gymrun-run-11\//);
+    /*
+     * **Stage 4.8 moved it again, to `-12`, for item 2.** 4.7's own bump was `-11`
+     * and this test was written against it; the literal is updated rather than
+     * loosened to a range, because the point of the axis is that it is a name a
+     * human chose and a test that accepted any number could not catch a bump that
+     * failed to happen. `docs/generation.md` section 7c carries the argument.
+     */
+    expect(RUN_LOG_VERSION).toMatch(/^gymrun-run-12\//);
   });
 });
 

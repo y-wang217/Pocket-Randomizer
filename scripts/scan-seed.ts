@@ -26,7 +26,7 @@
  * reports, loudly, as the assertion it already carries.
  */
 import { greedyAiPolicy } from '../src/core/battle/ai';
-import { PARTY_SIZE } from '../src/data/partyTuning';
+
 import { defaultItemPlan, playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 /** test/move-replacement.test.ts: the census of every Stage 4.5.1 decision. */
 function census(seen: Set<string>): RunPolicy {
@@ -58,9 +58,9 @@ function census(seen: Set<string>): RunPolicy {
       seen.add('move-replace');
       return member.spec.moves.length - 1;
     },
-    chooseAcquisition: async (_offer, party) => {
+    chooseAcquisition: async (_offer, party, capacity) => {
       seen.add('acquisition');
-      if (party.length < PARTY_SIZE) return { kind: 'accept' };
+      if (party.length < capacity) return { kind: 'accept' };
       seen.add('release');
       return { kind: 'release', slot: 0 };
     },

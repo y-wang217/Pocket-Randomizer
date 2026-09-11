@@ -54,6 +54,7 @@ import {
   type AcquisitionDecision,
   type AcquisitionOffer,
 } from './acquisition';
+import { partyCapacityAfter } from '../data/partyTuning';
 import type { RelicId } from '../data/relics';
 import { RANDOMIZER_VERSION } from './randomizer';
 import {
@@ -191,8 +192,30 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * `RANDOMIZER_VERSION` moved in the same patch, for acquisition levelling, and
  * the split is the usual one: this says the questions changed, that says the
  * same answers would now build a different party.
+ *
+ * ## `-12`: Stage 4.8, item 2, and a deviation from its own prompt
+ *
+ * A gym clear pays twice now — a guaranteed move, then a choice of two cards — and
+ * the guaranteed move routes through the existing move-learning flow, which means
+ * a `target` and sometimes a `replace` entry **immediately after every gym win**.
+ *
+ * The prompt for Stage 4.8 states that run log version does not bump, and lists
+ * why: capacity, nicknames, death records and the score are all derived rather
+ * than logged. That reasoning is correct and all four are derived. It simply does
+ * not cover item 2 Part A, which adds a reward the player has to aim — up to
+ * sixteen new questions in a run, the first at the end of segment 0.
+ *
+ * This guard's rule decides it, and the rule is two paragraphs up: it "does not
+ * ask whether the schema changed; it asks whether the *questions* changed, and a
+ * new question in a new place is a changed sequence even when every entry in it is
+ * an old shape". That is this case exactly, and it is the same case `-11` was for.
+ * A 4.7 log replayed against this build would answer the gym's move target with
+ * whatever its next entry happened to be.
+ *
+ * The deviation is recorded in `docs/generation.md` section 7c rather than by
+ * editing the prompt, per protocol 4.
  */
-export const RUN_LOG_VERSION = `gymrun-run-11/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-12/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -439,6 +462,27 @@ export function gymsCleared(state: RunState): number {
 }
 
 /**
+ * How many party slots this run has **right now**. Stage 4.8, item 1.
+ *
+ * `partyCapacityAfter(gymsCleared(state))`, and that composition is the whole of
+ * it. Nothing else in the codebase may compute a capacity: this is the function
+ * the capture flow, the item plan, the drawer and the map all read, so a slot
+ * unlock reaches every one of them by reaching none of them specially.
+ *
+ * ## Derived, and deliberately not logged
+ *
+ * Capacity is a function of gyms cleared, gyms cleared is a function of history,
+ * and history is what a replay rebuilds from the decision log. So capacity
+ * reconstructs identically without being stored, consumes no RNG, and adds no
+ * logged decision — which is why `RUN_LOG_VERSION` does not move for this patch.
+ * Storing it would create a second copy of a derived number, and the failure mode
+ * of that is a saved run whose capacity disagrees with its own gym count.
+ */
+export function partyCapacity(state: RunState): number {
+  return partyCapacityAfter(gymsCleared(state));
+}
+
+/**
  * What ended the run, in the terms the summary screen wants.
  *
  * Null for a victory, and for the rare defeat with nothing to point at (a
@@ -581,6 +625,24 @@ export interface NodeResult {
    * and an absent question there cannot drift apart silently.
    */
   rewardReplaceSlot?: number;
+  /**
+   * The move a gym clear hands over, and where it landed.
+   *
+   * **Stage 4.8, item 2 Part A.** Present only on a gym the player won. It is the
+   * same shape as `reward`/`rewardTarget`/`rewardReplaceSlot` beside it and for the
+   * same reason: `playRun` resolves the questions and `resolveNode` applies the
+   * answers, so a replayed answer and a clicked one are the same value before
+   * anything downstream can tell them apart.
+   *
+   * Separate fields rather than reusing the reward ones, because a gym now pays
+   * *both* and they land on possibly different members. Sharing them would make
+   * the guaranteed move and the chosen card fight over one slot.
+   */
+  gymMove?: Reward;
+  /** Which party slot the gym's guaranteed move lands on. */
+  gymMoveTarget?: number;
+  /** Which of that member's move slots it displaces, 0-based, or absent. */
+  gymMoveReplaceSlot?: number;
   /**
    * Recipients and displaced slots for any taught moves in the shop basket, in
    * shelf order.
@@ -808,6 +870,24 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      *
      * Gyms paid nothing before Stage 4.5.2, so this branch returned here.
      */
+    /*
+     * **Part A before Part B. Stage 4.8, item 2.**
+     *
+     * The guaranteed move applies first, in the order the player was asked, so a
+     * replay folds the two in the same order the live run did. It matters in one
+     * direction and it is the same direction the comment above describes: both
+     * land on a member whose `maxHp` has just moved, and a chosen card that
+     * happened to target the same member must see the move already taught rather
+     * than race it.
+     */
+    if (result.gymMove) {
+      cleared = applyReward(
+        cleared,
+        result.gymMove,
+        result.gymMoveTarget ?? 0,
+        result.gymMoveReplaceSlot ?? null,
+      );
+    }
     if (result.reward) {
       cleared = applyReward(
         cleared,
@@ -826,6 +906,24 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         // and a member joining at the old segment's level would be the 4.7 tax
         // reintroduced on exactly one branch.
         cleared.currentSegment,
+        /*
+         * The capacity as it was when the decision was *asked*, which is
+         * `state` and deliberately not `cleared`.
+         *
+         * `cleared.history` already contains this gym, so `partyCapacity`
+         * would read one slot more here than `playRun` read when it checked
+         * the same decision for legality — and a decision accepted by the
+         * check and refused by the application is a thrown `RangeError` on a
+         * replay. Reading the pre-resolution state makes the two provably the
+         * same number rather than the same number by coincidence.
+         *
+         * It is unreachable today: a gym node is not a wild node and carries
+         * no event, so `result.acquisition` is always null on this branch. It
+         * is written correctly anyway, because "unreachable because of another
+         * knob" is not a guarantee, and `test/capture.test.ts` asserts the two
+         * capacities agree rather than trusting this comment.
+         */
+        partyCapacity(state),
       );
       cleared = {
         ...cleared,
@@ -898,6 +996,9 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       result.acquisition.offer,
       result.acquisition.decision,
       advanced.currentSegment,
+      // Pre-resolution, matching `playRun`'s legality check and the gym branch
+      // above. Nothing on this path clears a gym, so it is also `advanced`'s.
+      partyCapacity(state),
     );
     /*
      * Every item the decision freed goes to the backpack, not with anybody.
@@ -1061,6 +1162,16 @@ export interface RunPolicy {
   chooseAcquisition: (
     offer: AcquisitionOffer,
     party: readonly PokemonState[],
+    /**
+     * The party slots the run has right now. **Stage 4.8, item 1.**
+     *
+     * Handed in rather than left for the policy to work out, because the policy
+     * is where "is there room" is decided and a policy reading a fixed size is
+     * the exact failure the item warns about: a bot that declines at three while
+     * the run has five slots measures a game nobody is playing. It is the same
+     * number `decisionRefusal` then checks the answer against.
+     */
+    capacity: number,
   ) => Promise<AcquisitionDecision>;
   /**
    * Who leads the gym battle. A party slot. **Stage 4.7, Part 2.**
@@ -1330,6 +1441,35 @@ export async function playRun(
       if (offer) reviewedIndex = picked ?? 0;
     }
 
+    /*
+     * **Part A of a gym clear, asked before the cards. Stage 4.8, item 2.**
+     *
+     * A gym pays twice: a guaranteed move at the gym band chain, then a choice of
+     * two. The move is asked first because it is the unconditional half — the
+     * player is told what they got, then asked what they want — and because the
+     * order inside the decision log has to be fixed by the code rather than by
+     * which branch happened to run.
+     *
+     * Gated on the win, like every other payout: `node.gymMove` is drawn for every
+     * gym at map generation, and a gym that was not beaten ends the run.
+     *
+     * **This is what moved `RUN_LOG_VERSION`.** The questions are the existing
+     * `target` and `replace` pair, but they are asked in a place no earlier log has
+     * an answer for, and the guard's own comment is explicit that "a new question
+     * in a new place is a changed sequence even when every entry in it is an old
+     * shape". `docs/generation.md` section 7c records the deviation from the
+     * prompt, which expected no bump.
+     */
+    if (result.node.kind === 'gym' && result.node.gymMove && result.battle?.result.winner === 'p1') {
+      const granted = result.node.gymMove;
+      result.gymMove = granted;
+      if (isTargeted(granted)) {
+        const answers = await askMoveQuestions(granted, state, state.party, policy, record);
+        result.gymMoveTarget = answers.target;
+        result.gymMoveReplaceSlot = answers.replaceSlot ?? undefined;
+      }
+    }
+
     if (offer) {
       const index = reviewedIndex ?? (await policy.chooseReward(offer, state));
       reviewedIndex = null;
@@ -1384,9 +1524,9 @@ export async function playRun(
     const offered = acquisitionOffered(result, state);
     const earned = result.battle ? result.battle.result.winner === 'p1' : true;
     if (offered && earned) {
-      const decision = await policy.chooseAcquisition(offered, state.party);
+      const decision = await policy.chooseAcquisition(offered, state.party, partyCapacity(state));
       record({ kind: 'acquisition', decision });
-      const refusal = decisionRefusal(state.party, decision);
+      const refusal = decisionRefusal(state.party, decision, partyCapacity(state));
       if (refusal) throw new RangeError(`Acquisition decision is not legal: ${refusal}`);
       result.acquisition = { offer: offered, decision };
     }
@@ -1415,7 +1555,7 @@ export async function playRun(
     if (!state.outcome && needsItemPlan(state)) {
       const plan = await policy.chooseItemPlan(state);
       record({ kind: 'items', plan: clonePlan(plan) });
-      state = applyItemPlan(state, plan);
+      state = applyItemPlan(state, plan, backpackCapacity(partyCapacity(state), state.tuning));
     }
 
     options.onState?.(state);
@@ -1683,7 +1823,7 @@ export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec)
  * `RangeError` rather than on a decision.
  */
 export function defaultItemPlan(state: RunState): ItemPlan {
-  const capacity = backpackCapacity(state.tuning);
+  const capacity = backpackCapacity(partyCapacity(state), state.tuning);
   const assignments: ItemAssignment[] = [];
 
   let taken = 0;
@@ -1747,7 +1887,8 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      * while there is room is the floor on competent play, which is what a
      * baseline wants.
      */
-    chooseAcquisition: async (_offer, party) => (hasRoom(party) ? { kind: 'accept' } : { kind: 'decline' }),
+    chooseAcquisition: async (_offer, party, capacity) =>
+      hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
     chooseItemPlan: async (state) => defaultItemPlan(state),
     battle,
   };
@@ -1868,9 +2009,9 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       if (!decision) return live ? live.chooseMoveToReplace(member, incoming, state) : exhausted('replace');
       return decision.kind === 'replace' ? decision.slot : exhausted('replace');
     },
-    chooseAcquisition: async (offer, party) => {
+    chooseAcquisition: async (offer, party, capacity) => {
       const decision = next('acquisition');
-      if (!decision) return live ? live.chooseAcquisition(offer, party) : exhausted('acquisition');
+      if (!decision) return live ? live.chooseAcquisition(offer, party, capacity) : exhausted('acquisition');
       return decision.kind === 'acquisition' ? decision.decision : exhausted('acquisition');
     },
     chooseLead: async (party, gym, state) => {

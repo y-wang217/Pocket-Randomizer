@@ -47,6 +47,7 @@
  */
 import { memberCardContents } from '../member-card';
 import { backpackCapacity } from '../../core/items';
+import { displayName } from '../../core/nicknames';
 import { relicById, type RelicId } from '../../data/relics';
 import type { Capability } from '../../data/capabilities';
 import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
@@ -56,7 +57,7 @@ import { openBand } from '../band';
 import { neutralChip } from '../chip';
 import { el } from '../scene';
 import { renderSlots, slotNumber } from '../slots';
-import { PARTY_SIZE } from '../../data/partyTuning';
+
 import { createThreatReadout } from './threats';
 
 export interface PartyScreen {
@@ -78,7 +79,7 @@ export interface PartyScreen {
        * The item layout the player has settled on, handed upward to be logged.
        *
        * Called on every change rather than on leaving the screen, so the caller
-       * always holds the current plan and the "Back to the map" button does not
+       * always holds the current plan and the way-out button does not
        * have to be the thing that commits it. See the header on why this is a
        * plan rather than a mutation.
        */
@@ -95,6 +96,22 @@ export interface PartyView {
   /** The run's relics. Not the backpack — they are neither carried nor spent. */
   relics: readonly RelicId[];
   tuning: Tuning;
+  /**
+   * The party slots the run has right now, from `core/run.partyCapacity`.
+   *
+   * **Stage 4.8, item 1.** The slot grid draws this many cells and the backpack
+   * derives its own capacity from it, so a gym clear widens both. A constant here
+   * would draw three cells for a party of four.
+   */
+  slots: number;
+  /**
+   * Where the way out goes, as the words on the button.
+   *
+   * The screen has two entrances — the map's Manage button and the pre-gym
+   * screen's — and the caller is the only thing that knows which one was used.
+   * It is the label only: `onDone` does the navigating.
+   */
+  backTo: string;
   /**
    * A layout the player already composed and has not yet spent, or null.
    *
@@ -140,7 +157,8 @@ export function createPartyScreen(): PartyScreen {
   const done = document.createElement('button');
   done.type = 'button';
   done.className = 'button primary-action';
-  done.textContent = 'Back to the map';
+  // Text set per render, from `view.backTo`: the screen has two entrances and a
+  // label naming the wrong one is the softlock told to the player in advance.
 
   root.append(title, blurb, threats.root, partySlots, list, bag, relics, done);
 
@@ -164,6 +182,7 @@ export function createPartyScreen(): PartyScreen {
     root,
     render(view, handlers) {
       onDone = handlers.onDone;
+      done.textContent = view.backTo;
       /*
        * From the party alone, and redrawn here rather than in `draw()`.
        *
@@ -203,11 +222,11 @@ export function createPartyScreen(): PartyScreen {
           renderSlots(
             'party',
             view.party.map((member, slot) => ({
-              label: member.spec.species,
+              label: displayName(member.spec),
               item: held[slot] ?? null,
               tip: held[slot] ? `item:${held[slot]}` : undefined,
             })),
-            PARTY_SIZE,
+            view.slots,
           ),
         );
         list.replaceChildren(
@@ -342,7 +361,7 @@ function renderManaged(
   // over the wrong card is exactly the misclick the confirm exists to catch.
   release.addEventListener('click', () =>
     openBand({
-      title: `Release ${member.spec.species}?`,
+      title: `Release ${displayName(member.spec)}?`,
       detail: 'For good. There is no box. Anything held goes back to the bag.',
       confirm: 'Release',
       cancel: 'Keep',
@@ -413,7 +432,7 @@ function renderBackpack(
     onDiscard: (item: ItemId) => void;
   },
 ): void {
-  const capacity = backpackCapacity(view.tuning);
+  const capacity = backpackCapacity(view.slots, view.tuning);
   const heading = el('h3', 'backpack__title');
   heading.textContent = 'Backpack';
 
@@ -478,7 +497,7 @@ function renderBackpack(
         button.className = 'button button--small';
         // Named rather than numbered: "Give to Squirtle" is a sentence and
         // "Slot 2" is a thing to look up.
-        button.textContent = member.spec.species;
+        button.textContent = displayName(member.spec);
         button.addEventListener('click', () => handlers.onEquip(id, slot));
         give.append(button);
       });

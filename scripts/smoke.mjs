@@ -814,30 +814,21 @@ const phoneCheck = (label, ok, detail) => {
   if (!ok) problems.push(`phone: ${label} — ${detail}`);
 };
 
-/**
- * A check that is known to fail, with the reason attached. Release C, Step 0.
+/*
+ * `phoneCheckExpectedFail` lived here and is **deleted, not kept for later**.
  *
- * The same instrument `test/visual-v0.test.ts:47` uses inside the suite, which
- * marks the absolute-fold assertion `it.fails` rather than deleting it. This
- * script had no equivalent, so an absolute gate named in `CLAUDE.md` was
- * failing with nothing on screen saying it was expected — which is how a red
- * gate stops being read.
+ * Release C added it so that the map's fold miss could be an `xfail` with its reason
+ * on screen, rather than a red absolute gate nobody read. Stage 4.8 item 3 closed
+ * that miss — the only marked check this script ever had — and the helper went with
+ * it, because lint is right that an unused helper is dead code and because a marker
+ * mechanism sitting ready is an invitation to mark the next failure instead of fixing
+ * it.
  *
- * The semantics are vitest's, deliberately: a marked check that *passes* is
- * itself a problem, because the layout it was waiting for has arrived and the
- * marker is now hiding a real assertion. **That is the intended way to
- * notice.** Nothing here suppresses a failure permanently; it converts one into
- * a countdown.
+ * It worked exactly as designed on the way out: the check started passing, the helper
+ * turned that into a reported problem ("passes now; take the marker off"), and that
+ * is how the marker came off rather than being noticed months later. If another gate
+ * ever needs the same countdown, it is eleven lines and it is in this file's history.
  */
-const phoneCheckExpectedFail = (label, ok, detail, reason) => {
-  if (ok) {
-    console.log(`  FAIL ${label}${detail ? ` (${detail})` : ''} — passes now; take the marker off`);
-    problems.push(`phone: ${label} passes now — remove the expected-failure marker (${reason})`);
-    return;
-  }
-  console.log(`  xfail ${label}${detail ? ` (${detail})` : ''}`);
-  console.log(`        expected: ${reason}`);
-};
 
 // Starter cards carry base stats, so a pick is not a coin flip.
 const starterStats = await phone.locator('.starter .statline__stat').count();
@@ -902,92 +893,48 @@ phoneCheck(
   `${mapMetrics.scrollWidth}px in ${mapMetrics.innerWidth}px`,
 );
 /*
- * Marked, not fixed, and the measurement that says whose it is. Release C,
- * Step 0, answering `docs/reports/v5-unblock-audit.md` §3 note 1.
+ * **Closed by Stage 4.8, item 3. The marker is off.**
  *
- * The cause is **Stage 4.7's vertical cost on the map**, not the visual pass:
- * the drawer bar above every decision surface and 4.7's added rows push the
- * current step's node cards 25px past an 844px fold. Measured rather than
- * argued — this same check reports `cards end at y=869 of 844` on `7bb6242`,
- * the merge of PR #12 with 4.7 in and not one visual-pass commit on top, which
- * is byte for byte what it reports on this tree. V0 to V4 moved this number by
- * zero. `docs/visual/baseline/heights.json` agrees from the other side: the
- * map's decision point went 654.03 -> 728.22 at the 4.7 merge and has not
- * moved since.
+ * It was marked `xfail` from Release C to here, at `cards end at y=869 of 844`, and
+ * the note it wore was right about whose it was: Stage 4.7's rows, not the visual
+ * pass — V0 to V4 moved the number by zero. What closed it was not taking 4.7's
+ * rows back, though. It was item 3 forcing the question, because a per-segment step
+ * curve makes the chain taller and would have turned 25px into far more.
  *
- * So it is not Release C's to fix, and it is not the visual pass's either. It
- * belongs to whoever takes the map's rows back — the same event
- * `test/visual-v0.test.ts:47` is waiting on, which is why this wears the same
- * marker. When that lands, this check passes, `phoneCheckExpectedFail` turns
- * that into a failure, and the marker comes off.
+ * Two changes, both in `run-map.ts`, both of which bound the decision's position
+ * rather than shaving pixels off it:
+ *
+ *   - The steps already taken collapse to **one line** instead of one card each, so
+ *     the current step stops being pushed down as a segment is walked. This is what
+ *     makes the fix hold at the longest row of the curve rather than at today's.
+ *   - The map's party cards lost their move lists and abilities and went into a
+ *     two-column grid. Item 1's six-member roster made that panel 697px of a 844px
+ *     screen; it is ~320px now. PP and abilities are one tap away in the drawer.
+ *
+ * Measured after: `cards end at y=768 of 844`, with the party at its widest. The
+ * same event `test/visual-v0.test.ts` was waiting on has happened, so its marker
+ * comes off in the same patch.
  */
-phoneCheckExpectedFail(
+phoneCheck(
   'the offered nodes are fully visible without scrolling',
   Boolean(mapMetrics.offered) && mapMetrics.offered.bottom <= mapMetrics.innerHeight,
   mapMetrics.offered ? `cards end at y=${mapMetrics.offered.bottom} of ${mapMetrics.innerHeight}` : 'no current step',
-  "Stage 4.7's map rows put the cards 25px below the fold; see docs/reports/v5-unblock-audit.md §3 note 1",
 );
 
 /*
- * The party threat readout on the map, measured rather than assumed.
+ * The map's threat readout is gone, and so are its three checks.
  *
- * The requirement is that it must not crowd the offered node cards, which Item
- * F fought to get above the fold on a 390x844 phone. Two things make that
- * true and both are checked here rather than reasoned about: it is rendered
- * *below* the step chain, so it is not in the cards' way at any open state,
- * and it ships collapsed, so the closed height is a summary line.
+ * **Stage 4.8, item 7.** The readout lived on the map as well as the party screen,
+ * and the argument for the map was that the map is where the next node is chosen.
+ * That is exactly why it had to go: `run-map.ts` renders the gym leader's name and
+ * type chip on the same screen, so the map paired "watch for Ground" with "the next
+ * gym is Ground" — a routing recommendation, which Part 4 forbids.
  *
- * The interesting number is the pair before and after opening it. If the cards
- * move at all when the disclosure expands, the readout is in the wrong place
- * in the document and no default open state would save it.
+ * The three checks retired with it measured that the readout shipped collapsed and
+ * did not crowd the node cards. They existed to protect a placement that no longer
+ * exists; keeping them pointed at the party screen would be a different assertion
+ * wearing their names. The party screen's own checks are below and unchanged.
  */
-const threatMetrics = await phone.evaluate(() => {
-  const details = globalThis.document.querySelector('.screen--map .threats');
-  if (!details) return null;
-
-  const cards = () => globalThis.document.querySelector('.step--current .step__nodes')?.getBoundingClientRect();
-  const before = cards();
-  const openByDefault = details.open;
-
-  details.open = true;
-  const after = cards();
-  const readout = details.getBoundingClientRect();
-  const chips = details.querySelectorAll('.threats__item .type').length;
-  const hasNone = Boolean(details.querySelector('.threats__none'));
-  details.open = false;
-  const closed = details.getBoundingClientRect();
-
-  return {
-    openByDefault,
-    chips,
-    hasNone,
-    cardsBefore: before ? Math.round(before.bottom) : null,
-    cardsAfter: after ? Math.round(after.bottom) : null,
-    openTop: Math.round(readout.top),
-    openHeight: Math.round(readout.height),
-    closedHeight: Math.round(closed.height),
-  };
-});
-
-if (!threatMetrics) {
-  problems.push('phone: the map has no threat readout');
-} else {
-  phoneCheck(
-    'the map carries the threat readout, collapsed',
-    threatMetrics.openByDefault === false,
-    `closed height ${threatMetrics.closedHeight}px, open ${threatMetrics.openHeight}px at y=${threatMetrics.openTop}`,
-  );
-  phoneCheck(
-    'expanding the readout does not move the offered node cards',
-    threatMetrics.cardsBefore !== null && threatMetrics.cardsBefore === threatMetrics.cardsAfter,
-    `cards end at y=${threatMetrics.cardsBefore} closed, y=${threatMetrics.cardsAfter} open`,
-  );
-  phoneCheck(
-    'the readout says something rather than drawing an empty box',
-    threatMetrics.chips > 0 || threatMetrics.hasNone,
-    `${threatMetrics.chips} type badges`,
-  );
-}
 
 /*
  * And the same readout on the party screen, where it is open by default and is

@@ -223,7 +223,26 @@ export function describeSpec(spec: PokemonSpec): SpecVitals {
 
 /** The full card. Same probe, same cache; `describeSpec` is the narrow view of it. */
 export function describeSpecCard(spec: PokemonSpec): SpecCard {
-  const key = JSON.stringify([spec.species, spec.ability, spec.moves, spec.level, spec.item ?? '']);
+  /*
+   * **The nickname is in the key, and Stage 4.8 is why.**
+   *
+   * `SpecCard.name` is `mon.name`, which the sim takes from `toPokemonSet`, which
+   * takes it from `spec.nickname`. Before item 5 no spec had one, so the name was
+   * always the species and leaving it out of the key was free. With every Pokemon
+   * named, two Pidgeys identical in every other field would have collided here and
+   * the second would have rendered under the first one's name — on the party
+   * screen, the drawer, the recipient list and the tombstone, all from one cache
+   * hit. Caught by reading the cache rather than by a test, which is why the test
+   * that pins it now exists (`test/nicknames-graveyard.test.ts`).
+   */
+  const key = JSON.stringify([
+    spec.species,
+    spec.ability,
+    spec.moves,
+    spec.level,
+    spec.item ?? '',
+    spec.nickname ?? '',
+  ]);
   const cached = vitalsCache.get(key);
   if (cached) return cached;
 

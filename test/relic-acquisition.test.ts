@@ -63,7 +63,9 @@ describe('a relic is never offered twice', () => {
   it('resolves past every held relic, over many seeds', () => {
     for (let i = 0; i < 150; i++) {
       const rng = createRng(`HELD-${i}`);
-      const offer = generateGymRewardOffer('n', 5, rng.rewards.at('g'), DEFAULT_TUNING);
+      // Stage 4.8, item 2: a gym pays a guaranteed move *and* a choice, so the
+      // generator returns both. The relic rules are about the choice.
+      const { offer } = generateGymRewardOffer('n', 5, rng.rewards.at('g'), DEFAULT_TUNING);
       if (relicCards(offer.options).length === 0) continue;
 
       // Hold everything except the last id in the table.
@@ -97,7 +99,7 @@ describe('a relic is never offered twice', () => {
 
   it('is idempotent: a resolved card resolves to itself', () => {
     const rng = createRng('IDEM');
-    const offer = generateGymRewardOffer('n', 5, rng.rewards.at('g'), DEFAULT_TUNING);
+    const { offer } = generateGymRewardOffer('n', 5, rng.rewards.at('g'), DEFAULT_TUNING);
     const once = resolveOffer(offer, []);
     expect(resolveOffer(once, [])).toEqual(once);
   });

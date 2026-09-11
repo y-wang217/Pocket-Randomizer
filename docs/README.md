@@ -90,6 +90,29 @@ on trees that predate Stage 4.7 entirely.
 [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md)
 has the three measurements; `generation.md` section 12b records the deviation.
 
+**Merged since that, and ahead of Stage 4.8:** the pre-gym screen's *second*
+softlock. 4.7's phone patch gave that screen a control that submits a lead; it
+did not give the screen's detour a way back. The party screen's Done was
+`showScreen('map')` for both of its entrances, and from the gym the map arms no
+node row and never arms `nodePick`, so the way out of the party screen led to a
+screen with no control that advances the run and a `leadPick` nothing could
+resolve — a reload was the only recovery. `showParty` now takes and remembers its
+return screen, the pre-gym screen is redrawn on the way back rather than revealed
+as it was left (the lead is a slot index and a release shifts every slot behind
+it), and the Done button's label names where it actually goes. Presentation only,
+no `core/` change, no version bump. Found while surveying the tree for Stage 4.8,
+and the regression cases are the two added to
+[`../test/pre-gym-browser.test.ts`](../test/pre-gym-browser.test.ts) — in
+Chromium, because the bug is in `src/ui/app.ts`'s wiring between two screens and
+a test that mounts either screen alone cannot see it.
+
+The same branch cleared the one failure the suite was carrying, in
+[`../test/boundaries.test.ts`](../test/boundaries.test.ts)'s doc path check.
+That failure was the check being wrong rather than a document: the file it
+called unresolvable is really at `docs/visual/baseline/heights.json`, and the
+index of bare filenames walked `docs/` for Markdown only while `looksLikePath`
+accepted seven extensions. The suite is 935/935 from here.
+
 **Merged since that:** Release C, PR #16 (`846975c`), **battle feedback
 visuals**. Presentation only — the HP chunk and its
 shadow, the turn order jiggle, post-resolution flag words off a new pure reader
@@ -154,7 +177,48 @@ says why they are their own release.
 design, because HM teaching was going to be the move reward flow. Relics removed
 teaching entirely, so that dependency dissolved and 4.6c shipped ahead of it.
 
-## 5. Open items
+### In flight: Stage 4.8, all eight steps
+
+Branch `claude/intelligent-fermat-hzt2gb`, prompt
+[`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md),
+step 1's report [`reports/stage-4.8-report.md`](reports/stage-4.8-report.md).
+Not merged. Detail for every item is in [`generation.md`](generation.md) sections
+7b, 7c and 7d.
+
+**Both version axes moved, which the prompt did not expect.**
+`RANDOMIZER_VERSION` is `gymrun-randomizer-13` and `RUN_LOG_VERSION` is
+`gymrun-run-12`. The prompt states that the run log does not bump and gives four
+correct reasons — capacity, nicknames, death records and the score are all derived,
+and all four still are. It does not cover item 2 Part A, which hands over a
+guaranteed move at every gym through the existing move-learning flow: a `target`
+and sometimes a `replace` after every gym win, which is a changed question
+sequence. Recorded as a deviation in `generation.md` section 7c rather than by
+editing the prompt.
+
+**Three findings worth carrying forward, none of them predicted:**
+
+- **The engine's six-a-side limit fixes the top of the difficulty curve.** A curve
+  assuming a full six left `opponentTeamSize`'s clamp no headroom and flattened
+  normal, hard and elite onto one team size at the final segment — Stage 3's risk
+  gradient gone at the end of a run. `test/tiers.test.ts` was the only thing that
+  caught it. The slot schedule still reaches six; the curve's assumption stops one
+  short, written as `EXPECTED_PARTY_SIZE[last] < MAX_TEAM_SIZE`.
+- **The vitals cache collided on nickname.** `describeSpecCard` keyed on species,
+  ability, moves, level and item. Free while no spec had a name; with item 5 naming
+  every Pokemon, two identical Pidgeys would have rendered under one name on every
+  surface at once, from a single cache hit.
+- **The map's fold miss was closed by bounding, not shaving.** The `xfail` had sat
+  since Release C. Taken steps collapse to one line, the map's party cards lost
+  their move lists and went to three columns, and a step's options stopped wrapping.
+  Offered cards end at 737 of 844; `heights.json`'s `map.decisionBottom` went 728.22
+  to 669.72 and the battle did not move.
+
+**What the prompt asked for that was already built:** item 7. `partyThreats` shipped
+before this stage, more richly than the prompt specifies, and was on the map as well
+as the party screen. Step 6 therefore had no core work; the map placement was removed
+in step 7, with the three smoke checks that existed to protect it.
+
+## 5.## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
 

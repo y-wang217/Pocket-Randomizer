@@ -42,6 +42,7 @@
  * carries the same review and no cards, because they have already been taken.
  */
 import type { AcquisitionDecision, AcquisitionOffer } from '../../core/acquisition';
+import { displayName } from '../../core/nicknames';
 import {
   CARDS_ONLY_BLURB,
   CARDS_ONLY_TITLE,
@@ -58,7 +59,7 @@ import {
 import { statusChip } from '../chip';
 import { ppTotals } from '../../core/party';
 import type { RewardOffer } from '../../core/rewards';
-import type { BattleReview, RunState } from '../../core/run';
+import { partyCapacity, type BattleReview, type RunState } from '../../core/run';
 import type { BattleMemberState, PokemonState } from '../../core/types';
 import { el } from '../scene';
 import { renderSlots } from '../slots';
@@ -153,7 +154,7 @@ export function createResultScreen(): ResultScreen {
         renderSlots(
           'party',
           (review?.party ?? []).map((member) => ({
-            label: member.spec.species,
+            label: displayName(member.spec),
             item: member.item ?? null,
             detail: memberReading(member),
           })),
@@ -193,7 +194,14 @@ export function createResultScreen(): ResultScreen {
       capture.hidden = !capturePrompt;
       if (capturePrompt) {
         capture.replaceChildren(
-          renderCaptureOffer(capturePrompt.offer, capturePrompt.party, capturePrompt.onDecide),
+          renderCaptureOffer(
+            capturePrompt.offer,
+            capturePrompt.party,
+            capturePrompt.onDecide,
+            // The slots the run has now, not a constant: a capture resolving in
+            // the same segment a gym unlocked a slot must see the new one.
+            partyCapacity(state),
+          ),
         );
       } else {
         capture.replaceChildren();

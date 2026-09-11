@@ -33,7 +33,7 @@ import {
   type RunState,
 } from '../src/core/run';
 import type { ItemPlan, PokemonSpec, PokemonState, RunLog } from '../src/core/types';
-import { PARTY_SIZE } from '../src/data/partyTuning';
+import { partyCapacityAfter } from '../src/data/partyTuning';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
 const spec = (species: string, ability: string, moves: string[]): PokemonSpec =>
@@ -126,9 +126,40 @@ describe('attrition across a node boundary', () => {
 // Capacity
 // ---------------------------------------------------------------------------
 
+/**
+ * The slots a run opens with. **Stage 4.8, item 1**, was `OPENING_SLOTS`.
+ *
+ * Every fixture below is a run that has cleared no gyms, so this is the capacity
+ * all of them are sized against. `test/party-slots.test.ts` is where the bag is
+ * watched growing with the party over a whole run.
+ */
+const OPENING_SLOTS = partyCapacityAfter(0);
+
+/**
+ * Tuning whose backpack holds exactly `n` at the opening slots.
+ *
+ * `Tuning` carries the *slack* over party capacity now rather than the capacity
+ * itself — see `tuning.backpackSlack` for why the derived half cannot live there
+ * — so a fixture that wants a deliberately tight bag says the size it wants and
+ * this works out the slack. A negative slack is the honest way to express "a bag
+ * smaller than the party", which is what these cases are for and what no real
+ * tuning would ask for.
+ */
+const bagOf = (n: number) => withTuning({ backpackSlack: n - OPENING_SLOTS });
+
+/**
+ * The capacity a fixture's own tuning implies, which is what production computes.
+ *
+ * Every state here has cleared no gyms, so the slots are `OPENING_SLOTS`; the
+ * tuning is read off the state rather than assumed, because `bagOf` fixtures
+ * deliberately carry a different slack from the default.
+ */
+const capOf = (state: { tuning: typeof DEFAULT_TUNING }) =>
+  backpackCapacity(OPENING_SLOTS, state.tuning);
+
 describe('backpack capacity', () => {
-  it('defaults to party size plus two, counting loose items only', () => {
-    expect(backpackCapacity(DEFAULT_TUNING)).toBe(PARTY_SIZE + 2);
+  it('is the run\'s party slots plus the slack, counting loose items only', () => {
+    expect(backpackCapacity(OPENING_SLOTS, DEFAULT_TUNING)).toBe(OPENING_SLOTS + 2);
   });
 
   it('lets acquisition overflow, because the discard choice comes after it', () => {
@@ -140,26 +171,26 @@ describe('backpack capacity', () => {
       backpack = stow(backpack, id);
     }
     expect(backpack).toHaveLength(6);
-    expect(backpack.length).toBeGreaterThan(backpackCapacity(DEFAULT_TUNING));
+    expect(backpack.length).toBeGreaterThan(backpackCapacity(OPENING_SLOTS, DEFAULT_TUNING));
   });
 
   it('refuses a plan that leaves the backpack over capacity, rather than trimming it', () => {
     const state = {
       ...started(),
-      tuning: withTuning({ backpackCapacity: 2 }),
+      tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash'],
     };
     // Loud, because a silently trimmed backpack replays as a different run.
-    expect(() => applyItemPlan(state, plan())).toThrow(/over-capacity is resolved by discarding/i);
+    expect(() => applyItemPlan(state, plan(), capOf(state))).toThrow(/over-capacity is resolved by discarding/i);
   });
 
   it('accepts the same plan once the player has discarded down to the cap', () => {
     const state = {
       ...started(),
-      tuning: withTuning({ backpackCapacity: 2 }),
+      tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash'],
     };
-    const after = applyItemPlan(state, plan({ discards: ['lifeorb'] }));
+    const after = applyItemPlan(state, plan({ discards: ['lifeorb'] }), capOf(state));
     expect(after.backpack).toEqual(['leftovers', 'focussash']);
   });
 
@@ -167,10 +198,10 @@ describe('backpack capacity', () => {
     // The other legal answer to an overflowing bag: put something on a Pokemon.
     const state = {
       ...started(),
-      tuning: withTuning({ backpackCapacity: 2 }),
+      tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash'],
     };
-    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }));
+    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state));
     expect(after.party[0]!.item).toBe('leftovers');
     expect(after.backpack).toEqual(['lifeorb', 'focussash']);
   });
@@ -188,7 +219,7 @@ describe('no item is ever silently destroyed', () => {
       party: base.party.map((member, index) => (index === 0 ? { ...member, item: 'lifeorb' } : member)),
       backpack: ['leftovers'],
     };
-    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }));
+    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state));
 
     expect(after.party[0]!.item).toBe('leftovers');
     // The Stage 3 rule said this one was gone. It is in the bag.
@@ -202,7 +233,7 @@ describe('no item is ever silently destroyed', () => {
       party: base.party.map((member, index) => (index === 1 ? { ...member, item: 'lifeorb' } : member)),
       backpack: [],
     };
-    const after = applyItemPlan(state, plan({ assignments: [{ slot: 1, item: null }] }));
+    const after = applyItemPlan(state, plan({ assignments: [{ slot: 1, item: null }] }), capOf(state));
     expect(after.party[1]!.item).toBeUndefined();
     expect(after.backpack).toEqual(['lifeorb']);
   });
@@ -229,6 +260,7 @@ describe('no item is ever silently destroyed', () => {
           { slot: 1, item: 'leftovers' },
         ],
       }),
+      capOf(state),
     );
     expect(after.party[0]!.item).toBe('lifeorb');
     expect(after.party[1]!.item).toBe('leftovers');
@@ -252,6 +284,7 @@ describe('no item is ever silently destroyed', () => {
           { slot: 2, item: 'focussash' },
         ],
       }),
+      capOf(state),
     );
     const owned = [...after.backpack, ...after.party.flatMap((m) => (m.item ? [m.item] : []))].sort();
     expect(owned).toEqual(before);
@@ -259,18 +292,18 @@ describe('no item is ever silently destroyed', () => {
 
   it('destroys an item only on an explicit discard', () => {
     const state = { ...started(), backpack: ['leftovers', 'lifeorb'] };
-    const after = applyItemPlan(state, plan({ discards: ['leftovers'] }));
+    const after = applyItemPlan(state, plan({ discards: ['leftovers'] }), capOf(state));
     expect(after.backpack).toEqual(['lifeorb']);
   });
 
   it('refuses to discard something the run does not hold', () => {
     const state = { ...started(), backpack: ['leftovers'] };
-    expect(() => applyItemPlan(state, plan({ discards: ['masterball'] }))).toThrow(/not in the backpack/);
+    expect(() => applyItemPlan(state, plan({ discards: ['masterball'] }), capOf(state))).toThrow(/not in the backpack/);
   });
 
   it('refuses to assign an item the run does not hold', () => {
     const state = { ...started(), backpack: [] };
-    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }))).toThrow(
+    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state))).toThrow(
       /which the run does not hold/,
     );
   });
@@ -286,13 +319,14 @@ describe('no item is ever silently destroyed', () => {
             { slot: 0, item: 'lifeorb' },
           ],
         }),
+        capOf(state),
       ),
     ).toThrow(/assigns slot 0 twice/);
   });
 
   it('refuses a plan naming a slot the party does not have', () => {
     const state = { ...started(), backpack: ['leftovers'] };
-    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 9, item: 'leftovers' }] }))).toThrow(
+    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 9, item: 'leftovers' }] }), capOf(state))).toThrow(
       /names slot 9/,
     );
   });
@@ -370,7 +404,7 @@ describe('defaultItemPlan', () => {
   it('discards the oldest overflow, and only the overflow', () => {
     const state = {
       ...started(),
-      tuning: withTuning({ backpackCapacity: 1 }),
+      tuning: bagOf(1),
       party: partyOf(3).map((member) => ({ ...member, item: 'lifeorb' })),
       backpack: ['leftovers', 'focussash', 'expertbelt'],
     };
@@ -386,10 +420,10 @@ describe('defaultItemPlan', () => {
     // run on a thrown RangeError, however full the bag gets.
     const state = {
       ...started(),
-      tuning: withTuning({ backpackCapacity: 2 }),
+      tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash', 'assaultvest', 'rockyhelmet', 'expertbelt'],
     };
-    const after = applyItemPlan(state, defaultItemPlan(state));
+    const after = applyItemPlan(state, defaultItemPlan(state), capOf(state));
     expect(after.backpack.length).toBeLessThanOrEqual(2);
   });
 });
@@ -460,7 +494,7 @@ function shuffling(): RunPolicy {
       const rotated = [...pool.slice(offset), ...pool.slice(0, offset)];
       const assignments = state.party.map((_, slot) => ({ slot, item: rotated[slot] ?? null }));
       const left = rotated.slice(state.party.length);
-      const capacity = backpackCapacity(state.tuning);
+      const capacity = backpackCapacity(partyCapacityAfter(0), state.tuning);
       return { assignments, discards: left.slice(0, Math.max(0, left.length - capacity)) };
     },
   };
@@ -589,7 +623,7 @@ describe('a released member hands their item back', () => {
     const base = started('RELEASE-ITEM');
     const state: RunState = {
       ...base,
-      party: partyOf(PARTY_SIZE).map((member, index) =>
+      party: partyOf(OPENING_SLOTS).map((member, index) =>
         index === 0 ? { ...member, item: 'lifeorb' } : member,
       ),
       backpack: ['leftovers'],
@@ -609,14 +643,14 @@ describe('a released member hands their item back', () => {
 
     expect(after.backpack).toEqual(['leftovers', 'lifeorb']);
     expect(after.party.some((member) => member.spec.species === 'Pikachu')).toBe(true);
-    expect(after.party).toHaveLength(PARTY_SIZE);
+    expect(after.party).toHaveLength(OPENING_SLOTS);
   });
 
   it('conserves every item across a release, which is the property that matters', () => {
     const base = started('RELEASE-CONSERVE');
     const state: RunState = {
       ...base,
-      party: partyOf(PARTY_SIZE).map((member, index) => ({
+      party: partyOf(OPENING_SLOTS).map((member, index) => ({
         ...member,
         item: ['lifeorb', 'leftovers', 'focussash'][index],
       })),

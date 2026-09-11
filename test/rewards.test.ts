@@ -31,7 +31,7 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { applyReward, describeReward, OFFER_SIZE } from '../src/core/rewards';
+import { applyReward, describeReward, GYM_OFFER_SIZE, OFFER_SIZE } from '../src/core/rewards';
 import { moveChoice, type PokemonSpec, type RunLog, type TeamSpec } from '../src/core/types';
 import { ITEMS, itemById } from '../src/data/items';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
@@ -62,18 +62,24 @@ describe('reward offers', () => {
             continue;
           }
           /*
-           * A gym has no tier and, from Stage 4.5.2, does have an offer — it
-           * draws from a segment-keyed pool instead. It goes through the same
-           * three-distinct-options check as everything else below, because the
-           * shape of an offer is the same shape wherever it came from.
+           * A gym has no tier and, from Stage 4.5.2, does have an offer — it draws
+           * from a segment-keyed pool instead.
+           *
+           * **Stage 4.8, item 2 Part B: a gym offers two cards, not three.** It is
+           * the only offer in the game that does, the exception is recorded in
+           * `docs/generation.md` section 7c, and `test/gym-rewards.test.ts` owns
+           * the detail. The *shape* is still one `RewardOffer` and the distinctness
+           * rule below is unchanged; only the count differs, which is why this
+           * reads a per-node expectation rather than one constant.
            */
+          const expected = node.kind === 'gym' ? GYM_OFFER_SIZE : OFFER_SIZE;
           const options = node.reward?.options ?? [];
-          expect(options, `${node.id}`).toHaveLength(OFFER_SIZE);
+          expect(options, `${node.id}`).toHaveLength(expected);
           // Distinct by *content*, not by kind: two `item` cards are a fine
           // offer as long as they are two different items. Two identical cards
           // are a choice of three printed as a choice of two.
           const signatures = options.map((option) => JSON.stringify(option));
-          expect(new Set(signatures).size, `${node.id} repeats a card`).toBe(OFFER_SIZE);
+          expect(new Set(signatures).size, `${node.id} repeats a card`).toBe(expected);
         }
       }
     }
@@ -163,8 +169,9 @@ describe('reward determinism', () => {
     // The decision docs/generation.md records, at the level a player would
     // notice it: the three cards were fixed when the map was built, so how the
     // battle went cannot have moved them.
-    for (const { offer } of offersOf('REW-EAGER')) {
-      expect(offer.options).toHaveLength(OFFER_SIZE);
+    for (const { node, offer } of offersOf('REW-EAGER')) {
+      // Stage 4.8: a gym's offer is two cards. See the shape test above.
+      expect(offer.options).toHaveLength(node.kind === 'gym' ? GYM_OFFER_SIZE : OFFER_SIZE);
     }
   });
 

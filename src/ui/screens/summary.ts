@@ -25,9 +25,22 @@ import { describeSpecCard, describeMove } from '../../core/battle/driver';
 import { offensiveCoverage } from '../../core/coverage';
 import { routeAt } from '../../core/encounters';
 import { hpState } from '../../core/hpCopy';
-import { causeOfDeath, gymsCleared, type CauseOfDeath, type RunResult, type RunState } from '../../core/run';
+import {
+  causeOfDeath,
+  gymsCleared,
+  partyCapacity,
+  type CauseOfDeath,
+  type RunResult,
+  type RunState,
+} from '../../core/run';
 import { GYMS } from '../../data/gyms';
+import { deathsFrom, type DeathRecord } from '../../core/graveyard';
+import { displayName } from '../../core/nicknames';
+import { scoreRun, type ScoreBreakdown, type ScoreComponent } from '../../core/scoring';
+import { nextSlotUnlock } from '../../data/partyTuning';
+import { deathLine, shareText, type ShareView } from '../copy/share';
 import { localeById } from '../../data/locales';
+import { relicById } from '../../data/relics';
 import { WHEEL_TYPES } from '../../core/battle/driver';
 import { neutralChip, typeChip } from '../chip';
 import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
@@ -75,12 +88,55 @@ export function createSummary(): Summary {
   copy.type = 'button';
   copy.className = 'button button--hollow';
   copy.textContent = 'Copy seed';
+  const share = document.createElement('button');
+  share.type = 'button';
+  share.className = 'button button--hollow';
+  share.textContent = 'Copy result';
   const fresh = document.createElement('button');
   fresh.type = 'button';
   fresh.className = 'button button--hollow';
   fresh.textContent = 'New seed';
   const actions = el('div', 'summary__actions');
-  actions.append(replay, copy, fresh);
+  actions.append(replay, copy, share, fresh);
+
+  /*
+   * **The score, and the only screen it may appear on. Stage 4.8, item 4.**
+   *
+   * Score is the game's judgement of a finished run, which is exactly why it may
+   * only appear once the run is finished. On a node card it would price a decision
+   * the player has not made; `test/scoring.test.ts` asserts per surface that no
+   * card, badge or map can reach the module at all.
+   *
+   * The components are listed, never only the total: "why did I score that" is the
+   * whole reason a player looks, and a number nobody can take apart is not an
+   * answer. A zero-weighted row is rendered too — see `data/scoring.ts`.
+   */
+  const scoreHeading = el('h3', 'summary__section');
+  scoreHeading.textContent = 'Score';
+  const scoreTotal = el('p', 'summary__score-total');
+  const scoreRows = el('ol', 'summary__score');
+  scoreRows.setAttribute('aria-label', 'Score, by component');
+
+  /*
+   * **The slot readout. Stage 4.8, item 1.**
+   *
+   * Three attributes of the board: what the run carried, what it could carry, and
+   * which gym would have widened it. Part 4 governs the sentence that is *not*
+   * here — nothing about whether a slot should have been saved.
+   */
+  const slots = el('p', 'summary__slots');
+
+  /*
+   * **The graveyard. Stage 4.8, item 5.**
+   *
+   * Run order, factual entries only. No "unlucky", no counterfactual, no advice
+   * about what would have survived. `core/graveyard.ts` builds the records and
+   * `ui/copy/share.ts` writes the line, so the screen and the clipboard cannot
+   * drift into saying different things about the same death.
+   */
+  const graveHeading = el('h3', 'summary__section');
+  graveHeading.textContent = 'Fell in battle';
+  const grave = el('ol', 'summary__grave');
 
   const teamHeading = el('h3', 'summary__section');
   teamHeading.textContent = 'Final party';
@@ -92,10 +148,33 @@ export function createSummary(): Summary {
   nodesHeading.textContent = 'The run';
   const list = el('ol', 'summary__nodes');
 
-  card.append(outcome, count, detail, seedRow, route, tiers, cause, actions, teamHeading, team, coverageHeading, coverage, nodesHeading, list);
+  card.append(
+    outcome,
+    count,
+    detail,
+    seedRow,
+    route,
+    tiers,
+    cause,
+    actions,
+    scoreHeading,
+    scoreTotal,
+    scoreRows,
+    slots,
+    teamHeading,
+    team,
+    graveHeading,
+    grave,
+    coverageHeading,
+    coverage,
+    nodesHeading,
+    list,
+  );
   root.append(card);
 
   let seed = '';
+  /** The clipboard text for the run on screen, rebuilt on every render. */
+  let shareable = '';
 
   copy.addEventListener('click', () => {
     // Best effort, and a visible fallback. `navigator.clipboard` is absent on
@@ -123,6 +202,33 @@ export function createSummary(): Summary {
     );
   });
 
+  /*
+   * **One tap puts the whole run on the clipboard. Stage 4.8, item 6.**
+   *
+   * Same best-effort shape as the seed button above and for the same reasons:
+   * `navigator.clipboard` is absent on insecure origins and rejects when the page
+   * is not focused. The fallback differs because the payload does — there is no
+   * element holding the full text to select, so the button says what happened and
+   * the seed remains separately copyable.
+   */
+  share.addEventListener('click', () => {
+    const done = (ok: boolean): void => {
+      share.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(() => {
+        share.textContent = 'Copy result';
+      }, 1500);
+    };
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard || !shareable) {
+      done(false);
+      return;
+    }
+    clipboard.writeText(shareable).then(
+      () => done(true),
+      () => done(false),
+    );
+  });
+
   return {
     root,
     render(result) {
@@ -145,9 +251,29 @@ export function createSummary(): Summary {
       // Absent on victory: hidden, and empty, so nothing reads a stale line.
       cause.hidden = !death;
 
-      team.replaceChildren(...state.party.map((member, index) => renderMember(member, index, state.tuning)));
+      const score = scoreRun(state);
+      scoreTotal.replaceChildren(numberOf(score.total));
+      scoreTotal.setAttribute('aria-label', `${score.total} points`);
+      scoreRows.replaceChildren(...score.components.map(renderScoreRow));
+
+      const capacity = partyCapacity(state);
+      const next = nextSlotUnlock(cleared);
+      slots.textContent = next
+        ? `Party slots: ${capacity}. Next slot at gym ${next.atGym}.`
+        : `Party slots: ${capacity}.`;
+
+      team.replaceChildren(...state.party.map(renderMember));
+
+      const deaths = deathsFrom(state);
+      grave.replaceChildren(...deaths.map(renderDeath));
+      // Hidden rather than empty on a run that lost nobody: a heading over nothing
+      // reads as a screen that failed to load.
+      graveHeading.hidden = deaths.length === 0;
+      grave.hidden = deaths.length === 0;
+
       coverage.replaceChildren(renderCoverage(state));
       list.replaceChildren(...state.history.map((visit) => renderVisit(visit, state)));
+      shareable = shareText(shareViewOf(state, result.outcome, cleared, score, deaths));
     },
     onReplaySeed: (handler) => replay.addEventListener('click', () => handler(seed)),
     onNewSeed: (handler) => fresh.addEventListener('click', () => handler()),
@@ -267,7 +393,9 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
 
   const header = el('div', 'summary__member-header');
   const name = el('span', 'starter__name');
-  name.textContent = detail.species;
+  // Stage 4.8, item 5: the nickname, which `SpecCard.name` carries. A member the
+  // graveyard names as Bramble must be Bramble in the final party beside it.
+  name.textContent = detail.name;
   const level = el('span', 'starter__level');
   level.textContent = `Lv${detail.level}`;
   const types = el('span', 'panel__types');
@@ -405,4 +533,70 @@ function renderVisit(visit: RunState['history'][number], state: RunState): HTMLE
 
   row.append(segment, label, outcome, hp);
   return row;
+}
+
+/**
+ * One score row: what was counted, and what it paid.
+ *
+ * A zero-weighted row renders too, and renders *as* a zero rather than being
+ * dimmed or footnoted — `turns` is real data the run produced and the player is
+ * entitled to see that it counted for nothing this patch.
+ */
+function renderScoreRow(component: ScoreComponent): HTMLElement {
+  const row = el('li', 'summary__score-row');
+  const label = el('span', 'summary__score-label');
+  label.textContent = component.label;
+  const count = el('span', 'summary__score-count');
+  count.textContent = String(component.count);
+  const points = el('span', 'summary__score-points');
+  points.textContent = String(component.points);
+  row.append(label, count, points);
+  return row;
+}
+
+/**
+ * One tombstone.
+ *
+ * The line comes from `ui/copy/share.ts`, which is also what the clipboard gets,
+ * so the screen and the paste cannot drift into describing the same death two ways.
+ */
+function renderDeath(death: DeathRecord): HTMLElement {
+  const row = el('li', 'summary__grave-row');
+  row.textContent = deathLine(death);
+  return row;
+}
+
+/** Everything `shareText` needs, read off the finished run. */
+function shareViewOf(
+  state: RunState,
+  outcome: 'victory' | 'defeat',
+  cleared: number,
+  score: ScoreBreakdown,
+  deaths: readonly DeathRecord[],
+): ShareView {
+  return {
+    seed: state.seed,
+    outcome,
+    gymsCleared: cleared,
+    gymTotal: GYMS.length,
+    score,
+    party: state.party.map((member) => ({
+      nickname: displayName(member.spec),
+      species: member.spec.species,
+      level: member.spec.level,
+    })),
+    deaths,
+    relics: state.relics.map((id) => relicById(id)?.name ?? id),
+    /*
+     * The locales the run actually walked, in order, skipping segments it never
+     * reached. `localeOf` is per-current-segment, so this reads the choices
+     * directly — the same list the route band above draws from.
+     */
+    locales: state.localeChoices.flatMap((choice, index) => {
+      if (choice == null) return [];
+      const route = state.segments[index]?.routes[choice];
+      const locale = route ? localeById(route.locale) : null;
+      return locale ? [locale.name] : [];
+    }),
+  };
 }

@@ -29,7 +29,6 @@ import {
   type RunState,
 } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
-import { PARTY_SIZE } from '../src/data/partyTuning';
 
 /**
  * A policy that varies its answers but keeps no state of its own.
@@ -72,8 +71,9 @@ function wobbling(): RunPolicy {
     // Takes everything, releasing the lead once full. The most destructive
     // legal answer, so a replay that reproduces it has reproduced the party
     // churning rather than a party that only ever grew.
-    chooseAcquisition: async (_offer, party) =>
-      party.length < PARTY_SIZE ? { kind: 'accept' } : { kind: 'release', slot: 0 },
+    chooseAcquisition: async (_offer, party, capacity) =>
+      // Stage 4.8: live capacity, handed in by `playRun`.
+      party.length < capacity ? { kind: 'accept' } : { kind: 'release', slot: 0 },
     chooseItemPlan: async (state) => defaultItemPlan(state),
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
