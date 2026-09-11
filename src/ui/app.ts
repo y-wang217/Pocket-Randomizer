@@ -32,7 +32,9 @@ import {
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
-import { getVerbosity, initSettings, onSettingsChange, setVerbosity } from './settings';
+import { getVerbosity, initSettings, onSettingsChange, resetTutorial, setVerbosity } from './settings';
+import { createTutorial } from './tutorial';
+import { TUTORIAL_COPY, TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el } from './scene';
@@ -167,7 +169,8 @@ export function mountApp(root: HTMLElement): void {
   const drawerTrigger = drawer.trigger();
   drawerBar.append(drawerTrigger);
 
-  shell.append(createHeader(), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  const replayTutorial = document.createElement('button');
+  shell.append(createHeader(replayTutorial), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
 
   /** Surfaces that ask for a decision and have a party to show while asking. */
   const DRAWER_SURFACES: readonly ScreenName[] = [
@@ -196,6 +199,7 @@ export function mountApp(root: HTMLElement): void {
     // Closing on navigation, not on open: a drawer left open across a screen
     // change would be an overlay over a decision the player has already made.
     drawer.close();
+    showTutorialFor(name);
   };
 
   /*
@@ -217,6 +221,16 @@ export function mountApp(root: HTMLElement): void {
     const view = readDrawer();
     if (!view) return;
     drawer.open({ ...view, inBattle: router.current() === 'battle' });
+    tutorial.showFor('drawer', drawer.root);
+  });
+
+  // "Show tutorial again": the flags go back to a first launch and the screen
+  // on view gets its marks now rather than on its next visit.
+  replayTutorial.addEventListener('click', () => {
+    resetTutorial();
+    const name = router.current();
+    if (name) showTutorialFor(name);
+    if (drawer.isOpen()) tutorial.showFor('drawer', drawer.root);
   });
   root.replaceChildren(world.root, shell);
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
@@ -256,6 +270,23 @@ export function mountApp(root: HTMLElement): void {
    * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
   createTooltips(shell);
+
+  /*
+   * The coach marks, one layer for the whole app, mounted once like the
+   * tooltips. A screen's marks are asked for the moment it is shown, after
+   * its render has landed (the microtask), and the party drawer asks for its
+   * own when it opens. Presentation only: nothing here touches run state.
+   */
+  const tutorial = createTutorial(shell);
+  const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
+  const showTutorialFor = (name: ScreenName): void => {
+    if (!isTutorialScreen(name)) return;
+    const screen = router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`);
+    if (!screen) return;
+    queueMicrotask(() => {
+      if (router.current() === name) tutorial.showFor(name, screen);
+    });
+  };
 
   /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;
@@ -767,14 +798,35 @@ export function mountApp(root: HTMLElement): void {
   else void start(newSeed());
 }
 
-function createHeader(): HTMLElement {
+function createHeader(replayTutorial: HTMLButtonElement): HTMLElement {
   const header = el('header', 'header');
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
   subtitle.textContent = `Stage 4.8 · ${GYMRUN_FORMAT} · a roster that grows, caught in eight regions, and scored`;
-  header.append(title, subtitle, createVerbosityToggle());
+  header.append(title, subtitle, createVerbosityToggle(), createTutorialControls(replayTutorial));
   return header;
+}
+
+/**
+ * The tutorial's one header control: show it again. **Presentation only.**
+ *
+ * Beside the Detail toggle because it is the same kind of thing — a reading
+ * preference a player sets once — and because the coach marks are written
+ * against Detailed mode, so the two belong in one place. "Skip tutorial"
+ * lives on the first mark itself, where a player meets it; a skip control in
+ * the header would be offered to players who have nothing to skip.
+ */
+function createTutorialControls(replay: HTMLButtonElement): HTMLElement {
+  const wrap = el('div', 'tutorial-controls');
+  const label = el('span', 'verbosity__label');
+  label.textContent = 'Tutorial';
+  replay.type = 'button';
+  replay.className = 'button button--small tutorial__replay';
+  replay.textContent = TUTORIAL_COPY.replay;
+  replay.dataset['tutorialReplay'] = 'true';
+  wrap.append(label, replay);
+  return wrap;
 }
 
 /**

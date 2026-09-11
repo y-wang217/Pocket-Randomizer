@@ -12,6 +12,10 @@ export function playUntil(
   predicate: (screen: string, page: Page) => boolean | Promise<boolean>,
   maxSteps?: number,
 ): Promise<string>;
+/** A fresh store with the tutorial skipped, as JSON. See browser.mjs. */
+export const TUTORIAL_SKIPPED_SETTINGS: string;
+/** Seed a context's storage so the coach marks do not show. `openApp` does this unless asked not to. */
+export function skipTutorialIn(context: BrowserContext): Promise<void>;
 export function openApp(
   browser: Browser,
   url: string,

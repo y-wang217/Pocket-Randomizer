@@ -113,6 +113,60 @@ body {
   line-height: 1.4;
 }
 
+/* ---------- tutorial coach marks (overnight Branch 3) ---------- */
+
+.coach {
+  position: fixed;
+  z-index: 45;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: var(--space-2h) var(--space-3);
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--emphasis);
+  border-radius: var(--radius-card);
+  box-shadow: 0 var(--space-2h) var(--space-8) var(--shadow);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  cursor: pointer;
+  transition: top 160ms ease, left 160ms ease;
+}
+
+.coach__title {
+  margin: 0 0 var(--space-1h);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.coach__text { margin: 0 0 var(--space-2); color: var(--text); }
+
+.coach__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.coach__progress {
+  flex: 1;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The thing being pointed at. An outline, not a fill: the element keeps its own face. */
+[data-coach-target] {
+  outline: var(--space-h) solid var(--emphasis);
+  outline-offset: var(--space-h);
+  transition: outline-color 160ms ease;
+}
+
+.tutorial-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
 .seedbar__input:focus-visible,
 .button:focus-visible,
 .move:focus-visible {
@@ -2390,6 +2444,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 @media (prefers-reduced-motion: reduce) {
   .hp__fill, .move, .log, .starter, .node--current { transition: none; scroll-behavior: auto; }
+  .coach, [data-coach-target] { transition: none; }
   /* Release C: the chunk resolves instantly rather than fading, and the panels
      do not move. Both resting states are the animations' own end states, so
      "instant" here means the thing the animation would have arrived at, not a

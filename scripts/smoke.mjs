@@ -86,7 +86,23 @@ const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 const PINNED = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium'];
 const executablePath = PINNED.find((candidate) => existsSync(candidate));
 const browser = await chromium.launch(executablePath ? { executablePath } : {});
+/*
+ * The tutorial's coach marks show on a first launch, which a fresh browser is.
+ * They are tappable panels over the screen and this script clicks by selector,
+ * so the store is seeded with the tutorial skipped, the same way the visual
+ * harness seeds its contexts. The tutorial has its own browser test.
+ */
+const TUTORIAL_SKIPPED = JSON.stringify({ verbosity: 'detailed', tutorial: { skipped: true, seen: [] } });
+const skipTutorial = (target) =>
+  target.addInitScript((settings) => {
+    try {
+      if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
+    } catch {
+      // Storage unavailable: defaults apply.
+    }
+  }, TUTORIAL_SKIPPED);
 const page = await browser.newPage();
+await skipTutorial(page);
 const problems = [];
 page.on('console', (msg) => {
   if (msg.type() !== 'error') return;
@@ -814,6 +830,7 @@ const phone = await browser.newPage({
   isMobile: true,
   hasTouch: true,
 });
+await skipTutorial(phone);
 await phone.goto(url, { waitUntil: 'load' });
 await phone.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
 

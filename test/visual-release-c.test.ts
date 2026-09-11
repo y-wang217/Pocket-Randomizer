@@ -23,7 +23,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { openApp, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import { openApp, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { openHarness, type Harness } from './visual/harness';
 
@@ -121,6 +121,7 @@ describe('the one tuning number reaches the screen', () => {
 describe('reduced motion', () => {
   it('resolves every animation instantly and still prints every flag', async () => {
     const reduced = await harness.browser.newContext({ viewport: PHONE, reducedMotion: 'reduce' });
+    await skipTutorialIn(reduced);
     const page = await reduced.newPage();
     await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });

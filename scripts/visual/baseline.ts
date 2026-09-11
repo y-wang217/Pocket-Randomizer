@@ -20,9 +20,11 @@
  * prompts name. GYMRUN01, SEED-A and SEED-B are the determinism suite's. The
  * RESULT seeds are the result-screen suite's, kept because they are short.
  */
-import { createHash } from 'node:crypto';
+
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
+
+import { contentHashOf } from '../../build-config/content-hash';
 
 import { AI_VERSION, greedyAiPolicy } from '../../src/core/battle/ai';
 import { ENGINE_VERSION, runBattle, stripNondeterministic } from '../../src/core/battle/driver';
@@ -53,21 +55,19 @@ function walk(dir: string): string[] {
 }
 
 /**
- * A digest over `src/data/`. **Not `contentHash`.** That is its own release
- * (docs/generation.md section 9) and is not to be built as a side effect of
- * anything else. This is a plain sha256 over the source bytes of the data
- * tables, so a stage can assert it did not touch them, and nothing reads it
- * but this script.
+ * The data digest **is `contentHash`** since overnight Branch 3.
+ *
+ * Until Branch 1 built the hash this was a plain sha256 over every file under
+ * `src/data/`, so a presentation stage could assert it touched no table. That
+ * instrument hashed copy files too, and Branch 3 added `data/tutorial.ts` —
+ * copy, on the hash's exclusion list, read by `ui/` only — which moved the
+ * digest without moving anything a seed reads. The axis the baseline exists
+ * to hold still is the one `core/contentHash.ts` carries, so the digest reads
+ * that: a presentation stage moves it exactly when it moves the version axis,
+ * and never for a reworded tooltip or a new coach mark.
  */
 export function dataDigest(): string {
-  const hash = createHash('sha256');
-  for (const file of walk(join(ROOT, 'src/data'))) {
-    hash.update(relative(ROOT, file));
-    hash.update('\0');
-    hash.update(readFileSync(file));
-    hash.update('\0');
-  }
-  return hash.digest('hex');
+  return contentHashOf(ROOT);
 }
 
 async function recordRun(seed: string): Promise<string> {
