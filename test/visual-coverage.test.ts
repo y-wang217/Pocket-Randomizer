@@ -72,7 +72,7 @@ async function capture(surface: GallerySurface, mode: Density): Promise<string> 
   const page = await context.newPage();
   const problems: string[] = [];
   page.on('pageerror', (error) => problems.push(error.message));
-  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=${mode}&fixture=worst`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=${mode}&fixture=loaded`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await settle(page);
   expect(problems, `${surface} in ${mode} threw`).toEqual([]);

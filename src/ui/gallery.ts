@@ -106,14 +106,16 @@ async function main(): Promise<void> {
   const density = params.get('density');
   if (isDensity(density)) setDensity(density);
   /*
-   * `fixture=worst` renders the constructed worst case (`ui/gallery-fixtures.ts`,
-   * ruling 3) on the surfaces that have a walked state as well: the result
-   * screen's two shapes take the party the seed's own run had at that
-   * moment, and the loaded board stops the turn both panels are loaded. The
-   * density gates ask for the worst case; the V4 and V5 suites, written
-   * against the walked state, keep measuring what they measured.
+   * `fixture=loaded` renders the constructed worst case (`ui/gallery-fixtures.ts`,
+   * ruling 3) under the app's whole chrome — header, seed bar, drawer bar —
+   * which is the page the Pocket gate measures. Without it the gallery is
+   * what it was before the density modes patch: the screen alone in the
+   * shell, in the walked state (the result screen's two shapes take the party
+   * the seed's own run had at that moment, and the loaded board stops the
+   * turn both panels are loaded). The V4 and V5 suites were written against
+   * that instrument and keep measuring what they measured.
    */
-  const worst = params.get('fixture') === 'worst';
+  const loaded = params.get('fixture') === 'loaded';
   applyDensity(getDensity());
   onSettingsChange((settings) => applyDensity(settings.density));
   applyMotion(document.documentElement);
@@ -162,7 +164,8 @@ async function main(): Promise<void> {
   const drawerBar = el('div', 'shell__drawer-bar');
   drawerBar.append(drawer.trigger());
   const replayTutorial = document.createElement('button');
-  shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  else shell.append(router.root, drawer.root, stamps.root);
   root.replaceChildren(world.root, shell);
   createTooltips(shell);
 
@@ -220,7 +223,7 @@ async function main(): Promise<void> {
     case 'battle':
     case 'log-sheet': {
       const state = openingState(seed);
-      mountLoadedBattle(battleScreen, seed, worst ? state.party : [], { history: worst && surface === 'log-sheet' });
+      mountLoadedBattle(battleScreen, seed, loaded ? state.party : [], { history: loaded && surface === 'log-sheet' });
       applyLocale(localeOf(state));
       stamp(state);
       show('battle');
@@ -230,12 +233,12 @@ async function main(): Promise<void> {
     case 'result':
     case 'result-capture': {
       const { offer, capture, last } = await harvestOffers(seed);
-      // Worst case: the party as the fight left it is the six-member party,
+      // Loaded: the party as the fight left it is the six-member party,
       // hurt and statused, and the fight's own numbers come from the played
       // review. Walked: the run's own state at its first three-card offer.
-      const state = worst ? lateState(seed) : (offer?.state ?? last);
-      const review: BattleReview | null = offer ? (worst ? { ...offer.review, party: state.party } : offer.review) : null;
-      const captureParty = worst ? state.party : (capture?.party ?? state.party);
+      const state = loaded ? lateState(seed) : (offer?.state ?? last);
+      const review: BattleReview | null = offer ? (loaded ? { ...offer.review, party: state.party } : offer.review) : null;
+      const captureParty = loaded ? state.party : (capture?.party ?? state.party);
       applyLocale(localeOf(state));
       stamp(state);
       if (surface === 'result') {

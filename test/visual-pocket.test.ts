@@ -46,7 +46,7 @@ async function open(surface: GallerySurface): Promise<{ page: Page; close: () =>
   // so a missing one moves nothing this file measures.
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
-  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=pocket&fixture=worst`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=pocket&fixture=loaded`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await page.evaluate(() => globalThis.document.fonts.ready);
   await page.mouse.move(0, 0);
