@@ -31,8 +31,9 @@ import {
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
-import { initSettings, onSettingsChange, resetTutorial } from './settings';
+import { initSettings, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
+import { createDensityGuard } from './density-guard';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
@@ -72,12 +73,13 @@ export function mountApp(root: HTMLElement): void {
    * before any screen is built, rather than the first frame rendering in the
    * default and flipping.
    *
-   * `onSettingsChange` here rather than inside a run, and unsubscribed nowhere,
-   * because the mode outlives every run: it is written onto `<html>` and read
-   * only by the stylesheet, so a screen drawn before a toggle, after it, or
-   * while it happens is correct without anything re-rendering. That is the
-   * difference from what this replaced — a subscription that redrew the map and
-   * the party screen and left the drawer, pre-gym, reward, summary and battle
+   * The subscription lives in the guard below (`ui/density-guard.ts`), at
+   * the shell rather than inside a run, and is unsubscribed nowhere, because
+   * the mode outlives every run: it is written onto `<html>` and read only by
+   * the stylesheet, so a screen drawn before a change, after it, or while it
+   * happens is correct without anything re-rendering. That is the difference
+   * from what this replaced — a subscription that redrew the map and the
+   * party screen and left the drawer, pre-gym, reward, summary and battle
    * screens showing the mode they were built in. Nothing registers with this
    * and nothing can forget to.
    *
@@ -86,7 +88,9 @@ export function mountApp(root: HTMLElement): void {
    * per-screen registration in this router.
    */
   applyDensity(initSettings().density);
-  onSettingsChange((settings) => applyDensity(settings.density));
+  // The subscription itself is the tutorial's guard, created with the layer
+  // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
+  // screen's marks are up.
   /*
    * The one battle-feedback duration, from `data/tuning.ts` onto the root.
    *
@@ -207,7 +211,7 @@ export function mountApp(root: HTMLElement): void {
     const view = readDrawer();
     if (!view) return;
     drawer.open({ ...view, inBattle: router.current() === 'battle' });
-    tutorial.showFor('drawer', drawer.root);
+    marks.showFor('drawer', drawer.root);
   });
 
   // "Show tutorial again": the flags go back to a first launch and the screen
@@ -216,7 +220,7 @@ export function mountApp(root: HTMLElement): void {
     resetTutorial();
     const name = router.current();
     if (name) showTutorialFor(name);
-    if (drawer.isOpen()) tutorial.showFor('drawer', drawer.root);
+    if (drawer.isOpen()) marks.showFor('drawer', drawer.root);
   });
   root.replaceChildren(world.root, shell);
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
@@ -272,13 +276,20 @@ export function mountApp(root: HTMLElement): void {
    * own when it opens. Presentation only: nothing here touches run state.
    */
   const tutorial = createTutorial(shell);
+  /*
+   * Ruling 6 on the density modes patch: Detailed on the root while a
+   * screen's unseen marks are up, applied before the marks resolve their
+   * anchors, the stored mode back when they finish or Skip fires. Every
+   * `showFor` goes through the guard so no path shows a mark in Pocket.
+   */
+  const marks = createDensityGuard(tutorial);
   const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
   const showTutorialFor = (name: ScreenName): void => {
     if (!isTutorialScreen(name)) return;
     const screen = router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`);
     if (!screen) return;
     queueMicrotask(() => {
-      if (router.current() === name) tutorial.showFor(name, screen);
+      if (router.current() === name) marks.showFor(name, screen);
     });
   };
 

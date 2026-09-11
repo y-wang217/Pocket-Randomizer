@@ -46,6 +46,7 @@ import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
 import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
+import { createDensityGuard } from './density-guard';
 import { createDrawer } from './drawer';
 import {
   anyShop,
@@ -58,6 +59,8 @@ import {
 } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
 import { createHeader } from './header';
+import { createTutorial } from './tutorial';
+import type { TutorialScreen } from '../data/tutorial';
 import { itemLayoutOf } from './party-layout';
 import { createWorldScene, el } from './scene';
 import { createBattleScreen } from './screens/battle';
@@ -339,8 +342,37 @@ async function main(): Promise<void> {
     }
   }
 
+  /*
+   * `tutorial=fresh`: the coach marks, as a first launch would show them on
+   * this surface, through the same guard the app uses (`ui/density-guard.ts`).
+   * `test/visual-tutorial-guard.test.ts` reads how many marks the layer
+   * shows against how many have an anchor on the page: the assertion
+   * ruling 6 asked for, that no mark is ever dropped without a trace.
+   */
+  if (params.get('tutorial') === 'fresh') {
+    const screen = TUTORIAL_SURFACE[surface];
+    if (screen) {
+      const marks = createDensityGuard(createTutorial(shell));
+      const within = screen === 'drawer' ? drawer.root : router.root.querySelector<HTMLElement>(`.screen[data-screen="${screen}"]`);
+      if (within) marks.showFor(screen, within);
+    }
+  }
+
   document.documentElement.dataset['galleryReady'] = 'true';
 }
+
+/** Which tutorial screen a surface is, for the surfaces that have marks. */
+const TUTORIAL_SURFACE: Readonly<Partial<Record<GallerySurface, TutorialScreen>>> = {
+  starter: 'starter',
+  locale: 'locale',
+  map: 'map',
+  battle: 'battle',
+  result: 'result',
+  'result-capture': 'result',
+  party: 'party',
+  'pre-gym': 'pre-gym',
+  drawer: 'drawer',
+};
 
 /**
  * The result screen's two decision points, from a real run of the seed: the
