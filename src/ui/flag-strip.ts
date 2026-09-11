@@ -73,6 +73,7 @@ export interface FlagStrip {
 
 export function createFlagStrip(): FlagStrip {
   const root = el('div', 'flags');
+  root.dataset['tutorial'] = 'flags';
   /*
    * A live region, because the strip is the one place a turn's outcome is
    * stated as words rather than narrated. A screen reader that only had the

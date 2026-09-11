@@ -42,6 +42,7 @@ export interface SeedBar {
 
 export function createSeedBar(): SeedBar {
   const root = el('form', 'seedbar');
+  root.dataset['tutorial'] = 'seed';
   const label = el('label', 'seedbar__label');
   label.textContent = 'Seed';
 
