@@ -58,6 +58,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-stage-v5-preflight-reconcile-execute.md`](gymrun-stage-v5-preflight-reconcile-execute.md) | stage prompt | `active` | | the V5 run: preflight, the seven amendments to the plan's V5 section, then the plan's own step order. All six steps built; report `../visual/reports/v5-battle-stage.md`, deviations `../generation.md` section 12d |
 | [`gymrun-patch-4.7.2-font-stats-verbosity.md`](gymrun-patch-4.7.2-font-stats-verbosity.md) | patch prompt | `active` | | brief plus the rulings on its report, both verbatim. All five steps built on `claude/cool-dijkstra-apme8u`; report [`../visual/reports/patch-4.7.2.md`](../visual/reports/patch-4.7.2.md), deviations `../generation.md` sections 12e and 12f |
 | [`gymrun-stage4.8-claude-code-prompt.md`](gymrun-stage4.8-claude-code-prompt.md) | stage prompt | `active` | | committed 2026-09-10 before its report. Step 1 report `../reports/stage-4.8-report.md`; step 2 (party slot unlocks) built, `RANDOMIZER_VERSION` 13; steps 3-8 open |
+| [`gymrun-patch-4.8.0.1-species-stays-the-label.md`](gymrun-patch-4.8.0.1-species-stays-the-label.md) | patch prompt | `draft` | | committed 2026-09-11 before its report. The prompt says report first, and the report is the hard stop; no UI edit until it is reviewed |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
