@@ -1282,7 +1282,7 @@ a conclusion per choice at all three bands naming the standing and what it
 did, and the capability and band labels the map card and the event screen
 both print. It is read by `ui/` only and is on the `contentHash` exclusion
 list, so a reworded sentence moves no seed. The authored hint stays the
-`latent` hint, because any byte in `events.ts` moves the hash.
+`latent` hint, because any byte in `data/events.ts` moves the hash.
 
 **Still open, for a patch that moves `RANDOMIZER_VERSION`:** the 4.6c prompt
 described `latent` as its own payout table — a larger heal, a held item, a move
@@ -1798,6 +1798,16 @@ that moved it, and that re-recording is the deviation: the equality gate
 cannot pass otherwise. Runs, the battle protocol and `data-digest.txt` are
 byte identical.
 
+**One line the guarded heights did not see.** V5's loaded board (a status and
+a stage chip on both sides) went from 591.5 to 604.5 against its 600 ceiling,
+all of it a status move's one-line readout — `Raises Attack by 2 stages` —
+taking a third line, because the monospace face sets 25 characters at 150.5px
+where the pixel face set them at 129 and the button face is 150. The readout
+line alone now runs one spacing step into the button's side padding on each
+side, 166px, which is the character count the old face fitted; nothing else
+on the button moves, and the loaded board is 591.5 again, identical to the
+base. `visual/reports/patch-4.8.0.2.md` section 2.1.
+
 **Two rulings from 4.7.2 that this patch reverses, named so nobody
 rediscovers them.** Ruling 3 (Detailed shows the bar and the number together)
 is reversed: Detailed shows the number alone and Simple the bar alone, the
@@ -1810,5 +1820,5 @@ explanations.
 
 **Copy for the capability events lives outside the hash.** Section 10 has the
 dated note. `src/data/eventCopy.ts` joins the exclusion list on the same rule
-as `tierInfo.ts` and `tutorial.ts`: nothing under `core/` imports it, so a
+as `data/tierInfo.ts` and `data/tutorial.ts`: nothing under `core/` imports it, so a
 reworded sentence moves nothing.

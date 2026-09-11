@@ -116,6 +116,32 @@ it; `generation.md` §12i is the deviation note. The stat rule (section 3), the
 recipient card (section 5) and the event screen (section 6) draw on no
 guarded screen and moved nothing.
 
+### 2.1 The loaded board, and the one line that wrapped
+
+The first full suite failed one layout assertion the guarded heights do not
+cover: V5's loaded board — a status and a stage chip on both sides, gallery
+seed `V5-LOADED-1` — measured **604.5 against its 600 ceiling**. Measured
+against the same gallery built from `1869ca9`, row by row:
+
+| | base | patched |
+|---|---|---|
+| battle screen | 591.5 | 604.5 |
+| both panels | 121 each | 121 each |
+| move grid, first row | 109.5 | **122.5** |
+| move grid, second row | 117 | 117 |
+
+The whole 13px is one line: Swords Dance's status readout, `Raises Attack by
+2 stages`, is 25 characters, and at 10px the monospace face sets it at about
+150.5px against a 150px button face. The pixel face set the same string at
+129px. So the readout took a third line on the two status moves in that row,
+and nothing else on the board moved by a pixel.
+
+The fix is one declaration on `.move__effect`: `margin-inline` of one negative
+step, so the readout line alone runs 166px wide — 27 characters, the count the
+old face fitted — and no other line on the button moves. The loaded board
+reads **591.5, identical to the base**, and the guarded heights are unchanged
+to the pixel.
+
 ## 3. Stats: Detailed is numbers, Simple is bars
 
 One rule beside 4.7.2's two:
