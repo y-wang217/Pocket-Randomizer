@@ -680,3 +680,247 @@ pixel.** Detailed gained a bar per row and lost nothing: the bar takes the
 `flex: 1` remainder of a row whose height was already set by its text, and
 `.stat__value`'s reserved `3ch` from step 1 is what stops the six bars starting
 at six different x positions now that they share the row with a number.
+
+---
+
+## 5. Move explanations
+
+### 5.1 `describeMove` was already there
+
+Nothing was added to `core/`. `describeMove` has returned the full Release B
+`MoveExplanation` since Stage 4.7 Part 6 — pure, no RNG, no DOM, structured
+fields with absent ones omitted, `band` read from `bandOfMove` and never
+recomputed. `moveCardData` has been carrying it to every off-battle surface with
+no reader. Step 5 is the reader.
+
+Two new files, both in `ui/` or `data/`, neither in `core/`:
+
+- **`ui/move-explanation.ts`** — the rows, and the collapsed panel. Composes
+  from `data/moveCopy.ts` and `data/moveTags.ts`; writes no sentence itself.
+- **`data/moveTargets.ts`** — what a sim target keyword means in words, in
+  `data/` for the reason `statInfo.ts` and `categoryInfo.ts` are: a sentence
+  describing a mechanic, written in the file that draws it, drifts from it.
+
+`MoveTagDefinition.long` turned out to be documented as *"how it reads in the
+explanation, where there is room for a sentence"* — the vocabulary was built for
+this and had been waiting for a reader since 4.7.
+
+One copy bug found and fixed in `data/`: `secondaryPhrase` builds `10% chance to
+…` and wants a bare infinitive, but `statusPhrase` gives third person, so the
+first draft read **"10% chance to burns the target"**. `statusVerbPhrase` and a
+`STATUS_VERBS` table now supply the infinitive. A second table rather than a
+rule that strips an `s`, because `puts to sleep` and `badly poisons` do not
+reduce by suffix.
+
+### 5.2 One insertion point, six surfaces, confirmed by count
+
+The insertion is in `scene.moveCard` and **nothing was added to any screen**.
+Every caller already passed the whole `moveCardData` result; the two fields it
+had been carrying simply started being used.
+
+One surface needed a line: `screens/summary.ts` built its argument by hand off
+`describeMove`, so it was the one that would have been left behind. It now goes
+through `moveCardData` like the other five — which also gives the summary the
+tag row every other card wears.
+
+`test/visual-move-cards.test.ts` walks a full run and records where it finds an
+expander:
+
+```
+party 4 · drawer 4 · pre-gym 12 · replace 1 · result 1 · summary 12
+```
+
+**Six, asserted as a set** rather than described, because "which surfaces call
+this" is a claim about the call graph and claims about call graphs go stale.
+
+**And one surface asserted to have none:** the battle bar reads `0`.
+`renderMove` builds its buttons from `moveFacts`, not `moveCard`, so the feature
+is structurally out of reach there — a tap on a move button spends a turn, and
+that it *cannot* grow an expander by accident is worth an assertion rather than
+a comment. Open item 9 records that R8 needs its own insertion point.
+
+### 5.3 Tap, not hover, and not a third tooltip mechanism
+
+The panel is a region **inside the card**, not a floating layer: it needs no
+positioning, no dismissal and no delegated listener, which is what keeps it out
+of `ui/tooltips.ts`. The type wheel is untouched.
+
+The trigger is a labelled full-width control (`What does this do?`) with
+`aria-expanded` and `aria-controls`, and each card gets its own panel id so
+`aria-controls` on a screen showing four points at the right one.
+
+**It stops the event, and that is the whole of test 10.** A move card is drawn
+inside a control on one of the six surfaces — the reward card submits on click —
+so a trigger that let the tap through would pick a reward on the way to
+explaining a move.
+
+### 5.4 Part 4
+
+Every row is an attribute. `Accuracy 85%`, `Never misses`, `Moves in the +1
+priority bracket`, `10% chance to burn the target`, `Hits 10 times, 20 base
+power each.` Nothing ranks a move, compares it to another, or says whether it is
+worth taking. The dex line is last, because it summarises the rows above it and
+putting it first would make them read as a restatement.
+
+Population Bomb, the case test 7 names: **20 base power and band 4**, both
+rendered, with the multi-hit line that reconciles them.
+
+### 5.5 A second centre-aiming stall, same shape as step 2's
+
+Adding a full-width control to the move card put it under the **reward card's
+geometric centre**, and `stepOnce` clicked reward cards by centre. The run
+stalled on `result` for all 900 steps, explaining a move over and over and
+picking nothing.
+
+Same defect class as the chips in step 2 and fixed the same way — except that
+`.reward__name` is empty for some reward kinds and an empty span is not
+clickable, which is a second way to stall on the same screen. So the result case
+clicks a **position** near the card's top-left, which every reward kind has as
+its own chrome.
+
+Worth being plain about: **this one was caused by this patch**, unlike step 2's.
+It is a bot fix rather than a product change, because the expander is a labelled
+button a player aims at deliberately; only a bot aims blindly at a centre. With
+it, the walk reaches all twelve screens and finishes at the summary.
+
+### 5.6 Tests
+
+- `test/move-explanation.test.ts`, 20 assertions, jsdom. The brief's sweep —
+  never-miss, priority, stat-change, multi-hit, recoil — plus secondaries,
+  behavioural flags, the dex line, absent-not-empty, and Population Bomb.
+  Purity: identical input to identical output over repeats, order independence,
+  id and name agreeing, and a missing move returning null rather than throwing.
+  Plus the panel arrangement that proves the tap cannot reach a control the card
+  sits inside.
+- `test/visual-move-cards.test.ts`, 4 assertions, Chromium. The six surfaces,
+  an expander on every card they draw, no expander on a battle move button, and
+  a run fingerprint — open screen, battle log length, every HP and PP readout —
+  taken before and after opening a panel on each surface, unchanged everywhere.
+
+### 5.7 Two fold properties broken, and the trap underneath them
+
+The first version gave the trigger a full-width row of its own. Two guarded
+assertions went red together:
+
+```
+visual-v4 > keeps a three-card offer above the fold at 390x844
+    expected 951.75 to be less than or equal to 844
+visual-v2 > the band … clear of a pinned card
+    expected 619.91 to be less than 408.75
+```
+
+A move card is drawn three-up on the result screen and four-up on a party card,
+so a row here costs three or four rows on a phone. **The trigger moved onto the
+PP line** — a short string with the rest of its line empty — which costs the
+card nothing. `Explain`, not `What does this do?`: a word rather than a glyph,
+because a bare `?` is a control the player has to learn and the panel behind it
+exists to stop the game requiring that.
+
+That took 951.75 to 913.25 and **not under 844**, which is how the real cause
+surfaced:
+
+> `.move__explain` sets `display: grid`. `hidden` is a UA style — `display:
+> none` at the lowest possible specificity — so the author rule beat it and the
+> panel **laid out at full height while the DOM said it was closed.**
+
+`styles.css` carries a note about that trap saying it has bitten twice. This was
+the third. The panel joins the `[hidden] { display: none }` block that exists
+for exactly this, and both assertions pass.
+
+**Then the test written for the third instance found three more.** The guard was
+generalised to sweep every `[hidden]` element on every screen and fail any that
+still lays out:
+
+```
++ "event   div.event__result     is display: flex at 30px while [hidden]"
++ "battle  div.panel__stages     is display: flex at 0px  while [hidden]"
++ "battle  div.panel__volatiles  is display: flex at 0px  while [hidden]"
+```
+
+All pre-existing. `.event__result` was drawing a 30px empty box on the event
+screen. The two battle rows measured 0px only because they happened to be empty
+— a latent version of the same defect, which the first row of chips to arrive
+while one was hidden would have made visible. All three fixed in the same block.
+
+A note written twice is now a rule that holds.
+
+`test/visual-move-cards.test.ts` was corrected too: it had been reading
+`panel.hidden`, the property, which said *closed* throughout. It measures the
+box now.
+
+### 5.8 The digest moved again, and nothing else did
+
+Step 5 added `data/moveTargets.ts` and a table to `data/moveCopy.ts`, both under
+`src/data/`, so the glob digest moved for the second time in this patch:
+
+```
+data-digest.txt  e07a4528…7c1a6  →  (re-recorded)
+```
+
+`baseline --check` reports **byte identical across 8 files** after re-recording:
+every run, every casualty list and the `GYMRUN01` battle protocol unchanged.
+Fourth instance of `generation.md` §9's "awkward case", behaving as the other
+three did.
+
+### 5.9 One more assertion the patch legitimately outgrew
+
+`test/party-drawer.test.ts`'s 4.7 read-only rule asserted the drawer's button
+list was exactly `['Close']`. Step 5 puts a read-only `Explain` on every move
+card, which the *count* forbids and the *rule* does not — the rule is that item
+reassignment stays on the party management screen so there is one write path.
+
+Rewritten rather than relaxed, and the result is stronger than what it replaced:
+every button must be one of a named few, **and pressing every one of them must
+leave party state untouched**, compared before and after. A future control that
+writes fails that whether or not anyone remembers to update a list, which the
+count could not say.
+
+### 5.10 Pixels
+
+`--compare` reports **guarded screen heights equal to the baseline to the
+pixel.** Neither guarded screen draws a `moveCard` — the map draws none and the
+battle bar goes through `moveFacts` — and the expander costs no height on the
+screens that do.
+
+
+---
+
+## 6. Where the patch landed
+
+**82 test files, 1041 tests, green.** Lint and typecheck clean. Guarded screen
+heights equal to the recorded baseline to the pixel; `baseline --check` byte
+identical across all 8 files.
+
+### The definition of done, item by item
+
+| asked | state |
+|---|---|
+| every chip readable at a glance, no letter confusable | 11px floor and 4.5:1 contrast, asserted per variant over eleven variants on every screen a run reaches |
+| the party screen shows six real stat bars | painted, proportional, and the values checked against `describeSpecCard` |
+| tapping a move explains what it does and how often it hits | six surfaces confirmed by count, `Accuracy 85%` / `Never misses` from `data/` |
+| the toggle visibly changes the screen | party screen and threat readout, both ways, plus a surface that is already open |
+| changing the font is one line per token | three tokens, `--font-body`, `--font-display`, `--font-numeral` |
+| the decision point has not moved below the fold | battle 712 and map 701.53, against 740 |
+
+### What this patch found that it was not sent to find
+
+Five things, all pre-existing except the last:
+
+1. **A chip built by hand.** `.log-entry__priority` carried a copy of V2's whole
+   chip recipe in CSS, invisible to `chip.test.ts` because that scans TypeScript.
+2. **A type chip at 9px on the gym rail**, overriding the shared rule.
+3. **A bot that aimed at card centres**, where the centre is a tooltip trigger —
+   which stalled runs on two screens and read as a flake for one report cycle.
+4. **Three `[hidden]` elements that still laid out**, one of them drawing a 30px
+   box on the event screen. The note about that trap had been written twice and
+   was not a rule until a test made it one.
+5. **A fourth of the same**, this one introduced here and caught by two guarded
+   fold assertions before it shipped.
+
+### Still open, recorded not built
+
+Open items 9 and 10 in [`../../README.md`](../../README.md), both naming this
+branch: the battle bar needs its own insertion point for R8, and the
+move-replace screen explains the incoming move but not the four it is compared
+against — an asymmetry on the one screen whose purpose is that comparison, and
+Release A's to resolve.

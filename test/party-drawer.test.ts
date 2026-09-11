@@ -105,16 +105,42 @@ describe('the drawer itself', () => {
     expect(card!.querySelector('.panel__hp-text')?.textContent ?? '').not.toBe('');
   });
 
+  /**
+   * **Rewritten at patch 4.7.2, and the property is stronger than it was.**
+   *
+   * This used to assert the drawer's button list was exactly `['Close']` — a
+   * count standing in for the real rule, which is that item reassignment stays
+   * on the party management screen so there is one write path for party state.
+   *
+   * 4.7.2 step 5 put a read-only `Explain` control on every move card, which
+   * the count forbids and the rule does not. So the rule is asserted directly:
+   * every button is one of a named few, **and pressing every one of them leaves
+   * party state untouched.** A future control that writes fails this whether or
+   * not somebody remembers to update a list, which the old form could not say.
+   *
+   * The same property is asserted on the rendered drawer, in a browser, across
+   * a whole run in `test/visual-move-cards.test.ts` — there against a
+   * fingerprint that includes the battle log and every HP and PP readout.
+   */
   it('is read only: no control on it writes party state', () => {
-    /*
-     * Item reassignment stays on the party management screen, so there is one
-     * write path for party state. The only button in the drawer is Close.
-     */
     const drawer = createDrawer();
-    drawer.open(viewFor(state));
+    const view = viewFor(state);
+    drawer.open(view);
 
     const buttons = [...drawer.root.querySelectorAll('button')];
-    expect(buttons.map((button) => button.textContent)).toEqual(['Close']);
+    const labels = [...new Set(buttons.map((button) => button.textContent))];
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['Close', 'Explain']);
+
+    // Every control pressed, and the party compared before and after. The
+    // drawer holds the same objects the run does, so a write of any kind —
+    // an item moved, a slot reordered, a member released — shows up here.
+    const before = JSON.stringify(view.party);
+    for (const button of buttons) {
+      if (button.textContent === 'Close') continue;
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }
+    expect(JSON.stringify(view.party), 'a drawer control wrote party state').toBe(before);
+    expect(drawer.isOpen(), 'a drawer control closed the drawer').toBe(true);
   });
 
   it('leaves room for relics, and fills it when the run has some', () => {

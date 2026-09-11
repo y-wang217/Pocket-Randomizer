@@ -85,13 +85,46 @@ async function offendersOn(page: Page, screen: string): Promise<Omit<Offender, '
   );
 }
 
+interface Shown {
+  screen: string;
+  selector: string;
+  display: string;
+  height: number;
+}
+
+/**
+ * Every element carrying `hidden` that is nonetheless laid out.
+ *
+ * **The same family as the rule above and the third time it has bitten this
+ * codebase.** `hidden` is a UA style — `display: none` at the lowest possible
+ * specificity — so *any* author rule that sets `display` on the element beats
+ * it, silently. `styles.css` carries the note twice already; 4.7.2 added the
+ * third instance, `.move__explain { display: grid }`, and it cost two guarded
+ * fold properties before the assertions caught it.
+ */
+async function shownWhileHiddenOn(page: Page, screen: string): Promise<Omit<Shown, 'screen'>[]> {
+  return page.evaluate((sel) => {
+    const root = globalThis.document.querySelector(sel as string);
+    if (!root) return [];
+    return [...root.querySelectorAll('[hidden]')].flatMap((node) => {
+      const display = globalThis.getComputedStyle(node).display;
+      if (display === 'none') return [];
+      const height = node.getBoundingClientRect().height;
+      const selector = `${node.tagName.toLowerCase()}${node.className ? `.${String(node.className).trim().split(/\s+/).join('.')}` : ''}`;
+      return [{ selector, display, height }];
+    });
+  }, visible(screen));
+}
+
 describe('an inline width is a width that paints', () => {
   let offenders: Offender[];
+  let shown: Shown[];
   let screens: string[];
 
   beforeAll(async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     const found: Offender[] = [];
+    const laidOut: Shown[] = [];
     const seen = new Set<string>();
     let openedParty = false;
 
@@ -113,6 +146,7 @@ describe('an inline width is a width that paints', () => {
         seen.add(screen);
         await page.waitForTimeout(120);
         found.push(...(await offendersOn(page, screen)).map((offender) => ({ ...offender, screen })));
+        laidOut.push(...(await shownWhileHiddenOn(page, screen)).map((entry) => ({ ...entry, screen })));
       }
       if (screen === 'summary') break;
       await stepOnce(page);
@@ -120,6 +154,7 @@ describe('an inline width is a width that paints', () => {
     }
     await context.close();
     offenders = found;
+    shown = laidOut;
     screens = [...seen];
   }, 900_000);
 
@@ -133,6 +168,20 @@ describe('an inline width is a width that paints', () => {
     expect(
       offenders.map((offender) => `${offender.screen} ${offender.selector} { ${offender.declared} } is display: inline`),
       'width and height do not apply to a non-replaced inline box: the value is set and never paints',
+    ).toEqual([]);
+  });
+
+  /**
+   * The other half of the same family, and the one that has bitten three times.
+   *
+   * An element with `hidden` set that still lays out is a rule quietly beating
+   * the UA stylesheet. The DOM says closed, the layout says open, and the only
+   * instrument that disagrees is a measurement — which is what this is.
+   */
+  it('never lays out an element that carries the hidden attribute', () => {
+    expect(
+      shown.map((entry) => `${entry.screen} ${entry.selector} is display: ${entry.display} at ${entry.height}px while [hidden]`),
+      'an author rule setting display beats the UA [hidden] rule, silently',
     ).toEqual([]);
   });
 });

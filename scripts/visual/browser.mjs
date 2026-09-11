@@ -175,7 +175,22 @@ export async function stepOnce(page) {
     case 'result': {
       const card = page.locator(`${visible('result')} .reward`).first();
       if (await card.count()) {
-        await card.click();
+        /*
+         * The name, not the card. **Same rule as `target` and `replace` below,
+         * extended here at 4.7.2 step 5 for the same reason.**
+         *
+         * A reward card's centre is inside the move card it carries, and from
+         * step 5 that region holds the "what does this do?" expander — which
+         * stops the event by design, so a click on the geometric centre
+         * explains a move and picks nothing. The run stalled on `result` for
+         * 900 steps before this line named a target that is always the card
+         * and never a control inside it.
+         */
+        // Near the top-left corner rather than at the centre: every reward
+        // kind has its own chrome there, and `.reward__name` is empty on some
+        // of them — an empty span is not clickable, which is a second way to
+        // stall on the same screen.
+        await card.click({ position: { x: 8, y: 8 } });
         return screen;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);

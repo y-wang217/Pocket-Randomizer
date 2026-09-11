@@ -101,6 +101,37 @@ export function statusPhrase(status: string): string {
   return verb ? `${capitalize(verb)} the target` : `Inflicts ${status}`;
 }
 
+/**
+ * The same fact in the infinitive: `burn the target`. **Patch 4.7.2.**
+ *
+ * `secondaryPhrase` builds `10% chance to …`, and "chance to" wants a bare
+ * infinitive where `statusPhrase` gives a third-person sentence — "10% chance
+ * to burns the target" is what happens without this, and it is the kind of
+ * wrongness that makes a reader distrust the number in front of it.
+ *
+ * A second table rather than a rule that strips an `s`, because English does
+ * not work that way here: `puts to sleep` and `badly poisons` do not reduce by
+ * suffix, and a rule that got them wrong would be harder to spot than a list
+ * that is simply read.
+ */
+const STATUS_VERBS: Record<string, string> = {
+  brn: 'burn',
+  par: 'paralyse',
+  psn: 'poison',
+  tox: 'badly poison',
+  slp: 'put the target to sleep',
+  frz: 'freeze',
+};
+
+/** `burn the target`, for a phrase that already supplied the "chance to". */
+export function statusVerbPhrase(status: string): string {
+  const verb = STATUS_VERBS[status];
+  if (!verb) return `inflict ${status}`;
+  // `slp`'s entry already names the target, because "put to sleep the target"
+  // is not a sentence anyone writes.
+  return verb.includes('the target') ? verb : `${verb} the target`;
+}
+
 /** `Protects the user this turn`, from a volatile or field-effect id. */
 export function effectPhrase(effect: string): string {
   const words = EFFECT_WORDS[effect];

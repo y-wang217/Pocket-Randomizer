@@ -1287,6 +1287,25 @@ body {
 .rewards[hidden],
 .result__party[hidden],
 .result__capture[hidden],
+/*
+ * And a third time, at 4.7.2. `.move__explain` sets `display: grid`, so the
+ * panel laid out at full height while `hidden` was set on it — three reward
+ * cards ran 70px past the 844 fold and the V2 band lost its clearance, with
+ * the DOM insisting the panels were closed.
+ *
+ * **The three below it are older and were found by the test written for the
+ * third.** `test/visual-inline-box.test.ts` now sweeps every `[hidden]`
+ * element on every screen and fails any that still lays out, which is how a
+ * note that had been written twice became a rule that holds. `.event__result`
+ * was drawing a 30px empty box on the event screen; the two battle panel rows
+ * were 0px only because they happened to be empty, which is a latent version
+ * of the same thing — the first row of chips to arrive while one was hidden
+ * would have shown.
+ */
+.move__explain[hidden],
+.event__result[hidden],
+.panel__volatiles[hidden],
+.panel__stages[hidden],
 .map__region[hidden] { display: none; }
 
 .screen__title {
@@ -3478,6 +3497,85 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .badge--tag {
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
+}
+
+/* ---------- the move explanation ---------- */
+
+/*
+ * Tap to expand, on every move card. **Patch 4.7.2, step 5.**
+ *
+ * A region inside the card, not a floating panel: it needs no positioning, no
+ * dismissal and no delegated listener, which is what lets it stay out of
+ * `ui/tooltips.ts` — the ruling forbids a third mechanism there and the type
+ * wheel decision is Release B's.
+ *
+ * The trigger is a full-width control rather than a small glyph. A move card is
+ * drawn on six surfaces and on one of them, the reward screen, it sits inside
+ * an element that submits a choice on click; a trigger the thumb can find
+ * without aiming is what keeps "explain this" and "take this" from being the
+ * same gesture at slightly different coordinates.
+ */
+/*
+ * The PP line and the trigger, one row.
+ *
+ * `space-between` puts PP at the left where it has always been and the control
+ * at the right, so nothing about the card's existing readout moves.
+ */
+.move__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.move__explain-toggle {
+  flex: 0 0 auto;
+  padding: var(--space-h) var(--space-1h);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-chip);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.move__explain-toggle[aria-expanded='true'] {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.move__explain {
+  display: grid;
+  /* The label column sizes to the longest label and the value takes the rest,
+     so every row's fact starts at the same x and the panel reads as a table
+     rather than as a paragraph with bold words in it. */
+  grid-template-columns: auto 1fr;
+  gap: var(--space-h) var(--space-2);
+  margin-top: var(--space-1);
+  padding-top: var(--space-1h);
+  border-top: var(--hairline) solid var(--border);
+}
+
+.move__explain-row {
+  display: contents;
+}
+
+.move__explain-label {
+  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.move__explain-value {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
 }
 
 /* 4.7 gave the accuracy tag its own colour so it would not be quiet. The
