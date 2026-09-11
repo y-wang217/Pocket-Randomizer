@@ -104,8 +104,14 @@ const gen = Generations.get(GYMRUN_GEN);
  * `-3`, the priority patch: the layer in the header. Recorded into every run
  * log's `versions.aiVersion` since the `contentHash` release, so a `-2` log
  * is refused at replay by name.
+ *
+ * `-4`, the unknown ability: `UNKNOWN_ABILITY` below. No new reasoning, one
+ * fewer false fact — the calc stopped substituting the species' default
+ * ability for a foe whose ability is not public, so damage estimates against a
+ * randomized ability changed and with them the ranking. Its own commit and its
+ * own benchmark row, `docs/balance.md` section 16.
  */
-export const AI_VERSION = 'gymrun-ai-3-priority';
+export const AI_VERSION = 'gymrun-ai-4-ability';
 
 // ---------------------------------------------------------------------------
 // Damage estimates
@@ -120,6 +126,36 @@ export const AI_VERSION = 'gymrun-ai-3-priority';
  * of the opponent, which is the correct behaviour anyway — a player estimating
  * damage is doing the same thing.
  */
+/**
+ * The ability handed to the calc when the real one is not public information.
+ *
+ * **The fix this patch opened with, and it is a correctness fix rather than a
+ * tier feature.** `@smogon/calc` resolves its ability as
+ * `options.ability || species.abilities[0]`, so omitting the field does not
+ * mean "no ability" — it means **the species' default ability**. In a game
+ * that ships species as they are that is a decent guess. Under full ability
+ * randomization it is a wrong number: a Gengar the randomizer gave Cursed Body
+ * was calculated as though it had Levitate, so a Ground move read as a 0x
+ * no-op that would in fact have landed, and the AI declined the move that won
+ * the turn.
+ *
+ * That is not the honest ignorance the header above describes. Ignorance is
+ * *no* ability; this was a **false fact**, and it sat underneath every damage
+ * estimate against every opponent whose ability had not been revealed — which
+ * is all of them, since `ActiveView.ability` is null for the foe by design.
+ *
+ * So the unknown is passed explicitly. The string matches no real ability, so
+ * every `hasAbility` check in the calc answers false and the estimate is made
+ * with no ability effects at all — the bound the header claims to be making.
+ * It must stay non-empty: the calc treats `''` as falsy and would fall back to
+ * the species default again, and it treats `''` internally as *suppressed*,
+ * which is a third meaning nobody wants here.
+ *
+ * Recorded in `docs/balance.md` section 16 with its own benchmark row, taken
+ * before any other number in this patch.
+ */
+const UNKNOWN_ABILITY = '(unknown)';
+
 function toCalcPokemon(active: ActiveView): Pokemon {
   const boosts: Partial<StatsTable> = {
     atk: active.statStages.atk,
@@ -136,7 +172,9 @@ function toCalcPokemon(active: ActiveView): Pokemon {
     boosts,
     curHP: Math.max(1, active.hp),
     status: active.status ?? '',
-    ...(active.ability ? { ability: active.ability } : {}),
+    // Never omitted: an omitted ability is the species default, not an unknown
+    // one. See `UNKNOWN_ABILITY`.
+    ability: active.ability ?? UNKNOWN_ABILITY,
   });
 }
 
