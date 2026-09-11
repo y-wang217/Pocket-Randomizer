@@ -113,6 +113,10 @@ body {
   line-height: 1.4;
 }
 
+/* The bar's toggle exists for the phone during a run, and the phone pass below
+   is the only place it is shown. */
+.seedbar__toggle { display: none; }
+
 /* ---------- tutorial coach marks (overnight Branch 3) ---------- */
 
 .coach {
@@ -2416,9 +2420,19 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   .shell[data-phase='running'] .header__title { font-size: var(--fs-5xl); letter-spacing: 0.18em; }
   .shell[data-phase='running'] .header__subtitle { display: none; }
 
-  /* The seed box is a setup control. It stays reachable — the summary screen
-     restores the setup phase — but it does not sit above a live battle. */
-  .shell[data-phase='running'] .seedbar { display: none; }
+  /* The seed box is a setup control and does not sit above a live battle.
+
+     **Superseded in part by the mobile seed bar patch, 2026-09-11.** 4.5.2's
+     rule here was `display: none` on the bar for the whole running phase, with
+     the note that it "stays reachable" because the summary restores the setup
+     phase. The phase is `running` from page load, so on a phone the bar was
+     gone from the starter screen onward and nothing could start, reroll or
+     resume a run until this one ended. The bar now collapses under a toggle
+     on the header's control row (`ui/seed-bar.ts`): same space reclaimed,
+     one tap to get the controls back. Both selectors are read only here, so a
+     desktop and the setup phase see neither. */
+  .shell[data-phase='running'] .seedbar[data-collapsed='true'] { display: none; }
+  .shell[data-phase='running'] .seedbar__toggle { display: inline-block; margin-left: auto; }
 
   /* **Retired at V5.4.** Stage 4.7 tightened both battle panels here "so the
      two of them plus the move grid fit without scrolling", and paired it with a

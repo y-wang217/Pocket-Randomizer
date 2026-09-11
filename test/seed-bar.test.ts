@@ -75,6 +75,31 @@ describe('the seed bar', () => {
     expect(notice.hidden).toBe(true);
   });
 
+  it('starts collapsed, with a toggle that is not inside the bar it hides', () => {
+    const { bar } = mount();
+    expect(bar.root.dataset['collapsed']).toBe('true');
+    expect(bar.root.contains(bar.toggle)).toBe(false);
+    expect(bar.toggle.textContent).toBe(SEED_COPY.toggle);
+    expect(bar.toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(bar.toggle.getAttribute('aria-controls')).toBe(bar.root.id);
+  });
+
+  it('expands on a tap of the toggle and collapses again at run start', () => {
+    const { bar } = mount();
+    bar.toggle.click();
+    expect(bar.root.dataset['collapsed']).toBe('false');
+    expect(bar.toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(bar.toggle.title).toBe(SEED_COPY.toggleHide);
+    bar.toggle.click();
+    expect(bar.root.dataset['collapsed']).toBe('true');
+    bar.toggle.click();
+    // What `app.ts` does at every `start()`.
+    bar.collapse();
+    expect(bar.root.dataset['collapsed']).toBe('true');
+    expect(bar.toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(bar.toggle.title).toBe(SEED_COPY.toggleShow);
+  });
+
   it('can be told to refuse a seed that arrived by URL', () => {
     const { bar, notice, input } = mount();
     bar.refuse({ kind: 'foreign', seed: 'FROM-URL', hash: OTHER, expected: SHORT });

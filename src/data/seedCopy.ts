@@ -25,6 +25,10 @@ export const SEED_COPY = {
   copy: 'Copy seed',
   copied: 'Copied',
   copyFailed: 'Select and copy',
+  /** The phone's toggle for the collapsed bar, and its title in each state. */
+  toggle: 'Seed',
+  toggleShow: 'Show the seed controls',
+  toggleHide: 'Hide the seed controls',
 } as const;
 
 /** Fill the two hashes into the refusal. */

@@ -286,6 +286,17 @@ before this stage, more richly than the prompt specifies, and was on the map as 
 as the party screen. Step 6 therefore had no core work; the map placement was removed
 in step 7, with the three smoke checks that existed to protect it.
 
+**Working branch:** `claude/gymrum-mobile-buttons-mr12we`, **the mobile seed bar
+patch** ([`spec/gymrun-patch-mobile-seed-bar.md`](spec/gymrun-patch-mobile-seed-bar.md)).
+Presentation only, no `core/` change, no version axis moved, `heights.json`
+unchanged to the pixel. 4.5.2's phone pass hid the seed bar for the whole
+running phase, and the phase is `running` from page load, so on a phone Start
+run, New seed and Resume saved run were unreachable from the starter screen to
+the summary. The bar now collapses under a Seed toggle on the header's Detail
+row and returns on a tap. `generation.md` section 12k records the superseded
+rule; report and screenshots in
+[`visual/reports/patch-mobile-seed-bar.md`](visual/reports/patch-mobile-seed-bar.md).
+
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
