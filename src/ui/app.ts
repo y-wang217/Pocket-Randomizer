@@ -13,7 +13,7 @@
 import { greedyAiPolicy } from '../core/battle/ai';
 import type { BattleSession } from '../core/battle/driver';
 import { GYMRUN_FORMAT } from '../core/battle/format';
-import { PARTY_SIZE } from '../data/partyTuning';
+
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
@@ -22,6 +22,7 @@ import {
   defaultItemPlan,
   isReplayable,
   localeOf,
+  partyCapacity,
   playRun,
   resumeRun,
   type BattleReview,
@@ -593,6 +594,7 @@ export function mountApp(root: HTMLElement): void {
           backpack: state.backpack,
           relics: state.relics,
           tuning: state.tuning,
+          slots: partyCapacity(state),
           backTo: returnTo === 'pre-gym' ? 'Back to the gym' : 'Back to the map',
           plan: pendingPlan,
         },
@@ -764,7 +766,7 @@ function createHeader(): HTMLElement {
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
-  subtitle.textContent = `Stage 4.7 · ${GYMRUN_FORMAT} · a party of ${PARTY_SIZE}, caught in eight regions, and legible`;
+  subtitle.textContent = `Stage 4.8 · ${GYMRUN_FORMAT} · a roster that grows, caught in eight regions, and scored`;
   header.append(title, subtitle, createVerbosityToggle());
   return header;
 }

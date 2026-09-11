@@ -41,6 +41,7 @@ import {
   defaultMoveReplacement,
   gymsCleared,
   playRun,
+  partyCapacity,
   replayRun,
   resolveNode,
   resumeRun,
@@ -53,7 +54,17 @@ import {
   stepsOf,
 } from '../src/core/run';
 import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
-import { PARTY_SIZE } from '../src/data/partyTuning';
+import { partyCapacityAfter } from '../src/data/partyTuning';
+
+/**
+ * The slots a run opens with. **Stage 4.8, item 1.**
+ *
+ * Was `PARTY_SIZE`, a constant. Party capacity is a schedule now, so every
+ * fixture below that meant "a full party" means "full at the width a run starts
+ * at" — which is what these tests were measuring and is still three. The tests
+ * that care about capacity *moving* are in `test/party-slots.test.ts`.
+ */
+const OPENING_SLOTS = partyCapacityAfter(0);
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
@@ -102,34 +113,34 @@ function partyOf(count: number): PokemonState[] {
 // ---------------------------------------------------------------------------
 
 describe('acquiring at a full party', () => {
-  it('has room below PARTY_SIZE and not at it', () => {
-    expect(hasRoom(partyOf(PARTY_SIZE - 1))).toBe(true);
-    expect(hasRoom(partyOf(PARTY_SIZE))).toBe(false);
+  it('has room below its capacity and not at it', () => {
+    expect(hasRoom(partyOf(OPENING_SLOTS - 1), OPENING_SLOTS)).toBe(true);
+    expect(hasRoom(partyOf(OPENING_SLOTS), OPENING_SLOTS)).toBe(false);
   });
 
   it('refuses a plain accept once full, and requires a release instead', () => {
-    const full = partyOf(PARTY_SIZE);
-    expect(decisionRefusal(full, { kind: 'accept' })).toMatch(/full/);
-    expect(decisionRefusal(full, { kind: 'release', slot: 0 })).toBe(null);
-    expect(decisionRefusal(full, { kind: 'decline' })).toBe(null);
+    const full = partyOf(OPENING_SLOTS);
+    expect(decisionRefusal(full, { kind: 'accept' }, OPENING_SLOTS)).toMatch(/full/);
+    expect(decisionRefusal(full, { kind: 'release', slot: 0 }, OPENING_SLOTS)).toBe(null);
+    expect(decisionRefusal(full, { kind: 'decline' }, OPENING_SLOTS)).toBe(null);
   });
 
   it('refuses a release when there is room, so the two answers cannot be confused', () => {
     const room = partyOf(1);
-    expect(decisionRefusal(room, { kind: 'release', slot: 0 })).toMatch(/has room/);
-    expect(decisionRefusal(room, { kind: 'accept' })).toBe(null);
+    expect(decisionRefusal(room, { kind: 'release', slot: 0 }, OPENING_SLOTS)).toMatch(/has room/);
+    expect(decisionRefusal(room, { kind: 'accept' }, OPENING_SLOTS)).toBe(null);
   });
 
-  it('never produces a party over PARTY_SIZE, by either path', () => {
-    const full = partyOf(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'decline' }, SEGMENT).party).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }, SEGMENT).party).toHaveLength(PARTY_SIZE);
-    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, SEGMENT).party).toHaveLength(2);
+  it('never produces a party over the capacity it is given, by either path', () => {
+    const full = partyOf(OPENING_SLOTS);
+    expect(applyAcquisition(full, OFFER, { kind: 'decline' }, SEGMENT, OPENING_SLOTS).party).toHaveLength(OPENING_SLOTS);
+    expect(applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }, SEGMENT, OPENING_SLOTS).party).toHaveLength(OPENING_SLOTS);
+    expect(applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, SEGMENT, OPENING_SLOTS).party).toHaveLength(2);
   });
 
   it('releases the member named and nobody else', () => {
-    const full = partyOf(PARTY_SIZE);
-    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }, SEGMENT).party;
+    const full = partyOf(OPENING_SLOTS);
+    const after = applyAcquisition(full, OFFER, { kind: 'release', slot: 1 }, SEGMENT, OPENING_SLOTS).party;
 
     expect(after.map((member) => member.spec.species)).not.toContain(SPECS[1]!.species);
     expect(after.map((member) => member.spec.species)).toContain('Tyranitar');
@@ -140,16 +151,16 @@ describe('acquiring at a full party', () => {
     // Silently turning "release slot 9" into something legal would be a log
     // that replays into a different run, which is the failure the whole
     // decision-log design exists to prevent.
-    expect(() => applyAcquisition(partyOf(PARTY_SIZE), OFFER, { kind: 'release', slot: 9 }, SEGMENT)).toThrow(
+    expect(() => applyAcquisition(partyOf(OPENING_SLOTS), OFFER, { kind: 'release', slot: 9 }, SEGMENT, OPENING_SLOTS)).toThrow(
       /no party member in slot 9/,
     );
-    expect(() => applyAcquisition(partyOf(PARTY_SIZE), OFFER, { kind: 'accept' }, SEGMENT)).toThrow(/full/);
+    expect(() => applyAcquisition(partyOf(OPENING_SLOTS), OFFER, { kind: 'accept' }, SEGMENT, OPENING_SLOTS)).toThrow(/full/);
   });
 
   it('declining leaves the party untouched, and is always legal', () => {
-    for (const size of [1, PARTY_SIZE]) {
+    for (const size of [1, OPENING_SLOTS]) {
       const before = partyOf(size);
-      const after = applyAcquisition(before, OFFER, { kind: 'decline' }, SEGMENT).party;
+      const after = applyAcquisition(before, OFFER, { kind: 'decline' }, SEGMENT, OPENING_SLOTS).party;
       expect(after.map((m) => m.spec.species)).toEqual(before.map((m) => m.spec.species));
     }
   });
@@ -167,7 +178,7 @@ describe('acquiring at a full party', () => {
    * The surviving half is that nothing *except* the level moves.
    */
   it('joins at full HP, at the segment level, with its moveset untouched', () => {
-    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, SEGMENT).party[1]!;
+    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, SEGMENT, OPENING_SLOTS).party[1]!;
     expect(joined.hp).toBe(joined.maxHp);
     expect(joined.fainted).toBe(false);
 
@@ -189,11 +200,11 @@ describe('acquiring at a full party', () => {
   });
 
   it('stamps the segment a member joined in, so churn can be measured', () => {
-    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, 5).party[1]!;
+    const joined = applyAcquisition(partyOf(1), OFFER, { kind: 'accept' }, 5, OPENING_SLOTS).party[1]!;
     expect(joined.joinedSegment).toBe(5);
     // The starter joined at run start, and `createParty` must not hand the
     // array index in as a segment.
-    expect(partyOf(PARTY_SIZE).every((member) => member.joinedSegment === 0)).toBe(true);
+    expect(partyOf(OPENING_SLOTS).every((member) => member.joinedSegment === 0)).toBe(true);
   });
 });
 
@@ -396,9 +407,14 @@ function collector(): RunPolicy & { readonly taken: number; readonly released: n
     // everything.
     chooseMoveRecipient: async (_offer, party) => party.length - 1,
     chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
-    chooseAcquisition: async (_offer, party) => {
+    /*
+     * Stage 4.8: the capacity the run hands in, not the width it started at.
+     * Against the opening width this policy asks to release from a party that
+     * has room the moment a gym unlocks a slot, and the run refuses it.
+     */
+    chooseAcquisition: async (_offer, party, capacity) => {
       taken++;
-      if (party.length < PARTY_SIZE) return { kind: 'accept' };
+      if (hasRoom(party, capacity)) return { kind: 'accept' };
       released++;
       return { kind: 'release', slot: party.length - 1 };
     },
@@ -412,17 +428,27 @@ function collector(): RunPolicy & { readonly taken: number; readonly released: n
 }
 
 describe('a whole run that acquires', () => {
-  it('fills the party and never exceeds PARTY_SIZE at any point', async () => {
+  it('fills the party and never exceeds its live capacity at any point', async () => {
+    /*
+     * **Stage 4.8 changed what this asserts, and it had to.** It read
+     * `peak <= PARTY_SIZE`, which against a schedule that reaches six would pass
+     * for any run at all — the bound stopped being a bound. The real invariant is
+     * per-state: at every point the party is within the slots the run has *then*,
+     * which is also the only form that catches a capture flow reading a stale
+     * capacity.
+     */
     let peak = 0;
+    let overCapacity = 0;
     const run = await playRun('PARTY-D2', collector(), DEFAULT_TUNING, {
       onState: (state) => {
         peak = Math.max(peak, state.party.length);
+        if (state.party.length > partyCapacity(state)) overCapacity++;
       },
     });
 
     expect(peak).toBeGreaterThan(1);
-    expect(peak).toBeLessThanOrEqual(PARTY_SIZE);
-    expect(run.state.party.length).toBeLessThanOrEqual(PARTY_SIZE);
+    expect(overCapacity, 'a party was over the slots it had').toBe(0);
+    expect(run.state.party.length).toBeLessThanOrEqual(partyCapacity(run.state));
   });
 
   it('records the target and the acquisition as decisions of their own', async () => {
@@ -685,7 +711,20 @@ describe('save during a forced switch', () => {
         `resuming from switch save ${index}`,
       ).toEqual(original.state.party.map((member) => [member.spec.species, member.hp]));
     }
-  });
+    /*
+     * **Stage 4.8 raised the budget rather than narrowing the sweep.**
+     *
+     * This replays the entire run once per switch save, so its cost is quadratic in
+     * the number of switches — and the patch made both factors bigger: item 3's
+     * step curve makes a run about a quarter longer, and item 1's slot schedule
+     * puts up to six Pokemon on the field instead of three, which is more forced
+     * switches per battle. It timed out at 60s on the default budget.
+     *
+     * The sweep is the test: "every forced switch" is the claim, and checking a
+     * sample of them would be checking a different, weaker one. So the timeout
+     * moves and the coverage does not.
+     */
+  }, 240_000);
 
   it('replays the whole run to the same state, switches and all', async () => {
     const original = await playRun('FORCED-4', collector());
@@ -729,8 +768,10 @@ describe('a full eight-gym run, headless', () => {
       },
       chooseMoveRecipient: async (_offer, party) => party.length - 1,
       chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
-      chooseAcquisition: async (_offer, party) =>
-        hasRoom(party) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
+      // Stage 4.8: live capacity, or a run that unlocks a slot starts refusing
+      // this policy's answers partway through.
+      chooseAcquisition: async (_offer, party, capacity) =>
+        hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'release', slot: party.length - 1 },
     };
   }
 
@@ -761,7 +802,12 @@ describe('a full eight-gym run, headless', () => {
    * Neither can tell you whether the game is winnable. `npm run sim` is what
    * tells you that, and it is the thing that should.
    */
-  const VICTORY_TUNING = withTuning({ stepsPerSegment: { min: 1, max: 1 } });
+  // Stage 4.8, item 3: a per-segment table now, so the one-step fixture is eight
+  // rows of one rather than one range of one. Every segment, so the run is the
+  // shortest eight-gym run the generator can make.
+  const VICTORY_TUNING = withTuning({
+    stepsPerSegment: Array.from({ length: SEGMENTS_PER_RUN }, () => ({ min: 1, max: 1 })),
+  });
 
   /** An opponent that never attacks, so the run's *transitions* are the subject. */
   const pacifist: Policy = async (view) => {
@@ -809,7 +855,15 @@ describe('a full eight-gym run, headless', () => {
     expect(run.state.party[0]?.spec.level).toBe(playerLevel(SEGMENTS_PER_RUN - 1));
     expect(acquisitions.length, 'never acquired').toBeGreaterThan(0);
     expect(releases.length, 'never released').toBeGreaterThan(0);
-    expect(run.state.party.length).toBe(PARTY_SIZE);
+    /*
+     * **Stage 4.8: the capacity the run ended at, not the width it began at.**
+     *
+     * A run that clears seven gyms has unlocked every slot, so `everything()`
+     * fills six rather than three. Asserting the opening width here would have
+     * been asserting that the slot schedule does not work.
+     */
+    expect(run.state.party.length).toBe(partyCapacity(run.state));
+    expect(run.state.party.length).toBeGreaterThan(OPENING_SLOTS);
   });
 
   it('ends in victory when the last gym falls', () => {

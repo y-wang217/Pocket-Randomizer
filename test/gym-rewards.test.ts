@@ -1,5 +1,12 @@
 /**
- * The gym clear reward: item E of the Stage 4.5.2 playtest round.
+ * The gym clear reward: item E of the Stage 4.5.2 playtest round, and item 2 of
+ * Stage 4.8, which changed its shape.
+ *
+ * **A gym pays twice now.** A guaranteed move at the gym band chain (Part A), then
+ * a choice of exactly two cards, a relic against a currency lump (Part B). Property
+ * 1 below used to read "exactly three distinct options" and is the one exception to
+ * that rule in the game; `docs/generation.md` section 7c records why, so a later
+ * reader does not normalise it back.
  *
  * Gyms paid nothing through Stage 4.5.1, on the argument recorded in
  * `resolveNode` that the segment heal and the level were already larger than
@@ -9,9 +16,10 @@
  *
  * Four properties, and the last two are the ones that would break silently:
  *
- *   1. **Shape.** Exactly three distinct options, one pick, no skip, no reroll
- *      — the same `RewardOffer` every other node produces, because every screen
- *      and policy downstream reads that type and must not learn a second one.
+ *   1. **Shape.** Exactly `GYM_OFFER_SIZE` distinct options, one pick, no skip, no
+ *      reroll — still the same `RewardOffer` type every other node produces, because
+ *      every screen and policy downstream reads that type and must not learn a
+ *      second one. Only the count differs.
  *   2. **Strictly better than elite.** Not a tendency: the pool is checked entry
  *      by entry against the elite pool it has to beat.
  *   3. **Drawn at map generation**, from the `rewards` stream, like every other
@@ -27,9 +35,9 @@ import { nodesOf, type Segment,
   routeStepsOf,
 } from '../src/core/encounters';
 import { createRun } from '../src/core/run';
-import { OFFER_SIZE } from '../src/core/rewards';
-import { gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../src/data/rewardPools';
-import { rewardMoveBand } from '../src/data/scaling';
+import { GYM_OFFER_SIZE, OFFER_SIZE } from '../src/core/rewards';
+import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../src/data/rewardPools';
+import { GYM_MOVE_BAND_BONUS, rewardMoveBand } from '../src/data/scaling';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
 const seeds = Array.from({ length: 12 }, (_, i) => `GYM-${i}`);
@@ -45,16 +53,79 @@ function eliteEntry(segment: number, kind: RewardEntry['kind']): RewardEntry | u
 }
 
 describe('the offer a gym clear produces', () => {
-  it('gives every gym exactly three distinct options', () => {
+  it('gives every gym exactly two distinct options', () => {
+    // Stage 4.8, item 2 Part B. Two, not three, and the only offer in the game
+    // that is not `OFFER_SIZE`.
+    expect(GYM_OFFER_SIZE).toBe(2);
+    expect(GYM_OFFER_SIZE).toBeLessThan(OFFER_SIZE);
+
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
         const options = gym.reward?.options ?? [];
-        expect(options, `${gym.id} should offer ${OFFER_SIZE} cards`).toHaveLength(OFFER_SIZE);
+        expect(options, `${gym.id} should offer ${GYM_OFFER_SIZE} cards`).toHaveLength(GYM_OFFER_SIZE);
 
-        // Distinct by content, not by kind: two `item` cards are a fine offer
-        // as long as they are two different items.
+        // Distinct by content, not by kind.
         const signatures = options.map((option) => JSON.stringify(option));
-        expect(new Set(signatures).size, `${gym.id} repeats a card`).toBe(OFFER_SIZE);
+        expect(new Set(signatures).size, `${gym.id} repeats a card`).toBe(GYM_OFFER_SIZE);
+      }
+    }
+  });
+
+  it('offers only a relic or a currency lump, at every segment', () => {
+    // Part B's whole shape: the choice is between a permanent object and money,
+    // which is a cleaner decision than either against a padded third option.
+    for (const seed of seeds) {
+      for (const gym of gymsOf(seed)) {
+        for (const option of gym.reward?.options ?? []) {
+          expect(['relic', 'currency'], `${gym.id} offered a ${option.kind}`).toContain(option.kind);
+        }
+      }
+    }
+  });
+
+  it('hands over a guaranteed move as well, at every gym', () => {
+    // Part A. Not a card and not a choice: every gym pays it, so a player who
+    // takes the gold still leaves with a move.
+    for (const seed of seeds) {
+      for (const gym of gymsOf(seed)) {
+        expect(gym.gymMove, `${gym.id} has no guaranteed move`).toBeTruthy();
+        expect(['tm', 'tutor'], `${gym.id} guaranteed a ${gym.gymMove?.kind}`).toContain(
+          gym.gymMove?.kind,
+        );
+      }
+    }
+  });
+
+  it('pays that move at the band the gym tutor card used to, and reads one number for it', () => {
+    /*
+     * **Item 2's "read that same number, do not introduce a second one".**
+     *
+     * The chain is `REWARD_BAND_OFFSET.elite` (+2, owned by `data/scaling.ts`) plus
+     * `GYM_MOVE_BAND_BONUS` (+1, owned by the same file), which is exactly what the
+     * gym's own tutor *card* resolved at before this item replaced it. Asserted as
+     * the composition rather than as the number 3, so moving either constant moves
+     * this test with it instead of past it.
+     */
+    expect(GYM_MOVE_ENTRY.bandOffset).toBe(GYM_MOVE_BAND_BONUS);
+    for (let segment = 0; segment < 8; segment++) {
+      const paid = rewardMoveBand(segment, 'elite', GYM_MOVE_ENTRY.bandOffset ?? 0);
+      const elite = rewardMoveBand(segment, 'elite', 0);
+      expect(paid, `segment ${segment}`).toBeGreaterThanOrEqual(elite);
+    }
+  });
+
+  it('never repeats the guaranteed move as one of the cards', () => {
+    // It cannot today — Part B is relic-or-currency — but a pool that regained a
+    // move entry would make "you get this move, or you can pick this move" a real
+    // offer, and nobody would notice from the screen.
+    for (const seed of seeds) {
+      for (const gym of gymsOf(seed)) {
+        const granted = gym.gymMove;
+        if (granted?.kind !== 'tm' && granted?.kind !== 'tutor') continue;
+        for (const option of gym.reward?.options ?? []) {
+          if (option.kind !== 'tm' && option.kind !== 'tutor') continue;
+          expect(option.move, `${gym.id} offers the move it already gave`).not.toBe(granted.move);
+        }
       }
     }
   });
@@ -94,6 +165,16 @@ describe('the offer a gym clear produces', () => {
   });
 
   it('draws moves from a higher band than the elite pool', () => {
+    /*
+     * **Stage 4.8: the move this is about is `GYM_MOVE_ENTRY`, not a pool entry.**
+     *
+     * Part B narrowed the gym pool to relic-and-currency, so there is no move
+     * *card* at a gym to compare any more; the guaranteed move took its place and
+     * its band is checked above. This loop now finds nothing and the body is
+     * skipped, which is why it is kept rather than deleted: if a later pass puts a
+     * move card back in the gym pool, the "strictly better than elite" rule is
+     * waiting for it.
+     */
     for (let segment = 0; segment < 8; segment++) {
       const gym = gymRewardEntriesFor(segment).find(
         (entry) => entry.kind === 'tm' || entry.kind === 'tutor',
@@ -137,7 +218,11 @@ describe('when the offer is drawn', () => {
   it('exists before the player has done anything', () => {
     for (const gym of gymsOf('GYM-EAGER')) {
       expect(gym.reward).not.toBeNull();
-      expect(gym.reward?.options).toHaveLength(OFFER_SIZE);
+      expect(gym.reward?.options).toHaveLength(GYM_OFFER_SIZE);
+      // Stage 4.8: Part A is drawn eagerly too, from the same stream, before the
+      // cards. A move that appeared only at gym completion would make the roll a
+      // function of how the fight went.
+      expect(gym.gymMove).not.toBeNull();
     }
   });
 

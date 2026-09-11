@@ -56,6 +56,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-release-c-battle-feedback-amended.md`](gymrun-release-c-battle-feedback-amended.md) | stage prompt | `merged` | supersedes section 6 of the QoL release plan | `846975c` (items 1-4); R12 and V5 are its named follow-ons, R12 with its own row below |
 | [`gymrun-patch-r12-band-badge-move-card.md`](gymrun-patch-r12-band-badge-move-card.md) | patch prompt | `active` | | section 1 built; section 2 amends the V5 prompt, consumed by the V5 prompt below |
 | [`gymrun-stage-v5-preflight-reconcile-execute.md`](gymrun-stage-v5-preflight-reconcile-execute.md) | stage prompt | `active` | | the V5 run: preflight, the seven amendments to the plan's V5 section, then the plan's own step order. All six steps built; report `../visual/reports/v5-battle-stage.md`, deviations `../generation.md` section 12d |
+| [`gymrun-stage4.8-claude-code-prompt.md`](gymrun-stage4.8-claude-code-prompt.md) | stage prompt | `active` | | committed 2026-09-10 before its report. Step 1 report `../reports/stage-4.8-report.md`; step 2 (party slot unlocks) built, `RANDOMIZER_VERSION` 13; steps 3-8 open |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)

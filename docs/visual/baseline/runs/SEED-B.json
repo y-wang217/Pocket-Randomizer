@@ -1,8 +1,8 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-11/gymrun-0.3.0",
-    "randomizer": "gymrun-randomizer-12",
+    "runLog": "gymrun-run-12/gymrun-0.3.0",
+    "randomizer": "gymrun-randomizer-13",
     "ai": "gymrun-ai-2-switching",
     "engine": "gymrun-0.3.0"
   },
@@ -12,7 +12,7 @@
     "segment": 0,
     "leader": "Garnet",
     "kind": "wild",
-    "species": "Wyrdeer",
+    "species": "Umber",
     "bySpecies": "Clefairy",
     "byMove": "Fairy Wind",
     "indirect": null
@@ -49,7 +49,7 @@
       "casualties": [
         {
           "side": "p1",
-          "name": "Wyrdeer",
+          "name": "Umber",
           "bySpecies": "Clefairy",
           "byMove": "Fairy Wind",
           "indirect": null
@@ -59,8 +59,8 @@
   ],
   "log": {
     "seed": "SEED-B",
-    "version": "gymrun-run-11/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-12",
+    "version": "gymrun-run-12/gymrun-0.3.0",
+    "randomizerVersion": "gymrun-randomizer-13",
     "decisions": [
       {
         "kind": "starter",

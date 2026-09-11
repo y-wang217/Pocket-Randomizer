@@ -72,7 +72,8 @@ function renderTarget(
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
-  name.textContent = detail.species;
+  // Stage 4.8: the projection's own name, which is the nickname when there is one.
+  name.textContent = detail.name;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
   header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));

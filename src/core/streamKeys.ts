@@ -99,3 +99,20 @@ export function gymRewardKey(segment: number): string {
  * than about the game.
  */
 export const SEED_KEY = 'seed';
+
+/**
+ * One Pokemon's nickname, on `randomizer`. **Stage 4.8, item 5.**
+ *
+ * `id` identifies *the thing that offers the Pokemon* — a node id for a wild or
+ * event capture, `starter/N` for a starter option — and never the moment the
+ * player took it. That is the rule this whole namespace rests on, and it is what
+ * makes a name stable across a save, a reload and a replay: the same node in the
+ * same seed opens the same sequence however the run was played.
+ *
+ * A new key, so it shifts nothing. Every Pokemon in the game gained a name and no
+ * recorded map moved, which is the property the keyed refactor was built to buy and
+ * the first time a stage has spent it on something this broad.
+ */
+export function nicknameKey(id: string): string {
+  return `nickname/${id}`;
+}

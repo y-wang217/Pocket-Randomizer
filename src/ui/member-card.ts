@@ -73,7 +73,9 @@ export function memberCardContents(
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
-  name.textContent = spec.species;
+  // Stage 4.8, item 5: the nickname when the spec has one. `SpecCard.name` is
+  // `mon.name`, which the sim built from the same rule `displayName` applies.
+  name.textContent = spec.name;
 
   const level = el('span', 'panel__level');
   // Gender next to the level, exactly as the battle panel prints it and via the

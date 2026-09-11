@@ -14,7 +14,7 @@
  *     real button, not a corner X: an offer you can only accept is not an offer.
  *   - **Full.** Taking it requires choosing who goes, so every party card grows
  *     a release button and the plain "Take it" disappears. There is no way to
- *     end up over `PARTY_SIZE` from here, because there is no control that would
+ *     end up over capacity from here, because there is no control that would
  *     do it.
  *
  * Release is permanent for the run — no box, see `core/acquisition.ts` — so the
@@ -45,7 +45,7 @@ import { hpState } from '../../core/hpCopy';
 import { heldItem } from '../../core/items';
 import { createPartyMember, hpFraction } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
-import { PARTY_SIZE } from '../../data/partyTuning';
+
 import { el } from '../scene';
 import { statLine, typeChip } from './starter-select';
 import { openBand } from '../band';
@@ -68,9 +68,19 @@ export function renderCaptureOffer(
   offer: AcquisitionOffer,
   party: readonly PokemonState[],
   onDecide: (decision: AcquisitionDecision) => void,
+  /**
+   * The party slots the run has right now, from `core/run.partyCapacity`.
+   *
+   * **The card the slot schedule has to reach, or item 1 is a lie on screen.**
+   * This is what decides whether the player is asked to release someone, and a
+   * fixed number here would tell a player with a new fourth slot that their
+   * party of three is full. The same number is what `decisionRefusal` checks the
+   * answer against, so the screen and the rule cannot disagree.
+   */
+  capacity: number,
 ): HTMLElement {
   const section = el('div', 'acquire');
-  const full = party.length >= PARTY_SIZE;
+  const full = party.length >= capacity;
 
   const title = el('h3', 'result__heading');
   title.textContent = describeOffer(offer);
@@ -94,12 +104,12 @@ export function renderCaptureOffer(
    * the moment they are reading this.
    */
   const coverage = el('p', 'acquire__coverage');
-  coverage.textContent = captureCoverageLine(offer, party);
+  coverage.textContent = captureCoverageLine(offer, party, capacity);
 
   const compare = el('h4', 'acquire__heading');
   compare.textContent = full
-    ? `Your party (${party.length} of ${PARTY_SIZE}) — choose who to release`
-    : `Your party (${party.length} of ${PARTY_SIZE})`;
+    ? `Your party (${party.length} of ${capacity}) — choose who to release`
+    : `Your party (${party.length} of ${capacity})`;
 
   const list = el('div', 'party party--compare');
   list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide)));
@@ -137,11 +147,15 @@ export function renderCaptureOffer(
  * second answer to "what does this cost me", and the first divergence between
  * them would be invisible.
  */
-function captureCoverageLine(offer: AcquisitionOffer, party: readonly PokemonState[]): string {
+function captureCoverageLine(
+  offer: AcquisitionOffer,
+  party: readonly PokemonState[],
+  capacity: number,
+): string {
   if (party.length === 0) return '';
   const incoming = createPartyMember(offer.spec);
   const before = offensiveCoverage(party);
-  const full = party.length >= PARTY_SIZE;
+  const full = party.length >= capacity;
   const delta = coverageDelta(before, coverageAfterSwap(party, incoming, full ? 0 : -1));
 
   const parts: string[] = [];

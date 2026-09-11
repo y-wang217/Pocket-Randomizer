@@ -15,7 +15,7 @@ import { generateSegment, nodesOf, routeStepsOf, type Segment } from '../src/cor
 import { createRng } from '../src/core/rng';
 import { chooseLocale, chooseStarter, createRun, localeOf, nodeOptions, stepsOf } from '../src/core/run';
 import { LOCALES, LOCALE_IDS, localeById, type LocaleId } from '../src/data/locales';
-import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
+import { restFloorFor, DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
 const SEEDS = Array.from({ length: 24 }, (_, index) => `LOCALE-${index}`);
 const MANY_SEEDS = Array.from({ length: 80 }, (_, index) => `LOCALE-WIDE-${index}`);
@@ -300,8 +300,15 @@ describe('composition guarantees, per route', () => {
           expect(has('event'), `${seed} s${segment.index} ${route.locale} events`).toBeGreaterThanOrEqual(
             DEFAULT_TUNING.minEventSteps,
           );
+          /*
+           * **The rest floor is the segment's own, from Stage 4.8 item 3.** It
+           * was `minRestSteps`, a flat count, which with a length curve would
+           * have let a seven-step segment satisfy the guarantee with the single
+           * rest a four-step one gets. `restFloorFor` is the same function
+           * generation enforces, so this asserts the rule rather than a copy.
+           */
           expect(has('rest'), `${seed} s${segment.index} ${route.locale} rests`).toBeGreaterThanOrEqual(
-            DEFAULT_TUNING.minRestSteps,
+            restFloorFor(DEFAULT_TUNING, route.steps.length),
           );
         }
       }

@@ -20,7 +20,15 @@ import type { AcquisitionOffer } from '../src/core/acquisition';
 
 function offerFor(seed: string, segment = 0): AcquisitionOffer {
   const rng = createRng(seed);
-  const offer = generateEventAcquisition('n1', segment, rng.rewards.at('test/capture'), DEFAULT_TUNING);
+  // Stage 4.8, item 5: the nickname stream, handed in separately so the capture
+  // draw and the naming draw cannot consume each other.
+  const offer = generateEventAcquisition(
+    'n1',
+    segment,
+    rng.rewards.at('test/capture'),
+    DEFAULT_TUNING,
+    rng.randomizer.at('test/nickname'),
+  );
   if (!offer) throw new Error('fixture: no offer');
   return offer;
 }
@@ -42,10 +50,13 @@ describe('the event acquisition offer', () => {
 
   it('is refused when captures are turned off, without drawing differently', () => {
     const rng = createRng('OFF');
-    const off = generateEventAcquisition('n1', 0, rng.rewards.at('k'), {
-      ...DEFAULT_TUNING,
-      allowEncounterAcquisitions: false,
-    });
+    const off = generateEventAcquisition(
+      'n1',
+      0,
+      rng.rewards.at('k'),
+      { ...DEFAULT_TUNING, allowEncounterAcquisitions: false },
+      rng.randomizer.at('test/nickname'),
+    );
     expect(off).toBeNull();
   });
 });

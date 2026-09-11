@@ -511,6 +511,304 @@ moved band window, a changed level curve, a new draw inside `rollMoveset`, a
 reordered data table. It went to `-2` on the first balance pass, where not one
 draw changed position and every seed rolled a different team anyway.
 
+## 7b. Party slots, and the one number the curve reads
+
+**Stage 4.8, item 1. `RANDOMIZER_VERSION` is `gymrun-randomizer-13` from here.**
+
+Party capacity used to be `PARTY_SIZE`, a module-scope constant in
+`data/partyTuning.ts`, and the whole of item 1 is that it is now a function of
+**gyms cleared**:
+
+| gyms cleared | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| party slots | 3 | 3 | 4 | 4 | 5 | 5 | 6 | 6 | 6 |
+| backpack (`+ backpackSlack`) | 5 | 5 | 6 | 6 | 7 | 7 | 8 | 8 | 8 |
+
+`SLOT_UNLOCK_SCHEDULE` is the table; `partyCapacityAfter(gyms)` is the only thing
+that reads it; `core/run.ts`'s `partyCapacity` is the `RunState` form and composes
+it with `gymsCleared`. Nothing else in the codebase computes a capacity.
+
+**`PARTY_SIZE` was deleted rather than kept beside the schedule.** A constant
+named for the party's size is what a later call site reads instead of asking how
+wide the roster is now, and the prompt names the consequence exactly: a slot
+unlock that does not reach the capture flow means a player is told they have room
+and then asked to replace someone. Removing the name is what forced all sixteen
+read sites through review; the compiler found them, not a grep.
+
+### Why this moves a version axis
+
+`scaling.expectedPartySize` reads the schedule as its **cap**, and
+`opponentTeamSize` is `expectedPartySize(segment) + advantage`. So the schedule
+reaches opponent team sizes, team sizes decide how many Pokemon are drawn, and a
+different count moves every draw after it in that node's sequence.
+
+Two quantities meet there and they are **not the same number**, which is the
+distinction section 3 of `balance.md` paid for once already:
+
+- `partyCapacityAfter(segment)` is what the player is *allowed* to field.
+- `EXPECTED_PARTY_SIZE` is what they are *measured* to field.
+
+The second may never exceed the first, and `test/party-slots.test.ts` asserts it
+at every segment. Sizing opponents against the ceiling instead of the measurement
+is the largest single finding of the Stage 4 balance pass, pointed the other way.
+
+`EXPECTED_PARTY_SIZE` moved from `[1, 2, 2, 3, 3, 3, 3, 3]` to
+`[1, 2, 2, 3, 4, 4, 5, 5]`. **Segments 0 to 3 are unchanged to the number**, so
+the early benchmark rows stay comparable across the patch and a move in them
+means something other than this landed. The four rows that did move extend the
+*rate* the original rows measured — `[1, 2, 2, 3]` is about seven tenths of a
+Pokemon per segment, not one, because filling a slot takes a wild encounter and
+players decline — which carried on from 3 gives 3.7, 4.4, 5.1, 5.8. That lag is a
+*claim*, and the simulator's `party.sizeBySegment` section is what holds it to
+account: it prints the measured party beside this column, segment by segment.
+
+### The engine's limit decides the last row, and the suite is what found it
+
+`opponentTeamSize` is `min(MAX_TEAM_SIZE, expectedPartySize + advantage)`, and
+`MAX_TEAM_SIZE` is **6 because six a side is the engine's hard limit**. So the
+*assumed* party size cannot reach 6 without the clamp binding for every tier at
+once. The first cut of the table did reach it, and at segment 7 the result was:
+
+| segment 7, trainer node | normal | hard | elite |
+|---|---|---|---|
+| assumed 6 (first cut) | 6 | 6 | **6** |
+| assumed 5 (shipped) | 5 | 5 | **6** |
+
+A normal, a hard and an elite node all fielding six is **Stage 3's entire risk
+gradient disappearing at the end of the run** — the thing tiers exist to be. The
+same clamp took the gym's advantage at that segment from +2 to +0.
+
+`test/tiers.test.ts`'s "orders normal < hard < elite at every segment" is exactly
+that invariant, and it is what caught this. Two assertions there went red on the
+first cut; nothing else in the suite noticed.
+
+**So the curve assumes one fewer than the player may field, and the slot schedule
+still reaches six.** A player who fills every slot is a Pokemon ahead of what the
+last two gyms are sized for — a reward for having filled it, rather than a
+miscalibration, and the only alternative was a flat endgame where the elite node
+and the ordinary one are the same fight. Levels and band windows could have
+absorbed it instead; they are encounter difficulty, which this patch puts out of
+scope.
+
+The rule is `EXPECTED_PARTY_SIZE[last] < MAX_TEAM_SIZE`, **not the number 5**, and
+`test/party-slots.test.ts` asserts it in that form against both constants by name,
+so raising either one fails there rather than silently flattening the endgame and
+being noticed a stage later.
+
+### What did not move
+
+`RUN_LOG_VERSION` is unchanged and asserted unchanged. Capacity is derived from
+gyms cleared, gyms cleared from history, history from the decision log — so it
+reconstructs identically without being stored, consumes no RNG, and adds no
+logged decision. The same will hold for nicknames, death records and the score,
+which is why this patch moves one axis in total rather than one per item. A
+version axis names a content *state*, not a changeset.
+
+`tuning.backpackCapacity` is gone, replaced by `tuning.backpackSlack: 2`. The old
+field was `PARTY_SIZE + 2` **evaluated once at module load** and frozen into
+`DEFAULT_TUNING`, so the bag was sized from the party at import time and could
+not have followed a growing one however the schedule was written. `Tuning` is
+passed into a run and must not change inside one, so only the slack can live
+there; `core/items.backpackCapacity(slots, tuning)` adds the run's live slots.
+
+`test/fixtures/sim-report.json` is re-minted in the same commit as the bump, which
+is the use its header reserves for exactly this case: the diff on that file is the
+evidence that the draws moved, and the version string moving beside it is what
+stops a recorded seed being silently reinterpreted.
+
+## 7c. The gym pays twice, and segments get longer
+
+**Stage 4.8, items 2 and 3.** Both land under `gymrun-randomizer-13`, which
+section 7b already stamped: a version axis names a content state, not a changeset.
+
+### Item 2: a gym clear pays a move *and* a choice of two
+
+| half | what | where it is drawn |
+|---|---|---|
+| **Part A** | one move, guaranteed, no choice | `GYM_MOVE_ENTRY`, `data/rewardPools.ts` |
+| **Part B** | exactly two cards: a relic, or a currency lump | the `GYM` bands, same file |
+
+Both are drawn in pass 6 from the one stream a gym has always used,
+`rewards.at(gymRewardKey(segment))`, **Part A first**. Order inside a stream is
+the stream's contract, and the move is the guaranteed half, so it is drawn first
+and the choice second — which is also the order the player meets them.
+
+**Part A's band reads the existing numbers and introduces none.** The entry's
+`bandOffset` is `GYM_MOVE_BAND_BONUS` (+1, `data/scaling.ts`) and it resolves at
+tier `elite`, so `REWARD_BAND_OFFSET.elite` adds +2 — the same +3 chain the gym's
+own *tutor card* paid at before this item replaced it. `test/gym-rewards.test.ts`
+asserts the composition rather than the number 3, so moving either constant moves
+the test with it.
+
+**Two cards, not three, and this is the only offer in the game that breaks the
+rule.** `GYM_OFFER_SIZE` is its own constant beside `OFFER_SIZE` for that reason —
+"how many cards does an offer have" stopped having one answer, and a single
+constant covering both would hide it. A relic against a currency lump is a cleaner
+decision than either against a padded third option, and the gym already pays a
+move beside it. **Do not normalise this back to three.**
+
+What Part B cost, named rather than tidied away: the gym pool's `item` and `tutor`
+entries are gone. Premium and Choice items now reach a player through `ELITE` and
+the shop alone. The tutor is no longer a card because it *is* Part A. The first is
+a narrowing a tuning pass may want to undo; the second is the item working.
+
+### Deviation: item 2 moved `RUN_LOG_VERSION`, which its prompt said it would not
+
+**Recorded 2026-09-10. Protocol 4 — [`spec/README.md`](spec/README.md) — a prompt
+is not edited to match what was built, so the deviation is written here instead.**
+The prompt is
+[`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md).
+
+**What the prompt asked.** Under "Version axes": run log version does not bump,
+because "party capacity is derived, nicknames are derived, death records are
+derived, score is derived", with an instruction to stop and report before bumping
+"because it means something in the derivation is not actually deterministic".
+
+**What was built.** `RUN_LOG_VERSION` is `gymrun-run-12`. All four derived things
+are still derived and none of them is logged — that half of the prompt is intact
+and `test/party-slots.test.ts` asserts it for capacity. The bump is item 2 Part A's.
+
+**Why.** Part A says the guaranteed move "routes through the existing move
+learning flow: recipient selection, then replacement". Those are logged decisions.
+A gym win now records a `target`, and a `replace` when the recipient's moveset is
+full, **immediately after the gym and before the card pick** — up to sixteen new
+entries in a run, the first at the end of segment 0. `RUN_LOG_VERSION`'s own rule
+decides it: the guard "does not ask whether the schema changed; it asks whether the
+*questions* changed, and a new question in a new place is a changed sequence even
+when every entry in it is an old shape". A 4.7 log replayed against this build
+would read the gym's move target as whatever its next entry happened to be.
+
+The prompt's stated reason for the stop condition — a derivation that turned out
+not to be deterministic — **does not apply**: nothing here is derived. It is a new
+reward the player has to aim, and the only way to avoid the bump would have been
+to build Part A as a second move-granting path that asks nobody, which the same
+item forbids in the same paragraph.
+
+### Item 3: `stepsPerSegment` is a curve
+
+A table in `data/tuning.ts`, one row per segment, read through `stepsRangeFor`:
+
+| segment | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| steps | 4-5 | 4-5 | 5-6 | 5-6 | 5-6 | 6-7 | 6-7 | 6-7 |
+
+45 steps across a run against the old flat 36, so 53 nodes against 44. **Segments
+0 and 1 are unchanged**, so the early benchmark rows stay comparable.
+
+It stops well short of Stage 1's shape deliberately. Six to eight was sized for
+Stage 1's *single* segment and eight of those measured as "an attrition countdown
+rather than a curve"; `test/node-curve.test.ts` guards the run's total against
+approaching it again rather than guarding one row.
+
+**The rest guarantee became a density.** It was `minRestSteps`, a flat count,
+which was the same statement as a density only because every segment was the same
+length. `restFloorFor` takes the larger of the count floor and one rest per
+`restStepsPerGuarantee` steps (three), so a 4-5 step segment still guarantees one
+and a 6-7 step segment guarantees two. One rest across seven steps is not the
+recovery one rest across four is, and the 4.6a guarantee is about recovery.
+
+The other two guarantees stay **absolute per segment** — one reachable wild step,
+one event — and `test/node-curve.test.ts` asserts they stay absolute, because
+"scale it with length" is the plausible wrong change. The wild step is the capture
+the segment owes the player, not a rate.
+
+Every guarantee is checked at **every length the curve can draw**, by driving the
+generator at a fixed length rather than hoping real seeds visit the ends.
+
+## 7d. The score, the names, the graveyard, and the map that had to make room
+
+**Stage 4.8, items 4 to 7.** None of these moves a version axis: every one is
+derived from a `RunState` a replay rebuilds, which is the argument item 2 could not
+make and section 7c records separately.
+
+### Item 4: the score
+
+`core/scoring.ts` counts, `data/scoring.ts` weighs, and neither does the other's
+job. The total is the sum of the components **as returned**, in one pass, so the
+number a player reads is the list a player reads added up.
+
+Seven components: gyms cleared, elite and hard nodes taken, captures, relics,
+survivors, turns. Risk pays because a score that only paid for gyms would teach
+players to route around every hard node, which is the opposite of what the tier
+system is for.
+
+`turns` is weighted **zero and still computed**, still listed, still rendered. The
+data exists for a later decision about pace without this patch taking a position on
+fight length. A component that was simply absent would have to be measured from
+nothing; one recorded at zero is a column the next pass reads history out of.
+
+Score is a verdict about a *finished* run, so it appears on the result screen and
+nowhere else. `test/scoring.test.ts` asserts that per surface and twice over: no
+node card, tier badge, reward card, locale screen or pre-gym screen may import either
+scoring module, and none may carry the word in a string literal either — the second
+catches a surface that computed "+30" inline, which would pass the first.
+
+### Item 5: nicknames, and why they are a correctness feature
+
+`nicknameKey` is the one new RNG key in Stage 4.8. A name is drawn at map
+generation beside the draw that created the spec — starters by option index,
+captures by node id — so the key names *the thing that offers the Pokemon* and never
+the moment the player took it. Being a new key, it shifts no other key's output:
+every Pokemon in the game gained a name and no recorded map moved.
+
+**The graveyard is why they exist.** The battle protocol names its victim by
+`spec.nickname ?? spec.species`, so before item 5, two Weepinbells in one party were
+the same string in every line of the log — `core/battle/contribution.ts` has said so
+since 4.7. No work on the death record fixes that, because the ambiguity is upstream.
+
+One real bug fell out of it, found by reading rather than by a test:
+`describeSpecCard`'s vitals cache keyed on species, ability, moves, level and item
+but **not the nickname**. Free while no spec had one; with every Pokemon named, two
+otherwise-identical Pidgeys collide and the second renders under the first one's
+name, on every surface at once, from a single cache hit. The nickname is in the key.
+
+`core/graveyard.ts` records **every** faint, not only unrecovered ones.
+`reviveFaintedBetweenNodes` is true, so the only faints never recovered are those in
+the wipe that ends a run; read literally the graveyard would hold one node's
+casualties. Revives are out of scope, so changing recovery to justify a readout was
+not available and would have been a readout deciding a mechanic. Two imprecisions
+are recorded in the file rather than hidden: the level is the member's level *now*
+rather than when it fell, and a member released since does not match and reads null.
+The exact fix for both is a party snapshot per `NodeVisit`, which is a copy of the
+whole party per node to improve one line of a readout.
+
+### Item 6: the shareable result
+
+`ui/copy/share.ts`, pure, and under `ui/` rather than `data/` so a word changed
+there cannot move a seed. Text on a clipboard is the whole feature: no image, no
+canvas, no share sheet. The destination is a chat client, which decides the format —
+no monospace assumption, no column alignment, and the graveyard capped at
+`GRAVE_LIMIT` so a long run is not a wall. `seedLine` is the single place a seed is
+rendered into shared text, so `contentHash` replaces it in one function.
+
+### Item 7: the readout moved, and the map had to make room
+
+The threat readout is **off the map** and on the party screen alone. The map renders
+the gym leader's name and type chip, so a readout there paired "watch for Ground"
+with "the next gym is Ground" — a routing recommendation. Three smoke checks retired
+with the placement they protected.
+
+**The map's fold `xfail` is closed**, and it took three changes, each of which bounds
+the decision's position rather than shaving pixels off it:
+
+| change | why it is structural |
+|---|---|
+| taken steps collapse to one line | the current step stops moving down as a segment is walked, so the fix holds at any length in item 3's curve |
+| the map's party cards lose their move lists and go to three columns | item 1's six-member roster had made that panel 697px of an 844px phone; ~250px now |
+| a step's option cards stop wrapping (grid floor 150px → 96px) | the third card on its own row cost 119px and broke the comparison the row exists to make |
+
+Measured: offered cards end at **737 of 844** on the smoke's own point and **788** at
+the worst position a real run reaches; `heights.json`'s `map.decisionBottom` went
+728.22 → 669.72. The battle did not move on any field. The `xfail` marker is removed
+rather than re-marked, and `phoneCheckExpectedFail` is deleted with it — it worked as
+designed on the way out, reporting "passes now; take the marker off" rather than
+letting the marker hide a real assertion.
+
+`test/map-fold.test.ts` is the check the fixed-seed ones could not be: it drives the
+app to the worst position a run reaches and asserts the two *properties* that bound
+the height, not a pixel count that would pass for the wrong reason the first time a
+font changed.
+
 ## 8. Capabilities, and why `latent` is not a learnset
 
 > **Superseded 2026-09-10. Kept because the measurements are still good.**

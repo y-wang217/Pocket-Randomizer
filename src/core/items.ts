@@ -115,9 +115,20 @@ export function needsItemPlan(state: {
   return state.backpack.length > 0 || state.party.some((member) => member.item !== undefined);
 }
 
-/** How many loose items the run may hold. Held items are not counted; see the tuning note. */
-export function backpackCapacity(tuning: Tuning): number {
-  return Math.max(0, Math.floor(tuning.backpackCapacity));
+/**
+ * How many loose items the run may hold. Held items are not counted.
+ *
+ * **Takes the party slots rather than reading them, and that is the Stage 4.8
+ * fix.** Party capacity grows on the gym schedule, so the bag has to grow with
+ * it; the slots are passed in because this file sits below `core/run.ts`, which
+ * is where "how many gyms has this run cleared" is answered, and a capacity
+ * function that reached upward for it would be an import cycle. Callers pass
+ * `partyCapacity(state)`, which is the only thing that computes it.
+ *
+ * See `tuning.backpackSlack` for why the derived half cannot live on `Tuning`.
+ */
+export function backpackCapacity(partySlots: number, tuning: Tuning): number {
+  return Math.max(0, Math.floor(partySlots + tuning.backpackSlack));
 }
 
 /**
@@ -220,6 +231,17 @@ export function spendItems<S extends { party: PokemonState[]; backpack: ItemId[]
 export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemId[]; tuning: Tuning }>(
   state: S,
   plan: ItemPlan,
+  /**
+   * The capacity the plan has to come in under, from
+   * `backpackCapacity(partyCapacity(state), state.tuning)`.
+   *
+   * Passed rather than derived for the reason that function gives: the slot count
+   * is a fact about gyms cleared, which lives a layer up. Required rather than
+   * defaulted, because every sensible default here — the party's current length,
+   * the opening slot count — is the frozen literal this patch exists to remove,
+   * and a default would let a caller keep the old behaviour by saying nothing.
+   */
+  capacity: number,
 ): S {
   const seen = new Set<number>();
   for (const assignment of plan.assignments) {
@@ -266,7 +288,6 @@ export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemI
     pool.splice(index, 1);
   }
 
-  const capacity = backpackCapacity(state.tuning);
   if (pool.length > capacity) {
     throw new RangeError(
       `Item plan leaves ${pool.length} items in a backpack that holds ${capacity}. ` +

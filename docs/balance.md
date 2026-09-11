@@ -1427,3 +1427,121 @@ no longer the comparison for anything.
 Balance is not a gate, per the standing decision, and this stage does not retune
 on top of its own change: a retune landing in the same patch as the thing it is
 correcting for would leave the next report unable to say which moved which.
+
+## 14. Stage 4.8 — the roster grows, and the curve is measurably behind it
+
+**Read down the prefix, never across.** Every figure below is 400 seeds,
+prefix `RETUNE`, policy `greedy`, nodes `rest` — the same population and policy as
+the pinned 4.6c row it is compared with, so this is a comparison rather than two
+numbers side by side. Report:
+`sim-reports/benchmarks/2026-09-10T22-36-13-586Z-gymrun-randomizer-13-400.json`.
+
+### 14.1 The headline, against the pinned benchmark
+
+| | randomizer-12 (4.6c pin) | randomizer-13 (4.8) | delta |
+|---|---|---|---|
+| **mean gyms cleared** (the pinned figure) | **3.413** | **4.960** | **+1.547** |
+| run completion | 9.75% | 40.25% | +30.5 pts |
+| mean score | — | 726.5 | new |
+| median score | — | 741.5 | new |
+| party ceiling | 3 | 6 | — |
+| slot schedule | — | `[3,3,4,4,5,5,6,6,6]` | new |
+
+**Score joins the report as a second column and does not replace anything.** Mean
+gyms cleared stays the pinned figure, per section 0 and per item 4's own
+instruction. The median sits beside the mean because a score has a long right tail:
+a run clearing eight gyms scores several times one dying at gym two.
+
+**Nothing was retuned, and that is the standing policy rather than a judgement that
+these numbers are right.** A retune landing in the same patch as the change it
+corrects for leaves the next report unable to say which moved which — the same
+sentence section 13.6 ends on.
+
+### 14.2 Where the 1.547 came from: the curve is behind the player, everywhere
+
+The per-gym clear rate moved almost entirely in the back half:
+
+| gym | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| randomizer-12 | .995 | .857 | .767 | .747 | .630 | .760 | .743 | .722 |
+| randomizer-13 | .995 | .877 | .921 | .927 | .836 | .896 | .914 | .958 |
+
+Gym 1 is identical to three decimal places, which is the control: the schedule
+grants its first extra slot at gym 2, so nothing before it should have moved and
+nothing did.
+
+`party.sizeBySegment` says why, and it is the column `data/scaling.ts` put there
+precisely so this claim could be held to account:
+
+| segment | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| measured party | 1.91 | 2.87 | 3.68 | 4.00 | 4.71 | 5.00 | 5.71 | 6.00 |
+| `EXPECTED_PARTY_SIZE` | 1 | 2 | 2 | 3 | 4 | 4 | 5 | 5 |
+
+**The measured party runs about one Pokemon above what the curve assumes, at every
+segment.** `opponentTeamSize` is `expectedPartySize + advantage`, so every opponent
+in the game is sized against a party smaller than the one it meets. That is the
+largest single finding of the Stage 4 balance pass, recurring — and this time the
+under-statement is deliberate rather than accidental, which is the part worth
+reading carefully.
+
+Two separate errors are stacked here:
+
+1. **The lag is too pessimistic and that is a plain miss.** 4.8 extended the
+   measured rate of the old `[1, 2, 2, 3]` rows — about 0.7 Pokemon a segment — on
+   the reasoning that filling a slot takes a wild encounter and players decline. A
+   greedy catcher does not decline: it reaches capacity within a segment of each
+   unlock. Rows 2 through 6 are simply low, and a pass that wanted to correct only
+   this could raise them toward the measured column.
+2. **The last row cannot be corrected at all, and that is structural.** The player
+   fields 6.00 at segment 7. The curve assumes 5, and it must:
+   `opponentTeamSize` clamps at `MAX_TEAM_SIZE`, which is 6 because six a side is
+   the engine's hard limit, so an assumption of 6 leaves the clamp no headroom and
+   **every tier collapses onto the same team size** — a normal, a hard and an elite
+   node all fielding six. `test/tiers.test.ts` fails on exactly that and is what
+   caught it during the build (`../docs/generation.md` section 7b).
+
+So at a roster ceiling equal to the engine's, **you cannot both size opponents
+against a full party and keep a team-size tier gradient.** One of three things has
+to give, and the choice is a design decision rather than a tuning one:
+
+- lower the slot ceiling to 5, which restores headroom at every tier and costs the
+  party of six;
+- keep the ceiling and accept that the last segment's opponents are a Pokemon
+  behind, paying for it in levels and band windows instead — encounter difficulty,
+  which 4.8 put out of scope;
+- keep both and accept a flat tier gradient at segment 7 alone.
+
+### 14.3 The other figures that moved, and what they say
+
+| | randomizer-12 | randomizer-13 |
+|---|---|---|
+| mean party at last battle | 2.87 | 4.78 |
+| capture take rate | 28.3% | 35.2% |
+| releases per run | 0.575 | 0.788 |
+| mean type coverage on the final party | 4.13 | 6.28 |
+
+The take rate rising is the slot schedule working: there is more room, so more
+offers are worth taking. Releases rising *with* it is the more interesting pair — a
+wider party does not stop the release decision happening, because the schedule
+grants slots slower than a greedy policy fills them.
+
+Type coverage going 4.13 → 6.28 is the one number here that is unambiguously good
+and was not aimed at: six slots of six types is a party that can answer things, and
+the threat readout item 7 keeps on the party drawer is the screen where a player
+reads it.
+
+### 14.4 What this stage did not measure
+
+Encounter difficulty, the revive economy, and fight length — all three out of scope
+by the prompt, and all three now have a **new baseline**: the randomizer-12 figures
+are no longer the comparison for anything. `turns` is recorded at weight zero in the
+score for exactly this reason, so the pace question has data waiting when someone
+takes it.
+
+One target miss is worth naming rather than leaving in the JSON: the most common
+species appears in 32.3% of runs against a target of 25%. That is a species-pool
+figure and not a 4.8 one — it is measured against a different prefix in section 11
+— but a longer run visits more nodes, so a longer run is more chances for the same
+species to show up, and the next pool pass should expect the curve to have made it
+worse.
