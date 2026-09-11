@@ -171,6 +171,7 @@
         {
           "side": "p1",
           "name": "Fallow",
+          "level": 36,
           "bySpecies": "Oinkologne",
           "byMove": "Fury Attack",
           "indirect": null
@@ -201,6 +202,7 @@
         {
           "side": "p1",
           "name": "Cedar",
+          "level": 36,
           "bySpecies": "Oshawott",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -208,6 +210,7 @@
         {
           "side": "p1",
           "name": "Gale",
+          "level": 36,
           "bySpecies": "Oshawott",
           "byMove": "Surging Strikes",
           "indirect": null
@@ -215,6 +218,7 @@
         {
           "side": "p1",
           "name": "Fallow",
+          "level": 36,
           "bySpecies": "Skrelp",
           "byMove": "Jet Punch",
           "indirect": null

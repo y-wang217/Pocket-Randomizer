@@ -58,10 +58,17 @@ export interface DeathRecord {
   /**
    * The level it fell at.
    *
-   * **The one field the protocol cannot supply.** A `|faint|` line carries a name
-   * and nothing else, so this is read off the party member as it stood when the
-   * node resolved — see `deathsFrom` for how the match is made, and for what
-   * happens when it cannot be.
+   * **Captured at faint time, in the casualty record itself.** A `|faint|` line
+   * carries a name and nothing else, so `runBattle` reads the level off the specs
+   * the battle was built with — the party as of node entry — and writes it beside
+   * the killing move. Nothing here looks it up afterwards.
+   *
+   * That is the difference between a number and the right number. `levelParty`
+   * raises the whole party at every gym clear, so reading the live party later
+   * reports the level a survivor *reached*; and a member released since is not in
+   * the party at all, so it would report nothing. Both were true of the first cut of
+   * this file and both are gone: **a released member keeps its record, with its
+   * level.**
    */
   level: number | null;
   /** 0-based segment the node belonged to. */
@@ -93,21 +100,21 @@ export interface DeathRecord {
  * `core/battle/contribution.ts` says so — and nicknames are what make it exact.
  * They are drawn at map generation precisely so that this lookup is total.
  *
- * The match is against the run's **current** party, and the level it reads is that
- * member's level now rather than at the moment it fell. Those differ: `levelParty`
- * raises the whole party at every gym clear, so a member that went down in segment
- * 2 and survived to segment 5 reads its segment-5 level. That is a real
- * imprecision and it is accepted rather than hidden, because the exact fix is a
- * party snapshot on every `NodeVisit` — a copy of the whole party per node, to put
- * a more accurate number in one line of a readout. A later pass can make that
- * trade if the number ever matters.
+ * **Nothing is looked up in the live party.** Every field of a death comes from the
+ * casualty record and the visit that holds it, both of which were written when the
+ * node resolved. The first cut of this file matched the casualty's name against the
+ * current party to find a level, and that was wrong in two ways at once: a survivor
+ * reported the level it had *reached* rather than the one it went down at, because
+ * `levelParty` raises the party at every gym clear; and a member released since
+ * matched nothing, so its entry read null. `Casualty.level` is captured at faint
+ * time instead, so **a released member keeps a complete record**.
  *
- * When no member matches, `level` is null and `species` falls back to the name
- * rather than the entry being dropped. That happens for a member released or lost
- * since, and returning null is the honest answer rather than a guess borrowed from
- * a different member. The same forgiveness `readCasualties` shows for an
- * unrecognised removal path applies here: "died to something" is a better line
- * than a missing row or a crashed screen.
+ * `species` is still resolved against the party when it can be, because the protocol
+ * carries a battle *name* and the species is what a player reads beside it — and it
+ * falls back to the name rather than dropping the row. A name is the species
+ * whenever a spec carries no nickname, so the fallback is correct rather than merely
+ * tolerable. The same forgiveness `readCasualties` shows for an unrecognised removal
+ * path applies here: "died to something" is a better line than a missing row.
  */
 export function deathsFrom(state: RunState): DeathRecord[] {
   const deaths: DeathRecord[] = [];
@@ -118,7 +125,8 @@ export function deathsFrom(state: RunState): DeathRecord[] {
       deaths.push({
         nickname: casualty.name,
         species: member?.spec.species ?? casualty.name,
-        level: member?.spec.level ?? null,
+        // From the record, not from the party. See the note above.
+        level: casualty.level,
         segment: visit.segment,
         nodeKind: visit.node.kind,
         nodeId: visit.node.id,

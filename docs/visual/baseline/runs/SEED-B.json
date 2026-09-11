@@ -50,6 +50,7 @@
         {
           "side": "p1",
           "name": "Umber",
+          "level": 30,
           "bySpecies": "Clefairy",
           "byMove": "Fairy Wind",
           "indirect": null

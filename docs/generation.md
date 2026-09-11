@@ -766,11 +766,28 @@ name, on every surface at once, from a single cache hit. The nickname is in the 
 `reviveFaintedBetweenNodes` is true, so the only faints never recovered are those in
 the wipe that ends a run; read literally the graveyard would hold one node's
 casualties. Revives are out of scope, so changing recovery to justify a readout was
-not available and would have been a readout deciding a mechanic. Two imprecisions
-are recorded in the file rather than hidden: the level is the member's level *now*
-rather than when it fell, and a member released since does not match and reads null.
-The exact fix for both is a party snapshot per `NodeVisit`, which is a copy of the
-whole party per node to improve one line of a readout.
+not available and would have been a readout deciding a mechanic.
+
+**The level is captured at faint time, in `Casualty` itself**, beside the killing
+move the 4.7 attribution work already wrote there. `runBattle` reads it off the specs
+the battle was built with — the party as of node entry — and `readCasualties` takes a
+name-to-level map rather than deriving one, because nothing in that file may see
+anything but protocol strings.
+
+The first cut looked the level up in the live party instead, and was wrong twice:
+`levelParty` raises the whole party at every gym clear, so a survivor reported the
+level it had *climbed to*; and a member released since matched nothing and read null.
+One field fixed both, and **a released member now keeps a complete record** — which a
+party snapshot per `NodeVisit` would also have done, at the cost of a copy of the
+whole party per node.
+
+Both failure modes are pinned in `test/nicknames-graveyard.test.ts`, and both tests
+were rewritten once because the first versions were **vacuous**: the level test ran on
+a seed with no stale survivor, and the release test's set of no-longer-held victims
+came back empty on every seed, so both passed against the broken lookup. The level
+test now sweeps every seed and asserts the discriminating case was present; the
+release case is a hand-built fixture, because a state that specific is one a fixture
+should construct rather than one a sweep should hope for.
 
 ### Item 6: the shareable result
 

@@ -157,6 +157,7 @@
         {
           "side": "p1",
           "name": "Brook",
+          "level": 36,
           "bySpecies": "Araquanid",
           "byMove": "Grassy Glide",
           "indirect": null
@@ -209,6 +210,7 @@
         {
           "side": "p1",
           "name": "Brook",
+          "level": 36,
           "bySpecies": "Bruxish",
           "byMove": "Burning Jealousy",
           "indirect": null
@@ -216,6 +218,7 @@
         {
           "side": "p1",
           "name": "Ivy",
+          "level": 36,
           "bySpecies": "Bruxish",
           "byMove": "Aqua Cutter",
           "indirect": null
@@ -223,6 +226,7 @@
         {
           "side": "p1",
           "name": "Bramble",
+          "level": 36,
           "bySpecies": "Bruxish",
           "byMove": "Aqua Cutter",
           "indirect": null
