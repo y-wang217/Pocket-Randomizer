@@ -76,8 +76,11 @@ under [`visual/OVERNIGHT.md`](visual/OVERNIGHT.md) built the first five stages
 of [`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md):
 tokens and the display face, locale palettes, world chrome, the scene layer,
 and the run summary. Each stage's report in `visual/reports/` opens with its
-morning decisions, **and two of those decisions are still open and still want a
-phone**: V0.5's `--font-body` and V3.6's performance check. V5 exited as a clean
+morning decisions. V0.5's `--font-body` decision was taken at 4.7.2 and
+**reversed at 4.8.0.2 on a measurement** — the pixel face has no pixel
+module, so no size lands on a phone's grid, and the whole UI is the monospace
+stack now (`generation.md` section 12i). V3.6's performance check is still
+open and still wants a phone. V5 exited as a clean
 skip because Release C was not merged.
 
 **Merged since:** the 4.7 phone regression patch, as PR #15
@@ -201,6 +204,21 @@ data digest now reads `contentHash`, so a copy file on the exclusion list moves
 nothing; `generation.md` section 12h records that and the other four
 deviations.
 
+**Patch 4.8.0.2, readability: built**, on `claude/nice-einstein-up1ltb`,
+prompt
+[`spec/gymrun-patch-4.8.0.2-readability.md`](spec/gymrun-patch-4.8.0.2-readability.md),
+report [`visual/reports/patch-4.8.0.2.md`](visual/reports/patch-4.8.0.2.md).
+Five playtest complaints, presentation and copy only, no version axis moved,
+`contentHash` unchanged. Two reverse 4.7.2: Detailed shows stat numbers alone
+again (Simple shows the bars), and the pixel face is gone from every token
+because it has no pixel grid to land on. Three close older gaps: the
+move-replace heading that read `Give up` is a label again; the recipient
+screen draws the gym's granted move as the same card the reward screen draws,
+with its category and `Explain`; and a capability event now shows its
+requirement and the run's standing, a band-correct hint, and a conclusion
+naming what the standing bought — from `data/eventCopy.ts`, which `core/`
+never reads. `generation.md` section 12i and the dated note in section 10.
+
 **Blocked:**
 
 - **The freeze** is no longer blocked on `contentHash` existing; it is blocked
@@ -321,6 +339,19 @@ One line each. The analysis lives where the pointer goes, not here.
    worse than neither side explaining. Release A's to fix, with R8. Recorded by
    patch 4.7.2, branch `claude/cool-dijkstra-apme8u`.
    [`spec/gymrun-patch-4.7.2-font-stats-verbosity.md`](spec/gymrun-patch-4.7.2-font-stats-verbosity.md).
+11. **The capability event payout tables are the 4.6c placeholders.** `latent`
+   is the v1 outcome table verbatim, `none` and `known` are one shared table
+   each, and the top band's declined capture pays nothing — the 4.6c prompt's
+   held item never shipped. 4.8.0.2 fixed what the screen *says*; what it
+   *pays* moves `RANDOMIZER_VERSION` and is its own patch. `generation.md`
+   section 10, the dated note.
+12. **The gym's granted move cannot be declined.** 4.8 Part A hands it over
+   unconditionally, so a party of four-move members must displace one. A
+   decline is a `core/` change and a `RUN_LOG_VERSION` bump. Surfaced by
+   4.8.0.2, which relabelled the heading that was being tapped as one.
+13. **The shop shelf shows `Tutor: X` with no card.** Same gap 4.8.0.2 closed
+   on the recipient screen, same two lines to close it; not in that patch's
+   brief.
 
 ### The invariant register
 

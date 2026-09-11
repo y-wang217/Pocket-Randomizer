@@ -1267,6 +1267,29 @@ says so where it prints it.
 Today every capability is named by exactly one event, which is a flat starting
 point rather than a tuned one.
 
+### What the screen says about the band, and where that copy lives
+
+**Recorded 2026-09-11, patch 4.8.0.2.** The bands above shipped with no copy
+for them. The choice hints in `data/events.ts` were written against the
+`latent` table — the one each event was authored for — and were shown at
+every band, so at `none` a hint that promised coins paid a berry with no word
+about why, and the reveal was one label. `latent` is still `choice.outcomes`,
+the v1 table verbatim, and `none` and `known` are still one shared table each:
+**this patch changed what the event screen says and not what it pays.**
+
+The copy is `src/data/eventCopy.ts`: a hint per choice at `none` and `known`,
+a conclusion per choice at all three bands naming the standing and what it
+did, and the capability and band labels the map card and the event screen
+both print. It is read by `ui/` only and is on the `contentHash` exclusion
+list, so a reworded sentence moves no seed. The authored hint stays the
+`latent` hint, because any byte in `events.ts` moves the hash.
+
+**Still open, for a patch that moves `RANDOMIZER_VERSION`:** the 4.6c prompt
+described `latent` as its own payout table — a larger heal, a held item, a move
+a band up, a currency lump — and `known` as a Pokemon holding a good item with
+the item granted even when the capture is declined. Neither shipped; `known`
+is a bare acquisition and a declined capture at the top band pays nothing.
+
 
 ## 11. Acquisition levelling, and the rule it replaced
 
@@ -1731,3 +1754,61 @@ Branch 3 are written here.**
 One known gap, from the prompt's own default: the copy is written against
 Detailed mode. If Pocket mode is built, its marks point at the same anchors
 and may name things that mode hides.
+
+## 12i. Deviation: 4.8.0.2 took the pixel face off, and the map grew back by 29.69px
+
+**Recorded 2026-09-11. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written here
+instead.** The prompt is
+[`spec/gymrun-patch-4.8.0.2-readability.md`](spec/gymrun-patch-4.8.0.2-readability.md);
+the measurement is
+[`visual/reports/patch-4.8.0.2.md`](visual/reports/patch-4.8.0.2.md) sections
+1 and 2.
+
+**What the prompt asked.** "Choose a different px size or abandon pixel
+fonts." The plan's rule was to measure the face's pixel module first and keep
+the face only at sizes that land on it; if no uniform module exists, abandon
+it.
+
+**What was found.** There is no module. Pixelify Sans draws each "pixel" as a
+rounded outline square of about 90 units on a 1000-unit em with a 10-unit gap
+to the next (39 in Bold), and its rows vary between 80 and 91 units. No CSS
+size at any device pixel ratio puts both the square and the gap on whole
+device pixels; Chromium's antialiased share of the ink at 12px on a 3x phone
+is 43%, and under 44px it is never below 20%. So the second half of the
+instruction applied, and all three face tokens now point at the monospace
+stack. The `@font-face` blocks and the woff2 files are deleted rather than
+left unreferenced.
+
+**What moved.** Section 12e recorded the swap *onto* the face as −29.69px on
+the map and said it "would go back the moment `--font-body` returns to the
+mono stack." It did, to the hundredth:
+
+| | before | after | delta |
+|---|---|---|---|
+| `map.screenHeight` | 810.72 | 840.41 | **+29.69** |
+| `map.scrollHeight` | 1004 | 1033 | +29 |
+| `map.decisionTop` | 558 | 558 | 0 |
+| `map.decisionBottom` | 643.03 | 672.72 | **+29.69** |
+| `battle.*` | — | — | **0 on every field** |
+
+The map's last offered card clears the 740 line by 67px and the battle's
+fourth button by 28px, unmoved. `heights.json` is re-recorded in the commit
+that moved it, and that re-recording is the deviation: the equality gate
+cannot pass otherwise. Runs, the battle protocol and `data-digest.txt` are
+byte identical.
+
+**Two rulings from 4.7.2 that this patch reverses, named so nobody
+rediscovers them.** Ruling 3 (Detailed shows the bar and the number together)
+is reversed: Detailed shows the number alone and Simple the bar alone, the
+Stage 4.5.1 Part 5 definition, because a bar beside every number read as
+"stats are bars now" on the phone. Ruling 7 (`--font-numeral` as a separate
+token pointing at the same face) is kept as a token and used as intended: it
+was the first thing to go back. Everything else 4.7.2 built stands — the
+painted fill, the attribute-driven mode, the chip floor, the move
+explanations.
+
+**Copy for the capability events lives outside the hash.** Section 10 has the
+dated note. `src/data/eventCopy.ts` joins the exclusion list on the same rule
+as `tierInfo.ts` and `tutorial.ts`: nothing under `core/` imports it, so a
+reworded sentence moves nothing.
