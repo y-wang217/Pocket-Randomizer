@@ -2094,7 +2094,17 @@ not edited; the argument for each is in
    the target screen. Measured against pixels, both differ in all three modes
    through the chrome scale, so `TWO_VALUED_SURFACES` is an empty list with
    the assertion kept behind it.
-10. **The existing two-valued suites were rewritten, not deleted**, each with
+10. **The picker's lines are one line each**, not the fuller descriptions
+    first written: the drawer is under the Pocket gate and three wrapped
+    lines put its sheet over by 25px. The prompt's own example line is the
+    Pocket one.
+11. **The tutorial guard found nothing to guard on this tree.** Measured
+    without it on the worst-case fixtures, Pocket leaves all 29 anchors
+    painted. It is kept, as the prompt said it would be, because the copy
+    was written against Detailed, and its assertion
+    (`test/visual-tutorial-guard.test.ts`) is what makes a future fold that
+    hides an anchor fail loudly.
+12. **The existing two-valued suites were rewritten, not deleted**, each with
     a comment naming this patch: `test/density.test.ts` (renamed from
     4.7.2's verbosity suite), `test/visual-density.test.ts`,
     `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,

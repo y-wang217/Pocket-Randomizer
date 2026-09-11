@@ -8,7 +8,7 @@ visual stage diffs against this directory and never regenerates it.
 | `runs/<seed>.json` | `scripts/visual/baseline.ts --write` | A headless run under the scripted greedy policy: decision log, outcome, every visit, every casualty, the final party. |
 | `battles/GYMRUN01.json` | same | The determinism seed's battle protocol, nondeterministic lines stripped. |
 | `data-digest.txt` | same | sha256 over every file under `src/data/`. Not `contentHash`, which is its own release. |
-| `heights.json` | `scripts/visual/measure.mjs --out` | The two guarded screens at 390x844 on SMOKE24: layout height, scroll height, and the decision point's top and bottom edges. |
+| `heights.json` | `scripts/visual/measure.mjs --out` | The two guarded screens at 390x844 on SMOKE24: layout height, scroll height, and the decision point's top and bottom edges. Detailed at the top level; Simple and Pocket under `modes` (density modes patch). |
 | `bundle.json` | `scripts/visual/bundle.mjs --out` | Every file in `dist/`, raw and gzipped. |
 
 `test/visual-baseline.test.ts` replays the runs and the battle under `npm test`
@@ -17,6 +17,18 @@ and fails on any byte that differs. Heights are compared by
 `npm run build`, and each stage's done marker records the delta from this file.
 
 ## Corrections
+
+- **2026-09-11, the density modes patch.** `heights.json` gained a `modes`
+  axis: the same two screens, the same seed, in Simple and Pocket, under
+  `modes.simple` and `modes.pocket`. **The Detailed entries did not move**:
+  map 840.41 / 1033 / 558..672.72 and battle 599 / 844 / 472..712, to the
+  hundredth, on every commit of the patch. The two mode columns were placed
+  as copies of Detailed at step 2 (the rename, no layout) and re-recorded at
+  step 4: Simple map 777.5 / 940, battle 581.44 / 844; Pocket map 586.95 /
+  844, battle 481.89 / 844. `measure.mjs --compare` reads all three. Runs,
+  the battle protocol and the digest are unchanged: the patch is
+  presentation only and `test/density.test.ts` replays SMOKE24 in all three
+  modes against one log.
 
 - **2026-09-11, 4.8.0.1.** An independent confirmation of PR #24's re-record,
   not a second one: this branch was cut from `0712032`, found the same stale map

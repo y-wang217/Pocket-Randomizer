@@ -284,3 +284,129 @@ Skip. That is the reading I will build unless ruled otherwise.
    result variants; it needs the other eleven.
 
 No code until this is reviewed.
+
+---
+
+## The patch as built (steps 2 to 7)
+
+**2026-09-11, branch `claude/bold-clarke-xcwko1`, commits `c05855a` to
+`7de7f0e`.** The four questions above were answered, six rulings were
+recorded (the prompt file's appendix, `generation.md` section 12l), and the
+seven steps were built in the prompt's order. What follows is the done
+condition, measured.
+
+### The Pocket gate, and the coverage gate
+
+Every surface, on its worst-case fixture (ruling 3), at 390x844, in all
+three modes. Document `scrollHeight`; the drawer's sheet `scroll/client`; the
+summary's outcome edge (the bottom of `.summary__actions`, ruling 4); the
+log sheet's bottom. The Detailed column is the **before** column the prompt
+asked for, on the fixture the gate now runs against, and it is what a
+Detailed player sees on that state.
+
+| surface | Detailed | Simple | Pocket |
+|---|---|---|---|
+| starter | 1038 | 927 | **844** |
+| locale | 955 | 844 | **844** |
+| map | 1304 | 1152 | **844** |
+| battle | 1169 | 1087 | **844** |
+| result | 1015 | 846 | **844** |
+| result-capture | 2040 | 1753 | **844** |
+| target | 1368 | 1245 | **844** |
+| replace | 844 | 844 | **844** |
+| party | 8120 | 7202 | **844** |
+| pre-gym | 4959 | 4562 | **844** |
+| shop | 844 | 844 | **844** |
+| event | 844 | 844 | **844** |
+| drawer (sheet) | 4881 / 759 | 4500 / 759 | **750 / 750** |
+| summary (outcome edge) | 950 | 809 | **745** |
+| log sheet (sheet bottom) | 844 | 844 | **844** |
+
+`test/visual-pocket.test.ts` holds the Pocket column: twelve decision
+surfaces at or under 844, the drawer's sheet at or under its own client
+height, the two archive surfaces' outcome block above the fold. Green.
+`test/visual-coverage.test.ts` holds that every surface paints differently
+in every pair of modes, by full-page screenshot hash: **fifteen of fifteen
+differ in all three pairs**, so the two-valued exemption ruling 5 allowed
+(the log sheet, the target screen) was not needed — the chrome scale is one
+global axis and it shows on a sheet's padding and a member button's as on
+everything else. `TWO_VALUED_SURFACES` is an empty list with the equality
+assertion kept behind it.
+
+The guarded Detailed heights (`heights.json`, map and battle on SMOKE24) are
+**unchanged to the pixel**; the file grew a `modes` axis with Simple and
+Pocket columns, re-recorded at step 4:
+
+| mode | map screen / scroll / decision | battle screen / scroll / decision |
+|---|---|---|
+| detailed | 840.41 / 1033 / 558..672.72 | 599 / 844 / 472..712 |
+| simple | 777.5 / 940 / 513.44..609.31 | 581.44 / 844 / 445.44..677.94 |
+| pocket | 586.95 / 844 / 302.89..394.77 | 481.89 / 844 / 379.39..522.39 |
+
+### Where Pocket's height came from, in the order it was spent
+
+1. **Chrome** (the prompt's first ask): about 130 padding, margin and gap
+   declarations in `styles.css` became `calc(token * --density-pad|gap)`,
+   and `data/densityTuning.ts` sets the three scales (Simple 0.75 / 0.75 /
+   0.9, Pocket 0.5 / 0.5 / 0.8 for pad / gap / title). That alone took the
+   party screen from 7824 to 2444 and the drawer's sheet from 4654 to 1090.
+2. **The stat block and the move cards**, as the definition writes them:
+   six bars in a row with the number on the row's tap; name, type, band, PP
+   and the effectiveness marker on a move, the rest behind the card's
+   expander or the `?` chip on a battle button.
+3. **Folds** (`ui/collapse.ts`): every member card's body, every backpack
+   row's controls, the relics list, all together per surface. The card's
+   head keeps who, level, types, lead mark, HP bar, status and held item.
+4. **Layout**: two-up cards on the party, pre-gym, compare and target lists;
+   the map's HUD two-up with the wallet on the header line; the result
+   screen's slot row off screen while the capture block, which repeats it,
+   is up.
+5. **One more number behind a tap**: the member card's HP line, on the bar
+   (`hpTip`). The last 30px per card that nothing else could give.
+
+The region breakdowns at each pass are in the commit messages and the
+scratch measurements; the deviations from the prompt's words, each with its
+measurement, are `generation.md` section 12m.
+
+### The tutorial (Part 5, ruling 6)
+
+`ui/density-guard.ts`: Detailed on the root while a screen's unseen marks
+are up, applied before the marks resolve their anchors, released when they
+finish or Skip fires; per screen, not per run. **Measured without the guard
+on the worst-case fixtures, Pocket leaves every one of the 29 anchors
+painted** — the party's `items` row and the starter's stat line are inline
+in Pocket, and the seed's second anchor is the stamp — so the guard is the
+one-line safeguard the prompt anticipated ("if Pocket happens to work, say
+so"), and it still holds the copy to the layout it was written for. The
+assertion ruling 6 asked for is `test/visual-tutorial-guard.test.ts`: on
+every surface with marks, the count the layer shows equals the count of
+marks with an anchor on the page, so a dropped mark fails loudly.
+
+### The picker (Part 6)
+
+Three options in the drawer, the one surface reachable from every screen
+of a run: "Detailed — Full labels and full prose", "Simple — Short labels
+and fewer words", "Pocket — Fits every screen without scrolling". One line
+each rather than the two-line descriptions first written, because the
+drawer is under the Pocket gate too and three wrapped lines put its sheet
+over by 25px. The header's two-valued toggle is gone. The mid-run switch
+case: two switches on an open pre-gym screen leave the same screen, the
+same saved log and the same party on it.
+
+### The tests the prompt named
+
+| # | the prompt's test | where |
+|---|---|---|
+| 1 | coverage, per screen, all three modes | `test/visual-coverage.test.ts` |
+| 2 | Pocket height, every guarded screen | `test/visual-pocket.test.ts` |
+| 3 | Detailed and Simple budgets unchanged | `measure.mjs --compare`, `test/visual-v0/v4/v5` |
+| 4 | density unreachable from `core/` | `test/density.test.ts` |
+| 5 | store migration | `test/density.test.ts` |
+| 6 | mode switch mid-run preserves run state | `test/visual-density.test.ts` |
+| 7 | tutorial runs in Detailed and restores the mode | `test/density-guard.test.ts`, `test/visual-tutorial-guard.test.ts` |
+| 8 | uniform omission, asserted as the group | `test/visual-density.test.ts` |
+| 9 | byte-identical seeded output | `test/density.test.ts`, `test/visual-baseline.test.ts` |
+| 10 | the two-valued suites updated, named, not deleted | `generation.md` 12m, item 10 |
+
+Gates on the final tree: lint, `tsc`, the build, the full suite, the
+guarded heights to the pixel. Numbers stamped SMOKE24 throughout.
