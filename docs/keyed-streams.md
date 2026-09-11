@@ -217,40 +217,34 @@ suite and quietly reintroduce the global order.
 
 ---
 
-## Not yet built
+## Built at the `contentHash` release
 
-Three requirements of `gymrun-seeds-and-mappability.md` are not implemented,
-because 4.6a was built before that document was available. None of them is
-contradicted by what shipped; all three are additive.
+The four requirements of `gymrun-seeds-and-mappability.md` that 4.6a left
+unbuilt landed together on 2026-09-11, Branch 1 of the overnight run
+(`claude/overnight-1-contenthash`). `docs/generation.md` section 9 is the
+record; this is the short form, from the side of what this document used to
+list as missing.
 
-**`contentHash`.** The design replaces the hand-bumped `RANDOMIZER_VERSION`
-with a hash computed over the data tables, on the grounds that a hand bump is a
-discipline and disciplines fail. `RANDOMIZER_VERSION` is still a hand-edited
-string in `core/randomizer.ts`, and it has already been bumped eight times.
+**`contentHash`.** Built. A sha256 over `src/data/**` minus one exclusion
+list, computed at build time by `build-config/content-hash.ts` and imported
+through `core/contentHash.ts`. It did **not** replace `RANDOMIZER_VERSION`:
+that axis names draw composition, which a hash over data cannot see, and it
+has readers outside the guard. Both are in the log's `versions` block and both
+are checked.
 
-**Seed strings that carry their content hash.** Seeds are still bare strings,
-so a foreign seed is only caught at replay time rather than at paste time.
+**Seed strings that carry their content hash.** Built. `GYMRUN-<six hex>-<seed>`
+from `core/seedString.ts`, rendered by every surface that shows a seed, and
+refused at paste time by `ui/seed-bar.ts` when the hash is another build's.
 
-**`previewRun`.** Generating a whole map without playing it is possible now
-that draws are keyed — nothing structural depends on a battle outcome — but the
-function does not exist.
+**`previewRun`.** Built, in `core/preview.ts`, as `previewRun(seed, contentHash)`
+over `createRun`.
 
-The design also asks that the unkeyed stream API be deleted outright, so that
-nobody reaches for it. It is still exported and still drawable; nothing in
-generation uses it. Deliberately left for its own commit: nothing in generation
-draws off it, so it is not urgent, and deleting an exported API inside a stage
-that is changing behaviour makes one commit answer two questions.
+**The unkeyed stream API.** Deleted. A named stream is `at(key)`, `keys` and
+`totalDraws`. The fixture-battle fallback in `core/battle/driver.ts` drew off
+the root and now draws through `FIXTURE_BATTLE_KEY`; the simulator's bots
+through `SIM_POLICY_KEY`. Group 5 of `test/stream-keys.test.ts`, which proved
+a key could not collide with the root, now proves there is no root.
 
-### When the three land
-
-All three are **one release, scheduled after 4.6c and before the freeze.** That
-ordering is forced rather than chosen: the freeze stamps a `contentHash` as the
-first shareable baseline, so the freeze cannot happen until the hash exists.
-
-They are explicitly not to be built inside a data step. The decision came up at
-the 4.6c prerequisite, where the prompt asked for a new generated table to be
-added to "the `contentHash` file list" — a list that does not exist. Building
-the hash mechanism there would have shipped it as a side effect of a table
-nobody was reviewing it for. The hand bump carries 4.6c instead, with the
-failure mode the design names: a forgotten bump silently reinterprets a shared
-seed. `docs/generation.md` section 9 records it from the other side.
+**The freeze** is therefore unblocked: a `contentHash` exists to stamp. Stamping
+it as the first shareable baseline is a decision, not a build step, and it is
+not taken here.

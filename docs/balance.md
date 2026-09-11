@@ -39,7 +39,7 @@ Two things follow from that, and both are rules rather than suggestions:
 
 A benchmark comparison at each major release: a pinned seed set and policy set,
 run, and the report committed to `sim-reports/benchmarks/` stamped with
-`RANDOMIZER_VERSION` and — once it exists — `contentHash`, then diffed against
+`RANDOMIZER_VERSION` and, since the `contentHash` release, `contentHash`, then diffed against
 the last recorded one. The question stops being "did we pass" and becomes "what
 moved, and does the direction make sense given what changed".
 
@@ -59,6 +59,9 @@ the two runs used `RETUNE` and `SIM`.
 | `randomizer-10`, 400 | SIM | 4.0% | 2.82 | Cut and Flash removed |
 | `randomizer-10`, 400 | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
 | `randomizer-11`, 400 | RETUNE | 5.3% | **3.03** | Stage 4.6c relics |
+| `randomizer-12`, 400 | RETUNE | 9.75% | 3.413 | the 4.6c pin, re-read at Stage 4.8 (section 14) |
+| `randomizer-13`, 400 | RETUNE | 40.25% | **4.960** | Stage 4.8, all eight steps (section 14) |
+| `randomizer-13` · `b022fc`, 400 | RETUNE | 40.25% | 4.960 | overnight Branch 1 baseline, 2026-09-11: identical to the row above, before any code was written; `contentHash` changes what is recorded, not what is generated |
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them

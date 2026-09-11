@@ -41,7 +41,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | Document | Kind | Status | Superseded by | Merged at |
 |---|---|---|---|---|
 | [`pokerun-build-spec.md`](pokerun-build-spec.md) | spec | `active` | | |
-| [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md) | design note | `active` | | partly built at `94040e9` |
+| [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md) | design note | `active` | | keyed streams at `94040e9`; `contentHash`, seed strings, `previewRun` and the unkeyed-API deletion at Branch 1 of the overnight run, 2026-09-11 |
 | [`gymrun-qol-release-plan-rev2.md`](gymrun-qol-release-plan-rev2.md) | release plan | `active` | section 7 only, by the relics prompt | |
 | [`gymrun-stage1-claude-code-prompt.md`](gymrun-stage1-claude-code-prompt.md) | stage prompt | `merged` | | `b20aa26` |
 | [`gymrun-stage2-claude-code-prompt.md`](gymrun-stage2-claude-code-prompt.md) | stage prompt | `merged` | | `9a62547` |
@@ -61,8 +61,10 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-overnight-contenthash-ai-tutorial.md`](gymrun-overnight-contenthash-ai-tutorial.md) | stage prompt, three branches | `active` | | committed 2026-09-11 before any work. Branch 1 `contentHash` on `claude/overnight-1-contenthash`; Branch 2 the priority and speed aware AI; Branch 3 the tutorial. Handoffs in `../handoff/` |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
-four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
-lists them.
+it is a design note and not a stage prompt: its requirements are all built as
+of the overnight run's Branch 1, with one deliberate difference —
+`randomizerVersion` was kept beside `contentHash` rather than retired.
+[`../keyed-streams.md`](../keyed-streams.md) records what shipped.
 
 The visual identity plan and its overnight prompts were pasted into the
 session that ran them and committed here on 2026-09-10 before that run began.
