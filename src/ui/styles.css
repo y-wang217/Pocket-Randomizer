@@ -626,21 +626,14 @@ body {
   color: var(--text-dim);
   font-family: var(--font-numeral);
   /*
-   * **This line is a no-op under Pixelify Sans and is kept deliberately.
-   * Patch 4.7.2.**
-   *
-   * It arrived with a comment claiming tabular figures stop the panel
-   * reflowing under the reader. That was true of the system monospace stack
-   * and is not true now: the face carries no `tnum` feature, and asking for
-   * one measures identically to not asking — every digit is the same advance
-   * except `1`, which is 31% narrower. So the request is inert here, and the
-   * reflow it used to prevent is prevented by reserved width instead, on the
-   * rule below.
-   *
-   * Kept rather than deleted because it costs nothing and is correct the
-   * moment `--font-numeral` points at a face that has the feature — which is
-   * the entire reason that token is separate. Measurements:
-   * `docs/visual/reports/patch-4.7.2.md`.
+   * Tabular figures, so the six numbers stop the row reflowing under the
+   * reader. **Live again at patch 4.8.0.2**, because `--font-numeral` is the
+   * monospace stack again. Under 4.7.2's pixel face this line was inert — the
+   * face carried no `tnum` feature and every digit but `1` shared one advance
+   * — and the reserved width on the rule below did the job instead. Both are
+   * kept: the width holds if a proportional face ever comes back, and this
+   * line is what makes a monospace face's digits line up by design rather
+   * than by accident. Measurements: `docs/visual/reports/patch-4.7.2.md` §1.1.
    */
   font-variant-numeric: tabular-nums;
   /*
@@ -757,20 +750,28 @@ body {
  * why the mode is an attribute rather than a re-render. Components render the
  * whole readout in every mode; these rules take things away.
  *
- * **Detailed is the default and appears in no rule below**, deliberately: it is
- * the mode that shows everything, so it is the absence of a rule rather than a
- * selector that has to be kept in sync with one. That is also the seam a third
- * mode arrives through — a new value, its own block here, and nothing else in
- * the codebase branches.
+ * **Detailed is the default and is the absence of the `simple` attribute**, so
+ * the rules below select on `simple` and on `:not(simple)` rather than naming
+ * `detailed`: a missing attribute reads as Detailed too. That is also the seam
+ * a third mode arrives through — a new value, its own block here, and nothing
+ * else in the codebase branches.
  *
  * Simple: the raw stat numbers go and the bars stand in for them, and the
- * threat readout drops its per-type counts. Everything else — the faster-side
- * marker, the stage chips, HP, PP, every effectiveness badge and every tooltip
- * — is present in both, because those are how a player learns rather than what
- * they already know.
+ * threat readout drops its per-type counts. Detailed: the numbers, and no bar.
+ * **Patch 4.8.0.2 restored that exclusivity.** 4.7.2's ruling 3 had Detailed
+ * show the bar and the number together, and the playtest read the result as
+ * "stats are bars now": a bar beside a number is the thing the eye lands on.
+ * The Stage 4.5.1 Part 5 definition — Simple replaces the numbers with bars,
+ * Detailed shows the numbers — is what this block implements again. What 4.7.2
+ * fixed underneath stays fixed: the fill paints (`display: block` on
+ * `.stat__bar-fill`), and the mode is this attribute rather than a re-render.
+ * Everything else — the faster-side marker, the stage chips, HP, PP, every
+ * effectiveness badge and every tooltip — is present in both, because those
+ * are how a player learns rather than what they already know.
  */
 :root[data-verbosity="simple"] .stat__value { display: none; }
 :root[data-verbosity="simple"] .threats__count { display: none; }
+:root:not([data-verbosity="simple"]) .stat__bar { display: none; }
 
 /* The party screen's stat block: six rows, two columns, same rows as a battle
    panel so the two read as the same object seen in two places. */
@@ -1981,6 +1982,12 @@ body {
    lottery the player loses four fights later. */
 .target__effect--dud { color: var(--text-dim); }
 
+/* The offered move, as a card above the members it could go to (4.8.0.2).
+   Outside the member buttons on purpose: its Explain control must not sit
+   inside anything that submits. */
+.target__move { margin: 0 0 var(--space-3); }
+.target__move:empty { display: none; }
+
 /* ---------- move replacement ---------- */
 
 /* Left-aligned like the other decision screens, so the five move cards start
@@ -2672,6 +2679,26 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .shop__footer { display: flex; justify-content: flex-end; }
 
 /* ---------- event ---------- */
+
+/* The requirement and the run's standing for it, the same two chips the map
+   card shows (4.8.0.2). A player who routed here on a chip reads the same
+   chip on arrival. */
+.event__gate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* What the standing bought, in a sentence, above the outcome label. */
+.event__conclusion {
+  margin: 0;
+  flex: 1 1 100%;
+  max-width: 62ch;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
 
 .event__prompt {
   max-width: 62ch;
@@ -3794,6 +3821,15 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   color: var(--text-dim);
   font-size: var(--fs-xs);
   line-height: 1.3;
+  /*
+   * The readout runs into the button's side padding by one step each way.
+   * Patch 4.8.0.2: the monospace face is about a sixth wider per glyph than
+   * the pixel face it replaced, and `Raises Attack by 2 stages` stopped
+   * fitting the 150px face and took a third line — 13px on the loaded board
+   * V5 budgets at 600. Widening this one line to 166px gives it the same
+   * character count the old face had, and moves nothing else on the button.
+   */
+  margin-inline: calc(-1 * var(--space-2));
 }
 
 /* The pre-gym screen. */

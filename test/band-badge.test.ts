@@ -211,6 +211,34 @@ describe('the band badge renders on every surface that renders a move', () => {
     expect(shown.length, 'five cards, minus any status move among the four').toBeGreaterThan(3);
   });
 
+  /**
+   * Patch 4.8.0.2. The heading over the four current moves read `Give up`, and
+   * a playtester tapped it expecting the decline this screen does not have.
+   * A heading here describes the row; the row's buttons are the control.
+   */
+  it('labels the four current moves with a heading that is not an instruction, and makes each a control', () => {
+    const screen = createMoveReplaceScreen();
+    const member = party()[0];
+    if (!member) throw new Error('no member to teach');
+    const incoming = describeMove('Ice Beam');
+    if (!incoming) throw new Error('Ice Beam is not in the dex');
+    const picked: number[] = [];
+    screen.render(member, incoming, (slot) => picked.push(slot), DEFAULT_TUNING);
+
+    const headings = [...screen.root.querySelectorAll('.replace__heading')].map((h) => h.textContent?.trim().toLowerCase());
+    expect(headings).not.toContain('give up');
+    expect(headings.some((text) => text?.includes('replace')), 'the heading says what tapping a card does').toBe(true);
+
+    const victims = [...screen.root.querySelectorAll('.replace__moves .move--victim')];
+    expect(victims.length).toBe(4);
+    for (const [slot, victim] of victims.entries()) {
+      expect(victim.tagName, 'a current move is a button').toBe('BUTTON');
+      (victim as HTMLButtonElement).click();
+      expect(picked.at(-1)).toBe(slot);
+    }
+    expect(picked).toEqual([0, 1, 2, 3]);
+  });
+
   it('8. the run summary — screens/summary.ts', async () => {
     const result: RunResult = await playRun('SMOKE24', scriptedRunPolicy(greedyAiPolicy), undefined, {
       opponent: greedyAiPolicy,

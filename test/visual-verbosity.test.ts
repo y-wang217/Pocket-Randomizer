@@ -84,12 +84,13 @@ describe('the verbosity toggle', () => {
   }, 300_000);
 
   /**
-   * Ruling 3, on the surface it was written for.
+   * The two modes, on the surface the definition was written for.
    *
-   * Detailed shows the bar **and** the number; Simple shows the bar alone.
-   * Neither mode renders a row with neither — which is the assertion that would
-   * have failed the shipped build in the other direction, since Detailed used
-   * to hide the bar.
+   * **Patch 4.8.0.2: Detailed shows the number alone, Simple the bar alone.**
+   * 4.7.2's ruling 3 had Detailed show both, and the playtest read a bar
+   * beside every number as "stats are bars now"; the Stage 4.5.1 Part 5
+   * definition is back. Neither mode renders a row with neither, and the two
+   * counts are equal across the flip because each row swaps one for the other.
    */
   it('changes the party screen, and changes it back', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
@@ -98,21 +99,19 @@ describe('the verbosity toggle', () => {
     const bars = () => paintedCount(page, '.stats--party .stat__bar-fill');
     const numbers = () => paintedCount(page, '.stats--party .stat__value');
 
-    const detailedBars = await bars();
     const detailedNumbers = await numbers();
-    expect(detailedBars, 'Detailed must show bars').toBeGreaterThan(0);
     expect(detailedNumbers, 'Detailed must show numbers').toBeGreaterThan(0);
-    expect(detailedNumbers).toBe(detailedBars);
+    expect(await bars(), 'Detailed must show no bars (4.8.0.2)').toBe(0);
 
     await toggle(page);
     expect(await mode(page)).toBe('simple');
     expect(await numbers(), 'Simple must drop the numbers').toBe(0);
-    expect(await bars(), 'Simple must keep the bars').toBe(detailedBars);
+    expect(await bars(), 'Simple must show a bar per row').toBe(detailedNumbers);
 
     await toggle(page);
     expect(await mode(page)).toBe('detailed');
     expect(await numbers()).toBe(detailedNumbers);
-    expect(await bars()).toBe(detailedBars);
+    expect(await bars()).toBe(0);
     await context.close();
   }, 600_000);
 
@@ -202,15 +201,15 @@ describe('the verbosity toggle', () => {
 
     await open();
     const detailedNumbers = await numbers();
-    const detailedBars = await bars();
     expect(detailedNumbers, 'the drawer must open with cards in it').toBeGreaterThan(0);
-    expect(detailedBars).toBe(detailedNumbers);
+    // 4.8.0.2: Detailed is numbers alone.
+    expect(await bars()).toBe(0);
     await close();
 
     await toggle(page);
     await open();
     expect(await numbers(), 'reopened in Simple: no numbers').toBe(0);
-    expect(await bars(), 'reopened in Simple: the bars are still there').toBe(detailedBars);
+    expect(await bars(), 'reopened in Simple: a bar per row').toBe(detailedNumbers);
     await close();
 
     await toggle(page);
@@ -245,15 +244,17 @@ describe('the verbosity toggle', () => {
     const numbers = () => paintedCount(page, `${visible('pre-gym')} .stat__value`);
     const bars = () => paintedCount(page, `${visible('pre-gym')} .stat__bar-fill`);
     const before = await numbers();
-    const barsBefore = await bars();
     expect(before).toBeGreaterThan(0);
+    // 4.8.0.2: Detailed is numbers alone.
+    expect(await bars()).toBe(0);
 
     await toggle(page);
     expect(await numbers()).toBe(0);
-    expect(await bars()).toBe(barsBefore);
+    expect(await bars()).toBe(before);
 
     await toggle(page);
     expect(await numbers()).toBe(before);
+    expect(await bars()).toBe(0);
     await context.close();
   }, 900_000);
 });

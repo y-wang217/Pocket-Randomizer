@@ -1,7 +1,7 @@
 # The mobile seed bar patch
 
 Prompt: [`../../spec/gymrun-patch-mobile-seed-bar.md`](../../spec/gymrun-patch-mobile-seed-bar.md).
-Deviation record: `../../generation.md` section 12j.
+Deviation record: `../../generation.md` section 12k.
 
 Built at 390x844 on `SMOKE24`, the starter screen, tutorial skipped, from the
 production build via `scripts/visual/browser.mjs`.
