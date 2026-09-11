@@ -49,14 +49,20 @@ export function named<T extends { nickname?: string; moves: string[] }>(spec: T,
 }
 
 /**
- * What to print for a Pokemon: its name if it has one, else its species.
+ * The battle name of a Pokemon: its nickname if it has one, else its species.
  *
- * **The single definition, shared by `ui/` and by `core/graveyard.ts`.** It is the
- * same rule `toPokemonSet` applies when it hands a name to the sim, which is what
- * makes a member read the same on the party screen, in a battle and on a tombstone.
- * Three copies of `nickname ?? species` is three places for one of them to be a
- * species while the others are a name, and the symptom is a player unable to tell
- * which Pokemon a screen is talking about.
+ * **The single definition, and it is the same rule `toPokemonSet` applies when it
+ * hands a name to the sim.** `core/graveyard.ts` matches casualties on it, because
+ * the protocol identifies a Pokemon by this string and nothing else. Two copies of
+ * `nickname ?? species` is two places for one of them to be a species while the
+ * other is a name, and the symptom is a death the graveyard cannot attribute.
+ *
+ * `ui/` calls this for one purpose only: matching a battle name the protocol
+ * reported back to the member it belongs to. Since 4.8.0.1 every player-facing
+ * label is the species, and the battle text is relabelled to match
+ * (`ui/species-index.ts`). The name is still drawn, still on the spec and still
+ * what the sim prints; it is state the screens do not show. `docs/generation.md`
+ * section 12i.
  */
 export function displayName(spec: { species: string; nickname?: string }): string {
   return spec.nickname ?? spec.species;

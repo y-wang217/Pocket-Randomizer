@@ -68,7 +68,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
     render(member, incoming, onReplace, tuning) {
       const detail = describeSpecCard(member.spec);
 
-      title.textContent = `${detail.name} learns ${incoming.name}`;
+      title.textContent = `${detail.species} learns ${incoming.name}`;
       blurb.textContent = 'Four moves already. Pick the one it replaces — this cannot be undone.';
 
       /*
@@ -83,7 +83,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
       // target screen is one click behind and a player who picked the wrong
       // member should find that out here rather than two nodes later.
       const name = el('span', 'panel__name');
-      name.textContent = detail.name;
+      name.textContent = detail.species;
       const level = el('span', 'panel__level');
       level.textContent = `Lv${detail.level}${genderMark(detail.gender)}`;
       owner.replaceChildren(name, level, ...detail.types.map(typeChip));

@@ -21,6 +21,7 @@ import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { createBattleLog, type BattleLogView } from '../battle-log';
+import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, type LogSheet } from '../log-sheet';
 import { createScene, el, type Scene } from '../scene';
@@ -125,8 +126,23 @@ export function createBattleScreen(): BattleScreen {
        * reason as the log's HP tracker.
        */
       const reader = createFlagReader(FLAGS);
+      /*
+       * And one species table, same lifetime, for the same reason. **4.8.0.1.**
+       *
+       * The protocol names a Pokemon by its battle name, which is the nickname.
+       * Every label on the board is the species now, so the lines are relabelled
+       * once here — before the reader, the log and the strip see them — and the
+       * three agree about who acted by construction. `ui/species-index.ts` says
+       * what this does and does not touch; the session's own protocol is never
+       * rewritten.
+       */
+      const names = createSpeciesIndex();
 
-      const show = (protocol: readonly string[], animate: boolean): void => {
+      const show = (raw: readonly string[], animate: boolean): void => {
+        const protocol = raw.map((line) => {
+          names.observe(line);
+          return names.relabel(line);
+        });
         const turns = reader.read(protocol);
         log.append(protocol, turns);
         // The strip reports the turn that just resolved, so it is silent on

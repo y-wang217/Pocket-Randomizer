@@ -40,7 +40,6 @@
  * Tier and payout is the amount of information that leaves a judgement to make.
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
-import { displayName } from '../../core/nicknames';
 import { heldItem } from '../../core/items';
 import { FAINTED, hpState } from '../../core/hpCopy';
 import { hpFraction } from '../../core/party';
@@ -547,7 +546,7 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
-  name.textContent = displayName(member.spec);
+  name.textContent = member.spec.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${member.spec.level}`;
   header.append(name, level);
