@@ -262,7 +262,7 @@ export function createSummary(): Summary {
         ? `Party slots: ${capacity}. Next slot at gym ${next.atGym}.`
         : `Party slots: ${capacity}.`;
 
-      team.replaceChildren(...state.party.map(renderMember));
+      team.replaceChildren(...state.party.map((member, index) => renderMember(member, index, state.tuning)));
 
       const deaths = deathsFrom(state);
       grave.replaceChildren(...deaths.map(renderDeath));
