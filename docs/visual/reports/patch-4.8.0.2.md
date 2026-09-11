@@ -245,7 +245,34 @@ byte of `events.ts`.
 
 ## 7. Where the patch landed
 
-Filled in at the gate.
+**101 test files, 1284 tests, green** (735s, no other load). Lint and
+typecheck clean. `measure --compare` equal to the re-recorded `heights.json`
+to the pixel; `baseline --check` byte identical across all 8 files, the
+digest included, because it reads `contentHash` and the one new `data/`
+file is on the exclusion list; `content-hash` `b022fc` before and after;
+`npm run smoke` passes on the built app.
+
+Three full runs to get there, and each earlier one is worth a line: the
+first was contaminated by this patch's own edits landing mid-run; the second
+found the loaded board (§2.1), two doc paths that named a file two files
+share, the parallax string comparison and the walker stall (§2.2); the third
+is the one above.
+
+### The brief, item by item
+
+| asked | state |
+|---|---|
+| stats back to numbers | Detailed shows the number alone, Simple the bar alone; asserted on the party screen, the drawer and pre-gym |
+| a different px size or no pixel font | measured: no size exists, because the face has no pixel module. Removed from every token, files deleted; asserted on the tokens and on the page |
+| "Give up" is not a button | relabelled as the heading it is; the four cards under it asserted as the control |
+| events say what the requirement bought | gate chips, band-correct hints and a conclusion on the event screen, at every band for every event and choice, from a file the hash does not see |
+| the gym move has a description | the reward screen's card on the recipient screen, with category and `Explain`; the seventh surface |
+
+### Not built, recorded
+
+`docs/README.md` open items 11 to 13: the event payout tables
+(`RANDOMIZER_VERSION`), a decline for the forced gym move
+(`RUN_LOG_VERSION`), and a move card on the shop shelf.
 
 ## 8. Tracker report
 
