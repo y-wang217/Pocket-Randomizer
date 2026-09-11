@@ -262,7 +262,10 @@ export function createSummary(): Summary {
         ? `Party slots: ${capacity}. Next slot at gym ${next.atGym}.`
         : `Party slots: ${capacity}.`;
 
-      team.replaceChildren(...state.party.map(renderMember));
+      // 4.7.2 threads the index and the tuning through, so the member card can
+      // fill its move cards via `moveCardData` — the shared filler that carries
+      // the tap-to-explain panel and the tag row.
+      team.replaceChildren(...state.party.map((member, index) => renderMember(member, index, state.tuning)));
 
       const deaths = deathsFrom(state);
       grave.replaceChildren(...deaths.map(renderDeath));
