@@ -161,14 +161,7 @@ body {
 [data-coach-target] {
   outline: var(--space-h) solid var(--emphasis);
   outline-offset: var(--space-h);
-  transition: outline-color 160ms ease;
-}
-
-.tutorial-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  transition: outline-color var(--motion-duration) ease;
 }
 
 .seedbar__input:focus-visible,

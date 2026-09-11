@@ -354,6 +354,8 @@ export const TUTORIAL_COPY = {
   done: 'Done',
   skip: 'Skip tutorial',
   replay: 'Show tutorial again',
+  /** The header button's face; `replay` is its label for a screen reader and its title. */
+  replayShort: 'Tutorial',
   /** "2 of 5", read by the mark's counter. */
   progress: (index: number, count: number): string => `${index} of ${count}`,
 } as const;

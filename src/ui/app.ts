@@ -804,29 +804,8 @@ function createHeader(replayTutorial: HTMLButtonElement): HTMLElement {
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
   subtitle.textContent = `Stage 4.8 · ${GYMRUN_FORMAT} · a roster that grows, caught in eight regions, and scored`;
-  header.append(title, subtitle, createVerbosityToggle(), createTutorialControls(replayTutorial));
+  header.append(title, subtitle, createVerbosityToggle(replayTutorial));
   return header;
-}
-
-/**
- * The tutorial's one header control: show it again. **Presentation only.**
- *
- * Beside the Detail toggle because it is the same kind of thing — a reading
- * preference a player sets once — and because the coach marks are written
- * against Detailed mode, so the two belong in one place. "Skip tutorial"
- * lives on the first mark itself, where a player meets it; a skip control in
- * the header would be offered to players who have nothing to skip.
- */
-function createTutorialControls(replay: HTMLButtonElement): HTMLElement {
-  const wrap = el('div', 'tutorial-controls');
-  const label = el('span', 'verbosity__label');
-  label.textContent = 'Tutorial';
-  replay.type = 'button';
-  replay.className = 'button button--small tutorial__replay';
-  replay.textContent = TUTORIAL_COPY.replay;
-  replay.dataset['tutorialReplay'] = 'true';
-  wrap.append(label, replay);
-  return wrap;
 }
 
 /**
@@ -844,7 +823,7 @@ function createTutorialControls(replay: HTMLButtonElement): HTMLElement {
  * Nothing here touches run state. See the header of `ui/settings.ts` for the
  * rule and `test/verbosity.test.ts` for its enforcement.
  */
-function createVerbosityToggle(): HTMLElement {
+function createVerbosityToggle(replayTutorial: HTMLButtonElement): HTMLElement {
   const wrap = el('div', 'verbosity');
   const label = el('span', 'verbosity__label');
   label.textContent = 'Detail';
@@ -868,7 +847,23 @@ function createVerbosityToggle(): HTMLElement {
   });
   paint();
 
-  wrap.append(label, button);
+  /*
+   * The tutorial's one header control, on the same row. **Presentation
+   * only.** Here because it is the same kind of thing as the Detail toggle —
+   * a reading preference — and because the coach marks are written against
+   * Detailed mode. On the same row rather than its own, because the header's
+   * height is the battle's and the map's vertical budget: a second row moved
+   * the fourth move button past the 740 line on a phone. "Skip tutorial"
+   * lives on the first mark itself, where a player meets it.
+   */
+  replayTutorial.type = 'button';
+  replayTutorial.className = 'button button--small tutorial__replay';
+  replayTutorial.textContent = TUTORIAL_COPY.replayShort;
+  replayTutorial.setAttribute('aria-label', TUTORIAL_COPY.replay);
+  replayTutorial.title = TUTORIAL_COPY.replay;
+  replayTutorial.dataset['tutorialReplay'] = 'true';
+
+  wrap.append(label, button, replayTutorial);
   return wrap;
 }
 
