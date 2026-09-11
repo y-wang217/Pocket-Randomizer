@@ -111,7 +111,14 @@ describe('the world', () => {
       transforms: ['far', 'mid', 'near'].map((layer) => globalThis.getComputedStyle(globalThis.document.querySelector(`.world__layer--${layer}`)!).transform),
     }));
     expect(y).toBeGreaterThan(100);
-    expect(transforms).toEqual([`matrix(1, 0, 0, 1, 0, ${-y * 0.2})`, `matrix(1, 0, 0, 1, 0, ${-y * 0.5})`, `matrix(1, 0, 0, 1, 0, ${-y})`]);
+    // Compared as numbers, not as strings (4.8.0.2): the map's scroll height
+    // moved with the face, and 0.2 of the new height is `37.800000000000004`
+    // in JS while the browser serialises the same matrix as `-37.8`.
+    const translateY = (matrix: string): number => Number(matrix.replace(/^matrix\((.*)\)$/, '$1').split(',')[5]);
+    expect(transforms.every((matrix) => /^matrix\(1, 0, 0, 1, 0, -?[\d.]+\)$/.test(matrix))).toBe(true);
+    expect(transforms.map(translateY)[0]).toBeCloseTo(-y * 0.2, 6);
+    expect(transforms.map(translateY)[1]).toBeCloseTo(-y * 0.5, 6);
+    expect(transforms.map(translateY)[2]).toBeCloseTo(-y, 6);
     expect(await page.locator('.world__drift').count()).toBe(1);
     const period = await page.evaluate(() => globalThis.getComputedStyle(globalThis.document.querySelector('.world__drift')!).animationDuration);
     expect(parseFloat(period)).toBeGreaterThanOrEqual(20);
