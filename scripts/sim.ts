@@ -58,6 +58,7 @@ import { ENGINE_VERSION } from '../src/core/battle/driver';
 import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
+import { CONTENT_HASH } from '../src/core/contentHash';
 import { createRng, type RngStream } from '../src/core/rng';
 import {
   causeOfDeath,
@@ -3313,6 +3314,13 @@ const report = {
   // Stamped so a report can be matched to the data that produced it. A balance
   // report whose randomizer version you cannot recover is a screenshot.
   randomizerVersion: RANDOMIZER_VERSION,
+  /*
+   * The data axis, since the `contentHash` release: a hash over `src/data/`
+   * computed at build time. Two reports with one `randomizerVersion` and two
+   * hashes were run against different tables, and the hash says so where a
+   * forgotten hand bump would not.
+   */
+  contentHash: CONTENT_HASH,
   runLogVersion: RUN_LOG_VERSION,
   engineVersion: ENGINE_VERSION,
   /*

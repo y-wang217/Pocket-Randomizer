@@ -37,7 +37,7 @@ import {
 } from '../src/core/randomizer';
 import { createRng, RNG_STREAMS, type Rng } from '../src/core/rng';
 import { isBattleKind } from '../src/core/economy';
-import { assertReplayable, createRun, isReplayable, RUN_LOG_VERSION } from '../src/core/run';
+import { assertReplayable, createRun, currentVersions, isReplayable, RUN_LOG_VERSION } from '../src/core/run';
 import type { PokemonSpec, RunLog, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { DAMAGING_MOVES } from '../src/data/movePools';
@@ -413,8 +413,7 @@ describe('6. version guard', () => {
   it('refuses to replay a log recorded on a different randomizer', () => {
     const stale: RunLog = {
       seed: 'GUARD',
-      version: RUN_LOG_VERSION,
-      randomizerVersion: 'gymrun-randomizer-0',
+      versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-0' },
       decisions,
     };
     expect(isReplayable(stale)).toBe(false);
@@ -431,14 +430,15 @@ describe('6. version guard', () => {
     // this check is separate from the engine version check.
     const stageOne = { seed: 'GUARD-OLD', version: RUN_LOG_VERSION, decisions } as unknown as RunLog;
     expect(isReplayable(stageOne)).toBe(false);
-    expect(() => assertReplayable(stageOne)).toThrow(/randomizer/);
+    // No `versions` block at all, so the schema axis refuses it first and
+    // quotes the loose `version` field it does carry.
+    expect(() => assertReplayable(stageOne)).toThrow(/mismatch on runLog/);
   });
 
   it('accepts a log recorded on this build', () => {
     const current: RunLog = {
       seed: 'GUARD-OK',
-      version: RUN_LOG_VERSION,
-      randomizerVersion: RANDOMIZER_VERSION,
+      versions: currentVersions(),
       decisions,
     };
     expect(isReplayable(current)).toBe(true);

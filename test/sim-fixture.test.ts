@@ -45,6 +45,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { AI_VERSION, greedyAiPolicy } from '../src/core/battle/ai';
+import { CONTENT_HASH } from '../src/core/contentHash';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { gymsCleared, playRun, RUN_LOG_VERSION, scriptedRunPolicy } from '../src/core/run';
 
@@ -112,7 +113,7 @@ async function buildReport(): Promise<string> {
   const runs = [];
   for (const seed of SEEDS) runs.push(await report(seed));
   return `${JSON.stringify(
-    { version: RUN_LOG_VERSION, randomizerVersion: RANDOMIZER_VERSION, aiVersion: AI_VERSION, runs },
+    { version: RUN_LOG_VERSION, randomizerVersion: RANDOMIZER_VERSION, contentHash: CONTENT_HASH, aiVersion: AI_VERSION, runs },
     null,
     2,
   )}\n`;

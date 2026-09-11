@@ -29,10 +29,10 @@ import {
   scriptedRunPolicy,
   type RunPolicy,
   type RunState,
+  currentVersions,
 } from '../src/core/run';
 import type { PokemonState, RunLog } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
-import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
 /** Leads with the last living member, so the choice is never the default. */
@@ -265,8 +265,7 @@ describe('the version guard', () => {
      */
     const stale: RunLog = {
       seed: 'PRE-LEAD',
-      version: 'gymrun-run-10/gymrun-0.3.0',
-      randomizerVersion: RANDOMIZER_VERSION,
+      versions: { ...currentVersions(), runLog: 'gymrun-run-10/gymrun-0.3.0' },
       decisions: [],
     };
 

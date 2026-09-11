@@ -26,6 +26,7 @@ import { join, relative } from 'node:path';
 
 import { AI_VERSION, greedyAiPolicy } from '../../src/core/battle/ai';
 import { ENGINE_VERSION, runBattle, stripNondeterministic } from '../../src/core/battle/driver';
+import { CONTENT_HASH } from '../../src/core/contentHash';
 import { RANDOMIZER_VERSION } from '../../src/core/randomizer';
 import { causeOfDeath, gymsCleared, playRun, RUN_LOG_VERSION, scriptedRunPolicy } from '../../src/core/run';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../../src/data/mons';
@@ -76,7 +77,7 @@ async function recordRun(seed: string): Promise<string> {
   const state = result.state;
   const record = {
     seed,
-    versions: { runLog: RUN_LOG_VERSION, randomizer: RANDOMIZER_VERSION, ai: AI_VERSION, engine: ENGINE_VERSION },
+    versions: { runLog: RUN_LOG_VERSION, contentHash: CONTENT_HASH, randomizer: RANDOMIZER_VERSION, ai: AI_VERSION, engine: ENGINE_VERSION },
     outcome: result.outcome,
     gymsCleared: gymsCleared(state),
     causeOfDeath: causeOfDeath(state),

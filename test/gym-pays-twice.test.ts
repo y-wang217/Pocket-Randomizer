@@ -45,7 +45,10 @@ describe('the run log version', () => {
     // Asserted as a literal because the whole point of the axis is that it is a
     // name a human chose, not a hash: a test that computed it could not catch a
     // bump that failed to happen.
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-12/')).toBe(true);
+    // Moved again at the contentHash release, for the versions block; the
+    // patch's own move is the one before it. Asserted as "past 12" so that
+    // release's bump does not read as this patch's bump failing to happen.
+    expect(Number(/^gymrun-run-(\d+)\//.exec(RUN_LOG_VERSION)?.[1])).toBeGreaterThanOrEqual(12);
   });
 
   it('is a different axis from the randomizer, and both moved this patch', () => {

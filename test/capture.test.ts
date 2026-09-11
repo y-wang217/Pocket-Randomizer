@@ -32,6 +32,7 @@ import {
   resumeRun,
   replayRun,
   RUN_LOG_VERSION,
+  currentVersions,
   scriptedRunPolicy,
   type RunPolicy,
 } from '../src/core/run';
@@ -233,8 +234,7 @@ describe('the version guard', () => {
   it('refuses a Stage 4.5.2 log, naming both versions', () => {
     const stale: RunLog = {
       seed: 'STAGE452',
-      version: 'gymrun-run-8/gymrun-0.3.0',
-      randomizerVersion: 'gymrun-randomizer-6',
+      versions: { ...currentVersions(), runLog: 'gymrun-run-8/gymrun-0.3.0', randomizerVersion: 'gymrun-randomizer-6' },
       decisions: [],
     };
     // Synchronous, deliberately: `replayRunPolicy` checks the stamp before
@@ -250,12 +250,11 @@ describe('the version guard', () => {
     // the game onto a different sequence.
     const stale: RunLog = {
       seed: 'REKEYED',
-      version: RUN_LOG_VERSION,
-      randomizerVersion: 'gymrun-randomizer-6',
+      versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-6' },
       decisions: [],
     };
     expect(() => replayRun(stale)).toThrow(/gymrun-randomizer-6/);
-    expect(() => replayRun(stale)).toThrow(/no longer produces the same run/);
+    expect(() => replayRun(stale)).toThrow(/mismatch on randomizerVersion/);
   });
 });
 
