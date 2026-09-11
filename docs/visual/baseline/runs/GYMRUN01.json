@@ -1,9 +1,10 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-12/gymrun-0.3.0",
+    "runLog": "gymrun-run-13/gymrun-0.3.0",
+    "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-2-switching",
+    "ai": "gymrun-ai-3-priority",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -13,8 +14,8 @@
     "leader": "Marina",
     "kind": "gym",
     "species": "Dusk",
-    "bySpecies": "Buizel",
-    "byMove": "Aqua Cutter",
+    "bySpecies": "Lumineon",
+    "byMove": "Surging Strikes",
     "indirect": null
   },
   "currency": 243,
@@ -42,12 +43,12 @@
       "level": 36,
       "ability": "Contrary",
       "moves": [
-        "Metal Claw 55/56",
-        "Bullet Punch 46/48",
-        "Fury Attack 32/32",
+        "Metal Claw 56/56",
+        "Bullet Punch 45/48",
+        "Fury Attack 31/32",
         "Hypnosis 32/32"
       ],
-      "item": "lumberry",
+      "item": null,
       "hp": "0/109",
       "fainted": true
     },
@@ -59,7 +60,7 @@
         "Gust 55/56",
         "Tackle 56/56",
         "Weather Ball 16/16",
-        "Snarl 21/24"
+        "Snarl 22/24"
       ],
       "item": "eviolite",
       "hp": "0/100",
@@ -75,7 +76,7 @@
       "opponent": "Wild Cufant",
       "turns": 1,
       "winner": "p1",
-      "hpAfter": 109,
+      "hpAfter": 97,
       "casualties": []
     },
     {
@@ -86,7 +87,7 @@
       "opponent": "Trainer's Chinchou",
       "turns": 1,
       "winner": "p1",
-      "hpAfter": 201,
+      "hpAfter": 188,
       "casualties": []
     },
     {
@@ -97,7 +98,7 @@
       "opponent": "Wild Murkrow",
       "turns": 1,
       "winner": "p1",
-      "hpAfter": 201,
+      "hpAfter": 188,
       "casualties": []
     },
     {
@@ -108,7 +109,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 286,
+      "hpAfter": 273,
       "casualties": []
     },
     {
@@ -119,7 +120,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 286,
+      "hpAfter": 273,
       "casualties": []
     },
     {
@@ -130,7 +131,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 254,
+      "hpAfter": 241,
       "casualties": []
     },
     {
@@ -183,7 +184,7 @@
       "opponent": "Wild Hariyama",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 163,
+      "hpAfter": 154,
       "casualties": [
         {
           "side": "p1",
@@ -201,7 +202,7 @@
       "label": "Marina's Gym",
       "tier": null,
       "opponent": "Marina (Water)",
-      "turns": 6,
+      "turns": 5,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -225,8 +226,8 @@
           "side": "p1",
           "name": "Dusk",
           "level": 36,
-          "bySpecies": "Buizel",
-          "byMove": "Aqua Cutter",
+          "bySpecies": "Lumineon",
+          "byMove": "Surging Strikes",
           "indirect": null
         }
       ]
@@ -234,8 +235,12 @@
   ],
   "log": {
     "seed": "GYMRUN01",
-    "version": "gymrun-run-12/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-13",
+    "versions": {
+      "runLog": "gymrun-run-13/gymrun-0.3.0",
+      "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
+      "aiVersion": "gymrun-ai-3-priority",
+      "randomizerVersion": "gymrun-randomizer-13"
+    },
     "decisions": [
       {
         "kind": "starter",
@@ -638,13 +643,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -653,14 +651,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       }
     ]

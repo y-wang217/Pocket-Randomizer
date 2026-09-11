@@ -104,20 +104,16 @@ describe('core/ boundaries', () => {
    */
   it('opens every stream in src/ through a key', () => {
     /*
-     * `driver.ts` is the one exception and it is listed rather than excused.
+     * No exceptions. `driver.ts`'s `battleStreamFor` was the one, listed
+     * rather than excused, until the `contentHash` release deleted the unkeyed
+     * sequence and ported it to `FIXTURE_BATTLE_KEY`. The Stage 0 fixture
+     * battles moved with it, deliberately and once; no run did, because a run
+     * always passes the sim seed `encounters.ts` drew under `nodeKey`.
      *
-     * `battleStreamFor` backs `createBattle`'s `simSeed` fallback. No shipped
-     * path reaches it — `run.ts` always passes `node.encounter.simSeed`, which
-     * `encounters.ts` draws through `nodeKey`, so the fallback exists for
-     * callers that start a battle with no generated node behind it, meaning the
-     * Stage 0 fixtures and the determinism tests. Porting it would move every
-     * one of those battles, which is a test-suite change and not a cleanup, so
-     * it goes to the release that owns the deletion.
-     *
-     * Listed as one entry, asserted as one entry: an allowlist nobody counts is
-     * how the next caller joins it.
+     * The set stays, empty, so that the next caller has to be *added* to
+     * something that asserts its own size rather than slipping past a regex.
      */
-    const ALLOWED = new Set(['src/core/battle/driver.ts']);
+    const ALLOWED = new Set<string>();
 
     // An rng-shaped receiver, so `result.battle` and `specs.map(...)` are not
     // stream accesses. Both spellings the codebase uses are covered.
@@ -134,7 +130,7 @@ describe('core/ boundaries', () => {
     }
 
     expect(offenders, 'open the stream with .at(key) from core/streamKeys.ts').toEqual([]);
-    expect(ALLOWED.size, 'the unkeyed exception list may shrink, never grow').toBe(1);
+    expect(ALLOWED.size, 'the unkeyed exception list is empty and stays empty').toBe(0);
   });
 
   it('never references Math.random', () => {

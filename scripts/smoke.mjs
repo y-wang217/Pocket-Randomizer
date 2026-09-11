@@ -86,7 +86,23 @@ const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 const PINNED = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium'];
 const executablePath = PINNED.find((candidate) => existsSync(candidate));
 const browser = await chromium.launch(executablePath ? { executablePath } : {});
+/*
+ * The tutorial's coach marks show on a first launch, which a fresh browser is.
+ * They are tappable panels over the screen and this script clicks by selector,
+ * so the store is seeded with the tutorial skipped, the same way the visual
+ * harness seeds its contexts. The tutorial has its own browser test.
+ */
+const TUTORIAL_SKIPPED = JSON.stringify({ verbosity: 'detailed', tutorial: { skipped: true, seen: [] } });
+const skipTutorial = (target) =>
+  target.addInitScript((settings) => {
+    try {
+      if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
+    } catch {
+      // Storage unavailable: defaults apply.
+    }
+  }, TUTORIAL_SKIPPED);
 const page = await browser.newPage();
+await skipTutorial(page);
 const problems = [];
 page.on('console', (msg) => {
   if (msg.type() !== 'error') return;
@@ -132,7 +148,15 @@ await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
 console.log(`\nseed shown: ${seed}`);
-if (seed !== SEED) problems.push(`seed from the URL was not used (saw ${seed})`);
+/*
+ * The bar shows the versioned form since the contentHash release —
+ * `GYMRUN-<six hex>-<seed>` — so the check strips a well-formed prefix and
+ * compares the seed inside it. The prefix is asserted well-formed rather than
+ * ignored: a bar that showed the bare seed again would be a regression too.
+ */
+const versioned = /^GYMRUN-[0-9a-f]{6}-(.+)$/.exec(seed);
+if (!versioned) problems.push(`seed is not in the versioned GYMRUN-xxxxxx-<seed> form (saw ${seed})`);
+else if (versioned[1] !== SEED) problems.push(`seed from the URL was not used (saw ${seed})`);
 
 /**
  * Play a run competently, reading the screen the way a player would.
@@ -806,6 +830,7 @@ const phone = await browser.newPage({
   isMobile: true,
   hasTouch: true,
 });
+await skipTutorial(phone);
 await phone.goto(url, { waitUntil: 'load' });
 await phone.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
 

@@ -445,7 +445,11 @@ describe('the loaded board', () => {
   async function loaded(): Promise<{ page: Awaited<ReturnType<typeof openApp>>['page']; context: Awaited<ReturnType<typeof openApp>>['context'] }> {
     const context = await gallery.browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
-    await page.goto(`${gallery.url}/gallery.html#seed=V5-LOADED&screen=battle`, { waitUntil: 'load' });
+    // `V5-LOADED` until the contentHash release moved every fixture battle's
+    // sim seed once (`FIXTURE_BATTLE_KEY`); `V5-LOADED-1` is the first seed
+    // after it on which both statuses land on the same turn, so the strip
+    // carries two words at once.
+    await page.goto(`${gallery.url}/gallery.html#seed=V5-LOADED-1&screen=battle`, { waitUntil: 'load' });
     await page.waitForFunction(() => globalThis.document.documentElement.dataset['galleryReady'] === 'true', undefined, {
       timeout: 60_000,
     });

@@ -388,19 +388,19 @@ describe('the function is pure', () => {
     const around = createRng('THREAT-RNG');
 
     const expected = [
-      untouched.map.nextUint32(),
-      untouched.rewards.nextUint32(),
-      untouched.battle.nextUint32(),
+      untouched.map.at('test').nextUint32(),
+      untouched.rewards.at('test').nextUint32(),
+      untouched.battle.at('test').nextUint32(),
     ];
 
-    const first = around.map.nextUint32();
+    const first = around.map.at('test').nextUint32();
     partyThreats(party);
-    const rest = [around.rewards.nextUint32(), around.battle.nextUint32()];
+    const rest = [around.rewards.at('test').nextUint32(), around.battle.at('test').nextUint32()];
 
     expect([first, ...rest]).toEqual(expected);
     // And no stream advanced at all, which the values alone would not show if
     // two streams happened to draw past each other.
-    expect([around.map.draws, around.rewards.draws, around.battle.draws]).toEqual([1, 1, 1]);
+    expect([around.map.at('test').draws, around.rewards.at('test').draws, around.battle.at('test').draws]).toEqual([1, 1, 1]);
   });
 });
 

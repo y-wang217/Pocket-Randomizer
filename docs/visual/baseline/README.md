@@ -293,3 +293,12 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   pre-V0 baseline and each stage states its delta against it. V5's own delta,
   measured against `main` rather than against V0, is **+3,598 raw / +633
   gzipped**.
+
+## The data digest is `contentHash`
+
+**2026-09-11, overnight Branch 3.** `data-digest.txt` was a plain sha256 over
+every file under `src/data/`; it is now the value `core/contentHash.ts`
+carries, computed by `build-config/content-hash.ts` over the same directory
+minus the exclusion list. A presentation stage moves it exactly when it moves
+the version axis, and never for a reworded tooltip or a new coach mark.
+`docs/generation.md` section 12g.

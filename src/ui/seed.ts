@@ -6,18 +6,29 @@
  * than in core/. core/rng.ts only ever transforms a seed it was given; if it
  * could invent one, "deterministic core" would be a claim rather than a fact.
  */
-import { createRng, formatSeed, normalizeSeed } from '../core/rng';
+import { createRng, formatSeed } from '../core/rng';
+import { formatSeedString, parseSeedString, type ParsedSeed } from '../core/seedString';
 import { SEED_KEY } from '../core/streamKeys';
 
-/** Read a seed from the URL so a battle can be shared or bookmarked. */
-export function seedFromLocation(url: string): string | null {
+/**
+ * Read a seed from the URL so a run can be shared or bookmarked.
+ *
+ * Parsed rather than taken as-is, since the `contentHash` release: a shared
+ * link carries the versioned string, and one made on another build comes back
+ * `foreign` so the shell can say so. A bare seed in an old bookmark still
+ * reads as it always did.
+ */
+export function seedFromLocation(url: string): ParsedSeed | null {
   const hash = new URL(url).hash.replace(/^#/, '');
   const seed = new URLSearchParams(hash).get('seed');
-  return seed ? normalizeSeed(seed) : null;
+  if (!seed || !seed.trim()) return null;
+  const parsed = parseSeedString(seed);
+  return parsed.seed ? parsed : null;
 }
 
+/** The versioned form, so a copied link is a shareable seed string. */
 export function writeSeedToLocation(seed: string): void {
-  const next = `#seed=${encodeURIComponent(seed)}`;
+  const next = `#seed=${encodeURIComponent(formatSeedString(seed))}`;
   if (globalThis.location.hash !== next) {
     globalThis.history.replaceState(null, '', next);
   }

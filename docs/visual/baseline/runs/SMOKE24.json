@@ -1,9 +1,10 @@
 {
   "seed": "SMOKE24",
   "versions": {
-    "runLog": "gymrun-run-12/gymrun-0.3.0",
+    "runLog": "gymrun-run-13/gymrun-0.3.0",
+    "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-2-switching",
+    "ai": "gymrun-ai-3-priority",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -30,9 +31,9 @@
       "level": 54,
       "ability": "Rocky Payload",
       "moves": [
-        "Steam Eruption 7/8",
+        "Steam Eruption 5/8",
         "Hurricane 10/16",
-        "Spin Out 5/8",
+        "Spin Out 6/8",
         "Thunderbolt 24/24"
       ],
       "item": "silkscarf",
@@ -46,7 +47,7 @@
       "moves": [
         "Fell Stinger 40/40",
         "Struggle Bug 32/32",
-        "Poison Tail 39/40",
+        "Poison Tail 40/40",
         "Metal Sound 64/64"
       ],
       "item": "passhoberry",
@@ -58,9 +59,9 @@
       "level": 54,
       "ability": "Sand Force",
       "moves": [
-        "Electroweb 22/24",
-        "Rock Smash 21/24",
-        "Nuzzle 30/32",
+        "Electroweb 21/24",
+        "Rock Smash 22/24",
+        "Nuzzle 29/32",
         "Poison Tail 40/40"
       ],
       "item": "occaberry",
@@ -86,9 +87,9 @@
       "level": 54,
       "ability": "Scrappy",
       "moves": [
-        "Water Shuriken 30/32",
+        "Water Shuriken 28/32",
         "Scratch 56/56",
-        "Giga Drain 13/16",
+        "Giga Drain 16/16",
         "Encore 8/8"
       ],
       "item": "passhoberry",
@@ -301,7 +302,7 @@
       "opponent": "Trainer (2)",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 349,
+      "hpAfter": 334,
       "casualties": []
     },
     {
@@ -312,7 +313,7 @@
       "opponent": "Volta (Electric)",
       "turns": 9,
       "winner": "p1",
-      "hpAfter": 337,
+      "hpAfter": 307,
       "casualties": []
     },
     {
@@ -387,10 +388,19 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Drednaw",
-      "turns": 7,
+      "turns": 8,
       "winner": "p1",
-      "hpAfter": 505,
-      "casualties": []
+      "hpAfter": 413,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Mire",
+          "level": 54,
+          "bySpecies": null,
+          "byMove": null,
+          "indirect": "psn"
+        }
+      ]
     },
     {
       "segment": 4,
@@ -398,10 +408,19 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Gliscor",
-      "turns": 8,
+      "turns": 12,
       "winner": "p1",
-      "hpAfter": 628,
-      "casualties": []
+      "hpAfter": 554,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Mire",
+          "level": 54,
+          "bySpecies": "Hippowdon",
+          "byMove": "Smart Strike",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 4,
@@ -409,10 +428,19 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Poliwrath",
-      "turns": 12,
+      "turns": 19,
       "winner": "p1",
-      "hpAfter": 446,
-      "casualties": []
+      "hpAfter": 243,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Loam",
+          "level": 54,
+          "bySpecies": "Muk",
+          "byMove": "Bulldoze",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 4,
@@ -431,9 +459,9 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Politoed",
-      "turns": 14,
+      "turns": 12,
       "winner": "p1",
-      "hpAfter": 402,
+      "hpAfter": 449,
       "casualties": []
     },
     {
@@ -444,7 +472,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 402,
+      "hpAfter": 449,
       "casualties": []
     },
     {
@@ -461,8 +489,8 @@
           "side": "p1",
           "name": "Loam",
           "level": 54,
-          "bySpecies": "Flareon",
-          "byMove": "Lunge",
+          "bySpecies": "Incineroar",
+          "byMove": "Crunch",
           "indirect": null
         },
         {
@@ -502,8 +530,12 @@
   ],
   "log": {
     "seed": "SMOKE24",
-    "version": "gymrun-run-12/gymrun-0.3.0",
-    "randomizerVersion": "gymrun-randomizer-13",
+    "versions": {
+      "runLog": "gymrun-run-13/gymrun-0.3.0",
+      "contentHash": "b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf",
+      "aiVersion": "gymrun-ai-3-priority",
+      "randomizerVersion": "gymrun-randomizer-13"
+    },
     "decisions": [
       {
         "kind": "starter",
@@ -1640,14 +1672,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       },
       {
@@ -1662,6 +1687,27 @@
         "choice": {
           "kind": "move",
           "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {
@@ -1709,7 +1755,35 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
         }
       },
       {
@@ -1717,6 +1791,13 @@
         "choice": {
           "kind": "switch",
           "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -1794,6 +1875,55 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
+          "slot": 5
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 5
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 4
         }
       },
@@ -1807,8 +1937,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 3
         }
       },
       {
@@ -1822,14 +1952,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
@@ -1856,7 +1979,7 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
+          "kind": "switch",
           "slot": 2
         }
       },
@@ -1864,7 +1987,21 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -2038,22 +2175,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 5
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
@@ -2131,6 +2254,20 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 3
         }
@@ -2166,13 +2303,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 5
         }
@@ -2181,7 +2311,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
@@ -2210,13 +2340,6 @@
         "choice": {
           "kind": "switch",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
         }
       },
       {

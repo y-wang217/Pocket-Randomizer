@@ -133,7 +133,7 @@ describe('shop and event nodes', () => {
     const baseline = allNodes('ECON-ISOLATE').map((node) => ({ shop: node.shop, event: node.event }));
     for (const stream of ['map', 'battle', 'randomizer', 'policy'] as const) {
       const noisy = createRng('ECON-ISOLATE');
-      for (let i = 0; i < 5_000; i++) noisy[stream].nextUint32();
+      for (let i = 0; i < 5_000; i++) noisy[stream].at('drain').nextUint32();
       expect(
         allNodes('ECON-ISOLATE').map((node) => ({ shop: node.shop, event: node.event })),
         `draining ${stream}`,
@@ -239,7 +239,7 @@ describe('currency earned per node', () => {
 // ---------------------------------------------------------------------------
 
 describe('currency never goes negative', () => {
-  const stock = generateShopStock('shop-test', 0, createRng('ECON-SHOP').rewards, DEFAULT_TUNING);
+  const stock = generateShopStock('shop-test', 0, createRng('ECON-SHOP').rewards.at('test'), DEFAULT_TUNING);
 
   it('rejects a basket the run cannot pay for', () => {
     const cost = basketCost(stock, [0]);

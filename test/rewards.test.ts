@@ -26,6 +26,7 @@ import {
   defaultMoveReplacement,
   playRun,
   RUN_LOG_VERSION,
+  currentVersions,
   replayRun,
   scriptedRunPolicy,
   type RunPolicy,
@@ -34,7 +35,6 @@ import {
 import { applyReward, describeReward, GYM_OFFER_SIZE, OFFER_SIZE } from '../src/core/rewards';
 import { moveChoice, type PokemonSpec, type RunLog, type TeamSpec } from '../src/core/types';
 import { ITEMS, itemById } from '../src/data/items';
-import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { REWARD_POOLS, rewardEntriesFor } from '../src/data/rewardPools';
 import { rewardMoveBand, SEGMENT_COUNT, segmentMoveBand } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
@@ -179,7 +179,7 @@ describe('reward determinism', () => {
     const baseline = offersOf('REW-ISOLATE').map((o) => o.offer);
     for (const stream of ['map', 'battle', 'randomizer', 'policy'] as const) {
       const noisy = createRng('REW-ISOLATE');
-      for (let i = 0; i < 5_000; i++) noisy[stream].nextUint32();
+      for (let i = 0; i < 5_000; i++) noisy[stream].at('drain').nextUint32();
       expect(offersOf('REW-ISOLATE').map((o) => o.offer), `draining ${stream}`).toEqual(baseline);
     }
   });
@@ -662,8 +662,7 @@ describe('rewards in a played run', () => {
     // guard refuses up front and names both versions.
     const stale: RunLog = {
       seed: 'REW-STALE',
-      version: 'gymrun-run-3/gymrun-0.1.0',
-      randomizerVersion: RANDOMIZER_VERSION,
+      versions: { ...currentVersions(), runLog: 'gymrun-run-3/gymrun-0.1.0' },
       decisions: [{ kind: 'starter', index: 0 }],
     };
     // Thrown synchronously, before `playRun` is even entered: `replayRunPolicy`

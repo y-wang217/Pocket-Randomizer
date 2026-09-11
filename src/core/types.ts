@@ -164,6 +164,15 @@ export interface MoveView {
   maxPp: number;
   /** False when the move is disabled, out of PP, or otherwise unusable now. */
   usable: boolean;
+  /**
+   * The move's priority bracket, as the dex reports it: +1 for Quick Attack,
+   * +2 for Extreme Speed, -6 for Trick Room, 0 for almost everything.
+   *
+   * Read for the priority-aware AI patch. The trim strips learnsets, legality
+   * and GO data only, so the bracket survives into the bundle with no
+   * generated table; `test/ai-priority.test.ts` sweeps it.
+   */
+  priority: number;
 }
 
 /**
@@ -224,6 +233,15 @@ export interface ActiveView {
   statStages: StatStages;
   fainted: boolean;
   /**
+   * The Speed stat at this level, before stages and status.
+   *
+   * Public information on both sides: every Pokemon in the game has one fixed
+   * spread (Serious, 31 IVs, 0 EVs, `battle/stats.ts`), so the number follows
+   * from species and level alone. `battle/speed.ts` turns it into the
+   * approximation the AI orders a turn by.
+   */
+  baseSpeed: number;
+  /**
    * Known ability, or null when it is not public information.
    *
    * Your own Pokemon always reports its ability. The opponent's reports null:
@@ -244,6 +262,12 @@ export interface ActiveView {
  * same way a person does. Keeping that honest now means the Stage 2 balance
  * sweep measures something real.
  */
+/** The two effective Speeds a policy compares. See `battle/speed.ts`. */
+export interface SpeedView {
+  me: number;
+  foe: number;
+}
+
 export interface BattleView {
   /** Which side this view belongs to. */
   side: SideId;
@@ -264,6 +288,13 @@ export interface BattleView {
   forceSwitch: boolean;
   /** True when this side owes the sim a decision. */
   awaitingChoice: boolean;
+  /**
+   * Each side's effective Speed as far as a policy may see it: the stat after
+   * stages and paralysis, and nothing else. `battle/speed.ts` computes it and
+   * says why it is an approximation; `orderOf` there turns it into who acts
+   * first, or `unknown` on a tie.
+   */
+  speed: SpeedView;
   /**
    * True when the sim says the active Pokemon may not switch out.
    *
@@ -730,28 +761,47 @@ export type RunDecision =
   | { kind: 'lead'; index: number };
 
 /**
- * The replayable record of a whole run: a seed and a decision sequence.
+ * The four version axes a run log is stamped with, and replay checks.
  *
- * Stage 0's version of this type held one battle's decisions. Stage 1 widens it
+ * One block, since the `contentHash` release. Before it the log carried
+ * `version` and `randomizerVersion` as two loose fields and nothing for the
+ * AI, so an AI change was stamped onto sim reports and guarded nowhere — a log
+ * recorded against one opponent policy replayed silently against another.
+ *
+ * Each axis answers a different question about whether the same seed plus the
+ * same decisions reproduces the same run, and a reader diagnosing a rejected
+ * log wants to know which one failed:
+ *
+ *   - `runLog`: did the *questions* change? The decision schema, plus the
+ *     engine version it is composed with. `RUN_LOG_VERSION`.
+ *   - `contentHash`: did the *data* change? A hash over the balance tables,
+ *     computed at build time. `CONTENT_HASH`.
+ *   - `aiVersion`: did the *opponent* change? `AI_VERSION`.
+ *   - `randomizerVersion`: did the *draw composition* change — a draw added,
+ *     removed or relocated in code with no table edited? `RANDOMIZER_VERSION`.
+ *     The hash cannot see code, which is why this axis survives it.
+ */
+export interface RunLogVersions {
+  runLog: string;
+  contentHash: string;
+  aiVersion: string;
+  randomizerVersion: string;
+}
+
+/**
+ * The replayable record of a whole run: a seed, its versions and a decision
+ * sequence.
+ *
+ * Stage 0's version of this type held one battle's decisions. Stage 1 widened it
  * to the full run — starter pick, node picks and battle choices interleaved in
- * play order — which is a breaking change to the format, so `version` moves
+ * play order — which is a breaking change to the format, so `version` moved
  * from `gymrun-0.1.0` to the run-log version and old logs are rejected
- * explicitly rather than replayed as something they are not.
+ * explicitly rather than replayed as something they are not. The `contentHash`
+ * release folded `version` and `randomizerVersion` into `versions`, and a log
+ * from before it is refused on the `runLog` axis by name.
  */
 export interface RunLog {
   seed: string;
-  version: string;
-  /**
-   * The randomizer's data-and-draw-order version.
-   *
-   * Separate from `version` on purpose. `version` moves when the *engine* or
-   * the log format changes; this moves when a tuning pass changes what a seed
-   * rolls — a species pool regenerated, a band window widened, a draw added in
-   * the middle of `rollMoveset`. Those changes leave the decision sequence
-   * perfectly replayable and quietly reinterpret it as a different run, which
-   * is the worst available outcome for a game whose whole promise is that a
-   * shared seed is a shared run. So it is checked, and a mismatch throws.
-   */
-  randomizerVersion: string;
+  versions: RunLogVersions;
   decisions: RunDecision[];
 }

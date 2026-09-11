@@ -39,12 +39,29 @@
  * something you turn on once you no longer need either.
  */
 
+import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
+
 export type Verbosity = 'simple' | 'detailed';
 
 const KEY = 'gymrun.settings';
 
+/**
+ * The tutorial's persisted flags. Overnight Branch 3.
+ *
+ * In this store rather than its own because the trigger is "first launch",
+ * which is exactly what the verbosity default already keys off: a fresh
+ * store. Never keyed to a seed. `seen` is per screen, so a player who skips
+ * the map's marks still gets the battle's; `skipped` is the one control that
+ * dismisses every screen at once.
+ */
+export interface TutorialFlags {
+  skipped: boolean;
+  seen: TutorialScreen[];
+}
+
 export interface Settings {
   verbosity: Verbosity;
+  tutorial: TutorialFlags;
 }
 
 /**
@@ -53,7 +70,7 @@ export interface Settings {
  * Detailed, per the note above. Exported so a test asserts the default rather
  * than restating it.
  */
-export const DEFAULT_SETTINGS: Settings = { verbosity: 'detailed' };
+export const DEFAULT_SETTINGS: Settings = { verbosity: 'detailed', tutorial: { skipped: false, seen: [] } };
 
 /**
  * Read the stored settings, falling back to the defaults on anything unexpected.
@@ -85,10 +102,19 @@ export function saveSettings(settings: Settings): void {
 /** Parse defensively. Stored settings are untrusted input like a stored log. */
 function readSettings(value: unknown): Partial<Settings> {
   if (typeof value !== 'object' || value === null) return {};
-  const candidate = value as { verbosity?: unknown };
-  return candidate.verbosity === 'simple' || candidate.verbosity === 'detailed'
-    ? { verbosity: candidate.verbosity }
-    : {};
+  const candidate = value as { verbosity?: unknown; tutorial?: unknown };
+  const read: Partial<Settings> = {};
+  if (candidate.verbosity === 'simple' || candidate.verbosity === 'detailed') read.verbosity = candidate.verbosity;
+  const tutorial = candidate.tutorial as { skipped?: unknown; seen?: unknown } | undefined;
+  if (typeof tutorial === 'object' && tutorial !== null) {
+    read.tutorial = {
+      skipped: tutorial.skipped === true,
+      seen: Array.isArray(tutorial.seen)
+        ? tutorial.seen.filter((entry): entry is TutorialScreen => TUTORIAL_SCREENS.includes(entry as TutorialScreen))
+        : [],
+    };
+  }
+  return read;
 }
 
 /**
@@ -135,6 +161,42 @@ export function setVerbosity(verbosity: Verbosity): void {
  * Returns an unsubscribe function. Without this the toggle would only take
  * effect on the next natural re-render, which on the party screen is never.
  */
+// ---------------------------------------------------------------------------
+// The tutorial flags
+// ---------------------------------------------------------------------------
+
+/** Whether a screen's marks are due: the tutorial is not skipped and the screen not yet seen. */
+export function tutorialDue(screen: TutorialScreen): boolean {
+  return !current.tutorial.skipped && !current.tutorial.seen.includes(screen);
+}
+
+/** A screen's marks were shown (or dismissed) once; they do not show again. */
+export function markTutorialSeen(screen: TutorialScreen): void {
+  if (current.tutorial.seen.includes(screen)) return;
+  current = { ...current, tutorial: { ...current.tutorial, seen: [...current.tutorial.seen, screen] } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+/** "Skip tutorial": every screen, now and later, until it is shown again. */
+export function skipTutorial(): void {
+  if (current.tutorial.skipped) return;
+  current = { ...current, tutorial: { ...current.tutorial, skipped: true } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+/** "Show tutorial again": back to a first launch, for the tutorial alone. */
+export function resetTutorial(): void {
+  current = { ...current, tutorial: { skipped: false, seen: [] } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+export function tutorialFlags(): TutorialFlags {
+  return { skipped: current.tutorial.skipped, seen: [...current.tutorial.seen] };
+}
+
 export function onSettingsChange(listener: (settings: Settings) => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -142,6 +204,6 @@ export function onSettingsChange(listener: (settings: Settings) => void): () => 
 
 /** Reset to first-launch state. For tests, which must not leak into each other. */
 export function resetSettings(): void {
-  current = { ...DEFAULT_SETTINGS };
+  current = { ...DEFAULT_SETTINGS, tutorial: { skipped: false, seen: [] } };
   listeners.clear();
 }

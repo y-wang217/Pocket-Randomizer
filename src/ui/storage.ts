@@ -10,7 +10,7 @@
  * because it could not write a log would be a worse failure than losing the
  * log.
  */
-import type { RunLog } from '../core/types';
+import type { RunLog, RunLogVersions } from '../core/types';
 
 const KEY = 'gymrun.lastRun';
 
@@ -53,9 +53,15 @@ export function clearRunLog(): void {
 function isRunLog(value: unknown): value is RunLog {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Partial<RunLog>;
+  const versions = candidate.versions as Partial<RunLogVersions> | undefined;
   return (
     typeof candidate.seed === 'string' &&
-    typeof candidate.version === 'string' &&
+    typeof versions === 'object' &&
+    versions !== null &&
+    typeof versions.runLog === 'string' &&
+    typeof versions.contentHash === 'string' &&
+    typeof versions.aiVersion === 'string' &&
+    typeof versions.randomizerVersion === 'string' &&
     Array.isArray(candidate.decisions) &&
     candidate.decisions.every(isRunDecision)
   );

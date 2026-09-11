@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
 import { measureContrast, type ContrastReading } from '../scripts/visual/contrast.mjs';
 import { traceMapScroll } from '../scripts/visual/perf.mjs';
 import { LOCALE_IDS } from '../src/data/locales';
@@ -118,6 +118,8 @@ describe('the world', () => {
     await context.close();
 
     const reduced = await harness.browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+
+    await skipTutorialIn(reduced);
     const quiet = await reduced.newPage();
     await quiet.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
     await quiet.waitForSelector(`${visible('starter')} .starter`);

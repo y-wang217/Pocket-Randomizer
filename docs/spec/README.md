@@ -41,7 +41,7 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | Document | Kind | Status | Superseded by | Merged at |
 |---|---|---|---|---|
 | [`pokerun-build-spec.md`](pokerun-build-spec.md) | spec | `active` | | |
-| [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md) | design note | `active` | | partly built at `94040e9` |
+| [`gymrun-seeds-and-mappability.md`](gymrun-seeds-and-mappability.md) | design note | `active` | | keyed streams at `94040e9`; `contentHash`, seed strings, `previewRun` and the unkeyed-API deletion at Branch 1 of the overnight run, 2026-09-11 |
 | [`gymrun-qol-release-plan-rev2.md`](gymrun-qol-release-plan-rev2.md) | release plan | `active` | section 7 only, by the relics prompt | |
 | [`gymrun-stage1-claude-code-prompt.md`](gymrun-stage1-claude-code-prompt.md) | stage prompt | `merged` | | `b20aa26` |
 | [`gymrun-stage2-claude-code-prompt.md`](gymrun-stage2-claude-code-prompt.md) | stage prompt | `merged` | | `9a62547` |
@@ -58,10 +58,13 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-stage-v5-preflight-reconcile-execute.md`](gymrun-stage-v5-preflight-reconcile-execute.md) | stage prompt | `active` | | the V5 run: preflight, the seven amendments to the plan's V5 section, then the plan's own step order. All six steps built; report `../visual/reports/v5-battle-stage.md`, deviations `../generation.md` section 12d |
 | [`gymrun-stage4.8-claude-code-prompt.md`](gymrun-stage4.8-claude-code-prompt.md) | stage prompt | `active` | | committed 2026-09-10 before its report. Step 1 report `../reports/stage-4.8-report.md`; step 2 (party slot unlocks) built, `RANDOMIZER_VERSION` 13; steps 3-8 open |
 | [`gymrun-patch-4.7.2-font-stats-verbosity.md`](gymrun-patch-4.7.2-font-stats-verbosity.md) | patch prompt | `active` | | brief plus the rulings on its report, both verbatim. All five steps built on `claude/cool-dijkstra-apme8u`; report [`../visual/reports/patch-4.7.2.md`](../visual/reports/patch-4.7.2.md), deviations `../generation.md` sections 12e and 12f. **Ran in parallel with 4.8 and merged after it** — every figure in its report predates 4.8 and is re-measured in section 7 |
+| [`gymrun-overnight-contenthash-ai-tutorial.md`](gymrun-overnight-contenthash-ai-tutorial.md) | stage prompt, three branches | `active` | | committed 2026-09-11 before any work. All three branches built the same night on `claude/overnight-1-contenthash`, `claude/overnight-2-ai-priority` and `claude/overnight-3-tutorial`, merged in order into the integration branch; handoffs in `../handoff/`. Flips to `merged` when the integration branch reaches `main` |
 
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
-four of its requirements are unbuilt. [`../keyed-streams.md`](../keyed-streams.md)
-lists them.
+it is a design note and not a stage prompt: its requirements are all built as
+of the overnight run's Branch 1, with one deliberate difference —
+`randomizerVersion` was kept beside `contentHash` rather than retired.
+[`../keyed-streams.md`](../keyed-streams.md) records what shipped.
 
 The visual identity plan and its overnight prompts were pasted into the
 session that ran them and committed here on 2026-09-10 before that run began.

@@ -124,8 +124,10 @@ export function createResultScreen(): ResultScreen {
 
   const cardsHeading = el('h3', 'result__heading');
   const cards = el('div', 'rewards');
+  cards.dataset['tutorial'] = 'rewards';
 
   const capture = el('div', 'result__capture');
+  capture.dataset['tutorial'] = 'capture';
   const actions = el('div', 'result__actions');
 
   root.append(header, partyHeading, party, cardsHeading, cards, capture, actions);

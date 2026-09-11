@@ -86,12 +86,15 @@ export function createPreGymScreen(): PreGymScreen {
   const heading = el('div', 'pre-gym__header');
   const title = el('h2', 'screen__title');
   const counter = el('span', 'pre-gym__counter');
+  counter.dataset['tutorial'] = 'gym-counter';
   const leaderType = el('span', 'pre-gym__type');
+  leaderType.dataset['tutorial'] = 'gym-type';
   heading.append(title, counter, leaderType);
 
   const blurb = el('p', 'screen__blurb');
 
   const prompt = el('h3', 'pre-gym__prompt');
+  prompt.dataset['tutorial'] = 'gym-lead';
   prompt.textContent = 'Who leads?';
   const members = el('div', 'pre-gym__party');
 

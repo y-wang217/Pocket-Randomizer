@@ -430,14 +430,16 @@ Stage 0 log is *rejected* rather than misread: `RUN_LOG_VERSION` embeds the
 engine version, because a decision sequence is only replayable against the
 mons, generation and sim it was recorded with.
 
-Stage 2 added a **second** version to `RunLog`, and the reason it is separate is
-the failure it catches. `version` moves when the engine or the log format
-changes. `randomizerVersion` moves when a tuning pass changes what a seed
-*rolls* — a band window widened, a pool regenerated. That kind of change leaves
-every recorded decision sequence perfectly replayable and quietly reinterprets
-it as a different run, which is the worst available outcome for a game whose
-whole promise is that a shared seed is a shared run. So it is checked
-separately, with its own message naming both versions.
+Stage 2 added a **second** version to `RunLog`, and the `contentHash` release
+made it four, in one `versions` block: `runLog` (the decision schema, composed
+with the engine version), `contentHash` (the data tables, hashed at build
+time), `aiVersion` (the opponent's policy) and `randomizerVersion` (draw
+composition in code). Each catches a different failure, and all four leave a
+recorded decision sequence perfectly replayable while quietly reinterpreting it
+as a different run — the worst available outcome for a game whose whole
+promise is that a shared seed is a shared run. So one guard checks all four in
+that order, with one message format naming the axis and both values.
+`docs/generation.md` section 9.
 
 `localStorage` holds one run log, written after every decision and cleared when
 the run ends. That is the entire extent of persistence, by design.

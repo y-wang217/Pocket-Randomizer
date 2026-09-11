@@ -22,7 +22,7 @@
  * decision log, and shared mutable state is the fastest way to make a replay
  * disagree with the run it replays.
  */
-import { greedyAiPolicy } from './battle/ai';
+import { AI_VERSION, greedyAiPolicy } from './battle/ai';
 import { ENGINE_VERSION, runBattle, type BattleSession, type Casualty } from './battle/driver';
 import type { Policy } from './battle/policy';
 import {
@@ -57,6 +57,7 @@ import {
 import { partyCapacityAfter } from '../data/partyTuning';
 import type { RelicId } from '../data/relics';
 import { RANDOMIZER_VERSION } from './randomizer';
+import { CONTENT_HASH } from './contentHash';
 import {
   applyPurchases,
   resolveStock,
@@ -91,6 +92,7 @@ import type {
   PokemonState,
   RunDecision,
   RunLog,
+  RunLogVersions,
 } from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
@@ -214,8 +216,24 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  *
  * The deviation is recorded in `docs/generation.md` section 7c rather than by
  * editing the prompt, per protocol 4.
+ *
+ * ## `-13`: the `contentHash` release, and a changed *shape* rather than a
+ * changed question
+ *
+ * No decision was added. What moved is the log's own header: `version` and
+ * `randomizerVersion` were two loose fields, and they are now one `versions`
+ * block carrying four axes — this one, `contentHash`, `aiVersion` and
+ * `randomizerVersion`. The rule above says this guard asks whether the
+ * questions changed; it also guards the format that carries the answers, and a
+ * `-12` log has no `versions` block for `assertReplayable` to read. It is
+ * refused on this axis by name, with the old `version` field quoted so the
+ * message still says what the log was.
+ *
+ * `aiVersion` is the point of doing this here rather than in the AI patch that
+ * follows: the AI patch bumps one constant and the guard picks it up, with no
+ * schema change of its own. `docs/generation.md` section 9.
  */
-export const RUN_LOG_VERSION = `gymrun-run-12/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-13/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -1638,9 +1656,24 @@ function clonePlan(plan: ItemPlan): ItemPlan {
   };
 }
 
+/**
+ * The four axes this build stamps a log with and checks a log against.
+ *
+ * One function so the stamp and the guard cannot disagree: `makeLog` writes
+ * exactly what `versionMismatch` reads.
+ */
+export function currentVersions(): RunLogVersions {
+  return {
+    runLog: RUN_LOG_VERSION,
+    contentHash: CONTENT_HASH,
+    aiVersion: AI_VERSION,
+    randomizerVersion: RANDOMIZER_VERSION,
+  };
+}
+
 /** The one place a `RunLog` is built, so every stamp on it agrees. */
 function makeLog(seed: string, decisions: RunDecision[]): RunLog {
-  return { seed, version: RUN_LOG_VERSION, randomizerVersion: RANDOMIZER_VERSION, decisions };
+  return { seed, versions: currentVersions(), decisions };
 }
 
 function maxNodes(state: RunState): number {
@@ -1898,36 +1931,75 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
 // Save, resume, replay
 // ---------------------------------------------------------------------------
 
-/** Whether a stored log was recorded against this build, engine and randomizer. */
+/** The axes, in the order a mismatch is reported. The schema first: a log with no block fails here. */
+export const VERSION_AXES = ['runLog', 'contentHash', 'aiVersion', 'randomizerVersion'] as const satisfies readonly (keyof RunLogVersions)[];
+
+export type VersionAxis = (typeof VERSION_AXES)[number];
+
+/** One axis that did not match: which, what the log said, what this build is. */
+export interface VersionMismatch {
+  axis: VersionAxis;
+  recorded: string;
+  expected: string;
+}
+
+/**
+ * The first axis on which a log disagrees with this build, or null if none.
+ *
+ * One guard for all four axes, so there is one message format and one place
+ * a fifth axis would be added. Checked in `VERSION_AXES` order.
+ *
+ * A log with no `versions` block at all — every log from before this release
+ * — is refused on the `runLog` axis without reading further, whatever its
+ * loose `version` field says: the block is the schema, and a log without it is
+ * a log recorded on an older one. That field is read for the *message* only,
+ * so a `gymrun-run-12` log is refused with its own version quoted rather than
+ * as `(none)`. A message that names both sides is the whole point.
+ */
+export function versionMismatch(log: RunLog): VersionMismatch | null {
+  const expected = currentVersions();
+  const versions: unknown = log.versions;
+  if (typeof versions !== 'object' || versions === null) {
+    const legacy = (log as unknown as { version?: unknown }).version;
+    return { axis: 'runLog', recorded: typeof legacy === 'string' ? legacy : '(none)', expected: expected.runLog };
+  }
+  const recorded = versions as Partial<Record<VersionAxis, unknown>>;
+  for (const axis of VERSION_AXES) {
+    const value = recorded[axis];
+    if (value !== expected[axis]) {
+      return { axis, recorded: typeof value === 'string' ? value : '(none)', expected: expected[axis] };
+    }
+  }
+  return null;
+}
+
+/** The one message format. Names the axis and both values. */
+export function describeVersionMismatch(mismatch: VersionMismatch): string {
+  return (
+    `RunLog version mismatch on ${mismatch.axis}: the log was recorded on ${mismatch.recorded}, ` +
+    `this build is ${mismatch.expected}. The same seed and decisions would not reproduce the same run.`
+  );
+}
+
+/** Whether a stored log was recorded against this build on every axis. */
 export function isReplayable(log: RunLog): boolean {
-  return log.version === RUN_LOG_VERSION && log.randomizerVersion === RANDOMIZER_VERSION;
+  return versionMismatch(log) === null;
 }
 
 /**
  * Reject an incompatible log loudly.
  *
- * Stage 0's logs are a different format under a different version string, and
- * a Stage 3 log will be different again. Replaying one of those against this
- * build would not fail — it would produce a plausible run that is not the run
- * the player recorded, which is the worst available outcome. So: refuse, and
- * say what was found.
+ * Replaying a log from another build would not fail — it would produce a
+ * plausible run that is not the run the player recorded, which is the worst
+ * available outcome. So: refuse, and say which axis and what was found. Each
+ * axis points at a different fix — a `runLog` mismatch means the log is old,
+ * `contentHash` means a tuning pass moved the data under it, `aiVersion` that
+ * the opponent plays differently, `randomizerVersion` that a draw moved in
+ * code — and a reader diagnosing the refusal wants to know which.
  */
 export function assertReplayable(log: RunLog): void {
-  if (log.version !== RUN_LOG_VERSION) {
-    throw new Error(`RunLog was recorded on ${log.version}, this build replays ${RUN_LOG_VERSION}`);
-  }
-  if (log.randomizerVersion !== RANDOMIZER_VERSION) {
-    // Separate message from the one above, because the fix is different: an
-    // engine mismatch means the log is old, and a randomizer mismatch means a
-    // tuning pass moved the data under a log that is otherwise perfectly
-    // replayable. Silently replaying that one produces a run the player never
-    // played, on their own seed, which is the failure this whole check exists
-    // to prevent.
-    throw new Error(
-      `RunLog was recorded on randomizer ${log.randomizerVersion ?? '(none)'}, ` +
-        `this build rolls ${RANDOMIZER_VERSION}. The same seed no longer produces the same run.`,
-    );
-  }
+  const mismatch = versionMismatch(log);
+  if (mismatch) throw new Error(describeVersionMismatch(mismatch));
 }
 
 /** A run policy backed by a recorded log, optionally handing over when it runs dry. */

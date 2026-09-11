@@ -29,10 +29,10 @@ import {
   scriptedRunPolicy,
   type RunPolicy,
   type RunState,
+  currentVersions,
 } from '../src/core/run';
 import type { PokemonState, RunLog } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
-import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
 /** Leads with the last living member, so the choice is never the default. */
@@ -265,8 +265,7 @@ describe('the version guard', () => {
      */
     const stale: RunLog = {
       seed: 'PRE-LEAD',
-      version: 'gymrun-run-10/gymrun-0.3.0',
-      randomizerVersion: RANDOMIZER_VERSION,
+      versions: { ...currentVersions(), runLog: 'gymrun-run-10/gymrun-0.3.0' },
       decisions: [],
     };
 
@@ -282,7 +281,9 @@ describe('the version guard', () => {
      * human chose and a test that accepted any number could not catch a bump that
      * failed to happen. `docs/generation.md` section 7c carries the argument.
      */
-    expect(RUN_LOG_VERSION).toMatch(/^gymrun-run-12\//);
+    // And the contentHash release moved it to `-13` for the versions block, so
+    // the literal is a floor: this patch's bump and every later one are past 11.
+    expect(Number(/^gymrun-run-(\d+)\//.exec(RUN_LOG_VERSION)?.[1])).toBeGreaterThanOrEqual(12);
   });
 });
 

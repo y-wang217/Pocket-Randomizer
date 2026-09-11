@@ -36,7 +36,7 @@ editing.
 | [`../CLAUDE.md`](../CLAUDE.md) | The invariants, and nothing else | Every session, first |
 | `docs/README.md` (this file) | Current state, open items, design lineage | Every session, second |
 | [`spec/README.md`](spec/README.md) | The prompt register, the archival rule, the parallel session protocol | Before starting any stage or patch |
-| [`generation.md`](generation.md) | What each pass draws, from which stream, under which key. Levels, tiers, the band ceiling. Relics and capability gates. Versioning, and what `contentHash` is waiting on | Adding or moving a draw |
+| [`generation.md`](generation.md) | What each pass draws, from which stream, under which key. Levels, tiers, the band ceiling. Relics and capability gates. Versioning, and what `contentHash` covers and excludes | Adding or moving a draw |
 | [`balance.md`](balance.md) | Every simulator figure, the standing policy that balance is not a gate, and the benchmark table | Reading or quoting any number |
 | [`keyed-streams.md`](keyed-streams.md) | What the 4.6a stream refactor actually shipped, and the four requirements of its design that were not built | Working on RNG, seeds or replay |
 | [`engine-notes.md`](engine-notes.md) | `@pkmn/sim` findings: browser viability, the Gen 3 lock, bundle and trim analysis | Touching the sim adapter or the bundle |
@@ -157,17 +157,55 @@ measurements, cuts and gates — is in
 [`visual/reports/v5-battle-stage.md`](visual/reports/v5-battle-stage.md) rather
 than in this section.
 
-**Next scheduled work:** the `contentHash` release. It bundles four things that
-are specified but unbuilt: `contentHash` itself, seed strings that carry it,
-`previewRun`, and deleting the unkeyed stream API. It runs after 4.6c and
-before the freeze, and it is deliberately not to be built inside a data step.
-[`keyed-streams.md`](keyed-streams.md) lists the four; `generation.md` section 9
-says why they are their own release.
+**Stage 4.8, all eight steps: merged**, as PR #21 (`e5243d7`), and patch
+4.7.2 after it as PR #22 (`0712032`). The "In flight" section below was
+written while 4.8 was open and is kept as the record of what it found;
+`RANDOMIZER_VERSION` is 13 and the run log is at 13 after the release below.
+
+**The `contentHash` release: built**, as Branch 1 of the overnight run
+([`spec/gymrun-overnight-contenthash-ai-tutorial.md`](spec/gymrun-overnight-contenthash-ai-tutorial.md)),
+on `claude/overnight-1-contenthash`, handoff
+[`handoff/overnight-1-contenthash.md`](handoff/overnight-1-contenthash.md).
+All four of the things it bundled: `contentHash` over `src/data/**` at build
+time with one exclusion list, seed strings in the `GYMRUN-<hash>-<seed>` form
+refused at paste time when foreign, `previewRun(seed, contentHash)`, and the
+unkeyed stream API deleted. The run log carries a `versions` block over four
+axes and one guard checks them all; `RUN_LOG_VERSION` is 13.
+`randomizerVersion` was kept, not retired. Seeded output is byte identical.
+`generation.md` section 9 is the record, including the three places the
+prompt's picture of the tree was stale.
+
+**The priority and speed aware AI: built**, as Branch 2 of the overnight run,
+on `claude/overnight-2-ai-priority`, handoff
+[`handoff/overnight-2-ai-priority.md`](handoff/overnight-2-ai-priority.md).
+`MoveView` carries the dex priority bracket and `BattleView` carries both
+sides' Speed from one pure helper (`core/battle/speed.ts`: stat, stages,
+paralysis, ties `unknown`); one layer in front of the greedy pick takes a
+priority move when the AI is slower and facing a knockout, or when a priority
+move knocks out where a slower one also would. `AI_VERSION` is
+`gymrun-ai-3-priority`; `RUN_LOG_VERSION`, `contentHash` and
+`RANDOMIZER_VERSION` did not move. The benchmark moved by a recorded amount
+with one cause and was not retuned: [`balance.md`](balance.md) section 15.
+
+**The tutorial: built**, as Branch 3 of the overnight run, on
+`claude/overnight-3-tutorial`, handoff
+[`handoff/overnight-3-tutorial.md`](handoff/overnight-3-tutorial.md), which
+carries the full copy table for the morning review. First-run coach marks,
+not a scripted seed: 29 marks over eight screens in `data/tutorial.ts`,
+anchored by `data-tutorial` attribute to the real element, one at a time,
+advanced by tap, per-screen flags in the settings store beside the verbosity
+toggle, "Skip tutorial" on the first mark and "Show tutorial again" in the
+header. Presentation only: no `core/` change, no version axis moved, the sim
+fixture and the visual baseline's runs byte identical. The visual baseline's
+data digest now reads `contentHash`, so a copy file on the exclusion list moves
+nothing; `generation.md` section 12h records that and the other four
+deviations.
 
 **Blocked:**
 
-- **The freeze** is blocked on `contentHash` existing, because the freeze is the
-  act of stamping one as the first shareable baseline.
+- **The freeze** is no longer blocked on `contentHash` existing; it is blocked
+  on someone deciding to stamp one. The current hash's display form is in the
+  handoff file above.
 - **Re-reading the gym currency pick rate** is blocked on R13, the simulator's
   move-reward scorer defect, in Release A. Any figure taken before that fix is
   confounded.
@@ -177,7 +215,7 @@ says why they are their own release.
 design, because HM teaching was going to be the move reward flow. Relics removed
 teaching entirely, so that dependency dissolved and 4.6c shipped ahead of it.
 
-### In flight: Stage 4.8, all eight steps
+### Stage 4.8, all eight steps (written while in flight; merged since, see above)
 
 Branch `claude/intelligent-fermat-hzt2gb`, prompt
 [`spec/gymrun-stage4.8-claude-code-prompt.md`](spec/gymrun-stage4.8-claude-code-prompt.md),
@@ -218,7 +256,7 @@ before this stage, more richly than the prompt specifies, and was on the map as 
 as the party screen. Step 6 therefore had no core work; the map placement was removed
 in step 7, with the three smoke checks that existed to protect it.
 
-## 5.## 5. Open items
+## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
 
@@ -232,9 +270,12 @@ One line each. The analysis lives where the pointer goes, not here.
    against a banded field. The QoL plan reopens it: any figure taken before R13
    is confounded by the scorer defect, so it needs re-reading after Release A.
    Treat it as open with a closed-looking number.
-4. **Priority-blind and speed-blind AI.** `MoveView` carries no priority and
-   `BattleView` carries no speed. Its own pass, its own `AI_VERSION` bump, kept
-   outside 4.6 so its effect on the table stays separable.
+4. **Priority-blind and speed-blind AI. Closed**, Branch 2 of the overnight
+   run, `AI_VERSION` `gymrun-ai-3-priority`. What stays open is the morning
+   decision its handoff carries — keep, retune or revert, against the delta in
+   [`balance.md`](balance.md) section 15 — and the out-of-scope passes the
+   patch names: switch logic, status valuation, secondary effects, Trick Room,
+   speed modifiers beyond stat, stage and paralysis.
    [`spec/gymrun-stage4.6-claude-code-prompts.md`](spec/gymrun-stage4.6-claude-code-prompts.md).
 5. **The type wheel. Decided, not yet built.** Keep it, and drop the trigger
    from the two Pokemon panel type badges. It is UI work and belongs to
@@ -281,9 +322,19 @@ One line each. The analysis lives where the pointer goes, not here.
    patch 4.7.2, branch `claude/cool-dijkstra-apme8u`.
    [`spec/gymrun-patch-4.7.2-font-stats-verbosity.md`](spec/gymrun-patch-4.7.2-font-stats-verbosity.md).
 
-Five audit findings, where the tree does not currently satisfy an invariant in
-`CLAUDE.md`, are recorded in the message of the commit that added that file.
-They are unfixed on purpose and each needs its own patch.
+### The invariant register
+
+Five audit findings, where the tree did not satisfy an invariant in
+`CLAUDE.md` when that file was written (`8c3bff8`). Each closes in its own
+patch, and the row says which.
+
+| finding | status |
+|---|---|
+| `contentHash` does not exist | **closed**, Branch 1 of the overnight run. `build-config/content-hash.ts`, `generation.md` section 9 |
+| the sequential stream API is still exported and drawable | **closed**, Branch 1. A named stream is `at(key)`, `keys` and `totalDraws`; `test/determinism.test.ts` and `test/stream-keys.test.ts` group 5 guard the deletion |
+| `AI_VERSION` is stamped onto reports but never guarded at replay | **closed**, Branch 1. `aiVersion` is an axis of the log's `versions` block and `versionMismatch` checks it |
+| `Math.random` survives in `scripts/measure-bundle.mjs` | **open**. Not this branch's job; the lint rule now covers every extension and the boundary test walks `src/` only |
+| one "best" marker remains in player-facing copy | **moved, still open**. The audit's line, `run-map.ts:87`, lost its marker at `6351009` when the tier copy moved into `data/tierInfo.ts`; the one "best" left in player-facing copy is `data/statusInfo.ts` line 177 ("Usually your best move"). Not this branch's job; the Part 4 editorial rule owns it |
 
 ## 6. The design lineage, briefly
 

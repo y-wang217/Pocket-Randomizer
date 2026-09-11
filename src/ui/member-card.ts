@@ -127,6 +127,7 @@ export function memberCardContents(
 /** The held item and its effect line, read-only. */
 function itemRow(holding: ItemId | null): HTMLElement {
   const row = el('div', 'party__item');
+  row.dataset['tutorial'] = 'items';
   const entry = holding ? itemById(holding) : null;
   const chip = entry ? neutralChip(entry.name, 'item', { tip: `item:${entry.id}` }) : neutralChip('No item', 'item', { extra: 'badge--muted' });
   row.append(chip);

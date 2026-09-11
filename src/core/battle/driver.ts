@@ -14,6 +14,8 @@ import type { Pokemon as SimPokemon, PokemonSet, SideID } from '@pkmn/sim';
 
 import type { RngStream, SimSeed } from '../rng';
 import { createRng } from '../rng';
+import { FIXTURE_BATTLE_KEY } from '../streamKeys';
+import { speedView } from './speed';
 import {
   BOOST_NAMES,
   emptyStatStages,
@@ -290,6 +292,7 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
         pp: slot.pp,
         maxPp: slot.maxpp,
         usable: true,
+        priority: data.priority,
       };
     }),
   };
@@ -555,6 +558,10 @@ function toActiveView(pokemon: SimPokemon, revealAbility: boolean): ActiveView {
     status: readStatus(pokemon),
     statStages: readStatStages(pokemon),
     fainted: pokemon.fainted,
+    // `storedStats` on both sides: with one fixed spread it equals the number
+    // `stats.ts` computes from species and level (`test/stats.test.ts` holds
+    // the two together), so reading it off the foe leaks nothing.
+    baseSpeed: pokemon.storedStats.spe,
     ability: revealAbility ? Dex.forGen(GYMRUN_GEN).abilities.get(pokemon.ability).name : null,
   };
 }
@@ -680,6 +687,7 @@ function readMoves(battle: Battle, side: SideId): MoveView[] {
       pp: entry.pp ?? maxPp,
       maxPp,
       usable: !entry.disabled && (entry.pp === undefined || entry.pp > 0),
+      priority: data.priority,
     };
   });
 }
@@ -962,12 +970,15 @@ export function createBattle(options: BattleOptions): BattleSession {
     // those turns, which is why `forceSwitch` is a flag a policy branches on
     // rather than something it has to infer from an empty list.
     const forceSwitch = awaiting && !!request && 'forceSwitch' in request && Boolean(request.forceSwitch?.[0]);
+    const me = toActiveView(activeOf(battle, side), true);
+    const foe = toActiveView(activeOf(battle, opposingSide(side)), false);
     return {
       side,
       turn: battle.turn,
       ended: battle.ended,
-      me: toActiveView(activeOf(battle, side), true),
-      foe: toActiveView(activeOf(battle, opposingSide(side)), false),
+      me,
+      foe,
+      speed: speedView(me, foe),
       moves: awaiting ? readMoves(battle, side) : [],
       switches: awaiting ? readSwitches(battle, side) : [],
       forceSwitch,
@@ -1158,7 +1169,7 @@ function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): BattleMe
 }
 
 function battleStreamFor(seed: string): RngStream {
-  return createRng(seed).battle;
+  return createRng(seed).battle.at(FIXTURE_BATTLE_KEY);
 }
 
 /** `Choice` -> the sim's choice grammar. The only place those strings are built. */

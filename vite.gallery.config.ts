@@ -4,10 +4,11 @@
  */
 import { defineConfig } from 'vite';
 
+import { contentHash } from './build-config/content-hash';
 import { trimSimData } from './build-config/trim-sim-data';
 
 export default defineConfig({
-  plugins: [trimSimData()],
+  plugins: [trimSimData(), contentHash()],
   base: './',
   build: {
     target: 'es2022',

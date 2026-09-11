@@ -37,10 +37,18 @@ const DEPS: FlagDeps = { priorityOf: movePriority, moveIdentityOf: moveIdentity,
  * The run seed is named rather than the sim seed overridden, because
  * `createBattle` derives the sim's PRNG seed from the run seed's `battle`
  * stream and that derivation is the thing every other seeded assertion in the
- * suite goes through. `FLAGS01` is the default; a case that needs a particular
+ * suite goes through. `FLAGS05` is the default; a case that needs a particular
  * roll names its own and asserts the protocol carries it.
+ *
+ * It was `FLAGS01` until the `contentHash` release deleted the unkeyed
+ * sequence and the fallback that derives a fixture battle's sim seed moved
+ * to `FIXTURE_BATTLE_KEY`. Every seed-pinned battle in the suite rolled
+ * differently once, and `FLAGS05` is the first seed after it on which every
+ * case below still carries the roll it asserts: a Dynamic Punch miss on turn
+ * 1, three clean turns of Body Slam against Scald, and a Thunder Wave whose
+ * target still gets its Tackle off that turn.
  */
-function play(p1: TeamSpec, p2: TeamSpec, turns: number, seed = 'FLAGS01'): string[] {
+function play(p1: TeamSpec, p2: TeamSpec, turns: number, seed = 'FLAGS05'): string[] {
   const session: BattleSession = createBattle({ teams: { p1, p2 }, seed });
   for (let i = 0; i < turns && !session.ended; i++) {
     for (const side of ['p1', 'p2'] as const) {

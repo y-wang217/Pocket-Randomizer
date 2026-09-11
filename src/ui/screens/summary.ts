@@ -25,6 +25,7 @@ import { describeSpecCard, describeMove } from '../../core/battle/driver';
 import { offensiveCoverage } from '../../core/coverage';
 import { routeAt } from '../../core/encounters';
 import { hpState } from '../../core/hpCopy';
+import { formatSeedString } from '../../core/seedString';
 import {
   causeOfDeath,
   gymsCleared,
@@ -193,7 +194,7 @@ export function createSummary(): Summary {
       done(false);
       return;
     }
-    clipboard.writeText(seed).then(
+    clipboard.writeText(formatSeedString(seed)).then(
       () => done(true),
       () => {
         selectText(seedValue);
@@ -241,7 +242,8 @@ export function createSummary(): Summary {
       count.replaceChildren(numberOf(cleared), fractionOf(GYMS.length));
       count.setAttribute('aria-label', `${cleared} of ${GYMS.length} gyms cleared`);
       detail.textContent = describeRun(state, cleared);
-      seedValue.textContent = seed;
+      // The versioned form: what is shown is what is copied and what can be pasted.
+      seedValue.textContent = formatSeedString(seed);
 
       route.replaceChildren(...renderRoute(state));
       tiers.replaceChildren(...renderTiers(cleared));

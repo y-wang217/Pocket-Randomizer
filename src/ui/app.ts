@@ -17,7 +17,6 @@ import { GYMRUN_FORMAT } from '../core/battle/format';
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
-import { normalizeSeed } from '../core/rng';
 import {
   defaultItemPlan,
   isReplayable,
@@ -33,11 +32,14 @@ import {
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createPending } from './pending';
-import { getVerbosity, initSettings, onSettingsChange, setVerbosity } from './settings';
+import { getVerbosity, initSettings, onSettingsChange, resetTutorial, setVerbosity } from './settings';
+import { createTutorial } from './tutorial';
+import { TUTORIAL_COPY, TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
+import { createSeedBar } from './seed-bar';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 
@@ -167,7 +169,8 @@ export function mountApp(root: HTMLElement): void {
   const drawerTrigger = drawer.trigger();
   drawerBar.append(drawerTrigger);
 
-  shell.append(createHeader(), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  const replayTutorial = document.createElement('button');
+  shell.append(createHeader(replayTutorial), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
 
   /** Surfaces that ask for a decision and have a party to show while asking. */
   const DRAWER_SURFACES: readonly ScreenName[] = [
@@ -196,6 +199,7 @@ export function mountApp(root: HTMLElement): void {
     // Closing on navigation, not on open: a drawer left open across a screen
     // change would be an overlay over a decision the player has already made.
     drawer.close();
+    showTutorialFor(name);
   };
 
   /*
@@ -217,6 +221,16 @@ export function mountApp(root: HTMLElement): void {
     const view = readDrawer();
     if (!view) return;
     drawer.open({ ...view, inBattle: router.current() === 'battle' });
+    tutorial.showFor('drawer', drawer.root);
+  });
+
+  // "Show tutorial again": the flags go back to a first launch and the screen
+  // on view gets its marks now rather than on its next visit.
+  replayTutorial.addEventListener('click', () => {
+    resetTutorial();
+    const name = router.current();
+    if (name) showTutorialFor(name);
+    if (drawer.isOpen()) tutorial.showFor('drawer', drawer.root);
   });
   root.replaceChildren(world.root, shell);
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
@@ -256,6 +270,23 @@ export function mountApp(root: HTMLElement): void {
    * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
   createTooltips(shell);
+
+  /*
+   * The coach marks, one layer for the whole app, mounted once like the
+   * tooltips. A screen's marks are asked for the moment it is shown, after
+   * its render has landed (the microtask), and the party drawer asks for its
+   * own when it opens. Presentation only: nothing here touches run state.
+   */
+  const tutorial = createTutorial(shell);
+  const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
+  const showTutorialFor = (name: ScreenName): void => {
+    if (!isTutorialScreen(name)) return;
+    const screen = router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`);
+    if (!screen) return;
+    queueMicrotask(() => {
+      if (router.current() === name) tutorial.showFor(name, screen);
+    });
+  };
 
   /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;
@@ -733,8 +764,10 @@ export function mountApp(root: HTMLElement): void {
     }
   }
 
-  seedBar.onSubmit((value) => {
-    void start(normalizeSeed(value) || newSeed());
+  // Already parsed: a bare seed or a versioned one with this build's hash.
+  // A foreign one never reaches here; the bar refuses it in place.
+  seedBar.onSubmit((seed) => {
+    void start(seed || newSeed());
   });
   seedBar.onReroll(() => {
     void start(newSeed());
@@ -755,19 +788,23 @@ export function mountApp(root: HTMLElement): void {
 
   const fromUrl = seedFromLocation(globalThis.location.href);
   // A seed in the URL is an explicit request for *that* run, so it wins over a
-  // save. Without one, an interrupted run is resumed where it left off.
-  if (fromUrl) void start(fromUrl);
-  else if (saved && isReplayable(saved)) void start(saved.seed, saved);
+  // save. Without one, an interrupted run is resumed where it left off. A
+  // versioned URL made on another build has no paste moment to refuse at, so
+  // the bare seed starts a fresh run and the bar says why it is not the same one.
+  if (fromUrl) {
+    void start(fromUrl.seed);
+    if (fromUrl.kind === 'foreign') seedBar.refuse(fromUrl);
+  } else if (saved && isReplayable(saved)) void start(saved.seed, saved);
   else void start(newSeed());
 }
 
-function createHeader(): HTMLElement {
+function createHeader(replayTutorial: HTMLButtonElement): HTMLElement {
   const header = el('header', 'header');
   const title = el('h1', 'header__title');
   title.textContent = 'GYMRUN';
   const subtitle = el('p', 'header__subtitle');
   subtitle.textContent = `Stage 4.8 · ${GYMRUN_FORMAT} · a roster that grows, caught in eight regions, and scored`;
-  header.append(title, subtitle, createVerbosityToggle());
+  header.append(title, subtitle, createVerbosityToggle(replayTutorial));
   return header;
 }
 
@@ -786,7 +823,7 @@ function createHeader(): HTMLElement {
  * Nothing here touches run state. See the header of `ui/settings.ts` for the
  * rule and `test/verbosity.test.ts` for its enforcement.
  */
-function createVerbosityToggle(): HTMLElement {
+function createVerbosityToggle(replayTutorial: HTMLButtonElement): HTMLElement {
   const wrap = el('div', 'verbosity');
   const label = el('span', 'verbosity__label');
   label.textContent = 'Detail';
@@ -810,71 +847,23 @@ function createVerbosityToggle(): HTMLElement {
   });
   paint();
 
-  wrap.append(label, button);
+  /*
+   * The tutorial's one header control, on the same row. **Presentation
+   * only.** Here because it is the same kind of thing as the Detail toggle —
+   * a reading preference — and because the coach marks are written against
+   * Detailed mode. On the same row rather than its own, because the header's
+   * height is the battle's and the map's vertical budget: a second row moved
+   * the fourth move button past the 740 line on a phone. "Skip tutorial"
+   * lives on the first mark itself, where a player meets it.
+   */
+  replayTutorial.type = 'button';
+  replayTutorial.className = 'button button--small tutorial__replay';
+  replayTutorial.textContent = TUTORIAL_COPY.replayShort;
+  replayTutorial.setAttribute('aria-label', TUTORIAL_COPY.replay);
+  replayTutorial.title = TUTORIAL_COPY.replay;
+  replayTutorial.dataset['tutorialReplay'] = 'true';
+
+  wrap.append(label, button, replayTutorial);
   return wrap;
 }
 
-interface SeedBar {
-  root: HTMLElement;
-  setSeed(seed: string): void;
-  setResumable(resumable: boolean): void;
-  onSubmit(handler: (seed: string) => void): void;
-  onReroll(handler: () => void): void;
-  onResume(handler: () => void): void;
-}
-
-/**
- * The seed, displayed and editable at run start.
- *
- * A tester who can type a seed and get the identical run back is the cheapest
- * bug-reporting tool this project will ever have, which is why it is in the UI
- * rather than behind a debug flag.
- */
-function createSeedBar(): SeedBar {
-  const root = el('form', 'seedbar');
-  const label = el('label', 'seedbar__label');
-  label.textContent = 'Seed';
-
-  const input = document.createElement('input');
-  input.className = 'seedbar__input';
-  input.type = 'text';
-  input.spellcheck = false;
-  input.autocomplete = 'off';
-  input.setAttribute('aria-label', 'Run seed');
-  label.setAttribute('for', (input.id = 'seed-input'));
-
-  const apply = document.createElement('button');
-  apply.type = 'submit';
-  apply.className = 'button';
-  apply.textContent = 'Start run';
-
-  const reroll = document.createElement('button');
-  reroll.type = 'button';
-  reroll.className = 'button';
-  reroll.textContent = 'New seed';
-
-  const resume = document.createElement('button');
-  resume.type = 'button';
-  resume.className = 'button';
-  resume.textContent = 'Resume saved run';
-  resume.hidden = true;
-
-  root.append(label, input, apply, reroll, resume);
-
-  return {
-    root,
-    setSeed: (seed) => {
-      input.value = seed;
-    },
-    setResumable: (resumable) => {
-      resume.hidden = !resumable;
-    },
-    onSubmit: (handler) =>
-      root.addEventListener('submit', (event) => {
-        event.preventDefault();
-        handler(input.value);
-      }),
-    onReroll: (handler) => reroll.addEventListener('click', () => handler()),
-    onResume: (handler) => resume.addEventListener('click', () => handler()),
-  };
-}

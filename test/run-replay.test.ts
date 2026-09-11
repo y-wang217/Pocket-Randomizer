@@ -27,6 +27,7 @@ import {
   type RunPolicy,
   type RunResult,
   type RunState,
+  currentVersions,
 } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
 
@@ -103,9 +104,10 @@ describe('run log', () => {
   it('records only the seed, the version and the decisions', async () => {
     const run = await playRun('LOG-SHAPE', scriptedRunPolicy(greedyAiPolicy));
 
-    expect(Object.keys(run.log).sort()).toEqual(['decisions', 'randomizerVersion', 'seed', 'version']);
+    expect(Object.keys(run.log).sort()).toEqual(['decisions', 'seed', 'versions']);
     expect(run.log.seed).toBe('LOG-SHAPE');
-    expect(run.log.version).toBe(RUN_LOG_VERSION);
+    expect(run.log.versions).toEqual(currentVersions());
+    expect(run.log.versions.runLog).toBe(RUN_LOG_VERSION);
     // No turn numbers, no sides, no HP: all derived, none stored.
     for (const decision of run.log.decisions) {
       const keys = Object.keys(decision).sort();
@@ -126,7 +128,7 @@ describe('run log', () => {
   });
 
   it('rejects a log from a different build rather than replaying it wrongly', () => {
-    const stale: RunLog = { seed: 'LOG-OLD', version: 'gymrun-0.1.0', randomizerVersion: RANDOMIZER_VERSION, decisions: [] };
+    const stale: RunLog = { seed: 'LOG-OLD', versions: { ...currentVersions(), runLog: 'gymrun-0.1.0' }, decisions: [] };
 
     expect(isReplayable(stale)).toBe(false);
     expect(() => assertReplayable(stale)).toThrow(/recorded on gymrun-0\.1\.0/);
@@ -151,8 +153,7 @@ describe('run log', () => {
   it('refuses a Stage 4.5.1 log on both halves of the guard', () => {
     const preGymRewards: RunLog = {
       seed: 'LOG-451',
-      version: 'gymrun-run-7/gymrun-0.3.0',
-      randomizerVersion: 'gymrun-randomizer-5',
+      versions: { ...currentVersions(), runLog: 'gymrun-run-7/gymrun-0.3.0', randomizerVersion: 'gymrun-randomizer-5' },
       decisions: [],
     };
 
@@ -164,8 +165,7 @@ describe('run log', () => {
     // And the randomizer half refuses on its own, with the run half current.
     const staleRandomizer: RunLog = {
       seed: 'LOG-451',
-      version: RUN_LOG_VERSION,
-      randomizerVersion: 'gymrun-randomizer-5',
+      versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-5' },
       decisions: [],
     };
     expect(isReplayable(staleRandomizer)).toBe(false);
@@ -184,8 +184,7 @@ describe('run log', () => {
   it('refuses a log whose decisions do not match what the run asks for', () => {
     const scrambled: RunLog = {
       seed: 'LOG-SCRAMBLED',
-      version: RUN_LOG_VERSION,
-      randomizerVersion: RANDOMIZER_VERSION,
+      versions: currentVersions(),
       decisions: [{ kind: 'node', index: 0 }],
     };
     // The run wants a starter first. A log that offers a node instead is

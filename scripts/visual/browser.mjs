@@ -335,8 +335,33 @@ export async function playUntil(page, predicate, maxSteps = 600) {
 }
 
 /** Open the app on a seed, at the phone viewport, and wait for the starters. */
+/**
+ * The settings a fresh store would hold with the tutorial already skipped.
+ *
+ * The coach marks (overnight Branch 3) show on a first launch, which is what
+ * every fresh browser context is. A mark is a tappable panel over the screen,
+ * and a scripted click that lands on it advances the tutorial instead of the
+ * thing it meant to tap — so every harness context starts with the tutorial
+ * skipped unless a test asks for it (`openApp(..., { tutorial: true })`), and
+ * the tutorial's own browser test is the one that asks.
+ */
+export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ verbosity: 'detailed', tutorial: { skipped: true, seen: [] } });
+
+/** Seed a context's storage so the app's first launch is a returning one, tutorial-wise. */
+export async function skipTutorialIn(context) {
+  await context.addInitScript((settings) => {
+    try {
+      if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
+    } catch {
+      // Storage unavailable: the app falls back to defaults and the marks show.
+    }
+  }, TUTORIAL_SKIPPED_SETTINGS);
+}
+
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const context = await browser.newContext({ viewport, ...contextOptions });
+  const { tutorial = false, ...rest } = contextOptions;
+  const context = await browser.newContext({ viewport, ...rest });
+  if (!tutorial) await skipTutorialIn(context);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {

@@ -5,6 +5,8 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
+import { shortContentHash } from '../src/core/contentHash';
+import { formatSeedString } from '../src/core/seedString';
 import { createStamps, formatBuildStamp, formatSeedStamp } from '../src/ui/stamps';
 
 describe('the stamps', () => {
@@ -40,9 +42,10 @@ describe('the stamps', () => {
     expect((stamps.root.querySelector('.stamp--seed') as HTMLElement).dataset['copied']).toBe('true');
   });
 
-  it('is the one place the seed string form lives', () => {
-    // Bare today; the GYMRUN-xxxxxx-nnnnnnn form arrives with contentHash,
-    // and this is the function that grows it.
-    expect(formatSeedStamp('ABC123')).toBe('ABC123');
+  it('is the versioned seed string form, from one function', () => {
+    // The GYMRUN-xxxxxx-nnnnnnn form arrived with contentHash, and this is
+    // the function that renders it for the stamp.
+    expect(formatSeedStamp('ABC123')).toBe(formatSeedString('ABC123'));
+    expect(formatSeedStamp('ABC123')).toBe(`GYMRUN-${shortContentHash()}-ABC123`);
   });
 });

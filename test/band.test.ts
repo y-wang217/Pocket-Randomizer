@@ -122,6 +122,9 @@ describe('no screen builds its own overlay', () => {
       'src/ui/drawer.ts',
       'src/ui/log-sheet.ts',
       'src/ui/tooltips.ts',
+      // Overnight Branch 3: the coach-mark layer, one panel for every screen,
+      // mounted on the shell like the tooltips. See ui/tutorial.ts.
+      'src/ui/tutorial.ts',
     ]);
   });
 

@@ -233,7 +233,7 @@ describe('opponents holding berries', () => {
     let held = 0;
     let total = 0;
     for (let seed = 0; seed < 60; seed++) {
-      const stream = createRng(`HOLD-${kind}-${segment}-${seed}`).randomizer;
+      const stream = createRng(`HOLD-${kind}-${segment}-${seed}`).randomizer.at('test');
       const team =
         kind === 'trainer'
           ? generateTrainerTeam(segment, 'normal', stream)
@@ -271,7 +271,7 @@ describe('opponents holding berries', () => {
   it('gives a gym leader nothing to hold', () => {
     expect(berryHoldRate('gym', 3)).toBe(0);
     for (const segment of [0, 3, 7]) {
-      const team = generateGymTeam(GYMS[segment]!, segment, createRng(`GYM-HOLD-${segment}`).randomizer);
+      const team = generateGymTeam(GYMS[segment]!, segment, createRng(`GYM-HOLD-${segment}`).randomizer.at('test'));
       for (const spec of team) expect(spec.item, `${spec.species}`).toBeUndefined();
     }
   });
@@ -284,9 +284,9 @@ describe('opponents holding berries', () => {
      */
     const cost = (segment: number): number => {
       const rng = createRng('BERRY-DRAWS');
-      const before = rng.randomizer.draws;
-      const team = generateTrainerTeam(segment, 'normal', rng.randomizer);
-      return (rng.randomizer.draws - before) / team.length;
+      const before = rng.randomizer.at('test').draws;
+      const team = generateTrainerTeam(segment, 'normal', rng.randomizer.at('test'));
+      return (rng.randomizer.at('test').draws - before) / team.length;
     };
     // Segment 0 holds at 0.5 and segment 7 at 0.2; the cost per member is the
     // same either way.

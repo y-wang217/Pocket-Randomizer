@@ -387,6 +387,7 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
   }
 
   const title = el('h3', 'relics__title');
+  title.dataset['tutorial'] = 'relics';
   title.textContent = `Relics (${held.length})`;
   const list = el('ul', 'relics__list');
 
@@ -445,6 +446,7 @@ function renderBackpack(
   );
 
   const count = el('p', 'backpack__count');
+  count.dataset['tutorial'] = 'backpack';
   count.textContent = `${loose.length} of ${capacity} carried`;
   if (loose.length > capacity) {
     count.classList.add('backpack__count--over');
