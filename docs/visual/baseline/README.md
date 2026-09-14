@@ -30,6 +30,20 @@ and fails on any byte that differs. Heights are compared by
   presentation only and `test/density.test.ts` replays SMOKE24 in all three
   modes against one log.
 
+- **2026-09-14, 4.8.0.3.** Re-recorded for two reasons at once, and they must
+  not be confused. **The patch's own effect is −4px** on
+  `battle.screenHeight` and `battle.decisionBottom` in all three modes, from
+  the move fact strip and the band meter; `decisionTop` is unmoved in every
+  mode, which is what the prompt gated on. **Three Pocket fields were already
+  stale before the patch**: measured on merged main at `46b5978` with nothing
+  applied, `modes.pocket.map.decisionTop` is 278.89 (file said 302.89),
+  `modes.pocket.map.decisionBottom` 370.77 (394.77) and
+  `modes.pocket.battle.decisionTop` 355.39 (379.39) — 24px out on each. That
+  drift belongs to whatever landed between the last recording and `46b5978`,
+  not here. `generation.md` section 12n has both tables and how the two were
+  told apart, which took three builds: a delta against a recorded file is not
+  a delta against the tree.
+
 - **2026-09-11, 4.8.0.1.** An independent confirmation of PR #24's re-record,
   not a second one: this branch was cut from `0712032`, found the same stale map
   entries and digest, re-recorded them, and PR #24 landed the same numbers on

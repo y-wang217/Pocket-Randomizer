@@ -17,6 +17,8 @@
  * own `Pokemon#getStat`, and the strip is asserted against what `describeMove`
  * returns for that move rather than against a list written here.
  */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { describeMove } from '../src/core/battle/driver';
@@ -32,6 +34,7 @@ import { MOVE_FACT_INFO } from '../src/data/moveFactInfo';
 import { BAND_INFO, BAND_PIPS } from '../src/data/bandInfo';
 import { bandChip, stageChip } from '../src/ui/chip';
 import { moveFactStrip } from '../src/ui/scene';
+import { createTooltips } from '../src/ui/tooltips';
 
 const STAGES = Array.from({ length: MAX_STAGE * 2 + 1 }, (_, i) => i - MAX_STAGE);
 
@@ -252,3 +255,86 @@ describe('the band badge is a meter', () => {
     }
   });
 });
+
+describe('one tooltip layer, and Pocket keeps every fact within one tap', () => {
+  /**
+   * Required test 6. **Exactly one tooltip mechanism after this patch.**
+   *
+   * The patch adds two trigger kinds — `stages:` for the collapsed stage
+   * marker and `movefact:` for a strip icon — and both are keys on the layer
+   * that already existed. A second mechanism would look like a second module
+   * mounting its own listeners, so that is what is counted: one `createTooltips`
+   * definition, one call site that mounts it.
+   */
+  it('mounts one layer, and the new kinds are keys on it', () => {
+    const files = sources(join(process.cwd(), 'src/ui'));
+    const defines = files.filter(([, text]) => text.includes('export function createTooltips'));
+    expect(defines.map(([path]) => path)).toEqual(['tooltips.ts']);
+
+    // Two hosts, one layer. `app.ts` mounts it on the running game and
+    // `gallery.ts` on the surface gallery, which are the two entry points this
+    // repo has; a third *module* mounting one would be a second mechanism, a
+    // second entry point mounting the same one is not.
+    const mounts = files.filter(([path, text]) => path !== 'tooltips.ts' && text.includes('createTooltips('));
+    expect(mounts.map(([path]) => path).sort()).toEqual(['app.ts', 'gallery.ts']);
+
+    const layer = files.find(([path]) => path === 'tooltips.ts')![1];
+    for (const kind of ['stages', 'movefact']) {
+      expect(layer, `${kind} must be a kind on the one layer`).toContain(`'${kind}',`);
+    }
+  });
+
+  /**
+   * Required test 7. **Pocket removes no fact.**
+   *
+   * Detailed and Simple print a chip per non-zero stage. Pocket has no width
+   * for a multiplier and a ladder per stage, so it prints one marker and the
+   * set is behind one tap — and this drives that tap through the real layer,
+   * rather than asserting that a string was written into an attribute.
+   *
+   * The stylesheet half is asserted too: a rule that hid the chips without
+   * showing the marker would pass every DOM assertion here and lose the facts
+   * on the one mode that needs them most.
+   */
+  it('opens the whole stage set from the collapsed marker in one tap', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const layer = createTooltips(host);
+
+    const marker = document.createElement('span');
+    marker.dataset['tip'] = 'stages:active';
+    marker.dataset['detail'] = ['Atk\t2.0x\t+2', 'Spe\t0.7x\t-1', 'Eva\t1.3x\t+1'].join('\n');
+    host.append(marker);
+
+    marker.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const text = layer.root.textContent ?? '';
+    // Every fact the inline chips would have carried, in the panel one tap
+    // away: the stat, the multiplier and the stage.
+    for (const fragment of ['Atk', '2.0x', '(+2)', 'Spe', '0.7x', '(-1)', 'Eva', '1.3x', '(+1)']) {
+      expect(text, fragment).toContain(fragment);
+    }
+
+    layer.destroy();
+    host.remove();
+  });
+
+  it('swaps the chips for the marker in Pocket rather than hiding both', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/styles.css'), 'utf8');
+    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stage { display: none; }');
+    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }');
+  });
+});
+
+/** Every `.ts` under a directory, as `[relative path, text]`. */
+function sources(root: string): [string, string][] {
+  const out: [string, string][] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (entry.endsWith('.ts')) out.push([relative(root, full), readFileSync(full, 'utf8')]);
+    }
+  };
+  walk(root);
+  return out;
+}

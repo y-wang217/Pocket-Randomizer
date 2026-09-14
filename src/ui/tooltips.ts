@@ -46,6 +46,7 @@ import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
+import { stageRowValue } from '../data/statStages';
 import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
 import { MOVE_FACT_INFO } from '../data/moveFactInfo';
 import type { MoveFactId } from '../core/moveFacts';
@@ -378,7 +379,7 @@ function renderStages(detail?: string): HTMLElement | null {
     const label = el('span', 'tip__row-label');
     label.textContent = stat;
     const value = el('span', 'tip__row-value');
-    value.textContent = `${multiplier}  (${stage})`;
+    value.textContent = stageRowValue(multiplier, stage);
     line.append(label, value);
     list.append(line);
   }

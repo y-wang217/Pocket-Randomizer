@@ -294,12 +294,27 @@ describe('the battle UI boundary', () => {
      * If a future change has the scene call `readFlags` or `createFlagReader`,
      * that is a widening and this comment does not cover it.
      */
+    /*
+     * `core/moveFacts` joined at patch 4.8.0.3, and it is the `core/battle/flags`
+     * allowance again rather than a new kind of one: **the scene imports the
+     * type and never the function.**
+     *
+     * `MoveFact` is the shape of a list the scene is *handed* — by the
+     * projection on a battle button, by `ui/move-detail.ts` on every card
+     * outside one — and `moveFactStrip` draws what it is given and derives
+     * nothing. Declaring the shape again under `ui/` would be the version that
+     * breaks the rule: two declarations of one structure, free to drift.
+     *
+     * If a future change has the scene call `moveFactsOf`, that is a widening
+     * and this comment does not cover it. The test below holds it.
+     */
     const allowed = new Set([
       'core/battle/view',
       'core/battle/effectiveness',
       'core/battle/flags',
       'core/battle/stats',
       'core/hpCopy',
+      'core/moveFacts',
       'core/types',
     ]);
     const imports = [...sourceOf('src/ui/scene.ts').matchAll(/from\s+['"]([^'"]+)['"]/g)]
@@ -323,7 +338,13 @@ describe('the battle UI boundary', () => {
   it('never reads the protocol itself, in the scene or in the log', () => {
     for (const file of ['src/ui/scene.ts', 'src/ui/battle-log.ts']) {
       const source = stripComments(sourceOf(file));
-      expect(/\breadFlags\s*\(|\bcreateFlagReader\s*\(|\breadTurns\s*\(/.test(source), file).toBe(false);
+      // `moveFactsOf` joins the list at 4.8.0.3, for the reason the allowance
+      // above gives: the scene may name a `MoveFact`, and the moment it
+      // derives one it has become the second source of truth about a move.
+      expect(
+        /\breadFlags\s*\(|\bcreateFlagReader\s*\(|\breadTurns\s*\(|\bmoveFactsOf\s*\(/.test(source),
+        file,
+      ).toBe(false);
     }
     // `screens/battle.ts` is the one caller, and it makes exactly one reader.
     const screen = stripComments(sourceOf('src/ui/screens/battle.ts'));

@@ -129,3 +129,19 @@ export const ACCURACY_STAGE_LABELS: Record<AccuracyStageName, string> = {
 export function stageMarkerLabel(count: number): string {
   return `STAGES ${count}`;
 }
+
+/**
+ * One row of the collapsed stage panel: the multiplier, then the stage.
+ *
+ * Here rather than in `ui/tooltips.ts` because that file is a lookup and a
+ * positioner and carries no text of its own — `test/boundaries.test.ts` holds
+ * it to that, and a format string assembled in the renderer is exactly the
+ * kind of wording that drifts from the mechanic it describes.
+ *
+ * The stage is spelled out here where the inline chip leaves it to the ladder.
+ * A panel that has already cost a tap has room for it, and `+2` is the form a
+ * player will meet in every other Pokemon document they read.
+ */
+export function stageRowValue(multiplier: string, stage: string): string {
+  return `${multiplier}  (${stage})`;
+}

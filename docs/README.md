@@ -58,6 +58,19 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: patch 4.8.0.3, battle readout visuals.** Branch
+`claude/focused-ride-vet50c`, prompt
+[`spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md`](spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md).
+Presentation only: stat stages print the multiplier the engine applies plus a
+ladder, the move card face carries a fact strip of icons instead of a row of
+word badges, and `BAND n` is four pips. Accuracy and evasion stages reach the
+UI for the first time, on their own projection field. No `core/` state moves,
+no version axis moves, `contentHash` is unchanged and every seeded output is
+byte identical including SMOKE24. `battle.decisionTop` is unmoved in all three
+density modes and the battle screen is 4px shorter; the numbers, two deviations
+and a stale Pocket baseline the patch found are in
+[`generation.md`](generation.md) section 12n.
+
 **Merged:** everything through Stage 4.6c. Locales and capture (4.6a), base
 power banding and berries (4.6b), and relics, capability events and band 3
 encounters (4.6c). The benchmark for the current randomizer version is recorded
