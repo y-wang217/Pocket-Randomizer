@@ -476,6 +476,24 @@ describe('itemAware', () => {
     expect(aware.score).toBeLessThan(blind.score);
   });
 
+  it('stops counting a berry the moment the protocol says it fired', () => {
+    /*
+     * `-enditem` is how a berry reveals itself: by being eaten. So the line
+     * that tells the AI the item existed is the same line that says it is
+     * gone, and a tracker recording "holds a Sitrus Berry" from it would have
+     * the AI adding a quarter of a bar to the kill line for the rest of the
+     * battle against a target with nothing left to save it.
+     */
+    const held = knowledgeFrom(['|-item|p1a: Snorlax|Sitrus Berry|[from] ability: Frisk'], 'p1');
+    expect(held.item).toBe('Sitrus Berry');
+
+    const eaten = knowledgeFrom(
+      ['|-item|p1a: Snorlax|Sitrus Berry', '|-enditem|p1a: Snorlax|Sitrus Berry|[eat]'],
+      'p1',
+    );
+    expect(eaten.item).toBeNull();
+  });
+
   it('reads only what it knows: an unrevealed berry is not reasoned about', () => {
     const view = viewOf(
       [{ species: 'Blissey', ability: 'Natural Cure', moves: ['Tackle'], level: 50, item: 'sitrusberry' }],

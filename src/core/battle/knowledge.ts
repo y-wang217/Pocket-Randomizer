@@ -101,10 +101,27 @@ export function applyKnowledgeLine(known: SeenKnowledge, line: string, about: Si
         if (ability) known.ability = ability;
         break;
       }
-      case '-item':
-      case '-enditem': {
+      case '-item': {
+        // Revealed and still held: Frisk naming it, Trick moving it, an Air
+        // Balloon announcing itself.
         const item = parts[3];
         if (item) known.item = item;
+        break;
+      }
+      case '-enditem': {
+        /*
+         * **Revealed and *gone*, which is the opposite fact.**
+         *
+         * The first cut of this file set `item` on both lines, on the reading
+         * that either one tells you what the Pokemon was holding. It does —
+         * but `killLine` asks what it is holding *now*, and a berry announces
+         * itself by being eaten. So an AI that had just watched a Sitrus Berry
+         * fire went on adding a quarter of a bar to the kill line for the rest
+         * of the battle, and declined knockouts it could take against a target
+         * with nothing left to save it. The line that reveals the item is the
+         * line that ends it.
+         */
+        known.item = null;
         break;
       }
       default:

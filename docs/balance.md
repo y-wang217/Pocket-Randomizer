@@ -1701,7 +1701,7 @@ a prefix, and from this patch on, read down an `AI_VERSION` as well** — see
 
 | # | stamp | opponent | player | mean gyms | completion | note |
 |---|---|---|---|---|---|---|
-| R0 | `ai-3-priority` · `b022fc` | pinned | `greedy` | **4.8725** | 39.00% | the section 15 row, re-run here and reproduced to the digit |
+| R0 | `ai-3-priority` · `b022fc` | pinned | `greedy` | **4.8725** | 39.00% | the section 15 row, re-run here and reproduced to the digit. The figure is the committed overnight benchmark; the re-run's own JSON was produced in a throwaway worktree and is not committed, so this row is evidenced by the file section 15 names plus the reproduction |
 | R1 | `ai-4-ability` · `b022fc` | pinned | `greedy` | **4.8850** | 39.25% | the unknown-ability fix, alone |
 | R2 | `ai-4-ability` · `5b6131` | pinned | `lookahead` | **4.6725** | 36.00% | one step of lookahead on the *player* |
 | R2b | `ai-4-ability` · `5b6131` | pinned | `random` | 2.2475 | 2.50% | the floor, same population |
@@ -1828,6 +1828,13 @@ Removing their switching makes the *road* cheaper rather than the gym easier,
 and mean gyms cleared cannot tell those apart — which is why the arrival row
 above exists and why these two rows are read together.
 
+**All four rows were retaken on `AI_VERSION` `-6`** after the spent-item defect
+in 16.5d was found, and the retake is its own small finding: R4 and R5 came
+back **identical to four decimals** and R6 moved by a quarter of a point of
+completion on an unchanged mean — one run in four hundred. The defect was real
+and its effect at this sample is below the resolution of the measurement, which
+is worth knowing before anyone spends a day on the next one.
+
 All four rows below are `contentHash` `5b6131` → `dbb2db`: `data/ai.ts` gained
 `HP_AWARE` and `data/items.ts` gained `restores`, both read only by the AI. The
 hash cannot know that, so the pinned row was **re-run at the new hash and
@@ -1839,7 +1846,7 @@ not, and every row here is on one hash and one population.
 | R3 | pinned (`GREEDY_BASELINE` everywhere) | **4.8850** | 39.25% | 0.510 | the control, re-run at `dbb2db` |
 | R4 | `--ai table` | **5.3875** | 51.00% | 0.385 | the tier table as shipped |
 | R5 | `--ai table --ai-add smartSendIn,smartSwitching` | **5.4050** | 50.25% | 0.622 | easy tier given its switching back |
-| R6 | `--ai table --ai-noise 0` | **5.0875** | 45.00% | — | the tier table with the dice held still |
+| R6 | `--ai table --ai-noise 0` | **5.0875** | 45.25% | — | the tier table with the dice held still |
 
 **R5 − R4 is the easy tier's sequence switching, isolated: +0.0175 mean gyms
 and −0.75 points of completion.** The flag fired — opponent switches per battle
@@ -1974,6 +1981,39 @@ So: **pin the yardstick, and add new bots beside it rather than into it.**
 plays better gets a third. Reading three pinned columns across a release is
 strictly more information than reading one drifting column, and it costs a
 sweep that was already cheap.
+
+### 16.5d What `itemAware` actually reaches, measured against the visibility rule
+
+**It shipped, and it is worth saying exactly how far it reaches, because the
+flag's name promises more than the knowledge rule allows.** Trainers hold
+berries at 50% in segment 1 falling to 20% by segment 8, and wilds at half
+that (`BERRY_HOLD_RATE`), so the opportunity is real and frequent. What the
+flag does with it splits in two:
+
+- **Its own item is always known and always priced in.** `view.me.item` is
+  populated for a side's own Pokemon, so an `itemAware` tier's resist berry
+  (an Occa Berry against a Fire move) reaches the calc on every turn it is
+  holding one, and the threat estimate it feeds is correspondingly sharper.
+- **The player's item is only known once the battle reveals it**, because that
+  is what the visibility rule requires: `ActiveView.item` is null for the foe,
+  and the only paths in are `-item` (Frisk, Trick) and `-enditem`. **A berry
+  that has not fired is not public information**, so the kill-line correction
+  the ruling named — "a foe on 40 HP holding a Sitrus does not faint to a
+  45-damage hit" — fires against a *revealed* item and not against a hidden
+  one.
+
+That is the correct behaviour and it is also a smaller effect than the flag
+sounds. The case it was written for is mostly reachable on the **player's**
+side of the ladder, where a bot knows its own items — so if a future rung of
+the policy ladder is built, `itemAware` is worth more there than it is here.
+
+The defect that came out of writing this section down is recorded as
+`AI_VERSION` `-6`: `-enditem` is how a berry announces itself, *by being
+eaten*, and the tracker was reading that line as "holds this". An `itemAware`
+tier therefore kept adding a quarter of a bar to the kill line for the rest of
+the battle after watching the berry fire. Only tiers holding the flag are
+affected, so the pinned rows are untouched; the tier rows in 16.4 were retaken
+on `-6`.
 
 ### 16.5c A test that got slower is a finding, not a flaky test
 

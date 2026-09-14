@@ -4,7 +4,7 @@
     "runLog": "gymrun-run-13/gymrun-0.3.0",
     "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
     "randomizer": "gymrun-randomizer-13",
-    "ai": "gymrun-ai-5-tiers",
+    "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
@@ -533,7 +533,7 @@
     "versions": {
       "runLog": "gymrun-run-13/gymrun-0.3.0",
       "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
-      "aiVersion": "gymrun-ai-5-tiers",
+      "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-13"
     },
     "decisions": [

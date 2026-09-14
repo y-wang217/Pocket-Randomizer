@@ -126,8 +126,15 @@ const gen = Generations.get(GYMRUN_GEN);
  * has to move: a `-4` log replayed here would not reproduce its own battles.
  * `GREEDY_BASELINE` is the `-4` behaviour, frozen, and it is what the
  * simulator's `greedy` bot is pinned to for good.
+ *
+ * `-6`, the spent item: `battle/knowledge.ts` read `-enditem` as "holds this"
+ * when it means "held this, and it is gone". An `itemAware` tier therefore
+ * kept adding a berry's healing to the kill line after watching the berry
+ * fire, and declined knockouts against a target with nothing left to save it.
+ * Only tiers holding `itemAware` are affected, so `GREEDY_BASELINE` — and
+ * every row measured with it — is untouched.
  */
-export const AI_VERSION = 'gymrun-ai-5-tiers';
+export const AI_VERSION = 'gymrun-ai-6-spent-item';
 
 // ---------------------------------------------------------------------------
 // Flags, and the one profile the whole file is parameterised by

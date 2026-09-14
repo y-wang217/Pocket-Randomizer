@@ -2204,6 +2204,27 @@ came first, and still has its own row, which is what the ruling was protecting.
   for whoever wrote it and not a thing to guess at in a patch about something
   else. `src/core/battle/ai.ts`, `probeFor`.
 
+### 13f-bis. `itemAware` shipped, and the defect writing it down exposed
+
+Asked before the pull request, and worth recording rather than answering once:
+**both of the report's named fixes landed, and both landed before every number
+in `balance.md` section 16.**
+
+- The unknown-ability fix is `829c42e`, `AI_VERSION` `-4`. The earliest
+  benchmark row that reads it is stamped `gymrun-ai-4-ability` and was started
+  twenty seconds after that commit; every row after it is `-4`, `-5` or `-6`.
+  The one `-3` row in the table is the deliberate control, taken with the fix
+  reverted in a throwaway worktree.
+- `itemAware` shipped, in medium and hard, reaching both the calc bodies and
+  the kill line.
+
+Writing down *how far* the flag reaches is what found `-6`: `-enditem` is how a
+berry announces itself — by being eaten — and the tracker read that line as
+"holds this", so an `itemAware` tier kept pricing a spent berry into the kill
+line for the rest of the battle. Fixed, versioned, and the affected rows
+retaken; they came back identical to four decimals, which is its own small
+finding. `balance.md` section 16.5d has the reach and 16.4 the retake.
+
 ### 13g. What did not move
 
 Map generation is untouched: no keyed stream is opened, no structural draw is
