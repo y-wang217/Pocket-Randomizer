@@ -733,11 +733,11 @@ export type RunDecision =
    * fails loudly — which is exactly the property the index rule exists to
    * produce. Ruled in `docs/generation.md` section 14, with the condition that
    * no event may carry two options of the same archetype; asserted over the
-   * table in `test/event-archetype-log.test.ts`.
+   * table in `test/event-chart.test.ts`.
    *
    * Spelled out here rather than imported from `data/eventPools.ts`, for the
    * reason the acquisition shape below is: this file is the bottom of the
-   * dependency graph and imports nothing. `test/event-archetype-log.test.ts`
+   * dependency graph and imports nothing. `test/event-costs.test.ts`
    * asserts the two lists are the same set, so they cannot drift apart.
    */
   | { kind: 'event'; archetype: 'safe' | 'gamble' | 'toll' | 'attune' }

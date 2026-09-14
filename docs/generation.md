@@ -2571,7 +2571,7 @@ where it could not see the gap.
 
 **The existing suites could not have caught it**, and it is worth being precise
 about why rather than adding a test and moving on. `test/economy.test.ts` has
-an event item assertion — it calls `applyEventOutcome` directly. `test/band3`
-resolves a node, but through the *acquisition* path, which folds party rather
+an event item assertion — it calls `applyEventOutcome` directly.
+`test/band3.test.ts` resolves a node, but through the *acquisition* path, which folds party rather
 than bag. Nothing played a run and then looked in the bag. That is the test
 that existed nowhere and exists now.
