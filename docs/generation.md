@@ -2110,3 +2110,114 @@ not edited; the argument for each is in
     `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,
     `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
     `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.
+
+## 13. The event rejig: what the four report questions found, and what moved
+
+**2026-09-14, the event rejig patch**
+([`spec/gymrun-patch-event-rejig.md`](spec/gymrun-patch-event-rejig.md), report
+[`reports/patch-event-rejig-step1.md`](reports/patch-event-rejig-step1.md)).
+
+The prompt opens with four questions and a hard stop. Three of the four
+answers changed the shape of the patch, and a fifth finding nobody asked for
+changed it more. Recorded here rather than by editing the prompt, per protocol
+rule 4.
+
+### What the prompt expected, and what the tree held
+
+| the prompt's premise | the tree |
+|---|---|
+| bands may have replaced choices, and reintroducing them is "a bigger job than it reads" | choices survived. 4.6c widened each choice to three outcomes and kept the menu, the policy hook and the screen |
+| `latent` "may be dead" under relics | `latent` is the common case. `data/capabilities.ts` measures a party of four missing a capability only 30 to 50 percent of the time |
+| band 3 shipped a spawned encounter | band 3 shipped a *fightless* offer. There is no event battle, and there must not be one |
+| the logged event decision may be an index, which "breaks replay" | it is an index, and the index rule in `core/types.ts` is the reason it should stay a stable identity rather than a content id |
+
+### Deviation: `latent` is kept, not collapsed
+
+Part 5 says to collapse the three capability bands to a boolean "if `latent` is
+dead under relics". It is not dead, so the collapse is not taken.
+
+The boolean Part 2 asks for is kept exactly where Part 2 puts it: the Attune
+option is present at `known` and nowhere else, and `T3` is relic-gated with no
+exception. What `latent` buys instead is strictly smaller — five points off
+`T0` onto `T2` on the Gamble table, in `GAMBLE_TIERS_LATENT`. A party that
+rolled a Water type reads a Surf event a little more kindly than a party that
+did not, and no more kindly than a party holding the Tidecaller Shell.
+
+Collapsing it would delete the only thing a party's *typing* currently says
+about an event it holds no relic for, on a tree where that is the majority
+case. If the simulator reports the difference as noise, the fix is to delete
+one table and point `tierWeightsFor` at `GAMBLE_TIERS` for both bands — which
+is the collapse Part 5 describes, taken on evidence rather than in advance.
+
+### Deviation: `T3` pays a relic plus an item, not a "strong relic"
+
+Part 1 asks for a common relic at `T2` against a strong relic at `T3`. There is
+no strength axis on `data/relics.ts`, and adding one means ranking ten relics
+by taste — which `CLAUDE.md` rules out directly: "it feels strong" is not a
+reason, and a table populated that way cannot be corrected from evidence
+later.
+
+So `T3` pays **a relic and a held item**: the same object `T2` offers plus a
+`T1`-grade rider. Strictly better by construction rather than by judgement, and
+it needs no new column.
+
+### Deviation: there is no pool exhaustion, and the reason is arithmetic
+
+Part 3 says an event drawn once is removed from that run's pool, reasoning from
+"roughly one event per segment" — about eight events against a table of 24.
+
+A run does not generate eight event nodes. Measured over five seeds on the tree
+this patch started from, counting `kind === 'event'` across every node of every
+offered locale route in all eight segments:
+
+    event nodes generated per map: 42, 42, 55, 39, 51
+    per segment (seed COUNT-0):     6, 4, 3, 7, 8, 4, 6, 4
+
+The player *walks* about one per segment; the map *contains* five or six times
+that, because every segment generates the full route behind each offered
+locale and every step offers two or three options. That is not incidental — it
+is the invariant: everything structural is drawn at map generation, including
+branches the player will never visit.
+
+Two further facts close the door:
+
+1. **Rarity names the event.** Part 3 draws a rarity per node; Part 4 gives
+   each locale exactly three events, one of each rarity. So `(locale, drawn
+   rarity)` identifies exactly one event, with no second draw. That is the
+   clean reading and it makes the rarity distribution exactly Part 3's table,
+   which is what the required test measures.
+2. **Therefore "do not repeat an event" is "do not repeat a rarity"**, inside a
+   locale — which distorts the distribution that same test pins.
+
+Exhausting along the walked path instead would give Part 3 exactly what it
+asks for and is forbidden: the pool state would then vary with player routing,
+and a draw that depends on player behaviour is the one thing the keyed-stream
+discipline does not allow.
+
+So rarity is a pure per-node draw, the event is a lookup, and there is no
+exhaustion mechanism. The lever, if the repetition proves to matter in
+playtest, is Part 4's table growing past three events per locale. That is a
+content decision and not an engineering one.
+
+**This supersedes the step 1 report's own recommendation.** That report
+proposed per-segment, per-locale exhaustion; it was written before the reading
+that rarity names the event, and it does not survive it.
+
+### `contentHash` moved at step 2, and only the stamp moved with it
+
+`b022fc4e` to `388c2a37`, caused by `src/data/eventPools.ts` landing and
+`src/data/scaling.ts` gaining `EVENT_RARITY_WEIGHTS`. A hash over `src/data/**`
+moves the day a table lands, which is the whole reason it is a hash and not a
+hand bump.
+
+Nothing under `core/` read either table at step 2, so no seeded output moved,
+and that was checked rather than asserted:
+
+- `test/fixtures/sim-report.json` regenerated: the `runs` payload is byte
+  identical across the change, and `version`, `randomizerVersion` and
+  `aiVersion` are unmoved.
+- `docs/visual/baseline/` regenerated: seven files differ, every one of them
+  in the 64-hex stamp and in nothing else.
+- `test/ai-priority.test.ts`'s literal pin is updated rather than relaxed, with
+  a comment naming this patch. A literal costs one visible line in a diff
+  every time the data tables change, and that line is the point.

@@ -262,9 +262,29 @@ describe('the version axes', () => {
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-3-priority/);
   });
 
-  it('moved nothing else: RUN_LOG_VERSION and contentHash are the Branch 1 values, literally', () => {
+  /*
+   * **The event rejig patch moved `contentHash`, and this literal is the
+   * record of it moving deliberately.**
+   *
+   * The assertion's subject is the AI priority branch: that branch moved
+   * `AI_VERSION` and nothing else, and the two literals below were how it said
+   * so. `RUN_LOG_VERSION` is still its value and still asserted as one. The
+   * hash is not, because the event rejig adds `src/data/eventPools.ts` and
+   * edits `src/data/scaling.ts`, and a hash over `src/data/**` moves the day a
+   * table lands — which is the whole reason it is a hash and not a hand bump.
+   *
+   * It is updated rather than relaxed. A literal costs one visible line in a
+   * diff every time the data tables change, and that line is the point: a hash
+   * that moved without anyone writing down that it moved is the failure the
+   * four-axis versioning exists to make loud. `docs/generation.md` carries the
+   * dated note; the step 2 evidence that *only* the stamp moved is the
+   * regenerated `test/fixtures/sim-report.json`, whose `runs` payload is byte
+   * identical across the change, and `docs/visual/baseline/`, whose seven
+   * files differ in this stamp and in nothing else.
+   */
+  it('moved nothing else: RUN_LOG_VERSION is the Branch 1 value, and contentHash is the event rejig one', () => {
     expect(RUN_LOG_VERSION).toBe('gymrun-run-13/gymrun-0.3.0');
-    expect(CONTENT_HASH).toBe('b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf');
+    expect(CONTENT_HASH).toBe('388c2a373dcee208410c49697cc3c7faf6a701ba4ab691e41a092da25d65b1e9');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
