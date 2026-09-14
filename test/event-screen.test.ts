@@ -14,14 +14,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resolveCapability, type CapabilityBand } from '../src/core/capabilities';
-import { generateEvent, describeOutcome, outcomeFor,
+import { generateEvent, concreteOutcome, describeOutcome, describeToll, outcomeFor,
   presentedOptions,
   EventPicker, type EventInstance } from '../src/core/events';
 import { createPartyMember } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import { createRun, type RunState } from '../src/core/run';
 import { capabilityTypes, type Capability } from '../src/data/capabilities';
-import { BAND_LABELS, CAPABILITY_LABELS } from '../src/data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../src/data/eventCopy';
 import { EVENTS } from '../src/data/events';
 import { LOCALES } from '../src/data/locales';
 import { relicsGranting } from '../src/data/relics';
@@ -116,18 +116,31 @@ describe('the event screen', () => {
             expect(button.classList.contains('event__choice--taken')).toBe(i === index);
           }
 
-          const paid = outcomeFor(choice, band);
+          /*
+           * The **concrete** outcome, because the screen resolves a relic
+           * grant against the held set before it describes it. A test reading
+           * the drawn outcome would pass while the screen said "A relic" and
+           * the run handed over a named one.
+           */
+          const paid = concreteOutcome(outcomeFor(choice, band), state.relics);
           const outcomes = [...screen.root.querySelectorAll('.event__outcome')].map((n) => n.textContent);
           /*
-           * A `T0` renders two lines, the cost above the payout, and every
-           * other tier renders one. That split is the point: a cost shown
-           * without its consolation reads as the game taking something and
-           * giving nothing.
+           * The payout is always last. Above it, in the order the run applies
+           * them: the Toll's price when this button has one, then a `T0`'s
+           * cost. A `T0` shown without its consolation reads as the game
+           * taking something and giving nothing, and a Toll shown without its
+           * price reads as a charge that never happened — which is the
+           * playtest report `TOLL_PAID_PREFIX` was added for.
            */
           expect(outcomes[outcomes.length - 1]).toBe(describeOutcome(paid));
           expect(outcomes, `${event.eventId} ${band} ${index}`).toHaveLength(
-            paid.cost.length > 0 ? 2 : 1,
+            1 + (choice.toll ? 1 : 0) + (paid.cost.length > 0 ? 1 : 0),
           );
+          if (choice.toll) {
+            expect(outcomes[0], `${event.eventId} ${band} ${index} price`).toBe(
+              `${TOLL_PAID_PREFIX}: ${describeToll(choice.toll)}`,
+            );
+          }
 
           screen.root.querySelector<HTMLButtonElement>('.primary-action')?.click();
           // The archetype names the button whatever the presented list is.

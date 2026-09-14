@@ -68,6 +68,21 @@ export const BAND_LABELS: Readonly<Record<CapabilityBand, string>> = {
   none: 'neither',
 };
 
+/**
+ * What the reveal says about a price the player already agreed to.
+ *
+ * A Toll's price is on the button before the press and was charged by the time
+ * the reveal is drawn, and the reveal said nothing about it — so the reporter
+ * who took `20% HP` for a `T2` read the missing sentence as a missing charge.
+ * Past tense on purpose: the button says what it *costs*, this says what it
+ * *took*, and the two being different tenses is what separates the forecast
+ * from the fact.
+ *
+ * It is not a verdict. It restates a price the player read on the button they
+ * pressed, which is an attribute of what just happened.
+ */
+export const TOLL_PAID_PREFIX = 'Paid';
+
 /*
  * **The per-event band copy table was deleted by the event rejig, not flagged
  * off.**
