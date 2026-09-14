@@ -295,7 +295,7 @@ describe('the version axes', () => {
     expect(RUN_LOG_VERSION).toBe('gymrun-run-14/gymrun-0.3.0');
     // Pinned literally, as the Branch 1 value was: a hash nobody can read off
     // the tree by eye is exactly the kind that moves without anyone noticing.
-    expect(CONTENT_HASH).toBe('72e39f8a221baeca5db3699b7e1ada50f53c484ee5055c3768f7f43fc995d3c8');
+    expect(CONTENT_HASH).toBe('1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
