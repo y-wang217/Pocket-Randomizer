@@ -58,6 +58,21 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: the playtest patch** (event rewards and move card fields). Branch
+`claude/event-rewards-ui-bugs-z84mmb`, prompt
+[`spec/gymrun-patch-event-rewards-and-move-card-fields.md`](spec/gymrun-patch-event-rewards-and-move-card-fields.md),
+record [`generation.md`](generation.md) section 15. A playtest report on the
+deployed build found **three effects an event drew and never paid**: a `T2` or
+`T3` move was resolved to a name and dropped, a relic grant resolved to nothing
+and applied nothing, and the HP a Toll charged was charged silently. The first
+two were `applyEffect` returning the run untouched with a comment deferring the
+work to a file that never did it — the third instance of the shape section 14
+records twice — and together they are over half of what a Toll bought.
+`RUN_LOG_VERSION` is 15, `RANDOMIZER_VERSION` is 15 and `contentHash` is
+`53145f`. The same patch pinned the move card's fields to fixed columns, which
+took **41px off the battle screen** in Detailed and Simple with `decisionTop`
+unmoved in all three modes.
+
 **In flight: patch 4.8.0.3, battle readout visuals.** Branch
 `claude/focused-ride-vet50c`, prompt
 [`spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md`](spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md).
