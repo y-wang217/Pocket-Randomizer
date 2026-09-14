@@ -51,7 +51,14 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { outcomeFor, presentedOptions, type ResolvedEffect } from '../src/core/events';
+import { outcomeFor, presentedOptions, tollEffect, type ResolvedEffect } from '../src/core/events';
+import {
+  EVENT_ARCHETYPES,
+  EVENT_RARITIES,
+  type EventArchetype,
+  type EventRarity,
+  type OutcomeTier,
+} from '../src/data/eventPools';
 import { resolveCapability } from '../src/core/capabilities';
 import { AI_VERSION, decideWith, GREEDY_BASELINE, type AiFlag, type AiProfile } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
@@ -200,6 +207,23 @@ type PolicyName =
    */
   | 'relic-greedy'
   /**
+   * The event rejig pair, and the crude test of whether the variance is worth
+   * taking.
+   *
+   * Same seeds, same battle AI, same node policy, same locale picks. The only
+   * difference is which button the event screen gets: `event-gambler` always
+   * takes the Gamble, and the Attune when the relic puts it on the menu;
+   * `event-safe` always takes the flat `T1`.
+   *
+   * The hypothesis is that the gambler wins by a visible margin, because the
+   * Gamble distribution's expected value exceeds a flat `T1` at every rarity.
+   * **If it does not, the `T0` costs are overtuned against the `T2` payouts and
+   * the fix is in `data/eventPools.ts`** — not in `core/events.ts`, which only
+   * draws what that table says.
+   */
+  | 'event-gambler'
+  | 'event-safe'
+  /**
    * The Stage 4.7 pair, and the crude measure of whether the pre-gym screen is
    * a decision or a nice screen attached to a non-decision.
    *
@@ -271,6 +295,9 @@ const RELIC_POLICIES: PolicyName[] = ['relic-greedy', 'tier-greedy'];
 /** The Stage 4.7 headline: same seeds, same everything, the lead chosen or not. */
 const LEAD_POLICIES: PolicyName[] = ['lead-static', 'lead-swap'];
 
+/** The event rejig pair. The gap is the whole measurement. */
+const EVENT_POLICIES: PolicyName[] = ['event-safe', 'event-gambler'];
+
 function parseArgs(argv: string[]): Options {
   const options: Options = {
     seeds: 200,
@@ -324,7 +351,9 @@ function parseArgs(argv: string[]): Options {
                       ? RELIC_POLICIES
                       : name === 'leads'
                         ? LEAD_POLICIES
-                        : [assertPolicy(name)];
+                        : name === 'events'
+                          ? EVENT_POLICIES
+                          : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -392,6 +421,7 @@ const POLICY_NAMES: readonly string[] = [
   ...CATCH_POLICIES,
   ...RELIC_POLICIES,
   ...LEAD_POLICIES,
+  ...EVENT_POLICIES,
 ];
 
 const AI_FLAGS: readonly AiFlag[] = [
@@ -951,6 +981,27 @@ interface RunCollector {
   relicsHeld: number;
   /** Which relics were ever on a card, so the report can name one that never is. */
   relicsSeen: string[];
+
+  // --- the event rejig ----------------------------------------------------
+  /**
+   * Every event this run resolved: which button, what it paid, and whether the
+   * relic was held.
+   *
+   * `attuneAvailable` is the number the whole relic system is judged on. If
+   * the fraction of events where the party held the matching relic is under
+   * about 15 percent, relics are decoration and the fix is relic acquisition
+   * rate rather than the event table.
+   */
+  events: {
+    segment: number;
+    rarity: EventRarity;
+    archetype: EventArchetype;
+    tier: OutcomeTier;
+    band: CapabilityBand;
+    attuneAvailable: boolean;
+    hpLost: number;
+    goldLost: number;
+  }[];
 }
 
 function newCollector(): RunCollector {
@@ -970,6 +1021,7 @@ function newCollector(): RunCollector {
     relicsTaken: 0,
     relicsHeld: 0,
     relicsSeen: [],
+    events: [],
     priority: { turns: 0, escapes: 0, kills: 0, differed: 0 },
   };
 }
@@ -1425,16 +1477,71 @@ function buildPolicy(
        * the first list without the relic and present in the second either way.
        */
       const offered = presentedOptions(event, band);
+      const attuneAvailable = offered.some((option) => option.archetype === 'attune');
+
+      /*
+       * Two policies answer this without scoring anything, which is the point
+       * of them: the gap between "always Gamble" and "always Safe" is the crude
+       * test of whether the variance is worth taking, and a bot that scored
+       * would be measuring the scorer instead.
+       */
+      const forced =
+        policy === 'event-gambler'
+          ? (offered.find((option) => option.archetype === 'attune') ??
+            offered.find((option) => option.archetype === 'gamble'))
+          : policy === 'event-safe'
+            ? offered.find((option) => option.archetype === 'safe')
+            : undefined;
+
       const bestOfOffered = bestBy(offered, (option) =>
         valueOfOutcome(outcomeFor(option, band), state, segment),
       );
-      const chosen = offered[bestOfOffered];
+      const chosen = forced ?? offered[bestOfOffered];
       // Safe is on every event at every band, so it is the honest fallback.
       if (!chosen) return 'safe';
       const outcome = outcomeFor(chosen, band);
       for (const effect of outcome.grant) {
         if (effect.kind === 'item') collect.itemsAcquired.push(...effect.items);
       }
+
+      /*
+       * What the cost actually took, measured against this run's own numbers
+       * rather than read off the table: a 25 percent party hit is a different
+       * number of HP in segment 0 and segment 7, and the report's question is
+       * "what did events cost this run", not "what does the table say".
+       *
+       * The toll is counted with the outcome's cost, because the player paid
+       * both to press one button.
+       */
+      let hpLost = 0;
+      let goldLost = 0;
+      const charge = (effect: ResolvedEffect): void => {
+        if (effect.kind === 'damage') {
+          const hit = (member: { hp: number; maxHp: number; fainted: boolean }): number =>
+            member.fainted ? 0 : Math.min(member.hp - 1, Math.round(member.maxHp * effect.percent));
+          hpLost +=
+            effect.target === 'party'
+              ? state.party.reduce((sum, member) => sum + Math.max(0, hit(member)), 0)
+              : Math.max(0, state.party[0] ? hit(state.party[0]) : 0);
+        }
+        if (effect.kind === 'currency' && effect.amount < 0) goldLost += Math.min(state.currency, -effect.amount);
+        if (effect.kind === 'currencyFraction') {
+          goldLost += Math.min(state.currency, Math.max(effect.floor, Math.round(state.currency * effect.fraction)));
+        }
+      };
+      for (const effect of outcome.cost) charge(effect);
+      if (chosen.toll) charge(tollEffect(chosen.toll));
+
+      collect.events.push({
+        segment,
+        rarity: event.rarity,
+        archetype: chosen.archetype,
+        tier: outcome.tier,
+        band,
+        attuneAvailable,
+        hpLost,
+        goldLost,
+      });
       return chosen.archetype;
     },
 
@@ -1633,6 +1740,8 @@ interface RunRecord {
   relicsHeld: number;
   /** Which relics were ever on a card, so the report can name one that never is. */
   relicsSeen: string[];
+  /** Every event resolved: button, tier, band, and what the cost actually took. */
+  events: RunCollector['events'];
   /**
    * The party walking into each gym: size, species and types.
    *
@@ -1893,6 +2002,7 @@ async function playSample(
       relicsTaken: collect.relicsTaken,
       relicsHeld: collect.relicsHeld,
       relicsSeen: [...new Set(collect.relicsSeen)],
+      events: collect.events.map((entry) => ({ ...entry })),
       gymParties,
       berriesEaten,
       damageByMember: state.party.map((member) => member.contribution.damageDealt),
@@ -2143,6 +2253,8 @@ interface Sample {
    * collapses onto one; `relics` asks whether relics are rare enough to be
    * worth routing for and common enough to exist.
    */
+  /** The event rejig's numbers. See `summarizeEvents`. */
+  events: ReturnType<typeof summarizeEvents>;
   relics: {
     /** Relic cards offered and taken across the sample, and per run. */
     offered: number;
@@ -2553,6 +2665,7 @@ function summarize(
     contribution: summarizeContribution(records),
     capture: summarizeCapture(records),
     relics: summarizeRelics(records),
+    events: summarizeEvents(records),
     durationMs,
   };
 }
@@ -2771,6 +2884,76 @@ function summarizeRelics(records: RunRecord[]): Sample['relics'] {
     neverOffered: RELIC_IDS.filter(
       (id) => !records.some((record) => record.relicsSeen.includes(id)),
     ).map((id) => relicById(id)?.name ?? id),
+  };
+}
+
+/**
+ * The event rejig's numbers. **What the question mark actually did.**
+ *
+ * Five questions, and each one fails differently:
+ *
+ *   - **Tier distribution**, split by rarity and by whether the relic was held.
+ *     If `T3` appears without the relic, the patch's one hard rule is broken.
+ *   - **Attune availability**: the fraction of events where the party held the
+ *     matching relic. Under about 15 percent and relics are decoration — and
+ *     the fix is then relic *acquisition rate*, not this table.
+ *   - **The `T0` rate**, and the HP and gold events actually took per run.
+ *     Measured against each run's own numbers rather than read off the table,
+ *     because 25 percent of a party is a different quantity in segment 0 and
+ *     segment 7.
+ *   - **Take rate per archetype** under the greedy policy. If any archetype
+ *     takes more than about 60 percent, the menu is decorative.
+ *   - **Refills**, which say whether three events per locale is enough.
+ */
+function summarizeEvents(records: RunRecord[]) {
+  const rows = records.flatMap((record) => record.events);
+  const total = Math.max(1, rows.length);
+
+  const byArchetype = EVENT_ARCHETYPES.map((archetype) => {
+    const taken = rows.filter((row) => row.archetype === archetype);
+    // Offered is what it could have been taken *from*: Attune is only on the
+    // menu when the relic is held, so its take rate is measured against that.
+    const offered = archetype === 'attune' ? rows.filter((row) => row.attuneAvailable) : rows;
+    return {
+      archetype,
+      taken: taken.length,
+      share: taken.length / total,
+      ofOffered: taken.length / Math.max(1, offered.length),
+    };
+  });
+
+  const byRarity = EVENT_RARITIES.map((rarity) => {
+    const rowsAt = rows.filter((row) => row.rarity === rarity);
+    const share = (tier: OutcomeTier): number =>
+      rowsAt.filter((row) => row.tier === tier).length / Math.max(1, rowsAt.length);
+    return {
+      rarity,
+      events: rowsAt.length,
+      T0: share('T0'),
+      T1: share('T1'),
+      T2: share('T2'),
+      T3: share('T3'),
+    };
+  });
+
+  const withRelic = rows.filter((row) => row.attuneAvailable);
+  const withoutRelic = rows.filter((row) => !row.attuneAvailable);
+  const tierShare = (subset: typeof rows, tier: OutcomeTier): number =>
+    subset.filter((row) => row.tier === tier).length / Math.max(1, subset.length);
+
+  const runs = Math.max(1, records.length);
+  return {
+    events: rows.length,
+    eventsPerRun: rows.length / runs,
+    byArchetype,
+    byRarity,
+    attuneAvailability: withRelic.length / total,
+    t3WithoutRelic: withoutRelic.filter((row) => row.tier === 'T3').length,
+    withRelic: { events: withRelic.length, T2: tierShare(withRelic, 'T2'), T3: tierShare(withRelic, 'T3') },
+    withoutRelic: { events: withoutRelic.length, T0: tierShare(withoutRelic, 'T0') },
+    t0Rate: rows.filter((row) => row.tier === 'T0').length / total,
+    hpLostPerRun: sum(rows.map((row) => row.hpLost)) / runs,
+    goldLostPerRun: sum(rows.map((row) => row.goldLost)) / runs,
   };
 }
 
@@ -3116,6 +3299,72 @@ function render(sample: Sample): string {
     locales.neverPicked.length > 0
       ? `  never picked: ${locales.neverPicked.join(', ')}`
       : `  every locale was picked   ·   mean distinct locales per run: ${locales.meanDistinctPerRun.toFixed(2)}`,
+  );
+
+  const events = sample.events;
+  out.push('', 'Events — what the question mark paid, and what it took');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['events / run', events.eventsPerRun.toFixed(2), `${events.events} resolved in the sample`],
+        [
+          'Attune available',
+          pct(events.attuneAvailability),
+          events.attuneAvailability < 0.15
+            ? 'DECORATION: relics are too rare for Attune to matter — fix acquisition rate, not this table'
+            : 'the relic gate opens often enough to route for',
+        ],
+        [
+          'T3 without the relic',
+          String(events.t3WithoutRelic),
+          events.t3WithoutRelic > 0 ? 'BROKEN: the patch has exactly one hard rule and this is it' : 'gated, as required',
+        ],
+        ['T0 rate', pct(events.t0Rate), 'share of resolved events that were a setback'],
+        ['HP lost / run', events.hpLostPerRun.toFixed(1), 'actual HP taken by events, this run\'s own numbers'],
+        ['gold lost / run', events.goldLostPerRun.toFixed(1), 'actual coins taken by events and tolls'],
+      ],
+    ),
+  );
+
+  out.push('', 'Which button the bot pressed');
+  out.push(
+    table(
+      ['archetype', 'taken', 'share of all', 'share when offered', 'reads as'],
+      events.byArchetype.map((row) => [
+        row.archetype,
+        String(row.taken),
+        pct(row.share),
+        pct(row.ofOffered),
+        row.share > 0.6 ? 'DECORATIVE MENU: one button takes most picks' : '',
+      ]),
+    ),
+  );
+
+  out.push('', 'Outcome tier by rarity');
+  out.push(
+    table(
+      ['rarity', 'events', 'T0', 'T1', 'T2', 'T3'],
+      events.byRarity.map((row) => [
+        row.rarity,
+        String(row.events),
+        pct(row.T0),
+        pct(row.T1),
+        pct(row.T2),
+        pct(row.T3),
+      ]),
+    ),
+  );
+
+  out.push('', 'With the relic against without');
+  out.push(
+    table(
+      ['held', 'events', 'T2', 'T3', 'T0'],
+      [
+        ['yes', String(events.withRelic.events), pct(events.withRelic.T2), pct(events.withRelic.T3), '-'],
+        ['no', String(events.withoutRelic.events), '-', '0%', pct(events.withoutRelic.T0)],
+      ],
+    ),
   );
 
   const relics = sample.relics;

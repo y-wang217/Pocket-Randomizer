@@ -74,6 +74,7 @@ rather than being filled in from memory.
 | `randomizer-13` · `b022fc`, 400 | `ai-4-ability` | RETUNE | 39.25% | 4.8850 | the unknown-ability fix alone (section 16.1) |
 | `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, pinned | RETUNE | 39.25% | 4.8850 | **the pin.** `greedy` frozen to `GREEDY_BASELINE`; the row a future benchmark is read against |
 | `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, table | RETUNE | 51.0% | **5.3875** | the shipped opponent: three tiers with noise (section 16.4b) |
+| `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 37.5% | **4.80** | the event rejig (section 17). Read against the `ai-6` pin at 4.8850: **−0.085 mean gyms, −1.75pt completion** |
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
@@ -2044,3 +2045,94 @@ and a future better baseline gets a new name beside it rather than an
 improvement to it. `AI_VERSION` and the opponent mode are stamped into every
 report, and every row in this section names both. **Read down an AI version the
 same way you read down a prefix.**
+
+## 17. The event rejig
+
+**2026-09-14.** Four outcome tiers, four option archetypes, a rarity draw per
+node and a 24-event chart. Prompt
+[`spec/gymrun-patch-event-rejig.md`](spec/gymrun-patch-event-rejig.md);
+the rulings and deviations are `generation.md` section 14.
+
+### 17.1 The headline, against the `ai-6` pin
+
+`greedy`, pinned opponent, 400 seeds, prefix `RETUNE`, `AI_VERSION`
+`gymrun-ai-6-spent-item`. Read down the prefix, never across.
+
+| | pin (`dbb2db`) | event rejig (`72e39f`) | delta |
+|---|---|---|---|
+| **mean gyms cleared** (the pinned figure) | **4.8850** | **4.80** | **−0.085** |
+| run completion | 39.25% | 37.5% | −1.75pt |
+
+**Recorded, not retuned.** Balance is not a gate: the number goes in the table
+and the patch keeps going. The direction makes sense — events can now take HP
+and gold where before they could only pay — and the size is within the range
+the last four rows of section 16 moved by for causes that turned out to be
+below the resolution of a 400-seed sample.
+
+### 17.2 What the question mark actually did
+
+Same run.
+
+| measure | value | reads as |
+|---|---|---|
+| events resolved / run | 3.27 | 1306 in the sample |
+| **Attune available** | **38.8%** | the threshold was 15%. Relics are not decoration |
+| **T3 without the relic** | **0** | the patch's one hard rule, held over 1306 events |
+| T0 rate | 0.5% | under `greedy`, which mostly buys its way past the setback |
+| HP lost / run | 75.8 | actual HP, measured against each run's own numbers |
+| gold lost / run | 32.8 | outcome costs and tolls together |
+
+**Attune availability at 38.8% is the number that answers the relic system.**
+The prompt set 15% as the line under which relics are decoration and the fix
+would be acquisition rate rather than the event table. It is two and a half
+times that, and it should be: `relics held at end` is 5.08 on this population,
+so a late-run party holds most of the table.
+
+### 17.3 The menu is not decorative, and the variance is not worth taking
+
+Take rate per archetype under `greedy`:
+
+| archetype | share of picks | share when offered |
+|---|---|---|
+| toll | 47.2% | 47.2% |
+| safe | 19.2% | 19.2% |
+| gamble | 17.2% | 17.2% |
+| attune | 16.5% | 42.4% |
+
+**No archetype takes more than about 60%**, which is the test the prompt set
+for whether the menu is decorative. It passes, and the shape is readable: a
+Toll is a known price for a guaranteed `T2`, so a bot with money buys it
+roughly half the time, and Attune wins 42.4% of the events where it is on the
+menu at all.
+
+### 17.4 The miss: `event-gambler` does not beat `event-safe`
+
+120 seeds, prefix `EVREJIG`, the two forced policies.
+
+| policy | completion | mean gyms |
+|---|---|---|
+| `event-safe` | 36.7% | **4.67** |
+| `event-gambler` | 35.8% | **4.63** |
+
+**The gap is −0.04 mean gyms, which is no gap.** The prompt's hypothesis was
+that the gambler should win by a visible margin because the Gamble
+distribution's expected value exceeds a flat `T1` at every rarity, and it
+names the consequence: "if it does not, the `T0` costs are overtuned relative
+to the `T2` payouts and the fix is in `data/eventPools.ts`".
+
+**It is recorded as a miss and not acted on**, because retuning between
+checkpoints is what the standing policy forbids. Three readings are available
+and the sample does not separate them:
+
+1. **The `T0` costs are overtuned.** The gambler eats 18.2% `T0` against the
+   safe policy's 0%, and loses 17.7 HP and 5.6 gold per run to it.
+2. **A `T1` is worth more than the table thinks.** The Safe option pays a held
+   item, two berries, a mid gold lump or a full heal — and a full heal on the
+   lead going into a gym is worth more to a run's survival than the mean of a
+   distribution that is 25.8% setback at common rarity.
+3. **Three events per run is too thin to separate them.** 3.27 events per run
+   against eight gyms is a small number of decisions to hang 0.04 mean gyms on.
+
+Reading 2 is the one I would test first, because it does not require the
+costs to be wrong — it requires the *floor* to be high, which is a thing the
+Safe option was deliberately given and may simply have been given too much of.
