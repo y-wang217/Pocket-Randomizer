@@ -129,3 +129,110 @@ describe('an event cost reaches the run too', () => {
     expect(after.backpack).toEqual(['oranberry']);
   });
 });
+
+/**
+ * **One assertion per `T0` cost kind, proving the run changed.**
+ *
+ * Asked for regardless of what the diagnostic sweep said, and the reason is
+ * the history: `applyEventOutcome` folded `backpack` correctly for four
+ * stages while `resolveNode` dropped it, so a test that stops at the fold
+ * would have passed throughout. Every assertion here reads `RunState` *after*
+ * `resolveNode` and never the fold's return value.
+ *
+ * The party is built by hand rather than taken from `createRun`, which starts
+ * empty, and given a bench so a lead-targeted cost can be told apart from a
+ * party-wide one.
+ */
+describe('every T0 cost kind moves the run, read off RunState after the node', () => {
+  function party() {
+    return [
+      createPartyMember({ species: 'Snorlax', ability: 'Immunity', moves: ['Tackle'], level: 40 }),
+      createPartyMember({ species: 'Pikachu', ability: 'Static', moves: ['Tackle'], level: 40 }),
+    ];
+  }
+
+  function runFor(backpack: readonly string[], currency = 400): RunState {
+    return { ...createRun('T0-COSTS', DEFAULT_TUNING), backpack: [...backpack], currency, relics: [], party: party() };
+  }
+
+  it('HP loss: the lead drops, and only the lead when the cost says lead', () => {
+    const before = runFor([]);
+    const after = resolveWith(
+      before,
+      outcomeOf([{ kind: 'currency', amount: 1 }], [{ kind: 'damage', percent: 0.25, target: 'lead' }]),
+    );
+    expect(after.party[0]!.hp, 'the lead took the cost').toBeLessThan(before.party[0]!.hp);
+    expect(after.party[1]!.hp, 'the bench did not').toBe(before.party[1]!.hp);
+    expect(after.party[0]!.fainted, 'and no cost may faint').toBe(false);
+    expect(after.party[0]!.hp).toBeGreaterThanOrEqual(1);
+  });
+
+  it('HP loss: every standing member drops when the cost says party', () => {
+    const before = runFor([]);
+    const after = resolveWith(
+      before,
+      outcomeOf([{ kind: 'currency', amount: 1 }], [{ kind: 'damage', percent: 0.25, target: 'party' }]),
+    );
+    for (const [slot, member] of after.party.entries()) {
+      expect(member.hp, `slot ${slot}`).toBeLessThan(before.party[slot]!.hp);
+      expect(member.fainted, `slot ${slot}`).toBe(false);
+    }
+  });
+
+  it('gold loss: the purse drops by the fraction, against the floor', () => {
+    const before = runFor([], 1000);
+    const after = resolveWith(
+      before,
+      outcomeOf([{ kind: 'currency', amount: 1 }], [{ kind: 'currencyFraction', fraction: 0.4, floor: 30 }]),
+    );
+    // 40% of 1000 is above the floor, and the consolation is +1.
+    expect(after.currency).toBe(1000 - 400 + 1);
+    expect(after.currency).toBeGreaterThanOrEqual(0);
+  });
+
+  it('berry loss: the berry leaves the bag and nothing else does', () => {
+    const before = runFor(['leftovers', 'oranberry', 'shellbell']);
+    const after = resolveWith(
+      before,
+      outcomeOf([{ kind: 'currency', amount: 1 }], [{ kind: 'loseItem', pool: ['oranberry', 'sitrusberry'] }]),
+    );
+    expect(after.backpack).toEqual(['leftovers', 'shellbell']);
+  });
+
+  it('forced discard: an item leaves the bag, by identity and not by length', () => {
+    /*
+     * By identity, because a `T0` grants its consolation in the same fold and
+     * that consolation is often an item — so the bag can come out the same
+     * *length* with a different item in it. A length assertion passes on a
+     * discard that never happened; this one does not.
+     */
+    const before = runFor(['leftovers', 'shellbell']);
+    const after = resolveWith(
+      before,
+      outcomeOf([{ kind: 'item', items: ['oranberry'] }], [{ kind: 'discard', count: 1 }]),
+    );
+    expect(after.backpack, 'shellbell went, oranberry arrived').toEqual(['leftovers', 'oranberry']);
+    expect(after.backpack).not.toContain('shellbell');
+    expect(after.backpack).toHaveLength(before.backpack.length);
+  });
+
+  it('a toll is charged the same way, through resolveNode and not around it', () => {
+    const before = runFor(['leftovers', 'oranberry'], 500);
+    const node = {
+      ...before.segments[0]!.gym,
+      kind: 'event' as const,
+      encounter: null,
+      event: {
+        ...eventWith(outcomeOf([{ kind: 'currency', amount: 1 }])),
+        options: [
+          {
+            ...option('toll', outcomeOf([{ kind: 'currency', amount: 1 }])),
+            toll: { kind: 'gold' as const, fraction: 0.4, floor: 30 },
+          },
+        ],
+      },
+    };
+    const after = resolveNode(before, { node, eventChoice: 'toll' });
+    expect(after.currency, 'the toll was charged and the outcome paid').toBe(500 - 200 + 1);
+  });
+});

@@ -1308,6 +1308,23 @@ export interface PlayRunOptions {
   /** Fired synchronously with a live session the moment a battle starts. */
   onBattle?: (session: BattleSession, node: NodeSpec, state: RunState) => void;
   /**
+   * Fired after every node resolves, with the run state either side of it.
+   *
+   * **Observation only, and it exists because of a specific failure.** The
+   * simulator used to report what an event *cost* by reading the outcome
+   * object — the thing that says a cost was applied — rather than by looking at
+   * the run. That is a measurement which cannot see the one defect it most
+   * needs to: a cost folded correctly and then dropped by the caller reads as
+   * charged, because the outcome object still says it was. `resolveNode` did
+   * exactly that with `backpack` for four stages
+   * (`docs/generation.md` section 14).
+   *
+   * So this hands out both states and lets the caller diff them. It changes
+   * nothing about the run: `beforeNode` is the state the node was resolved
+   * from and the fired value is the same object the loop continues with.
+   */
+  onNodeResolved?: (before: RunState, after: RunState, result: NodeResult) => void;
+  /**
    * One opponent for every fight in the run.
    *
    * **Kept, and no longer the default.** The simulator's controlled
@@ -1644,7 +1661,9 @@ export async function playRun(
       result.acquisition = { offer: offered, decision };
     }
 
+    const beforeNode = state;
     state = resolveNode(state, result);
+    options?.onNodeResolved?.(beforeNode, state, result);
 
     /*
      * The item plan, asked after the node has resolved and not before.

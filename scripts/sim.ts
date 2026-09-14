@@ -999,8 +999,51 @@ interface RunCollector {
     tier: OutcomeTier;
     band: CapabilityBand;
     attuneAvailable: boolean;
+    /**
+     * What the *outcome object* said the cost was. Kept beside the measured
+     * numbers below so the two can be compared — a cost the outcome claims and
+     * the run does not show is the `backpack` defect's exact signature.
+     */
     hpLost: number;
     goldLost: number;
+    /**
+     * What the **run** actually lost across the node, read off `RunState`
+     * either side of `resolveNode` rather than off the outcome.
+     */
+    realHpLost: number;
+    realGoldLost: number;
+    realBerriesLost: number;
+    realBagLost: number;
+    /**
+     * What was in the bag when the node resolved.
+     *
+     * **The number that separates "nothing to take" from "taken and dropped".**
+     * A discard on an empty backpack is a no-op by design; a discard on a
+     * *stocked* backpack that moves nothing is the defect.
+     */
+    bagBefore: number;
+    partyHpBefore: number;
+    goldBefore: number;
+    berriesBefore: number;
+    /** Split, because the two bag costs have different "nothing to take". */
+    claimedDiscard: boolean;
+    claimedBerry: boolean;
+    /** Standing members. An HP cost cannot move a party that is all fainted. */
+    standingBefore: number;
+    /**
+     * HP the party could actually lose at this node, given the floor.
+     *
+     * `damageParty` clamps at `max(1, maxHp * eventDamageFloor)`, so a member
+     * already at or below its floor cannot be hit. Zero headroom is the HP
+     * equivalent of an empty bag: nothing to take.
+     */
+    hpHeadroom: number;
+    /** Whether any claimed HP cost targets the lead alone. */
+    hpTargetsLead: boolean;
+    /** Whether the outcome or the toll claimed a cost of each kind at all. */
+    claimedHp: boolean;
+    claimedGold: boolean;
+    claimedBag: boolean;
   }[];
 }
 
@@ -1541,6 +1584,35 @@ function buildPolicy(
         attuneAvailable,
         hpLost,
         goldLost,
+        // Filled by `onNodeResolved`, which sees the run either side of the node.
+        realHpLost: 0,
+        realGoldLost: 0,
+        realBerriesLost: 0,
+        realBagLost: 0,
+        bagBefore: 0,
+        partyHpBefore: 0,
+        goldBefore: 0,
+        berriesBefore: 0,
+        standingBefore: 0,
+        hpHeadroom: 0,
+        hpTargetsLead: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'damage' && effect.target === 'lead',
+        ),
+        claimedDiscard: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'discard',
+        ),
+        claimedBerry: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'loseItem',
+        ),
+        claimedHp: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'damage',
+        ),
+        claimedGold: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'currency' || effect.kind === 'currencyFraction',
+        ),
+        claimedBag: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'discard' || effect.kind === 'loseItem',
+        ),
       });
       return chosen.archetype;
     },
@@ -1869,6 +1941,73 @@ async function playSample(
         const profile = tierProfile(tier, options.aiAdd, options.aiDrop, options.aiNoise);
         const stream = node.encounter ? createAiStream(node.encounter.simSeed, 'p2') : undefined;
         return countingGreedy(collect.priority, profile, stream);
+      },
+      /*
+       * The measured half. Every event row above records what the *outcome*
+       * claimed; this records what the run actually lost, off the two states
+       * `resolveNode` sat between. Matching the row by node id rather than by
+       * order, because a node can resolve without an event decision.
+       */
+      onNodeResolved: (before, after, result) => {
+        if (!result.node.event || result.eventChoice === undefined) return;
+        const row = collect.events[collect.events.length - 1];
+        if (!row) return;
+        /*
+         * **HP lost by members that were standing on both sides, matched by
+         * slot — not the party total.**
+         *
+         * `resolveNode` runs `betweenNodes`, which revives the fainted at
+         * `reviveHpPercent`. A party carrying a faint therefore *gains* HP
+         * across the node, and a total-versus-total reading shows an event's
+         * cost as zero whenever a revive outweighed it. That is the measurement
+         * being confounded, not the cost going missing — and it is the same
+         * trap as counting the bag by length while a consolation refills it.
+         */
+        const hp = (state: RunState): number => state.party.reduce((sum, m) => sum + Math.max(0, m.hp), 0);
+        const hpLostBySlot = (from: RunState, to: RunState): number =>
+          from.party.reduce((sum, member, slot) => {
+            const later = to.party[slot];
+            if (!later || member.fainted) return sum;
+            return sum + Math.max(0, member.hp - later.hp);
+          }, 0);
+        const berries = (state: RunState): number => state.backpack.filter((id) => BERRY_IDS.has(id)).length;
+        row.realHpLost = hpLostBySlot(before, after);
+        void hp;
+        row.realGoldLost = Math.max(0, before.currency - after.currency);
+        row.realBerriesLost = Math.max(0, berries(before) - berries(after));
+        /*
+         * **Gross removal, by multiset difference, not net length.**
+         *
+         * A `T0` discards an item and then grants its consolation, which is
+         * often an item too — so the bag comes out the same *length* and a net
+         * measurement reads "nothing was taken". That is the measurement being
+         * wrong, not the run. Counting what left the bag by identity is the
+         * only reading that survives a cost and a grant in one fold.
+         */
+        const pool = [...after.backpack];
+        let removed = 0;
+        for (const id of before.backpack) {
+          const at = pool.indexOf(id);
+          if (at < 0) removed += 1;
+          else pool.splice(at, 1);
+        }
+        row.realBagLost = removed;
+        row.bagBefore = before.backpack.length;
+        row.partyHpBefore = hp(before);
+        row.goldBefore = before.currency;
+        row.berriesBefore = berries(before);
+        row.standingBefore = before.party.filter((m) => !m.fainted).length;
+        /*
+         * Headroom for the *target*, not for the party. `damageParty` hits the
+         * lead alone when the cost says `lead`, and `leadOf` is the first
+         * member still standing — so a bench with HP to spare says nothing
+         * about whether a lead-targeted cost could land.
+         */
+        const standing = before.party.filter((m) => !m.fainted);
+        const targets = row.hpTargetsLead ? standing.slice(0, 1) : standing;
+        const floorOf = (m: { maxHp: number }): number =>
+          Math.max(1, Math.round(m.maxHp * options.tuning.eventDamageFloor));
+        row.hpHeadroom = targets.reduce((sum, m) => sum + Math.max(0, m.hp - floorOf(m)), 0);
       },
       onBattle: (session, node, before) => {
         sessions.push(session);
@@ -2942,7 +3081,64 @@ function summarizeEvents(records: RunRecord[]) {
     subset.filter((row) => row.tier === tier).length / Math.max(1, subset.length);
 
   const runs = Math.max(1, records.length);
+
+  /*
+   * **The conditional rates, and the claimed-against-measured comparison.**
+   *
+   * A `T0` share of *all* events answers nothing on its own: it mixes how often
+   * the bot gambles with how often a gamble goes wrong. The rate that says
+   * whether the distribution is doing its job is `T0` given that Gamble was
+   * picked.
+   *
+   * The `missing` counts are the defect check. A row that claims a cost and
+   * shows no matching movement in the run is the `backpack` signature: the
+   * outcome object says charged, the run says otherwise.
+   */
+  const gambles = rows.filter((row) => row.archetype === 'gamble');
+  const claimedHp = rows.filter((row) => row.claimedHp);
+  const claimedGold = rows.filter((row) => row.claimedGold);
+  const claimedBag = rows.filter((row) => row.claimedBag);
+
   return {
+    t0GivenGamble: gambles.filter((row) => row.tier === 'T0').length / Math.max(1, gambles.length),
+    gambles: gambles.length,
+    realHpPerRun: sum(rows.map((row) => row.realHpLost)) / runs,
+    realGoldPerRun: sum(rows.map((row) => row.realGoldLost)) / runs,
+    realBerriesPerRun: sum(rows.map((row) => row.realBerriesLost)) / runs,
+    realBagPerRun: sum(rows.map((row) => row.realBagLost)) / runs,
+    claimed: {
+      hp: claimedHp.length,
+      gold: claimedGold.length,
+      bag: claimedBag.length,
+    },
+    missing: {
+      hp: claimedHp.filter((row) => row.realHpLost === 0).length,
+      gold: claimedGold.filter((row) => row.realGoldLost === 0).length,
+      bag: claimedBag.filter((row) => row.realBagLost === 0).length,
+    },
+    /*
+     * The same three, with the cases where there was nothing to take removed.
+     * **These are the defect counts.** A bag cost that moves nothing on an
+     * empty bag is the design working; one that moves nothing on a stocked bag
+     * is the fold being dropped again.
+     */
+    unexplained: {
+      /*
+       * An HP cost cannot move a party with nobody standing, and cannot move
+       * one already sitting on `eventDamageFloor`. The floor case is not
+       * separable here, so this count is an upper bound on HP.
+       */
+      hp: claimedHp.filter((row) => row.realHpLost === 0 && row.hpHeadroom > 0).length,
+      gold: claimedGold.filter((row) => row.realGoldLost === 0 && row.goldBefore > 0).length,
+      bag: claimedBag.filter((row) => row.realBagLost === 0 && row.bagBefore > 0).length,
+      /*
+       * The two bag costs split, because "nothing to take" differs. A forced
+       * discard takes any item, so a stocked bag that loses nothing is a
+       * defect. A berry toll takes a berry, so the bag must hold a *berry*.
+       */
+      discard: rows.filter((row) => row.claimedDiscard && row.realBagLost === 0 && row.bagBefore > 0).length,
+      berry: rows.filter((row) => row.claimedBerry && row.realBagLost === 0 && row.berriesBefore > 0).length,
+    },
     events: rows.length,
     eventsPerRun: rows.length / runs,
     byArchetype,
@@ -3339,6 +3535,70 @@ function render(sample: Sample): string {
         row.share > 0.6 ? 'DECORATIVE MENU: one button takes most picks' : '',
       ]),
     ),
+  );
+
+  out.push('', 'T0, conditional rather than as a share of everything');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['Gamble picks', `${events.gambles}`, `${pct(events.gambles / Math.max(1, events.events))} of resolutions`],
+        [
+          'T0 given Gamble',
+          pct(events.t0GivenGamble),
+          events.t0GivenGamble > 0.12
+            ? 'the distribution fires; a low all-events T0 rate is the bot avoiding the button'
+            : 'LOW: a Gamble rarely lands on T0 even when picked',
+        ],
+        ['T0 over all events', pct(events.t0Rate), 'the two together say which of the causes it is'],
+      ],
+    ),
+  );
+
+  out.push('', 'What the run actually lost, off RunState either side of the node');
+  out.push(
+    table(
+      ['cost kind', 'claimed by an outcome', 'showed no movement', 'per run'],
+      [
+        [
+          'HP',
+          String(events.claimed.hp),
+          events.missing.hp > 0 ? `${events.missing.hp}  CHECK` : '0',
+          events.realHpPerRun.toFixed(1),
+        ],
+        [
+          'gold',
+          String(events.claimed.gold),
+          events.missing.gold > 0 ? `${events.missing.gold}  CHECK` : '0',
+          events.realGoldPerRun.toFixed(1),
+        ],
+        [
+          'bag items',
+          String(events.claimed.bag),
+          events.missing.bag > 0 ? `${events.missing.bag}  CHECK` : '0',
+          events.realBagPerRun.toFixed(2),
+        ],
+        ['berries', '-', '-', events.realBerriesPerRun.toFixed(2)],
+      ],
+    ),
+  );
+  out.push('', 'The same, with "nothing there to take" removed — these are the defect counts');
+  out.push(
+    table(
+      ['cost kind', 'claimed', 'no movement', 'and something was there'],
+      [
+        ['HP', String(events.claimed.hp), String(events.missing.hp), String(events.unexplained.hp)],
+        ['gold', String(events.claimed.gold), String(events.missing.gold), String(events.unexplained.gold)],
+        ['bag items', String(events.claimed.bag), String(events.missing.bag), String(events.unexplained.bag)],
+        ['  of which: forced discard, bag stocked', '-', '-', String(events.unexplained.discard)],
+        ['  of which: berry toll, a berry held', '-', '-', String(events.unexplained.berry)],
+      ],
+    ),
+  );
+  out.push(
+    events.unexplained.hp + events.unexplained.gold + events.unexplained.discard + events.unexplained.berry > 0
+      ? '  DEFECT: a cost was claimed, there was something to take, and the run did not lose it.'
+      : '  every claimed cost either moved the run or had nothing left to take.',
   );
 
   out.push('', 'Outcome tier by rarity');
