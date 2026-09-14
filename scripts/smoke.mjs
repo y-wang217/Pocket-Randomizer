@@ -18,6 +18,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { mkdirSync } from 'node:fs';
+import { MAX_MOVE_FACTS } from '../src/data/moveFactCeiling.mjs';
 
 const DIST = join(process.cwd(), 'dist');
 mkdirSync(join(process.cwd(), 'stats'), { recursive: true });
@@ -116,25 +117,17 @@ page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 
 const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
 
-/**
- * The most facts one move face may carry. **Patch 4.8.0.3.**
+/*
+ * The ceiling is `src/data/moveFactCeiling.mjs`'s, imported rather than
+ * restated. **Patch 4.8.0.3 closeout, check 3.**
  *
- * It was `tuning.maxMoveTagsOnFace`, restated here rather than imported. The
- * face is the fact strip now and the strip has no tuning cap: `MOVE_FACT_IDS`
- * bounds it at nine and the fields are whatever the move has, so this is a
- * *measured* ceiling rather than a configured one.
- *
- * Five. The worst real case is four — Fake Out carries accuracy, a 100%
- * secondary, a +3 priority bracket and contact — and one spare is the margin
- * that makes this an assertion about the phone rather than a restatement of
- * the dex. A move that broke it would mean the strip had grown a field, which
- * is the change that should have to come back through here.
- *
- * This script is plain ESM run under Node against a *built* bundle, so it has
- * no access to the source module, and the assertion below names the constant
- * so the failure says which number moved.
+ * The number it replaced — `tuning.maxMoveTagsOnFace` — was restated here
+ * with a comment explaining that this script is plain ESM run under Node
+ * against a built bundle and cannot import a TypeScript module. That is still
+ * true, and plain ESM is the way out of it: the data file is `.mjs`, so there
+ * is one definition and no number to drift. Its docstring carries why five,
+ * and Fake Out at four is the worst real case behind it.
  */
-const MAX_MOVE_FACTS = 5;
 
 const check = async (label, selector) => {
   const count = await page.locator(selector).count();

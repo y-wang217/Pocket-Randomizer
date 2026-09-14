@@ -134,6 +134,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the icons and labels for the move fact strip on a card face; read by ui/scene.ts and ui/tooltips.ts only, and which glyph stands for contact is not a balance fact',
   },
   {
+    path: 'src/data/moveFactCeiling.mjs',
+    why: 'the most facts one move face may carry, asserted by scripts/smoke.mjs at 390x844 and imported by nothing else at all; a measured ceiling for a phone is not a balance fact, and plain ESM is what lets a Node script read it instead of restating it',
+  },
+  {
     path: 'src/data/mons.ts',
     why: "Stage 0's fixed Snorlax-versus-Milotic matchup, pinned by the determinism tests; no run reads it",
   },

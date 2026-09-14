@@ -34,11 +34,13 @@ and fails on any byte that differs. Heights are compared by
   not be confused. **The patch's own effect is −4px** on
   `battle.screenHeight` and `battle.decisionBottom` in all three modes, from
   the move fact strip and the band meter; `decisionTop` is unmoved in every
-  mode, which is what the prompt gated on. **Three Pocket fields were already
+  mode, which is what the prompt gated on. **Four Pocket fields were already
   stale before the patch**: measured on merged main at `46b5978` with nothing
   applied, `modes.pocket.map.decisionTop` is 278.89 (file said 302.89),
-  `modes.pocket.map.decisionBottom` 370.77 (394.77) and
-  `modes.pocket.battle.decisionTop` 355.39 (379.39) — 24px out on each. That
+  `modes.pocket.map.decisionBottom` 370.77 (394.77),
+  `modes.pocket.battle.decisionTop` 355.39 (379.39) and
+  `modes.pocket.battle.decisionBottom` 498.39 (522.39) — 24px out on each. That
+  correction is its own commit (`46135b6`) so the two are not read as one. That
   drift belongs to whatever landed between the last recording and `46b5978`,
   not here. `generation.md` section 12n has both tables and how the two were
   told apart, which took three builds: a delta against a recorded file is not

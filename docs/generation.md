@@ -2143,21 +2143,33 @@ Both columns are measurements taken on 2026-09-14 at 390x844, seed SMOKE24,
 `scripts/visual/measure.mjs` — the "before" column from a checkout of merged
 main at `46b5978`, not from the file. Which matters, because:
 
-### The recorded baseline was stale on three Pocket fields before this patch
+### The recorded baseline was stale on four Pocket fields before this patch
 
-`heights.json` carried `modes.pocket.map.decisionTop` 302.89,
-`modes.pocket.map.decisionBottom` 394.77 and `modes.pocket.battle.decisionTop`
-379.39. Measured on merged main with none of this patch applied, those three
-read 278.89, 370.77 and 355.39 — 24px higher on every one.
+**And the correction is its own commit** (`46135b6`), ordered after the patch's
+code and before this entry, so a diff of `heights.json` against 4.8.0.3 is not
+read as one change. It is two, and only the second is the patch's.
+
+| field | file said | main measures | out by |
+|---|---|---|---|
+| `modes.pocket.map.decisionTop` | 302.89 | 278.89 | 24 |
+| `modes.pocket.map.decisionBottom` | 394.77 | 370.77 | 24 |
+| `modes.pocket.battle.decisionTop` | 379.39 | 355.39 | 24 |
+| `modes.pocket.battle.decisionBottom` | 522.39 | 498.39 | 24 |
+
+Measured on merged main at `46b5978` with none of this patch applied. **The
+24px predates 4.8.0.3** and belongs to whatever landed between the last
+recording and `46b5978`; `modes.pocket.battle.screenHeight` was the one Pocket
+field already correct, which is why the drift reads as a decision point moving
+rather than a screen resizing.
 
 It was found by isolation and it is worth saying how, because the first
 reading was wrong. The patch's own measurement showed nine fields differing
 from the file, and three of them were the 24px Pocket rows. Reverting the
 archetype removal changed nothing; restoring the `BAND n` text changed the
 battle rows and not the Pocket ones; only checking out `46b5978` entire showed
-the three Pocket rows already differing with no patch present at all. **A
+the four Pocket rows already differing with no patch present at all. **A
 delta against a recorded file is not a delta against the tree.** The file is
-now rewritten from a measurement of this tree, so all three are correct again,
+now rewritten from a measurement of this tree, so all four are correct again,
 and the 24px is attributed to whatever landed between the last recording and
 `46b5978` rather than to this patch.
 
@@ -2176,6 +2188,15 @@ allowed to move the hash. Until then `scripts/smoke.mjs` asserts the strip
 against a measured ceiling of five rather than against the tuning value; the
 worst real case is Fake Out at four — accuracy, a 100% secondary, a +3
 priority bracket and contact.
+
+**Closeout, check 3: that ceiling now lives in `data/`.** It was a `const` in
+the smoke script, which is the one place such a number must not be. It is
+`src/data/moveFactCeiling.mjs`, excluded from `contentHash` and imported by
+the smoke script rather than restated in it. Plain ESM rather than TypeScript
+because that script runs under Node against a *built* bundle and cannot import
+a `.ts` module — which is the exact reason `tuning.maxMoveTagsOnFace` was
+restated inline before it. Nothing under `src/` imports the file: the app does
+not cap the strip, and the cap is an assertion about a viewport.
 
 ### Deviation: the copy fix went where the marker was, not where the prompt said
 

@@ -424,6 +424,65 @@ One line each. The analysis lives where the pointer goes, not here.
    a reasoned exclusion rather than inside `tuning.ts` (item 1).
    [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 
+### Carried out of patch 4.8.0.3
+
+Three, filed rather than built. The closeout prompt
+([`spec/gymrun-patch-4.8.0.3-closeout.md`](spec/gymrun-patch-4.8.0.3-closeout.md))
+asks for the first; the other two are things verifying it turned up.
+
+**A. An always-hits marker on the move fact strip.** A never-miss move renders
+no accuracy icon. `describeMove` reports it as `accuracy: true` rather than as
+`100`, and the two mean different things — a 100% move is still checked and an
+evasion stage can make it miss, a never-miss move is not checked at all — so
+one icon reading `100` for both would collapse the distinction. That call
+stands.
+
+Its consequence is that absence on that icon now means two things: the field
+does not apply, and the field applies without limit. **That collides with item
+1 of the same patch.** A player can now see an evasion boost as a multiplier,
+and a never-miss move is exactly the case where that boost does nothing — so
+the one reading the strip most needs to support is the one it is silent about.
+A distinct always-hits marker reads better than nothing. The `neverMisses` tag
+says it in words one tap away in the meantime. Not a blocker for merge.
+
+**B. The corner seed stamp eats taps on scrolling content.** `.stamp--seed` is
+`position: fixed`, `z-index: 20`, `pointer-events: auto`, and at 390x844 it
+occupies a 121x9 band at (6, 829) — permanently over the party screen's scroll
+region, which is 1630px against an 844px viewport. Any interactive control
+whose centre passes under it is unreachable.
+
+`test/visual-v3.test.ts` asserts that every visible control is what a tap at
+its centre lands on, and it passes on `main` **by positional luck rather than
+by construction**: no control happened to sit there. 4.8.0.3 added controls to
+the party screen's move cards and one does. Measured, not inferred — see the
+patch report; and re-rolling the layout only changes *which* control is caught,
+which was verified rather than assumed.
+
+Every real fix is outside what that patch touched, which is why it is filed
+here: (a) let content win the tap where the two overlap — the stamp below the
+shell, the shell's own box made transparent to pointers with its interactive
+descendants opted back in; (b) end the scroll region above the stamp band in
+the app shell; (c) drop the stamp's copy affordance on phone, where the seed
+bar already carries one. (a) is the smallest that removes the hazard class
+rather than moving its victim. Whichever is taken must keep
+`test/visual-v2.test.ts`'s "copy the full seed string from the seed stamp",
+which taps the stamp on the starter screen at 390x844.
+
+**C. `◎100` on nearly every move card.** The strip prints accuracy whenever
+`describeMove` returns a number, which is the patch prompt's instruction —
+"accuracy stays as a number and stays on the face". The face's previous rule
+was narrower: the `accuracy` tag rendered only when the move could actually
+miss. So a number that is identical on four buttons out of four is now on all
+four, which is the shape the tag rule was written to avoid.
+
+The narrower rule was tried during closeout and reverted, because the only
+strong argument for deviating from the prompt was that it fixed item B, and
+measurement showed it did not — it moved the caught control from the accuracy
+chip to the contact chip. Changing spelled-out behaviour on an aesthetic
+preference alone is not this patch's call, so the observation is filed instead.
+It is the same decision as A and should be taken with it: what the face says
+about accuracy at 100, at below 100, and at never-miss is one question.
+
 ### The invariant register
 
 Five audit findings, where the tree did not satisfy an invariant in
