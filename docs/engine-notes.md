@@ -77,6 +77,63 @@ makes one fewer battle draw per Pokemon and one more randomizer draw. Two
 version axes moved as a result, `RANDOMIZER_VERSION` because specs changed and
 `ENGINE_VERSION` because every battle stream is offset from the first turn.
 
+## An omitted ability is the species default, not an unknown one
+
+**`@smogon/calc`, found 2026-09-11 during the AI tiers patch.** The constructor
+resolves its ability as `options.ability || species.abilities[0]`. Omitting the
+field therefore does not mean "this Pokemon has no ability" and does not mean
+"I do not know" — it means **the species' first ability**, silently.
+
+In a game that ships species as they are, that is a reasonable default and
+nobody notices. Under full ability randomization it is a false fact in the one
+place the AI is least able to survive one:
+
+```
+new Pokemon(gen, 'Rotom', { level: 50 })            // ability: Levitate
+calculate(gen, garchomp, that, earthquake).range()  // [0, 0]
+new Pokemon(gen, 'Rotom', { level: 50, ability: '(unknown)' })
+calculate(gen, garchomp, that, earthquake).range()  // [176, 210]
+```
+
+The opponent AI reasons about a foe whose ability is *not public information*,
+so it had been passing nothing and being handed the species default for every
+foe in every fight since Stage 0. Pass a sentinel string no real ability
+matches, and every `hasAbility` check inside the calc answers false, which is
+the "no ability effects" the estimate was always claiming to make. **It must be
+non-empty**: the calc treats `''` as falsy, falls back to the species default
+again, and separately uses `''` internally to mean *suppressed*.
+
+## The reference matchup heuristics read species types, and a randomizer breaks that
+
+**Recorded during the AI tiers patch, next to the finding above, because it is
+the same class of mistake and it will be rediscovered by the next person
+porting a bot from the literature.**
+
+Every published Pokemon heuristic — `SimpleHeuristicsPlayer` in poke-env, the
+score-stacking families in the Gen 3 lineage — estimates a matchup from the two
+species' **types**, and assumes a Pokemon's STAB moves are the ones it will
+attack with. That holds in a normal game, where a Fire type carries Fire moves.
+
+**It is fiction here.** A Gyarados in GYMRUN may hold four Grass moves and no
+Water one. This project has now paid for that assumption three times: the
+playtest round 2 effectiveness hint read species typing where it meant per-move
+typing, the 4.7 archetype labels derive from base stats and "lie sometimes under
+full move randomization", and the AI tiers brief proposed porting the reference
+matchup estimate verbatim.
+
+The rule, implemented in `core/battle/matchup.ts` and asserted in
+`test/ai-tiers.test.ts`:
+
+- **Offence is read from the four slotted moves.** What a Pokemon can do to you
+  is what it is actually carrying.
+- **Defence is read from species types.** What it resists is a fact about what
+  it is, and the randomizer does not touch it.
+
+A Water type carrying only Grass moves therefore scores its offence at Grass
+into Fire (0.5x) and its defence at Fire into Water (0.5x). The reference's
+reading of the same board is 0.5 − 2 = −1.5, and it is wrong by the whole
+difference.
+
 ## Charge moves are excluded by scoring, not by the engine
 
 `scripts/gen-pools.ts` drops moves with `flags.charge` — Fly, Dive, Solar Beam

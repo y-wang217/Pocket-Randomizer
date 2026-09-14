@@ -249,8 +249,20 @@ describe('the priority rule, against fixed positions', () => {
 // ---------------------------------------------------------------------------
 
 describe('the version axes', () => {
+  /*
+   * **Updated by the AI tiers patch, not deleted.** This assertion pinned
+   * `gymrun-ai-3-priority` as the string the priority patch moved to, and the
+   * AI tiers patch moved it three times — `-4` for the unknown-ability fix
+   * (`ai.ts`, `UNKNOWN_ABILITY`), `-5` for the tiers and their noise, and `-6`
+   * for the spent-item read in `battle/knowledge.ts`. What the test is *for* is unchanged and is
+   * what still runs: `AI_VERSION` moved when the AI's ranking moved, and a log
+   * recorded on the previous string is refused by name with both values in the
+   * message. The pre-patch log below is still a `-2` one, because a log two
+   * versions old is refused on the same axis for the same reason and keeping
+   * it is one fewer thing to re-edit next time.
+   */
   it('moved AI_VERSION, and refuses a pre-patch log naming aiVersion and both values', () => {
-    expect(AI_VERSION).toBe('gymrun-ai-3-priority');
+    expect(AI_VERSION).toBe('gymrun-ai-6-spent-item');
     const prePatch: RunLog = {
       seed: 'PRE-PRIORITY',
       versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
@@ -259,12 +271,23 @@ describe('the version axes', () => {
     expect(isReplayable(prePatch)).toBe(false);
     expect(() => assertReplayable(prePatch)).toThrow(/mismatch on aiVersion/);
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-2-switching/);
-    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-3-priority/);
+    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-6-spent-item/);
   });
 
-  it('moved nothing else: RUN_LOG_VERSION and contentHash are the Branch 1 values, literally', () => {
+  /*
+   * **Updated by the AI tiers patch, not deleted.** `contentHash` moved because
+   * that patch added `src/data/ai.ts`, which is a data table under the glob and
+   * is therefore hashed the day it lands — the workflow `docs/generation.md`
+   * section 9 states for exactly this case. `RUN_LOG_VERSION` did not move and
+   * the assertion that it did not is the half of this test that still guards
+   * something: the AI patch changes no logged decision, so a log's schema is
+   * untouched and only the `aiVersion` and `contentHash` axes refuse it.
+   */
+  it('moved RUN_LOG_VERSION not at all, and contentHash only by a new data table', () => {
     expect(RUN_LOG_VERSION).toBe('gymrun-run-13/gymrun-0.3.0');
-    expect(CONTENT_HASH).toBe('b022fc4e4fdd36cb235a58b23d4690180da9488da9081726fc25ea705a66bebf');
+    // Pinned literally, as the Branch 1 value was: a hash nobody can read off
+    // the tree by eye is exactly the kind that moves without anyone noticing.
+    expect(CONTENT_HASH).toBe('dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

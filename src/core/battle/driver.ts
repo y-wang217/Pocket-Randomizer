@@ -16,6 +16,7 @@ import type { RngStream, SimSeed } from '../rng';
 import { createRng } from '../rng';
 import { FIXTURE_BATTLE_KEY } from '../streamKeys';
 import { speedView } from './speed';
+import { applyKnowledgeLine, emptyKnowledge } from './knowledge';
 import {
   BOOST_NAMES,
   emptyStatStages,
@@ -51,6 +52,7 @@ import { readContribution } from './contribution';
 import { statsAtLevel } from './stats';
 import { rejectionReason } from './switching';
 import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
+import type { SeenKnowledge } from '../types';
 
 /**
  * Bumped whenever a change would make an older RunLog replay differently.
@@ -563,6 +565,10 @@ function toActiveView(pokemon: SimPokemon, revealAbility: boolean): ActiveView {
     // the two together), so reading it off the foe leaks nothing.
     baseSpeed: pokemon.storedStats.spe,
     ability: revealAbility ? Dex.forGen(GYMRUN_GEN).abilities.get(pokemon.ability).name : null,
+    // Same rule as the ability, and for the same reason: an item the opponent
+    // has not shown is not public information. `itemAware` reads its own side's
+    // here and the foe's from `seen`.
+    item: revealAbility && pokemon.item ? pokemon.item : null,
   };
 }
 
@@ -914,6 +920,17 @@ export function createBattle(options: BattleOptions): BattleSession {
   };
 
   const protocol: Record<SideId, string[]> = { p1: [], p2: [] };
+  /*
+   * What each side has watched the *other* side do, kept up to date as the
+   * protocol drains rather than refolded per view.
+   *
+   * `buildView` runs several times a turn, so folding the whole protocol each
+   * time made a battle quadratic in its own length — see
+   * `battle/knowledge.ts`, `applyKnowledgeLine`. One record per side, pushed
+   * forward by the lines that side was actually shown, which is the same
+   * channel split that keeps the two honest.
+   */
+  const seenBy: Record<SideId, SeenKnowledge> = { p1: emptyKnowledge(), p2: emptyKnowledge() };
   const decisions: Decision[] = [];
   const voluntarySwitches: Record<SideId, number> = { p1: 0, p2: 0 };
   const listeners = new Set<(update: BattleUpdate) => void>();
@@ -938,6 +955,8 @@ export function createBattle(options: BattleOptions): BattleSession {
     const forP2 = channels[2].filter((line) => line.length > 0);
     protocol.p1.push(...forP1);
     protocol.p2.push(...forP2);
+    for (const line of forP1) applyKnowledgeLine(seenBy.p1, line, 'p2');
+    for (const line of forP2) applyKnowledgeLine(seenBy.p2, line, 'p1');
     return forP1;
   }
 
@@ -984,6 +1003,11 @@ export function createBattle(options: BattleOptions): BattleSession {
       forceSwitch,
       awaitingChoice: awaiting,
       trapped: awaiting && !forceSwitch && readTrapping(request) !== null,
+      // What this side has watched the other side do, read off its own channel
+      // of the protocol — never off the teams. See `battle/knowledge.ts`.
+      // Copied rather than handed out live: a view is a snapshot, and a policy
+      // holding one from two turns ago must not see it change under it.
+      seen: { ...seenBy[side], moves: [...seenBy[side].moves] },
     };
   }
 

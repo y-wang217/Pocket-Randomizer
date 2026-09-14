@@ -52,16 +52,28 @@ This was learned by making the mistake: a 3.2-point "regression" was attributed
 to a move-pool change and written into the README before anyone noticed that
 the two runs used `RETUNE` and `SIM`.
 
-| stamp | prefix | completion | mean gyms | note |
-|---|---|---|---|---|
-| `randomizer-8`, 400 | RETUNE | 7.2% | 3.27 | Stage 4.6b, after the level-offset retune |
-| `randomizer-9`, 400 | SIM | 4.0% | 2.94 | Cut and Flash admitted |
-| `randomizer-10`, 400 | SIM | 4.0% | 2.82 | Cut and Flash removed |
-| `randomizer-10`, 400 | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
-| `randomizer-11`, 400 | RETUNE | 5.3% | **3.03** | Stage 4.6c relics |
-| `randomizer-12`, 400 | RETUNE | 9.75% | 3.413 | the 4.6c pin, re-read at Stage 4.8 (section 14) |
-| `randomizer-13`, 400 | RETUNE | 40.25% | **4.960** | Stage 4.8, all eight steps (section 14) |
-| `randomizer-13` · `b022fc`, 400 | RETUNE | 40.25% | 4.960 | overnight Branch 1 baseline, 2026-09-11: identical to the row above, before any code was written; `contentHash` changes what is recorded, not what is generated |
+**The AI version is part of the stamp too, from the AI tiers patch.** The
+simulator's `greedy` player bot is the same function the opponent runs, so
+every opponent AI change until 2026-09-11 moved the control arm as well and
+these rows were read down a column whose yardstick was drifting. `greedy` is
+pinned from here (`GREEDY_BASELINE`); rows before the pin are marked with the
+AI version where the document records it and `not recorded` where it does not,
+rather than being filled in from memory.
+
+| stamp | ai | prefix | completion | mean gyms | note |
+|---|---|---|---|---|---|
+| `randomizer-8`, 400 | not recorded | RETUNE | 7.2% | 3.27 | Stage 4.6b, after the level-offset retune |
+| `randomizer-9`, 400 | not recorded | SIM | 4.0% | 2.94 | Cut and Flash admitted |
+| `randomizer-10`, 400 | not recorded | SIM | 4.0% | 2.82 | Cut and Flash removed |
+| `randomizer-10`, 400 | not recorded | RETUNE | 7.2% | 3.27 | same, matched to the v8 baseline |
+| `randomizer-11`, 400 | not recorded | RETUNE | 5.3% | **3.03** | Stage 4.6c relics |
+| `randomizer-12`, 400 | `ai-2-switching` | RETUNE | 9.75% | 3.413 | the 4.6c pin, re-read at Stage 4.8 (section 14) |
+| `randomizer-13`, 400 | `ai-2-switching` | RETUNE | 40.25% | **4.960** | Stage 4.8, all eight steps (section 14) |
+| `randomizer-13` · `b022fc`, 400 | `ai-2-switching` | RETUNE | 40.25% | 4.960 | overnight Branch 1 baseline, 2026-09-11: identical to the row above, before any code was written; `contentHash` changes what is recorded, not what is generated |
+| `randomizer-13` · `b022fc`, 400 | `ai-3-priority` | RETUNE | 39.0% | 4.8725 | the priority AI (section 15), re-run at the head of the AI tiers patch and reproduced to the digit |
+| `randomizer-13` · `b022fc`, 400 | `ai-4-ability` | RETUNE | 39.25% | 4.8850 | the unknown-ability fix alone (section 16.1) |
+| `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, pinned | RETUNE | 39.25% | 4.8850 | **the pin.** `greedy` frozen to `GREEDY_BASELINE`; the row a future benchmark is read against |
+| `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, table | RETUNE | 51.0% | **5.3875** | the shipped opponent: three tiers with noise (section 16.4b) |
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
@@ -1649,7 +1661,7 @@ player-side bot took a priority kill with Mach Punch (+1) and the opponent
 answered with Feint (+2). The helper forecast Speed correctly — the bot was
 faster — and the rule's step 4 assumes a priority move lands first, which it
 does against any bracket-0 move. It does not see the foe's moves, by design
-(`ai.ts`, the header on incoming damage), so it cannot know a higher bracket is
+(`core/battle/ai.ts`, the header on incoming damage), so it cannot know a higher bracket is
 coming. That is a limit of the rule's information, recorded, not a bug in
 either the helper or Release C.
 
@@ -1670,3 +1682,365 @@ longer tackles into its own knockout, on fixed positions and in 3.1% of all
 turns — and the cost is 0.088 mean gyms at one recorded cause. The case against
 is the direction of the gap. Neither is a tuning question, and nothing in
 `data/` moved.
+
+---
+
+## 16. The AI tiers patch — four rows, one cause each
+
+**2026-09-11, `AI_VERSION` `gymrun-ai-3-priority` → `gymrun-ai-4-ability` →
+`gymrun-ai-5-tiers`.** Prompt
+[`spec/gymrun-patch-ai-tiers.md`](spec/gymrun-patch-ai-tiers.md), report
+[`reports/ai-tiers-report.md`](reports/ai-tiers-report.md).
+
+Every figure here is 400 seeds, prefix `RETUNE`, nodes `rest`, the same
+population as sections 14 and 15 and the pinned rows in section 0. **Read down
+a prefix, and from this patch on, read down an `AI_VERSION` as well** — see
+16.5, which is the finding that made that necessary.
+
+### 16.0 The rows, and what each one isolates
+
+| # | stamp | opponent | player | mean gyms | completion | note |
+|---|---|---|---|---|---|---|
+| R0 | `ai-3-priority` · `b022fc` | pinned | `greedy` | **4.8725** | 39.00% | the section 15 row, re-run here and reproduced to the digit. The figure is the committed overnight benchmark; the re-run's own JSON was produced in a throwaway worktree and is not committed, so this row is evidenced by the file section 15 names plus the reproduction |
+| R1 | `ai-4-ability` · `b022fc` | pinned | `greedy` | **4.8850** | 39.25% | the unknown-ability fix, alone |
+| R2 | `ai-4-ability` · `5b6131` | pinned | `lookahead` | **4.6725** | 36.00% | one step of lookahead on the *player* |
+| R2b | `ai-4-ability` · `5b6131` | pinned | `random` | 2.2475 | 2.50% | the floor, same population |
+
+R2 and R2b were taken at `5b6131` and R1 at `b022fc`; the hash moved because
+`data/ai.ts` landed, and `previewRun` is byte identical across it
+(`test/ai-tiers.test.ts`). The rows in 16.4 are all at `dbb2db` with the pinned
+control re-run there, so no comparison in this section spans a hash change on
+its own.
+
+The skill ladder, all at one hash and one population, which is the number the
+patch existed to produce:
+
+| rung | mean gyms | vs the rung below |
+|---|---|---|
+| `random` | 2.2475 | — |
+| `greedy` (pinned baseline) | **4.8850** | **+2.64** |
+| `lookahead` | 4.6725 | **−0.21** |
+
+**The gradient is real and it is entirely between `random` and `greedy`.** The
+game rewards playing at all, by two and a half gyms. It does not reward the one
+step above that, which is section 16.2.
+
+R0 reproducing section 15 to four decimals is the check that the arrival
+instrumentation added in this patch is a measurement and not a change: the same
+seeds played the same way with a new column printed beside them.
+
+### 16.1 The ability fix: a false fact, and a small number
+
+`@smogon/calc` resolves its ability as `options.ability || species.abilities[0]`,
+so the AI omitting a foe's unknown ability was not telling the calc "unknown",
+it was telling it "the species default". Under full ability randomization that
+is a **wrong number rather than an absence of one** — a Rotom the randomizer did
+not give Levitate was calculated as though it had it, and Earthquake read as a
+0x no-op where it would in fact have landed for 176-210. Verified directly
+against the calc, not inferred.
+
+**It is worth +0.0125 mean gyms and +0.25 points of completion.** Inside noise
+at 400 seeds, and recorded anyway, because the size of a correctness fix is not
+the argument for it: every number below rests on this estimate, and the next
+patch to read a damage figure should not have to wonder.
+
+### 16.2 The disconfirmer: one step of lookahead **costs** 0.21 gyms
+
+This is the row the whole patch was built to produce, and it came back
+negative.
+
+| | `greedy` | `lookahead` | delta |
+|---|---|---|---|
+| **mean gyms cleared** | **4.8850** | **4.6725** | **−0.2125** |
+| run completion | 39.25% | 36.00% | −3.25 pts |
+| mean score | 709.9 | 678.6 | −31.3 |
+| voluntary switches per battle | 0.846 | 0.896 | +0.050 |
+
+Per gym, and the loss is broad rather than local — it is not one gym behaving
+strangely:
+
+| gym | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| `greedy` | .995 | .892 | .903 | .905 | .843 | .882 | .938 | .957 |
+| `lookahead` | .995 | .873 | .887 | .885 | .850 | .870 | .934 | .947 |
+
+The published ladder puts this step at +222 Elo, the largest single gap between
+any two rungs. On our game it is −0.21 gyms, and **it is a real −0.21**: the
+two bots play the same 400 seeds, reach the identical gym count on 344 of them,
+and the paired difference over the other 56 sits 3.1 standard errors from zero
+(section 16.5a, which is also where this document first states its own error
+bars). Three readings, and the third is the one the numbers support:
+
+1. **The implementation is bad.** Possible and not dismissed. It was already
+   wrong once — the first cut credited a knockout that never resolves because
+   the foe moves first, caught by a twelve-seed smoke before the benchmark.
+   What shipped resolves the turn in order.
+2. **One step is not enough here.** Battles are short: 2.35 turns at segment 0,
+   5.2 at segment 1, 7.3 at segment 3. A step of lookahead needs a turn after
+   this one to look at.
+3. **It spends its gain on switching, and switching does not pay.** The
+   strongest reading. The term's largest effect is that a move leaving you dead
+   to the reply scores at the floor — so when the board is lost, every *move*
+   looks terrible and a *switch* does not. The bot duly switches 5.9% more
+   often. Section 7.6 measured switching as worth nothing to the player
+   (`switch-aware` 9.7% against `no-switch` 10.6% at a thousand seeds), so a
+   policy that switches more is spending turns on the one mechanic this game
+   does not reward.
+
+**The named experiment that would settle it**, and it is not run here because
+the standing policy is to record and continue: `lookahead` against `greedy`
+with the bench hidden on both sides (`withoutSwitching`). If the gap closes or
+reverses, reading 3 is right and the lookahead term is fine — it is the switch
+model underneath it that is wrong. If `lookahead` still loses with no switch
+available, the term itself is.
+
+### 16.3 The answer to the question the patch was asked
+
+> Were the gyms ever too hard, or were we measuring them with a bad bot?
+
+**Neither, and the third possibility is the one the numbers point at.** The bot
+was never the 885-Elo max-damage picker the brief assumed — it has had a full
+`@smogon/calc` estimate since Stage 0, with accuracy, boost stages, the real
+stat ratio, matchup-scored send-ins and voluntary switching — and the rung above
+it makes things *worse* here, so there is no hidden headroom to recover by
+measuring better. And the gyms are not too hard: `greedy` clears 4.885 of eight
+and completes 39%.
+
+What the arrival instrumentation says instead:
+
+| gym | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| party HP on arrival | 96.7% | 92.3% | 94.8% | 92.5% | 92.7% | 92.5% | 93.0% | 92.9% |
+| party level − gym level | +2.5 | +3.5 | +7.0 | +8.0 | +11.0 | +12.5 | +12.5 | **+13.5** |
+
+**The party arrives at every gym at 93% health and thirteen levels above the
+last one.** The road costs nothing and the level gap widens monotonically from
+segment 2 onward. That is a scaling shape, it is visible in one table, and it
+is not this patch's to change — `data/scaling.ts` is explicitly out of scope,
+because a scaling change landing beside an AI change makes the next report
+unattributable. It is the first thing the next report should look at.
+
+### 16.4 The easy tier's sequence switching, isolated
+
+Ruling 4: this is the largest single mover in the patch, because easy tier
+covers wild and normal-tier trainers, which is most of the fights in a run.
+Removing their switching makes the *road* cheaper rather than the gym easier,
+and mean gyms cleared cannot tell those apart — which is why the arrival row
+above exists and why these two rows are read together.
+
+**All four rows were retaken on `AI_VERSION` `-6`** after the spent-item defect
+in 16.5d was found, and the retake is its own small finding: R4 and R5 came
+back **identical to four decimals** and R6 moved by a quarter of a point of
+completion on an unchanged mean — one run in four hundred. The defect was real
+and its effect at this sample is below the resolution of the measurement, which
+is worth knowing before anyone spends a day on the next one.
+
+All four rows below are `contentHash` `5b6131` → `dbb2db`: `data/ai.ts` gained
+`HP_AWARE` and `data/items.ts` gained `restores`, both read only by the AI. The
+hash cannot know that, so the pinned row was **re-run at the new hash and
+reproduced R1 to the digit** (4.8850, 39.25%) — the tables moved, the game did
+not, and every row here is on one hash and one population.
+
+| # | opponent | mean gyms | completion | AI switches/battle | note |
+|---|---|---|---|---|---|
+| R3 | pinned (`GREEDY_BASELINE` everywhere) | **4.8850** | 39.25% | 0.510 | the control, re-run at `dbb2db` |
+| R4 | `--ai table` | **5.3875** | 51.00% | 0.385 | the tier table as shipped |
+| R5 | `--ai table --ai-add smartSendIn,smartSwitching` | **5.4050** | 50.25% | 0.622 | easy tier given its switching back |
+| R6 | `--ai table --ai-noise 0` | **5.0875** | 45.25% | — | the tier table with the dice held still |
+
+**R5 − R4 is the easy tier's sequence switching, isolated: +0.0175 mean gyms
+and −0.75 points of completion.** The flag fired — opponent switches per battle
+go 0.385 → 0.622, a 62% increase — and it changed nothing. The report predicted
+this would be the largest single mover in the patch and **that prediction was
+wrong**, by an order of magnitude. It is recorded as wrong rather than quietly
+dropped.
+
+The reading that fits, and it is the same one section 7.6 reached from the
+player's side: **switching is not worth a turn in this game, for either side.**
+A bot that switches 62% more often ends up in the same place. Whatever is wrong
+with switching here is not a property of who is doing it.
+
+Party HP on arrival is flat across R4 and R5 to a tenth of a point at every
+gym, which is the other half of the same finding: the handicap did not make the
+road cheaper either.
+
+### 16.4b Where the +0.50 actually comes from
+
+R4 − R3 is +0.5025 mean gyms and +11.75 points of completion, in the player's
+favour: **the tier table as specified makes the game easier than the AI it
+replaced.** R6 splits that:
+
+| cause | mean gyms | of the +0.50 |
+|---|---|---|
+| noise, all three tiers (R4 − R6) | **+0.3000** | 60% |
+| the tier flags themselves (R6 − R3) | **+0.2025** | 40% |
+| — of which the easy tier's sequence switching (R4 − R5) | −0.0175 | ~0 |
+
+**Noise is the majority of it**, which is the honest price of the thing section
+16.6 argues for: an opponent that cannot be predicted perfectly is an opponent
+that sometimes plays the second-best move, and at 0.35 on every wild and normal
+trainer that is a real amount of free damage. The values in `data/ai.ts` are a
+first guess and have not been tuned — per section 0, this row records what they
+cost and does not chase them.
+
+The other 40% is the flags, and it is concentrated where it should not be:
+
+| gym | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| R3 pinned | .995 | .892 | .903 | .905 | **.843** | **.882** | .938 | .957 |
+| R6 tiers, no noise | .995 | .886 | .905 | .901 | **.912** | **.910** | .950 | .957 |
+
+Gyms 1-4 are medium tier and sit within a point of the control. **Gyms 5 and 6
+are hard tier and got easier by seven and three points.** The hard tier's one
+distinguishing flag is `oneStepLookahead`, and section 16.2 measured that same
+flag losing 0.21 gyms on the player's side. It loses on the opponent's side
+too, and for the same unresolved reason.
+
+So the patch's definition of done is **half met, measured**: a wild does play
+visibly worse than a route trainer, and an elite trainer does not play visibly
+better than the baseline — it plays slightly worse. That is not a tuning miss
+to paper over; it is the same open question as 16.2, and the experiment named
+there settles both. **The candidate change, not made here:** hard tier's
+distinguishing flag should not be `oneStepLookahead` until the switch model
+underneath it is understood, and nothing in `data/ai.ts` moves before that
+experiment runs.
+
+### 16.5a How "mean gyms cleared" is measured, and how much of it is noise
+
+**Asked during the patch and worth its own section, because nothing in this
+document had ever stated the spread.**
+
+The number is exactly what it sounds like: `gymsCleared` counts the gym nodes a
+run won, and the sample means it over 400 runs. What that hides is how wide the
+400 are.
+
+| row | mean | SD across runs | standard error |
+|---|---|---|---|
+| `random` | 2.2475 | 1.83 | 0.091 |
+| `greedy` | 4.8850 | 2.93 | 0.146 |
+| `lookahead` | 4.6725 | 2.93 | 0.147 |
+
+A run clears 0 to 8 gyms and the distribution is genuinely wide — 6.8% of
+`greedy` runs clear none at all, and a good fraction clear all eight. So **the
+standard error on any single row is about 0.15, and two rows read as levels
+need to differ by about 0.4 before the difference means anything.** By that
+reading, section 16.2's −0.21 would be noise.
+
+**It is not noise, because the comparison is paired and the document has never
+said so.** Every policy plays the identical seed set, so the identical maps,
+starters, gyms and reward offers. Subtracting the rows run by run cancels the
+map-to-map variance that produces almost all of that 2.93:
+
+| paired difference, 400 seeds | mean | SD of the difference | SE | t |
+|---|---|---|---|---|
+| `lookahead` − `greedy` | **−0.2125** | 1.354 | 0.068 | **−3.14** |
+| `greedy` − `random` | **+2.6375** | 3.08 | 0.154 | **+17.1** |
+
+`lookahead` and `greedy` **reach the identical gym count on 344 of the 400
+seeds**. The whole difference lives in 56 runs, and the paired test says it is
+real at about p = 0.002.
+
+Two rules follow, and they should have been here since Stage 2:
+
+1. **Compare rows by subtracting them run by run, never by eyeballing the
+   means.** The levels carry the map's variance; the difference does not. Every
+   sample now records `gymsPerRun` in seed order so the subtraction is
+   available to anyone reading the JSON.
+2. **A paired comparison is only valid down a fixed seed set** — which is the
+   `--prefix` rule this document already has, now with a reason attached beyond
+   "two prefixes sit at different rates".
+
+### 16.5b Does a better test bot make the benchmark more accurate?
+
+The question that prompted 16.5a, and the answer is that it improves one thing
+and destroys another, which is why the patch did both halves.
+
+**Validity** — does the number describe the game a person will actually play? —
+does improve with a better bot. `random` completing 2.5% of runs says almost
+nothing about a human's experience; `greedy` at 39% says considerably more. A
+bot that played like a good player would be the most informative proxy we could
+have, and building better ones is worth doing.
+
+**Precision does not improve at all.** The error bars above are a property of
+the seed population and the spread of run outcomes, not of the bot's skill:
+`random` has a *smaller* standard error than `greedy` precisely because it is
+worse and dies earlier, more predictably. A better bot moves the mean; it does
+not tighten it.
+
+**And comparability is actively destroyed by a bot that improves silently.**
+That is the trap sections 7 through 15 fell into: the yardstick and the thing
+being measured were the same function, so a row was never "the game got easier"
+or "the bot got better" — it was both, unattributably. This patch's own numbers
+show how badly that can mislead in both directions: a *better* policy on the
+published ladder (`lookahead`) makes the number go **down** here, so a
+benchmark that silently adopted it would have recorded a difficulty increase
+that never happened.
+
+So: **pin the yardstick, and add new bots beside it rather than into it.**
+`greedy` is frozen (16.5), `lookahead` is a new column, and a future bot that
+plays better gets a third. Reading three pinned columns across a release is
+strictly more information than reading one drifting column, and it costs a
+sweep that was already cheap.
+
+### 16.5d What `itemAware` actually reaches, measured against the visibility rule
+
+**It shipped, and it is worth saying exactly how far it reaches, because the
+flag's name promises more than the knowledge rule allows.** Trainers hold
+berries at 50% in segment 1 falling to 20% by segment 8, and wilds at half
+that (`BERRY_HOLD_RATE`), so the opportunity is real and frequent. What the
+flag does with it splits in two:
+
+- **Its own item is always known and always priced in.** `view.me.item` is
+  populated for a side's own Pokemon, so an `itemAware` tier's resist berry
+  (an Occa Berry against a Fire move) reaches the calc on every turn it is
+  holding one, and the threat estimate it feeds is correspondingly sharper.
+- **The player's item is only known once the battle reveals it**, because that
+  is what the visibility rule requires: `ActiveView.item` is null for the foe,
+  and the only paths in are `-item` (Frisk, Trick) and `-enditem`. **A berry
+  that has not fired is not public information**, so the kill-line correction
+  the ruling named — "a foe on 40 HP holding a Sitrus does not faint to a
+  45-damage hit" — fires against a *revealed* item and not against a hidden
+  one.
+
+That is the correct behaviour and it is also a smaller effect than the flag
+sounds. The case it was written for is mostly reachable on the **player's**
+side of the ladder, where a bot knows its own items — so if a future rung of
+the policy ladder is built, `itemAware` is worth more there than it is here.
+
+The defect that came out of writing this section down is recorded as
+`AI_VERSION` `-6`: `-enditem` is how a berry announces itself, *by being
+eaten*, and the tracker was reading that line as "holds this". An `itemAware`
+tier therefore kept adding a quarter of a bar to the kill line for the rest of
+the battle after watching the berry fire. Only tiers holding the flag are
+affected, so the pinned rows are untouched; the tier rows in 16.4 were retaken
+on `-6`.
+
+### 16.5c A test that got slower is a finding, not a flaky test
+
+`test/economy.test.ts` resumes a run from **every** save point, so it is
+quadratic in the run's length, and it went from half a minute to six. The cause
+is the patch's own headline: the tiered opponent is weaker, so the seed that
+test was pinned to stopped dying at gym 2 and started winning the run — 126
+decisions became 438.
+
+Recorded here because the same thing will happen again, to a different test,
+the next time the difficulty curve moves. The fix is the one the test's own
+comment already named — `scripts/scan-seed.ts spender` picks a seed whose run
+is bounded — and **not** a raised timeout, which would have hidden the fact that
+the game changed length.
+
+### 16.5 `greedy` is pinned, and every row above is stamped with an AI version
+
+The finding with the longest tail, and it is about this document rather than
+about the game. The simulator's player-side `greedy` bot **is** `decide(view)`,
+the same function the opponent runs. So every opponent AI change until now
+moved the control arm as well: sections 7, 11, 14 and 15 are all read down a
+column whose yardstick was changing underneath it. Section 15's "the skill gap
+narrowed by 0.15" is a real measurement of two bots that both moved.
+
+From here: `greedy` is bound permanently to `GREEDY_BASELINE` in
+`core/battle/ai.ts` — the three flags that reproduce `gymrun-ai-3-priority` —
+and a future better baseline gets a new name beside it rather than an
+improvement to it. `AI_VERSION` and the opponent mode are stamped into every
+report, and every row in this section names both. **Read down an AI version the
+same way you read down a prefix.**

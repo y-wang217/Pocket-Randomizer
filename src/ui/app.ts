@@ -735,11 +735,19 @@ export function mountApp(root: HTMLElement): void {
         ability: state.tuning.revealOpponentAbility,
         item: state.tuning.revealOpponentItem,
       };
-      detachBattle = battleScreen.attach(session, node, reveal, (choice) => {
-        // A click with nothing pending is a no-op, not a decision queued
-        // against the following turn.
-        movePick.submit(choice);
-      });
+      detachBattle = battleScreen.attach(
+        session,
+        node,
+        reveal,
+        (choice) => {
+          // A click with nothing pending is a no-op, not a decision queued
+          // against the following turn.
+          movePick.submit(choice);
+        },
+        // The segment, so the panel can name who is playing this fight. The
+        // same reading the node card made before the click.
+        state.currentSegment,
+      );
       showScreen('battle');
     };
 

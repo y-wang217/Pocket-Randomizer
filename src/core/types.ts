@@ -248,9 +248,21 @@ export interface ActiveView {
    * Stage 0 does not track what an ability has revealed about itself, and
    * handing the AI an ability it has not seen used would make the Stage 2
    * balance sweep measure a bot with information no player has. Reveal
-   * tracking is the honest way to fill this in later.
+   * tracking is the honest way to fill this in later, and the AI tiers patch
+   * is where it landed — `BattleView.seen`, not this field, which stays the
+   * *public* fact.
    */
   ability: string | null;
+  /**
+   * Held item by dex id, or null when it holds nothing or the holder is the foe.
+   *
+   * **The AI tiers patch, and the one thing the report found the scorer
+   * genuinely could not see.** Same visibility rule as `ability`: your own side
+   * reports it, the opponent's is null until the battle reveals it, and a
+   * revealed one arrives through `BattleView.seen`. Optional so a hand-built
+   * view in a test is still a legal one.
+   */
+  item?: string | null;
 }
 
 /**
@@ -307,6 +319,27 @@ export interface BattleView {
    * `battle/switching.ts` for why an unrevealed Arena Trap has to count.
    */
   trapped: boolean;
+  /**
+   * What this side has *seen* the foe do, from the protocol it was shown.
+   *
+   * **The AI tiers patch.** Public information by construction: it is folded
+   * out of this side's own channel of the protocol, so it contains exactly what
+   * a human watching the same battle would have watched happen, and it is
+   * cleared when the foe switches out. A policy that does not hold the
+   * `seenKnowledge` flag ignores it; the human player has been reading it off
+   * the screen since Stage 4.5.
+   *
+   * Optional so that a hand-built view in a test is still a legal one.
+   * `core/battle/knowledge.ts` is the reader and carries the rule.
+   */
+  seen?: SeenKnowledge;
+}
+
+/** What a battle has revealed about one side's active Pokemon. See `battle/knowledge.ts`. */
+export interface SeenKnowledge {
+  moves: string[];
+  ability: string | null;
+  item: string | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -22,7 +22,8 @@
  * decision log, and shared mutable state is the fastest way to make a replay
  * disagree with the run it replays.
  */
-import { AI_VERSION, greedyAiPolicy } from './battle/ai';
+import { AI_VERSION, aiPolicy } from './battle/ai';
+import { AI_TIERS, aiTierFor } from '../data/ai';
 import { ENGINE_VERSION, runBattle, type BattleSession, type Casualty } from './battle/driver';
 import type { Policy } from './battle/policy';
 import {
@@ -79,7 +80,7 @@ import {
   type Reward,
   type RewardOffer,
 } from './rewards';
-import { createRng } from './rng';
+import { createAiStream, createRng } from './rng';
 import type {
   BattleMemberState,
   BattleResult,
@@ -1249,8 +1250,32 @@ export interface PlayRunOptions {
   onDecision?: (log: RunLog) => void;
   /** Fired synchronously with a live session the moment a battle starts. */
   onBattle?: (session: BattleSession, node: NodeSpec, state: RunState) => void;
-  /** The opponent. Defaults to the greedy AI; a sweep may want something else. */
+  /**
+   * One opponent for every fight in the run.
+   *
+   * **Kept, and no longer the default.** The simulator's controlled
+   * comparisons rest on it — `--policy no-switch` is the same AI wrapped, and
+   * `--ai pinned` is the pre-tier opponent — so a caller that wants one bot in
+   * every fight still gets exactly that. When it is set, `opponentFor` is not
+   * consulted and no tier is read.
+   */
   opponent?: Policy;
+  /**
+   * The opponent for one node, built fresh for each fight.
+   *
+   * **Per node, because a tier is a property of the node and noise is a
+   * property of the battle.** `aiTierFor` reads the node's kind, its tier and
+   * its segment; the profile's rolls come from a stream derived from that
+   * battle's own sim seed, which map generation drew under `nodeKey`. Building
+   * one policy for the whole run would share a single noise sequence across
+   * every fight, so a run's eighth battle would depend on how long its first
+   * one lasted — which is a draw whose position depends on play, and the seeds
+   * document forbids exactly that.
+   *
+   * Defaults to `tieredOpponentFor`. A caller overriding it is the simulator
+   * isolating one flag.
+   */
+  opponentFor?: (node: NodeSpec, segment: number) => Policy;
 }
 
 export interface RunResult {
@@ -1274,7 +1299,7 @@ export async function playRun(
   options: PlayRunOptions = {},
 ): Promise<RunResult> {
   const decisions: RunDecision[] = [];
-  const opponent = options.opponent ?? greedyAiPolicy;
+  const opponentFor = opponentBuilder(options);
 
   const record = (decision: RunDecision): void => {
     decisions.push(decision);
@@ -1340,7 +1365,7 @@ export async function playRun(
       node = nextNode(state, choice);
     }
 
-    const result = await playNode(state, node, policy, record, opponent, options);
+    const result = await playNode(state, node, policy, record, opponentFor, options);
 
     /*
      * The reward, asked for after the fight and only on a win.
@@ -1687,6 +1712,34 @@ function maxNodes(state: RunState): number {
 }
 
 /**
+ * The opponent a fight is played by, and where a tier becomes a behaviour.
+ *
+ * **The first time node tier changes how a fight plays rather than only what it
+ * pays.** Stage 3 put the risk gradient in the reward pools and nowhere else,
+ * so an elite node paid better for a fight that played identically to a normal
+ * one. `data/ai.ts` holds the table; there is no logic here beyond reading it.
+ *
+ * The stream is the battle's own, per `core/rng.ts`'s `createAiStream`: fixed
+ * by the seed, unmoved by anything the player does, and consuming nothing from
+ * any keyed stream. A replay re-runs this same builder over the same nodes and
+ * draws the same values in the same order, which is what keeps a run log
+ * replayable when the opponent's choices are not in it.
+ */
+export function tieredOpponentFor(node: NodeSpec, segment: number): Policy {
+  const tier = aiTierFor(node.kind, node.tier, segment);
+  const encounter = node.encounter;
+  // A node with no encounter never reaches here through `playNode`, and a
+  // caller asking anyway gets the deterministic form rather than a throw.
+  if (!encounter) return aiPolicy(AI_TIERS[tier]);
+  return aiPolicy(AI_TIERS[tier], createAiStream(encounter.simSeed, 'p2'));
+}
+
+function opponentBuilder(options: PlayRunOptions): (node: NodeSpec, segment: number) => Policy {
+  if (options.opponent) return () => options.opponent as Policy;
+  return options.opponentFor ?? tieredOpponentFor;
+}
+
+/**
  * Play one node.
  *
  * Rest nodes resolve without a decision — the choice to rest *was* the
@@ -1698,10 +1751,11 @@ async function playNode(
   node: NodeSpec,
   policy: RunPolicy,
   record: (decision: RunDecision) => void,
-  opponent: Policy,
+  opponentFor: (node: NodeSpec, segment: number) => Policy,
   options: PlayRunOptions,
 ): Promise<NodeResult> {
   if (!node.encounter) return { node };
+  const opponent = opponentFor(node, state.currentSegment);
 
   // Record the player's choices as they are made. Only the player's: the
   // opponent is a deterministic policy over a view it is handed, so recording

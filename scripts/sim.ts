@@ -53,14 +53,14 @@ import { join } from 'node:path';
 
 import { outcomeAt } from '../src/core/events';
 import { resolveCapability } from '../src/core/capabilities';
-import { AI_VERSION, decide } from '../src/core/battle/ai';
+import { AI_VERSION, decideWith, GREEDY_BASELINE, type AiFlag, type AiProfile } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
 import { usableMoves, usableSwitches, withoutSwitching, type Policy } from '../src/core/battle/policy';
 import type { NodeSpec } from '../src/core/encounters';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { CONTENT_HASH } from '../src/core/contentHash';
 import { SIM_POLICY_KEY } from '../src/core/streamKeys';
-import { createRng, type RngStream } from '../src/core/rng';
+import { createAiStream, createRng, type RngStream } from '../src/core/rng';
 import {
   causeOfDeath,
   gymsCleared,
@@ -94,6 +94,7 @@ import {
   type PokemonState,
   type Tier,
 } from '../src/core/types';
+import { AI_TIERS, aiTierFor, type AiTier } from '../src/data/ai';
 import { GYMS } from '../src/data/gyms';
 import { BERRIES, itemById, ITEMS } from '../src/data/items';
 import { localeById, LOCALE_IDS, type LocaleId } from '../src/data/locales';
@@ -143,6 +144,14 @@ function bandOfPower(basePower: number): number {
 type PolicyName =
   | 'greedy'
   | 'random'
+  /**
+   * One step of lookahead on the player's side. **The AI tiers patch, step 2.**
+   *
+   * `greedy` plus `oneStepLookahead` and nothing else, so the gap between the
+   * two is one rung of the published skill ladder measured on our own game. See
+   * `LOOKAHEAD_PROFILE` for why there is no `heuristic` beside it.
+   */
+  | 'lookahead'
   | 'tier-averse'
   | 'tier-greedy'
   /**
@@ -224,9 +233,32 @@ interface Options {
   outDir: string;
   tuning: Tuning;
   quiet: boolean;
+  /** Which opponent plays the fights. See `AiMode`. */
+  ai: AiMode;
+  /** Flags forced on, and off, at every tier. One behaviour per row. */
+  aiAdd: AiFlag[];
+  aiDrop: AiFlag[];
+  /**
+   * Every tier's noise and switch failure forced to one value, or null to use
+   * the table's.
+   *
+   * Noise is the one part of a tier that is not a flag, so it needs its own
+   * knob or an attribution row cannot hold it still. `--ai-noise 0` is the
+   * deterministic version of whatever tier table is loaded, which is the
+   * control for "how much of this row is the reasoning and how much is the
+   * dice".
+   */
+  aiNoise: number | null;
 }
 
+/*
+ * `--policy all` stays the pair it has always been, so every historical
+ * invocation means what it meant. The ladder is its own name below.
+ */
 const ALL_POLICIES: PolicyName[] = ['greedy', 'random'];
+
+/** The skill gradient, in one command: the floor, the pinned baseline, one step of lookahead. */
+const LADDER_POLICIES: PolicyName[] = ['random', 'greedy', 'lookahead'];
 /** The Stage 4 headline: same AI, same seeds, switching on and off. */
 const SWITCH_POLICIES: PolicyName[] = ['switch-aware', 'no-switch'];
 const ALL_NODE_POLICIES: NodePolicyName[] = ['rest', 'wild', 'trainer', 'first'];
@@ -248,6 +280,17 @@ function parseArgs(argv: string[]): Options {
     outDir: 'sim-reports',
     tuning: structuredClone(DEFAULT_TUNING),
     quiet: false,
+    /*
+     * **`pinned` is the default, and that is not laziness.** Every figure in
+     * `docs/balance.md` was taken against one opponent in every fight, and a
+     * default that quietly changed the opponent would make `npm run sim` mean
+     * something different from what it meant last week without anyone typing a
+     * new flag. A tiered row says so on the command line.
+     */
+    ai: 'pinned',
+    aiAdd: [],
+    aiDrop: [],
+    aiNoise: null,
   };
   const overrides: string[] = [];
 
@@ -269,17 +312,19 @@ function parseArgs(argv: string[]): Options {
         options.policies =
           name === 'all'
             ? ALL_POLICIES
-            : name === 'tiers'
-              ? TIER_POLICIES
-              : name === 'switching'
-                ? SWITCH_POLICIES
-                : name === 'catching'
-                  ? CATCH_POLICIES
-                  : name === 'relics'
-                    ? RELIC_POLICIES
-                    : name === 'leads'
-                      ? LEAD_POLICIES
-                      : [assertPolicy(name)];
+            : name === 'ladder'
+              ? LADDER_POLICIES
+              : name === 'tiers'
+                ? TIER_POLICIES
+                : name === 'switching'
+                  ? SWITCH_POLICIES
+                  : name === 'catching'
+                    ? CATCH_POLICIES
+                    : name === 'relics'
+                      ? RELIC_POLICIES
+                      : name === 'leads'
+                        ? LEAD_POLICIES
+                        : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -290,6 +335,26 @@ function parseArgs(argv: string[]): Options {
       case '--prefix':
         options.prefix = value();
         break;
+      case '--ai': {
+        const name = value();
+        if (name !== 'pinned' && name !== 'table') {
+          throw new Error(`--ai must be pinned or table (got "${name}")`);
+        }
+        options.ai = name;
+        break;
+      }
+      case '--ai-add':
+        options.aiAdd = assertFlags(value());
+        break;
+      case '--ai-drop':
+        options.aiDrop = assertFlags(value());
+        break;
+      case '--ai-noise': {
+        const raw = Number(value());
+        if (!Number.isFinite(raw) || raw < 0 || raw > 1) throw new Error('--ai-noise takes a number from 0 to 1');
+        options.aiNoise = raw;
+        break;
+      }
       case '--out':
         options.outDir = value();
         break;
@@ -321,6 +386,7 @@ function parseArgs(argv: string[]): Options {
 
 const POLICY_NAMES: readonly string[] = [
   ...ALL_POLICIES,
+  ...LADDER_POLICIES,
   ...TIER_POLICIES,
   ...SWITCH_POLICIES,
   ...CATCH_POLICIES,
@@ -328,10 +394,30 @@ const POLICY_NAMES: readonly string[] = [
   ...LEAD_POLICIES,
 ];
 
+const AI_FLAGS: readonly AiFlag[] = [
+  'avoidFailingMoves',
+  'takeTheKo',
+  'hpAware',
+  'itemAware',
+  'seenKnowledge',
+  'oneStepLookahead',
+  'smartSendIn',
+  'smartSwitching',
+  'crudeDamage',
+];
+
+function assertFlags(raw: string): AiFlag[] {
+  return raw.split(',').map((name) => {
+    const flag = AI_FLAGS.find((known) => known === name.trim());
+    if (!flag) throw new Error(`Unknown AI flag "${name}". One of ${AI_FLAGS.join(', ')}`);
+    return flag;
+  });
+}
+
 function assertPolicy(name: string): PolicyName {
   if (!POLICY_NAMES.includes(name)) {
     throw new Error(
-      `--policy must be one of ${POLICY_NAMES.join(', ')}, tiers, switching, catching, relics, leads or all (got "${name}")`,
+      `--policy must be one of ${[...new Set(POLICY_NAMES)].join(', ')}, ladder, tiers, switching, catching, relics, leads or all (got "${name}")`,
     );
   }
   return name as PolicyName;
@@ -350,7 +436,8 @@ const USAGE = `
   npm run sim -- [options]
 
     --seeds N        how many seeds to play per policy (default 200)
-    --policy NAME    greedy | random | switch-aware | no-switch | switching |
+    --policy NAME    greedy | random | lookahead | ladder |
+                     switch-aware | no-switch | switching |
                      tier-averse | tier-greedy | tiers |
                      catch-greedy | catch-averse | catching |
                      relic-greedy | relics |
@@ -363,12 +450,27 @@ const USAGE = `
     --nodes NAME     rest | wild | trainer | first | random | tier-averse |
                      tier-greedy | all                        (default rest)
     --prefix TEXT    seed prefix, so two sweeps can use different populations
+    --ai MODE        pinned | table — which opponent plays the fights.
+                     pinned is the frozen pre-tier AI in every fight and is
+                     the default, because every historical row was measured
+                     that way                                 (default pinned)
+    --ai-add FLAGS   comma-separated AI flags forced on at every tier
+    --ai-drop FLAGS  comma-separated AI flags forced off at every tier
+    --ai-noise N     every tier's noise and switch failure forced to N, so a
+                     row can separate the reasoning from the dice
+                     One behaviour per row: --ai table against
+                     --ai table --ai-add smartSendIn,smartSwitching isolates
+                     the easy tier's sequence switching and nothing else
     --out DIR        where the JSON report lands   (default sim-reports)
     --set path=value override a Tuning field, e.g. --set stepsPerSegment.min=4
     --quiet          JSON only, no table
 
   The balance levers themselves live in src/data/scaling.ts and are edited
   there; --set reaches the map-shape knobs in src/data/tuning.ts.
+
+  The AI tiers headline — the skill gradient, three rungs, one population:
+
+    npm run sim -- --seeds 400 --policy ladder --prefix RETUNE
 
   The Stage 3 headline:
 
@@ -851,13 +953,18 @@ interface PriorityTally {
  *
  * `greedyAiPolicy` is `decide(view).choice`; this is the same call with the
  * branch and the greedy alternative tallied, so the report can say how often
- * the priority rule fired and how often it changed the pick. Used for the
- * player's greedy bot and for the opponent alike — both are the same AI, so
- * the rate is over every AI-decided turn in the run.
+ * the priority rule fired and how often it changed the pick.
+ *
+ * **The profile is a parameter since the AI tiers patch, and `greedy` is
+ * pinned to `GREEDY_BASELINE` forever.** Until this patch the player's bot and
+ * the opponent were the same call with no argument, so every opponent AI change
+ * moved the control as well and the benchmark's own yardstick drifted
+ * underneath it. `--policy lookahead` and the opponent tiers pass their own
+ * profiles; `--policy greedy` does not and never will.
  */
-function countingGreedy(tally: PriorityTally): Policy {
+function countingGreedy(tally: PriorityTally, profile: AiProfile = GREEDY_BASELINE, rng?: RngStream): Policy {
   return async (view) => {
-    const decision = decide(view);
+    const decision = decideWith(view, profile, rng);
     tally.turns++;
     if (decision.branch === 'priority-escape') tally.escapes++;
     if (decision.branch === 'priority-kill') tally.kills++;
@@ -1081,6 +1188,58 @@ function greedyItemPlan(state: RunState): ItemPlan {
   return { assignments, discards: ranked.slice(0, overflow).map((entry) => entry.item) };
 }
 
+/**
+ * The player-side lookahead bot. **The disconfirmer for the whole AI patch.**
+ *
+ * `GREEDY_BASELINE` plus one flag, and nothing else — same damage model, same
+ * switching, same knowledge, no noise. The published ladder puts max base power
+ * at 885 Elo and one-step lookahead at 1107, a larger gap than every heuristic
+ * refinement between them combined, so if our own battles reward skill the gap
+ * between these two bots is where it shows.
+ *
+ * **`--policy heuristic` was cut and is deliberately absent.** The brief asked
+ * for it as "the medium feature set applied to the player side", on the
+ * assumption that `greedy` was a max-damage picker missing accuracy, stat
+ * ratios and boosts. It is not — it has had a full `@smogon/calc` estimate
+ * since Stage 0 — so a heuristic bot would land on top of `greedy` by
+ * construction and the number would invite exactly the wrong conclusion.
+ * Recorded in `docs/generation.md` section 13.
+ */
+/**
+ * How the opponent is chosen for a sweep, and why it is a flag rather than a
+ * second code path.
+ *
+ * `pinned` is the pre-tier opponent — `GREEDY_BASELINE` in every fight — and it
+ * is what every historical row in `docs/balance.md` was measured against.
+ * `table` reads `data/ai.ts`'s assignment, which is what the game ships.
+ *
+ * `--ai-add` and `--ai-drop` then move one flag on every tier at once, which is
+ * how a row isolates a single behaviour. The easy tier's sequence switching is
+ * the case this was built for: it is the *absence* of `smartSendIn` and
+ * `smartSwitching`, so the controlled comparison is `--ai table` against
+ * `--ai table --ai-add smartSendIn,smartSwitching`, and the difference between
+ * those two rows is that handicap and nothing else.
+ */
+type AiMode = 'pinned' | 'table';
+
+function tierProfile(
+  tier: AiTier,
+  add: readonly AiFlag[],
+  drop: readonly AiFlag[],
+  noise: number | null,
+): AiProfile {
+  const base = AI_TIERS[tier];
+  const flags = [...new Set([...base.flags, ...add])].filter((flag) => !drop.includes(flag));
+  if (noise === null) return { ...base, flags };
+  return { flags, noise, switchFailure: noise };
+}
+
+const LOOKAHEAD_PROFILE: AiProfile = {
+  flags: [...GREEDY_BASELINE.flags, 'oneStepLookahead'],
+  noise: 0,
+  switchFailure: 0,
+};
+
 function buildPolicy(
   policy: PolicyName,
   nodes: NodePolicyName,
@@ -1103,7 +1262,9 @@ function buildPolicy(
     ? randomMovePolicy(stream)
     : policy === 'no-switch'
       ? withoutSwitching(countingGreedy(collect.priority))
-      : countingGreedy(collect.priority);
+      : policy === 'lookahead'
+        ? countingGreedy(collect.priority, LOOKAHEAD_PROFILE)
+        : countingGreedy(collect.priority);
 
   /*
    * How this bot treats a capture offer.
@@ -1468,6 +1629,26 @@ interface RunRecord {
      * caught once in segment 1, and those are opposite findings.
      */
     joinedSegments: number[];
+    /**
+     * What the party walked in with, and what it walked in against.
+     * **The AI tiers patch, ruling 4.**
+     *
+     * `hpFraction` is the mean live HP fraction of the party entering the gym,
+     * and it is here because an AI change that makes the *road* cheaper — easy
+     * tier on wilds and normal trainers is most of the fights in a run —
+     * arrives at the gym with a healthier party and clears more gyms without
+     * the gym having changed at all. That is an attrition change wearing an AI
+     * costume, and mean gyms cleared alone cannot tell the two apart.
+     *
+     * `levels` and `opponentLevels` are the same argument pointed at the other
+     * standing question: the party is habitually above the curve, so a level
+     * delta that moves under an AI patch is the thing to look at before
+     * anything in `scaling.ts` is blamed. Read as a delta per gym, never as an
+     * absolute.
+     */
+    hpFraction: number;
+    levels: number[];
+    opponentLevels: number[];
   }[];
 
   // --- Stage 4.6b ---------------------------------------------------------
@@ -1521,8 +1702,19 @@ async function playSample(
     const gymParties: RunRecord['gymParties'] = [];
 
     const run = await playRun(seed, buildPolicy(policy, nodes, seed, collect), options.tuning, {
-      // The same greedy AI playRun would default to, counted.
-      opponent: countingGreedy(collect.priority),
+      /*
+       * The opponent, counted. `pinned` hands every fight the frozen baseline —
+       * one bot, as every row before this patch was measured with. `table`
+       * builds one per node from `data/ai.ts`, with its own noise stream from
+       * that battle's sim seed, exactly as `core/run.ts` does for a real run.
+       */
+      opponentFor: (node, segment) => {
+        if (options.ai === 'pinned') return countingGreedy(collect.priority);
+        const tier = aiTierFor(node.kind, node.tier, segment);
+        const profile = tierProfile(tier, options.aiAdd, options.aiDrop, options.aiNoise);
+        const stream = node.encounter ? createAiStream(node.encounter.simSeed, 'p2') : undefined;
+        return countingGreedy(collect.priority, profile, stream);
+      },
       onBattle: (session, node, before) => {
         sessions.push(session);
         sessionSegments.push(before.currentSegment);
@@ -1551,6 +1743,13 @@ async function playSample(
             berries: carried.filter((item) => BERRY_IDS.has(item)).length,
             backpack: before.backpack.length,
             joinedSegments: before.party.map((member) => member.joinedSegment),
+            // Live members only: a fainted member is at zero by definition and
+            // averaging it in would report party *size* as if it were health.
+            hpFraction: meanOf(
+              before.party.filter((member) => !member.fainted).map((member) => member.hp / Math.max(1, member.maxHp)),
+            ),
+            levels: before.party.filter((member) => !member.fainted).map((member) => member.spec.level),
+            opponentLevels: (node.encounter?.team ?? []).map((spec) => spec.level),
           });
         }
       },
@@ -1685,6 +1884,22 @@ interface Sample {
   runs: number;
   completionRate: number;
   meanGymsCleared: number;
+  /**
+   * Gyms cleared by each run, in seed order. **The AI tiers patch.**
+   *
+   * The mean is one number over four hundred runs and says nothing about how
+   * wide the four hundred are. They are wide: a standard deviation near three
+   * gyms, so the standard error on any single row is about 0.15 and two rows
+   * differing by less than about 0.4 are not distinguishable *as levels*.
+   *
+   * They are, however, distinguishable as a **pair**. Every policy plays the
+   * same seeds, so the same maps, the same starters and the same gyms — and a
+   * paired difference cancels the map-to-map variance that dominates the
+   * spread above. In seed order so that a reader can subtract two rows
+   * element-wise and get the distribution of the difference itself, which is
+   * the only honest way to say whether a delta of a fifth of a gym is real.
+   */
+  gymsPerRun: number[];
   /**
    * Mean and median score. **A second column, never a replacement.**
    *
@@ -1859,6 +2074,20 @@ interface Sample {
     berriesPerSegment: { segment: number; eaten: number; perRun: number }[];
     /** Berries carried into gym 6 and later, and the share of the bag they hold. */
     lateBerries: { parties: number; meanCarried: number; shareOfRuns: number };
+    /**
+     * How the party arrives at each gym: health, level, and the gym's level.
+     * **The AI tiers patch, ruling 4.** See `RunRecord.gymParties` for why an
+     * AI row needs both columns to be readable.
+     */
+    arrivalAtGym: {
+      gym: number;
+      parties: number;
+      hpFraction: number;
+      meanLevel: number;
+      meanOpponentLevel: number;
+      /** Player mean minus gym mean. Positive is overlevelled. */
+      levelDelta: number;
+    }[];
   };
   /**
    * Relics and the gates they open. **Stage 4.6c's measurements.**
@@ -2237,6 +2466,7 @@ function summarize(
     },
     items,
     meanGymsCleared: runs === 0 ? 0 : records.reduce((total, r) => total + r.gymsCleared, 0) / runs,
+    gymsPerRun: records.map((record) => record.gymsCleared),
     meanScore: runs === 0 ? 0 : records.reduce((total, r) => total + r.score, 0) / runs,
     medianScore: medianOf(records.map((record) => record.score)),
     perGym,
@@ -2385,9 +2615,25 @@ function summarizeRamp(records: RunRecord[]): Sample['ramp'] {
 
   // Gym 6 and later: the point the berry design says they should be gone by.
   const late = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym >= 6));
+  const arrivalAtGym = Array.from({ length: SEGMENTS_PER_RUN }, (_, index) => {
+    const gym = index + 1;
+    const rows = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym === gym));
+    const meanLevel = meanOf(rows.flatMap((row) => row.levels));
+    const meanOpponentLevel = meanOf(rows.flatMap((row) => row.opponentLevels));
+    return {
+      gym,
+      parties: rows.length,
+      hpFraction: meanOf(rows.map((row) => row.hpFraction)),
+      meanLevel,
+      meanOpponentLevel,
+      levelDelta: meanLevel - meanOpponentLevel,
+    };
+  });
+
   return {
     bandsAtGym,
     berriesPerSegment,
+    arrivalAtGym,
     lateBerries: {
       parties: late.length,
       meanCarried: late.length === 0 ? 0 : sum(late.map((entry) => entry.berries)) / late.length,
@@ -2594,6 +2840,11 @@ function sum(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
 
+/** Mean, or 0 for an empty list. Zero rather than NaN so a row still renders. */
+function meanOf(values: readonly number[]): number {
+  return values.length === 0 ? 0 : sum(values) / values.length;
+}
+
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
@@ -2744,6 +2995,42 @@ function render(sample: Sample): string {
               : '',
         ]),
     ),
+  );
+
+  /*
+   * The arrival row. **The AI tiers patch, ruling 4.**
+   *
+   * Printed next to the ramp because it answers the same question from the
+   * other side: the ramp says what the party is carrying when it arrives, this
+   * says how much of the party is left and how far above the gym it is. An AI
+   * change that never touches a gym still moves both, because most of a run is
+   * the road.
+   */
+  out.push('', 'Arrival — how the party reaches each gym');
+  out.push(
+    table(
+      ['gym', 'parties', 'party HP', 'party lvl', 'gym lvl', 'delta', 'reads as'],
+      ramp.arrivalAtGym
+        .filter((row) => row.parties > 0)
+        .map((row) => [
+          String(row.gym),
+          String(row.parties),
+          pct(row.hpFraction),
+          row.meanLevel.toFixed(1),
+          row.meanOpponentLevel.toFixed(1),
+          `${row.levelDelta >= 0 ? '+' : ''}${row.levelDelta.toFixed(1)}`,
+          // A readout, not a verdict on the tables: it says which side of even
+          // the party is, and how far. What to do about it is a scaling
+          // question and this patch does not touch scaling.
+          row.levelDelta >= 5 ? 'well above the gym' : row.levelDelta <= -5 ? 'well below the gym' : '',
+        ]),
+    ),
+  );
+  out.push(
+    `  mean level delta across every gym reached: ` +
+      `${meanOf(ramp.arrivalAtGym.filter((row) => row.parties > 0).map((row) => row.levelDelta)).toFixed(2)}` +
+      `   ·   mean party HP on arrival: ` +
+      `${pct(meanOf(ramp.arrivalAtGym.filter((row) => row.parties > 0).map((row) => row.hpFraction)))}`,
   );
 
   out.push('', 'Berries — eaten per run, by the segment they fired in');
@@ -3417,6 +3704,15 @@ const report = {
    * stamps. This is the one that says the bot changed.
    */
   aiVersion: AI_VERSION,
+  /*
+   * *Which* opponent played, beside *which version* it was. **The AI tiers
+   * patch.** `AI_VERSION` says the code changed; this says what that code was
+   * asked to be for this row — the frozen baseline in every fight, or the tier
+   * table, and any flag forced on or off to isolate one behaviour. Two rows on
+   * one `aiVersion` can now be two different experiments, and the stamp is what
+   * tells them apart.
+   */
+  ai: { mode: options.ai, add: options.aiAdd, drop: options.aiDrop, noise: options.aiNoise },
   /*
    * The slot ceiling and the schedule that reaches it. **Both, from Stage 4.8.**
    *
