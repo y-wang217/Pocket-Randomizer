@@ -1,15 +1,18 @@
 {
-  "version": "gymrun-run-13/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-13",
-  "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
+  "version": "gymrun-run-14/gymrun-0.3.0",
+  "randomizerVersion": "gymrun-randomizer-14",
+  "contentHash": "1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883",
   "aiVersion": "gymrun-ai-6-spent-item",
   "runs": [
     {
       "seed": "FIXTURE-ALPHA",
       "outcome": "defeat",
       "gymsCleared": 4,
-      "currency": 1388,
-      "backpack": [],
+      "currency": 1478,
+      "backpack": [
+        "passhoberry",
+        "colburberry"
+      ],
       "party": [
         {
           "species": "Golduck",
@@ -22,23 +25,23 @@
             "Supercell Slam",
             "Torch Song"
           ],
-          "item": "magnet",
+          "item": "sharpbeak",
           "hp": 0,
           "maxHp": 167,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 4057,
-            "damageTaken": 522,
-            "kos": 42,
-            "faints": 1,
-            "turnsOnField": 68
+            "damageDealt": 4253,
+            "damageTaken": 698,
+            "kos": 43,
+            "faints": 2,
+            "turnsOnField": 73
           },
           "status": null,
           "pp": [
             7,
-            5,
-            18,
+            4,
+            14,
             16
           ]
         },
@@ -53,23 +56,23 @@
             "Twister",
             "Life Dew"
           ],
-          "item": null,
+          "item": "magnet",
           "hp": 0,
           "maxHp": 147,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 246,
-            "damageTaken": 191,
-            "kos": 2,
+            "damageDealt": 280,
+            "damageTaken": 286,
+            "kos": 3,
             "faints": 1,
-            "turnsOnField": 18
+            "turnsOnField": 14
           },
           "status": null,
           "pp": [
-            53,
+            55,
             64,
-            27,
+            32,
             16
           ]
         },
@@ -84,55 +87,55 @@
             "Rapid Spin",
             "Spore"
           ],
-          "item": "wacanberry",
+          "item": "sharpbeak",
           "hp": 0,
           "maxHp": 148,
           "fainted": true,
           "joinedSegment": 1,
           "contribution": {
-            "damageDealt": 473,
-            "damageTaken": 347,
-            "kos": 4,
+            "damageDealt": 155,
+            "damageTaken": 275,
+            "kos": 2,
             "faints": 2,
-            "turnsOnField": 11
+            "turnsOnField": 7
           },
           "status": null,
           "pp": [
-            16,
-            47,
+            12,
+            48,
             64,
             24
           ]
         },
         {
-          "species": "Krokorok",
+          "species": "Minior",
           "level": 54,
-          "ability": "Tera Shell",
-          "gender": "M",
+          "ability": "Water Bubble",
+          "gender": null,
           "moves": [
-            "Payback",
-            "Scratch",
-            "Sand Tomb",
-            "Strength Sap"
+            "Accelerock",
+            "Rollout",
+            "Acrobatics",
+            "Eerie Impulse"
           ],
-          "item": "twistedspoon",
+          "item": "muscleband",
           "hp": 0,
           "maxHp": 145,
           "fainted": true,
           "joinedSegment": 2,
           "contribution": {
-            "damageDealt": 679,
-            "damageTaken": 293,
-            "kos": 5,
+            "damageDealt": 608,
+            "damageTaken": 384,
+            "kos": 6,
             "faints": 2,
-            "turnsOnField": 15
+            "turnsOnField": 16
           },
           "status": null,
           "pp": [
-            11,
-            56,
-            23,
-            16
+            31,
+            32,
+            21,
+            24
           ]
         },
         {
@@ -146,23 +149,23 @@
             "Snarl",
             "Thunder Shock"
           ],
-          "item": null,
+          "item": "twistedspoon",
           "hp": 0,
           "maxHp": 172,
           "fainted": true,
           "joinedSegment": 4,
           "contribution": {
-            "damageDealt": 301,
-            "damageTaken": 134,
-            "kos": 2,
+            "damageDealt": 587,
+            "damageTaken": 172,
+            "kos": 4,
             "faints": 1,
-            "turnsOnField": 5
+            "turnsOnField": 8
           },
           "status": null,
           "pp": [
-            32,
-            23,
-            21,
+            29,
+            22,
+            22,
             48
           ]
         }
@@ -254,8 +257,8 @@
           "kind": "trainer",
           "tier": "hard",
           "winner": "p1",
-          "turns": 4,
-          "hpAfter": 311,
+          "turns": 6,
+          "hpAfter": 273,
           "casualties": []
         },
         {
@@ -265,7 +268,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 311,
+          "hpAfter": 273,
           "casualties": []
         },
         {
@@ -275,7 +278,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 280,
+          "hpAfter": 255,
           "casualties": []
         },
         {
@@ -295,7 +298,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 443,
+          "hpAfter": 328,
           "casualties": []
         },
         {
@@ -305,7 +308,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 443,
+          "hpAfter": 328,
           "casualties": []
         },
         {
@@ -344,20 +347,14 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 10,
-          "hpAfter": 146,
+          "turns": 9,
+          "hpAfter": 158,
           "casualties": [
             {
               "side": "p1",
-              "name": "Rook",
-              "bySpecies": "Raichu",
-              "byMove": "Surging Strikes"
-            },
-            {
-              "side": "p1",
               "name": "Gorse",
-              "bySpecies": "Kilowattrel",
-              "byMove": "Thunder Punch"
+              "bySpecies": "Electabuzz",
+              "byMove": "Scorching Sands"
             }
           ]
         },
@@ -368,7 +365,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 518,
+          "hpAfter": 524,
           "casualties": []
         },
         {
@@ -377,8 +374,8 @@
           "kind": "trainer",
           "tier": "normal",
           "winner": "p1",
-          "turns": 6,
-          "hpAfter": 466,
+          "turns": 5,
+          "hpAfter": 444,
           "casualties": []
         },
         {
@@ -387,8 +384,8 @@
           "kind": "wild",
           "tier": "hard",
           "winner": "p1",
-          "turns": 10,
-          "hpAfter": 426,
+          "turns": 11,
+          "hpAfter": 409,
           "casualties": []
         },
         {
@@ -397,8 +394,8 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 3,
-          "hpAfter": 520,
+          "turns": 4,
+          "hpAfter": 497,
           "casualties": []
         },
         {
@@ -408,7 +405,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 3,
-          "hpAfter": 520,
+          "hpAfter": 497,
           "casualties": []
         },
         {
@@ -417,9 +414,16 @@
           "kind": "trainer",
           "tier": "normal",
           "winner": "p1",
-          "turns": 6,
-          "hpAfter": 448,
-          "casualties": []
+          "turns": 12,
+          "hpAfter": 339,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Dapple",
+              "bySpecies": "Yanma",
+              "byMove": "Giga Drain"
+            }
+          ]
         },
         {
           "id": "s3-gym",
@@ -427,8 +431,8 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 9,
-          "hpAfter": 327,
+          "turns": 6,
+          "hpAfter": 407,
           "casualties": []
         },
         {
@@ -458,7 +462,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 579,
+          "hpAfter": 751,
           "casualties": []
         },
         {
@@ -467,8 +471,8 @@
           "kind": "trainer",
           "tier": "hard",
           "winner": "p1",
-          "turns": 12,
-          "hpAfter": 426,
+          "turns": 8,
+          "hpAfter": 588,
           "casualties": []
         },
         {
@@ -478,8 +482,15 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 7,
-          "hpAfter": 382,
-          "casualties": []
+          "hpAfter": 449,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Clover",
+              "bySpecies": "Palossand",
+              "byMove": "Stomping Tantrum"
+            }
+          ]
         },
         {
           "id": "s4-shore-5-0",
@@ -488,7 +499,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 382,
+          "hpAfter": 533,
           "casualties": []
         },
         {
@@ -502,33 +513,33 @@
           "casualties": [
             {
               "side": "p1",
-              "name": "Clover",
+              "name": "Dapple",
               "bySpecies": "Armarouge",
               "byMove": "Eerie Spell"
             },
             {
               "side": "p1",
-              "name": "Lichen",
+              "name": "Moss",
               "bySpecies": "Armarouge",
               "byMove": "Eerie Spell"
             },
             {
               "side": "p1",
               "name": "Gorse",
-              "bySpecies": "Emboar",
-              "byMove": "Fire Punch"
+              "bySpecies": "Chandelure",
+              "byMove": "Fire Pledge"
             },
             {
               "side": "p1",
-              "name": "Rook",
+              "name": "Lichen",
               "bySpecies": "Emboar",
-              "byMove": "Temper Flare"
+              "byMove": "Spark"
             },
             {
               "side": "p1",
-              "name": "Moss",
+              "name": "Clover",
               "bySpecies": "Pyroar",
-              "byMove": "Sludge Bomb"
+              "byMove": "Spark"
             }
           ]
         }
@@ -567,7 +578,19 @@
         },
         {
           "kind": "event",
-          "index": 0
+          "archetype": "safe"
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [
+              {
+                "slot": 0,
+                "item": "sharpbeak"
+              }
+            ],
+            "discards": []
+          }
         },
         {
           "kind": "node",
@@ -592,12 +615,26 @@
           "index": 0
         },
         {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
           "kind": "node",
           "index": 0
         },
         {
           "kind": "shop",
           "indexes": []
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
         },
         {
           "kind": "node",
@@ -625,12 +662,8 @@
           "plan": {
             "assignments": [
               {
-                "slot": 0,
-                "item": "magnet"
-              },
-              {
                 "slot": 1,
-                "item": "oranberry"
+                "item": "magnet"
               }
             ],
             "discards": []
@@ -715,7 +748,12 @@
         {
           "kind": "items",
           "plan": {
-            "assignments": [],
+            "assignments": [
+              {
+                "slot": 2,
+                "item": "oranberry"
+              }
+            ],
             "discards": []
           }
         },
@@ -725,7 +763,7 @@
         },
         {
           "kind": "event",
-          "index": 0
+          "archetype": "safe"
         },
         {
           "kind": "items",
@@ -763,7 +801,21 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
             "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
           }
         },
         {
@@ -881,13 +933,7 @@
         },
         {
           "kind": "event",
-          "index": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "accept"
-          }
+          "archetype": "safe"
         },
         {
           "kind": "items",
@@ -935,10 +981,813 @@
         {
           "kind": "items",
           "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 0
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "accept"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [
+              {
+                "slot": 3,
+                "item": "wacanberry"
+              }
+            ],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "event",
+          "archetype": "safe"
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "event",
+          "archetype": "safe"
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 1
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "lead",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 1
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
             "assignments": [
               {
                 "slot": 2,
-                "item": "wacanberry"
+                "item": "sharpbeak"
+              }
+            ],
+            "discards": []
+          }
+        },
+        {
+          "kind": "locale",
+          "index": 0
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 0
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 0
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "lead",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 0
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "locale",
+          "index": 0
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "event",
+          "archetype": "safe"
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "target",
+          "index": 0
+        },
+        {
+          "kind": "replace",
+          "slot": 3
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "accept"
+          }
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "event",
+          "archetype": "safe"
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [
+              {
+                "slot": 3,
+                "item": "muscleband"
               }
             ],
             "discards": []
@@ -951,784 +1800,6 @@
         {
           "kind": "battle",
           "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "event",
-          "index": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "event",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 1
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "lead",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 1
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "locale",
-          "index": 0
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "lead",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 0
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "locale",
-          "index": 0
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "event",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 3
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "accept"
-          }
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "event",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
             "kind": "switch",
             "slot": 5
           }
@@ -1743,13 +1814,6 @@
         {
           "kind": "battle",
           "choice": {
-            "kind": "switch",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
             "kind": "move",
             "slot": 1
           }
@@ -1759,27 +1823,6 @@
           "choice": {
             "kind": "move",
             "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 5
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
           }
         },
         {
@@ -1793,14 +1836,14 @@
           "kind": "battle",
           "choice": {
             "kind": "switch",
-            "slot": 5
+            "slot": 4
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 3
           }
         },
         {
@@ -1836,7 +1879,21 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
             "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
           }
         },
         {
@@ -1857,14 +1914,7 @@
           "kind": "battle",
           "choice": {
             "kind": "switch",
-            "slot": 5
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
+            "slot": 4
           }
         },
         {
@@ -1889,7 +1939,7 @@
           "plan": {
             "assignments": [
               {
-                "slot": 3,
+                "slot": 4,
                 "item": "twistedspoon"
               }
             ],
@@ -1902,7 +1952,7 @@
         },
         {
           "kind": "event",
-          "index": 0
+          "archetype": "safe"
         },
         {
           "kind": "items",
@@ -1926,7 +1976,7 @@
           "kind": "battle",
           "choice": {
             "kind": "switch",
-            "slot": 5
+            "slot": 4
           }
         },
         {
@@ -1954,21 +2004,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
@@ -1982,7 +2018,56 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 2
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 5
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
           }
         },
         {
@@ -2002,43 +2087,8 @@
         {
           "kind": "battle",
           "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
             "kind": "move",
             "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
           }
         }
       ]
@@ -2047,8 +2097,10 @@
       "seed": "FIXTURE-BRAVO",
       "outcome": "defeat",
       "gymsCleared": 1,
-      "currency": 306,
-      "backpack": [],
+      "currency": 270,
+      "backpack": [
+        "occaberry"
+      ],
       "party": [
         {
           "species": "Skeledirge",
@@ -2092,7 +2144,7 @@
             "Arm Thrust",
             "Dragon Dance"
           ],
-          "item": "occaberry",
+          "item": "habanberry",
           "hp": 0,
           "maxHp": 85,
           "fainted": true,
@@ -2313,7 +2365,7 @@
         },
         {
           "kind": "event",
-          "index": 0
+          "archetype": "safe"
         },
         {
           "kind": "node",
@@ -2397,12 +2449,21 @@
         },
         {
           "kind": "event",
-          "index": 0
+          "archetype": "safe"
         },
         {
           "kind": "items",
           "plan": {
-            "assignments": [],
+            "assignments": [
+              {
+                "slot": 1,
+                "item": "habanberry"
+              },
+              {
+                "slot": 2,
+                "item": "passhoberry"
+              }
+            ],
             "discards": []
           }
         },
@@ -2618,12 +2679,7 @@
         {
           "kind": "items",
           "plan": {
-            "assignments": [
-              {
-                "slot": 1,
-                "item": "occaberry"
-              }
-            ],
+            "assignments": [],
             "discards": []
           }
         },
@@ -2796,7 +2852,9 @@
       "backpack": [
         "choiceband",
         "leppaberry",
-        "miracleseed"
+        "miracleseed",
+        "persimberry",
+        "rindoberry"
       ],
       "party": [
         {
@@ -2810,17 +2868,17 @@
             "Outrage",
             "Leaf Storm"
           ],
-          "item": "mysticwater",
+          "item": "blackbelt",
           "hp": 0,
           "maxHp": 169,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 11750,
+            "damageDealt": 11988,
             "damageTaken": 2236,
-            "kos": 93,
+            "kos": 95,
             "faints": 11,
-            "turnsOnField": 205
+            "turnsOnField": 208
           },
           "status": null,
           "pp": [
@@ -2841,7 +2899,7 @@
             "Fell Stinger",
             "Peck"
           ],
-          "item": "leftovers",
+          "item": "twistedspoon",
           "hp": 169,
           "maxHp": 169,
           "fainted": false,
@@ -2872,17 +2930,17 @@
             "Tackle",
             "Agility"
           ],
-          "item": "twistedspoon",
+          "item": "mysticwater",
           "hp": 183,
           "maxHp": 183,
           "fainted": false,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 311,
-            "damageTaken": 328,
-            "kos": 3,
+            "damageDealt": 425,
+            "damageTaken": 360,
+            "kos": 4,
             "faints": 2,
-            "turnsOnField": 8
+            "turnsOnField": 10
           },
           "status": null,
           "pp": [
@@ -2903,17 +2961,17 @@
             "Aqua Cutter",
             "Parabolic Charge"
           ],
-          "item": "sharpbeak",
+          "item": "wacanberry",
           "hp": 147,
           "maxHp": 205,
           "fainted": false,
           "joinedSegment": 2,
           "contribution": {
-            "damageDealt": 7726,
-            "damageTaken": 2290,
-            "kos": 59,
+            "damageDealt": 7405,
+            "damageTaken": 2244,
+            "kos": 56,
             "faints": 1,
-            "turnsOnField": 112
+            "turnsOnField": 107
           },
           "status": null,
           "pp": [
@@ -2934,7 +2992,7 @@
             "Weather Ball",
             "Curse"
           ],
-          "item": "blackbelt",
+          "item": "sharpbeak",
           "hp": 219,
           "maxHp": 219,
           "fainted": false,
@@ -2971,7 +3029,7 @@
           "fainted": false,
           "joinedSegment": 6,
           "contribution": {
-            "damageDealt": 940,
+            "damageDealt": 927,
             "damageTaken": 428,
             "kos": 8,
             "faints": 0,
@@ -3337,14 +3395,14 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 13,
-          "hpAfter": 445,
+          "turns": 14,
+          "hpAfter": 479,
           "casualties": [
             {
               "side": "p1",
               "name": "Ivy",
-              "bySpecies": "Chandelure",
-              "byMove": "Snipe Shot"
+              "bySpecies": "Incineroar",
+              "byMove": "Thief"
             }
           ]
         },
@@ -3475,7 +3533,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 12,
-          "hpAfter": 902,
+          "hpAfter": 875,
           "casualties": []
         },
         {
@@ -3512,7 +3570,7 @@
           "tier": "elite",
           "winner": "p1",
           "turns": 20,
-          "hpAfter": 683,
+          "hpAfter": 682,
           "casualties": []
         },
         {
@@ -3522,7 +3580,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 8,
-          "hpAfter": 639,
+          "hpAfter": 638,
           "casualties": [
             {
               "side": "p1",
@@ -3539,7 +3597,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 14,
-          "hpAfter": 823,
+          "hpAfter": 822,
           "casualties": []
         },
         {
@@ -3558,14 +3616,14 @@
           "kind": "trainer",
           "tier": "normal",
           "winner": "p1",
-          "turns": 13,
-          "hpAfter": 962,
+          "turns": 12,
+          "hpAfter": 988,
           "casualties": [
             {
               "side": "p1",
               "name": "Onyx",
-              "bySpecies": "Corviknight",
-              "byMove": "Drill Peck"
+              "bySpecies": "Gardevoir",
+              "byMove": "Photon Geyser"
             }
           ]
         },
@@ -4023,12 +4081,17 @@
         },
         {
           "kind": "event",
-          "index": 0
+          "archetype": "safe"
         },
         {
           "kind": "items",
           "plan": {
-            "assignments": [],
+            "assignments": [
+              {
+                "slot": 1,
+                "item": "mysticwater"
+              }
+            ],
             "discards": []
           }
         },
@@ -4315,11 +4378,11 @@
           "plan": {
             "assignments": [
               {
-                "slot": 1,
+                "slot": 2,
                 "item": "leftovers"
               },
               {
-                "slot": 2,
+                "slot": 3,
                 "item": "wacanberry"
               }
             ],
@@ -4400,12 +4463,7 @@
         {
           "kind": "items",
           "plan": {
-            "assignments": [
-              {
-                "slot": 3,
-                "item": "sharpbeak"
-              }
-            ],
+            "assignments": [],
             "discards": []
           }
         },
@@ -4989,7 +5047,7 @@
             "assignments": [
               {
                 "slot": 4,
-                "item": "blackbelt"
+                "item": "sharpbeak"
               }
             ],
             "discards": []
@@ -5071,7 +5129,7 @@
             "assignments": [
               {
                 "slot": 0,
-                "item": "mysticwater"
+                "item": "blackbelt"
               }
             ],
             "discards": []
@@ -5345,6 +5403,20 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "switch",
             "slot": 4
           }
@@ -5368,13 +5440,6 @@
           "choice": {
             "kind": "move",
             "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
           }
         },
         {
@@ -5420,7 +5485,12 @@
         {
           "kind": "items",
           "plan": {
-            "assignments": [],
+            "assignments": [
+              {
+                "slot": 2,
+                "item": "mysticwater"
+              }
+            ],
             "discards": []
           }
         },
@@ -5998,7 +6068,7 @@
           "plan": {
             "assignments": [
               {
-                "slot": 2,
+                "slot": 1,
                 "item": "twistedspoon"
               }
             ],
@@ -6998,7 +7068,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 3
           }
         },
         {
@@ -7013,6 +7083,27 @@
           "choice": {
             "kind": "move",
             "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
           }
         },
         {
@@ -7026,35 +7117,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
             "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
           }
         },
         {
@@ -7227,13 +7290,7 @@
         },
         {
           "kind": "event",
-          "index": 0
-        },
-        {
-          "kind": "acquisition",
-          "decision": {
-            "kind": "decline"
-          }
+          "archetype": "safe"
         },
         {
           "kind": "items",

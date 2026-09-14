@@ -206,7 +206,17 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * asserts the derivation directly, which is what makes that claim checkable
  * rather than a promise.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-13';
+/*
+ * **`-14`: the event rejig.** Draw composition inside an event node changed,
+ * and changed twice over: a rarity draw and an identity draw replaced the
+ * single event pick, and each option now draws one tier per band and one
+ * outcome per tier where a choice used to draw one outcome per band.
+ *
+ * No other node moved. An event draws on its own node's `event` sub-stream, so
+ * the extra draws shift nothing outside it — checked rather than assumed, on
+ * SMOKE24, where all 295 decisions replay identically across the change.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-14';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

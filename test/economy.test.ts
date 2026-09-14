@@ -24,7 +24,13 @@ import {
   nodePayout,
 } from '../src/core/economy';
 import { nodesOf, routeStepsOf, type NodeSpec } from '../src/core/encounters';
-import { applyEventOutcome, definitionOf, describeOutcome, type EventOutcome } from '../src/core/events';
+import {
+  applyEventOutcome,
+  definitionOf,
+  describeOutcome,
+  type EventOutcome,
+  type ResolvedEffect,
+} from '../src/core/events';
 import { createParty } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import {
@@ -74,13 +80,23 @@ function spender(): RunPolicy {
       }
       return basket;
     },
-    chooseEventOption: async () => 0,
+    chooseEventOption: async () => 'safe' as const,
   };
 }
 
 // ---------------------------------------------------------------------------
 // 1. Generation: shops and events exist and are drawn from the seed
 // ---------------------------------------------------------------------------
+
+/** One outcome granting exactly these effects. The rejig made an outcome a list. */
+function granting(grant: readonly ResolvedEffect[]): EventOutcome {
+  return { tier: 'T1', entryId: 'test', cost: [], grant };
+}
+
+/** One `T0`: a cost, and the consolation the pools guarantee beside it. */
+function costing(cost: readonly ResolvedEffect[]): EventOutcome {
+  return { tier: 'T0', entryId: 'test', cost, grant: [{ kind: 'currency', amount: 1 }] };
+}
 
 describe('shop and event nodes', () => {
   it('generates both kinds, with contents, across a population of seeds', () => {
@@ -97,7 +113,7 @@ describe('shop and event nodes', () => {
         if (node.kind === 'event') {
           events++;
           expect(node.event, `${node.id}`).not.toBeNull();
-          expect(node.event?.choices.length, `${node.id}`).toBeGreaterThanOrEqual(2);
+          expect(node.event?.options.length, `${node.id}`).toBe(4);
           expect(node.shop).toBeNull();
         }
       }
@@ -197,6 +213,7 @@ describe('currency earned per node', () => {
     const node = (kind: NodeSpec['kind'], tier: NodeSpec['tier']): NodeSpec => ({
       id: 'x',
       kind,
+      locale: null,
       tier,
       label: '',
       encounter: null,
@@ -343,14 +360,19 @@ describe('events', () => {
         if (!event) continue;
         const definition = definitionOf(event);
         expect(definition, `${event.eventId} is not in the table`).not.toBeNull();
-        expect(event.choices).toHaveLength(definition?.choices.length ?? 0);
-        for (const choice of event.choices) {
-          // Resolved: a concrete kind and a concrete payload, no pool left.
-          // All three bands, since Stage 4.6c draws all three at generation
-          // and any of them can be the one this run is paid at.
-          for (const outcome of Object.values(choice.outcomes)) {
+        expect(event.options).toHaveLength(4);
+        for (const option of event.options) {
+          // Resolved: concrete kinds and concrete payloads, no pool left. Every
+          // tier, since the rejig draws all four at generation and any of them
+          // can be the one this run is paid at.
+          for (const outcome of Object.values(option.outcomes)) {
             expect(describeOutcome(outcome).length).toBeGreaterThan(0);
-            if (outcome.kind === 'item') expect(typeof outcome.item).toBe('string');
+            for (const effect of [...outcome.cost, ...outcome.grant]) {
+              if (effect.kind === 'item') {
+                for (const item of effect.items) expect(typeof item).toBe('string');
+              }
+              if (effect.kind === 'move') expect(typeof effect.move).toBe('string');
+            }
           }
         }
       }
@@ -362,7 +384,7 @@ describe('events', () => {
     // seed — which is what a reload is — must produce the same outcomes.
     const outcomes = (seed: string): EventOutcome[] =>
       allNodes(seed).flatMap((node) =>
-        node.event?.choices.flatMap((choice) => Object.values(choice.outcomes)) ?? [],
+        node.event?.options.flatMap((option) => Object.values(option.outcomes)) ?? [],
       );
     expect(outcomes('ECON-EVENT')).toEqual(outcomes('ECON-EVENT'));
     expect(outcomes('ECON-EVENT').length).toBeGreaterThan(0);
@@ -373,11 +395,11 @@ describe('events', () => {
     // being able to score a choice without executing it.
     for (const seed of seeds) {
       for (const node of allNodes(seed)) {
-        for (const choice of node.event?.choices ?? []) {
-          // Every band, since a callback smuggled into one of the two the
-          // player is less likely to reach would be exactly as fatal.
-          const round = JSON.parse(JSON.stringify(choice.outcomes)) as Record<string, EventOutcome>;
-          expect(round).toEqual(choice.outcomes);
+        for (const option of node.event?.options ?? []) {
+          // Every tier, since a callback smuggled into one the player is less
+          // likely to reach would be exactly as fatal.
+          const round = JSON.parse(JSON.stringify(option.outcomes)) as Record<string, EventOutcome>;
+          expect(round).toEqual(option.outcomes);
         }
       }
     }
@@ -388,7 +410,11 @@ describe('events', () => {
     // to a coin flip the player could see but never play.
     const state = started('ECON', 0);
     const nearlyDead = { ...state, party: state.party.map((m) => ({ ...m, hp: 1 })) };
-    const after = applyEventOutcome(nearlyDead, { kind: 'damage', percent: 0.99 }, DEFAULT_TUNING);
+    const after = applyEventOutcome(
+      nearlyDead,
+      costing([{ kind: 'damage', percent: 0.99, target: 'party' }]),
+      DEFAULT_TUNING,
+    );
 
     expect(after.party[0]!.hp).toBeGreaterThan(0);
     expect(after.party[0]!.fainted).toBe(false);
@@ -396,37 +422,47 @@ describe('events', () => {
 
   it('never lets an event drive currency below zero', () => {
     const broke = started('ECON', 10);
-    const after = applyEventOutcome(broke, { kind: 'currency', amount: -500 }, DEFAULT_TUNING);
+    const after = applyEventOutcome(broke, granting([{ kind: 'currency', amount: -500 }]), DEFAULT_TUNING);
     expect(after.currency).toBe(0);
   });
 
   it('heals, pays and gives an item as the outcome says', () => {
     const hurt = { ...started('ECON', 0), party: started('ECON').party.map((m) => ({ ...m, hp: 1 })) };
-    expect(applyEventOutcome(hurt, { kind: 'heal', percent: 1 }, DEFAULT_TUNING).party[0]!.hp).toBe(
-      hurt.party[0]!.maxHp,
-    );
-    expect(applyEventOutcome(hurt, { kind: 'currency', amount: 60 }, DEFAULT_TUNING).currency).toBe(60);
+    expect(
+      applyEventOutcome(hurt, granting([{ kind: 'heal', percent: 1, target: 'party' }]), DEFAULT_TUNING)
+        .party[0]!.hp,
+    ).toBe(hurt.party[0]!.maxHp);
+    expect(
+      applyEventOutcome(hurt, granting([{ kind: 'currency', amount: 60 }]), DEFAULT_TUNING).currency,
+    ).toBe(60);
     // Stage 4.5.1: an event item goes to the backpack like every other item the
     // run acquires. It used to be forced onto the lead, which silently
     // destroyed whatever that member was holding — the Stage 3 swap rule firing
     // on a decision the player was never offered.
     expect(
-      applyEventOutcome(hurt, { kind: 'item', item: 'leftovers' }, DEFAULT_TUNING).backpack,
+      applyEventOutcome(hurt, granting([{ kind: 'item', items: ['leftovers'] }]), DEFAULT_TUNING).backpack,
     ).toEqual(['leftovers']);
-    expect(applyEventOutcome(hurt, { kind: 'nothing' }, DEFAULT_TUNING)).toBe(hurt);
+    expect(applyEventOutcome(hurt, granting([{ kind: 'nothing' }]), DEFAULT_TUNING)).toEqual(hurt);
   });
 
-  it('gives every event at least two choices and every choice an outcome', () => {
-    // A one-choice event is a cutscene. Asserted at the table so a bad event
-    // fails here rather than as an empty screen mid-run.
+  it('gives every event a hook and a toll, since the pools now own the outcomes', () => {
+    /*
+     * **Rewritten by the event rejig.** This used to assert two or more choices
+     * per event with weighted outcomes on each. An event no longer carries
+     * outcomes at all — `data/eventPools.ts` does — so what is left to assert
+     * at the table is that the copy and the price are there. The option count
+     * is a property of the *instance*, which `test/event-bands.test.ts` holds.
+     */
     for (const event of EVENTS) {
-      expect(event.choices.length, event.id).toBeGreaterThanOrEqual(2);
-      expect(event.prompt.length, event.id).toBeGreaterThan(0);
-      for (const choice of event.choices) {
-        expect(choice.outcomes.length, `${event.id}/${choice.label}`).toBeGreaterThan(0);
-        expect(choice.hint.length, `${event.id}/${choice.label}`).toBeGreaterThan(0);
-        const total = choice.outcomes.reduce((sum, entry) => sum + entry.weight, 0);
-        expect(total, `${event.id}/${choice.label} has no weight`).toBeGreaterThan(0);
+      expect(event.hook.length, event.id).toBeGreaterThan(0);
+      expect(event.toll, event.id).toBeTruthy();
+      if (event.toll.kind === 'gold') {
+        expect(event.toll.fraction, event.id).toBeGreaterThan(0);
+        expect(event.toll.floor, event.id).toBeGreaterThan(0);
+      }
+      if (event.toll.kind === 'hp') {
+        expect(event.toll.percent, event.id).toBeGreaterThan(0);
+        expect(event.toll.percent, event.id).toBeLessThanOrEqual(0.3);
       }
     }
   });
@@ -515,7 +551,7 @@ describe('mid-run save across a reward, shop and event boundary', () => {
     }
   });
 
-  it('records shop and event decisions as indexes and nothing else', async () => {
+  it('records a shop as indexes and an event as its archetype, and nothing else', async () => {
     const runs = await Promise.all(seeds.slice(0, 8).map((seed) => playRun(seed, spender())));
     let shopDecisions = 0;
     let eventDecisions = 0;
@@ -528,7 +564,16 @@ describe('mid-run save across a reward, shop and event boundary', () => {
         }
         if (decision.kind === 'event') {
           eventDecisions++;
-          expect(Object.keys(decision).sort()).toEqual(['index', 'kind']);
+          /*
+           * **Updated by the event rejig, not deleted.** The claim this suite
+           * makes is "nothing derived in the log", and it still holds — an
+           * archetype names one of four fixed roles, not a price, an item id
+           * or an outcome. What changed is that the event decision is the one
+           * answer in the union that is not an index, because the presented
+           * option list varies with the run's relics. `core/types.ts` argues
+           * it; `docs/generation.md` section 14 rules it.
+           */
+          expect(Object.keys(decision).sort()).toEqual(['archetype', 'kind']);
         }
       }
       /*

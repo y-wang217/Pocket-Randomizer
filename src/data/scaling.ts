@@ -522,6 +522,47 @@ export const REWARD_BAND_OFFSET: Record<Tier, number> = { normal: 0, hard: 1, el
 export const GYM_MOVE_BAND_BONUS = 1;
 
 /**
+ * How swingy an event node is, by segment. **The event variance ramp.**
+ *
+ * Each event node draws one rarity at map generation, and rarity decides which
+ * tier distribution its Gamble and Attune options roll on — see
+ * `data/eventPools.ts`. It is the one number that makes two question marks on
+ * the same map worth different amounts before the player has read either.
+ *
+ * The weights tilt upward as the run goes on, for the same reason
+ * `REWARD_BAND_OFFSET` exists: late segments are where a run either has the
+ * resources to take a swing or is far enough behind that it has to. A flat
+ * table would make the last two segments' events the least interesting nodes on
+ * the map, because everything around them has been scaling for seven segments.
+ *
+ * Rows are read in order and the first whose `throughSegment` covers the
+ * segment wins. Weights, not percentages — they are normalised at the draw.
+ */
+export const EVENT_RARITY_WEIGHTS: readonly {
+  throughSegment: number;
+  common: number;
+  uncommon: number;
+  rare: number;
+}[] = [
+  { throughSegment: 2, common: 60, uncommon: 30, rare: 10 },
+  { throughSegment: 5, common: 50, uncommon: 33, rare: 17 },
+  { throughSegment: 7, common: 40, uncommon: 35, rare: 25 },
+];
+
+/**
+ * The rarity weights in force at this segment. **The single accessor.**
+ *
+ * A segment past the last row falls to the last row rather than to nothing, so
+ * a `SEGMENT_COUNT` change cannot leave an event node with no rarity to draw.
+ */
+export function eventRarityWeights(segment: number): { common: number; uncommon: number; rare: number } {
+  const row =
+    EVENT_RARITY_WEIGHTS.find((entry) => segment <= entry.throughSegment) ??
+    EVENT_RARITY_WEIGHTS[EVENT_RARITY_WEIGHTS.length - 1]!;
+  return { common: row.common, uncommon: row.uncommon, rare: row.rare };
+}
+
+/**
  * Raise a band window by a tier's band modifier, without letting it run off the
  * top of the table.
  *

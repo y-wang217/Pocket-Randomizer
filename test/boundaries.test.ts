@@ -690,6 +690,45 @@ describe('documentation paths', () => {
   });
 
   /**
+   * The same check, over source comments. **Added after one went stale.**
+   *
+   * This repo leans hard on a comment citing the test that holds its rule —
+   * "asserted in `test/x.test.ts`" appears throughout `core/` — and a citation
+   * that points nowhere is worse here than a broken link in a document,
+   * because it is the thing a reader trusts when deciding whether a rule is
+   * enforced. `core/types.ts` twice cited
+   * `test/event-archetype-log.test.ts`, a file named while the comment was
+   * being written and never created. The assertions existed; the pointer did
+   * not.
+   *
+   * Scoped to `test/` paths inside backticks rather than to every path a
+   * comment names, and that narrowness is deliberate: a comment may reasonably
+   * describe a module that moved, was renamed, or is being argued about, and
+   * failing on those would make this check noise. A citation of a *test* is a
+   * claim that a specific file enforces something, and that claim is either
+   * true or it is not.
+   */
+  it('resolves every test file a source comment cites', () => {
+    const broken: string[] = [];
+    const sources = walk(join(ROOT, 'src')).filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts'));
+
+    for (const file of sources) {
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, index) => {
+          for (const match of line.matchAll(/`(test\/[^`\n]+)`/g)) {
+            const token = (match[1] ?? '').replace(/[.,;:)]+$/, '');
+            if (!existsSync(join(ROOT, token))) {
+              broken.push(`${relative(ROOT, file)}:${index + 1} ${token}`);
+            }
+          }
+        });
+    }
+
+    expect(broken, 'a comment citing a test that does not exist is a rule nobody is holding').toEqual([]);
+  });
+
+  /**
    * Markdown links too, which are the half a reader actually clicks.
    *
    * Relative to the linking document rather than the repo root, and anchors and

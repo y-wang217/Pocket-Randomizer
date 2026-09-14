@@ -424,6 +424,38 @@ One line each. The analysis lives where the pointer goes, not here.
    a reasoned exclusion rather than inside `tuning.ts` (item 1).
    [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 
+15. **A decision-schema or fold-shape change is not walked through its
+   readers, and nothing catches it.** **The standing risk, logged 2026-09-14
+   after it fired twice inside one patch.** Both halves of each defect were
+   individually correct and both typechecked; what was wrong sat in the gap
+   between them, and the gap is invisible to `tsc` by construction.
+
+   - `ui/storage.ts`'s `isRunDecision` validates a `RunDecision` structurally,
+     from `unknown`. When the event decision became an archetype it kept
+     checking for a numeric `index`, so every saved run that had passed an
+     event failed to load — silently, with `loadRunLog` returning null.
+   - `core/run.ts`'s `resolveNode` read `party` and `currency` off
+     `applyEventOutcome` and dropped `backpack`. That one had been live since
+     **Stage 4.5.1** (`0b450d2`), the patch that moved an event's item from the
+     lead into the bag: the fold was correct and its unit tests passed for four
+     stages while every item an event paid went into a value nobody read.
+
+   **Why it keeps happening:** a structural validator reads `unknown`, and a
+   partial destructure of a returned state is valid TypeScript. Neither end is
+   wrong on its own, so unit tests of the fold pass and the type system is
+   satisfied. Only a test at the *seam* sees it — `test/storage.test.ts`'s
+   "whatever kinds it holds", which plays a real run, and
+   `test/event-inventory.test.ts`, which asserts at `resolveNode` rather than
+   at `applyEventOutcome`.
+
+   **What to do about it, until something better exists:** when a fold's return
+   shape or a logged decision's shape changes, grep every reader and destructure
+   whole rather than field by field (`({ party, currency, backpack } = after)`),
+   and add the assertion at the seam rather than at the function. The two
+   suites named above are the pattern. This is logged as a risk rather than
+   written into `CLAUDE.md`, because `CLAUDE.md` holds rules that have held —
+   this one has been broken twice and is a thing to watch.
+
 ### Carried out of patch 4.8.0.3
 
 Three, filed rather than built. The closeout prompt
@@ -497,8 +529,13 @@ about accuracy at 100, at below 100, and at never-miss is one question.
 ### The invariant register
 
 Five audit findings, where the tree did not satisfy an invariant in
-`CLAUDE.md` when that file was written (`8c3bff8`). Each closes in its own
-patch, and the row says which.
+`CLAUDE.md` when that file was written (`8c3bff8`), **plus anything found
+since**. Each closes in its own patch, and the row says which.
+
+The count in that first sentence is the audit's, not the table's. The verdict
+strings row below is the first addition: found 2026-09-14 by a grep that
+widened past the one word `8c3bff8` named, so it is the same class of finding
+without being one of the five.
 
 | finding | status |
 |---|---|

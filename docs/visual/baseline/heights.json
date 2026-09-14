@@ -7,8 +7,8 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 777.5,
-        "scrollHeight": 940,
+        "screenHeight": 798.88,
+        "scrollHeight": 961,
         "decisionCount": 2,
         "decisionTop": 513.44,
         "decisionBottom": 609.31
@@ -39,8 +39,8 @@
     }
   },
   "map": {
-    "screenHeight": 840.41,
-    "scrollHeight": 1033,
+    "screenHeight": 861.78,
+    "scrollHeight": 1055,
     "decisionCount": 2,
     "decisionTop": 558,
     "decisionBottom": 672.72

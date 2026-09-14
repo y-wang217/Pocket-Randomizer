@@ -711,8 +711,36 @@ export type RunDecision =
    * something the run never stocked.
    */
   | { kind: 'shop'; indexes: number[] }
-  /** Which event option was taken. The outcome was drawn when the map was built. */
-  | { kind: 'event'; index: number }
+  /**
+   * Which event option was taken, **as its archetype rather than as an index**.
+   *
+   * The one decision in this union that is not an index, and the exception is
+   * argued rather than assumed. Every other decision is an index because the
+   * thing it indexes is reconstructible from the seed, so a table edit makes
+   * replay fail loudly instead of silently handing the player something their
+   * run never offered. That reasoning still holds — it is why this is not a
+   * per-event option *id*, which would survive a `data/events.ts` edit and
+   * replay into an option that no longer exists.
+   *
+   * What an index cannot survive is the Attune gate. The presented list is
+   * three options without the event's relic and four with, so an index into it
+   * names a different button depending on what the run holds. An index into the
+   * *built* list would be stable, but it would also be a position in an array
+   * whose order is an implementation detail of `EVENT_ARCHETYPES`.
+   *
+   * The archetype is a closed set of four that names a *role*, and a log
+   * recording `attune` on a replay that reaches the node without the relic
+   * fails loudly — which is exactly the property the index rule exists to
+   * produce. Ruled in `docs/generation.md` section 14, with the condition that
+   * no event may carry two options of the same archetype; asserted over the
+   * table in `test/event-chart.test.ts`.
+   *
+   * Spelled out here rather than imported from `data/eventPools.ts`, for the
+   * reason the acquisition shape below is: this file is the bottom of the
+   * dependency graph and imports nothing. `test/event-costs.test.ts`
+   * asserts the two lists are the same set, so they cannot drift apart.
+   */
+  | { kind: 'event'; archetype: 'safe' | 'gamble' | 'toll' | 'attune' }
   /**
    * Which party member a targeted reward landed on, as a party slot.
    *

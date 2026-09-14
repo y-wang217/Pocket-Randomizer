@@ -14,13 +14,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resolveCapability, type CapabilityBand } from '../src/core/capabilities';
-import { generateEvent, describeOutcome, outcomeAt, type EventInstance } from '../src/core/events';
+import { generateEvent, describeOutcome, outcomeFor,
+  presentedOptions,
+  EventPicker, type EventInstance } from '../src/core/events';
 import { createPartyMember } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import { createRun, type RunState } from '../src/core/run';
 import { capabilityTypes, type Capability } from '../src/data/capabilities';
-import { BAND_LABELS, CAPABILITY_LABELS, KNOWN_WITHOUT_OFFER, eventConclusion, eventHint } from '../src/data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS } from '../src/data/eventCopy';
 import { EVENTS } from '../src/data/events';
+import { LOCALES } from '../src/data/locales';
 import { relicsGranting } from '../src/data/relics';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -53,9 +56,18 @@ function stateAt(band: CapabilityBand, capability: Capability): RunState {
 /** One generated instance of every event, found by walking seeds. */
 function everyEvent(): EventInstance[] {
   const found = new Map<string, EventInstance>();
-  for (let i = 0; found.size < EVENTS.length && i < 400; i++) {
-    const event = generateEvent('n1', createRng(`EVT-${i}`).rewards.at('e'), DEFAULT_TUNING);
-    if (!found.has(event.eventId)) found.set(event.eventId, event);
+  for (const locale of LOCALES.map((entry) => entry.id)) {
+    for (let i = 0; i < 60; i++) {
+      const event = generateEvent(
+        'n1',
+        locale,
+        i % 8,
+        createRng(`EVT-${locale}-${i}`).rewards.at('e'),
+        DEFAULT_TUNING,
+        new EventPicker(),
+      );
+      if (event && !found.has(event.eventId)) found.set(event.eventId, event);
+    }
   }
   expect([...found.keys()].sort()).toEqual(EVENTS.map((event) => event.id).sort());
   return [...found.values()];
@@ -67,12 +79,13 @@ beforeEach(() => {
 
 describe('the event screen', () => {
   for (const band of BANDS) {
-    it(`at ${band}: shows the gate, the band's hint, and the band's conclusion after the pick`, () => {
+    it(`at ${band}: shows the gate, the option's hint, and what the pick paid`, () => {
       for (const event of everyEvent()) {
-        for (const [index, choice] of event.choices.entries()) {
+        // The presented list: Attune is on it at `known` and off it below.
+        for (const [index, choice] of presentedOptions(event, band).entries()) {
           const screen = createEventScreen();
           const state = stateAt(band, event.requires);
-          const done: number[] = [];
+          const done: string[] = [];
           screen.render(event, state, (picked) => done.push(picked));
           document.body.append(screen.root);
 
@@ -83,9 +96,13 @@ describe('the event screen', () => {
           expect(gate?.querySelector('.node__gate-band')?.textContent, event.eventId).toBe(BAND_LABELS[band]);
 
           const hints = [...screen.root.querySelectorAll('.event__choice-hint')].map((node) => node.textContent);
-          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(eventHint(event.eventId, band, index, choice.hint));
-          if (band === 'latent') expect(hints[index]).toBe(choice.hint);
-          else expect(hints[index]).not.toBe(choice.hint);
+          /*
+           * The option's own hint, at every band. The per-band hint table went
+           * with the 4.6c model the rejig replaced; the archetype copy that
+           * replaces it is step 8's.
+           */
+          expect(hints, `${event.eventId} ${band}`).toHaveLength(band === 'known' ? 4 : 3);
+          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(choice.hint);
 
           const result = screen.root.querySelector<HTMLElement>('.event__result');
           expect(result?.hidden).toBe(true);
@@ -99,17 +116,22 @@ describe('the event screen', () => {
             expect(button.classList.contains('event__choice--taken')).toBe(i === index);
           }
 
-          const paid = outcomeAt(choice, band);
-          const conclusion = screen.root.querySelector('.event__conclusion')?.textContent;
-          expect(conclusion, `${event.eventId} ${band} conclusion ${index}`).toBe(eventConclusion(event.eventId, band, index, paid));
-          expect(conclusion?.length).toBeGreaterThan(20);
-          // No offer callback in this fixture, so the known band's encounter
-          // is empty and the conclusion must say so rather than describe one.
-          if (band === 'known') expect(conclusion).toBe(KNOWN_WITHOUT_OFFER);
-          expect(screen.root.querySelector('.event__outcome')?.textContent).toBe(describeOutcome(paid));
+          const paid = outcomeFor(choice, band);
+          const outcomes = [...screen.root.querySelectorAll('.event__outcome')].map((n) => n.textContent);
+          /*
+           * A `T0` renders two lines, the cost above the payout, and every
+           * other tier renders one. That split is the point: a cost shown
+           * without its consolation reads as the game taking something and
+           * giving nothing.
+           */
+          expect(outcomes[outcomes.length - 1]).toBe(describeOutcome(paid));
+          expect(outcomes, `${event.eventId} ${band} ${index}`).toHaveLength(
+            paid.cost.length > 0 ? 2 : 1,
+          );
 
           screen.root.querySelector<HTMLButtonElement>('.primary-action')?.click();
-          expect(done).toEqual([index]);
+          // The archetype names the button whatever the presented list is.
+          expect(done).toEqual([choice.archetype]);
           document.body.replaceChildren();
         }
       }
@@ -125,5 +147,76 @@ describe('the event screen', () => {
     screen.root.querySelector<HTMLButtonElement>('.event__choice')?.click();
     screen.root.querySelector<HTMLButtonElement>('.primary-action')?.click();
     expect(JSON.stringify(state)).toBe(before);
+  });
+});
+
+describe('the attribute row', () => {
+  /*
+   * **Part 4's editorial carve-out, asserted.** Tier labels are ordinal and
+   * Part 4 bans ordering that implies ranking; they are allowed here on the
+   * `BAND n` precedent because the label names which pool the outcome draws
+   * from, which is an attribute. What must stay true is that nothing *else*
+   * moved — no recommendation, no highlight on the better option, no expected
+   * value, and no marker on Attune beyond the relic requirement.
+   */
+  it('shows a reward range on every option, and a price on the Toll alone', () => {
+    for (const event of everyEvent().slice(0, 4)) {
+      for (const band of BANDS) {
+        const screen = createEventScreen();
+        screen.render(event, stateAt(band, event.requires), () => undefined);
+        document.body.append(screen.root);
+
+        const rows = [...screen.root.querySelectorAll('.event__choice-attributes')];
+        const shown = presentedOptions(event, band);
+        expect(rows, `${event.eventId} ${band}`).toHaveLength(shown.length);
+
+        for (const [index, option] of shown.entries()) {
+          const text = rows[index]!.textContent ?? '';
+          expect(text, `${event.eventId} ${option.archetype}`).toMatch(/Reward: T[0-3]( to T[0-3])?/);
+          if (option.archetype === 'toll') expect(text).toMatch(/^Costs /);
+          else expect(text, option.archetype).not.toMatch(/Costs/);
+        }
+        document.body.replaceChildren();
+      }
+    }
+  });
+
+  it('names the ranges the archetypes actually pay, off the table rather than beside it', () => {
+    /*
+     * **Attune reads `T2 to T3` at every rarity now, and it did not always.**
+     *
+     * Part 3 gave `T1` a weight of 10 at common and 5 at uncommon while Part 8
+     * said the label reads `T2 to T3`. Because `rewardOf` derives the range
+     * from the weights rather than restating them, the screen said `T1 to T3`
+     * and the contradiction surfaced here rather than staying hidden. The
+     * ruling raised the floor — an Attune paying `T1` is the one outcome the
+     * relic gate exists to prevent — so the label and the table now agree
+     * without either being made to lie.
+     */
+    for (const event of everyEvent().slice(0, 6)) {
+      const screen = createEventScreen();
+      screen.render(event, stateAt('known', event.requires), () => undefined);
+      const text = [...screen.root.querySelectorAll('.event__choice-attributes')].map((n) => n.textContent ?? '');
+      expect(text[0], 'safe').toContain('Reward: T1');
+      expect(text[1], 'gamble').toContain('Reward: T0 to T2');
+      expect(text[2], 'toll').toContain('Reward: T2');
+      expect(text[3], `attune at ${event.rarity}`).toContain('Reward: T2 to T3');
+      document.body.replaceChildren();
+    }
+  });
+
+  it('ranks nothing: no option is highlighted, ordered or marked before the pick', () => {
+    const event = everyEvent()[0]!;
+    const screen = createEventScreen();
+    screen.render(event, stateAt('known', event.requires), () => undefined);
+    const buttons = [...screen.root.querySelectorAll('.event__choice')];
+    expect(buttons).toHaveLength(4);
+    for (const button of buttons) {
+      // The taken marker is post-resolution only. Nothing carries it yet.
+      expect(button.classList.contains('event__choice--taken')).toBe(false);
+      expect(button.className, button.textContent ?? '').not.toMatch(/recommend|best|primary/i);
+    }
+    // No expected value anywhere on the screen.
+    expect(screen.root.textContent ?? '').not.toMatch(/expected|average|EV\b/i);
   });
 });

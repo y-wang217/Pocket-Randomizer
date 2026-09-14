@@ -23,9 +23,9 @@
  *
  * `core/battle/stats.ts` owns the numbers the engine actually applies —
  * `BOOST_TABLE`, transcribed from `Pokemon#getStat`, floor and all.
- * `MAIN_STAGE_TABLE` below is the same series, and `test/stat-stages.test.ts`
- * asserts it entry for entry against `BOOST_TABLE` across the full -6..+6
- * range. If the two ever disagree the test fails rather than the panel quietly
+ * `MAIN_STAGE_TABLE` below is the same series, and
+ * `test/battle-readout.test.ts` asserts it entry for entry against
+ * `BOOST_TABLE` across the full -6..+6 range. If the two ever disagree the test fails rather than the panel quietly
  * printing a multiplier the battle does not use.
  *
  * The accuracy table has no counterpart in `core/` to check against, because

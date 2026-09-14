@@ -48,7 +48,7 @@ import { gymsCleared, localeOf, partyCapacity, stepsOf } from '../../core/run';
 import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityContext } from '../../core/capabilities';
 // The two label tables the event screen prints too, from one file (4.8.0.2).
-import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
@@ -476,7 +476,23 @@ function renderNode(
     const band = resolveCapability(run, node.event.requires);
     const gate = el('span', `node__gate node__gate--${band}`);
     if (phase === 'current') gate.dataset['tutorial'] = 'gate';
-    gate.append(capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`), capabilityBandChip(BAND_LABELS[band]));
+    /*
+     * **Rarity joins the pair, because it now changes the payout.**
+     *
+     * The map already showed the requirement and the run's standing against it.
+     * Rarity is the third fact of the same kind: it scales which tier a Gamble
+     * or an Attune lands on, so a player routing toward one question mark
+     * rather than another deserves to know which one they are routing toward.
+     *
+     * A third attribute, not a verdict. "Rare" says which distribution this
+     * node draws on; it does not say the node is worth the detour, and the
+     * screen still never orders two nodes against each other.
+     */
+    gate.append(
+      capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`),
+      capabilityBandChip(BAND_LABELS[band]),
+      neutralChip(RARITY_LABELS[node.event.rarity], 'rarity'),
+    );
     element.append(gate);
   }
 

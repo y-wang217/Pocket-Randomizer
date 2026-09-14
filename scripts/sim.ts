@@ -51,7 +51,14 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { outcomeAt } from '../src/core/events';
+import { outcomeFor, presentedOptions, tollEffect, type ResolvedEffect } from '../src/core/events';
+import {
+  EVENT_ARCHETYPES,
+  EVENT_RARITIES,
+  type EventArchetype,
+  type EventRarity,
+  type OutcomeTier,
+} from '../src/data/eventPools';
 import { resolveCapability } from '../src/core/capabilities';
 import { AI_VERSION, decideWith, GREEDY_BASELINE, type AiFlag, type AiProfile } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
@@ -200,6 +207,23 @@ type PolicyName =
    */
   | 'relic-greedy'
   /**
+   * The event rejig pair, and the crude test of whether the variance is worth
+   * taking.
+   *
+   * Same seeds, same battle AI, same node policy, same locale picks. The only
+   * difference is which button the event screen gets: `event-gambler` always
+   * takes the Gamble, and the Attune when the relic puts it on the menu;
+   * `event-safe` always takes the flat `T1`.
+   *
+   * The hypothesis is that the gambler wins by a visible margin, because the
+   * Gamble distribution's expected value exceeds a flat `T1` at every rarity.
+   * **If it does not, the `T0` costs are overtuned against the `T2` payouts and
+   * the fix is in `data/eventPools.ts`** — not in `core/events.ts`, which only
+   * draws what that table says.
+   */
+  | 'event-gambler'
+  | 'event-safe'
+  /**
    * The Stage 4.7 pair, and the crude measure of whether the pre-gym screen is
    * a decision or a nice screen attached to a non-decision.
    *
@@ -271,6 +295,9 @@ const RELIC_POLICIES: PolicyName[] = ['relic-greedy', 'tier-greedy'];
 /** The Stage 4.7 headline: same seeds, same everything, the lead chosen or not. */
 const LEAD_POLICIES: PolicyName[] = ['lead-static', 'lead-swap'];
 
+/** The event rejig pair. The gap is the whole measurement. */
+const EVENT_POLICIES: PolicyName[] = ['event-safe', 'event-gambler'];
+
 function parseArgs(argv: string[]): Options {
   const options: Options = {
     seeds: 200,
@@ -324,7 +351,9 @@ function parseArgs(argv: string[]): Options {
                       ? RELIC_POLICIES
                       : name === 'leads'
                         ? LEAD_POLICIES
-                        : [assertPolicy(name)];
+                        : name === 'events'
+                          ? EVENT_POLICIES
+                          : [assertPolicy(name)];
         break;
       }
       case '--nodes': {
@@ -392,6 +421,7 @@ const POLICY_NAMES: readonly string[] = [
   ...CATCH_POLICIES,
   ...RELIC_POLICIES,
   ...LEAD_POLICIES,
+  ...EVENT_POLICIES,
 ];
 
 const AI_FLAGS: readonly AiFlag[] = [
@@ -838,10 +868,23 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
  * the report would be a measurement of a coin toss.
  */
 function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number): number {
+  /*
+   * An outcome is a *list* of effects since the rejig, and a `T0` carries a
+   * cost list beside its grant. So the score is the sum of what it pays minus
+   * the sum of what it takes, which is the only reading under which a setback
+   * can come out behind a flat `T1`.
+   */
+  let total = 0;
+  for (const effect of outcome.grant) total += valueOfEffect(effect, state, segment);
+  for (const effect of outcome.cost) total -= Math.abs(valueOfEffect(effect, state, segment));
+  return total;
+}
+
+function valueOfEffect(effect: ResolvedEffect, state: RunState, segment: number): number {
   const lead = state.party[0];
   if (!lead) return 0;
 
-  switch (outcome.kind) {
+  switch (effect.kind) {
     case 'nothing':
       return 0;
     /*
@@ -855,19 +898,40 @@ function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number)
     case 'acquisition':
       return hasRoom(state.party, partyCapacity(state)) ? 140 : 40;
     case 'currency':
-      return (outcome.amount / priceAt(130, segment)) * 85;
+      return (effect.amount / priceAt(130, segment)) * 85;
+    case 'currencyFraction': {
+      const owed = Math.max(effect.floor, Math.round(state.currency * effect.fraction));
+      return -(owed / priceAt(130, segment)) * 85;
+    }
     case 'heal': {
       const missing = lead.maxHp > 0 ? 1 - lead.hp / lead.maxHp : 0;
-      return missing * outcome.percent * 190;
+      return missing * effect.percent * 190 * (effect.target === 'party' ? 1 : 0.6);
     }
     case 'damage': {
       // Damage hurts more the less you have. Losing 20% at 30% HP can end a
       // run; at full HP the next rest undoes it.
       const share = lead.maxHp > 0 ? lead.hp / lead.maxHp : 1;
-      return -outcome.percent * 200 * (1.4 - share);
+      return -effect.percent * 200 * (1.4 - share) * (effect.target === 'party' ? 1 : 0.6);
     }
     case 'item':
-      return valueOfReward({ kind: 'item', item: outcome.item }, state, segment);
+      return effect.items.reduce<number>(
+        (sum, item) => sum + valueOfReward({ kind: 'item', item }, state, segment),
+        0,
+      );
+    case 'move':
+      return valueOfReward({ kind: 'tm', move: effect.move }, state, segment);
+    /*
+     * A relic is scored flat rather than by its passive. The bot cannot know
+     * which relic it will be offered — that is decided at offer resolution
+     * against what the run already holds — so pricing one passive over another
+     * would be scoring a card that has not been dealt.
+     */
+    case 'relic':
+      return 120;
+    case 'loseItem':
+      return -25;
+    case 'discard':
+      return -40 * effect.count;
   }
 }
 
@@ -917,6 +981,70 @@ interface RunCollector {
   relicsHeld: number;
   /** Which relics were ever on a card, so the report can name one that never is. */
   relicsSeen: string[];
+
+  // --- the event rejig ----------------------------------------------------
+  /**
+   * Every event this run resolved: which button, what it paid, and whether the
+   * relic was held.
+   *
+   * `attuneAvailable` is the number the whole relic system is judged on. If
+   * the fraction of events where the party held the matching relic is under
+   * about 15 percent, relics are decoration and the fix is relic acquisition
+   * rate rather than the event table.
+   */
+  events: {
+    segment: number;
+    rarity: EventRarity;
+    archetype: EventArchetype;
+    tier: OutcomeTier;
+    band: CapabilityBand;
+    attuneAvailable: boolean;
+    /**
+     * What the *outcome object* said the cost was. Kept beside the measured
+     * numbers below so the two can be compared — a cost the outcome claims and
+     * the run does not show is the `backpack` defect's exact signature.
+     */
+    hpLost: number;
+    goldLost: number;
+    /**
+     * What the **run** actually lost across the node, read off `RunState`
+     * either side of `resolveNode` rather than off the outcome.
+     */
+    realHpLost: number;
+    realGoldLost: number;
+    realBerriesLost: number;
+    realBagLost: number;
+    /**
+     * What was in the bag when the node resolved.
+     *
+     * **The number that separates "nothing to take" from "taken and dropped".**
+     * A discard on an empty backpack is a no-op by design; a discard on a
+     * *stocked* backpack that moves nothing is the defect.
+     */
+    bagBefore: number;
+    partyHpBefore: number;
+    goldBefore: number;
+    berriesBefore: number;
+    /** Split, because the two bag costs have different "nothing to take". */
+    claimedDiscard: boolean;
+    claimedBerry: boolean;
+    /** Standing members. An HP cost cannot move a party that is all fainted. */
+    standingBefore: number;
+    /**
+     * HP the party could actually lose at this node, given the floor.
+     *
+     * `damageParty` clamps at `max(1, maxHp * eventDamageFloor)`, so a member
+     * already at or below its floor cannot be hit. Zero headroom is the HP
+     * equivalent of an empty bag: nothing to take.
+     */
+    hpHeadroom: number;
+    /** Whether any claimed HP cost targets the lead alone. */
+    hpTargetsLead: boolean;
+    /** Whether the outcome or the toll claimed a cost of each kind at all. */
+    claimedHp: boolean;
+    claimedGold: boolean;
+    claimedBag: boolean;
+  }[];
 }
 
 function newCollector(): RunCollector {
@@ -936,6 +1064,7 @@ function newCollector(): RunCollector {
     relicsTaken: 0,
     relicsHeld: 0,
     relicsSeen: [],
+    events: [],
     priority: { turns: 0, escapes: 0, kills: 0, differed: 0 },
   };
 }
@@ -1385,11 +1514,107 @@ function buildPolicy(
       // comparing buttons against a payout it cannot reach.
       const band = resolveCapability(state, event.requires);
       collect.gates.push({ capability: event.requires, band, segment });
-      const best = bestBy(event.choices, (choice) => valueOfOutcome(outcomeAt(choice, band), state, segment));
-      const chosen = event.choices[best];
-      const outcome = chosen ? outcomeAt(chosen, band) : undefined;
-      if (outcome?.kind === 'item') collect.itemsAcquired.push(outcome.item);
-      return best;
+      /*
+       * Scored over the **presented** options and answered as an index into the
+       * built list, because that is what the run records. Attune is absent from
+       * the first list without the relic and present in the second either way.
+       */
+      const offered = presentedOptions(event, band);
+      const attuneAvailable = offered.some((option) => option.archetype === 'attune');
+
+      /*
+       * Two policies answer this without scoring anything, which is the point
+       * of them: the gap between "always Gamble" and "always Safe" is the crude
+       * test of whether the variance is worth taking, and a bot that scored
+       * would be measuring the scorer instead.
+       */
+      const forced =
+        policy === 'event-gambler'
+          ? (offered.find((option) => option.archetype === 'attune') ??
+            offered.find((option) => option.archetype === 'gamble'))
+          : policy === 'event-safe'
+            ? offered.find((option) => option.archetype === 'safe')
+            : undefined;
+
+      const bestOfOffered = bestBy(offered, (option) =>
+        valueOfOutcome(outcomeFor(option, band), state, segment),
+      );
+      const chosen = forced ?? offered[bestOfOffered];
+      // Safe is on every event at every band, so it is the honest fallback.
+      if (!chosen) return 'safe';
+      const outcome = outcomeFor(chosen, band);
+      for (const effect of outcome.grant) {
+        if (effect.kind === 'item') collect.itemsAcquired.push(...effect.items);
+      }
+
+      /*
+       * What the cost actually took, measured against this run's own numbers
+       * rather than read off the table: a 25 percent party hit is a different
+       * number of HP in segment 0 and segment 7, and the report's question is
+       * "what did events cost this run", not "what does the table say".
+       *
+       * The toll is counted with the outcome's cost, because the player paid
+       * both to press one button.
+       */
+      let hpLost = 0;
+      let goldLost = 0;
+      const charge = (effect: ResolvedEffect): void => {
+        if (effect.kind === 'damage') {
+          const hit = (member: { hp: number; maxHp: number; fainted: boolean }): number =>
+            member.fainted ? 0 : Math.min(member.hp - 1, Math.round(member.maxHp * effect.percent));
+          hpLost +=
+            effect.target === 'party'
+              ? state.party.reduce((sum, member) => sum + Math.max(0, hit(member)), 0)
+              : Math.max(0, state.party[0] ? hit(state.party[0]) : 0);
+        }
+        if (effect.kind === 'currency' && effect.amount < 0) goldLost += Math.min(state.currency, -effect.amount);
+        if (effect.kind === 'currencyFraction') {
+          goldLost += Math.min(state.currency, Math.max(effect.floor, Math.round(state.currency * effect.fraction)));
+        }
+      };
+      for (const effect of outcome.cost) charge(effect);
+      if (chosen.toll) charge(tollEffect(chosen.toll));
+
+      collect.events.push({
+        segment,
+        rarity: event.rarity,
+        archetype: chosen.archetype,
+        tier: outcome.tier,
+        band,
+        attuneAvailable,
+        hpLost,
+        goldLost,
+        // Filled by `onNodeResolved`, which sees the run either side of the node.
+        realHpLost: 0,
+        realGoldLost: 0,
+        realBerriesLost: 0,
+        realBagLost: 0,
+        bagBefore: 0,
+        partyHpBefore: 0,
+        goldBefore: 0,
+        berriesBefore: 0,
+        standingBefore: 0,
+        hpHeadroom: 0,
+        hpTargetsLead: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'damage' && effect.target === 'lead',
+        ),
+        claimedDiscard: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'discard',
+        ),
+        claimedBerry: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'loseItem',
+        ),
+        claimedHp: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'damage',
+        ),
+        claimedGold: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'currency' || effect.kind === 'currencyFraction',
+        ),
+        claimedBag: [...outcome.cost, ...(chosen.toll ? [tollEffect(chosen.toll)] : [])].some(
+          (effect) => effect.kind === 'discard' || effect.kind === 'loseItem',
+        ),
+      });
+      return chosen.archetype;
     },
 
     /*
@@ -1587,6 +1812,8 @@ interface RunRecord {
   relicsHeld: number;
   /** Which relics were ever on a card, so the report can name one that never is. */
   relicsSeen: string[];
+  /** Every event resolved: button, tier, band, and what the cost actually took. */
+  events: RunCollector['events'];
   /**
    * The party walking into each gym: size, species and types.
    *
@@ -1714,6 +1941,73 @@ async function playSample(
         const profile = tierProfile(tier, options.aiAdd, options.aiDrop, options.aiNoise);
         const stream = node.encounter ? createAiStream(node.encounter.simSeed, 'p2') : undefined;
         return countingGreedy(collect.priority, profile, stream);
+      },
+      /*
+       * The measured half. Every event row above records what the *outcome*
+       * claimed; this records what the run actually lost, off the two states
+       * `resolveNode` sat between. Matching the row by node id rather than by
+       * order, because a node can resolve without an event decision.
+       */
+      onNodeResolved: (before, after, result) => {
+        if (!result.node.event || result.eventChoice === undefined) return;
+        const row = collect.events[collect.events.length - 1];
+        if (!row) return;
+        /*
+         * **HP lost by members that were standing on both sides, matched by
+         * slot — not the party total.**
+         *
+         * `resolveNode` runs `betweenNodes`, which revives the fainted at
+         * `reviveHpPercent`. A party carrying a faint therefore *gains* HP
+         * across the node, and a total-versus-total reading shows an event's
+         * cost as zero whenever a revive outweighed it. That is the measurement
+         * being confounded, not the cost going missing — and it is the same
+         * trap as counting the bag by length while a consolation refills it.
+         */
+        const hp = (state: RunState): number => state.party.reduce((sum, m) => sum + Math.max(0, m.hp), 0);
+        const hpLostBySlot = (from: RunState, to: RunState): number =>
+          from.party.reduce((sum, member, slot) => {
+            const later = to.party[slot];
+            if (!later || member.fainted) return sum;
+            return sum + Math.max(0, member.hp - later.hp);
+          }, 0);
+        const berries = (state: RunState): number => state.backpack.filter((id) => BERRY_IDS.has(id)).length;
+        row.realHpLost = hpLostBySlot(before, after);
+        void hp;
+        row.realGoldLost = Math.max(0, before.currency - after.currency);
+        row.realBerriesLost = Math.max(0, berries(before) - berries(after));
+        /*
+         * **Gross removal, by multiset difference, not net length.**
+         *
+         * A `T0` discards an item and then grants its consolation, which is
+         * often an item too — so the bag comes out the same *length* and a net
+         * measurement reads "nothing was taken". That is the measurement being
+         * wrong, not the run. Counting what left the bag by identity is the
+         * only reading that survives a cost and a grant in one fold.
+         */
+        const pool = [...after.backpack];
+        let removed = 0;
+        for (const id of before.backpack) {
+          const at = pool.indexOf(id);
+          if (at < 0) removed += 1;
+          else pool.splice(at, 1);
+        }
+        row.realBagLost = removed;
+        row.bagBefore = before.backpack.length;
+        row.partyHpBefore = hp(before);
+        row.goldBefore = before.currency;
+        row.berriesBefore = berries(before);
+        row.standingBefore = before.party.filter((m) => !m.fainted).length;
+        /*
+         * Headroom for the *target*, not for the party. `damageParty` hits the
+         * lead alone when the cost says `lead`, and `leadOf` is the first
+         * member still standing — so a bench with HP to spare says nothing
+         * about whether a lead-targeted cost could land.
+         */
+        const standing = before.party.filter((m) => !m.fainted);
+        const targets = row.hpTargetsLead ? standing.slice(0, 1) : standing;
+        const floorOf = (m: { maxHp: number }): number =>
+          Math.max(1, Math.round(m.maxHp * options.tuning.eventDamageFloor));
+        row.hpHeadroom = targets.reduce((sum, m) => sum + Math.max(0, m.hp - floorOf(m)), 0);
       },
       onBattle: (session, node, before) => {
         sessions.push(session);
@@ -1847,6 +2141,7 @@ async function playSample(
       relicsTaken: collect.relicsTaken,
       relicsHeld: collect.relicsHeld,
       relicsSeen: [...new Set(collect.relicsSeen)],
+      events: collect.events.map((entry) => ({ ...entry })),
       gymParties,
       berriesEaten,
       damageByMember: state.party.map((member) => member.contribution.damageDealt),
@@ -2097,6 +2392,8 @@ interface Sample {
    * collapses onto one; `relics` asks whether relics are rare enough to be
    * worth routing for and common enough to exist.
    */
+  /** The event rejig's numbers. See `summarizeEvents`. */
+  events: ReturnType<typeof summarizeEvents>;
   relics: {
     /** Relic cards offered and taken across the sample, and per run. */
     offered: number;
@@ -2507,6 +2804,7 @@ function summarize(
     contribution: summarizeContribution(records),
     capture: summarizeCapture(records),
     relics: summarizeRelics(records),
+    events: summarizeEvents(records),
     durationMs,
   };
 }
@@ -2725,6 +3023,133 @@ function summarizeRelics(records: RunRecord[]): Sample['relics'] {
     neverOffered: RELIC_IDS.filter(
       (id) => !records.some((record) => record.relicsSeen.includes(id)),
     ).map((id) => relicById(id)?.name ?? id),
+  };
+}
+
+/**
+ * The event rejig's numbers. **What the question mark actually did.**
+ *
+ * Five questions, and each one fails differently:
+ *
+ *   - **Tier distribution**, split by rarity and by whether the relic was held.
+ *     If `T3` appears without the relic, the patch's one hard rule is broken.
+ *   - **Attune availability**: the fraction of events where the party held the
+ *     matching relic. Under about 15 percent and relics are decoration — and
+ *     the fix is then relic *acquisition rate*, not this table.
+ *   - **The `T0` rate**, and the HP and gold events actually took per run.
+ *     Measured against each run's own numbers rather than read off the table,
+ *     because 25 percent of a party is a different quantity in segment 0 and
+ *     segment 7.
+ *   - **Take rate per archetype** under the greedy policy. If any archetype
+ *     takes more than about 60 percent, the menu is decorative.
+ *   - **Refills**, which say whether three events per locale is enough.
+ */
+function summarizeEvents(records: RunRecord[]) {
+  const rows = records.flatMap((record) => record.events);
+  const total = Math.max(1, rows.length);
+
+  const byArchetype = EVENT_ARCHETYPES.map((archetype) => {
+    const taken = rows.filter((row) => row.archetype === archetype);
+    // Offered is what it could have been taken *from*: Attune is only on the
+    // menu when the relic is held, so its take rate is measured against that.
+    const offered = archetype === 'attune' ? rows.filter((row) => row.attuneAvailable) : rows;
+    return {
+      archetype,
+      taken: taken.length,
+      share: taken.length / total,
+      ofOffered: taken.length / Math.max(1, offered.length),
+    };
+  });
+
+  const byRarity = EVENT_RARITIES.map((rarity) => {
+    const rowsAt = rows.filter((row) => row.rarity === rarity);
+    const share = (tier: OutcomeTier): number =>
+      rowsAt.filter((row) => row.tier === tier).length / Math.max(1, rowsAt.length);
+    return {
+      rarity,
+      events: rowsAt.length,
+      T0: share('T0'),
+      T1: share('T1'),
+      T2: share('T2'),
+      T3: share('T3'),
+    };
+  });
+
+  const withRelic = rows.filter((row) => row.attuneAvailable);
+  const withoutRelic = rows.filter((row) => !row.attuneAvailable);
+  const tierShare = (subset: typeof rows, tier: OutcomeTier): number =>
+    subset.filter((row) => row.tier === tier).length / Math.max(1, subset.length);
+
+  const runs = Math.max(1, records.length);
+
+  /*
+   * **The conditional rates, and the claimed-against-measured comparison.**
+   *
+   * A `T0` share of *all* events answers nothing on its own: it mixes how often
+   * the bot gambles with how often a gamble goes wrong. The rate that says
+   * whether the distribution is doing its job is `T0` given that Gamble was
+   * picked.
+   *
+   * The `missing` counts are the defect check. A row that claims a cost and
+   * shows no matching movement in the run is the `backpack` signature: the
+   * outcome object says charged, the run says otherwise.
+   */
+  const gambles = rows.filter((row) => row.archetype === 'gamble');
+  const claimedHp = rows.filter((row) => row.claimedHp);
+  const claimedGold = rows.filter((row) => row.claimedGold);
+  const claimedBag = rows.filter((row) => row.claimedBag);
+
+  return {
+    t0GivenGamble: gambles.filter((row) => row.tier === 'T0').length / Math.max(1, gambles.length),
+    gambles: gambles.length,
+    realHpPerRun: sum(rows.map((row) => row.realHpLost)) / runs,
+    realGoldPerRun: sum(rows.map((row) => row.realGoldLost)) / runs,
+    realBerriesPerRun: sum(rows.map((row) => row.realBerriesLost)) / runs,
+    realBagPerRun: sum(rows.map((row) => row.realBagLost)) / runs,
+    claimed: {
+      hp: claimedHp.length,
+      gold: claimedGold.length,
+      bag: claimedBag.length,
+    },
+    missing: {
+      hp: claimedHp.filter((row) => row.realHpLost === 0).length,
+      gold: claimedGold.filter((row) => row.realGoldLost === 0).length,
+      bag: claimedBag.filter((row) => row.realBagLost === 0).length,
+    },
+    /*
+     * The same three, with the cases where there was nothing to take removed.
+     * **These are the defect counts.** A bag cost that moves nothing on an
+     * empty bag is the design working; one that moves nothing on a stocked bag
+     * is the fold being dropped again.
+     */
+    unexplained: {
+      /*
+       * An HP cost cannot move a party with nobody standing, and cannot move
+       * one already sitting on `eventDamageFloor`. The floor case is not
+       * separable here, so this count is an upper bound on HP.
+       */
+      hp: claimedHp.filter((row) => row.realHpLost === 0 && row.hpHeadroom > 0).length,
+      gold: claimedGold.filter((row) => row.realGoldLost === 0 && row.goldBefore > 0).length,
+      bag: claimedBag.filter((row) => row.realBagLost === 0 && row.bagBefore > 0).length,
+      /*
+       * The two bag costs split, because "nothing to take" differs. A forced
+       * discard takes any item, so a stocked bag that loses nothing is a
+       * defect. A berry toll takes a berry, so the bag must hold a *berry*.
+       */
+      discard: rows.filter((row) => row.claimedDiscard && row.realBagLost === 0 && row.bagBefore > 0).length,
+      berry: rows.filter((row) => row.claimedBerry && row.realBagLost === 0 && row.berriesBefore > 0).length,
+    },
+    events: rows.length,
+    eventsPerRun: rows.length / runs,
+    byArchetype,
+    byRarity,
+    attuneAvailability: withRelic.length / total,
+    t3WithoutRelic: withoutRelic.filter((row) => row.tier === 'T3').length,
+    withRelic: { events: withRelic.length, T2: tierShare(withRelic, 'T2'), T3: tierShare(withRelic, 'T3') },
+    withoutRelic: { events: withoutRelic.length, T0: tierShare(withoutRelic, 'T0') },
+    t0Rate: rows.filter((row) => row.tier === 'T0').length / total,
+    hpLostPerRun: sum(rows.map((row) => row.hpLost)) / runs,
+    goldLostPerRun: sum(rows.map((row) => row.goldLost)) / runs,
   };
 }
 
@@ -3070,6 +3495,136 @@ function render(sample: Sample): string {
     locales.neverPicked.length > 0
       ? `  never picked: ${locales.neverPicked.join(', ')}`
       : `  every locale was picked   ·   mean distinct locales per run: ${locales.meanDistinctPerRun.toFixed(2)}`,
+  );
+
+  const events = sample.events;
+  out.push('', 'Events — what the question mark paid, and what it took');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['events / run', events.eventsPerRun.toFixed(2), `${events.events} resolved in the sample`],
+        [
+          'Attune available',
+          pct(events.attuneAvailability),
+          events.attuneAvailability < 0.15
+            ? 'DECORATION: relics are too rare for Attune to matter — fix acquisition rate, not this table'
+            : 'the relic gate opens often enough to route for',
+        ],
+        [
+          'T3 without the relic',
+          String(events.t3WithoutRelic),
+          events.t3WithoutRelic > 0 ? 'BROKEN: the patch has exactly one hard rule and this is it' : 'gated, as required',
+        ],
+        ['T0 rate', pct(events.t0Rate), 'share of resolved events that were a setback'],
+        ['HP lost / run', events.hpLostPerRun.toFixed(1), 'actual HP taken by events, this run\'s own numbers'],
+        ['gold lost / run', events.goldLostPerRun.toFixed(1), 'actual coins taken by events and tolls'],
+      ],
+    ),
+  );
+
+  out.push('', 'Which button the bot pressed');
+  out.push(
+    table(
+      ['archetype', 'taken', 'share of all', 'share when offered', 'reads as'],
+      events.byArchetype.map((row) => [
+        row.archetype,
+        String(row.taken),
+        pct(row.share),
+        pct(row.ofOffered),
+        row.share > 0.6 ? 'DECORATIVE MENU: one button takes most picks' : '',
+      ]),
+    ),
+  );
+
+  out.push('', 'T0, conditional rather than as a share of everything');
+  out.push(
+    table(
+      ['measure', 'value', 'reads as'],
+      [
+        ['Gamble picks', `${events.gambles}`, `${pct(events.gambles / Math.max(1, events.events))} of resolutions`],
+        [
+          'T0 given Gamble',
+          pct(events.t0GivenGamble),
+          events.t0GivenGamble > 0.12
+            ? 'the distribution fires; a low all-events T0 rate is the bot avoiding the button'
+            : 'LOW: a Gamble rarely lands on T0 even when picked',
+        ],
+        ['T0 over all events', pct(events.t0Rate), 'the two together say which of the causes it is'],
+      ],
+    ),
+  );
+
+  out.push('', 'What the run actually lost, off RunState either side of the node');
+  out.push(
+    table(
+      ['cost kind', 'claimed by an outcome', 'showed no movement', 'per run'],
+      [
+        [
+          'HP',
+          String(events.claimed.hp),
+          events.missing.hp > 0 ? `${events.missing.hp}  CHECK` : '0',
+          events.realHpPerRun.toFixed(1),
+        ],
+        [
+          'gold',
+          String(events.claimed.gold),
+          events.missing.gold > 0 ? `${events.missing.gold}  CHECK` : '0',
+          events.realGoldPerRun.toFixed(1),
+        ],
+        [
+          'bag items',
+          String(events.claimed.bag),
+          events.missing.bag > 0 ? `${events.missing.bag}  CHECK` : '0',
+          events.realBagPerRun.toFixed(2),
+        ],
+        ['berries', '-', '-', events.realBerriesPerRun.toFixed(2)],
+      ],
+    ),
+  );
+  out.push('', 'The same, with "nothing there to take" removed — these are the defect counts');
+  out.push(
+    table(
+      ['cost kind', 'claimed', 'no movement', 'and something was there'],
+      [
+        ['HP', String(events.claimed.hp), String(events.missing.hp), String(events.unexplained.hp)],
+        ['gold', String(events.claimed.gold), String(events.missing.gold), String(events.unexplained.gold)],
+        ['bag items', String(events.claimed.bag), String(events.missing.bag), String(events.unexplained.bag)],
+        ['  of which: forced discard, bag stocked', '-', '-', String(events.unexplained.discard)],
+        ['  of which: berry toll, a berry held', '-', '-', String(events.unexplained.berry)],
+      ],
+    ),
+  );
+  out.push(
+    events.unexplained.hp + events.unexplained.gold + events.unexplained.discard + events.unexplained.berry > 0
+      ? '  DEFECT: a cost was claimed, there was something to take, and the run did not lose it.'
+      : '  every claimed cost either moved the run or had nothing left to take.',
+  );
+
+  out.push('', 'Outcome tier by rarity');
+  out.push(
+    table(
+      ['rarity', 'events', 'T0', 'T1', 'T2', 'T3'],
+      events.byRarity.map((row) => [
+        row.rarity,
+        String(row.events),
+        pct(row.T0),
+        pct(row.T1),
+        pct(row.T2),
+        pct(row.T3),
+      ]),
+    ),
+  );
+
+  out.push('', 'With the relic against without');
+  out.push(
+    table(
+      ['held', 'events', 'T2', 'T3', 'T0'],
+      [
+        ['yes', String(events.withRelic.events), pct(events.withRelic.T2), pct(events.withRelic.T3), '-'],
+        ['no', String(events.withoutRelic.events), '-', '0%', pct(events.withoutRelic.T0)],
+      ],
+    ),
   );
 
   const relics = sample.relics;

@@ -74,6 +74,24 @@ rather than being filled in from memory.
 | `randomizer-13` · `b022fc`, 400 | `ai-4-ability` | RETUNE | 39.25% | 4.8850 | the unknown-ability fix alone (section 16.1) |
 | `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, pinned | RETUNE | 39.25% | 4.8850 | **the pin.** `greedy` frozen to `GREEDY_BASELINE`; the row a future benchmark is read against |
 | `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, table | RETUNE | 51.0% | **5.3875** | the shipped opponent: three tiers with noise (section 16.4b) |
+| `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 37.5% | 4.80 | the event rejig, **measured on a build where event items never reached the bag** (section 17.5). Superseded by the row below; kept because it is what was recorded |
+| `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 38.5% | **4.83** | the event rejig, after the Stage 4.5.1 inventory bug was fixed. Read against the `ai-6` pin at 4.8850: **−0.055 mean gyms, −0.75pt completion** |
+| `randomizer-14` · `1e6f02`, 400 | `ai-6-spent-item`, pinned | RETUNE | 38.5% | **4.83** | the Attune floor raised off `T1` (section 17.6). **Reproduced the row above to the digit** — the change fixes a design wrong and moves no balance number at this sample |
+
+> **Every event figure recorded before `9ce1895` is confounded.** Until that
+> commit, `resolveNode` dropped the backpack returned by `applyEventOutcome`,
+> so no event item ever reached a run — a Stage 4.5.1 defect
+> (`generation.md` section 14). It taxed **every archetype that can pay an
+> item**, which is all four: `T2` and `T3` carry the premium items, the
+> relic-plus-item and the gold-plus-item, and `T1` carries one too. A Toll buys
+> a guaranteed `T2`, so a Toll was taxed exactly as hard as a Gamble — **no
+> archetype take rate measured before that commit is usable**, the "no
+> archetype above 60 percent" check included.
+>
+> It cut the other way on costs. A forced discard and a berry toll change the
+> bag and nothing else, so both were announced to the player and never charged:
+> **`T0` has never been measured at full strength before `9ce1895`.** Nothing
+> about `T0` is to be softened on evidence collected before it.
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
@@ -1225,6 +1243,20 @@ whether the trade is worth it.
 
 ### Relics and gates, same run
 
+> **Superseded by the event rejig, and for a different reason than the
+> confounding notice below.** These rates were measured on the 4.6c model,
+> where a *choice* paid a different outcome at each capability band, against a
+> table of eight events with one capability each. The rejig replaces both: the
+> band no longer selects an outcome (it decides whether the Attune option is on
+> the menu), and the table is 24 events with deliberately weighted relic
+> coverage. The per-capability split below is the measurement that motivated
+> that weighting, so it is kept as the reason rather than as a current figure.
+>
+> The **inventory bug does not touch these numbers** — they count which band a
+> run reads at, not what it was paid — which is why they are marked superseded
+> rather than confounded. The distinction matters: a superseded figure was true
+> of a game that no longer exists; a confounded one was never true at all.
+
 | measure | value |
 |---|---|
 | relic offers per run | 2.76 (1000 taken of 1104) |
@@ -2044,3 +2076,160 @@ and a future better baseline gets a new name beside it rather than an
 improvement to it. `AI_VERSION` and the opponent mode are stamped into every
 report, and every row in this section names both. **Read down an AI version the
 same way you read down a prefix.**
+
+## 17. The event rejig
+
+**2026-09-14.** Four outcome tiers, four option archetypes, a rarity draw per
+node and a 24-event chart. Prompt
+[`spec/gymrun-patch-event-rejig.md`](spec/gymrun-patch-event-rejig.md);
+the rulings and deviations are `generation.md` section 14.
+
+### 17.1 The headline, against the `ai-6` pin
+
+`greedy`, pinned opponent, 400 seeds, prefix `RETUNE`, `AI_VERSION`
+`gymrun-ai-6-spent-item`. Read down the prefix, never across.
+
+| | pin (`dbb2db`) | event rejig (`72e39f`) | delta |
+|---|---|---|---|
+| **mean gyms cleared** (the pinned figure) | **4.8850** | **4.83** | **−0.055** |
+| run completion | 39.25% | 38.5% | −0.75pt |
+
+**These numbers are the retake.** Everything in this section was first measured
+on a build where an event's item never reached the backpack — a Stage 4.5.1 bug
+found after the patch was built, section 17.5. The superseded figures are 4.80
+and 37.5%; the row above them in section 0 keeps both.
+
+**Recorded, not retuned.** Balance is not a gate: the number goes in the table
+and the patch keeps going. The direction makes sense — events can now take HP
+and gold where before they could only pay — and the size is within the range
+the last four rows of section 16 moved by for causes that turned out to be
+below the resolution of a 400-seed sample.
+
+### 17.2 What the question mark actually did
+
+Same run.
+
+| measure | value | reads as |
+|---|---|---|
+| events resolved / run | 3.27 | 1306 in the sample |
+| **Attune available** | **38.8%** | the threshold was 15%. Relics are not decoration |
+| **T3 without the relic** | **0** | the patch's one hard rule, held over 1306 events |
+| T0 rate | 0.4% | under `greedy`, which mostly buys its way past the setback |
+| HP lost / run | 77.1 | actual HP, measured against each run's own numbers |
+| gold lost / run | 34.8 | outcome costs and tolls together |
+
+**Attune availability at 38.8% is the number that answers the relic system.**
+The prompt set 15% as the line under which relics are decoration and the fix
+would be acquisition rate rather than the event table. It is two and a half
+times that, and it should be: `relics held at end` is 5.08 on this population,
+so a late-run party holds most of the table.
+
+### 17.3 The menu is not decorative, and the variance is not worth taking
+
+Take rate per archetype under `greedy`:
+
+| archetype | share of picks | share when offered |
+|---|---|---|
+| toll | 46.3% | 46.3% |
+| safe | 19.1% | 19.1% |
+| gamble | 17.2% | 17.2% |
+| attune | 17.3% | 44.6% |
+
+**No archetype takes more than about 60%**, which is the test the prompt set
+for whether the menu is decorative. It passes, and the shape is readable: a
+Toll is a known price for a guaranteed `T2`, so a bot with money buys it
+roughly half the time, and Attune wins 42.4% of the events where it is on the
+menu at all.
+
+### 17.4 `event-gambler` beats `event-safe`, once the items arrive
+
+120 seeds, prefix `EVREJIG`, the two forced policies.
+
+| policy | completion | mean gyms |
+|---|---|---|
+| `event-safe` | 35.8% | 4.63 |
+| `event-gambler` | **38.3%** | **4.68** |
+
+**+0.05 mean gyms and +2.5 points of completion to the gambler**, which is the
+direction the prompt predicted. The margin is thin on the mean and clearer on
+completion, and at 120 seeds neither is a large number — but the sign is the
+part the hypothesis was about.
+
+**It was the other way round before the inventory bug was fixed**, and the
+reversal is the most useful thing in this section:
+
+| | broken build | fixed build |
+|---|---|---|
+| `event-safe` | 4.67 | 4.63 |
+| `event-gambler` | 4.63 | **4.68** |
+| gap | **−0.04** | **+0.05** |
+
+The mechanism is legible. `T2` and `T3` are where the item grants live — a
+premium held item, a relic *and* an item, a large gold lump *and* an item — and
+a Gamble is the option that reaches them. `T1` pays an item too, but it also
+pays currency and a heal, and those never broke. So the bug was a tax levied
+almost entirely on the tiers the gambler is reaching for, and removing it moved
+the gambler and left the safe policy roughly where it was.
+
+**The reading recorded here before the fix was wrong, and is left in 17.5
+rather than deleted.** It proposed that the `T1` floor was too generous. On
+this evidence the floor was fine and the payouts were being thrown away.
+
+### 17.5 Superseded: the miss that was a bug
+
+**Recorded 2026-09-14, superseded the same day.** Everything above was first
+measured on a build where `resolveNode` dropped the backpack returned by
+`applyEventOutcome`, so no event item ever reached the run. Section 14 of
+`generation.md` has the defect; what belongs here is what it did to the
+numbers, because a balance finding measured on a broken build is worth keeping
+visible rather than quietly overwriting.
+
+| measure | as recorded | after the fix |
+|---|---|---|
+| mean gyms, `greedy` | 4.80 | 4.83 |
+| completion, `greedy` | 37.5% | 38.5% |
+| `event-gambler` − `event-safe` | −0.04 | **+0.05** |
+
+The conclusion drawn at the time — that the `T0` costs were overtuned against
+the `T2` payouts, or that the `T1` floor was too generous — was a reasonable
+reading of numbers that were measuring something else. **No table was retuned on
+it**, which is the whole reason the standing policy says to record a miss and
+keep going rather than to act on it at the checkpoint where it appears.
+
+### 17.6 The Attune floor, raised, and a change that moved nothing
+
+**2026-09-14.** `ATTUNE_TIERS` lost its `T1` weights — 10 at common, 5 at
+uncommon — onto `T2`. The ruling and its argument are in `generation.md`
+section 14; what belongs here is that **it changed no balance number that this
+sample can see.**
+
+400 seeds, prefix `RETUNE`, `ai-6` pinned, before and after:
+
+| measure | `72e39f` | `1e6f02` |
+|---|---|---|
+| mean gyms cleared | 4.83 | 4.83 |
+| run completion | 38.5% | 38.5% |
+| `T0` rate | 0.4% | 0.4% |
+| HP lost / run | 77.3 | 77.1 |
+| gold lost / run | 35.0 | 34.8 |
+| Attune take rate, of events offering it | 43.4% | 44.6% |
+| `T2` share, events where the relic was held | 68.0% | **68.6%** |
+
+**The change is real and it is small, and the last row is how you can tell it
+is real.** `T2` picks up 0.6 points among relic-holding events, which is the
+`T1` outcomes being promoted; the rest is unmoved. The arithmetic says it
+should be small: Attune is taken at 17.3% of events, the moved weight is 10 of
+100 at common and 5 of 100 at uncommon, so roughly one event in eighty changes
+tier, which is about 0.1 per run.
+
+**`event-safe` reproduced to the digit** — 4.63, unchanged — which is the check
+that matters, because that policy never presses Attune and therefore *must* not
+move. `event-gambler` also came back at 4.68. A floor raised on a
+low-frequency option is expected to look like this: it fixes what the option
+means without touching what the run scores.
+
+That is worth stating plainly rather than filing as a null result. The case for
+the change was never that it would win gyms — it was that an Attune paying
+`T1` hands a minor payout to a player who spent a scarce relic on the one
+option the gate exists to protect. The measurement confirms the change is
+**cheap**, which is the question a balance table can actually answer about it.
