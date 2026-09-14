@@ -239,7 +239,14 @@ describe('tolls are the same machinery as costs', () => {
 
 describe('the logged identity is the archetype', () => {
   it('bumped RUN_LOG_VERSION, because the answer changed shape', () => {
-    expect(RUN_LOG_VERSION).toMatch(/^gymrun-run-14\//);
+    /*
+     * "At least 14", not "exactly 14", and the difference is what this line
+     * guards. The rejig's own bump was to `-14`; a later patch moved it again
+     * — an event that pays a move asks who learns it — and a literal here
+     * would have read that second, legitimate bump as this one failing to
+     * happen. `test/versions.test.ts` is where the current number is pinned.
+     */
+    expect(Number(/^gymrun-run-(\d+)\//.exec(RUN_LOG_VERSION)?.[1])).toBeGreaterThanOrEqual(14);
   });
 
   /*
@@ -273,7 +280,9 @@ describe('a pre-patch log is refused, loudly and by name', () => {
     expect(isReplayable(prePatch)).toBe(false);
     expect(() => assertReplayable(prePatch)).toThrow(/mismatch on runLog/);
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-run-13/);
-    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-run-14/);
+    // The build's own version, read rather than written: the message has to
+    // name what this build expects, whatever number that has reached.
+    expect(() => assertReplayable(prePatch)).toThrow(RUN_LOG_VERSION);
   });
 
   it('refuses a log whose event decision is still an index, rather than reading it as one', () => {

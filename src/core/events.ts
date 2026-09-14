@@ -58,10 +58,12 @@ import type { AcquisitionOffer } from './acquisition';
 import { stow } from './items';
 import { leadOf, recoverParty } from './party';
 import { damagingInBands } from './randomizer';
+import { shuffledRelics } from './rewards';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import { hpEventDelta } from './hpCopy';
 import { BERRIES, itemById } from '../data/items';
+import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import {
   EVENTS,
   eventsInLocale,
@@ -127,8 +129,18 @@ export type ResolvedEffect =
    * can complete.
    */
   | { kind: 'acquisition'; offer: AcquisitionOffer; withItem: boolean }
-  /** A relic the run does not hold. Which one is decided at offer resolution. */
-  | { kind: 'relic' }
+  /**
+   * A relic the run does not hold, and what to pay when it holds them all.
+   *
+   * `order` is a full shuffled permutation of the relic table and `fallback` is
+   * an ordinary grant from the same tier, both drawn at map generation and both
+   * usually unused — the same shape, and the same argument, as the reward
+   * pool's relic card (`rewards.concreteReward`). Resolution walks `order` for
+   * the first id not already held and takes `fallback` if every one of them is,
+   * which consumes no RNG, so picking up a relic mid-run cannot shift a later
+   * roll.
+   */
+  | { kind: 'relic'; order: readonly RelicId[]; fallback: ResolvedEffect }
   | { kind: 'nothing' };
 
 /**
@@ -446,6 +458,17 @@ function resolveEffect(
       const offer = offerPokemon(effect.bandOffset);
       return offer ? { kind: 'acquisition', offer, withItem: effect.withItem } : { kind: 'nothing' };
     }
+    case 'relic': {
+      /*
+       * The permutation and the fallback, both drawn here and neither read
+       * until resolution. `shuffled` costs `n - 1` draws whatever the table
+       * holds, so an eleventh relic costs one more draw and reshuffles no seed
+       * beyond that.
+       */
+      const order = shuffledRelics(RELIC_IDS, stream);
+      const fallback = resolveEffect(effect.fallback, segment, stream, offerPokemon);
+      return { kind: 'relic', order, fallback };
+    }
     default:
       return effect;
   }
@@ -477,6 +500,45 @@ function weightedPick<T>(
 // ---------------------------------------------------------------------------
 // Applying
 // ---------------------------------------------------------------------------
+
+/**
+ * Collapse a relic grant against what the run already holds. **Pure, RNG-free,
+ * idempotent**, and every other kind passes straight through.
+ *
+ * A resolved relic effect is one whose `order` holds exactly the id it pays,
+ * which is how the two states tell themselves apart without a second type —
+ * the same trick `rewards.concreteReward` plays with an empty `alternates`. A
+ * run holding every relic collapses to the `fallback` instead, so the caller
+ * gets the thing that will actually be paid rather than a promise of a relic.
+ */
+export function concreteEffect(effect: ResolvedEffect, relics: readonly RelicId[]): ResolvedEffect {
+  if (effect.kind !== 'relic') return effect;
+  const free = effect.order.find((id) => !relics.includes(id));
+  return free
+    ? { kind: 'relic', order: [free], fallback: effect.fallback }
+    : concreteEffect(effect.fallback, relics);
+}
+
+/**
+ * An outcome with every relic grant collapsed. **The one place the screen and
+ * the fold agree about what a `relic` pays.**
+ *
+ * The event screen describes the result of this rather than of the drawn
+ * outcome, so a player who has collected every relic reads the item they are
+ * about to get instead of the word "relic" followed by no relic. `applyEffect`
+ * collapses the same way at the same moment, from the same held set, so the
+ * sentence on screen and the change to the run cannot disagree.
+ */
+export function concreteOutcome(outcome: EventOutcome, relics: readonly RelicId[]): EventOutcome {
+  const touches = (effects: readonly ResolvedEffect[]): boolean =>
+    effects.some((effect) => effect.kind === 'relic');
+  if (!touches(outcome.cost) && !touches(outcome.grant)) return outcome;
+  return {
+    ...outcome,
+    cost: outcome.cost.map((effect) => concreteEffect(effect, relics)),
+    grant: outcome.grant.map((effect) => concreteEffect(effect, relics)),
+  };
+}
 
 /**
  * Fold a chosen event outcome into the run. The only interpreter of the union.
@@ -536,9 +598,29 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
     case 'acquisition':
       return state;
 
-    /* Same posture: which relic is decided at offer resolution, not here. */
-    case 'relic':
-      return state;
+    /*
+     * Which relic, decided here, against what the run holds right now.
+     *
+     * **This was `return state` from the rejig until the playtest report that
+     * named it**, and the shape of the defect is the one this file has now
+     * produced twice: an effect the pools drew, the screen announced and
+     * nothing applied. A `T2` relic is a fifth of that tier and the relic half
+     * of every `T3` windfall, so more than half of what a Toll bought went
+     * nowhere. The comment it replaced said the decision belonged at "offer
+     * resolution" — which was true of the decision and false about there being
+     * anywhere that made it.
+     *
+     * Consumes no RNG: `order` and `fallback` were both drawn at generation.
+     * A duplicate is impossible by the walk and guarded anyway, because a relic
+     * listed twice is invisible everywhere except a passive counting double.
+     */
+    case 'relic': {
+      const concrete = concreteEffect(effect, state.relics);
+      if (concrete.kind !== 'relic') return applyEffect(state, concrete, tuning);
+      const id = concrete.order[0];
+      if (!id || state.relics.includes(id)) return state;
+      return { ...state, relics: [...state.relics, id] };
+    }
 
     case 'currency':
       // Clamped at zero rather than refused: an event that charges more than
@@ -579,9 +661,22 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
        */
       return { ...state, backpack: effect.items.reduce((bag, item) => stow(bag, item), [...state.backpack]) };
 
+    /*
+     * Deliberately nothing, and — like `acquisition` above — the application
+     * lives at the call site rather than here.
+     *
+     * A taught move is two logged decisions, who learns it and what it
+     * displaces, and this function is handed neither. `playRun` asks them
+     * through `askMoveQuestions`, the same pair a reward card and a shop TM
+     * ask, and `resolveNode` folds the answers with `applyReward` — so an
+     * event move and a card move reach a party member down one code path.
+     *
+     * **It said as much before this patch and nothing did the asking.** Step 5
+     * of the rejig was named as the owner of the questions and never wired
+     * them, so every `T2` and `T3` move was drawn, named on screen and
+     * dropped. `test/event-move.test.ts` holds the seam now.
+     */
     case 'move':
-      // Step 5's job: a granted move is a logged targeting decision, and asking
-      // it here would put an entry in the log for a question nobody was asked.
       return state;
 
     case 'loseItem': {
@@ -679,11 +774,32 @@ export function describeEffect(effect: ResolvedEffect): string {
     // and the capture card is where the party is on screen to answer it.
     case 'acquisition':
       return effect.offer.spec.species;
-    case 'relic':
-      return 'A relic';
+    /*
+     * Named once it is resolved, and generic until then. A single-id `order`
+     * is `concreteEffect`'s output and is the only state in which the answer
+     * is known; the drawn effect carries the whole table and honestly cannot
+     * say which one it will be.
+     */
+    case 'relic': {
+      const only = effect.order.length === 1 ? effect.order[0] : undefined;
+      return only ? (relicById(only)?.name ?? 'A relic') : 'A relic';
+    }
     case 'nothing':
       return 'Nothing happens';
   }
+}
+
+/**
+ * The move this outcome pays, or null. **The single reader**, shared by the
+ * question `playRun` asks and the reward `resolveNode` folds.
+ *
+ * One move at most: no tier entry grants two, and if one ever did, the pair of
+ * targeting questions would have to be asked twice in a fixed order, which is
+ * a log-shape decision and not something this reader may take silently.
+ */
+export function grantedMove(outcome: EventOutcome): string | null {
+  const granted = outcome.grant.find((effect) => effect.kind === 'move');
+  return granted?.kind === 'move' ? granted.move : null;
 }
 
 /** What an outcome paid, as one line. The cost is described separately. */

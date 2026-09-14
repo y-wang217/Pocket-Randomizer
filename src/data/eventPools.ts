@@ -175,8 +175,25 @@ export type EventEffect =
    * must not be offered twice and what the run holds is not known when the map
    * is built. The draw is invariant either way, so the filter cannot shift a
    * later roll.
+   *
+   * **`fallback` is what a run that has collected everything gets instead**, and
+   * it is required rather than optional. A relic grant with nowhere to go and
+   * nothing behind it is the shape that produced the defect this field was
+   * added for: the tier announced a relic, every relic was held, and the node
+   * paid nothing at all. Naming the replacement in the table means the answer
+   * is a data edit and there is no unpayable entry to reach.
    */
-  | { kind: 'relic' };
+  | { kind: 'relic'; fallback: RelicFallback };
+
+/**
+ * What a relic grant degrades to when the run already holds every relic.
+ *
+ * An item rather than an arbitrary effect, and the narrow type is the point:
+ * an item is the one grant that is always payable, always visible in the bag,
+ * and can never itself need a fallback. A wider type here would allow a
+ * fallback chain, and a chain is a thing that can end in nothing again.
+ */
+export type RelicFallback = { kind: 'item'; pool: readonly string[]; count: number };
 
 /**
  * One drawable outcome in a tier pool.
@@ -427,7 +444,7 @@ const T2_POOL: readonly TierBand[] = [
        * the slot in the opening band.
        */
       { id: 't2-good-item', weight: 5, grant: [{ kind: 'item', pool: GOOD_ITEM_IDS, count: 1 }] },
-      { id: 't2-relic', weight: 4, grant: [{ kind: 'relic' }] },
+      { id: 't2-relic', weight: 4, grant: [{ kind: 'relic', fallback: { kind: 'item', pool: GOOD_ITEM_IDS, count: 1 } }] },
     ],
   },
   {
@@ -436,7 +453,7 @@ const T2_POOL: readonly TierBand[] = [
       { id: 't2-move', weight: 8, grant: [{ kind: 'move', bandOffset: 0 }] },
       { id: 't2-pokemon', weight: 6, grant: [{ kind: 'acquisition', bandOffset: 0, withItem: false }] },
       { id: 't2-premium-item', weight: 5, grant: [{ kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 }] },
-      { id: 't2-relic', weight: 5, grant: [{ kind: 'relic' }] },
+      { id: 't2-relic', weight: 5, grant: [{ kind: 'relic', fallback: { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 } }] },
     ],
   },
   {
@@ -450,7 +467,7 @@ const T2_POOL: readonly TierBand[] = [
        */
       { id: 't2-pokemon', weight: 4, grant: [{ kind: 'acquisition', bandOffset: 0, withItem: false }] },
       { id: 't2-premium-item', weight: 6, grant: [{ kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 }] },
-      { id: 't2-relic', weight: 6, grant: [{ kind: 'relic' }] },
+      { id: 't2-relic', weight: 6, grant: [{ kind: 'relic', fallback: { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 } }] },
     ],
   },
 ];
@@ -489,7 +506,10 @@ const T3_POOL: readonly TierBand[] = [
       {
         id: 't3-relic-and-item',
         weight: 5,
-        grant: [{ kind: 'relic' }, { kind: 'item', pool: GOOD_ITEM_IDS, count: 1 }],
+        grant: [
+          { kind: 'relic', fallback: { kind: 'item', pool: GOOD_ITEM_IDS, count: 1 } },
+          { kind: 'item', pool: GOOD_ITEM_IDS, count: 1 },
+        ],
       },
       {
         id: 't3-hoard',
@@ -506,7 +526,10 @@ const T3_POOL: readonly TierBand[] = [
       {
         id: 't3-relic-and-item',
         weight: 6,
-        grant: [{ kind: 'relic' }, { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 }],
+        grant: [
+          { kind: 'relic', fallback: { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 } },
+          { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 },
+        ],
       },
       {
         id: 't3-hoard',
@@ -523,7 +546,10 @@ const T3_POOL: readonly TierBand[] = [
       {
         id: 't3-relic-and-item',
         weight: 7,
-        grant: [{ kind: 'relic' }, { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 }],
+        grant: [
+          { kind: 'relic', fallback: { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 } },
+          { kind: 'item', pool: PREMIUM_ITEM_IDS, count: 1 },
+        ],
       },
       {
         id: 't3-hoard',

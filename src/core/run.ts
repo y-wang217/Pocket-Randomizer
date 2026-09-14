@@ -70,6 +70,7 @@ import {
 import {
   applyEventOutcome,
   applyToll,
+  grantedMove,
   optionOf,
   outcomeFor,
   presentedOptions,
@@ -263,8 +264,27 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * `aiVersion` is the point of doing this here rather than in the AI patch that
  * follows: the AI patch bumps one constant and the guard picks it up, with no
  * schema change of its own. `docs/generation.md` section 9.
+ *
+ * ## `-15`: an event that pays a move asks who learns it
+ *
+ * A new question in a new place. A `T2` or `T3` event outcome grants a move,
+ * and until this patch nothing asked the two questions that land one — so the
+ * move was drawn, shown to the player and dropped. It is asked now, with the
+ * same `target` and `replace` entries a reward card, a shop TM and a gym clear
+ * already use.
+ *
+ * Every entry in the pair is an old shape, and the sequence is still changed:
+ * a `-14` log that walked through a question mark has no answer where this
+ * build asks, so replaying it would hand the event's targeting question the
+ * answer to whatever the run asked next. That is the exact failure the guard
+ * exists to make loud, and it is refused on this axis by name.
+ *
+ * `contentHash` and `randomizerVersion` also move in this patch — the relic
+ * grant gained a fallback in `data/eventPools.ts` and a drawn order at
+ * generation — but, as at `-14`, that is a coincidence of the patch. The
+ * schema axis is the one that states why a `-14` log cannot be replayed.
  */
-export const RUN_LOG_VERSION = `gymrun-run-14/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-15/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -693,6 +713,24 @@ export interface NodeResult {
   /** Which of that member's move slots it displaces, 0-based, or absent. */
   gymMoveReplaceSlot?: number;
   /**
+   * The move a question mark room handed over, and where it landed.
+   *
+   * Present only when the *chosen* event outcome grants one — which is a `T2`
+   * or a `T3`, so it depends on the archetype the player pressed and on the
+   * band the run stands at. Both are functions of state a replay reconstructs
+   * exactly, which is what lets the question be conditional at all.
+   *
+   * Its own trio rather than the gym's or the card's, for the reason theirs are
+   * separate from each other: a node can pay more than one move and sharing the
+   * fields would make two grants fight over one slot. An event pays one, but
+   * the shape does not depend on that staying true.
+   */
+  eventMove?: Reward;
+  /** Which party slot the event's move lands on. */
+  eventMoveTarget?: number;
+  /** Which of that member's move slots it displaces, 0-based, or absent. */
+  eventMoveReplaceSlot?: number;
+  /**
    * Recipients and displaced slots for any taught moves in the shop basket, in
    * shelf order.
    *
@@ -839,6 +877,12 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * the rule rather than of the clamp, which is the version that survives the
    * next tuning pass.
    */
+  /*
+   * The run this node's outcome is folded onto. `state` until an event moves
+   * it, and the spread every return below is built from, so a field an event
+   * changes reaches the next node without being named here.
+   */
+  let base: RunState = state;
   let currency = state.currency;
   if (result.battle?.result.winner === 'p1') currency += nodePayout(result.node, state.currentSegment);
 
@@ -858,29 +902,48 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
        * never contained.
        */
       const priced = option.toll
-        ? applyToll({ ...state, party, currency }, option.toll, state.tuning)
-        : { ...state, party, currency };
-      const after = applyEventOutcome(priced, outcome, state.tuning);
+        ? applyToll({ ...base, party, currency }, option.toll, state.tuning)
+        : { ...base, party, currency };
       /*
-       * **All three, and the third one is a bug fix.**
+       * **The fold becomes the base the rest of this function builds on**, and
+       * that is the third version of this line and the one that stops the bug
+       * from having a fourth.
        *
-       * `backpack` was missing here from Stage 4.5.1 (`0b450d2`) until the
-       * event rejig found it. That patch moved an event's item from the lead
-       * into the bag — `applyEventOutcome` has folded it correctly ever since,
-       * and its unit tests have always passed — but this call site kept taking
-       * only `party` and `currency` off the result, so every item an event
-       * paid was folded into a value nobody read. Events appeared to grant
-       * nothing.
+       * It was `party = after.party; currency = after.currency` from Stage
+       * 4.5.1 (`0b450d2`), dropping `backpack`, so every item an event ever
+       * paid was folded into a value nobody read. The event rejig found that
+       * and destructured three fields instead, which fixed the bag and left
+       * `relics` behind — so a `T2` relic and every `T3` windfall announced a
+       * relic and granted nothing, which is the playtest report this patch
+       * answers.
        *
-       * Since the rejig it would have swallowed the costs too: a forced
-       * discard and a berry toll both change the bag and nothing else, so both
-       * would have been announced to the player and never charged.
-       *
-       * Destructured rather than assigned field by field, so the next field
-       * `applyEventOutcome` learns to change cannot be dropped the same way.
-       * `test/event-inventory.test.ts` holds the seam.
+       * Naming fields is the defect. `base` carries whatever
+       * `applyEventOutcome` changed, including whatever it learns to change
+       * next, and the three locals below are re-read from it only because they
+       * are modified again further down. `test/event-inventory.test.ts` holds
+       * the seam, per effect kind rather than per field.
        */
-      ({ party, currency, backpack } = after);
+      base = applyEventOutcome(priced, outcome, state.tuning);
+      /*
+       * The taught move, after the fold and through `applyReward`.
+       *
+       * After, because a `T0` consolation heal and a `T2` move can arrive in
+       * the same node and the move must land on the member as the fold left
+       * them. Through `applyReward` rather than a `teachMove` call here,
+       * because that is the one function a card, a shop TM and a gym clear all
+       * go through, and a second teaching path is how two of them would drift.
+       */
+      if (result.eventMove) {
+        base = applyReward(
+          base,
+          result.eventMove,
+          result.eventMoveTarget ?? 0,
+          result.eventMoveReplaceSlot ?? null,
+        );
+      }
+      party = base.party;
+      currency = base.currency;
+      backpack = base.backpack;
     }
   }
 
@@ -896,17 +959,17 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   ];
 
   // The one death rule, checked before anything can undo it.
-  if (isWiped(party)) return { ...state, party, backpack, currency, history, outcome: 'defeat' };
+  if (isWiped(party)) return { ...base, party, backpack, currency, history, outcome: 'defeat' };
 
   if (result.node.kind === 'gym') {
     // A gym that did not end in a win ends the run, wipe or not: a turn-limit
     // draw against a gym leader is a gym the player did not beat.
     if (result.battle?.result.winner !== 'p1') {
-      return { ...state, party, backpack, currency, history, outcome: 'defeat' };
+      return { ...base, party, backpack, currency, history, outcome: 'defeat' };
     }
     const nextSegment = state.currentSegment + 1;
     if (nextSegment >= state.segments.length) {
-      return { ...state, party, backpack, currency, history, outcome: 'victory' };
+      return { ...base, party, backpack, currency, history, outcome: 'victory' };
     }
     /*
      * Clearing a gym is the only thing that levels the party.
@@ -917,7 +980,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      * started on the same share of a bigger bar rather than a free heal.
      */
     let cleared: RunState = {
-      ...state,
+      ...base,
       // Order matters: fold in the node, then heal, then level. Healing before
       // levelling means the fraction `levelParty` carries is the healed one, so
       // a full heal at the gym really is full at the new level rather than
@@ -1011,7 +1074,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   }
 
   let advanced: RunState = {
-    ...state,
+    ...base,
     party: betweenNodes(party, state.tuning),
     backpack,
     currency,
@@ -1521,6 +1584,35 @@ export async function playRun(
         );
       }
       result.eventChoice = archetype;
+
+      /*
+       * **A `T2` or `T3` move is two more questions, asked here.**
+       *
+       * `chosenEventOutcome` is the single definition of which of the sixteen
+       * drawn outcomes this button pays, and it is read here rather than
+       * re-derived so that the move asked about and the move folded in are the
+       * same one. The pair of entries is `askMoveQuestions`, unchanged, which
+       * is what makes an event move, a gym move, a reward card and a shop TM
+       * one shape in the log.
+       *
+       * Conditional on the outcome, and that is legal for the same reason the
+       * gym's Part A is: the condition is a function of state the replay
+       * rebuilds, never of anything the player says here.
+       *
+       * **This is what moved `RUN_LOG_VERSION` to 14.** The two entries are the
+       * existing `target` and `replace` shapes, asked in a place no earlier log
+       * has an answer for, and the guard's own rule is that a new question in a
+       * new place is a changed sequence even when every entry in it is old.
+       */
+      const paid = chosenEventOutcome(result, state);
+      const move = paid ? grantedMove(paid) : null;
+      if (move) {
+        const granted: Reward = { kind: 'tm', move };
+        result.eventMove = granted;
+        const answers = await askMoveQuestions(granted, state, state.party, policy, record);
+        result.eventMoveTarget = answers.target;
+        result.eventMoveReplaceSlot = answers.replaceSlot ?? undefined;
+      }
     }
 
     /*

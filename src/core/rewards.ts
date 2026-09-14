@@ -321,7 +321,7 @@ export function resolveRewardEntry(
        * The fallback comes from this pool's non-relic entries, so a run that
        * has collected everything still gets a card the tier would have paid.
        */
-      const order = shuffled(RELIC_IDS, stream);
+      const order = shuffledRelics(RELIC_IDS, stream);
       const ordinary = pool.filter((candidate) => candidate.kind !== 'relic');
       const fallbackEntry = ordinary.length > 0 ? pickWeighted(ordinary, stream) : null;
       const fallback = fallbackEntry
@@ -367,8 +367,13 @@ export function resolveRewardEntry(
  * available: it is what lets a relic card cost the same number of draws as the
  * relic table grows, so adding an eleventh relic does not reshuffle every seed
  * beyond the one extra draw it honestly costs.
+ *
+ * Exported as `shuffledRelics` because `core/events.ts` draws a relic order for
+ * the same reason and must draw it the same way. Two copies would be two draw
+ * counts, and the symptom of a divergence is a seed that reproduces everywhere
+ * except at a question mark.
  */
-function shuffled(ids: readonly RelicId[], stream: RngStream): RelicId[] {
+export function shuffledRelics(ids: readonly RelicId[], stream: RngStream): RelicId[] {
   const out = [...ids];
   for (let i = out.length - 1; i > 0; i--) {
     const j = stream.nextInt(i + 1);

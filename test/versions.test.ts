@@ -60,11 +60,17 @@ describe('the versions block', () => {
     expect([...VERSION_AXES]).toEqual(['runLog', 'contentHash', 'aiVersion', 'randomizerVersion']);
   });
 
-  it('moved RUN_LOG_VERSION for the block, and again for the event decision', () => {
-    // `-13` was the versions block; `-14` is the event rejig, where the event
-    // decision stopped being an index and became its option's archetype.
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-14/')).toBe(true);
-    expect(RUN_LOG_VERSION).not.toContain('gymrun-run-13/');
+  it('moved RUN_LOG_VERSION for the block, the event decision, and the event move', () => {
+    /*
+     * The one place the current number is pinned literally, because the axis
+     * is a name a human chose and a computed check could not catch a bump that
+     * failed to happen. `-13` was the versions block; `-14` the event rejig,
+     * where the event decision stopped being an index and became its option's
+     * archetype; `-15` the event move, where a `T2` or `T3` outcome that pays
+     * a move asks who learns it and what it displaces.
+     */
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-15/')).toBe(true);
+    expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });
 

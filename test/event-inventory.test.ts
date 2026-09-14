@@ -24,6 +24,12 @@ import { createPartyMember } from '../src/core/party';
 import type { EventInstance, EventOption, EventOutcome, ResolvedEffect } from '../src/core/events';
 import type { EventArchetype } from '../src/data/eventPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
+import { RELIC_IDS, type RelicId } from '../src/data/relics';
+
+/** A drawn relic grant: an order to walk, and the item behind it. */
+function relicEffect(order: readonly RelicId[]): ResolvedEffect {
+  return { kind: 'relic', order, fallback: { kind: 'item', items: ['leftovers'] } };
+}
 
 function outcomeOf(grant: readonly ResolvedEffect[], cost: readonly ResolvedEffect[] = []): EventOutcome {
   return { tier: cost.length > 0 ? 'T0' : 'T1', entryId: 'test', cost, grant };
@@ -89,12 +95,45 @@ describe('an event grant reaches the run', () => {
     expect(after.currency).toBe(250);
   });
 
-  it('folds a T3 pair: the item beside the relic', () => {
+  it('folds a T3 pair: the item beside the relic, and the relic itself', () => {
     const after = resolveWith(
       runWith([]),
-      outcomeOf([{ kind: 'relic' }, { kind: 'item', items: ['lifeorb'] }]),
+      outcomeOf([relicEffect(['rusted-machete']), { kind: 'item', items: ['lifeorb'] }]),
     );
     expect(after.backpack).toEqual(['lifeorb']);
+    expect(after.relics).toEqual(['rusted-machete']);
+  });
+
+  /*
+   * The relic half of the same defect the backpack half of this file was
+   * written for. `applyEffect` returned the state untouched for a `relic` from
+   * the rejig until the playtest report that named it, so a `T2` relic and
+   * every `T3` windfall paid strictly less than they said.
+   */
+  it('puts a relic on the run rather than in the bag or on a member', () => {
+    const after = resolveWith(runWith([]), outcomeOf([relicEffect(['rusted-machete'])]));
+    expect(after.relics).toEqual(['rusted-machete']);
+    expect(after.backpack).toEqual([]);
+  });
+
+  it('walks the drawn order past every relic already held', () => {
+    const state = { ...runWith([]), relics: ['rusted-machete' as const] };
+    const after = resolveWith(state, outcomeOf([relicEffect(['rusted-machete', 'woodsmans-hatchet'])]));
+    expect(after.relics).toEqual(['rusted-machete', 'woodsmans-hatchet']);
+  });
+
+  it('pays the fallback when the run holds every relic in the order', () => {
+    const state = { ...runWith([]), relics: [...RELIC_IDS] };
+    const after = resolveWith(state, outcomeOf([relicEffect([...RELIC_IDS])]));
+    expect(after.relics).toEqual([...RELIC_IDS]);
+    expect(after.backpack).toEqual(['leftovers']);
+  });
+
+  it('never lists a relic twice', () => {
+    const state = { ...runWith([]), relics: ['rusted-machete' as const] };
+    const after = resolveWith(state, outcomeOf([relicEffect(['rusted-machete'])]));
+    expect(after.relics).toEqual(['rusted-machete']);
+    expect(after.backpack).toEqual(['leftovers']);
   });
 });
 
