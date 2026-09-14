@@ -1,9 +1,9 @@
 {
   "seed": "SEED-A",
   "versions": {
-    "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
-    "randomizer": "gymrun-randomizer-13",
+    "runLog": "gymrun-run-14/gymrun-0.3.0",
+    "contentHash": "72e39f8a221baeca5db3699b7e1ada50f53c484ee5055c3768f7f43fc995d3c8",
+    "randomizer": "gymrun-randomizer-14",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -227,10 +227,10 @@
   "log": {
     "seed": "SEED-A",
     "versions": {
-      "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
+      "runLog": "gymrun-run-14/gymrun-0.3.0",
+      "contentHash": "72e39f8a221baeca5db3699b7e1ada50f53c484ee5055c3768f7f43fc995d3c8",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-13"
+      "randomizerVersion": "gymrun-randomizer-14"
     },
     "decisions": [
       {
@@ -608,7 +608,7 @@
       },
       {
         "kind": "event",
-        "index": 0
+        "archetype": "safe"
       },
       {
         "kind": "items",

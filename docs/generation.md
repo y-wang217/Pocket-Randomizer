@@ -2506,3 +2506,31 @@ text colour, which made a *second* neutral chip style; `test/visual-v2.test.ts`
 holds the rule that every neutral chip shares one style and only the type chip
 carries a hue. The override was deleted rather than the rule relaxed, and the
 `--rarity` modifier now exists only so the Pocket rule has something to select.
+
+### The defect the log-shape change caused, and the suite that caught it
+
+**2026-09-14, after step 8.** Changing the event decision from an index to an
+archetype broke saved runs, and it broke them silently.
+
+`ui/storage.ts`'s `isRunDecision` listed `event` among the kinds validated as
+`typeof decision.index === 'number'`. After step 5 an event decision carries an
+`archetype` and no `index`, so the check failed for **every saved run that had
+passed a question mark**: `loadRunLog` returned null and the save was
+unresumable, with no error anywhere — the run simply was not there.
+
+`test/storage.test.ts` caught it, and the case it caught it with is the one
+written for exactly this: "loads every log a real run saves, **whatever kinds
+it holds**", which plays a real run rather than hand-building a log with three
+decision kinds in it. The older version of that check knew three kinds and
+would have passed.
+
+The fix validates the four archetype names rather than `typeof === 'string'`,
+because the point of the tag is that it is a closed set: a log naming anything
+else is a log this build cannot replay, and it is refused at the boundary
+rather than at the call site that reads it.
+
+**Worth stating plainly, because it is the second time this shape of bug has
+reached this repo:** a decision-schema change has to be walked through every
+reader of the schema, and the type system does not find them all — `storage.ts`
+validates a `RunDecision` structurally, from `unknown`, so it typechecks
+perfectly while disagreeing with the union it is validating.

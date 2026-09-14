@@ -60,9 +60,11 @@ describe('the versions block', () => {
     expect([...VERSION_AXES]).toEqual(['runLog', 'contentHash', 'aiVersion', 'randomizerVersion']);
   });
 
-  it('moved RUN_LOG_VERSION for the block', () => {
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-13/')).toBe(true);
-    expect(RUN_LOG_VERSION).not.toContain('gymrun-run-12/');
+  it('moved RUN_LOG_VERSION for the block, and again for the event decision', () => {
+    // `-13` was the versions block; `-14` is the event rejig, where the event
+    // decision stopped being an index and became its option's archetype.
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-14/')).toBe(true);
+    expect(RUN_LOG_VERSION).not.toContain('gymrun-run-13/');
   });
 });
 

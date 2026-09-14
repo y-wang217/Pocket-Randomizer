@@ -86,9 +86,30 @@ function isRunDecision(value: unknown): boolean {
     case 'lead':
     case 'node':
     case 'reward':
-    case 'event':
     case 'target':
       return typeof decision.index === 'number';
+    /*
+     * **The one decision that is not an index, since the event rejig.**
+     *
+     * It was in the list above until this patch, and leaving it there was a
+     * real defect rather than a cosmetic one: an event decision now carries an
+     * `archetype` and no `index`, so the check failed for every saved run that
+     * had passed a question mark, `loadRunLog` returned null, and the save was
+     * silently unresumable. `test/storage.test.ts` caught it, which is what
+     * that suite's "whatever kinds it holds" is for.
+     *
+     * Validated against the four names rather than `typeof === 'string'`,
+     * because the point of the tag is that it is a closed set: a log naming
+     * something else is a log this build cannot replay, and it should be
+     * refused here rather than at the call site that reads it.
+     */
+    case 'event':
+      return (
+        decision.archetype === 'safe' ||
+        decision.archetype === 'gamble' ||
+        decision.archetype === 'toll' ||
+        decision.archetype === 'attune'
+      );
     case 'battle': {
       const choice = decision.choice as { kind?: unknown; slot?: unknown } | undefined;
       return (choice?.kind === 'move' || choice?.kind === 'switch') && typeof choice.slot === 'number';

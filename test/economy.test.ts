@@ -551,7 +551,7 @@ describe('mid-run save across a reward, shop and event boundary', () => {
     }
   });
 
-  it('records shop and event decisions as indexes and nothing else', async () => {
+  it('records a shop as indexes and an event as its archetype, and nothing else', async () => {
     const runs = await Promise.all(seeds.slice(0, 8).map((seed) => playRun(seed, spender())));
     let shopDecisions = 0;
     let eventDecisions = 0;
@@ -564,7 +564,16 @@ describe('mid-run save across a reward, shop and event boundary', () => {
         }
         if (decision.kind === 'event') {
           eventDecisions++;
-          expect(Object.keys(decision).sort()).toEqual(['index', 'kind']);
+          /*
+           * **Updated by the event rejig, not deleted.** The claim this suite
+           * makes is "nothing derived in the log", and it still holds — an
+           * archetype names one of four fixed roles, not a price, an item id
+           * or an outcome. What changed is that the event decision is the one
+           * answer in the union that is not an index, because the presented
+           * option list varies with the run's relics. `core/types.ts` argues
+           * it; `docs/generation.md` section 14 rules it.
+           */
+          expect(Object.keys(decision).sort()).toEqual(['archetype', 'kind']);
         }
       }
       /*

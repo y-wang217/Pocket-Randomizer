@@ -286,14 +286,16 @@ describe('the version axes', () => {
    * `RUN_LOG_VERSION` did not move for either, and the assertion that it did
    * not is the half of this test that still guards something: neither patch
    * changes a logged decision, so a log's schema is untouched and only the
-   * `aiVersion` and `contentHash` axes refuse it. The event rejig *will* move
-   * it, at its own step 5, and that is the line to update when it does.
+   * `aiVersion` and `contentHash` axes refuse it. **The event rejig did move
+   * it, at its step 5**, and the literal below moved with it: the event
+   * decision stopped being an index and became its option's archetype, which
+   * is a changed answer to an unchanged question and therefore a schema bump.
    */
   it('moved RUN_LOG_VERSION not at all, and contentHash only by new data tables', () => {
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-13/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-14/gymrun-0.3.0');
     // Pinned literally, as the Branch 1 value was: a hash nobody can read off
     // the tree by eye is exactly the kind that moves without anyone noticing.
-    expect(CONTENT_HASH).toBe('6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7');
+    expect(CONTENT_HASH).toBe('72e39f8a221baeca5db3699b7e1ada50f53c484ee5055c3768f7f43fc995d3c8');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
