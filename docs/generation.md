@@ -2534,3 +2534,44 @@ reached this repo:** a decision-schema change has to be walked through every
 reader of the schema, and the type system does not find them all — `storage.ts`
 validates a `RunDecision` structurally, from `unknown`, so it typechecks
 perfectly while disagreeing with the union it is validating.
+
+### The bug the risk predicted, found the same day it was logged
+
+**2026-09-14.** The note above was written about `ui/storage.ts`. The same
+shape was already sitting in `core/run.ts`, four stages old, and a question
+about it — "rewards from events aren't going into inventory, does that make
+sense?" — found it.
+
+`resolveNode` folded the event outcome and then read two of the three fields it
+returned:
+
+```ts
+const after = applyEventOutcome(priced, outcome, state.tuning);
+party = after.party;
+currency = after.currency;     // and backpack, dropped on the floor
+```
+
+**Live since Stage 4.5.1** (`0b450d2`, "a bag that catches things"), which is
+the patch that moved an event's item from the lead into the backpack.
+`applyEventOutcome` folded it correctly from that day and its unit tests passed
+throughout; the call site was never updated, so for four stages every item an
+event paid was folded into a value nobody read. The header comment in
+`core/events.ts` describing the item going "into the backpack, like every other
+item the run acquires" was accurate about the fold and wrong about the game.
+
+Before the rejig it swallowed grants only. After it, it would have swallowed
+costs too: a forced discard and a berry toll both change the bag and nothing
+else, so both would have been announced to the player and never charged.
+
+The fix destructures the whole result — `({ party, currency, backpack } = after)`
+— so the next field `applyEventOutcome` learns to change cannot be dropped the
+same way. `test/event-inventory.test.ts` asserts at the `resolveNode` seam
+rather than at `applyEventOutcome`, which is where the coverage already was and
+where it could not see the gap.
+
+**The existing suites could not have caught it**, and it is worth being precise
+about why rather than adding a test and moving on. `test/economy.test.ts` has
+an event item assertion — it calls `applyEventOutcome` directly. `test/band3`
+resolves a node, but through the *acquisition* path, which folds party rather
+than bag. Nothing played a run and then looked in the bag. That is the test
+that existed nowhere and exists now.

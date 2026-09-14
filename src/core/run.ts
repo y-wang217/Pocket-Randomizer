@@ -861,8 +861,26 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
         ? applyToll({ ...state, party, currency }, option.toll, state.tuning)
         : { ...state, party, currency };
       const after = applyEventOutcome(priced, outcome, state.tuning);
-      party = after.party;
-      currency = after.currency;
+      /*
+       * **All three, and the third one is a bug fix.**
+       *
+       * `backpack` was missing here from Stage 4.5.1 (`0b450d2`) until the
+       * event rejig found it. That patch moved an event's item from the lead
+       * into the bag — `applyEventOutcome` has folded it correctly ever since,
+       * and its unit tests have always passed — but this call site kept taking
+       * only `party` and `currency` off the result, so every item an event
+       * paid was folded into a value nobody read. Events appeared to grant
+       * nothing.
+       *
+       * Since the rejig it would have swallowed the costs too: a forced
+       * discard and a berry toll both change the bag and nothing else, so both
+       * would have been announced to the player and never charged.
+       *
+       * Destructured rather than assigned field by field, so the next field
+       * `applyEventOutcome` learns to change cannot be dropped the same way.
+       * `test/event-inventory.test.ts` holds the seam.
+       */
+      ({ party, currency, backpack } = after);
     }
   }
 
