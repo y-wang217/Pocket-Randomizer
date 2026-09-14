@@ -22,6 +22,7 @@ import type { TeamSpec } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { createScene, type Scene } from '../src/ui/scene';
 import { resetSettings } from '../src/ui/settings';
+import { formatStageMultiplier } from '../src/data/statStages';
 
 const PLAYER: TeamSpec = [
   { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Body Slam'], level: 50 },
@@ -122,7 +123,23 @@ describe('the floating panel', () => {
     expect(me.querySelectorAll('.panel__stages .chip--stage')).toHaveLength(0);
   });
 
-  it('names the stat a stage is on, so `+2` is not +2 of what', () => {
+  /**
+   * **Rewritten at patch 4.8.0.3, and the property it holds is unchanged.**
+   *
+   * The chip read `Atk +2`. It reads `Atk 2.0x` now, with a ladder carrying
+   * the stage — a stage integer is a number only a Pokemon player can read,
+   * and the multiplier is the same fact in a form anyone can. What this test
+   * was written for survives the change word for word: a bare `2.0x` on a row
+   * of mixed chips would not say 2.0x *of what*, so the label is still
+   * asserted to be part of the chip's own text rather than a second element
+   * beside it.
+   *
+   * The multiplier is not written out as a literal here. It comes from
+   * `formatStageMultiplier`, which `test/battle-readout.test.ts` holds against
+   * `applyStage` across the whole -6..+6 range — so this test cannot start
+   * passing on a number the engine does not apply.
+   */
+  it('names the stat a stage is on, so a multiplier is not 2.0x of what', () => {
     const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed: 'STAGE02' });
     const scene = createScene();
     scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
@@ -134,7 +151,12 @@ describe('the floating panel', () => {
 
     const chips = [...panelOf(scene, 'me').querySelectorAll('.panel__stages .chip--stage')];
     expect(chips.length).toBeGreaterThan(0);
-    expect(chips.map((chip) => chip.textContent)).toContain('Atk +2');
+    expect(chips.map((chip) => chip.textContent)).toContain(`Atk ${formatStageMultiplier(2)}`);
+    // And the stage itself is still reachable: it is what the ladder draws,
+    // and it is on the ladder's label as a signed number.
+    const boosted = chips.find((chip) => chip.textContent?.startsWith('Atk'))!;
+    expect(boosted.querySelectorAll('.stage-ladder__seg[data-on="true"]')).toHaveLength(2);
+    expect(boosted.querySelector('.stage-ladder')?.getAttribute('aria-label')).toContain('+2');
     // Through the V2 component, whose docstring has said "for the battle panel
     // to adopt in V5" since that stage landed.
     for (const chip of chips) expect(chip.classList.contains('chip')).toBe(true);

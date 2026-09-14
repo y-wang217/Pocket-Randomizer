@@ -20,6 +20,13 @@
  * hand any more; `test/chip.test.ts` scans for that.
  */
 import { el } from './dom';
+import { BAND_PIPS } from '../data/bandInfo';
+import {
+  MAX_STAGE,
+  formatStage,
+  formatStageMultiplier,
+  type StageKind,
+} from '../data/statStages';
 
 export type ChipVariant =
   | 'type'
@@ -58,9 +65,37 @@ export function tierChip(tier: string): HTMLElement {
   return build('tier', `tier tier--${tier}`, tier.toUpperCase());
 }
 
-/** A move's base-power band, `BAND n`, with its tooltip. */
+/**
+ * A move's base-power band, as a meter. **Patch 4.8.0.3, item 3.**
+ *
+ * It read `BAND 3`, which is a word plus a number naming a bracket the player
+ * has to have been told about. Four pips with three filled says the same thing
+ * and says it as a quantity: this move is in the third of four power brackets,
+ * and there is one above it.
+ *
+ * **The number has not gone, it has moved behind the tap** — `data-tip` is
+ * unchanged, the words are `data/bandInfo.ts`'s and the panel names the band.
+ * Same resolution too: the band still arrives already computed by `bandOfMove`
+ * through `moveBandChip`, at both of its call sites, and nothing here decides
+ * which bracket a move is in.
+ *
+ * The pips are not a colour and not a rating. A filled pip is one bracket of
+ * base power, the same fact `BAND 3` stated; nothing about the meter says a
+ * higher band is a better pick, which is the editorial rule that kept the
+ * badge a number rather than a bar in the first place. The meter is legible
+ * *as a count*, which the word never was.
+ */
 export function bandChip(band: number): HTMLElement {
-  return build('band', `band band--${band}`, `BAND ${band}`, { tip: `band:${band}` });
+  const node = build('band', `band band--${band}`, '', { tip: `band:${band}` });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', `Band ${band} of ${BAND_PIPS}`);
+  for (let i = 0; i < BAND_PIPS; i++) {
+    const pip = el('span', 'band__pip');
+    if (i < band) pip.dataset['on'] = 'true';
+    pip.setAttribute('aria-hidden', 'true');
+    node.append(pip);
+  }
+  return node;
 }
 
 /** A status condition. `data-status` names it; the label is what is shown. */
@@ -71,19 +106,70 @@ export function statusChip(id: string, label: string = id.toUpperCase(), options
 }
 
 /**
- * A stat stage, `+2` or `-1`. Adopted by the battle panel at V5.3.
+ * A stat stage, as the multiplier it applies plus a ladder. **Patch 4.8.0.3.**
  *
- * `label` names the stat the stage is on, and it is optional because the two
- * callers ask different questions: a summary row already sits beside the stat
- * it belongs to, and the battle panel's row is a mixed handful of chips where
- * `+2` alone would not say +2 of what. One chip either way — the label is part
- * of the same text, not a second element beside it, so nothing on the row can
- * be a different size or weight from anything else on it.
+ * It used to print the stage integer — `Atk +2`, `Spe -1` — which is a number
+ * only a Pokemon player can read. It now prints `Atk 2.0x` and draws where the
+ * stage sits in its range beside it. Same fact, one form anyone can read and
+ * one form that shows how much room is left.
+ *
+ * **The stage integer has not been dropped, it has changed element.** The
+ * ladder *is* the stage: two of six segments filled is `+2`, and the signed
+ * number rides on the ladder's `aria-label` so a screen reader gets it as a
+ * number rather than as a count of divs. Printing both as text would spend
+ * width saying one thing twice, on the row with the least width in the game.
+ *
+ * `label` names the stat the stage is on, and it is optional for the same
+ * reason it always was: a summary row already sits beside the stat it belongs
+ * to, and the battle panel's row is a mixed handful of chips where a bare
+ * multiplier would not say 2.0x of what.
+ *
+ * `kind` picks the ladder. Accuracy and evasion are on a different one and
+ * `+1` means a different number on each — see `data/statStages.ts`.
+ *
+ * A zero stage has no chip. The caller filters, because the callers differ on
+ * what they are iterating and a component that returned null for the common
+ * case would push the same `if` into every one of them.
  */
-export function stageChip(stage: number, label?: string): HTMLElement {
-  const sign = stage > 0 ? '+' : '';
-  const text = `${sign}${stage}`;
-  return build('stage', `badge badge--${stage > 0 ? 'up' : 'down'}`, label ? `${label} ${text}` : text);
+export function stageChip(stage: number, label?: string, kind: StageKind = 'main'): HTMLElement {
+  const multiplier = formatStageMultiplier(stage, kind);
+  const node = build(
+    'stage',
+    `badge badge--${stage > 0 ? 'up' : 'down'}`,
+    label ? `${label} ${multiplier}` : multiplier,
+  );
+  node.append(stageLadder(stage, kind));
+  return node;
+}
+
+/**
+ * The ladder: `MAX_STAGE` segments, `|stage|` of them filled, direction on the
+ * element.
+ *
+ * Segments rather than a width percentage, because the quantity being drawn is
+ * a count — there are exactly thirteen positions a stage can hold — and a bar
+ * that could land between two of them would be drawing a precision the
+ * mechanic does not have.
+ *
+ * `aria-hidden` on the segments and the signed stage on the container: the
+ * shape is decoration, the number it encodes is not.
+ */
+function stageLadder(stage: number, kind: StageKind): HTMLElement {
+  const filled = Math.min(MAX_STAGE, Math.abs(stage));
+  const ladder = el('span', `stage-ladder stage-ladder--${stage > 0 ? 'up' : 'down'}`);
+  ladder.dataset['stage'] = String(stage);
+  ladder.setAttribute('role', 'img');
+  ladder.setAttribute(
+    'aria-label',
+    `stage ${formatStage(stage)} of ${MAX_STAGE}, ${formatStageMultiplier(stage, kind)}`,
+  );
+  for (let i = 0; i < MAX_STAGE; i++) {
+    const segment = el('span', 'stage-ladder__seg');
+    if (i < filled) segment.dataset['on'] = 'true';
+    segment.setAttribute('aria-hidden', 'true');
+    ladder.append(segment);
+  }
+  return ladder;
 }
 
 /** The capability a node requires, on the node's gate line. */

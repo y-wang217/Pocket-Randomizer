@@ -23,6 +23,13 @@ import type { FlaggedTurn } from '../core/battle/flags';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
+  ACCURACY_STAGE_LABELS,
+  ACCURACY_STAGE_NAMES,
+  formatStage,
+  formatStageMultiplier,
+  stageMarkerLabel,
+} from '../data/statStages';
+import {
   formatEffectiveness,
   type ActiveUiView,
   type BattleUiView,
@@ -34,7 +41,9 @@ import { el } from './dom';
 import { spriteImg, spriteUrl } from './sprites';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
-import { moveTagLabel, type MoveTag } from '../data/moveTags';
+import type { MoveTag } from '../data/moveTags';
+import { MOVE_FACT_INFO, moveFactAriaLabel } from '../data/moveFactInfo';
+import type { MoveFact } from '../core/moveFacts';
 import { statusReadoutLine, type MoveEffectFields } from '../data/moveCopy';
 import { moveExplanation } from './move-explanation';
 import {
@@ -521,6 +530,40 @@ function updateSidePanel(
   );
 
   /*
+   * Accuracy and evasion, on the same row and in the same component. **4.8.0.3.**
+   *
+   * They arrive on their own projection field rather than in the stat block,
+   * because they have no base stat behind them — see `AccuracyStagesView`. On
+   * the row that distinction is invisible and should be: a raised evasion is
+   * the reason a move missed, and a player looking for that reason is looking
+   * at the same row they would look at for a dropped Attack.
+   *
+   * Second, after the five, because the five are what most turns move. The
+   * chips carry the accuracy ladder, which is a different table: `+1` here is
+   * x1.3 rather than x1.5.
+   */
+  for (const name of ACCURACY_STAGE_NAMES) {
+    const stage = active.accuracyStages[name];
+    if (stage !== 0) stages.push(stageChip(stage, ACCURACY_STAGE_LABELS[name], 'accuracy'));
+  }
+
+  /*
+   * The Pocket marker: one chip that opens the set. **4.8.0.3.**
+   *
+   * The density ruling is that no mode removes a fact, and a multiplier plus a
+   * ladder is wider than the stage integer it replaced. Detailed and Simple
+   * show the chips inline; Pocket shows this instead and the stylesheet swaps
+   * them, so both states exist in the DOM on every render and nothing has to
+   * re-render when the density changes.
+   *
+   * Through the existing tooltip layer — `data-tip`, one delegated listener,
+   * `ui/tooltips.ts`. Not a second mechanism, which the patch bars. The set
+   * rides on `data-detail` rather than being looked up, for the same reason a
+   * threat count does: it is a fact about *this* render, not a table entry.
+   */
+  if (stages.length > 0) stages.unshift(stageMarker(stages.length, active));
+
+  /*
    * The speed marker survives the block that used to carry it.
    *
    * It was the one thing on the six rows that answered a question rather than
@@ -538,6 +581,39 @@ function updateSidePanel(
 
   panel.stages.replaceChildren(...stages);
   panel.stages.hidden = stages.length === 0;
+}
+
+/**
+ * The collapsed stage marker Pocket shows in place of the chips.
+ *
+ * `data-detail` carries the whole set as `label multiplier stage` triples,
+ * newline separated, and `ui/tooltips.ts` splits it back apart. A serialized
+ * string rather than a lookup key because there is nothing to look up: which
+ * stages a Pokemon is on right now is not a table, it is this turn.
+ *
+ * The label is a count and nothing else. "STAGES 2" says how many facts are
+ * folded; "boosted" or "weakened" would be a reading of whether the fold is
+ * good news, which is the editorial rule's exact prohibition.
+ */
+function stageMarker(count: number, active: ActiveUiView): HTMLElement {
+  const rows: string[] = [];
+  for (const stat of BOOSTABLE_STATS) {
+    const stage = active.stats[stat].stage;
+    if (stage !== 0) rows.push(`${STAT_LABELS[stat]}\t${formatStageMultiplier(stage)}\t${formatStage(stage)}`);
+  }
+  for (const name of ACCURACY_STAGE_NAMES) {
+    const stage = active.accuracyStages[name];
+    if (stage !== 0) {
+      rows.push(
+        `${ACCURACY_STAGE_LABELS[name]}\t${formatStageMultiplier(stage, 'accuracy')}\t${formatStage(stage)}`,
+      );
+    }
+  }
+  const marker = neutralChip(stageMarkerLabel(count), 'stages', { tip: 'stages:active' });
+  marker.dataset['detail'] = rows.join('\n');
+  marker.tabIndex = 0;
+  marker.setAttribute('role', 'button');
+  return marker;
 }
 
 /**
@@ -942,8 +1018,11 @@ function renderMove(
   ask.setAttribute('aria-label', `${move.name}: explain`);
   footer.append(pp, ask);
 
-  const tags = moveTagRow(move.tags);
-  button.append(name, meta, ...(tags ? [tags] : []), footer);
+  // Call site one of two: the battle button, off the projection's own
+  // `facts`. `scene.ts` may not reach `describeMove`, so the list arrives
+  // derived. Mirrors `moveBandChip`, and like it the two sites stay two.
+  const strip = moveFactStrip(move.facts);
+  button.append(name, meta, ...(strip ? [strip] : []), footer);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }
@@ -979,31 +1058,51 @@ export function moveBandChip(band: number | null | undefined): HTMLElement | nul
 }
 
 /**
- * The tag row on a move card. **One insertion point, both card shapes.**
+ * The fact strip on a move card. **One component, both card shapes.** 4.8.0.3.
  *
- * Part 6b's rule is that tags wire into the shared move card component rather
- * than into each screen. This is that component; `moveFacts` builds it for
- * every card outside a battle and `renderMove` builds it for the four buttons
- * inside one, so a move carries the same tags wherever the player meets it.
+ * It replaces the tag row that stood here, and replaces rather than joins it:
+ * a strip *beside* a row would cost height instead of saving it, and the
+ * battle screen's budget is the constraint the whole item exists under. The
+ * nine fields are the ones that change this turn's arithmetic; every other tag
+ * — STAB, high crit, bypasses Protect, sound — is still on the move and is
+ * still one tap away in the explanation, which prints the full set and always
+ * did.
  *
- * The cap is applied upstream — the projection caps the battle buttons and the
- * calling screen caps its cards — because "how many fit" is a `Tuning` number
- * and this function's job is to draw what it is handed.
+ * Part 6b's rule is unchanged and this inherits it: the strip wires into the
+ * shared move card component rather than into each screen. `moveFacts` builds
+ * it for every card outside a battle and `renderMove` builds it for the four
+ * buttons inside one — the same two call sites `moveBandChip` has, kept as two
+ * because the projection and the card data are different types arriving by
+ * different routes.
  *
- * Renders nothing at all for a move with no tags, rather than an empty row. An
- * empty row on three of four buttons is the ragged grid this feature exists to
- * remove.
+ * Renders nothing at all for a move with no facts, rather than an empty row.
+ * An empty row on three of four buttons is the ragged grid this feature exists
+ * to remove.
  */
-export function moveTagRow(tags: readonly MoveTag[]): HTMLElement | null {
-  if (tags.length === 0) return null;
-  const row = el('span', 'move__tags');
-  for (const tag of tags) {
-    // A tooltip trigger like every other badge on screen. The words are in
-    // `data/moveTags.ts`; the layer that shows them is `ui/tooltips.ts`, and
-    // there is exactly one of those. Built through the one chip component.
-    const chip = neutralChip(moveTagLabel(tag.id, tag.value), 'tag', { tip: `movetag:${tag.id}`, extra: `badge--tag-${tag.id.toLowerCase()}` });
+export function moveFactStrip(facts: readonly MoveFact[]): HTMLElement | null {
+  if (facts.length === 0) return null;
+  const row = el('span', 'move__facts');
+  for (const fact of facts) {
+    const info = MOVE_FACT_INFO[fact.id];
+    // A tooltip trigger like every other badge on screen — `data-tip`, one
+    // delegated layer, words from `data/`. That is what keeps an icon
+    // decodable, and it is the reason the strip may be icons at all.
+    const chip = neutralChip('', 'fact', { tip: `movefact:${fact.id}`, extra: `badge--fact-${fact.id.toLowerCase()}` });
+    const icon = el('span', 'move__fact-icon');
+    icon.textContent = info.icon;
+    icon.setAttribute('aria-hidden', 'true');
+    chip.append(icon);
+    // A flag has no number and gets no element for one, rather than an empty
+    // span the stylesheet has to hide.
+    if (fact.value) {
+      const value = el('span', 'move__fact-value');
+      value.textContent = fact.value;
+      chip.append(value);
+    }
+    chip.dataset['fact'] = fact.id;
     chip.tabIndex = 0;
     chip.setAttribute('role', 'button');
+    chip.setAttribute('aria-label', moveFactAriaLabel(fact.id, fact.value));
     row.append(chip);
   }
   return row;
@@ -1061,18 +1160,22 @@ export function moveFacts(move: {
   basePower: number;
   maxPp: number;
   /**
-   * Tags for this card's face, already capped. **Stage 4.7, Part 6b.**
+   * The fact strip for this card's face. **Patch 4.8.0.3, item 2.**
    *
-   * Handed in rather than derived, because deriving them needs `describeMove`
-   * and this file may not reach for it — `test/boundaries.test.ts` restricts
-   * `scene.ts` to the projection and four vocabulary modules. The caller has
-   * the move and the holder and is where the cap lives, so the caller decides.
+   * Successor to the `tags` this parameter used to take, and handed in for
+   * exactly the same reason: deriving it needs `describeMove` and this file
+   * may not reach for it — `test/boundaries.test.ts` restricts `scene.ts` to
+   * the projection and four vocabulary modules. The caller has already asked.
    *
-   * **Absent, not empty, on an unassigned card.** STAB is a property of the
-   * move and its holder together, so a reward card with no recipient chosen
-   * passes nothing and gets no STAB tag rather than a wrong one.
+   * Uncapped, unlike the tags it replaces. `MOVE_FACT_IDS` bounds the strip at
+   * nine and no move carries nine, so there is nothing to cut and no tuning
+   * number for how much survives. The full tag set, including the ones the
+   * strip does not carry, is unchanged and still reachable through the
+   * explanation.
+   *
+   * Absent and empty render identically: no strip.
    */
-  tags?: readonly MoveTag[];
+  facts?: readonly MoveFact[];
   /** The status readout that fills the empty base-power region. Part 6a. */
   effect?: MoveEffectFields | null;
   /**
@@ -1087,7 +1190,7 @@ export function moveFacts(move: {
    * Absent and null render identically and both mean "no bracket applies".
    */
   band?: number | null;
-}): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement; tags: HTMLElement | null } {
+}): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement; strip: HTMLElement | null } {
   const name = el('span', 'move__name');
   name.textContent = move.name;
 
@@ -1114,7 +1217,8 @@ export function moveFacts(move: {
   const pp = el('span', 'move__pp');
   pp.textContent = `PP ${move.maxPp}`;
 
-  return { name, meta, pp, tags: moveTagRow(move.tags ?? []) };
+  // Call site two of two: every card outside a battle, off `MoveCardData`.
+  return { name, meta, pp, strip: moveFactStrip(move.facts ?? []) };
 }
 
 /**
@@ -1131,6 +1235,8 @@ export function moveCard(move: {
   basePower: number;
   maxPp: number;
   tags?: readonly MoveTag[];
+  /** The fact strip for the face. Passed straight through to `moveFacts`. 4.8.0.3. */
+  facts?: readonly MoveFact[];
   effect?: MoveEffectFields | null;
   /** The base-power band. Passed straight through to `moveFacts`. R12. */
   band?: number | null;
@@ -1158,7 +1264,7 @@ export function moveCard(move: {
   const card = el('div', `move move--card move--${move.type.toLowerCase()}`);
   card.dataset['category'] = move.category.toLowerCase();
   const facts = moveFacts(move);
-  card.append(facts.name, facts.meta, ...(facts.tags ? [facts.tags] : []));
+  card.append(facts.name, facts.meta, ...(facts.strip ? [facts.strip] : []));
 
   if (move.explanation) {
     /*

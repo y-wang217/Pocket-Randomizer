@@ -142,12 +142,41 @@ describe('the corner stamps', () => {
     expect([...seen]).toEqual(expect.arrayContaining(['starter', 'locale', 'map', 'party', 'battle', 'result', 'summary']));
   }, 600_000);
 
+  /**
+   * **Rewritten at patch 4.8.0.3, carried item B, and the contract it asserts
+   * is now narrower on purpose.**
+   *
+   * The seed stamp used to sit at `z-index: 20` over everything with
+   * `pointer-events: auto`, so it answered a tap anywhere, including on top of
+   * whatever content was under it. That is the hazard item B names: a fixed,
+   * tappable 121x9 band permanently over a scroll region, eating taps meant
+   * for controls beneath it. `test/visual-v3.test.ts` passed on main only
+   * because nothing happened to sit there.
+   *
+   * Option (a) resolves it by stating the priority in the stacking order:
+   * **content wins the tap where the two overlap, the stamp takes it
+   * everywhere else.** So the stamp is no longer universally clickable, and a
+   * test that asserted it was would be asserting the hazard.
+   *
+   * The tap therefore happens on the locale screen rather than the starter
+   * screen. That is not a weaker check, it is the true one: measured at
+   * 390x844, the bottom-left corner on `starter` is inside a `.starter` card
+   * (`BUTTON.starter` wins, correctly), and on `locale` it is free, so the
+   * stamp wins. Everything this test asserted is unchanged — the string shown
+   * is the versioned form, the click copies it, and `data-copied` flips.
+   *
+   * A keyboard user is unaffected either way: the stamp is a real `<button>`,
+   * so focus and Enter reach it under any overlap.
+   */
   it('copy the full seed string from the seed stamp', async () => {
     const context = await harness.browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] });
     await skipTutorialIn(context);
     const page = await context.newPage();
     await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`);
+    // Past the starter screen, whose cards reach the bottom-left corner and
+    // now correctly win the tap there. See the note above.
+    await playUntil(page, (screen) => screen === 'locale');
     // The versioned form since the contentHash release: what is shown is what
     // is copied, and both carry the build's hash in front of the seed.
     const shown = await page.locator('.stamp--seed').textContent();

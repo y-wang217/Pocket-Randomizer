@@ -71,10 +71,13 @@ async function expanders(page: Page, scope: string): Promise<{ triggers: number;
     if (!root) return { triggers: 0, open: 0, faceMax: 0 };
     const triggers = [...root.querySelectorAll('.move__explain-toggle')];
     const panels = [...root.querySelectorAll('.move__explain')];
-    // Per face, not per screen: the cap in `tuning.maxMoveTagsOnFace` is a
-    // per-card number, so a screen total would not test it.
+    // Per face, not per screen, for the reason the tag cap was measured per
+    // face: what is being separated is "the insertion point was reached" from
+    // "real data came through it", and only a per-card number does that.
+    // Patch 4.8.0.3: the face row is `.move__facts` now. `faceMax` still
+    // answers the same question — did any face get anything at all.
     const faces = [...root.querySelectorAll('.move')].map(
-      (face) => face.querySelectorAll('.move__tags .badge').length,
+      (face) => face.querySelectorAll('.move__facts .badge--fact').length,
     );
     return {
       faceMax: faces.length === 0 ? 0 : Math.max(...faces),

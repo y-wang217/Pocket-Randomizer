@@ -365,6 +365,40 @@ body {
   gap: var(--space-1);
 }
 
+/* The stat-stage ladder. Patch 4.8.0.3.
+
+   Inside the stage chip, after its text, so the multiplier and the position
+   are one object that wraps as one. `MAX_STAGE` segments, `|stage|` of them
+   lit; the unlit ones stay drawn because the range is the thing being shown
+   and a ladder that shrank would only be the number again. */
+.stage-ladder {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hairline);
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+.stage-ladder__seg {
+  display: block;
+  width: 2px;
+  height: 7px;
+  border-radius: var(--radius-chip);
+  background: var(--bg-sunken);
+}
+/* The direction is the sign, not an emphasis: `--stage-up` and `--stage-down`
+   are the same two readout colours the chip's own text already uses, at the
+   same weight. Neither is "good". */
+.stage-ladder--up .stage-ladder__seg[data-on="true"] { background: var(--stage-up); }
+.stage-ladder--down .stage-ladder__seg[data-on="true"] { background: var(--stage-down); }
+
+/* Detailed and Simple show the stages inline; Pocket shows the one marker and
+   the set is one tap away through the tooltip layer. Both are in the DOM on
+   every render, so changing density is a stylesheet change and not a
+   re-render. The density ruling: no mode removes a fact. */
+.panel__stages .badge--stages { display: none; cursor: pointer; }
+:root[data-density="pocket"] .panel__stages .badge--stage { display: none; }
+:root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }
+
 .panel__header {
   display: flex;
   align-items: center;
@@ -824,7 +858,7 @@ body {
 :root[data-density="pocket"] .move .badge--category,
 :root[data-density="pocket"] .move .move__power,
 :root[data-density="pocket"] .move .move__effect,
-:root[data-density="pocket"] .move .move__tags { display: none; }
+:root[data-density="pocket"] .move .move__facts { display: none; }
 
 /* The battle button's explain chip, on the PP line so it costs no height. */
 .badge--ask { padding: 0 var(--space-1); line-height: 1.2; cursor: help; }
@@ -1724,11 +1758,32 @@ body {
 }
 
 /* Stage V0: the four bands render identically. The opacity ramp that used to
-   distinguish them was an ordering, and an ordering is a verdict. */
+   distinguish them was an ordering, and an ordering is a verdict. Patch
+   4.8.0.3 keeps that: the pips differ in *count*, which is the band, and in
+   nothing else — one hue, one weight, filled or not. */
 .band--1,
 .band--2,
 .band--3,
 .band--4 { opacity: 1; }
+
+/* The band pips. Patch 4.8.0.3, item 3: `BAND 3` became three of four filled.
+
+   Sized off the chip's own font so they scale with every density and font
+   setting the rest of the badge does, rather than being pinned in px and
+   drifting out of step with the text beside them. */
+.band { gap: var(--space-h); }
+.band__pip {
+  display: block;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: var(--radius-chip);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 var(--hairline) var(--border);
+}
+.band__pip[data-on="true"] {
+  background: var(--text-dim);
+  box-shadow: none;
+}
 
 /* A berry in the bag. Dashed, because the thing it marks is impermanence. */
 .badge--consumable {
@@ -3418,6 +3473,45 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .screens { isolation: isolate; }
 
 /*
+ * **The screens' own boxes take no taps; what is drawn in them does.**
+ * Patch 4.8.0.3, carried item B, option (a). The other half of the rule at
+ * `.stamp`, and it has to be here rather than there because `pointer-events`
+ * is inherited: turning it off on a container turns it off on everything
+ * inside, so the things that should still take a tap are named back in.
+ *
+ * `.screens` and `.screen` are pure layout — a router slot and a flex column.
+ * Neither has behaviour of its own, and neither should intercept a tap aimed
+ * at the corner stamp behind it. A screen's *children* are the cards, panels
+ * and buttons the player is actually pointing at, and they take taps normally,
+ * inheriting down to every control inside them.
+ *
+ * **Everything else the shell holds is real, and is named back on as a
+ * class of thing rather than one by one.** The first cut listed the header,
+ * the seed bar, the drawer and its trigger; it missed the coach-mark layer,
+ * which `app.ts` also appends to the shell, and the tutorial went transparent
+ * — clicks fell through the coach onto the starter card behind it. An
+ * enumerated list of siblings is a list that goes stale the next time
+ * something is mounted on the shell, so the rule is the negation instead:
+ * every child of the shell takes taps except the router's slot.
+ *
+ * `.stamps` is `display: contents` and generates no box, but it is still a
+ * child for inheritance, so the stamps inside it come back on with it.
+ *
+ * What this buys is that the priority is now structural. Content over chrome
+ * where they overlap, chrome everywhere else, whatever the layout does next.
+ */
+.shell,
+.screens,
+.screen { pointer-events: none; }
+
+.shell > *:not(.screens),
+.screen > * { pointer-events: auto; }
+
+/* And the seed stamp is still the one stamp that answers a tap at all. The
+   three others were decoration before this rule and stay decoration. */
+.stamp:not(.stamp--seed) { pointer-events: none; }
+
+/*
  * The palette swatch on a locale card: deep, mid, glow, in that order, the
  * same width on every card. The card's own `.locale--<id>` class carries the
  * three tokens, so the strip previews the region without the page changing.
@@ -3528,9 +3622,29 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  */
 .stamps { display: contents; }
 
+/*
+ * **The stamp sits behind the screens and the screens let taps through.**
+ * Patch 4.8.0.3, carried item B, option (a).
+ *
+ * It was `z-index: 20` over everything, with `pointer-events: auto` on the
+ * seed stamp — a fixed, tappable 121x9 band in the bottom-left corner,
+ * permanently over a scroll region that is 1630px against an 844px viewport.
+ * Any interactive control whose centre passed under it was unreachable.
+ * `test/visual-v3.test.ts` asserts that no control is, and it passed on main
+ * **positionally**: nothing happened to sit there. 4.8.0.3 put a move card's
+ * fact chip there, and re-rolling the layout only changed which chip was
+ * caught, which was measured rather than assumed.
+ *
+ * So the priority is stated in the stacking order instead of left to luck:
+ * content wins the tap wherever the two overlap, and the stamp takes the tap
+ * everywhere content is not. `z-index: -1` puts the stamps behind `.screens`,
+ * which already isolates for the watermark, and the rule below makes the
+ * screens' own boxes transparent to pointers so their *gaps* fall through to
+ * the stamp rather than swallowing it.
+ */
 .stamp {
   position: fixed;
-  z-index: 20;
+  z-index: -1;
   margin: 0;
   padding: 0;
   border: 0;
@@ -4047,20 +4161,34 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    It wears the one neutral chip recipe from `.chip`; only the cursor is its own. */
 .badge--archetype { cursor: pointer; }
 
-/* Move tags. Deliberately quiet: they are context on a button whose job is
- * still to be pressed, and a row of loud chips would out-shout the move name. */
-.move__tags {
+/* The move fact strip. Patch 4.8.0.3, successor to `.move__tags`.
+
+   Deliberately quiet, for the reason the tag row was: this is context on a
+   button whose job is still to be pressed, and a row of loud chips would
+   out-shout the move name. `nowrap` is the difference — a strip of icons fits
+   one line where a row of words did not, and one line is the whole point.
+   Nothing here is a colour: an icon that coloured a fact would be ranking it. */
+.move__facts {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: var(--space-1);
+  overflow: hidden;
 }
 
-/* No font-size of its own from 4.7.2: it inherits `.badge`'s --fs-sm. It used
-   to override to --fs-xs, and to --fs-2xs again under 420px. */
-.badge--tag {
+/* No font-size of its own: it inherits `.badge`'s --fs-sm, the legibility
+   floor, the same way `.badge--tag` did after 4.7.2. */
+.badge--fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-h);
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
+  white-space: nowrap;
 }
+
+.move__fact-icon { line-height: 1; }
+.move__fact-value { font-family: var(--font-numeral); }
 
 /* ---------- the move explanation ---------- */
 
@@ -4236,7 +4364,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   /* The sheet takes more of the viewport on a phone, but never all of it: the
    * strip of the screen underneath is what says this is an overlay. */
   .drawer__sheet { max-height: 90vh; }
-  .move__tags { gap: var(--space-1); }
+  .move__facts { gap: var(--space-1); }
   /*
    * **The `.badge--tag { font-size: var(--fs-2xs) }` that lived here is gone.
    * Patch 4.7.2.**

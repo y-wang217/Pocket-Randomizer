@@ -2111,6 +2111,115 @@ not edited; the argument for each is in
     `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
     `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.
 
+## 12n. Patch 4.8.0.3: the measured heights, and a stale Pocket baseline
+
+**Recorded 2026-09-14.** Prompt
+[`spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md`](spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md),
+committed verbatim before any work. It asks for the measured numbers to be
+recorded here beside the existing entries, whether or not anything moved.
+
+### The constraint, and what it did
+
+"The strip must not move `decisionTop`. If it does, the strip gets a compact
+height variant rather than the budget getting a deviation."
+
+It did not move, in any mode. The strip and the band meter together took 4px
+*off* the battle screen, which is a reduction and needs no variant.
+
+| field | before | after | delta |
+|---|---|---|---|
+| `battle.decisionTop` | 472 | 472 | **0** |
+| `battle.screenHeight` | 599 | 595 | **−4** |
+| `battle.decisionBottom` | 712 | 708 | −4 |
+| `modes.simple.battle.decisionTop` | 445.44 | 445.44 | **0** |
+| `modes.simple.battle.screenHeight` | 581.44 | 577.44 | −4 |
+| `modes.simple.battle.decisionBottom` | 677.94 | 673.94 | −4 |
+| `modes.pocket.battle.decisionTop` | 355.39 | 355.39 | **0** |
+| `modes.pocket.battle.screenHeight` | 481.89 | 477.89 | −4 |
+| `modes.pocket.battle.decisionBottom` | 498.39 | 494.39 | −4 |
+| `map.*`, `modes.*.map.*` | — | — | **0 on every field** |
+
+Both columns are measurements taken on 2026-09-14 at 390x844, seed SMOKE24,
+`scripts/visual/measure.mjs` — the "before" column from a checkout of merged
+main at `46b5978`, not from the file. Which matters, because:
+
+### The recorded baseline was stale on four Pocket fields before this patch
+
+**And the correction is its own commit** (`46135b6`), ordered after the patch's
+code and before this entry, so a diff of `heights.json` against 4.8.0.3 is not
+read as one change. It is two, and only the second is the patch's.
+
+| field | file said | main measures | out by |
+|---|---|---|---|
+| `modes.pocket.map.decisionTop` | 302.89 | 278.89 | 24 |
+| `modes.pocket.map.decisionBottom` | 394.77 | 370.77 | 24 |
+| `modes.pocket.battle.decisionTop` | 379.39 | 355.39 | 24 |
+| `modes.pocket.battle.decisionBottom` | 522.39 | 498.39 | 24 |
+
+Measured on merged main at `46b5978` with none of this patch applied. **The
+24px predates 4.8.0.3** and belongs to whatever landed between the last
+recording and `46b5978`; `modes.pocket.battle.screenHeight` was the one Pocket
+field already correct, which is why the drift reads as a decision point moving
+rather than a screen resizing.
+
+It was found by isolation and it is worth saying how, because the first
+reading was wrong. The patch's own measurement showed nine fields differing
+from the file, and three of them were the 24px Pocket rows. Reverting the
+archetype removal changed nothing; restoring the `BAND n` text changed the
+battle rows and not the Pocket ones; only checking out `46b5978` entire showed
+the four Pocket rows already differing with no patch present at all. **A
+delta against a recorded file is not a delta against the tree.** The file is
+now rewritten from a measurement of this tree, so all four are correct again,
+and the 24px is attributed to whatever landed between the last recording and
+`46b5978` rather than to this patch.
+
+### Deviation: `tuning.maxMoveTagsOnFace` no longer reaches a face
+
+Item 2 replaces the tag row on the card face with the fact strip, and the
+strip is uncapped: `MOVE_FACT_IDS` bounds it at nine, no move carries nine,
+and there is nothing to cut. So `tuning.maxMoveTagsOnFace` — and the
+`tagsForFace` cut it drives, and `MoveUiView.tags` and `MoveCardData.tags` —
+are computed and unread.
+
+They are left in place deliberately. `src/data/tuning.ts` is read by `core/`
+and is therefore hashed, so deleting the number **moves `contentHash`**, which
+this patch is required not to do. Removing it belongs to a pass that is
+allowed to move the hash. Until then `scripts/smoke.mjs` asserts the strip
+against a measured ceiling of five rather than against the tuning value; the
+worst real case is Fake Out at four — accuracy, a 100% secondary, a +3
+priority bracket and contact.
+
+**Closeout, check 3: that ceiling now lives in `data/`.** It was a `const` in
+the smoke script, which is the one place such a number must not be. It is
+`src/data/moveFactCeiling.mjs`, excluded from `contentHash` and imported by
+the smoke script rather than restated in it. Plain ESM rather than TypeScript
+because that script runs under Node against a *built* bundle and cannot import
+a TypeScript module — which is the exact reason `tuning.maxMoveTagsOnFace` was
+restated inline before it. Nothing under `src/` imports the file: the app does
+not cap the strip, and the cap is an assertion about a viewport.
+
+### Deviation: the copy fix went where the marker was, not where the prompt said
+
+Item 3 names `run-map.ts:87` as carrying "best rewards". It does not, and had
+not since `6351009` moved the tier copy into `data/tierInfo.ts` — the prompt
+is quoting the `8c3bff8` audit line, which `docs/README.md` had already marked
+"moved, still open". The surviving marker was `data/statusInfo.ts`'s Disable
+advice, "Usually your best move, by design", and that is what was rewritten to
+the attribute it was describing: Disable always takes the move just used. The
+register line is closed.
+
+One nearby line was left alone: the crit entry's "so it is strongest into a
+wall". It is a consequence of a mechanic rather than a ranking of the player's
+options, it was not what the register tracked, and widening the item on my own
+reading is not this patch's call.
+
+### What the strip took off the face, and where it went
+
+Four tags are no longer on a card face: STAB, high crit, bypasses Protect and
+sound. None is gone from the game — `moveTags` is unchanged, and the
+explanation behind the existing tap prints the full set, as it always did. The
+face now carries the nine fields that change this turn's arithmetic.
+
 ## 13. The AI tiers patch, and six rulings that changed what it built
 
 **2026-09-11.** Prompt

@@ -14,11 +14,11 @@
         "decisionBottom": 609.31
       },
       "battle": {
-        "screenHeight": 581.44,
+        "screenHeight": 577.44,
         "scrollHeight": 844,
         "decisionCount": 4,
         "decisionTop": 445.44,
-        "decisionBottom": 677.94
+        "decisionBottom": 673.94
       }
     },
     "pocket": {
@@ -30,11 +30,11 @@
         "decisionBottom": 370.77
       },
       "battle": {
-        "screenHeight": 481.89,
+        "screenHeight": 477.89,
         "scrollHeight": 844,
         "decisionCount": 4,
         "decisionTop": 355.39,
-        "decisionBottom": 498.39
+        "decisionBottom": 494.39
       }
     }
   },
@@ -46,10 +46,10 @@
     "decisionBottom": 672.72
   },
   "battle": {
-    "screenHeight": 599,
+    "screenHeight": 595,
     "scrollHeight": 844,
     "decisionCount": 4,
     "decisionTop": 472,
-    "decisionBottom": 712
+    "decisionBottom": 708
   }
 }

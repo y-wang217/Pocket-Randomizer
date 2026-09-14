@@ -144,7 +144,7 @@ function renderVictim(
   facts.pp.textContent = `PP ${pp}/${move.maxPp}`;
   if (move.maxPp > 0 && pp / move.maxPp <= 0.25) facts.pp.classList.add('move__pp--low');
 
-  button.append(facts.name, facts.meta, ...(facts.tags ? [facts.tags] : []), facts.pp);
+  button.append(facts.name, facts.meta, ...(facts.strip ? [facts.strip] : []), facts.pp);
   button.setAttribute('aria-label', `Replace ${move.name}`);
   button.addEventListener('click', () => onReplace(slot));
   return button;

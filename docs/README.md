@@ -58,6 +58,19 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: patch 4.8.0.3, battle readout visuals.** Branch
+`claude/focused-ride-vet50c`, prompt
+[`spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md`](spec/gymrun-patch-4.8.0.3-battle-readout-visuals.md).
+Presentation only: stat stages print the multiplier the engine applies plus a
+ladder, the move card face carries a fact strip of icons instead of a row of
+word badges, and `BAND n` is four pips. Accuracy and evasion stages reach the
+UI for the first time, on their own projection field. No `core/` state moves,
+no version axis moves, `contentHash` is unchanged and every seeded output is
+byte identical including SMOKE24. `battle.decisionTop` is unmoved in all three
+density modes and the battle screen is 4px shorter; the numbers, two deviations
+and a stale Pocket baseline the patch found are in
+[`generation.md`](generation.md) section 12n.
+
 **Merged:** everything through Stage 4.6c. Locales and capture (4.6a), base
 power banding and berries (4.6b), and relics, capability events and band 3
 encounters (4.6c). The benchmark for the current randomizer version is recorded
@@ -443,11 +456,86 @@ One line each. The analysis lives where the pointer goes, not here.
    written into `CLAUDE.md`, because `CLAUDE.md` holds rules that have held —
    this one has been broken twice and is a thing to watch.
 
+### Carried out of patch 4.8.0.3
+
+Three, filed rather than built. The closeout prompt
+([`spec/gymrun-patch-4.8.0.3-closeout.md`](spec/gymrun-patch-4.8.0.3-closeout.md))
+asks for the first; the other two are things verifying it turned up.
+
+**A. An always-hits marker on the move fact strip.** A never-miss move renders
+no accuracy icon. `describeMove` reports it as `accuracy: true` rather than as
+`100`, and the two mean different things — a 100% move is still checked and an
+evasion stage can make it miss, a never-miss move is not checked at all — so
+one icon reading `100` for both would collapse the distinction. That call
+stands.
+
+Its consequence is that absence on that icon now means two things: the field
+does not apply, and the field applies without limit. **That collides with item
+1 of the same patch.** A player can now see an evasion boost as a multiplier,
+and a never-miss move is exactly the case where that boost does nothing — so
+the one reading the strip most needs to support is the one it is silent about.
+A distinct always-hits marker reads better than nothing. The `neverMisses` tag
+says it in words one tap away in the meantime. Not a blocker for merge.
+
+**B. The corner seed stamp eats taps on scrolling content. Closed 2026-09-14**
+by [`spec/gymrun-patch-4.8.0.3-seed-stamp-tap-hazard.md`](spec/gymrun-patch-4.8.0.3-seed-stamp-tap-hazard.md),
+option (a), under a named exception to the closeout's scope rule. The stamps
+sit behind the screens (`z-index: -1`) and the screens' own boxes take no
+pointer events, so content wins the tap where the two overlap and the stamp
+takes it everywhere else — structurally, not positionally. The one cost is
+recorded on `test/visual-v2.test.ts`: the stamp is no longer universally
+clickable, so its copy test taps it on the locale screen, where the corner is
+measurably free, rather than on the starter screen, where a `.starter` card
+covers it and now correctly wins. The description it closes follows.
+
+**B (as filed).** `.stamp--seed` is
+`position: fixed`, `z-index: 20`, `pointer-events: auto`, and at 390x844 it
+occupies a 121x9 band at (6, 829) — permanently over the party screen's scroll
+region, which is 1630px against an 844px viewport. Any interactive control
+whose centre passes under it is unreachable.
+
+`test/visual-v3.test.ts` asserts that every visible control is what a tap at
+its centre lands on, and it passes on `main` **by positional luck rather than
+by construction**: no control happened to sit there. 4.8.0.3 added controls to
+the party screen's move cards and one does. Measured, not inferred — see the
+patch report; and re-rolling the layout only changes *which* control is caught,
+which was verified rather than assumed.
+
+Every real fix is outside what that patch touched, which is why it is filed
+here: (a) let content win the tap where the two overlap — the stamp below the
+shell, the shell's own box made transparent to pointers with its interactive
+descendants opted back in; (b) end the scroll region above the stamp band in
+the app shell; (c) drop the stamp's copy affordance on phone, where the seed
+bar already carries one. (a) is the smallest that removes the hazard class
+rather than moving its victim. Whichever is taken must keep
+`test/visual-v2.test.ts`'s "copy the full seed string from the seed stamp",
+which taps the stamp on the starter screen at 390x844.
+
+**C. `◎100` on nearly every move card.** The strip prints accuracy whenever
+`describeMove` returns a number, which is the patch prompt's instruction —
+"accuracy stays as a number and stays on the face". The face's previous rule
+was narrower: the `accuracy` tag rendered only when the move could actually
+miss. So a number that is identical on four buttons out of four is now on all
+four, which is the shape the tag rule was written to avoid.
+
+The narrower rule was tried during closeout and reverted, because the only
+strong argument for deviating from the prompt was that it fixed item B, and
+measurement showed it did not — it moved the caught control from the accuracy
+chip to the contact chip. Changing spelled-out behaviour on an aesthetic
+preference alone is not this patch's call, so the observation is filed instead.
+It is the same decision as A and should be taken with it: what the face says
+about accuracy at 100, at below 100, and at never-miss is one question.
+
 ### The invariant register
 
 Five audit findings, where the tree did not satisfy an invariant in
-`CLAUDE.md` when that file was written (`8c3bff8`). Each closes in its own
-patch, and the row says which.
+`CLAUDE.md` when that file was written (`8c3bff8`), **plus anything found
+since**. Each closes in its own patch, and the row says which.
+
+The count in that first sentence is the audit's, not the table's. The verdict
+strings row below is the first addition: found 2026-09-14 by a grep that
+widened past the one word `8c3bff8` named, so it is the same class of finding
+without being one of the five.
 
 | finding | status |
 |---|---|
@@ -455,7 +543,8 @@ patch, and the row says which.
 | the sequential stream API is still exported and drawable | **closed**, Branch 1. A named stream is `at(key)`, `keys` and `totalDraws`; `test/determinism.test.ts` and `test/stream-keys.test.ts` group 5 guard the deletion |
 | `AI_VERSION` is stamped onto reports but never guarded at replay | **closed**, Branch 1. `aiVersion` is an axis of the log's `versions` block and `versionMismatch` checks it |
 | `Math.random` survives in `scripts/measure-bundle.mjs` | **open**. Not this branch's job; the lint rule now covers every extension and the boundary test walks `src/` only |
-| one "best" marker remains in player-facing copy | **moved, still open**. The audit's line, `run-map.ts:87`, lost its marker at `6351009` when the tier copy moved into `data/tierInfo.ts`; the one "best" left in player-facing copy is `data/statusInfo.ts` line 177 ("Usually your best move"). Not this branch's job; the Part 4 editorial rule owns it |
+| four verdict strings remain in player-facing copy | **open, found 2026-09-14** by the closeout's check-1 grep, which widened the search past the one word the audit named. Four live strings, each rendered: `src/data/categoryInfo.ts` line 48 — "Worth it when you can survive the reply", on the move category tooltip; `src/data/statusInfo.ts` line 125 — "usually better than rolling the dice three times", on the paralysis tooltip; `src/data/statusInfo.ts` line 242 — "so it is strongest into a wall", on the crit tooltip; `src/data/bandInfo.ts` line 68 — "A risky node reaches here before the segments do", on the band tooltip. Each tells the player what an option is worth rather than what it is, which is the Part 4 rule. **Filed, not fixed**: 4.8.0.3 is a presentation patch that had already closed the one violation the register tracked, and rewriting four more strings on my own reading is a copy pass, not a closeout. All four files are outside `contentHash`, so the fix is cheap when it is scoped |
+| one "best" marker remains in player-facing copy | **closed, 2026-09-14, patch 4.8.0.3 item 3.** The audit's line, `run-map.ts:87`, lost its marker at `6351009` when the tier copy moved into `data/tierInfo.ts`. The last one, `data/statusInfo.ts`'s Disable advice ("Usually your best move, by design"), is now the attribute it was describing: Disable always takes the move just used. The patch's prompt named `run-map.ts:87` from the stale audit line; the marker had already moved, and the fix went where the marker actually was. No "best" marker remains in player-facing copy |
 
 ## 6. The design lineage, briefly
 

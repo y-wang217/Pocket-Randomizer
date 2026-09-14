@@ -13,6 +13,7 @@
  */
 import { describeMove } from '../core/battle/driver';
 import { moveTags, tagsForFace, hasStatusReadout } from '../core/moveTags';
+import { moveFactsOf, type MoveFact } from '../core/moveFacts';
 import type { MoveTag } from '../data/moveTags';
 import type { MoveEffectFields } from '../data/moveCopy';
 import type { MoveExplanation } from '../core/types';
@@ -38,6 +39,15 @@ export interface MoveCardData {
   band: number | null;
   /** The full set, for the tap-to-expand explanation. A superset of `tags`. */
   allTags: readonly MoveTag[];
+  /**
+   * The fact strip for this card's face. **Patch 4.8.0.3, item 2.**
+   *
+   * The counterpart of `MoveUiView.facts`, from the same `moveFactsOf`, so a
+   * move's face says the same nine things in a reward card that it says on a
+   * battle button. That is Part 6's one-insertion-point rule holding for one
+   * more field.
+   */
+  facts: readonly MoveFact[];
   /** The explanation itself, for a caller that wants a field the card omits. */
   explanation: MoveExplanation | null;
 }
@@ -58,7 +68,7 @@ export function moveCardData(
 ): MoveCardData {
   const explanation = describeMove(move.name);
   if (!explanation) {
-    return { ...move, tags: [], effect: null, band: null, allTags: [], explanation: null };
+    return { ...move, tags: [], effect: null, band: null, allTags: [], facts: [], explanation: null };
   }
 
   return {
@@ -70,6 +80,7 @@ export function moveCardData(
     maxPp: move.maxPp,
     tags: tagsForFace(explanation, tuning.maxMoveTagsOnFace, holder ? { types: holder.types } : undefined),
     allTags: moveTags(explanation, holder ? { types: holder.types } : undefined),
+    facts: moveFactsOf(explanation),
     effect: hasStatusReadout(explanation) ? effectFieldsOf(explanation) : null,
     explanation,
   };

@@ -15,7 +15,6 @@
  * All of it comes from `describeSpecCard`, so this file never sees the sim.
  */
 import { describeSpecCard } from '../../core/battle/driver';
-import { archetypeChip } from '../archetype-chip';
 import type { PokemonSpec, StatName } from '../../core/types';
 import { el } from '../scene';
 import { setProse } from '../dom';
@@ -69,7 +68,9 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
   const detail = describeSpecCard(spec);
   name.textContent = detail.species;
   level.textContent = `Lv${detail.level}`;
-  archetype.replaceChildren(archetypeChip(detail.baseStats));
+  // No archetype chip: this card draws the six-stat `statLine` below, and the
+  // bars are the shape the label described. Patch 4.8.0.3, item 3.
+  archetype.replaceChildren();
   types.replaceChildren(...detail.types.map(typeChip));
   meta.textContent = `${detail.ability} · ${detail.maxHp} HP`;
 

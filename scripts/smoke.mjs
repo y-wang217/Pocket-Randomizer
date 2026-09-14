@@ -18,6 +18,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { mkdirSync } from 'node:fs';
+import { MAX_MOVE_FACTS } from '../src/data/moveFactCeiling.mjs';
 
 const DIST = join(process.cwd(), 'dist');
 mkdirSync(join(process.cwd(), 'stats'), { recursive: true });
@@ -116,16 +117,17 @@ page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
 
 const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
 
-/**
- * `tuning.maxMoveTagsOnFace`, restated here rather than imported.
+/*
+ * The ceiling is `src/data/moveFactCeiling.mjs`'s, imported rather than
+ * restated. **Patch 4.8.0.3 closeout, check 3.**
  *
- * This script is plain ESM run under Node against a *built* bundle, so it has
- * no access to the source module. A number restated in two places is a number
- * that can drift, which is exactly what this assertion would then stop
- * catching — so if the tuning value moves, this moves with it, and the
- * assertion below names the constant so the failure says which.
+ * The number it replaced — `tuning.maxMoveTagsOnFace` — was restated here
+ * with a comment explaining that this script is plain ESM run under Node
+ * against a built bundle and cannot import a TypeScript module. That is still
+ * true, and plain ESM is the way out of it: the data file is `.mjs`, so there
+ * is one definition and no number to drift. Its docstring carries why five,
+ * and Fake Out at four is the worst real case behind it.
  */
-const MAX_MOVE_TAGS = 3;
 
 const check = async (label, selector) => {
   const count = await page.locator(selector).count();
@@ -1050,18 +1052,21 @@ if (await phone.locator(visible('battle')).count()) {
         return chip.right > face.right || chip.left < face.left;
       }).length,
       /*
-       * Stage 4.7, Part 6. Tags on the face, capped, and a status move showing
-       * an effect readout where its base power would have been.
+       * Stage 4.7, Part 6, as patch 4.8.0.3 left it. The face row and a status
+       * move showing an effect readout where its base power would have been.
        *
-       * `maxTags` is the number the cap is asserted against: no face may carry
-       * more than `tuning.maxMoveTagsOnFace`, and a phone is the reason that
-       * number exists at all — four buttons in a 2x2 grid cannot carry twelve
-       * tags and a 44px touch target.
+       * The row is the fact strip now, so `maxTags` counts `.badge--fact`.
+       * **The cap it used to assert no longer applies**: the strip is bounded
+       * at nine by `MOVE_FACT_IDS` and no move carries nine, so there is
+       * nothing to cut and `tuning.maxMoveTagsOnFace` no longer reaches the
+       * face. The number is still what a phone cares about — four buttons in a
+       * 2x2 grid cannot carry twelve of anything and a 44px touch target — so
+       * it is still measured, against the strip's own bound.
        */
       maxTags: Math.max(
         0,
         ...[...globalThis.document.querySelectorAll('.moves .move')].map(
-          (move) => move.querySelectorAll('.badge--tag').length,
+          (move) => move.querySelectorAll('.badge--fact').length,
         ),
       ),
       statusMoves: globalThis.document.querySelectorAll('.moves .move[data-category="status"]').length,
@@ -1095,11 +1100,11 @@ if (await phone.locator(visible('battle')).count()) {
   phoneCheck('no horizontal overflow in a battle', battle.scrollWidth <= battle.innerWidth,
     `${battle.scrollWidth}px in ${battle.innerWidth}px`);
 
-  // Stage 4.7. The cap is the phone assertion: the number exists because of
-  // this viewport, so this is the viewport it is checked on.
+  // Stage 4.7, as 4.8.0.3 left it. The ceiling is the phone assertion: it
+  // exists because of this viewport, so this is the viewport it is checked on.
   phoneCheck(
-    `no move face carries more than ${MAX_MOVE_TAGS} tags`,
-    battle.maxTags <= MAX_MOVE_TAGS,
+    `no move face carries more than ${MAX_MOVE_FACTS} facts`,
+    battle.maxTags <= MAX_MOVE_FACTS,
     `most on one face: ${battle.maxTags}`,
   );
   phoneCheck(
