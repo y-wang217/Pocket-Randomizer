@@ -92,7 +92,7 @@ function spender(): RunPolicy {
       }
       return basket;
     },
-    chooseEventOption: async () => 0,
+    chooseEventOption: async () => 'safe' as const,
   };
 }
 

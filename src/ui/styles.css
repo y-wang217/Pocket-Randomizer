@@ -3010,6 +3010,37 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .event__choice-label { font-weight: 600; font-size: var(--fs-lg); }
 .event__choice-hint { color: var(--text-dim); font-size: var(--fs-md); line-height: 1.45; }
 
+/*
+ * The attribute row under each option: what it costs, and which pool it draws
+ * from. Wraps rather than scrolls, because four options on a phone is the
+ * density ceiling this screen was budgeted at.
+ */
+.event__choice-attributes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1h);
+}
+
+/*
+ * No `.badge--rarity` style of its own, deliberately. V2's rule is that every
+ * neutral chip shares one neutral style and only the type chip carries a hue;
+ * giving rarity its own border and text colour made a second neutral style and
+ * `test/visual-v2.test.ts` caught it immediately. The modifier exists for the
+ * Pocket rule below and for nothing else.
+ */
+
+/*
+ * Pocket drops the rarity chip from the map, and keeps it on the event screen.
+ *
+ * It is the third chip on a gate row that already carries a requirement and a
+ * band, and at 390px the third one wraps the row and costs the map 37.6px.
+ * Pocket's whole rule is that a third attribute is the one that goes, and the
+ * information is not lost — it is on the event screen itself, where the
+ * decision is actually made, at every density.
+ */
+:root[data-density="pocket"] .node__gate .badge--rarity { display: none; }
+
 .event__result {
   display: flex;
   align-items: center;

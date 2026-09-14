@@ -2235,3 +2235,395 @@ player's decisions and not the opponent's, still replays into the same run.
 That is asserted directly in `test/ai-tiers.test.ts` rather than left to
 inference, because noise made it load-bearing for save and resume rather than
 only for the benchmark.
+
+## 14. The event rejig: what the four report questions found, and what moved
+
+**2026-09-14, the event rejig patch**
+([`spec/gymrun-patch-event-rejig.md`](spec/gymrun-patch-event-rejig.md), report
+[`reports/patch-event-rejig-step1.md`](reports/patch-event-rejig-step1.md)).
+
+The prompt opens with four questions and a hard stop. Three of the four
+answers changed the shape of the patch, and a fifth finding nobody asked for
+changed it more. Recorded here rather than by editing the prompt, per protocol
+rule 4.
+
+### What the prompt expected, and what the tree held
+
+| the prompt's premise | the tree |
+|---|---|
+| bands may have replaced choices, and reintroducing them is "a bigger job than it reads" | choices survived. 4.6c widened each choice to three outcomes and kept the menu, the policy hook and the screen |
+| `latent` "may be dead" under relics | `latent` is the common case. `data/capabilities.ts` measures a party of four missing a capability only 30 to 50 percent of the time |
+| band 3 shipped a spawned encounter | band 3 shipped a *fightless* offer. There is no event battle, and there must not be one |
+| the logged event decision may be an index, which "breaks replay" | it is an index, and the index rule in `core/types.ts` is the reason it should stay a stable identity rather than a content id |
+
+### Deviation: `latent` is kept, not collapsed
+
+Part 5 says to collapse the three capability bands to a boolean "if `latent` is
+dead under relics". It is not dead, so the collapse is not taken.
+
+The boolean Part 2 asks for is kept exactly where Part 2 puts it: the Attune
+option is present at `known` and nowhere else, and `T3` is relic-gated with no
+exception. What `latent` buys instead is strictly smaller — five points off
+`T0` onto `T2` on the Gamble table, in `GAMBLE_TIERS_LATENT`. A party that
+rolled a Water type reads a Surf event a little more kindly than a party that
+did not, and no more kindly than a party holding the Tidecaller Shell.
+
+Collapsing it would delete the only thing a party's *typing* currently says
+about an event it holds no relic for, on a tree where that is the majority
+case. If the simulator reports the difference as noise, the fix is to delete
+one table and point `tierWeightsFor` at `GAMBLE_TIERS` for both bands — which
+is the collapse Part 5 describes, taken on evidence rather than in advance.
+
+### Deviation: `T3` pays a relic plus an item, not a "strong relic"
+
+Part 1 asks for a common relic at `T2` against a strong relic at `T3`. There is
+no strength axis on `data/relics.ts`, and adding one means ranking ten relics
+by taste — which `CLAUDE.md` rules out directly: "it feels strong" is not a
+reason, and a table populated that way cannot be corrected from evidence
+later.
+
+So `T3` pays **a relic and a held item**: the same object `T2` offers plus a
+`T1`-grade rider. Strictly better by construction rather than by judgement, and
+it needs no new column.
+
+### Ruled: rarity was doing two jobs, and the fix is to decouple them
+
+**2026-09-14, on the step 1 report.** The report found that Part 3 draws a
+rarity per node while Part 4 assigns each event a rarity, so `(locale, rarity)`
+named exactly one event — rarity had become the event's *name* rather than the
+payout knob. That is what made the two required tests contradict each other:
+"no event ID twice in one run" is "no rarity twice in a locale", which distorts
+the distribution the rarity test pins.
+
+The report proposed dropping exhaustion. **That was the wrong half to drop**,
+and the ruling is to decouple instead:
+
+- **Rarity stays a per-node draw that scales the outcome distribution, and
+  does nothing else.**
+- **Event identity is a separate draw** from the locale's event list.
+- **The rarity column comes out of the Part 4 chart entirely.** An event is a
+  locale, a relic, a hook and a toll price. Any event can roll any rarity.
+- **Exhaustion is enforced within a segment** at generation, and repeats across
+  segments are accepted.
+
+Both tests survive, and it costs one extra keyed draw per event node.
+
+**The refill rule, and the number that will decide the content question.**
+"No repeat within a segment" cannot hold unconditionally at three events per
+locale. Measured on the tree this patch started from, a segment generates three
+to eight event nodes across its two or three offered locale routes:
+
+    event nodes generated per map: 42, 42, 55, 39, 51
+    per segment (seed COUNT-0):     6, 4, 3, 7, 8, 4, 6, 4
+
+So one locale usually carries two or three event nodes and fits inside its
+three events, and occasionally carries four or more and does not. The draw is
+without replacement from the locale's unused list, and the list refills when it
+empties — no repeat within a segment *until the locale runs out*, then repeats
+rather than a failed draw. Deterministic, and independent of player behaviour.
+
+Three events per locale is thin regardless. Growing to five is queued content
+work, to be done after the system is proven, and it is the real answer to
+repetition. The simulator reports how often the refill fires so that decision
+gets a number rather than a guess.
+
+### Ruled: an event Pokemon never costs a fight, at any tier
+
+**2026-09-14, on the step 1 report.** The prompt's Part 1 says a `T2` Pokemon
+arrives "via a spawned encounter and capture" and its test 8 says "victory
+offers the capture". 4.6c shipped a *fightless* offer, and the report flagged
+the contradiction rather than picking silently.
+
+Fightless is ratified across every tier, and the deciding argument is about
+the **Toll**, not about events in general:
+
+> A Toll charges a stated, exact price for a guaranteed `T2`. If that `T2` then
+> rolls a Pokemon and spawns a battle, the player paid a known cost and was
+> charged an unknown second cost *after payment*. That is the one shape a Toll
+> must never have.
+
+The two older reasons still hold and are now the lesser ones: an event is a node
+with no battle in it, which is what makes an event unable to end a run
+(`tuning.eventDamageFloor`), and a second completion path would break the rule
+that every node completion routes through the single result screen.
+
+The consequence is that an event Pokemon is cheaper than a wild capture. That is
+a pool-contents question — the weight on the `t2-pokemon` entry in
+`data/eventPools.ts` — and not a mechanic.
+
+### `contentHash` moved at step 2, and only the stamp moved with it
+
+`b022fc4e` to `388c2a37`, caused by `src/data/eventPools.ts` landing and
+`src/data/scaling.ts` gaining `EVENT_RARITY_WEIGHTS`. A hash over `src/data/**`
+moves the day a table lands, which is the whole reason it is a hash and not a
+hand bump.
+
+Nothing under `core/` read either table at step 2, so no seeded output moved,
+and that was checked rather than asserted:
+
+- `test/fixtures/sim-report.json` regenerated: the `runs` payload is byte
+  identical across the change, and `version`, `randomizerVersion` and
+  `aiVersion` are unmoved.
+- `docs/visual/baseline/` regenerated: seven files differ, every one of them
+  in the 64-hex stamp and in nothing else.
+- `test/ai-priority.test.ts`'s literal pin is updated rather than relaxed, with
+  a comment naming this patch. A literal costs one visible line in a diff
+  every time the data tables change, and that line is the point.
+
+### Ruled: the logged identity is the archetype tag, and it needs a uniqueness rule
+
+**2026-09-14, on the step 1 report.** The prompt's Part 6 asks for a per-event
+option ID. The report argued for the archetype tag instead — `safe`, `gamble`,
+`toll`, `attune` — because it is a closed set that cannot drift the way a
+per-event id outliving a `data/events.ts` edit can, and because a log naming
+`attune` on a replay without the relic then fails loudly, which is the property
+the index rule in `core/types.ts` exists to produce.
+
+Taken, **with one condition the report did not state**: no event may carry two
+options of the same archetype, or the tag stops being a unique identity within
+its event. That is asserted over the whole table at step 6, when the event
+entries land, rather than being left to authoring discipline.
+
+### The merge order against the AI tiers branch
+
+**2026-09-14.** The priority-and-speed AI tiers branch sits unmerged at
+`AI_VERSION` 5. Whichever of the two lands second pays for a benchmark
+rebaseline, so the order is decided here rather than discovered later: **the AI
+branch lands first.** It is finished and this one is four steps from a
+benchmark, and this patch's benchmark is worth more read against the AI the
+game actually ships than against a `gymrun-ai-3-priority` about to be replaced.
+The rebaseline costs this branch one simulator run it performs at step 7
+anyway. The benchmark row is stamped with whichever `AI_VERSION` is on `main`
+when it is recorded — read down a prefix, never across.
+
+### Step 3 moved run content, and the guarded heights with it
+
+**2026-09-14.** Step 3 is the first part of this patch that changes what a run
+*does*, so the two presentation baselines moved and the four suites that pin
+them failed. Both movements were checked before either baseline was re-recorded,
+because re-recording on a red test is how a guard becomes decoration.
+
+**The run log did not drift; the payouts did.** On SMOKE24, all 295 decisions
+are identical before and after — 162 battles, 27 nodes, 5 locales, and the same
+six event decisions at the same indexes. Map generation is untouched, which is
+the keyed-stream discipline doing its job: an event draws on its own node's
+`event` sub-stream, so changing what events pay cannot move a battle. What moved
+is the state those events produced: currency 1015 to 1120 on that seed, same
+party size, same relics, same gyms cleared.
+
+**The guarded screen heights moved with it**, and only on the map:
+
+| measurement | before | after |
+|---|---|---|
+| `map.screenHeight` | 840.41 | 824.19 |
+| `map.scrollHeight` | 1033 | 1017 |
+| `map.decisionTop` | 558 | 558 |
+| `battle` (default mode) | unchanged | unchanged |
+
+The decision point did not move — `decisionTop` and `decisionBottom` are the
+same to the pixel — so the 16.22px is content *below* the decision point, which
+is the map's own readout of a run that now carries different numbers. Pocket
+mode shifts both screens by 24px for the same reason. `heights.json` is
+re-recorded rather than excused, and this table is the record of what it was.
+
+`contentHash` moved a third time, to `6eb7c3b0`, because step 3 edits
+`data/events.ts` and `data/eventPools.ts`. The literal in
+`test/ai-priority.test.ts` moves with it, as it will once more at step 6.
+
+### The refill rate at the real table size, and what it means for five per locale
+
+**2026-09-14, step 6.** The exhaustion rule draws an event without replacement
+from its locale's list and refills when the list empties. Step 3 measured 3.3
+refills per segment, which was an artefact of the placeholder table holding one
+event per locale. At the shipped table — three per locale, eight locales —
+measured over 120 seeds and 960 segments:
+
+| | |
+|---|---|
+| event nodes generated per segment | 5.86 |
+| refills per segment | **0.37** |
+| refills per run | 2.95 |
+| runs with at least one refill | 116 of 120 (97%) |
+| per-run refills, median / max | 3 / 7 |
+
+A ninefold improvement on the placeholder, and the shape is what the arithmetic
+predicts: a segment offers two or three locales, so each locale carries about
+two event nodes against its three events and mostly fits.
+
+**This is a generation-time number, not a player-facing one.** A refill means
+one locale's list wrapped while the map was being built, across branches the
+player will never walk. The player walks roughly one event per segment, so a
+repeat only reaches them if they walk the same locale twice *and* the wrapped
+draw lands on the node they choose. The figure that matters for the
+five-per-locale decision is therefore an upper bound on felt repetition rather
+than a measurement of it, and the simulator's own event report is where the
+lower bound will come from.
+
+### Step 8: the Part 4 carve-out, and what the map paid for rarity
+
+**2026-09-14.** The event screen shows, under every option, what it costs and
+which tier pool its outcome is drawn from: `Reward: T1`, `Reward: T0 to T2`,
+`Costs 20% HP, lead` / `Reward: T2`.
+
+**The carve-out.** Tier labels are ordinal, and Part 4 bans ordering that
+implies ranking. They are allowed here on the same precedent as the `BAND n`
+badge: the label names *which pool the outcome draws from*, which is an
+attribute of the button rather than a verdict about it. Nothing else moved —
+no recommendation, no highlight on the better option, no expected value shown,
+and no marker on Attune beyond the relic requirement the gate chip already
+carries. `test/event-screen.test.ts` asserts all four negatives.
+
+**The range is derived, not restated — and that caught a contradiction in the
+prompt.** Part 8 says the Attune option reads `Reward: T2 to T3`. Part 3's own
+`ATTUNE_TIERS` gives `T1` a weight of 10 at common and 5 at uncommon, so at
+those rarities the honest range is `T1 to T3`. `rewardOf` reads the range off
+the weights, so the label says `T1 to T3` where the table pays `T1` and
+`T2 to T3` at rare, where it does not. The label gave way rather than the
+table: hardcoding Part 8's string would promise a floor the distribution does
+not have. Zeroing those two weights would resolve it the other way and is a
+tuning change, not a screen change — it is not taken here, because retuning
+between checkpoints is what the standing policy forbids.
+
+**Rarity on the map cost 37.6px, and Pocket does not pay it.** Part 8 asks for
+rarity on the map readout, flagging it as arguable. Added as a third chip
+beside the requirement and the band — and at 390px the third chip wraps the
+gate row:
+
+| mode | before | after |
+|---|---|---|
+| default `map.screenHeight` | 824.19 | 861.78 |
+| `modes.pocket.map.screenHeight` | 570.73 | **586.95**, its original pre-patch value |
+| `map.decisionTop` / `decisionBottom` | unchanged | unchanged |
+
+So the map is 37.6px longer at full density, all of it below a decision point
+that did not move, on a screen that already scrolls. **Pocket hides the chip**,
+which is that mode's whole rule — the third attribute is the one that goes —
+and the information is not lost, because the event screen carries it at every
+density.
+
+**One thing V2 caught.** The rarity chip was first given its own border and
+text colour, which made a *second* neutral chip style; `test/visual-v2.test.ts`
+holds the rule that every neutral chip shares one style and only the type chip
+carries a hue. The override was deleted rather than the rule relaxed, and the
+`--rarity` modifier now exists only so the Pocket rule has something to select.
+
+### The defect the log-shape change caused, and the suite that caught it
+
+**2026-09-14, after step 8.** Changing the event decision from an index to an
+archetype broke saved runs, and it broke them silently.
+
+`ui/storage.ts`'s `isRunDecision` listed `event` among the kinds validated as
+`typeof decision.index === 'number'`. After step 5 an event decision carries an
+`archetype` and no `index`, so the check failed for **every saved run that had
+passed a question mark**: `loadRunLog` returned null and the save was
+unresumable, with no error anywhere — the run simply was not there.
+
+`test/storage.test.ts` caught it, and the case it caught it with is the one
+written for exactly this: "loads every log a real run saves, **whatever kinds
+it holds**", which plays a real run rather than hand-building a log with three
+decision kinds in it. The older version of that check knew three kinds and
+would have passed.
+
+The fix validates the four archetype names rather than `typeof === 'string'`,
+because the point of the tag is that it is a closed set: a log naming anything
+else is a log this build cannot replay, and it is refused at the boundary
+rather than at the call site that reads it.
+
+**Worth stating plainly, because it is the second time this shape of bug has
+reached this repo:** a decision-schema change has to be walked through every
+reader of the schema, and the type system does not find them all — `storage.ts`
+validates a `RunDecision` structurally, from `unknown`, so it typechecks
+perfectly while disagreeing with the union it is validating.
+
+### The bug the risk predicted, found the same day it was logged
+
+**2026-09-14.** The note above was written about `ui/storage.ts`. The same
+shape was already sitting in `core/run.ts`, four stages old, and a question
+about it — "rewards from events aren't going into inventory, does that make
+sense?" — found it.
+
+`resolveNode` folded the event outcome and then read two of the three fields it
+returned:
+
+```ts
+const after = applyEventOutcome(priced, outcome, state.tuning);
+party = after.party;
+currency = after.currency;     // and backpack, dropped on the floor
+```
+
+**Live since Stage 4.5.1** (`0b450d2`, "a bag that catches things"), which is
+the patch that moved an event's item from the lead into the backpack.
+`applyEventOutcome` folded it correctly from that day and its unit tests passed
+throughout; the call site was never updated, so for four stages every item an
+event paid was folded into a value nobody read. The header comment in
+`core/events.ts` describing the item going "into the backpack, like every other
+item the run acquires" was accurate about the fold and wrong about the game.
+
+Before the rejig it swallowed grants only. After it, it would have swallowed
+costs too: a forced discard and a berry toll both change the bag and nothing
+else, so both would have been announced to the player and never charged.
+
+The fix destructures the whole result — `({ party, currency, backpack } = after)`
+— so the next field `applyEventOutcome` learns to change cannot be dropped the
+same way. `test/event-inventory.test.ts` asserts at the `resolveNode` seam
+rather than at `applyEventOutcome`, which is where the coverage already was and
+where it could not see the gap.
+
+**The existing suites could not have caught it**, and it is worth being precise
+about why rather than adding a test and moving on. `test/economy.test.ts` has
+an event item assertion — it calls `applyEventOutcome` directly.
+`test/band3.test.ts` resolves a node, but through the *acquisition* path, which folds party rather
+than bag. Nothing played a run and then looked in the bag. That is the test
+that existed nowhere and exists now.
+
+### Ruled: the Attune floor comes up, and Part 8 wins the contradiction
+
+**2026-09-14.** `ATTUNE_TIERS` gave `T1` a weight of 10 at common and 5 at
+uncommon, while Part 8 of the prompt said the option reads `Reward: T2 to T3`.
+Because the screen label is derived from the weights rather than restated
+beside them, the screen honestly said `T1 to T3` and the contradiction
+surfaced instead of hiding.
+
+**The ruling went to Part 8**, and the argument is about what the gate is for:
+
+> An Attune paying `T1` means the player held a scarce relic, spent the gated
+> option on it, and got a minor payout. That is the one outcome the gate exists
+> to prevent.
+
+The two weights moved onto `T2` rather than being deleted — common 60 to 70,
+uncommon 50 to 55 — so the distribution keeps its shape and only its floor
+moves, and the `T3` weights are untouched. `contentHash` moves with it.
+
+Worth noting how this was found, because it is the second time the same
+technique has paid: the label is *derived* from the table it describes, so a
+disagreement between the spec's prose and the spec's numbers became a visible
+string on a screen rather than a discrepancy nobody was looking for. The same
+property is why `tierRangeOf` exists at all.
+
+### The dead-citation check, and the second one it found
+
+**2026-09-14.** `test/boundaries.test.ts` walks the live documents for paths
+that do not resolve. It found a band3 citation in this file missing its
+extension — and could not see that `core/types.ts` twice cited an
+event-archetype-log suite, a file named while the comment was being written and
+never created, because the walker only read `docs/`.
+
+(The dead names are spelled out here without backticks on purpose. The checker
+reads a backticked path as a claim that the file exists, and prose *about* an
+absence is exactly the case its `NAMED_AS_ABSENT` list exists for — a list the
+suite asserts may shrink and never grow, so the right move is to not make the
+claim rather than to widen the exception.)
+
+It reads `src/` comments now too, scoped to `test/` paths inside backticks.
+The narrowness is deliberate: a comment may reasonably describe a module that
+moved or is being argued about, and failing on those would make the check
+noise, but a citation of a *test* is a claim that a named file enforces
+something and that claim is either true or it is not.
+
+**It found a second dead citation on its first run** — `core/events.ts` cited
+an event-archetypes suite, where the assertion actually lives in
+`test/event-generation.test.ts`. Two dead pointers to rules that *were* being
+enforced, both written in the same patch that added the rules. This repo leans
+on comments naming the test that holds a rule, so a citation that goes nowhere
+costs more here than a broken link in a document: it is the thing a reader
+trusts when deciding whether a rule is enforced at all.

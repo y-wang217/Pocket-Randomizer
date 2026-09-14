@@ -1,9 +1,9 @@
 {
   "seed": "RESULT-1",
   "versions": {
-    "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
-    "randomizer": "gymrun-randomizer-13",
+    "runLog": "gymrun-run-14/gymrun-0.3.0",
+    "contentHash": "1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883",
+    "randomizer": "gymrun-randomizer-14",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -18,8 +18,9 @@
     "byMove": "Jet Punch",
     "indirect": null
   },
-  "currency": 143,
+  "currency": 107,
   "backpack": [
+    "mysticwater",
     "muscleband",
     "shellbell"
   ],
@@ -101,7 +102,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 218,
+      "hpAfter": 256,
       "casualties": []
     },
     {
@@ -112,7 +113,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 218,
+      "hpAfter": 256,
       "casualties": []
     },
     {
@@ -121,9 +122,9 @@
       "label": "Garnet's Gym",
       "tier": null,
       "opponent": "Garnet (Rock)",
-      "turns": 3,
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 197,
+      "hpAfter": 241,
       "casualties": []
     },
     {
@@ -230,10 +231,10 @@
   "log": {
     "seed": "RESULT-1",
     "versions": {
-      "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f",
+      "runLog": "gymrun-run-14/gymrun-0.3.0",
+      "contentHash": "1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-13"
+      "randomizerVersion": "gymrun-randomizer-14"
     },
     "decisions": [
       {
@@ -342,7 +343,7 @@
       },
       {
         "kind": "event",
-        "index": 0
+        "archetype": "safe"
       },
       {
         "kind": "items",
@@ -357,7 +358,7 @@
       },
       {
         "kind": "event",
-        "index": 0
+        "archetype": "safe"
       },
       {
         "kind": "items",
@@ -373,22 +374,15 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 3
+          "kind": "move",
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
+          "slot": 1
         }
       },
       {

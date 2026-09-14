@@ -275,19 +275,27 @@ describe('the version axes', () => {
   });
 
   /*
-   * **Updated by the AI tiers patch, not deleted.** `contentHash` moved because
-   * that patch added `src/data/ai.ts`, which is a data table under the glob and
-   * is therefore hashed the day it lands — the workflow `docs/generation.md`
-   * section 9 states for exactly this case. `RUN_LOG_VERSION` did not move and
-   * the assertion that it did not is the half of this test that still guards
-   * something: the AI patch changes no logged decision, so a log's schema is
-   * untouched and only the `aiVersion` and `contentHash` axes refuse it.
+   * **Updated by the AI tiers patch and then by the event rejig, not deleted.**
+   * `contentHash` moved twice, for the same structural reason both times: the
+   * AI tiers patch added `src/data/ai.ts`, and the event rejig added
+   * `src/data/eventPools.ts` and gave `src/data/scaling.ts` its event rarity
+   * ramp. A table under the glob is hashed the day it lands — the workflow
+   * `docs/generation.md` section 9 states for exactly this case, and section 14
+   * carries the event rejig's dated note.
+   *
+   * `RUN_LOG_VERSION` did not move for either, and the assertion that it did
+   * not is the half of this test that still guards something: neither patch
+   * changes a logged decision, so a log's schema is untouched and only the
+   * `aiVersion` and `contentHash` axes refuse it. **The event rejig did move
+   * it, at its step 5**, and the literal below moved with it: the event
+   * decision stopped being an index and became its option's archetype, which
+   * is a changed answer to an unchanged question and therefore a schema bump.
    */
-  it('moved RUN_LOG_VERSION not at all, and contentHash only by a new data table', () => {
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-13/gymrun-0.3.0');
+  it('moved RUN_LOG_VERSION not at all, and contentHash only by new data tables', () => {
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-14/gymrun-0.3.0');
     // Pinned literally, as the Branch 1 value was: a hash nobody can read off
     // the tree by eye is exactly the kind that moves without anyone noticing.
-    expect(CONTENT_HASH).toBe('dbb2db931ddc1bb2b459ec503ed2b62b8d2ddb6fd4fbef33fb313338c8cf3a8f');
+    expect(CONTENT_HASH).toBe('1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

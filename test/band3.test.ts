@@ -12,7 +12,38 @@
  */
 import { describe, expect, it } from 'vitest';
 import { generateEventAcquisition } from '../src/core/acquisition';
-import { applyEventOutcome, describeOutcome, generateEvent, type EventOutcome } from '../src/core/events';
+import {
+  EventPicker,
+  applyEventOutcome,
+  describeOutcome,
+  generateEvent,
+  type EventOption,
+  type EventOutcome,
+  type ResolvedEffect,
+} from '../src/core/events';
+import type { EventArchetype, OutcomeTier } from '../src/data/eventPools';
+import type { CapabilityBand } from '../src/core/capabilities';
+
+/** One outcome carrying exactly these grants. A `T2`, since that is what a Pokemon is. */
+function outcomeOf(grant: readonly ResolvedEffect[], tier: OutcomeTier = 'T2'): EventOutcome {
+  return { tier, entryId: 'test', cost: [], grant };
+}
+
+/** One option whose band selector points at a distinct tier per band. */
+function option(
+  archetype: EventArchetype,
+  byBand: Readonly<Record<CapabilityBand, EventOutcome>>,
+): EventOption {
+  return {
+    archetype,
+    label: archetype,
+    hint: archetype,
+    toll: null,
+    // Three bands mapped onto three tiers, so `outcomeFor` can tell them apart.
+    outcomes: { T0: byBand.none, T1: byBand.latent, T2: byBand.known, T3: byBand.known },
+    tierAt: { none: 'T0', latent: 'T1', known: 'T2' },
+  };
+}
 import { acquisitionOffered, createRun, resolveNode, type NodeResult, type RunState } from '../src/core/run';
 import { createRng } from '../src/core/rng';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -69,22 +100,24 @@ describe('draw isolation', () => {
     // existing reward draw.
     const withOffer = createRng('ISO');
     const without = createRng('ISO');
-    const a = generateEvent('n1', withOffer.rewards.at('e'), DEFAULT_TUNING, () =>
+    const a = generateEvent('n1', 'shore', 2, withOffer.rewards.at('e'), DEFAULT_TUNING, new EventPicker(), () =>
       offerFor('ISO-CAPTURE'),
     );
-    const b = generateEvent('n1', without.rewards.at('e'), DEFAULT_TUNING);
-    expect(a.eventId).toBe(b.eventId);
-    expect(a.prompt).toBe(b.prompt);
-    expect(a.requires).toBe(b.requires);
+    const b = generateEvent('n1', 'shore', 2, without.rewards.at('e'), DEFAULT_TUNING, new EventPicker());
+    expect(a?.eventId).toBe(b?.eventId);
+    expect(a?.prompt).toBe(b?.prompt);
+    expect(a?.requires).toBe(b?.requires);
     expect(withOffer.rewards.at('e').draws).toBe(without.rewards.at('e').draws);
   });
 
   it('degrades to nothing when no offer can be made', () => {
     const rng = createRng('NONE');
-    const event = generateEvent('n1', rng.rewards.at('e'), DEFAULT_TUNING, () => null);
-    for (const choice of event.choices) {
-      for (const outcome of Object.values(choice.outcomes)) {
-        expect(outcome.kind).not.toBe('acquisition');
+    const event = generateEvent('n1', 'shore', 2, rng.rewards.at('e'), DEFAULT_TUNING, new EventPicker(), () => null);
+    for (const option of event?.options ?? []) {
+      for (const outcome of Object.values(option.outcomes)) {
+        for (const effect of [...outcome.cost, ...outcome.grant]) {
+          expect(effect.kind).not.toBe('acquisition');
+        }
       }
     }
   });
@@ -96,13 +129,15 @@ describe('applying it', () => {
     // fold ever starts adding the Pokemon too, an event capture and a wild
     // capture have become two different code paths.
     const state = createRun('APPLY', DEFAULT_TUNING);
-    const outcome: EventOutcome = { kind: 'acquisition', offer: offerFor('APPLY') };
+    const outcome = outcomeOf([{ kind: 'acquisition', offer: offerFor('APPLY'), withItem: false }]);
     expect(applyEventOutcome(state, outcome, DEFAULT_TUNING)).toEqual(state);
   });
 
   it('describes itself as the species and nothing else', () => {
     const offer = offerFor('DESC');
-    expect(describeOutcome({ kind: 'acquisition', offer })).toBe(offer.spec.species);
+    expect(describeOutcome(outcomeOf([{ kind: 'acquisition', offer, withItem: false }]))).toBe(
+      offer.spec.species,
+    );
   });
 });
 
@@ -111,18 +146,26 @@ describe('finding the offer', () => {
   const eventNode = { ...base.segments[0]!.gym, kind: 'event' as const, encounter: null, acquisition: null };
   const offer = offerFor('FIND');
 
-  const nothing: EventOutcome = { kind: 'nothing' };
-  const capture: EventOutcome = { kind: 'acquisition', offer };
+  const nothing = outcomeOf([{ kind: 'nothing' }]);
+  const capture = outcomeOf([{ kind: 'acquisition', offer, withItem: false }]);
 
-  /** An event node where only the `known` band of choice 1 offers a Pokemon. */
+  /** An event node where only option 1 at `known` offers a Pokemon. */
   function offeringNode(): NodeResult['node'] {
-    const choices = [
-      { label: 'a', hint: 'a', outcomes: { none: nothing, latent: nothing, known: nothing } },
-      { label: 'b', hint: 'b', outcomes: { none: nothing, latent: nothing, known: capture } },
+    const options = [
+      option('safe', { none: nothing, latent: nothing, known: nothing }),
+      option('gamble', { none: nothing, latent: nothing, known: capture }),
     ];
     return {
       ...eventNode,
-      event: { nodeId: 'n1', eventId: 'test', prompt: 'p', requires: 'surf' as const, choices },
+      event: {
+        nodeId: 'n1',
+        eventId: 'test',
+        locale: 'shore' as const,
+        rarity: 'common' as const,
+        prompt: 'p',
+        requires: 'surf' as const,
+        options,
+      },
     };
   }
 
@@ -131,18 +174,18 @@ describe('finding the offer', () => {
   const knowsNothing = { relics: [], party: [] };
 
   it('finds an offer on the chosen outcome at the band the run is at', () => {
-    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 1 }, knowsSurf)).toEqual(offer);
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 'gamble' }, knowsSurf)).toEqual(offer);
   });
 
   it('finds nothing at a lower band, because a different outcome pays', () => {
     // The same node and the same button. Only the band differs, and the band
     // is the run's, so two runs on this seed diverge here without either
     // having made a roll the other did not.
-    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 1 }, knowsNothing)).toBeNull();
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 'gamble' }, knowsNothing)).toBeNull();
   });
 
   it('finds nothing when the player chose a different button', () => {
-    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 0 }, knowsSurf)).toBeNull();
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 'safe' }, knowsSurf)).toBeNull();
   });
 
   it('finds nothing when no event choice was made', () => {
