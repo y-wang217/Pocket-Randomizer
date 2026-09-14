@@ -58,7 +58,9 @@ describe('the recipient screen', () => {
     expect((category as HTMLElement).dataset['tip']).toBe(`category:${facts.category.toLowerCase()}`);
     expect(card?.querySelector('.type')?.textContent).toBe(facts.type);
     expect(card?.textContent).toContain(`${facts.basePower} BP`);
-    expect(card?.querySelector('.band')?.textContent).toBe(`BAND ${bandOfMove('Ice Beam')}`);
+    // Patch 4.8.0.3: the band is pips, not a word. Same resolution through
+    // `bandOfMove`, read back as the count of lit pips.
+    expect(card?.querySelectorAll('.band .band__pip[data-on="true"]').length).toBe(bandOfMove('Ice Beam'));
   });
 
   it('draws the same card for a TM, and one card only', () => {

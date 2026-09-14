@@ -42,6 +42,15 @@ export interface BandEntry {
  * `test/banding.test.ts` asserts the cuts themselves. Two files stating one
  * number is the cost of the number being player-facing.
  */
+/**
+ * How many pips the band meter draws. **Patch 4.8.0.3, item 3.**
+ *
+ * Four, because there are four bands, and the meter is a count of them rather
+ * than a scale. It lives here beside the table it counts so the two cannot
+ * disagree — `test/band-badge.test.ts` holds it to `BAND_INFO`'s own size.
+ */
+export const BAND_PIPS = 4;
+
 export const BAND_INFO: Readonly<Record<number, BandEntry>> = {
   1: {
     label: 'Band 1',

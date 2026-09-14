@@ -91,8 +91,18 @@ describe('the drawer itself', () => {
      * three of six stats survive a shorter card has made the judgement the
      * player was supposed to make.
      *
-     * So: the six stat block, the four move cards, the archetype label, the
-     * item row, HP and PP. All of it, on every card.
+     * So: the six stat block, the four move cards, the item row, HP and PP.
+     * All of it, on every card.
+     *
+     * **The archetype label left this card at patch 4.8.0.3, item 3, and its
+     * assertion is inverted rather than deleted.** It is not a reduction: the
+     * six stat bars asserted on the line above *are* the shape the label
+     * summarised, and they are the version of it that cannot be wrong — the
+     * label reads base stats only, so a fully randomized move set makes it lie.
+     * A card that draws the bars does not also draw the label, and this now
+     * holds it to that. The chip is unchanged on every surface with no bars:
+     * the battle panel, the item target, the result summary, the acquisition
+     * slot row.
      */
     const drawer = createDrawer();
     drawer.open(viewFor(state));
@@ -101,7 +111,7 @@ describe('the drawer itself', () => {
 
     expect(card!.querySelectorAll('.stat')).toHaveLength(6);
     expect(card!.querySelectorAll('.move--card').length).toBeGreaterThan(0);
-    expect(card!.querySelector('.badge--archetype')).not.toBeNull();
+    expect(card!.querySelector('.badge--archetype'), 'the bars replace the label here').toBeNull();
     expect(card!.querySelector('.party__item')).not.toBeNull();
     expect(card!.querySelector('.panel__hp-text')?.textContent ?? '').not.toBe('');
   });

@@ -47,6 +47,8 @@ import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
 import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
+import { MOVE_FACT_INFO } from '../data/moveFactInfo';
+import type { MoveFactId } from '../core/moveFacts';
 import {
   ARCHETYPES,
   ARCHETYPE_CAVEAT,
@@ -117,7 +119,29 @@ type TipKind =
    * fold in Pocket and the drawer prints relics as chips, so the words in
    * `data/relics.ts` need a tap to reach them. Keyed by relic id.
    */
-  | 'relic';
+  | 'relic'
+  /**
+   * The whole stat-stage set for one side, folded into one marker. **Patch
+   * 4.8.0.3, item 1.**
+   *
+   * Pocket has no width for a multiplier and a ladder per stage, and the
+   * density ruling is that no mode removes a fact — so the facts move behind
+   * one tap rather than off the screen. There is no id to look up: the set is
+   * this turn's, so it rides on the trigger as `data-detail`, the same way a
+   * threat count does. `stages:active` is the trigger every marker carries.
+   */
+  | 'stages'
+  /**
+   * One icon on a move card's fact strip. **Patch 4.8.0.3, item 2.**
+   *
+   * The strip trades words for glyphs to buy vertical space, and this is what
+   * makes that trade honest: every icon is a trigger and the panel names the
+   * field in words. An icon nobody can decode is worse than the row it
+   * replaced. Keyed by `MoveFactId`; the words are `data/moveFactInfo.ts`'s,
+   * which takes eight of the nine straight from `data/moveTags.ts` so the
+   * strip and the explanation cannot drift into two descriptions of one fact.
+   */
+  | 'movefact';
 
 const KINDS: readonly TipKind[] = [
   'type',
@@ -135,6 +159,8 @@ const KINDS: readonly TipKind[] = [
   'gym',
   'threat',
   'relic',
+  'stages',
+  'movefact',
 ];
 
 export interface TooltipLayer {
@@ -310,7 +336,54 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderThreat(id, trigger?.dataset['detail']);
     case 'relic':
       return renderRelic(id);
+    case 'stages':
+      return renderStages(trigger?.dataset['detail']);
+    case 'movefact':
+      return renderMoveFact(id);
   }
+}
+
+/** One fact strip icon, in words. The label is the title, the blurb the body. */
+function renderMoveFact(id: string): HTMLElement | null {
+  const info = MOVE_FACT_INFO[id as MoveFactId];
+  if (!info) return null;
+  const body = panel(info.label);
+  const text = el('p', 'tip__text');
+  text.textContent = info.blurb;
+  body.append(text);
+  return body;
+}
+
+/**
+ * The folded stat-stage set, unfolded.
+ *
+ * One row per changed stage: the stat, the multiplier it applies, and the
+ * stage itself. The stage is spelled out here where the inline chip leaves it
+ * to the ladder, because a panel that has already cost a tap has room for it
+ * and because `+2` is the form a player will meet in every other Pokemon
+ * document they ever read.
+ *
+ * Composed from `data-detail` rather than from the projection: this layer is
+ * delegated and stateless, and the trigger is the only thing that knows which
+ * turn it was rendered on.
+ */
+function renderStages(detail?: string): HTMLElement | null {
+  const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
+  if (rows.length === 0) return null;
+  const body = panel('Stat stages', 'tip__body--rows');
+  const list = el('div', 'tip__rows');
+  for (const row of rows) {
+    const [stat = '', multiplier = '', stage = ''] = row.split('\t');
+    const line = el('div', 'tip__row');
+    const label = el('span', 'tip__row-label');
+    label.textContent = stat;
+    const value = el('span', 'tip__row-value');
+    value.textContent = `${multiplier}  (${stage})`;
+    line.append(label, value);
+    list.append(line);
+  }
+  body.append(list);
+  return body;
 }
 
 /**

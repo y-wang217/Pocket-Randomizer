@@ -27,7 +27,6 @@ import type { Tuning } from '../data/tuning';
 import { collapsible } from './collapse';
 import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
-import { archetypeChip } from './archetype-chip';
 import { neutralChip, statusChip, typeChip } from './chip';
 import { slotNumber } from './slots';
 
@@ -95,7 +94,22 @@ export function memberCardContents(
   // The slot number first, when the card stands for a slot (V2): a position,
   // the same marker the hotbar above it wears.
   if (options.index !== undefined) header.append(slotNumber(options.index));
-  header.append(name, level, archetypeChip(spec.baseStats), ...spec.types.map((type) => typeChip(type)));
+  /*
+   * **No archetype chip here. Patch 4.8.0.3, item 3.**
+   *
+   * The six stat bars this card draws below (`statBlock`) already show the
+   * shape the label was summarising, and they show it without the label's
+   * known failure mode: `archetypeOf` reads base stats only, so a Pokemon with
+   * a fully randomized move set reads `pTank` while attacking specially. A
+   * chip that is sometimes wrong sitting directly above the bars that are
+   * always right is the label at its least useful.
+   *
+   * `archetypeOf` and `ActiveUiView.archetype` are untouched, and the chip
+   * stays on every surface that has no bars — the battle panel, the item
+   * target, the result summary, the acquisition slot row — where it is the
+   * only shape information there is.
+   */
+  header.append(name, level, ...spec.types.map((type) => typeChip(type)));
   if (options.isLead) header.append(neutralChip('Lead', 'lead'));
 
   const ability = el('span', 'party__ability');

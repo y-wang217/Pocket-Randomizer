@@ -365,6 +365,40 @@ body {
   gap: var(--space-1);
 }
 
+/* The stat-stage ladder. Patch 4.8.0.3.
+
+   Inside the stage chip, after its text, so the multiplier and the position
+   are one object that wraps as one. `MAX_STAGE` segments, `|stage|` of them
+   lit; the unlit ones stay drawn because the range is the thing being shown
+   and a ladder that shrank would only be the number again. */
+.stage-ladder {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+.stage-ladder__seg {
+  display: block;
+  width: 2px;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--bg-sunken);
+}
+/* The direction is the sign, not an emphasis: `--stage-up` and `--stage-down`
+   are the same two readout colours the chip's own text already uses, at the
+   same weight. Neither is "good". */
+.stage-ladder--up .stage-ladder__seg[data-on="true"] { background: var(--stage-up); }
+.stage-ladder--down .stage-ladder__seg[data-on="true"] { background: var(--stage-down); }
+
+/* Detailed and Simple show the stages inline; Pocket shows the one marker and
+   the set is one tap away through the tooltip layer. Both are in the DOM on
+   every render, so changing density is a stylesheet change and not a
+   re-render. The density ruling: no mode removes a fact. */
+.panel__stages .badge--stages { display: none; cursor: pointer; }
+:root[data-density="pocket"] .panel__stages .badge--stage { display: none; }
+:root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }
+
 .panel__header {
   display: flex;
   align-items: center;
@@ -824,7 +858,7 @@ body {
 :root[data-density="pocket"] .move .badge--category,
 :root[data-density="pocket"] .move .move__power,
 :root[data-density="pocket"] .move .move__effect,
-:root[data-density="pocket"] .move .move__tags { display: none; }
+:root[data-density="pocket"] .move .move__facts { display: none; }
 
 /* The battle button's explain chip, on the PP line so it costs no height. */
 .badge--ask { padding: 0 var(--space-1); line-height: 1.2; cursor: help; }
@@ -1724,11 +1758,32 @@ body {
 }
 
 /* Stage V0: the four bands render identically. The opacity ramp that used to
-   distinguish them was an ordering, and an ordering is a verdict. */
+   distinguish them was an ordering, and an ordering is a verdict. Patch
+   4.8.0.3 keeps that: the pips differ in *count*, which is the band, and in
+   nothing else — one hue, one weight, filled or not. */
 .band--1,
 .band--2,
 .band--3,
 .band--4 { opacity: 1; }
+
+/* The band pips. Patch 4.8.0.3, item 3: `BAND 3` became three of four filled.
+
+   Sized off the chip's own font so they scale with every density and font
+   setting the rest of the badge does, rather than being pinned in px and
+   drifting out of step with the text beside them. */
+.band { gap: 2px; }
+.band__pip {
+  display: block;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 1px;
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 var(--hairline) var(--border);
+}
+.band__pip[data-on="true"] {
+  background: var(--text-dim);
+  box-shadow: none;
+}
 
 /* A berry in the bag. Dashed, because the thing it marks is impermanence. */
 .badge--consumable {
@@ -4016,20 +4071,34 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    It wears the one neutral chip recipe from `.chip`; only the cursor is its own. */
 .badge--archetype { cursor: pointer; }
 
-/* Move tags. Deliberately quiet: they are context on a button whose job is
- * still to be pressed, and a row of loud chips would out-shout the move name. */
-.move__tags {
+/* The move fact strip. Patch 4.8.0.3, successor to `.move__tags`.
+
+   Deliberately quiet, for the reason the tag row was: this is context on a
+   button whose job is still to be pressed, and a row of loud chips would
+   out-shout the move name. `nowrap` is the difference — a strip of icons fits
+   one line where a row of words did not, and one line is the whole point.
+   Nothing here is a colour: an icon that coloured a fact would be ranking it. */
+.move__facts {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: var(--space-1);
+  overflow: hidden;
 }
 
-/* No font-size of its own from 4.7.2: it inherits `.badge`'s --fs-sm. It used
-   to override to --fs-xs, and to --fs-2xs again under 420px. */
-.badge--tag {
+/* No font-size of its own: it inherits `.badge`'s --fs-sm, the legibility
+   floor, the same way `.badge--tag` did after 4.7.2. */
+.badge--fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   padding: 0 calc(var(--space-1) + var(--hairline));
   cursor: pointer;
+  white-space: nowrap;
 }
+
+.move__fact-icon { line-height: 1; }
+.move__fact-value { font-family: var(--font-numeral); }
 
 /* ---------- the move explanation ---------- */
 
@@ -4205,7 +4274,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   /* The sheet takes more of the viewport on a phone, but never all of it: the
    * strip of the screen underneath is what says this is an overlay. */
   .drawer__sheet { max-height: 90vh; }
-  .move__tags { gap: var(--space-1); }
+  .move__facts { gap: var(--space-1); }
   /*
    * **The `.badge--tag { font-size: var(--fs-2xs) }` that lived here is gone.
    * Patch 4.7.2.**

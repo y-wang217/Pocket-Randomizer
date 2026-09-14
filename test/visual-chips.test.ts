@@ -245,9 +245,16 @@ async function sweep(): Promise<ChipSample[]> {
       await page.waitForTimeout(40);
       continue;
     }
-    // The party screen carries chips no other surface does — the lead marker,
-    // the held item, the archetype — and the run never routes through it on its
-    // own, so it is opened once from the map exactly as V2's stamp sweep does.
+    // The party screen carries chips no other surface does — the lead marker
+    // and the held item — and the run never routes through it on its own, so
+    // it is opened once from the map exactly as V2's stamp sweep does.
+    //
+    // **The archetype used to be third in that list. Patch 4.8.0.3, item 3
+    // took it off every surface that draws the six stat bars, the party screen
+    // among them.** The chip is still swept, on the surfaces that keep it.
+    // Named here rather than dropped because "the party screen is where the
+    // archetype is" was true for four stages and is the kind of thing a reader
+    // will otherwise re-derive from a stale memory.
     if (screen === 'map' && !openedParty) {
       await page.locator(`${visible('map')} .party__header .button`).click();
       await page.waitForTimeout(50);

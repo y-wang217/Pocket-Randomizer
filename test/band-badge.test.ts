@@ -37,6 +37,7 @@ import { greedyAiPolicy } from '../src/core/battle/ai';
 import { createBattle, describeMove } from '../src/core/battle/driver';
 import { buildBattleUiView } from '../src/core/battle/view';
 import { createParty } from '../src/core/party';
+import { BAND_PIPS } from '../src/data/bandInfo';
 import { createRun, playRun, scriptedRunPolicy, type RunResult } from '../src/core/run';
 import type { PokemonState } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
@@ -93,8 +94,25 @@ function bandsOn(root: ParentNode, surface: string): number {
       continue;
     }
 
-    expect(badge, `${surface}: ${name} should carry BAND ${expected}`).not.toBeNull();
-    expect(badge?.textContent, `${surface}: ${name}`).toBe(`BAND ${expected}`);
+    /*
+     * **Patch 4.8.0.3 turned the word into a meter, and the assertion follows
+     * it rather than being dropped.**
+     *
+     * `BAND 3` is now four pips with three filled. What R12 was protecting is
+     * untouched and is still what is checked here: the badge reaches this
+     * surface at all, and the band it shows is the one `bandOfMove` resolved.
+     * The count of lit pips is that number, read back off the DOM, so the test
+     * still cannot pass by drawing a plausible badge.
+     */
+    expect(badge, `${surface}: ${name} should carry band ${expected}`).not.toBeNull();
+    expect(badge?.querySelectorAll('.band__pip').length, `${surface}: ${name}`).toBe(BAND_PIPS);
+    expect(
+      badge?.querySelectorAll('.band__pip[data-on="true"]').length,
+      `${surface}: ${name}`,
+    ).toBe(expected);
+    // The number itself did not disappear, it moved behind the tap the badge
+    // already had. `data/bandInfo.ts` holds the words.
+    expect((badge as HTMLElement).dataset['tip'], `${surface}: ${name}`).toBe(`band:${expected}`);
     // Through the one chip component, wearing the one tooltip hook. Not a
     // second mechanism and not a second text.
     expect(badge?.classList.contains('chip'), `${surface}: ${name}`).toBe(true);

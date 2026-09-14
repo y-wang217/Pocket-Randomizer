@@ -96,6 +96,7 @@ import { DEFAULT_TUNING } from '../../data/tuning';
 /** The shipped face cap, for the `buildBattleUiView` default. See there. */
 const DEFAULT_MAX_MOVE_TAGS = DEFAULT_TUNING.maxMoveTagsOnFace;
 import { archetypeOf } from '../archetype';
+import { moveFactsOf, type MoveFact } from '../moveFacts';
 import type { Archetype } from '../../data/archetypes';
 
 // ---------------------------------------------------------------------------
@@ -312,6 +313,31 @@ export interface ActiveUiView {
    * otherwise know, and this is not one of them.
    */
   archetype: Archetype;
+  /**
+   * Accuracy and evasion stages. **Patch 4.8.0.3, item 1.**
+   *
+   * Its own field rather than two more entries in `stats`, and the separation
+   * is forced twice over. `statViews` loops `BOOSTABLE_STATS`, which is the
+   * five stats that *have* a base value — accuracy and evasion have no base,
+   * no effective number and no row, only a stage — so they were never
+   * representable in a `StatView` and widening the block to hold two entries
+   * with a meaningless `base` would be lying about the shape. The patch's own
+   * out-of-scope list bars touching `statViews` or `BOOSTABLE_STATS` for the
+   * same reason.
+   *
+   * They reach the UI at all because a player who cannot see them cannot tell
+   * a missed move from a raised evasion, which is the one question a battle
+   * readout exists to answer and the one it could not answer before this.
+   *
+   * Both default to 0, which renders nothing.
+   */
+  accuracyStages: AccuracyStagesView;
+}
+
+/** The two stages that have no base stat behind them. Patch 4.8.0.3. */
+export interface AccuracyStagesView {
+  accuracy: number;
+  evasion: number;
 }
 
 export interface MoveUiView {
@@ -396,6 +422,19 @@ export interface MoveUiView {
    * explanation, not in a region that already has a base power in it.
    */
   effect: MoveEffectFields | null;
+  /**
+   * The fact strip on this button's face. **Patch 4.8.0.3, item 2.**
+   *
+   * Derived here for the same reason `tags` is: `ui/scene.ts` may not reach
+   * `describeMove`, so the projection is the one door onto a move's fields and
+   * the button gets a list it can draw without asking anything.
+   *
+   * Uncapped, unlike `tags`. The strip is icons rather than words, the fields
+   * are bounded at nine by `MOVE_FACT_IDS`, and a move with all nine does not
+   * exist — so there is no cut to make and therefore no tuning number for how
+   * much of it survives.
+   */
+  facts: readonly MoveFact[];
 }
 
 export interface BattleUiView {
@@ -548,6 +587,13 @@ function toActiveUiView(facts: ActiveFacts, reveal: RevealPolicy): ActiveUiView 
     item: facts.item ? { id: facts.item.id, name: facts.item.name, revealed: reveal.item } : null,
     fainted: facts.fainted,
     archetype: archetypeOf(facts.baseStats),
+    // Read straight off `boosts`, which already tracks all seven boostable
+    // names (`BOOST_NAMES`). Nothing is computed: there is no base to apply a
+    // stage to, so the stage *is* the fact.
+    accuracyStages: {
+      accuracy: facts.boosts.accuracy ?? 0,
+      evasion: facts.boosts.evasion ?? 0,
+    },
   };
 }
 
@@ -605,6 +651,7 @@ function toMoveUiView(
     pp: move.pp,
     maxPp: move.maxPp,
     usable: move.usable,
+    facts: move.explanation ? moveFactsOf(move.explanation) : [],
   };
 
   /*

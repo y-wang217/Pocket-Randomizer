@@ -173,8 +173,20 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
   disable: {
     label: 'Disable',
     mechanics: 'One move — the last one used — cannot be selected for 4 turns.',
+    /*
+     * **Patch 4.8.0.3, item 3.** This read "Usually your best move, by
+     * design", which is the screen holding an opinion about which of four
+     * moves the player should have picked — the last "best" marker in
+     * player-facing copy, tracked as open in `docs/README.md` since the
+     * `6351009` audit.
+     *
+     * The attribute it was describing is that Disable always takes the move
+     * just used, and never any of the other three. That is the same fact
+     * without the verdict: it says why the locked move is the one it is, and
+     * leaves what to do about it to the player.
+     */
     advice:
-      'Usually your best move, by design. Switching clears it; otherwise work with the other three.',
+      'Always takes the last move used, never one of the other three. Switching clears it.',
   },
   attract: {
     label: 'Infatuation',

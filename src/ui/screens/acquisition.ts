@@ -176,7 +176,10 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
+  // No archetype chip: `statLine` below draws the six bars the label
+  // summarised. Patch 4.8.0.3, item 3. The slot card further down keeps its
+  // chip — that one has no bars.
+  header.append(name, level, ...detail.types.map(typeChip));
 
   const ability = el('span', 'party__ability');
   ability.textContent = detail.ability;

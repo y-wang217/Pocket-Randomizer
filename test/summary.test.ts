@@ -129,7 +129,7 @@ describe('the final party cards are built against the run\'s tuning', () => {
           { ...facts, maxPp: move.maxPp },
           result.state.tuning,
           { types: detail.types },
-        ).tags.length;
+        ).facts.length;
       }
     }
 
@@ -137,7 +137,18 @@ describe('the final party cards are built against the run\'s tuning', () => {
     // simply has no tagged moves, which is the shape of the bug it is here for.
     expect(expectedTotal, 'this party must carry tagged moves or the test proves nothing').toBeGreaterThan(0);
 
-    const drawn = summary.root.querySelectorAll('.summary__member-moves .move__tags .badge--tag, .summary__member-moves .move__tags .badge');
+    /*
+     * **Patch 4.8.0.3: the face row is the fact strip, not the tag row.**
+     *
+     * What this test was built to catch is unchanged — a surface whose
+     * `moveCardData` call got something other than a `Tuning` renders a card
+     * with an empty face row — so it still counts the face row, it just counts
+     * the element that is on the face now. The expected total is derived the
+     * same way, off the same shared filler, through `facts` rather than
+     * `tags`; the tags themselves are still on the move and still print in
+     * full one tap away in the explanation.
+     */
+    const drawn = summary.root.querySelectorAll('.summary__member-moves .move__facts .badge--fact');
     expect(drawn.length).toBe(expectedTotal);
   }, 60_000);
 });

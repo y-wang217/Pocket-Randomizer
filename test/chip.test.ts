@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { bandChip, capabilityBandChip, capabilityChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, tierChip, typeChip } from '../src/ui/chip';
 import { renderRewardCard } from '../src/ui/screens/reward';
 import { createRun } from '../src/core/run';
+import { BAND_PIPS } from '../src/data/bandInfo';
 
 const ROOT = process.cwd();
 
@@ -18,10 +19,22 @@ describe('the chip', () => {
     const cases: [HTMLElement, string[], string][] = [
       [typeChip('Fire'), ['chip', 'chip--type', 'type', 'type--fire'], 'Fire'],
       [tierChip('hard'), ['chip', 'chip--tier', 'tier', 'tier--hard'], 'HARD'],
-      [bandChip(3), ['chip', 'chip--band', 'band', 'band--3'], 'BAND 3'],
+      /*
+       * **Patch 4.8.0.3 changed three of these strings, and the shape of two.**
+       *
+       * `bandChip` is four pips now and carries no text at all: the number
+       * moved behind the tap it always had. `stageChip` prints the multiplier
+       * a stage applies rather than the stage integer, because a stage integer
+       * is a number only a Pokemon player can read — the integer survives on
+       * the ladder the chip now contains and in its `aria-label`. The cases
+       * are updated rather than dropped: what this test asserts is that every
+       * variant is built through the one component and keeps its legacy class,
+       * and that is as true of a meter as it was of a word.
+       */
+      [bandChip(3), ['chip', 'chip--band', 'band', 'band--3'], ''],
       [statusChip('brn'), ['chip', 'chip--status', 'badge', 'badge--status'], 'BRN'],
-      [stageChip(2), ['chip', 'chip--stage', 'badge', 'badge--up'], '+2'],
-      [stageChip(-1), ['chip', 'chip--stage', 'badge', 'badge--down'], '-1'],
+      [stageChip(2), ['chip', 'chip--stage', 'badge', 'badge--up'], '2.0x'],
+      [stageChip(-1), ['chip', 'chip--stage', 'badge', 'badge--down'], '0.7x'],
       [capabilityChip('Requires Cut'), ['chip', 'chip--capability', 'node__gate-need'], 'Requires Cut'],
       [capabilityBandChip('neither'), ['chip', 'chip--capability-band', 'node__gate-band'], 'neither'],
       [categoryChip('Physical', 'PHYS'), ['chip', 'chip--category', 'badge', 'badge--category', 'badge--cat-physical'], 'PHYS'],
@@ -56,7 +69,14 @@ describe('the chip', () => {
     const badge = card.querySelector('.move .band');
     expect(badge).not.toBeNull();
     expect(badge?.classList.contains('chip')).toBe(true);
-    expect(badge?.textContent).toMatch(/^BAND \d$/);
+    // Patch 4.8.0.3: the badge is a meter. The band it shows is still a number
+    // between 1 and `BAND_PIPS`, read back as the count of lit pips, and the
+    // word moved behind the tap the badge already had.
+    const lit = badge?.querySelectorAll('.band__pip[data-on="true"]').length ?? 0;
+    expect(lit).toBeGreaterThan(0);
+    expect(lit).toBeLessThanOrEqual(BAND_PIPS);
+    expect(badge?.querySelectorAll('.band__pip')).toHaveLength(BAND_PIPS);
+    expect((badge as HTMLElement).dataset['tip']).toBe(`band:${lit}`);
     // And nowhere else on the card, so the two homes cannot both be live.
     expect(card.querySelectorAll('.band')).toHaveLength(1);
   });
