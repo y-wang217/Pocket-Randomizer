@@ -64,7 +64,7 @@
         "Salt Cure 21/24",
         "Hone Claws 24/24"
       ],
-      "item": "leppaberry",
+      "item": "silkscarf",
       "hp": "0/177",
       "fainted": true
     },
@@ -78,7 +78,7 @@
         "Weather Ball 16/16",
         "Astonish 24/24"
       ],
-      "item": "yacheberry",
+      "item": "leppaberry",
       "hp": "0/113",
       "fainted": true
     },
@@ -92,7 +92,7 @@
         "Triple Kick 16/16",
         "Bite 40/40"
       ],
-      "item": null,
+      "item": "yacheberry",
       "hp": "0/170",
       "fainted": true
     }
@@ -763,7 +763,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 2,
+              "item": "silkscarf"
+            }
+          ],
           "discards": []
         }
       },
@@ -961,7 +966,7 @@
         "plan": {
           "assignments": [
             {
-              "slot": 2,
+              "slot": 3,
               "item": "leppaberry"
             }
           ],
@@ -1623,7 +1628,7 @@
         "plan": {
           "assignments": [
             {
-              "slot": 3,
+              "slot": 4,
               "item": "yacheberry"
             }
           ],

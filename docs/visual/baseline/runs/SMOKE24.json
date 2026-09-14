@@ -64,7 +64,7 @@
         "Nuzzle 29/32",
         "Poison Tail 40/40"
       ],
-      "item": "occaberry",
+      "item": "silkscarf",
       "hp": "0/156",
       "fainted": true
     },
@@ -78,7 +78,7 @@
         "Pounce 32/32",
         "Peck 56/56"
       ],
-      "item": "chestoberry",
+      "item": "wiseglasses",
       "hp": "0/161",
       "fainted": true
     },
@@ -410,7 +410,7 @@
       "opponent": "Wild Gliscor",
       "turns": 12,
       "winner": "p1",
-      "hpAfter": 554,
+      "hpAfter": 563,
       "casualties": [
         {
           "side": "p1",
@@ -428,9 +428,9 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Poliwrath",
-      "turns": 19,
+      "turns": 17,
       "winner": "p1",
-      "hpAfter": 243,
+      "hpAfter": 283,
       "casualties": [
         {
           "side": "p1",
@@ -461,7 +461,7 @@
       "opponent": "Wild Politoed",
       "turns": 12,
       "winner": "p1",
-      "hpAfter": 449,
+      "hpAfter": 471,
       "casualties": []
     },
     {
@@ -472,7 +472,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 449,
+      "hpAfter": 471,
       "casualties": []
     },
     {
@@ -712,7 +712,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 2,
+              "item": "silkscarf"
+            }
+          ],
           "discards": []
         }
       },
@@ -950,12 +955,7 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [
-            {
-              "slot": 2,
-              "item": "occaberry"
-            }
-          ],
+          "assignments": [],
           "discards": []
         }
       },
@@ -1084,7 +1084,7 @@
           "assignments": [
             {
               "slot": 3,
-              "item": "chestoberry"
+              "item": "occaberry"
             }
           ],
           "discards": []
@@ -1505,7 +1505,7 @@
           "assignments": [
             {
               "slot": 0,
-              "item": "silkscarf"
+              "item": "chestoberry"
             }
           ],
           "discards": []
@@ -1635,7 +1635,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 0,
+              "item": "silkscarf"
+            }
+          ],
           "discards": []
         }
       },
@@ -1856,7 +1861,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 3,
+              "item": "occaberry"
+            }
+          ],
           "discards": []
         }
       },
@@ -1980,21 +1990,7 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
@@ -2222,7 +2218,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 3,
+              "item": "wiseglasses"
+            }
+          ],
           "discards": []
         }
       },

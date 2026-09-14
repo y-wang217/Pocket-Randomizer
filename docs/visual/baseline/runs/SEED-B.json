@@ -20,6 +20,9 @@
   },
   "currency": 896,
   "backpack": [
+    "passhoberry",
+    "colburberry",
+    "twistedspoon",
     "choicespecs",
     "rockyhelmet",
     "expertbelt"
@@ -50,7 +53,7 @@
         "Disarming Voice 24/24",
         "Rock Polish 32/32"
       ],
-      "item": "twistedspoon",
+      "item": "colburberry",
       "hp": "0/140",
       "fainted": true
     },
@@ -296,7 +299,7 @@
       "opponent": "Volta (Electric)",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 474,
+      "hpAfter": 484,
       "casualties": []
     },
     {
@@ -905,7 +908,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 1,
+              "item": "colburberry"
+            }
+          ],
           "discards": []
         }
       },
@@ -990,12 +998,7 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [
-            {
-              "slot": 1,
-              "item": "twistedspoon"
-            }
-          ],
+          "assignments": [],
           "discards": []
         }
       },
@@ -1133,7 +1136,7 @@
           "assignments": [
             {
               "slot": 0,
-              "item": "occaberry"
+              "item": "oranberry"
             }
           ],
           "discards": []
@@ -1318,7 +1321,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 0,
+              "item": "occaberry"
+            }
+          ],
           "discards": []
         }
       },
@@ -1595,7 +1603,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [
+            "mysticwater"
+          ]
         }
       },
       {

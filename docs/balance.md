@@ -74,7 +74,8 @@ rather than being filled in from memory.
 | `randomizer-13` · `b022fc`, 400 | `ai-4-ability` | RETUNE | 39.25% | 4.8850 | the unknown-ability fix alone (section 16.1) |
 | `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, pinned | RETUNE | 39.25% | 4.8850 | **the pin.** `greedy` frozen to `GREEDY_BASELINE`; the row a future benchmark is read against |
 | `randomizer-13` · `dbb2db`, 400 | `ai-5-tiers`, table | RETUNE | 51.0% | **5.3875** | the shipped opponent: three tiers with noise (section 16.4b) |
-| `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 37.5% | **4.80** | the event rejig (section 17). Read against the `ai-6` pin at 4.8850: **−0.085 mean gyms, −1.75pt completion** |
+| `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 37.5% | 4.80 | the event rejig, **measured on a build where event items never reached the bag** (section 17.5). Superseded by the row below; kept because it is what was recorded |
+| `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 38.5% | **4.83** | the event rejig, after the Stage 4.5.1 inventory bug was fixed. Read against the `ai-6` pin at 4.8850: **−0.055 mean gyms, −0.75pt completion** |
 
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
@@ -2060,8 +2061,13 @@ the rulings and deviations are `generation.md` section 14.
 
 | | pin (`dbb2db`) | event rejig (`72e39f`) | delta |
 |---|---|---|---|
-| **mean gyms cleared** (the pinned figure) | **4.8850** | **4.80** | **−0.085** |
-| run completion | 39.25% | 37.5% | −1.75pt |
+| **mean gyms cleared** (the pinned figure) | **4.8850** | **4.83** | **−0.055** |
+| run completion | 39.25% | 38.5% | −0.75pt |
+
+**These numbers are the retake.** Everything in this section was first measured
+on a build where an event's item never reached the backpack — a Stage 4.5.1 bug
+found after the patch was built, section 17.5. The superseded figures are 4.80
+and 37.5%; the row above them in section 0 keeps both.
 
 **Recorded, not retuned.** Balance is not a gate: the number goes in the table
 and the patch keeps going. The direction makes sense — events can now take HP
@@ -2078,9 +2084,9 @@ Same run.
 | events resolved / run | 3.27 | 1306 in the sample |
 | **Attune available** | **38.8%** | the threshold was 15%. Relics are not decoration |
 | **T3 without the relic** | **0** | the patch's one hard rule, held over 1306 events |
-| T0 rate | 0.5% | under `greedy`, which mostly buys its way past the setback |
-| HP lost / run | 75.8 | actual HP, measured against each run's own numbers |
-| gold lost / run | 32.8 | outcome costs and tolls together |
+| T0 rate | 0.4% | under `greedy`, which mostly buys its way past the setback |
+| HP lost / run | 77.3 | actual HP, measured against each run's own numbers |
+| gold lost / run | 35.0 | outcome costs and tolls together |
 
 **Attune availability at 38.8% is the number that answers the relic system.**
 The prompt set 15% as the line under which relics are decoration and the fix
@@ -2094,10 +2100,10 @@ Take rate per archetype under `greedy`:
 
 | archetype | share of picks | share when offered |
 |---|---|---|
-| toll | 47.2% | 47.2% |
-| safe | 19.2% | 19.2% |
-| gamble | 17.2% | 17.2% |
-| attune | 16.5% | 42.4% |
+| toll | 46.7% | 46.7% |
+| safe | 19.1% | 19.1% |
+| gamble | 17.3% | 17.3% |
+| attune | 16.8% | 43.4% |
 
 **No archetype takes more than about 60%**, which is the test the prompt set
 for whether the menu is decorative. It passes, and the shape is readable: a
@@ -2105,34 +2111,57 @@ Toll is a known price for a guaranteed `T2`, so a bot with money buys it
 roughly half the time, and Attune wins 42.4% of the events where it is on the
 menu at all.
 
-### 17.4 The miss: `event-gambler` does not beat `event-safe`
+### 17.4 `event-gambler` beats `event-safe`, once the items arrive
 
 120 seeds, prefix `EVREJIG`, the two forced policies.
 
 | policy | completion | mean gyms |
 |---|---|---|
-| `event-safe` | 36.7% | **4.67** |
-| `event-gambler` | 35.8% | **4.63** |
+| `event-safe` | 35.8% | 4.63 |
+| `event-gambler` | **38.3%** | **4.68** |
 
-**The gap is −0.04 mean gyms, which is no gap.** The prompt's hypothesis was
-that the gambler should win by a visible margin because the Gamble
-distribution's expected value exceeds a flat `T1` at every rarity, and it
-names the consequence: "if it does not, the `T0` costs are overtuned relative
-to the `T2` payouts and the fix is in `data/eventPools.ts`".
+**+0.05 mean gyms and +2.5 points of completion to the gambler**, which is the
+direction the prompt predicted. The margin is thin on the mean and clearer on
+completion, and at 120 seeds neither is a large number — but the sign is the
+part the hypothesis was about.
 
-**It is recorded as a miss and not acted on**, because retuning between
-checkpoints is what the standing policy forbids. Three readings are available
-and the sample does not separate them:
+**It was the other way round before the inventory bug was fixed**, and the
+reversal is the most useful thing in this section:
 
-1. **The `T0` costs are overtuned.** The gambler eats 18.2% `T0` against the
-   safe policy's 0%, and loses 17.7 HP and 5.6 gold per run to it.
-2. **A `T1` is worth more than the table thinks.** The Safe option pays a held
-   item, two berries, a mid gold lump or a full heal — and a full heal on the
-   lead going into a gym is worth more to a run's survival than the mean of a
-   distribution that is 25.8% setback at common rarity.
-3. **Three events per run is too thin to separate them.** 3.27 events per run
-   against eight gyms is a small number of decisions to hang 0.04 mean gyms on.
+| | broken build | fixed build |
+|---|---|---|
+| `event-safe` | 4.67 | 4.63 |
+| `event-gambler` | 4.63 | **4.68** |
+| gap | **−0.04** | **+0.05** |
 
-Reading 2 is the one I would test first, because it does not require the
-costs to be wrong — it requires the *floor* to be high, which is a thing the
-Safe option was deliberately given and may simply have been given too much of.
+The mechanism is legible. `T2` and `T3` are where the item grants live — a
+premium held item, a relic *and* an item, a large gold lump *and* an item — and
+a Gamble is the option that reaches them. `T1` pays an item too, but it also
+pays currency and a heal, and those never broke. So the bug was a tax levied
+almost entirely on the tiers the gambler is reaching for, and removing it moved
+the gambler and left the safe policy roughly where it was.
+
+**The reading recorded here before the fix was wrong, and is left in 17.5
+rather than deleted.** It proposed that the `T1` floor was too generous. On
+this evidence the floor was fine and the payouts were being thrown away.
+
+### 17.5 Superseded: the miss that was a bug
+
+**Recorded 2026-09-14, superseded the same day.** Everything above was first
+measured on a build where `resolveNode` dropped the backpack returned by
+`applyEventOutcome`, so no event item ever reached the run. Section 14 of
+`generation.md` has the defect; what belongs here is what it did to the
+numbers, because a balance finding measured on a broken build is worth keeping
+visible rather than quietly overwriting.
+
+| measure | as recorded | after the fix |
+|---|---|---|
+| mean gyms, `greedy` | 4.80 | 4.83 |
+| completion, `greedy` | 37.5% | 38.5% |
+| `event-gambler` − `event-safe` | −0.04 | **+0.05** |
+
+The conclusion drawn at the time — that the `T0` costs were overtuned against
+the `T2` payouts, or that the `T1` floor was too generous — was a reasonable
+reading of numbers that were measuring something else. **No table was retuned on
+it**, which is the whole reason the standing policy says to record a miss and
+keep going rather than to act on it at the checkpoint where it appears.
