@@ -29,12 +29,14 @@
 import {
   describeCost,
   describeOutcome,
+  describeToll,
   outcomeFor,
   presentedOptions,
   type EventInstance,
+  type EventOption,
   type EventOutcome,
 } from '../../core/events';
-import type { EventArchetype } from '../../data/eventPools';
+import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
 import { resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
 import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
@@ -96,7 +98,25 @@ export function createEventScreen(): EventScreen {
         const hint = el('span', 'event__choice-hint');
         hint.textContent = choice.hint;
 
-        button.append(label, hint);
+        /*
+         * **The attribute row, and the Part 4 carve-out it sits under.**
+         *
+         * Tier labels are ordinal, and Part 4 bans ordering that implies
+         * ranking. They are allowed here on the same precedent as the `BAND n`
+         * badge: the label names *which pool the outcome draws from*, which is
+         * an attribute of the button rather than a verdict about it. Recorded
+         * in `docs/generation.md` section 14.
+         *
+         * Nothing else moves. No recommendation, no highlight on the better
+         * option, no expected value, and no marker on Attune beyond the relic
+         * requirement the gate chip already carries.
+         */
+        const attributes = el('span', 'event__choice-attributes');
+        const cost = costOf(choice);
+        if (cost) attributes.append(capabilityChip(cost));
+        attributes.append(capabilityBandChip(rewardOf(choice, event.rarity)));
+
+        button.append(label, hint, attributes);
         button.addEventListener('click', () => reveal(index));
         return button;
       });
@@ -155,6 +175,31 @@ export function createEventScreen(): EventScreen {
       }
     },
   };
+}
+
+/**
+ * What this button costs, as an attribute, or null when it costs nothing.
+ *
+ * Only a Toll has a price. Safe, Gamble and Attune are free, and saying "free"
+ * on three of four buttons is noise rather than information.
+ */
+function costOf(option: EventOption): string | null {
+  return option.toll ? `Costs ${describeToll(option.toll)}` : null;
+}
+
+/**
+ * The tier range this button draws from: `Reward: T1`, `Reward: T0 to T2`.
+ *
+ * Read off the distribution rather than written beside it, so a tuning pass in
+ * `data/eventPools.ts` cannot leave this label describing a table that no
+ * longer exists. A single-tier range prints as one tier rather than as "T1 to
+ * T1".
+ */
+function rewardOf(option: EventOption, rarity: EventInstance['rarity']): string {
+  // `known` because an Attune button is only ever on screen at `known`, and
+  // the other three read the same at every band bar the latent nudge.
+  const [low, high] = tierRangeOf(tierWeightsFor(option.archetype, rarity, 'known'));
+  return low === high ? `Reward: ${low}` : `Reward: ${low} to ${high}`;
 }
 
 /**

@@ -7,8 +7,8 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 761.28,
-        "scrollHeight": 924,
+        "screenHeight": 798.88,
+        "scrollHeight": 961,
         "decisionCount": 2,
         "decisionTop": 513.44,
         "decisionBottom": 609.31
@@ -23,7 +23,7 @@
     },
     "pocket": {
       "map": {
-        "screenHeight": 570.73,
+        "screenHeight": 586.95,
         "scrollHeight": 844,
         "decisionCount": 2,
         "decisionTop": 278.89,
@@ -39,8 +39,8 @@
     }
   },
   "map": {
-    "screenHeight": 824.19,
-    "scrollHeight": 1017,
+    "screenHeight": 861.78,
+    "scrollHeight": 1055,
     "decisionCount": 2,
     "decisionTop": 558,
     "decisionBottom": 672.72

@@ -2458,3 +2458,51 @@ draw lands on the node they choose. The figure that matters for the
 five-per-locale decision is therefore an upper bound on felt repetition rather
 than a measurement of it, and the simulator's own event report is where the
 lower bound will come from.
+
+### Step 8: the Part 4 carve-out, and what the map paid for rarity
+
+**2026-09-14.** The event screen shows, under every option, what it costs and
+which tier pool its outcome is drawn from: `Reward: T1`, `Reward: T0 to T2`,
+`Costs 20% HP, lead` / `Reward: T2`.
+
+**The carve-out.** Tier labels are ordinal, and Part 4 bans ordering that
+implies ranking. They are allowed here on the same precedent as the `BAND n`
+badge: the label names *which pool the outcome draws from*, which is an
+attribute of the button rather than a verdict about it. Nothing else moved —
+no recommendation, no highlight on the better option, no expected value shown,
+and no marker on Attune beyond the relic requirement the gate chip already
+carries. `test/event-screen.test.ts` asserts all four negatives.
+
+**The range is derived, not restated — and that caught a contradiction in the
+prompt.** Part 8 says the Attune option reads `Reward: T2 to T3`. Part 3's own
+`ATTUNE_TIERS` gives `T1` a weight of 10 at common and 5 at uncommon, so at
+those rarities the honest range is `T1 to T3`. `rewardOf` reads the range off
+the weights, so the label says `T1 to T3` where the table pays `T1` and
+`T2 to T3` at rare, where it does not. The label gave way rather than the
+table: hardcoding Part 8's string would promise a floor the distribution does
+not have. Zeroing those two weights would resolve it the other way and is a
+tuning change, not a screen change — it is not taken here, because retuning
+between checkpoints is what the standing policy forbids.
+
+**Rarity on the map cost 37.6px, and Pocket does not pay it.** Part 8 asks for
+rarity on the map readout, flagging it as arguable. Added as a third chip
+beside the requirement and the band — and at 390px the third chip wraps the
+gate row:
+
+| mode | before | after |
+|---|---|---|
+| default `map.screenHeight` | 824.19 | 861.78 |
+| `modes.pocket.map.screenHeight` | 570.73 | **586.95**, its original pre-patch value |
+| `map.decisionTop` / `decisionBottom` | unchanged | unchanged |
+
+So the map is 37.6px longer at full density, all of it below a decision point
+that did not move, on a screen that already scrolls. **Pocket hides the chip**,
+which is that mode's whole rule — the third attribute is the one that goes —
+and the information is not lost, because the event screen carries it at every
+density.
+
+**One thing V2 caught.** The rarity chip was first given its own border and
+text colour, which made a *second* neutral chip style; `test/visual-v2.test.ts`
+holds the rule that every neutral chip shares one style and only the type chip
+carries a hue. The override was deleted rather than the rule relaxed, and the
+`--rarity` modifier now exists only so the Pocket rule has something to select.

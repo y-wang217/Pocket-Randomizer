@@ -698,6 +698,30 @@ export function describeCost(outcome: EventOutcome): string | null {
   return outcome.cost.map(describeEffect).join(' + ');
 }
 
+/**
+ * The exact price a Toll charges, as a line the player reads before pressing.
+ *
+ * **A price, not a forecast.** Part 4 of the invariants bans a pre-selection
+ * marker that ranks an option, and this is not one: it states what the button
+ * costs, which is an attribute of the button. Percentages rather than absolute
+ * HP because the cost is a percentage — resolving it to "31 HP" would be
+ * stating a number that is only true for the party standing there now.
+ */
+export function describeToll(toll: TollPrice): string {
+  switch (toll.kind) {
+    case 'hp':
+      return `${Math.round(toll.percent * 100)}% HP, ${toll.target === 'lead' ? 'lead' : 'party'}`;
+    case 'gold':
+      return `${Math.round(toll.fraction * 100)}% of your coins`;
+    case 'goldFixed':
+      return `${toll.amount} coins`;
+    case 'berry':
+      return 'A berry';
+    case 'discard':
+      return toll.count === 1 ? 'One bag item' : `${toll.count} bag items`;
+  }
+}
+
 /** The definition an instance came from, for tests and the report. */
 export function definitionOf(instance: EventInstance): EventDefinition | null {
   return EVENTS.find((event) => event.id === instance.eventId) ?? null;

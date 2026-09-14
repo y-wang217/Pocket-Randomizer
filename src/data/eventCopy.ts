@@ -28,6 +28,7 @@
  */
 import type { CapabilityBand } from '../core/capabilities';
 import type { Capability } from './capabilities';
+import type { EventRarity } from './eventPools';
 
 /** The capability names, as a player reads them rather than as ids. */
 export const CAPABILITY_LABELS: Readonly<Record<Capability, string>> = {
@@ -48,6 +49,19 @@ export const CAPABILITY_LABELS: Readonly<Record<Capability, string>> = {
  * `none` is not "you cannot" — the event pays at every band, and a player who
  * reads `none` as a locked door has been told something untrue.
  */
+/**
+ * How swingy an event node is, as a player reads it.
+ *
+ * An attribute of the node, like the capability it requires: it names which
+ * distribution the node's Gamble and Attune draw on. It does not rank two
+ * nodes, and the map still never orders them.
+ */
+export const RARITY_LABELS: Readonly<Record<EventRarity, string>> = {
+  common: 'Common',
+  uncommon: 'Uncommon',
+  rare: 'Rare',
+};
+
 export const BAND_LABELS: Readonly<Record<CapabilityBand, string>> = {
   known: 'you have the relic',
   latent: 'your party has the type',

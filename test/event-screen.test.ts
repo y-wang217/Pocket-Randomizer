@@ -130,9 +130,8 @@ describe('the event screen', () => {
           );
 
           screen.root.querySelector<HTMLButtonElement>('.primary-action')?.click();
-          // The index handed back is into the *built* list, which does not move
-          // when the relic does.
-          expect(done).toEqual([event.options.indexOf(choice)]);
+          // The archetype names the button whatever the presented list is.
+          expect(done).toEqual([choice.archetype]);
           document.body.replaceChildren();
         }
       }
@@ -148,5 +147,78 @@ describe('the event screen', () => {
     screen.root.querySelector<HTMLButtonElement>('.event__choice')?.click();
     screen.root.querySelector<HTMLButtonElement>('.primary-action')?.click();
     expect(JSON.stringify(state)).toBe(before);
+  });
+});
+
+describe('the attribute row', () => {
+  /*
+   * **Part 4's editorial carve-out, asserted.** Tier labels are ordinal and
+   * Part 4 bans ordering that implies ranking; they are allowed here on the
+   * `BAND n` precedent because the label names which pool the outcome draws
+   * from, which is an attribute. What must stay true is that nothing *else*
+   * moved — no recommendation, no highlight on the better option, no expected
+   * value, and no marker on Attune beyond the relic requirement.
+   */
+  it('shows a reward range on every option, and a price on the Toll alone', () => {
+    for (const event of everyEvent().slice(0, 4)) {
+      for (const band of BANDS) {
+        const screen = createEventScreen();
+        screen.render(event, stateAt(band, event.requires), () => undefined);
+        document.body.append(screen.root);
+
+        const rows = [...screen.root.querySelectorAll('.event__choice-attributes')];
+        const shown = presentedOptions(event, band);
+        expect(rows, `${event.eventId} ${band}`).toHaveLength(shown.length);
+
+        for (const [index, option] of shown.entries()) {
+          const text = rows[index]!.textContent ?? '';
+          expect(text, `${event.eventId} ${option.archetype}`).toMatch(/Reward: T[0-3]( to T[0-3])?/);
+          if (option.archetype === 'toll') expect(text).toMatch(/^Costs /);
+          else expect(text, option.archetype).not.toMatch(/Costs/);
+        }
+        document.body.replaceChildren();
+      }
+    }
+  });
+
+  it('names the ranges the archetypes actually pay, off the table rather than beside it', () => {
+    /*
+     * **Part 8 says Attune reads "Reward: T2 to T3". At rare it does; at common
+     * and uncommon it reads "T1 to T3", and that is the table being honest.**
+     *
+     * `ATTUNE_TIERS` carries a T1 weight of 10 at common and 5 at uncommon, so
+     * a label hardcoded to "T2 to T3" would promise a floor the distribution
+     * does not have. Part 3's table and Part 8's label contradict each other,
+     * and the label is the half that gives way — which is the whole reason
+     * `rewardOf` derives the range from the weights instead of restating them.
+     * Zeroing those two weights would fix the contradiction the other way, and
+     * that is a tuning change, not a screen change.
+     */
+    for (const event of everyEvent().slice(0, 6)) {
+      const screen = createEventScreen();
+      screen.render(event, stateAt('known', event.requires), () => undefined);
+      const text = [...screen.root.querySelectorAll('.event__choice-attributes')].map((n) => n.textContent ?? '');
+      expect(text[0], 'safe').toContain('Reward: T1');
+      expect(text[1], 'gamble').toContain('Reward: T0 to T2');
+      expect(text[2], 'toll').toContain('Reward: T2');
+      const attune = event.rarity === 'rare' ? 'Reward: T2 to T3' : 'Reward: T1 to T3';
+      expect(text[3], `attune at ${event.rarity}`).toContain(attune);
+      document.body.replaceChildren();
+    }
+  });
+
+  it('ranks nothing: no option is highlighted, ordered or marked before the pick', () => {
+    const event = everyEvent()[0]!;
+    const screen = createEventScreen();
+    screen.render(event, stateAt('known', event.requires), () => undefined);
+    const buttons = [...screen.root.querySelectorAll('.event__choice')];
+    expect(buttons).toHaveLength(4);
+    for (const button of buttons) {
+      // The taken marker is post-resolution only. Nothing carries it yet.
+      expect(button.classList.contains('event__choice--taken')).toBe(false);
+      expect(button.className, button.textContent ?? '').not.toMatch(/recommend|best|primary/i);
+    }
+    // No expected value anywhere on the screen.
+    expect(screen.root.textContent ?? '').not.toMatch(/expected|average|EV\b/i);
   });
 });
