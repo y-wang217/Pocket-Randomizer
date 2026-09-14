@@ -281,6 +281,15 @@ describe('the move grid', () => {
         screenHeight: Math.round(screen.getBoundingClientRect().height),
         scrollHeight: globalThis.document.documentElement.scrollHeight,
         meta,
+        /*
+         * Where the band badges are. Since the playtest patch every one of
+         * them is on the fact line and none is on the wrapping meta row — a
+         * count rather than a presence check, because a status move has no
+         * band at all and no fact line either, and "three of four buttons"
+         * is the correct answer on this seed.
+         */
+        bandsOnFacts: buttons.filter((button) => button.querySelector('.move__facts .band')).length,
+        bandsOnMeta: buttons.filter((button) => button.querySelector('.move__meta .band')).length,
         overhang: buttons.filter((button) => {
           const badge = button.querySelector('.band');
           if (!badge) return false;
@@ -296,12 +305,31 @@ describe('the move grid', () => {
     expect(grid.count).toBe(4);
     expect(grid.columns, 'still 2x2, never a column of four').toBe(2);
     // Amendment A6: the grid tightened by margin and gap, so the 44px minimum
-    // touch target is untouched and the two-line `.move__meta` still is two.
+    // touch target is untouched.
     expect(grid.minHeight).toBeGreaterThanOrEqual(44);
-    expect(Math.max(...grid.meta), 'the meta row still wraps to two lines').toBeGreaterThan(20);
+    /*
+     * **A6 asserted the meta row wrapped to two lines; the playtest patch
+     * asserts it does not wrap at all, and the flip is the fix rather than a
+     * relaxation.**
+     *
+     * A6's concern was a careless tighten squeezing the band badge off the
+     * face, and it guarded that by pinning the second line the badge sat on.
+     * But the wrap was against the row's own content, so the badge sat on
+     * line two of one button and line one of the next depending on how long
+     * that move's type name was — which is the report this patch answers. The
+     * band moved to `.move__facts`, which has fixed columns, and what is left
+     * here is the three fields that fit one line on every move in the game.
+     *
+     * So the row is one line and `nowrap` says so. A6's hazard is unchanged
+     * and is still checked, one assertion down, by the overhang count — which
+     * is the direct check for it and never depended on the wrap.
+     */
+    expect(Math.max(...grid.meta), 'the meta row must not wrap').toBeLessThanOrEqual(20);
+    expect(grid.bandsOnMeta, 'no band may sit on the row that wraps').toBe(0);
+    expect(grid.bandsOnFacts, 'every band that is drawn is drawn on the fact line').toBeGreaterThan(0);
     // R12's check, restated here because A6 names it as the thing a careless
-    // tighten breaks first: the band badge sits on that second line and is the
-    // first thing to overhang a squeezed face.
+    // tighten breaks first: the band badge is the first thing to overhang a
+    // squeezed face, wherever on the face it sits.
     expect(grid.overhang).toBe(0);
 
     // The plan's tests 1 and 2, and amendment A3's gate.
