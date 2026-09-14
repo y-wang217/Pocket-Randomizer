@@ -1,7 +1,7 @@
 {
-  "version": "gymrun-run-14/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-14",
-  "contentHash": "1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883",
+  "version": "gymrun-run-15/gymrun-0.3.0",
+  "randomizerVersion": "gymrun-randomizer-15",
+  "contentHash": "53145fb1ee4bee9bf294aa380a32afe736c4d9ed8a382ed9e15453b8704ccd1e",
   "aiVersion": "gymrun-ai-6-spent-item",
   "runs": [
     {

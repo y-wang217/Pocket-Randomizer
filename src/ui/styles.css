@@ -4208,18 +4208,28 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  */
 .move__facts {
   display: grid;
-  grid-template-columns: auto repeat(4, minmax(0, 1fr)) auto;
+  /*
+   * `min-content` is the floor, not zero, and the first build of this rule
+   * learned why the hard way. With `minmax(0, 1fr)` a chip wider than its
+   * share overflowed its own cell and painted across the next one: the
+   * accuracy chip took the contact chip's hit target, and the contrast check
+   * sampled one chip through another. A column never squeezes below its content now,
+   * so the columns share the slack when there is any and nothing ever
+   * overlaps.
+   */
+  grid-template-columns: auto repeat(4, minmax(min-content, 1fr)) auto;
   align-items: center;
   gap: var(--space-1);
   overflow: hidden;
 }
 
-/* Each column holds its place when empty. `min-width: 0` so a wide value
-   clips inside its own cell instead of pushing the next column along. */
+/* Each column holds its place when empty, and clips inside itself if a value
+   ever outgrows it rather than painting over the column beside it. */
 .move__fact-cell {
   display: flex;
   align-items: center;
   min-width: 0;
+  overflow: hidden;
 }
 
 .move__facts-band,

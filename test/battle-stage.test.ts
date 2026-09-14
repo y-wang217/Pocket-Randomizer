@@ -245,7 +245,14 @@ describe('the effectiveness marker', () => {
      */
     expect(new Set(badges.map((badge) => badge.className)).size).toBe(1);
     for (const badge of badges) {
-      expect(badge.className).toBe('chip chip--effect badge badge--effect');
+      /*
+       * `move__facts-effect` joined the list in the playtest patch and is **a
+       * position class, not a weight class**: it pins the marker to the end of
+       * the fact line, which is where it went when `.move__meta` stopped
+       * wrapping. It is identical on a super effective marker and on a 0x,
+       * which is the property this assertion is about.
+       */
+      expect(badge.className).toBe('chip chip--effect badge badge--effect move__facts-effect');
       expect(badge.getAttribute('style')).toBeNull();
     }
   });

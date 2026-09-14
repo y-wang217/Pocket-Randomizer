@@ -506,20 +506,28 @@ export function applyReward(
       return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
 
     case 'relic':
-      /*
-       * Onto the run, and never anywhere else.
-       *
-       * Not the backpack, so `tuning.backpackCapacity` never sees it and no
-       * discard can reach it. Not a party member, so no faint, release or swap
-       * can take it. Guarded against a double-add because a relic appearing
-       * twice in this list would be invisible everywhere except a passive that
-       * silently counted double — `applyRelicPassives` de-duplicates too, so
-       * this is the belt to that braces.
-       */
-      return state.relics.includes(choice.relic)
-        ? state
-        : { ...state, relics: [...state.relics, choice.relic] };
+      return grantRelic(state, choice.relic);
   }
+}
+
+/**
+ * Append a relic to the run. **The only thing in the codebase that writes the
+ * held set**, and `test/relic-permanence.test.ts` greps for a second one.
+ *
+ * Onto the run, and never anywhere else. Not the backpack, so
+ * `tuning.backpackCapacity` never sees it and no discard can reach it. Not a
+ * party member, so no faint, release or swap can take it. Guarded against a
+ * double-add because a relic appearing twice in this list would be invisible
+ * everywhere except a passive that silently counted double —
+ * `applyRelicPassives` de-duplicates too, so this is the belt to that braces.
+ *
+ * It became a named function when a *second* grant arrived: an event outcome
+ * can pay a relic, and the first build of that appended to `state.relics`
+ * itself. That is the exact thing the permanence rule forbids, and the rule's
+ * own comment names an event outcome as the case it exists for.
+ */
+export function grantRelic(state: RunState, relic: RelicId): RunState {
+  return state.relics.includes(relic) ? state : { ...state, relics: [...state.relics, relic] };
 }
 
 /**

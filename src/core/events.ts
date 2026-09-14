@@ -58,7 +58,7 @@ import type { AcquisitionOffer } from './acquisition';
 import { stow } from './items';
 import { leadOf, recoverParty } from './party';
 import { damagingInBands } from './randomizer';
-import { shuffledRelics } from './rewards';
+import { grantRelic, shuffledRelics } from './rewards';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import { hpEventDelta } from './hpCopy';
@@ -618,8 +618,11 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
       const concrete = concreteEffect(effect, state.relics);
       if (concrete.kind !== 'relic') return applyEffect(state, concrete, tuning);
       const id = concrete.order[0];
-      if (!id || state.relics.includes(id)) return state;
-      return { ...state, relics: [...state.relics, id] };
+      // Through `grantRelic`, which is the only thing that writes the held set
+      // — a relic card goes through it too. `test/relic-permanence.test.ts`
+      // greps `src/` for a second writer and names an event outcome as the
+      // case it exists for, which is this one.
+      return id ? grantRelic(state, id) : state;
     }
 
     case 'currency':
