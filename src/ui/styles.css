@@ -3442,6 +3442,42 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .screens { isolation: isolate; }
 
 /*
+ * **The screens' own boxes take no taps; what is drawn in them does.**
+ * Patch 4.8.0.3, carried item B, option (a). The other half of the rule at
+ * `.stamp`, and it has to be here rather than there because `pointer-events`
+ * is inherited: turning it off on a container turns it off on everything
+ * inside, so the things that should still take a tap are named back in.
+ *
+ * `.screens` and `.screen` are pure layout — a router slot and a flex column.
+ * Neither has behaviour of its own, and neither should intercept a tap aimed
+ * at the corner stamp behind it. A screen's *children* are the cards, panels
+ * and buttons the player is actually pointing at, and they take taps normally,
+ * inheriting down to every control inside them.
+ *
+ * The shell's other children are listed because they are siblings of the
+ * router rather than inside it: the header, the seed bar, the drawer and its
+ * trigger, and the stamps themselves. `.stamps` is `display: contents`, so
+ * naming it here would do nothing — the stamps are named directly.
+ *
+ * What this buys is that the priority is now structural. Content over chrome
+ * where they overlap, chrome everywhere else, whatever the layout does next.
+ */
+.shell,
+.screens,
+.screen { pointer-events: none; }
+
+.screen > *,
+.shell > .header,
+.shell > .seedbar,
+.shell > .shell__drawer-bar,
+.shell > .drawer,
+.stamp { pointer-events: auto; }
+
+/* And the seed stamp is still the one stamp that answers a tap at all. The
+   three others were decoration before this rule and stay decoration. */
+.stamp:not(.stamp--seed) { pointer-events: none; }
+
+/*
  * The palette swatch on a locale card: deep, mid, glow, in that order, the
  * same width on every card. The card's own `.locale--<id>` class carries the
  * three tokens, so the strip previews the region without the page changing.
@@ -3552,9 +3588,29 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  */
 .stamps { display: contents; }
 
+/*
+ * **The stamp sits behind the screens and the screens let taps through.**
+ * Patch 4.8.0.3, carried item B, option (a).
+ *
+ * It was `z-index: 20` over everything, with `pointer-events: auto` on the
+ * seed stamp — a fixed, tappable 121x9 band in the bottom-left corner,
+ * permanently over a scroll region that is 1630px against an 844px viewport.
+ * Any interactive control whose centre passed under it was unreachable.
+ * `test/visual-v3.test.ts` asserts that no control is, and it passed on main
+ * **positionally**: nothing happened to sit there. 4.8.0.3 put a move card's
+ * fact chip there, and re-rolling the layout only changed which chip was
+ * caught, which was measured rather than assumed.
+ *
+ * So the priority is stated in the stacking order instead of left to luck:
+ * content wins the tap wherever the two overlap, and the stamp takes the tap
+ * everywhere content is not. `z-index: -1` puts the stamps behind `.screens`,
+ * which already isolates for the watermark, and the rule below makes the
+ * screens' own boxes transparent to pointers so their *gaps* fall through to
+ * the stamp rather than swallowing it.
+ */
 .stamp {
   position: fixed;
-  z-index: 20;
+  z-index: -1;
   margin: 0;
   padding: 0;
   border: 0;

@@ -445,7 +445,18 @@ the one reading the strip most needs to support is the one it is silent about.
 A distinct always-hits marker reads better than nothing. The `neverMisses` tag
 says it in words one tap away in the meantime. Not a blocker for merge.
 
-**B. The corner seed stamp eats taps on scrolling content.** `.stamp--seed` is
+**B. The corner seed stamp eats taps on scrolling content. Closed 2026-09-14**
+by [`spec/gymrun-patch-4.8.0.3-seed-stamp-tap-hazard.md`](spec/gymrun-patch-4.8.0.3-seed-stamp-tap-hazard.md),
+option (a), under a named exception to the closeout's scope rule. The stamps
+sit behind the screens (`z-index: -1`) and the screens' own boxes take no
+pointer events, so content wins the tap where the two overlap and the stamp
+takes it everywhere else — structurally, not positionally. The one cost is
+recorded on `test/visual-v2.test.ts`: the stamp is no longer universally
+clickable, so its copy test taps it on the locale screen, where the corner is
+measurably free, rather than on the starter screen, where a `.starter` card
+covers it and now correctly wins. The description it closes follows.
+
+**B (as filed).** `.stamp--seed` is
 `position: fixed`, `z-index: 20`, `pointer-events: auto`, and at 390x844 it
 occupies a 121x9 band at (6, 829) — permanently over the party screen's scroll
 region, which is 1630px against an 844px viewport. Any interactive control
@@ -495,6 +506,7 @@ patch, and the row says which.
 | the sequential stream API is still exported and drawable | **closed**, Branch 1. A named stream is `at(key)`, `keys` and `totalDraws`; `test/determinism.test.ts` and `test/stream-keys.test.ts` group 5 guard the deletion |
 | `AI_VERSION` is stamped onto reports but never guarded at replay | **closed**, Branch 1. `aiVersion` is an axis of the log's `versions` block and `versionMismatch` checks it |
 | `Math.random` survives in `scripts/measure-bundle.mjs` | **open**. Not this branch's job; the lint rule now covers every extension and the boundary test walks `src/` only |
+| four verdict strings remain in player-facing copy | **open, found 2026-09-14** by the closeout's check-1 grep, which widened the search past the one word the audit named. Four live strings, each rendered: `data/categoryInfo.ts:48` — "Worth it when you can survive the reply", on the move category tooltip; `data/statusInfo.ts:125` — "usually better than rolling the dice three times", on the paralysis tooltip; `data/statusInfo.ts:242` — "so it is strongest into a wall", on the crit tooltip; `data/bandInfo.ts:68` — "A risky node reaches here before the segments do", on the band tooltip. Each tells the player what an option is worth rather than what it is, which is the Part 4 rule. **Filed, not fixed**: 4.8.0.3 is a presentation patch that had already closed the one violation the register tracked, and rewriting four more strings on my own reading is a copy pass, not a closeout. All four files are outside `contentHash`, so the fix is cheap when it is scoped |
 | one "best" marker remains in player-facing copy | **closed, 2026-09-14, patch 4.8.0.3 item 3.** The audit's line, `run-map.ts:87`, lost its marker at `6351009` when the tier copy moved into `data/tierInfo.ts`. The last one, `data/statusInfo.ts`'s Disable advice ("Usually your best move, by design"), is now the attribute it was describing: Disable always takes the move just used. The patch's prompt named `run-map.ts:87` from the stale audit line; the marker had already moved, and the fix went where the marker actually was. No "best" marker remains in player-facing copy |
 
 ## 6. The design lineage, briefly
