@@ -3454,10 +3454,17 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * and buttons the player is actually pointing at, and they take taps normally,
  * inheriting down to every control inside them.
  *
- * The shell's other children are listed because they are siblings of the
- * router rather than inside it: the header, the seed bar, the drawer and its
- * trigger, and the stamps themselves. `.stamps` is `display: contents`, so
- * naming it here would do nothing — the stamps are named directly.
+ * **Everything else the shell holds is real, and is named back on as a
+ * class of thing rather than one by one.** The first cut listed the header,
+ * the seed bar, the drawer and its trigger; it missed the coach-mark layer,
+ * which `app.ts` also appends to the shell, and the tutorial went transparent
+ * — clicks fell through the coach onto the starter card behind it. An
+ * enumerated list of siblings is a list that goes stale the next time
+ * something is mounted on the shell, so the rule is the negation instead:
+ * every child of the shell takes taps except the router's slot.
+ *
+ * `.stamps` is `display: contents` and generates no box, but it is still a
+ * child for inheritance, so the stamps inside it come back on with it.
  *
  * What this buys is that the priority is now structural. Content over chrome
  * where they overlap, chrome everywhere else, whatever the layout does next.
@@ -3466,12 +3473,8 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .screens,
 .screen { pointer-events: none; }
 
-.screen > *,
-.shell > .header,
-.shell > .seedbar,
-.shell > .shell__drawer-bar,
-.shell > .drawer,
-.stamp { pointer-events: auto; }
+.shell > *:not(.screens),
+.screen > * { pointer-events: auto; }
 
 /* And the seed stamp is still the one stamp that answers a tap at all. The
    three others were decoration before this rule and stay decoration. */

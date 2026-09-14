@@ -2194,7 +2194,7 @@ the smoke script, which is the one place such a number must not be. It is
 `src/data/moveFactCeiling.mjs`, excluded from `contentHash` and imported by
 the smoke script rather than restated in it. Plain ESM rather than TypeScript
 because that script runs under Node against a *built* bundle and cannot import
-a `.ts` module — which is the exact reason `tuning.maxMoveTagsOnFace` was
+a TypeScript module — which is the exact reason `tuning.maxMoveTagsOnFace` was
 restated inline before it. Nothing under `src/` imports the file: the app does
 not cap the strip, and the cap is an assertion about a viewport.
 
