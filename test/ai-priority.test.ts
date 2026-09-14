@@ -249,8 +249,20 @@ describe('the priority rule, against fixed positions', () => {
 // ---------------------------------------------------------------------------
 
 describe('the version axes', () => {
+  /*
+   * **Updated by the AI tiers patch, not deleted.** This assertion pinned
+   * `gymrun-ai-3-priority` as the string the priority patch moved to, and the
+   * AI tiers patch moved it three times — `-4` for the unknown-ability fix
+   * (`ai.ts`, `UNKNOWN_ABILITY`), `-5` for the tiers and their noise, and `-6`
+   * for the spent-item read in `battle/knowledge.ts`. What the test is *for* is unchanged and is
+   * what still runs: `AI_VERSION` moved when the AI's ranking moved, and a log
+   * recorded on the previous string is refused by name with both values in the
+   * message. The pre-patch log below is still a `-2` one, because a log two
+   * versions old is refused on the same axis for the same reason and keeping
+   * it is one fewer thing to re-edit next time.
+   */
   it('moved AI_VERSION, and refuses a pre-patch log naming aiVersion and both values', () => {
-    expect(AI_VERSION).toBe('gymrun-ai-3-priority');
+    expect(AI_VERSION).toBe('gymrun-ai-6-spent-item');
     const prePatch: RunLog = {
       seed: 'PRE-PRIORITY',
       versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
@@ -259,32 +271,29 @@ describe('the version axes', () => {
     expect(isReplayable(prePatch)).toBe(false);
     expect(() => assertReplayable(prePatch)).toThrow(/mismatch on aiVersion/);
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-2-switching/);
-    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-3-priority/);
+    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-6-spent-item/);
   });
 
   /*
-   * **The event rejig patch moved `contentHash`, and this literal is the
-   * record of it moving deliberately.**
+   * **Updated by the AI tiers patch and then by the event rejig, not deleted.**
+   * `contentHash` moved twice, for the same structural reason both times: the
+   * AI tiers patch added `src/data/ai.ts`, and the event rejig added
+   * `src/data/eventPools.ts` and gave `src/data/scaling.ts` its event rarity
+   * ramp. A table under the glob is hashed the day it lands — the workflow
+   * `docs/generation.md` section 9 states for exactly this case, and section 14
+   * carries the event rejig's dated note.
    *
-   * The assertion's subject is the AI priority branch: that branch moved
-   * `AI_VERSION` and nothing else, and the two literals below were how it said
-   * so. `RUN_LOG_VERSION` is still its value and still asserted as one. The
-   * hash is not, because the event rejig adds `src/data/eventPools.ts` and
-   * edits `src/data/scaling.ts`, and a hash over `src/data/**` moves the day a
-   * table lands — which is the whole reason it is a hash and not a hand bump.
-   *
-   * It is updated rather than relaxed. A literal costs one visible line in a
-   * diff every time the data tables change, and that line is the point: a hash
-   * that moved without anyone writing down that it moved is the failure the
-   * four-axis versioning exists to make loud. `docs/generation.md` carries the
-   * dated note; the step 2 evidence that *only* the stamp moved is the
-   * regenerated `test/fixtures/sim-report.json`, whose `runs` payload is byte
-   * identical across the change, and `docs/visual/baseline/`, whose seven
-   * files differ in this stamp and in nothing else.
+   * `RUN_LOG_VERSION` did not move for either, and the assertion that it did
+   * not is the half of this test that still guards something: neither patch
+   * changes a logged decision, so a log's schema is untouched and only the
+   * `aiVersion` and `contentHash` axes refuse it. The event rejig *will* move
+   * it, at its own step 5, and that is the line to update when it does.
    */
-  it('moved nothing else: RUN_LOG_VERSION is the Branch 1 value, and contentHash is the event rejig one', () => {
+  it('moved RUN_LOG_VERSION not at all, and contentHash only by new data tables', () => {
     expect(RUN_LOG_VERSION).toBe('gymrun-run-13/gymrun-0.3.0');
-    expect(CONTENT_HASH).toBe('388c2a373dcee208410c49697cc3c7faf6a701ba4ab691e41a092da25d65b1e9');
+    // Pinned literally, as the Branch 1 value was: a hash nobody can read off
+    // the tree by eye is exactly the kind that moves without anyone noticing.
+    expect(CONTENT_HASH).toBe('c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

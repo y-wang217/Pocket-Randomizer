@@ -461,12 +461,23 @@ describe('mid-run save across a reward, shop and event boundary', () => {
      *
      * Rather than guess which save that is, this resumes from all of them.
      */
-    // `ECON-RESUME` until Stage 4.6a, after which that seed's run ended before
-    // it was paid a card and the assertion below — which exists to stop exactly
-    // that — said so. `scripts/scan-seed.ts spender` finds the replacement, and
-    // bounds its length: this resumes from *every* save, so the test is
-    // quadratic in the run.
-    const seed = 'ECON-RESUME';
+    /*
+     * `ECON-RESUME` until Stage 4.6a, after which that seed's run ended before
+     * it was paid a card and the assertion below — which exists to stop exactly
+     * that — said so. `scripts/scan-seed.ts spender` finds the replacement, and
+     * bounds its length: this resumes from *every* save, so the test is
+     * quadratic in the run.
+     *
+     * **Replaced again by the AI tiers patch, by the same procedure and for the
+     * opposite reason.** The tiered opponent is weaker than the single AI it
+     * replaced (`docs/balance.md` section 16.4b), so `ECON-RESUME` stopped
+     * dying at gym 2 and started *winning* — 126 decisions became 438, and a
+     * test quadratic in that went from half a minute to six. Nothing about
+     * resuming got slower; the run got longer, which is the number the patch
+     * set out to produce. `ECON-RESUME-4` is the scanner's answer on this
+     * build: 65 decisions, and it is still paid a card.
+     */
+    const seed = 'ECON-RESUME-4';
     const saves: RunLog[] = [];
     const original = await playRun(seed, spender(), DEFAULT_TUNING, {
       onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
@@ -481,6 +492,9 @@ describe('mid-run save across a reward, shop and event boundary', () => {
       expect(resumed.state.currency, `resuming from save ${index}`).toBe(original.state.currency);
       expect(resumed.log.decisions, `resuming from save ${index}`).toEqual(original.log.decisions);
     }
+    // The seed above bounds this, so the default timeout is the right one: a
+    // test that needs a raised one has stopped being bounded and wants the
+    // scanner again rather than a bigger number.
   });
 
   it('resumes correctly from the save taken immediately after a battle decision', async () => {

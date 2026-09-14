@@ -112,6 +112,17 @@ export interface ItemEntry {
    */
   resistsType?: string | null;
   /**
+   * What this item puts back on the holder when it fires, for the one consumer
+   * that has to *predict* it: the opponent AI's kill line, under `itemAware`.
+   *
+   * **A description of the engine's behaviour, not the behaviour.** @pkmn/sim
+   * implements the berry; this is what a player holds in their head when they
+   * look at a Sitrus Berry and decide the attack in front of them is not
+   * actually lethal. `flat` is in HP, `fraction` is of max HP, and an item with
+   * neither leaves the kill line alone.
+   */
+  restores?: { flat?: number; fraction?: number };
+  /**
    * True for the Choice items, which lock the holder into the first move it
    * uses for the rest of the battle.
    *
@@ -265,8 +276,12 @@ export const TYPE_ITEMS: readonly ItemEntry[] = [
  * a run quietly runs out of, and 4.6 does not otherwise touch PP restoration.
  */
 export const BERRIES: readonly ItemEntry[] = [
-  berry('oranberry', 'Oran Berry', 'Restores 10 HP when the holder drops below half.'),
-  berry('sitrusberry', 'Sitrus Berry', 'Restores 1/4 max HP when the holder drops below half.'),
+  berry('oranberry', 'Oran Berry', 'Restores 10 HP when the holder drops below half.', {
+    restores: { flat: 10 },
+  }),
+  berry('sitrusberry', 'Sitrus Berry', 'Restores 1/4 max HP when the holder drops below half.', {
+    restores: { fraction: 0.25 },
+  }),
   berry('lumberry', 'Lum Berry', 'Cures any status condition, once.'),
   berry('chestoberry', 'Chesto Berry', 'Wakes the holder from sleep, once.'),
   berry('persimberry', 'Persim Berry', 'Cures confusion, once.'),

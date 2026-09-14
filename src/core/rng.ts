@@ -255,6 +255,40 @@ function createKeyedStream(seed: string, name: RngStreamName): KeyedRngStream {
   };
 }
 
+/**
+ * The opponent AI's own sequence for one battle. **The AI tiers patch.**
+ *
+ * **Not a run stream, and the distinction is the whole reason this exists.**
+ * The five named streams above are keyed, and a key must never be derived from
+ * anything that varies with player behaviour — that is the discipline the whole
+ * keyed derivation rests on. An AI roll breaks it by nature: a tiebreak happens
+ * on *a turn*, and how many turns there are is exactly what the player decides.
+ * Keying it would mean a key like `battle/turn-7`, which is a key naming a
+ * moment, and the seeds document forbids that in as many words.
+ *
+ * So the AI does not draw from the run seed at all. It draws from the **sim
+ * seed of the battle it is playing**, which `encounters.ts` drew at map
+ * generation under `nodeKey` and which is therefore fixed by the run seed,
+ * identical on replay, and independent of anything the player does inside the
+ * fight. Three consequences, and they are the argument:
+ *
+ *   - **No structural draw moves.** No new key is opened, no existing sequence
+ *     advances, and `previewRun` is byte identical for every seed. The sim seed
+ *     was already being drawn; this reads it a second time.
+ *   - **The engine's own rolls are untouched.** Damage, crits and secondary
+ *     effects come from the sim's PRNG, seeded from that same value and stepped
+ *     by the sim alone. The AI drawing here cannot consume one of them.
+ *   - **Replay survives.** A run log records the player's decisions only, so a
+ *     replay re-runs the opponent — from this same sim seed, against the same
+ *     sequence of views, drawing the same values in the same order.
+ *
+ * `side` separates the two sides of a battle, so an AI on p2 cannot predict an
+ * AI on p1 by counting its own draws.
+ */
+export function createAiStream(simSeed: SimSeed, side: string): RngStream {
+  return createStream(`gymrun:ai#${side}:${simSeed}`);
+}
+
 /** Build the full set of named streams for a run seed. */
 export function createRng(seed: string): Rng {
   return {

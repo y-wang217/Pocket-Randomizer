@@ -478,7 +478,7 @@ const T2_POOL: readonly TierBand[] = [
  * evidence. So `T3` pays **a relic and a held item**: the same object as `T2`
  * plus a `T1`-grade rider, which is strictly better by construction rather than
  * by judgement, and which needs no new column. Recorded in
- * `docs/generation.md`.
+ * `docs/generation.md` section 14.
  */
 const T3_POOL: readonly TierBand[] = [
   {

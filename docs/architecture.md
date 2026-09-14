@@ -75,7 +75,9 @@ core/battle/
   contribution.ts     Protocol lines -> per-member counters. Inside the adapter
                       boundary: called by runBattle, imports no @pkmn/sim.
   policy.ts           (view) => Promise<Choice>. Human, AI, and bots alike.
-  ai.ts               Greedy damage-maximising policy over @smogon/calc.
+  ai.ts               One flag-gated scorer over @smogon/calc: three opponent
+                      tiers and the simulator's player-side bots run it.
+  matchup.ts          estimateMatchup, the switch gate. Pure, no RNG.
       |
       v
 ui/                   A thin DOM layer. Fourteen screens and a router.
