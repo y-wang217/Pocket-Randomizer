@@ -63,7 +63,7 @@ function wobbling(): RunPolicy {
       }
       return affordable;
     },
-    chooseEventOption: async (event) => event.choices.length - 1,
+    chooseEventOption: async (event) => event.options.length - 1,
     // The last member, for the same reason as the last card: a policy that
     // always answered 0 would agree with the scripted default and prove
     // nothing about whether the target is really replayed.

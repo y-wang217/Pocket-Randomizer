@@ -68,7 +68,7 @@ import {
 } from './randomizer';
 import { generateEncounterAcquisition, generateEventAcquisition, type AcquisitionOffer } from './acquisition';
 import { generateShopStock, type ShopStock } from './economy';
-import { generateEvent, type EventInstance } from './events';
+import { EventPicker, generateEvent, type EventInstance } from './events';
 import { named } from './nicknames';
 import type { Reward } from './rewards';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
@@ -121,6 +121,19 @@ export interface NodeSpec {
   /** Stable within a run: `s<segment>-<step>-<option>`, or `s<segment>-gym`. */
   id: string;
   kind: NodeKind;
+  /**
+   * The locale this node's route runs through, or null for the gym.
+   *
+   * **Added by the event rejig, and it is plumbing rather than a new fact.**
+   * The locale was already in the node id — `s<segment>-<locale>-<step>-<option>`
+   * — and `buildNode` already took it; what was missing was a way for pass 4 to
+   * read it without parsing a string. An event is drawn from its locale's list,
+   * so pass 4 needs the locale of the node it is filling.
+   *
+   * Null on the gym for the same reason its tier is null: a gym caps every
+   * route in the segment and belongs to none of them.
+   */
+  locale: LocaleId | null;
   /**
    * Difficulty tier, or **null for a node that does not have one**.
    *
@@ -226,6 +239,15 @@ export interface LocaleRoute {
 
 export interface Segment {
   index: number;
+  /**
+   * How many times a locale's event list ran out and refilled in this segment.
+   *
+   * Reported rather than prevented. Three events per locale does not always
+   * cover a segment that puts four event nodes on one route, and this is the
+   * number that says how often — the measurement the "grow the table to five
+   * per locale" decision waits on.
+   */
+  eventRefills: number;
   /** The gym that caps this segment, for display. */
   leader: string;
   type: string;
@@ -496,6 +518,7 @@ export function generateSegment(
   const gym: NodeSpec = {
     id: `s${index}-gym`,
     kind: 'gym',
+    locale: null,
     tier: null,
     label: `${gymDef.leader}'s Gym`,
     encounter: {
@@ -513,6 +536,7 @@ export function generateSegment(
 
   const segment: Segment = {
     index,
+    eventRefills: 0,
     leader: gymDef.leader,
     type: gymDef.type,
     gymDefinition: gymDef,
@@ -525,6 +549,15 @@ export function generateSegment(
   for (const node of nodesOf(segment)) {
     if (node.encounter) node.encounter.simSeed = rng.battle.at(nodeKey(node.id)).nextSimSeed();
   }
+
+  /*
+   * One picker per segment, which is what makes exhaustion per segment.
+   *
+   * It holds the unused-event list per locale and refills a locale when it
+   * empties. Its state depends only on the order pass 4 walks the nodes — never
+   * on where the player went, which is the rule that lets it exist at all.
+   */
+  const picker = new EventPicker();
 
   // --- pass 4: reward offers, from the `rewards` stream --------------------
   // A separate loop rather than a branch inside pass 3, so that the two streams
@@ -541,37 +574,49 @@ export function generateSegment(
       );
     } else if (node.kind === 'shop') {
       node.shop = generateShopStock(node.id, index, rng.rewards.at(nodeRewardKey(node.id, 'shop')), tuning);
-    } else if (node.kind === 'event') {
+    } else if (node.kind === 'event' && node.locale) {
       /*
-       * The capture sub-stream, finally used.
+       * The capture sub-stream, still where band 3 put it.
        *
-       * Pass 5's comment predicted this: it kept the capture *key* alive
-       * against the day an offer needed a draw again. Band 3 is that day, and
-       * because the draw lands under `capture` rather than `event`, an event
+       * Because the draw lands under `capture` rather than `event`, an event
        * that offers a Pokemon consumes exactly as much of the `event` stream as
-       * one that does not. Adding this outcome kind moved no existing draw.
+       * one that does not. Adding this outcome kind moved no existing draw, and
+       * the rejig drawing an acquisition at two tiers rather than one still
+       * moves none.
        *
        * Drawn from the segment's wild pool with no locale filter. An event
        * Pokemon is not a route encounter — it did not come out of the terrain
        * the player chose to walk through — so narrowing it to the locale's four
        * types would be claiming a connection the fiction does not have.
+       *
+       * `bandOffset` reaches the existing generator as a *tier*: `normal` is
+       * the segment's own band and `hard` is one above it
+       * (`TIER_MODIFIERS.hard.speciesBand` is 1). That keeps `T3`'s "a Pokemon
+       * at band plus one" on the single acquisition path rather than adding a
+       * second one.
        */
       const captureStream = rng.rewards.at(nodeRewardKey(node.id, 'capture'));
       node.event = generateEvent(
         node.id,
+        node.locale,
+        index,
         rng.rewards.at(nodeRewardKey(node.id, 'event')),
         tuning,
-        () =>
+        picker,
+        (bandOffset) =>
           generateEventAcquisition(
             node.id,
             index,
             captureStream,
             tuning,
             rng.randomizer.at(nicknameKey(node.id)),
+            bandOffset >= 1 ? 'hard' : 'normal',
           ),
       );
     }
   }
+
+  segment.eventRefills = picker.refills;
 
   // --- pass 5: encounter captures, no stream at all ------------------------
   /*
@@ -800,6 +845,7 @@ function buildNode(
     return {
       id,
       kind,
+      locale,
       tier: null,
       label: NON_BATTLE_LABELS[kind],
       encounter: null,
@@ -830,6 +876,7 @@ function buildNode(
   return {
     id,
     kind,
+    locale,
     tier,
     label: kind === 'wild' ? 'Wild encounter' : 'Trainer battle',
     encounter: {

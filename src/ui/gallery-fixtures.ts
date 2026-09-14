@@ -33,7 +33,7 @@
 import { describeMove } from '../core/battle/driver';
 import type { NodeSpec, Segment } from '../core/encounters';
 import type { ShopStock } from '../core/economy';
-import { generateEvent, type EventInstance } from '../core/events';
+import { EventPicker, generateEvent, type EventInstance } from '../core/events';
 import { backpackCapacity } from '../core/items';
 import { displayName } from '../core/nicknames';
 import { createParty } from '../core/party';
@@ -196,8 +196,18 @@ export function wordiestEvent(seed: string): EventInstance {
   let best: EventInstance | null = null;
   let bestLength = -1;
   for (let index = 0; index < 40; index++) {
-    const event = generateEvent('gallery', createRng(`${seed}-EVT-${index}`).rewards.at('e'), DEFAULT_TUNING);
-    const length = event.prompt.length + event.choices.reduce((total, choice) => total + choice.label.length + choice.hint.length, 0);
+    const event = generateEvent(
+      'gallery',
+      'forest',
+      2,
+      createRng(`${seed}-EVT-${index}`).rewards.at('e'),
+      DEFAULT_TUNING,
+      new EventPicker(),
+    );
+    if (!event) continue;
+    const length =
+      event.prompt.length +
+      event.options.reduce((total, option) => total + option.label.length + option.hint.length, 0);
     if (length > bestLength) {
       best = event;
       bestLength = length;

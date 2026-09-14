@@ -53,7 +53,7 @@ import { generateWildTeam } from './randomizer';
 import type { RngStream } from './rng';
 import { named } from './nicknames';
 import { createPartyMember } from './party';
-import type { ItemId, PokemonSpec, PokemonState } from './types';
+import type { ItemId, PokemonSpec, PokemonState, Tier } from './types';
 
 import { playerLevel } from '../data/scaling';
 import type { Tuning } from '../data/tuning';
@@ -227,9 +227,19 @@ export function generateEventAcquisition(
   tuning: Tuning,
   /** The node's nickname stream. See `generateEncounterAcquisition`. */
   nicknames: RngStream,
+  /**
+   * The band this offer draws at. **`normal` is the segment's own.**
+   *
+   * The event rejig's `T3` pays "a Pokemon at band plus one", and this is how
+   * it asks: `hard` shifts `speciesBand` by one and `level` by one
+   * (`TIER_MODIFIERS`). Expressed as a tier rather than as a raw offset so the
+   * shift goes through the same table every other band shift in the game goes
+   * through, and so there is still exactly one acquisition path.
+   */
+  tier: Tier = 'normal',
 ): AcquisitionOffer | null {
   if (!tuning.allowEncounterAcquisitions) return null;
-  const team = generateWildTeam(segment, 'normal', stream);
+  const team = generateWildTeam(segment, tier, stream);
   const spec = team[0];
   return spec ? { nodeId, source: 'event', spec: named(spec, nicknames) } : null;
 }

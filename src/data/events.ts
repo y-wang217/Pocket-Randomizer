@@ -1,367 +1,240 @@
 /**
- * Events: a prompt, two or three choices, and what each one costs or pays.
+ * Events: a hook, a relic, a toll price, and four option labels.
  *
- * **Outcomes are a declarative typed union, never a callback.** That is the
- * load-bearing constraint in this file and it is worth stating before the data:
+ * **What is not here any more: outcomes.** Before the event rejig each event
+ * authored its own weighted outcome tables, one set per choice per capability
+ * band, and that is what made the table small — 24 events would have meant 24
+ * bespoke payout tables to keep in balance with each other. Outcomes now live
+ * in `data/eventPools.ts`, keyed by tier and segment band, and an event says
+ * only which *copy* wraps them and what its Toll costs.
  *
- *   - A run log has to be able to *serialize* what happened, and a function is
- *     not serializable. An event whose outcome was `(state) => ...` would be
- *     replayable only as "choice 1 was taken", with the effect reconstructed by
- *     re-running code that may since have changed.
- *   - The balance simulator has to be able to **score** an option without
- *     executing it. A policy that had to run an arbitrary function to find out
- *     what a choice does could not compare two choices, and the report's event
- *     numbers would be a measurement of a bot picking at random.
+ * If a bespoke outcome is ever needed for one event, the pool is missing an
+ * entry. That is the rule this split exists to enforce.
  *
- * So an outcome is data: a kind and a number. `core/events.ts` interprets it,
- * and it is the only thing that may.
+ * ## Rarity is not a column here, and that is a ruling
  *
- * ## The coin is flipped when the map is built
+ * The patch prompt gave each event a rarity and also drew a rarity per node, so
+ * `(locale, rarity)` named exactly one event — rarity had become the event's
+ * *name* rather than the payout knob, which made "no event twice in a run" mean
+ * "no rarity twice in a locale" and distorted the very distribution the rarity
+ * test pins. Decoupled: rarity scales the outcome distribution, event identity
+ * is a separate draw from the locale's list, and **any event can roll any
+ * rarity**. `docs/generation.md` section 14.
  *
- * A choice carries *weighted* outcomes, and exactly one of them is drawn from
- * the `rewards` stream at map generation. An event that reads "50/50" to the
- * player has already resolved by the time they see it — so reloading a save
- * cannot reroll it, and two players on the same seed who make the same choice
- * get the same result. The uncertainty is real for the player and settled for
- * the run, which is the only version of "random" a seeded game can honestly
- * offer.
+ * ## Locale decides what is reachable
+ *
+ * An event belongs to exactly one locale and is drawn only by nodes on that
+ * locale's route. That is new: before the rejig `generateEvent` picked from the
+ * whole table with no locale filter at all, so a shore event could appear
+ * inside a cave.
+ *
+ * ## The order is a draw order
+ *
+ * Generation picks from the locale's list, so appending is safe and reordering
+ * or inserting reshuffles what every recorded seed produces.
  */
 
 import type { Capability } from './capabilities';
-import { BERRIES } from './items';
+import type { EffectTarget, EventArchetype } from './eventPools';
+import type { LocaleId } from './locales';
 
 /**
- * What an outcome does, before its randomised parts are drawn.
+ * What a Toll charges. **A price, not a bet.**
  *
- * `item` carries a *pool* here and a concrete id on the resolved instance; that
- * is the same template-then-resolve split `data/rewardPools.ts` uses, and for
- * the same reason — the contents stay in data, the draw stays in core.
+ * Paid up front, before the outcome is known to the player, and the outcome is
+ * guaranteed `T2` regardless. So a Toll is the one option whose cost the player
+ * can read exactly before pressing it.
+ *
+ * `gold` takes `max(floor, fraction x current gold)` so a broke player still
+ * pays something; the floor is scaled by segment at resolution. `hp` applies
+ * after the attrition rules, never below 1 HP and never fainting a member.
  */
-export type EventOutcomeTemplate =
-  | { kind: 'currency'; amount: number }
-  /** Percent of max HP taken off the party. Cannot faint; see `eventDamageFloor`. */
-  | { kind: 'damage'; percent: number }
-  /** Percent of max HP and PP restored. */
-  | { kind: 'heal'; percent: number }
-  /** One item, drawn from this pool of ids. */
-  | { kind: 'item'; pool: readonly string[] }
+export type TollPrice =
+  | { kind: 'hp'; percent: number; target: EffectTarget }
+  | { kind: 'gold'; fraction: number; floor: number }
+  /** A flat price rather than a proportional one. Scaled by segment. */
+  | { kind: 'goldFixed'; amount: number }
+  | { kind: 'berry' }
+  | { kind: 'discard'; count: number };
+
+/** The copy for one event's four buttons. One label and one hint each. */
+export type ArchetypeCopy = Readonly<Record<EventArchetype, string>>;
+
+export interface EventDefinition {
+  id: string;
+  /** The only locale whose routes can draw this event. */
+  locale: LocaleId;
   /**
-   * A Pokemon on the table, take it or leave it.
+   * The one capability whose relic puts the Attune option on the menu.
    *
-   * Carries no data: the spec is drawn at map generation, on the node's own
-   * `capture` sub-stream, and lands on the resolved `EventOutcome`. There is
-   * nothing here to tune because there is nothing here to choose — an event
-   * that offers a Pokemon offers whatever that node's segment would have
-   * produced.
+   * Exactly one, never a set: a gate the player has to satisfy two ways is a
+   * gate they cannot read off the map, and the map shows the requirement.
    */
-  | { kind: 'acquisition' }
-  | { kind: 'nothing' };
-
-/**
- * The outcome sets a choice carries, one per capability band.
- *
- * **All three are drawn at map generation and one is selected at resolution.**
- * That ordering is the rule the whole feature rests on: if the band were
- * consulted before drawing, RNG consumption would depend on the party, and a
- * seed would stop describing one run. Two runs on the same seed with
- * deliberately different parties draw byte-identically and differ only in
- * which of the three already-drawn outcomes is used.
- *
- * The bands escalate, and the escalation is the design:
- *
- * - `none` — a minor payout. The event still resolves and still pays. A player
- *   with nothing is unrewarded, not punished.
- * - `latent` — a real payout. The party can improvise the job.
- * - `known` — the encounter. A Pokemon, and an item that arrives whether or not
- *   the Pokemon is taken.
- */
-export interface BandedOutcomes {
-  none: readonly WeightedOutcome[];
-  latent: readonly WeightedOutcome[];
-  known: readonly WeightedOutcome[];
-}
-
-export type WeightedOutcome = { weight: number; outcome: EventOutcomeTemplate };
-
-/** One thing the player can do, and the outcomes it may produce. */
-export interface EventChoiceDefinition {
-  /** The button. */
-  label: string;
+  requires: Capability;
+  /** The situation, in one line. Never names an outcome. */
+  hook: string;
+  /** What the Toll option charges. */
+  toll: TollPrice;
+  /** The four buttons. */
+  labels: ArchetypeCopy;
   /**
-   * What the player is told *before* picking.
+   * What the player is told *before* pressing each button.
    *
    * Never names the drawn outcome — that would make the choice a formality —
    * but it must be honest about the shape of the risk. "Might be a trap" is a
    * decision; saying nothing at all is a coin flip with extra steps.
    */
-  hint: string;
-  /**
-   * The `latent` payout: weighted, exactly one drawn at map generation.
-   *
-   * Named `outcomes` rather than `latent` because it is the set every event in
-   * this file was authored against, and `latent` is the band a party lands on
-   * most often. The other two bands are derived from the shared tables below
-   * rather than written per choice — see `bandsFor`.
-   */
-  outcomes: readonly WeightedOutcome[];
-}
-
-export interface EventDefinition {
-  id: string;
-  prompt: string;
-  /**
-   * The one capability this event's payout scales with.
-   *
-   * Exactly one, never a set: a gate the player has to satisfy two ways is a
-   * gate they cannot read off the map, and the map shows the requirement.
-   *
-   * **How often each capability appears here is the tuning lever for the
-   * common-type skew.** Water and Flying are common types, so `surf`, `dive`,
-   * `waterfall` and `fly` resolve at `latent` more often than `flash` or
-   * `cut` do. That is corrected by how many events name each capability, not
-   * by narrowing the type sets in `data/capabilities.ts` — narrowing those
-   * would make them say something false about the games to fix a problem that
-   * belongs to this table. The simulator reports a per-capability `latent`
-   * rate, which is the measurement this weighting is set from.
-   */
-  requires: Capability;
-  /** Two or three. One choice is not an event, it is a cutscene. */
-  choices: readonly EventChoiceDefinition[];
+  hints: ArchetypeCopy;
 }
 
 /**
- * The `none` payout, shared by every event.
+ * The events, by locale.
  *
- * Small, and never nothing. An event a player cannot answer still pays,
- * because the alternative is a node that punishes a run for a routing decision
- * it made four segments ago and cannot now undo.
- */
-const BERRY_POOL: readonly string[] = BERRIES.map((berry) => berry.id);
-
-const BAND_NONE: readonly WeightedOutcome[] = [
-  { weight: 4, outcome: { kind: 'item', pool: BERRY_POOL } },
-  { weight: 3, outcome: { kind: 'heal', percent: 0.15 } },
-  { weight: 3, outcome: { kind: 'currency', amount: 18 } },
-];
-
-/**
- * The `known` payout, shared by every event.
- *
- * The encounter mechanism built in Stage 4.6c step 2's predecessor: a Pokemon
- * offered with no fight in front of it. The item that comes with it is granted
- * separately and unconditionally — `core/events.ts` says why declining still
- * yields it.
- */
-const BAND_KNOWN: readonly WeightedOutcome[] = [{ weight: 1, outcome: { kind: 'acquisition' } }];
-
-/** The three outcome sets for one choice. Two are shared; `latent` is authored. */
-export function bandsFor(choice: EventChoiceDefinition): BandedOutcomes {
-  return { none: BAND_NONE, latent: choice.outcomes, known: BAND_KNOWN };
-}
-
-/** Shorthand for a choice whose outcome is certain. */
-function certain(outcome: EventOutcomeTemplate): { weight: number; outcome: EventOutcomeTemplate }[] {
-  return [{ weight: 1, outcome }];
-}
-
-const TRINKETS: readonly string[] = ['silkscarf', 'charcoal', 'mysticwater', 'miracleseed', 'magnet'];
-const REAL_ITEMS: readonly string[] = ['leftovers', 'shellbell', 'muscleband', 'wiseglasses', 'expertbelt'];
-
-/**
- * The events, in a fixed order.
- *
- * The order is a **draw order** — generation picks an index into this list — so
- * appending is safe and inserting reshuffles what every recorded seed produces.
- *
- * Every event follows one rule: **each choice is the right answer to some
- * state.** A choice that is never correct is a button nobody should press, and
- * a choice that is always correct makes the other one decoration. So the
- * recurring shape is a gamble against a certainty, and which one is right
- * depends on how much HP and how much money the player is carrying — the two
- * things the map screen already shows them.
+ * **Step 6 replaces this with the 24-event chart.** What is here is the eight
+ * pre-rejig events carried across to the new shape, one per locale, so that the
+ * mechanism has something to draw while steps 3 to 5 build it. Their hooks and
+ * relics are the originals; their option copy is written from the template,
+ * which is what the 24 will be written from too.
  */
 export const EVENTS: readonly EventDefinition[] = [
   {
-    id: 'abandoned-ball',
+    id: 'cave-rattling-ball',
+    locale: 'cave',
     requires: 'flash',
-    prompt: 'A dented Poke Ball sits in the long grass. Something is rattling inside it.',
-    choices: [
-      {
-        label: 'Open it',
-        hint: 'Could be anything. Could be something that bites.',
-        outcomes: [
-          { weight: 5, outcome: { kind: 'item', pool: REAL_ITEMS } },
-          { weight: 3, outcome: { kind: 'damage', percent: 0.18 } },
-          { weight: 2, outcome: { kind: 'nothing' } },
-        ],
-      },
-      {
-        label: 'Sell it unopened',
-        hint: 'A collector down the road pays for these. Not much, but reliably.',
-        outcomes: certain({ kind: 'currency', amount: 45 }),
-      },
-    ],
+    hook: 'A dented Poke Ball sits in the dark. Something is rattling inside it.',
+    toll: { kind: 'berry' },
+    labels: {
+      safe: 'Leave it and move on',
+      gamble: 'Open it',
+      toll: 'Trade a berry for it',
+      attune: 'Light the gallery first',
+    },
+    hints: {
+      safe: 'You take what the ledge already offered and keep walking.',
+      gamble: 'Could be anything. Could be something that bites.',
+      toll: 'The trader wants a berry. He hands it over without opening it.',
+      attune: 'With light, you can see what you are reaching for.',
+    },
   },
   {
-    id: 'roadside-berries',
+    id: 'forest-roadside-berries',
+    locale: 'forest',
     requires: 'cut',
-    prompt: 'Berries, heavy on the branch. You do not recognise the variety.',
-    choices: [
-      {
-        label: 'Eat them',
-        hint: 'Most berries are food. Most.',
-        outcomes: [
-          { weight: 6, outcome: { kind: 'heal', percent: 0.45 } },
-          { weight: 4, outcome: { kind: 'damage', percent: 0.12 } },
-        ],
-      },
-      {
-        label: 'Bag them for market',
-        hint: 'Someone will buy them. Whatever they are.',
-        outcomes: certain({ kind: 'currency', amount: 35 }),
-      },
-    ],
+    hook: 'Berries, heavy on the branch, behind a wall of thorn.',
+    toll: { kind: 'hp', percent: 0.2, target: 'lead' },
+    labels: {
+      safe: 'Take what is within reach',
+      gamble: 'Push through the thorn',
+      toll: 'Force a path and pay for it',
+      attune: 'Cut the wall down',
+    },
+    hints: {
+      safe: 'The low branches are picked over, but they are picked.',
+      gamble: 'Most berries are food. Most.',
+      toll: 'Your lead goes in first and comes out scratched.',
+      attune: 'The wall comes down in one pass and the grove is yours.',
+    },
   },
   {
-    id: 'toll-bridge',
+    id: 'shore-toll-bridge',
+    locale: 'shore',
     requires: 'surf',
-    prompt: 'A gatekeeper wants payment to cross. The river looks shallow enough.',
-    choices: [
-      {
-        label: 'Pay the toll',
-        hint: 'He waves you through and throws in something from his pack.',
-        outcomes: [
-          { weight: 1, outcome: { kind: 'currency', amount: -30 } },
-          { weight: 1, outcome: { kind: 'item', pool: TRINKETS } },
-        ],
-      },
-      {
-        label: 'Wade across',
-        hint: 'Free. Cold, fast, and further than it looks.',
-        outcomes: [
-          { weight: 6, outcome: { kind: 'nothing' } },
-          { weight: 4, outcome: { kind: 'damage', percent: 0.15 } },
-        ],
-      },
-    ],
+    hook: 'A gatekeeper wants payment to cross. The channel looks shallow enough.',
+    toll: { kind: 'gold', fraction: 0.3, floor: 24 },
+    labels: { safe: 'Turn back', gamble: 'Wade across', toll: 'Pay the toll', attune: 'Swim it' },
+    hints: {
+      safe: 'He shrugs and gives you something for the walk.',
+      gamble: 'Free. Cold, fast, and further than it looks.',
+      toll: 'He waves you through and throws in something from his pack.',
+      attune: 'The channel is nothing to a party that swims.',
+    },
   },
   {
-    id: 'old-trainer',
+    id: 'summit-old-trainer',
+    locale: 'summit',
     requires: 'strength',
-    prompt: 'An old trainer offers to run drills with you. She does not offer to go easy.',
-    choices: [
-      {
-        label: 'Spar with her',
-        hint: 'It will hurt. She has been doing this longer than you have been alive.',
-        outcomes: [
-          { weight: 6, outcome: { kind: 'item', pool: REAL_ITEMS } },
-          { weight: 4, outcome: { kind: 'damage', percent: 0.22 } },
-        ],
-      },
-      {
-        label: 'Just talk',
-        hint: 'She tells you where the good routes are. Nothing you can hold.',
-        outcomes: certain({ kind: 'nothing' }),
-      },
-      {
-        label: 'Buy her lunch',
-        hint: 'Costs a little. She insists on paying you back in kind.',
-        outcomes: [
-          { weight: 5, outcome: { kind: 'heal', percent: 0.6 } },
-          { weight: 5, outcome: { kind: 'currency', amount: -25 } },
-        ],
-      },
-    ],
+    hook: 'An old trainer offers to run drills. She does not offer to go easy.',
+    toll: { kind: 'hp', percent: 0.2, target: 'party' },
+    labels: { safe: 'Just talk', gamble: 'Spar with her', toll: 'Go a full round', attune: 'Haul her gear up' },
+    hints: {
+      safe: 'She talks you through the routes ahead, and shares her lunch.',
+      gamble: 'It will hurt. She has done this longer than you have been alive.',
+      toll: 'Everyone gets a turn. Everyone pays for it.',
+      attune: 'The crates go up the face in one trip. She notices.',
+    },
   },
   {
-    id: 'hot-spring',
+    id: 'marsh-hot-spring',
+    locale: 'marsh',
     requires: 'dive',
-    prompt: 'Steam rises off a pool tucked into the rocks. It smells strongly of sulphur.',
-    choices: [
-      {
-        label: 'Soak',
-        hint: 'Warm. Restorative, probably.',
-        outcomes: [
-          { weight: 7, outcome: { kind: 'heal', percent: 0.7 } },
-          { weight: 3, outcome: { kind: 'damage', percent: 0.1 } },
-        ],
-      },
-      {
-        label: 'Bottle the water',
-        hint: 'Tourists pay for this. You will not get to use it yourself.',
-        outcomes: certain({ kind: 'currency', amount: 55 }),
-      },
-    ],
+    hook: 'Steam rises off a pool in the reeds. It smells strongly of sulphur.',
+    toll: { kind: 'discard', count: 1 },
+    labels: { safe: 'Fill a bottle', gamble: 'Soak', toll: 'Trade for the deep water', attune: 'Go down to the vent' },
+    hints: {
+      safe: 'Tourists pay for this. You will not get to use it yourself.',
+      gamble: 'Warm. Restorative, probably.',
+      toll: 'The keeper wants something from your bag for the deeper water.',
+      attune: 'The vent is the source, and it is well below the surface.',
+    },
   },
   {
-    id: 'card-sharp',
+    id: 'city-card-sharp',
+    locale: 'city',
     requires: 'fly',
-    prompt: 'A man with a folding table wants to bet you on which cup the coin is under.',
-    choices: [
-      {
-        label: 'Play a round',
-        hint: 'He is very good at this. So is everyone who owns a folding table.',
-        outcomes: [
-          { weight: 4, outcome: { kind: 'currency', amount: 90 } },
-          { weight: 6, outcome: { kind: 'currency', amount: -60 } },
-        ],
-      },
-      {
-        label: 'Walk on',
-        hint: 'Nothing gained, nothing lost, no folding table involved.',
-        outcomes: certain({ kind: 'nothing' }),
-      },
-    ],
+    hook: 'A man with a folding table wants to bet on which cup the coin is under.',
+    toll: { kind: 'gold', fraction: 0.3, floor: 20 },
+    labels: { safe: 'Walk on', gamble: 'Play a round', toll: 'Buy the table off him', attune: 'Watch from the roof' },
+    hints: {
+      safe: 'Nothing gained, nothing lost, no folding table involved.',
+      gamble: 'He has done this a long time. So has everyone who owns a folding table.',
+      toll: 'He names a price for the whole setup and everything on it.',
+      attune: 'From above, the trick is obvious, and so is where he keeps the rest.',
+    },
   },
   {
-    id: 'storm-shelter',
+    id: 'badlands-storm-shelter',
+    locale: 'badlands',
     requires: 'rockSmash',
-    prompt: 'The sky opens. There is a cave, and there is a longer road around it.',
-    choices: [
-      {
-        label: 'Shelter in the cave',
-        hint: 'Dry. Occupied, possibly.',
-        outcomes: [
-          { weight: 5, outcome: { kind: 'heal', percent: 0.5 } },
-          { weight: 3, outcome: { kind: 'damage', percent: 0.16 } },
-          { weight: 2, outcome: { kind: 'item', pool: TRINKETS } },
-        ],
-      },
-      {
-        label: 'Push through the rain',
-        hint: 'You arrive soaked and behind schedule, but you arrive.',
-        outcomes: [
-          { weight: 7, outcome: { kind: 'damage', percent: 0.08 } },
-          { weight: 3, outcome: { kind: 'currency', amount: 40 } },
-        ],
-      },
-    ],
+    hook: 'The sky opens. There is a sealed shelter, and a longer road around it.',
+    toll: { kind: 'goldFixed', amount: 40 },
+    labels: { safe: 'Push through the rain', gamble: 'Force the door', toll: 'Pay the keeper', attune: 'Break the seal' },
+    hints: {
+      safe: 'You arrive soaked and behind schedule, but you arrive.',
+      gamble: 'Dry inside. Occupied, possibly.',
+      toll: 'Someone has the key and a price for turning it.',
+      attune: 'The seal is stone, and stone is a solved problem.',
+    },
   },
   {
-    id: 'scrap-heap',
+    id: 'ruins-scrap-heap',
+    locale: 'ruins',
     requires: 'waterfall',
-    prompt: 'A heap of discarded trainer gear behind a gym. Most of it is junk.',
-    choices: [
-      {
-        label: 'Dig through it',
-        hint: 'Sharp edges and rust. Something in there still works.',
-        outcomes: [
-          { weight: 5, outcome: { kind: 'item', pool: TRINKETS } },
-          { weight: 3, outcome: { kind: 'damage', percent: 0.1 } },
-          { weight: 2, outcome: { kind: 'item', pool: REAL_ITEMS } },
-        ],
-      },
-      {
-        label: 'Sell the scrap by weight',
-        hint: 'A guaranteed, unglamorous handful of coins.',
-        outcomes: certain({ kind: 'currency', amount: 50 }),
-      },
-    ],
+    hook: 'A heap of discarded gear below a flooded stair. Most of it is junk.',
+    toll: { kind: 'gold', fraction: 0.35, floor: 26 },
+    labels: { safe: 'Sell the scrap by weight', gamble: 'Dig through it', toll: 'Buy the pick of it', attune: 'Climb the stair' },
+    hints: {
+      safe: 'A guaranteed, unglamorous handful of coins.',
+      gamble: 'Sharp edges and rust. Something in there still works.',
+      toll: 'The scrapper lets you choose first, for a cut.',
+      attune: 'What washed down came from above, and above is reachable.',
+    },
   },
 ];
 
 const BY_ID = new Map(EVENTS.map((event) => [event.id, event]));
 
+const BY_LOCALE = EVENTS.reduce<Map<LocaleId, EventDefinition[]>>((map, event) => {
+  const list = map.get(event.locale) ?? [];
+  list.push(event);
+  map.set(event.locale, list);
+  return map;
+}, new Map());
+
 export function eventById(id: string): EventDefinition | null {
   return BY_ID.get(id) ?? null;
+}
+
+/** Every event this locale's routes can draw, in table order. */
+export function eventsInLocale(locale: LocaleId): readonly EventDefinition[] {
+  return BY_LOCALE.get(locale) ?? [];
 }

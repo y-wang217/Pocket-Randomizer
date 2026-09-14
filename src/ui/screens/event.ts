@@ -26,10 +26,17 @@
  * what the standing bought before the label says what it paid. All of it from
  * `data/eventCopy.ts`, which `core/` never reads.
  */
-import { describeOutcome, outcomeAt, type EventInstance, type EventOutcome } from '../../core/events';
+import {
+  describeCost,
+  describeOutcome,
+  outcomeFor,
+  presentedOptions,
+  type EventInstance,
+  type EventOutcome,
+} from '../../core/events';
 import { resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
-import { BAND_LABELS, CAPABILITY_LABELS, eventConclusion, eventHint } from '../../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
 import { capabilityBandChip, capabilityChip } from '../chip';
 import { el } from '../scene';
 
@@ -71,7 +78,14 @@ export function createEventScreen(): EventScreen {
       result.hidden = true;
       result.replaceChildren();
 
-      const buttons = event.choices.map((choice, index) => {
+      /*
+       * The **presented** list: three options without the event's relic, four
+       * with. `presentedOptions` is the only place that gate lives, and the
+       * index handed back to the run is an index into the *built* list, which
+       * does not move when the relic does.
+       */
+      const offered = presentedOptions(event, band);
+      const buttons = offered.map((choice, index) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'event__choice';
@@ -79,7 +93,7 @@ export function createEventScreen(): EventScreen {
         const label = el('span', 'event__choice-label');
         label.textContent = choice.label;
         const hint = el('span', 'event__choice-hint');
-        hint.textContent = eventHint(event.eventId, band, index, choice.hint);
+        hint.textContent = choice.hint;
 
         button.append(label, hint);
         button.addEventListener('click', () => reveal(index));
@@ -88,7 +102,7 @@ export function createEventScreen(): EventScreen {
       choices.replaceChildren(...buttons);
 
       function reveal(index: number): void {
-        const choice = event.choices[index];
+        const choice = offered[index];
         if (!choice) return;
 
         // Every button locks, and the taken one stays highlighted. The player
@@ -98,19 +112,43 @@ export function createEventScreen(): EventScreen {
           button.classList.toggle('event__choice--taken', i === index);
         }
 
-        const paid = outcomeAt(choice, band);
+        const paid = outcomeFor(choice, band);
         const conclusion = el('p', 'event__conclusion');
-        conclusion.textContent = eventConclusion(event.eventId, band, index, paid);
+        /*
+         * No conclusion line yet. The per-event band copy that used to write
+         * one was deleted with the 4.6c model it described, and the archetype
+         * copy that replaces it is step 8's. The element stays so the result
+         * block's shape does not have to change twice.
+         */
+        conclusion.textContent = '';
+
         const outcome = el('p', `event__outcome event__outcome--${toneOf(paid)}`);
         outcome.textContent = describeOutcome(paid);
+
+        /*
+         * The consolation gets its own line, and so does the cost above it.
+         * A `T0` that showed only what it took would read as the game taking
+         * something and giving nothing — the exact misread the retired
+         * "unrewarded, not punished" rule existed to prevent.
+         */
+        const cost = describeCost(paid);
+        const costLine = cost ? el('p', 'event__outcome event__outcome--bad') : null;
+        if (costLine) costLine.textContent = cost;
 
         const carry = document.createElement('button');
         carry.type = 'button';
         carry.className = 'button primary-action';
         carry.textContent = 'Carry on';
-        carry.addEventListener('click', () => onDone(index));
+        // The index the run records is into the built list, never the shown one.
+        const built = event.options.indexOf(choice);
+        carry.addEventListener('click', () => onDone(built));
 
-        result.replaceChildren(...(conclusion.textContent ? [conclusion] : []), outcome, carry);
+        result.replaceChildren(
+          ...(conclusion.textContent ? [conclusion] : []),
+          ...(costLine ? [costLine] : []),
+          outcome,
+          carry,
+        );
         result.hidden = false;
         carry.focus();
       }
@@ -126,14 +164,8 @@ export function createEventScreen(): EventScreen {
  * screen contradicting its own text.
  */
 function toneOf(outcome: EventOutcome): 'good' | 'bad' | 'flat' {
-  switch (outcome.kind) {
-    case 'damage':
-      return 'bad';
-    case 'nothing':
-      return 'flat';
-    case 'currency':
-      return outcome.amount >= 0 ? 'good' : 'bad';
-    default:
-      return 'good';
-  }
+  const grants = outcome.grant.filter((effect) => effect.kind !== 'nothing');
+  if (grants.length === 0) return 'flat';
+  if (grants.every((effect) => effect.kind === 'currency' && effect.amount < 0)) return 'bad';
+  return 'good';
 }

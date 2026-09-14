@@ -14,13 +14,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resolveCapability, type CapabilityBand } from '../src/core/capabilities';
-import { generateEvent, describeOutcome, outcomeAt, type EventInstance } from '../src/core/events';
+import { generateEvent, describeOutcome, outcomeFor,
+  presentedOptions,
+  EventPicker, type EventInstance } from '../src/core/events';
 import { createPartyMember } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import { createRun, type RunState } from '../src/core/run';
 import { capabilityTypes, type Capability } from '../src/data/capabilities';
-import { BAND_LABELS, CAPABILITY_LABELS, KNOWN_WITHOUT_OFFER, eventConclusion, eventHint } from '../src/data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS } from '../src/data/eventCopy';
 import { EVENTS } from '../src/data/events';
+import { LOCALES } from '../src/data/locales';
 import { relicsGranting } from '../src/data/relics';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -53,9 +56,18 @@ function stateAt(band: CapabilityBand, capability: Capability): RunState {
 /** One generated instance of every event, found by walking seeds. */
 function everyEvent(): EventInstance[] {
   const found = new Map<string, EventInstance>();
-  for (let i = 0; found.size < EVENTS.length && i < 400; i++) {
-    const event = generateEvent('n1', createRng(`EVT-${i}`).rewards.at('e'), DEFAULT_TUNING);
-    if (!found.has(event.eventId)) found.set(event.eventId, event);
+  for (const locale of LOCALES.map((entry) => entry.id)) {
+    for (let i = 0; i < 60; i++) {
+      const event = generateEvent(
+        'n1',
+        locale,
+        i % 8,
+        createRng(`EVT-${locale}-${i}`).rewards.at('e'),
+        DEFAULT_TUNING,
+        new EventPicker(),
+      );
+      if (event && !found.has(event.eventId)) found.set(event.eventId, event);
+    }
   }
   expect([...found.keys()].sort()).toEqual(EVENTS.map((event) => event.id).sort());
   return [...found.values()];
@@ -67,9 +79,10 @@ beforeEach(() => {
 
 describe('the event screen', () => {
   for (const band of BANDS) {
-    it(`at ${band}: shows the gate, the band's hint, and the band's conclusion after the pick`, () => {
+    it(`at ${band}: shows the gate, the option's hint, and what the pick paid`, () => {
       for (const event of everyEvent()) {
-        for (const [index, choice] of event.choices.entries()) {
+        // The presented list: Attune is on it at `known` and off it below.
+        for (const [index, choice] of presentedOptions(event, band).entries()) {
           const screen = createEventScreen();
           const state = stateAt(band, event.requires);
           const done: number[] = [];
@@ -83,9 +96,13 @@ describe('the event screen', () => {
           expect(gate?.querySelector('.node__gate-band')?.textContent, event.eventId).toBe(BAND_LABELS[band]);
 
           const hints = [...screen.root.querySelectorAll('.event__choice-hint')].map((node) => node.textContent);
-          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(eventHint(event.eventId, band, index, choice.hint));
-          if (band === 'latent') expect(hints[index]).toBe(choice.hint);
-          else expect(hints[index]).not.toBe(choice.hint);
+          /*
+           * The option's own hint, at every band. The per-band hint table went
+           * with the 4.6c model the rejig replaced; the archetype copy that
+           * replaces it is step 8's.
+           */
+          expect(hints, `${event.eventId} ${band}`).toHaveLength(band === 'known' ? 4 : 3);
+          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(choice.hint);
 
           const result = screen.root.querySelector<HTMLElement>('.event__result');
           expect(result?.hidden).toBe(true);
@@ -99,17 +116,23 @@ describe('the event screen', () => {
             expect(button.classList.contains('event__choice--taken')).toBe(i === index);
           }
 
-          const paid = outcomeAt(choice, band);
-          const conclusion = screen.root.querySelector('.event__conclusion')?.textContent;
-          expect(conclusion, `${event.eventId} ${band} conclusion ${index}`).toBe(eventConclusion(event.eventId, band, index, paid));
-          expect(conclusion?.length).toBeGreaterThan(20);
-          // No offer callback in this fixture, so the known band's encounter
-          // is empty and the conclusion must say so rather than describe one.
-          if (band === 'known') expect(conclusion).toBe(KNOWN_WITHOUT_OFFER);
-          expect(screen.root.querySelector('.event__outcome')?.textContent).toBe(describeOutcome(paid));
+          const paid = outcomeFor(choice, band);
+          const outcomes = [...screen.root.querySelectorAll('.event__outcome')].map((n) => n.textContent);
+          /*
+           * A `T0` renders two lines, the cost above the payout, and every
+           * other tier renders one. That split is the point: a cost shown
+           * without its consolation reads as the game taking something and
+           * giving nothing.
+           */
+          expect(outcomes[outcomes.length - 1]).toBe(describeOutcome(paid));
+          expect(outcomes, `${event.eventId} ${band} ${index}`).toHaveLength(
+            paid.cost.length > 0 ? 2 : 1,
+          );
 
           screen.root.querySelector<HTMLButtonElement>('.primary-action')?.click();
-          expect(done).toEqual([index]);
+          // The index handed back is into the *built* list, which does not move
+          // when the relic does.
+          expect(done).toEqual([event.options.indexOf(choice)]);
           document.body.replaceChildren();
         }
       }

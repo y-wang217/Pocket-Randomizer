@@ -67,7 +67,13 @@ import {
   type MovePurchaseChoice,
   type ShopStock,
 } from './economy';
-import { applyEventOutcome, outcomeAt, type EventInstance, type EventOutcome } from './events';
+import {
+  applyEventOutcome,
+  applyToll,
+  outcomeFor,
+  type EventInstance,
+  type EventOutcome,
+} from './events';
 import { resolveCapability, type CapabilityContext } from './capabilities';
 import { describeMove } from './battle/driver';
 import { applyItemPlan, backpackCapacity, needsItemPlan, spendItems, stowAll } from './items';
@@ -813,15 +819,26 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (result.battle?.result.winner === 'p1') currency += nodePayout(result.node, state.currentSegment);
 
   if (result.eventChoice !== undefined && result.node.event) {
-    const choice = result.node.event.choices[result.eventChoice];
-    if (!choice) {
+    const option = result.node.event.options[result.eventChoice];
+    if (!option) {
       throw new RangeError(
-        `Event choice ${result.eventChoice} out of range (${result.node.event.choices.length} offered)`,
+        `Event option ${result.eventChoice} out of range (${result.node.event.options.length} built)`,
       );
     }
     const outcome = chosenEventOutcome(result, state);
     if (outcome) {
-      const after = applyEventOutcome({ ...state, party, currency }, outcome, state.tuning);
+      /*
+       * The Toll is paid first, and separately from the outcome's own cost.
+       *
+       * It is a *price*, not a `T0` setback: the player read it before pressing
+       * the button and the `T2` it buys is guaranteed. Folding it into the
+       * outcome would make the result screen describe a cost the tier pools
+       * never contained.
+       */
+      const priced = option.toll
+        ? applyToll({ ...state, party, currency }, option.toll, state.tuning)
+        : { ...state, party, currency };
+      const after = applyEventOutcome(priced, outcome, state.tuning);
       party = after.party;
       currency = after.currency;
     }
@@ -1430,8 +1447,15 @@ export async function playRun(
       const event = result.node.event;
       const index = await policy.chooseEventOption(event, state);
       record({ kind: 'event', index });
-      if (!event.choices[index]) {
-        throw new RangeError(`Event choice ${index} out of range (${event.choices.length} offered)`);
+      /*
+       * An index into the **full** four-option list, not into the presented
+       * one. The presented list drops Attune without the relic, so an index
+       * into it would mean a different button depending on what the run held —
+       * which is exactly the instability that makes step 5 replace this with
+       * the archetype tag. Indexing the built list is stable in the meantime.
+       */
+      if (!event.options[index]) {
+        throw new RangeError(`Event option ${index} out of range (${event.options.length} built)`);
       }
       result.eventChoice = index;
     }
@@ -1640,7 +1664,13 @@ export async function playRun(
 export function acquisitionOffered(result: NodeResult, run: CapabilityContext): AcquisitionOffer | null {
   if (result.node.acquisition) return result.node.acquisition;
   const outcome = chosenEventOutcome(result, run);
-  return outcome?.kind === 'acquisition' ? outcome.offer : null;
+  /*
+   * The grant list rather than the outcome itself, since the rejig: an outcome
+   * is a list of effects and a Pokemon is one of them. `T3` pairs it with an
+   * item, so the offer is never the only thing in the list.
+   */
+  const offered = outcome?.grant.find((effect) => effect.kind === 'acquisition');
+  return offered?.kind === 'acquisition' ? offered.offer : null;
 }
 
 /**
@@ -1660,9 +1690,9 @@ export function acquisitionOffered(result: NodeResult, run: CapabilityContext): 
 export function chosenEventOutcome(result: NodeResult, run: CapabilityContext): EventOutcome | null {
   const event = result.node.event;
   if (!event || result.eventChoice === undefined) return null;
-  const choice = event.choices[result.eventChoice];
-  if (!choice) return null;
-  return outcomeAt(choice, resolveCapability(run, event.requires));
+  const option = event.options[result.eventChoice];
+  if (!option) return null;
+  return outcomeFor(option, resolveCapability(run, event.requires));
 }
 
 /**

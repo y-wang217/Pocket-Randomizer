@@ -51,7 +51,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { outcomeAt } from '../src/core/events';
+import { outcomeFor, presentedOptions, type ResolvedEffect } from '../src/core/events';
 import { resolveCapability } from '../src/core/capabilities';
 import { AI_VERSION, decideWith, GREEDY_BASELINE, type AiFlag, type AiProfile } from '../src/core/battle/ai';
 import { ENGINE_VERSION } from '../src/core/battle/driver';
@@ -838,10 +838,23 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
  * the report would be a measurement of a coin toss.
  */
 function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number): number {
+  /*
+   * An outcome is a *list* of effects since the rejig, and a `T0` carries a
+   * cost list beside its grant. So the score is the sum of what it pays minus
+   * the sum of what it takes, which is the only reading under which a setback
+   * can come out behind a flat `T1`.
+   */
+  let total = 0;
+  for (const effect of outcome.grant) total += valueOfEffect(effect, state, segment);
+  for (const effect of outcome.cost) total -= Math.abs(valueOfEffect(effect, state, segment));
+  return total;
+}
+
+function valueOfEffect(effect: ResolvedEffect, state: RunState, segment: number): number {
   const lead = state.party[0];
   if (!lead) return 0;
 
-  switch (outcome.kind) {
+  switch (effect.kind) {
     case 'nothing':
       return 0;
     /*
@@ -855,19 +868,40 @@ function valueOfOutcome(outcome: EventOutcome, state: RunState, segment: number)
     case 'acquisition':
       return hasRoom(state.party, partyCapacity(state)) ? 140 : 40;
     case 'currency':
-      return (outcome.amount / priceAt(130, segment)) * 85;
+      return (effect.amount / priceAt(130, segment)) * 85;
+    case 'currencyFraction': {
+      const owed = Math.max(effect.floor, Math.round(state.currency * effect.fraction));
+      return -(owed / priceAt(130, segment)) * 85;
+    }
     case 'heal': {
       const missing = lead.maxHp > 0 ? 1 - lead.hp / lead.maxHp : 0;
-      return missing * outcome.percent * 190;
+      return missing * effect.percent * 190 * (effect.target === 'party' ? 1 : 0.6);
     }
     case 'damage': {
       // Damage hurts more the less you have. Losing 20% at 30% HP can end a
       // run; at full HP the next rest undoes it.
       const share = lead.maxHp > 0 ? lead.hp / lead.maxHp : 1;
-      return -outcome.percent * 200 * (1.4 - share);
+      return -effect.percent * 200 * (1.4 - share) * (effect.target === 'party' ? 1 : 0.6);
     }
     case 'item':
-      return valueOfReward({ kind: 'item', item: outcome.item }, state, segment);
+      return effect.items.reduce<number>(
+        (sum, item) => sum + valueOfReward({ kind: 'item', item }, state, segment),
+        0,
+      );
+    case 'move':
+      return valueOfReward({ kind: 'tm', move: effect.move }, state, segment);
+    /*
+     * A relic is scored flat rather than by its passive. The bot cannot know
+     * which relic it will be offered — that is decided at offer resolution
+     * against what the run already holds — so pricing one passive over another
+     * would be scoring a card that has not been dealt.
+     */
+    case 'relic':
+      return 120;
+    case 'loseItem':
+      return -25;
+    case 'discard':
+      return -40 * effect.count;
   }
 }
 
@@ -1385,11 +1419,22 @@ function buildPolicy(
       // comparing buttons against a payout it cannot reach.
       const band = resolveCapability(state, event.requires);
       collect.gates.push({ capability: event.requires, band, segment });
-      const best = bestBy(event.choices, (choice) => valueOfOutcome(outcomeAt(choice, band), state, segment));
-      const chosen = event.choices[best];
-      const outcome = chosen ? outcomeAt(chosen, band) : undefined;
-      if (outcome?.kind === 'item') collect.itemsAcquired.push(outcome.item);
-      return best;
+      /*
+       * Scored over the **presented** options and answered as an index into the
+       * built list, because that is what the run records. Attune is absent from
+       * the first list without the relic and present in the second either way.
+       */
+      const offered = presentedOptions(event, band);
+      const bestOfOffered = bestBy(offered, (option) =>
+        valueOfOutcome(outcomeFor(option, band), state, segment),
+      );
+      const chosen = offered[bestOfOffered];
+      if (!chosen) return 0;
+      const outcome = outcomeFor(chosen, band);
+      for (const effect of outcome.grant) {
+        if (effect.kind === 'item') collect.itemsAcquired.push(...effect.items);
+      }
+      return event.options.indexOf(chosen);
     },
 
     /*
