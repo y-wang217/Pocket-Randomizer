@@ -77,6 +77,21 @@ rather than being filled in from memory.
 | `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 37.5% | 4.80 | the event rejig, **measured on a build where event items never reached the bag** (section 17.5). Superseded by the row below; kept because it is what was recorded |
 | `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 38.5% | **4.83** | the event rejig, after the Stage 4.5.1 inventory bug was fixed. Read against the `ai-6` pin at 4.8850: **−0.055 mean gyms, −0.75pt completion** |
 
+> **Every event figure recorded before `9ce1895` is confounded.** Until that
+> commit, `resolveNode` dropped the backpack returned by `applyEventOutcome`,
+> so no event item ever reached a run — a Stage 4.5.1 defect
+> (`generation.md` section 14). It taxed **every archetype that can pay an
+> item**, which is all four: `T2` and `T3` carry the premium items, the
+> relic-plus-item and the gold-plus-item, and `T1` carries one too. A Toll buys
+> a guaranteed `T2`, so a Toll was taxed exactly as hard as a Gamble — **no
+> archetype take rate measured before that commit is usable**, the "no
+> archetype above 60 percent" check included.
+>
+> It cut the other way on costs. A forced discard and a berry toll change the
+> bag and nothing else, so both were announced to the player and never charged:
+> **`T0` has never been measured at full strength before `9ce1895`.** Nothing
+> about `T0` is to be softened on evidence collected before it.
+
 Read down a prefix, never across. On `SIM`, admitting the two moves cost
 nothing: same completion, 0.12 mean gyms of noise. On `RETUNE`, removing them
 returned the exact v8 numbers to every digit, which is what byte-identical move
@@ -1226,6 +1241,20 @@ version of the question is `--policy relics`, which is what should settle
 whether the trade is worth it.
 
 ### Relics and gates, same run
+
+> **Superseded by the event rejig, and for a different reason than the
+> confounding notice below.** These rates were measured on the 4.6c model,
+> where a *choice* paid a different outcome at each capability band, against a
+> table of eight events with one capability each. The rejig replaces both: the
+> band no longer selects an outcome (it decides whether the Attune option is on
+> the menu), and the table is 24 events with deliberately weighted relic
+> coverage. The per-capability split below is the measurement that motivated
+> that weighting, so it is kept as the reason rather than as a current figure.
+>
+> The **inventory bug does not touch these numbers** — they count which band a
+> run reads at, not what it was paid — which is why they are marked superseded
+> rather than confounded. The distinction matters: a superseded figure was true
+> of a game that no longer exists; a confounded one was never true at all.
 
 | measure | value |
 |---|---|

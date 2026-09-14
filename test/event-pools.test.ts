@@ -224,9 +224,15 @@ describe('T3 is relic-gated, structurally', () => {
     }
   });
 
-  it('weights Attune to T3 and never to T0', () => {
+  it('weights Attune to T3, and never to T0 or T1', () => {
     for (const rarity of EVENT_RARITIES) {
       expect(ATTUNE_TIERS[rarity].T0, rarity).toBe(0);
+      /*
+       * The floor. An Attune paying T1 would mean the player held a scarce
+       * relic, spent the gated option on it and got a minor payout — the one
+       * outcome the gate exists to prevent.
+       */
+      expect(ATTUNE_TIERS[rarity].T1, rarity).toBe(0);
       expect(ATTUNE_TIERS[rarity].T3, rarity).toBeGreaterThan(0);
     }
     // Rarity buys the top tier, monotonically.
@@ -293,7 +299,9 @@ describe('the distributions', () => {
   it('names the range the screen shows, off the weights rather than beside them', () => {
     expect(tierRangeOf(GAMBLE_TIERS.common)).toEqual(['T0', 'T2']);
     expect(tierRangeOf(GAMBLE_TIERS.rare)).toEqual(['T0', 'T2']);
-    expect(tierRangeOf(ATTUNE_TIERS.common)).toEqual(['T1', 'T3']);
+    // `T2 to T3` at every rarity since the Attune floor was raised: Part 8's
+    // label was right and Part 3's T1 weights were the half that gave way.
+    expect(tierRangeOf(ATTUNE_TIERS.common)).toEqual(['T2', 'T3']);
     expect(tierRangeOf(ATTUNE_TIERS.rare)).toEqual(['T2', 'T3']);
   });
 });

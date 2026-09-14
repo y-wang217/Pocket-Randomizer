@@ -183,16 +183,15 @@ describe('the attribute row', () => {
 
   it('names the ranges the archetypes actually pay, off the table rather than beside it', () => {
     /*
-     * **Part 8 says Attune reads "Reward: T2 to T3". At rare it does; at common
-     * and uncommon it reads "T1 to T3", and that is the table being honest.**
+     * **Attune reads `T2 to T3` at every rarity now, and it did not always.**
      *
-     * `ATTUNE_TIERS` carries a T1 weight of 10 at common and 5 at uncommon, so
-     * a label hardcoded to "T2 to T3" would promise a floor the distribution
-     * does not have. Part 3's table and Part 8's label contradict each other,
-     * and the label is the half that gives way — which is the whole reason
-     * `rewardOf` derives the range from the weights instead of restating them.
-     * Zeroing those two weights would fix the contradiction the other way, and
-     * that is a tuning change, not a screen change.
+     * Part 3 gave `T1` a weight of 10 at common and 5 at uncommon while Part 8
+     * said the label reads `T2 to T3`. Because `rewardOf` derives the range
+     * from the weights rather than restating them, the screen said `T1 to T3`
+     * and the contradiction surfaced here rather than staying hidden. The
+     * ruling raised the floor — an Attune paying `T1` is the one outcome the
+     * relic gate exists to prevent — so the label and the table now agree
+     * without either being made to lie.
      */
     for (const event of everyEvent().slice(0, 6)) {
       const screen = createEventScreen();
@@ -201,8 +200,7 @@ describe('the attribute row', () => {
       expect(text[0], 'safe').toContain('Reward: T1');
       expect(text[1], 'gamble').toContain('Reward: T0 to T2');
       expect(text[2], 'toll').toContain('Reward: T2');
-      const attune = event.rarity === 'rare' ? 'Reward: T2 to T3' : 'Reward: T1 to T3';
-      expect(text[3], `attune at ${event.rarity}`).toContain(attune);
+      expect(text[3], `attune at ${event.rarity}`).toContain('Reward: T2 to T3');
       document.body.replaceChildren();
     }
   });

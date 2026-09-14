@@ -286,7 +286,7 @@ export type OfferPokemon = (bandOffset: number) => AcquisitionOffer | null;
  * last consumer of the `rewards` stream for a node, nodes are generated in a
  * fixed index order, so a variable count inside one node shifts only that
  * node's successors. **What it never depends on is the party or the relics**,
- * which is the property `test/event-archetypes.test.ts` asserts directly.
+ * which is the property `test/event-generation.test.ts` asserts directly.
  */
 export function generateEvent(
   nodeId: string,

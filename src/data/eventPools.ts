@@ -609,10 +609,25 @@ export const GAMBLE_TIERS_LATENT: Readonly<Record<EventRarity, TierWeights>> = {
  * Weighted to `T3` and never to `T0`: the relic is the price already paid, and
  * an option that could still set the player back would make holding the relic a
  * reason to *avoid* the button it unlocks.
+ *
+ * **Never `T1` either, and that is a ruling rather than a rounding.** Part 3 of
+ * the prompt gave `T1` a weight of 10 at common and 5 at uncommon, which
+ * contradicted Part 8's statement that the option reads `Reward: T2 to T3`.
+ * The screen label is derived from these weights, so it honestly read `T1 to
+ * T3` and surfaced the contradiction — and the ruling went to Part 8:
+ *
+ * > An Attune paying `T1` means the player held a scarce relic, spent the
+ * > gated option on it, and got a minor payout. That is the one outcome the
+ * > gate exists to prevent.
+ *
+ * The two weights moved onto `T2` rather than being deleted, so the shape of
+ * the distribution is unchanged apart from its floor: common still sits lower
+ * than rare, and the `T3` weights are untouched. `docs/generation.md`
+ * section 14.
  */
 export const ATTUNE_TIERS: Readonly<Record<EventRarity, TierWeights>> = {
-  common: { T0: 0, T1: 10, T2: 60, T3: 30 },
-  uncommon: { T0: 0, T1: 5, T2: 50, T3: 45 },
+  common: { T0: 0, T1: 0, T2: 70, T3: 30 },
+  uncommon: { T0: 0, T1: 0, T2: 55, T3: 45 },
   rare: { T0: 0, T1: 0, T2: 40, T3: 60 },
 };
 

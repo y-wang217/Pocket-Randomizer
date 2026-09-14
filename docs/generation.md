@@ -2575,3 +2575,55 @@ an event item assertion — it calls `applyEventOutcome` directly.
 `test/band3.test.ts` resolves a node, but through the *acquisition* path, which folds party rather
 than bag. Nothing played a run and then looked in the bag. That is the test
 that existed nowhere and exists now.
+
+### Ruled: the Attune floor comes up, and Part 8 wins the contradiction
+
+**2026-09-14.** `ATTUNE_TIERS` gave `T1` a weight of 10 at common and 5 at
+uncommon, while Part 8 of the prompt said the option reads `Reward: T2 to T3`.
+Because the screen label is derived from the weights rather than restated
+beside them, the screen honestly said `T1 to T3` and the contradiction
+surfaced instead of hiding.
+
+**The ruling went to Part 8**, and the argument is about what the gate is for:
+
+> An Attune paying `T1` means the player held a scarce relic, spent the gated
+> option on it, and got a minor payout. That is the one outcome the gate exists
+> to prevent.
+
+The two weights moved onto `T2` rather than being deleted — common 60 to 70,
+uncommon 50 to 55 — so the distribution keeps its shape and only its floor
+moves, and the `T3` weights are untouched. `contentHash` moves with it.
+
+Worth noting how this was found, because it is the second time the same
+technique has paid: the label is *derived* from the table it describes, so a
+disagreement between the spec's prose and the spec's numbers became a visible
+string on a screen rather than a discrepancy nobody was looking for. The same
+property is why `tierRangeOf` exists at all.
+
+### The dead-citation check, and the second one it found
+
+**2026-09-14.** `test/boundaries.test.ts` walks the live documents for paths
+that do not resolve. It found a band3 citation in this file missing its
+extension — and could not see that `core/types.ts` twice cited an
+event-archetype-log suite, a file named while the comment was being written and
+never created, because the walker only read `docs/`.
+
+(The dead names are spelled out here without backticks on purpose. The checker
+reads a backticked path as a claim that the file exists, and prose *about* an
+absence is exactly the case its `NAMED_AS_ABSENT` list exists for — a list the
+suite asserts may shrink and never grow, so the right move is to not make the
+claim rather than to widen the exception.)
+
+It reads `src/` comments now too, scoped to `test/` paths inside backticks.
+The narrowness is deliberate: a comment may reasonably describe a module that
+moved or is being argued about, and failing on those would make the check
+noise, but a citation of a *test* is a claim that a named file enforces
+something and that claim is either true or it is not.
+
+**It found a second dead citation on its first run** — `core/events.ts` cited
+an event-archetypes suite, where the assertion actually lives in
+`test/event-generation.test.ts`. Two dead pointers to rules that *were* being
+enforced, both written in the same patch that added the rules. This repo leans
+on comments naming the test that holds a rule, so a citation that goes nowhere
+costs more here than a broken link in a document: it is the thing a reader
+trusts when deciding whether a rule is enforced at all.
