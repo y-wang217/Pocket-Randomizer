@@ -2161,47 +2161,70 @@ So `T3` pays **a relic and a held item**: the same object `T2` offers plus a
 `T1`-grade rider. Strictly better by construction rather than by judgement, and
 it needs no new column.
 
-### Deviation: there is no pool exhaustion, and the reason is arithmetic
+### Ruled: rarity was doing two jobs, and the fix is to decouple them
 
-Part 3 says an event drawn once is removed from that run's pool, reasoning from
-"roughly one event per segment" — about eight events against a table of 24.
+**2026-09-14, on the step 1 report.** The report found that Part 3 draws a
+rarity per node while Part 4 assigns each event a rarity, so `(locale, rarity)`
+named exactly one event — rarity had become the event's *name* rather than the
+payout knob. That is what made the two required tests contradict each other:
+"no event ID twice in one run" is "no rarity twice in a locale", which distorts
+the distribution the rarity test pins.
 
-A run does not generate eight event nodes. Measured over five seeds on the tree
-this patch started from, counting `kind === 'event'` across every node of every
-offered locale route in all eight segments:
+The report proposed dropping exhaustion. **That was the wrong half to drop**,
+and the ruling is to decouple instead:
+
+- **Rarity stays a per-node draw that scales the outcome distribution, and
+  does nothing else.**
+- **Event identity is a separate draw** from the locale's event list.
+- **The rarity column comes out of the Part 4 chart entirely.** An event is a
+  locale, a relic, a hook and a toll price. Any event can roll any rarity.
+- **Exhaustion is enforced within a segment** at generation, and repeats across
+  segments are accepted.
+
+Both tests survive, and it costs one extra keyed draw per event node.
+
+**The refill rule, and the number that will decide the content question.**
+"No repeat within a segment" cannot hold unconditionally at three events per
+locale. Measured on the tree this patch started from, a segment generates three
+to eight event nodes across its two or three offered locale routes:
 
     event nodes generated per map: 42, 42, 55, 39, 51
     per segment (seed COUNT-0):     6, 4, 3, 7, 8, 4, 6, 4
 
-The player *walks* about one per segment; the map *contains* five or six times
-that, because every segment generates the full route behind each offered
-locale and every step offers two or three options. That is not incidental — it
-is the invariant: everything structural is drawn at map generation, including
-branches the player will never visit.
+So one locale usually carries two or three event nodes and fits inside its
+three events, and occasionally carries four or more and does not. The draw is
+without replacement from the locale's unused list, and the list refills when it
+empties — no repeat within a segment *until the locale runs out*, then repeats
+rather than a failed draw. Deterministic, and independent of player behaviour.
 
-Two further facts close the door:
+Three events per locale is thin regardless. Growing to five is queued content
+work, to be done after the system is proven, and it is the real answer to
+repetition. The simulator reports how often the refill fires so that decision
+gets a number rather than a guess.
 
-1. **Rarity names the event.** Part 3 draws a rarity per node; Part 4 gives
-   each locale exactly three events, one of each rarity. So `(locale, drawn
-   rarity)` identifies exactly one event, with no second draw. That is the
-   clean reading and it makes the rarity distribution exactly Part 3's table,
-   which is what the required test measures.
-2. **Therefore "do not repeat an event" is "do not repeat a rarity"**, inside a
-   locale — which distorts the distribution that same test pins.
+### Ruled: an event Pokemon never costs a fight, at any tier
 
-Exhausting along the walked path instead would give Part 3 exactly what it
-asks for and is forbidden: the pool state would then vary with player routing,
-and a draw that depends on player behaviour is the one thing the keyed-stream
-discipline does not allow.
+**2026-09-14, on the step 1 report.** The prompt's Part 1 says a `T2` Pokemon
+arrives "via a spawned encounter and capture" and its test 8 says "victory
+offers the capture". 4.6c shipped a *fightless* offer, and the report flagged
+the contradiction rather than picking silently.
 
-So rarity is a pure per-node draw, the event is a lookup, and there is no
-exhaustion mechanism. The lever, if the repetition proves to matter in
-playtest, is Part 4's table growing past three events per locale. That is a
-content decision and not an engineering one.
+Fightless is ratified across every tier, and the deciding argument is about
+the **Toll**, not about events in general:
 
-**This supersedes the step 1 report's own recommendation.** That report
-proposed per-segment, per-locale exhaustion; it was written before the reading
-that rarity names the event, and it does not survive it.
+> A Toll charges a stated, exact price for a guaranteed `T2`. If that `T2` then
+> rolls a Pokemon and spawns a battle, the player paid a known cost and was
+> charged an unknown second cost *after payment*. That is the one shape a Toll
+> must never have.
+
+The two older reasons still hold and are now the lesser ones: an event is a node
+with no battle in it, which is what makes an event unable to end a run
+(`tuning.eventDamageFloor`), and a second completion path would break the rule
+that every node completion routes through the single result screen.
+
+The consequence is that an event Pokemon is cheaper than a wild capture. That is
+a pool-contents question — the weight on the `t2-pokemon` entry in
+`data/eventPools.ts` — and not a mechanic.
 
 ### `contentHash` moved at step 2, and only the stamp moved with it
 
@@ -2221,3 +2244,29 @@ and that was checked rather than asserted:
 - `test/ai-priority.test.ts`'s literal pin is updated rather than relaxed, with
   a comment naming this patch. A literal costs one visible line in a diff
   every time the data tables change, and that line is the point.
+
+### Ruled: the logged identity is the archetype tag, and it needs a uniqueness rule
+
+**2026-09-14, on the step 1 report.** The prompt's Part 6 asks for a per-event
+option ID. The report argued for the archetype tag instead — `safe`, `gamble`,
+`toll`, `attune` — because it is a closed set that cannot drift the way a
+per-event id outliving a `data/events.ts` edit can, and because a log naming
+`attune` on a replay without the relic then fails loudly, which is the property
+the index rule in `core/types.ts` exists to produce.
+
+Taken, **with one condition the report did not state**: no event may carry two
+options of the same archetype, or the tag stops being a unique identity within
+its event. That is asserted over the whole table at step 6, when the event
+entries land, rather than being left to authoring discipline.
+
+### The merge order against the AI tiers branch
+
+**2026-09-14.** The priority-and-speed AI tiers branch sits unmerged at
+`AI_VERSION` 5. Whichever of the two lands second pays for a benchmark
+rebaseline, so the order is decided here rather than discovered later: **the AI
+branch lands first.** It is finished and this one is four steps from a
+benchmark, and this patch's benchmark is worth more read against the AI the
+game actually ships than against a `gymrun-ai-3-priority` about to be replaced.
+The rebaseline costs this branch one simulator run it performs at step 7
+anyway. The benchmark row is stamped with whichever `AI_VERSION` is on `main`
+when it is recorded — read down a prefix, never across.
