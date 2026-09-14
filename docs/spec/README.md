@@ -64,6 +64,8 @@ One row per document. **Status is exactly one value:** `draft`, `active`,
 | [`gymrun-patch-mobile-seed-bar.md`](gymrun-patch-mobile-seed-bar.md) | patch prompt | `active` | | committed 2026-09-11 before any work. Supersedes the 4.5.2 phone rule that hid the seed bar for the whole run; the collapsed bar is recorded in `../generation.md` section 12k |
 | [`gymrun-patch-density-modes.md`](gymrun-patch-density-modes.md) | patch prompt | `active` | | committed 2026-09-11 before any work, on `claude/bold-clarke-xcwko1`; all seven steps built the same day on that branch, every gate green, awaiting merge (flip to `built` then). Replaces the two valued 4.7.2 verbosity flag with a three valued density setting. Presentation only: no `core/` change, no version axis moves. Report [`../visual/reports/patch-density-modes.md`](../visual/reports/patch-density-modes.md); the six rulings on it are appended to the prompt file verbatim and their corrections recorded in `../generation.md` section 12l |
 
+| [`gymrun-patch-event-rejig.md`](gymrun-patch-event-rejig.md) | patch prompt | `draft` | retires three rules named in its Part 5: the 4.6c "events pay at every band" floor, bands as the outcome selector, and the 4.6c capability-weighting note | committed 2026-09-14 before any work, on `claude/zealous-lovelace-srtimh`. Step 1 is a report-only stop; nothing built yet |
+
 `gymrun-seeds-and-mappability.md` stays `active` rather than `merged` because
 it is a design note and not a stage prompt: its requirements are all built as
 of the overnight run's Branch 1, with one deliberate difference —
