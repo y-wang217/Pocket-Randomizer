@@ -2844,11 +2844,21 @@ Re-recorded, with the evidence first as at step 3 of the rejig:
   battle engine is untouched.
 - `data-digest.txt` moved with `contentHash`.
 
+`test/fixtures/sim-report.json` re-minted to the same three lines — `version`,
+`randomizerVersion`, `contentHash` — with all three of its runs byte identical.
+
 The reason the runs held still is worth writing down, because it is the keyed
 streams paying for themselves twice in one patch: the baseline policy takes
 `safe` at every event, `safe` is drawn first of the four archetypes, and the
 relic shuffle's extra draws land after its outcomes. A patch that added draws
 *before* the first option would have moved all six.
+
+**And it is a finding about the instrument, not only a convenience.** Safe pays
+a flat `T1`, which never contained a move or a relic on any tier band, so the
+bot that produces every number in `balance.md` walks past this entire fix.
+Section 18 there records that the standing benchmark is blind to the Toll and
+the Gamble — which is where an event's variance lives — and why that is left as
+an open item rather than fixed inside a bug fix.
 
 ### The move card's fields stopped moving, and the battle screen fell 41px
 
