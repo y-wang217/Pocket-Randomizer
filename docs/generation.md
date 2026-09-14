@@ -2912,3 +2912,47 @@ the chips are drawn in column order rather than in `MOVE_FACT_IDS` order, and
 `contact` is drawn second instead of last. The set is unchanged — nothing is
 dropped and nothing is invented — and `test/battle-readout.test.ts` asserts
 both halves separately so the distinction cannot blur.
+
+### The gates, and one honest asterisk on the suite
+
+Run on this branch at `a4ef1f8`:
+
+| gate | result |
+|---|---|
+| type check (`tsc --noEmit`) | clean |
+| lint (`eslint .`) | clean |
+| build | clean |
+| smoke (`npm run smoke`) | passed, every check |
+| guarded heights vs `heights.json` | equal to the pixel after the re-record |
+| determinism, stream isolation, version guards | in the suite below, all green |
+| full suite | **1547 / 1547 in 117 / 117 files** |
+| full suite under `GYMRUN_TRIM_STRICT=1` | **1547 / 1547 in 117 / 117 files** |
+
+**The asterisk:** both suite runs exit non-zero on two identical
+`[vitest-worker]: Timeout calling "onTaskUpdate"` errors — the reporter's
+RPC timing out, with no test attributed and every test passing. They are
+recorded rather than waved away, and the reason they are believed to be the
+container rather than the patch is that the *earlier* run on this same branch,
+the one carrying seven genuine failures, produced three of them. They track
+load, not outcome. **Not verified against `main`**, which would cost another
+full run; a reader who needs that certainty should take it before merging.
+
+The first build of this patch failed three gates, and all three are worth
+keeping because each caught something a reading of the diff would not have:
+
+1. **`test/visual-v3.test.ts` and `test/visual-chips.test.ts`, from opposite
+   directions.** `minmax(0, 1fr)` let a fact chip overflow its own cell and
+   paint across the next one, so the accuracy chip took the contact chip's hit
+   target and the contrast sampler read one chip through another. Neither suite
+   was looking for a grid. The floor is `min-content` now.
+2. **`test/relic-permanence.test.ts`.** The first build appended to
+   `state.relics` from `core/events.ts`. That test greps `src/` for a second
+   writer of the held set and its own comment names an event outcome as the
+   case it exists for — so it caught, by name, the thing it was written for
+   four stages earlier. `rewards.grantRelic` is the one writer now, and
+   `applyReward`'s relic arm is a call to it.
+3. **`test/visual-v5.test.ts`, amendment A6.** It pinned the two-line
+   `.move__meta` as a guard against a careless tighten squeezing the band badge
+   off the face. The wrap was the defect, so the assertion flipped rather than
+   relaxed — and A6's actual hazard is still checked, one assertion down, by
+   the overhang count that never depended on the wrap.
