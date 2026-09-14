@@ -2429,3 +2429,32 @@ re-recorded rather than excused, and this table is the record of what it was.
 `contentHash` moved a third time, to `6eb7c3b0`, because step 3 edits
 `data/events.ts` and `data/eventPools.ts`. The literal in
 `test/ai-priority.test.ts` moves with it, as it will once more at step 6.
+
+### The refill rate at the real table size, and what it means for five per locale
+
+**2026-09-14, step 6.** The exhaustion rule draws an event without replacement
+from its locale's list and refills when the list empties. Step 3 measured 3.3
+refills per segment, which was an artefact of the placeholder table holding one
+event per locale. At the shipped table — three per locale, eight locales —
+measured over 120 seeds and 960 segments:
+
+| | |
+|---|---|
+| event nodes generated per segment | 5.86 |
+| refills per segment | **0.37** |
+| refills per run | 2.95 |
+| runs with at least one refill | 116 of 120 (97%) |
+| per-run refills, median / max | 3 / 7 |
+
+A ninefold improvement on the placeholder, and the shape is what the arithmetic
+predicts: a segment offers two or three locales, so each locale carries about
+two event nodes against its three events and mostly fits.
+
+**This is a generation-time number, not a player-facing one.** A refill means
+one locale's list wrapped while the map was being built, across branches the
+player will never walk. The player walks roughly one event per segment, so a
+repeat only reaches them if they walk the same locale twice *and* the wrapped
+draw lands on the node they choose. The figure that matters for the
+five-per-locale decision is therefore an upper bound on felt repetition rather
+than a measurement of it, and the simulator's own event report is where the
+lower bound will come from.
