@@ -2,7 +2,7 @@
   "seed": "RESULT-0",
   "versions": {
     "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7",
+    "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
     "randomizer": "gymrun-randomizer-13",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
@@ -18,7 +18,7 @@
     "byMove": "Sacred Sword",
     "indirect": null
   },
-  "currency": 1048,
+  "currency": 1108,
   "backpack": [],
   "relics": [
     "abyssal-lens",
@@ -61,7 +61,7 @@
       "moves": [
         "Triple Kick 5/16",
         "Weather Ball 16/16",
-        "Salt Cure 22/24",
+        "Salt Cure 21/24",
         "Hone Claws 24/24"
       ],
       "item": "leppaberry",
@@ -87,7 +87,7 @@
       "level": 54,
       "ability": "Natural Cure",
       "moves": [
-        "Venoshock 3/16",
+        "Venoshock 4/16",
         "Fire Spin 24/24",
         "Triple Kick 16/16",
         "Bite 40/40"
@@ -183,7 +183,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 326,
+      "hpAfter": 298,
       "casualties": []
     },
     {
@@ -324,7 +324,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 495,
+      "hpAfter": 526,
       "casualties": []
     },
     {
@@ -335,7 +335,7 @@
       "opponent": "Trainer (3)",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 482,
+      "hpAfter": 513,
       "casualties": []
     },
     {
@@ -469,7 +469,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 160,
+      "hpAfter": 289,
       "casualties": []
     },
     {
@@ -529,7 +529,7 @@
     "seed": "RESULT-0",
     "versions": {
       "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7",
+      "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-13"
     },
@@ -2076,15 +2076,15 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 5
+          "kind": "move",
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 5
         }
       },
       {

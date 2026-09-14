@@ -2,7 +2,7 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7",
+    "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
     "randomizer": "gymrun-randomizer-13",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
@@ -18,7 +18,7 @@
     "byMove": "Bitter Blade",
     "indirect": null
   },
-  "currency": 860,
+  "currency": 896,
   "backpack": [
     "choicespecs",
     "rockyhelmet",
@@ -50,7 +50,7 @@
         "Disarming Voice 24/24",
         "Rock Polish 32/32"
       ],
-      "item": "mysticwater",
+      "item": "twistedspoon",
       "hp": "0/140",
       "fainted": true
     },
@@ -64,7 +64,7 @@
         "Pay Day 31/32",
         "Grassy Glide 32/32"
       ],
-      "item": "twistedspoon",
+      "item": "mysticwater",
       "hp": "0/168",
       "fainted": true
     },
@@ -103,7 +103,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 109,
+      "hpAfter": 92,
       "casualties": []
     },
     {
@@ -112,9 +112,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Dunsparce",
-      "turns": 6,
+      "turns": 5,
       "winner": "p1",
-      "hpAfter": 57,
+      "hpAfter": 56,
       "casualties": []
     },
     {
@@ -125,7 +125,7 @@
       "opponent": "Wild Elekid",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 138,
+      "hpAfter": 137,
       "casualties": []
     },
     {
@@ -136,7 +136,7 @@
       "opponent": "Wild Pikachu",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 109,
+      "hpAfter": 110,
       "casualties": []
     },
     {
@@ -147,7 +147,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 6,
       "winner": "p1",
-      "hpAfter": 6,
+      "hpAfter": 1,
       "casualties": [
         {
           "side": "p1",
@@ -162,7 +162,7 @@
           "name": "Fennel",
           "level": 30,
           "bySpecies": "Pupitar",
-          "byMove": "Ancient Power",
+          "byMove": "Rock Slide",
           "indirect": null
         }
       ]
@@ -285,7 +285,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 526,
+      "hpAfter": 567,
       "casualties": []
     },
     {
@@ -296,7 +296,7 @@
       "opponent": "Volta (Electric)",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 433,
+      "hpAfter": 474,
       "casualties": []
     },
     {
@@ -403,7 +403,7 @@
     "seed": "SEED-B",
     "versions": {
       "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7",
+      "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-13"
     },
@@ -657,13 +657,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -811,7 +804,7 @@
         "plan": {
           "assignments": [
             {
-              "slot": 1,
+              "slot": 2,
               "item": "mysticwater"
             }
           ],
@@ -999,7 +992,7 @@
         "plan": {
           "assignments": [
             {
-              "slot": 2,
+              "slot": 1,
               "item": "twistedspoon"
             }
           ],

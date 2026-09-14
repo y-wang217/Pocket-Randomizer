@@ -2395,3 +2395,37 @@ game actually ships than against a `gymrun-ai-3-priority` about to be replaced.
 The rebaseline costs this branch one simulator run it performs at step 7
 anyway. The benchmark row is stamped with whichever `AI_VERSION` is on `main`
 when it is recorded — read down a prefix, never across.
+
+### Step 3 moved run content, and the guarded heights with it
+
+**2026-09-14.** Step 3 is the first part of this patch that changes what a run
+*does*, so the two presentation baselines moved and the four suites that pin
+them failed. Both movements were checked before either baseline was re-recorded,
+because re-recording on a red test is how a guard becomes decoration.
+
+**The run log did not drift; the payouts did.** On SMOKE24, all 295 decisions
+are identical before and after — 162 battles, 27 nodes, 5 locales, and the same
+six event decisions at the same indexes. Map generation is untouched, which is
+the keyed-stream discipline doing its job: an event draws on its own node's
+`event` sub-stream, so changing what events pay cannot move a battle. What moved
+is the state those events produced: currency 1015 to 1120 on that seed, same
+party size, same relics, same gyms cleared.
+
+**The guarded screen heights moved with it**, and only on the map:
+
+| measurement | before | after |
+|---|---|---|
+| `map.screenHeight` | 840.41 | 824.19 |
+| `map.scrollHeight` | 1033 | 1017 |
+| `map.decisionTop` | 558 | 558 |
+| `battle` (default mode) | unchanged | unchanged |
+
+The decision point did not move — `decisionTop` and `decisionBottom` are the
+same to the pixel — so the 16.22px is content *below* the decision point, which
+is the map's own readout of a run that now carries different numbers. Pocket
+mode shifts both screens by 24px for the same reason. `heights.json` is
+re-recorded rather than excused, and this table is the record of what it was.
+
+`contentHash` moved a third time, to `6eb7c3b0`, because step 3 edits
+`data/events.ts` and `data/eventPools.ts`. The literal in
+`test/ai-priority.test.ts` moves with it, as it will once more at step 6.

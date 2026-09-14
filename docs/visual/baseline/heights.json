@@ -7,8 +7,8 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 777.5,
-        "scrollHeight": 940,
+        "screenHeight": 761.28,
+        "scrollHeight": 924,
         "decisionCount": 2,
         "decisionTop": 513.44,
         "decisionBottom": 609.31
@@ -23,24 +23,24 @@
     },
     "pocket": {
       "map": {
-        "screenHeight": 586.95,
+        "screenHeight": 570.73,
         "scrollHeight": 844,
         "decisionCount": 2,
-        "decisionTop": 302.89,
-        "decisionBottom": 394.77
+        "decisionTop": 278.89,
+        "decisionBottom": 370.77
       },
       "battle": {
         "screenHeight": 481.89,
         "scrollHeight": 844,
         "decisionCount": 4,
-        "decisionTop": 379.39,
-        "decisionBottom": 522.39
+        "decisionTop": 355.39,
+        "decisionBottom": 498.39
       }
     }
   },
   "map": {
-    "screenHeight": 840.41,
-    "scrollHeight": 1033,
+    "screenHeight": 824.19,
+    "scrollHeight": 1017,
     "decisionCount": 2,
     "decisionTop": 558,
     "decisionBottom": 672.72

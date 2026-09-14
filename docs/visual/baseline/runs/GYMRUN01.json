@@ -2,7 +2,7 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-13/gymrun-0.3.0",
-    "contentHash": "c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7",
+    "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
     "randomizer": "gymrun-randomizer-13",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
@@ -18,7 +18,7 @@
     "byMove": "Surging Strikes",
     "indirect": null
   },
-  "currency": 243,
+  "currency": 153,
   "backpack": [],
   "relics": [
     "woodsmans-hatchet"
@@ -109,7 +109,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 273,
+      "hpAfter": 286,
       "casualties": []
     },
     {
@@ -120,7 +120,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 273,
+      "hpAfter": 286,
       "casualties": []
     },
     {
@@ -131,7 +131,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 241,
+      "hpAfter": 254,
       "casualties": []
     },
     {
@@ -237,7 +237,7 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-13/gymrun-0.3.0",
-      "contentHash": "c6eb98c7754541e2fcadbffc390888fbc99a710ca0f0d1d7ea4ef620b589fba7",
+      "contentHash": "6eb7c3b03f5848182c4ab6e329ad218c4a7053643f63c693e3290dba0796abb7",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-13"
     },
