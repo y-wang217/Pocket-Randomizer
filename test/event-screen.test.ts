@@ -85,7 +85,7 @@ describe('the event screen', () => {
         for (const [index, choice] of presentedOptions(event, band).entries()) {
           const screen = createEventScreen();
           const state = stateAt(band, event.requires);
-          const done: number[] = [];
+          const done: string[] = [];
           screen.render(event, state, (picked) => done.push(picked));
           document.body.append(screen.root);
 

@@ -34,6 +34,7 @@ import {
   type EventInstance,
   type EventOutcome,
 } from '../../core/events';
+import type { EventArchetype } from '../../data/eventPools';
 import { resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
 import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
@@ -42,7 +43,7 @@ import { el } from '../scene';
 
 export interface EventScreen {
   root: HTMLElement;
-  render(event: EventInstance, state: RunState, onDone: (index: number) => void): void;
+  render(event: EventInstance, state: RunState, onDone: (archetype: EventArchetype) => void): void;
 }
 
 export function createEventScreen(): EventScreen {
@@ -139,9 +140,9 @@ export function createEventScreen(): EventScreen {
         carry.type = 'button';
         carry.className = 'button primary-action';
         carry.textContent = 'Carry on';
-        // The index the run records is into the built list, never the shown one.
-        const built = event.options.indexOf(choice);
-        carry.addEventListener('click', () => onDone(built));
+        // The run records the archetype, which names the button whatever the
+        // presented list looks like.
+        carry.addEventListener('click', () => onDone(choice.archetype));
 
         result.replaceChildren(
           ...(conclusion.textContent ? [conclusion] : []),

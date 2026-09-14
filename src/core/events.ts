@@ -547,7 +547,17 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
       return { ...state, currency: Math.max(0, state.currency + effect.amount) };
 
     case 'currencyFraction': {
-      const owed = Math.max(effect.floor, Math.round(state.currency * effect.fraction));
+      /*
+       * `max(floor, fraction x current gold)`, so a broke player still pays
+       * something — and then clamped at zero, so paying more than you have
+       * takes what you have rather than going negative.
+       *
+       * Computed here and not at generation because current gold is not known
+       * when the map is built. That is arithmetic against state, not a draw: it
+       * consumes no RNG and therefore cannot shift a stream, which is what lets
+       * a resolution-time number exist at all in this codebase.
+       */
+      const owed = Math.max(Math.max(0, effect.floor), Math.round(state.currency * Math.max(0, effect.fraction)));
       return { ...state, currency: Math.max(0, state.currency - owed) };
     }
 
@@ -580,8 +590,28 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
       return { ...state, backpack: state.backpack.filter((_, at) => at !== index) };
     }
 
-    case 'discard':
-      return { ...state, backpack: state.backpack.slice(0, Math.max(0, state.backpack.length - effect.count)) };
+    case 'discard': {
+      /*
+       * **From the end of the backpack, and that is a rule rather than a
+       * convenience.**
+       *
+       * A forced discard has to name a victim without asking the player, and
+       * every way of choosing one is arbitrary — so the choice is made the one
+       * way that is also *legible*: the backpack is ordered by acquisition, so
+       * the end is the most recently picked up. A player who just took a
+       * Leftovers and then walked into a setback loses the Leftovers, which is
+       * a thing they can see happening. Drawing a victim would be worse twice
+       * over: it would consume RNG at resolution, and it would make the cost
+       * unpredictable in a way no amount of copy could explain.
+       *
+       * An empty backpack makes this a no-op. That is deliberate and it is why
+       * `data/eventPools.ts` keeps the discard out of the opening band, where a
+       * bag is most often empty: a cost that no-ops on half the runs that draw
+       * it is a cost nobody learns to fear.
+       */
+      const keep = Math.max(0, state.backpack.length - Math.max(0, effect.count));
+      return { ...state, backpack: state.backpack.slice(0, keep) };
+    }
   }
 }
 

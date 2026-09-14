@@ -30,6 +30,7 @@ import {
 } from '../core/run';
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
+import type { EventArchetype } from '../data/eventPools';
 import { createPending } from './pending';
 import { initSettings, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
@@ -318,7 +319,7 @@ export function mountApp(root: HTMLElement): void {
     const replacePick = createPending<number>();
     const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
-    const eventPick = createPending<number>();
+    const eventPick = createPending<EventArchetype>();
     const leadPick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     const releaseBattle = (): void => {
@@ -466,7 +467,7 @@ export function mountApp(root: HTMLElement): void {
       chooseEventOption: (event, state) => {
         // The event screen holds the run open between the pick and the reveal:
         // it resolves this promise on "Carry on", not on the choice itself.
-        eventScreen.render(event, state, (index) => eventPick.submit(index));
+        eventScreen.render(event, state, (archetype) => eventPick.submit(archetype));
         showScreen('event');
         return eventPick.wait();
       },

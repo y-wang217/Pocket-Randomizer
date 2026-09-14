@@ -70,10 +70,13 @@ import {
 import {
   applyEventOutcome,
   applyToll,
+  optionOf,
   outcomeFor,
+  presentedOptions,
   type EventInstance,
   type EventOutcome,
 } from './events';
+import type { EventArchetype } from '../data/eventPools';
 import { resolveCapability, type CapabilityContext } from './capabilities';
 import { describeMove } from './battle/driver';
 import { applyItemPlan, backpackCapacity, needsItemPlan, spendItems, stowAll } from './items';
@@ -236,11 +239,32 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * refused on this axis by name, with the old `version` field quoted so the
  * message still says what the log was.
  *
+ * ## `-14`: the event decision stopped being an index
+ *
+ * **The event rejig, and it is a changed *answer* rather than a changed
+ * question.** The event node still asks exactly one thing — which button — but
+ * the answer is now the option's archetype (`safe`, `gamble`, `toll`,
+ * `attune`) instead of an index.
+ *
+ * The reason is the Attune gate. The presented list is three options without
+ * the event's relic and four with, so an index into it names a different button
+ * depending on what the run holds, and a `-13` log replayed against a different
+ * relic state would take a decision the player never made. The archetype names
+ * a role rather than a position, so it survives the gate — and a log naming
+ * `attune` on a replay that reaches the node without the relic is *refused*,
+ * which is the loud failure the index rule exists to produce.
+ *
+ * A `-13` log carries `{kind:'event', index}` where this build reads
+ * `archetype`, so it is refused on this axis by name. `contentHash` would also
+ * refuse it, because the same patch rewrote `data/events.ts` — but that is a
+ * coincidence of the patch rather than a rule, and the schema axis is the one
+ * that states *why*.
+ *
  * `aiVersion` is the point of doing this here rather than in the AI patch that
  * follows: the AI patch bumps one constant and the guard picks it up, with no
  * schema change of its own. `docs/generation.md` section 9.
  */
-export const RUN_LOG_VERSION = `gymrun-run-13/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-14/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -686,8 +710,8 @@ export interface NodeResult {
   acquisition?: { offer: AcquisitionOffer; decision: AcquisitionDecision };
   /** Shelf slots bought at a shop node, as indexes into its stock. */
   purchases?: number[];
-  /** The event option taken, as an index into the instance's choices. */
-  eventChoice?: number;
+  /** The event option taken, as its archetype. See `RunDecision`'s `event`. */
+  eventChoice?: EventArchetype;
   /** Present for battle nodes: the outcome, and the party as the sim left it. */
   battle?: {
     result: BattleResult;
@@ -819,11 +843,9 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (result.battle?.result.winner === 'p1') currency += nodePayout(result.node, state.currentSegment);
 
   if (result.eventChoice !== undefined && result.node.event) {
-    const option = result.node.event.options[result.eventChoice];
+    const option = optionOf(result.node.event, result.eventChoice);
     if (!option) {
-      throw new RangeError(
-        `Event option ${result.eventChoice} out of range (${result.node.event.options.length} built)`,
-      );
+      throw new RangeError(`Event option ${result.eventChoice} is not on ${result.node.event.eventId}`);
     }
     const outcome = chosenEventOutcome(result, state);
     if (outcome) {
@@ -1138,7 +1160,7 @@ export interface RunPolicy {
    */
   chooseShopPurchases: (stock: ShopStock, state: RunState) => Promise<number[]>;
   /** Which event option to take. The outcome was drawn when the map was built. */
-  chooseEventOption: (event: EventInstance, state: RunState) => Promise<number>;
+  chooseEventOption: (event: EventInstance, state: RunState) => Promise<EventArchetype>;
   /**
    * Which party member learns a taught move. A party slot.
    *
@@ -1445,19 +1467,25 @@ export async function playRun(
 
     if (result.node.event) {
       const event = result.node.event;
-      const index = await policy.chooseEventOption(event, state);
-      record({ kind: 'event', index });
+      const archetype = await policy.chooseEventOption(event, state);
+      record({ kind: 'event', archetype });
       /*
-       * An index into the **full** four-option list, not into the presented
-       * one. The presented list drops Attune without the relic, so an index
-       * into it would mean a different button depending on what the run held —
-       * which is exactly the instability that makes step 5 replace this with
-       * the archetype tag. Indexing the built list is stable in the meantime.
+       * The archetype names the button, and the button has to be one the run
+       * was actually offered. A policy answering `attune` at a band below
+       * `known` is refused here rather than silently paid: that is a log
+       * replaying into a decision the run never presented, which is the failure
+       * the whole decision-log design exists to prevent.
        */
-      if (!event.options[index]) {
-        throw new RangeError(`Event option ${index} out of range (${event.options.length} built)`);
+      const band = resolveCapability(state, event.requires);
+      const chosen = presentedOptions(event, band).find((option) => option.archetype === archetype);
+      if (!chosen) {
+        throw new RangeError(
+          `Event option ${archetype} was not offered at band ${band} (${presentedOptions(event, band)
+            .map((option) => option.archetype)
+            .join(', ')})`,
+        );
       }
-      result.eventChoice = index;
+      result.eventChoice = archetype;
     }
 
     /*
@@ -1690,7 +1718,7 @@ export function acquisitionOffered(result: NodeResult, run: CapabilityContext): 
 export function chosenEventOutcome(result: NodeResult, run: CapabilityContext): EventOutcome | null {
   const event = result.node.event;
   if (!event || result.eventChoice === undefined) return null;
-  const option = event.options[result.eventChoice];
+  const option = optionOf(event, result.eventChoice);
   if (!option) return null;
   return outcomeFor(option, resolveCapability(run, event.requires));
 }
@@ -1986,7 +2014,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     // Buys nothing. A scripted baseline that spent money would make every
     // sweep it appears in a measurement of one shopping heuristic.
     chooseShopPurchases: async () => [],
-    chooseEventOption: async () => 0,
+    chooseEventOption: async () => 'safe',
     // The lead, which is slot 0 and the member the Stage 3 code targeted
     // implicitly. A baseline that spread items around would make every sweep it
     // appears in a measurement of one targeting heuristic.
@@ -2153,7 +2181,7 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
     chooseEventOption: async (event, state) => {
       const decision = next('event');
       if (!decision) return live ? live.chooseEventOption(event, state) : exhausted('event');
-      return decision.kind === 'event' ? decision.index : exhausted('event');
+      return decision.kind === 'event' ? decision.archetype : exhausted('event');
     },
     chooseMoveRecipient: async (offer, party, state) => {
       const decision = next('target');

@@ -174,18 +174,18 @@ describe('finding the offer', () => {
   const knowsNothing = { relics: [], party: [] };
 
   it('finds an offer on the chosen outcome at the band the run is at', () => {
-    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 1 }, knowsSurf)).toEqual(offer);
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 'gamble' }, knowsSurf)).toEqual(offer);
   });
 
   it('finds nothing at a lower band, because a different outcome pays', () => {
     // The same node and the same button. Only the band differs, and the band
     // is the run's, so two runs on this seed diverge here without either
     // having made a roll the other did not.
-    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 1 }, knowsNothing)).toBeNull();
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 'gamble' }, knowsNothing)).toBeNull();
   });
 
   it('finds nothing when the player chose a different button', () => {
-    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 0 }, knowsSurf)).toBeNull();
+    expect(acquisitionOffered({ node: offeringNode(), eventChoice: 'safe' }, knowsSurf)).toBeNull();
   });
 
   it('finds nothing when no event choice was made', () => {

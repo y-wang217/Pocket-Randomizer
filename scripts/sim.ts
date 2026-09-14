@@ -1429,12 +1429,13 @@ function buildPolicy(
         valueOfOutcome(outcomeFor(option, band), state, segment),
       );
       const chosen = offered[bestOfOffered];
-      if (!chosen) return 0;
+      // Safe is on every event at every band, so it is the honest fallback.
+      if (!chosen) return 'safe';
       const outcome = outcomeFor(chosen, band);
       for (const effect of outcome.grant) {
         if (effect.kind === 'item') collect.itemsAcquired.push(...effect.items);
       }
-      return event.options.indexOf(chosen);
+      return chosen.archetype;
     },
 
     /*
