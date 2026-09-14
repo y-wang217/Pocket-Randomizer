@@ -79,6 +79,58 @@ export const MOVE_FACT_INFO: Record<MoveFactId, MoveFactDefinition> = {
 };
 
 /**
+ * How many columns the strip reserves. **Four, and the number is measured.**
+ *
+ * No move in `data/movePools.ts` carries more than four face facts — the
+ * distribution across the 458 pool moves is 46 with none, 113 with one, 202
+ * with two, 93 with three and 4 with four — so four columns hold every move the
+ * game can draw without dropping a field.
+ *
+ * It is also the answer to the playtest complaint the column map below exists
+ * for: "if there's this many fields, we can try a 4-column view to compare".
+ */
+export const MOVE_FACT_COLUMNS = 4;
+
+/**
+ * Which column each field occupies. **A field's position is its identity.**
+ *
+ * The strip used to pack its chips left to right, so a move with no contact
+ * flag put its secondary-effect chance exactly where the card beside it put
+ * contact. The reporter's words: "the line breaks for the band and the
+ * accuracy etc must be consistent for the user to remember what they mean." A
+ * symbol you have to re-find on every card is a symbol nobody learns.
+ *
+ * Each column reserves its width whether or not the move has the field, so the
+ * accuracy on one button sits directly above the accuracy on the next.
+ *
+ * ## The grouping is from the co-occurrence data, not from taste
+ *
+ * Two fields may share a column only if no move in the pools has both, and
+ * that was measured across all 458 rather than reasoned about:
+ *
+ *   - `accuracy` (405 moves) and `contact` (185) are each promiscuous — they
+ *     pair with nearly everything — so each takes a column alone.
+ *   - `secondary` (160) and `multiHit` (22) never co-occur, so they share.
+ *   - `priority` (21), `recoil` (9), `drain` (10), `charge` and `recharge`
+ *     pair with none of each other, so they share the last.
+ *
+ * `test/move-fact-columns.test.ts` re-derives that over the live pools, so a
+ * move added to `data/movePools.ts` that breaks a pairing fails there rather
+ * than silently hiding a field on one card.
+ */
+export const MOVE_FACT_COLUMN: Readonly<Record<MoveFactId, number>> = {
+  accuracy: 1,
+  contact: 2,
+  secondary: 3,
+  multiHit: 3,
+  priority: 4,
+  recoil: 4,
+  drain: 4,
+  charge: 4,
+  recharge: 4,
+};
+
+/**
  * The face label a screen reader gets, and the fallback `title`.
  *
  * The value is included when there is one, so `◎ 85` announces as

@@ -42,7 +42,7 @@ import { spriteImg, spriteUrl } from './sprites';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import type { MoveTag } from '../data/moveTags';
-import { MOVE_FACT_INFO, moveFactAriaLabel } from '../data/moveFactInfo';
+import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, moveFactAriaLabel } from '../data/moveFactInfo';
 import type { MoveFact } from '../core/moveFacts';
 import { statusReadoutLine, type MoveEffectFields } from '../data/moveCopy';
 import { moveExplanation } from './move-explanation';
@@ -939,20 +939,21 @@ function renderMove(
   else meta.append(power);
 
   /*
-   * The band, next to the base power it can disagree with. **R12.**
+   * The band. **R12 put it beside the base power; the playtest patch moved it
+   * to the head of the fact line, and the reason is line breaks.**
    *
-   * Beside `BP` rather than up by the name, because the two numbers only make
-   * sense together: Population Bomb reads `20 BP` and `BAND 4`, and a player
-   * who meets those two facts in different regions of the card learns to
-   * distrust both. Before the effectiveness marker, because that one is about
-   * the Pokemon standing opposite and belongs at the situational end of the
-   * row.
+   * R12's argument was that `20 BP` and `BAND 4` only make sense together, so
+   * they should meet in one region of the card. That held — until the four
+   * buttons were looked at side by side on a phone, where `.move__meta` wraps
+   * against its own content: an eight-letter type name pushed the band onto
+   * the second line while the button beside it kept it on the first. The two
+   * facts still meet, one line apart and in the same place on every card,
+   * which is the version a player can learn.
    *
    * `powerBand` off the projection, so the button resolves a band through the
    * same `bandOfMove` read as every card outside the fight.
    */
   const band = moveBandChip(move.powerBand);
-  if (band) meta.append(band);
 
   // Effectiveness, computed live against whatever is actually standing there.
   // Neutral prints nothing: a row where every button carries a badge is a row
@@ -966,6 +967,9 @@ function renderMove(
    * projection no longer conflates them. See core/battle/effectiveness.ts.
    */
   const label = move.band === null || move.band === 'neutral' ? null : formatEffectiveness(move.effectiveness);
+  // Built here, rendered by the strip: it closes the fact line rather than
+  // sitting on the wrapping meta row. See `moveFactStrip`'s `extras`.
+  let effectBadge: HTMLElement | null = null;
   if (label && move.band) {
     const badge = effectChip(label, move.band);
     badge.setAttribute('aria-label', `${move.name}: ${EFFECTIVENESS_LABELS[move.band]}`);
@@ -988,7 +992,7 @@ function renderMove(
         `${move.name}: ${EFFECTIVENESS_LABELS[move.band]} — from ${cause.name}`,
       );
     }
-    meta.append(badge);
+    effectBadge = badge;
   }
 
   const pp = el('span', 'move__pp');
@@ -1021,7 +1025,7 @@ function renderMove(
   // Call site one of two: the battle button, off the projection's own
   // `facts`. `scene.ts` may not reach `describeMove`, so the list arrives
   // derived. Mirrors `moveBandChip`, and like it the two sites stay two.
-  const strip = moveFactStrip(move.facts);
+  const strip = moveFactStrip(move.facts, { band, effect: effectBadge });
   button.append(name, meta, ...(strip ? [strip] : []), footer);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
@@ -1079,9 +1083,49 @@ export function moveBandChip(band: number | null | undefined): HTMLElement | nul
  * An empty row on three of four buttons is the ragged grid this feature exists
  * to remove.
  */
-export function moveFactStrip(facts: readonly MoveFact[]): HTMLElement | null {
-  if (facts.length === 0) return null;
+export function moveFactStrip(
+  facts: readonly MoveFact[],
+  /**
+   * The two chips that share the line with the facts, and the reason it is a
+   * grid. **The playtest patch.**
+   *
+   * `band` is the base-power bracket and `effect` the live effectiveness
+   * marker. Both used to sit on `.move__meta` above, which wraps — so `BAND 3`
+   * landed on the first line of one button and the second line of the next,
+   * depending on how wide that button's type name happened to be. They are
+   * pinned here instead: the band opens the line on every card that has one,
+   * the four fact columns follow at fixed offsets, and the effectiveness
+   * marker closes it.
+   *
+   * Effectiveness last on purpose. It is the one field that changes with what
+   * is standing opposite — the single exception `CLAUDE.md` carves out of the
+   * no-verdicts rule — so it is the one field whose presence must not shift
+   * anything else.
+   */
+  extras: { band?: HTMLElement | null; effect?: HTMLElement | null } = {},
+): HTMLElement | null {
+  const { band = null, effect = null } = extras;
+  if (facts.length === 0 && !band && !effect) return null;
   const row = el('span', 'move__facts');
+
+  if (band) {
+    band.classList.add('move__facts-band');
+    row.append(band);
+  }
+
+  /*
+   * Every column, every time, empty or not. A column that collapsed when its
+   * field was absent would put the next field where this one belongs, which is
+   * the whole defect: `MOVE_FACT_COLUMN`'s comment has the co-occurrence
+   * evidence that lets four columns hold nine fields with nothing dropped.
+   */
+  const cells = Array.from({ length: MOVE_FACT_COLUMNS }, (_, index) => {
+    const cell = el('span', 'move__fact-cell');
+    cell.dataset['column'] = String(index + 1);
+    row.append(cell);
+    return cell;
+  });
+
   for (const fact of facts) {
     const info = MOVE_FACT_INFO[fact.id];
     // A tooltip trigger like every other badge on screen — `data-tip`, one
@@ -1103,7 +1147,20 @@ export function moveFactStrip(facts: readonly MoveFact[]): HTMLElement | null {
     chip.tabIndex = 0;
     chip.setAttribute('role', 'button');
     chip.setAttribute('aria-label', moveFactAriaLabel(fact.id, fact.value));
-    row.append(chip);
+    /*
+     * Into its column, and into the row itself only if the column is somehow
+     * taken. The fallback cannot fire on today's pools — the test re-derives
+     * that from the live tables — and it exists so that a move added tomorrow
+     * loses its *position* rather than its field.
+     */
+    const cell = cells[(MOVE_FACT_COLUMN[fact.id] ?? 1) - 1];
+    if (cell && cell.childElementCount === 0) cell.append(chip);
+    else row.append(chip);
+  }
+
+  if (effect) {
+    effect.classList.add('move__facts-effect');
+    row.append(effect);
   }
   return row;
 }
@@ -1209,16 +1266,15 @@ export function moveFacts(move: {
     power.textContent = '—';
     meta.append(power);
   } else meta.append(power);
-  // The band, in the same place on the card as on the button: after the base
-  // power, before the region only a battle can fill.
+  // The band, in the same place on the card as on the button: at the head of
+  // the fact line. The two call sites stay two and the placement stays one.
   const band = moveBandChip(move.band);
-  if (band) meta.append(band);
 
   const pp = el('span', 'move__pp');
   pp.textContent = `PP ${move.maxPp}`;
 
   // Call site two of two: every card outside a battle, off `MoveCardData`.
-  return { name, meta, pp, strip: moveFactStrip(move.facts ?? []) };
+  return { name, meta, pp, strip: moveFactStrip(move.facts ?? [], { band }) };
 }
 
 /**
