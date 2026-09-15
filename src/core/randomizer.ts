@@ -61,16 +61,17 @@ import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry } from '../data/movePools'
 import { BERRIES } from '../data/items';
 import {
   berryHoldRate,
-  GYM_MOVE_BAND_BONUS,
+  gymMoveBandBonus,
   MOVESET,
   moveBandsFor,
   moveBandWeightsFor,
   opponentLevel,
   opponentTeamSize,
-  speciesBandsFor,
+  speciesBandWeightsFor,
 } from '../data/scaling';
 import { bandOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../data/moveOverrides';
 import { SPECIES_POOL, type SpeciesEntry } from '../data/speciesPools';
+import { stageAllowedAt } from '../data/evolution';
 import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
 
 /**
@@ -248,76 +249,110 @@ export const RANDOMIZER_VERSION = 'gymrun-randomizer-16';
 // ---------------------------------------------------------------------------
 
 /**
- * The species a segment may draw, at a tier.
+ * The species an encounter may draw: a band distribution, and the pool behind
+ * each band already narrowed to what this encounter may field.
  *
- * Blacklist filtering happens **here**, at draw time, rather than by removing
- * entries from data/speciesPools.ts. That keeps the generated pool a faithful
- * record of the dex and keeps the exceptions in one auditable file — and it
- * means un-banning something is a one-line revert rather than a regeneration.
+ * **Stage 4.9.** Three filters, applied inside the band and in this order:
+ *
+ *   - **The stage gate.** `stageAllowedAt(entry, level.min)` — a species may be
+ *     drawn only at a level its own evolution threshold allows, checked against
+ *     the *lowest* level the encounter can roll, so every level in the range is
+ *     legal and the draw order (band, species, level) stays what it is.
+ *   - **The kind's own filter.** A wild node's locale types; a gym's type and
+ *     its allow and deny lists. A trainer has none.
+ *   - **The blacklist**, at draw time rather than by editing the generated
+ *     table, as before.
+ *
+ * A band whose pool is empty after all three is dropped from the distribution
+ * and its weight falls to the next band down — the widen-down rule the old
+ * window used, restated for a distribution. Band 0 has a base form of every
+ * type (`test/evolution-data.test.ts`), so a type-narrowed gym or locale draw
+ * always lands. If even that is empty the encounter throws, which is a data
+ * gap and not a run.
  */
-function speciesFor(segment: number, tier: Tier): SpeciesEntry[] {
-  const bands = new Set(speciesBandsFor(segment, tier));
-  return SPECIES_POOL.filter((entry) => bands.has(entry.band) && !isSpeciesBlacklisted(entry.id));
+export interface BandedSpeciesPool {
+  weights: Readonly<Record<number, number>>;
+  byBand: ReadonlyMap<number, readonly SpeciesEntry[]>;
+}
+
+function bandedSpeciesPool(
+  weights: Readonly<Record<number, number>>,
+  level: { min: number; max: number },
+  admit: (entry: SpeciesEntry) => boolean,
+  what: string,
+): BandedSpeciesPool {
+  const byBand = new Map<number, readonly SpeciesEntry[]>();
+  const kept: Record<number, number> = {};
+  const bands = Object.entries(weights)
+    .filter(([, weight]) => weight > 0)
+    .map(([band, weight]) => [Number(band), weight] as const)
+    .sort((a, b) => a[0] - b[0]);
+
+  let carried = 0;
+  for (let index = bands.length - 1; index >= 0; index--) {
+    const [band, weight] = bands[index]!;
+    const pool = SPECIES_POOL.filter(
+      (entry) =>
+        entry.band === band && stageAllowedAt(entry, level.min) && !isSpeciesBlacklisted(entry.id) && admit(entry),
+    );
+    if (pool.length > 0) {
+      byBand.set(band, pool);
+      kept[band] = weight + carried;
+      carried = 0;
+    } else {
+      carried += weight;
+    }
+  }
+  if (byBand.size === 0) {
+    // Widen below the table: every band down to 0, same filters.
+    for (let band = (bands[0]?.[0] ?? 0) - 1; band >= 0; band--) {
+      const pool = SPECIES_POOL.filter(
+        (entry) =>
+          entry.band === band && stageAllowedAt(entry, level.min) && !isSpeciesBlacklisted(entry.id) && admit(entry),
+      );
+      if (pool.length > 0) {
+        byBand.set(band, pool);
+        kept[band] = 1;
+        break;
+      }
+    }
+  }
+  if (byBand.size === 0) throw new RangeError(`No species available for ${what}`);
+  return { weights: kept, byBand };
+}
+
+/** A trainer's pool: the segment's distribution at its tier, stage-gated. */
+function speciesFor(segment: number, tier: Tier, level: { min: number; max: number }): BandedSpeciesPool {
+  return bandedSpeciesPool(speciesBandWeightsFor(segment, tier), level, () => true, `a trainer at segment ${segment}`);
 }
 
 /**
- * The species a **wild** node may draw: its segment's bands, narrowed to the
- * locale's four types.
- *
- * Stage 4.6a, and it is the only thing a locale decides. A species qualifies on
- * either of its types, so the Marsh fields a Gyarados on Water alone — see
- * `LocaleDefinition.types` for why both-types would collapse each locale to a
- * handful of monotypes.
- *
- * The fallback is the same shape `gymSpeciesFor` uses and exists for the same
- * reason: every band carries all eighteen types (asserted in
- * test/randomizer.test.ts), so an empty window means a blacklist has emptied
- * it, and a data gap should widen the pool rather than crash a run. It is
- * asserted never to fire in practice — `test/locales.test.ts` checks that every
- * wild species across many seeds really does match its locale.
+ * A **wild** node's pool: the segment's distribution, narrowed to the locale's
+ * four types. A species qualifies on either of its types, so the Marsh fields
+ * a Gyarados on Water alone — see `LocaleDefinition.types` for why both-types
+ * would collapse each locale to a handful of monotypes.
  */
-function wildSpeciesFor(segment: number, tier: Tier, locale?: LocaleId): SpeciesEntry[] {
-  const pool = speciesFor(segment, tier);
-  if (!locale) return pool;
-  const matching = pool.filter((entry) => localeAdmits(locale, entry.types));
-  return matching.length > 0 ? matching : pool;
+function wildSpeciesFor(segment: number, tier: Tier, level: { min: number; max: number }, locale?: LocaleId): BandedSpeciesPool {
+  return bandedSpeciesPool(
+    speciesBandWeightsFor(segment, tier),
+    level,
+    (entry) => !locale || localeAdmits(locale, entry.types),
+    `a wild ${locale ?? 'encounter'} at segment ${segment}`,
+  );
 }
 
-/** The species a gym may draw: its own type, its own restrictions, its segment's bands. */
-function gymSpeciesFor(gym: GymDefinition, segment: number, tier: Tier): SpeciesEntry[] {
+/** A gym's pool: its own type, its own restrictions, the segment's own distribution. */
+function gymSpeciesFor(gym: GymDefinition, segment: number, level: { min: number; max: number }): BandedSpeciesPool {
   const allow = gym.allow ? new Set(gym.allow.map(toId)) : null;
   const deny = gym.deny ? new Set(gym.deny.map(toId)) : null;
-
-  const matching = speciesFor(segment, tier).filter(
-    (entry) =>
-      entry.types.includes(gym.type) &&
-      (!allow || allow.has(entry.id)) &&
-      (!deny || !deny.has(entry.id)),
+  return bandedSpeciesPool(
+    speciesBandWeightsFor(segment, 'normal'),
+    level,
+    (entry) => entry.types.includes(gym.type) && (!allow || allow.has(entry.id)) && (!deny || !deny.has(entry.id)),
+    `a ${gym.type} gym at segment ${segment}`,
   );
-  if (matching.length > 0) return matching;
-
-  /*
-   * A gym whose type has nothing in its segment's bands.
-   *
-   * This should not happen — the type coverage of every band is asserted in
-   * test/randomizer.test.ts — but "should not happen" is not a plan. Widening
-   * to every band of the right type keeps the *identity* intact, which is the
-   * promise the player was made, and gives up the *level band*, which is the
-   * one the curve can absorb. Throwing here would turn a data gap into a
-   * crashed run.
-   */
-  const anyBand = SPECIES_POOL.filter(
-    (entry) =>
-      entry.types.includes(gym.type) &&
-      !isSpeciesBlacklisted(entry.id) &&
-      (!allow || allow.has(entry.id)) &&
-      (!deny || !deny.has(entry.id)),
-  );
-  if (anyBand.length === 0) throw new RangeError(`No species available for a ${gym.type} gym`);
-  return anyBand;
 }
 
-/** The banded pool a segment draws opponent movesets from. */
 function damagingFor(segment: number, tier: Tier): BandedMovePool {
   return bandedMovePool(segment, tier);
 }
@@ -410,7 +445,7 @@ export function gymMovePool(segment: number): BandedMovePool {
   const weights = moveBandWeightsFor(segment, 'normal');
   const shifted: Record<number, number> = {};
   for (const [band, weight] of Object.entries(weights)) {
-    const raised = Math.min(MAX_MOVE_BAND, Number(band) + GYM_MOVE_BAND_BONUS);
+    const raised = Math.min(MAX_MOVE_BAND, Number(band) + gymMoveBandBonus(segment));
     shifted[raised] = (shifted[raised] ?? 0) + Number(weight);
   }
   return { weights: shifted, all: damagingInBands(Object.keys(shifted).map(Number)) };
@@ -593,9 +628,37 @@ function rollBerry(kind: BattleKind, segment: number, stream: RngStream): string
 }
 
 /**
+ * The species: a band off the distribution, then a pick inside it. **Two draws,
+ * always.** Stage 4.9 put the band draw in front of the species draw, the
+ * same shape `rollMoveset` has drawn moves in since 4.6b, and it draws the band
+ * whether or not the pick then has to widen — so the count is a function of
+ * the table and never of what a team already holds.
+ *
+ * `seen` is the team so far. A species already on this team is skipped, the
+ * `generateStarters` rule applied to every team: a leader fielding the same
+ * Pokemon twice was the loudest of the repeats the stage was asked about, at a
+ * 68% chance on a six-member Dragon gym drawn with replacement from fifteen
+ * species. When the drawn band has nothing left unseen the pick widens to the
+ * next band down, then up, and only then repeats — a repeat is still a legal
+ * team, a throw is not.
+ */
+function rollSpecies(pool: BandedSpeciesPool, stream: RngStream, seen: ReadonlySet<string>): SpeciesEntry {
+  const band = drawBand(pool.weights, stream);
+  const bands = [...pool.byBand.keys()].sort((a, b) => a - b);
+  const order = [band, ...bands.filter((b) => b < band).reverse(), ...bands.filter((b) => b > band)];
+  for (const candidate of order) {
+    const fresh = (pool.byBand.get(candidate) ?? []).filter((entry) => !seen.has(entry.id));
+    if (fresh.length > 0) return stream.pick(fresh);
+  }
+  const any = pool.byBand.get(band) ?? pool.byBand.get(bands[0]!) ?? [];
+  if (any.length === 0) throw new RangeError('Species pool is empty');
+  return stream.pick(any);
+}
+
+/**
  * One Pokemon.
  *
- * The draw order — species, level, ability, moves, gender, berry — is a
+ * The draw order — band, species, level, ability, moves, gender, berry — is a
  * contract.
  * Everything that generates a team goes through here so there is exactly one
  * order to remember.
@@ -606,13 +669,15 @@ function rollBerry(kind: BattleKind, segment: number, stream: RngStream): string
  * makes the history of the contract readable.
  */
 function rollSpec(
-  pool: readonly SpeciesEntry[],
+  pool: BandedSpeciesPool,
   damaging: BandedMovePool,
   level: { min: number; max: number },
   stream: RngStream,
   holding?: { kind: BattleKind; segment: number },
+  seen: Set<string> = new Set(),
 ): PokemonSpec {
-  const entry = stream.pick(pool);
+  const entry = rollSpecies(pool, stream, seen);
+  seen.add(entry.id);
   const spec: PokemonSpec = {
     species: entry.species,
     level: Math.max(1, Math.min(100, stream.inRange(level))),
@@ -652,9 +717,10 @@ export function generateWildMon(
   stream: RngStream,
   locale?: LocaleId,
 ): PokemonSpec {
-  const pool = wildSpeciesFor(segment, tier, locale);
+  const level = opponentLevel('wild', segment, tier);
+  const pool = wildSpeciesFor(segment, tier, level, locale);
   const damaging = damagingFor(segment, tier);
-  return rollSpec(pool, damaging, opponentLevel('wild', segment, tier), stream, {
+  return rollSpec(pool, damaging, level, stream, {
     kind: 'wild',
     segment,
   });
@@ -662,13 +728,14 @@ export function generateWildMon(
 
 /** A trainer's team. Size comes from the curve, which is a function of PARTY_SIZE. */
 export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStream): TeamSpec {
-  const pool = speciesFor(segment, tier);
-  const damaging = damagingFor(segment, tier);
   const level = opponentLevel('trainer', segment, tier);
+  const pool = speciesFor(segment, tier, level);
+  const damaging = damagingFor(segment, tier);
   const size = opponentTeamSize('trainer', segment, tier);
+  const seen = new Set<string>();
 
   return Array.from({ length: size }, () =>
-    rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }),
+    rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }, seen),
   );
 }
 
@@ -681,7 +748,8 @@ export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStre
  */
 export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream): TeamSpec {
   const tier: Tier = 'normal';
-  const pool = gymSpeciesFor(gym, segment, tier);
+  const level = opponentLevel('gym', segment, tier);
+  const pool = gymSpeciesFor(gym, segment, level);
   /*
    * The one place a move pool is not the segment's own: a gym leader draws one
    * band higher (`GYM_MOVE_BAND_BONUS`). That is the difficulty spike, and it
@@ -689,14 +757,14 @@ export function generateGymTeam(gym: GymDefinition, segment: number, stream: Rng
    * function's own note on why.
    */
   const damaging = gymMovePool(segment);
-  const level = opponentLevel('gym', segment, tier);
-  const size = opponentTeamSize('gym', segment, tier, gym.teamSize);
+  const size = opponentTeamSize('gym', segment, tier);
+  const seen = new Set<string>();
 
   // `holding` is passed even though a gym's rate is zero, so a gym member costs
   // the same draws as any other opponent and the table is the only thing
   // deciding what it holds.
   return Array.from({ length: size }, () =>
-    rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }),
+    rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }, seen),
   );
 }
 
@@ -715,13 +783,14 @@ export function generateWildTeam(
   stream: RngStream,
   locale?: LocaleId,
 ): TeamSpec {
-  const pool = wildSpeciesFor(segment, tier, locale);
-  const damaging = damagingFor(segment, tier);
   const level = opponentLevel('wild', segment, tier);
+  const pool = wildSpeciesFor(segment, tier, level, locale);
+  const damaging = damagingFor(segment, tier);
   const size = opponentTeamSize('wild', segment, tier);
+  const seen = new Set<string>();
 
   return Array.from({ length: size }, () =>
-    rollSpec(pool, damaging, level, stream, { kind: 'wild', segment }),
+    rollSpec(pool, damaging, level, stream, { kind: 'wild', segment }, seen),
   );
 }
 

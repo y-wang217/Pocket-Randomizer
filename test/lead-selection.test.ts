@@ -17,6 +17,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { hasRoom } from '../src/core/acquisition';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { leadRefusal, setLead } from '../src/core/party';
 import {
@@ -111,7 +112,7 @@ describe('a whole run', () => {
   }, 120_000);
 
   it('records the lead immediately before the gym it belongs to', async () => {
-    const run = await playRun('S49-1', contrarian(), DEFAULT_TUNING);
+    const run = await playRun('S49B-1', contrarian(), DEFAULT_TUNING);
     const decisions = run.log.decisions;
 
     const leadPositions = decisions.flatMap((decision, index) => (decision.kind === 'lead' ? [index] : []));
@@ -174,9 +175,13 @@ describe('a whole run', () => {
     let awaited: string | null = null;
 
     await playRun(
-      'LEAD-POSITION',
+      'S49P-1',
       {
         ...scriptedRunPolicy(greedyAiPolicy),
+        // Stage 4.9: a party of one has nobody to put in front, and the
+        // scripted baseline never captures, so this policy takes what it can.
+        chooseAcquisition: async (_offer, party, capacity) =>
+          hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
         chooseLead: async (party) => {
           const pick = party.findIndex((member, index) => index > 0 && !member.fainted);
           if (pick === -1) return 0;
@@ -206,7 +211,7 @@ describe('a whole run', () => {
      * rather than silently changing the model.
      */
     const seen: { segment: number; position: number; lead: string }[] = [];
-    await playRun('LEAD-PERSIST', contrarian(), DEFAULT_TUNING, {
+    await playRun('S49L-1', contrarian(), DEFAULT_TUNING, {
       onState: (state) => {
         const lead = state.party[0];
         if (!lead) return;
@@ -228,7 +233,7 @@ describe('a whole run', () => {
 
   it('replays identically, lead picks included', async () => {
     const picks: number[] = [];
-    const original = await playRun('S49-1', contrarian(picks), DEFAULT_TUNING);
+    const original = await playRun('S49B-1', contrarian(picks), DEFAULT_TUNING);
     const replayed = await replayRun(JSON.parse(JSON.stringify(original.log)) as RunLog);
 
     expect(replayed.outcome).toBe(original.outcome);
@@ -291,7 +296,7 @@ describe('the gym the question is asked about', () => {
   it('is the one guarding the segment the run is in', async () => {
     const seen: { segment: number; leader: string }[] = [];
     await playRun(
-      'LEAD-GYM',
+      'S49B-1',
       {
         ...scriptedRunPolicy(greedyAiPolicy),
         chooseLead: async (_party, gym, state) => {

@@ -2665,7 +2665,7 @@ function summarize(
       type: gym.type,
       // Read from the curve rather than written as a literal, so the column
       // cannot drift out of agreement with what the gym actually fielded.
-      teamSize: opponentTeamSize('gym', gym.segment, 'normal', gym.teamSize),
+      teamSize: opponentTeamSize('gym', gym.segment, 'normal'),
       reached,
       cleared,
       clearRate: reached === 0 ? 0 : cleared / reached,

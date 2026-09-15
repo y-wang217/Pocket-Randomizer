@@ -2,7 +2,7 @@
   "seed": "RESULT-0",
   "versions": {
     "runLog": "gymrun-run-16/gymrun-0.3.0",
-    "contentHash": "2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823",
+    "contentHash": "5fb6beb65e0a21a769b200a9da530b1f35429483caf21e443c98247bd7f40076",
     "randomizer": "gymrun-randomizer-16",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
@@ -12,28 +12,28 @@
   "causeOfDeath": {
     "segment": 0,
     "leader": "Garnet",
-    "kind": "wild",
+    "kind": "trainer",
     "species": "Jasper",
-    "bySpecies": "Pupitar",
-    "byMove": "Accelerock",
+    "bySpecies": "Pidove",
+    "byMove": "Acrobatics",
     "indirect": null
   },
-  "currency": 36,
+  "currency": 0,
   "backpack": [],
   "relics": [],
   "party": [
     {
-      "species": "Noivern",
-      "level": 30,
+      "species": "Shelmet",
+      "level": 7,
       "ability": "Power Construct",
       "moves": [
-        "Gust 52/56",
-        "Parabolic Charge 32/32",
-        "Poison Tail 38/40",
+        "Fury Cutter 32/32",
+        "Lick 48/48",
+        "Poison Tail 39/40",
         "Amnesia 32/32"
       ],
       "item": null,
-      "hp": "0/100",
+      "hp": "0/26",
       "fainted": true
     }
   ],
@@ -43,39 +43,17 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer's Gloom",
+      "opponent": "Trainer's Pidove",
       "turns": 2,
-      "winner": "p1",
-      "hpAfter": 81,
-      "casualties": []
-    },
-    {
-      "segment": 0,
-      "kind": "trainer",
-      "label": "Trainer battle",
-      "tier": "hard",
-      "opponent": "Trainer's Plusle",
-      "turns": 2,
-      "winner": "p1",
-      "hpAfter": 80,
-      "casualties": []
-    },
-    {
-      "segment": 0,
-      "kind": "wild",
-      "label": "Wild encounter",
-      "tier": "normal",
-      "opponent": "Wild Pupitar",
-      "turns": 5,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
           "name": "Jasper",
-          "level": 30,
-          "bySpecies": "Pupitar",
-          "byMove": "Accelerock",
+          "level": 7,
+          "bySpecies": "Pidove",
+          "byMove": "Acrobatics",
           "indirect": null
         }
       ]
@@ -85,7 +63,7 @@
     "seed": "RESULT-0",
     "versions": {
       "runLog": "gymrun-run-16/gymrun-0.3.0",
-      "contentHash": "2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823",
+      "contentHash": "5fb6beb65e0a21a769b200a9da530b1f35429483caf21e443c98247bd7f40076",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-16"
     },
@@ -106,28 +84,6 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 3
         }
       },
@@ -136,57 +92,6 @@
         "choice": {
           "kind": "move",
           "slot": 3
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 1
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       }
     ]

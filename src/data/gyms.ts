@@ -9,10 +9,11 @@
  * `generateGymTeam` from this type plus the segment's row in data/scaling.ts.
  *
  * That is why this file has no levels and no team sizes in it. Levels come from
- * the curve; team sizes come from `opponentTeamSize`, which is a function of
- * PARTY_SIZE so that Stage 4 raising the party does not turn the back half of
- * the run into a formality. A leader who genuinely needs to break that curve
- * has `teamSize` below, and using it should feel like a decision.
+ * the curve; team sizes come from `opponentTeamSize`, which from Stage 4.9 is
+ * the player's own slot schedule — a gym fields the roster the run has. The
+ * per-gym `teamSize` override that used to sit here was never set and is
+ * deleted (2026-09-15): a leader bigger than its neighbours is a difficulty
+ * cliff dressed as flavour.
  */
 
 export interface GymDefinition {
@@ -42,14 +43,6 @@ export interface GymDefinition {
   allow?: readonly string[];
   /** Species ids this leader never draws, on top of data/blacklists.ts. */
   deny?: readonly string[];
-  /**
-   * Override the team size the curve would give this gym.
-   *
-   * Deliberately absent everywhere. A leader that is bigger than its neighbours
-   * is a difficulty cliff dressed as flavour, and the whole point of putting
-   * sizes in data/scaling.ts is that the simulator can move them as one curve.
-   */
-  teamSize?: number;
 }
 
 export const GYMS: readonly GymDefinition[] = [

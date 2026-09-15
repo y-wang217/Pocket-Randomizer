@@ -5,12 +5,17 @@
  * the reasoning was sound at the time: the player carries one Pokemon through a
  * whole segment, so a dud roll is a lost run they never had a hand in.
  *
- * Stage 2 keeps the *guarantee* and drops the whitelist. The guarantee is now a
- * **band window** over data/speciesPools.ts — fully evolved, roughly 490+ base
- * stat total — while segment 0's opponents draw from bands 0 and 1. The player
- * therefore starts meaningfully ahead of the first gym and the curve catches up
- * around segment 4, which is the same promise the whitelist made with three
- * hundred species instead of eleven and nothing to keep in sync.
+ * Stage 2 kept the *guarantee* and dropped the whitelist: a **band window**
+ * over data/speciesPools.ts, fully evolved, roughly 490+ base stat total,
+ * while segment 0's opponents drew from bands 0 and 1, so the player started
+ * ahead of the first gym and the curve caught up around segment 4.
+ *
+ * **Stage 4.9 inverted that, 2026-09-15.** The window is band 0 and the rule
+ * is "a base form with an evolution": the player starts with the measliest
+ * thing in the dex and grows it, and the opponents start measly too. The
+ * guarantee that survives is the one that mattered — the pool is a window
+ * over the generated table, not a hand-picked list — and the promise the old
+ * window made (a strong opening) is deliberately gone.
  *
  * The ability and the moveset are rolled by the randomizer like everything
  * else. That is not a detail: a randomizer where the *opponents* are randomized
@@ -24,6 +29,7 @@
  * recorded seed offers.
  */
 import { isSpeciesBlacklisted } from './blacklists';
+import { hasEvolution, isBaseForm } from './evolution';
 import { SPECIES_POOL, type SpeciesEntry } from './speciesPools';
 
 /**
@@ -32,7 +38,20 @@ import { SPECIES_POOL, type SpeciesEntry } from './speciesPools';
  * The one place the randomizer deliberately favours the player, and the number
  * to move if the simulator says gym 1 is either a formality or a wall.
  */
-export const STARTER_BANDS: readonly number[] = [3, 4];
+export const STARTER_BANDS: readonly number[] = [0];
+
+/**
+ * The lowest base stat total a starter may have.
+ *
+ * Band 0 runs from Sunkern at 180 to the 340 cut, and a Caterpie or a Magikarp
+ * at level 7 is not a measly starter, it is a run that ends at the first
+ * trainer. The real starters sit at 309 to 318 and every pseudo-legendary's
+ * base form at 300; 280 keeps those and the Nidorans, Growlithe and Machop,
+ * and drops the ninety-odd base forms whose first stage is a cocoon or a
+ * baby. The first Stage 4.9 sweep without this floor cleared gym 1 27% of the
+ * time; the number with it is in `docs/balance.md` section 0.
+ */
+export const STARTER_BST_FLOOR = 280;
 
 /**
  * The move bands a starter's kit is drawn from.
@@ -90,8 +109,23 @@ export const STARTER_BANDS: readonly number[] = [3, 4];
  */
 export const STARTER_MOVE_BANDS: readonly number[] = [1];
 
+/*
+ * **Stage 4.9: a starter is a base form that goes somewhere.** Band 0 — 340
+ * base stat total or less, measly by construction — and at least one
+ * in-pool evolution, so the run opens with a Pokemon that has to be carried
+ * through gyms to become anything. Every pseudo-legendary's base form is in
+ * this window (Gible, Dratini, Larvitar, Bagon, Beldum at 300), so the high
+ * roll is real and still has to be nurtured: a Gible is a Garchomp at the
+ * gym 7 clear and not before. A base form with no evolution (Tauros, Lapras)
+ * is out, because its whole arc would be over at the starter screen.
+ */
 const BASE: readonly SpeciesEntry[] = SPECIES_POOL.filter(
-  (entry) => STARTER_BANDS.includes(entry.band) && !isSpeciesBlacklisted(entry.id),
+  (entry) =>
+    STARTER_BANDS.includes(entry.band) &&
+    entry.bst >= STARTER_BST_FLOOR &&
+    isBaseForm(entry) &&
+    hasEvolution(entry) &&
+    !isSpeciesBlacklisted(entry.id),
 );
 
 /**

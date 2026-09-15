@@ -95,18 +95,19 @@ describe('the slot unlock schedule', () => {
     }
   });
 
-  it('reaches its ceiling by gym 6, leaving the last two at full width', () => {
-    // The prompt's shape, asserted as the shape rather than as the numbers: the
-    // endgame is meant to be played wide, not still growing.
-    expect(partyCapacityAfter(6)).toBe(MAX_PARTY_CAPACITY);
+  it('reaches its ceiling by gym 7, so the last gym is played at full width', () => {
+    // Stage 4.9's shape, asserted as the shape rather than as the numbers: a
+    // slot every other gym from two, six against six at the last one.
+    expect(partyCapacityAfter(6)).toBeLessThan(MAX_PARTY_CAPACITY);
     expect(partyCapacityAfter(7)).toBe(MAX_PARTY_CAPACITY);
     expect(partyCapacityAfter(8)).toBe(MAX_PARTY_CAPACITY);
   });
 
-  it('grants the first extra slot at gym 2, which is the definition of done', () => {
-    // "A player clears gym 2 and is told they now carry another Pokemon."
-    expect(partyCapacityAfter(2)).toBeGreaterThan(partyCapacityAfter(1));
-    expect(partyCapacityAfter(1)).toBe(partyCapacityAfter(0));
+  it('grants the first extra slot at gym 1, and one every other gym after', () => {
+    expect(partyCapacityAfter(0)).toBe(2);
+    expect(partyCapacityAfter(1)).toBeGreaterThan(partyCapacityAfter(0));
+    expect(partyCapacityAfter(2)).toBe(partyCapacityAfter(1));
+    expect(partyCapacityAfter(3)).toBeGreaterThan(partyCapacityAfter(2));
   });
 
   it('clamps rather than trusting a gym count off either end', () => {
@@ -131,14 +132,16 @@ describe('nextSlotUnlock', () => {
   });
 
   it('skips the gyms that grant nothing rather than naming the next gym', () => {
-    // Gym 1 grants no slot, so the readout must say gym 2 — "next slot at gym 1"
-    // would be a promise the run does not keep.
-    expect(nextSlotUnlock(0)?.atGym).toBe(2);
+    // Gym 2 grants no slot, so from gym 1 the readout must say gym 3 — "next
+    // slot at gym 2" would be a promise the run does not keep.
+    expect(nextSlotUnlock(0)?.atGym).toBe(1);
+    expect(nextSlotUnlock(1)?.atGym).toBe(3);
   });
 
   it('is null at the ceiling, so the readout says nothing rather than "no more"', () => {
     expect(nextSlotUnlock(SLOT_UNLOCK_SCHEDULE.length - 1)).toBeNull();
-    expect(nextSlotUnlock(6)).toBeNull();
+    expect(nextSlotUnlock(7)).toBeNull();
+    expect(nextSlotUnlock(6)?.atGym).toBe(7);
   });
 
   it('agrees with the schedule at every gym count', () => {
@@ -183,9 +186,9 @@ describe('partyCapacity reads the run', () => {
   });
 
   it('rises the moment a gym lands in history and not before', () => {
-    const before = withGyms(1);
-    const after = withGyms(2);
-    expect(partyCapacity(after)).toBeGreaterThan(partyCapacity(before));
+    // Gym 3 is a widening gym on the Stage 4.9 schedule; gym 2 is not.
+    expect(partyCapacity(withGyms(2))).toBe(partyCapacity(withGyms(1)));
+    expect(partyCapacity(withGyms(3))).toBeGreaterThan(partyCapacity(withGyms(2)));
   });
 });
 
@@ -279,7 +282,7 @@ describe('the backpack grows with the party', () => {
      * schedule was written. This watches the live pair over a played run.
      */
     const seen = new Map<number, number>();
-    await playRun('SLOTS-B7', capturePolicy(), DEFAULT_TUNING, {
+    await playRun('S49B-1', capturePolicy(), DEFAULT_TUNING, {
       onState: (state) => {
         seen.set(gymsCleared(state), backpackCapacity(partyCapacity(state), state.tuning));
       },
@@ -300,7 +303,7 @@ describe('the party never exceeds its slots, over a played run', () => {
     let over = 0;
     let peakCapacity = 0;
 
-    await playRun('S49-1', capturePolicy(), DEFAULT_TUNING, {
+    await playRun('S49B-1', capturePolicy(), DEFAULT_TUNING, {
       onState: (state) => {
         peak = Math.max(peak, state.party.length);
         peakCapacity = Math.max(peakCapacity, partyCapacity(state));

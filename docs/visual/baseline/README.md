@@ -28,10 +28,11 @@ and fails on any byte that differs. Heights are compared by
   battle), which is what the guard is for. What moved is content under the
   same layout: SMOKE24's map grew 67.88px in every mode (861.78 to 929.66
   Detailed) because the offered nodes' wild species and their text changed,
-  and the battle screen moved with the new lead's move names (584 to 605.5
-  Detailed, 566.44 to 573.44 Simple, Pocket unmoved; the column layout's
-  battle fell 20.5px). The stage's later commits, which change the curve and
-  the draw order again, re-record once more; the docs note only the last.
+  and the battle screen moved with the new lead's move names. Re-recorded
+  once more at the stage's curve commit (`randomizer-16`'s band-weighted,
+  stage-gated, no-repeat draw and the 7-to-55 curve), the same way: runs,
+  battle, digest and heights all moved as content, `decisionTop` unmoved in
+  every mode and layout.
 
 - **2026-09-14, the playtest patch** (event rewards and move card fields).
   Re-recorded on both instruments, and the two halves are independent.

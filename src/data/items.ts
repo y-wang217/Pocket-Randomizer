@@ -27,8 +27,12 @@
  *     core/battle/driver.ts). These items modify a system that does not exist.
  *     This exclusion does not expire; EVs are explicitly out of scope.
  *   - **Breeding and evolution items** — Everstone, evolution stones, incense.
- *     There is no breeding and no evolution: a Pokemon's species is fixed from
- *     the moment it is generated.
+ *     There is no breeding, and evolution (Stage 4.9) is a function of level
+ *     and nothing else: a stone would be an item that does what a gym clear
+ *     already does, and an Everstone a decline the stage decided not to offer.
+ *     (The sentence that stood here until 2026-09-15 — "there is no evolution:
+ *     a species is fixed from the moment it is generated" — is superseded and
+ *     recorded in `docs/generation.md` section 20.)
  *   - **Z-crystals and Mega Stones** — a once-per-battle nuke and a mid-battle
  *     stat rewrite, neither of which the greedy AI scores, so both would make
  *     the balance report measure the mis-scoring.

@@ -33,6 +33,7 @@ import {
   moveBandsFor,
   SEGMENT_COUNT,
   speciesBandsFor,
+  speciesBandWeightsFor,
   TIER_MODIFIERS,
 } from '../src/data/scaling';
 import { TIER_INFO } from '../src/data/tierInfo';
@@ -271,10 +272,17 @@ describe('tier scaling is monotonic', () => {
     // eighteen strongest species in the game — and every elite fight in the last
     // segment would start to look like the same fight. The widen-back-down rule
     // is what prevents that, and this is the assertion that it fires.
+    // Stage 4.9: a distribution rather than a window. What must hold is that a
+    // shift keeps every unit of weight — colliding bands sum at the ceiling —
+    // and never lands one above it.
     for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
-      const width = speciesBandsFor(segment, 'normal').length;
+      const mass = (weights: Readonly<Record<number, number>>): number =>
+        Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+      const base = speciesBandWeightsFor(segment, 'normal');
       for (const tier of TIERS) {
-        expect(speciesBandsFor(segment, tier).length, `segment ${segment} ${tier}`).toBe(width);
+        const shifted = speciesBandWeightsFor(segment, tier);
+        expect(mass(shifted), `segment ${segment} ${tier}`).toBe(mass(base));
+        for (const band of speciesBandsFor(segment, tier)) expect(band).toBeLessThanOrEqual(MAX_SPECIES_BAND);
       }
     }
   });
@@ -285,8 +293,8 @@ describe('tier scaling is monotonic', () => {
     // Pokemon and pays for them with levels; if it ever exceeds `hard` on every
     // axis at once, the report can no longer attribute a change to an axis.
     expect(TIER_MODIFIERS.elite.team).toBeGreaterThan(TIER_MODIFIERS.hard.team);
-    expect(TIER_MODIFIERS.elite.level).toBeLessThan(TIER_MODIFIERS.hard.level);
-    expect(TIER_MODIFIERS.normal).toEqual({ level: 0, speciesBand: 0, moveBand: 0, team: 0 });
+    expect(TIER_MODIFIERS.elite.levelShare).toBeLessThan(TIER_MODIFIERS.hard.levelShare);
+    expect(TIER_MODIFIERS.normal).toEqual({ levelShare: 0, speciesBand: 0, moveBand: 0, team: 0 });
     // hard is a stat check, elite is a damage check plus a body. Different axes.
     expect(TIER_MODIFIERS.hard.moveBand).toBe(0);
     expect(TIER_MODIFIERS.elite.moveBand).toBeGreaterThan(TIER_MODIFIERS.hard.moveBand);
@@ -375,7 +383,9 @@ describe('tier copy', () => {
   it('keeps all three lines in one shape', () => {
     for (const tier of TIERS) {
       const line = TIER_INFO[tier] ?? '';
-      expect(line, `${tier} does not open by naming the encounter`).toMatch(/^(One|Two) Pokemon,/);
+      // Stage 4.9: the count is the party's own and the level is a share, so
+      // the opening names the encounter's shape rather than a literal count.
+      expect(line, `${tier} does not open by naming the encounter`).toMatch(/^(The segment's|One Pokemon more),/);
       expect(line, `${tier} does not state the reward band`).toMatch(/Pays a move .*band/);
     }
   });

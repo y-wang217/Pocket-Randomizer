@@ -58,6 +58,24 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: Stage 4.9, levels, evolution, gated power, the wider roster and
+harder gyms.** Branch `claude/charming-ride-q4ogfb`, prompt
+[`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),
+record [`generation.md`](generation.md) section 20. The run starts at level 7
+with a band-0 base form and levels to 55 across the eight gym clears; every
+clear evolves the party along the dex's own thresholds, with synthetic
+Kaizo-style levels for the methods the dex does not level, and a fork asked
+as a new `evolve` decision on the gym's result screen. The species pool
+admits the `Past` species (635 to 900) and carries the evolution graph;
+species bands are a weighted distribution with a stage gate, teams draw
+without repeats, a gym fields the player's slot count on the hard AI, and the
+slot schedule is 2, 3, 3, 4, 4, 5, 5, 6. Three version axes move
+(`RUN_LOG_VERSION` and `RANDOMIZER_VERSION` to `-16`, `contentHash`);
+`AI_VERSION` holds. **The first pass sits at 0.46 mean gyms cleared against
+the 4.92 baseline** — recorded in [`balance.md`](balance.md) section 0, not
+chased; the gym level column and the roster rule are the levers left to the
+user. The "+13 levels at gym 8" finding below is closed by construction.
+
 **In flight: the bar primitive and the battle beats.** Branch
 `claude/kind-mccarthy-w3kml6`, prompt
 [`spec/gymrun-patch-bar-primitive-and-battle-beats.md`](spec/gymrun-patch-bar-primitive-and-battle-beats.md),
@@ -405,6 +423,17 @@ One line each. The analysis lives where the pointer goes, not here.
 1. **Fight length.** Early fights are an exchange rather than a shape. It is now
    the root cause behind two separate carried misses, below, and has earned its
    own investigation. `balance.md`, and open question 1 in the root README.
+   Stage 4.9 moved it the other way at the start — 3.7 turns in segment 1 at
+   level 7 — and the stage's benchmark row is where the next reading is.
+0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
+   and the run is not completed by the greedy bot on any of 400 seeds. The
+   levers deliberately left to the user: the gym level column in
+   `data/scaling.ts` and the "gym fields the slot count" rule. Two
+   pre-existing phone-layout limits surfaced by the wider roster are carried
+   here too: a Fighting- or Electric-type chip wraps the move button's meta
+   row at 390px, and a two-row party plus a two-card step pushes the map's
+   offered cards below the fold (the pre-change build did it on other seeds).
+   `generation.md` section 20.
 2. **Berry clog past gym 6.** Above target. Traced to short fights rather than
    to the berry table or backpack capacity, so item 1 is the fix.
    `balance.md` section 11.
