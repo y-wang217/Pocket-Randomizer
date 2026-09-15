@@ -34,6 +34,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 
 import { createMapDrawer } from '../src/ui/map-drawer';
+import { createDrawer } from '../src/ui/drawer';
 import { createPartyScreen } from '../src/ui/screens/party';
 import { createShopScreen } from '../src/ui/screens/shop';
 import { createPreGymScreen } from '../src/ui/screens/pre-gym';
@@ -159,9 +160,18 @@ describe('the map overlay itself', () => {
     expect(trigger.dataset['drawerTrigger']).toBeUndefined();
     expect(trigger.textContent).toBe('Map');
     expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
-    // It mimics the party button, which is the brief's word: same classes, so
-    // two controls that do the same kind of thing do not look like two kinds.
-    expect(trigger.className).toContain('drawer__trigger');
+
+    // It mimics the Party button, which is the brief's word, through the shared
+    // *look* class rather than the party drawer's own.
+    expect(trigger.classList.contains('shell__trigger')).toBe(true);
+    /*
+     * **And it must not wear `drawer__trigger`.** It did, briefly, and
+     * `test/visual-move-cards.test.ts` — which selects `.drawer__trigger` and
+     * takes `.first()` — started resolving to this button instead, timing out
+     * because it is hidden on the map screen. Asserted rather than remembered.
+     */
+    expect(trigger.classList.contains('drawer__trigger'), 'the map trigger wears the party trigger’s identity class').toBe(false);
+    expect(createDrawer().trigger().classList.contains('shell__trigger'), 'the two triggers stopped sharing a look').toBe(true);
   });
 
   it('renders nothing rather than throwing when a run has no current segment', () => {

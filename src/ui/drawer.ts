@@ -241,7 +241,7 @@ export function createDrawer(): Drawer {
     trigger() {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'button button--small drawer__trigger';
+      button.className = 'button button--small shell__trigger drawer__trigger';
       button.textContent = 'Party';
       button.setAttribute('aria-haspopup', 'dialog');
       // `data-drawer-trigger` is what `test/party-drawer.test.ts` finds on each

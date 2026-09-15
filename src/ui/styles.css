@@ -4309,7 +4309,23 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    is hidden on the starter screen and the summary. */
 .shell__drawer-bar[hidden] { display: none; }
 
-.drawer__trigger {
+/*
+ * The look the bar's triggers share. **A class that names the look, not one of
+ * the overlays.**
+ *
+ * The map trigger first carried `drawer__trigger` for this, on the reasoning
+ * that the brief asks for a mimic of the Party button and two controls doing
+ * the same kind of thing should not look like two kinds. The reasoning was
+ * right and the mechanism was wrong: `test/visual-move-cards.test.ts` selects
+ * `.drawer__trigger` as the party trigger's *identity*, and a second button
+ * carrying it — placed first in the bar, and hidden on the map screen —
+ * silently became the one `.first()` resolved to.
+ *
+ * So the shared appearance gets its own name and each overlay's class goes
+ * back to naming exactly one button. A style hook and an identity are
+ * different jobs, and that failure is what it costs to give one class both.
+ */
+.shell__trigger {
   border-color: var(--emphasis);
   color: var(--emphasis);
 }

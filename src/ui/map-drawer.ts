@@ -105,20 +105,27 @@ export function createMapDrawer(): MapDrawer {
     /**
      * A trigger, built fresh per call, mirroring `drawer.ts`.
      *
-     * It carries `drawer__trigger` as well as its own class so it is visibly
-     * the same control as the Party button beside it — the brief asks for a
-     * mimic, and two buttons in one bar that do the same kind of thing should
-     * not look like two kinds of thing.
+     * It carries `shell__trigger` — the shared *look*, so it is visibly the
+     * same control as the Party button beside it, which is what the brief's
+     * "mimic" asks for — and `map-drawer__trigger`, which names this one
+     * button and nothing else.
      *
-     * `data-map-trigger` is its own test hook, separate from the party
-     * drawer's `data-drawer-trigger`, which `test/party-drawer.test.ts` counts
-     * per surface. Sharing one attribute would have made that count wrong on
-     * every screen.
+     * **It first carried `drawer__trigger` for the look, and that was a bug.**
+     * `test/visual-move-cards.test.ts` selects `.drawer__trigger` as the party
+     * trigger's *identity*; a second button wearing it, placed first in the bar
+     * and hidden on the map screen, silently became the one `.first()` resolved
+     * to, and the click timed out. A style hook and an identity are different
+     * jobs — see the note on `.shell__trigger` in `styles.css`.
+     *
+     * `data-map-trigger` is the same separation on the attribute side, kept
+     * apart from the party drawer's `data-drawer-trigger` because
+     * `test/party-drawer.test.ts` and `scripts/smoke.mjs` both *count* that one
+     * per surface. Sharing it would have made both wrong on every screen.
      */
     trigger() {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'button button--small drawer__trigger map-drawer__trigger';
+      button.className = 'button button--small shell__trigger map-drawer__trigger';
       button.textContent = 'Map';
       button.setAttribute('aria-haspopup', 'dialog');
       button.dataset['mapTrigger'] = 'true';
