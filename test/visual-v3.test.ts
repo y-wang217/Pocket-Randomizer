@@ -13,6 +13,7 @@ import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visibl
 import { measureContrast, type ContrastReading } from '../scripts/visual/contrast.mjs';
 import { traceMapScroll } from '../scripts/visual/perf.mjs';
 import { LOCALE_IDS } from '../src/data/locales';
+import { SCENES, TRAVELLING_KINDS } from '../src/ui/theme/scenes';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -120,8 +121,48 @@ describe('the world', () => {
     expect(transforms.map(translateY)[1]).toBeCloseTo(-y * 0.5, 6);
     expect(transforms.map(translateY)[2]).toBeCloseTo(-y, 6);
     expect(await page.locator('.world__drift').count()).toBe(1);
-    const period = await page.evaluate(() => globalThis.getComputedStyle(globalThis.document.querySelector('.world__drift')!).animationDuration);
-    expect(parseFloat(period)).toBeGreaterThanOrEqual(20);
+    /*
+     * The loop floors, by kind, over all eight places. **Idle-sprites patch.**
+     *
+     * V3's rule was one number: twenty seconds or longer, because the one
+     * motion was a crossing and a faster crossing is what draws the eye. The
+     * patch keeps that floor for the kinds that travel and restates it for
+     * the kinds that stay put, where nothing crosses the frame: the element's
+     * own loop, when it has one, four seconds or longer, and every mote's
+     * loop two seconds or longer. `docs/generation.md` section 19 records the
+     * restatement. Re-tagged through `html[data-locale]`, the one writer the
+     * world follows, the way `scripts/visual/perf.mjs` walks the locales.
+     */
+    for (const locale of LOCALE_IDS) {
+      await page.evaluate((id) => globalThis.document.documentElement.setAttribute('data-locale', id), locale);
+      await page.waitForTimeout(50);
+      const motion = await page.evaluate(() => {
+        const drift = globalThis.document.querySelector<HTMLElement>('.world__drift')!;
+        const seconds = (element: Element): number[] =>
+          globalThis
+            .getComputedStyle(element)
+            .animationDuration.split(',')
+            .map((value) => parseFloat(value));
+        const names = (element: Element): string[] => globalThis.getComputedStyle(element).animationName.split(',').map((name) => name.trim());
+        return {
+          kind: drift.dataset['motion'],
+          element: names(drift)[0] === 'none' ? null : Math.min(...seconds(drift)),
+          motes: [...drift.querySelectorAll(':scope > svg')].map((mote) => (names(mote)[0] === 'none' ? null : Math.min(...seconds(mote)))),
+        };
+      });
+      expect(motion.kind, locale).toBe(SCENES[locale].motion.kind);
+      if (TRAVELLING_KINDS.has(SCENES[locale].motion.kind)) {
+        expect(motion.element, `${locale} travels`).not.toBeNull();
+        expect(motion.element, `${locale} crossing`).toBeGreaterThanOrEqual(20);
+      } else if (motion.element !== null) {
+        expect(motion.element, `${locale} in place`).toBeGreaterThanOrEqual(4);
+      }
+      for (const [i, mote] of motion.motes.entries()) {
+        if (mote !== null) expect(mote, `${locale} mote ${i}`).toBeGreaterThanOrEqual(2);
+      }
+      // Something moves in every place: the element, or at least one mote.
+      expect(motion.element !== null || motion.motes.some((mote) => mote !== null), `${locale} moves`).toBe(true);
+    }
     await context.close();
 
     const reduced = await harness.browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });

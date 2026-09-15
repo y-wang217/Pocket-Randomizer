@@ -1,15 +1,18 @@
 /**
- * The world scene: eight places, three layers each, one drifting thing, and
- * nothing under it harder to reach. Stage V3.
+ * The world scene: eight places, three layers each, one moving thing with a
+ * motion of its own, and nothing under it harder to reach. Stage V3, and the
+ * per-locale motion of the idle-sprites patch.
  *
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LOCALE_IDS } from '../src/data/locales';
 import { createWorldScene, PARALLAX } from '../src/ui/scene';
-import { SCENES } from '../src/ui/theme/scenes';
+import { artOf, SCENES, TRAVELLING_KINDS, WORLD_MOTION_KINDS } from '../src/ui/theme/scenes';
 
 function mockReducedMotion(matches: boolean): void {
   Object.defineProperty(globalThis, 'matchMedia', {
@@ -23,11 +26,14 @@ afterEach(() => {
 });
 
 describe('the art', () => {
-  it('gives every locale three layers and a drifting element, all inline SVG', () => {
+  it('gives every locale three layers and a moving element, all inline SVG', () => {
     for (const id of LOCALE_IDS) {
       const art = SCENES[id];
       for (const layer of ['far', 'mid', 'near', 'drift'] as const) {
+        // The moving element may be several sibling SVGs, the motes of an
+        // in-place kind; a layer is one.
         expect(art[layer], `${id} ${layer}`).toMatch(/^<svg [^>]*viewBox="[^"]+"[^>]*>[\s\S]*<\/svg>$/);
+        if (layer !== 'drift') expect(art[layer].match(/<svg /g), `${id} ${layer} is one SVG`).toHaveLength(1);
         // Geometry only: no rasters, no links, no text, no external anything.
         expect(art[layer], `${id} ${layer} is drawn, not loaded`).not.toMatch(/<image|href=|url\(|<text|data:/i);
         // Flat, single-colour shapes in the locale's tokens: every fill is the
@@ -40,8 +46,45 @@ describe('the art', () => {
   });
 
   it('weighs under the budget: 30 kB gzipped for all eight', () => {
-    const all = LOCALE_IDS.map((id) => Object.values(SCENES[id]).join('')).join('');
+    const all = LOCALE_IDS.map((id) => artOf(SCENES[id]).join('')).join('');
     expect(gzipSync(Buffer.from(all)).length).toBeLessThan(30 * 1024);
+  });
+});
+
+describe('the motion', () => {
+  it('names a known kind for every locale, and every kind has its keyframes', () => {
+    const styles = readFileSync(join(process.cwd(), 'src/ui/styles.css'), 'utf8');
+    for (const id of LOCALE_IDS) {
+      expect(WORLD_MOTION_KINDS, `${id} kind`).toContain(SCENES[id].motion.kind);
+    }
+    for (const kind of WORLD_MOTION_KINDS) {
+      expect(styles, `@keyframes world-${kind}`).toContain(`@keyframes world-${kind} `);
+      expect(styles, `a rule for ${kind}`).toContain(`.world__drift[data-motion="${kind}"]`);
+    }
+  });
+
+  it('keeps three travelling kinds and gives the rest a place to stay', () => {
+    const kinds = LOCALE_IDS.map((id) => SCENES[id].motion.kind);
+    // The cave is the reference and keeps V3's crossing exactly.
+    expect(SCENES.cave.motion).toEqual({ kind: 'cross' });
+    expect(kinds.filter((kind) => TRAVELLING_KINDS.has(kind))).toHaveLength(3);
+    // No two places move the same way: the point of the patch.
+    expect(new Set(kinds).size).toBe(LOCALE_IDS.length);
+  });
+
+  it("mounts the kind on the element, and the place's own position when it has one", () => {
+    const world = createWorldScene(null);
+    for (const id of LOCALE_IDS) {
+      world.setLocale(id);
+      const drift = world.root.querySelector<HTMLElement>('.world__drift');
+      expect(drift?.dataset['motion'], id).toBe(SCENES[id].motion.kind);
+      const at = SCENES[id].motion.at;
+      expect(drift?.style.getPropertyValue('--drift-x'), `${id} x`).toBe(at?.[0] ?? '');
+      expect(drift?.style.getPropertyValue('--drift-y'), `${id} y`).toBe(at?.[1] ?? '');
+      // Every mote is a sibling SVG straight under the element.
+      expect(drift?.querySelectorAll(':scope > svg').length, `${id} motes`).toBe(SCENES[id].drift.match(/<svg /g)?.length);
+    }
+    world.destroy();
   });
 });
 
@@ -59,7 +102,7 @@ describe('the world scene', () => {
     world.destroy();
   });
 
-  it('draws every locale into all three layers with one drifting element', () => {
+  it('draws every locale into all three layers with one moving element', () => {
     const world = createWorldScene(null);
     for (const id of LOCALE_IDS) {
       world.setLocale(id);
@@ -76,7 +119,7 @@ describe('the world scene', () => {
     world.destroy();
   });
 
-  it('does not mount the drifting element under reduced motion, and leaves the layers still', () => {
+  it('does not mount the moving element under reduced motion, and leaves the layers still', () => {
     mockReducedMotion(true);
     const world = createWorldScene(null);
     world.setLocale('shore');
