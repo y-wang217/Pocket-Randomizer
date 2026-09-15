@@ -11,6 +11,29 @@
  * types a new seed while the map is on screen — and a policy left parked on a
  * promise nobody will resolve is a leaked run that still holds the DOM.
  */
+/**
+ * The rejection `cancel` raises, as a type the caller can recognise.
+ *
+ * **It is a class because `app.ts` has to tell an abandoned run from a broken
+ * one**, and for a long time it could not: the whole of `playRun` sat inside a
+ * bare `catch {}` written on the note that an abandoned decision was the only
+ * non-finishing exit. It is not — anything `core/` throws lands there too —
+ * and a swallowed `RangeError` leaves the player on a screen whose question is
+ * already answered, with no control that advances the run and no error
+ * anywhere. See `docs/spec/gymrun-patch-carry-on-softlock.md`.
+ */
+export class RunAbandoned extends Error {
+  constructor(message = 'Run abandoned') {
+    super(message);
+    this.name = 'RunAbandoned';
+  }
+}
+
+/** Whether a rejection is a run the player walked away from. */
+export function isRunAbandoned(error: unknown): error is RunAbandoned {
+  return error instanceof RunAbandoned;
+}
+
 export interface Pending<T> {
   /** Park until `submit` is called. */
   wait(): Promise<T>;
@@ -46,7 +69,7 @@ export function createPending<T>(): Pending<T> {
       if (!reject) return;
       const fail = reject;
       settle();
-      fail(new Error(reason));
+      fail(new RunAbandoned(reason));
     },
     isWaiting: () => resolve !== null,
   };

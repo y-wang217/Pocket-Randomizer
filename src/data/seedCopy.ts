@@ -17,6 +17,14 @@
  * is explaining.
  */
 export const SEED_COPY = {
+  /**
+   * What the bar says when a run stopped on an error rather than on an
+   * outcome. It names no cause — the console has the error — and says the two
+   * things the player needs: the run is over, and the seed still works.
+   */
+  runFailed:
+    'This run stopped on an internal error and cannot continue. ' +
+    'The seed is still in the box: Start begins it again from the top.',
   /** The paste-time refusal. */
   foreign:
     'This seed was made on a different balance version ({theirs}; this build is {ours}) and will not reproduce here. ' +

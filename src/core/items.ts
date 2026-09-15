@@ -309,6 +309,100 @@ export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemI
   return { ...state, party, backpack: pool };
 }
 
+/**
+ * A plan the run can actually apply, from a plan composed against an older
+ * inventory.
+ *
+ * **This exists because a plan is collected at one moment and spent at
+ * another, and the run moves in between.** `ui/app.ts` holds the arrangement
+ * the player left the party screen with and hands it to `chooseItemPlan` at
+ * the next node boundary — by which time the node has already resolved. An
+ * event's forced `discard` has destroyed a bag item, a `loseItem` has taken
+ * the berry, a grant has filled the last slot, the sim has eaten a Sitrus. The
+ * plan still names what the player saw, and `applyItemPlan` refuses it,
+ * correctly and loudly.
+ *
+ * Loudly is right for `applyItemPlan` and wrong for the player, who did
+ * nothing illegal: they arranged their bag and then walked into a node that
+ * took something out of it. So the plan is brought forward rather than
+ * refused, and the rules are the smallest set that cannot lose anything the
+ * player still owns:
+ *
+ *   1. An assignment naming a slot the party no longer has is dropped, and a
+ *      slot named twice keeps its first entry. Both are `applyItemPlan`
+ *      refusals and neither can be honoured.
+ *   2. An assignment naming an item the run no longer holds becomes an
+ *      *unequip* rather than being dropped. Dropping it would leave the slot
+ *      holding what it holds now, and that item would then be missing from the
+ *      pool the rest of the plan draws on — so one destroyed item would
+ *      invalidate a second, unrelated assignment. Emptying the hand keeps the
+ *      plan a complete destination, which is the shape `applyItemPlan` reads.
+ *   3. A discard of something the run no longer holds is dropped. It is
+ *      already gone; the player gets what they asked for.
+ *   4. Whatever is over capacity afterwards is discarded from the front — the
+ *      oldest items, the same rule and the same reason as `run.defaultItemPlan`.
+ *
+ * It walks the pool exactly the way `applyItemPlan` does — backpack first,
+ * then the items displaced off *named* slots, consumed in plan order — so the
+ * result is legal by construction rather than by inspection.
+ * `test/item-plan-staleness.test.ts` asserts that as a property.
+ *
+ * A plan that was already legal comes back unchanged in effect, so this is safe
+ * to call on every plan rather than only on a suspect one. It is `core/` and
+ * pure, which is what lets a replay and the app agree about it.
+ *
+ * **Not called by `applyItemPlan`, deliberately.** A hand-edited log naming an
+ * item the run never had must still be refused: silently repairing one there
+ * would replay as a different run, which is the rule `applyItemPlan`'s own
+ * comment states. The reconciliation belongs to whoever is *composing* an
+ * answer, and the composed answer is what the log records.
+ */
+export function reconcileItemPlan(
+  state: { party: readonly PokemonState[]; backpack: readonly ItemId[] },
+  plan: ItemPlan,
+  /** As `applyItemPlan`: `backpackCapacity(partyCapacity(state), ...)`. */
+  capacity: number,
+): ItemPlan {
+  const slots = new Set<number>();
+  const named = plan.assignments.filter((assignment) => {
+    if (!state.party[assignment.slot] || slots.has(assignment.slot)) return false;
+    slots.add(assignment.slot);
+    return true;
+  });
+
+  // The pool `applyItemPlan` will build: the backpack, plus what the named
+  // slots are holding. An unnamed slot keeps its item and contributes nothing.
+  const pool = [
+    ...state.backpack,
+    ...named.flatMap((assignment) => {
+      const held = state.party[assignment.slot]?.item;
+      return held ? [held] : [];
+    }),
+  ];
+
+  const assignments = named.map((assignment) => {
+    if (assignment.item === null) return assignment;
+    const at = pool.indexOf(assignment.item);
+    if (at === -1) return { slot: assignment.slot, item: null };
+    pool.splice(at, 1);
+    return assignment;
+  });
+
+  const discards: ItemId[] = [];
+  for (const discarded of plan.discards) {
+    const at = pool.indexOf(discarded);
+    if (at === -1) continue;
+    pool.splice(at, 1);
+    discards.push(discarded);
+  }
+
+  // What is left is what the backpack would hold. Over the line, the oldest go.
+  const over = pool.length - Math.max(0, capacity);
+  if (over > 0) discards.push(...pool.slice(0, over));
+
+  return { assignments, discards };
+}
+
 /** What a member is holding, resolved to its whitelist entry. Null if nothing. */
 export function heldItem(member: PokemonState): ItemEntry | null {
   return member.item ? itemById(member.item) : null;

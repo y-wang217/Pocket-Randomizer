@@ -29,9 +29,12 @@ import {
   type RunState,
 } from '../core/run';
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
+import { applyRelicPassives } from '../core/relics';
+import { backpackCapacity, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
+import { SEED_COPY } from '../data/seedCopy';
 import type { EventArchetype } from '../data/eventPools';
-import { createPending } from './pending';
+import { createPending, isRunAbandoned } from './pending';
 import { initSettings, onSettingsChange, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
 import { createDensityGuard } from './density-guard';
@@ -470,7 +473,30 @@ export function mountApp(root: HTMLElement): void {
       chooseItemPlan: async (state) => {
         const plan = pendingPlan;
         pendingPlan = null;
-        return plan ?? defaultItemPlan(state);
+        if (!plan) return defaultItemPlan(state);
+        /*
+         * **Brought forward before it is answered with, and this is the fix
+         * for the Carry on soft lock.**
+         *
+         * The plan was composed on the party screen against the inventory the
+         * run held *then*. It is spent here, after the node has resolved — and
+         * the node is exactly what may have taken an item out of the bag: an
+         * event's forced `discard`, a `loseItem`, a berry the sim ate, a grant
+         * that filled the last slot. The plan then names something the run no
+         * longer holds, `applyItemPlan` refuses it with a `RangeError`, and
+         * until the catch below learned to tell a broken run from an abandoned
+         * one that `RangeError` went nowhere: the player sat on the event
+         * screen pressing a Carry on that had already been pressed.
+         *
+         * `reconcileItemPlan` is `core/` and pure, so what it returns is what
+         * the log records and what a replay applies. See
+         * `docs/spec/gymrun-patch-carry-on-softlock.md`.
+         */
+        return reconcileItemPlan(
+          state,
+          plan,
+          backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+        );
       },
       chooseShopPurchases: (stock, state) => {
         shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
@@ -789,9 +815,50 @@ export function mountApp(root: HTMLElement): void {
       setPhase('setup');
       // The run is over: a saved log now would resume into a finished run.
       clearRunLog();
-    } catch {
-      // The only way out of playRun other than a finished run is an abandoned
-      // pending decision, which happens when the player starts a different one.
+    } catch (error) {
+      /*
+       * An abandoned decision, which happens when the player starts a
+       * different run while this one is parked on a question. Expected, and
+       * the new run has already taken the screens.
+       */
+      if (isRunAbandoned(error)) return;
+      /*
+       * **Anything else is a bug, and it used to be invisible.**
+       *
+       * This was a bare `catch {}` on the note that an abandoned decision was
+       * the only non-finishing exit from `playRun`. It is not: every
+       * `RangeError` `core/` raises to refuse an illegal answer lands here
+       * too, and swallowing one leaves the player on a screen whose question
+       * has already been answered — no control that advances the run, nothing
+       * in the console, nothing to do but reload. That is the soft lock
+       * `docs/spec/gymrun-patch-carry-on-softlock.md` was filed against, and a
+       * screen that says nothing is worse than a screen that says it broke.
+       *
+       * The run is over either way. What changes is that it says so, hands the
+       * seed controls back, and leaves the error where a report can quote it.
+       */
+      console.error('GYMRUN: the run stopped on an error', error);
+      releaseBattle();
+      /*
+       * **And the save goes with it, because a save is how this became
+       * unrecoverable rather than annoying.**
+       *
+       * `onDecision` is `saveRunLog`, and `record` runs *before* the answer is
+       * applied — so the decision that `core/` then refused is already in
+       * `localStorage` by the time it throws. Reloading resumes that log,
+       * replays the same decisions, and dies at the same step. The player who
+       * filed this had a run that was soft locked across reloads, not on one
+       * screen.
+       *
+       * A log that deterministically cannot be applied is not a run to go back
+       * to, so it is dropped rather than re-offered. That is a real cost and it
+       * is the smaller one: the alternative is a Resume button that does
+       * nothing but reproduce the failure.
+       */
+      clearRunLog();
+      seedBar.setResumable(false);
+      seedBar.warn(SEED_COPY.runFailed);
+      setPhase('setup');
     }
   }
 
