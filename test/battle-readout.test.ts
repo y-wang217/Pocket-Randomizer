@@ -30,7 +30,7 @@ import {
   formatStageMultiplier,
   stageMultiplier,
 } from '../src/data/statStages';
-import { MOVE_FACT_INFO } from '../src/data/moveFactInfo';
+import { MOVE_FACT_COLUMN, MOVE_FACT_INFO } from '../src/data/moveFactInfo';
 import { BAND_INFO, BAND_PIPS } from '../src/data/bandInfo';
 import { bandChip, stageChip } from '../src/ui/chip';
 import { moveFactStrip } from '../src/ui/scene';
@@ -168,10 +168,31 @@ describe('the move fact strip', () => {
       }
 
       const drawn = [...strip!.querySelectorAll<HTMLElement>('.badge--fact')];
-      expect(drawn.map((chip) => chip.dataset['fact']), name).toEqual(facts.map((fact) => fact.id));
+      /*
+       * **Every field, in column order.** The strip draws a fixed grid since
+       * the playtest patch: a field's column is its identity, so the DOM order
+       * is the column order rather than `MOVE_FACT_IDS` order — contact sits in
+       * column 2 and is therefore drawn second, not last. The set is what this
+       * assertion is about, and it is unchanged: nothing is dropped and nothing
+       * is invented.
+       */
+      expect([...drawn.map((chip) => chip.dataset['fact'])].sort(), name).toEqual(
+        facts.map((fact) => fact.id).sort(),
+      );
+      expect(drawn.map((chip) => chip.dataset['fact']), `${name}: column order`).toEqual(
+        [...facts].sort((a, b) => MOVE_FACT_COLUMN[a.id] - MOVE_FACT_COLUMN[b.id]).map((fact) => fact.id),
+      );
+      // Each chip in the cell its column names, so the accuracy on one button
+      // is directly above the accuracy on the next.
+      for (const chip of drawn) {
+        const column = chip.parentElement?.dataset['column'];
+        expect(column, `${name}: ${chip.dataset['fact']} is in a fact cell`).toBe(
+          String(MOVE_FACT_COLUMN[chip.dataset['fact'] as MoveFactId]),
+        );
+      }
 
-      for (const [index, chip] of drawn.entries()) {
-        const fact = facts[index]!;
+      for (const chip of drawn) {
+        const fact = facts.find((candidate) => candidate.id === chip.dataset['fact'])!;
         // The number, when there is one, and no element for one when there is
         // not. No empty slots, no greyed placeholders.
         expect(chip.querySelector('.move__fact-value')?.textContent ?? '', `${name}: ${fact.id}`).toBe(fact.value);

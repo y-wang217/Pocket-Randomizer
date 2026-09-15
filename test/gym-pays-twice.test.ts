@@ -52,11 +52,15 @@ describe('the run log version', () => {
   });
 
   it('is a different axis from the randomizer, and both moved this patch', () => {
-    // Moved to 14 by the event rejig: draw composition inside an event node
-    // changed. The assertion's subject is that the two axes are *different*,
-    // and that still holds — this literal is the thing that moves when a
-    // later patch changes what the randomizer draws.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-14');
+    /*
+     * Moved to 14 by the event rejig and to 15 by the playtest patch, where a
+     * relic an event pays gained a drawn order and a fallback. The assertion's
+     * subject is that the two axes are *different*, and that still holds —
+     * this literal is the thing that moves when a later patch changes what the
+     * randomizer draws, and it has now done so twice, which is the axis
+     * working.
+     */
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-15');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

@@ -132,6 +132,11 @@ describe('the drawer itself', () => {
    * The same property is asserted on the rendered drawer, in a browser, across
    * a whole run in `test/visual-move-cards.test.ts` — there against a
    * fingerprint that includes the battle log and every HP and PP readout.
+   *
+   * `Grid` and `Columns` joined the list with the move bar picker. They write a
+   * display setting, like the three density buttons beside them, and the half
+   * of this test that matters — pressing every control and comparing party
+   * state — is what says so rather than their presence in the list.
    */
   it('is read only: no control on it writes party state', () => {
     const drawer = createDrawer();
@@ -144,7 +149,7 @@ describe('the drawer itself', () => {
     // attribute on the card and writes nothing. The three mode names are the
     // picker (step 7): each writes the density setting, which is not party
     // state, and the comparison below holds that. Density modes patch.
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close', 'Detailed', 'Explain', 'Pocket', 'Simple']);
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close', 'Columns', 'Detailed', 'Explain', 'Grid', 'Pocket', 'Simple']);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —

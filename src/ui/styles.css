@@ -1094,11 +1094,35 @@ body {
 
 /* The mode picker, in the drawer: three named options, a line each saying
    what the mode does. The pressed one is the store's value. */
-.density__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--density-gap)); }
-.density__option { display: flex; align-items: baseline; gap: var(--space-2); }
-.density__choice { flex: none; }
-.density__choice[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
-.density__desc { font-size: var(--fs-sm); color: var(--text-dim); }
+/* The drawer's settings pickers. One rule set, one per setting: the block
+   classes below it exist so a suite that names one picker finds one picker. */
+.picker__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--density-gap)); }
+.picker__option { display: flex; align-items: baseline; gap: var(--space-2); }
+.picker__choice { flex: none; }
+.picker__choice[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.picker__desc { font-size: var(--fs-sm); color: var(--text-dim); }
+
+/*
+ * **Pocket lays a picker's choices in a row and drops the descriptions.**
+ *
+ * Pocket's rule is zero scroll on a 390x844 phone, and its budget is chrome
+ * first: headers, titles, padding and margins before any fact moves. A second
+ * picker is five more rows of chrome in a sheet that had 62px of room, so the
+ * choices go side by side — one row per setting instead of one per option —
+ * and the sentence under each goes with them.
+ *
+ * Nothing is hidden that the player needs to make the choice: the mode names
+ * are on screen and the setting is reversible in a tap. The descriptions are
+ * on screen in Detailed and Simple, which is the mode a player reads a setting
+ * in for the first time.
+ */
+[data-density='pocket'] .picker__options {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+[data-density='pocket'] .picker__desc { display: none; }
 
 /*
  * The backpack, below the party on the same screen.
@@ -1443,11 +1467,44 @@ body {
 
 .move__name { font-weight: 600; }
 
+/*
+ * The identity line: type, category, base power. **Three fields, and it no
+ * longer wraps.**
+ *
+ * It carried the band badge and the effectiveness marker too, and wrapped
+ * against its own content — so on a phone the band sat on the first line of
+ * one move button and the second line of the next, depending on how long that
+ * move's type name was. A player cannot learn a symbol that moves. Those two
+ * moved to `.move__facts`, which has fixed columns, and what is left is the
+ * three fields that fit one line on every move in the game.
+ *
+ * `nowrap` is the assertion. If a fourth field is ever added here it will
+ * overflow visibly rather than quietly re-ragging the grid.
+ */
 .move__meta {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-1h);
-  flex-wrap: wrap;
+  gap: 0 var(--space-1h);
+}
+
+/*
+ * **The status readout takes its own row, and that is a regression fix.**
+ *
+ * This row was `flex-wrap: wrap` and the readout wrapped onto its own full
+ * width beneath the type and category chips. Making the row `nowrap` — to stop
+ * the band badge landing on a different line on each button — squeezed the
+ * readout into what was left beside those two chips instead, so it wrapped
+ * internally to three lines and `Toxic` grew a 52px meta row. V5's loaded
+ * board is budgeted at 600 and measured 610.
+ *
+ * A grid rather than a return to `wrap`: the three identity fields keep their
+ * fixed columns and cannot re-rag, and the readout is placed on a second row
+ * explicitly rather than arriving there because it happened not to fit.
+ */
+.move__meta > .move__effect {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }
 
 .move__category,
@@ -1467,6 +1524,146 @@ body {
 }
 
 .move__pp--low { color: var(--hp-low); }
+
+/* ---------- the move bar layouts ---------- */
+
+/*
+ * **The four-column move bar.** `data-move-bar="columns"` on the root; the
+ * absence of it, or `"grid"`, is the 2x2 the game has always had and every
+ * rule above describes.
+ *
+ * ## Why this is a stack and not a re-flow
+ *
+ * Measured at 390 before a line of it was written: `.moves` is 358px wide, so
+ * four columns give 85px buttons against 176px in the grid. The identity line
+ * needs 138.6px, the fact line about 155px and the footer 78.1px, and
+ * `--fs-sm` is already the legibility floor `test/visual-chips.test.ts`
+ * holds — so nothing about the current face fits, at any type size this
+ * project is allowed to use.
+ *
+ * So column mode is a different face: one field family per line, the same
+ * line on every button, which is the property that makes a field readable
+ * *across* the four rather than within one. That is what the report asked
+ * for — "to compare".
+ *
+ * ## What leaves the face here, and where it goes
+ *
+ * Accuracy stays, because it is the field the whole explanation layer was
+ * built for. Effectiveness stays, because it is the one live fact about the
+ * board and the single exception `CLAUDE.md` carves out of the no-verdicts
+ * rule. The rest of the fact strip — contact, secondary chance, priority,
+ * multi-hit, recoil, drain — is hidden on the face and is one tap away in the
+ * `?` panel, which prints every one of them and always has.
+ *
+ * **Nothing is removed from the game and nothing is removed from the grid
+ * layout.** This is the rule Pocket density already runs under: a secondary
+ * fact may cost a tap, a primary fact stays on screen.
+ */
+[data-move-bar='columns'] .moves {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/*
+ * The side padding comes in because it is 24px of an 85px button — a seventh
+ * of the width spent on air. The vertical padding is untouched, because that
+ * is what holds the 44px touch target.
+ */
+[data-move-bar='columns'] .moves .move {
+  padding-inline: calc(var(--space-1) * var(--density-pad));
+  gap: var(--space-h);
+}
+
+/*
+ * Two lines of the name at most, and the box is the same height whether the
+ * name takes one or two — otherwise a one-word move and a two-word move start
+ * their type chips on different lines and the whole comparison is lost.
+ */
+[data-move-bar='columns'] .moves .move__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(2 * 1.2em);
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+}
+
+/*
+ * Identity: the type alone, then category and power under it. The type takes
+ * the whole width because it is the widest chip on the button — `Fighting` is
+ * eight characters — and nothing shares a line with it at 85px.
+ */
+[data-move-bar='columns'] .moves .move__meta {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, auto);
+  justify-content: start;
+  gap: var(--space-h) var(--space-1);
+}
+
+[data-move-bar='columns'] .moves .move__meta > :first-child {
+  grid-column: 1 / -1;
+}
+
+/* The status readout keeps the whole width it has in the grid. */
+[data-move-bar='columns'] .moves .move__effect {
+  grid-column: 1 / -1;
+  margin-inline: 0;
+}
+
+/*
+ * The fact line becomes two fixed slots: the band and the accuracy, then the
+ * effectiveness marker under them. The four reserved fact columns collapse to
+ * one — accuracy's — because at this width a reserved column that is usually
+ * empty is spending the button's whole content width on nothing.
+ */
+[data-move-bar='columns'] .moves .move__facts {
+  grid-template-columns: minmax(0, auto) minmax(0, auto);
+  justify-content: start;
+  row-gap: var(--space-h);
+}
+
+/*
+ * Two slots wide, so the three fields that stay on the face take two rows:
+ * the band beside the accuracy, the marker under them. Explicit placement
+ * rather than inherited, because the grid is two columns here and the wide
+ * layout's `3 / -1` would land the marker on top of the accuracy.
+ */
+[data-move-bar='columns'] .moves .move__facts-band {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+[data-move-bar='columns'] .moves .move__fact-cell[data-column='1'] {
+  grid-row: 1;
+  grid-column: 2;
+}
+
+[data-move-bar='columns'] .moves .move__facts-effect {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+/* Contact, the odds and the turn cost: one tap away, in the `?` panel. */
+[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
+  display: none;
+}
+
+/*
+ * PP and the explain control stay one row, and PP loses its label — the
+ * number is the thing that counts down, `PP` is four characters of constant.
+ * The word is still on the control's own panel.
+ */
+[data-move-bar='columns'] .moves .move__footer {
+  gap: var(--space-1);
+}
+
+[data-move-bar='columns'] .moves .move__pp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ---------- log ---------- */
 
@@ -4168,13 +4365,130 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    out-shout the move name. `nowrap` is the difference — a strip of icons fits
    one line where a row of words did not, and one line is the whole point.
    Nothing here is a colour: an icon that coloured a fact would be ranking it. */
+/*
+ * The fact line: the band, four fixed fact columns, then effectiveness.
+ *
+ * **A grid rather than a packed row, and that is the whole of the fix.** The
+ * chips used to be appended left to right, so a move without a contact flag
+ * put its secondary-effect chance exactly where the button beside it put
+ * contact — the reporter's "the line breaks for the band and the accuracy etc
+ * must be consistent for the user to remember what they mean".
+ *
+ * Four `1fr` columns, reserved whether or not the move has the field, so the
+ * accuracy on one button sits directly above the accuracy on the next. Four is
+ * measured, not chosen: no move in the pools carries more than four face
+ * facts, and `data/moveFactInfo.ts` carries the co-occurrence evidence for
+ * which fields may share a column.
+ *
+ * The band opens the line and effectiveness closes it, both `auto` so they
+ * take only what they need and neither steals a fact column. Effectiveness is
+ * last because it is the one field that depends on what is standing opposite,
+ * so it is the one whose absence must shift nothing.
+ */
 .move__facts {
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
+  /*
+   * **Two fixed rows of four columns, and the second row is a bug fix.**
+   *
+   * The first build of this grid put all six slots on one line, and the line
+   * does not fit. Measured on a 176px button, whose content box is 150px:
+   * `Syrup Bomb` wants band 38 + accuracy 33 + a 47px `100%` secondary + a
+   * 28px marker = 146px of content before a single gap, and `overflow: hidden`
+   * then clipped whatever was at the end of it — which is the effectiveness
+   * marker, the one fact on the button that describes the Pokemon actually
+   * standing opposite. 21 distinct clipped chips across 115 battle screens on
+   * three seeds; zero on the build before the marker moved onto this line.
+   *
+   * Widening is not available: `--fs-sm` is the legibility floor
+   * `test/visual-chips.test.ts` holds. So the line wraps — and **what matters
+   * is that it wraps at a fixed point rather than against its own content**,
+   * which is the whole complaint this feature exists for. Row 1 is what the
+   * move hits for, row 2 is how it behaves, on every button, whether or not
+   * either row has anything in it.
+   *
+   * `min-content` is the floor on each column rather than zero. With
+   * `minmax(0, 1fr)` a chip wider than its share overflowed its own cell and
+   * painted across the next one — the accuracy chip took the contact chip's
+   * hit target, and the contrast sampler read one chip through another.
+   */
+  grid-template-columns: auto repeat(4, minmax(min-content, 1fr)) auto;
   align-items: center;
-  gap: var(--space-1);
+  /*
+   * The gap is on the items, not on the grid. A reserved column is 0 wide when
+   * its field is absent, but a grid `column-gap` is charged either way — so a
+   * move with two facts paid for four columns' worth of it. A margin is
+   * charged only when the item is there.
+   */
+  column-gap: 0;
+  row-gap: var(--space-h);
   overflow: hidden;
 }
+
+.move__facts > *:not(:empty) { margin-right: var(--space-1); }
+
+/*
+ * **Row 1: the band, the accuracy, the marker. Row 2: everything else.**
+ *
+ * Accuracy is on row 1 and that placement is measured rather than tidy. It is
+ * on 405 of the 458 pool moves, so putting it on row 2 meant row 2 existed on
+ * almost every button — and the second row cost V5's loaded-board budget,
+ * which is 600 and which the first draft of this split missed at 610. Row 1
+ * has the room: band 38 + a three-character marker 38 + accuracy 40 is 124 of
+ * 150 with its margins.
+ *
+ * So row 2 now carries contact, the odds and the turn cost, and **collapses to
+ * nothing on a move that has none of them** — which is most of them. The
+ * second row is charged to the buttons that need it instead of to all four.
+ *
+ * The marker takes the rest of row 1, so a three-character `0.5x` has the same
+ * room as a two-character `2x` and neither can push the other off the button.
+ */
+/*
+ * A standalone move card is the full width of its screen, so all six slots fit
+ * one line and the card keeps the height it has always had. The two-row split
+ * below is scoped to the battle bar, which is the only place the line is too
+ * narrow for them.
+ */
+.move__facts-band { grid-column: 1; }
+.move__fact-cell[data-column='1'] { grid-column: 2; }
+.move__fact-cell[data-column='2'] { grid-column: 3; }
+.move__fact-cell[data-column='3'] { grid-column: 4; }
+.move__fact-cell[data-column='4'] { grid-column: 5; }
+.move__facts-effect { grid-column: 6; justify-self: end; margin-right: 0; }
+
+/*
+ * **The battle bar, and only the battle bar, splits the line in two.**
+ *
+ * A 176px button has a 150px content box and the six slots want 158px of it,
+ * so on one line the last of them is clipped — see the note on `.move__facts`.
+ * Four columns over two rows: what the move hits for, then how it behaves.
+ *
+ * Accuracy joins row 1 because it is on 405 of the 458 pool moves, so leaving
+ * it on row 2 meant row 2 existed on almost every button and cost V5's loaded
+ * board its 600px budget. Row 1 has the room at 124 of 150.
+ */
+.moves .move__facts { grid-template-columns: repeat(4, minmax(min-content, 1fr)); }
+.moves .move__facts-band { grid-row: 1; grid-column: 1; }
+.moves .move__fact-cell[data-column='1'] { grid-row: 1; grid-column: 2; }
+.moves .move__facts-effect { grid-row: 1; grid-column: 3 / -1; justify-self: start; }
+.moves .move__fact-cell[data-column='2'] { grid-row: 2; grid-column: 1; }
+.moves .move__fact-cell[data-column='3'] { grid-row: 2; grid-column: 2; }
+.moves .move__fact-cell[data-column='4'] { grid-row: 2; grid-column: 3 / -1; }
+
+/* Each column holds its place when empty, and clips inside itself if a value
+   ever outgrows it rather than painting over the column beside it. */
+.move__fact-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.move__facts-band,
+.move__facts-effect { flex: 0 0 auto; }
+
+/* The two ends of the line, so neither is mistaken for a fact column. */
+.move__facts-effect { justify-self: end; }
 
 /* No font-size of its own: it inherits `.badge`'s --fs-sm, the legibility
    floor, the same way `.badge--tag` did after 4.7.2. */

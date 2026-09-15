@@ -92,6 +92,22 @@ describe('the density setting is unreachable from core/', () => {
       /\bgetVerbosity\b/,
       /\bsetVerbosity\b/,
       /\bverbosity\b/i,
+      /*
+       * The move bar layout, on the same list and for the same reason. **The
+       * four-column patch.** It is a second presentation axis, so the moment
+       * `core/` could see it a run would play differently depending on how the
+       * four buttons were arranged — which is the property this whole file
+       * exists to make impossible, stated once per axis rather than once.
+       *
+       * `moveBar` rather than the bare word "bar": `core/` has no other use
+       * for the spelling, and the compound can only mean this setting.
+       */
+      /\bgetMoveBar\b/,
+      /\bsetMoveBar\b/,
+      /\bMoveBar\b/,
+      /\bMOVE_BARS\b/,
+      /\bmoveBar\b/,
+      /data-move-bar/,
     ];
     for (const path of coreFiles) {
       const source = readFileSync(path, 'utf8');

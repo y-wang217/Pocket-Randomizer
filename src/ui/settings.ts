@@ -57,6 +57,31 @@ export type Density = 'detailed' | 'simple' | 'pocket';
 /** Every mode, in the order the picker lists them. Detailed first: the default. */
 export const DENSITIES: readonly Density[] = ['detailed', 'simple', 'pocket'];
 
+/**
+ * How the four move buttons are arranged. **The four-column patch.**
+ *
+ * A second presentation axis, and deliberately a second axis rather than a
+ * fourth density mode. Density is *how much space and prose a fact costs* and
+ * applies to every screen in the game; this is *the shape of one bar on one
+ * screen*, and folding it in would mean a player who wanted four columns had
+ * to accept a padding scale with it.
+ *
+ *   - **`grid`.** The 2x2 the game has always had. 176px buttons at 390, which
+ *     is enough for the identity line, the fact line and the footer to each
+ *     read on one line.
+ *   - **`columns`.** Four columns, one per move, so the same field on all four
+ *     moves is on one line and reads across. 85px buttons at 390, which is not
+ *     enough for any of those three lines, so the face stacks and its secondary
+ *     half moves behind the tap that was already there.
+ *
+ * The two are measured against each other rather than ranked here;
+ * `docs/generation.md` section 16 has both height tables.
+ */
+export type MoveBar = 'grid' | 'columns';
+
+/** Both layouts, in the order the picker lists them. */
+export const MOVE_BARS: readonly MoveBar[] = ['grid', 'columns'];
+
 const KEY = 'gymrun.settings';
 
 /**
@@ -75,6 +100,7 @@ export interface TutorialFlags {
 
 export interface Settings {
   density: Density;
+  moveBar: MoveBar;
   tutorial: TutorialFlags;
 }
 
@@ -84,10 +110,29 @@ export interface Settings {
  * Detailed, per the note above. Exported so a test asserts the default rather
  * than restating it.
  */
-export const DEFAULT_SETTINGS: Settings = { density: 'detailed', tutorial: { skipped: false, seen: [] } };
+/**
+ * The first-launch settings.
+ *
+ * `grid` for the move bar, and the argument is the opposite of the density
+ * default's. Detailed is the default because the mode that hides the help is
+ * the mode a new player never leaves; the move bar has no such asymmetry —
+ * both layouts show the same moves and neither hides a control — so the
+ * default goes to the one every measurement in `docs/visual/baseline/` was
+ * taken against. The four-column layout is one tap away in the drawer, which
+ * is reachable from every screen of a run.
+ */
+export const DEFAULT_SETTINGS: Settings = {
+  density: 'detailed',
+  moveBar: 'grid',
+  tutorial: { skipped: false, seen: [] },
+};
 
 function isDensity(value: unknown): value is Density {
   return (DENSITIES as readonly unknown[]).includes(value);
+}
+
+function isMoveBar(value: unknown): value is MoveBar {
+  return (MOVE_BARS as readonly unknown[]).includes(value);
 }
 
 /**
@@ -125,13 +170,31 @@ export function saveSettings(settings: Settings): void {
  */
 export function readSettings(value: unknown): Partial<Settings> {
   if (typeof value !== 'object' || value === null) return {};
-  const candidate = value as { density?: unknown; verbosity?: unknown; tutorial?: unknown };
+  const candidate = value as {
+    density?: unknown;
+    moveBar?: unknown;
+    verbosity?: unknown;
+    tutorial?: unknown;
+  };
   const read: Partial<Settings> = {};
   if (isDensity(candidate.density)) read.density = candidate.density;
   // The 4.7.2 field. Both of its values are members of the new union with the
   // same meaning, so the migration is the identity on them; anything else the
   // old field could hold falls through to the default.
   else if (candidate.verbosity === 'simple' || candidate.verbosity === 'detailed') read.density = candidate.verbosity;
+
+  /*
+   * The move bar layout. **Read after the density chain, not inside it**, and
+   * the first draft of this put it between the two branches — which quietly
+   * severed the `else` and let a stored `verbosity` overwrite a stored
+   * `density`. `test/density.test.ts` caught it on the one case written for
+   * exactly that: "lets a stored density win over a stored verbosity".
+   *
+   * No migration of its own: the field is new, so a store written before it
+   * falls through to the default, which is the layout that store was already
+   * being shown.
+   */
+  if (isMoveBar(candidate.moveBar)) read.moveBar = candidate.moveBar;
   const tutorial = candidate.tutorial as { skipped?: unknown; seen?: unknown } | undefined;
   if (typeof tutorial === 'object' && tutorial !== null) {
     read.tutorial = {
@@ -172,6 +235,17 @@ export function getDensity(): Density {
 export function setDensity(density: Density): void {
   if (current.density === density) return;
   current = { ...current, density };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+export function getMoveBar(): MoveBar {
+  return current.moveBar;
+}
+
+export function setMoveBar(moveBar: MoveBar): void {
+  if (current.moveBar === moveBar) return;
+  current = { ...current, moveBar };
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }

@@ -44,6 +44,14 @@ try {
     const readings = [
       ['', expected, measured],
       ...Object.keys(expected.modes ?? {}).map((mode) => [`modes.${mode}.`, expected.modes[mode], measured.modes?.[mode] ?? {}]),
+      // The move bar layouts, each in all three densities. Four-column patch.
+      ...Object.entries(expected.layouts ?? {}).flatMap(([layout, densities]) =>
+        Object.keys(densities).map((mode) => [
+          `layouts.${layout}.${mode}.`,
+          densities[mode],
+          measured.layouts?.[layout]?.[mode] ?? {},
+        ]),
+      ),
     ];
     for (const [prefix, want, got] of readings) {
       for (const screen of ['map', 'battle']) {

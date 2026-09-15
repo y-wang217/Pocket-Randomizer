@@ -2233,3 +2233,77 @@ the change was never that it would win gyms — it was that an Attune paying
 `T1` hands a minor payout to a player who spent a scarce relic on the one
 option the gate exists to protect. The measurement confirms the change is
 **cheap**, which is the question a balance table can actually answer about it.
+
+## 18. The playtest patch — the baseline cannot see it, and that is the finding
+
+**2026-09-14.** Events now pay the move and the relic they draw
+(`generation.md` section 15). That is a payout change to the highest variance
+node in the game, so the expectation was a benchmark move.
+
+**There is none, and the reason is the measuring instrument rather than the
+change.** `scriptedRunPolicy` takes the first option at every question, the
+first event archetype is `safe`, and Safe pays a flat `T1` — which never
+contained a move or a relic on any tier band. So the bot that produces every
+number in this document walks past the entire fix.
+
+The evidence is stronger than a re-run, and it is exact rather than statistical:
+
+- **`test/fixtures/sim-report.json` re-minted to a three-line diff** — `version`,
+  `randomizerVersion`, `contentHash`. All three fixture runs are byte identical,
+  final party and all.
+- **Every decision in all six visual baseline runs is byte identical**, as are
+  the outcomes, the gyms cleared, the currency and the relics held; the only key
+  that moved is `log.versions`.
+
+So **mean gyms cleared under the pinned baseline is unmoved by construction**,
+and no benchmark re-run is quoted here because one would be measuring the same
+runs.
+
+### What this says about the next benchmark
+
+Not "the patch is balance neutral". It says the standing benchmark is blind to
+this axis, and it has been blind to it for as long as events have had options.
+A Toll or a Gamble is where an event's variance lives, and the baseline takes
+neither.
+
+Recorded as an open item rather than fixed here, because fixing it means
+changing what the baseline policy does, and that would move every number in
+this document at once — a change that belongs in its own pass with its own
+before-and-after, not bolted onto a bug fix. The simulator's `--policy` bots
+are where an event-aware baseline belongs.
+
+## 19. The relic passives, switched on
+
+**2026-09-15.** `applyRelicPassives` had no caller in `src/`, so every relic
+passive was inert (`generation.md` section 16). Switching the fold on is a
+balance change and this is its number.
+
+| | completion | mean gyms cleared |
+|---|---|---|
+| relics inert (`780fa94`) | 42.0% | **4.97 / 8** |
+| relics live (`8850012`) | 44.0% | **5.04 / 8** |
+
+`RELICBENCH` prefix, **150 seeds**, `scriptedRunPolicy`, everything else equal —
+the two trees differ by the one commit. Read down a prefix, never across.
+
+**+0.07 mean gyms.** Recorded, not chased, and nothing is retuned off it.
+
+### Why it is this small, which is the part worth keeping
+
+The passives are small and the holders are few. A `nodeHeal` is 4 or 5 percent
+of max HP at a boundary; `nodeCurrency` is 3 to 5 coins a fight. Two of the ten
+relics have no passive at all. And the baseline policy reaches a relic only
+through a reward card or a shop shelf it happens to take, so most of the 150
+runs carry none for most of their length.
+
+**So the honest reading is "the direction is right and the size is not a
+finding at n=150."** Two points of completion across 150 runs is inside the
+noise this document has measured on unchanged trees before; the mean-gyms
+figure is the one to read, per section 0, and +0.07 is a nudge.
+
+The number that would be worth having is not this one. It is what a relic is
+worth *to a run that holds it*, which needs either a policy that routes toward
+relics or a much larger sweep — and section 18's open item, that the standing
+baseline never takes a Toll or a Gamble at an event, is the same gap seen from
+the other side. Both want an event-and-relic-aware bot, and that is its own
+pass.

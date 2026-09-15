@@ -24,7 +24,7 @@
  * forms — `test/boundaries.test.ts` reads both.
  */
 import type { Prose } from '../dom';
-import type { Density } from '../settings';
+import type { Density, MoveBar } from '../settings';
 
 export const STARTER_COPY = {
   blurb: {
@@ -110,6 +110,26 @@ export const DENSITY_COPY: Readonly<Record<Density, { name: string; description:
   detailed: { name: 'Detailed', description: 'Full labels and full prose.' },
   simple: { name: 'Simple', description: 'Short labels and fewer words.' },
   pocket: { name: 'Pocket', description: 'Fits every screen without scrolling.' },
+};
+
+/**
+ * The move bar picker. **The four-column patch.**
+ *
+ * Attributes, never verdicts, and that rule is doing real work on these two
+ * lines: neither says which layout is better, neither says "recommended", and
+ * neither names a number. What each says is what the layout *is* — how the
+ * four buttons are arranged, and what that costs or buys — because the report
+ * asked to compare the two and a description that ranked them would be making
+ * the comparison instead of enabling it.
+ *
+ * "One tap away" on the columns line is a statement of where a fact went, not
+ * an apology for it. The `?` on every button opens the same panel in both
+ * layouts.
+ */
+export const MOVE_BAR_HEADING = 'Move bar';
+export const MOVE_BAR_COPY: Readonly<Record<MoveBar, { name: string; description: string }>> = {
+  grid: { name: 'Grid', description: 'Two by two. Every field on the button.' },
+  columns: { name: 'Columns', description: 'Four columns, fields lined up across. Some read one tap away.' },
 };
 
 export const DRAWER_COPY = {

@@ -292,10 +292,18 @@ describe('the version axes', () => {
    * is a changed answer to an unchanged question and therefore a schema bump.
    */
   it('moved RUN_LOG_VERSION not at all, and contentHash only by new data tables', () => {
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-14/gymrun-0.3.0');
+    /*
+     * Both literals have moved since, by later patches rather than by this
+     * one, and both are kept literal on purpose — a computed check on either
+     * axis could not catch a bump that failed to happen. `-15` is the event
+     * move, where a `T2` or `T3` outcome that pays a move asks who learns it;
+     * the hash is `data/eventPools.ts` gaining a fallback on its relic
+     * entries.
+     */
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-15/gymrun-0.3.0');
     // Pinned literally, as the Branch 1 value was: a hash nobody can read off
     // the tree by eye is exactly the kind that moves without anyone noticing.
-    expect(CONTENT_HASH).toBe('1e6f02e50f78d283197cb18a443bac11554daf71d59e1086a9ae4b60c19a0883');
+    expect(CONTENT_HASH).toBe('53145fb1ee4bee9bf294aa380a32afe736c4d9ed8a382ed9e15453b8704ccd1e');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

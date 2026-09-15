@@ -32,7 +32,7 @@ import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
 import type { EventArchetype } from '../data/eventPools';
 import { createPending } from './pending';
-import { initSettings, resetTutorial } from './settings';
+import { initSettings, onSettingsChange, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
 import { createDensityGuard } from './density-guard';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
@@ -64,6 +64,7 @@ import { itemLayoutOf } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
 import { applyDensity } from './theme/density';
+import { applyMoveBar } from './theme/move-bar';
 
 export function mountApp(root: HTMLElement): void {
   /*
@@ -88,7 +89,19 @@ export function mountApp(root: HTMLElement): void {
    * redraw, including why a shell-level redraw could not avoid being a
    * per-screen registration in this router.
    */
-  applyDensity(initSettings().density);
+  const settings = initSettings();
+  applyDensity(settings.density);
+  /*
+   * The move bar layout, once at startup and once per change.
+   *
+   * Straight off the store, with no guard in front of it — unlike density,
+   * which the tutorial holds at Detailed while a screen's marks are up. The
+   * marks that name a move button anchor `data-tutorial="move"` and `"pp"`,
+   * and both attributes are on the same elements in both layouts, so there is
+   * nothing for a layout to fold away and nothing for a guard to protect.
+   */
+  applyMoveBar(settings.moveBar);
+  onSettingsChange((next) => applyMoveBar(next.moveBar));
   // The subscription itself is the tutorial's guard, created with the layer
   // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
   // screen's marks are up.

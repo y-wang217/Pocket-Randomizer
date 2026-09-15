@@ -2736,3 +2736,344 @@ enforced, both written in the same patch that added the rules. This repo leans
 on comments naming the test that holds a rule, so a citation that goes nowhere
 costs more here than a broken link in a document: it is the thing a reader
 trusts when deciding whether a rule is enforced at all.
+
+## 15. The playtest patch: three effects an event drew and never paid
+
+**2026-09-14.** A playtest report on the deployed build
+(`GYMRUN-1e6f02-Z8HE3NMU`, `0.3.0 · R14`) named two gamebreaking bugs and one
+readability complaint. The prompt is filed verbatim at
+[`spec/gymrun-patch-event-rewards-and-move-card-fields.md`](spec/gymrun-patch-event-rewards-and-move-card-fields.md).
+
+> Still no rewards in ? Event rooms
+> I picked minus hp for T2
+> Didnt get hp hit and didnt get the reward move.
+
+### The same defect, for the third time, in two more places
+
+Section 14 above records two instances of one shape: an effect that folds
+correctly at one end, is announced at the other, and is joined by nothing in
+between. `ui/storage.ts` validated an event decision that no longer had the
+field it checked; `resolveNode` read two of the three fields
+`applyEventOutcome` returned. Both were found and fixed in the rejig.
+
+**Two more were sitting in the same function the whole time**, and this is what
+the report found:
+
+| effect | what it did | since |
+|---|---|---|
+| `move` | `applyEffect` returned the run untouched; nothing asked who learns it | the rejig |
+| `relic` | `applyEffect` returned the run untouched; `resolveEffect` resolved nothing, so no relic was ever named | the rejig |
+
+Both carried a comment saying the work belonged elsewhere — "Step 5's job" for
+the move, "decided at offer resolution" for the relic — and in both cases the
+comment described a correct design that was never built. That is worth stating
+as a rule rather than as two bugs: **a comment deferring work to another file
+is not evidence that the other file does it**, and neither the type system nor
+a unit test of the fold can tell the two apart.
+
+The cost was not marginal. `move` is 8 of 23 weight in every `T2` band and 7 or
+8 of 22 in every `T3`; `relic` is another 4 to 6 and 5 to 7. **Over half of
+what a Toll bought went nowhere**, which is exactly what "still no rewards in ?
+event rooms" describes.
+
+Measured at the `resolveNode` seam over five seeds and every event node on each
+map, before the fix:
+
+| effect | drawn | delivered |
+|---|---|---|
+| `T2/move` | 157 | 0 |
+| `T2/relic` | 90 | 0 |
+| `T3/move` | 28 | 0 |
+| `T3/relic` | 25 | 0 |
+| `toll/hp` | 133 | 133 |
+
+### The HP toll was charged all along, and said nothing
+
+The third item in the report — "didnt get hp hit" — is the one that was **not**
+a state bug. `resolveNode` has called `applyToll` since the rejig and the table
+above shows it landing on every draw. What was missing was the sentence: the
+price is on the button before the press, `resolveNode` charges it, and the
+reveal went straight to what it bought. A player who spent a fifth of their HP
+and read only the reward reasonably concluded the charge had not happened.
+
+The reveal now names it — `Paid: 20% HP, lead`, from `TOLL_PAID_PREFIX` in
+`data/eventCopy.ts` — on its own line above the outcome, in the order the run
+applies them. Past tense against the button's present tense, which is what
+separates the price from the charge.
+
+**Recorded because the diagnosis nearly went the other way.** Two of the three
+reported symptoms were missing state and the third was missing copy, and they
+are indistinguishable from the player's side. The thing that told them apart
+was measuring the fold rather than reading it.
+
+### What the fix cost on the version axes
+
+- **`RUN_LOG_VERSION` to `-15`.** An event that pays a move now asks the
+  existing `target` and `replace` pair, in a place no earlier log has an answer
+  for. Every entry in the pair is an old shape and the sequence is still
+  changed, which is the guard's own rule.
+- **`RANDOMIZER_VERSION` to `-15`.** A `relic` grant draws a full shuffled
+  permutation of the relic table plus a fallback at generation, the same two
+  things a relic *card* draws, so resolution consumes no RNG and picking up a
+  relic mid-run still shifts no roll.
+- **`contentHash` to `53145f`.** `data/eventPools.ts` gained a `fallback` on
+  its six relic entries.
+
+### Deviation: a relic grant names its fallback in the table
+
+Part 1 of the rejig prompt has `T2` pay "a common relic" and says nothing about
+a run that holds all ten. The reward pool answers that case by drawing a
+fallback from the same pool's non-relic entries, which would have made
+`resolveEffect` recursive through `drawOutcome`. The event pools name the
+fallback instead, as a required field on the entry, restricted to an item.
+
+Required rather than optional, and an item rather than any effect, for the same
+reason: a fallback chain can end in nothing again, and "an unpayable entry"
+is the defect this whole section is about. An item is the one grant that is
+always payable and can never itself need a fallback.
+
+### The baselines moved by exactly the version stamp, and nothing else
+
+Re-recorded, with the evidence first as at step 3 of the rejig:
+
+- **Every decision in all six baseline runs is byte identical** — 293 on
+  SMOKE24, 72, 88, 206, 265 and 79 on the others — and so are the outcome, the
+  gyms cleared, the currency and the relics held. The only key that moved in
+  any of them is `log.versions`.
+- **`docs/visual/baseline/battles/GYMRUN01.json` is byte identical.** The
+  battle engine is untouched.
+- `data-digest.txt` moved with `contentHash`.
+
+`test/fixtures/sim-report.json` re-minted to the same three lines — `version`,
+`randomizerVersion`, `contentHash` — with all three of its runs byte identical.
+
+The reason the runs held still is worth writing down, because it is the keyed
+streams paying for themselves twice in one patch: the baseline policy takes
+`safe` at every event, `safe` is drawn first of the four archetypes, and the
+relic shuffle's extra draws land after its outcomes. A patch that added draws
+*before* the first option would have moved all six.
+
+**And it is a finding about the instrument, not only a convenience.** Safe pays
+a flat `T1`, which never contained a move or a relic on any tier band, so the
+bot that produces every number in `balance.md` walks past this entire fix.
+Section 18 there records that the standing benchmark is blind to the Toll and
+the Gamble — which is where an event's variance lives — and why that is left as
+an open item rather than fixed inside a bug fix.
+
+### The move card's fields stopped moving, and the battle screen fell 41px
+
+The third report item — "the line breaks for the band and the accuracy etc must
+be consistent for the user to remember what they mean ... we can try a
+4-column view" — was two separate faults on one card.
+
+`.move__meta` carried five things and wrapped against its own content, so
+`BAND n` sat on the first line of one button and the second line of the next
+depending on how long that move's type name was. And `.move__facts` packed its
+chips left to right, so a move with no contact flag put its secondary-effect
+chance exactly where the button beside it put contact.
+
+The band and the effectiveness marker moved onto the fact line, which is now a
+grid: `auto` for the band, **four fixed fact columns**, `auto` for
+effectiveness. Four is measured rather than chosen — across the 458 pool moves
+the distribution is 46 with no face facts, 113 with one, 202 with two, 93 with
+three and 4 with four, so four columns hold every move the game can draw
+without dropping a field, and the ceiling is *reached*, which is what makes
+four right rather than merely safe.
+
+Which fields share a column is from the co-occurrence data, not from taste:
+`accuracy` (405 moves) and `contact` (185) pair with nearly everything and take
+a column each; `secondary` (160) and `multiHit` (22) never co-occur; and
+`priority` (21), `recoil` (9), `drain` (10), `charge` and `recharge` pair with
+none of each other. `test/move-fact-columns.test.ts` re-derives all of it over
+the live pools, so a move added to `data/movePools.ts` that breaks a pairing
+fails there rather than silently hiding a field on one card.
+
+The measured effect, at 390x844 on SMOKE24:
+
+| field | before | after |
+|---|---|---|
+| `battle.screenHeight` | 595 | 554 |
+| `battle.decisionBottom` | 708 | 667 |
+| `battle.decisionTop` | 472 | **472** |
+| `modes.simple.battle.screenHeight` | 577.44 | 536.44 |
+| `modes.simple.battle.decisionBottom` | 673.94 | 632.94 |
+| `modes.simple.battle.decisionTop` | 445.44 | **445.44** |
+| `modes.pocket.battle`, every field | unchanged | unchanged |
+
+**41px off the tightest surface in the game, and `decisionTop` unmoved in all
+three modes** — the gate 4.8.0.3 set. The height came from the wrapped line the
+band was causing, so the patch that made the card consistent is the same patch
+that made it shorter; the map is unmoved. Pocket did not move at all, which
+says the wrapped line was already suppressed there.
+
+**The DOM order of the strip changed with it**, and that is a deliberate
+consequence rather than a side effect: a field's column is its identity now, so
+the chips are drawn in column order rather than in `MOVE_FACT_IDS` order, and
+`contact` is drawn second instead of last. The set is unchanged — nothing is
+dropped and nothing is invented — and `test/battle-readout.test.ts` asserts
+both halves separately so the distinction cannot blur.
+
+### The gates, and one honest asterisk on the suite
+
+Run on this branch at `a4ef1f8`:
+
+| gate | result |
+|---|---|
+| type check (`tsc --noEmit`) | clean |
+| lint (`eslint .`) | clean |
+| build | clean |
+| smoke (`npm run smoke`) | passed, every check |
+| guarded heights vs `heights.json` | equal to the pixel after the re-record |
+| determinism, stream isolation, version guards | in the suite below, all green |
+| full suite | **1547 / 1547 in 117 / 117 files** |
+| full suite under `GYMRUN_TRIM_STRICT=1` | **1547 / 1547 in 117 / 117 files** |
+
+**The asterisk:** both suite runs exit non-zero on two identical
+`[vitest-worker]: Timeout calling "onTaskUpdate"` errors — the reporter's
+RPC timing out, with no test attributed and every test passing. They are
+recorded rather than waved away, and the reason they are believed to be the
+container rather than the patch is that the *earlier* run on this same branch,
+the one carrying seven genuine failures, produced three of them. They track
+load, not outcome. **Not verified against `main`**, which would cost another
+full run; a reader who needs that certainty should take it before merging.
+
+The first build of this patch failed three gates, and all three are worth
+keeping because each caught something a reading of the diff would not have:
+
+1. **`test/visual-v3.test.ts` and `test/visual-chips.test.ts`, from opposite
+   directions.** `minmax(0, 1fr)` let a fact chip overflow its own cell and
+   paint across the next one, so the accuracy chip took the contact chip's hit
+   target and the contrast sampler read one chip through another. Neither suite
+   was looking for a grid. The floor is `min-content` now.
+2. **`test/relic-permanence.test.ts`.** The first build appended to
+   `state.relics` from `core/events.ts`. That test greps `src/` for a second
+   writer of the held set and its own comment names an event outcome as the
+   case it exists for — so it caught, by name, the thing it was written for
+   four stages earlier. `rewards.grantRelic` is the one writer now, and
+   `applyReward`'s relic arm is a call to it.
+3. **`test/visual-v5.test.ts`, amendment A6.** It pinned the two-line
+   `.move__meta` as a guard against a careless tighten squeezing the band badge
+   off the face. The wrap was the defect, so the assertion flipped rather than
+   relaxed — and A6's actual hazard is still checked, one assertion down, by
+   the overhang count that never depended on the wrap.
+
+## 16. The relic that did nothing, and the event bug that was already fixed
+
+**2026-09-15.** A playtest message — "the stupid event bug means the events
+don't work at all. which also nullifies relics. fix that first. chase down the
+cause. play every possible event and event caller" — produced two answers, and
+only the second was a bug in this tree. The prompt is filed at
+[`spec/gymrun-patch-relics-do-nothing.md`](spec/gymrun-patch-relics-do-nothing.md).
+
+### The chase: 1344 resolutions, no promise broken
+
+Every event definition, at every capability band, on every archetype it
+presents, across every segment band the tier pools cover — **1344 resolutions**
+— played through `resolveNode` and compared against what the event screen
+promises the player, with **exact multiset accounting on the backpack** rather
+than a length check.
+
+The multiset part is the reason the audit is worth recording rather than just
+running. The first pass used lengths and reported three failure classes; all
+three were the instrument, not the game. A discard toll that removes an item
+and a grant that adds one leave the bag exactly as long as it was, so "the
+toll was never charged" and "the toll was charged and then paid back" are the
+same number. Accounting for the expected bag item by item made all three
+disappear.
+
+Separately, **all 216 item ids the event pools can pay resolve in
+`data/items.ts`**. `stow` silently drops an id the table does not know, so a
+typo in a pool would be an invisible grant; there is none.
+
+### The event bug was real, and was fixed on a branch nobody merged
+
+`origin/main` still has `case 'relic': return state` and the `move` no-op, and
+the build the report came from is stamped `GYMRUN-1e6f02-…` — which is
+`main`'s `contentHash`, not this branch's `53145f`. So "events don't work at
+all" was exactly true of the build being played and exactly false of the
+branch sitting in front of it.
+
+**Worth stating as a process note rather than a code note:** a fix that is
+committed, gated and pushed is not a fix the player has. Section 15's work was
+all four of those and the reporter still met the original bug, because nothing
+had merged. The thing that made this diagnosable in minutes was the seed stamp
+carrying `contentHash` — a build identifier on screen turned "it is still
+broken" into "you are running a different build" without a single guess.
+
+### Relics really were nullified, by a fifth instance of the same shape
+
+`core/relics.ts` folds the held set into a `RelicEffects` — a per-node heal,
+per-node currency, a backpack slot, a revive bonus, a shop discount — and
+**`applyRelicPassives` had no caller anywhere in `src/`.** Two test files
+imported it. Nothing else did.
+
+`core/capabilities.ts` imports `grantsCapability` from the same module, so the
+file has importers and reads as live to anything that checks for them. That is
+what let it sit: the module was used, the function was not, and no gate
+distinguishes the two.
+
+So a relic did exactly one thing — satisfy the capability gate on an event —
+while `data/relics.ts` described five things it did, two of them in copy the
+player reads for the rest of a run:
+
+> Tidecaller Shell: "The sound inside it mends a little at every stop."
+> Everburning Lantern: "The party rests easier near it."
+
+**This is the fifth instance of one defect shape**, after the two the event
+rejig found (section 14) and the two the playtest patch found (section 15): a
+fold that is correct at one end, a promise made at the other, and nothing
+joining them. Every one of the five type-checked perfectly, and every one had
+passing unit tests on the fold itself.
+
+The five sites the fold is now read at:
+
+| passive | site | measured |
+|---|---|---|
+| `nodeHealPercent` | `betweenNodes` | lead at half HP, one node: 73 → 79 and 80 |
+| `nodeCurrency` | `nodePayout` | a trainer node: 14 → 17, 18, 19 |
+| `backpackSlots` | `backpackCapacity` | 5 → 6 |
+| `reviveBonus` | `betweenNodes`' revive | a fainted member back at 172 → 193 |
+| `shopDiscount` | `resolveStock` | a 186 shelf price → 164 |
+
+`test/relic-passives.test.ts` drives every case off `data/relics.ts` rather
+than off named ids, and asserts first that the table's set of passive kinds is
+the set the file covers — so a sixth kind added to the table fails there rather
+than being added and quietly ignored, which is exactly how the five above got
+in.
+
+### The node heal restores HP and not PP, and lands after the revive
+
+Two decisions inside one line, both recorded because neither is forced.
+
+`recoverParty` restores HP *and* PP and clears status unless told otherwise. A
+relic that silently refilled PP at every node would be a far larger effect than
+the one printed on the card, so the heal passes `0` for PP and `false` for
+status: it is a heal, and the card says so.
+
+It runs *after* the revive rather than before, so a member revived at this
+boundary is standing by the time the heal arrives and is mended too. That is
+what "mends a little at every stop" says, read plainly.
+
+### `resolveStock` gained a discount stamp, because it was idempotent by contract
+
+The function's own comment says `playRun` resolves a shop twice and that
+resolving at two sites is how the two come to disagree. Collapsing a relic card
+is naturally idempotent; **a discount is the first thing it ever did that would
+compound**, and the suite caught it immediately — a second call took 198 to
+174.
+
+`ShopStock` now carries the discount already applied, so a second resolution is
+a no-op on price. It is not logged and does not need to be: a run log stores
+shelf indexes, so a replay re-derives the shelf and re-resolves it against the
+relics the replayed run holds at that node.
+
+### What this moves
+
+No version axis. Nothing new is drawn, no draw moves, and no decision is added,
+removed, reordered or reshaped — `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
+`contentHash` all hold still.
+
+**Seeded output moves, and heavily**, for any run that holds a relic: the
+per-node heal alone changes the HP a party carries into every fight after the
+first relic. Balance is not a gate; the figure is in
+[`balance.md`](balance.md) section 19.

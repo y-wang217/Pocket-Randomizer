@@ -216,7 +216,21 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * the extra draws shift nothing outside it — checked rather than assumed, on
  * SMOKE24, where all 295 decisions replay identically across the change.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-14';
+/*
+ * **`-15`: the relic an event pays gained an order and a fallback.**
+ *
+ * A `{kind:'relic'}` event grant used to resolve to itself, drawing nothing,
+ * and apply nothing — it named no relic and no code chose one. It now draws
+ * the same two things a relic *card* draws at generation: a full shuffled
+ * permutation of the relic table, and an ordinary grant behind it for a run
+ * that holds every relic. Both are drawn whether or not they are needed, so
+ * picking up a relic mid-run still shifts no roll.
+ *
+ * `n - 1` draws for the shuffle plus the fallback's own, per relic entry
+ * drawn, on the event node's `event` sub-stream. Nothing outside an event node
+ * moves; the keyed streams are what make that a statement rather than a hope.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-15';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

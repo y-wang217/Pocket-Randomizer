@@ -362,6 +362,12 @@ export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ density: 'detailed', t
 export const DENSITIES = ['detailed', 'simple', 'pocket'];
 
 /**
+ * Both move bar layouts. `grid` is the stored default, so it is what every
+ * entry recorded before the four-column patch describes.
+ */
+export const MOVE_BARS = ['grid', 'columns'];
+
+/**
  * Seed a context's storage so the app's first launch is a returning one,
  * tutorial-wise, in the density mode asked for.
  *
@@ -369,7 +375,7 @@ export const DENSITIES = ['detailed', 'simple', 'pocket'];
  * so the bot measures exactly what a stored preference renders: the app reads
  * it at startup and writes the root attribute itself.
  */
-export async function skipTutorialIn(context, density = 'detailed') {
+export async function skipTutorialIn(context, density = 'detailed', moveBar = 'grid') {
   await context.addInitScript(
     (settings) => {
       try {
@@ -378,14 +384,14 @@ export async function skipTutorialIn(context, density = 'detailed') {
         // Storage unavailable: the app falls back to defaults and the marks show.
       }
     },
-    JSON.stringify({ density, tutorial: { skipped: true, seen: [] } }),
+    JSON.stringify({ density, moveBar, tutorial: { skipped: true, seen: [] } }),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
+  const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
   const context = await browser.newContext({ viewport, ...rest });
-  if (!tutorial) await skipTutorialIn(context, density);
+  if (!tutorial) await skipTutorialIn(context, density, moveBar);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -440,10 +446,10 @@ async function measureScreen(page, name, decisionSelector) {
  * preferences, each on a fresh context.
  */
 export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
-  const result = { seed, viewport: { ...PHONE }, modes: {} };
+  const result = { seed, viewport: { ...PHONE }, modes: {}, layouts: {} };
   const problems = [];
   for (const density of DENSITIES) {
-    const measured = await measureGuardedScreensIn(url, browser, seed, density);
+    const measured = await measureGuardedScreensIn(url, browser, seed, density, 'grid');
     problems.push(...measured.problems);
     if (density === 'detailed') {
       result.map = measured.map;
@@ -452,12 +458,31 @@ export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
       result.modes[density] = { map: measured.map, battle: measured.battle };
     }
   }
+  /*
+   * The second move bar layout, in all three densities. **The four-column
+   * patch.**
+   *
+   * A sibling axis rather than a replacement, and the shape is deliberate: the
+   * `map`/`battle`/`modes` entries above are the stored default, so every
+   * number recorded before this patch keeps its meaning and its history. A
+   * layout that is one tap away in the drawer is a layout a player will be
+   * looking at, and an instrument that could not see it would gate half the
+   * game.
+   */
+  for (const layout of MOVE_BARS.filter((name) => name !== 'grid')) {
+    result.layouts[layout] = {};
+    for (const density of DENSITIES) {
+      const measured = await measureGuardedScreensIn(url, browser, seed, density, layout);
+      problems.push(...measured.problems);
+      result.layouts[layout][density] = { map: measured.map, battle: measured.battle };
+    }
+  }
   if (problems.length) result.problems = problems;
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density) {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
+async function measureGuardedScreensIn(url, browser, seed, density, moveBar = 'grid') {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density, moveBar });
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

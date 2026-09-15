@@ -321,7 +321,7 @@ export function resolveRewardEntry(
        * The fallback comes from this pool's non-relic entries, so a run that
        * has collected everything still gets a card the tier would have paid.
        */
-      const order = shuffled(RELIC_IDS, stream);
+      const order = shuffledRelics(RELIC_IDS, stream);
       const ordinary = pool.filter((candidate) => candidate.kind !== 'relic');
       const fallbackEntry = ordinary.length > 0 ? pickWeighted(ordinary, stream) : null;
       const fallback = fallbackEntry
@@ -367,8 +367,13 @@ export function resolveRewardEntry(
  * available: it is what lets a relic card cost the same number of draws as the
  * relic table grows, so adding an eleventh relic does not reshuffle every seed
  * beyond the one extra draw it honestly costs.
+ *
+ * Exported as `shuffledRelics` because `core/events.ts` draws a relic order for
+ * the same reason and must draw it the same way. Two copies would be two draw
+ * counts, and the symptom of a divergence is a seed that reproduces everywhere
+ * except at a question mark.
  */
-function shuffled(ids: readonly RelicId[], stream: RngStream): RelicId[] {
+export function shuffledRelics(ids: readonly RelicId[], stream: RngStream): RelicId[] {
   const out = [...ids];
   for (let i = out.length - 1; i > 0; i--) {
     const j = stream.nextInt(i + 1);
@@ -501,20 +506,28 @@ export function applyReward(
       return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
 
     case 'relic':
-      /*
-       * Onto the run, and never anywhere else.
-       *
-       * Not the backpack, so `tuning.backpackCapacity` never sees it and no
-       * discard can reach it. Not a party member, so no faint, release or swap
-       * can take it. Guarded against a double-add because a relic appearing
-       * twice in this list would be invisible everywhere except a passive that
-       * silently counted double — `applyRelicPassives` de-duplicates too, so
-       * this is the belt to that braces.
-       */
-      return state.relics.includes(choice.relic)
-        ? state
-        : { ...state, relics: [...state.relics, choice.relic] };
+      return grantRelic(state, choice.relic);
   }
+}
+
+/**
+ * Append a relic to the run. **The only thing in the codebase that writes the
+ * held set**, and `test/relic-permanence.test.ts` greps for a second one.
+ *
+ * Onto the run, and never anywhere else. Not the backpack, so
+ * `tuning.backpackCapacity` never sees it and no discard can reach it. Not a
+ * party member, so no faint, release or swap can take it. Guarded against a
+ * double-add because a relic appearing twice in this list would be invisible
+ * everywhere except a passive that silently counted double —
+ * `applyRelicPassives` de-duplicates too, so this is the belt to that braces.
+ *
+ * It became a named function when a *second* grant arrived: an event outcome
+ * can pay a relic, and the first build of that appended to `state.relics`
+ * itself. That is the exact thing the permanence rule forbids, and the rule's
+ * own comment names an event outcome as the case it exists for.
+ */
+export function grantRelic(state: RunState, relic: RelicId): RunState {
+  return state.relics.includes(relic) ? state : { ...state, relics: [...state.relics, relic] };
 }
 
 /**

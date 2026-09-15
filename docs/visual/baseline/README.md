@@ -18,6 +18,22 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-14, the playtest patch** (event rewards and move card fields).
+  Re-recorded on both instruments, and the two halves are independent.
+  **`heights.json`: the battle screen fell 41px** in Detailed (595 to 554) and
+  in Simple (577.44 to 536.44), with `decisionBottom` following it down (708 to
+  667, 673.94 to 632.94) and **`decisionTop` unmoved in all three modes** — 472,
+  445.44, 355.39. Pocket did not move on any field, and neither did the map.
+  The height came off the move buttons: the band badge and the effectiveness
+  marker left `.move__meta`, which wraps, for the fixed-column fact line, so
+  the wrapped line they were causing is gone. **The runs and the digest moved by
+  the version stamp and nothing else**: every decision in all six runs is byte
+  identical, as are the outcomes, the gyms cleared, the currency and the relics
+  held, and the recorded battle protocol is byte identical — the only key that moved
+  in any run file is `log.versions`, carrying `runLog` `-15` and `randomizer`
+  `-15`, and `data-digest.txt` moved with `contentHash` to `53145f`.
+  `generation.md` section 15 has both tables and the reason the runs held still.
+
 - **2026-09-11, the density modes patch.** `heights.json` gained a `modes`
   axis: the same two screens, the same seed, in Simple and Pocket, under
   `modes.simple` and `modes.pocket`. **The Detailed entries did not move**:

@@ -331,6 +331,18 @@ describe('one band, resolved one way', () => {
  * that got louder as it got higher would be the stylesheet ranking the four
  * brackets, which is the verdict Part 4 forbids.
  */
+/**
+ * The classes a band badge wears, everywhere it is drawn.
+ *
+ * `move__facts-band` joined the list in the playtest patch and is **a position
+ * class, not a weight class**: it pins the badge to the head of the fact line
+ * so the band stops wrapping onto a different row on each of the four battle
+ * buttons. It is identical on band 1 and band 4, which is exactly the property
+ * these two tests are about — the rule forbids the stylesheet distinguishing
+ * one bracket from another, not the badge having a place to stand.
+ */
+const BAND_SHAPE = ['band', 'chip', 'chip--band', 'move__facts-band'].sort();
+
 describe('every band chip carries the same weight', () => {
   it('is the same size and weight for band 1 as for band 4', () => {
     const state = createRun('R12BAND', DEFAULT_TUNING);
@@ -353,7 +365,7 @@ describe('every band chip carries the same weight', () => {
     const shape = (node: Element): string[] =>
       [...node.classList].filter((name) => !/^band--\d$/.test(name)).sort();
     expect(shape(lowBadge!)).toEqual(shape(highBadge!));
-    expect(shape(lowBadge!)).toEqual(['band', 'chip', 'chip--band']);
+    expect(shape(lowBadge!)).toEqual(BAND_SHAPE);
     for (const badge of [lowBadge, highBadge]) {
       expect((badge as HTMLElement).style.cssText).toBe('');
     }
@@ -390,7 +402,7 @@ describe('every band chip carries the same weight', () => {
 
     for (const [surface, badge] of surfaces) {
       expect(badge, surface).toBeTruthy();
-      expect(shape(badge), surface).toEqual(['band', 'chip', 'chip--band']);
+      expect(shape(badge), surface).toEqual(BAND_SHAPE);
       expect((badge as HTMLElement).style.cssText, surface).toBe('');
       // The one accent belongs to `.primary-action`, and it is nowhere near a
       // badge that labels an option the player has not chosen yet.

@@ -27,6 +27,7 @@
  * `data/eventCopy.ts`, which `core/` never reads.
  */
 import {
+  concreteOutcome,
   describeCost,
   describeOutcome,
   describeToll,
@@ -39,7 +40,7 @@ import {
 import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
 import { resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
-import { BAND_LABELS, CAPABILITY_LABELS } from '../../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../../data/eventCopy';
 import { capabilityBandChip, capabilityChip } from '../chip';
 import { el } from '../scene';
 
@@ -133,7 +134,18 @@ export function createEventScreen(): EventScreen {
           button.classList.toggle('event__choice--taken', i === index);
         }
 
-        const paid = outcomeFor(choice, band);
+        /*
+         * **Collapsed against what the run holds, and that is the whole of
+         * what makes this line honest.**
+         *
+         * A drawn `relic` grant carries the whole relic table; which one it
+         * pays is decided at resolution, against the held set. `applyEffect`
+         * collapses it the same way at the same moment from the same set, so
+         * the relic named here is the relic that arrives — and a run holding
+         * every relic reads the item it is actually about to get instead of
+         * the word "relic" followed by no relic.
+         */
+        const paid = concreteOutcome(outcomeFor(choice, band), state.relics);
         const conclusion = el('p', 'event__conclusion');
         /*
          * No conclusion line yet. The per-event band copy that used to write
@@ -156,6 +168,25 @@ export function createEventScreen(): EventScreen {
         const costLine = cost ? el('p', 'event__outcome event__outcome--bad') : null;
         if (costLine) costLine.textContent = cost;
 
+        /*
+         * **The price, restated as charged.**
+         *
+         * The reveal used to say nothing about the Toll: the price was on the
+         * button, `resolveNode` charged it, and the screen went straight to
+         * what it bought. A player who spent a fifth of their HP and read only
+         * the reward reasonably concluded the charge had not happened, and the
+         * playtest report that produced this patch says exactly that.
+         *
+         * Its own line, above the outcome, in the order the run applies them:
+         * the Toll is charged first, then the tier is paid. A `T0` cost cannot
+         * appear beside it — a Toll buys a guaranteed `T2` — but the two lines
+         * are independent so that stays true by construction.
+         */
+        const price = choice.toll
+          ? el('p', 'event__outcome event__outcome--bad')
+          : null;
+        if (price && choice.toll) price.textContent = `${TOLL_PAID_PREFIX}: ${describeToll(choice.toll)}`;
+
         const carry = document.createElement('button');
         carry.type = 'button';
         carry.className = 'button primary-action';
@@ -166,6 +197,7 @@ export function createEventScreen(): EventScreen {
 
         result.replaceChildren(
           ...(conclusion.textContent ? [conclusion] : []),
+          ...(price ? [price] : []),
           ...(costLine ? [costLine] : []),
           outcome,
           carry,
