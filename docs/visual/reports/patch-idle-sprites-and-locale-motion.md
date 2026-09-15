@@ -120,7 +120,7 @@ number ahead of the name keeps the corner clear at 24 px, and the gate reads
 | `scripts/visual/measure.mjs --compare docs/visual/baseline/heights.json` | **equal to the pixel** in Detailed, Simple and Pocket, both move bar layouts; nothing re-recorded |
 | `test/visual-v3.test.ts` | the vertical budget, the world, the motion floors on all eight, contrast on all eight, the perf gate on the busiest |
 | `npm run build && npm run smoke` | passed, rematch seed `GYMRUN-53145f-SMOKE24` |
-| `GYMRUN_TRIM_STRICT=1 vitest run` | run with `npm run check`; see below |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | 123 files, 1652 tests, all passing, run on its own; the same reporter timeout, and nothing else |
 
 ## 6. What was not done
 
