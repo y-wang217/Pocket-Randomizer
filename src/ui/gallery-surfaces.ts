@@ -33,8 +33,13 @@ export const DECISION_SURFACES = [
 /** Archive surfaces: the complete outcome in the first screenful, the rest may scroll. */
 export const ARCHIVE_SURFACES = ['summary', 'log-sheet'] as const;
 
-/** The drawer: gated on its own sheet, which the document's height cannot see. */
-export const OVERLAY_SURFACES = ['drawer'] as const;
+/**
+ * The overlays: gated on their own sheets, which the document's height cannot
+ * see. Both are windows on the shared `ui/overlay.ts` shell, so both are
+ * measured the same way — a sheet that scrolls internally at 390x844 is the
+ * failure, wherever the document's own height lands.
+ */
+export const OVERLAY_SURFACES = ['drawer', 'map-drawer'] as const;
 
 export const GALLERY_SURFACES = [...DECISION_SURFACES, ...OVERLAY_SURFACES, ...ARCHIVE_SURFACES] as const;
 

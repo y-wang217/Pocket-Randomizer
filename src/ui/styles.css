@@ -4275,6 +4275,28 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   min-height: 0;
 }
 
+/* ---------- the map overlay ----------
+   The run map, reachable from every decision surface. `ui/map-drawer.ts`
+   carries the argument; this is the whole of what it needs from the
+   stylesheet, because the rail, the heading and the chain inside it are the
+   map screen's own elements with the map screen's own classes.
+
+   **Wider than the other two.** They stack cards and prose, which read badly
+   past a reading width. This one carries an eight-gym rail and a step chain,
+   both horizontal, and at the reading width the rail wraps into a column that
+   costs the chain the room it needs. On a phone neither width is reachable and
+   the `min(…, 100%)` above makes this a no-op. */
+.map-drawer__sheet {
+  width: min(var(--overlay-width-wide), 100%);
+}
+
+/* The rail and the chain scroll inside the window rather than stretching it,
+   the same way they scroll inside the map screen's own grid areas. */
+.map-drawer__rail,
+.map-drawer__chain {
+  min-height: 0;
+}
+
 /* The drawer trigger, in the same place on every decision surface. */
 .shell__drawer-bar {
   display: flex;

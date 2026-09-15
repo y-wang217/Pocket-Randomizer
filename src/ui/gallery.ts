@@ -48,6 +48,7 @@ import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createDensityGuard } from './density-guard';
 import { createDrawer } from './drawer';
+import { createMapDrawer } from './map-drawer';
 import {
   anyShop,
   finishedResult,
@@ -142,6 +143,7 @@ async function main(): Promise<void> {
 
   const shell = el('main', 'shell');
   const drawer = createDrawer();
+  const mapDrawer = createMapDrawer();
   const router = createRouter(
     {
       starter: starterScreen.root,
@@ -165,10 +167,12 @@ async function main(): Promise<void> {
   const stamps = createStamps();
   const world = createWorldScene();
   const drawerBar = el('div', 'shell__drawer-bar');
-  drawerBar.append(drawer.trigger());
+  // Map then Party, the order the app mounts them in — the bar is right
+  // aligned, so the last child is the one against the edge.
+  drawerBar.append(mapDrawer.trigger(), drawer.trigger());
   const replayTutorial = document.createElement('button');
-  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
-  else shell.append(router.root, drawer.root, stamps.root);
+  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, mapDrawer.root, stamps.root);
+  else shell.append(router.root, drawer.root, mapDrawer.root, stamps.root);
   root.replaceChildren(world.root, shell);
   createTooltips(shell);
 
@@ -212,7 +216,8 @@ async function main(): Promise<void> {
       break;
     }
     case 'map':
-    case 'drawer': {
+    case 'drawer':
+    case 'map-drawer': {
       const state = openingState(seed);
       mapScreen.render(state, noop, noop);
       applyLocale(localeOf(state));
@@ -221,6 +226,18 @@ async function main(): Promise<void> {
       if (surface === 'drawer') {
         drawer.open({ party: state.party, holding: itemLayoutOf(state.party, null), relics: state.relics, tuning: state.tuning });
       }
+      /*
+       * The map overlay is staged over the map screen here, which is the one
+       * surface the app itself never shows it on — `MAP_SURFACES` excludes
+       * `map`, because a window onto the screen underneath is redundant.
+       *
+       * That is fine and deliberate: the gallery stages a *surface* for
+       * measurement, not a reachable app state, and the overlay's own geometry
+       * is identical over any screen because it is fixed to the viewport.
+       * Staging it over the map costs one screen render and gets the readout
+       * populated from real run state, which is what the gate needs.
+       */
+      if (surface === 'map-drawer') mapDrawer.open(state);
       break;
     }
     case 'battle':
