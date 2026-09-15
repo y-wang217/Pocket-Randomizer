@@ -1,6 +1,6 @@
 import { svg, type SceneArt } from './index';
 
-/** Far peaks, a snowline ridge, near boulders, and a bird crossing. */
+/** Far peaks, a snowline ridge, near boulders, and a bird soaring across on slow wings. */
 export const summit: SceneArt = {
   far: svg(
     '<path fill="var(--layer-fill)" d="M0 30l10-12 8 6 10-16 9 10 7-6 12 14 9-9 8 7 10-13 8 10 5-4v13H0z"/>' +
@@ -13,5 +13,8 @@ export const summit: SceneArt = {
   near: svg(
     '<path fill="var(--layer-fill)" d="M0 48v-9l7-3 8 5 9-7 10 6 8-3 11 7 10-8 9 6 8-4 8 6 8-3v7z"/>',
   ),
-  drift: svg('<path fill="var(--layer-fill)" d="M0 3l3-2 2 2 2-2 3 2-1 1-2-1-2 2-2-2-2 1z"/>', '0 0 10 5'),
+  drift:
+    svg('<path fill="var(--layer-fill)" d="M0 3l3-2 2 2 2-2 3 2-1 1-2-1-2 2-2-2-2 1z"/>', '0 0 10 5') +
+    svg('<path fill="var(--layer-fill)" d="M0 1l3 1 2-1 2 1 3-1-1 2-2 0-2 2-2-2-2 0z"/>', '0 0 10 5'),
+  motion: { kind: 'soar' },
 };

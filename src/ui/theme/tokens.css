@@ -332,6 +332,21 @@
      event — a thing on the board resolving — and because the two never happen
      on the same turn: a swap draws no HP chunk. */
   --motion-swap: var(--motion-duration);
+  /* The idle bob on a figure: two held frames, so one cycle is two of these
+     halves. **Idle-sprites patch.** Not derived from `--motion-duration`,
+     deliberately: that number is the added time per battle turn, and an idle
+     is not feedback and adds no time to anything. A figure at rest and a bar
+     that just took a hit are two different questions. */
+  --motion-idle: 1200ms;
+  /* How far the figure lifts on its second frame. One pixel of the source
+     sprite would be two on screen at 48px; two keeps the hop legible at 48
+     and 32, and Pocket halves it in styles.css because 24px bodies at two
+     pixels read as jitter. */
+  --idle-rise: 2px;
+  /* The figure's box on a card. Half the 96px sprite, a clean integer scale
+     for `image-rendering: pixelated`; the member cards and Pocket set their
+     own in styles.css. */
+  --figure-size: 48px;
 
   /* ---------- battle feedback surfaces ----------
      The shadow is the track's own sunken ground lifted just clear of it, not a

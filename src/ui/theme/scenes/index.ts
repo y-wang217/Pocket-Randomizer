@@ -2,7 +2,7 @@
  * The eight places. Stage V3.
  *
  * Each locale is three inline SVG silhouettes, far, mid and near, and one
- * drifting element, all authored here as strings on a 96x48 grid of integer
+ * moving element, all authored here as strings on a 96x48 grid of integer
  * coordinates and upscaled by the stylesheet with `shape-rendering:
  * crispEdges`, which is where the pixel look comes from. Flat, single-colour,
  * generic shapes in the locale's own tokens: a ridge, a treeline, a skyline,
@@ -16,6 +16,38 @@
  */
 import type { LocaleId } from '../../../data/locales';
 
+/**
+ * The eight ways a place moves. **Idle-sprites patch.**
+ *
+ * V3 gave every locale the same motion: one small thing carried left to right
+ * across the frame on a 32-second loop. The cave's spark read as a cart going
+ * by; the other seven mostly read as nothing, because a boat and a leaf on the
+ * same slow line are the same event. Each kind is one `@keyframes` in
+ * `styles.css`, named `world-<kind>`, and `test/world.test.ts` holds that every
+ * locale names a kind and every kind has its keyframe.
+ *
+ * Three travel and five stay put. A travelling kind keeps V3's floor of twenty
+ * seconds a crossing; an in-place kind moves nothing across the frame, so what
+ * keeps it from drawing the eye is amplitude, not length — small, dim, and
+ * never near a control. `docs/generation.md` section 20 records the change to
+ * the plan's one-sentence rule.
+ */
+export const WORLD_MOTION_KINDS = ['cross', 'soar', 'lap', 'firefly', 'flicker', 'smoke', 'float', 'ripple'] as const;
+export type WorldMotionKind = (typeof WORLD_MOTION_KINDS)[number];
+
+/** The kinds whose element travels across the frame. */
+export const TRAVELLING_KINDS: ReadonlySet<WorldMotionKind> = new Set(['cross', 'soar', 'firefly']);
+
+export interface WorldMotion {
+  kind: WorldMotionKind;
+  /**
+   * Where the element sits, as CSS lengths for `left` and `top` of the world,
+   * when the kind's own default is not where this place wants it. Written to
+   * `--drift-x` and `--drift-y` on the element.
+   */
+  at?: readonly [x: string, y: string];
+}
+
 export interface SceneArt {
   /** The far layer: the horizon and what is behind it. Moves at 0.2 of scroll. */
   far: string;
@@ -23,8 +55,20 @@ export interface SceneArt {
   mid: string;
   /** The near layer: what is closest, darkest, at the bottom. Moves at 1. */
   near: string;
-  /** The one drifting element, a small SVG the stylesheet animates. */
+  /**
+   * The one moving element: one or more small SVGs, siblings, that the
+   * stylesheet animates by the locale's motion kind. Several siblings are the
+   * motes of an in-place kind — the windows, the puffs, the rings — each
+   * staggered by its position in the element.
+   */
   drift: string;
+  /** How the element moves. */
+  motion: WorldMotion;
+}
+
+/** The four art strings of a scene, for a size or a fill check. */
+export function artOf(scene: SceneArt): readonly string[] {
+  return [scene.far, scene.mid, scene.near, scene.drift];
 }
 
 import { cave } from './cave';

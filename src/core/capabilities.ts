@@ -78,8 +78,25 @@ function hasType(member: PokemonState, types: readonly string[]): boolean {
 export function resolveCapability(run: CapabilityContext, capability: Capability): CapabilityBand {
   if (grantsCapability(run.relics, capability)) return 'known';
 
-  const types = capabilityTypes(capability);
-  if (run.party.some((member) => hasType(member, types))) return 'latent';
+  if (capabilityHolders(run, capability).length > 0) return 'latent';
 
   return 'none';
+}
+
+/**
+ * The party members whose species carries a type in the capability's set, in
+ * slot order. **Idle-sprites patch.**
+ *
+ * This is the `latent` test with its answer kept: `resolveCapability` reads
+ * its length, so the band and the list cannot disagree. Fainted members are
+ * included, for the reason `resolveCapability` gives. Slot order and never
+ * sorted, because the event screen shows these as a position on the party and
+ * not as a ranking of who would do the job best — `CLAUDE.md` forbids the
+ * second. Empty when the run holds the relic and nobody is the type, which is
+ * `known` with no holder and is not a contradiction: the relic is the run's,
+ * not a member's.
+ */
+export function capabilityHolders(run: CapabilityContext, capability: Capability): PokemonState[] {
+  const types = capabilityTypes(capability);
+  return run.party.filter((member) => hasType(member, types));
 }

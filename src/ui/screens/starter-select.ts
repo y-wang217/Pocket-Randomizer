@@ -20,6 +20,7 @@ import { el } from '../scene';
 import { setProse } from '../dom';
 import { STARTER_COPY } from '../copy/screens';
 import { typeChip as chip } from '../chip';
+import { spriteFigure } from '../sprites';
 
 export interface StarterSelect {
   root: HTMLElement;
@@ -40,12 +41,12 @@ export function createStarterSelect(): StarterSelect {
   return {
     root,
     render(options, onPick) {
-      grid.replaceChildren(...options.map((spec, index) => renderCard(spec, () => onPick(index))));
+      grid.replaceChildren(...options.map((spec, index) => renderCard(spec, index, () => onPick(index))));
     },
   };
 }
 
-function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
+function renderCard(spec: PokemonSpec, index: number, onPick: () => void): HTMLElement {
   const card = document.createElement('button');
   card.type = 'button';
   card.className = 'starter';
@@ -91,7 +92,9 @@ function renderCard(spec: PokemonSpec, onPick: () => void): HTMLElement {
     }),
   );
 
-  card.append(header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
+  // The body, in the card's corner. Idle-sprites patch: the header comment
+  // below on `statLine` already assumed a pick screen shows a sprite.
+  card.append(spriteFigure(detail.species, { phase: index }), header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
   card.addEventListener('click', onPick);
   return card;
 }

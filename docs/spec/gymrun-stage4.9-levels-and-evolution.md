@@ -6,7 +6,7 @@ The brief arrived as a planning conversation rather than a single prompt: an
 opening request, four questions answered in a picker, and two rulings given
 on the plan that came back. All of it is the prompt and all of it is filed as
 it was written. The plan that was approved against it lives outside the
-repo (a planning session file); `../generation.md` section 20 is the account
+repo (a planning session file); `../generation.md` section 21 is the account
 of what was built and where it deviates.
 
 ## 1. The opening request

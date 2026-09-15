@@ -61,7 +61,7 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 **In flight: Stage 4.9, levels, evolution, gated power, the wider roster and
 harder gyms.** Branch `claude/charming-ride-q4ogfb`, prompt
 [`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),
-record [`generation.md`](generation.md) section 20. The run starts at level 7
+record [`generation.md`](generation.md) section 21. The run starts at level 7
 with a band-0 base form and levels to 55 across the eight gym clears; every
 clear evolves the party along the dex's own thresholds, with synthetic
 Kaizo-style levels for the methods the dex does not level, and a fork asked
@@ -75,6 +75,24 @@ slot schedule is 2, 3, 3, 4, 4, 5, 5, 6. Three version axes move
 the 4.92 baseline** — recorded in [`balance.md`](balance.md) section 0, not
 chased; the gym level column and the roster rule are the levers left to the
 user. The "+13 levels at gym 8" finding below is closed by construction.
+
+**In flight: sprites on every selection surface, an idle bob, and one motion
+per locale.** Branch `claude/vibrant-euler-2taoqk`, prompt
+[`spec/gymrun-patch-idle-sprites-and-locale-motion.md`](spec/gymrun-patch-idle-sprites-and-locale-motion.md),
+record [`generation.md`](generation.md) section 20. A figure with a two-frame
+idle bob on the starter cards, the learn-move owner line, the member card
+(party, drawer, pre-gym), the recipient buttons, the capture block, the
+battle bench and the run summary; the event gate shows the members whose
+type answers it at `latent`, through a new pure helper `capabilityHolders`
+that `resolveCapability` now reads. Each locale's one moving element has its
+own motion in place of the shared crossing: the cave unchanged, the shore
+lapping, the forest's fireflies, the city's windows, the badlands' smoke, the
+summit's bird, the ruins' light, the marsh's rings. The plan's twenty-second
+floor is restated by kind and recorded as a deviation. Presentation only, no
+version axis moves, the guarded heights held to the pixel, the Pocket gate
+green. Animated GIF sprites were investigated and recorded in
+[`engine-notes.md`](engine-notes.md) rather than built. Report
+[`visual/reports/patch-idle-sprites-and-locale-motion.md`](visual/reports/patch-idle-sprites-and-locale-motion.md).
 
 **In flight: the bar primitive and the battle beats.** Branch
 `claude/kind-mccarthy-w3kml6`, prompt
@@ -433,7 +451,7 @@ One line each. The analysis lives where the pointer goes, not here.
    here too: a Fighting- or Electric-type chip wraps the move button's meta
    row at 390px, and a two-row party plus a two-card step pushes the map's
    offered cards below the fold (the pre-change build did it on other seeds).
-   `generation.md` section 20.
+   `generation.md` section 21.
 2. **Berry clog past gym 6.** Above target. Traced to short fights rather than
    to the berry table or backpack capacity, so item 1 is the fix.
    `balance.md` section 11.

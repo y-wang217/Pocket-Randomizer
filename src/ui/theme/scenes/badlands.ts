@@ -1,6 +1,6 @@
 import { svg, type SceneArt } from './index';
 
-/** Mesas far, cracked flats mid, near rock stacks, and a tumbling thing along the flat. */
+/** Mesas far, cracked flats mid, near rock stacks, and smoke rising off the flats. */
 export const badlands: SceneArt = {
   far: svg(
     '<path fill="var(--layer-fill)" d="M0 32V24l6-4h10l4 4v-8h12l4 8h8v-6l6-4h10v10h10l4-6h8v6h6l3-4h5v12z"/>' +
@@ -14,5 +14,9 @@ export const badlands: SceneArt = {
     '<path fill="var(--layer-fill)" d="M0 48v-6h96v6z"/>' +
       '<path fill="var(--layer-fill)" d="M10 42V30h3v-4h5v4h3v12zM70 42v-8h4v-6h6v6h4v8z"/>',
   ),
-  drift: svg('<path fill="var(--layer-fill)" d="M2 0h2l2 2v2L4 6H2L0 4V2z"/><path fill="var(--locale-glow)" opacity="0.5" d="M2 1h2v1H2zM1 3h1v1H1zM4 3h1v1H4z"/>', '0 0 6 6'),
+  drift:
+    svg('<path fill="var(--locale-glow)" opacity="0.35" d="M2 0h2l2 2v2L4 6H2L0 4V2z"/>', '0 0 6 6') +
+    svg('<path fill="var(--locale-glow)" opacity="0.35" d="M2 0h2l2 2v2L4 6H2L0 4V2z"/>', '0 0 6 6') +
+    svg('<path fill="var(--locale-glow)" opacity="0.35" d="M2 0h2l2 2v2L4 6H2L0 4V2z"/>', '0 0 6 6'),
+  motion: { kind: 'smoke', at: ['calc(50% - var(--drift-size) / 2)', '58%'] },
 };

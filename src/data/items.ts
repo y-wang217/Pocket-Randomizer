@@ -32,7 +32,7 @@
  *     already does, and an Everstone a decline the stage decided not to offer.
  *     (The sentence that stood here until 2026-09-15 — "there is no evolution:
  *     a species is fixed from the moment it is generated" — is superseded and
- *     recorded in `docs/generation.md` section 20.)
+ *     recorded in `docs/generation.md` section 21.)
  *   - **Z-crystals and Mega Stones** — a once-per-battle nuke and a mid-battle
  *     stat rewrite, neither of which the greedy AI scores, so both would make
  *     the balance report measure the mis-scoring.

@@ -38,11 +38,12 @@ import {
   type EventOutcome,
 } from '../../core/events';
 import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
-import { resolveCapability } from '../../core/capabilities';
+import { capabilityHolders, resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
 import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../../data/eventCopy';
 import { capabilityBandChip, capabilityChip } from '../chip';
 import { el } from '../scene';
+import { spriteFigure } from '../sprites';
 
 export interface EventScreen {
   root: HTMLElement;
@@ -78,6 +79,25 @@ export function createEventScreen(): EventScreen {
         capabilityChip(`Requires ${CAPABILITY_LABELS[event.requires]}`),
         capabilityBandChip(BAND_LABELS[band]),
       );
+      /*
+       * Who answers the requirement, at `latent` only. **Idle-sprites patch.**
+       *
+       * The members whose type the gate names, in slot order, as figures
+       * beside the band chip: a fact about the party as it stands, read off
+       * the same function the band is. Not at `known`, where the relic is the
+       * answer and nobody's type is; not at `none`, where there is nobody.
+       * Slot order and never sorted — a position on the party, not a ranking
+       * of who would do the job, which `CLAUDE.md` forbids.
+       */
+      if (band === 'latent') {
+        const holders = capabilityHolders(state, event.requires);
+        const row = el('span', 'figure-row');
+        row.setAttribute('aria-hidden', 'true');
+        state.party.forEach((member, slot) => {
+          if (holders.includes(member)) row.append(spriteFigure(member.spec.species, { phase: slot }));
+        });
+        gate.append(row);
+      }
       prompt.textContent = event.prompt;
       result.hidden = true;
       result.replaceChildren();

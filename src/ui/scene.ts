@@ -39,7 +39,7 @@ import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
 import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
-import { spriteImg, spriteUrl } from './sprites';
+import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import type { MoveTag } from '../data/moveTags';
@@ -899,7 +899,9 @@ function renderBenchMember(
     meta.append(' ', reason);
   }
 
-  button.append(name, level, types, bar.root, meta);
+  // The body, at the row's right, phased by slot. Idle-sprites patch. Built
+  // from the view's species, as every other fact on this row is.
+  button.append(spriteFigure(member.species, { phase: member.slot }), name, level, types, bar.root, meta);
   button.addEventListener('click', () => onChoose(switchChoice(member.slot)));
   return button;
 }
@@ -1410,9 +1412,11 @@ export { el } from './dom';
  * the two must not share a rule. The plan's word is scene; this file is
  * where the plan said it should live.
  *
- * Motion is V3.4's: the parallax listener and the drift loop. Under reduced
- * motion the drifting element is not mounted at all and the layers do not
- * move; `prefersReducedMotion` is read once per `setLocale`, so a change of
+ * Motion is V3.4's: the parallax listener and the drift loop, which since the
+ * idle-sprites patch is one of eight loops chosen by the locale's
+ * `motion.kind` (`theme/scenes/index.ts`). Under reduced motion the moving
+ * element is not mounted at all and the layers do not move;
+ * `prefersReducedMotion` is read once per `setLocale`, so a change of
  * preference takes effect at the next region.
  */
 export interface WorldScene {
@@ -1488,6 +1492,13 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
       if (!reduced) {
         const drift = el('div', 'world__drift');
         drift.innerHTML = art.drift;
+        // The kind, for the stylesheet to pick the keyframes, and the place's
+        // own position where the kind's default is not it. Idle-sprites patch.
+        drift.dataset['motion'] = art.motion.kind;
+        if (art.motion.at) {
+          drift.style.setProperty('--drift-x', art.motion.at[0]);
+          drift.style.setProperty('--drift-y', art.motion.at[1]);
+        }
         mid.append(drift);
       }
       far.style.transform = '';
