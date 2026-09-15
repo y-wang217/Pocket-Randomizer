@@ -61,3 +61,42 @@ export function spriteImg(species: string, side?: SpriteSide): HTMLImageElement 
   });
   return img;
 }
+
+/**
+ * How many distinct starting points the idle bob has. **Idle-sprites patch.**
+ *
+ * A row of figures that all hopped on the same frame would read as one
+ * mechanism rather than six bodies, so each starts partway through its cycle.
+ * The phase is the caller's slot or card index, never a draw: the global
+ * random function is banned and the keyed streams are for the run, not for
+ * decoration.
+ */
+export const IDLE_PHASES = 6;
+
+export interface FigureOptions {
+  /** Which of the `IDLE_PHASES` starting points; the slot or card index. */
+  phase?: number;
+  side?: SpriteSide;
+}
+
+/**
+ * A sprite in a figure that bobs while idle. **Idle-sprites patch.**
+ *
+ * The bob lives on this wrapper and never on the image, because the battle
+ * stage owns `transform` and `animation` on `.stage__actor .sprite` for the
+ * lunge, the recoil and the faint, and a second animation on the same element
+ * would cancel one or the other. A `.figure` never appears inside
+ * `.stage__actor`; `test/sprites.test.ts` holds that.
+ *
+ * Hidden from the accessibility tree: on every surface that mounts one the
+ * adjacent name already says who this is, the same reason the stage's actors
+ * are hidden. The image keeps its `alt` for the reader who sees it.
+ */
+export function spriteFigure(species: string, options: FigureOptions = {}): HTMLElement {
+  const figure = el('span', 'figure');
+  figure.setAttribute('aria-hidden', 'true');
+  const phase = options.phase ?? 0;
+  figure.style.setProperty('--idle-phase', String(((phase % IDLE_PHASES) + IDLE_PHASES) % IDLE_PHASES));
+  figure.append(spriteImg(species, options.side));
+  return figure;
+}

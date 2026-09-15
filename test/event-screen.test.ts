@@ -94,6 +94,13 @@ describe('the event screen', () => {
             `Requires ${CAPABILITY_LABELS[event.requires]}`,
           );
           expect(gate?.querySelector('.node__gate-band')?.textContent, event.eventId).toBe(BAND_LABELS[band]);
+          /*
+           * Who answers, at `latent` only. **Idle-sprites patch.** The fixture's
+           * one member is the type, so one figure with its species; at `known`
+           * the relic is the answer and at `none` there is nobody, so none.
+           */
+          const holders = [...(gate?.querySelectorAll('.figure-row .figure img.sprite') ?? [])].map((img) => img.getAttribute('alt'));
+          expect(holders, `${event.eventId} ${band} holders`).toEqual(band === 'latent' ? [state.party[0]!.spec.species] : []);
 
           const hints = [...screen.root.querySelectorAll('.event__choice-hint')].map((node) => node.textContent);
           /*

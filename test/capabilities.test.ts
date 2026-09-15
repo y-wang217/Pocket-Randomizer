@@ -16,7 +16,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { createPartyMember } from '../src/core/party';
-import { resolveCapability, type CapabilityContext } from '../src/core/capabilities';
+import { capabilityHolders, resolveCapability, type CapabilityContext } from '../src/core/capabilities';
 import { CAPABILITIES, CAPABILITY_TYPES, capabilityTypes } from '../src/data/capabilities';
 import { RELICS, relicsGranting } from '../src/data/relics';
 import { SPECIES_POOL } from '../src/data/speciesPools';
@@ -160,5 +160,42 @@ describe('the species type lookup', () => {
 
   it('resolves none for a party of an unknown species', () => {
     expect(resolveCapability(run([], [member('Missingno', ['Tackle'])]), 'surf')).toBe('none');
+  });
+});
+
+describe('who holds a capability', () => {
+  it('lists the members whose type answers, in slot order, fainted included, and agrees with the band', () => {
+    const water = firstOf('Water');
+    const other = firstWithout(capabilityTypes('surf'));
+    const party = [member(other, ['Tackle']), member(water, ['Tackle']), member(other, ['Tackle']), member(water, ['Surf'])];
+    party[1]!.fainted = true;
+    const holders = capabilityHolders(run([], party), 'surf');
+    // Slot order, not sorted: a position on the party, never a rank.
+    expect(holders).toEqual([party[1], party[3]]);
+    expect(resolveCapability(run([], party), 'surf')).toBe('latent');
+  });
+
+  it('is empty when nobody answers, and the band reads none', () => {
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Tackle'])];
+    expect(capabilityHolders(run([], party), 'surf')).toEqual([]);
+    expect(resolveCapability(run([], party), 'surf')).toBe('none');
+  });
+
+  it('never disagrees with the band: latent exactly when the list is non-empty, across every capability', () => {
+    for (const capability of CAPABILITIES) {
+      const types = capabilityTypes(capability);
+      for (const species of [firstOf(types[0]!), firstWithout(types)]) {
+        const ctx = run([], [member(species, ['Tackle'])]);
+        expect(capabilityHolders(ctx, capability).length > 0, `${capability} ${species}`).toBe(resolveCapability(ctx, capability) === 'latent');
+      }
+    }
+  });
+
+  it('does not read the relic: a run holding one with nobody of the type is known with no holder', () => {
+    const relic = relicsGranting('surf')[0];
+    if (!relic) throw new Error('fixture');
+    const party = [member(firstWithout(capabilityTypes('surf')), ['Tackle'])];
+    expect(resolveCapability(run([relic.id], party), 'surf')).toBe('known');
+    expect(capabilityHolders(run([relic.id], party), 'surf')).toEqual([]);
   });
 });

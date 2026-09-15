@@ -55,6 +55,7 @@ import { slotNumber } from '../slots';
 import { statLine, typeChip } from './starter-select';
 import { openBand } from '../band';
 import { neutralChip, statusChip } from '../chip';
+import { spriteFigure } from '../sprites';
 
 
 /**
@@ -211,7 +212,8 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
 
   // The same six-stat row a starter card and a species reward card carry, so a
   // Pokemon looks identical everywhere the player is asked to judge one.
-  card.append(header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
+  // The body, in the card's corner. Idle-sprites patch.
+  card.append(spriteFigure(detail.species), header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
   return card;
 }
 
@@ -265,7 +267,8 @@ function renderExisting(
     meta.append(neutralChip(item.name, 'item', { tip: `item:${item.id}` }), note);
   }
 
-  card.append(header, track, meta);
+  // The body, phased by slot as the party screen's cards are. Idle-sprites patch.
+  card.append(spriteFigure(detail.species, { phase: index }), header, track, meta);
 
   if (full) {
     const release = document.createElement('button');
