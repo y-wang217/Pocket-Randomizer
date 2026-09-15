@@ -24,6 +24,7 @@ import type { ItemId, PokemonState } from '../core/types';
 import { itemById } from '../data/items';
 import { statInfo, STAT_ORDER } from '../data/statInfo';
 import type { Tuning } from '../data/tuning';
+import { createBar } from './bar';
 import { collapsible } from './collapse';
 import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
@@ -117,12 +118,9 @@ export function memberCardContents(
   ability.dataset['tip'] = `ability:${spec.abilityId}`;
   header.append(ability);
 
-  const track = el('div', 'hp');
-  const fill = el('div', 'hp__fill');
-  const fraction = hpFraction(member);
-  fill.style.width = `${fraction * 100}%`;
-  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
-  track.append(fill);
+  const bar = createBar();
+  bar.set(hpFraction(member));
+  const track = bar.root;
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');

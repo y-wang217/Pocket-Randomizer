@@ -54,6 +54,7 @@ import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
 import { TIER_INFO, TIER_INFO_SHORT } from '../../data/tierInfo';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
+import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
@@ -577,12 +578,9 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
 
-  const track = el('div', 'hp');
-  const fill = el('div', 'hp__fill');
-  const fraction = hpFraction(member);
-  fill.style.width = `${fraction * 100}%`;
-  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
-  track.append(fill);
+  const bar = createBar();
+  bar.set(hpFraction(member));
+  const track = bar.root;
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');

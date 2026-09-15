@@ -605,6 +605,11 @@ body {
 .hp__fill[data-band="mid"] { background: var(--hp-mid); }
 .hp__fill[data-band="low"] { background: var(--hp-low); }
 
+/* A bar that is not HP. `ui/bar.ts`'s neutral variant: no band, no threshold,
+   the same track and the same fill in the stat block's uncoloured ink, for
+   the next progress readout that is a quantity and not a Pokemon's health. */
+.hp--neutral .hp__fill { background: var(--text-faint); }
+
 .panel__meta {
   display: flex;
   align-items: center;

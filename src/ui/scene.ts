@@ -36,6 +36,7 @@ import {
   type MoveUiView,
 } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
+import { createBar, type Bar } from './bar';
 import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
 import { spriteImg, spriteUrl } from './sprites';
@@ -95,9 +96,8 @@ interface SidePanel {
   /** The Part 7 label, beside the level on both sides of the field. */
   archetype: HTMLElement;
   types: HTMLElement;
-  hpFill: HTMLElement;
-  /** The chunk the last hit took, marking where the bar used to end. */
-  hpShadow: HTMLElement;
+  /** The bar, with the chunk the last hit took. `ui/bar.ts` owns both. */
+  hp: Bar;
   hpText: HTMLElement;
   status: HTMLElement;
   volatiles: HTMLElement;
@@ -183,8 +183,7 @@ export function createScene(): Scene {
        * at the last one's damage.
        */
       for (const panel of [foe, me]) {
-        delete panel.hpShadow.dataset['fading'];
-        panel.hpShadow.style.width = '0%';
+        panel.hp.cancel();
         // The nudge stops mid-swing and the panel sits back where it belongs.
         delete panel.root.dataset['jiggle'];
       }
@@ -350,18 +349,9 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    */
   header.append(name, level);
 
-  const hpTrack = el('div', 'hp');
-  /*
-   * The shadow goes in **before** the fill, so the fill paints over it.
-   *
-   * The two overlap by a hairline at the boundary — a fraction is a float and
-   * the track is a few hundred device pixels — and a shadow drawn on top would
-   * put a seam on the leading edge of the bar on exactly the frames the player
-   * is watching it.
-   */
-  const hpShadow = el('div', 'hp__shadow');
-  const hpFill = el('div', 'hp__fill');
-  hpTrack.append(hpShadow, hpFill);
+  // The one bar with a shadow: this is the only surface where a drop is a hit
+  // the player is watching land. `ui/bar.ts` says why the shadow paints first.
+  const hp = createBar({ shadow: true });
 
   const meta = el('div', 'panel__meta');
   const hpText = el('span', 'panel__hp-text');
@@ -394,8 +384,8 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    */
   chips.append(types, archetype, traits, volatiles, stages);
 
-  root.append(header, hpTrack, meta, chips);
-  return { root, name, level, archetype, types, hpFill, hpShadow, hpText, status, volatiles, traits, stages };
+  root.append(header, hp.root, meta, chips);
+  return { root, name, level, archetype, types, hp, hpText, status, volatiles, traits, stages };
 }
 
 function updateSidePanel(
@@ -457,20 +447,16 @@ function updateSidePanel(
    * grew would mark ground the Pokemon just gained as ground it lost. The
    * restore line from the round 2 patch already narrates a heal and is
    * untouched — see `hpLine` in `battle-log.ts`.
-   */
-  const before = Number(panel.hpFill.dataset['fraction'] ?? active.hp.fraction);
-  panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
-  panel.hpFill.dataset['fraction'] = String(active.hp.fraction);
-  panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
-  /*
-   * A swap draws no chunk, and this is not a nicety.
    *
-   * The two bars belong to two different bodies, so the difference between them
-   * is not damage — a healthy replacement coming in for a Pokemon at 10% would
-   * paint nine tenths of the track as a hit that never happened, on the one
-   * turn the player most needs to read the board correctly.
+   * The rule itself lives in `ui/bar.ts` now, with every bar in the game; this
+   * panel only decides one input to it. **A swap draws no chunk, and this is
+   * not a nicety.** The two bars belong to two different bodies, so the
+   * difference between them is not damage — a healthy replacement coming in
+   * for a Pokemon at 10% would paint nine tenths of the track as a hit that
+   * never happened, on the one turn the player most needs to read the board
+   * correctly.
    */
-  markHpChunk(panel.hpShadow, swapped ? active.hp.fraction : before, active.hp.fraction);
+  panel.hp.set(active.hp.fraction, { chunk: !swapped });
   /*
    * Both sides now show exact HP.
    *
@@ -742,51 +728,6 @@ function jiggle(panels: { me: SidePanel; foe: SidePanel }, turns: readonly Flagg
   }
 }
 
-/**
- * The smallest drop worth drawing, as a fraction of the track.
- *
- * Below this the shadow is thinner than the rounding on its own corners and
- * reads as a rendering artefact rather than as a hit. Sand damage on a 300 HP
- * Pokemon is a real event and the log says so in words; a two-pixel smear on
- * the bar is not the place to say it a second time.
- */
-const MIN_CHUNK = 0.005;
-
-/**
- * Mark the span the bar just vacated, and fade it.
- *
- * Absolute inside the track and measured from the left in the same units the
- * fill uses, so the two agree by construction rather than by a shared
- * calculation: the shadow starts where the fill now ends and runs to where the
- * fill used to end.
- *
- * The animation is restarted rather than extended — re-setting an attribute an
- * element already carries does not replay a CSS animation, which is the same
- * thing the swap beat does above and for the same reason. Two hits in
- * consecutive turns each get their own fade.
- */
-function markHpChunk(shadow: HTMLElement, before: number, after: number): void {
-  const lost = before - after;
-  if (lost < MIN_CHUNK) {
-    // A heal, or nothing that happened. Clearing rather than leaving the last
-    // chunk standing: a shadow that outlives the hit it describes is a lie
-    // about the current turn.
-    delete shadow.dataset['fading'];
-    shadow.style.width = '0%';
-    return;
-  }
-  shadow.style.left = `${after * 100}%`;
-  shadow.style.width = `${lost * 100}%`;
-  delete shadow.dataset['fading'];
-  void shadow.offsetWidth;
-  shadow.dataset['fading'] = 'true';
-}
-
-function hpBand(fraction: number): 'high' | 'mid' | 'low' {
-  if (fraction > 0.5) return 'high';
-  return fraction > 0.2 ? 'mid' : 'low';
-}
-
 function renderMoves(
   container: HTMLElement,
   view: BattleUiView,
@@ -866,11 +807,8 @@ function renderBenchMember(
   const types = el('span', 'bench__types');
   types.replaceChildren(...member.types.map((type) => panelTypeChip(type)));
 
-  const track = el('div', 'hp hp--slim');
-  const fill = el('div', 'hp__fill');
-  fill.style.width = `${member.hpFraction * 100}%`;
-  fill.dataset['band'] = hpBand(member.hpFraction);
-  track.append(fill);
+  const bar = createBar({ variant: 'slim' });
+  bar.set(member.hpFraction);
 
   const meta = el('span', 'bench__meta');
   meta.textContent = `${member.hp} / ${member.maxHp}`;
@@ -884,7 +822,7 @@ function renderBenchMember(
     meta.append(' ', reason);
   }
 
-  button.append(name, level, types, track, meta);
+  button.append(name, level, types, bar.root, meta);
   button.addEventListener('click', () => onChoose(switchChoice(member.slot)));
   return button;
 }
