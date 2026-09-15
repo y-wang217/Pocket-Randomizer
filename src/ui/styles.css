@@ -3098,7 +3098,13 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      anyway, so the outgoing body simply is not drawn. Reduced motion removes
      the movement, not the Pokemon. */
   .stage__actor[data-swapped='true'] .sprite,
+  .stage__actor[data-swapped='true'] .sprite:not(.sprite--ghost),
   .stage__actor[data-swapped='true'] .sprite--ghost { animation: none; }
+  /* The `:not(.sprite--ghost)` form is the one the rise rule actually uses,
+     and `:not()` carries its argument's specificity, so the plain `.sprite`
+     above never outranked it: the arriving body still rose for anybody who
+     had asked it not to. Latent until Stage 4.9's seed put a send-in on the
+     measured turn; caught by the same test as the chunk. */
 }
 
 /* ==========================================================================
