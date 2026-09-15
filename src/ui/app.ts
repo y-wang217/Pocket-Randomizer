@@ -224,7 +224,9 @@ export function mountApp(root: HTMLElement): void {
   drawerTrigger.addEventListener('click', () => {
     const view = readDrawer();
     if (!view) return;
-    drawer.open({ ...view, inBattle: router.current() === 'battle' });
+    // The trigger goes along as the opener: closing the drawer returns focus to
+    // the button that opened it, on whichever surface that was.
+    drawer.open({ ...view, inBattle: router.current() === 'battle' }, drawerTrigger);
     marks.showFor('drawer', drawer.root);
   });
 

@@ -4178,65 +4178,101 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * overlay rather than a route is that the player can see they have not left.
  * ------------------------------------------------------------------------- */
 
-/* ---------- the history sheet ----------
-   V5.2. The battle log, behind a tap on the event strip.
+/* ---------- the overlay window ----------
+   **One shell, three surfaces, one geometry.** The party drawer, the battle
+   history and the run map are all `ui/overlay.ts`, and every element carries
+   both `.overlay__x` and its own `.block__x` — the shared half owns the
+   geometry below, the block half owns whatever that one surface needs.
 
-   The same bottom-sheet recipe as the party drawer above, and deliberately the
-   same one: a phone has one place an overlay belongs, and a second set of
-   metrics for a second sheet would drift from it. It stops short of the top of
-   the viewport for the drawer's reason too — the player can see they have not
-   left the fight.
+   **A window, not a bottom sheet.** Stage 4.7 anchored the drawer to the
+   bottom edge because "that is where a thumb is", and kept it short of the top
+   so that "the strip of the screen underneath is what says this is an overlay".
+   The second half of that argument is the one that survives, and a window
+   serves it better: the strip is on every edge rather than one. The first half
+   was a phone argument that did not generalise — the map overlay's rail and
+   chain want the height a centred window gives them and a `max-height: 86vh`
+   bottom sheet does not.
 
-   `[hidden]` carries its own `display: none`, which the drawer's rule set
-   already explains at length and which the smoke script has caught twice: any
-   `display` rule beats the UA `hidden` style, so an overlay toggled with
-   `hidden` and laid out with `display: flex` is an invisible scrim eating every
-   tap on the board underneath. Third occurrence, same guard. */
-.log-sheet[hidden] {
+   It is also not a regression on the viewport the whole project measures at.
+   At 390x844 the sheet had 90vh, or 760px. The window has the viewport less
+   two gutters, about 812px. More room, not less.
+
+   `[hidden]` carries its own `display: none`. That trap — `hidden` is a UA
+   style and any `display` rule beats it, so an overlay toggled with `hidden`
+   and laid out with `display: flex` is an invisible scrim eating every tap on
+   the screen below — was recorded three times in this file, once per hand-copy,
+   and `npm run smoke` caught it all three times because jsdom has no
+   pointer-event model. It is guarded once now, for all three. There is no
+   fourth occurrence to record. */
+.overlay[hidden] {
   display: none;
 }
 
-.log-sheet {
+.overlay {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  /* The gutter is the overlay's whole claim to being one. Nothing may remove
+     it: a window flush to an edge is a screen with extra steps. */
+  padding: var(--space-3);
 }
 
-.log-sheet__scrim {
+.overlay__scrim {
   position: absolute;
   inset: 0;
   background: var(--dim);
 }
 
-.log-sheet__sheet {
+.overlay__sheet {
   position: relative;
+  width: min(var(--overlay-width), 100%);
+  /* 100% of the padded layer, so the sheet can never reach an edge. */
+  max-height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: calc(var(--space-2h) * var(--density-gap));
-  max-height: 72vh;
   background: var(--bg);
-  border-top: var(--hairline) solid var(--border);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-5) * var(--density-pad));
+  /* All four sides now, where the sheet had one border and two corners. */
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--overlay-shadow);
+  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-4) * var(--density-pad));
 }
 
-.log-sheet__header {
+.overlay__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
+  /* Sticky so Close is reachable without scrolling a tall sheet back up. */
+  position: sticky;
+  top: calc(-1 * var(--space-3h));
+  background: var(--bg);
+  padding-top: var(--space-1);
 }
 
-.log-sheet__title {
-  margin: 0;
-  font-size: var(--fs-2xl);
+.overlay__title { margin: 0; font-size: var(--fs-2xl); }
+.overlay__close { flex: 0 0 auto; }
+
+/* The body carries the same column the sheet does, so a caller appends its
+   content and gets the spacing without knowing the shell's layout. */
+.overlay__body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-2h) * var(--density-gap));
 }
 
-.log-sheet__close {
-  flex: 0 0 auto;
+/* ---------- the history sheet ----------
+   V5.2. The battle log, behind a tap on the event strip. Geometry above; what
+   is left here is the one thing that is its own — the log panel must be able
+   to shrink inside the window rather than push it, so it gets the flex
+   minimum that a default `min-height: auto` would otherwise deny it. */
+.log-sheet__body {
+  min-height: 0;
 }
 
 /* The drawer trigger, in the same place on every decision surface. */
@@ -4256,70 +4292,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   color: var(--emphasis);
 }
 
-.drawer[hidden] {
-  /*
-   * **`hidden` is a UA style, and any `display` rule beats it.**
-   *
-   * The rule below sets `display: flex`, which silently un-hides the overlay:
-   * the sheet is off-screen but the scrim covers the viewport and eats every
-   * click on the screen underneath. `npm run smoke` found it on the starter
-   * screen within seconds of the drawer landing, which is exactly what that
-   * script is for — jsdom has no pointer-event model and every unit test
-   * passed.
-   *
-   * This file already carries the same note about `.rewards`. Two occurrences
-   * is a pattern: anything toggled with `hidden` needs the guard next to its
-   * `display` rule.
-   *
-   * `.drawer[hidden]` and not `:where(.drawer)[hidden]`, which was the first
-   * attempt and did nothing: `:where()` zeroes its argument's specificity, so
-   * the guard tied with `.drawer` on (0,1,0) and lost on source order. The
-   * smoke test failed identically twice, which is the useful kind of failure.
-   */
-  display: none;
-}
-
-.drawer {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-.drawer__scrim {
-  position: absolute;
-  inset: 0;
-  background: var(--dim);
-}
-
-.drawer__sheet {
-  position: relative;
-  max-height: 86vh;
-  overflow-y: auto;
-  background: var(--bg);
-  border-top: var(--hairline) solid var(--border);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-5) * var(--density-pad));
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-gap));
-}
-
-.drawer__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  /* Sticky so Close is reachable without scrolling a three-card sheet back up. */
-  position: sticky;
-  top: calc(-1 * var(--space-3h));
-  background: var(--bg);
-  padding-top: var(--space-1);
-}
-
-.drawer__title { margin: 0; font-size: var(--fs-2xl); }
+/* The party drawer. Everything structural — the fixed layer, the scrim, the
+   window, the sticky header, the `[hidden]` guard — is the shared `.overlay`
+   block above, which this element also carries. What is left here is the
+   drawer's own content. */
 .drawer__blurb { margin: 0; color: var(--text-dim); font-size: var(--fs-md); }
 .drawer__note { margin: 0; color: var(--text-faint); font-size: var(--fs-sm); }
 .drawer__section { margin: var(--space-1h) 0 0; font-size: var(--fs-md); color: var(--text-dim); }
@@ -4675,9 +4651,17 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .locale__party-name { font-weight: 600; }
 
 @media (max-width: 420px) {
-  /* The sheet takes more of the viewport on a phone, but never all of it: the
-   * strip of the screen underneath is what says this is an overlay. */
-  .drawer__sheet { max-height: 90vh; }
+  /*
+   * **The `.drawer__sheet { max-height: 90vh }` that lived here is gone.**
+   *
+   * It existed so the sheet took more of a phone viewport "but never all of
+   * it: the strip of the screen underneath is what says this is an overlay".
+   * The window geometry says that structurally instead — `.overlay` pads every
+   * edge and `.overlay__sheet` is capped at 100% of what is left — so the strip
+   * is now on four sides rather than one, and it cannot be overridden away by a
+   * viewport rule. The overlay is also taller here than the sheet was: about
+   * 812px of an 844px phone against the old 760.
+   */
   .move__facts { gap: var(--space-1); }
   /*
    * **The `.badge--tag { font-size: var(--fs-2xs) }` that lived here is gone.

@@ -52,6 +52,7 @@ import { relicById } from '../data/relics';
 import type { Tuning } from '../data/tuning';
 import { el } from './scene';
 import { setProse } from './dom';
+import { createOverlay } from './overlay';
 import { DENSITY_COPY, DENSITY_HEADING, DRAWER_COPY, MOVE_BAR_COPY, MOVE_BAR_HEADING } from './copy/screens';
 import { DENSITIES, getDensity, getMoveBar, MOVE_BARS, onSettingsChange, setDensity, setMoveBar } from './settings';
 import { memberCardContents } from './member-card';
@@ -78,7 +79,14 @@ export interface Drawer {
   root: HTMLElement;
   /** A trigger button, for a screen to place in its own header. */
   trigger(): HTMLButtonElement;
-  open(view: DrawerView): void;
+  /**
+   * Show it.
+   *
+   * `opener` is the button that was pressed, and passing it is what sends focus
+   * back there on close rather than to the top of the document. Optional, so
+   * every existing caller still compiles; `ui/overlay.ts` says why it matters.
+   */
+  open(view: DrawerView, opener?: HTMLElement | null): void;
   close(): void;
   isOpen(): boolean;
 }
@@ -187,26 +195,18 @@ function createPicker<T extends string>(spec: {
 }
 
 export function createDrawer(): Drawer {
-  const root = el('div', 'drawer');
-  root.hidden = true;
-  // A dialog rather than a div with a class: the overlay traps nothing and
-  // announces itself, and a screen reader user who opens it lands inside it.
-  root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', 'Your party');
+  /*
+   * The scrim, the sheet, the header, Close, Escape, the click-stop and the
+   * focus handling all come from `ui/overlay.ts` now — with its own dual class
+   * names, so `.drawer__sheet` and `.drawer__close` still resolve for the four
+   * suites and the smoke script that query them.
+   *
+   * What is left in this file is the only thing that was ever particular to
+   * the party drawer: what goes inside it.
+   */
+  const overlay = createOverlay({ block: 'drawer', label: 'Your party', title: 'Your party' });
 
-  const scrim = el('div', 'drawer__scrim');
-  const sheet = el('div', 'drawer__sheet');
-
-  const header = el('div', 'drawer__header');
-  const title = el('h2', 'drawer__title');
-  title.textContent = 'Your party';
   const blurb = el('p', 'drawer__blurb');
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'button button--small drawer__close';
-  close.textContent = 'Close';
-  header.append(title, close);
 
   const members = el('div', 'drawer__members');
   members.dataset['tutorial'] = 'drawer-party';
@@ -225,27 +225,10 @@ export function createDrawer(): Drawer {
   const note = el('p', 'drawer__note');
   setProse(note, DRAWER_COPY.note);
 
-  sheet.append(header, blurb, members, relics, note, createDensityPicker(), createMoveBarPicker());
-  root.append(scrim, sheet);
-
-  let open = false;
-
-  function hide(): void {
-    open = false;
-    root.hidden = true;
-  }
-
-  close.addEventListener('click', hide);
-  // Tapping the scrim closes, like every sheet on a phone. The sheet itself
-  // stops the click so a tap inside it does not fall through to the scrim.
-  scrim.addEventListener('click', hide);
-  sheet.addEventListener('click', (event) => event.stopPropagation());
-  root.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') hide();
-  });
+  overlay.body.append(blurb, members, relics, note, createDensityPicker(), createMoveBarPicker());
 
   return {
-    root,
+    root: overlay.root,
 
     /**
      * A trigger, built fresh per call so each screen owns its own button.
@@ -267,9 +250,7 @@ export function createDrawer(): Drawer {
       return button;
     },
 
-    open(view) {
-      open = true;
-      root.hidden = false;
+    open(view, opener) {
       setProse(blurb, view.inBattle ? DRAWER_COPY.inBattle : DRAWER_COPY.carrying);
 
       members.replaceChildren(
@@ -305,10 +286,11 @@ export function createDrawer(): Drawer {
         relics.append(heading, list);
       }
 
-      close.focus();
+      // Last, so the content is in place before the shell takes focus.
+      overlay.open(opener);
     },
 
-    close: hide,
-    isOpen: () => open,
+    close: () => overlay.close(),
+    isOpen: () => overlay.isOpen(),
   };
 }

@@ -38,72 +38,53 @@
  * `display: flex` is an invisible scrim eating every tap on the screen below.
  */
 import { el } from './dom';
+import { createOverlay } from './overlay';
 
 export interface LogSheet {
   /** The overlay. Mounted by the battle screen, hidden until opened. */
   root: HTMLElement;
   /** Where `createBattleLog` renders. Inside the sheet, scrolls with it. */
   panel: HTMLElement;
-  open(): void;
+  /** `opener` is the control that was pressed, so focus can return to it. */
+  open(opener?: HTMLElement | null): void;
   close(): void;
   isOpen(): boolean;
 }
 
 export function createLogSheet(): LogSheet {
-  const root = el('div', 'log-sheet');
-  root.hidden = true;
-  // A dialog for the same reason the drawer is one: it announces itself, and a
-  // screen reader user who opens it lands inside it rather than beside it.
-  root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', 'Battle history');
-
-  const scrim = el('div', 'log-sheet__scrim');
-  const sheet = el('div', 'log-sheet__sheet');
-
-  const header = el('div', 'log-sheet__header');
-  const title = el('h2', 'log-sheet__title');
-  title.textContent = 'History';
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'button button--small log-sheet__close';
-  close.textContent = 'Close';
-  header.append(title, close);
+  /*
+   * The shell is `ui/overlay.ts` now, and this sheet **gained two behaviours by
+   * moving onto it**: Escape closes it, and a click inside it can no longer be
+   * read as a click outside it. Both were on the drawer and missing here, for
+   * no reason anybody chose — the recipe was copied by hand and two lines were
+   * not. That is the drift the shared shell exists to end.
+   */
+  const overlay = createOverlay({ block: 'log-sheet', label: 'Battle history', title: 'History' });
 
   // The log's own container, unchanged: `battle-log.ts` appends `.log-entry`
   // children to it and scrolls it, and neither behaviour knows it moved.
   const panel = el('div', 'log');
+  overlay.body.append(panel);
 
-  sheet.append(header, panel);
-  root.append(scrim, sheet);
-
-  const view: LogSheet = {
-    root,
+  return {
+    root: overlay.root,
     panel,
-    open() {
-      root.hidden = false;
+    open(opener) {
+      overlay.open(opener);
       // The newest line, which is what a player opening the history is looking
       // for. The log scrolls itself on append, but a container that was hidden
-      // while the turn resolved had no height to scroll. Instant rather than
-      // the panel's smooth `scroll-behavior`: a glide from turn one to turn
-      // twenty on every open is motion nobody asked for, and the Pocket gate
-      // reads the latest line the moment the sheet opens.
+      // while the turn resolved had no height to scroll. **After `open`**, not
+      // before it: the panel has no scrollable height until the overlay is
+      // shown, so this ordering is the whole of why it works.
+      // Instant rather than the panel's smooth `scroll-behavior`: a glide from
+      // turn one to turn twenty on every open is motion nobody asked for, and
+      // the Pocket gate reads the latest line the moment the sheet opens.
       // jsdom has no `scrollTo` on an element; a browser has, and it is the
       // one that has a smooth `scroll-behavior` to bypass.
       if (typeof panel.scrollTo === 'function') panel.scrollTo({ top: panel.scrollHeight, behavior: 'instant' as ScrollBehavior });
       else panel.scrollTop = panel.scrollHeight;
-      close.focus();
     },
-    close() {
-      root.hidden = true;
-    },
-    isOpen: () => !root.hidden,
+    close: () => overlay.close(),
+    isOpen: () => overlay.isOpen(),
   };
-
-  // Dismissed by tap, on the scrim or on Close. Both are the same gesture from
-  // the player's side and neither reaches the screen underneath.
-  scrim.addEventListener('click', () => view.close());
-  close.addEventListener('click', () => view.close());
-
-  return view;
 }
