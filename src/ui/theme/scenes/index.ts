@@ -29,7 +29,7 @@ import type { LocaleId } from '../../../data/locales';
  * Three travel and five stay put. A travelling kind keeps V3's floor of twenty
  * seconds a crossing; an in-place kind moves nothing across the frame, so what
  * keeps it from drawing the eye is amplitude, not length — small, dim, and
- * never near a control. `docs/generation.md` section 19 records the change to
+ * never near a control. `docs/generation.md` section 20 records the change to
  * the plan's one-sentence rule.
  */
 export const WORLD_MOTION_KINDS = ['cross', 'soar', 'lap', 'firefly', 'flicker', 'smoke', 'float', 'ripple'] as const;

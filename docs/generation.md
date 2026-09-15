@@ -3302,7 +3302,110 @@ the map screen's own marks already teach the chain, the kinds, the tier and the
 gate, and a second set over the same content is a second thing to keep in
 agreement.
 
-## 19. Sprites on every selection surface, an idle bob, and one motion per locale
+## 19. Carry on did nothing: the stale item plan, and the catch that hid it
+
+**2026-09-15.** A playtest report — "game breaking bug: soft locked at this
+screen / help me chase down why" — with three screenshots of an event reveal
+whose Carry on button did nothing. The prompt and a transcription of the
+screenshots are filed at
+[`spec/gymrun-patch-carry-on-softlock.md`](spec/gymrun-patch-carry-on-softlock.md).
+
+The build in the screenshot is stamped `GYMRUN-53145f-…`, which is this tree's
+`contentHash` — so unlike section 16's report, this one was met on the build it
+describes.
+
+### The node, named exactly
+
+The reveal reads `Discard one bag item` against `+42 coins`, on the Gamble of
+`cave-collapsed-shaft`, at `4 / 8`. That is `t0-bag-rifled` in
+`data/eventPools.ts` — `cost: [{ kind: 'discard', count: 1 }]`,
+`grant: [{ kind: 'currency', amount: 42 }]` — which sits in the middle segment
+band, where segment 4 draws. The drawer screenshots show the party holding
+items, a Sharp Beak on the lead.
+
+### The chain
+
+`ui/app.ts` collects an `ItemPlan` from the party screen into `pendingPlan` and
+spends it at the **next** node boundary. `playRun` asks for that plan *after*
+`resolveNode` — deliberately, because everything that hands the run an item
+lands inside `resolveNode` and a plan composed before the node would be asking
+the player to arrange items they have not been given. The cost is that the plan
+is composed against one inventory and applied against another, and nothing
+reconciled the two.
+
+So: the event's forced discard destroyed a bag item; the held plan still named
+it; `applyItemPlan` refused the plan with a `RangeError`, correctly and by its
+own documented rule; and `playRun` rejected.
+
+**Where it became a soft lock rather than an error.** `app.ts` wrapped the
+whole run in `catch {}`, on a comment saying the only non-finishing exit was an
+abandoned pending decision. That was true once. Every `RangeError` `core/`
+raises to refuse an illegal answer lands there too, and a bare catch cannot
+tell them apart. The player was left on a screen whose question was already
+answered, with no control that advances anything and nothing in the console.
+
+**And it survived a reload**, which is what made it game-breaking rather than
+annoying. `onDecision` is `saveRunLog`, and `record` runs before the answer is
+applied — so the plan `core/` then refused was already in `localStorage`. A
+reload resumed that log, replayed the same decisions, and died at the same
+step.
+
+### What was built
+
+- `core/items.ts` gains `reconcileItemPlan`, pure and headless: a plan
+  composed against an older inventory, brought forward onto the one that
+  exists. An assignment naming a slot the party no longer has is dropped; a
+  slot named twice keeps its first entry; an assignment naming a destroyed item
+  becomes an unequip rather than being dropped; a discard of something already
+  gone is dropped; whatever is over capacity afterwards is discarded from the
+  front, the same rule `defaultItemPlan` uses.
+
+  **The unequip is the part worth recording.** Dropping the assignment instead
+  would leave that slot holding its current item — and that item would then be
+  missing from the pool the rest of the plan draws on, so one destroyed item
+  would invalidate a second, unrelated assignment. Emptying the hand keeps the
+  plan a complete destination, which is the shape `applyItemPlan` reads.
+
+  It walks the pool exactly the way `applyItemPlan` does, so what it returns is
+  legal by construction. `test/item-plan-staleness.test.ts` asserts that as a
+  property over adversarial plans rather than only on the reported case.
+
+- **`applyItemPlan` is unchanged.** It still refuses an illegal plan loudly. A
+  hand-edited log naming an item the run never held must fail, because silently
+  repairing one replays as a different run — the rule that function's own
+  comment states. Reconciliation belongs to whoever *composes* an answer, and
+  the composed answer is what the log records, so a replay applies the same
+  plan the live run did.
+
+- `ui/pending.ts` gains `RunAbandoned` and `isRunAbandoned`, so the catch can
+  tell a run the player walked away from — expected, silent — from a run that
+  broke. Everything that is not abandonment now reaches the console, says so on
+  the seed bar in `SEED_COPY.runFailed`, hands the seed controls back, and
+  **clears the saved log**. A log that deterministically cannot be applied is
+  not a run to go back to; re-offering it is a Resume button whose only effect
+  is to reproduce the failure. That is a real cost and it is the smaller one.
+
+### What this moves
+
+No version axis. `reconcileItemPlan` adds no draw, changes no draw order, and
+adds, removes, reorders and reshapes no logged decision — `RUN_LOG_VERSION`,
+`RANDOMIZER_VERSION` and `contentHash` all hold still. `data/seedCopy.ts` is
+already on the `contentHash` exclusion list, so the new string does not move
+the hash.
+
+Seeded output does not move for any run the scripted policies produce:
+`defaultItemPlan` is computed from current state and was always legal, so
+reconciliation is the identity on it. What changes is only what the *app*
+answers with, which no benchmark drives.
+
+### The shape, stated once
+
+This is the same defect shape as sections 15 and 16 seen from the other side.
+Those were a value computed and never read. This is a value read long after it
+was computed, against a world that had moved. Both are a seam where two ends
+were individually correct, and neither the type system nor a unit test of
+either end could see the gap.
+## 20. Sprites on every selection surface, an idle bob, and one motion per locale
 
 Filed prompt: [`spec/gymrun-patch-idle-sprites-and-locale-motion.md`](spec/gymrun-patch-idle-sprites-and-locale-motion.md),
 committed 2026-09-15 before any work, on `claude/vibrant-euler-2taoqk`, with

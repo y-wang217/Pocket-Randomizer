@@ -2,7 +2,7 @@
 
 Prompt: [`../../spec/gymrun-patch-idle-sprites-and-locale-motion.md`](../../spec/gymrun-patch-idle-sprites-and-locale-motion.md).
 Branch `claude/vibrant-euler-2taoqk`, cut from `main` at `3f97584` (PR #37).
-Built 2026-09-15. Record: [`../../generation.md`](../../generation.md) section 19.
+Built 2026-09-15. Record: [`../../generation.md`](../../generation.md) section 20.
 
 Every number here was measured on this tree after `npm ci && npm run build`,
 headless Chromium at 390x844, seed `SMOKE24`, using the same

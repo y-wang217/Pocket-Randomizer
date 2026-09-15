@@ -61,7 +61,7 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 **In flight: sprites on every selection surface, an idle bob, and one motion
 per locale.** Branch `claude/vibrant-euler-2taoqk`, prompt
 [`spec/gymrun-patch-idle-sprites-and-locale-motion.md`](spec/gymrun-patch-idle-sprites-and-locale-motion.md),
-record [`generation.md`](generation.md) section 19. A figure with a two-frame
+record [`generation.md`](generation.md) section 20. A figure with a two-frame
 idle bob on the starter cards, the learn-move owner line, the member card
 (party, drawer, pre-gym), the recipient buttons, the capture block, the
 battle bench and the run summary; the event gate shows the members whose
@@ -110,6 +110,20 @@ to four while the app went from two overlays to three.**
 Presentation only: no `core/` change, no version axis moves, seeded output
 byte-identical, and the guarded screen heights equal `visual/baseline/heights.json`
 to the pixel.
+
+**In flight: the Carry on soft lock.** Branch
+`claude/jolly-thompson-wume0n`, prompt
+[`spec/gymrun-patch-carry-on-softlock.md`](spec/gymrun-patch-carry-on-softlock.md),
+record [`generation.md`](generation.md) section 19. A playtest report on a
+`53145f` build — this tree's own hash — found an event reveal whose **Carry on
+did nothing**: the item plan the player left the party screen with was spent a
+node after it was composed, the event's forced discard destroyed an item it
+still named, `applyItemPlan` refused it, and a bare `catch {}` around `playRun`
+swallowed the `RangeError`. `record` runs before the answer is applied, so the
+refused plan was already in `localStorage` and a reload resumed straight back
+into it. `reconcileItemPlan`, new in `core/items.ts`, brings a stale plan
+forward onto the inventory that exists; `applyItemPlan` still refuses an
+illegal one. No version axis moves.
 
 **In flight: the playtest patch** (event rewards and move card fields). Branch
 `claude/event-rewards-ui-bugs-z84mmb`, prompt

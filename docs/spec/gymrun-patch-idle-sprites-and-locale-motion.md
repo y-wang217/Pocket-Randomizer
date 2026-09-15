@@ -199,7 +199,7 @@ Recorded in `docs/engine-notes.md`. Not built this patch.
 
 ### Docs, last
 
-`docs/generation.md` section 19; a report under `docs/visual/reports/` in the
+`docs/generation.md` section 20; a report under `docs/visual/reports/` in the
 shape of the bar-and-beats report; the `docs/README.md` current-state entry;
 this register row flipped on merge.
 

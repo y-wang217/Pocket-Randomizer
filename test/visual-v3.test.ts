@@ -129,7 +129,7 @@ describe('the world', () => {
      * patch keeps that floor for the kinds that travel and restates it for
      * the kinds that stay put, where nothing crosses the frame: the element's
      * own loop, when it has one, four seconds or longer, and every mote's
-     * loop two seconds or longer. `docs/generation.md` section 19 records the
+     * loop two seconds or longer. `docs/generation.md` section 20 records the
      * restatement. Re-tagged through `html[data-locale]`, the one writer the
      * world follows, the way `scripts/visual/perf.mjs` walks the locales.
      */

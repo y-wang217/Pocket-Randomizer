@@ -57,6 +57,15 @@ export interface SeedBar {
   onResume(handler: () => void): void;
   /** Show the foreign-seed refusal for a seed that arrived some other way, such as the URL. */
   refuse(parsed: Extract<ParsedSeed, { kind: 'foreign' }>): void;
+  /**
+   * Say a run stopped on an error, in the same notice the refusal uses.
+   *
+   * The bar is the only chrome that survives a failed run — the screen the run
+   * died on still shows whatever it was asking — so it is where the player is
+   * told, and the Start beside it is the way out. See
+   * `docs/spec/gymrun-patch-carry-on-softlock.md`.
+   */
+  warn(message: string): void;
 }
 
 export function createSeedBar(): SeedBar {
@@ -180,5 +189,9 @@ export function createSeedBar(): SeedBar {
     onReroll: (handler) => reroll.addEventListener('click', () => handler()),
     onResume: (handler) => resume.addEventListener('click', () => handler()),
     refuse,
+    warn: (message) => {
+      notice.textContent = message;
+      notice.hidden = false;
+    },
   };
 }
