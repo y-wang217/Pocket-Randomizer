@@ -32,6 +32,7 @@ import type {
 } from './types';
 import { MOVESET } from '../data/scaling';
 import { MAX_PARTY_CAPACITY } from '../data/partyTuning';
+import { NO_RELIC_EFFECTS, type RelicEffects } from './relics';
 import type { Tuning } from '../data/tuning';
 
 /**
@@ -230,15 +231,41 @@ export function applyBattleState(
  * the run state machine was the one the sweep could not vary. It now arrives on
  * the `Tuning` this function already took.
  */
-export function betweenNodes(party: readonly PokemonState[], tuning: Tuning): PokemonState[] {
-  return party.map((member) => ({
+export function betweenNodes(
+  party: readonly PokemonState[],
+  tuning: Tuning,
+  /**
+   * What the run's relics add at a node boundary: a share of max HP back, and
+   * a better revive. **Defaulted to nothing**, so a caller with no run behind
+   * it behaves exactly as this function did before relics were read.
+   *
+   * Both land here rather than at two sites in `resolveNode`, because both are
+   * the same moment — "the party, as it walks into the next node" — and a
+   * second site is how the two would come to run in different orders.
+   */
+  effects: RelicEffects = NO_RELIC_EFFECTS,
+): PokemonState[] {
+  const revivePercent = Math.max(0, tuning.reviveHpPercent + effects.reviveBonus);
+  const healed = party.map((member) => ({
     ...member,
     moves: member.moves.map((move) => ({ ...move })),
     status: tuning.clearStatusBetweenNodes ? null : member.status,
     ...(tuning.reviveFaintedBetweenNodes && member.fainted
-      ? { fainted: false, hp: reviveHpFor(member.maxHp, tuning.reviveHpPercent) }
+      ? { fainted: false, hp: reviveHpFor(member.maxHp, revivePercent) }
       : {}),
   }));
+  /*
+   * The per-node heal, after the revive rather than before it. A member revived
+   * this boundary is standing by the time the heal runs, so a relic that mends
+   * "a little at every stop" mends them too — which is what its description
+   * says and what a player would expect from reading it.
+   *
+   * HP only, not PP: the passive is a heal, and `recoverParty` restores both
+   * unless told otherwise. A relic that silently refilled PP every node would
+   * be a different and much larger effect than the one on the card.
+   */
+  if (effects.nodeHealPercent <= 0) return healed;
+  return recoverParty(healed, effects.nodeHealPercent, 0, false);
 }
 
 /**

@@ -42,6 +42,7 @@
 import type { ItemId, ItemPlan, PokemonSpec, PokemonState } from './types';
 import { itemById, type ItemEntry } from '../data/items';
 import type { Tuning } from '../data/tuning';
+import { NO_RELIC_EFFECTS, type RelicEffects } from './relics';
 
 /**
  * The spec to hand the sim for a party member, with its held item merged in.
@@ -127,8 +128,18 @@ export function needsItemPlan(state: {
  *
  * See `tuning.backpackSlack` for why the derived half cannot live on `Tuning`.
  */
-export function backpackCapacity(partySlots: number, tuning: Tuning): number {
-  return Math.max(0, Math.floor(partySlots + tuning.backpackSlack));
+export function backpackCapacity(
+  partySlots: number,
+  tuning: Tuning,
+  /**
+   * What the run's relics add. **Defaulted rather than required**, because a
+   * surface that is showing a party with no run behind it — the gallery's
+   * fixtures — has no held set to fold, and `NO_RELIC_EFFECTS` is exactly the
+   * behaviour this function had before relics were read at all.
+   */
+  effects: RelicEffects = NO_RELIC_EFFECTS,
+): number {
+  return Math.max(0, Math.floor(partySlots + tuning.backpackSlack + effects.backpackSlots));
 }
 
 /**

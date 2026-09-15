@@ -57,6 +57,7 @@ import {
 } from './acquisition';
 import { partyCapacityAfter } from '../data/partyTuning';
 import type { RelicId } from '../data/relics';
+import { applyRelicPassives } from './relics';
 import { RANDOMIZER_VERSION } from './randomizer';
 import { CONTENT_HASH } from './contentHash';
 import {
@@ -883,8 +884,21 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * changes reaches the next node without being named here.
    */
   let base: RunState = state;
+  /*
+   * What the run's relics are worth at this node, folded once and read at
+   * three sites below. **The held set is read as the node was *entered*
+   * with**, which matters for the one node that can change it: an event that
+   * pays a relic does not also pay that relic's per-node passive on the node
+   * that handed it over.
+   *
+   * One fold rather than a `hasRelic` check at each site — the rule
+   * `core/relics.ts` opens with, and the reason it is a fold at all.
+   */
+  const relicEffects = applyRelicPassives(state.relics);
   let currency = state.currency;
-  if (result.battle?.result.winner === 'p1') currency += nodePayout(result.node, state.currentSegment);
+  if (result.battle?.result.winner === 'p1') {
+    currency += nodePayout(result.node, state.currentSegment, relicEffects);
+  }
 
   if (result.eventChoice !== undefined && result.node.event) {
     const option = optionOf(result.node.event, result.eventChoice);
@@ -986,7 +1000,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       // a full heal at the gym really is full at the new level rather than
       // full-at-the-old-max rounded down.
       party: levelParty(
-        recoverParty(betweenNodes(party, state.tuning), state.tuning.gymClearHealFraction),
+        recoverParty(betweenNodes(party, state.tuning, relicEffects), state.tuning.gymClearHealFraction),
         playerLevel(nextSegment),
       ),
       backpack,
@@ -1075,7 +1089,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
 
   let advanced: RunState = {
     ...base,
-    party: betweenNodes(party, state.tuning),
+    party: betweenNodes(party, state.tuning, relicEffects),
     backpack,
     currency,
     history,
@@ -1653,7 +1667,7 @@ export async function playRun(
           won,
           party: result.battle.party,
           contribution: result.battle.contribution,
-          currencyEarned: won ? nodePayout(result.node, state.currentSegment) : 0,
+          currencyEarned: won ? nodePayout(result.node, state.currentSegment, applyRelicPassives(state.relics)) : 0,
           offer,
         },
         state,
@@ -1779,7 +1793,11 @@ export async function playRun(
     if (!state.outcome && needsItemPlan(state)) {
       const plan = await policy.chooseItemPlan(state);
       record({ kind: 'items', plan: clonePlan(plan) });
-      state = applyItemPlan(state, plan, backpackCapacity(partyCapacity(state), state.tuning));
+      state = applyItemPlan(
+        state,
+        plan,
+        backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+      );
     }
 
     options.onState?.(state);
@@ -2097,7 +2115,7 @@ export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec)
  * `RangeError` rather than on a decision.
  */
 export function defaultItemPlan(state: RunState): ItemPlan {
-  const capacity = backpackCapacity(partyCapacity(state), state.tuning);
+  const capacity = backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics));
   const assignments: ItemAssignment[] = [];
 
   let taken = 0;

@@ -23,6 +23,7 @@
  */
 import { applyReward, concreteReward, isTargeted, resolveRewardEntry, type Reward } from './rewards';
 import type { RelicId } from '../data/relics';
+import { applyRelicPassives, NO_RELIC_EFFECTS, type RelicEffects } from './relics';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import type { NodeSpec } from './encounters';
@@ -53,11 +54,25 @@ export function isBattleKind(kind: NodeSpec['kind']): kind is BattleKind {
  * a tier would be the second dial on the segment's difficulty that
  * `generateGymTeam` refuses for the same reason.
  */
-export function nodePayout(node: NodeSpec, segment: number): number {
+export function nodePayout(
+  node: NodeSpec,
+  segment: number,
+  /**
+   * What the run's relics add to a cleared battle node. **Flat, and added
+   * after the scale**, because it is a flat number on the card — "something
+   * turns up in the cleared brush after every fight" — rather than a share of
+   * the purse, and scaling it would make an early relic worth a fraction of a
+   * late one for no reason the player could read.
+   *
+   * Nothing is added to a node that is not a fight, because the passive is per
+   * *battle* node and the early return below is what says so.
+   */
+  effects: RelicEffects = NO_RELIC_EFFECTS,
+): number {
   if (!isBattleKind(node.kind)) return 0;
   const base = NODE_PAYOUT[node.kind];
   const tier = node.tier ? TIER_PAYOUT[node.tier] : TIER_PAYOUT.normal;
-  return Math.round(base * tier * currencyScaleFor(segment));
+  return Math.round(base * tier * currencyScaleFor(segment)) + Math.max(0, effects.nodeCurrency);
 }
 
 // ---------------------------------------------------------------------------
@@ -76,6 +91,20 @@ export interface ShopStock {
   nodeId: string;
   segment: number;
   items: ShopItem[];
+  /**
+   * The shop discount already taken off these prices, or absent on a shelf as
+   * it was drawn. **Present so that resolving twice is not charging twice.**
+   *
+   * `resolveStock` is idempotent by contract — `playRun` resolves a shop to
+   * ask what to buy and the stock travels on to be applied — and a discount is
+   * the first thing it ever did that would compound. The stamp is what makes
+   * the second call a no-op on price rather than a second markdown.
+   *
+   * Not logged, and it does not need to be: a run log stores shelf indexes, so
+   * a replay re-derives the shelf and re-resolves it against the relics the
+   * replayed run holds at that node.
+   */
+  discount?: number;
 }
 
 /**
@@ -150,10 +179,34 @@ export function generateShopStock(
  * on the shelf.
  */
 export function resolveStock(stock: ShopStock, relics: readonly RelicId[]): ShopStock {
-  if (!stock.items.some((item) => item.reward.kind === 'relic')) return stock;
+  /*
+   * **Two resolutions against the held set, not one, and both belong here.**
+   *
+   * The relic card has always collapsed here. The shop discount now applies
+   * here too, for the same argument the comment above makes about doing it
+   * once: `playRun` resolves a shop twice — once to ask what to buy and once
+   * to apply it — and a price that was discounted on the screen and charged
+   * undiscounted at the till is the shape that argument exists to prevent.
+   *
+   * The discounted price is the one the player is shown, so `basketCost`,
+   * `canAfford` and `applyPurchases` all read it without knowing a relic was
+   * involved. `applyRelicPassives` already clamps the discount to 0..1, so a
+   * stack of discounts floors the price at free rather than paying the shop.
+   */
+  const effects = applyRelicPassives(relics);
+  const cards = stock.items.some((item) => item.reward.kind === 'relic');
+  // Priced already, by an earlier call on this same shelf. The stamp is the
+  // whole of what keeps this function idempotent now that it changes prices.
+  const priced = stock.discount !== undefined;
+  const cut = priced ? 0 : effects.shopDiscount;
+  if (!cards && cut <= 0) return priced ? stock : { ...stock, discount: 0 };
   return {
     ...stock,
-    items: stock.items.map((item) => ({ ...item, reward: concreteReward(item.reward, relics) })),
+    discount: priced ? stock.discount : effects.shopDiscount,
+    items: stock.items.map((item) => ({
+      reward: cards ? concreteReward(item.reward, relics) : item.reward,
+      price: Math.max(0, Math.round(item.price * (1 - cut))),
+    })),
   };
 }
 
