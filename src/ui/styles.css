@@ -1458,15 +1458,30 @@ body {
  * overflow visibly rather than quietly re-ragging the grid.
  */
 .move__meta {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-1h);
-  flex-wrap: nowrap;
-  min-width: 0;
+  gap: 0 var(--space-1h);
 }
 
-/* The status readout is the one thing here that may take the whole line. */
-.move__meta > .move__effect { flex: 1 1 auto; min-width: 0; }
+/*
+ * **The status readout takes its own row, and that is a regression fix.**
+ *
+ * This row was `flex-wrap: wrap` and the readout wrapped onto its own full
+ * width beneath the type and category chips. Making the row `nowrap` — to stop
+ * the band badge landing on a different line on each button — squeezed the
+ * readout into what was left beside those two chips instead, so it wrapped
+ * internally to three lines and `Toxic` grew a 52px meta row. V5's loaded
+ * board is budgeted at 600 and measured 610.
+ *
+ * A grid rather than a return to `wrap`: the three identity fields keep their
+ * fixed columns and cannot re-rag, and the readout is placed on a second row
+ * explicitly rather than arriving there because it happened not to fit.
+ */
+.move__meta > .move__effect {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
 
 .move__category,
 .move__power {
@@ -1584,14 +1599,31 @@ body {
   row-gap: var(--space-h);
 }
 
-/* Columns 2 to 4 of the fact grid: contact, the odds, the turn cost. */
-[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
-  display: none;
+/*
+ * Two slots wide, so the three fields that stay on the face take two rows:
+ * the band beside the accuracy, the marker under them. Explicit placement
+ * rather than inherited, because the grid is two columns here and the wide
+ * layout's `3 / -1` would land the marker on top of the accuracy.
+ */
+[data-move-bar='columns'] .moves .move__facts-band {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+[data-move-bar='columns'] .moves .move__fact-cell[data-column='1'] {
+  grid-row: 1;
+  grid-column: 2;
 }
 
 [data-move-bar='columns'] .moves .move__facts-effect {
+  grid-row: 2;
   grid-column: 1 / -1;
   justify-self: start;
+}
+
+/* Contact, the odds and the turn cost: one tap away, in the `?` panel. */
+[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
+  display: none;
 }
 
 /*
@@ -4371,31 +4403,54 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .move__facts > *:not(:empty) { margin-right: var(--space-1); }
 
 /*
- * Row 1: what the move hits for. The marker takes the rest of the line, so a
- * three-character `0.5x` has the same room as a two-character `2x` and neither
- * can push the other off the button.
+ * **Row 1: the band, the accuracy, the marker. Row 2: everything else.**
+ *
+ * Accuracy is on row 1 and that placement is measured rather than tidy. It is
+ * on 405 of the 458 pool moves, so putting it on row 2 meant row 2 existed on
+ * almost every button — and the second row cost V5's loaded-board budget,
+ * which is 600 and which the first draft of this split missed at 610. Row 1
+ * has the room: band 38 + a three-character marker 38 + accuracy 40 is 124 of
+ * 150 with its margins.
+ *
+ * So row 2 now carries contact, the odds and the turn cost, and **collapses to
+ * nothing on a move that has none of them** — which is most of them. The
+ * second row is charged to the buttons that need it instead of to all four.
+ *
+ * The marker takes the rest of row 1, so a three-character `0.5x` has the same
+ * room as a two-character `2x` and neither can push the other off the button.
  */
 .move__facts-band {
   grid-row: 1;
   grid-column: 1;
 }
 
+.move__fact-cell[data-column='1'] {
+  grid-row: 1;
+  grid-column: 2;
+}
+
 .move__facts-effect {
   grid-row: 1;
-  grid-column: 2 / -1;
+  grid-column: 3 / -1;
   justify-self: start;
   margin-right: 0;
 }
 
-/*
- * Row 2: how the move behaves. One column per field family, in the order
- * `data/moveFactInfo.ts` fixes, each holding its place when empty.
- */
-.move__fact-cell { grid-row: 2; }
-.move__fact-cell[data-column='1'] { grid-column: 1; }
-.move__fact-cell[data-column='2'] { grid-column: 2; }
-.move__fact-cell[data-column='3'] { grid-column: 3; }
-.move__fact-cell[data-column='4'] { grid-column: 4; }
+/* Row 2, in the order `data/moveFactInfo.ts` fixes, each holding its column. */
+.move__fact-cell[data-column='2'] {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.move__fact-cell[data-column='3'] {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+.move__fact-cell[data-column='4'] {
+  grid-row: 2;
+  grid-column: 3 / -1;
+}
 
 /* Each column holds its place when empty, and clips inside itself if a value
    ever outgrows it rather than painting over the column beside it. */

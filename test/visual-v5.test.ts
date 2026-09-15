@@ -290,12 +290,23 @@ describe('the move grid', () => {
          */
         bandsOnFacts: buttons.filter((button) => button.querySelector('.move__facts .band')).length,
         bandsOnMeta: buttons.filter((button) => button.querySelector('.move__meta .band')).length,
-        overhang: buttons.filter((button) => {
-          const badge = button.querySelector('.band');
-          if (!badge) return false;
+        /*
+         * **Every chip on the face, not only the band.**
+         *
+         * The band was the first thing to overhang a squeezed face and so it
+         * was the thing this counted. Then the effectiveness marker moved onto
+         * the fact line, the line did not fit, and `overflow: hidden` clipped
+         * *it* instead — 21 distinct chips across 115 battle screens, none of
+         * them a band, none of them seen by this check. A narrower gate than
+         * the hazard is a gate that reports green while the hazard ships.
+         */
+        overhang: buttons.flatMap((button) => {
           const face = button.getBoundingClientRect();
-          const chip = badge.getBoundingClientRect();
-          return chip.right > face.right || chip.left < face.left;
+          return [...button.querySelectorAll('.chip, .move__pp, .move__power')].filter((node) => {
+            const chip = node.getBoundingClientRect();
+            if (chip.width === 0) return false;
+            return chip.right > face.right + 0.5 || chip.left < face.left - 0.5;
+          });
         }).length,
       };
     }, visible('battle'));
@@ -303,7 +314,22 @@ describe('the move grid', () => {
     expect(grid, 'the grid is on the board').not.toBeNull();
     if (!grid) throw new Error('no move grid');
     expect(grid.count).toBe(4);
-    expect(grid.columns, 'still 2x2, never a column of four').toBe(2);
+    /*
+     * **Two columns in the stored default, and the words this replaces are
+     * recorded rather than deleted.**
+     *
+     * This line read `'still 2x2, never a column of four'`. The four-column
+     * patch reverses the second half of that for one of two layouts: `grid` is
+     * still 2x2 and is still what a fresh store gets, and `columns` is four,
+     * chosen in the drawer. The ruling and the measurement that justified
+     * reversing it are in `docs/generation.md` section 16.
+     *
+     * The assertion stays on `grid` rather than becoming a loop, because this
+     * whole test is the *default* layout's budget — the four-column layout has
+     * its own entries in `heights.json` under `layouts.columns` and its own
+     * case below.
+     */
+    expect(grid.columns, 'the default layout is 2x2').toBe(2);
     // Amendment A6: the grid tightened by margin and gap, so the 44px minimum
     // touch target is untouched.
     expect(grid.minHeight).toBeGreaterThanOrEqual(44);
@@ -327,10 +353,9 @@ describe('the move grid', () => {
     expect(Math.max(...grid.meta), 'the meta row must not wrap').toBeLessThanOrEqual(20);
     expect(grid.bandsOnMeta, 'no band may sit on the row that wraps').toBe(0);
     expect(grid.bandsOnFacts, 'every band that is drawn is drawn on the fact line').toBeGreaterThan(0);
-    // R12's check, restated here because A6 names it as the thing a careless
-    // tighten breaks first: the band badge is the first thing to overhang a
-    // squeezed face, wherever on the face it sits.
-    expect(grid.overhang).toBe(0);
+    // R12's check, widened: nothing on the face may overhang it, wherever on
+    // the face it sits and whatever kind of chip it is.
+    expect(grid.overhang, 'a chip painted outside its own button').toBe(0);
 
     // The plan's tests 1 and 2, and amendment A3's gate.
     expect(grid.screenHeight, 'battle screen layout height').toBeLessThanOrEqual(600);
