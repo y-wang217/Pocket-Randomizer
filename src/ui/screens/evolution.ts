@@ -19,7 +19,7 @@ import type { SpeciesEntry } from '../../data/speciesPools';
 import { EVOLUTION_CHOICE, EVOLUTION_HEADING, EVOLUTION_LINE } from '../copy/screens';
 import { prose } from '../dom';
 import { el } from '../scene';
-import { spriteImg } from '../sprites';
+import { spriteFigure } from '../sprites';
 import { statLine, typeChip } from './starter-select';
 
 export interface EvolutionPrompt {
@@ -41,8 +41,11 @@ export function renderEvolutionBlock(prompt: EvolutionPrompt): HTMLElement {
     list.replaceChildren(
       ...prompt.records.map((record) => {
         const row = el('li', 'evolve__record');
-        const from = spriteImg(record.from);
-        const to = spriteImg(record.to);
+        // The figure with the idle bob, as every other selection surface
+        // draws a Pokemon since the idle-sprites patch; the two phases differ
+        // so the pair does not bob in lockstep.
+        const from = spriteFigure(record.from, { phase: 0 });
+        const to = spriteFigure(record.to, { phase: 3 });
         const line = el('span', 'evolve__line');
         line.replaceChildren(prose(EVOLUTION_LINE(record.nickname ?? record.from, record.from, record.to)));
         row.append(from, to, line);
@@ -58,7 +61,7 @@ export function renderEvolutionBlock(prompt: EvolutionPrompt): HTMLElement {
     blurb.replaceChildren(prose(EVOLUTION_CHOICE(question.member.spec.nickname ?? question.member.spec.species)));
     const options = el('div', 'evolve__options');
     options.replaceChildren(
-      ...question.options.map((option, index) => renderOption(option, question, () => onChoose(index))),
+      ...question.options.map((option, index) => renderOption(option, question, index, () => onChoose(index))),
     );
     section.append(blurb, options);
   }
@@ -66,7 +69,7 @@ export function renderEvolutionBlock(prompt: EvolutionPrompt): HTMLElement {
   return section;
 }
 
-function renderOption(option: SpeciesEntry, question: EvolutionQuestion, onChoose: () => void): HTMLElement {
+function renderOption(option: SpeciesEntry, question: EvolutionQuestion, index: number, onChoose: () => void): HTMLElement {
   const card = document.createElement('button');
   card.type = 'button';
   card.className = 'party__member party__member--target evolve__option';
@@ -81,7 +84,7 @@ function renderOption(option: SpeciesEntry, question: EvolutionQuestion, onChoos
   name.textContent = option.species;
   header.append(name, ...detail.types.map(typeChip));
 
-  card.append(spriteImg(option.species), header, statLine(detail.baseStatsAtLevel, detail.maxHp));
+  card.append(spriteFigure(option.species, { phase: index }), header, statLine(detail.baseStatsAtLevel, detail.maxHp));
   card.addEventListener('click', onChoose);
   return card;
 }

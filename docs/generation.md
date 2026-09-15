@@ -3682,7 +3682,11 @@ evolution and at least 280 base stat total.
 ### What this moves
 
 `RUN_LOG_VERSION` `-16`, `RANDOMIZER_VERSION` `-16`, `contentHash` by every
-table above; `AI_VERSION` holds. Every seeded fixture re-minted: the visual
+table above; `AI_VERSION` holds. The hash moved once more at the merge with
+`main` after PR #38, from `5fb6be` to `08e9e6`, because the pointer in
+`data/items.ts`'s comment was renumbered from section 20 to 21 and the hash
+is over bytes; nothing generated changed, and the benchmark rows keep the
+stamp they were measured under. Every seeded fixture re-minted: the visual
 baseline runs and digest, `heights.json` (content moved, `decisionTop` did
 not, in every mode), `test/fixtures/sim-report.json`, and the smoke bot's
 loop bound raised to 900 for the longer runs.
