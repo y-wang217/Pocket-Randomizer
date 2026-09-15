@@ -1486,6 +1486,129 @@ body {
 
 .move__pp--low { color: var(--hp-low); }
 
+/* ---------- the move bar layouts ---------- */
+
+/*
+ * **The four-column move bar.** `data-move-bar="columns"` on the root; the
+ * absence of it, or `"grid"`, is the 2x2 the game has always had and every
+ * rule above describes.
+ *
+ * ## Why this is a stack and not a re-flow
+ *
+ * Measured at 390 before a line of it was written: `.moves` is 358px wide, so
+ * four columns give 85px buttons against 176px in the grid. The identity line
+ * needs 138.6px, the fact line about 155px and the footer 78.1px, and
+ * `--fs-sm` is already the legibility floor `test/visual-chips.test.ts`
+ * holds — so nothing about the current face fits, at any type size this
+ * project is allowed to use.
+ *
+ * So column mode is a different face: one field family per line, the same
+ * line on every button, which is the property that makes a field readable
+ * *across* the four rather than within one. That is what the report asked
+ * for — "to compare".
+ *
+ * ## What leaves the face here, and where it goes
+ *
+ * Accuracy stays, because it is the field the whole explanation layer was
+ * built for. Effectiveness stays, because it is the one live fact about the
+ * board and the single exception `CLAUDE.md` carves out of the no-verdicts
+ * rule. The rest of the fact strip — contact, secondary chance, priority,
+ * multi-hit, recoil, drain — is hidden on the face and is one tap away in the
+ * `?` panel, which prints every one of them and always has.
+ *
+ * **Nothing is removed from the game and nothing is removed from the grid
+ * layout.** This is the rule Pocket density already runs under: a secondary
+ * fact may cost a tap, a primary fact stays on screen.
+ */
+[data-move-bar='columns'] .moves {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/*
+ * The side padding comes in because it is 24px of an 85px button — a seventh
+ * of the width spent on air. The vertical padding is untouched, because that
+ * is what holds the 44px touch target.
+ */
+[data-move-bar='columns'] .moves .move {
+  padding-inline: calc(var(--space-1) * var(--density-pad));
+  gap: var(--space-h);
+}
+
+/*
+ * Two lines of the name at most, and the box is the same height whether the
+ * name takes one or two — otherwise a one-word move and a two-word move start
+ * their type chips on different lines and the whole comparison is lost.
+ */
+[data-move-bar='columns'] .moves .move__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(2 * 1.2em);
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+}
+
+/*
+ * Identity: the type alone, then category and power under it. The type takes
+ * the whole width because it is the widest chip on the button — `Fighting` is
+ * eight characters — and nothing shares a line with it at 85px.
+ */
+[data-move-bar='columns'] .moves .move__meta {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, auto);
+  justify-content: start;
+  gap: var(--space-h) var(--space-1);
+}
+
+[data-move-bar='columns'] .moves .move__meta > :first-child {
+  grid-column: 1 / -1;
+}
+
+/* The status readout keeps the whole width it has in the grid. */
+[data-move-bar='columns'] .moves .move__effect {
+  grid-column: 1 / -1;
+  margin-inline: 0;
+}
+
+/*
+ * The fact line becomes two fixed slots: the band and the accuracy, then the
+ * effectiveness marker under them. The four reserved fact columns collapse to
+ * one — accuracy's — because at this width a reserved column that is usually
+ * empty is spending the button's whole content width on nothing.
+ */
+[data-move-bar='columns'] .moves .move__facts {
+  grid-template-columns: minmax(0, auto) minmax(0, auto);
+  justify-content: start;
+  row-gap: var(--space-h);
+}
+
+/* Columns 2 to 4 of the fact grid: contact, the odds, the turn cost. */
+[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
+  display: none;
+}
+
+[data-move-bar='columns'] .moves .move__facts-effect {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+/*
+ * PP and the explain control stay one row, and PP loses its label — the
+ * number is the thing that counts down, `PP` is four characters of constant.
+ * The word is still on the control's own panel.
+ */
+[data-move-bar='columns'] .moves .move__footer {
+  gap: var(--space-1);
+}
+
+[data-move-bar='columns'] .moves .move__pp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---------- log ---------- */
 
 /* The log panel. Inside the sheet since V5.2, and it is the same panel: the
@@ -4209,19 +4332,70 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .move__facts {
   display: grid;
   /*
-   * `min-content` is the floor, not zero, and the first build of this rule
-   * learned why the hard way. With `minmax(0, 1fr)` a chip wider than its
-   * share overflowed its own cell and painted across the next one: the
-   * accuracy chip took the contact chip's hit target, and the contrast check
-   * sampled one chip through another. A column never squeezes below its content now,
-   * so the columns share the slack when there is any and nothing ever
-   * overlaps.
+   * **Two fixed rows of four columns, and the second row is a bug fix.**
+   *
+   * The first build of this grid put all six slots on one line, and the line
+   * does not fit. Measured on a 176px button, whose content box is 150px:
+   * `Syrup Bomb` wants band 38 + accuracy 33 + a 47px `100%` secondary + a
+   * 28px marker = 146px of content before a single gap, and `overflow: hidden`
+   * then clipped whatever was at the end of it — which is the effectiveness
+   * marker, the one fact on the button that describes the Pokemon actually
+   * standing opposite. 21 distinct clipped chips across 115 battle screens on
+   * three seeds; zero on the build before the marker moved onto this line.
+   *
+   * Widening is not available: `--fs-sm` is the legibility floor
+   * `test/visual-chips.test.ts` holds. So the line wraps — and **what matters
+   * is that it wraps at a fixed point rather than against its own content**,
+   * which is the whole complaint this feature exists for. Row 1 is what the
+   * move hits for, row 2 is how it behaves, on every button, whether or not
+   * either row has anything in it.
+   *
+   * `min-content` is the floor on each column rather than zero. With
+   * `minmax(0, 1fr)` a chip wider than its share overflowed its own cell and
+   * painted across the next one — the accuracy chip took the contact chip's
+   * hit target, and the contrast sampler read one chip through another.
    */
-  grid-template-columns: auto repeat(4, minmax(min-content, 1fr)) auto;
+  grid-template-columns: repeat(4, minmax(min-content, 1fr));
   align-items: center;
-  gap: var(--space-1);
+  /*
+   * The gap is on the items, not on the grid. A reserved column is 0 wide when
+   * its field is absent, but a grid `column-gap` is charged either way — so a
+   * move with two facts paid for four columns' worth of it. A margin is
+   * charged only when the item is there.
+   */
+  column-gap: 0;
+  row-gap: var(--space-h);
   overflow: hidden;
 }
+
+.move__facts > *:not(:empty) { margin-right: var(--space-1); }
+
+/*
+ * Row 1: what the move hits for. The marker takes the rest of the line, so a
+ * three-character `0.5x` has the same room as a two-character `2x` and neither
+ * can push the other off the button.
+ */
+.move__facts-band {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.move__facts-effect {
+  grid-row: 1;
+  grid-column: 2 / -1;
+  justify-self: start;
+  margin-right: 0;
+}
+
+/*
+ * Row 2: how the move behaves. One column per field family, in the order
+ * `data/moveFactInfo.ts` fixes, each holding its place when empty.
+ */
+.move__fact-cell { grid-row: 2; }
+.move__fact-cell[data-column='1'] { grid-column: 1; }
+.move__fact-cell[data-column='2'] { grid-column: 2; }
+.move__fact-cell[data-column='3'] { grid-column: 3; }
+.move__fact-cell[data-column='4'] { grid-column: 4; }
 
 /* Each column holds its place when empty, and clips inside itself if a value
    ever outgrows it rather than painting over the column beside it. */
