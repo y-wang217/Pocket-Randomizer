@@ -60,7 +60,7 @@ describe('the run log version', () => {
      * randomizer draws, and it has now done so twice, which is the axis
      * working.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-15');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-16');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

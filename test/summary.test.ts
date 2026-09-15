@@ -46,8 +46,8 @@ describe('the tier table', () => {
 });
 
 describe('the decoration', () => {
-  it('draws one dot per node taken on SMOKE24, and the non-gym dots equal the logged node decisions', async () => {
-    const result = await run('SMOKE24');
+  it('draws one dot per node taken on a lost run, and the non-gym dots equal the logged node decisions', async () => {
+    const result = await run('S49-2');
     const summary = createSummary();
     summary.render(result);
     const dots = [...summary.root.querySelectorAll('.route__dot')];
@@ -70,7 +70,7 @@ describe('the decoration', () => {
   }, 60_000);
 
   it('is the same screen on a victory with the top word changed and no cause band', async () => {
-    const result = await run('V4-3');
+    const result = await run('S49V-20');
     expect(result.outcome).toBe('victory');
     const summary = createSummary();
     summary.render(result);

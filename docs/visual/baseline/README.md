@@ -18,6 +18,21 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-15, Stage 4.9, the pool.** Re-recorded on all three instruments
+  because the species pool was regenerated (`randomizer-16`: 635 to 900
+  species with `Past` admitted, plus the evolution graph on every entry), so
+  every seed rolls different Pokemon. **Every run file, the battle protocol
+  and the digest moved wholesale**; that is the regeneration, not a layout
+  change. **`heights.json`: `decisionTop` is unmoved in every mode and every
+  layout** (558 / 513.44 / 278.89 on the map, 472 / 445.44 / 355.39 in
+  battle), which is what the guard is for. What moved is content under the
+  same layout: SMOKE24's map grew 67.88px in every mode (861.78 to 929.66
+  Detailed) because the offered nodes' wild species and their text changed,
+  and the battle screen moved with the new lead's move names (584 to 605.5
+  Detailed, 566.44 to 573.44 Simple, Pocket unmoved; the column layout's
+  battle fell 20.5px). The stage's later commits, which change the curve and
+  the draw order again, re-record once more; the docs note only the last.
+
 - **2026-09-14, the playtest patch** (event rewards and move card fields).
   Re-recorded on both instruments, and the two halves are independent.
   **`heights.json`: the battle screen fell 41px** in Detailed (595 to 554) and

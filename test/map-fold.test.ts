@@ -73,7 +73,7 @@ async function readMap(page: Page): Promise<{
 
 describe('the offered node cards stay above the fold', () => {
   it('at the deepest step of the longest segment, with the widest party', async () => {
-    const { page, context, problems } = await openApp(harness.browser, harness.url, 'FOLD-1');
+    const { page, context, problems } = await openApp(harness.browser, harness.url, 'FOLD49-1');
 
     const longest = stepsRangeFor(DEFAULT_TUNING, SEGMENTS_PER_RUN - 1).max;
     let worst = { bottom: 0, taken: 0, party: 0, segment: 0, where: 'never measured' };

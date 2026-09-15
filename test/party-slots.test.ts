@@ -300,7 +300,7 @@ describe('the party never exceeds its slots, over a played run', () => {
     let over = 0;
     let peakCapacity = 0;
 
-    await playRun('SLOTS-C3', capturePolicy(), DEFAULT_TUNING, {
+    await playRun('S49-1', capturePolicy(), DEFAULT_TUNING, {
       onState: (state) => {
         peak = Math.max(peak, state.party.length);
         peakCapacity = Math.max(peakCapacity, partyCapacity(state));

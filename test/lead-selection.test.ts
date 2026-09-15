@@ -111,7 +111,7 @@ describe('a whole run', () => {
   }, 120_000);
 
   it('records the lead immediately before the gym it belongs to', async () => {
-    const run = await playRun('LEAD-ORDER', contrarian(), DEFAULT_TUNING);
+    const run = await playRun('S49-1', contrarian(), DEFAULT_TUNING);
     const decisions = run.log.decisions;
 
     const leadPositions = decisions.flatMap((decision, index) => (decision.kind === 'lead' ? [index] : []));
@@ -228,7 +228,7 @@ describe('a whole run', () => {
 
   it('replays identically, lead picks included', async () => {
     const picks: number[] = [];
-    const original = await playRun('LEAD-REPLAY', contrarian(picks), DEFAULT_TUNING);
+    const original = await playRun('S49-1', contrarian(picks), DEFAULT_TUNING);
     const replayed = await replayRun(JSON.parse(JSON.stringify(original.log)) as RunLog);
 
     expect(replayed.outcome).toBe(original.outcome);

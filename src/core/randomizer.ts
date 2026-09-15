@@ -230,7 +230,18 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * drawn, on the event node's `event` sub-stream. Nothing outside an event node
  * moves; the keyed streams are what make that a statement rather than a hope.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-15';
+/*
+ * **`-16`: Stage 4.9.** The species pool was regenerated with `Past` species
+ * admitted (635 to 900 entries, in the same dex order, so the regeneration
+ * itself moves nothing that was already drawable — every old index now points
+ * at a different species, which is the whole reason a regeneration is a
+ * bump) and with the evolution graph on each entry. The stage's later steps
+ * land under this same number: a band draw in front of every species draw,
+ * the stage gate on the pool, teams drawn without repeats, the base-form
+ * starter pool, and the level curve. A version axis names a content state,
+ * not a changeset.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-16';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

@@ -34,8 +34,16 @@
  * a hard encounter or an easy one, it is a coin flip resolved by whether
  * anything connects. It is also the one species whose difficulty is completely
  * unmoved by every lever in data/scaling.ts.
+ *
+ * `aegislash` — mechanical. Admitted with the `Past` species at Stage 4.9 and
+ * the only one of the 900 the damage calc cannot build: `@smogon/calc`'s gen 9
+ * data carries only its two formes, so `new Pokemon(gen, 'Aegislash')` has no
+ * base stats and the opponent AI's switch scorer throws on the first turn it
+ * considers one. The blacklist is read by `data/evolution.ts` too, so Doublade
+ * simply does not evolve. `test/evolution-data.test.ts` builds every drawable
+ * species in the calc so the next one of these is caught at the table.
  */
-export const BLACKLISTED_SPECIES: readonly string[] = ['shedinja'];
+export const BLACKLISTED_SPECIES: readonly string[] = ['shedinja', 'aegislash'];
 
 /**
  * Abilities the randomizer may not roll.

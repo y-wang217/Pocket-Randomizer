@@ -7,23 +7,23 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 798.88,
-        "scrollHeight": 961,
+        "screenHeight": 866.75,
+        "scrollHeight": 1029,
         "decisionCount": 2,
         "decisionTop": 513.44,
         "decisionBottom": 609.31
       },
       "battle": {
-        "screenHeight": 566.44,
+        "screenHeight": 573.44,
         "scrollHeight": 844,
         "decisionCount": 4,
         "decisionTop": 445.44,
-        "decisionBottom": 662.94
+        "decisionBottom": 669.94
       }
     },
     "pocket": {
       "map": {
-        "screenHeight": 586.95,
+        "screenHeight": 635.61,
         "scrollHeight": 844,
         "decisionCount": 2,
         "decisionTop": 278.89,
@@ -42,39 +42,39 @@
     "columns": {
       "detailed": {
         "map": {
-          "screenHeight": 861.78,
-          "scrollHeight": 1055,
+          "screenHeight": 929.66,
+          "scrollHeight": 1123,
           "decisionCount": 2,
           "decisionTop": 558,
           "decisionBottom": 672.72
         },
         "battle": {
-          "screenHeight": 497.89,
+          "screenHeight": 477.39,
           "scrollHeight": 844,
           "decisionCount": 4,
           "decisionTop": 472,
-          "decisionBottom": 610.89
+          "decisionBottom": 590.39
         }
       },
       "simple": {
         "map": {
-          "screenHeight": 798.88,
-          "scrollHeight": 961,
+          "screenHeight": 866.75,
+          "scrollHeight": 1029,
           "decisionCount": 2,
           "decisionTop": 513.44,
           "decisionBottom": 609.31
         },
         "battle": {
-          "screenHeight": 484.83,
+          "screenHeight": 464.33,
           "scrollHeight": 844,
           "decisionCount": 4,
           "decisionTop": 445.44,
-          "decisionBottom": 581.33
+          "decisionBottom": 560.83
         }
       },
       "pocket": {
         "map": {
-          "screenHeight": 586.95,
+          "screenHeight": 635.61,
           "scrollHeight": 844,
           "decisionCount": 2,
           "decisionTop": 278.89,
@@ -91,17 +91,17 @@
     }
   },
   "map": {
-    "screenHeight": 861.78,
-    "scrollHeight": 1055,
+    "screenHeight": 929.66,
+    "scrollHeight": 1123,
     "decisionCount": 2,
     "decisionTop": 558,
     "decisionBottom": 672.72
   },
   "battle": {
-    "screenHeight": 584,
+    "screenHeight": 605.5,
     "scrollHeight": 844,
     "decisionCount": 4,
     "decisionTop": 472,
-    "decisionBottom": 697
+    "decisionBottom": 718.5
   }
 }
