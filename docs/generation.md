@@ -2956,3 +2956,124 @@ keeping because each caught something a reading of the diff would not have:
    off the face. The wrap was the defect, so the assertion flipped rather than
    relaxed — and A6's actual hazard is still checked, one assertion down, by
    the overhang count that never depended on the wrap.
+
+## 16. The relic that did nothing, and the event bug that was already fixed
+
+**2026-09-15.** A playtest message — "the stupid event bug means the events
+don't work at all. which also nullifies relics. fix that first. chase down the
+cause. play every possible event and event caller" — produced two answers, and
+only the second was a bug in this tree. The prompt is filed at
+[`spec/gymrun-patch-relics-do-nothing.md`](spec/gymrun-patch-relics-do-nothing.md).
+
+### The chase: 1344 resolutions, no promise broken
+
+Every event definition, at every capability band, on every archetype it
+presents, across every segment band the tier pools cover — **1344 resolutions**
+— played through `resolveNode` and compared against what the event screen
+promises the player, with **exact multiset accounting on the backpack** rather
+than a length check.
+
+The multiset part is the reason the audit is worth recording rather than just
+running. The first pass used lengths and reported three failure classes; all
+three were the instrument, not the game. A discard toll that removes an item
+and a grant that adds one leave the bag exactly as long as it was, so "the
+toll was never charged" and "the toll was charged and then paid back" are the
+same number. Accounting for the expected bag item by item made all three
+disappear.
+
+Separately, **all 216 item ids the event pools can pay resolve in
+`data/items.ts`**. `stow` silently drops an id the table does not know, so a
+typo in a pool would be an invisible grant; there is none.
+
+### The event bug was real, and was fixed on a branch nobody merged
+
+`origin/main` still has `case 'relic': return state` and the `move` no-op, and
+the build the report came from is stamped `GYMRUN-1e6f02-…` — which is
+`main`'s `contentHash`, not this branch's `53145f`. So "events don't work at
+all" was exactly true of the build being played and exactly false of the
+branch sitting in front of it.
+
+**Worth stating as a process note rather than a code note:** a fix that is
+committed, gated and pushed is not a fix the player has. Section 15's work was
+all four of those and the reporter still met the original bug, because nothing
+had merged. The thing that made this diagnosable in minutes was the seed stamp
+carrying `contentHash` — a build identifier on screen turned "it is still
+broken" into "you are running a different build" without a single guess.
+
+### Relics really were nullified, by a fifth instance of the same shape
+
+`core/relics.ts` folds the held set into a `RelicEffects` — a per-node heal,
+per-node currency, a backpack slot, a revive bonus, a shop discount — and
+**`applyRelicPassives` had no caller anywhere in `src/`.** Two test files
+imported it. Nothing else did.
+
+`core/capabilities.ts` imports `grantsCapability` from the same module, so the
+file has importers and reads as live to anything that checks for them. That is
+what let it sit: the module was used, the function was not, and no gate
+distinguishes the two.
+
+So a relic did exactly one thing — satisfy the capability gate on an event —
+while `data/relics.ts` described five things it did, two of them in copy the
+player reads for the rest of a run:
+
+> Tidecaller Shell: "The sound inside it mends a little at every stop."
+> Everburning Lantern: "The party rests easier near it."
+
+**This is the fifth instance of one defect shape**, after the two the event
+rejig found (section 14) and the two the playtest patch found (section 15): a
+fold that is correct at one end, a promise made at the other, and nothing
+joining them. Every one of the five type-checked perfectly, and every one had
+passing unit tests on the fold itself.
+
+The five sites the fold is now read at:
+
+| passive | site | measured |
+|---|---|---|
+| `nodeHealPercent` | `betweenNodes` | lead at half HP, one node: 73 → 79 and 80 |
+| `nodeCurrency` | `nodePayout` | a trainer node: 14 → 17, 18, 19 |
+| `backpackSlots` | `backpackCapacity` | 5 → 6 |
+| `reviveBonus` | `betweenNodes`' revive | a fainted member back at 172 → 193 |
+| `shopDiscount` | `resolveStock` | a 186 shelf price → 164 |
+
+`test/relic-passives.test.ts` drives every case off `data/relics.ts` rather
+than off named ids, and asserts first that the table's set of passive kinds is
+the set the file covers — so a sixth kind added to the table fails there rather
+than being added and quietly ignored, which is exactly how the five above got
+in.
+
+### The node heal restores HP and not PP, and lands after the revive
+
+Two decisions inside one line, both recorded because neither is forced.
+
+`recoverParty` restores HP *and* PP and clears status unless told otherwise. A
+relic that silently refilled PP at every node would be a far larger effect than
+the one printed on the card, so the heal passes `0` for PP and `false` for
+status: it is a heal, and the card says so.
+
+It runs *after* the revive rather than before, so a member revived at this
+boundary is standing by the time the heal arrives and is mended too. That is
+what "mends a little at every stop" says, read plainly.
+
+### `resolveStock` gained a discount stamp, because it was idempotent by contract
+
+The function's own comment says `playRun` resolves a shop twice and that
+resolving at two sites is how the two come to disagree. Collapsing a relic card
+is naturally idempotent; **a discount is the first thing it ever did that would
+compound**, and the suite caught it immediately — a second call took 198 to
+174.
+
+`ShopStock` now carries the discount already applied, so a second resolution is
+a no-op on price. It is not logged and does not need to be: a run log stores
+shelf indexes, so a replay re-derives the shelf and re-resolves it against the
+relics the replayed run holds at that node.
+
+### What this moves
+
+No version axis. Nothing new is drawn, no draw moves, and no decision is added,
+removed, reordered or reshaped — `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
+`contentHash` all hold still.
+
+**Seeded output moves, and heavily**, for any run that holds a relic: the
+per-node heal alone changes the HP a party carries into every fight after the
+first relic. Balance is not a gate; the figure is in
+[`balance.md`](balance.md) section 19.

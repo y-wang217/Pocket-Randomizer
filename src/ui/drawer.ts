@@ -104,6 +104,7 @@ export interface Drawer {
 function createDensityPicker(): HTMLElement {
   return createPicker({
     heading: DENSITY_HEADING,
+    block: 'density',
     attribute: 'density',
     options: DENSITIES.map((mode) => ({ value: mode, ...DENSITY_COPY[mode] })),
     read: getDensity,
@@ -126,6 +127,7 @@ function createDensityPicker(): HTMLElement {
 function createMoveBarPicker(): HTMLElement {
   return createPicker({
     heading: MOVE_BAR_HEADING,
+    block: 'move-bar',
     attribute: 'moveBar',
     options: MOVE_BARS.map((layout) => ({ value: layout, ...MOVE_BAR_COPY[layout] })),
     read: getMoveBar,
@@ -139,30 +141,34 @@ function createMoveBarPicker(): HTMLElement {
  * the repaint subscription or the aria wiring to drift, and the drift would be
  * invisible until a screen reader user met the one that was forgotten.
  *
- * `attribute` is the dataset key the choices carry, which is what the drawer's
- * own suite presses them by. It stays per-picker so the two sets of buttons
- * are distinguishable in the DOM.
+ * `block` is the class prefix and `attribute` the dataset key the choices
+ * carry. **Both stay per-picker on purpose.** The first build shared
+ * `density__choice` between them, and `test/density-picker.test.ts` — which
+ * queries that class and reads `dataset.density` off what it finds — started
+ * seeing five buttons and two nulls. A suite that names one picker must keep
+ * finding one picker.
  */
 function createPicker<T extends string>(spec: {
   heading: string;
+  block: string;
   attribute: string;
   options: readonly { value: T; name: string; description: string }[];
   read: () => T;
   write: (value: T) => void;
 }): HTMLElement {
-  const root = el('div', 'density');
+  const root = el('div', `picker ${spec.block}`);
   const heading = el('h3', 'drawer__section');
   heading.textContent = spec.heading;
-  const list = el('div', 'density__options');
+  const list = el('div', `picker__options ${spec.block}__options`);
   const choices = spec.options.map((option) => {
-    const row = el('div', 'density__option');
+    const row = el('div', `picker__option ${spec.block}__option`);
     const choice = document.createElement('button');
     choice.type = 'button';
-    choice.className = 'button button--small density__choice';
+    choice.className = `button button--small picker__choice ${spec.block}__choice`;
     choice.dataset[spec.attribute] = option.value;
     choice.textContent = option.name;
     choice.addEventListener('click', () => spec.write(option.value));
-    const description = el('span', 'density__desc');
+    const description = el('span', `picker__desc ${spec.block}__desc`);
     description.textContent = option.description;
     row.append(choice, description);
     list.append(row);

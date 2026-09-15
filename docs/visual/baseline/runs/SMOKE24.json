@@ -408,9 +408,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Gliscor",
-      "turns": 12,
+      "turns": 14,
       "winner": "p1",
-      "hpAfter": 563,
+      "hpAfter": 560,
       "casualties": [
         {
           "side": "p1",
@@ -428,9 +428,9 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Poliwrath",
-      "turns": 17,
+      "turns": 19,
       "winner": "p1",
-      "hpAfter": 283,
+      "hpAfter": 273,
       "casualties": [
         {
           "side": "p1",
@@ -1794,6 +1794,20 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 4
         }
@@ -1990,7 +2004,21 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 3
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {

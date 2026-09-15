@@ -2271,3 +2271,39 @@ changing what the baseline policy does, and that would move every number in
 this document at once — a change that belongs in its own pass with its own
 before-and-after, not bolted onto a bug fix. The simulator's `--policy` bots
 are where an event-aware baseline belongs.
+
+## 19. The relic passives, switched on
+
+**2026-09-15.** `applyRelicPassives` had no caller in `src/`, so every relic
+passive was inert (`generation.md` section 16). Switching the fold on is a
+balance change and this is its number.
+
+| | completion | mean gyms cleared |
+|---|---|---|
+| relics inert (`780fa94`) | 42.0% | **4.97 / 8** |
+| relics live (`8850012`) | 44.0% | **5.04 / 8** |
+
+`RELICBENCH` prefix, **150 seeds**, `scriptedRunPolicy`, everything else equal —
+the two trees differ by the one commit. Read down a prefix, never across.
+
+**+0.07 mean gyms.** Recorded, not chased, and nothing is retuned off it.
+
+### Why it is this small, which is the part worth keeping
+
+The passives are small and the holders are few. A `nodeHeal` is 4 or 5 percent
+of max HP at a boundary; `nodeCurrency` is 3 to 5 coins a fight. Two of the ten
+relics have no passive at all. And the baseline policy reaches a relic only
+through a reward card or a shop shelf it happens to take, so most of the 150
+runs carry none for most of their length.
+
+**So the honest reading is "the direction is right and the size is not a
+finding at n=150."** Two points of completion across 150 runs is inside the
+noise this document has measured on unchanged trees before; the mean-gyms
+figure is the one to read, per section 0, and +0.07 is a nudge.
+
+The number that would be worth having is not this one. It is what a relic is
+worth *to a run that holds it*, which needs either a policy that routes toward
+relics or a much larger sweep — and section 18's open item, that the standing
+baseline never takes a Toll or a Gamble at an event, is the same gap seen from
+the other side. Both want an event-and-relic-aware bot, and that is its own
+pass.

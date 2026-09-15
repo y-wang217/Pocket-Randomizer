@@ -1094,11 +1094,35 @@ body {
 
 /* The mode picker, in the drawer: three named options, a line each saying
    what the mode does. The pressed one is the store's value. */
-.density__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--density-gap)); }
-.density__option { display: flex; align-items: baseline; gap: var(--space-2); }
-.density__choice { flex: none; }
-.density__choice[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
-.density__desc { font-size: var(--fs-sm); color: var(--text-dim); }
+/* The drawer's settings pickers. One rule set, one per setting: the block
+   classes below it exist so a suite that names one picker finds one picker. */
+.picker__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--density-gap)); }
+.picker__option { display: flex; align-items: baseline; gap: var(--space-2); }
+.picker__choice { flex: none; }
+.picker__choice[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.picker__desc { font-size: var(--fs-sm); color: var(--text-dim); }
+
+/*
+ * **Pocket lays a picker's choices in a row and drops the descriptions.**
+ *
+ * Pocket's rule is zero scroll on a 390x844 phone, and its budget is chrome
+ * first: headers, titles, padding and margins before any fact moves. A second
+ * picker is five more rows of chrome in a sheet that had 62px of room, so the
+ * choices go side by side — one row per setting instead of one per option —
+ * and the sentence under each goes with them.
+ *
+ * Nothing is hidden that the player needs to make the choice: the mode names
+ * are on screen and the setting is reversible in a tap. The descriptions are
+ * on screen in Detailed and Simple, which is the mode a player reads a setting
+ * in for the first time.
+ */
+[data-density='pocket'] .picker__options {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+[data-density='pocket'] .picker__desc { display: none; }
 
 /*
  * The backpack, below the party on the same screen.
@@ -4387,7 +4411,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * painted across the next one — the accuracy chip took the contact chip's
    * hit target, and the contrast sampler read one chip through another.
    */
-  grid-template-columns: repeat(4, minmax(min-content, 1fr));
+  grid-template-columns: auto repeat(4, minmax(min-content, 1fr)) auto;
   align-items: center;
   /*
    * The gap is on the items, not on the grid. A reserved column is 0 wide when
@@ -4419,38 +4443,37 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * The marker takes the rest of row 1, so a three-character `0.5x` has the same
  * room as a two-character `2x` and neither can push the other off the button.
  */
-.move__facts-band {
-  grid-row: 1;
-  grid-column: 1;
-}
+/*
+ * A standalone move card is the full width of its screen, so all six slots fit
+ * one line and the card keeps the height it has always had. The two-row split
+ * below is scoped to the battle bar, which is the only place the line is too
+ * narrow for them.
+ */
+.move__facts-band { grid-column: 1; }
+.move__fact-cell[data-column='1'] { grid-column: 2; }
+.move__fact-cell[data-column='2'] { grid-column: 3; }
+.move__fact-cell[data-column='3'] { grid-column: 4; }
+.move__fact-cell[data-column='4'] { grid-column: 5; }
+.move__facts-effect { grid-column: 6; justify-self: end; margin-right: 0; }
 
-.move__fact-cell[data-column='1'] {
-  grid-row: 1;
-  grid-column: 2;
-}
-
-.move__facts-effect {
-  grid-row: 1;
-  grid-column: 3 / -1;
-  justify-self: start;
-  margin-right: 0;
-}
-
-/* Row 2, in the order `data/moveFactInfo.ts` fixes, each holding its column. */
-.move__fact-cell[data-column='2'] {
-  grid-row: 2;
-  grid-column: 1;
-}
-
-.move__fact-cell[data-column='3'] {
-  grid-row: 2;
-  grid-column: 2;
-}
-
-.move__fact-cell[data-column='4'] {
-  grid-row: 2;
-  grid-column: 3 / -1;
-}
+/*
+ * **The battle bar, and only the battle bar, splits the line in two.**
+ *
+ * A 176px button has a 150px content box and the six slots want 158px of it,
+ * so on one line the last of them is clipped — see the note on `.move__facts`.
+ * Four columns over two rows: what the move hits for, then how it behaves.
+ *
+ * Accuracy joins row 1 because it is on 405 of the 458 pool moves, so leaving
+ * it on row 2 meant row 2 existed on almost every button and cost V5's loaded
+ * board its 600px budget. Row 1 has the room at 124 of 150.
+ */
+.moves .move__facts { grid-template-columns: repeat(4, minmax(min-content, 1fr)); }
+.moves .move__facts-band { grid-row: 1; grid-column: 1; }
+.moves .move__fact-cell[data-column='1'] { grid-row: 1; grid-column: 2; }
+.moves .move__facts-effect { grid-row: 1; grid-column: 3 / -1; justify-self: start; }
+.moves .move__fact-cell[data-column='2'] { grid-row: 2; grid-column: 1; }
+.moves .move__fact-cell[data-column='3'] { grid-row: 2; grid-column: 2; }
+.moves .move__fact-cell[data-column='4'] { grid-row: 2; grid-column: 3 / -1; }
 
 /* Each column holds its place when empty, and clips inside itself if a value
    ever outgrows it rather than painting over the column beside it. */
