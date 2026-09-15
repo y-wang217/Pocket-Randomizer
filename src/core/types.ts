@@ -819,7 +819,24 @@ export type RunDecision =
    * The visible consequence, flagged rather than hidden: the lead chosen for
    * gym 3 is still leading at the first node of segment 4.
    */
-  | { kind: 'lead'; index: number };
+  | { kind: 'lead'; index: number }
+  /**
+   * Which branch a member evolves along. **Stage 4.9.**
+   *
+   * Asked on a gym clear, after the level-up and before the gym's cards, once
+   * per member whose species has more than one target at the new level, in
+   * party order and then chain order. An index into the options in dex order
+   * (`data/evolution.ts` inverts the generated table, so the order is the
+   * table's and nothing else's). A member with one target evolves without a
+   * question and records nothing, the `isTargeted` discipline: the log stays
+   * byte-identical for a party that never reaches a fork.
+   *
+   * Consumes no RNG. The number of times it is asked is derived from the
+   * party, the table and the answers so far (`core/evolution.ts`
+   * `pendingEvolutionQuestion`), which is what lets a replay ask at exactly
+   * the points the live run did.
+   */
+  | { kind: 'evolve'; index: number };
 
 /**
  * The four version axes a run log is stamped with, and replay checks.

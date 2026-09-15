@@ -1,7 +1,7 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-15/gymrun-0.3.0",
+    "runLog": "gymrun-run-16/gymrun-0.3.0",
     "contentHash": "2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823",
     "randomizer": "gymrun-randomizer-16",
     "ai": "gymrun-ai-6-spent-item",
@@ -20,7 +20,6 @@
   },
   "currency": 498,
   "backpack": [
-    "chestoberry",
     "rindoberry",
     "leppaberry",
     "sharpbeak"
@@ -46,21 +45,21 @@
       "fainted": true
     },
     {
-      "species": "Silicobra",
+      "species": "Sandaconda",
       "level": 48,
       "ability": "Contrary",
       "moves": [
-        "Mud-Slap 15/16",
-        "Sand Tomb 23/24",
-        "Flame Charge 31/32",
+        "Mud-Slap 16/16",
+        "Sand Tomb 22/24",
+        "Flame Charge 28/32",
         "Hypnosis 32/32"
       ],
-      "item": "lumberry",
-      "hp": "0/122",
+      "item": "chestoberry",
+      "hp": "0/142",
       "fainted": true
     },
     {
-      "species": "Murkrow",
+      "species": "Honchkrow",
       "level": 48,
       "ability": "Sand Force",
       "moves": [
@@ -70,21 +69,21 @@
         "Snarl 24/24"
       ],
       "item": "eviolite",
-      "hp": "0/130",
+      "hp": "0/168",
       "fainted": true
     },
     {
-      "species": "Dipplin",
+      "species": "Hydrapple",
       "level": 48,
       "ability": "Overgrow",
       "moves": [
-        "Leafage 59/64",
-        "Disarming Voice 22/24",
-        "Snore 24/24",
+        "Leafage 57/64",
+        "Disarming Voice 24/24",
+        "Snore 23/24",
         "Sleep Powder 24/24"
       ],
       "item": "twistedspoon",
-      "hp": "0/149",
+      "hp": "0/174",
       "fainted": true
     }
   ],
@@ -163,7 +162,7 @@
       "opponent": "Trainer (2)",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 261,
+      "hpAfter": 305,
       "casualties": []
     },
     {
@@ -174,7 +173,7 @@
       "opponent": "Wild Fletchinder",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 200,
+      "hpAfter": 244,
       "casualties": []
     },
     {
@@ -183,19 +182,10 @@
       "label": "Trainer battle",
       "tier": "normal",
       "opponent": "Trainer (2)",
-      "turns": 3,
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 180,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Cedar",
-          "level": 36,
-          "bySpecies": "Stunfisk",
-          "byMove": "Electroweb",
-          "indirect": null
-        }
-      ]
+      "hpAfter": 225,
+      "casualties": []
     },
     {
       "segment": 1,
@@ -205,7 +195,7 @@
       "opponent": "Wild Minun",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 196,
+      "hpAfter": 210,
       "casualties": []
     },
     {
@@ -216,7 +206,7 @@
       "opponent": "Marina (Water)",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 120,
+      "hpAfter": 124,
       "casualties": [
         {
           "side": "p1",
@@ -236,7 +226,7 @@
       "opponent": "Trainer (2)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 314,
+      "hpAfter": 365,
       "casualties": []
     },
     {
@@ -247,7 +237,7 @@
       "opponent": "Trainer (2)",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 253,
+      "hpAfter": 304,
       "casualties": []
     },
     {
@@ -256,9 +246,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Dipplin",
-      "turns": 4,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 235,
+      "hpAfter": 298,
       "casualties": []
     },
     {
@@ -267,19 +257,10 @@
       "label": "Trainer battle",
       "tier": "hard",
       "opponent": "Trainer (2)",
-      "turns": 6,
+      "turns": 9,
       "winner": "p1",
-      "hpAfter": 257,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Cedar",
-          "level": 42,
-          "bySpecies": null,
-          "byMove": null,
-          "indirect": "Recoil"
-        }
-      ]
+      "hpAfter": 313,
+      "casualties": []
     },
     {
       "segment": 2,
@@ -289,7 +270,7 @@
       "opponent": "Trainer (2)",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 428,
+      "hpAfter": 468,
       "casualties": []
     },
     {
@@ -300,7 +281,7 @@
       "opponent": "Wild Eldegoss",
       "turns": 2,
       "winner": "p1",
-      "hpAfter": 404,
+      "hpAfter": 444,
       "casualties": []
     },
     {
@@ -309,19 +290,10 @@
       "label": "Volta's Gym",
       "tier": null,
       "opponent": "Volta (Electric)",
-      "turns": 10,
+      "turns": 9,
       "winner": "p1",
-      "hpAfter": 177,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Thistle",
-          "level": 42,
-          "bySpecies": "Rotom",
-          "byMove": "Infernal Parade",
-          "indirect": null
-        }
-      ]
+      "hpAfter": 308,
+      "casualties": []
     },
     {
       "segment": 3,
@@ -331,7 +303,7 @@
       "opponent": "Wild Relicanth",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 482,
+      "hpAfter": 565,
       "casualties": []
     },
     {
@@ -342,7 +314,7 @@
       "opponent": "Trainer (3)",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 419,
+      "hpAfter": 502,
       "casualties": []
     },
     {
@@ -351,9 +323,9 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Flapple",
-      "turns": 9,
+      "turns": 8,
       "winner": "p1",
-      "hpAfter": 296,
+      "hpAfter": 377,
       "casualties": []
     },
     {
@@ -364,7 +336,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 296,
+      "hpAfter": 377,
       "casualties": []
     },
     {
@@ -373,9 +345,9 @@
       "label": "Trainer battle",
       "tier": "normal",
       "opponent": "Trainer (3)",
-      "turns": 8,
+      "turns": 10,
       "winner": "p1",
-      "hpAfter": 86,
+      "hpAfter": 163,
       "casualties": [
         {
           "side": "p1",
@@ -395,7 +367,7 @@
       "opponent": "Wild Relicanth",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 127,
+      "hpAfter": 204,
       "casualties": []
     },
     {
@@ -404,7 +376,7 @@
       "label": "Fern's Gym",
       "tier": null,
       "opponent": "Fern (Grass)",
-      "turns": 7,
+      "turns": 9,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -420,8 +392,8 @@
           "side": "p1",
           "name": "Moss",
           "level": 48,
-          "bySpecies": "Eldegoss",
-          "byMove": "Shadow Ball",
+          "bySpecies": "Amoonguss",
+          "byMove": "Venoshock",
           "indirect": null
         },
         {
@@ -446,7 +418,7 @@
   "log": {
     "seed": "GYMRUN01",
     "versions": {
-      "runLog": "gymrun-run-15/gymrun-0.3.0",
+      "runLog": "gymrun-run-16/gymrun-0.3.0",
       "contentHash": "2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-16"
@@ -732,14 +704,14 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 3
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
+          "kind": "move",
           "slot": 2
         }
       },
@@ -783,15 +755,15 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 4
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 2
         }
       },
       {
@@ -977,13 +949,6 @@
         "choice": {
           "kind": "switch",
           "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {
@@ -1029,13 +994,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -1065,14 +1023,35 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {
@@ -1180,34 +1159,6 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
           "slot": 4
         }
       },
@@ -1215,28 +1166,42 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 3
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 2
         }
       },
       {
@@ -1254,7 +1219,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 1,
+              "item": "chestoberry"
+            }
+          ],
           "discards": []
         }
       },
@@ -1371,27 +1341,6 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
           "slot": 3
         }
       },
@@ -1427,7 +1376,21 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
         }
       },
       {
@@ -1538,6 +1501,20 @@
         }
       },
       {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
         "kind": "reward",
         "index": 0
       },
@@ -1668,8 +1645,22 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {

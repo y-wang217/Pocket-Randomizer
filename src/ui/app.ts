@@ -18,6 +18,7 @@ import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
 import {
   defaultItemPlan,
+  gymClearLevel,
   isReplayable,
   localeOf,
   partyCapacity,
@@ -28,6 +29,7 @@ import {
   type RunResult,
   type RunState,
 } from '../core/run';
+import { previewEvolutions } from '../core/evolution';
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
@@ -411,6 +413,7 @@ export function mountApp(root: HTMLElement): void {
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<EventArchetype>();
     const leadPick = createPending<number>();
+    const evolvePick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     const releaseBattle = (): void => {
       detachBattle?.();
@@ -429,6 +432,7 @@ export function mountApp(root: HTMLElement): void {
       shopBasket.cancel();
       eventPick.cancel();
       leadPick.cancel();
+      evolvePick.cancel();
       releaseBattle();
     };
 
@@ -502,9 +506,48 @@ export function mountApp(root: HTMLElement): void {
        */
       reviewBattle: (review, state) => {
         lastReview = review;
-        resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
+        /*
+         * A gym clear shows what it does to the party before it shows what it
+         * pays. Stage 4.9: the level-up's evolutions, previewed up to the first
+         * fork; the fork itself is asked by `chooseEvolution` below, on this
+         * same screen. Answers are collected across that clear's questions so
+         * each re-render shows every step decided so far.
+         */
+        evolveAnswers.length = 0;
+        const clearLevel = review.node.kind === 'gym' && review.won ? gymClearLevel(state) : null;
+        const preview = clearLevel === null ? null : previewEvolutions(state.party, clearLevel, []);
+        resultScreen.render(
+          review,
+          review.offer,
+          state,
+          (index) => rewardPick.submit(index),
+          null,
+          preview ? { records: preview.records } : null,
+        );
         showScreen('result');
         return rewardPick.wait();
+      },
+      /*
+       * The fork. Stage 4.9. Same screen, the block between the party and the
+       * cards; choosing a branch is the continue, so the actions row is empty
+       * while it is up. `state.party` is the pre-clear party, which is what the
+       * question was computed from.
+       */
+      chooseEvolution: (question, state) => {
+        const level = gymClearLevel(state);
+        const preview = level === null ? { records: [] } : previewEvolutions(state.party, level, evolveAnswers);
+        resultScreen.render(lastReview, null, state, () => undefined, null, {
+          records: preview.records,
+          question: {
+            question,
+            onChoose: (index) => {
+              evolveAnswers.push(index);
+              evolvePick.submit(index);
+            },
+          },
+        });
+        showScreen('result');
+        return evolvePick.wait();
       },
       /*
        * Required by `RunPolicy` and unreachable from `playRun` while
@@ -683,6 +726,8 @@ export function mountApp(root: HTMLElement): void {
      * blank one.
      */
     let lastReview: BattleReview | null = null;
+    /** The branch answers given so far on the current gym clear. Stage 4.9. */
+    const evolveAnswers: number[] = [];
 
     /*
      * The item plan the player has composed on the party screen, if any.

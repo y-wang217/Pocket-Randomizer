@@ -300,7 +300,7 @@ describe('the version axes', () => {
      * the hash is `data/eventPools.ts` gaining a fallback on its relic
      * entries.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-15/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-16/gymrun-0.3.0');
     // Pinned literally, as the Branch 1 value was: a hash nobody can read off
     // the tree by eye is exactly the kind that moves without anyone noticing.
     expect(CONTENT_HASH).toBe('2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823');

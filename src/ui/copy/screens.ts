@@ -178,3 +178,18 @@ export const RELEASE_LABEL = (species: string): Prose => ({ long: `Release ${spe
 
 /** Beside a held item on the capture block's cards: the item is not part of the price. */
 export const RETURNS_TO_BAG: Prose = { long: 'returns to your bag', short: 'to bag' };
+
+/** The evolution block on a gym clear's result screen. Stage 4.9. */
+export const EVOLUTION_HEADING = 'Evolution';
+
+/** One member that changed: who, from what, into what. Facts, in that order. */
+export const EVOLUTION_LINE = (name: string, from: string, to: string): Prose => ({
+  long: name === from ? `${from} evolved into ${to}.` : `${name} (${from}) evolved into ${to}.`,
+  short: `${from} → ${to}`,
+});
+
+/** The fork. The options say what each is; this only says that there is a choice. */
+export const EVOLUTION_CHOICE = (name: string): Prose => ({
+  long: `${name} is ready to evolve, and there is more than one way. Choose what it becomes.`,
+  short: `${name} evolves. Choose which.`,
+});

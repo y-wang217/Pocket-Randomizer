@@ -1,7 +1,7 @@
 {
   "seed": "SEED-A",
   "versions": {
-    "runLog": "gymrun-run-15/gymrun-0.3.0",
+    "runLog": "gymrun-run-16/gymrun-0.3.0",
     "contentHash": "2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823",
     "randomizer": "gymrun-randomizer-16",
     "ai": "gymrun-ai-6-spent-item",
@@ -73,7 +73,7 @@
   "log": {
     "seed": "SEED-A",
     "versions": {
-      "runLog": "gymrun-run-15/gymrun-0.3.0",
+      "runLog": "gymrun-run-16/gymrun-0.3.0",
       "contentHash": "2eea4c328a59b73d12fd5c49c9bdced9ee3fd9d36cc74598a67c7cdd89838823",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-16"
