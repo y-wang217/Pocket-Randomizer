@@ -161,7 +161,7 @@ describe('a solo party, headless', () => {
      */
     const sizes: number[] = [];
     const run = await playRun(
-      'SOLO-1',
+      'S49R-3',
       {
         ...scriptedRunPolicy(greedyAiPolicy),
         chooseAcquisition: async () => ({ kind: 'decline' }),

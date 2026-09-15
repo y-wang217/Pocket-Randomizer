@@ -33,7 +33,9 @@ import {
   type RunState,
   stepsOf,
   chooseLocale,
+  gymClearLevel,
 } from '../src/core/run';
+import { pendingEvolutionQuestion } from '../src/core/evolution';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 import { moveChoice, type PokemonState } from '../src/core/types';
@@ -247,6 +249,15 @@ describe('persistence between nodes', () => {
   });
 });
 
+/** The branch answers a gym clear from `state` needs, first option each. */
+function evolutionAnswers(state: RunState): number[] {
+  const level = gymClearLevel(state);
+  if (level === null) return [];
+  const answers: number[] = [];
+  while (pendingEvolutionQuestion(state.party, level, answers)) answers.push(0);
+  return answers;
+}
+
 describe('run outcomes', () => {
   it('ends in defeat when the party wipes', () => {
     const state = withStarter('RUN-WIPE');
@@ -288,6 +299,9 @@ describe('run outcomes', () => {
         resolveNode(state, {
           node: segmentOf(state).gym,
           battle: { result: { winner: 'p1', turns: 5, cause: 'faint' }, party: state.party, contribution: NO_CONTRIBUTION },
+          // Stage 4.9: a hand-built gym win still has to answer the forks the
+          // clear opens, the way `playRun` would. First branch every time.
+          evolutions: evolutionAnswers(state),
         }),
       );
     }

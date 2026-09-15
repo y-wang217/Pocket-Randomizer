@@ -1594,7 +1594,7 @@ export async function runBattle(
     result,
     battleLog: session.toBattleLog(),
     protocol,
-    casualties: readCasualties(protocol, levelsOf(teamA, teamB)),
+    casualties: readCasualties(protocol, identitiesOf(teamA, teamB)),
     consumed: readConsumedItems(protocol, 'p1'),
     contribution: readContribution(protocol, session.rosterFor('p1')),
     session,
@@ -1665,6 +1665,14 @@ export interface Casualty {
    * asserts every player casualty carries a level.
    */
   level: number | null;
+  /**
+   * The species it fell as. **Stage 4.9, captured at faint time for the reason
+   * `level` is**: a species changes at a gym clear now, so a graveyard that
+   * looked the survivor up afterwards would list a Charmander that fell in
+   * segment 2 as the Charizard its slot became by segment 6. Null under the
+   * same condition as `level`.
+   */
+  species: string | null;
   /** The opposing Pokemon that landed the blow, or null for indirect damage. */
   bySpecies: string | null;
   /** The move that landed it, or null when nothing did. */
@@ -1692,12 +1700,13 @@ export interface Casualty {
  * members with one name — and harmless for an opponent, whose level is not read
  * by the graveyard.
  */
-function levelsOf(...teams: readonly TeamSpec[]): Map<string, number> {
-  const levels = new Map<string, number>();
+/** Level and species by battle name, from the specs the battle was built with. */
+function identitiesOf(...teams: readonly TeamSpec[]): Map<string, { level: number; species: string }> {
+  const identities = new Map<string, { level: number; species: string }>();
   for (const team of teams) {
-    for (const spec of team) levels.set(spec.nickname ?? spec.species, spec.level);
+    for (const spec of team) identities.set(spec.nickname ?? spec.species, { level: spec.level, species: spec.species });
   }
-  return levels;
+  return identities;
 }
 
 /**
@@ -1712,14 +1721,15 @@ function levelsOf(...teams: readonly TeamSpec[]): Map<string, number> {
 export function readCasualties(
   protocol: readonly string[],
   /**
-   * Battle name to level, for every Pokemon either side was built with.
+   * Battle name to level and species, for every Pokemon either side was built with.
    *
    * Passed in rather than derived, because this function sees only protocol
    * strings — which is the rule this whole file is organised around — and a level
-   * is a fact about the spec. `runBattle` builds it from the teams it was handed,
-   * so the numbers are the party as of node entry and cannot drift afterwards.
+   * or a species is a fact about the spec. `runBattle` builds it from the teams
+   * it was handed, so the values are the party as of node entry and cannot drift
+   * afterwards: not up a level at the next clear, and not up a stage either.
    */
-  levels: ReadonlyMap<string, number> = new Map(),
+  identities: ReadonlyMap<string, { level: number; species: string }> = new Map(),
 ): Casualty[] {
   const casualties: Casualty[] = [];
   let lastMove: { by: string; move: string; target: string } | null = null;
@@ -1754,7 +1764,8 @@ export function readCasualties(
     casualties.push({
       side,
       name,
-      level: levels.get(name) ?? null,
+      level: identities.get(name)?.level ?? null,
+      species: identities.get(name)?.species ?? null,
       bySpecies: killedByMove?.by ?? null,
       byMove: killedByMove?.move ?? null,
       indirect: killedByMove ? null : (lastIndirect?.target === name ? lastIndirect.from : null),

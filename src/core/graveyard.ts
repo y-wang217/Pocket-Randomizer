@@ -124,7 +124,9 @@ export function deathsFrom(state: RunState): DeathRecord[] {
       const member = state.party.find((candidate) => nameOf(candidate) === casualty.name);
       deaths.push({
         nickname: casualty.name,
-        species: member?.spec.species ?? casualty.name,
+        // The species it fell as (Stage 4.9), then the survivor's current one
+        // for a record written before the field existed, then the name.
+        species: casualty.species ?? member?.spec.species ?? casualty.name,
         // From the record, not from the party. See the note above.
         level: casualty.level,
         segment: visit.segment,
