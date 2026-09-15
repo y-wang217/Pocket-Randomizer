@@ -69,9 +69,38 @@ screen away.
 |---|---|
 | `npm run lint` | green |
 | `tsc --noEmit` | green |
+| `vitest run` | **120 files, 1606 tests, all passing** |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | **120 files, 1606 tests, all passing** (and green at the baseline too — see below) |
 | `npm run build` | green |
 | `npm run smoke` | green, including "the party drawer is reachable in a battle (1 triggers)" — the map trigger has its own attribute and does not pollute that count |
 | `scripts/visual/measure.mjs --compare` | **guarded screen heights equal `baseline/heights.json` to the pixel** |
+
+Both suite runs exit 1 with every test passing, on `[vitest-worker]: Timeout
+calling "onTaskUpdate"` — a reporter RPC timeout under container load during
+the heavy browser files. **It appears identically in the clean baseline run
+(six instances there, six in the patched full run, one under strict trim)**, so
+it is the machine and not the patch. Worth knowing before somebody reads the
+exit code as a failure.
+
+### The trigger class collision, found by the full suite
+
+The first full run had exactly one failing file: `visual-move-cards.test.ts`,
+timing out after 30s on `locator('.drawer__trigger').first().click()`.
+
+The map trigger carried `drawer__trigger` so it would look like the Party
+button — the brief's "mimic". But that test uses the class as the party
+trigger's *identity*, and the new button was first in the bar and hidden on the
+map screen, so `.first()` silently resolved to something unclickable.
+
+The shared look moved to `.shell__trigger` and each overlay's class went back
+to naming one button. The look is unchanged. This is the same separation the
+data attributes already had — `data-map-trigger` exists precisely because two
+suites *count* `data-drawer-trigger` per surface — so the fix made the classes
+agree with a decision already taken one layer down. `map-drawer.test.ts`
+asserts both halves now.
+
+The lesson is worth the line: **a style hook and an identity are different
+jobs, and one class cannot hold both.**
 
 The height comparison is the one worth naming. Overlays are `position: fixed`,
 so a moved number would have meant something leaked into the document flow.
@@ -104,7 +133,8 @@ That section records strict trim as red, with "22 browser tests fail under
 **Measured at `5d0bd18` in the clean worktree: 118 files, 1554 tests, all
 passing.** Whatever fixed it is not this patch — the run predates every `src/`
 change here — so the note is simply out of date, and section 5 is corrected
-rather than repeated.
+rather than repeated. On the patched tree it is 120 files and 1606 tests, also
+all passing, so the patch keeps the gate green rather than inheriting a pass.
 
 This is the second thing in one night that was believed red and was not. Both
 came from taking a recorded state as current instead of measuring it.
