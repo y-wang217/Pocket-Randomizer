@@ -58,6 +58,29 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: the map overlay, and the three overlays become windows.** Branch
+`claude/hopeful-curie-5ah94f`, prompt
+[`spec/gymrun-patch-map-drawer-window-overlays.md`](spec/gymrun-patch-map-drawer-window-overlays.md),
+record [`generation.md`](generation.md) section 17. A `Map` button beside
+`Party` in the same bar, opening the run map as a readout from every decision
+surface — the second half of the standing rule the party drawer implements,
+which was never built: the route was visible on exactly one screen, so a player
+in a shop could not see whether a rest was two steps ahead. It renders nothing
+of its own, calling the map screen's own `renderRail`, `renderHeading` and
+`renderChain`, so it cannot reveal a fact that screen does not; and it calls
+`renderChain` with no `onChoose`, so every node in it is structurally
+unpressable and the map screen stays the single path by which a node is chosen.
+
+The same patch extracted `ui/overlay.ts` and turned all three overlays — party
+drawer, battle history, map — from bottom sheets into centred windows. The
+history sheet gained Escape and a click-stop it had been missing; both gained
+focus restore. **`test/band.test.ts`'s overlay allowlist went from five entries
+to four while the app went from two overlays to three.**
+
+Presentation only: no `core/` change, no version axis moves, seeded output
+byte-identical, and the guarded screen heights equal `visual/baseline/heights.json`
+to the pixel.
+
 **In flight: the playtest patch** (event rewards and move card fields). Branch
 `claude/event-rewards-ui-bugs-z84mmb`, prompt
 [`spec/gymrun-patch-event-rewards-and-move-card-fields.md`](spec/gymrun-patch-event-rewards-and-move-card-fields.md),

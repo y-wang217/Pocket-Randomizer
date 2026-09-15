@@ -3077,3 +3077,104 @@ removed, reordered or reshaped — `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
 per-node heal alone changes the HP a party carries into every fight after the
 first relic. Balance is not a gate; the figure is in
 [`balance.md`](balance.md) section 19.
+
+## 17. The map overlay, and why the overlay allowlist got shorter
+
+Filed prompt: [`spec/gymrun-patch-map-drawer-window-overlays.md`](spec/gymrun-patch-map-drawer-window-overlays.md),
+committed 2026-09-15 before any work, on `claude/hopeful-curie-5ah94f`.
+
+Presentation only. No `core/` change and **no version axis moves** —
+`contentHash`, `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all
+stand, no draw moves, no decision is added or reshaped, and seeded output is
+byte-identical. `scripts/visual/measure.mjs --compare` reports the guarded
+screen heights equal to `visual/baseline/heights.json` **to the pixel**, which
+is the measurement that says the overlays stayed out of the flow.
+
+### The rule this finished
+
+§12 records the standing rule the party drawer implements: any screen that asks
+the player for a decision must expose run state without leaving the decision.
+Only half of it was ever built. The route was visible on exactly one screen,
+so a player in a shop could not see whether a rest was two steps ahead, and a
+player in a battle could not see whether the next step was another fight.
+
+The overlay closes that. It renders nothing of its own: `renderRail`,
+`renderHeading` and `renderChain` are exported from `ui/screens/run-map.ts` and
+called, so the overlay **cannot** reveal a fact the map screen does not already
+reveal. The reveal rules in `CLAUDE.md` hold by construction rather than by
+care, and there is no second implementation for them to drift between.
+
+`renderChain` is called with no `onChoose`. That was already supported before
+this patch — `renderNode` computed `interactive = Boolean(onChoose)` and
+attached a handler only when one was passed — so a read-only chain cost one
+optional parameter, and every node in the overlay is structurally unpressable.
+The map screen stays the single path by which a node is chosen.
+
+### Deviation from the prompt: the scope of "both"
+
+The brief says the window geometry is "the better design for **both**", naming
+the party drawer and the map overlay. Three bottom sheets were in play once the
+map one landed, and the third — V5.2's battle history — is converted too.
+
+Recorded here rather than by editing the prompt, per protocol 4. The reasoning
+is in the prompt file under its verbatim text, as one of three questions asked
+and answered before any code.
+
+### The allowlist got shorter while the app gained an overlay
+
+`test/band.test.ts` holds a rule worth keeping: **no screen builds its own
+overlay**, enforced as a grep-backed allowlist that "grows one deliberate line
+at a time". Before this patch it named five files, two of them `drawer.ts` and
+`log-sheet.ts`, each of which hand-built a dialog from the same recipe.
+
+They had drifted, in three places nobody had noticed because nothing compared
+them: the history sheet had no Escape handler and no click-stop on its sheet,
+and the drawer mirrored its open state in a `let open` flag that could disagree
+with the DOM. A third hand-copy would have picked one of each pair at random.
+
+`ui/overlay.ts` is the extracted shell. The two overlays call it, `ui/map-drawer.ts`
+is a third caller, and **the allowlist went from five entries to four while the
+app went from two overlays to three**. That is the shape the rule wants: a new
+readout overlay should cost no line there, and a new line means somebody
+hand-rolled a dialog again.
+
+The drift is settled in the shell in favour of the better half of each pair,
+and both overlays gained something neither had: focus returns to the control
+that opened them. Both claimed `aria-modal` and neither restored focus, so a
+keyboard user who closed the drawer landed at the top of the document rather
+than on the button they were standing on.
+
+### Superseded: the phone rule that capped the sheet at 90vh
+
+`styles.css` carried `@media (max-width: 420px) { .drawer__sheet { max-height:
+90vh } }`, so that the sheet took more of a phone viewport "but never all of
+it: the strip of the screen underneath is what says this is an overlay".
+
+**The rule is retired and its reasoning is kept.** The window states it
+structurally instead — `.overlay` pads every edge, `.overlay__sheet` is capped
+at 100% of what is left — so the strip is on four sides rather than one and no
+viewport rule can override it away. Measured at 390x844 the window is 366x820
+inside a 12px gutter, against the sheet's 760px: more room, not less.
+
+### Where the trigger is, and where it is not
+
+Left of Party in the same bar. The bar is right-aligned, so appending Map
+*after* Party would have pushed Party off the edge it has held since 4.7;
+moving a control the player already knows costs more than the new one landing
+beside it.
+
+`MAP_SURFACES` is `DRAWER_SURFACES` less two. **`map`**, because the trigger
+would open a window onto the screen underneath it. **`locale`**, because no
+route is committed until a locale is picked — `stepsOf(state)` is empty there
+and the chain would be a single gym row, which reads as a broken promise on the
+one screen where the player is choosing between routes.
+
+### What it deliberately does not carry
+
+The party block and the wallet, which the map *screen* has and this does not:
+the party drawer is one tap away in the same bar and already shows them, and
+two readouts of one fact is two places for it to drift. The settings pickers,
+which belong on the surface reachable from everywhere. And no tutorial marks —
+the map screen's own marks already teach the chain, the kinds, the tier and the
+gate, and a second set over the same content is a second thing to keep in
+agreement.
