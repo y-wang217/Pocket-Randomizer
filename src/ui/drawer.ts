@@ -52,8 +52,8 @@ import { relicById } from '../data/relics';
 import type { Tuning } from '../data/tuning';
 import { el } from './scene';
 import { setProse } from './dom';
-import { DENSITY_COPY, DENSITY_HEADING, DRAWER_COPY } from './copy/screens';
-import { DENSITIES, getDensity, onSettingsChange, setDensity } from './settings';
+import { DENSITY_COPY, DENSITY_HEADING, DRAWER_COPY, MOVE_BAR_COPY, MOVE_BAR_HEADING } from './copy/screens';
+import { DENSITIES, getDensity, getMoveBar, MOVE_BARS, onSettingsChange, setDensity, setMoveBar } from './settings';
 import { memberCardContents } from './member-card';
 
 export interface DrawerView {
@@ -102,27 +102,77 @@ export interface Drawer {
  * while a Pocket choice made here waits for them to finish.
  */
 function createDensityPicker(): HTMLElement {
+  return createPicker({
+    heading: DENSITY_HEADING,
+    attribute: 'density',
+    options: DENSITIES.map((mode) => ({ value: mode, ...DENSITY_COPY[mode] })),
+    read: getDensity,
+    write: setDensity,
+  });
+}
+
+/**
+ * The move bar picker. **The four-column patch, on the same shape.**
+ *
+ * Under the density picker rather than beside it, because it is the narrower
+ * question: density is how much space every fact on every screen costs, and
+ * this is the shape of one bar on one screen. A player reads the general
+ * setting first.
+ *
+ * Writes the setting and nothing else, like its neighbour, and the root
+ * attribute is written by the shell's own subscription rather than here —
+ * `ui/theme/move-bar.ts` says why that seam exists.
+ */
+function createMoveBarPicker(): HTMLElement {
+  return createPicker({
+    heading: MOVE_BAR_HEADING,
+    attribute: 'moveBar',
+    options: MOVE_BARS.map((layout) => ({ value: layout, ...MOVE_BAR_COPY[layout] })),
+    read: getMoveBar,
+    write: setMoveBar,
+  });
+}
+
+/**
+ * One picker, two settings. **Extracted when the second one arrived**, rather
+ * than copied — two hand-written pickers is two places for the pressed state,
+ * the repaint subscription or the aria wiring to drift, and the drift would be
+ * invisible until a screen reader user met the one that was forgotten.
+ *
+ * `attribute` is the dataset key the choices carry, which is what the drawer's
+ * own suite presses them by. It stays per-picker so the two sets of buttons
+ * are distinguishable in the DOM.
+ */
+function createPicker<T extends string>(spec: {
+  heading: string;
+  attribute: string;
+  options: readonly { value: T; name: string; description: string }[];
+  read: () => T;
+  write: (value: T) => void;
+}): HTMLElement {
   const root = el('div', 'density');
   const heading = el('h3', 'drawer__section');
-  heading.textContent = DENSITY_HEADING;
+  heading.textContent = spec.heading;
   const list = el('div', 'density__options');
-  const choices = DENSITIES.map((mode) => {
+  const choices = spec.options.map((option) => {
     const row = el('div', 'density__option');
     const choice = document.createElement('button');
     choice.type = 'button';
     choice.className = 'button button--small density__choice';
-    choice.dataset['density'] = mode;
-    choice.textContent = DENSITY_COPY[mode].name;
-    choice.addEventListener('click', () => setDensity(mode));
+    choice.dataset[spec.attribute] = option.value;
+    choice.textContent = option.name;
+    choice.addEventListener('click', () => spec.write(option.value));
     const description = el('span', 'density__desc');
-    description.textContent = DENSITY_COPY[mode].description;
+    description.textContent = option.description;
     row.append(choice, description);
     list.append(row);
     return choice;
   });
   const paint = (): void => {
-    const current = getDensity();
-    for (const choice of choices) choice.setAttribute('aria-pressed', String(choice.dataset['density'] === current));
+    const current = spec.read();
+    for (const choice of choices) {
+      choice.setAttribute('aria-pressed', String(choice.dataset[spec.attribute] === current));
+    }
   };
   onSettingsChange(paint);
   paint();
@@ -169,7 +219,7 @@ export function createDrawer(): Drawer {
   const note = el('p', 'drawer__note');
   setProse(note, DRAWER_COPY.note);
 
-  sheet.append(header, blurb, members, relics, note, createDensityPicker());
+  sheet.append(header, blurb, members, relics, note, createDensityPicker(), createMoveBarPicker());
   root.append(scrim, sheet);
 
   let open = false;
