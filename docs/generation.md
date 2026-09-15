@@ -3585,6 +3585,15 @@ baseline runs and digest, `heights.json` (content moved, `decisionTop` did
 not, in every mode), `test/fixtures/sim-report.json`, and the smoke bot's
 loop bound raised to 900 for the longer runs.
 
+### Gates
+
+Type check, lint, build, the full suite (125 files, 1668 tests), the full
+suite under `GYMRUN_TRIM_STRICT=1` (the same 1668, so nothing new consulted a
+learnset — evolution reads the pokedex table, which the trim leaves alone),
+and the smoke run on `SMK49-2`: all green at the stage's last commit, each
+run alone rather than beside another suite, because two heavy runs at once
+produce vitest worker timeouts that read as errors and are not.
+
 ### The benchmark
 
 `docs/balance.md` section 0 carries the rows: the `randomizer-15` baseline
