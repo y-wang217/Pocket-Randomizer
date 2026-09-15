@@ -77,6 +77,7 @@ rather than being filled in from memory.
 | `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 37.5% | 4.80 | the event rejig, **measured on a build where event items never reached the bag** (section 17.5). Superseded by the row below; kept because it is what was recorded |
 | `randomizer-14` · `72e39f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 38.5% | **4.83** | the event rejig, after the Stage 4.5.1 inventory bug was fixed. Read against the `ai-6` pin at 4.8850: **−0.055 mean gyms, −0.75pt completion** |
 | `randomizer-14` · `1e6f02`, 400 | `ai-6-spent-item`, pinned | RETUNE | 38.5% | **4.83** | the Attune floor raised off `T1` (section 17.6). **Reproduced the row above to the digit** — the change fixes a design wrong and moves no balance number at this sample |
+| `randomizer-15` · `53145f`, 400 | `ai-6-spent-item`, pinned | RETUNE | 39.3% | **4.92** | **the Stage 4.9 baseline**, 2026-09-15, measured on `main` at `1b45c4c` before any of the stage's code. Gym clear rates of the runs that reached each: 99.5 / 89.6 / 88.6 / 91.9 / 83.6 / 90.2 / 91.8 / 96.3. Mean turns per battle, segments 1-2: 2.36 / 5.22. 631 distinct species across 26422 encounters; the report's own miss: the most common species (Chandelure) in 31.3% of runs. Report `sim-reports/benchmarks/2026-09-15T16-02-02-368Z-gymrun-randomizer-15-400.json` |
 
 > **Every event figure recorded before `9ce1895` is confounded.** Until that
 > commit, `resolveNode` dropped the backpack returned by `applyEventOutcome`,
