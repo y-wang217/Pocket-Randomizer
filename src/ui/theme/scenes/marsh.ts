@@ -1,6 +1,6 @@
 import { svg, type SceneArt } from './index';
 
-/** A low far bank, standing water mid with hummocks, near reeds, and a wisp over the water. */
+/** A low far bank, standing water mid with hummocks, near reeds, and rings spreading on the water. */
 export const marsh: SceneArt = {
   far: svg(
     '<path fill="var(--layer-fill)" d="M0 32v-6l8-1 10 2 12-3 10 2 14-2 12 3 10-2 10 2 10-1v6z"/>' +
@@ -16,5 +16,8 @@ export const marsh: SceneArt = {
       '<path fill="var(--layer-fill)" d="M6 43V30h1v13zM9 43V26h1v17zM13 43V32h1v11zM48 43V28h1v15zM52 43V33h1v10zM84 43V29h1v14zM88 43V34h1v9zM92 43V31h1v12z"/>' +
       '<rect fill="var(--layer-fill)" x="8" y="26" width="3" height="3"/><rect fill="var(--layer-fill)" x="47" y="28" width="3" height="3"/><rect fill="var(--layer-fill)" x="83" y="29" width="3" height="3"/>',
   ),
-  drift: svg('<rect fill="var(--locale-glow)" opacity="0.7" x="1" y="2" width="3" height="1"/><rect fill="var(--locale-glow)" opacity="0.4" x="2" y="1" width="1" height="1"/>', '0 0 5 4'),
+  drift:
+    svg('<path fill="var(--locale-glow)" opacity="0.5" d="M4 0h4v1H4zM2 1h2v1H2zM8 1h2v1H8zM1 2h1v1H1zM10 2h1v1h-1zM2 3h2v1H2zM8 3h2v1H8zM4 4h4v1H4z"/>', '0 0 12 5') +
+    svg('<path fill="var(--locale-glow)" opacity="0.5" d="M4 0h4v1H4zM2 1h2v1H2zM8 1h2v1H8zM1 2h1v1H1zM10 2h1v1h-1zM2 3h2v1H2zM8 3h2v1H8zM4 4h4v1H4z"/>', '0 0 12 5'),
+  motion: { kind: 'ripple', at: ['calc(50% - var(--drift-size))', '80%'] },
 };

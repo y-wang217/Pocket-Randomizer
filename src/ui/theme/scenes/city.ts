@@ -1,6 +1,6 @@
 import { svg, type SceneArt } from './index';
 
-/** A block skyline far, rooftops mid, a wall and wires near, a window that blinks past. */
+/** A block skyline far, rooftops mid, a wall and wires near, and windows that flicker on. */
 export const city: SceneArt = {
   far: svg(
     '<path fill="var(--layer-fill)" d="M0 32V20h6v-6h5v10h4V12h6v14h5v-8h7v-4h4v14h6V16h8v10h5V8h6v18h7v-6h6v-4h5v16h4v-8h6v-4h6v16z"/>' +
@@ -14,5 +14,7 @@ export const city: SceneArt = {
       '<rect fill="var(--layer-fill)" x="18" y="24" width="2" height="16"/><rect fill="var(--layer-fill)" x="72" y="26" width="2" height="14"/>' +
       '<path fill="var(--layer-fill)" d="M20 26q26 6 52 0v1q-26 6-52 0z"/>',
   ),
-  drift: svg('<rect fill="var(--locale-glow)" x="1" y="1" width="2" height="2"/>', '0 0 4 4'),
+  drift:
+    [0, 1, 2, 3, 4, 5].map(() => svg('<rect fill="var(--locale-glow)" x="0" y="0" width="2" height="2"/>', '0 0 2 2')).join(''),
+  motion: { kind: 'flicker' },
 };

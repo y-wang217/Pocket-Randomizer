@@ -26,6 +26,7 @@ import { el, moveCard } from '../scene';
 import { setProse, type Prose } from '../dom';
 import { TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
 import { typeChip } from './starter-select';
+import { spriteFigure } from '../sprites';
 
 export interface ItemTargetScreen {
   root: HTMLElement;
@@ -117,7 +118,8 @@ function renderTarget(
   const effect = el('span', 'target__effect');
   setProse(effect, effectOn(reward, member));
 
-  button.append(header, track, meta, effect);
+  // The body, in the button's corner. Idle-sprites patch.
+  button.append(spriteFigure(detail.species, { phase: index }), header, track, meta, effect);
   button.addEventListener('click', () => onTarget(index));
   return button;
 }

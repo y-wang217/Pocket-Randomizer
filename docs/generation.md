@@ -3405,3 +3405,105 @@ Those were a value computed and never read. This is a value read long after it
 was computed, against a world that had moved. Both are a seam where two ends
 were individually correct, and neither the type system nor a unit test of
 either end could see the gap.
+## 20. Sprites on every selection surface, an idle bob, and one motion per locale
+
+Filed prompt: [`spec/gymrun-patch-idle-sprites-and-locale-motion.md`](spec/gymrun-patch-idle-sprites-and-locale-motion.md),
+committed 2026-09-15 before any work, on `claude/vibrant-euler-2taoqk`, with
+the plan the brief asked for and the three decisions taken before it was
+finalised.
+
+Presentation only, with one addition to `core/`: a pure helper,
+`capabilityHolders`, in `src/core/capabilities.ts`. **No version axis
+moves** — `contentHash`, `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
+`AI_VERSION` all stand, no draw moves, no decision is added or reshaped, and
+seeded output is byte-identical. `scripts/visual/measure.mjs --compare` reports
+the guarded screen heights equal to `visual/baseline/heights.json` **to the
+pixel**, and the Pocket gate holds on every decision surface.
+
+### What was built
+
+**The figure.** `spriteFigure` in `src/ui/sprites.ts` wraps the one sprite
+image in a `span.figure` that bobs on two held frames, `steps(1, end)` over
+`--motion-idle`, with a negative delay from the slot so six bodies on one
+screen start at six points of the loop. The figure is absolutely positioned in
+its host's corner, so it costs the card nothing in the flow and the Pocket
+gate holds by construction. It is mounted on the starter cards, the learn-move
+owner line, the member card (party, drawer, pre-gym), the recipient buttons,
+the capture block's offered and existing cards, the battle bench, and the run
+summary. The battle stage's two actors carry none, by the second decision in
+the prompt file: the beats own `transform` and `animation` on those sprites
+and `test/sprites.test.ts` holds that no figure ever appears under an actor.
+
+**Who answers a gate.** `resolveCapability` returned the band and nothing
+else. `capabilityHolders` returns the members whose type answers, in slot
+order, and `resolveCapability` now reads its length, so the band and the
+list cannot disagree. The event screen shows the holders as figures beside
+the band chip at `latent` only: a fact about the party as it stands, in the
+party's order and never sorted, which is the attribute-not-verdict line
+`CLAUDE.md` draws. At `known` the relic is the answer and at `none` there is
+nobody, so no figures.
+
+**One motion per locale.** `SceneArt` in `src/ui/theme/scenes/index.ts`
+gains `motion: { kind, at? }` over eight kinds, one `@keyframes world-<kind>`
+each in `styles.css`, chosen by `data-motion` on the one `.world__drift`
+element. The cave keeps V3's crossing unchanged, by the first decision. The
+shore laps, the forest's fireflies float by blinking, the city's windows
+flicker, the badlands smoke, the summit's bird soars right to left on two
+wing frames, the ruins' light hovers, the marsh ripples. All inline SVG in
+the locale's two legal fills, transform and opacity only, and still not
+mounted at all under reduced motion.
+
+### Deviation: the plan's "20 seconds or longer" is restated by kind
+
+**Recorded 2026-09-15. Protocol 4 — [`spec/README.md`](spec/README.md) — a
+prompt is not edited to match what was built, so the deviation is written
+here instead.** The document is the visual identity plan,
+[`spec/gymrun-visual-identity-plan.md`](spec/gymrun-visual-identity-plan.md),
+V3's sentence: "One drifting element per locale as a CSS keyframe loop ...
+Loop is 20 seconds or longer and never draws the eye toward any UI element."
+`test/visual-v3.test.ts` held the number.
+
+**What the plan asked.** One number for every place, because every place
+had the same motion: a crossing, where loop length is crossing speed and a
+faster crossing is what draws the eye.
+
+**What was built.** Two floors, keyed on the kind. The three kinds that
+travel — the cave's spark, the summit's bird, the forest's fireflies — keep
+the plan's floor: twenty seconds or longer a crossing (32, 40 and 26). The
+five that stay put move nothing across the frame, so length is not what
+protects the sentence's second clause; amplitude is. Their element's loop,
+where it has one, is four seconds or longer; every mote's loop is two seconds
+or longer; opacity never passes 0.6 on a blinking mote; and the element sits
+on the ground or the sky, never on the content column. The test reads every
+`animationDuration` under the element on all eight locales, by re-tagging
+`html[data-locale]` the way `scripts/visual/perf.mjs` walks them.
+
+**Why.** The sentence's reason survives; its number was specific to the one
+motion V3 had. A foam line that took twenty seconds to lap would not read as
+water, and a window that took twenty seconds to flicker would not read as a
+window. The proxy trace (`visual/reports/v3-perf.json`, re-run over all
+eight) reads under 6.3 ms of frame work at p95 on the busiest locale, which
+is now the city rather than the forest, and `busiest` was re-read from the
+eight traces rather than left where V3 found it.
+
+### Not a deviation: the bench
+
+The plan made the bench conditional on the battle height holding. It held to
+the pixel, in all three densities, so the bench keeps its figure.
+
+### The one thing the measurement caught
+
+The map's HUD cards wear `.party__member` too, and the header gutter that
+keeps a wrapped type chip from sitting under the figure re-wrapped their
+heads and moved the pinned map height by 26 px in Detailed and Simple. The
+gutter is now on `.party__member:has(> .figure)` and the map is back to the
+pixel. `measure.mjs --compare` is the instrument that saw it; the Pocket gate
+did not, because Pocket has no gutter.
+
+### Animated GIF sprites: investigated, not built
+
+The third decision in the prompt file. What `@pkmn/img` needs to return a
+`gen5ani` URL through the adaptable entry, what the GIFs weigh, where
+coverage fails, and why reduced motion has to be decided at URL time are in
+[`engine-notes.md`](engine-notes.md), under "Animated sprites through
+`@pkmn/img`: what it would take".

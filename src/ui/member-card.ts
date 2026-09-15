@@ -30,6 +30,7 @@ import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
 import { neutralChip, statusChip, typeChip } from './chip';
 import { slotNumber } from './slots';
+import { spriteFigure } from './sprites';
 
 export interface MemberCardOptions {
   /** What this member is holding once a pending item plan is applied. */
@@ -134,7 +135,11 @@ export function memberCardContents(
 
   if (member.status) meta.append(statusChip(member.status, undefined, { tip: `status:${member.status}` }));
 
-  card.append(header, track, meta, itemRow(options.holding));
+  // The body, in the card's corner, phased by the slot it stands in. On every
+  // surface this card is drawn — the party screen, the drawer, the pre-gym
+  // lead choice — because a card without one is the reduced variant the
+  // header of this file forbids. Idle-sprites patch.
+  card.append(spriteFigure(spec.species, { phase: options.index ?? 0 }), header, track, meta, itemRow(options.holding));
 
   /*
    * The body: the stat block, the four move cards and the contribution row.

@@ -50,7 +50,7 @@ import { setProse } from '../dom';
 import { moveCardData } from '../move-detail';
 import type { Tuning } from '../../data/tuning';
 import { itemIcon, slotNumber } from '../slots';
-import { spriteImg } from '../sprites';
+import { spriteFigure } from '../sprites';
 import { archetypeChip } from '../archetype-chip';
 
 export interface Summary {
@@ -419,7 +419,8 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
   header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), types);
 
   const figure = el('div', 'summary__member-figure');
-  figure.append(spriteImg(detail.species));
+  // In a bobbing figure since the idle-sprites patch; the size is the V4 one.
+  figure.append(spriteFigure(detail.species, { phase: index }));
 
   const meta = el('div', 'summary__member-meta');
   meta.append(neutralChip(detail.ability, 'ability', { tip: `ability:${detail.abilityId}` }));

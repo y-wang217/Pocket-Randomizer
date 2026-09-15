@@ -42,6 +42,7 @@ import { setProse } from '../dom';
 import { REPLACE_COPY } from '../copy/screens';
 import type { Tuning } from '../../data/tuning';
 import { typeChip } from './starter-select';
+import { spriteFigure } from '../sprites';
 
 export interface MoveReplaceScreen {
   root: HTMLElement;
@@ -95,7 +96,8 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
       name.textContent = detail.species;
       const level = el('span', 'panel__level');
       level.textContent = `Lv${detail.level}${genderMark(detail.gender)}`;
-      owner.replaceChildren(name, level, ...detail.types.map(typeChip));
+      // And its body, at the line's right. Idle-sprites patch.
+      owner.replaceChildren(name, level, ...detail.types.map(typeChip), spriteFigure(detail.species));
 
       /*
        * Slot order, never sorted.
