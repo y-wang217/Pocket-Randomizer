@@ -119,20 +119,6 @@ export function createRunMap(): RunMap {
   const rail = el('ol', 'rail');
 
   const heading = el('div', 'map__heading');
-  const title = el('h2', 'screen__title');
-  const subtitle = el('p', 'screen__blurb');
-  const blurb = el('p', 'map__blurb');
-  /*
-   * The region the segment is being walked through, above the step chain.
-   *
-   * A heading rather than a badge on every node, because the locale is a
-   * property of the *whole* route: repeating it on each card would be printing
-   * one fact five times, and the phone pass spent a stage reclaiming vertical
-   * space. Its four types are here for the same reason they are on the select
-   * screen — they are what the region actually means for what you will meet.
-   */
-  const region = el('p', 'map__region');
-  heading.append(title, subtitle, blurb, region);
 
   const chain = el('ol', 'chain');
   chain.dataset['tutorial'] = 'chain';
@@ -168,36 +154,16 @@ export function createRunMap(): RunMap {
       if (!segment) return;
 
       rail.replaceChildren(...renderRail(state));
-
-      const gym = segment.gymDefinition;
-      const team = segment.gym.encounter?.team.length ?? 1;
-      title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${gym.leader}`;
-      // The leader's blurb, on tap. Pocket hides the flavour line under the
-      // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
-      title.dataset['tip'] = `gym:${state.currentSegment}`;
-      title.tabIndex = 0;
-      title.setAttribute('role', 'button');
-      subtitle.replaceChildren(
-        typeChip(gym.type),
-        // The gym's team size is public and the level band is not. Size changes
-        // how the fight is *approached* — a solo Pokemon against three has to
-        // budget PP — so hiding it would hide the decision rather than create one.
-        document.createTextNode(
-          ` · ${team} Pokemon · ${stepsOf(state).length} steps before the gym`,
-        ),
-      );
-      blurb.textContent = gym.blurb;
+      heading.replaceChildren(...renderHeading(state, segment));
 
       const locale = localeOf(state);
-      region.hidden = !locale;
       if (locale) {
-        const definition = localeById(locale);
-        const label = el('span', 'map__region-name');
-        label.textContent = definition.name;
-        region.replaceChildren(label, ...definition.types.map(typeChip));
-        // The ghosted watermark behind the chain reads this. Stage V1. Text
-        // only, no layout, no interaction: the stylesheet draws it.
-        root.dataset['watermark'] = definition.name;
+        // The ghosted watermark behind the chain. Stage V1. Text only, no
+        // layout, no interaction: the stylesheet draws it. It stays on the
+        // screen rather than moving into `renderHeading`, because it is this
+        // screen's own background treatment and not part of the readout — the
+        // map overlay shares the heading and wants no watermark.
+        root.dataset['watermark'] = localeById(locale).name;
       } else {
         delete root.dataset['watermark'];
       }
@@ -240,7 +206,74 @@ export function createRunMap(): RunMap {
  * because those are different numbers the moment a run ends at a gym: you are
  * *at* segment 3 having cleared 2.
  */
-function renderRail(state: RunState): HTMLElement[] {
+/**
+ * The segment heading: which gym, who leads it, what type, how big, how far.
+ *
+ * **Extracted when the map overlay arrived, and exported rather than copied.**
+ * `ui/map-drawer.ts` shows the same readout from every decision surface, and
+ * the one thing that must never differ between the two is *what they reveal*.
+ * `CLAUDE.md` bars verdicts, rankings and effectiveness against content the
+ * player has not reached; a second implementation would be a second place for
+ * those rules to drift, and the drift would be invisible until someone
+ * compared the two screens side by side.
+ *
+ * Sharing the function makes the overlay unable to reveal a fact this screen
+ * does not — by construction, not by care.
+ *
+ * The watermark is deliberately **not** here. It is the screen's own background
+ * treatment, it writes to the screen's root, and the overlay wants none of it.
+ */
+export function renderHeading(state: RunState, segment: Segment): HTMLElement[] {
+  const gym = segment.gymDefinition;
+  const team = segment.gym.encounter?.team.length ?? 1;
+
+  const title = el('h2', 'screen__title');
+  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${gym.leader}`;
+  // The leader's blurb, on tap. Pocket hides the flavour line under the
+  // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
+  title.dataset['tip'] = `gym:${state.currentSegment}`;
+  title.tabIndex = 0;
+  title.setAttribute('role', 'button');
+
+  const subtitle = el('p', 'screen__blurb');
+  subtitle.replaceChildren(
+    typeChip(gym.type),
+    // The gym's team size is public and the level band is not. Size changes
+    // how the fight is *approached* — a solo Pokemon against three has to
+    // budget PP — so hiding it would hide the decision rather than create one.
+    document.createTextNode(` · ${team} Pokemon · ${stepsOf(state).length} steps before the gym`),
+  );
+
+  const blurb = el('p', 'map__blurb');
+  blurb.textContent = gym.blurb;
+
+  /*
+   * The region the segment is being walked through, above the step chain.
+   *
+   * A heading rather than a badge on every node, because the locale is a
+   * property of the *whole* route: repeating it on each card would be printing
+   * one fact five times, and the phone pass spent a stage reclaiming vertical
+   * space. Its four types are here for the same reason they are on the select
+   * screen — they are what the region actually means for what you will meet.
+   */
+  const region = el('p', 'map__region');
+  const locale = localeOf(state);
+  region.hidden = !locale;
+  if (locale) {
+    const definition = localeById(locale);
+    const label = el('span', 'map__region-name');
+    label.textContent = definition.name;
+    region.replaceChildren(label, ...definition.types.map(typeChip));
+  }
+
+  return [title, subtitle, blurb, region];
+}
+
+/**
+ * The eight-gym rail. Exported for the map overlay, for `renderHeading`'s
+ * reason: one implementation, so one set of facts.
+ */
+export function renderRail(state: RunState): HTMLElement[] {
   const cleared = gymsCleared(state);
 
   return GYMS.map((gym, index) => {
@@ -259,10 +292,21 @@ function renderRail(state: RunState): HTMLElement[] {
   });
 }
 
-function renderChain(
+/**
+ * The step chain. Exported for the map overlay, and `onChoose` is **optional**
+ * so that overlay can render it as a readout.
+ *
+ * Omitting the callback is what makes the overlay safe rather than merely
+ * careful: `renderNode` below already computes `const interactive =
+ * Boolean(onChoose)` and only attaches a click handler when one was passed, so
+ * a chain drawn without it is divs rather than buttons all the way down. The
+ * map screen stays the single path by which a node is chosen — `CLAUDE.md`'s
+ * Rewards rule — because there is structurally no other control to press.
+ */
+export function renderChain(
   state: RunState,
   segment: Segment,
-  onChoose: (index: number) => void,
+  onChoose?: (index: number) => void,
 ): HTMLElement[] {
   // The route the player committed to, which is empty until they pick a locale.
   const steps = stepsOf(state);

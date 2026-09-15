@@ -95,7 +95,9 @@ export function createBattleScreen(): BattleScreen {
    * case `ui/drawer.ts` names — a move button is a submission, and a trigger
    * inside the grid would be one keystroke from spending a turn.
    */
-  flags.history.addEventListener('click', () => sheet.open());
+  // The control is handed over as the opener, so closing the sheet puts focus
+  // back on it rather than at the top of the document. `ui/overlay.ts` says why.
+  flags.history.addEventListener('click', () => sheet.open(flags.history));
 
   root.append(header, board, sheet.root);
 

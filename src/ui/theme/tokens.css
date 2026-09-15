@@ -284,6 +284,27 @@
   --radius-card: 4px;
   --radius-chip: 2px;
 
+  /* ---------- the overlay window ----------
+     Three overlays share one shell (`ui/overlay.ts`) and one geometry block,
+     and these are the only numbers that differ between them.
+
+     Two widths, because the overlays carry two shapes of content. The reading
+     width is for stacked cards and prose — the party drawer and the battle
+     history. The wide one is for the map overlay, whose eight-gym rail and step
+     chain are horizontal and cramp badly at the reading width.
+
+     `min(…, 100%)` at the use site is what keeps both honest on a phone: at
+     390px neither width is reachable, and the window is the viewport less its
+     gutters.
+
+     The shadow is what separates a centred window from the screen behind it. A
+     bottom sheet did not need one — an edge-anchored panel reads as attached —
+     but a window floating over live content does, and without it the scrim is
+     doing the whole job of saying which layer is on top. */
+  --overlay-width: 34rem;
+  --overlay-width-wide: 44rem;
+  --overlay-shadow: 0 var(--space-2) var(--space-5) color-mix(in srgb, var(--base-deep) 55%, transparent);
+
   /* ---------- motion ----------
      V0 left this at 0 and named the stage that would fill it in. Release C is
      that stage: `data/tuning.ts` now carries one added-time-per-turn number and

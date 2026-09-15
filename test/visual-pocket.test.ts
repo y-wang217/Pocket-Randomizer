@@ -26,7 +26,7 @@ import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PHONE } from '../scripts/visual/browser.mjs';
-import { ARCHIVE_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
+import { ARCHIVE_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -56,7 +56,10 @@ async function open(surface: GallerySurface): Promise<{ page: Page; close: () =>
 
 describe('the surfaces are all gated', () => {
   it('names every gallery surface exactly once', () => {
-    expect([...DECISION_SURFACES, 'drawer', ...ARCHIVE_SURFACES].sort()).toEqual([...GALLERY_SURFACES].sort());
+    // `OVERLAY_SURFACES` rather than the literal `'drawer'` it named before the
+    // map overlay: the list below is generated from the same constant, so a new
+    // overlay is gated by adding it in one place instead of two.
+    expect([...DECISION_SURFACES, ...OVERLAY_SURFACES, ...ARCHIVE_SURFACES].sort()).toEqual([...GALLERY_SURFACES].sort());
   });
 });
 
@@ -69,15 +72,28 @@ describe.each(DECISION_SURFACES)('%s in Pocket', (surface) => {
   }, 120_000);
 });
 
-describe('the drawer in Pocket', () => {
+/**
+ * The overlays in Pocket, one case per entry in `OVERLAY_SURFACES`.
+ *
+ * Both are windows on the shared `ui/overlay.ts` shell since the map-overlay
+ * patch, so both are measured identically: the sheet's own `scrollHeight`
+ * against its `clientHeight`, because a fixed overlay's height is invisible to
+ * the document's.
+ *
+ * The window is *more* forgiving here than the bottom sheet it replaced — it
+ * is capped at the viewport less two gutters rather than at 90vh, which is
+ * about 812px of an 844px phone against the old 760 — so a failure on this
+ * gate is content that grew, not geometry that shrank.
+ */
+describe.each(OVERLAY_SURFACES)('the %s in Pocket', (surface) => {
   it('fits its sheet without scrolling it', async () => {
-    const { page, close } = await open('drawer');
-    const sheet = await page.evaluate(() => {
-      const element = globalThis.document.querySelector('.drawer__sheet');
+    const { page, close } = await open(surface);
+    const sheet = await page.evaluate((name) => {
+      const element = globalThis.document.querySelector(`.${name}__sheet`);
       return element ? { scroll: element.scrollHeight, client: element.clientHeight } : null;
-    });
+    }, surface);
     await close();
-    expect(sheet, 'the drawer was not open').not.toBeNull();
+    expect(sheet, `the ${surface} was not open`).not.toBeNull();
     expect(sheet?.scroll, `the sheet scrolls: ${sheet?.scroll} inside ${sheet?.client}`).toBeLessThanOrEqual(sheet?.client ?? 0);
   }, 120_000);
 });

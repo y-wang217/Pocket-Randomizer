@@ -68,6 +68,28 @@ export const DRAWER_SURFACES: readonly ScreenName[] = [
   'event',
 ];
 
+/**
+ * Surfaces that ask for a decision and have a **route** to show while asking.
+ *
+ * The drawer surfaces less two, each for its own reason:
+ *
+ *   - **`map`**, because the trigger would open an overlay of the screen
+ *     already underneath it. A player standing on the map does not need a
+ *     window onto the map.
+ *   - **`locale`**, because no route is committed until a locale is picked.
+ *     `stepsOf(state)` is empty there, so the chain would be a single gym row —
+ *     and a readout that is empty on the one screen where the player is
+ *     choosing between routes reads as a broken promise rather than as a fact.
+ *     The locale screen makes its own case for each region; that is the
+ *     readout that belongs there.
+ *
+ * The drawer bar itself is shown whenever *either* trigger is, so a screen on
+ * this list and not on `DRAWER_SURFACES` (or the reverse) still gets a bar.
+ */
+export const MAP_SURFACES: readonly ScreenName[] = DRAWER_SURFACES.filter(
+  (name) => name !== 'map' && name !== 'locale',
+);
+
 export interface Router {
   root: HTMLElement;
   show(name: ScreenName): void;
