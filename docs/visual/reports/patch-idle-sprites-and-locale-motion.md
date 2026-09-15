@@ -114,7 +114,7 @@ number ahead of the name keeps the corner clear at 24 px, and the gate reads
 |---|---|
 | `eslint .` | clean |
 | `tsc --noEmit` | clean |
-| `vitest run` | see the closing line of `generation.md` section 19's branch, filled at the final run |
+| `vitest run` | 123 files, 1652 tests, all passing; the one unhandled error is the reporter's `onTaskUpdate` timeout already recorded against both suite runs in `generation.md` section 15, and it is what makes `npm run check` stop before the strict-trim step, which was run on its own |
 | `test/visual-tokens.test.ts` duration pin | **17**, unmoved |
 | `test/visual-pocket.test.ts` | 17 of 17, every decision surface, both overlays, both archives |
 | `scripts/visual/measure.mjs --compare docs/visual/baseline/heights.json` | **equal to the pixel** in Detailed, Simple and Pocket, both move bar layouts; nothing re-recorded |
