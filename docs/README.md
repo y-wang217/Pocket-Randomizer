@@ -414,13 +414,25 @@ One line each. The analysis lives where the pointer goes, not here.
    **The SMOKE24 map `xfail` is a different check and stays**: it measures the
    offered cards against the 844 fold in the scrolled view, not against the 740
    usable line, and still reports y=869.
-8. **Strict trim is red, and the app does not boot under it.** `CLAUDE.md`
-   names it an absolute gate. `GYMRUN_TRIM_STRICT=1 vitest run` fails 22 tests
-   across the five browser test files on `9296ba7`, every one of them at
-   `openApp` waiting for the starter screen: something in the bundle reads the
-   trimmed `learnsets`/`legality` tables at start-up and the strict proxy throws.
-   Its own patch — find the read and make it lazy or remove it.
-   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+8. **Strict trim was red and is not any more. Closed 2026-09-15**, by
+   measurement rather than by a patch. The item recorded 22 failures across the
+   five browser test files on `9296ba7`, every one at `openApp` waiting for the
+   starter screen, on the reading that something in the bundle read the trimmed
+   `learnsets`/`legality` tables at start-up and the strict proxy threw.
+
+   Re-measured at `5d0bd18` in a clean worktree, with no `src/` change of any
+   kind: **`GYMRUN_TRIM_STRICT=1 vitest run` is 118 files and 1554 tests, all
+   passing.** Something between `9296ba7` and here fixed it and the item was
+   never revisited, so the entry outlived the failure by an unknown number of
+   patches.
+
+   **Kept as a closed entry rather than deleted**, because the useful part is
+   not the bug: an open item that names a hard gate as red is read by every
+   session that opens this file, and a stale one is believed. This one was
+   believed on the night the map overlay was built, and the plan for that patch
+   was written around working past a red gate that was green.
+   History: [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md),
+   measurement: [`visual/reports/map-overlay.md`](visual/reports/map-overlay.md).
 
 9. **R8 needs its own move-card insertion point. Closed** by the density
    modes patch: the battle button carries a `?` chip on its PP line

@@ -96,11 +96,18 @@ turned out to belong to this patch. Both are fixed.
 The lesson is procedural: a baseline taken in the tree you are editing is not a
 baseline.
 
-### `docs/README.md` section 5's strict-trim note was not taken on trust
+### `docs/README.md` section 5's strict-trim note is stale
 
-That section records strict trim as red with 22 browser failures. It is
-restated here only as what the document says; this patch's own strict-trim run
-is reported separately rather than assumed from it.
+That section records strict trim as red, with "22 browser tests fail under
+`GYMRUN_TRIM_STRICT=1`" and the app not booting under it.
+
+**Measured at `5d0bd18` in the clean worktree: 118 files, 1554 tests, all
+passing.** Whatever fixed it is not this patch — the run predates every `src/`
+change here — so the note is simply out of date, and section 5 is corrected
+rather than repeated.
+
+This is the second thing in one night that was believed red and was not. Both
+came from taking a recorded state as current instead of measuring it.
 
 ## What this moves
 
