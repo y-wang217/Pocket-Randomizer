@@ -63,6 +63,7 @@
           "side": "p1",
           "name": "Brook",
           "level": 7,
+          "species": "Mankey",
           "bySpecies": "Falinks",
           "byMove": "Rock Smash",
           "indirect": null

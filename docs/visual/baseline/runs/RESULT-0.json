@@ -52,6 +52,7 @@
           "side": "p1",
           "name": "Jasper",
           "level": 7,
+          "species": "Shelmet",
           "bySpecies": "Pidove",
           "byMove": "Acrobatics",
           "indirect": null

@@ -38,7 +38,7 @@ const bottomOf = (page: Page, selector: string): Promise<number | null> =>
 
 describe('the result screen', () => {
   it('keeps a three-card offer above the fold at 390x844', async () => {
-    const { page, close } = await openGallery('SMOKE24', 'result');
+    const { page, close } = await openGallery('S49B-1', 'result');
     const cards = await page.evaluate(() => [...globalThis.document.querySelectorAll('.reward')].map((c) => c.getBoundingClientRect().bottom));
     expect(cards).toHaveLength(3);
     for (const bottom of cards) expect(bottom).toBeLessThanOrEqual(844);
@@ -47,7 +47,7 @@ describe('the result screen', () => {
   }, 180_000);
 
   it('keeps the capture offer, its decision buttons included, above the fold at 390x844', async () => {
-    const { page, close } = await openGallery('SMOKE24', 'result-capture');
+    const { page, close } = await openGallery('S49B-1', 'result-capture');
     expect(await page.locator('.reward').count()).toBe(0);
     const actions = await bottomOf(page, '.acquire__actions');
     expect(actions).not.toBeNull();

@@ -52,6 +52,7 @@
           "side": "p1",
           "name": "Mire",
           "level": 7,
+          "species": "Hippopotas",
           "bySpecies": "Karrablast",
           "byMove": "Fury Cutter",
           "indirect": null

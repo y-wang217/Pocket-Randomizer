@@ -121,6 +121,7 @@
           "side": "p1",
           "name": "Cedar",
           "level": 7,
+          "species": "Snubbull",
           "bySpecies": "Nosepass",
           "byMove": "Clear Smog",
           "indirect": null
@@ -129,6 +130,7 @@
           "side": "p1",
           "name": "Dusk",
           "level": 7,
+          "species": "Nosepass",
           "bySpecies": "Nosepass",
           "byMove": "Snarl",
           "indirect": null

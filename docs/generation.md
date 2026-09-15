@@ -3553,6 +3553,19 @@ evolution and at least 280 base stat total.
   seed that passes, and the pre-change build overflowed it on other seeds
   (988px on one), so the overflow — a two-row party plus a two-card step —
   is older than this stage and is carried as an open item.
+- **Every seed the suite pins was rescanned, and the smoke bot's with them.**
+  Under this curve the old seeds mostly died before the thing they pinned — a
+  gym, an event that pays, a relic, a taught move, a capture offer on the
+  result screen — so each test names a seed found by scanning with that
+  test's own policy, and the gallery's result fixtures read `S49B-1`. The
+  smoke bot (hardest move, never switches) loses gym 1 on most seeds; its
+  seed was found by emulating it headlessly over the seed space and
+  confirming the hit in the browser (`SMK49-2`). The greedy bot wins no run
+  at all on 400 seeds, so the one test that needs a victory renders a played
+  run with its outcome set, and says so.
+- **The gym move-band spike moved twice.** First built as planned (from
+  segment 0, as `GYM_MOVE_BAND_BONUS` always was), then held until segment
+  2; see above.
 
 ### What this moves
 

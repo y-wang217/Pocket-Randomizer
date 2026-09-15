@@ -88,6 +88,7 @@
           "side": "p1",
           "name": "Fennel",
           "level": 7,
+          "species": "Spearow",
           "bySpecies": "Venipede",
           "byMove": "Poison Tail",
           "indirect": null
@@ -96,6 +97,7 @@
           "side": "p1",
           "name": "Umber",
           "level": 7,
+          "species": "Cutiefly",
           "bySpecies": "Venipede",
           "byMove": "Poison Tail",
           "indirect": null

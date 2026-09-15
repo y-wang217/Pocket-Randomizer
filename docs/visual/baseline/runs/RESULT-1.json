@@ -194,6 +194,7 @@
           "side": "p1",
           "name": "Cedar",
           "level": 14,
+          "species": "Pumpkaboo",
           "bySpecies": "Wailmer",
           "byMove": "Water Shuriken",
           "indirect": null
@@ -202,6 +203,7 @@
           "side": "p1",
           "name": "Gale",
           "level": 14,
+          "species": "Pancham",
           "bySpecies": "Mantyke",
           "byMove": "Water Shuriken",
           "indirect": null
@@ -210,6 +212,7 @@
           "side": "p1",
           "name": "Verbena",
           "level": 14,
+          "species": "Omanyte",
           "bySpecies": "Mantyke",
           "byMove": "Water Shuriken",
           "indirect": null
