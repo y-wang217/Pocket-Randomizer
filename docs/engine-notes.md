@@ -142,3 +142,71 @@ one turn of a two-turn move, so a policy that picks them looks twice as strong
 as it plays. Fly and Dive are otherwise standard gen 9 moves and would need no
 other change to admit. Whether to admit them belongs to the AI pass, alongside
 priority-blindness and speed-blindness, because it is a scoring question.
+
+## Animated sprites through `@pkmn/img`: what it would take
+
+Established 2026-09-15 by reading the package's built source for
+`@pkmn/img@0.3.4` and probing the sprite CDN, during the planning of the
+idle-sprites patch (`docs/spec/gymrun-patch-idle-sprites-and-locale-motion.md`).
+The patch chose a CSS bob on the static sprites; this records what the
+animated alternative costs, so the next person does not have to rediscover it.
+
+**Two animated sets exist on the CDN.** `gen5ani` is the Black/White style,
+pixelated, roughly 96 px, served from `sprites/gen5ani/<id>.gif` with backs
+under `gen5ani-back/`. `ani` is the X/Y style, larger and smooth. `gen5ani` is
+the one that matches the game's pixel look. Both are legal `gen` values on
+`Sprites.getPokemon`, and the local declaration in `src/ui/pkmn-img.d.ts`
+already types `gen` as a string, so `gen: 'gen5ani'` type-checks today.
+
+**The adaptable entry returns the GIF only when the data record says it
+exists.** `getPokemon` reads `data.bw.front` or `data.bw.back` for `gen5ani`
+(and `data.front` / `data.back` for `ani`); when the record has neither it
+silently rewrites the request to `gen5` static and returns the PNG. The stub
+record `src/ui/sprites.ts` hands the package — id, spriteid, gen, num — has no
+`bw`, which is why the static set is all it can ever return. Adding
+`bw: { front: {}, back: {} }` to that stub is the one-line change; the
+dimensions then default to 96x96.
+
+**Dimensions vary per species, and only the full table knows them.** Charizard's
+`gen5ani` front is 89x91 and its back 98x83; its `ani` front is 133x140. Without
+the table the image must sit in a fixed 96 px box with `object-fit: contain`.
+The full table is the 43 kB gzipped that V2 declined
+(`docs/visual/reports/V2.md`), and nothing here changes that trade.
+
+**Coverage is not total.** A species with no animated sprite 404s. Today the
+`error` listener in `src/ui/sprites.ts` flips `data-missing` and the box hides,
+which is the right answer for a static sprite that does not exist and the wrong
+one for an animated sprite that merely lacks a GIF. A GIF path needs a second
+step: on error, fall back to the static URL, and hide only if that fails too.
+Under the test harness the CDN is aborted, so both fail and the box hides as
+it does now; every layout measurement holds.
+
+**Weight**, measured on the CDN the day this was written:
+
+| species | static PNG | `gen5ani` GIF |
+|---|---|---|
+| Pikachu | 0.5 kB | 27 kB |
+| Gyarados | 1.5 kB | 18 kB |
+| Magikarp | 0.7 kB | 59 kB |
+| Snorlax | 0.8 kB | 75 kB |
+| Charizard | 1.2 kB | 87 kB |
+
+A six-member party screen goes from about 6 kB of images to 300–500 kB; the
+battle stage from about 2 kB to about 100 kB. `loading="lazy"` already
+applies and would keep off-screen cards from fetching.
+
+**Reduced motion cannot pause a GIF from CSS.** The choice has to be made at
+URL time: read `prefers-reduced-motion` and hand out the static URL when it is
+set, the way `createWorldScene` reads it per mount. The stylesheet-only rule
+that `src/ui/theme/motion.ts` argues for does not reach an animated image.
+
+**Test impact is small.** Nothing in `test/` asserts the sprite URL's shape.
+`test/visual-v5.test.ts` reads `animationName` on `.sprite`, which a GIF does
+not touch. The CSS idle bob composes on top of a GIF unchanged, since it lives
+on a wrapper and not on the image.
+
+**If it is built**, the shape that fits the rest of the UI is a sprite-style
+setting in `src/ui/settings.ts` beside density and the move bar, two-valued
+(static, animated), default static, with `spriteImg` choosing the URL and
+installing the static fallback. A per-surface choice would be two looks for one
+Pokemon, which is the thing the species-label ruling exists to prevent.
