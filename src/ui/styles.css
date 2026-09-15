@@ -547,32 +547,105 @@ body {
   --chip: var(--emphasis);
 }
 
-/* ---------- the turn order nudge ----------
-   Release C item 2. A panel twitches when its Pokemon acts, in the order the
-   actions resolved, so the sequence is on the board rather than only in the
-   log's ordinals.
+/* ---------- the turn, as beats on the stage ----------
+   Release C item 2, moved from the panel to the sprite by the bar and beats
+   patch. A body lunges toward its opponent when it acts, in the order the
+   actions resolved, and a body whose bar drew a chunk is knocked back in the
+   slot after the lunge that took it. The sequence is on the board rather than
+   only in the log's ordinals, and it is on the thing that acted rather than
+   on the scrim floating beside it. The panel no longer moves; the rule that
+   moved it is deleted, not kept behind a flag.
 
-   Two steps and no more: `scene.ts` places a side by its first action in the
-   turn, which caps the sequence at the two sides. The second waits one nudge
-   before starting, so the pair reads as "then" rather than as a shudder.
+   Four slots and no more, each one `--motion-beat` long: first actor, its
+   target, second actor, its target. `scene.ts` places a side by its first
+   action in the turn, which caps the lunges at two, and puts a hit in the
+   slot after the other side's lunge. The last slot ends exactly where the HP
+   shadow's fade does, so a turn's whole feedback is still the one number.
 
-   The distance is a token and it is deliberately tiny — 2px is a twitch that
-   registers at the edge of vision without the panel appearing to come loose.
-   `transform` only: no layout property is touched, so a nudge cannot reflow the
-   screen or move the move buttons under a thumb that is already descending. */
-.panel[data-jiggle] {
-  animation: panel-nudge var(--motion-jiggle) ease-in-out;
+   `transform` and `opacity` only, on the compositor: no layout property is
+   touched, so a beat cannot reflow the stage or move the move buttons under a
+   thumb that is already descending. The lunge is on the actor and the hit on
+   the sprite inside it, so the two transforms compose rather than compete
+   when one body both acts and is hit in the same turn.
+
+   `--beat-direction` is which way "toward the opponent" is. The player's
+   body stands lower left and the opponent's upper right, so the two lunge
+   along the same diagonal in opposite senses, and one keyframe set serves
+   both corners. A custom property rather than two keyframe sets, because a
+   second copy of a keyframe is the kind of thing that drifts. */
+.stage__actor--me { --beat-direction: 1; }
+.stage__actor--foe { --beat-direction: -1; }
+
+.stage__actor[data-acted] {
+  animation: actor-lunge var(--motion-beat) ease-in-out;
 }
 
-.panel[data-jiggle="2"] {
-  animation-delay: var(--motion-jiggle);
+.stage__actor[data-acted="2"] {
+  animation-delay: calc(var(--motion-beat) * 2);
 }
 
-@keyframes panel-nudge {
-  0% { transform: translateX(0); }
-  30% { transform: translateX(calc(var(--jiggle-distance) * -1)); }
-  70% { transform: translateX(var(--jiggle-distance)); }
-  100% { transform: translateX(0); }
+@keyframes actor-lunge {
+  0% { transform: none; }
+  40% {
+    transform: translate(
+      calc(var(--lunge-distance) * var(--beat-direction)),
+      calc(var(--lunge-distance) * -0.5 * var(--beat-direction))
+    );
+  }
+  100% { transform: none; }
+}
+
+/* The hit: knocked back along the same line the lunge came in on, with a dip
+   in opacity while it lands. Same size for every hit — see the token. */
+.stage__actor[data-hit] .sprite:not(.sprite--ghost) {
+  animation: sprite-hit var(--motion-beat) ease-out;
+}
+
+@keyframes sprite-hit {
+  0% { transform: none; opacity: 1; }
+  30% {
+    transform: translateX(calc(var(--hit-recoil) * -1 * var(--beat-direction)));
+    opacity: var(--hit-dip);
+  }
+  100% { transform: none; opacity: 1; }
+}
+
+/* The faint. The same `sprite-sink` the swap beat uses — a body leaving the
+   fight is the same kind of event however it left — starting in the slot the
+   hit would have taken and running to the end of the budget: three beats
+   after the first actor's hit, one after the second's. `both`, so the body is
+   still standing through the slots before its own and stays down after.
+
+   Written after the hit rule at equal specificity, so on the turn a hit is
+   also the KO the sink wins the shorthand and there is one animation on the
+   sprite, not two. The delay rules for the slots come after both, so the sink
+   inherits the hit's slot. */
+.stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost) {
+  animation: sprite-sink calc(var(--motion-beat) * 3) ease-in both;
+}
+
+.stage__actor[data-fainting='true'][data-hit="2"] .sprite:not(.sprite--ghost) {
+  animation-duration: var(--motion-beat);
+}
+
+.stage__actor[data-hit="1"] .sprite:not(.sprite--ghost) {
+  animation-delay: var(--motion-beat);
+}
+
+.stage__actor[data-hit="2"] .sprite:not(.sprite--ghost) {
+  animation-delay: calc(var(--motion-beat) * 3);
+}
+
+/* Where the sink ends, held as state. `scene.ts` mirrors the projection's
+   `fainted` onto the actor every update, and this is what a KO'd body looks
+   like between the sink finishing and the replacement rising: down, and not
+   drawn. The sink's own last keyframe is the same values, so a tap that cuts
+   the animation short and a reduced-motion setting that never runs it both
+   land the sprite exactly here. Reduced motion removes the movement, not the
+   fact that the Pokemon is out. */
+.stage__actor[data-fainted='true'] .sprite:not(.sprite--ghost) {
+  opacity: 0;
+  transform: translateY(var(--sprite-swap-travel)) scale(0.94);
 }
 
 /* ---------- the chunk a hit took ----------
@@ -1791,6 +1864,10 @@ body {
  *
  * `transform` and `opacity` only, so the beat runs on the compositor and cannot
  * reflow the stage or move a move button under a descending thumb.
+ *
+ * `sprite-sink` is shared with the faint since the bar and beats patch — see
+ * the beats block — and `scene.ts` leaves the ghost empty when the body that
+ * left had already fainted, so a KO is never sunk twice.
  */
 @keyframes sprite-rise {
   from { opacity: 0; transform: translateY(var(--sprite-swap-travel)) scale(0.94); }
@@ -2997,11 +3074,19 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      `test/visual-release-c.test.ts`, which reads the computed animation rather
      than trusting the rule to have applied. */
   .hp__shadow, .hp__shadow[data-fading] { animation: none; }
-  /* `animation: none` is the shorthand, so it resets the delay too — the
-     second step's `animation-delay` needs no separate override, and writing
-     one would have been a nineteenth hardcoded duration in a stylesheet whose
-     count is pinned. */
-  .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; }
+  /* The beats: the lunge on the actor, the hit and the faint on the sprite.
+     Selectors matched to every rule they override, the slot delays and the
+     KO-turn duration included, for the reason the chunk's note gives. The
+     lunge and the hit end at rest, so cancelling them leaves the body where
+     it stands; the faint ends at the `data-fainted` state the rule above
+     already holds, so a KO'd body is down without ever having moved.
+     `animation: none` is the shorthand, so it resets the delays too. */
+  .stage__actor[data-acted], .stage__actor[data-acted="2"] { animation: none; }
+  .stage__actor[data-hit] .sprite:not(.sprite--ghost),
+  .stage__actor[data-hit="1"] .sprite:not(.sprite--ghost),
+  .stage__actor[data-hit="2"] .sprite:not(.sprite--ghost),
+  .stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost),
+  .stage__actor[data-fainting='true'][data-hit="2"] .sprite:not(.sprite--ghost) { animation: none; }
   /* V5.5: the species swap resolves instantly. Selectors matched to the rules
      they override rather than to the elements, for the reason the chunk's own
      note gives — a media query adds no specificity and a plain `.sprite` would

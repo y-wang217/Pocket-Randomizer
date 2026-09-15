@@ -359,4 +359,15 @@ describe('the species swap', () => {
     // a stale marker on the panel would be a rule left behind a flag.
     expect(scene.root.querySelectorAll('.panel[data-swapped]')).toHaveLength(0);
   });
+
+  it('leaves no turn order marker on either panel either', () => {
+    const { session, scene, draw } = opened('SWAP05');
+    session.submit('p1', { kind: 'move', slot: 1 } as never);
+    if (session.viewFor('p2').awaitingChoice) session.submit('p2', { kind: 'move', slot: 1 } as never);
+    draw();
+    // Release C's nudge followed the swap beat onto the sprite in the bar and
+    // beats patch, for the same reason. The panel is a scrim; it does not move.
+    // `test/battle-feedback.test.ts` holds where the lunge went instead.
+    expect(scene.root.querySelectorAll('.panel[data-jiggle]')).toHaveLength(0);
+  });
 });

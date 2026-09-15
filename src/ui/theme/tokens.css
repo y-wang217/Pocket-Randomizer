@@ -294,16 +294,18 @@
      call degrades to the designed feel instead of to no feedback at all.
 
      Every battle-feedback length is derived from it, so the one number really
-     is the budget: the shadow spends all of it, and the jiggle runs inside that
-     window rather than after it. The transitions that predate this stage keep
-     their own lengths in styles.css. */
+     is the budget: the shadow spends all of it, and the four beats of a turn
+     run inside that window rather than after it. The transitions that predate
+     this stage keep their own lengths in styles.css. */
   --motion-duration: 500ms;
   /* The chunk a hit took, marking where the bar was. Release C item 1. */
   --motion-hp-shadow: var(--motion-duration);
-  /* One panel nudge. Two run back to back, the second delayed by one, so the
-     pair finishes inside the shadow's window and the budget stays one number.
-     Release C item 2. */
-  --motion-jiggle: calc(var(--motion-duration) / 4);
+  /* One beat: a lunge or a hit. A turn is four of them, in slots — first
+     actor, its target, second actor, its target — and every slot's delay is a
+     multiple of this, so the whole turn finishes exactly as the shadow does
+     and the budget stays one number. Release C item 2's length, kept, when
+     the beat moved from the panel to the sprite in the bar and beats patch. */
+  --motion-beat: calc(var(--motion-duration) / 4);
   /* The species swap: the outgoing sprite sinking and the incoming one rising.
      V5.5. The whole budget, like the shadow, because it is the same kind of
      event — a thing on the board resolving — and because the two never happen
@@ -316,10 +318,17 @@
      about a hit the player has not been told the size of yet, and the bar's
      three HP colours already carry the only colour meaning on this control. */
   --hp-shadow: color-mix(in srgb, var(--cream) 22%, var(--bg-sunken));
-  /* How far a panel travels when its Pokemon acts. A twitch, not a shake: far
-     enough to register at the edge of vision, near enough that the panel never
-     looks like it came loose from the layout. */
-  --jiggle-distance: 2px;
+  /* How far a sprite lunges toward its opponent when it acts. Far enough to
+     read as an attack on a 96px body, near enough that the body never leaves
+     the corner it stands in or reaches the panel floating beside it. */
+  --lunge-distance: 8px;
+  /* How far a sprite is knocked back when its bar drew a chunk, and how far
+     its opacity dips while it is. The same for every hit: the chunk already
+     says how big the hit was, and a recoil that grew with the multiplier
+     would be a verdict on the board. Half the lunge, so the answer reads as
+     smaller than the question. */
+  --hit-recoil: 4px;
+  --hit-dip: 0.55;
   /* How far a sprite travels as it sinks into the near layer or rises out of
      it. Far enough to read as depth, near enough that the body never appears to
      leave the stage it is standing on. */

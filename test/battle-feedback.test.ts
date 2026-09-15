@@ -215,22 +215,37 @@ describe('the HP chunk and its shadow', () => {
   });
 });
 
-describe('the turn order jiggle', () => {
-  /**
-   * The pair `test/turn-order.test.ts` and `test/flags.test.ts` both use: base
-   * 30 Speed against base 130, so an order flip is a bracket and nothing else.
-   */
-  const SLOW: TeamSpec = [{ species: 'Snorlax', ability: 'Immunity', moves: ['Quick Attack', 'Tackle'], level: 50 }];
-  const FAST: TeamSpec = [{ species: 'Jolteon', ability: 'Volt Absorb', moves: ['Tackle', 'Quick Attack'], level: 50 }];
+/**
+ * The pair `test/turn-order.test.ts` and `test/flags.test.ts` both use: base
+ * 30 Speed against base 130, so an order flip is a bracket and nothing else.
+ */
+const SLOW: TeamSpec = [{ species: 'Snorlax', ability: 'Immunity', moves: ['Quick Attack', 'Tackle'], level: 50 }];
+const FAST: TeamSpec = [{ species: 'Jolteon', ability: 'Volt Absorb', moves: ['Tackle', 'Quick Attack'], level: 50 }];
 
+function actorOf(scene: Scene, side: 'me' | 'foe'): HTMLElement {
+  const actor = scene.root.querySelector(`.stage__actor--${side}`);
+  if (!(actor instanceof HTMLElement)) throw new Error(`no ${side} actor on the stage`);
+  return actor;
+}
+
+/** The beat markers on both actors, which is everything the stylesheet animates from. */
+function beatsOf(scene: Scene, key: 'acted' | 'hit' | 'fainting' | 'fainted'): { me: string | undefined; foe: string | undefined } {
+  return { me: actorOf(scene, 'me').dataset[key], foe: actorOf(scene, 'foe').dataset[key] };
+}
+
+/**
+ * The turn order beat. **Release C item 2, on the sprite since the bar and
+ * beats patch.** The five cases below are Release C's own, re-read off the
+ * actor rather than the panel: the rule did not change, only the element that
+ * carries it, and `test/battle-stage.test.ts` holds that the panel no longer
+ * carries anything.
+ */
+describe('the turn order lunge', () => {
   function nudges(scene: Scene): { me: string | undefined; foe: string | undefined } {
-    const me = scene.root.querySelector('.panel--me');
-    const foe = scene.root.querySelector('.panel--foe');
-    if (!(me instanceof HTMLElement) || !(foe instanceof HTMLElement)) throw new Error('no panels');
-    return { me: me.dataset['jiggle'], foe: foe.dataset['jiggle'] };
+    return beatsOf(scene, 'acted');
   }
 
-  it('nudges the panels in the order the log numbers the actions', () => {
+  it('moves the actors in the order the log numbers the actions', () => {
     // The player is slow and uses a priority move, so p1 resolves first
     // despite losing the Speed tie by a hundred points.
     const { scene, turns } = playOneTurn(SLOW, FAST, 1, 'JIGGLE01');
@@ -247,11 +262,11 @@ describe('the turn order jiggle', () => {
     expect(order[0]).toBe('p1');
     expect(order[1]).toBe('p2');
 
-    // And the panels agree, because they were placed from that same list.
+    // And the actors agree, because they were placed from that same list.
     expect(nudges(scene)).toEqual({ me: '1', foe: '2' });
   });
 
-  it('nudges the other way round when the bracket is not in play', () => {
+  it('moves the other way round when the bracket is not in play', () => {
     // Slot 2 on both sides is an ordinary Tackle, so Speed decides and the
     // fast side goes first.
     const { scene, turns } = playOneTurn(SLOW, FAST, 2, 'JIGGLE01');
@@ -260,7 +275,7 @@ describe('the turn order jiggle', () => {
     expect(nudges(scene)).toEqual({ me: '2', foe: '1' });
   });
 
-  it('does not nudge on the opening draw, because an arrival is not a turn', () => {
+  it('does not move on the opening draw, because an arrival is not a turn', () => {
     const scene = createScene();
     scene.update(baseView(), NOOP);
     expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
@@ -269,7 +284,7 @@ describe('the turn order jiggle', () => {
   it('places a side by its first action, so the sequence never exceeds two', () => {
     const scene = createScene();
     // A replacement switch after a faint is a third action on a side that has
-    // already moved. It must not re-place a panel that is already nudged.
+    // already moved. It must not re-place an actor that has already lunged.
     scene.update(baseView(), NOOP, [
       {
         turn: 3,
@@ -284,11 +299,187 @@ describe('the turn order jiggle', () => {
     expect(nudges(scene)).toEqual({ me: '2', foe: '1' });
   });
 
-  it('clears the nudge on a tap, like every other transition', () => {
+  it('clears the lunge on a tap, like every other transition', () => {
     const { scene } = playOneTurn(SLOW, FAST, 1, 'JIGGLE01');
     expect(nudges(scene).me).toBe('1');
     scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
     expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
+  });
+});
+
+/** The same view with one side knocked out, for the faint. */
+function withFainted(view: BattleUiView, side: 'player' | 'opponent'): BattleUiView {
+  const active: ActiveUiView = view[side];
+  return { ...view, [side]: { ...active, fainted: true, hp: { ...active.hp, fraction: 0, current: 0 } } };
+}
+
+/** One synthetic turn where the given sides acted, in that order, with the given flags on each. */
+function turnOf(sides: ('p1' | 'p2')[], flags: FlaggedTurn['actions'][number]['flags'] = []): FlaggedTurn[] {
+  return [
+    {
+      turn: null,
+      actions: sides.map((side, index) => ({
+        action: { kind: 'move', side, actor: side, move: 'Tackle', order: index + 1, priority: false, bracket: 0 },
+        flags,
+      })),
+      residual: [],
+    },
+  ];
+}
+
+/**
+ * The hit and the faint. **The bar and beats patch.**
+ *
+ * The hit's one rule is that it happens exactly when the bar drew a chunk —
+ * not when HP changed, not when a move was used, not when a flag says a hit
+ * landed. It reads `set`'s boolean and nothing else, so every negative Release
+ * C wrote for the chunk is a negative for the hit too, for free. The cases
+ * here are those negatives, the slot rule, and the one thing the copy rule
+ * cares most about: a super effective hit and a resisted one draw the same
+ * beat.
+ */
+describe('the hit and the faint', () => {
+  it('knocks a sprite back exactly when its bar drew a chunk', () => {
+    const view = baseView();
+    const scene = createScene();
+    scene.update(withHp(view, 'opponent', 1), NOOP);
+    scene.update(withHp(view, 'opponent', 0.6), NOOP);
+    // A chunk with no reading lands in the first slot.
+    expect(beatsOf(scene, 'hit')).toEqual({ me: undefined, foe: '1' });
+    expect(shadowOf(scene, 'foe').dataset['fading']).toBe('true');
+  });
+
+  it('draws no hit on a heal, on the first draw, on a swap, or on a drop too small', () => {
+    const view = baseView();
+    const first = createScene();
+    first.update(withHp(view, 'opponent', 0.3), NOOP);
+    expect(beatsOf(first, 'hit')).toEqual({ me: undefined, foe: undefined });
+
+    const heal = createScene();
+    heal.update(withHp(view, 'player', 0.4), NOOP);
+    heal.update(withHp(view, 'player', 0.9), NOOP);
+    expect(beatsOf(heal, 'hit')).toEqual({ me: undefined, foe: undefined });
+
+    const swap = createScene();
+    swap.update(withHp(view, 'player', 1), NOOP);
+    swap.update(withSpecies(withHp(view, 'player', 0.1), 'player', 'Onix'), NOOP);
+    expect(beatsOf(swap, 'hit')).toEqual({ me: undefined, foe: undefined });
+
+    const tiny = createScene();
+    tiny.update(withHp(view, 'opponent', 1), NOOP);
+    tiny.update(withHp(view, 'opponent', 0.998), NOOP);
+    expect(beatsOf(tiny, 'hit')).toEqual({ me: undefined, foe: undefined });
+  });
+
+  /**
+   * `playOneTurn` above builds its scene *after* the turn, which is right for
+   * the lunge and wrong for the hit: a first draw has no previous value, so
+   * it draws no chunk and therefore no hit. This one draws the opening board
+   * first, which is what the app does — the opening replay, then the turn.
+   */
+  function watchOneTurn(slot: number, seed: string): Scene {
+    const session = createBattle({ teams: { p1: SLOW, p2: FAST }, seed });
+    const view = (): BattleUiView => buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+    const scene = createScene();
+    scene.update(view(), NOOP);
+    const before = session.protocolFor('p1').length;
+    for (const side of ['p1', 'p2'] as const) session.submit(side, moveChoice(slot));
+    const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
+    scene.update(view(), NOOP, readFlags(batch, FLAGS));
+    return scene;
+  }
+
+  it('puts the hit in the slot after the lunge that took it', () => {
+    // p1 goes first on a bracket: its target is hit in slot 1, and the hit p1
+    // takes from the reply lands in slot 2.
+    const first = watchOneTurn(1, 'JIGGLE01');
+    expect(beatsOf(first, 'acted')).toEqual({ me: '1', foe: '2' });
+    expect(beatsOf(first, 'hit')).toEqual({ me: '2', foe: '1' });
+
+    // Speed decides slot 2, so the slots swap with the order.
+    const second = watchOneTurn(2, 'JIGGLE01');
+    expect(beatsOf(second, 'acted')).toEqual({ me: '2', foe: '1' });
+    expect(beatsOf(second, 'hit')).toEqual({ me: '1', foe: '2' });
+  });
+
+  it('takes the last slot when the other side never acted', () => {
+    // Only p2 moved, and p2 is the one that lost HP: recoil, weather, a burn.
+    // There is no p1 lunge to follow, so the hit follows the last lunge there
+    // was rather than landing before the turn.
+    const view = baseView();
+    const scene = createScene();
+    scene.update(withHp(view, 'opponent', 1), NOOP);
+    scene.update(withHp(view, 'opponent', 0.8), NOOP, turnOf(['p2']));
+    expect(beatsOf(scene, 'acted')).toEqual({ me: undefined, foe: '1' });
+    expect(beatsOf(scene, 'hit')).toEqual({ me: undefined, foe: '1' });
+  });
+
+  it('draws the same beat for a super effective hit and a resisted one', () => {
+    const view = baseView();
+    const marks = (flags: FlaggedTurn['actions'][number]['flags']): Record<string, string | undefined> => {
+      const scene = createScene();
+      scene.update(withHp(view, 'opponent', 1), NOOP);
+      scene.update(withHp(view, 'opponent', 0.5), NOOP, turnOf(['p1', 'p2'], flags));
+      const out: Record<string, string | undefined> = {};
+      for (const side of ['me', 'foe'] as const) {
+        for (const [key, value] of Object.entries(actorOf(scene, side).dataset)) out[`${side}.${key}`] = value;
+      }
+      return out;
+    };
+    const superEffective = marks([{ kind: 'super', side: 'p2', subject: 'x', detail: null }]);
+    const resisted = marks([{ kind: 'resisted', side: 'p2', subject: 'x', detail: null }]);
+    // Not merely both present: byte for byte the same attributes.
+    expect(superEffective).toEqual(resisted);
+    expect(superEffective['foe.hit']).toBe('1');
+  });
+
+  it('sinks a body on the update its faint arrives, and holds it down after', () => {
+    const view = baseView();
+    const scene = createScene();
+    scene.update(withHp(view, 'opponent', 0.2), NOOP);
+    expect(beatsOf(scene, 'fainted')).toEqual({ me: undefined, foe: undefined });
+
+    scene.update(withFainted(view, 'opponent'), NOOP);
+    // The event and the state, together, plus the hit the KO also was.
+    expect(beatsOf(scene, 'fainting')).toEqual({ me: undefined, foe: 'true' });
+    expect(beatsOf(scene, 'fainted')).toEqual({ me: undefined, foe: 'true' });
+    expect(beatsOf(scene, 'hit')).toEqual({ me: undefined, foe: '1' });
+
+    // The next update keeps the state and drops the event: a fainted Pokemon
+    // does not faint again.
+    scene.update(withFainted(view, 'opponent'), NOOP);
+    expect(beatsOf(scene, 'fainting')).toEqual({ me: undefined, foe: undefined });
+    expect(beatsOf(scene, 'fainted')).toEqual({ me: undefined, foe: 'true' });
+
+    // The replacement rises through the swap beat, with an empty ghost: a body
+    // that has already sunk is not sunk a second time.
+    scene.update(withSpecies(view, 'opponent', 'Onix'), NOOP);
+    expect(beatsOf(scene, 'fainted')).toEqual({ me: undefined, foe: undefined });
+    expect(actorOf(scene, 'foe').dataset['swapped']).toBe('true');
+    expect(actorOf(scene, 'foe').querySelector('.sprite--ghost')?.hasAttribute('src')).toBe(false);
+  });
+
+  it('does not sink a body on the opening draw, however it arrived', () => {
+    const scene = createScene();
+    scene.update(withFainted(baseView(), 'opponent'), NOOP);
+    expect(beatsOf(scene, 'fainting')).toEqual({ me: undefined, foe: undefined });
+    // But it is down: the state is drawn even when there is no event to draw.
+    expect(beatsOf(scene, 'fainted')).toEqual({ me: undefined, foe: 'true' });
+  });
+
+  it('clears every beat on a tap, and never the faint state', () => {
+    const view = baseView();
+    const scene = createScene();
+    scene.update(withHp(view, 'opponent', 1), NOOP);
+    scene.update(withFainted(view, 'opponent'), NOOP, turnOf(['p1', 'p2']));
+    expect(beatsOf(scene, 'acted')).toEqual({ me: '1', foe: '2' });
+
+    scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
+    for (const key of ['acted', 'hit', 'fainting'] as const) {
+      expect(beatsOf(scene, key), key).toEqual({ me: undefined, foe: undefined });
+    }
+    // The tap cut the sink short and the body is exactly where the sink was going.
+    expect(beatsOf(scene, 'fainted')).toEqual({ me: undefined, foe: 'true' });
   });
 });
 
