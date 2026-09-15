@@ -69,8 +69,8 @@ screen away.
 |---|---|
 | `npm run lint` | green |
 | `tsc --noEmit` | green |
-| `vitest run` | **120 files, 1606 tests, all passing** |
-| `GYMRUN_TRIM_STRICT=1 vitest run` | **120 files, 1606 tests, all passing** (and green at the baseline too — see below) |
+| `vitest run` | **121 files, 1631 tests, all passing** (120 / 1606 before merging `main`) |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | **120 files, 1606 tests, all passing** pre-merge, and green at the branch point too — see below |
 | `npm run build` | green |
 | `npm run smoke` | green, including "the party drawer is reachable in a battle (1 triggers)" — the map trigger has its own attribute and does not pollute that count |
 | `scripts/visual/measure.mjs --compare` | **guarded screen heights equal `baseline/heights.json` to the pixel** |
@@ -105,6 +105,19 @@ jobs, and one class cannot hold both.**
 The height comparison is the one worth naming. Overlays are `position: fixed`,
 so a moved number would have meant something leaked into the document flow.
 Nothing did.
+
+### Re-run after merging `main` (PR #36)
+
+`main` moved 111 files under this branch, so every gate was run again on the
+merge commit rather than assumed inert. Lint, typecheck and build green;
+**121 files and 1631 tests passing** (the count rose because `main` brought its
+own tests); smoke green, still reporting one party trigger; and
+`measure.mjs --compare` **still equal to the baseline to the pixel** — against
+`main`'s baseline, which its own patch had also held to the pixel. The two
+patches do not interact in the flow, which is what both expected and neither
+had checked against the other.
+
+The browser pass was not repeated: `main` touched none of the overlay files.
 
 `npm run smoke` is the gate this patch most needed. The `[hidden]` /
 `display: flex` trap is recorded three times in `styles.css` — once per
