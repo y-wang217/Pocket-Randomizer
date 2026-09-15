@@ -85,7 +85,7 @@ async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Pro
 
 describe('the one tuning number reaches the screen', () => {
   it('resolves --motion-duration and both lengths derived from it', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const { page, context } = await openApp(harness.browser, harness.url, 'S49R-2');
     const resolved = await page.evaluate(() => {
       const style = globalThis.getComputedStyle(globalThis.document.documentElement);
       return {
@@ -139,7 +139,7 @@ describe('reduced motion', () => {
     const reduced = await harness.browser.newContext({ viewport: PHONE, reducedMotion: 'reduce' });
     await skipTutorialIn(reduced);
     const page = await reduced.newPage();
-    await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/#seed=S49R-2`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
     await playATurn(page);
 
@@ -195,7 +195,7 @@ describe('reduced motion', () => {
      * shadow's 500ms, and asserts the shadow is still fading while the buttons
      * are already live.
      */
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const { page, context } = await openApp(harness.browser, harness.url, 'S49R-2');
     await playATurn(page);
 
     const live = await page.evaluate(() => {
