@@ -58,6 +58,24 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: sprites on every selection surface, an idle bob, and one motion
+per locale.** Branch `claude/vibrant-euler-2taoqk`, prompt
+[`spec/gymrun-patch-idle-sprites-and-locale-motion.md`](spec/gymrun-patch-idle-sprites-and-locale-motion.md),
+record [`generation.md`](generation.md) section 19. A figure with a two-frame
+idle bob on the starter cards, the learn-move owner line, the member card
+(party, drawer, pre-gym), the recipient buttons, the capture block, the
+battle bench and the run summary; the event gate shows the members whose
+type answers it at `latent`, through a new pure helper `capabilityHolders`
+that `resolveCapability` now reads. Each locale's one moving element has its
+own motion in place of the shared crossing: the cave unchanged, the shore
+lapping, the forest's fireflies, the city's windows, the badlands' smoke, the
+summit's bird, the ruins' light, the marsh's rings. The plan's twenty-second
+floor is restated by kind and recorded as a deviation. Presentation only, no
+version axis moves, the guarded heights held to the pixel, the Pocket gate
+green. Animated GIF sprites were investigated and recorded in
+[`engine-notes.md`](engine-notes.md) rather than built. Report
+[`visual/reports/patch-idle-sprites-and-locale-motion.md`](visual/reports/patch-idle-sprites-and-locale-motion.md).
+
 **In flight: the bar primitive and the battle beats.** Branch
 `claude/kind-mccarthy-w3kml6`, prompt
 [`spec/gymrun-patch-bar-primitive-and-battle-beats.md`](spec/gymrun-patch-bar-primitive-and-battle-beats.md),
