@@ -105,22 +105,34 @@ describe('no screen builds its own overlay', () => {
       .filter(([, source]) => /role',\s*'dialog'|aria-modal|el\('div', 'band|className = ['"]band|['"]overlay/.test(source))
       .map(([name]) => name);
     /*
-     * The tooltip panel is a popover and predates the band; the 4.7 party
-     * drawer is a bottom sheet; V5's history sheet is the same bottom sheet
-     * holding the battle log. **None of the three is a confirm.** Each asks
-     * nothing, submits nothing and resolves no pending decision: they are
-     * readouts the player opens, not questions the game puts, and each closes
-     * without leaving anything behind it changed. The band is the one overlay
-     * that carries a decision, and it stays the only one that does.
+     * The tooltip panel is a popover and predates the band; `ui/overlay.ts` is
+     * the shell the readout overlays are built on. **Neither is a confirm.**
+     * They ask nothing, submit nothing and resolve no pending decision: they
+     * are readouts the player opens, not questions the game puts, and each
+     * closes without leaving anything behind it changed. The band is the one
+     * overlay that carries a decision, and it stays the only one that does.
      *
      * The list is an allowlist and grows one deliberate line at a time, which
-     * is the whole of its value — a fourth overlay that nobody had to justify
-     * is how the rule stops being one.
+     * is the whole of its value — an overlay that nobody had to justify is how
+     * the rule stops being one.
+     *
+     * **It got shorter while the app gained an overlay, and that is the point.**
+     * `drawer.ts` and `log-sheet.ts` were on this list because each built its
+     * own dialog by hand, from one recipe, and they had drifted. The
+     * map-overlay patch extracted the recipe into `ui/overlay.ts`; the two of
+     * them now *call* a shell rather than being one, `ui/map-drawer.ts` is a
+     * third caller that never appears here at all, and five entries became
+     * four while two overlays became three.
+     *
+     * That is the shape this rule wants. A new readout overlay should cost no
+     * line here — it should reach for the shell. A new line means somebody
+     * hand-rolled a dialog again, which is exactly the question worth asking.
      */
     expect(dialogs.sort()).toEqual([
       'src/ui/band.ts',
-      'src/ui/drawer.ts',
-      'src/ui/log-sheet.ts',
+      // The shared shell for every readout overlay: the party drawer, the
+      // battle history sheet and the run map. One dialog, three surfaces.
+      'src/ui/overlay.ts',
       'src/ui/tooltips.ts',
       // Overnight Branch 3: the coach-mark layer, one panel for every screen,
       // mounted on the shell like the tooltips. See ui/tutorial.ts.

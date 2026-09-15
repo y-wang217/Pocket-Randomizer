@@ -58,10 +58,45 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: the bar primitive and the battle beats.** Branch
+`claude/kind-mccarthy-w3kml6`, prompt
+[`spec/gymrun-patch-bar-primitive-and-battle-beats.md`](spec/gymrun-patch-bar-primitive-and-battle-beats.md),
+record [`generation.md`](generation.md) section 17. Presentation only, no
+version axis moves, both baselines held to the pixel. Release C's HP chunk
+and shadow moved into one component, `ui/bar.ts`, that every bar in the game
+now goes through; Release C's turn order nudge left the panel and became a
+lunge on the sprite, with a recoil on the body whose bar drew a chunk and a
+sink on a KO, four slots inside the one tuning number. The panel-nudge rule is
+deleted and recorded as superseded. Report
+[`visual/reports/patch-bar-and-beats.md`](visual/reports/patch-bar-and-beats.md).
+
+**In flight: the map overlay, and the three overlays become windows.** Branch
+`claude/hopeful-curie-5ah94f`, prompt
+[`spec/gymrun-patch-map-drawer-window-overlays.md`](spec/gymrun-patch-map-drawer-window-overlays.md),
+record [`generation.md`](generation.md) section 18. A `Map` button beside
+`Party` in the same bar, opening the run map as a readout from every decision
+surface — the second half of the standing rule the party drawer implements,
+which was never built: the route was visible on exactly one screen, so a player
+in a shop could not see whether a rest was two steps ahead. It renders nothing
+of its own, calling the map screen's own `renderRail`, `renderHeading` and
+`renderChain`, so it cannot reveal a fact that screen does not; and it calls
+`renderChain` with no `onChoose`, so every node in it is structurally
+unpressable and the map screen stays the single path by which a node is chosen.
+
+The same patch extracted `ui/overlay.ts` and turned all three overlays — party
+drawer, battle history, map — from bottom sheets into centred windows. The
+history sheet gained Escape and a click-stop it had been missing; both gained
+focus restore. **`test/band.test.ts`'s overlay allowlist went from five entries
+to four while the app went from two overlays to three.**
+
+Presentation only: no `core/` change, no version axis moves, seeded output
+byte-identical, and the guarded screen heights equal `visual/baseline/heights.json`
+to the pixel.
+
 **In flight: the Carry on soft lock.** Branch
 `claude/jolly-thompson-wume0n`, prompt
 [`spec/gymrun-patch-carry-on-softlock.md`](spec/gymrun-patch-carry-on-softlock.md),
-record [`generation.md`](generation.md) section 17. A playtest report on a
+record [`generation.md`](generation.md) section 19. A playtest report on a
 `53145f` build — this tree's own hash — found an event reveal whose **Carry on
 did nothing**: the item plan the player left the party screen with was spent a
 node after it was composed, the event's forced discard destroyed an item it
@@ -405,13 +440,25 @@ One line each. The analysis lives where the pointer goes, not here.
    **The SMOKE24 map `xfail` is a different check and stays**: it measures the
    offered cards against the 844 fold in the scrolled view, not against the 740
    usable line, and still reports y=869.
-8. **Strict trim is red, and the app does not boot under it.** `CLAUDE.md`
-   names it an absolute gate. `GYMRUN_TRIM_STRICT=1 vitest run` fails 22 tests
-   across the five browser test files on `9296ba7`, every one of them at
-   `openApp` waiting for the starter screen: something in the bundle reads the
-   trimmed `learnsets`/`legality` tables at start-up and the strict proxy throws.
-   Its own patch — find the read and make it lazy or remove it.
-   [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md).
+8. **Strict trim was red and is not any more. Closed 2026-09-15**, by
+   measurement rather than by a patch. The item recorded 22 failures across the
+   five browser test files on `9296ba7`, every one at `openApp` waiting for the
+   starter screen, on the reading that something in the bundle read the trimmed
+   `learnsets`/`legality` tables at start-up and the strict proxy threw.
+
+   Re-measured at `5d0bd18` in a clean worktree, with no `src/` change of any
+   kind: **`GYMRUN_TRIM_STRICT=1 vitest run` is 118 files and 1554 tests, all
+   passing.** Something between `9296ba7` and here fixed it and the item was
+   never revisited, so the entry outlived the failure by an unknown number of
+   patches.
+
+   **Kept as a closed entry rather than deleted**, because the useful part is
+   not the bug: an open item that names a hard gate as red is read by every
+   session that opens this file, and a stale one is believed. This one was
+   believed on the night the map overlay was built, and the plan for that patch
+   was written around working past a red gate that was green.
+   History: [`visual/reports/phone-regressions-4.7.md`](visual/reports/phone-regressions-4.7.md),
+   measurement: [`visual/reports/map-overlay.md`](visual/reports/map-overlay.md).
 
 9. **R8 needs its own move-card insertion point. Closed** by the density
    modes patch: the battle button carries a `?` chip on its PP line
@@ -484,6 +531,14 @@ One line each. The analysis lives where the pointer goes, not here.
    suites named above are the pattern. This is logged as a risk rather than
    written into `CLAUDE.md`, because `CLAUDE.md` holds rules that have held —
    this one has been broken twice and is a thing to watch.
+
+16. **The stat block's bar is the one bar not built by `ui/bar.ts`.**
+   `.stat__bar-fill` in `member-card.ts` is a magnitude over a 200 ceiling,
+   not a fraction, and carries a pre-Release-C `120ms` width transition that
+   `test/visual-tokens.test.ts` counts among its 17. Moving it onto the bar's
+   `neutral` variant — which shipped with the bar and beats patch and has no
+   consumer yet — retires that duration and takes the pin to 16. One small
+   patch; `generation.md` section 17.
 
 ### Carried out of patch 4.8.0.3
 

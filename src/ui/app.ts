@@ -52,7 +52,7 @@ import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, DRAWER_SURFACES, MAP_SURFACES, type ScreenName } from './screens/router';
 import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
@@ -62,6 +62,7 @@ import { createStamps } from './stamps';
 import { createPreGymScreen } from './screens/pre-gym';
 import type { GymDefinition } from '../data/gyms';
 import { createDrawer, type DrawerView } from './drawer';
+import { createMapDrawer } from './map-drawer';
 import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
@@ -147,6 +148,20 @@ export function mountApp(root: HTMLElement): void {
    */
   const drawer = createDrawer();
 
+  /*
+   * The map overlay, mounted beside the party drawer and on the same terms.
+   *
+   * The party drawer's standing rule has a second half that was never built:
+   * a decision surface must also expose *where the run is going*, and until now
+   * the only way to see the route was to be standing on the map screen. A
+   * player in a shop could not see whether a rest was two steps ahead.
+   *
+   * `src/ui/map-drawer.ts` carries the argument, and the reason it can show the
+   * route without breaking the reveal rules: it calls the map screen's own
+   * renderers rather than reimplementing them.
+   */
+  const mapDrawer = createMapDrawer();
+
   const router = createRouter(
     {
     starter: starterScreen.root,
@@ -188,10 +203,28 @@ export function mountApp(root: HTMLElement): void {
    */
   const drawerBar = el('div', 'shell__drawer-bar');
   const drawerTrigger = drawer.trigger();
-  drawerBar.append(drawerTrigger);
+  const mapTrigger = mapDrawer.trigger();
+  /*
+   * Map first, Party second, and the order is deliberate.
+   *
+   * The bar is `justify-content: flex-end`, so the *last* child sits hard
+   * against the right edge — which is where the Party button has been since
+   * Stage 4.7 and where a returning player's thumb goes. Appending Map after
+   * Party would have moved Party left to make room, and moving a control a
+   * player already knows is a worse cost than the new one landing beside it.
+   */
+  drawerBar.append(mapTrigger, drawerTrigger);
 
   const replayTutorial = document.createElement('button');
-  shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, stamps.root);
+  shell.append(
+    createHeader(replayTutorial, seedBar.toggle),
+    seedBar.root,
+    drawerBar,
+    router.root,
+    drawer.root,
+    mapDrawer.root,
+    stamps.root,
+  );
 
   /*
    * The trigger's visibility follows the router, in one place.
@@ -202,10 +235,16 @@ export function mountApp(root: HTMLElement): void {
    */
   const showScreen = (name: ScreenName): void => {
     router.show(name);
-    drawerBar.hidden = !DRAWER_SURFACES.includes(name);
+    drawerTrigger.hidden = !DRAWER_SURFACES.includes(name);
+    mapTrigger.hidden = !MAP_SURFACES.includes(name);
+    // The bar shows when *either* trigger does, so a screen that has a route to
+    // show but no party — or the reverse — still gets a bar rather than an
+    // empty row of chrome.
+    drawerBar.hidden = drawerTrigger.hidden && mapTrigger.hidden;
     // Closing on navigation, not on open: a drawer left open across a screen
     // change would be an overlay over a decision the player has already made.
     drawer.close();
+    mapDrawer.close();
     showTutorialFor(name);
   };
 
@@ -224,11 +263,46 @@ export function mountApp(root: HTMLElement): void {
    */
   let readDrawer: () => DrawerView | null = () => null;
 
+  /**
+   * The run state the map overlay would draw, asked at the moment it opens.
+   *
+   * A getter for `readDrawer`'s reason and assigned in the same place: the
+   * live state lives inside `start()`'s closure, and a snapshot kept current by
+   * a subscription would be a second copy of run state to keep in agreement
+   * with the first. Null between runs, and the trigger is hidden then anyway.
+   *
+   * Unlike `readDrawer` this hands back `RunState` itself rather than a
+   * prepared view, because the three renderers the overlay calls read the state
+   * directly — there is nothing to prepare, and preparing something would be
+   * the second implementation the overlay exists to avoid.
+   */
+  let readMap: () => RunState | null = () => null;
+
   drawerTrigger.addEventListener('click', () => {
     const view = readDrawer();
     if (!view) return;
-    drawer.open({ ...view, inBattle: router.current() === 'battle' });
+    // The trigger goes along as the opener: closing the drawer returns focus to
+    // the button that opened it, on whichever surface that was.
+    drawer.open({ ...view, inBattle: router.current() === 'battle' }, drawerTrigger);
     marks.showFor('drawer', drawer.root);
+  });
+
+  /*
+   * The map overlay's trigger, on the same terms as the party drawer's.
+   *
+   * `live` is read at the moment of the click and nothing else happens: no
+   * pending promise resolves, no stream is touched, no decision is submitted.
+   * That is the whole of "opening it never advances state", and it is the same
+   * getter discipline `readDrawer` above is written for — this one needs no
+   * wrapper because the three renderers read `RunState` directly.
+   *
+   * No `marks.showFor` call: the overlay carries no tutorial marks, and
+   * `ui/map-drawer.ts` says why.
+   */
+  mapTrigger.addEventListener('click', () => {
+    const state = readMap();
+    if (!state) return;
+    mapDrawer.open(state, mapTrigger);
   });
 
   // "Show tutorial again": the flags go back to a first launch and the screen
@@ -595,6 +669,10 @@ export function mountApp(root: HTMLElement): void {
         tuning: state.tuning,
       };
     };
+
+    // The map overlay's window onto this run. A read of the same `live`
+    // reference, with nothing derived — see the declaration above.
+    readMap = () => live;
 
     /*
      * The last battle result shown, held for the capture render that follows it.

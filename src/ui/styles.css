@@ -547,32 +547,105 @@ body {
   --chip: var(--emphasis);
 }
 
-/* ---------- the turn order nudge ----------
-   Release C item 2. A panel twitches when its Pokemon acts, in the order the
-   actions resolved, so the sequence is on the board rather than only in the
-   log's ordinals.
+/* ---------- the turn, as beats on the stage ----------
+   Release C item 2, moved from the panel to the sprite by the bar and beats
+   patch. A body lunges toward its opponent when it acts, in the order the
+   actions resolved, and a body whose bar drew a chunk is knocked back in the
+   slot after the lunge that took it. The sequence is on the board rather than
+   only in the log's ordinals, and it is on the thing that acted rather than
+   on the scrim floating beside it. The panel no longer moves; the rule that
+   moved it is deleted, not kept behind a flag.
 
-   Two steps and no more: `scene.ts` places a side by its first action in the
-   turn, which caps the sequence at the two sides. The second waits one nudge
-   before starting, so the pair reads as "then" rather than as a shudder.
+   Four slots and no more, each one `--motion-beat` long: first actor, its
+   target, second actor, its target. `scene.ts` places a side by its first
+   action in the turn, which caps the lunges at two, and puts a hit in the
+   slot after the other side's lunge. The last slot ends exactly where the HP
+   shadow's fade does, so a turn's whole feedback is still the one number.
 
-   The distance is a token and it is deliberately tiny — 2px is a twitch that
-   registers at the edge of vision without the panel appearing to come loose.
-   `transform` only: no layout property is touched, so a nudge cannot reflow the
-   screen or move the move buttons under a thumb that is already descending. */
-.panel[data-jiggle] {
-  animation: panel-nudge var(--motion-jiggle) ease-in-out;
+   `transform` and `opacity` only, on the compositor: no layout property is
+   touched, so a beat cannot reflow the stage or move the move buttons under a
+   thumb that is already descending. The lunge is on the actor and the hit on
+   the sprite inside it, so the two transforms compose rather than compete
+   when one body both acts and is hit in the same turn.
+
+   `--beat-direction` is which way "toward the opponent" is. The player's
+   body stands lower left and the opponent's upper right, so the two lunge
+   along the same diagonal in opposite senses, and one keyframe set serves
+   both corners. A custom property rather than two keyframe sets, because a
+   second copy of a keyframe is the kind of thing that drifts. */
+.stage__actor--me { --beat-direction: 1; }
+.stage__actor--foe { --beat-direction: -1; }
+
+.stage__actor[data-acted] {
+  animation: actor-lunge var(--motion-beat) ease-in-out;
 }
 
-.panel[data-jiggle="2"] {
-  animation-delay: var(--motion-jiggle);
+.stage__actor[data-acted="2"] {
+  animation-delay: calc(var(--motion-beat) * 2);
 }
 
-@keyframes panel-nudge {
-  0% { transform: translateX(0); }
-  30% { transform: translateX(calc(var(--jiggle-distance) * -1)); }
-  70% { transform: translateX(var(--jiggle-distance)); }
-  100% { transform: translateX(0); }
+@keyframes actor-lunge {
+  0% { transform: none; }
+  40% {
+    transform: translate(
+      calc(var(--lunge-distance) * var(--beat-direction)),
+      calc(var(--lunge-distance) * -0.5 * var(--beat-direction))
+    );
+  }
+  100% { transform: none; }
+}
+
+/* The hit: knocked back along the same line the lunge came in on, with a dip
+   in opacity while it lands. Same size for every hit — see the token. */
+.stage__actor[data-hit] .sprite:not(.sprite--ghost) {
+  animation: sprite-hit var(--motion-beat) ease-out;
+}
+
+@keyframes sprite-hit {
+  0% { transform: none; opacity: 1; }
+  30% {
+    transform: translateX(calc(var(--hit-recoil) * -1 * var(--beat-direction)));
+    opacity: var(--hit-dip);
+  }
+  100% { transform: none; opacity: 1; }
+}
+
+/* The faint. The same `sprite-sink` the swap beat uses — a body leaving the
+   fight is the same kind of event however it left — starting in the slot the
+   hit would have taken and running to the end of the budget: three beats
+   after the first actor's hit, one after the second's. `both`, so the body is
+   still standing through the slots before its own and stays down after.
+
+   Written after the hit rule at equal specificity, so on the turn a hit is
+   also the KO the sink wins the shorthand and there is one animation on the
+   sprite, not two. The delay rules for the slots come after both, so the sink
+   inherits the hit's slot. */
+.stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost) {
+  animation: sprite-sink calc(var(--motion-beat) * 3) ease-in both;
+}
+
+.stage__actor[data-fainting='true'][data-hit="2"] .sprite:not(.sprite--ghost) {
+  animation-duration: var(--motion-beat);
+}
+
+.stage__actor[data-hit="1"] .sprite:not(.sprite--ghost) {
+  animation-delay: var(--motion-beat);
+}
+
+.stage__actor[data-hit="2"] .sprite:not(.sprite--ghost) {
+  animation-delay: calc(var(--motion-beat) * 3);
+}
+
+/* Where the sink ends, held as state. `scene.ts` mirrors the projection's
+   `fainted` onto the actor every update, and this is what a KO'd body looks
+   like between the sink finishing and the replacement rising: down, and not
+   drawn. The sink's own last keyframe is the same values, so a tap that cuts
+   the animation short and a reduced-motion setting that never runs it both
+   land the sprite exactly here. Reduced motion removes the movement, not the
+   fact that the Pokemon is out. */
+.stage__actor[data-fainted='true'] .sprite:not(.sprite--ghost) {
+  opacity: 0;
+  transform: translateY(var(--sprite-swap-travel)) scale(0.94);
 }
 
 /* ---------- the chunk a hit took ----------
@@ -604,6 +677,11 @@ body {
 
 .hp__fill[data-band="mid"] { background: var(--hp-mid); }
 .hp__fill[data-band="low"] { background: var(--hp-low); }
+
+/* A bar that is not HP. `ui/bar.ts`'s neutral variant: no band, no threshold,
+   the same track and the same fill in the stat block's uncoloured ink, for
+   the next progress readout that is a quantity and not a Pokemon's health. */
+.hp--neutral .hp__fill { background: var(--text-faint); }
 
 .panel__meta {
   display: flex;
@@ -1786,6 +1864,10 @@ body {
  *
  * `transform` and `opacity` only, so the beat runs on the compositor and cannot
  * reflow the stage or move a move button under a descending thumb.
+ *
+ * `sprite-sink` is shared with the faint since the bar and beats patch — see
+ * the beats block — and `scene.ts` leaves the ghost empty when the body that
+ * left had already fainted, so a KO is never sunk twice.
  */
 @keyframes sprite-rise {
   from { opacity: 0; transform: translateY(var(--sprite-swap-travel)) scale(0.94); }
@@ -2992,11 +3074,19 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      `test/visual-release-c.test.ts`, which reads the computed animation rather
      than trusting the rule to have applied. */
   .hp__shadow, .hp__shadow[data-fading] { animation: none; }
-  /* `animation: none` is the shorthand, so it resets the delay too — the
-     second step's `animation-delay` needs no separate override, and writing
-     one would have been a nineteenth hardcoded duration in a stylesheet whose
-     count is pinned. */
-  .panel[data-jiggle], .panel[data-jiggle="2"] { animation: none; }
+  /* The beats: the lunge on the actor, the hit and the faint on the sprite.
+     Selectors matched to every rule they override, the slot delays and the
+     KO-turn duration included, for the reason the chunk's note gives. The
+     lunge and the hit end at rest, so cancelling them leaves the body where
+     it stands; the faint ends at the `data-fainted` state the rule above
+     already holds, so a KO'd body is down without ever having moved.
+     `animation: none` is the shorthand, so it resets the delays too. */
+  .stage__actor[data-acted], .stage__actor[data-acted="2"] { animation: none; }
+  .stage__actor[data-hit] .sprite:not(.sprite--ghost),
+  .stage__actor[data-hit="1"] .sprite:not(.sprite--ghost),
+  .stage__actor[data-hit="2"] .sprite:not(.sprite--ghost),
+  .stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost),
+  .stage__actor[data-fainting='true'][data-hit="2"] .sprite:not(.sprite--ghost) { animation: none; }
   /* V5.5: the species swap resolves instantly. Selectors matched to the rules
      they override rather than to the elements, for the reason the chunk's own
      note gives — a media query adds no specificity and a plain `.sprite` would
@@ -4178,65 +4268,123 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * overlay rather than a route is that the player can see they have not left.
  * ------------------------------------------------------------------------- */
 
-/* ---------- the history sheet ----------
-   V5.2. The battle log, behind a tap on the event strip.
+/* ---------- the overlay window ----------
+   **One shell, three surfaces, one geometry.** The party drawer, the battle
+   history and the run map are all `ui/overlay.ts`, and every element carries
+   both `.overlay__x` and its own `.block__x` — the shared half owns the
+   geometry below, the block half owns whatever that one surface needs.
 
-   The same bottom-sheet recipe as the party drawer above, and deliberately the
-   same one: a phone has one place an overlay belongs, and a second set of
-   metrics for a second sheet would drift from it. It stops short of the top of
-   the viewport for the drawer's reason too — the player can see they have not
-   left the fight.
+   **A window, not a bottom sheet.** Stage 4.7 anchored the drawer to the
+   bottom edge because "that is where a thumb is", and kept it short of the top
+   so that "the strip of the screen underneath is what says this is an overlay".
+   The second half of that argument is the one that survives, and a window
+   serves it better: the strip is on every edge rather than one. The first half
+   was a phone argument that did not generalise — the map overlay's rail and
+   chain want the height a centred window gives them and a `max-height: 86vh`
+   bottom sheet does not.
 
-   `[hidden]` carries its own `display: none`, which the drawer's rule set
-   already explains at length and which the smoke script has caught twice: any
-   `display` rule beats the UA `hidden` style, so an overlay toggled with
-   `hidden` and laid out with `display: flex` is an invisible scrim eating every
-   tap on the board underneath. Third occurrence, same guard. */
-.log-sheet[hidden] {
+   It is also not a regression on the viewport the whole project measures at.
+   At 390x844 the sheet had 90vh, or 760px. The window has the viewport less
+   two gutters, about 812px. More room, not less.
+
+   `[hidden]` carries its own `display: none`. That trap — `hidden` is a UA
+   style and any `display` rule beats it, so an overlay toggled with `hidden`
+   and laid out with `display: flex` is an invisible scrim eating every tap on
+   the screen below — was recorded three times in this file, once per hand-copy,
+   and `npm run smoke` caught it all three times because jsdom has no
+   pointer-event model. It is guarded once now, for all three. There is no
+   fourth occurrence to record. */
+.overlay[hidden] {
   display: none;
 }
 
-.log-sheet {
+.overlay {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  /* The gutter is the overlay's whole claim to being one. Nothing may remove
+     it: a window flush to an edge is a screen with extra steps. */
+  padding: var(--space-3);
 }
 
-.log-sheet__scrim {
+.overlay__scrim {
   position: absolute;
   inset: 0;
   background: var(--dim);
 }
 
-.log-sheet__sheet {
+.overlay__sheet {
   position: relative;
+  width: min(var(--overlay-width), 100%);
+  /* 100% of the padded layer, so the sheet can never reach an edge. */
+  max-height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: calc(var(--space-2h) * var(--density-gap));
-  max-height: 72vh;
   background: var(--bg);
-  border-top: var(--hairline) solid var(--border);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-5) * var(--density-pad));
+  /* All four sides now, where the sheet had one border and two corners. */
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--overlay-shadow);
+  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-4) * var(--density-pad));
 }
 
-.log-sheet__header {
+.overlay__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
+  /* Sticky so Close is reachable without scrolling a tall sheet back up. */
+  position: sticky;
+  top: calc(-1 * var(--space-3h));
+  background: var(--bg);
+  padding-top: var(--space-1);
 }
 
-.log-sheet__title {
-  margin: 0;
-  font-size: var(--fs-2xl);
+.overlay__title { margin: 0; font-size: var(--fs-2xl); }
+.overlay__close { flex: 0 0 auto; }
+
+/* The body carries the same column the sheet does, so a caller appends its
+   content and gets the spacing without knowing the shell's layout. */
+.overlay__body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-2h) * var(--density-gap));
 }
 
-.log-sheet__close {
-  flex: 0 0 auto;
+/* ---------- the history sheet ----------
+   V5.2. The battle log, behind a tap on the event strip. Geometry above; what
+   is left here is the one thing that is its own — the log panel must be able
+   to shrink inside the window rather than push it, so it gets the flex
+   minimum that a default `min-height: auto` would otherwise deny it. */
+.log-sheet__body {
+  min-height: 0;
+}
+
+/* ---------- the map overlay ----------
+   The run map, reachable from every decision surface. `ui/map-drawer.ts`
+   carries the argument; this is the whole of what it needs from the
+   stylesheet, because the rail, the heading and the chain inside it are the
+   map screen's own elements with the map screen's own classes.
+
+   **Wider than the other two.** They stack cards and prose, which read badly
+   past a reading width. This one carries an eight-gym rail and a step chain,
+   both horizontal, and at the reading width the rail wraps into a column that
+   costs the chain the room it needs. On a phone neither width is reachable and
+   the `min(…, 100%)` above makes this a no-op. */
+.map-drawer__sheet {
+  width: min(var(--overlay-width-wide), 100%);
+}
+
+/* The rail and the chain scroll inside the window rather than stretching it,
+   the same way they scroll inside the map screen's own grid areas. */
+.map-drawer__rail,
+.map-drawer__chain {
+  min-height: 0;
 }
 
 /* The drawer trigger, in the same place on every decision surface. */
@@ -4251,75 +4399,31 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    is hidden on the starter screen and the summary. */
 .shell__drawer-bar[hidden] { display: none; }
 
-.drawer__trigger {
+/*
+ * The look the bar's triggers share. **A class that names the look, not one of
+ * the overlays.**
+ *
+ * The map trigger first carried `drawer__trigger` for this, on the reasoning
+ * that the brief asks for a mimic of the Party button and two controls doing
+ * the same kind of thing should not look like two kinds. The reasoning was
+ * right and the mechanism was wrong: `test/visual-move-cards.test.ts` selects
+ * `.drawer__trigger` as the party trigger's *identity*, and a second button
+ * carrying it — placed first in the bar, and hidden on the map screen —
+ * silently became the one `.first()` resolved to.
+ *
+ * So the shared appearance gets its own name and each overlay's class goes
+ * back to naming exactly one button. A style hook and an identity are
+ * different jobs, and that failure is what it costs to give one class both.
+ */
+.shell__trigger {
   border-color: var(--emphasis);
   color: var(--emphasis);
 }
 
-.drawer[hidden] {
-  /*
-   * **`hidden` is a UA style, and any `display` rule beats it.**
-   *
-   * The rule below sets `display: flex`, which silently un-hides the overlay:
-   * the sheet is off-screen but the scrim covers the viewport and eats every
-   * click on the screen underneath. `npm run smoke` found it on the starter
-   * screen within seconds of the drawer landing, which is exactly what that
-   * script is for — jsdom has no pointer-event model and every unit test
-   * passed.
-   *
-   * This file already carries the same note about `.rewards`. Two occurrences
-   * is a pattern: anything toggled with `hidden` needs the guard next to its
-   * `display` rule.
-   *
-   * `.drawer[hidden]` and not `:where(.drawer)[hidden]`, which was the first
-   * attempt and did nothing: `:where()` zeroes its argument's specificity, so
-   * the guard tied with `.drawer` on (0,1,0) and lost on source order. The
-   * smoke test failed identically twice, which is the useful kind of failure.
-   */
-  display: none;
-}
-
-.drawer {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-.drawer__scrim {
-  position: absolute;
-  inset: 0;
-  background: var(--dim);
-}
-
-.drawer__sheet {
-  position: relative;
-  max-height: 86vh;
-  overflow-y: auto;
-  background: var(--bg);
-  border-top: var(--hairline) solid var(--border);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-5) * var(--density-pad));
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-gap));
-}
-
-.drawer__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  /* Sticky so Close is reachable without scrolling a three-card sheet back up. */
-  position: sticky;
-  top: calc(-1 * var(--space-3h));
-  background: var(--bg);
-  padding-top: var(--space-1);
-}
-
-.drawer__title { margin: 0; font-size: var(--fs-2xl); }
+/* The party drawer. Everything structural — the fixed layer, the scrim, the
+   window, the sticky header, the `[hidden]` guard — is the shared `.overlay`
+   block above, which this element also carries. What is left here is the
+   drawer's own content. */
 .drawer__blurb { margin: 0; color: var(--text-dim); font-size: var(--fs-md); }
 .drawer__note { margin: 0; color: var(--text-faint); font-size: var(--fs-sm); }
 .drawer__section { margin: var(--space-1h) 0 0; font-size: var(--fs-md); color: var(--text-dim); }
@@ -4675,9 +4779,17 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .locale__party-name { font-weight: 600; }
 
 @media (max-width: 420px) {
-  /* The sheet takes more of the viewport on a phone, but never all of it: the
-   * strip of the screen underneath is what says this is an overlay. */
-  .drawer__sheet { max-height: 90vh; }
+  /*
+   * **The `.drawer__sheet { max-height: 90vh }` that lived here is gone.**
+   *
+   * It existed so the sheet took more of a phone viewport "but never all of
+   * it: the strip of the screen underneath is what says this is an overlay".
+   * The window geometry says that structurally instead — `.overlay` pads every
+   * edge and `.overlay__sheet` is capped at 100% of what is left — so the strip
+   * is now on four sides rather than one, and it cannot be overridden away by a
+   * viewport rule. The overlay is also taller here than the sheet was: about
+   * 812px of an 844px phone against the old 760.
+   */
   .move__facts { gap: var(--space-1); }
   /*
    * **The `.badge--tag { font-size: var(--fs-2xs) }` that lived here is gone.

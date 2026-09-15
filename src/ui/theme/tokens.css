@@ -284,6 +284,27 @@
   --radius-card: 4px;
   --radius-chip: 2px;
 
+  /* ---------- the overlay window ----------
+     Three overlays share one shell (`ui/overlay.ts`) and one geometry block,
+     and these are the only numbers that differ between them.
+
+     Two widths, because the overlays carry two shapes of content. The reading
+     width is for stacked cards and prose — the party drawer and the battle
+     history. The wide one is for the map overlay, whose eight-gym rail and step
+     chain are horizontal and cramp badly at the reading width.
+
+     `min(…, 100%)` at the use site is what keeps both honest on a phone: at
+     390px neither width is reachable, and the window is the viewport less its
+     gutters.
+
+     The shadow is what separates a centred window from the screen behind it. A
+     bottom sheet did not need one — an edge-anchored panel reads as attached —
+     but a window floating over live content does, and without it the scrim is
+     doing the whole job of saying which layer is on top. */
+  --overlay-width: 34rem;
+  --overlay-width-wide: 44rem;
+  --overlay-shadow: 0 var(--space-2) var(--space-5) color-mix(in srgb, var(--base-deep) 55%, transparent);
+
   /* ---------- motion ----------
      V0 left this at 0 and named the stage that would fill it in. Release C is
      that stage: `data/tuning.ts` now carries one added-time-per-turn number and
@@ -294,16 +315,18 @@
      call degrades to the designed feel instead of to no feedback at all.
 
      Every battle-feedback length is derived from it, so the one number really
-     is the budget: the shadow spends all of it, and the jiggle runs inside that
-     window rather than after it. The transitions that predate this stage keep
-     their own lengths in styles.css. */
+     is the budget: the shadow spends all of it, and the four beats of a turn
+     run inside that window rather than after it. The transitions that predate
+     this stage keep their own lengths in styles.css. */
   --motion-duration: 500ms;
   /* The chunk a hit took, marking where the bar was. Release C item 1. */
   --motion-hp-shadow: var(--motion-duration);
-  /* One panel nudge. Two run back to back, the second delayed by one, so the
-     pair finishes inside the shadow's window and the budget stays one number.
-     Release C item 2. */
-  --motion-jiggle: calc(var(--motion-duration) / 4);
+  /* One beat: a lunge or a hit. A turn is four of them, in slots — first
+     actor, its target, second actor, its target — and every slot's delay is a
+     multiple of this, so the whole turn finishes exactly as the shadow does
+     and the budget stays one number. Release C item 2's length, kept, when
+     the beat moved from the panel to the sprite in the bar and beats patch. */
+  --motion-beat: calc(var(--motion-duration) / 4);
   /* The species swap: the outgoing sprite sinking and the incoming one rising.
      V5.5. The whole budget, like the shadow, because it is the same kind of
      event — a thing on the board resolving — and because the two never happen
@@ -316,10 +339,17 @@
      about a hit the player has not been told the size of yet, and the bar's
      three HP colours already carry the only colour meaning on this control. */
   --hp-shadow: color-mix(in srgb, var(--cream) 22%, var(--bg-sunken));
-  /* How far a panel travels when its Pokemon acts. A twitch, not a shake: far
-     enough to register at the edge of vision, near enough that the panel never
-     looks like it came loose from the layout. */
-  --jiggle-distance: 2px;
+  /* How far a sprite lunges toward its opponent when it acts. Far enough to
+     read as an attack on a 96px body, near enough that the body never leaves
+     the corner it stands in or reaches the panel floating beside it. */
+  --lunge-distance: 8px;
+  /* How far a sprite is knocked back when its bar drew a chunk, and how far
+     its opacity dips while it is. The same for every hit: the chunk already
+     says how big the hit was, and a recoil that grew with the multiplier
+     would be a verdict on the board. Half the lunge, so the answer reads as
+     smaller than the question. */
+  --hit-recoil: 4px;
+  --hit-dip: 0.55;
   /* How far a sprite travels as it sinks into the near layer or rises out of
      it. Far enough to read as depth, near enough that the body never appears to
      leave the stage it is standing on. */

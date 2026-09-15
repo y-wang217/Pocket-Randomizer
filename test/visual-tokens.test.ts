@@ -207,6 +207,11 @@ describe('the token rule', () => {
    * `var(--motion-swap)` — `--motion-duration`, the one added-time-per-turn
    * number in `data/tuning.ts`. V5 added no duration of its own, so the pin
    * moved down by one and by nothing else.
+   *
+   * **Still 17 after the bar and beats patch.** The lunge, the hit and the
+   * faint are five more `animation` and `animation-delay` declarations, every
+   * one of them a `calc` over `--motion-beat`, which is `--motion-duration`
+   * over four. Nothing new to count.
    */
   const PRE_RELEASE_C_DURATIONS = 17;
 
@@ -230,12 +235,14 @@ describe('the token rule', () => {
     // lengths derived from it. One number, not three.
     expect(tokens).toMatch(/--motion-duration:\s*\d+ms;/);
     expect(tokens).toMatch(/--motion-hp-shadow:\s*var\(--motion-duration\)/);
-    expect(tokens).toMatch(/--motion-jiggle:\s*calc\(var\(--motion-duration\)/);
+    // One beat, a quarter of the budget: Release C's jiggle length, renamed
+    // when the bar and beats patch put four of them in a turn.
+    expect(tokens).toMatch(/--motion-beat:\s*calc\(var\(--motion-duration\)/);
     // V5.5's swap, the third length off the one number.
     expect(tokens).toMatch(/--motion-swap:\s*var\(--motion-duration\)/);
 
     const styles = cssFiles.map((file) => stripCss(readFileSync(file, 'utf8'))).join('\n');
-    for (const rule of ['--motion-hp-shadow', '--motion-jiggle', '--motion-swap']) {
+    for (const rule of ['--motion-hp-shadow', '--motion-beat', '--motion-swap']) {
       expect(styles, `${rule} is used`).toContain(`var(${rule})`);
     }
   });
