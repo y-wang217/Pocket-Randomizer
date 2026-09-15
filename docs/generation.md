@@ -3563,6 +3563,16 @@ evolution and at least 280 base stat total.
   confirming the hit in the browser (`SMK49-2`). The greedy bot wins no run
   at all on 400 seeds, so the one test that needs a victory renders a played
   run with its outcome set, and says so.
+- **Two presentation defects surfaced by the new seeds, fixed in place.** The
+  reduced-motion block never cancelled the arriving sprite's rise: the rule
+  it overrides is written with `:not(.sprite--ghost)`, which carries its
+  argument's specificity, so the plain override lost and the body rose for
+  anybody who had asked it not to; latent until a seed put a send-in on the
+  measured turn. And the chip legibility sweep found no status chip on any
+  seed this bot walks at level 7 — a status is a ten-percent rider on a
+  band-1 move in a two-turn fight — so the sweep now also samples the
+  gallery's loaded party, which carries two statused members by
+  construction, rather than hunting a seed for the rider.
 - **The gym move-band spike moved twice.** First built as planned (from
   segment 0, as `GYM_MOVE_BAND_BONUS` always was), then held until segment
   2; see above.
