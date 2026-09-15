@@ -14,6 +14,7 @@
  */
 import { describeMove, describeSpecCard } from '../../core/battle/driver';
 import { archetypeChip } from '../archetype-chip';
+import { createBar } from '../bar';
 import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
 import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
@@ -104,12 +105,9 @@ function renderTarget(
   level.textContent = `Lv${detail.level}`;
   header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
 
-  const track = el('div', 'hp');
-  const fill = el('div', 'hp__fill');
-  const fraction = hpFraction(member);
-  fill.style.width = `${fraction * 100}%`;
-  fill.dataset['band'] = fraction > 0.5 ? 'high' : fraction > 0.2 ? 'mid' : 'low';
-  track.append(fill);
+  const bar = createBar();
+  bar.set(hpFraction(member));
+  const track = bar.root;
 
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');

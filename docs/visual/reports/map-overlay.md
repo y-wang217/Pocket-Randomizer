@@ -3,7 +3,7 @@
 Branch `claude/hopeful-curie-5ah94f`. Prompt:
 [`../../spec/gymrun-patch-map-drawer-window-overlays.md`](../../spec/gymrun-patch-map-drawer-window-overlays.md),
 filed 2026-09-15 before any work. Record:
-[`../../generation.md`](../../generation.md) section 17.
+[`../../generation.md`](../../generation.md) section 18.
 
 Screenshots in [`map-overlay/`](map-overlay/), at 390x844 and 1280x900.
 
@@ -138,6 +138,12 @@ all passing, so the patch keeps the gate green rather than inheriting a pass.
 
 This is the second thing in one night that was believed red and was not. Both
 came from taking a recorded state as current instead of measuring it.
+
+**Corroborated independently.** Merging `main` after PR #36 brought in the bar
+and beats patch, whose own record (`generation.md` section 17) reports strict
+trim green at 119 files and 1579 tests and notes the same item is stale — it
+chose to say so without closing it. Two patches measured it green from
+different trees on the same day. The item is closed here on both.
 
 ## What this moves
 

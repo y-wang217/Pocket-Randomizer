@@ -36,6 +36,7 @@ import {
   type MoveUiView,
 } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
+import { createBar, type Bar } from './bar';
 import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
 import { spriteImg, spriteUrl } from './sprites';
@@ -95,9 +96,8 @@ interface SidePanel {
   /** The Part 7 label, beside the level on both sides of the field. */
   archetype: HTMLElement;
   types: HTMLElement;
-  hpFill: HTMLElement;
-  /** The chunk the last hit took, marking where the bar used to end. */
-  hpShadow: HTMLElement;
+  /** The bar, with the chunk the last hit took. `ui/bar.ts` owns both. */
+  hp: Bar;
   hpText: HTMLElement;
   status: HTMLElement;
   volatiles: HTMLElement;
@@ -124,9 +124,10 @@ export interface Scene {
    * a number came from.
    *
    * `turns` is the screen's one reading of the protocol batch that produced
-   * this view, the same object the log is rendering from. Release C item 2
-   * drives the jiggle off it, and the point of passing it rather than reading
-   * it here is that there is then no second reading to disagree with the log.
+   * this view, the same object the log is rendering from. The stage's beats
+   * are driven off it — Release C item 2's rule, moved onto the sprites by the
+   * bar and beats patch — and the point of passing it rather than reading it
+   * here is that there is then no second reading to disagree with the log.
    * Omitted on a redraw that is not the result of new protocol.
    */
   update(view: BattleUiView, onChoose: (choice: Choice) => void, turns?: readonly FlaggedTurn[]): void;
@@ -166,14 +167,16 @@ export function createScene(): Scene {
 
   /*
    * Any transition must be skippable by tapping. Nothing here blocks input in
-   * the first place — the beat is a CSS animation on a panel, and the move
-   * buttons are live throughout — but a player who taps *because* something is
-   * moving should see it stop, so the first touch anywhere clears both beats.
+   * the first place — every beat is a CSS animation on a sprite or its actor,
+   * and the move buttons are live throughout — but a player who taps *because*
+   * something is moving should see it stop, so the first touch anywhere
+   * settles both actors and resolves both bars.
    */
   root.addEventListener(
     'pointerdown',
     () => {
-      // The swap beat is the sprites' since V5.5, so this is what cancels it.
+      // Every beat on the stage is the sprites' now: the swap since V5.5, the
+      // lunge, the hit and the faint since the bar and beats patch.
       settleActor(foeActor);
       settleActor(meActor);
       /*
@@ -182,12 +185,7 @@ export function createScene(): Scene {
        * a player who taps to get on with the turn should not still be looking
        * at the last one's damage.
        */
-      for (const panel of [foe, me]) {
-        delete panel.hpShadow.dataset['fading'];
-        panel.hpShadow.style.width = '0%';
-        // The nudge stops mid-swing and the panel sits back where it belongs.
-        delete panel.root.dataset['jiggle'];
-      }
+      for (const panel of [foe, me]) panel.hp.cancel();
     },
     true,
   );
@@ -197,12 +195,16 @@ export function createScene(): Scene {
     update(view, onChoose, turns) {
       updateActor(foeActor, view.opponent);
       updateActor(meActor, view.player);
-      updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent');
-      updateSidePanel(me, view.player, false, view.fasterSide === 'player');
+      // Whether each bar drew a chunk. The hit beat reads this and nothing
+      // else, so the recoil and the chunk agree by construction.
+      const hit = {
+        foe: updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent'),
+        me: updateSidePanel(me, view.player, false, view.fasterSide === 'player'),
+      };
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
-      jiggle({ me, foe }, turns);
+      beats({ me: meActor, foe: foeActor }, hit, turns);
     },
   };
 }
@@ -262,7 +264,32 @@ function createActor(kind: 'me' | 'foe', side: 'p1' | 'p2'): Actor {
  */
 function updateActor(actor: Actor, active: ActiveUiView): void {
   const previous = actor.root.dataset['species'];
-  if (previous === active.species) return;
+  /*
+   * The faint. **The bar and beats patch.**
+   *
+   * Two attributes, because a faint is two things: an event, which gets a
+   * beat, and a state, which the stage has to hold until the body is
+   * replaced. `data-fainting` is set on the one update where the projection's
+   * `fainted` flips on an unchanged species, and the stylesheet runs
+   * `sprite-sink` off it — the same keyframes as the swap, because a body
+   * leaving the fight is the same kind of event however it left. `data-fainted`
+   * mirrors the projection every update, and a static rule holds the sink's
+   * own end state on it, so a tap and reduced motion both land where the
+   * animation would have: a KO'd sprite is down, and stays down, until the
+   * replacement rises through the swap beat below.
+   *
+   * Cleared, not restarted, on every update. The event fires once per body by
+   * construction — a fainted Pokemon does not faint again — so there is no
+   * second beat to give its own restart to.
+   */
+  const wasFainted = actor.root.dataset['fainted'] === 'true';
+  delete actor.root.dataset['fainting'];
+  if (active.fainted) actor.root.dataset['fainted'] = 'true';
+  else delete actor.root.dataset['fainted'];
+  if (previous === active.species) {
+    if (active.fainted && !wasFainted && previous !== undefined) actor.root.dataset['fainting'] = 'true';
+    return;
+  }
   actor.root.dataset['species'] = active.species;
 
   /*
@@ -287,7 +314,11 @@ function updateActor(actor: Actor, active: ActiveUiView): void {
    * and interactive on the first frame, and a tap anywhere cancels it.
    */
   if (previous !== undefined) {
-    actor.ghost.src = actor.img.src;
+    // A body that fainted has already sunk. Giving it to the ghost would raise
+    // it to full opacity and sink it a second time under the replacement, so
+    // the ghost stays empty and only the arrival is drawn.
+    if (wasFainted) actor.ghost.removeAttribute('src');
+    else actor.ghost.src = actor.img.src;
     // Restart rather than extend: re-setting an attribute an element already
     // carries does not replay a CSS animation, and two switches in consecutive
     // turns must each get their own beat.
@@ -302,14 +333,21 @@ function updateActor(actor: Actor, active: ActiveUiView): void {
 }
 
 /**
- * End the swap beat and let go of the body that left.
+ * End every beat on this actor and let go of the body that left.
  *
- * Called on a tap and when the animation finishes. Clearing the ghost's `src`
- * matters beyond tidiness: a stage still holding a Pokemon that is no longer in
- * the fight is one repaint away from showing it again.
+ * Called on a tap. Clearing the ghost's `src` matters beyond tidiness: a stage
+ * still holding a Pokemon that is no longer in the fight is one repaint away
+ * from showing it again.
+ *
+ * `data-fainted` is deliberately not on the list. It is state, not a beat: the
+ * static rule on it is where the faint's animation ends anyway, so a tap that
+ * cut the sink short lands the sprite exactly where the sink was going.
  */
 function settleActor(actor: Actor): void {
   delete actor.root.dataset['swapped'];
+  delete actor.root.dataset['acted'];
+  delete actor.root.dataset['hit'];
+  delete actor.root.dataset['fainting'];
   actor.ghost.removeAttribute('src');
 }
 
@@ -350,18 +388,9 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    */
   header.append(name, level);
 
-  const hpTrack = el('div', 'hp');
-  /*
-   * The shadow goes in **before** the fill, so the fill paints over it.
-   *
-   * The two overlap by a hairline at the boundary — a fraction is a float and
-   * the track is a few hundred device pixels — and a shadow drawn on top would
-   * put a seam on the leading edge of the bar on exactly the frames the player
-   * is watching it.
-   */
-  const hpShadow = el('div', 'hp__shadow');
-  const hpFill = el('div', 'hp__fill');
-  hpTrack.append(hpShadow, hpFill);
+  // The one bar with a shadow: this is the only surface where a drop is a hit
+  // the player is watching land. `ui/bar.ts` says why the shadow paints first.
+  const hp = createBar({ shadow: true });
 
   const meta = el('div', 'panel__meta');
   const hpText = el('span', 'panel__hp-text');
@@ -394,16 +423,17 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    */
   chips.append(types, archetype, traits, volatiles, stages);
 
-  root.append(header, hpTrack, meta, chips);
-  return { root, name, level, archetype, types, hpFill, hpShadow, hpText, status, volatiles, traits, stages };
+  root.append(header, hp.root, meta, chips);
+  return { root, name, level, archetype, types, hp, hpText, status, volatiles, traits, stages };
 }
 
+/** Redraw a panel. Returns whether its bar drew a chunk, which is what the hit beat keys off. */
 function updateSidePanel(
   panel: SidePanel,
   active: ActiveUiView,
   isFoe: boolean,
   isFaster: boolean,
-): void {
+): boolean {
   /*
    * Whether the body on this side changed. **The panel reads it; it no longer
    * animates it. V5.5.**
@@ -457,20 +487,16 @@ function updateSidePanel(
    * grew would mark ground the Pokemon just gained as ground it lost. The
    * restore line from the round 2 patch already narrates a heal and is
    * untouched — see `hpLine` in `battle-log.ts`.
-   */
-  const before = Number(panel.hpFill.dataset['fraction'] ?? active.hp.fraction);
-  panel.hpFill.style.width = `${active.hp.fraction * 100}%`;
-  panel.hpFill.dataset['fraction'] = String(active.hp.fraction);
-  panel.hpFill.dataset['band'] = hpBand(active.hp.fraction);
-  /*
-   * A swap draws no chunk, and this is not a nicety.
    *
-   * The two bars belong to two different bodies, so the difference between them
-   * is not damage — a healthy replacement coming in for a Pokemon at 10% would
-   * paint nine tenths of the track as a hit that never happened, on the one
-   * turn the player most needs to read the board correctly.
+   * The rule itself lives in `ui/bar.ts` now, with every bar in the game; this
+   * panel only decides one input to it. **A swap draws no chunk, and this is
+   * not a nicety.** The two bars belong to two different bodies, so the
+   * difference between them is not damage — a healthy replacement coming in
+   * for a Pokemon at 10% would paint nine tenths of the track as a hit that
+   * never happened, on the one turn the player most needs to read the board
+   * correctly.
    */
-  markHpChunk(panel.hpShadow, swapped ? active.hp.fraction : before, active.hp.fraction);
+  const hit = panel.hp.set(active.hp.fraction, { chunk: !swapped });
   /*
    * Both sides now show exact HP.
    *
@@ -581,6 +607,7 @@ function updateSidePanel(
 
   panel.stages.replaceChildren(...stages);
   panel.stages.hidden = stages.length === 0;
+  return hit;
 }
 
 /**
@@ -678,25 +705,42 @@ function panelTypeChip(type: string): HTMLElement {
 }
 
 /**
- * Nudge each panel in the order its side acted. **Item 2.**
+ * The turn, as beats on the stage: each actor lunges in the order its side
+ * acted, and each sprite that lost HP recoils in the slot after the lunge that
+ * took it. **Release C item 2, moved from the panel to the sprite by the bar
+ * and beats patch.**
  *
  * ## What it is for
  *
  * The log has said who went first since the round 2 patch, in an ordinal at the
  * head of each entry. That is correct and it is *reading*, and the thing the
  * playtest actually reported — "priority doesn't exist" — was never fixed by a
- * number you have to go and look at. A panel that twitches when its Pokemon
- * acts puts the sequence where the player is already looking: on the board.
+ * number you have to go and look at. A body that lunges when it acts puts the
+ * sequence where the player is already looking: on the board.
+ *
+ * It was the panel that moved until this patch. The panel has been a scrim
+ * over a body since V5.3, and V5.5 moved the swap beat onto the body for the
+ * reason that applies here too: two animations for one event is noise, and
+ * the thing that acted is the sprite. The panel no longer moves at all.
  *
  * ## It never computes an order
  *
  * The order is `turns`, which the screen read once and gave to the log as well.
  * There is no sort here, no Speed comparison and no second call to `readTurns`
- * — the panels move in the order the actions are already in, so the jiggle and
+ * — the actors move in the order the actions are already in, so the lunge and
  * the log's ordinals cannot disagree. Priority marking is not this function's
  * business at all: it is the log's rule, applied by the reader, and the flag
  * strip surfaces it. A same-bracket turn is unmarked there and unremarkable
- * here — both sides jiggle either way, because both sides acted either way.
+ * here — both sides lunge either way, because both sides acted either way.
+ *
+ * ## It never reads a flag
+ *
+ * The hit is the same size for every hit. Whether the move was super
+ * effective, resisted or a crit is on the flag strip in words and in the size
+ * of the chunk the bar just drew; a recoil that grew with the multiplier would
+ * be a verdict drawn on the board, which is the one thing the copy rule bars.
+ * So this function reads `action.side` off the turn and the chunk boolean off
+ * the bar, and nothing else.
  *
  * ## Which turn, and which sides
  *
@@ -707,84 +751,58 @@ function panelTypeChip(type: string): HTMLElement {
  * just resolved sit in the leading group, which has no number yet because the
  * line that would have numbered it came at the *start* of the previous batch,
  * and the trailing `|turn|` opens an empty group for a turn nobody has played.
- * Reading a turn number here nudges nothing, forever.
+ * Reading a turn number here moves nothing, forever.
  *
  * The opening replay is skipped by its caller passing no reading at all, which
- * is the right place for it: an arrival is not a turn, and nudging both panels
- * at the start of every battle is noise.
+ * is the right place for it: an arrival is not a turn, and lunging both actors
+ * at the start of every battle is noise. A chunk with no reading — which the
+ * jsdom tests produce and the app does not — lands in the first slot.
  *
  * A side is placed by its *first* action in that turn, so a replacement switch
- * after a faint does not re-nudge a panel that has already moved. That caps the
- * sequence at two, which is what the two `data-jiggle` steps in the stylesheet
- * are: the delay is a token, not a number written from here.
+ * after a faint does not re-place an actor that has already moved. That caps
+ * the sequence at two, which is what the two `data-acted` steps in the
+ * stylesheet are: the delays are tokens, not numbers written from here.
+ *
+ * ## Which slot a hit lands in
+ *
+ * The slot of the *other* side's lunge: the recoil is the answer to the move
+ * that caused it, so it follows that move's beat. When the other side did not
+ * act at all — recoil damage, weather, a burn on a turn the opponent
+ * switched — the hit takes the last slot there is, so it still reads as a
+ * consequence of the turn rather than as something that happened before it.
  */
-function jiggle(panels: { me: SidePanel; foe: SidePanel }, turns: readonly FlaggedTurn[] | undefined): void {
-  for (const panel of [panels.me, panels.foe]) delete panel.root.dataset['jiggle'];
-  if (!turns) return;
+function beats(
+  actors: { me: Actor; foe: Actor },
+  hit: { me: boolean; foe: boolean },
+  turns: readonly FlaggedTurn[] | undefined,
+): void {
+  for (const actor of [actors.me, actors.foe]) {
+    delete actor.root.dataset['acted'];
+    delete actor.root.dataset['hit'];
+  }
 
-  const latest = [...turns].reverse().find((turn) => turn.actions.length > 0);
-  if (!latest) return;
-
+  const latest = turns ? [...turns].reverse().find((turn) => turn.actions.length > 0) : undefined;
   const seen: ('p1' | 'p2')[] = [];
-  for (const { action } of latest.actions) {
+  for (const { action } of latest?.actions ?? []) {
     if (!seen.includes(action.side)) seen.push(action.side);
   }
 
   // Restart rather than extend, the same as the swap beat and the HP chunk:
   // re-setting an attribute an element already carries does not replay a CSS
-  // animation, and two turns running must each get their own nudge.
-  void panels.me.root.offsetWidth;
+  // animation, and two turns running must each get their own beat.
+  void actors.me.root.offsetWidth;
+  // `p1` is the player throughout: the projection, the log formatter and the
+  // protocol all take p1's view.
+  const actorOf = (side: 'p1' | 'p2'): Actor => (side === 'p1' ? actors.me : actors.foe);
   for (const [index, side] of seen.entries()) {
-    // `p1` is the player throughout: the projection, the log formatter and the
-    // protocol all take p1's view.
-    const panel = side === 'p1' ? panels.me : panels.foe;
-    panel.root.dataset['jiggle'] = String(index + 1);
+    actorOf(side).root.dataset['acted'] = String(index + 1);
   }
-}
-
-/**
- * The smallest drop worth drawing, as a fraction of the track.
- *
- * Below this the shadow is thinner than the rounding on its own corners and
- * reads as a rendering artefact rather than as a hit. Sand damage on a 300 HP
- * Pokemon is a real event and the log says so in words; a two-pixel smear on
- * the bar is not the place to say it a second time.
- */
-const MIN_CHUNK = 0.005;
-
-/**
- * Mark the span the bar just vacated, and fade it.
- *
- * Absolute inside the track and measured from the left in the same units the
- * fill uses, so the two agree by construction rather than by a shared
- * calculation: the shadow starts where the fill now ends and runs to where the
- * fill used to end.
- *
- * The animation is restarted rather than extended — re-setting an attribute an
- * element already carries does not replay a CSS animation, which is the same
- * thing the swap beat does above and for the same reason. Two hits in
- * consecutive turns each get their own fade.
- */
-function markHpChunk(shadow: HTMLElement, before: number, after: number): void {
-  const lost = before - after;
-  if (lost < MIN_CHUNK) {
-    // A heal, or nothing that happened. Clearing rather than leaving the last
-    // chunk standing: a shadow that outlives the hit it describes is a lie
-    // about the current turn.
-    delete shadow.dataset['fading'];
-    shadow.style.width = '0%';
-    return;
+  for (const [side, took] of [['p1', hit.me], ['p2', hit.foe]] as const) {
+    if (!took) continue;
+    const other = side === 'p1' ? 'p2' : 'p1';
+    const slot = seen.indexOf(other);
+    actorOf(side).root.dataset['hit'] = String(slot >= 0 ? slot + 1 : Math.max(seen.length, 1));
   }
-  shadow.style.left = `${after * 100}%`;
-  shadow.style.width = `${lost * 100}%`;
-  delete shadow.dataset['fading'];
-  void shadow.offsetWidth;
-  shadow.dataset['fading'] = 'true';
-}
-
-function hpBand(fraction: number): 'high' | 'mid' | 'low' {
-  if (fraction > 0.5) return 'high';
-  return fraction > 0.2 ? 'mid' : 'low';
 }
 
 function renderMoves(
@@ -866,11 +884,8 @@ function renderBenchMember(
   const types = el('span', 'bench__types');
   types.replaceChildren(...member.types.map((type) => panelTypeChip(type)));
 
-  const track = el('div', 'hp hp--slim');
-  const fill = el('div', 'hp__fill');
-  fill.style.width = `${member.hpFraction * 100}%`;
-  fill.dataset['band'] = hpBand(member.hpFraction);
-  track.append(fill);
+  const bar = createBar({ variant: 'slim' });
+  bar.set(member.hpFraction);
 
   const meta = el('span', 'bench__meta');
   meta.textContent = `${member.hp} / ${member.maxHp}`;
@@ -884,7 +899,7 @@ function renderBenchMember(
     meta.append(' ', reason);
   }
 
-  button.append(name, level, types, track, meta);
+  button.append(name, level, types, bar.root, meta);
   button.addEventListener('click', () => onChoose(switchChoice(member.slot)));
   return button;
 }

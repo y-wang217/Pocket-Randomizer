@@ -58,10 +58,22 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: the bar primitive and the battle beats.** Branch
+`claude/kind-mccarthy-w3kml6`, prompt
+[`spec/gymrun-patch-bar-primitive-and-battle-beats.md`](spec/gymrun-patch-bar-primitive-and-battle-beats.md),
+record [`generation.md`](generation.md) section 17. Presentation only, no
+version axis moves, both baselines held to the pixel. Release C's HP chunk
+and shadow moved into one component, `ui/bar.ts`, that every bar in the game
+now goes through; Release C's turn order nudge left the panel and became a
+lunge on the sprite, with a recoil on the body whose bar drew a chunk and a
+sink on a KO, four slots inside the one tuning number. The panel-nudge rule is
+deleted and recorded as superseded. Report
+[`visual/reports/patch-bar-and-beats.md`](visual/reports/patch-bar-and-beats.md).
+
 **In flight: the map overlay, and the three overlays become windows.** Branch
 `claude/hopeful-curie-5ah94f`, prompt
 [`spec/gymrun-patch-map-drawer-window-overlays.md`](spec/gymrun-patch-map-drawer-window-overlays.md),
-record [`generation.md`](generation.md) section 17. A `Map` button beside
+record [`generation.md`](generation.md) section 18. A `Map` button beside
 `Party` in the same bar, opening the run map as a readout from every decision
 surface — the second half of the standing rule the party drawer implements,
 which was never built: the route was visible on exactly one screen, so a player
@@ -505,6 +517,14 @@ One line each. The analysis lives where the pointer goes, not here.
    suites named above are the pattern. This is logged as a risk rather than
    written into `CLAUDE.md`, because `CLAUDE.md` holds rules that have held —
    this one has been broken twice and is a thing to watch.
+
+16. **The stat block's bar is the one bar not built by `ui/bar.ts`.**
+   `.stat__bar-fill` in `member-card.ts` is a magnitude over a 200 ceiling,
+   not a fraction, and carries a pre-Release-C `120ms` width transition that
+   `test/visual-tokens.test.ts` counts among its 17. Moving it onto the bar's
+   `neutral` variant — which shipped with the bar and beats patch and has no
+   consumer yet — retires that duration and takes the pin to 16. One small
+   patch; `generation.md` section 17.
 
 ### Carried out of patch 4.8.0.3
 

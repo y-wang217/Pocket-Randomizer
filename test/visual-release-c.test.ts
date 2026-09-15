@@ -91,7 +91,7 @@ describe('the one tuning number reaches the screen', () => {
       return {
         duration: style.getPropertyValue('--motion-duration').trim(),
         shadow: style.getPropertyValue('--motion-hp-shadow').trim(),
-        jiggle: style.getPropertyValue('--motion-jiggle').trim(),
+        beat: style.getPropertyValue('--motion-beat').trim(),
       };
     });
 
@@ -103,17 +103,33 @@ describe('the one tuning number reaches the screen', () => {
     await playATurn(page);
     const applied = await page.evaluate(() => {
       const shadow = globalThis.document.querySelector('.panel--foe .hp__shadow');
-      const panel = globalThis.document.querySelector('.panel--me');
-      return {
-        shadow: shadow ? globalThis.getComputedStyle(shadow).animationDuration : null,
-        panel: panel ? globalThis.getComputedStyle(panel).animationDuration : null,
-      };
+      const first = globalThis.document.querySelector('.stage__actor[data-acted="1"]');
+      const second = globalThis.document.querySelector('.stage__actor[data-acted="2"]');
+      const hits = [...globalThis.document.querySelectorAll('.stage__actor[data-hit]')].map((actor) => {
+        const sprite = actor.querySelector('.sprite:not(.sprite--ghost)');
+        const style = sprite ? globalThis.getComputedStyle(sprite) : null;
+        return { slot: (actor as HTMLElement).dataset['hit'], duration: style?.animationDuration, delay: style?.animationDelay };
+      });
+      const timing = (node: Element | null): { duration: string; delay: string } | null =>
+        node ? { duration: globalThis.getComputedStyle(node).animationDuration, delay: globalThis.getComputedStyle(node).animationDelay } : null;
+      return { shadow: shadow ? globalThis.getComputedStyle(shadow).animationDuration : null, first: timing(first), second: timing(second), hits };
     });
 
-    // The shadow spends the whole budget; the nudge runs inside it. That is
-    // what makes "one number" true rather than aspirational.
-    expect(applied.shadow).toBe(`${DEFAULT_TUNING.battleFeedbackMs / 1000}s`);
-    expect(applied.panel).toBe(`${DEFAULT_TUNING.battleFeedbackMs / 4000}s`);
+    // The shadow spends the whole budget; the four beats run inside it, one
+    // quarter each, in their slots. That is what makes "one number" true
+    // rather than aspirational.
+    const ms = DEFAULT_TUNING.battleFeedbackMs;
+    const beat = `${ms / 4000}s`;
+    expect(applied.shadow).toBe(`${ms / 1000}s`);
+    expect(applied.first).toEqual({ duration: beat, delay: '0s' });
+    expect(applied.second).toEqual({ duration: beat, delay: `${ms / 2000}s` });
+    // A turn where both sides used a move lands at least one hit, and every
+    // hit sits in the slot after the lunge that took it.
+    expect(applied.hits.length).toBeGreaterThan(0);
+    for (const hit of applied.hits) {
+      expect(hit.duration).toBe(beat);
+      expect(hit.delay).toBe(hit.slot === '1' ? beat : `${(ms * 3) / 4000}s`);
+    }
     await context.close();
   }, 300_000);
 });
@@ -129,15 +145,19 @@ describe('reduced motion', () => {
 
     const state = await page.evaluate(() => {
       const shadow = globalThis.document.querySelector('.panel--foe .hp__shadow');
-      const panels = [...globalThis.document.querySelectorAll('.panel')];
+      const actors = [...globalThis.document.querySelectorAll('.stage__actor')];
+      const sprites = [...globalThis.document.querySelectorAll('.stage__actor .sprite')];
       const strip = globalThis.document.querySelector('.flags');
       return {
         shadowAnimation: shadow ? globalThis.getComputedStyle(shadow).animationName : null,
         // The resting state the animation would have reached anyway, so
         // "instant" is the same outcome and not a different one.
         shadowOpacity: shadow ? globalThis.getComputedStyle(shadow).opacity : null,
-        panelAnimations: panels.map((panel) => globalThis.getComputedStyle(panel).animationName),
-        nudged: panels.filter((panel) => (panel as HTMLElement).dataset['jiggle']).length,
+        // The lunge is on the actor and the hit on the sprite inside it; both
+        // are read, so neither can slip past a check on the other.
+        stageAnimations: [...actors, ...sprites].map((node) => globalThis.getComputedStyle(node).animationName),
+        nudged: actors.filter((actor) => (actor as HTMLElement).dataset['acted']).length,
+        hit: actors.filter((actor) => (actor as HTMLElement).dataset['hit']).length,
         flags: strip ? [...strip.querySelectorAll('.chip')].map((chip) => chip.textContent ?? '') : null,
         stripDisplay: strip ? globalThis.getComputedStyle(strip).display : null,
       };
@@ -145,15 +165,16 @@ describe('reduced motion', () => {
 
     expect(state.shadowAnimation).toBe('none');
     expect(state.shadowOpacity).toBe('0');
-    for (const name of state.panelAnimations) expect(name).toBe('none');
+    for (const name of state.stageAnimations) expect(name).toBe('none');
 
     /*
-     * The half that is easy to get wrong. The panels are still *marked* as
-     * having acted — the scene does the same work either way — and the strip
-     * still prints its words. Reduced motion removes the movement, not the
-     * information.
+     * The half that is easy to get wrong. The actors are still *marked* as
+     * having acted and been hit — the scene does the same work either way —
+     * and the strip still prints its words. Reduced motion removes the
+     * movement, not the information.
      */
     expect(state.nudged, 'the sides that acted are still marked').toBeGreaterThan(0);
+    expect(state.hit, 'the side that was hit is still marked').toBeGreaterThan(0);
     expect(state.stripDisplay).not.toBe('none');
     expect(state.flags, 'the strip rendered').not.toBeNull();
     expect((state.flags ?? []).length, 'a resolved turn produced at least one flag').toBeGreaterThan(0);
