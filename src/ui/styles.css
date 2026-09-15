@@ -4035,30 +4035,206 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 }
 
 /*
- * The one drifting element per locale: a small SVG on the mid layer,
- * carried across the viewport on a loop of at least twenty seconds, low in
- * the frame so it never leads the eye to a control. Not mounted under
- * reduced motion; the rule below is belt and braces for a preference that
- * changed after the region was entered.
+ * The one moving element per locale: a small SVG, or a few, on the mid layer.
+ *
+ * V3 drew one keyframe for all eight places: a thing carried across the
+ * viewport on a loop of at least twenty seconds, low in the frame so it never
+ * led the eye to a control. The idle-sprites patch keeps that loop for the
+ * three places whose element travels — the cave's spark, the summit's bird,
+ * the forest's fireflies — and gives the other five a motion that stays where
+ * it is: foam lapping, windows flickering, smoke rising, a light hovering,
+ * rings spreading. `theme/scenes/index.ts` names the kinds; the element
+ * carries its kind in `data-motion`, and each kind below sets the custom
+ * properties the one generic rule reads — the keyframes, the loop, the box
+ * and where it sits. No literal durations anywhere in an `animation`: the
+ * periods are custom properties, which is how `test/visual-tokens.test.ts`
+ * keeps its count at seventeen.
+ *
+ * The rule the travelling kinds keep is the plan's: twenty seconds or longer
+ * a crossing. The rule the in-place kinds keep is the plan's reason for that
+ * number — nothing here should draw the eye toward a control — met by
+ * amplitude instead of length: a few pixels of travel, opacity never past
+ * 0.6, and the element placed on the ground or the sky and never on the
+ * content column. `test/visual-v3.test.ts` holds both floors, by kind.
+ *
+ * Not mounted under reduced motion; the rule below is belt and braces for a
+ * preference that changed after the region was entered.
  */
 .world__drift {
   position: absolute;
-  top: 58%;
-  left: -8%;
-  width: var(--drift-size);
-  height: var(--drift-size);
-  animation: world-drift var(--drift-period) linear infinite;
+  top: var(--drift-y, 58%);
+  left: var(--drift-x, -8%);
+  width: var(--drift-w, var(--drift-size));
+  height: var(--drift-h, var(--drift-size));
+  animation: var(--world-motion, world-cross) var(--drift-period) var(--drift-ease, linear) infinite;
 }
 
+/* Every mote fills the element's box; a kind with several stacks them and
+   staggers their loops, or places them by their order. */
 .world__drift > svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   shape-rendering: crispEdges;
 }
 
-@keyframes world-drift {
+/* cross — V3's loop, unchanged: left to right, rising a little. The cave. */
+.world__drift[data-motion="cross"] { --world-motion: world-cross; }
+
+@keyframes world-cross {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(120vw, -4vh, 0); }
+}
+
+/* soar — right to left, high, on a slow arc, and two wing frames that
+   alternate. The summit. Forty seconds: a bird far off is slow. */
+.world__drift[data-motion="soar"] {
+  --world-motion: world-soar;
+  --drift-period: 40s;
+  --drift-x: 100%;
+  --drift-y: 18%;
+  --mote-period: 2s;
+}
+.world__drift[data-motion="soar"] > svg { animation: world-flap var(--mote-period) steps(1, end) infinite; }
+.world__drift[data-motion="soar"] > svg + svg { animation-delay: calc(var(--mote-period) / -2); }
+
+@keyframes world-soar {
+  from { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-60vw, -3vh, 0); }
+  to { transform: translate3d(-120vw, 1vh, 0); }
+}
+
+@keyframes world-flap {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* lap — a foam line the width of the frame, at the water's edge, sliding in
+   and fading out. The shore. In place: the whole excursion is two percent. */
+.world__drift[data-motion="lap"] {
+  --world-motion: world-lap;
+  --drift-period: 7s;
+  --drift-ease: ease-in-out;
+  --drift-x: 0;
+  --drift-y: 66%;
+  --drift-w: 100%;
+  --drift-h: 8px;
+}
+
+@keyframes world-lap {
+  0%, 100% { transform: translate3d(-2%, 0, 0); opacity: 0; }
+  40% { opacity: 1; }
+  55% { transform: translate3d(1.5%, 0, 0); opacity: 1; }
+  85% { opacity: 0; }
+}
+
+/* firefly — three motes that blink out of phase, floating by low in the
+   frame on a wandering line. The forest. Travels, so it keeps the floor. */
+.world__drift[data-motion="firefly"] {
+  --world-motion: world-firefly;
+  --drift-period: 26s;
+  --drift-ease: ease-in-out;
+  --drift-y: 60%;
+  --drift-w: calc(var(--drift-size) * 2);
+  --drift-h: calc(var(--drift-size) * 2);
+  --mote-period: 3s;
+}
+.world__drift[data-motion="firefly"] > svg { animation: world-glow var(--mote-period) ease-in-out infinite; }
+.world__drift[data-motion="firefly"] > svg:nth-child(2) { animation-delay: calc(var(--mote-period) / -3); }
+.world__drift[data-motion="firefly"] > svg:nth-child(3) { animation-delay: calc(var(--mote-period) * -2 / 3); }
+
+@keyframes world-firefly {
+  from { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(30vw, -3vh, 0); }
+  50% { transform: translate3d(60vw, 1vh, 0); }
+  75% { transform: translate3d(90vw, -4vh, 0); }
+  to { transform: translate3d(120vw, 0, 0); }
+}
+
+@keyframes world-glow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.9; }
+}
+
+/* flicker — six windows on the mid buildings, each a lit pixel that steps
+   between dim and lit on its own beat. The city. The element is a band across
+   the frame below the rooftops and above the near wall, where the mid layer
+   is solid at every width; it does not move itself. */
+.world__drift[data-motion="flicker"] {
+  --world-motion: none;
+  --drift-period: 4s;
+  --drift-x: 0;
+  --drift-y: 72%;
+  --drift-w: 100%;
+  --drift-h: 10vh;
+  --mote-period: 4s;
+}
+.world__drift[data-motion="flicker"] > svg {
+  inset: auto;
+  width: 6px;
+  height: 6px;
+  animation: world-flicker var(--mote-period) steps(1, end) infinite;
+}
+.world__drift[data-motion="flicker"] > svg:nth-child(1) { left: 12%; top: 20%; }
+.world__drift[data-motion="flicker"] > svg:nth-child(2) { left: 27%; top: 55%; animation-delay: calc(var(--mote-period) * -1 / 6); }
+.world__drift[data-motion="flicker"] > svg:nth-child(3) { left: 41%; top: 10%; animation-delay: calc(var(--mote-period) * -2 / 6); }
+.world__drift[data-motion="flicker"] > svg:nth-child(4) { left: 58%; top: 65%; animation-delay: calc(var(--mote-period) * -3 / 6); }
+.world__drift[data-motion="flicker"] > svg:nth-child(5) { left: 73%; top: 30%; animation-delay: calc(var(--mote-period) * -4 / 6); }
+.world__drift[data-motion="flicker"] > svg:nth-child(6) { left: 88%; top: 50%; animation-delay: calc(var(--mote-period) * -5 / 6); }
+
+@keyframes world-flicker {
+  0%, 100% { opacity: 0.08; }
+  35% { opacity: 0.55; }
+  60% { opacity: 0.15; }
+  70% { opacity: 0.55; }
+}
+
+/* smoke — three puffs rising off the flats at the centre of the frame, each
+   growing and thinning as it climbs, staggered a third of a loop apart. The
+   badlands. The element sits still; the puffs travel eight vh and are gone. */
+.world__drift[data-motion="smoke"] {
+  --world-motion: none;
+  --drift-period: 9s;
+  --mote-period: 9s;
+}
+.world__drift[data-motion="smoke"] > svg { animation: world-smoke var(--mote-period) ease-out infinite; }
+.world__drift[data-motion="smoke"] > svg:nth-child(2) { animation-delay: calc(var(--mote-period) / -3); }
+.world__drift[data-motion="smoke"] > svg:nth-child(3) { animation-delay: calc(var(--mote-period) * -2 / 3); }
+
+@keyframes world-smoke {
+  from { transform: translate3d(0, 0, 0) scale(0.5); opacity: 0.6; }
+  to { transform: translate3d(1vw, -8vh, 0) scale(1.6); opacity: 0; }
+}
+
+/* float — the light hovers where it is among the columns, a few pixels up
+   and down, brightening as it rises. The ruins. */
+.world__drift[data-motion="float"] {
+  --world-motion: world-float;
+  --drift-period: 8s;
+  --drift-ease: ease-in-out;
+}
+
+@keyframes world-float {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.55; }
+  50% { transform: translate3d(0, -6px, 0); opacity: 1; }
+}
+
+/* ripple — two rings spreading on the standing water, half a loop apart. The
+   marsh. The element sits still; a ring grows from nothing and fades out. */
+.world__drift[data-motion="ripple"] {
+  --world-motion: none;
+  --drift-period: 6s;
+  --drift-w: calc(var(--drift-size) * 2);
+  --drift-h: var(--drift-size);
+  --mote-period: 6s;
+}
+.world__drift[data-motion="ripple"] > svg { animation: world-ripple var(--mote-period) ease-out infinite; }
+.world__drift[data-motion="ripple"] > svg + svg { animation-delay: calc(var(--mote-period) / -2); }
+
+@keyframes world-ripple {
+  from { transform: scale(0.3); opacity: 0.6; }
+  to { transform: scale(1.6); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4228,6 +4404,126 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 }
 
 .sprite[data-missing='true'] { visibility: hidden; }
+
+/* ==========================================================================
+   Idle-sprites patch — the figure
+   ========================================================================== */
+
+/*
+ * A sprite on a card, bobbing while it waits. `ui/sprites.ts` builds it.
+ *
+ * Absolutely positioned in the host's corner, so it costs the card zero flow
+ * height in every density: the Pocket gate (`test/visual-pocket.test.ts`) and
+ * the pinned battle height both hold by construction rather than by
+ * measurement. The host sets `position: relative` and nothing else. Nothing
+ * reserves width for it either — a reserved gutter re-wraps a flex header,
+ * and a re-wrapped header is a height change.
+ *
+ * Two held frames, not an ease: `steps(1, end)` sits on the first frame for
+ * half the cycle and the second for the rest, the way a handheld's idle
+ * animation does. The negative delay starts each figure partway through its
+ * cycle from the phase `ui/sprites.ts` writes, so a row of six is six bodies
+ * and not one mechanism. No literal durations: `test/visual-tokens.test.ts`
+ * pins the count, and this reads `--motion-idle` from the tokens.
+ *
+ * `pointer-events: none`, because on the target screen and the bench the
+ * figure sits inside a button and must not become a second hit target with a
+ * different cursor.
+ */
+.figure {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: var(--figure-size);
+  height: var(--figure-size);
+  pointer-events: none;
+  animation: figure-idle var(--motion-idle) steps(1, end) infinite;
+  animation-delay: calc(var(--idle-phase, 0) * var(--motion-idle) / -6);
+}
+
+.figure > .sprite { width: 100%; height: 100%; }
+
+@keyframes figure-idle {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(calc(-1 * var(--idle-rise))); }
+}
+
+/* An empty box does not bob: a sprite the CDN did not have is hidden by the
+   rule above, and a hidden thing hopping is a hidden thing drawing the eye. */
+.figure:has(> .sprite[data-missing='true']) { animation: none; }
+
+/* The hosts. Each gets its containing block and nothing else; the figure's
+   own rule places it. Sizes per host, where the card's head is short enough
+   that the default would reach the bar. */
+.starter,
+.party__member,
+.replace__owner,
+.event__gate,
+.bench__member { position: relative; }
+
+/* The head of a member card and a starter card, in Detailed and Simple: room
+   for the figure at the right so a wrapped type chip never sits under it.
+   Not in Pocket, where the head is the whole card and a gutter would re-wrap
+   it — there the figure is 24px, inside the header line's own height. Only
+   on a card that carries a figure: the map's HUD cards wear `.party__member`
+   too and carry none, and a gutter there re-wrapped their heads and moved
+   the pinned map height by 26px. `measure.mjs --compare` caught it. */
+:root:not([data-density="pocket"]) .party__member:has(> .figure) > .panel__header,
+:root:not([data-density="pocket"]) .starter:has(> .figure) > .starter__header,
+:root:not([data-density="pocket"]) .event__gate:has(> .figure-row) { padding-right: calc(var(--figure-size) + var(--space-2)); }
+
+/* The learn-move owner line and a bench row are one line tall: the figure is
+   centred on the line and overflows its margins rather than growing it.
+   Centred by a margin and not a transform, because the bob owns transform. */
+.replace__owner > .figure,
+.bench__member > .figure,
+.event__gate > .figure-row {
+  top: 50%;
+  right: var(--space-2);
+  margin-top: calc(var(--figure-size) / -2);
+}
+.bench__member > .figure { --figure-size: 32px; }
+
+/* The event gate at `latent`: every member whose type answers the requirement,
+   in slot order, overlapped as a deck so six Water types cost a chip's width
+   and not six figures'. A position, never a rank: the order is the party's. */
+.figure-row {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.figure-row > .figure { position: relative; top: auto; right: auto; }
+.figure-row > .figure + .figure { margin-inline-start: calc(var(--figure-size) * -0.35); }
+
+/* The summary keeps its full-size sprite in flow; only the bob is new. */
+.summary__member-figure > .figure { position: static; --figure-size: 96px; }
+
+/* Pocket: smaller bodies and a smaller hop, and on the two-up cards a figure
+   that fits inside the header line so it never reaches the bar. */
+:root[data-density="pocket"] { --figure-size: 32px; --idle-rise: 1px; }
+:root[data-density="pocket"] .party__member > .figure { --figure-size: 24px; top: var(--space-1); right: var(--space-1); }
+/* And on the party and pre-gym screens the header line keeps clear of it:
+   there a twelve-letter species reached the corner and the figure sat on its
+   last letters. The gutter is the figure's width and the header wraps its
+   chips around it, which the Pocket gate re-measured and both screens took.
+   Not on the capture block's comparison list: the same gutter put one more
+   wrapped row on one of its cards and the result screen at 872 against 844,
+   and there the slot number ahead of the name keeps the corner clear. */
+:root[data-density="pocket"] .party--manage .party__member:has(> .figure) > .panel__header,
+:root[data-density="pocket"] .pre-gym__party .party__member:has(> .figure) > .panel__header { padding-right: calc(var(--figure-size) + var(--space-1)); }
+:root[data-density="pocket"] .figure-row > .figure,
+:root[data-density="pocket"] .bench__member > .figure { --figure-size: 24px; }
+
+/* Reduced motion: the figure holds its first frame, which is where it rests.
+   Here and not in the battle block above, because a media query adds no
+   specificity and the bare `.figure` rule it overrides is in this section:
+   an override placed earlier in the file lost to it, and the first Chromium
+   read of the party screen said so. The inline `--idle-phase` is a custom
+   property and cannot outrank an `animation` declaration. */
+@media (prefers-reduced-motion: reduce) {
+  .figure { animation: none; }
+}
 
 /* The coverage wheel: eighteen spokes, the reached ones filled. A reading. */
 .coverage__box { display: flex; align-items: center; gap: calc(var(--space-3) * var(--density-gap)); flex-wrap: wrap; text-align: left; }
