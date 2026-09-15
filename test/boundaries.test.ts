@@ -285,7 +285,7 @@ describe('the battle UI boundary', () => {
      * source of truth about the turn it is drawing. `FlaggedTurn` is the
      * shape of a reading the scene is *handed* by `screens/battle.ts`, which
      * makes exactly one per protocol batch and gives the same object to the
-     * log. The scene derives nothing from it: `jiggle` walks the actions in
+     * log. The scene derives nothing from it: `beats` walks the actions in
      * the order they already have and calls no reader. Declaring the shape
      * again under `ui/` would be the version that violates the rule — two
      * declarations of one structure, free to drift, with the scene's copy
@@ -349,6 +349,20 @@ describe('the battle UI boundary', () => {
     // `screens/battle.ts` is the one caller, and it makes exactly one reader.
     const screen = stripComments(sourceOf('src/ui/screens/battle.ts'));
     expect([...screen.matchAll(/\bcreateFlagReader\s*\(/g)]).toHaveLength(1);
+  });
+
+  /**
+   * And the scene never reads a flag off the turn it is handed.
+   *
+   * The bar and beats patch's rule: the stage's beats read `action.side` and
+   * the bar's chunk boolean, and nothing else. A beat that read `flags` would
+   * be one step from a recoil that grew with the multiplier, which is a
+   * verdict drawn on the board. The flag strip is where flags are rendered,
+   * as words, all the same size.
+   */
+  it('never reads a flag in the scene', () => {
+    const source = stripComments(sourceOf('src/ui/scene.ts'));
+    expect(/\.flags\b|\.residual\b/.test(source)).toBe(false);
   });
 
   /**

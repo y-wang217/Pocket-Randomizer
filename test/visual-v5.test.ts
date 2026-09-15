@@ -444,7 +444,7 @@ describe('the species swap', () => {
     await context.close();
   }, 300_000);
 
-  it('runs no animation at all on a turn where nobody switched', async () => {
+  it('runs no swap animation on a turn where nobody switched', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await playATurn(page);
 
@@ -459,11 +459,19 @@ describe('the species swap', () => {
     expect(state.length, 'both actors are on the stage').toBeGreaterThan(0);
     /*
      * The plan's "adds zero time to a turn with no switch", measured as the
-     * strongest thing it can be: not a small duration but no animation. The
-     * marker is never set on a turn without a switch, so there is nothing for
-     * the rule to attach to.
+     * strongest thing it can be: no swap animation. The marker is never set
+     * on a turn without a switch, so there is nothing for the rule to attach
+     * to.
+     *
+     * This used to read "no animation at all", and until the bar and beats
+     * patch that was the same claim. It is not any more: a turn where both
+     * sides used a move now puts `sprite-hit` on the body that lost HP, in
+     * the budget Release C already spent. What V5 promised was that the *swap*
+     * costs a swapless turn nothing, and that is what is asserted — neither
+     * `sprite-rise` nor `sprite-sink`, and no marker.
      */
-    for (const value of state) expect(value).toBe('none');
+    for (const value of state) expect(value).not.toMatch(/^sprite-(rise|sink)$|^true$/);
+    expect(state.filter((value) => value === 'none').length, 'the swap marker is unset on both').toBeGreaterThanOrEqual(2);
     await context.close();
   }, 300_000);
 });

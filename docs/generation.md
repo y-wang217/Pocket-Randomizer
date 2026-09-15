@@ -3077,3 +3077,126 @@ removed, reordered or reshaped — `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
 per-node heal alone changes the HP a party carries into every fight after the
 first relic. Balance is not a gate; the figure is in
 [`balance.md`](balance.md) section 19.
+
+## 17. The bar primitive, and the beats move onto the sprites
+
+Prompt:
+[`spec/gymrun-patch-bar-primitive-and-battle-beats.md`](spec/gymrun-patch-bar-primitive-and-battle-beats.md).
+Branch `claude/kind-mccarthy-w3kml6`, cut from `main` at `321d4f9` (PR #34).
+Built 2026-09-15. Presentation only: no `core/` change, no `data/` change, no
+version axis moves, and both instruments held still — the guarded heights
+equal `docs/visual/baseline/heights.json` to the pixel, so nothing was
+re-recorded, and `npm run smoke` rematches `GYMRUN-53145f-SMOKE24`.
+
+### What the prompt asked, and where it had already landed
+
+The prompt's first question was where "jiggle the sprite on attack" and
+"slight animation to HP" had landed. **Both shipped in Release C** (PR #16,
+`846975c`), and the answer that shaped the patch is that neither shipped in
+the form the question assumed: the jiggle was on the *panel*, because sprites
+did not reach the battle screen until V5.3, and the HP bar had been
+*de*-animated on purpose — the fill snaps and leaves a fading chunk, which is
+the "chunk disappearing" the prompt then proposed. The proposal was therefore
+not a new animation but a home for the one that existed.
+
+### The bar: one component, six sites
+
+`ui/bar.ts` is Release C item 1's chunk and shadow moved out of the battle
+panel, with `hpBand` and `MIN_CHUNK` beside it, behind `createBar({ variant,
+shadow })` and a `set(fraction, { chunk })` that returns whether a chunk was
+drawn. The battle panel, the bench, the party member card, the item target,
+the acquisition list and the run map each became a `createBar` and a `set`;
+four of them lost a copy of the same band ternary. **DOM shape and class
+names are unchanged at every site**: `.hp`, `.hp__fill`, `.hp__shadow` and
+`.hp--slim` are the names the stylesheet, the density overrides and every test
+selector already use, and renaming them to `bar` would have touched all of
+that for no change on screen. The shadow is opt-in, so a bar that never had
+one still renders its single child. `test/bar.test.ts` holds the component's
+own rules and that no file under `src/ui/` builds a track by hand; the whole
+Release C describe in `test/battle-feedback.test.ts` is untouched and passed
+through the migration unedited, which is the regression guard.
+
+A `neutral` variant carries no band and no threshold. It has no consumer yet;
+it is there so the next progress readout is a `createBar` and not a seventh
+hand-built track.
+
+**Left where it was:** `.stat__bar-fill` in `member-card.ts` is a magnitude
+bar over a 200 ceiling rather than a fraction, carries a pre-Release-C `120ms`
+width transition that `test/visual-tokens.test.ts` counts among its 17 and
+`test/visual-stat-bars.test.ts` waits on. Moving it onto the neutral variant
+and retiring that duration is its own small patch; open item 16.
+
+### The beats: four slots inside the one number
+
+Release C item 2's nudge left the panel and became a lunge on the body that
+acted, in the same resolution order off the same `turns` reading the log and
+the flag strip share. A sprite whose bar drew a chunk is knocked back in the
+slot after the lunge that took it. A KO'd sprite sinks through the swap
+beat's own `sprite-sink` keyframes and a static `data-fainted` rule holds it
+down until the replacement rises. Every length is a `calc` over one new token,
+`--motion-beat`, which is `--motion-duration` over four, so the four slots end
+exactly where the HP shadow's fade does and the hardcoded-duration pin stayed
+at **17**.
+
+| slot | beat | element | attribute | delay | length |
+|---|---|---|---|---|---|
+| 1 | lunge, first actor | `.stage__actor` | `data-acted="1"` | 0 | D/4 |
+| 2 | hit, its target | `.sprite` | `data-hit="1"` | D/4 | D/4 |
+| 3 | lunge, second actor | `.stage__actor` | `data-acted="2"` | D/2 | D/4 |
+| 4 | hit, its target | `.sprite` | `data-hit="2"` | 3D/4 | D/4 |
+| — | faint | `.sprite` | `data-fainting` | its hit's slot | the rest of D |
+
+`scene.ts`'s `beats` reads `action.side` off the turn and the chunk boolean
+off the bar, and nothing else. `test/boundaries.test.ts` now holds that the
+scene never reads `.flags` or `.residual`, and `test/battle-feedback.test.ts`
+holds that a super effective hit and a resisted one produce byte-identical
+actor attributes: **the hit is the same size for every hit**, because the
+chunk already says how big it was and a recoil that grew with the multiplier
+would be a verdict drawn on the board.
+
+### Superseded: the panel nudge. Dated 2026-09-15
+
+Release C item 2's rule was "the acting side jiggles first, then the other".
+What it built moved `.panel`, because the panel was the only thing on the
+board that stood for a side. Since V5.3 the panel is a scrim over a body, and
+V5.5 moved the swap beat onto the body on the argument that two animations for
+one event is noise. This patch applies the same argument to the nudge. **The
+rule is deleted, not flagged**: `.panel[data-jiggle]`, `panel-nudge`,
+`--motion-jiggle`, `--jiggle-distance` and their reduced-motion override are
+gone from the tree, `test/battle-stage.test.ts` holds that no panel carries
+the marker, and the register row names the sprite lunge as what superseded
+it. The prompt file records what was asked; this note records what replaced
+it and why.
+
+### Three things worth knowing about the shipped shape
+
+- **A KO'd body now stays down.** Until this patch a fainted sprite stood at
+  full opacity until its replacement rose. It now sinks on the update the
+  faint arrives and is held at the sink's end state by `data-fainted`, which
+  `scene.ts` mirrors from the projection every update. This is a visible
+  change on the end-of-battle frame. Under reduced motion the body is down
+  without having moved; a tap that cuts the sink short lands it in the same
+  place. When the replacement arrives the ghost is left empty rather than
+  given the fainted body, so a KO is never sunk twice.
+- **A faint with no hit starts at delay 0.** A residual KO on a body already
+  under `MIN_CHUNK` — poison on the last hit point — draws no chunk, so no
+  hit, so no slot; the sink runs from the start of the budget. Accepted, and
+  rare enough not to warrant a fifth attribute.
+- **The V5 "no animation at all" assertion was retired, not loosened.**
+  `test/visual-v5.test.ts`'s swapless-turn case asserted every sprite's
+  `animationName` was `none`, which was the same claim as "no swap animation"
+  until the hit beat existed. It now asserts what V5 promised — neither
+  `sprite-rise` nor `sprite-sink` runs and the swap marker is unset — with a
+  comment saying why the wording changed.
+
+### Gates
+
+Lint, `tsc --noEmit`, the full suite (119 files, 1579 tests, every one
+passing; the one "unhandled error" is the vitest reporter's `onTaskUpdate`
+timeout that section 15 already records against both suite runs), `npm run
+build`, `npm run smoke` at 390x844 on `SMOKE24`, and
+`scripts/visual/measure.mjs --compare` equal to the pixel in all three
+density modes and both move bar layouts. Strict trim: **green**, 119 files
+and 1579 tests under `GYMRUN_TRIM_STRICT=1`, which open item 8 records as red
+with 22 failures on `9296ba7` — its count is stale on this tree, and the
+report says so without closing the item.
