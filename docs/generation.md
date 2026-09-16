@@ -4416,3 +4416,183 @@ Two related traps, both of which produced a *passing* test for a broken one:
 different strings, so comparing the strings counts the switch from rest to the
 0% keyframe as motion; and `getAnimations()` returning a name proves the cascade
 applied, not that anything moved.
+
+## 28. The on-device diagnostic, and the artefact a handoff said had shipped
+
+Prompt: [`spec/gymrun-patch-ios-diagnose-instrument.md`](spec/gymrun-patch-ios-diagnose-instrument.md).
+Branch `claude/hopeful-lovelace-w118jz`, 2026-09-16, on top of merged PR #41
+(`5a13d6b`).
+
+Diagnostic tooling only. No `core/` change, no `ui/` change, no version axis
+moved, `contentHash` unmoved. The shipped bundle is byte identical: the page
+lives in `public/`, which Vite copies into `dist/` without processing it.
+
+### The finding this patch exists for: a handoff described a file that was never committed
+
+The PR #41 session closed by telling the reader to open `public/diagnose.html`
+on their iPhone, and described the instrument in six numbered sections, its
+validation against both engines, and a bug it had found and fixed in its own
+`calc()` discriminator along the way.
+
+**No file by that name exists at any commit on any branch in this repository,
+and the `5a13d6b` merge adds none.** Everything else that handoff claims did
+land — the WebKit harness, the twelve observed-motion beats, the Bug A round
+trip deletion, the reduced-motion hold — all of it is in the merge, all of it
+is gated. The gap is exactly one artefact, and it is the one every remaining
+question about the iPhone depends on being runnable.
+
+The general rule is worth more than the incident:
+
+> **An artefact that no test runs can be reported as shipped and not be.** Every
+> other claim in that handoff was true because something in the suite would have
+> gone red if it were not. The diagnostic was the one deliverable with no gate
+> behind it, and it is the one that was not there.
+
+So the instrument arrives with `test/visual-diagnose.test.ts`, which runs it on
+both engines under `npm run check` and holds three properties. The file cannot
+now be deleted, emptied, or quietly broken without the suite saying so.
+
+### Why it is `public/` and not `src/`, and why that decides everything else
+
+The instrument's premise is that it is opened on a device where **the app may be
+what is broken.** That rules out sharing anything with the app: no import, no
+bundle entry, no module, and nothing fetched at parse time. Its presentation and
+its logic are inline and complete before a byte of the app is requested, so a
+deploy whose stylesheet 404s or whose entry chunk fails to parse still gets a
+page that can say so. The app's real shipped stylesheet is then fetched *at
+runtime*, which is also what makes the tool deploy-agnostic: it reads
+`index.html`, finds whatever asset that build links, and tests that.
+
+`test/visual-diagnose.test.ts` asserts the standalone property structurally,
+against the file rather than against a run of it, because a page acquires an
+import by accident and the cost only shows up on the one device that mattered.
+
+The favicon is inline for a smaller reason with the same shape: a page with no
+icon makes the browser request `/favicon.ico` anyway, and a 404 in the console
+of a tool whose output is a console-clean report is noise that reads as signal.
+
+### It reads computed style on purpose, and that is not a hole in Bug A's rule
+
+`test/no-computed-timing.test.ts` bans `getComputedStyle` across the whole of
+`src/`, and this file reads it constantly. Both are right. The rule is about
+**app timing**: a value must travel one way, `data/` to JavaScript to CSS, and
+Bug A was the round trip back. An instrument whose entire job is to report what
+*this device's* engine resolved is the one thing that must read in the other
+direction — and it is outside `src/`, so the structural test still covers
+everything the rule was written for.
+
+### Pause-and-seek, for the reason CI needed it and one more
+
+The twelve beats are read by the technique section 27 arrived at after three
+wrong turns: ask the element for its `Animation` objects, pause them, seek
+across the active window, read the computed style at each point.
+
+On a phone there is a second reason, and it is the stronger one. **Two of the
+things this page exists to catch are exactly the conditions under which "wait
+200ms and look" reports a working animation as dead** — Low Power Mode
+throttling and a suspended compositor. A timing-dependent probe would produce
+the very false positive the reader opened the tool to rule out.
+
+### One element per `calc()` case, because the first build of this got it wrong
+
+The PR #41 handoff records that its own discriminator reused a single element
+between the three cases and re-assigned its `id`, so nothing restarted, cases
+two and three reported no animation, and it called a healthy desktop Chromium a
+broken engine. That build is not in the tree, but the bug is real and the shape
+of it is general, so the fix is kept and so is the reason: each case is created
+as its own element, and the test asserts all three `MOVES` lines individually
+rather than asserting the absence of `STATIC`, so a case that silently stops
+running fails rather than passes on an absence.
+
+**A false headline is worse than no diagnostic.** It sends the reader to fix
+something that is not broken, and it spends the credibility the next report
+needs. That is why the healthy-engine case is the first assertion in the test
+file and not the last.
+
+### What it measures, and what it still cannot
+
+Seven sections, in the order a reader should stop at the first red one: Reduce
+Motion, the deployed build fingerprinted two ways (the asset names, which carry
+Vite's content hash, and a checksum of the bytes this device actually received —
+so a proxy serving stale content under a fresh name is still caught), what the
+device's parser kept (the CSSOM walked for each of the six stage keyframe names,
+plus `CSS.supports` measured rather than inferred from a support table), every
+motion token as the device resolves it, the twelve beats, the `calc()`
+discriminator with its two controls, and frame rate.
+
+Two honest limits, both stated on the page rather than only here. The token
+readout shows the **stylesheet fallbacks**, because the page does not run the
+app and `ui/theme/motion.ts` is what writes `--motion-duration` and
+`--motion-outro` at startup; a difference there is expected and an empty value
+is not. And the instrument reports on the stage it builds, not on a live battle,
+for the same reason `test/visual-motion.test.ts` drives beats by attribute:
+reaching a flinch, a switch and a capture in one seeded run re-answers a
+question already answered, and what neither can answer is the one this asks —
+given the attribute, does *this device* move the pixels.
+
+### Validation
+
+Four runs before the file was committed: Chromium and WebKit 26.6, each with
+and without `prefers-reduced-motion: reduce` emulated at the context. Both
+healthy engines report `Everything this instrument can see is healthy`, 12 of 12
+beats moving, all three `calc()` cases moving, no keyframe missing, ~60fps. Both
+reduced-motion runs report `Reduce Motion is ON — this explains it` at `warn`
+rather than `bad`, with `0 of 12` underneath it — the measurement is still taken
+and still shown, so the reader can see what the setting did rather than take it
+on trust. The suite file carries the same four cases forward.
+
+**What this patch does not do is answer the iPhone question.** It cannot: that
+answer is on a device this repository cannot reach, which is the whole reason
+the instrument exists. What changed is that the question can now be asked.
+
+### It was asked, and the answer is Reduce Motion
+
+Added 2026-09-16, the same day, after the instrument reached the device. **The
+tester checked and reported Reduce Motion on.** That closes the iOS thread:
+there is no engine bug, there never was one, and every animation the report
+described as missing was being cancelled by an OS accessibility setting that
+GYMRUN honours by design.
+
+Three things are worth keeping out of how it landed.
+
+**Section 27's hypothesis was right, and it was right while being properly
+hedged.** It said Reduce Motion "is the only configuration that reproduces the
+reported symptom on the engine in question" and, in the same paragraph, "this is
+not proof that the reporter had Reduce Motion on". Both halves were correct. The
+hedge is the part to keep: the patch shipped the fix for it anyway — item 5, the
+hold that no longer goes to zero — so being unable to prove the cause cost
+nothing, because the change was worth making on its own terms.
+
+**The instrument was not wasted by the answer being simple.** It is what moved
+the claim from suspicion to fact, and it did it in one page-open rather than
+another patch. A standing suspicion that nobody can discharge is a defect that
+stays open; this one is closed. The next "no animations on a phone" report is
+settled the same way, by the first line of section 1, before anyone reads a
+stylesheet.
+
+**What it says about the two patches before it.** PR #41 spent its length ruling
+out five candidate causes for a bug that did not exist, and was right to: it
+could not tell from a Linux box, and the five experiments are what establish
+that. The cheaper path was never a better guess — it was a way to ask the
+device, and that did not exist until now. The cost of not having an instrument
+is paid in patches that investigate instead of measuring.
+
+### The contention flake section 27 filed, reproduced — and this patch makes it likelier
+
+Section 27 recorded one flake on the full gate: a browser test that is green in
+isolation and on re-run, failing under a full suite because the visual files run
+concurrently and starve each other. It named the real answer — a concurrency cap
+on the visual suite — and said it was not that patch's to make, being a change
+to shared config.
+
+It happened again here, on the first full `npm run check`: `visual-v2`'s seed
+stamp copy case failed on a `page.goto` timeout at 30s, with no assertion
+reached. Green on its own (5/5) and green on the re-run of the whole WebKit leg
+(27 files, 209 passed, 2 skipped).
+
+**This patch makes it likelier and should say so.** `visual-diagnose` is a 27th
+browser file and it launches two contexts of its own. The item is unchanged and
+still not this patch's to fix, but it now has two sightings rather than one, and
+a second cause to be read against: a `page.goto` that times out with no
+assertion reached is contention, not a regression, and the distinguishing test
+is a re-run in isolation.
