@@ -58,7 +58,51 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: battle animations you can actually see.** Branch
+**In flight: the iOS animations patch — a second engine in the harness.** Branch
+`claude/awesome-noether-h6p8fj`, prompt
+[`spec/gymrun-patch-ios-animations-webkit-harness.md`](spec/gymrun-patch-ios-animations-webkit-harness.md),
+record [`generation.md`](generation.md) section 27, report
+[`visual/reports/patch-ios-animations.md`](visual/reports/patch-ios-animations.md).
+On top of merged PR #40. Presentation and test infrastructure only: no `core/`
+change, no version axis moves, `contentHash` unmoved at `c3964b`.
+
+**The browser suite runs on two engines now.** `GYMRUN_ENGINE` selects
+Chromium or WebKit, the WebKit leg uses Playwright's iPhone 14 Pro Max
+descriptor — touch, the Mobile Safari user agent, 3x density, at this repo's
+pinned 390x844 — and `npm run check` runs both, so a WebKit failure fails the
+suite. `npm run test:webkit` is the second leg on its own. It needs
+`npx playwright install webkit`; the box also needs
+`npx playwright install-deps webkit`.
+
+**Two of the patch's five items were not what the brief said they were**, and
+both are worth knowing before reading the brief:
+
+- **Bug A's stated mechanism was already false** — the parser took both `ms` and
+  `s`, and WebKit returns `750ms` anyway. The round trip was still the bug, for
+  the reason the brief's own last bullet gives: its failure path returned
+  **zero**, and zero is not a short hold, it is the swallowed-last-turn defect
+  restored silently. Deleted. `src/` now contains no `getComputedStyle` at all
+  and `test/no-computed-timing.test.ts` holds that.
+- **Bug B does not reproduce.** On real WebKit at the reported device's
+  descriptor, all twelve animated classes on the stage start and move — the V5.5
+  switch-out included — and all five candidate causes are ruled out by their own
+  experiments. Following the brief's own instruction not to change CSS until a
+  reproduction says which cause it is, **no CSS was changed for it**. What
+  reproduces the reported symptom exactly, on *both* engines, is
+  `prefers-reduced-motion`: zero animations and a hold of zero. That was item 5,
+  and it shipped — the hold is `reducedMotionOutroMs` (120ms) now instead of
+  being deleted.
+
+**The instrument count is the thing to carry forward.** The first honest WebKit
+run gave 11 failures, of which **seven were this repo's own test instruments**
+rather than the app or the engine: a full-page screenshot indexed in CSS pixels
+(invisible at 1x for the life of the suite, catastrophic at 3x), a motion helper
+that got its timing wrong three separate ways, and a parallax case waiting a
+fixed 150ms for a throttled frame. All fixed rather than quarantined. The
+remaining four are narrowed or declined with a reason naming the engine and the
+cause — one skip in total, the CDP-based frame timing.
+
+**Previously: battle animations you can actually see.** Branch
 `claude/busy-noether-jfszvi`, prompt
 [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
 record [`generation.md`](generation.md) sections 22 to 25, report

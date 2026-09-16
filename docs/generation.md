@@ -4378,6 +4378,21 @@ The remaining four are the population the escape hatch is for:
 | the seed stamp's clipboard readback | WebKit | `navigator.clipboard.readText()` from `evaluate()` has no user gesture and WebKit has no permission to grant. The copy and `data-copied` are still asserted on both |
 | the throttled map scroll's frame timing | WebKit | measured through `context.newCDPSession`; the Chrome DevTools Protocol has no WebKit equivalent in Playwright. **The only case declined outright**, via `skipOn`, which puts the reason in the test title |
 
+### The harness contention of section 26, raised again and named again
+
+This patch adds a 23rd browser test file **and a second engine**, so it roughly
+doubles the peak browser count `npm run check` reaches. Section 26's note about
+concurrent vite builds and browsers therefore applies harder, and the symptom
+appeared once: `test/visual-v0.test.ts`'s "one accent" case reported `battle has
+no primary action` on one full `test:trim-strict` run and passed on the same
+commit in isolation and on re-run.
+
+Three of the eleven WebKit failures were the same class and **were** this
+patch's, because those tests were making timing assumptions of their own; they
+are fixed. This one is not — the real answer is a concurrency cap on the visual
+suite, which is a change to shared config and not this patch's to make. Recorded
+so the next red board is read with the durations and the file count in view.
+
 ### The general rule this patch paid for three times
 
 **A test that waits a fixed fraction of a motion budget and then reads the
