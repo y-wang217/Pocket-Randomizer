@@ -260,6 +260,12 @@
      on both sides, because a panel drawn heavier than the one opposite would
      be the visual-weight rule broken on the one screen that matters most. */
   --panel-scrim: color-mix(in srgb, var(--bg) 72%, transparent);
+  /* The same scrim with the transparency taken out, for an engine that has no
+     `backdrop-filter` under either name. **The iOS animations patch.**
+     `styles.css` reaches for it from one `@supports not` block and nowhere
+     else. It is `--bg` rather than a new colour on purpose: the fallback must
+     be the panel at full opacity, not a different panel. */
+  --panel-scrim-solid: var(--bg);
   --panel-blur: 2px;
 
   /* ---------- the density modes ----------
@@ -340,12 +346,25 @@
      kind of event — a thing on the board resolving — and because it never
      overlaps them: the outro begins where the last turn's beats end.
 
-     **Zeroed under `prefers-reduced-motion` in `styles.css`, and that is the
-     mechanism rather than a courtesy**: `scene.ts` reads this property to
-     decide how long to park, so a zero here is a hold of zero length and the
-     result screen arrives as fast as it ever did. Nothing in TypeScript
-     branches on the media query, which is what lets it re-answer itself when
-     the OS setting changes mid-session. */
+     **This is a fallback now, not the source. The iOS animations patch.**
+     `ui/theme/motion.ts` writes this property onto the root beside
+     `--motion-duration`, so what the stylesheet reads is a published result;
+     the declaration here is what a document that never ran that code gets, on
+     the same footing as the density multipliers above.
+
+     It used to be the other way round, and that was Bug A: `scene.ts` read
+     this property back out of the computed style to decide how long to park,
+     which made the stylesheet the authority on a number JavaScript already
+     had — and made a failed parse into a hold of zero.
+
+     **It also used to be zeroed under `prefers-reduced-motion` in
+     `styles.css`, and that line is gone.** A zero here was not a shorter hold,
+     it was no hold, which handed a player with Reduce Motion on the exact
+     swallowed-last-turn defect the outro exists to fix. The media query still
+     decides the length and still re-answers itself when the OS setting changes
+     mid-session — `outroHoldMs` asks it on every fight — but it now picks
+     between two non-zero numbers. `docs/generation.md` records the superseded
+     rule. */
   --motion-outro: var(--motion-duration);
   /* Where a recalled body shrinks *to*, as an offset from its own centre
      toward its trainer's side. An origin rather than a translate, deliberately:

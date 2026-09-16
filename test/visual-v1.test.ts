@@ -28,7 +28,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { measureContrast, type ContrastReading } from '../scripts/visual/contrast.mjs';
 import { measureGuardedScreens, openApp, playUntil, visible } from '../scripts/visual/browser.mjs';
 import { LOCALE_IDS } from '../src/data/locales';
-import { openHarness, type Harness } from './visual/harness';
+import { expectBaselineHeights, openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
 
@@ -45,8 +45,8 @@ describe('the vertical budget', () => {
     const expected = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/baseline/heights.json'), 'utf8'));
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.problems ?? []).toEqual([]);
-    expect(measured.map).toEqual(expected.map);
-    expect(measured.battle).toEqual(expected.battle);
+    expectBaselineHeights(measured.map, expected.map, expect);
+    expectBaselineHeights(measured.battle, expected.battle, expect);
   }, 180_000);
 });
 

@@ -85,6 +85,50 @@ export interface DisplayTuning {
   battleFeedbackMs: number;
 
   /**
+   * How long the end-of-fight hold lasts under `prefers-reduced-motion`, in
+   * milliseconds. **The iOS animations patch.**
+   *
+   * ## Why it is not zero
+   *
+   * Until this patch it was. The stylesheet set `--motion-outro: 0ms` under
+   * the reduced-motion query and `scene.ts` read that token to decide how long
+   * to park, so a player with Reduce Motion on got **no hold at all** — which
+   * is the pre-fix behaviour exactly, and the pre-fix behaviour is a bug: the
+   * result screen swaps in on the frame the KO lands and the last turn of
+   * every fight is never painted.
+   *
+   * The standing rule is "remove the movement, not the outcome", and it was
+   * being read one word too literally. Here the pacing **is** the outcome.
+   * A player who asked for less motion asked not to be moved at; they did not
+   * ask to be told less about what happened in the fight they just played.
+   * Every other reduced-motion rule in `styles.css` obeys this already — each
+   * animation is cancelled at its own *end* state, so the chunk is still gone,
+   * the fainted body is still down, the arriving Pokemon is still on the
+   * stage. The hold was the one place that dropped the outcome with the
+   * movement.
+   *
+   * ## On the value
+   *
+   * It has one job: guarantee the final turn is **painted** before the screen
+   * changes. That is a frame count, not a feel — one frame at 60Hz is 16.7ms
+   * and a phone under load can miss several in a row, so this is set an order
+   * of magnitude above the single frame it must not miss and still well under
+   * the threshold where a player waiting on an accessibility setting would
+   * call it a pause.
+   *
+   * It is deliberately **not** derived from `battleFeedbackMs`. Every other
+   * length on the battle screen is, because they are all the same
+   * question — how long should a turn's feedback take to read — and this is a
+   * different one: how long does a repaint need. Scaling it with a budget the
+   * player set for animation they have switched off would be deriving an
+   * answer from an unrelated question.
+   *
+   * Swept by watching, like the budget above, and free to move for the same
+   * reason: this file is off the `contentHash` glob.
+   */
+  reducedMotionOutroMs: number;
+
+  /**
    * The smallest a chip's text may render, in CSS pixels. **Patch 4.7.2.**
    *
    * A chip is the densest text in the game: three to twelve upper-case
@@ -169,6 +213,18 @@ export const DEFAULT_DISPLAY_TUNING: DisplayTuning = {
    * nobody a shared seed.
    */
   battleFeedbackMs: 750,
+
+  /*
+   * **120ms: about seven frames at 60Hz.** The iOS animations patch.
+   *
+   * Not a feel number and not derived from the budget above — see the field's
+   * own comment. It buys one guaranteed paint of the final turn with enough
+   * margin that a phone dropping frames still gets one, and it is short enough
+   * that a fight does not acquire a pause for the player who asked for less
+   * motion. The number to move if a Reduce Motion playtest says the end of a
+   * fight either flickers past or drags.
+   */
+  reducedMotionOutroMs: 120,
 
   minChipFontSizePx: 11,
   minChipContrastRatio: 4.5,

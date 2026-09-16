@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
 import { formatSeedString } from '../src/core/seedString';
 import { stampCollisions } from '../scripts/visual/stamps.mjs';
-import { openHarness, type Harness } from './visual/harness';
+import { engine, expectBaselineHeights, openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
 
@@ -56,8 +56,8 @@ describe('the vertical budget', () => {
     const expected = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/baseline/heights.json'), 'utf8'));
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.problems ?? []).toEqual([]);
-    expect(measured.map).toEqual(expected.map);
-    expect(measured.battle).toEqual(expected.battle);
+    expectBaselineHeights(measured.map, expected.map, expect);
+    expectBaselineHeights(measured.battle, expected.battle, expect);
   }, 180_000);
 });
 
@@ -169,7 +169,21 @@ describe('the corner stamps', () => {
    * so focus and Enter reach it under any overlap.
    */
   it('copy the full seed string from the seed stamp', async () => {
-    const context = await harness.browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] });
+    /*
+     * The clipboard permissions are Chromium's to grant. **The iOS animations
+     * patch.** `newContext` rejects the whole call on WebKit with "Unknown
+     * permission: clipboard-write" — the permission names do not exist in that
+     * engine's model — so asking for them unconditionally does not degrade the
+     * test, it fails it before the page opens.
+     *
+     * WebKit's own clipboard is writable from a real user gesture without a
+     * grant, which is exactly what this test performs, so dropping the request
+     * there costs the assertion nothing.
+     */
+    const context = await harness.browser.newContext({
+      viewport: { width: 390, height: 844 },
+      ...(engine === 'chromium' ? { permissions: ['clipboard-read', 'clipboard-write'] } : {}),
+    });
     await skipTutorialIn(context);
     const page = await context.newPage();
     await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
@@ -184,8 +198,28 @@ describe('the corner stamps', () => {
     expect(shown).toMatch(/^GYMRUN-[0-9a-f]{6}-SMOKE24$/);
     await page.locator('.stamp--seed').click();
     await page.waitForTimeout(100);
-    expect(await page.evaluate(() => globalThis.navigator.clipboard.readText())).toBe(formatSeedString('SMOKE24'));
-    expect(await page.locator('.stamp--seed').getAttribute('data-copied')).toBe('true');
+    /*
+     * **Reading the clipboard back is Chromium's half of this test.** The iOS
+     * animations patch. WebKit refuses `navigator.clipboard.readText()` from an
+     * injected `evaluate` — there is no user gesture on that call, and unlike
+     * Chromium it has no permission to grant that would change that. The write
+     * itself happens in the click above, which *is* a real gesture, and
+     * succeeds on both engines.
+     *
+     * So the readback is asserted where it can be, and `data-copied` is
+     * asserted on both — which is the app's own record that the copy path ran
+     * to completion, and the only part of this a regression would break
+     * silently. Skipping the whole case on WebKit would have given up the
+     * stamp's text and its flag as well, neither of which has anything to do
+     * with clipboard permissions.
+     */
+    if (engine === 'chromium') {
+      expect(await page.evaluate(() => globalThis.navigator.clipboard.readText())).toBe(formatSeedString('SMOKE24'));
+    }
+    expect(
+      await page.locator('.stamp--seed').getAttribute('data-copied'),
+      engine === 'webkit' ? '[webkit: the clipboard readback needs a user gesture WebKit will not grant to evaluate(); the copy flag is asserted instead]' : undefined,
+    ).toBe('true');
     await context.close();
   }, 120_000);
 });

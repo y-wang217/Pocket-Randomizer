@@ -12,7 +12,7 @@ import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
-import { openHarness, type Harness } from './visual/harness';
+import { expectBaselineHeights, openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
 
@@ -29,8 +29,8 @@ describe('the vertical budget', () => {
     const expected = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/baseline/heights.json'), 'utf8'));
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.problems ?? []).toEqual([]);
-    expect(measured.map).toEqual(expected.map);
-    expect(measured.battle).toEqual(expected.battle);
+    expectBaselineHeights(measured.map, expected.map, expect);
+    expectBaselineHeights(measured.battle, expected.battle, expect);
   }, 180_000);
 
   /*

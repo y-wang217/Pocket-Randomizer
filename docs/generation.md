@@ -4232,3 +4232,187 @@ Main took section 21, so the animation run's four sections moved from 21–24 to
 **22–25**, and a dozen cross-references in six files moved with them.
 `test/boundaries.test.ts` verifies that documented *paths* resolve; it cannot
 see a wrong section *number*, so those were checked by grep.
+
+## 27. The iOS animations patch: a second engine, and what Bug B was not
+
+Prompt: [`spec/gymrun-patch-ios-animations-webkit-harness.md`](spec/gymrun-patch-ios-animations-webkit-harness.md).
+Branch `claude/awesome-noether-h6p8fj`, 2026-09-16, on top of PR #40 (`284c66f`).
+Report: [`visual/reports/patch-ios-animations.md`](visual/reports/patch-ios-animations.md).
+
+Presentation and test infrastructure only. No `core/` change, no version axis
+moved, `contentHash` unmoved at `c3964b`.
+
+### Deviation 1: Bug B was not any of its five candidates, and is not reproducible on Linux WebKit
+
+**The prompt states Bug B as fact** — "the CSS motion system has never run on
+iOS", "the switch-out animation shipped broken at V5.5 and has never worked on
+mobile" — and asks which of five causes it is. It instructs: "do not change CSS
+until a reproduction tells you which one it is."
+
+There is no reproduction. Against Playwright WebKit 26.6 on an iPhone 14 Pro Max
+descriptor, **every animated class on the battle stage starts and moves**, the
+V5.5 switch-out included. `test/visual-motion.test.ts` asserts this for all
+twelve, by observed motion rather than by wiring, and it passes on both engines.
+
+So the instruction was followed to its actual conclusion: no CSS was changed for
+Bug B, because nothing told it which cause to change it for. The five candidates
+were each ruled out by direct experiment rather than by the absence of a
+failure — the evidence is in the report's section 4, and in summary:
+
+1. **A custom property inside a keyframe.** Ruled out twice. A seven-case
+   isolation page — two-factor, three-factor, fractional, two-argument
+   `translate`, a `var()` whose own value is a `calc()`, a parenthesised group,
+   and a literal control — interpolates identically on both engines. And the
+   shipped `actor-lunge`, which is the most `var()`-dependent keyframe in the
+   file, reaches 5.95px of its 6px peak on WebKit in the built app.
+2. **A non-animatable `display` or layout type.** Ruled out: `display: inline`
+   and `display: table-cell` both animate on WebKit. The actor is
+   `display: block; position: absolute` in any case.
+3. **A class added and removed inside one frame.** Ruled out in the app, and
+   **the code was already right**: `beats()` deletes both attributes, forces a
+   reflow with `void actors.me.root.offsetWidth`, and re-sets them, with a
+   comment saying why. A real engine difference was found next door — WebKit
+   begins an attribute-triggered animation roughly a frame later than Chromium —
+   but it is a latency, not a failure, and the only thing it broke was this
+   patch's own first instrument.
+4. **Compositing and layer promotion.** Ruled out: a box inside a
+   `backdrop-filter` parent, which is the exact shape of the stage, animates on
+   WebKit.
+5. **Shorthand or prefix parsing.** Ruled out for every motion rule — all twelve
+   keyframes start — and **confirmed for the one property item 4 is about**.
+   `backdrop-filter` is the only unprefixed modern property on the battle stage,
+   and Safari carried it behind `-webkit-` until Safari 18.
+
+**What does reproduce the reported symptom, exactly, is Reduce Motion**, and it
+is the finding this patch turns on. With `prefers-reduced-motion: reduce`
+emulated, on **both** engines: zero animations start, and `--motion-outro`
+resolves to `0ms`, so the result screen arrives on the frame the KO lands and
+the last turn of every fight is swallowed. That is "the animations do not render
+at all" and "the last turn is missing", together, from one OS setting.
+
+It also explains the shape of the report in a way an engine bug does not. The
+reporter saw it work in desktop Chrome and fail on an iPhone in *both* Safari
+and Chrome — and read that as "same engine, one platform". The same evidence
+fits "same *operating system*, one accessibility setting" at least as well:
+Reduce Motion is a system toggle both iOS browsers honour and neither desktop
+Chrome nor this repo's test suite ever had on.
+
+**This is not proof that the reporter had Reduce Motion on**, and the report says
+so. It is the only configuration that reproduces the reported symptom on the
+engine in question, and the fix for it was already item 5 of the same prompt.
+
+**What is honestly outside reach here** is recorded rather than papered over:
+Playwright's WebKit on Linux is not iOS Safari. It shares the engine and not the
+graphics stack, and three things a real device has are not modelled at all — the
+iOS compositor, Low Power Mode (which throttles and suspends CSS animation), and
+any Safari older than the bundled 26.6. The `backdrop-filter` prefix is fixed on
+the documented support history rather than on a measurement for exactly that
+reason, and it is labelled as such.
+
+### Deviation 2: the reduced-motion number is in `displayTuning.ts`, not `tuning.ts`
+
+The prompt says the hold and its reduced value are tuning numbers in
+`data/tuning.ts`. They are in `data/displayTuning.ts` instead, and the prompt's
+own standing rule is why: `tuning.ts` is inside the `contentHash` glob, so a
+field added there moves the hash — which the same prompt forbids twice
+("`contentHash` does not move", "Anything that moves `contentHash` or a version
+axis" is out of scope). `displayTuning.ts` exists precisely because Branch 1 of
+the animation run split the display numbers out for this reason. Verified: the
+hash reads `c3964b` before and after.
+
+The hold itself did not become a new number at all. It still derives from
+`battleFeedbackMs`, so "a playtester saying battles feel slow stays a one-number
+change" holds as the prompt asks. Only `reducedMotionOutroMs` is new, and its
+comment argues why that one is *not* derived: it is a frame count, not a feel.
+
+### Deviation 3: the engine axis is an environment variable, not a describe loop
+
+The prompt says "parameterised, not forked. One test body, two engines." It is
+parameterised — `GYMRUN_ENGINE` selects the engine inside `openHarness` and
+`contextFor`, every test body is written once, and no file has an engine branch
+in it except where an API genuinely differs. What it is not is a loop *inside*
+one process: the two legs are two `vitest` runs, `npm run check` runs both, and
+a WebKit failure fails the suite.
+
+Two reasons, and the second is the real one. A `describe`-per-engine wrap would
+have rebuilt the app twice per file and doubled the peak browser count on a
+harness whose contention is already a recorded fragility (section 26). And the
+22 files needed no structural edit, so the diff shows the four places behaviour
+actually differs by engine instead of 22 indentation changes.
+
+### Deviation 4: the device descriptor keeps the repo's width
+
+The prompt asks for "a real device descriptor for the failing device rather than
+a viewport width", and names the 390px window as not part of the reproduction.
+`IPHONE` is Playwright's `iPhone 14 Pro Max` descriptor with **`viewport`
+overridden back to 390x844**, and the three properties the prompt actually names
+— touch, the Mobile Safari user agent, 3x device pixel ratio — are all carried.
+
+The width is the one thing held back, because it is load-bearing elsewhere:
+`docs/visual/baseline/heights.json`, every entry under `docs/visual/baseline/`,
+`scripts/smoke.mjs` and all 22 test files are pinned to it. 390 is the narrower
+of the two, so a layout that fits it fits a Pro Max, and neither defect is
+width-dependent. Re-pinning the corpus to 430 would have moved every recorded
+number in the repo for a reason unrelated to either bug.
+
+**The 3x density immediately earned itself**, which is the argument for the
+descriptor made better than by assertion: `test/visual-chips.test.ts` indexed a
+full-page screenshot with CSS-pixel coordinates. On a 1x Chromium the conversion
+was the identity and therefore invisible for the life of the suite; at 3x every
+sample read a region a third of the way into the image and reported contrast
+ratios as low as 1.32:1 against chips whose computed colours are byte-identical
+on both engines. Fixed by scaling the boxes by `devicePixelRatio`.
+
+### Deviation 5: three tests are narrowed by engine, one is declined
+
+The prompt forbids quarantining failures to get a green board, and allows a test
+that "genuinely cannot run on both" to be marked with a reason naming the engine
+and the cause. Eleven WebKit failures came out of the first honest run. Seven
+were defects in this repo's instruments and were **fixed** — four chip-contrast
+failures (the density bug above) and three in this patch's own new motion test.
+The remaining four are the population the escape hatch is for:
+
+| what | engine | why it is not a bug |
+|---|---|---|
+| `heights.json` compared to the pixel (4 files) | WebKit | the baseline is a Chromium *recording*; WebKit's text metrics put the map at 944.36 against a recorded 944.5. Compared within 1px on WebKit rather than skipped, so a layout that moved visibly still fails |
+| the seed stamp's clipboard readback | WebKit | `navigator.clipboard.readText()` from `evaluate()` has no user gesture and WebKit has no permission to grant. The copy and `data-copied` are still asserted on both |
+| the throttled map scroll's frame timing | WebKit | measured through `context.newCDPSession`; the Chrome DevTools Protocol has no WebKit equivalent in Playwright. **The only case declined outright**, via `skipOn`, which puts the reason in the test title |
+
+### The harness contention of section 26, raised again and named again
+
+This patch adds a 23rd browser test file **and a second engine**, so it roughly
+doubles the peak browser count `npm run check` reaches. Section 26's note about
+concurrent vite builds and browsers therefore applies harder, and the symptom
+appeared once: `test/visual-v0.test.ts`'s "one accent" case reported `battle has
+no primary action` on one full `test:trim-strict` run and passed on the same
+commit in isolation and on re-run.
+
+Three of the eleven WebKit failures were the same class and **were** this
+patch's, because those tests were making timing assumptions of their own; they
+are fixed. This one is not — the real answer is a concurrency cap on the visual
+suite, which is a change to shared config and not this patch's to make. Recorded
+so the next red board is read with the durations and the file count in view.
+
+### The general rule this patch paid for three times
+
+**A test that waits a fixed fraction of a motion budget and then reads the
+screen is making an assumption about what the budget is for.** Section 23
+recorded this once, when the outro gate invalidated `playATurn`'s witness. This
+patch's own observed-motion helper got it wrong three more times in one
+afternoon: a fixed 220ms window that expired before a beat carrying a 562ms
+`animation-delay` was due; a window read off the element but sampled at two
+instants, which landed before WebKit had started and called a working lunge
+dead; and a dense poll that still starved under a full 26-file suite.
+
+The form that works does not race. It asks the element for its `Animation`
+objects, **pauses and seeks** them across the active window, and reads the
+computed style at each point — the same interpolated values the engine would
+paint, with no dependence on scheduling. Paired with one `animationstart` and
+`animationend` assertion, which is the half that says the engine really runs
+what it created.
+
+Two related traps, both of which produced a *passing* test for a broken one:
+`transform: none` and `matrix(1, 0, 0, 1, 0, 0)` are the same rendering and
+different strings, so comparing the strings counts the switch from rest to the
+0% keyframe as motion; and `getAnimations()` returning a name proves the cascade
+applied, not that anything moved.

@@ -15,11 +15,82 @@ import { join } from 'node:path';
 import type { Browser } from 'playwright';
 import { build } from 'vite';
 
-import { launch, serve } from '../../scripts/visual/browser.mjs';
+import { ENGINE, launch, serve } from '../../scripts/visual/browser.mjs';
+
+export type Engine = 'chromium' | 'webkit';
+
+/**
+ * Which engine this process is driving. **The iOS animations patch.**
+ *
+ * Re-exported from `scripts/visual/browser.mjs` so a test can say something
+ * engine-specific without importing the driver, and so `skipOn` below has one
+ * value to compare against.
+ */
+export const engine: Engine = ENGINE as Engine;
+
+/**
+ * Decline a test on one engine, with the reason in the title. **The iOS patch.**
+ *
+ * The patch that added the second engine also added the rule that a test which
+ * cannot run on both says which one and why, rather than disappearing behind a
+ * bare `skip`. The reason is concatenated into the test name, so a skipped case
+ * reports its own cause in the runner output instead of needing the file open
+ * beside it.
+ *
+ * It is for a test that is *asking a different question* on the other engine —
+ * a pixel measurement against a Chromium-recorded baseline is the whole of the
+ * current population — never for one that is merely failing.
+ */
+export function skipOn(which: Engine, reason: string): { skip: boolean; why: string } {
+  return { skip: engine === which, why: `[${which}: ${reason}]` };
+}
+
+/**
+ * Compare a measured guarded-screen block against `docs/visual/baseline/`.
+ *
+ * **Exact on Chromium, within a pixel on WebKit, and the asymmetry is the
+ * honest reading rather than a concession.** `heights.json` is a recording, and
+ * what it records is a layout as laid out by one engine: every number in it was
+ * produced by the pinned Chromium. WebKit's text metrics round differently — the
+ * map screen comes out 944.36 against a recorded 944.5 — so `toEqual` on the
+ * WebKit leg is not asking "did this layout regress", it is asking "is this
+ * Chromium", to which the answer is no and always will be.
+ *
+ * Re-recording a second baseline was the alternative and is worse: two files
+ * that must be regenerated together, and a real regression on one engine hiding
+ * behind a re-record of the other. A tolerance keeps **one** recording and
+ * still gates WebKit on the thing the baseline exists for — a layout that moved
+ * by an amount a person could see. 1px is well inside that and well outside
+ * rasterisation.
+ */
+export function expectBaselineHeights(
+  measured: object,
+  expected: object,
+  expect: (actual: unknown, message?: string) => { toEqual(value: unknown): void; toBeCloseTo(value: number, digits: number): void },
+): void {
+  if (engine === 'chromium') {
+    expect(measured).toEqual(expected);
+    return;
+  }
+  for (const [key, value] of Object.entries(expected as Record<string, unknown>)) {
+    const got = (measured as Record<string, number | null>)[key];
+    if (typeof value !== 'number') {
+      expect(got, `${key} [webkit: compared against a Chromium-recorded baseline]`).toEqual(value);
+      continue;
+    }
+    // `toBeCloseTo(v, 0)` is |difference| < 0.5; a whole pixel is the line.
+    expect(
+      Math.abs((got ?? Number.NaN) - value) <= 1,
+      `${key}: ${String(got)} is more than a pixel from the recorded ${value} [webkit: heights.json is a Chromium recording, so the engines are compared within a pixel rather than exactly]`,
+    ).toEqual(true);
+  }
+}
 
 export interface Harness {
   url: string;
   browser: Browser;
+  /** The engine this harness launched, for a test that has to name it. */
+  engine: Engine;
   close(): Promise<void>;
 }
 
@@ -40,6 +111,7 @@ export async function openHarness(options: { gallery?: boolean } = {}): Promise<
   return {
     url: server.url,
     browser,
+    engine,
     async close() {
       await browser.close();
       server.close();
