@@ -12,7 +12,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { openApp, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
-import { DEFAULT_TUNING } from '../src/data/tuning';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -41,7 +41,7 @@ async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Pro
     await playUntil(page, (screen) => screen === 'battle');
     const before = await entries();
     await stepOnce(page);
-    await page.waitForTimeout(DEFAULT_TUNING.battleFeedbackMs / 2);
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs / 2);
 
     const screen = await page.evaluate(() =>
       globalThis.document.querySelector('.screen:not([hidden])')?.getAttribute('data-screen'),
@@ -440,7 +440,7 @@ describe('the species swap', () => {
     // `ui/theme/motion.ts` writes `data/tuning.ts`'s number onto the root at
     // startup and `--motion-swap` is `var(--motion-duration)`. One number, and
     // this is it arriving at V5's own beat.
-    expect(resolved).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
+    expect(resolved).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
     await context.close();
   }, 300_000);
 

@@ -152,6 +152,14 @@ Every number below is from this branch's head, after step 5, on this machine.
    `maxMoveTagsOnFace` out of `Tuning` into a display-only module (which would
    then go on the exclusion list), or accept that a shadow-duration edit
    refuses shared seeds. Open, small, its own patch.
+
+   **Taken 2026-09-16** by the battle animation run's Branch 1, and it was the
+   first option. `src/data/displayTuning.ts` holds `battleFeedbackMs`,
+   `minChipFontSizePx` and `minChipContrastRatio`; `maxMoveTagsOnFace` stayed,
+   because `core/battle/view.ts` reads it and an excluded file may not be a
+   `core/` dependency — taking it would have disqualified the exclusion for all
+   four. The move itself cost one hash bump, `53145f` to `b381d0`, with the run
+   payload byte identical across it. `../generation.md` section 21.
 4. **The nine pre-existing failures on `main`** listed under the baseline.
    None is this branch's; the vertical-budget ones look like `heights.json`
    wanting a re-record after 4.7.2's font swap, which is a phone decision.

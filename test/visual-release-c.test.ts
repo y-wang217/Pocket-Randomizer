@@ -24,7 +24,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { openApp, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
-import { DEFAULT_TUNING } from '../src/data/tuning';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -73,7 +73,7 @@ async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Pro
     await playUntil(page, (screen) => screen === 'battle');
     const before = await entries();
     await stepOnce(page);
-    await page.waitForTimeout(DEFAULT_TUNING.battleFeedbackMs / 2);
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs / 2);
 
     const screen = await page.evaluate(() =>
       globalThis.document.querySelector('.screen:not([hidden])')?.getAttribute('data-screen'),
@@ -97,8 +97,8 @@ describe('the one tuning number reaches the screen', () => {
 
     // The number `ui/theme/motion.ts` wrote at startup, straight off
     // `data/tuning.ts`. One number, and this is it arriving.
-    expect(resolved.duration).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
-    expect(resolved.shadow).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
+    expect(resolved.duration).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
+    expect(resolved.shadow).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
 
     await playATurn(page);
     const applied = await page.evaluate(() => {
@@ -118,7 +118,7 @@ describe('the one tuning number reaches the screen', () => {
     // The shadow spends the whole budget; the four beats run inside it, one
     // quarter each, in their slots. That is what makes "one number" true
     // rather than aspirational.
-    const ms = DEFAULT_TUNING.battleFeedbackMs;
+    const ms = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
     const beat = `${ms / 4000}s`;
     expect(applied.shadow).toBe(`${ms / 1000}s`);
     expect(applied.first).toEqual({ duration: beat, delay: '0s' });

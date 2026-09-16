@@ -133,10 +133,11 @@ describe('the drawer itself', () => {
    * a whole run in `test/visual-move-cards.test.ts` — there against a
    * fingerprint that includes the battle log and every HP and PP readout.
    *
-   * `Grid` and `Columns` joined the list with the move bar picker. They write a
-   * display setting, like the three density buttons beside them, and the half
-   * of this test that matters — pressing every control and comparing party
-   * state — is what says so rather than their presence in the list.
+   * `Grid` and `Columns` joined the list with the move bar picker, and `Swift`,
+   * `Even` and `Patient` with the battle speed picker. All five write a display
+   * setting, like the three density buttons beside them, and the half of this
+   * test that matters — pressing every control and comparing party state — is
+   * what says so rather than their presence in the list.
    */
   it('is read only: no control on it writes party state', () => {
     const drawer = createDrawer();
@@ -147,9 +148,12 @@ describe('the drawer itself', () => {
     const labels = [...new Set(buttons.map((button) => button.textContent))];
     // `+` is the Pocket fold on each card (`ui/collapse.ts`): it flips an
     // attribute on the card and writes nothing. The three mode names are the
-    // picker (step 7): each writes the density setting, which is not party
-    // state, and the comparison below holds that. Density modes patch.
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close', 'Columns', 'Detailed', 'Explain', 'Grid', 'Pocket', 'Simple']);
+    // density picker (step 7), and the three speeds the battle speed picker:
+    // each writes a display setting, which is not party state, and the
+    // comparison below holds that.
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual([
+      '+', 'Close', 'Columns', 'Detailed', 'Even', 'Explain', 'Grid', 'Patient', 'Pocket', 'Simple', 'Swift',
+    ]);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —

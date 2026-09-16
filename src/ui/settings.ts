@@ -82,6 +82,58 @@ export type MoveBar = 'grid' | 'columns';
 /** Both layouts, in the order the picker lists them. */
 export const MOVE_BARS: readonly MoveBar[] = ['grid', 'columns'];
 
+/**
+ * How long a battle turn's feedback takes to play. **The battle animation run.**
+ *
+ * A third presentation axis, and a third axis for the same reason the move bar
+ * was a second one: density is *how much space and prose a fact costs*, the
+ * move bar is *the shape of one bar*, and this is *how long a beat lasts*. A
+ * player who wanted a slower turn should not have to accept a padding scale
+ * with it.
+ *
+ * **Why it exists at all.** Release C's 500ms was the prompt's default and its
+ * own doc comment said it was waiting on a playtest rather than a sweep. The
+ * playtest arrived and said the beats were too fast to see — a beat is a
+ * quarter of the budget, so 500 made it 125ms, and an 8px lunge over 125ms is
+ * about one frame at peak displacement. `data/displayTuning.ts` now ships 900.
+ * But "too fast" is a judgement, not a measurement, and the honest answer to a
+ * judgement is a control rather than a second guess at one number.
+ *
+ * The three are multipliers on that shipped number rather than millisecond
+ * values of their own, so there is still exactly one place the feel of a turn
+ * is set and this scales it. A fourth constant is what the token exists to
+ * prevent.
+ *
+ *   - **`swift`.** Two thirds. For a player who has learned to read the board
+ *     and wants the turn out of the way.
+ *   - **`even`.** The shipped number, and the default.
+ *   - **`patient`.** Half again, for reading every beat.
+ *
+ * Reduced motion is **not** a fourth value here and must never become one. The
+ * OS setting is answered in the stylesheet by `prefers-reduced-motion`, which
+ * re-answers itself when the setting changes mid-session; a value written into
+ * this store at startup would not. See `ui/theme/motion.ts`.
+ */
+export type BattleSpeed = 'swift' | 'even' | 'patient';
+
+/** Every speed, in the order the picker lists them: slowest last, default middle. */
+export const BATTLE_SPEEDS: readonly BattleSpeed[] = ['swift', 'even', 'patient'];
+
+/**
+ * What each speed does to the shipped feedback duration.
+ *
+ * Multipliers, not durations, so `data/displayTuning.ts` stays the one place
+ * the number lives. `even` is exactly 1 rather than approximately 1: the
+ * default must reproduce the shipped value bit for bit, or the visual tests
+ * that assert `--motion-duration` equals `battleFeedbackMs` would be asserting
+ * a rounding.
+ */
+export const BATTLE_SPEED_SCALE: Readonly<Record<BattleSpeed, number>> = {
+  swift: 2 / 3,
+  even: 1,
+  patient: 1.5,
+};
+
 const KEY = 'gymrun.settings';
 
 /**
@@ -101,6 +153,7 @@ export interface TutorialFlags {
 export interface Settings {
   density: Density;
   moveBar: MoveBar;
+  battleSpeed: BattleSpeed;
   tutorial: TutorialFlags;
 }
 
@@ -124,6 +177,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   density: 'detailed',
   moveBar: 'grid',
+  battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
 };
 
@@ -133,6 +187,10 @@ function isDensity(value: unknown): value is Density {
 
 function isMoveBar(value: unknown): value is MoveBar {
   return (MOVE_BARS as readonly unknown[]).includes(value);
+}
+
+function isBattleSpeed(value: unknown): value is BattleSpeed {
+  return (BATTLE_SPEEDS as readonly unknown[]).includes(value);
 }
 
 /**
@@ -173,6 +231,7 @@ export function readSettings(value: unknown): Partial<Settings> {
   const candidate = value as {
     density?: unknown;
     moveBar?: unknown;
+    battleSpeed?: unknown;
     verbosity?: unknown;
     tutorial?: unknown;
   };
@@ -195,6 +254,14 @@ export function readSettings(value: unknown): Partial<Settings> {
    * being shown.
    */
   if (isMoveBar(candidate.moveBar)) read.moveBar = candidate.moveBar;
+  /*
+   * The speed, read like the move bar and outside the density chain for the
+   * same reason: a branch placed inside that `else` severs it, which is the
+   * defect `test/density.test.ts` already has a case for. No migration — the
+   * field is new, so a store written before it falls through to `even`, which
+   * is the speed that store was already being shown.
+   */
+  if (isBattleSpeed(candidate.battleSpeed)) read.battleSpeed = candidate.battleSpeed;
   const tutorial = candidate.tutorial as { skipped?: unknown; seen?: unknown } | undefined;
   if (typeof tutorial === 'object' && tutorial !== null) {
     read.tutorial = {
@@ -246,6 +313,17 @@ export function getMoveBar(): MoveBar {
 export function setMoveBar(moveBar: MoveBar): void {
   if (current.moveBar === moveBar) return;
   current = { ...current, moveBar };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+export function getBattleSpeed(): BattleSpeed {
+  return current.battleSpeed;
+}
+
+export function setBattleSpeed(battleSpeed: BattleSpeed): void {
+  if (current.battleSpeed === battleSpeed) return;
+  current = { ...current, battleSpeed };
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }

@@ -24,7 +24,7 @@
  * forms — `test/boundaries.test.ts` reads both.
  */
 import type { Prose } from '../dom';
-import type { Density, MoveBar } from '../settings';
+import type { Density, MoveBar, BattleSpeed } from '../settings';
 
 export const STARTER_COPY = {
   blurb: {
@@ -130,6 +130,19 @@ export const MOVE_BAR_HEADING = 'Move bar';
 export const MOVE_BAR_COPY: Readonly<Record<MoveBar, { name: string; description: string }>> = {
   grid: { name: 'Grid', description: 'Two by two. Every field on the button.' },
   columns: { name: 'Columns', description: 'Four columns, fields lined up across. Some read one tap away.' },
+};
+
+export const BATTLE_SPEED_HEADING = 'Battle speed';
+/*
+ * Three speeds, each named for what the turn does rather than for a number.
+ * Part 4 applies: "Swift" and "Patient" are descriptions of a pace, not a
+ * judgement about which pace is better, and neither description says a player
+ * who picks it is doing it right.
+ */
+export const BATTLE_SPEED_COPY: Readonly<Record<BattleSpeed, { name: string; description: string }>> = {
+  swift: { name: 'Swift', description: 'Beats go by quickly. The turn is out of the way sooner.' },
+  even: { name: 'Even', description: 'The shipped pace. Each beat of a turn reads on its own.' },
+  patient: { name: 'Patient', description: 'Beats hold longer. More time to read what happened.' },
 };
 
 export const DRAWER_COPY = {

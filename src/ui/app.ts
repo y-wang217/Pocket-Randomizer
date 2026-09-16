@@ -110,7 +110,8 @@ export function mountApp(root: HTMLElement): void {
   // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
   // screen's marks are up.
   /*
-   * The one battle-feedback duration, from `data/tuning.ts` onto the root.
+   * The one battle-feedback duration, from `data/displayTuning.ts` onto the
+   * root, scaled by the player's chosen battle speed.
    *
    * On `documentElement` rather than on the app root because `tokens.css`
    * declares `--motion-duration` on `:root` and a value set lower down would
@@ -118,7 +119,14 @@ export function mountApp(root: HTMLElement): void {
    * above — two answers to one question, which is the thing the token exists
    * to prevent.
    */
-  applyMotion(document.documentElement);
+  applyMotion(document.documentElement, settings.battleSpeed);
+  /*
+   * And again whenever the speed moves, like the move bar above. Re-applying
+   * writes one custom property, and every battle-feedback length in the
+   * stylesheet derives from it — so a turn already on screen picks the new
+   * pace up at its next beat rather than needing the battle rebuilt.
+   */
+  onSettingsChange((next) => applyMotion(document.documentElement, next.battleSpeed));
 
   const starterScreen = createStarterSelect();
   const localeScreen = createLocaleSelect();

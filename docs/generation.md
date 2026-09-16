@@ -1037,7 +1037,16 @@ moving `battleFeedbackMs` and `maxMoveTagsOnFace` into a display-only module;
 that is not done here, because moving a field out of `Tuning` changes what the
 simulator can sweep and what every report's `tuning` block records, and that is
 a decision with its own release rather than a side effect of this one. The cost
-is a false rejection when a display number moves. **Open, small.**
+is a false rejection when a display number moves. ~~**Open, small.**~~
+**Closed 2026-09-16** by the battle animation run's Branch 1, with one field
+named and declined: `battleFeedbackMs`, `minChipFontSizePx` and
+`minChipContrastRatio` moved to `src/data/displayTuning.ts` and onto the
+exclusion list; `maxMoveTagsOnFace` could not, because `core/battle/view.ts`
+reads it and an excluded file may not be a `core/` dependency. Section 21
+deviation 2. The "decision with its own release" this paragraph defers is
+exactly what closed it: the release was a playtest reporting that the beats
+were too fast to see, and a number parked for a playtest has to be movable when
+the playtest arrives.
 
 The workflow this implies, for the next table: a balance file under
 `src/data/` needs nothing; a copy-only file wants an exclusion entry with a
@@ -3507,3 +3516,82 @@ The third decision in the prompt file. What `@pkmn/img` needs to return a
 coverage fails, and why reduced motion has to be decided at URL time are in
 [`engine-notes.md`](engine-notes.md), under "Animated sprites through
 `@pkmn/img`: what it would take".
+
+## 21. The battle animation run, Branch 1: the display split moved the hash once
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 1. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
+
+### Deviation 1: `contentHash` moved, and the prompt said no axis would
+
+**The prompt's standing rules say "No version axis moves in any of the three
+branches", and its Branch 1 step 1 says to verify `npm run content-hash` prints
+the same value before and after, with "if it moves, the split is wrong."**
+
+It moved, from `53145f` to `b381d0`, and the split is not wrong. The check was
+naive and this note is the correction.
+
+`contentHash` is a glob over `src/data/**` minus the exclusion list, and
+`tuning.ts` is in the hashed set. Taking three fields *out* of `tuning.ts`
+changes that file's bytes, so it changes the hash — necessarily, and no
+arrangement of the destination file avoids it. The check as written could never
+have passed for any version of this work.
+
+What the check should have asked, and what was verified instead:
+
+1. **Generation did not move.** `test/fixtures/sim-report.json` regenerated
+   byte-for-byte identical except its own `contentHash` line — every run
+   record, every decision, every casualty across every fixture seed unchanged.
+   That is the claim that matters and it is proved rather than argued.
+2. **The number is free from here.** `battleFeedbackMs` at `900` and at `1234`
+   both produce `b381d0`. The exclusion is doing its job.
+
+**And the move was unavoidable regardless of the split**, which is the part
+worth keeping: this branch exists to change `battleFeedbackMs` from 500, and
+changing it *in place* would have moved the hash too — and moved it again on
+every future retune. The split pays the cost once and makes this the last time a
+display edit refuses a shared seed. A seed string minted before 2026-09-16 is
+refused at paste time with the copy `data/seedCopy.ts` already carries.
+
+Recorded here rather than by editing the prompt, per the Process rule.
+
+### Deviation 2: `maxMoveTagsOnFace` could not come, and the filed item named it
+
+Release C's recommendation, carried as morning decision 3 of
+[`handoff/overnight-1-contenthash.md`](handoff/overnight-1-contenthash.md) and
+marked **open, small** in section 9 above, names two fields: `battleFeedbackMs`
+and `maxMoveTagsOnFace`. Only the first moved.
+
+A file may be excluded from the hash only if nothing under `core/` imports it at
+any depth — the rule in `build-config/content-hash.ts`, held by
+`test/content-hash.test.ts`, which walks the import graph. `core/battle/view.ts`
+reads `DEFAULT_TUNING.maxMoveTagsOnFace` for its `DEFAULT_MAX_MOVE_TAGS`. Moving
+that field into `data/displayTuning.ts` would have made the new file a `core/`
+dependency and disqualified the exclusion **for all four fields**, which is the
+opposite of the point.
+
+So the split is three fields, not two-plus-one: `battleFeedbackMs`,
+`minChipFontSizePx` and `minChipContrastRatio` — the three no `core/` file
+reads. `maxMoveTagsOnFace` stays on `Tuning`, stays hashed, and keeps the
+sweepability its own comment argues for. The filed item is therefore **closed as
+substantially done with one field named and declined**, not closed clean.
+
+### Deviation 3: a stale claim in `tuning.ts`, corrected rather than moved
+
+`maxMoveTagsOnFace`'s doc comment read "A display number, so it changes no seed
+and enters no hash." The first half is true; **the second half was false when it
+was written** — `tuning.ts` has been hashed whole since the `contentHash`
+release — and it sat directly above the three fields this branch moved *because*
+they enter the hash. Left alone it would have read as the reason the field
+stayed behind.
+
+Corrected in place to say the field is hashed, that editing it still refuses a
+seed shared across the edit, and why it could not move. This is the same class
+of failure open item 8 records: a stale statement in a file every session reads
+is believed.
+
+### What Branch 1 did not change
+
+No balance number. No `core/` file. `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
+`AI_VERSION` all stand still; `contentHash` is the only axis that moved and
+deviation 1 is its account.

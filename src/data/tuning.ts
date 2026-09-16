@@ -463,79 +463,22 @@ export interface Tuning {
    * decides *which* three survive is in `data/moveTags.ts`, next to the
    * vocabulary, and is the other half of the same call.
    *
-   * A display number, so it changes no seed and enters no hash. It is on
-   * `Tuning` rather than in `data/moveTags.ts` because the simulator can sweep
-   * a `Tuning` field and cannot sweep a module constant — and "how much fits on
-   * a phone" is exactly the sort of thing worth being able to vary.
+   * A display number, so it changes no seed — but it **is** hashed, and the
+   * claim that it "enters no hash" stood here wrongly until the battle
+   * animation run. It is on `Tuning` rather than in `data/moveTags.ts` because
+   * the simulator can sweep a `Tuning` field and cannot sweep a module
+   * constant, and "how much fits on a phone" is exactly the sort of thing worth
+   * being able to vary.
+   *
+   * **It is the one display number that did not move to `data/displayTuning.ts`**,
+   * and not by preference: a file may be excluded from `contentHash` only if
+   * nothing under `core/` imports it, and `core/battle/view.ts` reads this
+   * field for its `DEFAULT_MAX_MOVE_TAGS`. Taking it there would have made that
+   * file a `core/` dependency and disqualified the whole exclusion. Editing
+   * this number still moves the hash and still refuses a seed shared across the
+   * edit; that is the accepted safe error, and `docs/generation.md` records it.
    */
   maxMoveTagsOnFace: number;
-  /**
-   * How long the battle screen's feedback takes to settle, in milliseconds.
-   *
-   * **One number for all of it, and that is the constraint rather than a
-   * convenience.** The HP chunk's shadow spends the whole of it; the two turn
-   * order nudges are a quarter each and run inside the same window, the second
-   * delayed by one. `ui/theme/motion.ts` writes it to `--motion-duration` at
-   * startup and every battle-feedback length in the stylesheet is derived from
-   * that token, so there is exactly one place the feel of a turn is set and no
-   * second constant to find.
-   *
-   * **It is not a delay.** Nothing on the screen waits for it: the bar, the HP
-   * text, the flag words and the move buttons are all correct and interactive
-   * on the frame the update arrives, and a tap resolves every animation early.
-   * This is how long the feedback *stays*, not how long the player waits.
-   *
-   * 500ms is the prompt's default and it has not been measured against
-   * anything. Unlike every other number in this file it is not a balance
-   * finding — the simulator has no opinion about how long a shadow should
-   * linger — so it is here to be swept by a playtest, not by `npm run sim`.
-   *
-   * A display number, so it changes no seed. On `contentHash`: it is under
-   * `src/data/`, and `docs/generation.md` §9 currently contradicts itself
-   * about whether the hash is a glob over that directory or an explicit file
-   * list. Under the glob reading this number would move a content hash, which
-   * is exactly the failure 4.7's constraint in that section names. See
-   * `docs/reports/release-c-battle-feedback.md`.
-   */
-  battleFeedbackMs: number;
-
-  /**
-   * The smallest a chip's text may render, in CSS pixels. **Patch 4.7.2.**
-   *
-   * A chip is the densest text in the game: three to twelve upper-case
-   * letterspaced characters in a pixel face, read at a glance and often the
-   * only thing distinguishing two options from each other. Below about 11px
-   * that face stops resolving on a phone and the failure is specific rather
-   * than general — letters become confusable with each other, which turns a
-   * misread chip into a misread *option*.
-   *
-   * 11 is the brief's floor, not a measurement, and it is the number to move if
-   * a playtest says the chips are still tight. `test/visual-chips.test.ts`
-   * asserts it against the computed style of every chip on every surface, so
-   * raising it here is what makes the assertion bite rather than a comment.
-   *
-   * A display number, so it changes no seed. Same `contentHash` caveat as
-   * `battleFeedbackMs` above.
-   */
-  minChipFontSizePx: number;
-
-  /**
-   * The smallest contrast ratio, WCAG 2, between a chip's text and the colour
-   * actually rendered behind it. **Patch 4.7.2.**
-   *
-   * 4.5 is the AA threshold for normal-size text, which is what a chip is —
-   * the large-text relaxation to 3:1 starts at 18px and no chip is close.
-   *
-   * Measured off rendered pixels rather than computed properties, because a
-   * chip's fill is `color-mix(… transparent)` over whatever the surface behind
-   * it happens to be — a panel, the map's gradient, a locale's glow — and no
-   * computed value says what that came out as. `scripts/visual/contrast.mjs`
-   * already samples that way for the V1 text rule and this reuses it.
-   *
-   * A display number, so it changes no seed. Same `contentHash` caveat as
-   * `battleFeedbackMs` above.
-   */
-  minChipContrastRatio: number;
 }
 
 /**
@@ -644,10 +587,6 @@ export const DEFAULT_TUNING: Tuning = {
   revealOpponentItem: true,
 
   maxMoveTagsOnFace: 3,
-  battleFeedbackMs: 500,
-
-  minChipFontSizePx: 11,
-  minChipContrastRatio: 4.5,
 };
 
 /** A tuning derived from the default. Stage 2's sweep builds variants this way. */

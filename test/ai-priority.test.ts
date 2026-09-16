@@ -301,9 +301,23 @@ describe('the version axes', () => {
      * entries.
      */
     expect(RUN_LOG_VERSION).toBe('gymrun-run-15/gymrun-0.3.0');
-    // Pinned literally, as the Branch 1 value was: a hash nobody can read off
-    // the tree by eye is exactly the kind that moves without anyone noticing.
-    expect(CONTENT_HASH).toBe('53145fb1ee4bee9bf294aa380a32afe736c4d9ed8a382ed9e15453b8704ccd1e');
+    /*
+     * Pinned literally, as the Branch 1 value was: a hash nobody can read off
+     * the tree by eye is exactly the kind that moves without anyone noticing.
+     *
+     * **Moved 2026-09-16 by the battle animation run's Branch 1**, from
+     * `53145f`, and by a *removal* rather than by new data: the three display
+     * numbers left `tuning.ts` for `data/displayTuning.ts`, which is on the
+     * exclusion list, so the hashed file lost three fields. No balance number
+     * changed and generation did not move — `test/sim-fixture.test.ts`'s run
+     * payload is byte identical across the split, which is the proof.
+     *
+     * This is the **one-time** cost of the split and the last time this number
+     * moves for a display edit: `battleFeedbackMs` at 900 and at 1234 now hash
+     * the same. Retuning it in place would have moved the hash too, and would
+     * have moved it again on every future retune. See `docs/generation.md`.
+     */
+    expect(CONTENT_HASH).toBe('b381d0b728f8a28d4ef2941d1c9f2754634e3bc45ee2d8625f9dfe1465ab55b6');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
