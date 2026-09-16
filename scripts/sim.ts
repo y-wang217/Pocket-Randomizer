@@ -1421,6 +1421,16 @@ function buildPolicy(
     chooseLead: async (party, gym) => (policy === 'lead-static' ? 0 : leadFor(party, gym)),
 
     /*
+     * The evolution branch. Random draws it from its own policy stream; every
+     * other bot takes the heaviest option, ties to the lower index — a bot may
+     * hold a verdict the UI may not, and base stat total is the one it has.
+     */
+    chooseEvolution: async (question) =>
+      randomBattle
+        ? stream.nextInt(question.options.length)
+        : question.options.reduce((best, option, index, all) => (option.bst > (all[best]?.bst ?? -1) ? index : best), 0),
+
+    /*
      * The locale, drawn uniformly from the offer, for **every** policy.
      *
      * Not "take the first", which was the placeholder and was worse than it
@@ -2655,7 +2665,7 @@ function summarize(
       type: gym.type,
       // Read from the curve rather than written as a literal, so the column
       // cannot drift out of agreement with what the gym actually fielded.
-      teamSize: opponentTeamSize('gym', gym.segment, 'normal', gym.teamSize),
+      teamSize: opponentTeamSize('gym', gym.segment, 'normal'),
       reached,
       cleared,
       clearRate: reached === 0 ? 0 : cleared / reached,

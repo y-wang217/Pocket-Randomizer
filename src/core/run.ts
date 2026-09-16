@@ -107,6 +107,7 @@ import type {
   RunLogVersions,
 } from './types';
 import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
+import { evolveParty, pendingEvolutionQuestion, type EvolutionQuestion } from './evolution';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import type { LocaleId } from '../data/locales';
 import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
@@ -285,7 +286,21 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * generation — but, as at `-14`, that is a coincidence of the patch. The
  * schema axis is the one that states why a `-14` log cannot be replayed.
  */
-export const RUN_LOG_VERSION = `gymrun-run-15/${ENGINE_VERSION}`;
+/*
+ * ## `-16`: a gym clear asks which way a Pokemon evolves
+ *
+ * Stage 4.9. A new question in a new place: after the level-up a gym clear
+ * pays, each member whose species forks at the new level asks for a branch,
+ * and the answer is a new decision kind, `evolve`. Single-target evolutions
+ * ask nothing, so a party that never reaches a fork writes the same log it
+ * did — but a `-15` log that did would have its next answer read as a branch,
+ * and the guard refuses it on this axis by name.
+ *
+ * `contentHash` and `randomizerVersion` move in the same stage, for the pool,
+ * the curve and the draw order; as before, the schema axis is the one that
+ * states why an old log cannot be replayed.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-16/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -714,6 +729,15 @@ export interface NodeResult {
   /** Which of that member's move slots it displaces, 0-based, or absent. */
   gymMoveReplaceSlot?: number;
   /**
+   * The branch answers for the evolutions this gym clear applies. **Stage 4.9.**
+   *
+   * Present only on a gym the player won that is not the last; one entry per
+   * branching step in walk order, and nothing for a single-target step. Same
+   * discipline as the fields above: `playRun` asks, `resolveNode` applies, and
+   * `core/evolution.ts` owns the walk both sides use.
+   */
+  evolutions?: number[];
+  /**
    * The move a question mark room handed over, and where it landed.
    *
    * Present only when the *chosen* event outcome grants one — which is a `T2`
@@ -845,6 +869,20 @@ export interface BattleReview {
  * revival, or `reviveFaintedBetweenNodes` would quietly resurrect a run that
  * had already ended.
  */
+/**
+ * The level the party moves to when the segment's gym falls, or null at the
+ * last gym, where a win ends the run and nothing levels.
+ *
+ * **The one gate for asking and for applying.** `playRun` asks the evolution
+ * questions when this is non-null and `resolveNode` applies the level and the
+ * evolutions under the same test, so the two cannot disagree about whether a
+ * clear levels the party.
+ */
+export function gymClearLevel(state: RunState): number | null {
+  const next = state.currentSegment + 1;
+  return next >= state.segments.length ? null : playerLevel(next);
+}
+
 export function resolveNode(state: RunState, result: NodeResult): RunState {
   if (state.outcome) throw new Error('Run has already ended');
 
@@ -986,22 +1024,33 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       return { ...base, party, backpack, currency, history, outcome: 'victory' };
     }
     /*
-     * Clearing a gym is the only thing that levels the party.
+     * Clearing a gym is the only thing that levels the party, and — Stage 4.9 —
+     * the only thing that evolves it.
      *
      * There is no XP and no grinding: the level is a function of segment index
      * (data/scaling.ts). Levelling happens *after* the node's damage has been
      * folded in and after the wipe check, so a gym won on one HP is a segment
      * started on the same share of a bigger bar rather than a free heal.
+     *
+     * Evolution runs after the level, because a threshold is read against the
+     * new level, and before the gym's cards, because a targeted card must land
+     * on the member as it will be: `maxHp` moves twice here (the level, then
+     * the species) and both have to precede the share-preserving teach.
      */
+    const clearLevel = gymClearLevel(state) ?? playerLevel(nextSegment);
     let cleared: RunState = {
       ...base,
-      // Order matters: fold in the node, then heal, then level. Healing before
-      // levelling means the fraction `levelParty` carries is the healed one, so
-      // a full heal at the gym really is full at the new level rather than
-      // full-at-the-old-max rounded down.
-      party: levelParty(
-        recoverParty(betweenNodes(party, state.tuning, relicEffects), state.tuning.gymClearHealFraction),
-        playerLevel(nextSegment),
+      // Order matters: fold in the node, then heal, then level, then evolve.
+      // Healing before levelling means the fraction `levelParty` carries is the
+      // healed one, so a full heal at the gym really is full at the new level
+      // rather than full-at-the-old-max rounded down.
+      party: evolveParty(
+        levelParty(
+          recoverParty(betweenNodes(party, state.tuning, relicEffects), state.tuning.gymClearHealFraction),
+          clearLevel,
+        ),
+        clearLevel,
+        result.evolutions ?? [],
       ),
       backpack,
       currency,
@@ -1351,6 +1400,17 @@ export interface RunPolicy {
     state: RunState,
   ) => Promise<number>;
   /**
+   * Which branch a member evolves along. **Stage 4.9.**
+   *
+   * Asked on a gym clear for each member whose species forks at the new level,
+   * after the level-up and before the gym's own questions. The question names
+   * the member and the options in dex order; the answer is an index into them.
+   * There is no decline: evolution is automatic, and a member with one target
+   * never reaches this. Player decisions consume no RNG, so the seed is
+   * untouched by whatever is answered here.
+   */
+  chooseEvolution: (question: EvolutionQuestion, state: RunState) => Promise<number>;
+  /**
    * What to do with the run's items, asked once at each node boundary.
    *
    * **One question per boundary, not one per swap.** The spec asks that items
@@ -1696,6 +1756,40 @@ export async function playRun(
      * shape". `docs/generation.md` section 7c records the deviation from the
      * prompt, which expected no bump.
      */
+    /*
+     * **Stage 4.9: the evolutions a gym clear unlocks, asked first.**
+     *
+     * Before the gym's own questions, in the order `resolveNode` applies them:
+     * the party levels, then evolves, then takes its cards. Only the branches
+     * are questions; a single-target step is applied without one, so a party
+     * that never reaches a fork adds nothing to the log. The gate is
+     * `gymClearLevel` — the last gym's win ends the run and levels nobody, so
+     * it asks nobody. `pendingEvolutionQuestion` is fed the answers so far and
+     * returns the next unanswered fork, which is how a mid-chain branch
+     * (Wurmple) is asked before the step that depends on it is computed.
+     */
+    if (result.node.kind === 'gym' && result.battle?.result.winner === 'p1') {
+      const level = gymClearLevel(state);
+      if (level !== null) {
+        const answers: number[] = [];
+        for (
+          let question = pendingEvolutionQuestion(state.party, level, answers);
+          question;
+          question = pendingEvolutionQuestion(state.party, level, answers)
+        ) {
+          const index = await policy.chooseEvolution(question, state);
+          record({ kind: 'evolve', index });
+          if (!Number.isInteger(index) || index < 0 || index >= question.options.length) {
+            throw new RangeError(
+              `Evolution choice ${index} out of range for ${question.member.spec.species} (${question.options.length} options)`,
+            );
+          }
+          answers.push(index);
+        }
+        result.evolutions = answers;
+      }
+    }
+
     if (result.node.kind === 'gym' && result.node.gymMove && result.battle?.result.winner === 'p1') {
       const granted = result.node.gymMove;
       result.gymMove = granted;
@@ -2157,6 +2251,9 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      * in the simulator is where a real preference belongs.
      */
     chooseLead: async () => 0,
+    // The first branch in dex order. Same reasoning as the lead: a baseline
+    // with a preference would put an evolution heuristic into every sweep.
+    chooseEvolution: async () => 0,
     chooseReward: async () => 0,
     // Buys nothing. A scripted baseline that spent money would make every
     // sweep it appears in a measurement of one shopping heuristic.
@@ -2349,6 +2446,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('lead');
       if (!decision) return live ? live.chooseLead(party, gym, state) : exhausted('lead');
       return decision.kind === 'lead' ? decision.index : exhausted('lead');
+    },
+    chooseEvolution: async (question, state) => {
+      const decision = next('evolve');
+      if (!decision) return live ? live.chooseEvolution(question, state) : exhausted('evolve');
+      return decision.kind === 'evolve' ? decision.index : exhausted('evolve');
     },
     chooseItemPlan: async (state) => {
       const decision = next('items');

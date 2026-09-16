@@ -7,23 +7,23 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 798.88,
-        "scrollHeight": 961,
+        "screenHeight": 866.75,
+        "scrollHeight": 1029,
         "decisionCount": 2,
         "decisionTop": 513.44,
         "decisionBottom": 609.31
       },
       "battle": {
-        "screenHeight": 566.44,
+        "screenHeight": 577.44,
         "scrollHeight": 844,
         "decisionCount": 4,
         "decisionTop": 445.44,
-        "decisionBottom": 662.94
+        "decisionBottom": 673.94
       }
     },
     "pocket": {
       "map": {
-        "screenHeight": 586.95,
+        "screenHeight": 635.61,
         "scrollHeight": 844,
         "decisionCount": 2,
         "decisionTop": 278.89,
@@ -42,11 +42,11 @@
     "columns": {
       "detailed": {
         "map": {
-          "screenHeight": 861.78,
-          "scrollHeight": 1055,
+          "screenHeight": 944.5,
+          "scrollHeight": 1138,
           "decisionCount": 2,
           "decisionTop": 558,
-          "decisionBottom": 672.72
+          "decisionBottom": 687.56
         },
         "battle": {
           "screenHeight": 497.89,
@@ -58,8 +58,8 @@
       },
       "simple": {
         "map": {
-          "screenHeight": 798.88,
-          "scrollHeight": 961,
+          "screenHeight": 866.75,
+          "scrollHeight": 1029,
           "decisionCount": 2,
           "decisionTop": 513.44,
           "decisionBottom": 609.31
@@ -74,7 +74,7 @@
       },
       "pocket": {
         "map": {
-          "screenHeight": 586.95,
+          "screenHeight": 635.61,
           "scrollHeight": 844,
           "decisionCount": 2,
           "decisionTop": 278.89,
@@ -91,17 +91,17 @@
     }
   },
   "map": {
-    "screenHeight": 861.78,
-    "scrollHeight": 1055,
+    "screenHeight": 944.5,
+    "scrollHeight": 1138,
     "decisionCount": 2,
     "decisionTop": 558,
-    "decisionBottom": 672.72
+    "decisionBottom": 687.56
   },
   "battle": {
-    "screenHeight": 584,
+    "screenHeight": 595,
     "scrollHeight": 844,
     "decisionCount": 4,
     "decisionTop": 472,
-    "decisionBottom": 697
+    "decisionBottom": 708
   }
 }

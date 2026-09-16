@@ -79,7 +79,7 @@ describe('across a real run', () => {
   }
 
   it('never shrinks, and never holds a duplicate', async () => {
-    const seeds = ['PERM-1', 'PERM-2', 'PERM-3', 'PERM-4', 'PERM-5', 'PERM-6'];
+    const seeds = ['S49R-2', 'S49R-10', 'S49R-13', 'S49R-26', 'S49R-27', 'S49R-28'];
     let everHeld = 0;
 
     for (const seed of seeds) {

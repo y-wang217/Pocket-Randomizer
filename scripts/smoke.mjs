@@ -73,12 +73,18 @@ await new Promise((resolve) => server.listen(0, resolve));
  * three levels above the starter. SMOKE23 replaced it, and in turn stopped
  * reaching a gym when Stage 4.6b's reward ramp widened the level offsets: the
  * banded starter is weaker than its predecessor for the first three segments,
- * so the seed's early fights resolve the other way now. SMOKE24 clears four
- * gyms, fills the party to three, and answers forced switches on the way, so
- * one pass covers the locale screen, the capture block, both acquisition paths
- * and the bench.
+ * so the seed's early fights resolve the other way now. SMOKE24 cleared four
+ * gyms, filled the party to three, and answered forced switches on the way.
+ *
+ * SMOKE24 stopped clearing a gym at Stage 4.9, which starts the run at level
+ * 7 with a base form and sizes gym 1 to the party's roster on the hard AI: a
+ * bot that clicks the hardest move and never switches loses that fight on
+ * most seeds. SMK49-2 was found by emulating this bot headlessly (hardest
+ * move, rest when hurt, first node, last locale, first card, every capture)
+ * over the seed space and confirming the hit here: it clears a gym, fills
+ * the party, is taught a move, and dies with a cause line for the summary.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMOKE24';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMK49-2';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
@@ -199,7 +205,11 @@ async function playRun(label) {
   // advanced would be a progression indicator that does not indicate progress.
   let railHigh = 0;
 
-  for (let guard = 0; guard < 400; guard++) {
+  // 900 from Stage 4.9: a run that starts at level 7 with a base form and a
+  // roster that grows to six is a longer run than 400 iterations covered, and
+  // SMOKE24 now plays into the sixth segment. Still bounded, still a stall
+  // report if it runs out.
+  for (let guard = 0; guard < 900; guard++) {
     if (await page.locator(visible('summary')).count()) break;
 
     if (await page.locator(visible('battle')).count()) {

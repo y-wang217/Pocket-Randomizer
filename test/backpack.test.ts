@@ -686,7 +686,7 @@ describe('a released member hands their item back', () => {
           source: 'encounter',
           spec: { species: 'Pikachu', ability: 'Static', moves: ['Thunder Shock'], level: 20, gender: 'M' },
         },
-        decision: { kind: 'release', slot: 2 },
+        decision: { kind: 'release', slot: OPENING_SLOTS - 1 },
       },
     });
 

@@ -29,12 +29,13 @@
  * ordering stays visible because +1 and +2 are visibly different numbers, which
  * is how it should have been conveyed in the first place.
  *
- * **"A level up on you" was also simply false.** A tier's level modifier is
- * added to the segment's own `levelOffset`, which is already eight to eleven
- * levels *below* the player at every segment. A `hard` node is one level above
- * the ordinary node beside it, never above the player. The deltas below are all
- * stated against a `normal` node in the same map position, which is what they
- * actually are.
+ * **"A level up on you" was also simply false.** A tier's level share is
+ * added to the segment's own `levelOffset`, which keeps a wild or trainer
+ * node *below* the player at every segment. A `hard` node is a little above
+ * the ordinary node beside it, never above the player. The deltas below are
+ * all stated against a `normal` node in the same map position, which is what
+ * they actually are. (Stage 4.9 made the level modifier a share of the
+ * player's level and took elite's level discount away; the lines say so.)
  */
 import type { Tier } from '../core/types';
 
@@ -49,9 +50,9 @@ import type { Tier } from '../core/types';
  * game.
  */
 export const TIER_INFO: Readonly<Record<Tier, string>> = {
-  normal: 'One Pokemon, no level or band shift. Pays a move in its own band.',
-  hard: 'One Pokemon, +1 level and +1 species band. Pays a move one band up.',
-  elite: 'Two Pokemon, -3 levels, +1 species band and +1 move band. Pays a move two bands up.',
+  normal: 'The segment\'s, at its own level and band. Pays a move in its own band.',
+  hard: 'The segment\'s, a little above its level, +1 species band. Pays a move one band up.',
+  elite: 'One Pokemon more, at the segment\'s level, +1 species band and +1 move band. Pays a move two bands up.',
 };
 
 /**
@@ -59,7 +60,7 @@ export const TIER_INFO: Readonly<Record<Tier, string>> = {
  * patch: the short form sits beside the long one in the table it lives in.
  */
 export const TIER_INFO_SHORT: Readonly<Record<Tier, string>> = {
-  normal: 'One Pokemon. Pays its own band.',
-  hard: 'One Pokemon, +1 level, +1 band. Pays one band up.',
-  elite: 'Two Pokemon, -3 levels, +1 band. Pays two bands up.',
+  normal: 'The segment\'s own. Pays its own band.',
+  hard: 'A touch higher, +1 band. Pays one band up.',
+  elite: 'One more, +1 band, +1 move band. Pays two bands up.',
 };

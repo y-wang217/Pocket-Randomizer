@@ -166,6 +166,7 @@ function casualtyOf(member: PokemonState, segment: Segment): NodeVisit['casualti
     side: 'p1',
     name: displayName(member.spec),
     level: member.spec.level,
+    species: member.spec.species,
     bySpecies: foe?.species ?? segment.leader,
     byMove: foe?.moves[0] ?? null,
     indirect: null,

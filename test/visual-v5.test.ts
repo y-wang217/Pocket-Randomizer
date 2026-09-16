@@ -257,7 +257,7 @@ describe('the stage', () => {
 
 describe('the move grid', () => {
   it('finishes above the fold with four buttons at the touch target', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const { page, context } = await openApp(harness.browser, harness.url, 'GRID49B-5');
     await playUntil(page, (screen) => screen === 'battle');
     await page.mouse.move(0, 0);
     await page.waitForTimeout(600);
@@ -367,7 +367,7 @@ describe('the move grid', () => {
   }, 300_000);
 
   it('draws every effectiveness marker at one size and weight, none brighter than neutral', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const { page, context } = await openApp(harness.browser, harness.url, 'GRID49B-5');
     await playUntil(page, (screen) => screen === 'battle');
     await page.mouse.move(0, 0);
     await page.waitForTimeout(600);
@@ -445,7 +445,7 @@ describe('the species swap', () => {
   }, 300_000);
 
   it('runs no swap animation on a turn where nobody switched', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMK49-2');
     await playATurn(page);
 
     const state = await page.evaluate((sel) => {

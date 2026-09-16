@@ -328,6 +328,7 @@ describe('the graveyard', () => {
               side: 'p1' as const,
               name: 'Bramble',
               level: 31,
+              species: null,
               bySpecies: 'Arcanine',
               byMove: 'Flare Blitz',
               indirect: null,
@@ -356,4 +357,38 @@ describe('the graveyard', () => {
     expect(deathsFrom(run.state)).toEqual(first);
     expect(JSON.stringify(run.state.history)).toBe(before);
   }, 240_000);
+});
+
+describe('the graveyard after an evolution', () => {
+  it('reports the species it fell as, not the species the slot became', () => {
+    // Stage 4.9. A Charmander that fell in segment 2 must not be listed as the
+    // Charizard its survivor became by segment 6 — the record is read, the
+    // party is not.
+    const state = createRun('GRAVE-EVO', DEFAULT_TUNING);
+    const fallen = {
+      side: 'p1' as const,
+      name: 'Ember',
+      level: 20,
+      species: 'Charmander',
+      bySpecies: 'Onix',
+      byMove: 'Rock Slide',
+      indirect: null,
+    };
+    const survivor = {
+      ...state.party[0]!,
+      spec: { ...state.starterOptions[0]!, species: 'Charizard', nickname: 'Ember', level: 47 },
+    };
+    const visit = { node: state.segments[0]!.gym, segment: 2, result: null, hpAfter: 0, casualties: [fallen] };
+    const deaths = deathsFrom({ ...state, party: [survivor], history: [visit] });
+    expect(deaths).toHaveLength(1);
+    expect(deaths[0]!.species).toBe('Charmander');
+    expect(deaths[0]!.level).toBe(20);
+    // A record from before the field existed still resolves through the party.
+    const legacy = deathsFrom({
+      ...state,
+      party: [survivor],
+      history: [{ ...visit, casualties: [{ ...fallen, species: null }] }],
+    });
+    expect(legacy[0]!.species).toBe('Charizard');
+  });
 });

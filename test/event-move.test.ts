@@ -45,7 +45,7 @@ import type { EventArchetype } from '../src/data/eventPools';
 import type { RunDecision } from '../src/core/types';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
-const SEEDS = ['EVENT-MOVE-B', 'EVENT-MOVE-D', 'EVENT-MOVE-F'];
+const SEEDS = ['S49R-1', 'S49R-3', 'S49R-9'];
 
 function movePaid(move: string): EventOutcome {
   return { tier: 'T2', entryId: 't2-move', cost: [], grant: [{ kind: 'move', move }] };
@@ -136,7 +136,7 @@ describe('the version axes this patch moved', () => {
   });
 
   it('bumped the randomizer, because a relic grant now draws an order', () => {
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-15');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-16');
   });
 });
 

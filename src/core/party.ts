@@ -338,25 +338,39 @@ function restoreMove(move: MoveState, fraction: number): MoveState {
 export function levelParty(party: readonly PokemonState[], level: number): PokemonState[] {
   return party.map((member) => {
     if (member.spec.level === level) return member;
-
-    const spec: PokemonSpec = { ...member.spec, level };
-    const vitals = describeSpec(spec);
-    const hpShare = member.maxHp > 0 ? member.hp / member.maxHp : 1;
-
-    return {
-      ...member,
-      spec,
-      maxHp: vitals.maxHp,
-      hp: Math.max(1, Math.min(vitals.maxHp, Math.round(vitals.maxHp * hpShare))),
-      // Max PP is a function of the move, not the level, so the share is the
-      // same arithmetic applied to a constant denominator — which is to say the
-      // PP simply carries.
-      moves: vitals.moves.map((fresh, index) => {
-        const carried = member.moves[index];
-        return carried ? { ...fresh, pp: Math.min(fresh.maxPp, carried.pp) } : { ...fresh };
-      }),
-    };
+    return rebuildMember(member, { ...member.spec, level });
   });
+}
+
+/**
+ * A member with a new spec, and everything the run did to it carried across.
+ *
+ * **The one place a member's derived vitals are re-derived mid-run.** Two
+ * things change a spec after a Pokemon joins — its level, at a gym clear, and
+ * its species, when it evolves on the same clear (Stage 4.9) — and both move
+ * `maxHp`. They carry the same way, for the same reason `levelParty` gives:
+ * HP as a **share** of the bar, PP as an absolute clamped to the move's max.
+ * Factored out so the two cannot drift, because a Charmander at 40% that
+ * became a Charmeleon at 40% of a different bar would otherwise be one
+ * rounding rule away from a Charmeleon at 38%.
+ */
+export function rebuildMember(member: PokemonState, spec: PokemonSpec): PokemonState {
+  const vitals = describeSpec(spec);
+  const hpShare = member.maxHp > 0 ? member.hp / member.maxHp : 1;
+
+  return {
+    ...member,
+    spec,
+    maxHp: vitals.maxHp,
+    hp: Math.max(1, Math.min(vitals.maxHp, Math.round(vitals.maxHp * hpShare))),
+    // Max PP is a function of the move, not the level or the species, so the
+    // share is the same arithmetic applied to a constant denominator — which
+    // is to say the PP simply carries.
+    moves: vitals.moves.map((fresh, index) => {
+      const carried = member.moves[index];
+      return carried ? { ...fresh, pp: Math.min(fresh.maxPp, carried.pp) } : { ...fresh };
+    }),
+  };
 }
 
 /**

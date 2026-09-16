@@ -63,6 +63,7 @@ import type { BattleMemberState, PokemonState } from '../../core/types';
 import { el } from '../scene';
 import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
+import { renderEvolutionBlock, type EvolutionPrompt } from './evolution';
 import { renderRewardCard, tierBadge } from './reward';
 
 /**
@@ -98,6 +99,12 @@ export interface ResultScreen {
     state: RunState,
     onDone: (index: number | null) => void,
     capture?: CapturePrompt | null,
+    /**
+     * The evolutions a gym clear applies, and the fork if one is open. Stage
+     * 4.9. Between the party and the cards: the party as the fight left it,
+     * then what the clear does to it, then what the clear pays.
+     */
+    evolution?: EvolutionPrompt | null,
   ): void;
 }
 
@@ -121,6 +128,9 @@ export function createResultScreen(): ResultScreen {
   // HP and PP as the slot's detail line. Stage V4.
   const party = el('div', 'result__party');
 
+  const evolution = el('div', 'result__evolution');
+  evolution.dataset['tutorial'] = 'evolution';
+
   const cardsHeading = el('h3', 'result__heading');
   const cards = el('div', 'rewards');
   cards.dataset['tutorial'] = 'rewards';
@@ -129,11 +139,11 @@ export function createResultScreen(): ResultScreen {
   capture.dataset['tutorial'] = 'capture';
   const actions = el('div', 'result__actions');
 
-  root.append(header, partyHeading, party, cardsHeading, cards, capture, actions);
+  root.append(header, partyHeading, party, evolution, cardsHeading, cards, capture, actions);
 
   return {
     root,
-    render(review, offer, state, onDone, capturePrompt) {
+    render(review, offer, state, onDone, capturePrompt, evolutionPrompt) {
       const won = review?.won ?? true;
 
       if (review) {
@@ -166,6 +176,19 @@ export function createResultScreen(): ResultScreen {
         const slot = party.querySelectorAll<HTMLElement>('.slot')[index];
         if (slot && member.status) slot.append(statusChip(member.status));
         if (slot && member.fainted) slot.dataset['fainted'] = 'true';
+      }
+
+      /*
+       * The evolution block, Stage 4.9. Present on a gym clear that levels the
+       * party, with the records the clear has decided and the fork if one is
+       * open. Cleared rather than hidden for the same reason the cards are.
+       */
+      const showEvolution = Boolean(evolutionPrompt && (evolutionPrompt.records.length > 0 || evolutionPrompt.question));
+      evolution.hidden = !showEvolution;
+      if (showEvolution && evolutionPrompt) {
+        evolution.replaceChildren(renderEvolutionBlock(evolutionPrompt));
+      } else {
+        evolution.replaceChildren();
       }
 
       cardsHeading.hidden = !offer;
@@ -216,10 +239,11 @@ export function createResultScreen(): ResultScreen {
        * skipping were allowed, which it is not. Without one, this button is the
        * whole point of the screen: the confirmation a rewardless win never got.
        */
-      if (offer || capturePrompt) {
+      if (offer || capturePrompt || evolutionPrompt?.question) {
         // With a capture on screen, "Take it" and "Leave it" are the continue,
-        // exactly as taking a card is when the cards are up. A third button
-        // beside them would read as though the offer could be postponed.
+        // exactly as taking a card is when the cards are up, and as choosing a
+        // branch is when a fork is open. A third button beside them would read
+        // as though the offer could be postponed.
         actions.replaceChildren();
       } else {
         const carry = document.createElement('button');
