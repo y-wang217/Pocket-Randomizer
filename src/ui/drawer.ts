@@ -53,8 +53,27 @@ import type { Tuning } from '../data/tuning';
 import { el } from './scene';
 import { setProse } from './dom';
 import { createOverlay } from './overlay';
-import { DENSITY_COPY, DENSITY_HEADING, DRAWER_COPY, MOVE_BAR_COPY, MOVE_BAR_HEADING } from './copy/screens';
-import { DENSITIES, getDensity, getMoveBar, MOVE_BARS, onSettingsChange, setDensity, setMoveBar } from './settings';
+import {
+  BATTLE_SPEED_COPY,
+  BATTLE_SPEED_HEADING,
+  DENSITY_COPY,
+  DENSITY_HEADING,
+  DRAWER_COPY,
+  MOVE_BAR_COPY,
+  MOVE_BAR_HEADING,
+} from './copy/screens';
+import {
+  BATTLE_SPEEDS,
+  DENSITIES,
+  getBattleSpeed,
+  getDensity,
+  getMoveBar,
+  MOVE_BARS,
+  onSettingsChange,
+  setBattleSpeed,
+  setDensity,
+  setMoveBar,
+} from './settings';
 import { memberCardContents } from './member-card';
 
 export interface DrawerView {
@@ -144,7 +163,36 @@ function createMoveBarPicker(): HTMLElement {
 }
 
 /**
- * One picker, two settings. **Extracted when the second one arrived**, rather
+ * The battle speed picker. **The battle animation run, Branch 1.**
+ *
+ * Last of the three, on the same shape, and narrowest again: density is how
+ * much space every fact on every screen costs, the move bar is the shape of one
+ * bar on one screen, and this is how long one screen's beats last. A player
+ * reads the general setting first.
+ *
+ * It is a control rather than a second guess at one number. Release C's 500ms
+ * was the prompt's default and its comment said it was waiting on a playtest;
+ * the playtest said the beats were too fast to see. `data/displayTuning.ts`
+ * answers that with 900, and this answers the fact that "too fast" is a
+ * judgement rather than a measurement.
+ *
+ * Writes the setting and nothing else, like both neighbours. The root property
+ * is written by the shell's own subscription in `app.ts`, which re-applies
+ * `applyMotion` when this moves.
+ */
+function createBattleSpeedPicker(): HTMLElement {
+  return createPicker({
+    heading: BATTLE_SPEED_HEADING,
+    block: 'battle-speed',
+    attribute: 'battleSpeed',
+    options: BATTLE_SPEEDS.map((speed) => ({ value: speed, ...BATTLE_SPEED_COPY[speed] })),
+    read: getBattleSpeed,
+    write: setBattleSpeed,
+  });
+}
+
+/**
+ * One picker, three settings. **Extracted when the second one arrived**, rather
  * than copied — two hand-written pickers is two places for the pressed state,
  * the repaint subscription or the aria wiring to drift, and the drift would be
  * invisible until a screen reader user met the one that was forgotten.
@@ -225,7 +273,15 @@ export function createDrawer(): Drawer {
   const note = el('p', 'drawer__note');
   setProse(note, DRAWER_COPY.note);
 
-  overlay.body.append(blurb, members, relics, note, createDensityPicker(), createMoveBarPicker());
+  overlay.body.append(
+    blurb,
+    members,
+    relics,
+    note,
+    createDensityPicker(),
+    createMoveBarPicker(),
+    createBattleSpeedPicker(),
+  );
 
   return {
     root: overlay.root,

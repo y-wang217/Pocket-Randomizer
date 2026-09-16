@@ -69,12 +69,19 @@ export const CONTENT_DIR = 'src/data';
  * table that `core/` starts reading drops off this list by failing a test, not
  * by someone noticing.
  *
- * Every entry is *copy* or a *fixture*. Balance numbers are never excluded,
- * and a display number that shares a file with a balance number
- * (`tuning.ts`'s `battleFeedbackMs`) is hashed with its neighbours: that
- * costs a false rejection when the display number moves, which is the safe
- * error, and the alternative is a per-field list that reintroduces the
- * discipline this file exists to retire.
+ * Every entry is *copy*, a *fixture*, or a *display number*. Balance numbers
+ * are never excluded, and a display number that shares a file with a balance
+ * number is hashed with its neighbours: that costs a false rejection when the
+ * display number moves, which is the safe error, and the alternative is a
+ * per-field list that reintroduces the discipline this file exists to retire.
+ *
+ * **The third way out is a per-file split**, and `src/data/displayTuning.ts`
+ * is it. This used to cite `tuning.ts`'s `battleFeedbackMs` as the worked
+ * example of a display number hashed with its neighbours; that number now has
+ * its own file and its own entry below. The rule is unchanged — hash the file
+ * or exclude the file, never a field — and `maxMoveTagsOnFace` is the example
+ * that stays, because `core/battle/view.ts` reads it and an excluded file may
+ * not be a `core/` dependency.
  */
 export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   {
@@ -120,6 +127,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   {
     path: 'src/data/eventCopy.ts',
     why: 'the per-band hints and conclusions on the event screen, and the capability and band labels the map and the event screen print; read by ui/screens/event.ts, ui/screens/run-map.ts and ui/screens/party.ts only, and a reworded sentence must not move the hash',
+  },
+  {
+    path: 'src/data/displayTuning.ts',
+    why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
   },
   {
     path: 'src/data/densityTuning.ts',

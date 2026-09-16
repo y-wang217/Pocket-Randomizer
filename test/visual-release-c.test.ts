@@ -24,7 +24,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { openApp, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
-import { DEFAULT_TUNING } from '../src/data/tuning';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -65,6 +65,19 @@ const PHONE = { width: 390, height: 844 };
  * The witness is therefore the **log**, which grows by an entry or more on
  * every resolved turn and knows nothing about Release C. Waiting on the flag
  * strip or the nudge instead would be waiting on the thing under test.
+ *
+ * **And the log is not enough either, since the outro gate.** "Still on the
+ * battle screen after half a budget" used to mean the fight survived, because
+ * a fight that ended swapped to the result screen on the same microtask. It
+ * now means nothing on its own: the battle animation run holds the stage for
+ * `--motion-outro` precisely so the last turn is seen, so a *finished* fight is
+ * still on screen — with a grown log — for the whole of that hold. This helper
+ * read that as a surviving turn and every assertion below then ran against a
+ * fight that was over: no second lunge, and move buttons correctly dead.
+ *
+ * So the third condition is that the run has **asked for another choice**: an
+ * enabled move button. A fight that is over has none, whether the result screen
+ * has arrived yet or not, which is the property that outlives the gate.
  */
 async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Promise<void> {
   const entries = async (): Promise<number> => page.locator('.log-entry').count();
@@ -73,12 +86,20 @@ async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Pro
     await playUntil(page, (screen) => screen === 'battle');
     const before = await entries();
     await stepOnce(page);
-    await page.waitForTimeout(DEFAULT_TUNING.battleFeedbackMs / 2);
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs / 2);
 
     const screen = await page.evaluate(() =>
       globalThis.document.querySelector('.screen:not([hidden])')?.getAttribute('data-screen'),
     );
-    if (screen === 'battle' && (await entries()) > before) return;
+    const asking = await page.locator('.screen--battle .move:not(:disabled)').count();
+    if (screen === 'battle' && (await entries()) > before && asking > 0) return;
+    /*
+     * If that turn ended the fight, the stage is mid-outro and the result
+     * screen has not arrived yet. Wait the rest of the hold out before looping,
+     * or `playUntil` races the gate and clicks into a screen that is still
+     * changing.
+     */
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs);
   }
   throw new Error('never found a turn that resolved and left the battle on screen');
 }
@@ -92,13 +113,24 @@ describe('the one tuning number reaches the screen', () => {
         duration: style.getPropertyValue('--motion-duration').trim(),
         shadow: style.getPropertyValue('--motion-hp-shadow').trim(),
         beat: style.getPropertyValue('--motion-beat').trim(),
+        outro: style.getPropertyValue('--motion-outro').trim(),
       };
     });
 
     // The number `ui/theme/motion.ts` wrote at startup, straight off
     // `data/tuning.ts`. One number, and this is it arriving.
-    expect(resolved.duration).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
-    expect(resolved.shadow).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
+    expect(resolved.duration).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
+    expect(resolved.shadow).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
+    /*
+     * And the outro's hold. **The battle animation run.**
+     *
+     * `scene.ts` reads this property to decide how long to park the result
+     * screen, so it resolving is the difference between a fight that ends on
+     * screen and one that is swallowed by the swap. Derived like the others,
+     * so the budget is still one number — a literal here would be the second
+     * constant the token exists to prevent.
+     */
+    expect(resolved.outro).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
 
     await playATurn(page);
     const applied = await page.evaluate(() => {
@@ -118,7 +150,7 @@ describe('the one tuning number reaches the screen', () => {
     // The shadow spends the whole budget; the four beats run inside it, one
     // quarter each, in their slots. That is what makes "one number" true
     // rather than aspirational.
-    const ms = DEFAULT_TUNING.battleFeedbackMs;
+    const ms = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
     const beat = `${ms / 4000}s`;
     expect(applied.shadow).toBe(`${ms / 1000}s`);
     expect(applied.first).toEqual({ duration: beat, delay: '0s' });

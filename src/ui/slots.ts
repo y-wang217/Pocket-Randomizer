@@ -30,14 +30,56 @@ import { ITEM_ICONS } from './theme/itemIcons';
  * and cost 43 kB gzipped for thirty-eight items; this carries thirty-eight
  * numbers. `scripts/gen-item-icons.ts` writes the table.
  */
+/**
+ * The ball, for the capture outro. **The battle animation run, Branch 3.**
+ *
+ * Deliberately **not** in `theme/itemIcons.ts`: that table is generated from
+ * `data/items.ts` by `scripts/gen-item-icons.ts` and `test/item-icons.test.ts`
+ * regenerates and diffs it, so an entry with no item behind it would be
+ * deleted by the next run. A ball is not a game item — it is never held,
+ * offered, bought or stowed — and inventing one under `data/` to draw a picture
+ * would put a thing the run does not have into the table the run reads.
+ *
+ * **On the asset rule.** `theme/scenes/index.ts` forbids a hand-drawn Pokeball
+ * and that rule stands; it is about scenery authored into this repo. This is
+ * the cell Showdown's own item sheet already carries, from the sheet every held
+ * item on the party screen is already drawn from, so nothing raster is added
+ * and the IP posture is the one the sprite CDN rule set.
+ *
+ * 345 is read off `@pkmn/sim`'s `Dex.items.get('pokeball').spritenum` rather
+ * than remembered; a wrong number here draws a different item and nothing
+ * fails.
+ */
+const POKEBALL_SPRITENUM = 345;
+
+/** The reserved resolver key for the ball. Not an `ItemId` and never stored. */
+const POKEBALL_KEY = 'pokeball';
+
 const icons = new Icons({
   getItem: (name: string) => {
-    const spritenum = ITEM_ICONS[name.toLowerCase().replace(/[^a-z0-9]+/g, '')];
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (id === POKEBALL_KEY) return { spritenum: POKEBALL_SPRITENUM };
+    const spritenum = ITEM_ICONS[id];
     return spritenum === undefined ? undefined : { spritenum };
   },
   getPokemon: () => undefined,
   getAvatar: () => undefined,
 });
+
+/**
+ * Where the ball sits on the sheet, as inline style values.
+ *
+ * Returned rather than applied so the caller owns the element — the stage's
+ * ball is positioned over a sprite and sized by the stylesheet, and an item
+ * slot's is not.
+ */
+export function pokeballSprite(): { backgroundImage: string; backgroundPosition: string } {
+  const sprite = icons.getItem(POKEBALL_KEY);
+  return {
+    backgroundImage: `url(${sprite.url})`,
+    backgroundPosition: `${sprite.left}px ${sprite.top}px`,
+  };
+}
 
 export interface SlotContent {
   /** The line under the number. A species, or an item name. */

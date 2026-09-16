@@ -272,7 +272,16 @@ describe('the reader’s shape', () => {
       [{ species: 'Snorlax', ability: 'Immunity', moves: ['Tackle'], level: 50 }],
       8,
     );
-    const KNOWN: FlagKind[] = ['stab', 'super', 'resisted', 'immune', 'crit', 'miss', 'contact', 'priority', 'status', 'berry'];
+    /*
+     * Hand-written rather than derived from the union, and that is the point:
+     * widening `FlagKind` does not fail this list, so a kind that reaches the
+     * strip with no word behind it fails *here*, at runtime, on a real battle.
+     * Branch 2 added the seven abnormalities.
+     */
+    const KNOWN: FlagKind[] = [
+      'stab', 'super', 'resisted', 'immune', 'crit', 'miss', 'contact', 'priority', 'status', 'berry',
+      'prevented', 'failed', 'boost', 'unboost', 'ability', 'volatile', 'field',
+    ];
     for (const kind of kinds(readFlags(protocol, DEPS))) expect(KNOWN).toContain(kind);
   });
 
@@ -296,6 +305,129 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
         : { type: 'Normal', category: 'Physical', contact: true },
     typesOf: (species) => (species === 'Snorlax' ? ['Normal'] : ['Fire']),
   };
+
+  /*
+   * ---------------------------------------------------------------------
+   * The abnormalities. **Branch 2.**
+   *
+   * Hand-written protocol rather than played battles, because the point of
+   * each is a specific line shape — and two of them are shapes the census
+   * found the hard way, where reading the wrong field yields a plausible
+   * wrong word rather than an error.
+   * ---------------------------------------------------------------------
+   */
+  it('names the turn a condition took, which nothing else on the screen does', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|cant|p1a: Snorlax|flinch',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => [...group.actions.flatMap((a) => a.flags), ...group.residual]);
+    expect(flags.map((flag) => flag.kind)).toEqual(['prevented']);
+    expect(flags[0]?.detail).toBe('flinch');
+  });
+
+  it('reads a stat stage by its stat, both ways', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-unboost|p2a: Golem|spe|2',
+      '|-boost|p1a: Snorlax|atk|1',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags));
+    expect(flags.filter((f) => f.kind === 'unboost').map((f) => f.detail)).toEqual(['spe']);
+    expect(flags.filter((f) => f.kind === 'boost').map((f) => f.detail)).toEqual(['atk']);
+  });
+
+  /*
+   * **The census found this one.** The weather names itself in the first field;
+   * the third carries the `[from]` tag. Reading the third yields "Rain
+   * [upkeep]" — a plausible-looking word that is wrong, which is exactly the
+   * kind that ships.
+   */
+  it('takes a field effect’s name from the field that holds it', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-weather|RainDance|[from] ability: Drizzle|[of] p2a: Pelipper',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags));
+    const field = flags.find((flag) => flag.kind === 'field');
+    expect(field?.detail).toBe('RainDance');
+    // Attributed to the side the engine named as the cause, not to whoever moved.
+    expect(field?.side).toBe('p2');
+    expect(field?.subject).toBe('Pelipper');
+  });
+
+  /** And the other half of that finding: weather continuing is not an event. */
+  it('says nothing when the weather is only carrying on', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|upkeep',
+      '|-weather|Sandstorm|[upkeep]',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => [...group.actions.flatMap((a) => a.flags), ...group.residual]);
+    expect(flags.some((flag) => flag.kind === 'field')).toBe(false);
+  });
+
+  it('names a volatile the panel would name, and ignores one it would not', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-start|p2a: Golem|confusion',
+      // Engine bookkeeping and single moves: 4.7% and 2.9% of battles in the
+      // census, and no word a player can act on. The allowlist drops them.
+      '|-start|p2a: Golem|Charge',
+      '|-start|p2a: Golem|Salt Cure',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags));
+    expect(flags.filter((flag) => flag.kind === 'volatile').map((flag) => flag.detail)).toEqual(['confusion']);
+  });
+
+  it('lets an ability name itself, as a berry does', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|-ability|p2a: Gyarados|Intimidate|boost',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => [...group.actions.flatMap((a) => a.flags), ...group.residual]);
+    expect(flags.find((flag) => flag.kind === 'ability')?.detail).toBe('Intimidate');
+  });
+
+  /*
+   * A move that failed did nothing, so it made no contact and got no same-type
+   * bonus — the same retraction `settle` already applies to a miss. Printing
+   * CONTACT under Failed teaches a player to stop trusting the row.
+   */
+  it('retracts contact and STAB from a move that failed', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-fail|p1a: Snorlax',
+    ];
+    const kindsHere = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags.map((f) => f.kind)));
+    expect(kindsHere).toContain('failed');
+    expect(kindsHere).not.toContain('contact');
+    expect(kindsHere).not.toContain('stab');
+  });
+
+  it('leaves an ordinary damage turn carrying no abnormality at all', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-damage|p2a: Golem|100/155',
+    ];
+    const kindsHere = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags.map((f) => f.kind)));
+    const ABNORMAL = ['prevented', 'failed', 'boost', 'unboost', 'ability', 'volatile', 'field'];
+    expect(kindsHere.filter((kind) => ABNORMAL.includes(kind))).toEqual([]);
+  });
 
   it('honours a type change the protocol reported, over the species’ own types', () => {
     const protocol = [

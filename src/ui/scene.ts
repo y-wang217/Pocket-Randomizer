@@ -20,6 +20,7 @@
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
 import type { FlaggedTurn } from '../core/battle/flags';
+import type { AbnormalityMark } from './abnormality';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -40,6 +41,7 @@ import { createBar, type Bar } from './bar';
 import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
 import { spriteFigure, spriteImg, spriteUrl } from './sprites';
+import { pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import type { MoveTag } from '../data/moveTags';
@@ -85,6 +87,29 @@ interface Actor {
    * on the stage is holding a Pokemon that is no longer in the fight.
    */
   ghost: HTMLImageElement;
+  /**
+   * The ball, for the capture outro. **The battle animation run.**
+   *
+   * Built with the actor and never drawn until `data-outro='caught'` is set,
+   * for the reason the ghost is empty at rest: an element on the stage holding
+   * something that is not in the fight is one repaint away from showing it.
+   */
+  ball: HTMLElement;
+  /**
+   * Where an abnormality is drawn. **Branch 3B.**
+   *
+   * Its own element, and that is forced rather than tidy:
+   * `.sprite:not(.sprite--ghost)` already carries four animation rules — the
+   * hit, the faint, the swap and the recall — and a fifth would cancel one of
+   * them. The faint's comment in `styles.css` documents managing that exact
+   * collision by rule order, and a fifth contender is not worth managing.
+   *
+   * So the mark animates alongside the sprite rather than on it, which also
+   * buys the thing Branch 3B is for: an abnormality beat can run *concurrently*
+   * with the hit it accompanies, so a turn carrying six of them costs exactly
+   * what a turn carrying none costs.
+   */
+  mark: HTMLElement;
   /** `p1` faces away, `p2` faces the player. The protocol's own sides. */
   side: 'p1' | 'p2';
 }
@@ -113,6 +138,26 @@ interface SidePanel {
   stages: HTMLElement;
 }
 
+/**
+ * How a fight ends on the stage. **The battle animation run, Branch 3.**
+ *
+ * Decided by `app.ts` from the `BattleReview` it already has — `won` and
+ * whether the node carries a capture offer — so `core/` needs to know nothing
+ * about it and no new projection field exists.
+ *
+ *   - `recall` — the fight was won. The opponent is called back by its trainer,
+ *     and the player's own lead follows half a budget later.
+ *   - `caught` — the fight was won against a wild body a ball is offered for.
+ *     The opponent is taken by the ball instead of recalled; the player's lead
+ *     is still recalled.
+ *   - `defeat` — the fight was lost. No recall: the body that ended it has
+ *     already sunk and `data-fainted` is holding it down. The hold still
+ *     happens, which is the whole point — a loss is the case where the last
+ *     turn's beats were most reliably swallowed, because a wipe ends the battle
+ *     on the same frame the last body faints.
+ */
+export type OutroKind = 'recall' | 'caught' | 'defeat';
+
 export interface Scene {
   root: HTMLElement;
   /**
@@ -130,7 +175,49 @@ export interface Scene {
    * here is that there is then no second reading to disagree with the log.
    * Omitted on a redraw that is not the result of new protocol.
    */
-  update(view: BattleUiView, onChoose: (choice: Choice) => void, turns?: readonly FlaggedTurn[]): void;
+  update(
+    view: BattleUiView,
+    onChoose: (choice: Choice) => void,
+    turns?: readonly FlaggedTurn[],
+    /**
+     * The abnormality marks for this turn, already reduced. **Branch 3B.**
+     *
+     * Handed in rather than derived here, and that is a boundary rather than a
+     * convenience: `test/boundaries.test.ts` forbids this file from reading a
+     * flag, because a beat that could see severity is one step from a beat that
+     * shows it. `ui/abnormality.ts` does the reduction; `screens/battle.ts`
+     * calls it off the same single protocol reading it already makes, so there
+     * is still one source of truth about a turn and now three consumers of it.
+     */
+    marks?: readonly AbnormalityMark[],
+  ): void;
+  /**
+   * Play the end of the fight, and park until it has been seen.
+   *
+   * **This is the one thing on the battle screen that anything waits for**, and
+   * it is why a fight ending in one hit showed no animation at all before it
+   * existed: the last turn's beats began on the frame the KO arrived and
+   * `app.ts` swapped to the result screen on the same microtask, so not a frame
+   * of them was painted. `ui/theme/motion.ts` records the rule this supersedes
+   * and the fact that it supersedes it exactly here.
+   *
+   * Resolves on whichever comes first:
+   *
+   *   1. the hold elapsing — its length read off `--motion-outro`, so reduced
+   *      motion zeroes it through the stylesheet and no code branches on a
+   *      media query;
+   *   2. a tap, because a gate that cannot be skipped is a stall and every
+   *      transition on this screen is skippable;
+   *   3. `cancel()`, when the run is abandoned mid-hold.
+   *
+   * Never rejects. An abandoned run resolves rather than throwing: the caller
+   * is `reviewBattle`, which is about to be torn down anyway, and a rejection
+   * there would surface an abandoned run as a broken one — the exact confusion
+   * `ui/pending.ts`'s `RunAbandoned` class exists to prevent.
+   */
+  outro(kind: OutroKind): Promise<void>;
+  /** Abandon a parked outro, so a torn-down screen leaks no promise. */
+  cancel(): void;
 }
 
 export function createScene(): Scene {
@@ -172,6 +259,24 @@ export function createScene(): Scene {
    * something is moving should see it stop, so the first touch anywhere
    * settles both actors and resolves both bars.
    */
+  /*
+   * The parked outro, if one is running. **The battle animation run.**
+   *
+   * A bare resolver and a timer rather than `ui/pending.ts`'s `Pending<T>`,
+   * and the difference is deliberate: a `Pending` rejects on `cancel`, which is
+   * right for a decision nobody will answer and wrong here. This resolves on
+   * every exit, because the caller is `reviewBattle` and an abandoned run that
+   * threw out of it would read as a broken one.
+   */
+  let endOutro: (() => void) | null = null;
+
+  /** Resolve a parked outro, if there is one. Idempotent. */
+  const finishOutro = (): void => {
+    const done = endOutro;
+    endOutro = null;
+    if (done) done();
+  };
+
   root.addEventListener(
     'pointerdown',
     () => {
@@ -179,6 +284,13 @@ export function createScene(): Scene {
       // lunge, the hit and the faint since the bar and beats patch.
       settleActor(foeActor);
       settleActor(meActor);
+      /*
+       * And the outro, which `settleActor` has just cleared the attribute for.
+       * Resolving here is what makes the gate skippable: without it a tap would
+       * stop the animation and leave the player waiting out the rest of a hold
+       * with nothing moving, which is worse than the animation it cut short.
+       */
+      finishOutro();
       /*
        * The HP shadow resolves on the same tap. It is the one thing on this
        * screen that stays on the glass after the numbers are already right, so
@@ -190,9 +302,57 @@ export function createScene(): Scene {
     true,
   );
 
+  /**
+   * How long to hold, in milliseconds, off the computed custom property.
+   *
+   * Read at the moment of use rather than cached, so a battle-speed change or
+   * an OS reduced-motion change mid-run takes effect on the next fight without
+   * anything re-registering. A property that does not resolve to a number —
+   * jsdom resolves no custom properties at all — reads as zero, which is the
+   * safe direction: a test environment gets no hold rather than a hung promise.
+   */
+  const outroMs = (): number => {
+    const raw = getComputedStyle(root).getPropertyValue('--motion-outro').trim();
+    const ms = raw.endsWith('ms') ? Number.parseFloat(raw) : raw.endsWith('s') ? Number.parseFloat(raw) * 1000 : NaN;
+    return Number.isFinite(ms) && ms > 0 ? ms : 0;
+  };
+
   return {
     root,
-    update(view, onChoose, turns) {
+    outro(kind) {
+      // A second outro on one screen is not a thing that happens, but if it
+      // did, the first must not be left parked forever.
+      finishOutro();
+      /*
+       * A body that already fainted is not recalled. It has sunk, the static
+       * `data-fainted` rule is holding it at the sink's end state, and raising
+       * it to full opacity to shrink it again would be the double-animation the
+       * ghost rule already avoids on a swap. So the winner's side gets the
+       * beat and the loser's keeps its faint.
+       */
+      if (kind !== 'defeat') {
+        foeActor.root.dataset['outro'] = kind === 'caught' ? 'caught' : 'recall';
+        if (meActor.root.dataset['fainted'] !== 'true') meActor.root.dataset['outro'] = 'recall';
+      }
+      const ms = outroMs();
+      if (ms <= 0) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const timer = globalThis.setTimeout(() => {
+          endOutro = null;
+          resolve();
+        }, ms);
+        endOutro = () => {
+          globalThis.clearTimeout(timer);
+          resolve();
+        };
+      });
+    },
+    cancel() {
+      settleActor(foeActor);
+      settleActor(meActor);
+      finishOutro();
+    },
+    update(view, onChoose, turns, marks) {
       updateActor(foeActor, view.opponent);
       updateActor(meActor, view.player);
       // Whether each bar drew a chunk. The hit beat reads this and nothing
@@ -204,7 +364,7 @@ export function createScene(): Scene {
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
-      beats({ me: meActor, foe: foeActor }, hit, turns);
+      beats({ me: meActor, foe: foeActor }, hit, turns, marks ?? []);
     },
   };
 }
@@ -248,9 +408,27 @@ function createActor(kind: 'me' | 'foe', side: 'p1' | 'p2'): Actor {
   const ghost = spriteImg('', side);
   ghost.classList.add('sprite--ghost');
   const img = spriteImg('', side);
+  /*
+   * The ball is painted over both, because a capture closes over the body
+   * rather than beside it. Its cell is resolved once here rather than on every
+   * outro: `ui/slots.ts` owns the one `Icons` instance and the sheet URL is
+   * constant, so this costs one style write per battle screen.
+   */
+  const ball = el('span', 'stage__ball');
+  ball.setAttribute('aria-hidden', 'true');
+  const sprite = pokeballSprite();
+  ball.style.backgroundImage = sprite.backgroundImage;
+  ball.style.backgroundPosition = sprite.backgroundPosition;
+  /*
+   * The abnormality mark. Built once and never drawn at rest, like the ball —
+   * an element on the stage holding a thing that is not happening is one
+   * repaint away from showing it.
+   */
+  const mark = el('span', 'stage__mark');
+  mark.setAttribute('aria-hidden', 'true');
   // Ghost first, so the arriving sprite paints over the one it replaced.
-  root.append(ghost, img);
-  return { root, img, ghost, side };
+  root.append(ghost, img, ball, mark);
+  return { root, img, ghost, ball, mark, side };
 }
 
 /**
@@ -348,6 +526,17 @@ function settleActor(actor: Actor): void {
   delete actor.root.dataset['acted'];
   delete actor.root.dataset['hit'];
   delete actor.root.dataset['fainting'];
+  /*
+   * The outro is a beat like the rest, so a tap ends it. **Unlike the rest it
+   * is also a gate**, and clearing the attribute alone would leave the player
+   * looking at a settled stage while `outro()` was still parked — so the
+   * pointerdown handler resolves the promise in the same breath. `data-fainted`
+   * still stays off this list: it is state, not a beat.
+   */
+  delete actor.root.dataset['outro'];
+  // The abnormality beat is a beat like the rest, so a tap ends it. Branch 3B.
+  delete actor.root.dataset['abnormal'];
+  delete actor.root.dataset['abnormalSlot'];
   actor.ghost.removeAttribute('src');
 }
 
@@ -775,6 +964,7 @@ function beats(
   actors: { me: Actor; foe: Actor },
   hit: { me: boolean; foe: boolean },
   turns: readonly FlaggedTurn[] | undefined,
+  marks: readonly AbnormalityMark[],
 ): void {
   for (const actor of [actors.me, actors.foe]) {
     delete actor.root.dataset['acted'];
@@ -802,6 +992,30 @@ function beats(
     const other = side === 'p1' ? 'p2' : 'p1';
     const slot = seen.indexOf(other);
     actorOf(side).root.dataset['hit'] = String(slot >= 0 ? slot + 1 : Math.max(seen.length, 1));
+  }
+
+  /*
+   * The abnormality marks, **handed in rather than read here.** Branch 3B.
+   *
+   * `ui/abnormality.ts` reduces the turn's flags to at most one class and slot
+   * per side, and this only writes them. That split is a boundary rather than a
+   * tidy-up: `test/boundaries.test.ts` forbids this file from touching `.flags`
+   * at all, because "a beat that read `flags` would be one step from a recoil
+   * that grew with the multiplier, which is a verdict drawn on the board". The
+   * scene cannot weight a beat by severity because it never sees severity.
+   *
+   * The slot is the slot of the action that caused the flag, so a mark runs
+   * concurrently with the lunge or hit it accompanies and the turn gains no
+   * time at all.
+   */
+  for (const actor of [actors.me, actors.foe]) {
+    delete actor.root.dataset['abnormal'];
+    delete actor.root.dataset['abnormalSlot'];
+  }
+  for (const mark of marks) {
+    const actor = actorOf(mark.side);
+    actor.root.dataset['abnormal'] = mark.klass;
+    actor.root.dataset['abnormalSlot'] = String(mark.slot);
   }
 }
 

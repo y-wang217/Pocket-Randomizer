@@ -12,7 +12,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { openApp, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
-import { DEFAULT_TUNING } from '../src/data/tuning';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -33,6 +33,12 @@ afterAll(async () => {
  * SMOKE24 the opening fight ends in a turn, screens are hidden rather than
  * unmounted, and "reach a battle and click" otherwise reads a screen the
  * player has already left.
+ *
+ * **The enabled-move condition came with the outro gate**, and is lifted with
+ * the rest. A finished fight now stays on the battle screen for the whole of
+ * `--motion-outro`, log and all, so the screen and the log together no longer
+ * distinguish a turn the fight survived from the turn that ended it. An enabled
+ * move button does: it means the run has asked for another choice.
  */
 async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Promise<void> {
   const entries = async (): Promise<number> => page.locator('.log-entry').count();
@@ -41,12 +47,15 @@ async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Pro
     await playUntil(page, (screen) => screen === 'battle');
     const before = await entries();
     await stepOnce(page);
-    await page.waitForTimeout(DEFAULT_TUNING.battleFeedbackMs / 2);
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs / 2);
 
     const screen = await page.evaluate(() =>
       globalThis.document.querySelector('.screen:not([hidden])')?.getAttribute('data-screen'),
     );
-    if (screen === 'battle' && (await entries()) > before) return;
+    const asking = await page.locator('.screen--battle .move:not(:disabled)').count();
+    if (screen === 'battle' && (await entries()) > before && asking > 0) return;
+    // That turn ended the fight: wait the outro out rather than racing it.
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs);
   }
   throw new Error('never found a turn that resolved and left the battle on screen');
 }
@@ -440,7 +449,7 @@ describe('the species swap', () => {
     // `ui/theme/motion.ts` writes `data/tuning.ts`'s number onto the root at
     // startup and `--motion-swap` is `var(--motion-duration)`. One number, and
     // this is it arriving at V5's own beat.
-    expect(resolved).toBe(`${DEFAULT_TUNING.battleFeedbackMs}ms`);
+    expect(resolved).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
     await context.close();
   }, 300_000);
 

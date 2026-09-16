@@ -300,10 +300,32 @@ describe('the version axes', () => {
      * the hash is `data/eventPools.ts` gaining a fallback on its relic
      * entries.
      */
+    // Stage 4.9's schema bump, for the evolution fork a gym clear now asks.
     expect(RUN_LOG_VERSION).toBe('gymrun-run-16/gymrun-0.3.0');
-    // Pinned literally, as the Branch 1 value was: a hash nobody can read off
-    // the tree by eye is exactly the kind that moves without anyone noticing.
-    expect(CONTENT_HASH).toBe('08e9e6b2bba412314d6ee60274bc5a0e63045a93f02e5c388069eeec408a4447');
+    /*
+     * Pinned literally, as the Branch 1 value was: a hash nobody can read off
+     * the tree by eye is exactly the kind that moves without anyone noticing.
+     *
+     * **It has moved twice since that pin, for different reasons, and both are
+     * worth telling apart.**
+     *
+     * The battle animation run moved it from `53145f` by a *removal* rather
+     * than by new data: three display numbers left `tuning.ts` for
+     * `data/displayTuning.ts`, which is on the exclusion list, so the hashed
+     * file lost three fields. No balance number changed and generation did not
+     * move — the run payload in `test/fixtures/sim-report.json` was byte
+     * identical across the split, which is the proof rather than the claim.
+     *
+     * Stage 4.9 then moved it properly, by rewriting the level curve, the
+     * species pools and the tier table. That one *does* change what a seed
+     * produces, which is why it came with `gymrun-run-16` above.
+     *
+     * The literal below is neither: it is the two together. The display split
+     * remains the **last** time this number moves for a display edit —
+     * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
+     * `docs/generation.md` section 22 is the account.
+     */
+    expect(CONTENT_HASH).toBe('c3964b9bd0d087330e2b7149510bbcd748aaff07991a4e63f13540a1e6903db2');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

@@ -36,7 +36,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PHONE, openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
 import { ratio } from '../scripts/visual/contrast.mjs';
-import { DEFAULT_TUNING } from '../src/data/tuning';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -340,18 +340,18 @@ describe('the chip legibility floor', () => {
       const mine = samples.filter((sample) => sample.variant === variant);
       expect(mine.length, `no ${variant} chip was rendered`).toBeGreaterThan(0);
       const under = mine
-        .filter((sample) => sample.fontSize < DEFAULT_TUNING.minChipFontSizePx)
+        .filter((sample) => sample.fontSize < DEFAULT_DISPLAY_TUNING.minChipFontSizePx)
         .map((sample) => `${sample.screen} "${sample.text}" ${sample.fontSize}px`);
-      expect(under, `below tuning.minChipFontSizePx (${DEFAULT_TUNING.minChipFontSizePx})`).toEqual([]);
+      expect(under, `below displayTuning.minChipFontSizePx (${DEFAULT_DISPLAY_TUNING.minChipFontSizePx})`).toEqual([]);
     });
 
     it(`renders the ${variant} chip at or above the contrast floor on every surface`, () => {
       const mine = samples.filter((sample) => sample.variant === variant);
       expect(mine.length, `no ${variant} chip was rendered`).toBeGreaterThan(0);
       const under = mine
-        .filter((sample) => sample.ratio < DEFAULT_TUNING.minChipContrastRatio)
+        .filter((sample) => sample.ratio < DEFAULT_DISPLAY_TUNING.minChipContrastRatio)
         .map((sample) => `${sample.screen} "${sample.text}" ${sample.ratio}:1 rgb(${sample.color}) on rgb(${sample.background})`);
-      expect(under, `below tuning.minChipContrastRatio (${DEFAULT_TUNING.minChipContrastRatio})`).toEqual([]);
+      expect(under, `below displayTuning.minChipContrastRatio (${DEFAULT_DISPLAY_TUNING.minChipContrastRatio})`).toEqual([]);
     });
   }
 });

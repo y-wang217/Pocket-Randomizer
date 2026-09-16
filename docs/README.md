@@ -58,6 +58,38 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: battle animations you can actually see.** Branch
+`claude/busy-noether-jfszvi`, prompt
+[`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+record [`generation.md`](generation.md) sections 22 to 25, report
+[`visual/reports/patch-battle-animation.md`](visual/reports/patch-battle-animation.md),
+handoffs in [`handoff/`](handoff/). **All four branches built, and Stage 4.9
+merged into them rather than the other way round** — it landed on `main` while
+this was in flight, and the two compose without a code change: `chooseEvolution`
+runs after `reviewBattle`, so a gym clear now plays the outro, then the result
+screen, then the evolution fork.
+
+Branch 1 moved the three display numbers no `core/` file reads out of
+`tuning.ts` into `data/displayTuning.ts` and onto the `contentHash` exclusion
+list — closing open item 3 of
+[`handoff/overnight-1-contenthash.md`](handoff/overnight-1-contenthash.md) and
+the "open, small" item in section 9 — then took `battleFeedbackMs` from 500 to
+**750** and `--lunge-distance` from 8px to 6px together, because the lunge
+spends its whole distance in 10% of the budget and at 500 that was a
+three-frame jump cut which duration alone would not have fixed. `ui/settings.ts`
+gained `battleSpeed`, a third presentation axis. 3A gates the result screen
+behind the last turn's beats and adds the recall/capture outro — the reported
+defect. Branch 2 widened `FlagKind` from ten to seventeen, every kind measured
+by `scripts/protocol-census.ts` first, which cut a whole class to zero and
+refuted two predictions. 3B gives five classes one beat each, riding the causing
+action's slot so a turn never gets longer.
+
+**`contentHash` moved for the display split**, which the prompt said would not
+happen — section 22 deviation 1 is the account, and the run payload regenerated
+byte identical but for its own hash field, so generation did not move. Stage 4.9
+then moved it properly. **Awaiting review and merge**, and the morning decision
+that matters is to watch a fight: nothing here has been seen on a phone.
+
 **In flight: Stage 4.9, levels, evolution, gated power, the wider roster and
 harder gyms.** Branch `claude/charming-ride-q4ogfb`, prompt
 [`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),

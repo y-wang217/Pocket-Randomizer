@@ -25,7 +25,8 @@ import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, type LogSheet } from '../log-sheet';
-import { createScene, el, type Scene } from '../scene';
+import { abnormalityMarks } from '../abnormality';
+import { createScene, el, type OutroKind, type Scene } from '../scene';
 
 /**
  * The dex lookups the flag reader cannot have, supplied once by the adapter.
@@ -55,6 +56,26 @@ export interface BattleScreen {
      */
     segment?: number,
   ): () => void;
+  /**
+   * Play the end of the fight and park until it has been seen.
+   *
+   * Straight through to the scene, which owns every beat on the stage. It is on
+   * the screen rather than reached for on `scene` directly because `app.ts`
+   * holds a `BattleScreen` and nothing else — the same reason `attach` is here.
+   *
+   * Safe to call when no battle is attached: the scene resolves at once if
+   * there is no hold to run, so a caller never has to ask whether a fight is on
+   * screen before ending one.
+   */
+  outro(kind: OutroKind): Promise<void>;
+  /**
+   * End a parked outro and settle the stage.
+   *
+   * Called when the run is released — a new battle starting, the run ending, or
+   * the player abandoning it mid-hold. Without it an abandoned run leaves
+   * `reviewBattle` awaiting a timer whose screen is gone.
+   */
+  cancel(): void;
 }
 
 export function createBattleScreen(): BattleScreen {
@@ -103,6 +124,8 @@ export function createBattleScreen(): BattleScreen {
 
   return {
     root,
+    outro: (kind) => scene.outro(kind),
+    cancel: () => scene.cancel(),
     attach(session, node, reveal, onChoose, segment) {
       title.textContent = node.label;
       // Team size on the header, because a gym with three Pokemon is a
@@ -130,7 +153,23 @@ export function createBattleScreen(): BattleScreen {
       // function of the facts, so rebuilding it is cheaper than keeping one
       // alive and wondering which turn it describes.
       const draw = (turns?: readonly FlaggedTurn[]): void => {
-        scene.update(buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects), onChoose, turns);
+        /*
+         * The third consumer of the one reading. **Branch 3B.**
+         *
+         * `abnormalityMarks` reduces the turn's flags to at most one class and
+         * slot per side, and the scene is handed that rather than the flags —
+         * `test/boundaries.test.ts` forbids the scene from reading a flag,
+         * because a beat that can see severity is one step from a beat that
+         * shows it. The reduction happens here, off the same `turns` the log
+         * and the strip already get, so the rule at the top of this file still
+         * holds: one reading of the protocol, now three consumers.
+         */
+        scene.update(
+          buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects),
+          onChoose,
+          turns,
+          abnormalityMarks(turns),
+        );
       };
 
       /*

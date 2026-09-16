@@ -332,6 +332,45 @@
      event — a thing on the board resolving — and because the two never happen
      on the same turn: a swap draws no HP chunk. */
   --motion-swap: var(--motion-duration);
+  /* The outro: how long the stage is held after the last turn of a fight, so
+     that turn's beats are seen before the result screen arrives. **The battle
+     animation run, Branch 3, and the one place anything waits.**
+
+     The whole budget, like the shadow and the swap, because it is the same
+     kind of event — a thing on the board resolving — and because it never
+     overlaps them: the outro begins where the last turn's beats end.
+
+     **Zeroed under `prefers-reduced-motion` in `styles.css`, and that is the
+     mechanism rather than a courtesy**: `scene.ts` reads this property to
+     decide how long to park, so a zero here is a hold of zero length and the
+     result screen arrives as fast as it ever did. Nothing in TypeScript
+     branches on the media query, which is what lets it re-answer itself when
+     the OS setting changes mid-session. */
+  --motion-outro: var(--motion-duration);
+  /* Where a recalled body shrinks *to*, as an offset from its own centre
+     toward its trainer's side. An origin rather than a translate, deliberately:
+     a body that travelled toward the edge would push the stage's scrollable
+     width past the viewport on a 390px phone, and `.stage` cannot clip because
+     the two panels are its children and overhang it by design.
+     `--beat-direction` already carries the sign per side, so one keyframe
+     serves both.
+
+     Percentage-free because `transform-origin` takes a length here; 30% of a
+     96px body, which puts the vanishing point well inside it. */
+  --recall-origin: 29px;
+  /* How far the ball drops in from above before it shuts. Vertical only, and
+     under half the actor's height, so it stays inside the box the body stood
+     in — see `sprite-recall`'s note in styles.css for why nothing in the outro
+     may leave that box. */
+  --recall-travel: 22px;
+  /* The abnormality mark's size and how far it travels. **Branch 3B.**
+     Both are fractions of the 96px actor and the mark starts centred on it, so
+     no beat reaches outside the box its body stands in — `.stage` cannot clip,
+     because the two panels are its children and overhang it by design, so a
+     transform past the edge would widen the document on a 390px phone. Shared
+     by all five classes: they differ in shape, never in size. */
+  --mark-size: 46px;
+  --mark-travel: 10px;
   /* The idle bob on a figure: two held frames, so one cycle is two of these
      halves. **Idle-sprites patch.** Not derived from `--motion-duration`,
      deliberately: that number is the added time per battle turn, and an idle
@@ -356,14 +395,30 @@
   --hp-shadow: color-mix(in srgb, var(--cream) 22%, var(--bg-sunken));
   /* How far a sprite lunges toward its opponent when it acts. Far enough to
      read as an attack on a 96px body, near enough that the body never leaves
-     the corner it stands in or reaches the panel floating beside it. */
-  --lunge-distance: 8px;
+     the corner it stands in or reaches the panel floating beside it.
+
+     **6px since the battle animation run, down from 8.** The spatial argument
+     above was the only one ever made for 8, and it is incomplete: `actor-lunge`
+     peaks at 40% of a beat, so the distance is spent in 40% of a quarter of the
+     budget. At the old 500ms budget that was 50ms — three frames at 60Hz, near
+     3px a frame, which reads as a jump cut rather than as a lunge. Raising the
+     budget to 750 and *keeping* 8px would only have made it a slower stutter at
+     ~2px a frame; the two had to move together. 6px over the longer beat is
+     1.49px a frame, under the two-pixel line `--idle-rise` below already calls
+     jitter. The table is in `data/displayTuning.ts`. */
+  --lunge-distance: 6px;
   /* How far a sprite is knocked back when its bar drew a chunk, and how far
      its opacity dips while it is. The same for every hit: the chunk already
      says how big the hit was, and a recoil that grew with the multiplier
-     would be a verdict on the board. Half the lunge, so the answer reads as
-     smaller than the question. */
-  --hit-recoil: 4px;
+     would be a verdict on the board.
+
+     **Derived, not re-typed.** "Half the lunge, so the answer reads as smaller
+     than the question" is what this comment has always said, and until the
+     battle animation run it was a coincidence of two literals — 4 next to 8 —
+     that the next person to tune the lunge would have silently broken. The
+     `calc` makes the sentence true by construction and leaves one number to
+     move instead of two. */
+  --hit-recoil: calc(var(--lunge-distance) / 2);
   --hit-dip: 0.55;
   /* How far a sprite travels as it sinks into the near layer or rises out of
      it. Far enough to read as depth, near enough that the body never appears to

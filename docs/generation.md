@@ -1037,7 +1037,16 @@ moving `battleFeedbackMs` and `maxMoveTagsOnFace` into a display-only module;
 that is not done here, because moving a field out of `Tuning` changes what the
 simulator can sweep and what every report's `tuning` block records, and that is
 a decision with its own release rather than a side effect of this one. The cost
-is a false rejection when a display number moves. **Open, small.**
+is a false rejection when a display number moves. ~~**Open, small.**~~
+**Closed 2026-09-16** by the battle animation run's Branch 1, with one field
+named and declined: `battleFeedbackMs`, `minChipFontSizePx` and
+`minChipContrastRatio` moved to `src/data/displayTuning.ts` and onto the
+exclusion list; `maxMoveTagsOnFace` could not, because `core/battle/view.ts`
+reads it and an excluded file may not be a `core/` dependency. Section 21
+deviation 2. The "decision with its own release" this paragraph defers is
+exactly what closed it: the release was a playtest reporting that the beats
+were too fast to see, and a number parked for a playtest has to be movable when
+the playtest arrives.
 
 The workflow this implies, for the next table: a balance file under
 `src/data/` needs nothing; a copy-only file wants an exclusion entry with a
@@ -3710,3 +3719,516 @@ measly start, fierce gyms with a full roster from the first badge, and
 opponents that evolve on the same clock the player does. Where the greedy
 bot dies, and to what, is in the report; the levers that were *not* pulled
 are the gym's level offset and the roster rule, both the user's call.
+## 22. The battle animation run, Branch 1: the display split moved the hash once
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 1. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
+
+### Deviation 1: `contentHash` moved, and the prompt said no axis would
+
+**The prompt's standing rules say "No version axis moves in any of the three
+branches", and its Branch 1 step 1 says to verify `npm run content-hash` prints
+the same value before and after, with "if it moves, the split is wrong."**
+
+It moved, from `53145f` to `b381d0`, and the split is not wrong. The check was
+naive and this note is the correction.
+
+`contentHash` is a glob over `src/data/**` minus the exclusion list, and
+`tuning.ts` is in the hashed set. Taking three fields *out* of `tuning.ts`
+changes that file's bytes, so it changes the hash — necessarily, and no
+arrangement of the destination file avoids it. The check as written could never
+have passed for any version of this work.
+
+What the check should have asked, and what was verified instead:
+
+1. **Generation did not move.** `test/fixtures/sim-report.json` regenerated
+   byte-for-byte identical except its own `contentHash` line — every run
+   record, every decision, every casualty across every fixture seed unchanged.
+   That is the claim that matters and it is proved rather than argued.
+2. **The number is free from here.** `battleFeedbackMs` at `900` and at `1234`
+   both produce `b381d0`. The exclusion is doing its job.
+
+**And the move was unavoidable regardless of the split**, which is the part
+worth keeping: this branch exists to change `battleFeedbackMs` from 500, and
+changing it *in place* would have moved the hash too — and moved it again on
+every future retune. The split pays the cost once and makes this the last time a
+display edit refuses a shared seed. A seed string minted before 2026-09-16 is
+refused at paste time with the copy `data/seedCopy.ts` already carries.
+
+Recorded here rather than by editing the prompt, per the Process rule.
+
+### Deviation 2: `maxMoveTagsOnFace` could not come, and the filed item named it
+
+Release C's recommendation, carried as morning decision 3 of
+[`handoff/overnight-1-contenthash.md`](handoff/overnight-1-contenthash.md) and
+marked **open, small** in section 9 above, names two fields: `battleFeedbackMs`
+and `maxMoveTagsOnFace`. Only the first moved.
+
+A file may be excluded from the hash only if nothing under `core/` imports it at
+any depth — the rule in `build-config/content-hash.ts`, held by
+`test/content-hash.test.ts`, which walks the import graph. `core/battle/view.ts`
+reads `DEFAULT_TUNING.maxMoveTagsOnFace` for its `DEFAULT_MAX_MOVE_TAGS`. Moving
+that field into `data/displayTuning.ts` would have made the new file a `core/`
+dependency and disqualified the exclusion **for all four fields**, which is the
+opposite of the point.
+
+So the split is three fields, not two-plus-one: `battleFeedbackMs`,
+`minChipFontSizePx` and `minChipContrastRatio` — the three no `core/` file
+reads. `maxMoveTagsOnFace` stays on `Tuning`, stays hashed, and keeps the
+sweepability its own comment argues for. The filed item is therefore **closed as
+substantially done with one field named and declined**, not closed clean.
+
+### Deviation 3: a stale claim in `tuning.ts`, corrected rather than moved
+
+`maxMoveTagsOnFace`'s doc comment read "A display number, so it changes no seed
+and enters no hash." The first half is true; **the second half was false when it
+was written** — `tuning.ts` has been hashed whole since the `contentHash`
+release — and it sat directly above the three fields this branch moved *because*
+they enter the hash. Left alone it would have read as the reason the field
+stayed behind.
+
+Corrected in place to say the field is hashed, that editing it still refuses a
+seed shared across the edit, and why it could not move. This is the same class
+of failure open item 8 records: a stale statement in a file every session reads
+is believed.
+
+### Deviation 4: the shipped number is 750, reached by two rulings
+
+The prompt's step 2 left the figure to the branch, "judged by watching", with a
+suggested 900-1000. 900 was built and measured. Two rulings moved it:
+
+1. **Do not ship an unwatched number.** Reverted to 500, keeping the split — the
+   point of which is that the number is now free, so deferring it costs nothing.
+2. **Shrink the lunge and take 750.** This is the one that found something the
+   branch had missed: `actor-lunge` peaks at 40% of a beat and a beat is a
+   quarter of the budget, so the whole lunge distance is spent in **10% of the
+   budget** — 50ms at 500, three frames at 60Hz, near 3px a frame. That is a
+   jump cut, not a fast lunge, and it is why the motion read as broken rather
+   than as quick. **Raising the budget alone would not have fixed it**: 8px at
+   750 is still ~2px a frame. Distance and duration had to move together.
+
+So `--lunge-distance` is 6px (1.49px a frame, under the two-pixel jitter line
+`--idle-rise` already draws), and `--hit-recoil` is now
+`calc(var(--lunge-distance) / 2)` rather than a second literal — its comment has
+always claimed "half the lunge" and that was a coincidence until this edit.
+
+750 also divides better than 900: beat `0.1875s`, delays `0.375s` and
+`0.5625s`, all exact binary fractions, so the browser's serialization and the
+tests' `ms / 4000` arithmetic cannot disagree. The spot-check this section's
+gates asked for at 900 cannot fail at 750.
+
+The three trips — 500 to 900 to 500 to 750 — all left `contentHash` at
+`b381d0`, which is the split working as designed rather than a claim about it.
+
+### What Branch 1 did not change
+
+No balance number. No `core/` file. `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
+`AI_VERSION` all stand still; `contentHash` is the only axis that moved and
+deviation 1 is its account.
+
+## 23. The battle animation run, Branch 3A: the one thing that waits
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 3, half A. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
+
+### Superseded: "nothing waits for this"
+
+`ui/theme/motion.ts` has said since Release C:
+
+> **Why it is not a delay.** Nothing waits for this. The bar, the HP text, the
+> flag words and the move buttons are all correct and interactive on the frame
+> the update arrives, and a tap resolves every animation early. The number says
+> how long the feedback *stays*, not how long the player is held.
+
+**That rule is retired in one place and kept everywhere else.** The header now
+reads "Why it is not a delay, with one exception" and names the seam. Recorded
+here and rewritten there in the same commit, per the rule that a superseded rule
+is deleted from the lineage rather than left behind a flag — and because a file
+every session reads that asserts something the tree no longer does is the
+failure open item 8 documents.
+
+**What was wrong with it.** The rule is correct for a turn mid-fight, where the
+next decision is the thing worth reaching and holding the player from it is a
+cost with no benefit. It fails at the end of a fight, where there is no next
+decision and the screen leaves before the feedback does. The observed symptom
+was "a one-hit KO shows no animation", and that was a narrower description than
+the defect: **the last turn of every fight was swallowed.** A 1HKO is the case
+where the last turn is the only turn, so it was the one where nothing moved at
+all and therefore the one that got reported.
+
+The chain, unchanged except for the last line: `driver.ts` drains the final
+protocol batch and calls `notify` synchronously -> `ui/screens/battle.ts` renders
+-> `scene.ts` sets `data-fainting` and `data-hit`, `bar.ts` paints the chunk,
+three CSS animations start -> the `while (!session.ended)` loop exits ->
+`run.ts` awaits `policy.reviewBattle` -> `app.ts` **awaits the outro** before
+`showScreen('result')`.
+
+**Why exactly one seam.** `core/run.ts` calls `reviewBattle` for every battle
+completion, won or lost, with cards or without, and its own doc says "It is one
+path, not a second one." So one `await` covers gym, trainer, wild, victory and
+defeat with no branch in `core/`, no new projection field, and no version axis
+moved. Every other transition is untouched and still non-blocking.
+
+**What the rule keeps.** The hold is skippable by tapping — the `pointerdown`
+handler that already settles both actors now resolves the parked promise in the
+same breath, because a gate that cannot be skipped is a stall. And it is zero
+under reduced motion, through the stylesheet rather than through a `matchMedia`
+branch: `scene.ts` reads `--motion-outro` to decide how long to park, the
+reduced-motion block sets that token to `0ms`, and so the query re-answers
+itself when the OS setting changes mid-session exactly as `motion.ts` argued it
+must.
+
+### Deviation: a browser helper's witness stopped being sufficient
+
+`playATurn`, in `test/visual-release-c.test.ts` and lifted into
+`test/visual-v5.test.ts`, plays turns until it finds one **the fight survived**,
+so the assertions after it read a live battle rather than a stale one. Its
+witness was "still on the battle screen, and the log grew", and its own header
+already recorded two earlier debugging passes that made it that strict.
+
+The gate invalidated it. A finished fight now stays on the battle screen, log
+and all, for the whole of `--motion-outro` — which is the entire point — so the
+two conditions together no longer separate a surviving turn from the turn that
+ended the fight. Both files began asserting against a fight that was over: no
+second lunge, and move buttons correctly dead.
+
+The third condition is that the run has **asked for another choice**: an enabled
+move button. A fight that is over has none, whether or not the result screen has
+arrived, so that property outlives the gate in a way the other two did not. Both
+helpers also now wait the hold out before looping, rather than racing it.
+
+Recorded rather than quietly fixed because it is the shape of thing the next
+animation patch will hit again: **a test that waits a fixed fraction of the
+feedback budget and then reads the screen is making an assumption about what the
+budget is for.**
+
+### Deviation: the ball is not in `ui/theme/itemIcons.ts`, and its number was checked
+
+The prompt said to put the spritenum in a UI-side constant rather than in the
+generated icon table, and that stands: `scripts/gen-item-icons.ts` writes that
+table from `data/items.ts` and `test/item-icons.test.ts` regenerates and diffs
+it, so an entry with no item behind it would be deleted by the next run. A ball
+is never held, offered, bought or stowed, and inventing one under `data/` to
+draw a picture would put a thing the run does not have into the table the run
+reads.
+
+It lives in `ui/slots.ts` beside the one `Icons` instance, as a reserved
+resolver key. **The number is 345, not the 4 a guess would have produced** — read
+off `@pkmn/sim`'s `Dex.items.get('pokeball').spritenum`, as the prompt insisted,
+because a wrong spritenum draws a different item and nothing fails.
+
+The asset rule in `ui/theme/scenes/index.ts` — "No Pokemon, no Pokeball, no
+landmark from anywhere" — **is not bent and not amended.** It governs scenery
+authored into this repo. The ball is a cell of the Showdown item sheet the party
+screen already draws every held item from, so nothing raster is added and the IP
+posture is the one the sprite CDN rule set.
+
+### What Branch 3A did not change
+
+No `core/` file. No `data/` file. No balance number, no version axis —
+`contentHash` is still `b381d0`. The abnormality vocabulary and its beats are
+Branch 2 and Branch 3B, and neither is started.
+
+## 24. The battle animation run, Branch 2: the abnormality vocabulary
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 2. Branch `claude/busy-noether-jfszvi`, 2026-09-16. Evidence:
+[`reports/battle-anim-2-protocol-census.md`](reports/battle-anim-2-protocol-census.md).
+
+`FlagKind` goes from ten to seventeen: `prevented`, `failed`, `boost`,
+`unboost`, `ability`, `volatile`, `field`.
+
+### Deviation 1: the words are in `data/flagWords.ts`, and the plan said not to
+
+**The plan said new copy goes in `src/ui/copy/`, never under `src/data/`.** That
+rule is right about its own reason — `contentHash` globs `src/data/**` minus an
+exclusion list, so a *new* table there is hashed by default and moves every seed
+until somebody remembers to exclude it. It is wrong about this case, for two
+reasons that only became visible with the code in front of it.
+
+**`flagWords.ts` is already on the exclusion list.** Adding a word to a file
+that is already excluded moves nothing; the hazard is creating a new file, not
+extending an old one. Verified: `npm run content-hash` reads `b381d0` before and
+after.
+
+**And `FLAG_WORDS` and `FLAG_BLURBS` are `Record<FlagKind, string>` — total
+records.** Widening the union produced exactly two compile errors, one per
+table, and neither could be satisfied anywhere else. Splitting half the flag
+vocabulary into `ui/copy/` would have meant either making those records partial,
+which destroys the one mechanism guaranteeing every kind has a word and a
+tooltip, or keeping two files that must be read together to answer "what is this
+flag called". Both are worse than the wart.
+
+So the wart is not widened and it is not fixed either; it is left exactly as
+large as it was. Moving `flagWords.ts` wholesale to `ui/copy/` is still the right
+eventual answer and is still not this patch's.
+
+### Deviation 2: two classes were cut and one narrowed, on evidence
+
+The census (699 battles) is the authority here, not the plan's guesses:
+
+- **Damage shape: cut.** `-recoil`, `-drain` and `-hitcount` appear **not once**.
+  The plan had drafted words for all three.
+- **Identity: deferred** at 2.9% of battles.
+- **`-item`: deferred** at 2.1%, though its class (trait fired) is built. Below
+  the identity class that was deferred, so including it would have been
+  inconsistent — `-ability` at 39.9% carries that class on its own.
+- **Volatiles: narrowed to `DISPLAYED_VOLATILES`.** The raw `-start` tail is
+  `Charge` (4.7%), `Doom Desire` (2.9%), `Salt Cure` (2.1%), `Quark Drive` —
+  engine bookkeeping and single moves with no word a player can act on. Filtering
+  on the allowlist the panel already uses drops all of them, and takes the
+  volatile flag from a noisy 45% to a meaningful 4.8%.
+
+### Deviation 3: `settle()` now retracts on `failed` too
+
+Not asked for. A move that failed did nothing, so it made no contact and got no
+same-type bonus — the identical argument the function's own comment already
+makes for a miss and an immunity. `CONTACT` under `Failed` is the same lie as
+`CONTACT` under `MISSED`, and it would have shipped the day `failed` did.
+
+### Two line shapes the census caught, which would have shipped wrong words
+
+Both produce *plausible* output rather than an error, which is the kind that
+survives review.
+
+1. **Weather and terrain name themselves in the protocol's first field, not its
+   third.** `|-weather|RainDance|[from] ability: Drizzle` — the third field is
+   the `[from]` tag. Keying on it, as every other flag in this file does, yields
+   "Rain [upkeep]".
+2. **A weather line repeats every turn it is up.** `-weather|[upkeep]` is 6.1%
+   of battles on its own; flagging it would put "Sandstorm" on the strip for
+   every turn of a sandstorm, which reports the weather rather than the turn.
+   Only a start is an event.
+
+A field effect also has no Pokemon to be about, which every other flag assumes.
+It is attributed to the engine's own `[of]` when the line carries one, and
+otherwise to whoever just acted; a field effect with neither is dropped rather
+than guessed at.
+
+### What it does not change
+
+`view.ts` is imported from and not modified: this branch adds **events**, not
+projections. Stat stages, status and volatiles were already projected and drawn
+as panel chips — present tense, what is true now — and what was missing is the
+moment of change. No `RUN_LOG_VERSION` bump, because flags are derived every
+render and never serialized. `ui/flag-strip.ts`, `ui/chip.ts` and
+`ui/tooltips.ts` needed **no change at all**: the strip maps kinds generically
+and the tooltip resolves `flag:<kind>` against the blurb table.
+
+No version axis moved. `contentHash` is still `b381d0`.
+
+## 25. The battle animation run, Branch 3B: the abnormality beats
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 3, half B. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
+
+Five beats — `prevented`, `stage`, `trait`, `volatile`, `field` — one per class
+rather than one per kind, riding the slot of the action that produced the flag.
+
+### The defect the class was built for went one level deeper than expected
+
+`prevented` was built first on the argument that a flinched turn is invisible by
+construction: no damage, so no chunk, so no beat. **That turned out to be true
+of the beat scheduler itself**, and the first build of Branch 3B reproduced the
+bug it was fixing.
+
+`beats()` picks the turn to animate with
+`turns.reverse().find((turn) => turn.actions.length > 0)`. That is right for a
+lunge and a hit, which are things an action did. But `|cant|` **replaces** the
+`|move|` line rather than accompanying it, so `readTurns` produces no action for
+a prevented turn at all and its flag lands in `residual`. Reading the beats off
+that group marked nothing on exactly the turn that already leaves no other
+trace. Caught by `test/battle-outro.test.ts`'s first two abnormality cases,
+which is what they were written for.
+
+**The fix was already in the tree.** `ui/flag-strip.ts`'s own `latest()` had
+solved it — prefer the last group carrying flags, fall back to the last with
+actions — so `beats()` mirrors that rule rather than inventing a second one. The
+strip and the stage now answer "which turn is being shown" identically, which is
+the property that keeps them from disagreeing about a turn. Generalised: **a
+consumer that finds "the current turn" by looking for actions cannot see the
+turns where nothing acted**, and those are the interesting ones.
+
+### The beats are concurrent, and that is the design
+
+A mark's `animation-delay` is the delay of the lunge or hit it accompanies, not
+a slot after them. So an abnormality costs the turn **nothing**: a turn carrying
+six takes exactly as long as a turn carrying none, and Release C's "total added
+time per turn is one number" holds without amendment.
+
+The alternative — a slot per abnormality — was declined in planning and the
+census says why it would have hurt: 59.5% of battles carry a stat change and
+45% a volatile, so serialising them would have lengthened most turns in the
+game.
+
+### One mark per actor per slot
+
+A side whose slot carries several abnormalities takes the **first in protocol
+order** and the strip carries the rest, which it already did. That is not a
+ranking: `flags.ts` calls protocol order "the one ordering that is a fact rather
+than an opinion", which is exactly what makes taking the first safe. Residual
+flags ride the last slot rather than earning a fifth, because a fifth slot is
+the added time the whole arrangement exists to avoid.
+
+### Deviation: the scene may not read a flag, and the first build did
+
+**The most useful thing that happened in this branch.** Branch 3B's first build
+put the flag-to-class reduction inside `beats()`, in `ui/scene.ts`, with careful
+comments promising not to rank anything. `test/boundaries.test.ts` refused it:
+
+> **never reads a flag in the scene** — the stage's beats read `action.side` and
+> the bar's chunk boolean, and nothing else. A beat that read `flags` would be
+> one step from a recoil that grew with the multiplier, which is a verdict drawn
+> on the board.
+
+The rule is exactly right and the build was exactly wrong. Every comment that
+first version wrote — "none has more weight than another", "not a ranking" — is
+the kind of promise this rule exists to replace with a guarantee. A scene that
+*can* see severity is one edit from showing it, and the edit would look
+reasonable.
+
+So the reduction moved to a new `src/ui/abnormality.ts`, a pure function from
+`FlaggedTurn[]` to at most one `{ side, klass, slot }` per side, and the scene is
+**handed** the result. It cannot weight a beat by severity because it never sees
+severity — true by construction rather than by care, which is the standard the
+rest of the battle UI is already held to.
+
+This also satisfies the sibling rule the same file states, that the scene "may
+name the shape; the moment it calls the reader it has become the second source
+of truth". `ui/screens/battle.ts` still reads the protocol exactly once and now
+hands the result to **three** consumers — the log, the strip, and the marks —
+rather than two.
+
+The restructure is strictly better than what it replaced: the reducer is pure
+and unit-tested without a DOM (`test/abnormality.test.ts`, 9 cases), the scene
+is write-only for marks, and the seam is covered from both sides.
+
+### The marks are on their own element, and that was forced
+
+`.sprite:not(.sprite--ghost)` already carries four animation rules — the hit,
+the faint, the swap and the recall — and a fifth would cancel one of them; the
+faint's comment documents managing that collision by rule order already. So the
+beats live on `.stage__mark`, following `.stage__ball` from 3A. That also buys
+the concurrency: a mark and a hit can run at once because they are two elements.
+
+### Identity without weight, which is the rule the patch turns on
+
+The five classes share duration, size, travel and opacity curve, and differ only
+in shape: `prevented` closes and stops, `stage` shifts on an axis, `trait`
+pulses, `volatile` settles and holds, `field` sweeps. None is larger, longer or
+brighter than another, and the mark is drawn in the stage's own ink rather than
+a hue — a colour would rank one class against another the moment a second
+colour appeared beside it.
+
+**`boost` and `unboost` share one beat.** Which way a stat went is a word on the
+strip and a chip on the panel; a beat that rose for one and fell for the other
+would be the board taking a view on which is better. Same argument
+`--hit-recoil`'s comment makes for not scaling a recoil with the multiplier.
+
+### What smoke cannot catch, again
+
+A transform contributes to scrollable overflow and `.stage` cannot clip, so a
+mark reaching past the actor's box would widen the document on a 390px phone.
+`scripts/smoke.mjs` never produces an abnormality beat, so it cannot see this —
+the same blind spot Branch 3A found with the recall.
+`test/visual-battle-outro.test.ts` now plays until a real turn carries one and
+asserts `scrollWidth` at that frame, and that the mark is actually animating
+rather than merely marked.
+
+### What it does not change
+
+No `core/` file, no `data/` file, no version axis. `contentHash` is still
+`b381d0`. The flag strip is untouched: it already listed every flag.
+## 26. Stage 4.9 merged into the battle animation run
+
+Branch `claude/busy-noether-jfszvi`, 2026-09-16. Stage 4.9 (section 21) reached
+`main` while the animation run (sections 22 to 25) was in flight, so it was
+merged in rather than the other way round.
+
+### The two features compose with no code change
+
+`core/run.ts` calls `chooseEvolution` **after** `reviewBattle`, so a gym clear
+now runs: the fight ends → the outro plays → the result screen → the evolution
+fork. That is the order it should be in, and it falls out of where each hook
+already sat. The only edit `app.ts` needed was the one the merge itself forced —
+`reviewBattle` was a plain arrow on main and an `async` one here, so the merged
+body awaits the outro first and then runs Stage 4.9's evolution preview.
+
+### `contentHash` is a fourth value, and generation still did not move
+
+| | value |
+|---|---|
+| fork point | `53145f` |
+| this branch alone | `b381d0` |
+| `main` alone | `08e9e6b` |
+| **merged** | **`c3964b`** |
+
+Main changed the data tables; this branch removed three fields from `tuning.ts`.
+Neither pin could survive, so it was recomputed rather than guessed.
+
+**The proof that this branch is still presentation-only survived the merge, and
+is now much stronger.** `test/fixtures/sim-report.json` and the six baseline run
+records were regenerated on the merged tree and diffed against main's:
+
+```
+$ diff main-fixture.json test/fixtures/sim-report.json | grep -E '^[<>]' | grep -vc contentHash
+0
+$ diff -r mainbase freshbase | grep -E '^[<>]' | grep -v contentHash
+< 08e9e6b2…   > c3964b9b…          # data-digest.txt, which is the bare hash
+```
+
+Zero non-hash lines in the fixture, and the only two in the baseline are the
+digest file's own value. Every party, node, decision, casualty and protocol
+across six seeds is byte identical to main's — **under Stage 4.9's new curve and
+roster**, which is a far larger surface than the pre-merge proof covered.
+
+### Deviation: main found a specificity bug, and this branch had the same shape
+
+Stage 4.9 fixed a reduced-motion rule that had never worked:
+`.stage__actor[data-swapped='true'] .sprite` never outranked
+`… .sprite:not(.sprite--ghost)`, because `:not()` carries its argument's
+specificity — so the arriving body still rose for anyone who had asked it not
+to. Latent until a Stage 4.9 seed put a send-in on the measured turn.
+
+Prompted by that, this branch's own cancellations were re-checked. The outro
+rules were sound: each names the live selector exactly. **The abnormality rule
+was not, quite.** `[data-abnormal]` and `[data-abnormal="stage"]` have identical
+specificity, so the bare form did cancel the five class rules — but only because
+the media block sits later in the file. That is a guarantee that stops holding
+the moment someone moves a block, which is precisely how main's bug survived.
+
+The cancellation now names every live rule, including the slot delay. True by
+construction rather than by ordering.
+
+### A load-sensitive browser test, and this branch makes the load slightly worse
+
+`test/visual-phone-seed-bar.test.ts` failed twice during the merge gates,
+asserting `documentElement.scrollWidth === 390` on the starter screen and
+getting **393 once and 401 the next time**. It passes in isolation, passes
+alongside two other visual files, and the full suite then passed clean on the
+same tree. A value that moves between runs is a timing race, not a layout
+defect.
+
+The mechanism is in `test/visual/harness.ts`: **`openHarness` runs its own Vite
+build and launches its own Chromium, once per test file**, and nothing caps
+vitest's file concurrency. A full visual run is therefore ~22 simultaneous
+builds and browsers, and under that pressure a screen can be measured before its
+pixel face has settled — the same contention class recorded in
+`handoff/battle-anim-1-timing.md`, where unrelated files timed out at ~670s and
+looked like assertion failures.
+
+**This branch adds the 22nd such file** (`test/visual-battle-outro.test.ts`),
+main having 21, so it raises peak load by roughly a twentieth. The fragility is
+the harness's and predates this work; the extra file is this branch's. Left as
+it is rather than folded into a neighbouring file, because one browser test per
+concern is the right shape and the real fix is a concurrency cap on the visual
+suite — which is a change to shared config and not this branch's to make.
+Recorded so the next red suite is read with the durations and the file count in
+view before anybody hunts a layout bug that is not there.
+
+### Docs
+
+Main took section 21, so the animation run's four sections moved from 21–24 to
+**22–25**, and a dozen cross-references in six files moved with them.
+`test/boundaries.test.ts` verifies that documented *paths* resolve; it cannot
+see a wrong section *number*, so those were checked by grep.
