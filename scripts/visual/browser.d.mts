@@ -2,8 +2,22 @@
 import type { Browser, BrowserContext, Page, LaunchOptions } from 'playwright';
 
 export const PHONE: { width: number; height: number };
+
+/** The engines the browser suite runs against. **The iOS animations patch.** */
+export type Engine = 'chromium' | 'webkit';
+export const ENGINES: readonly Engine[];
+/** Which engine this process drives, from `GYMRUN_ENGINE`. `chromium` by default. */
+export const ENGINE: Engine;
+/** Playwright's iPhone 14 Pro Max descriptor, at this repo's pinned phone width. */
+export const IPHONE: Record<string, unknown>;
+/** The context options an engine wants for a viewport: bare on Chromium, the descriptor on WebKit. */
+export function contextFor(
+  viewport?: { width: number; height: number },
+  engine?: Engine,
+): Record<string, unknown>;
+
 export function serve(dir?: string): Promise<{ url: string; close: () => void }>;
-export function launch(options?: LaunchOptions): Promise<Browser>;
+export function launch(options?: LaunchOptions, engine?: Engine): Promise<Browser>;
 export function visible(name: string): string;
 export function openScreen(page: Page): Promise<string | null>;
 export function stepOnce(page: Page): Promise<string | null>;

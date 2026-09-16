@@ -15,11 +15,41 @@ import { join } from 'node:path';
 import type { Browser } from 'playwright';
 import { build } from 'vite';
 
-import { launch, serve } from '../../scripts/visual/browser.mjs';
+import { ENGINE, launch, serve } from '../../scripts/visual/browser.mjs';
+
+export type Engine = 'chromium' | 'webkit';
+
+/**
+ * Which engine this process is driving. **The iOS animations patch.**
+ *
+ * Re-exported from `scripts/visual/browser.mjs` so a test can say something
+ * engine-specific without importing the driver, and so `skipOn` below has one
+ * value to compare against.
+ */
+export const engine: Engine = ENGINE as Engine;
+
+/**
+ * Decline a test on one engine, with the reason in the title. **The iOS patch.**
+ *
+ * The patch that added the second engine also added the rule that a test which
+ * cannot run on both says which one and why, rather than disappearing behind a
+ * bare `skip`. The reason is concatenated into the test name, so a skipped case
+ * reports its own cause in the runner output instead of needing the file open
+ * beside it.
+ *
+ * It is for a test that is *asking a different question* on the other engine —
+ * a pixel measurement against a Chromium-recorded baseline is the whole of the
+ * current population — never for one that is merely failing.
+ */
+export function skipOn(which: Engine, reason: string): { skip: boolean; why: string } {
+  return { skip: engine === which, why: `[${which}: ${reason}]` };
+}
 
 export interface Harness {
   url: string;
   browser: Browser;
+  /** The engine this harness launched, for a test that has to name it. */
+  engine: Engine;
   close(): Promise<void>;
 }
 
@@ -40,6 +70,7 @@ export async function openHarness(options: { gallery?: boolean } = {}): Promise<
   return {
     url: server.url,
     browser,
+    engine,
     async close() {
       await browser.close();
       server.close();

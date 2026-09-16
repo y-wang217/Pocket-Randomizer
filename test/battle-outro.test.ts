@@ -17,10 +17,21 @@
  *
  * Same rule `test/battle-feedback.test.ts` states: nothing here is about
  * layout, and every assertion is about which attributes exist and when a
- * promise settles. jsdom resolves no custom properties, so `--motion-outro`
- * reads as zero and the hold is zero — which is exactly the reduced-motion
- * path, and is why the "resolves at once" cases run here and the length of a
- * real hold is the browser suite's business.
+ * promise settles.
+ *
+ * **The iOS animations patch rewrote the hold cases, and the reason is the
+ * point of the patch.** They used to read: jsdom resolves no custom properties,
+ * so `--motion-outro` came back empty, so the hold was zero, so `outro()`
+ * resolved at once — and the file asserted that as the reduced-motion path. It
+ * was not the reduced-motion path. It was Bug A, reproduced in a test and
+ * written down as correct behaviour: a failed style lookup returning zero, and
+ * zero being no hold at all. A test that pins the failure mode of the thing it
+ * is testing cannot report it.
+ *
+ * `scene.ts` asks `outroHoldMs()` now and never reads a stylesheet, so jsdom
+ * gets the same hold a browser does and these cases assert the length rather
+ * than its absence. Fake timers, because the assertion is "how long", not "how
+ * slowly does this suite run".
  *
  * **The most important test in this file is the last one.** It asserts at the
  * seam rather than at the function: `outro()` returning a promise proves
@@ -29,7 +40,7 @@
  * that class of gap as the standing risk, after it fired twice inside one
  * patch.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createBattle } from '../src/core/battle/driver';
 import { readFlags, type FlagDeps } from '../src/core/battle/flags';
@@ -40,7 +51,9 @@ import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { outroFor } from '../src/ui/app';
 import { abnormalityMarks } from '../src/ui/abnormality';
 import { createScene, type Scene } from '../src/ui/scene';
-import { resetSettings } from '../src/ui/settings';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
+
+import { BATTLE_SPEED_SCALE, resetSettings, setBattleSpeed } from '../src/ui/settings';
 
 beforeEach(() => {
   resetSettings();
@@ -74,25 +87,38 @@ async function settled(promise: Promise<void>): Promise<boolean> {
 describe('which body leaves, and how', () => {
   it('recalls both sides when the fight was won', async () => {
     const scene = createScene();
-    await scene.outro('recall');
+    /*
+     * Not awaited. `outro()` marks both bodies and *then* parks, and since the
+     * iOS patch the park is a real hold in jsdom too — so awaiting it here
+     * would be sitting through 750ms to read an attribute that was set on the
+     * first line. `cancel()` releases it; the hold's own length is asserted in
+     * "the hold" below, which is where that question belongs.
+     */
+    const parked = scene.outro('recall');
     expect(actor(scene, 'foe').dataset['outro']).toBe('recall');
     expect(actor(scene, 'me').dataset['outro']).toBe('recall');
+    scene.cancel();
+    await parked;
   });
 
   it('takes the opponent with a ball on a won wild fight, and still recalls your own', async () => {
     const scene = createScene();
-    await scene.outro('caught');
+    const parked = scene.outro('caught');
     expect(actor(scene, 'foe').dataset['outro']).toBe('caught');
     // The player's lead is recalled either way: a ball is offered for the body
     // that fainted, not for the one that won.
     expect(actor(scene, 'me').dataset['outro']).toBe('recall');
+    scene.cancel();
+    await parked;
   });
 
   it('marks neither side on a defeat, because the body that ended it has already sunk', async () => {
     const scene = createScene();
-    await scene.outro('defeat');
+    const parked = scene.outro('defeat');
     expect(actor(scene, 'foe').dataset['outro']).toBeUndefined();
     expect(actor(scene, 'me').dataset['outro']).toBeUndefined();
+    scene.cancel();
+    await parked;
   });
 
   /*
@@ -104,9 +130,11 @@ describe('which body leaves, and how', () => {
   it('does not recall a body that already fainted', async () => {
     const scene = createScene();
     actor(scene, 'me').dataset['fainted'] = 'true';
-    await scene.outro('recall');
+    const parked = scene.outro('recall');
     expect(actor(scene, 'foe').dataset['outro']).toBe('recall');
     expect(actor(scene, 'me').dataset['outro']).toBeUndefined();
+    scene.cancel();
+    await parked;
   });
 
   it('carries a ball that is not drawn until a capture', () => {
@@ -121,21 +149,72 @@ describe('which body leaves, and how', () => {
 });
 
 describe('the hold', () => {
-  /*
-   * jsdom resolves no custom properties, so `--motion-outro` is empty and the
-   * hold is zero. That is the reduced-motion path — the stylesheet zeroes the
-   * same token under `prefers-reduced-motion` — so this case is both.
-   */
-  it('resolves at once when the duration token is zero', async () => {
-    const scene = createScene();
-    expect(await settled(scene.outro('recall'))).toBe(true);
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('still marks the bodies when there is no hold to run', async () => {
+  /**
+   * Park an outro on fake timers and report whether it had resolved after `ms`.
+   *
+   * Fake timers rather than a real wait, because every case here is about a
+   * boundary — "not yet at one tick short, yes at the length itself" — and the
+   * only way to ask that with a real clock is to sleep through it and hope the
+   * machine was not busy.
+   */
+  async function resolvedAfter(scene: Scene, promise: Promise<void>, ms: number): Promise<boolean> {
+    await vi.advanceTimersByTimeAsync(ms);
+    void scene;
+    return settled(promise);
+  }
+
+  /*
+   * **This case used to assert the opposite, and that is the patch.** It read
+   * "resolves at once when the duration token is zero", which was true, and was
+   * Bug A: jsdom resolves no custom properties, the lookup came back empty, the
+   * parse failed, and the function returned zero. The test called that the
+   * reduced-motion path and passed. Nothing in the suite could then see the
+   * defect, because the defect was the fixture.
+   */
+  it('holds for the full budget, where it used to resolve at once', async () => {
+    vi.useFakeTimers();
     const scene = createScene();
-    await scene.outro('recall');
+    const parked = scene.outro('recall');
+    const full = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
+
+    expect(await resolvedAfter(scene, parked, full - 1), 'resolved before the budget was up').toBe(false);
+    expect(await resolvedAfter(scene, parked, 1), 'never resolved at the budget').toBe(true);
+  });
+
+  /*
+   * The floor, from this end. `outroHoldMs`'s own inputs are covered in
+   * `test/motion-hold.test.ts`; this asserts the scene actually parks on a
+   * non-zero timer rather than falling through, which is the behaviour the
+   * deleted `if (ms <= 0) return Promise.resolve()` branch used to provide.
+   */
+  it('never resolves on the same microtask, whatever the hold works out to', async () => {
+    vi.useFakeTimers();
+    const scene = createScene();
+    expect(await settled(scene.outro('recall'))).toBe(false);
+  });
+
+  it('follows the battle speed, because the hold is the budget', async () => {
+    vi.useFakeTimers();
+    setBattleSpeed('swift');
+    const scene = createScene();
+    const parked = scene.outro('recall');
+    const swift = DEFAULT_DISPLAY_TUNING.battleFeedbackMs * BATTLE_SPEED_SCALE.swift;
+
+    expect(await resolvedAfter(scene, parked, swift - 1)).toBe(false);
+    expect(await resolvedAfter(scene, parked, 1)).toBe(true);
+  });
+
+  it('still marks the bodies, hold or no hold', async () => {
+    const scene = createScene();
+    const parked = scene.outro('recall');
     // Reduced motion removes the movement, not the outcome.
     expect(actor(scene, 'foe').dataset['outro']).toBe('recall');
+    scene.cancel();
+    await parked;
   });
 
   it('resolves rather than rejecting when a run is abandoned mid-hold', async () => {
@@ -156,8 +235,10 @@ describe('the hold', () => {
 
   it('clears the outro on a tap, like every other beat on the stage', async () => {
     const scene = createScene();
-    await scene.outro('recall');
+    const parked = scene.outro('recall');
     scene.root.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    // The tap is what resolves it: a gate that cannot be skipped is a stall.
+    await parked;
     expect(actor(scene, 'foe').dataset['outro']).toBeUndefined();
     expect(actor(scene, 'me').dataset['outro']).toBeUndefined();
   });
@@ -183,7 +264,9 @@ describe('the result screen does not arrive before the fight has ended', () => {
     // The shape of `app.ts`'s reviewBattle: hold, then render, then park on the
     // player's pick.
     const reviewBattle = async (): Promise<void> => {
-      await scene.outro('recall');
+      const parked = scene.outro('recall');
+      scene.cancel();
+      await parked;
       shown.push('result');
     };
 
@@ -191,8 +274,10 @@ describe('the result screen does not arrive before the fight has ended', () => {
     const held = new Promise<void>((resolve) => {
       release = resolve;
     });
-    // Stand in for a hold that has not elapsed: the scene's own timer is zero
-    // under jsdom, so the ordering is asserted against a promise we control.
+    // Stand in for a hold that has not elapsed. The scene's own timer is real
+    // in jsdom since the iOS patch, but the question here is the ordering at
+    // the seam rather than the length, so it is asserted against a promise this
+    // test controls and the hold is released by `cancel` below.
     const gated = (async (): Promise<void> => {
       await held;
       await reviewBattle();

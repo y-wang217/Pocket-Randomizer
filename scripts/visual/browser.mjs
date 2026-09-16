@@ -7,7 +7,7 @@
  * run, reached by the same clicks. Nothing here asserts; the scripts that
  * import it do.
  */
-import { chromium } from 'playwright';
+import { chromium, devices, webkit } from 'playwright';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -24,6 +24,59 @@ const TYPES = {
 };
 
 export const PHONE = { width: 390, height: 844 };
+
+/**
+ * The two engines the browser suite runs against. **The iOS animations patch.**
+ *
+ * Until this patch every browser assertion in the repo was made in desktop
+ * Chromium at a 390px window, and the phrase "the phone viewport" meant a
+ * window that size and nothing else — no touch, no Safari user agent, no pixel
+ * density. Two defects lived inside exactly that blind spot, one of them since
+ * V5.5: the battle motion system has never run on iOS, and the end-of-fight
+ * hold read its duration back out of a stylesheet in a form only Blink
+ * produces. A suite that verifies an animation is wired in the one engine
+ * where it already works is not verifying the animation.
+ *
+ * So the engine is an axis rather than a constant. `GYMRUN_ENGINE` selects it,
+ * `npm run test:webkit` is the second CI leg, and every test body is written
+ * once: a test reads `ENGINE` when it has to say something engine-specific and
+ * otherwise does not know which one it is running in.
+ */
+export const ENGINES = ['chromium', 'webkit'];
+
+/** Which engine this process is driving. `chromium` unless asked otherwise. */
+export const ENGINE = ENGINES.includes(process.env.GYMRUN_ENGINE) ? process.env.GYMRUN_ENGINE : 'chromium';
+
+/**
+ * The device the bug was reported on, minus its width. **The iOS patch.**
+ *
+ * Playwright's own `iPhone 14 Pro Max` descriptor, which carries the three
+ * properties that are part of the reproduction — `hasTouch`, the Mobile Safari
+ * user agent, and `deviceScaleFactor: 3` — and one that is not: a 430x932
+ * viewport.
+ *
+ * **The width is overridden back to `PHONE` deliberately, and this is the one
+ * place to argue with it.** Every measurement in `docs/visual/baseline/`,
+ * every height in `heights.json`, `scripts/smoke.mjs`'s overflow assertion and
+ * all 22 browser test files are pinned at 390x844. 390 is the *narrower* of
+ * the two, so a layout that fits it fits a Pro Max, and re-pinning the corpus
+ * to 430 would move every recorded number for a reason that has nothing to do
+ * with either defect — neither of which is width-dependent. What the
+ * descriptor is here for is the other three properties, and it brings all of
+ * them.
+ */
+export const IPHONE = { ...devices['iPhone 14 Pro Max'], viewport: PHONE };
+
+/**
+ * The context options one engine wants for a given viewport.
+ *
+ * Chromium keeps exactly what it always had — a bare viewport — so every
+ * number this repo has ever recorded still means what it meant. WebKit adds
+ * the descriptor on top, at whatever size the caller asked for.
+ */
+export function contextFor(viewport = PHONE, engine = ENGINE) {
+  return engine === 'webkit' ? { ...IPHONE, viewport } : { viewport };
+}
 
 /** Serve a built directory on a free port. Returns the base URL and a closer. */
 export async function serve(dir = join(process.cwd(), 'dist')) {
@@ -42,11 +95,20 @@ export async function serve(dir = join(process.cwd(), 'dist')) {
   return { url: `http://127.0.0.1:${server.address().port}`, close: () => server.close() };
 }
 
-const PINNED = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium'];
+const PINNED = {
+  chromium: ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium'],
+  // WebKit ships as a launcher plus a bundle and cannot be pointed at a bare
+  // binary the way Chromium can, so it resolves through Playwright's own
+  // registry. Nothing is pinned here; `npx playwright install webkit` is what
+  // puts it on the box.
+  webkit: [],
+};
 
-export async function launch(options = {}) {
-  const executablePath = PINNED.find((candidate) => existsSync(candidate));
-  return chromium.launch({ ...(executablePath ? { executablePath } : {}), ...options });
+const ENGINE_API = { chromium, webkit };
+
+export async function launch(options = {}, engine = ENGINE) {
+  const executablePath = (PINNED[engine] ?? []).find((candidate) => existsSync(candidate));
+  return ENGINE_API[engine].launch({ ...(executablePath ? { executablePath } : {}), ...options });
 }
 
 export const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
@@ -390,7 +452,13 @@ export async function skipTutorialIn(context, density = 'detailed', moveBar = 'g
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
   const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
-  const context = await browser.newContext({ viewport, ...rest });
+  /*
+   * The engine's own context shape, then the caller's overrides. **The iOS
+   * patch.** On Chromium this is the bare viewport it always was; on WebKit it
+   * is the iPhone descriptor at the same size, so touch, the Safari user agent
+   * and 3x density come along without any test asking for them.
+   */
+  const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
   if (!tutorial) await skipTutorialIn(context, density, moveBar);
   const page = await context.newPage();
   const problems = [];

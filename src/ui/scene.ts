@@ -38,6 +38,7 @@ import {
 } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
+import { outroHoldMs } from './theme/motion';
 import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
 import { el } from './dom';
 import { spriteFigure, spriteImg, spriteUrl } from './sprites';
@@ -303,19 +304,26 @@ export function createScene(): Scene {
   );
 
   /**
-   * How long to hold, in milliseconds, off the computed custom property.
+   * How long to hold, in milliseconds. **Asked of the tuning, not of the CSS.**
    *
-   * Read at the moment of use rather than cached, so a battle-speed change or
-   * an OS reduced-motion change mid-run takes effect on the next fight without
-   * anything re-registering. A property that does not resolve to a number —
-   * jsdom resolves no custom properties at all — reads as zero, which is the
-   * safe direction: a test environment gets no hold rather than a hung promise.
+   * This used to read `--motion-outro` back off the computed style and parse
+   * it, and that round trip was Bug A of the iOS animations patch. The number
+   * it recovered had been written into that property by `theme/motion.ts`, in
+   * this same process, out of `data/displayTuning.ts` — so at best the lookup
+   * returned a number JavaScript already had, and at worst an engine
+   * serialized the property in a spelling the parser did not take, the parse
+   * failed, and the function returned **zero**. Zero is not a short hold. It is
+   * no hold, which is the swallowed-last-turn defect this seam exists to fix,
+   * restored silently and with nothing to show for it.
+   *
+   * `outroHoldMs` is still called at the moment of use rather than cached, so a
+   * battle-speed change or an OS Reduce Motion change mid-run takes effect on
+   * the next fight without anything re-registering — the property the old
+   * comment claimed and the token read happened to deliver. What is gone is the
+   * failure mode, and the floor is what removes it: there is no input, absent
+   * or nonsense, from which this returns zero.
    */
-  const outroMs = (): number => {
-    const raw = getComputedStyle(root).getPropertyValue('--motion-outro').trim();
-    const ms = raw.endsWith('ms') ? Number.parseFloat(raw) : raw.endsWith('s') ? Number.parseFloat(raw) * 1000 : NaN;
-    return Number.isFinite(ms) && ms > 0 ? ms : 0;
-  };
+  const outroMs = (): number => outroHoldMs();
 
   return {
     root,
@@ -334,8 +342,19 @@ export function createScene(): Scene {
         foeActor.root.dataset['outro'] = kind === 'caught' ? 'caught' : 'recall';
         if (meActor.root.dataset['fainted'] !== 'true') meActor.root.dataset['outro'] = 'recall';
       }
+      /*
+       * **There is no zero branch, and its absence is the fix.**
+       *
+       * There used to be `if (ms <= 0) return Promise.resolve()`, which was the
+       * line that turned a failed style lookup into the original defect: the
+       * result screen rendered on the frame the KO landed and the last turn was
+       * never painted. `outroHoldMs` cannot return zero — every path floors at
+       * `reducedMotionOutroMs` — so the branch is unreachable, and an
+       * unreachable branch that restores a bug is worse than no branch at all.
+       * `test/battle-outro.test.ts` asserts the floor from this end and
+       * `test/no-computed-timing.test.ts` from the other.
+       */
       const ms = outroMs();
-      if (ms <= 0) return Promise.resolve();
       return new Promise<void>((resolve) => {
         const timer = globalThis.setTimeout(() => {
           endOutro = null;

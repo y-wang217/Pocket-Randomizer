@@ -315,10 +315,49 @@ body {
   position: absolute;
   padding: var(--space-1h) var(--space-2);
   background: var(--panel-scrim);
+  /* **Prefixed first, standard second. The iOS animations patch.**
+
+     Safari shipped `backdrop-filter` behind `-webkit-` for years and only took
+     the prefix off in Safari 18. An iPhone on iOS 16 or 17 — which an iPhone 14
+     Pro Max may well be — parses the unprefixed declaration, does not recognise
+     it, and drops that one declaration on the floor. Nothing errors and nothing
+     else in the rule is affected; the panel simply has no backdrop.
+
+     That matters more here than it would anywhere else in the app, because
+     this scrim is the only thing making the panel's text readable and what is
+     behind it is two sprites that move. `--panel-scrim` is translucent by
+     design — V5.3's whole argument is "a scrim, not a card" — and a translucent
+     scrim with no blur under it is a lunging Pokemon showing through the HP
+     numbers.
+
+     Order is deliberate: the prefixed form first so an engine that understands
+     both takes the standard one, which is the cascade's own rule for a vendor
+     prefix and not a preference expressed here. */
+  -webkit-backdrop-filter: blur(var(--panel-blur));
   backdrop-filter: blur(var(--panel-blur));
   border: 0;
   border-left: 0;
   border-radius: var(--radius-card);
+}
+
+/* The panel where there is no backdrop filter at all. **The iOS patch.**
+
+   The prefix above covers every Safari that has the feature under either name.
+   This covers the engine that has neither, where the rule above leaves a
+   translucent panel sitting directly on top of moving sprites and the text is
+   unreadable in exactly the moments the player is looking at it.
+
+   The fallback is opacity, not a second design: the same scrim colour taken to
+   a solid, so the panel reads as the panel it always was rather than becoming a
+   card again. V5.3 removed the card — the raised surface, the outline, the
+   heavy left rule — and none of that comes back here. What comes back is the
+   contrast the blur was providing, by the only other means available.
+
+   `@supports not` rather than a feature test in JavaScript, so it answers
+   itself on the engine rather than at startup, and so a page that never runs
+   `ui/` at all still renders a legible panel. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .stage .panel { background: var(--panel-scrim-solid); }
 }
 
 /* Each panel runs from its own edge of the band to where the sprite opposite
@@ -3330,17 +3369,35 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      measured turn; caught by the same test as the chunk. */
 
   /*
-   * The outro. **Zeroing the token is the important half**, not the three
-   * `animation: none` rules beside it: `scene.ts` reads `--motion-outro` to
-   * decide how long to park, so this is what makes the result screen arrive
-   * without a wait. The rules then stop the movement that would otherwise run
-   * inside a zero-length hold.
+   * The outro. **The token is no longer zeroed here, and that was a bug rather
+   * than a style.** The iOS animations patch.
+   *
+   * This block used to open with `:root { --motion-outro: 0ms; }`, described in
+   * its own comment as "the important half". It was: `scene.ts` read that token
+   * back to decide how long to park, so the line did not shorten the hold, it
+   * deleted it — and a player with Reduce Motion on got the result screen on
+   * the frame the KO landed, which is the swallowed-last-turn defect the outro
+   * was built to fix. The sentence below was true of every other rule in this
+   * block and false of that one.
+   *
+   * Two things follow, and only the second is visible here. `ui/theme/motion.ts`
+   * now owns the hold and publishes the token, choosing `reducedMotionOutroMs`
+   * when this query matches — so the query still decides, and still re-answers
+   * itself when the OS setting changes mid-session, but it picks between two
+   * non-zero numbers instead of switching one off. And these rules keep doing
+   * what they always did: cancel the movement at its own end state.
+   *
+   * **It also removed the last rule in this file that won on source order
+   * alone.** `:root` inside a media query has the same specificity as the
+   * `:root` in `tokens.css` it was overriding; it won because it came later in
+   * the bundle. Every other rule in this block is matched to the selector it
+   * overrides on purpose, and `test/reduced-motion-specificity.test.ts` now
+   * holds that for all of them rather than leaving it to care.
    *
    * Reduced motion removes the movement, not the outcome — the fight still
-   * ends, the result screen still follows, and nothing about what happened is
-   * withheld from a player who asked for less motion.
+   * ends, every flag word still renders, the last turn is still painted, and
+   * the result screen still follows.
    */
-  :root { --motion-outro: 0ms; }
   .stage__actor[data-outro='recall'] .sprite:not(.sprite--ghost),
   .stage__actor--me[data-outro='recall'] .sprite:not(.sprite--ghost),
   .stage__actor[data-outro='caught'] .sprite:not(.sprite--ghost) { animation: none; }
