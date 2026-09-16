@@ -54,6 +54,7 @@
  * regex per line.
  */
 import { readTurns, type ActorSide, type PriorityOf, type TurnAction } from './turnOrder';
+import { DISPLAYED_VOLATILES } from './view';
 
 /** How a move's type, category and contact flag are looked up. `driver.moveIdentity` supplies it. */
 export type MoveIdentityOf = (moveNameOrId: string) => { type: string; category: string; contact: boolean } | null;
@@ -86,7 +87,36 @@ export type FlagKind =
   | 'contact'
   | 'priority'
   | 'status'
-  | 'berry';
+  | 'berry'
+  /*
+   * The abnormalities. **The battle animation run, Branch 2.**
+   *
+   * Seven kinds in five classes, and the classes are what `ui/scene.ts` animates
+   * — one beat each, so a turn carrying six of these costs exactly what a turn
+   * carrying none costs.
+   *
+   * **Every one of them was measured before it was written.**
+   * `scripts/protocol-census.ts` counted 699 battles and
+   * `docs/reports/battle-anim-2-protocol-census.md` is the table. Two classes
+   * the plan had drafted words for are absent here because the census cut them:
+   * recoil, drain and multi-hit fired **not once**, and type change fired on
+   * 2.9% of battles and is deferred rather than built. A word for an event no
+   * fight produces is dead copy.
+   */
+  /** A condition took the turn: flinch, full paralysis, sleep, freeze, Truant. */
+  | 'prevented'
+  /** The move resolved and did nothing. `|-fail|`. */
+  | 'failed'
+  /** A stat stage went up. The commonest abnormality in the game. */
+  | 'boost'
+  /** A stat stage went down. Outnumbers `boost` on every stat — see the census. */
+  | 'unboost'
+  /** An ability announced itself. Names itself, like `berry`. */
+  | 'ability'
+  /** A volatile began. Filtered to the ones the panel is willing to name. */
+  | 'volatile'
+  /** Weather or terrain began. The one kind that is about neither Pokemon. */
+  | 'field';
 
 /** One truth read off the protocol. */
 export interface Flag {
@@ -139,6 +169,37 @@ const UPKEEP = /^\|upkeep/;
 
 /** A berry announces itself in the item name, and only berries carry the flag. */
 const BERRY = /\bBerry$/;
+
+/*
+ * The abnormality patterns. **Branch 2.**
+ *
+ * Same convention as above: group 1 is the side, group 2 the subject, group 3
+ * the payload — except the two field patterns, which name no Pokemon at all and
+ * are handled apart.
+ */
+const CANT = /^\|cant\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
+const FAIL = /^\|-fail\|(p[12])[a-c]: ([^|]+)/;
+const BOOST = /^\|-boost\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
+const UNBOOST = /^\|-unboost\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
+const ABILITY = /^\|-ability\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
+const VOLATILE = /^\|-start\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
+/*
+ * Weather and terrain. **Both name themselves in group 1, not group 3**, and
+ * that is not a detail — keying on the third field yields "Rain [upkeep]",
+ * because what sits there is the `[from]` or `[upkeep]` tag. Measured while
+ * building; see the census report.
+ */
+const WEATHER = /^\|-weather\|([^|]+)/;
+const FIELDSTART = /^\|-fieldstart\|(?:move: )?([^|]+)/;
+/*
+ * Weather re-announces itself every turn it is up, and that line is 6.1% of all
+ * battles on its own. A flag on it would put "Sandstorm" on the strip for every
+ * turn of a sandstorm, which is a readout of the weather rather than of the
+ * turn. Only the start is an event.
+ */
+const UPKEEP_TAG = /\|\[upkeep\]/;
+/** Who caused a field effect, when the engine says. Otherwise: whoever just acted. */
+const OF_SIDE = /\|\[of\] (p[12])[a-c]: ([^|]+)/;
 
 /**
  * A reader that remembers what is standing on each side between calls.
@@ -336,6 +397,114 @@ function readBatch(
     }
 
     /*
+     * ---------------------------------------------------------------------
+     * The abnormalities. **Branch 2.**
+     *
+     * Inserted above the berry branch rather than below it on purpose: that
+     * branch is last and carries no trailing `continue`, and adding one below
+     * without noticing would have let a berry line fall through into whatever
+     * came next.
+     * ---------------------------------------------------------------------
+     */
+
+    /*
+     * The turn a condition took. **The class built first, and not for its
+     * frequency** — at 16.5% of battles it is the least common of the five.
+     * It is first because it is the only one that is invisible by
+     * construction: a flinched turn draws no damage, so no chunk, so no beat,
+     * and today it is indistinguishable from a turn that did not happen. Every
+     * other class at least leaves a changed panel behind.
+     */
+    const cant = CANT.exec(line);
+    if (cant?.[1] && cant[2] && cant[3]) {
+      add({ kind: 'prevented', side: cant[1] as ActorSide, subject: cant[2], detail: cant[3] });
+      continue;
+    }
+
+    const failed = FAIL.exec(line);
+    if (failed?.[1] && failed[2]) {
+      add({ kind: 'failed', side: failed[1] as ActorSide, subject: failed[2], detail: null });
+      continue;
+    }
+
+    /*
+     * Stat stages, and **the commonest abnormality in the game**: 59.5% of
+     * battles carry one. The panel already shows the resulting stage as a chip
+     * — what is true now — and nothing until this marked the moment it moved.
+     *
+     * The detail is the stat and not the magnitude, deliberately. The stage
+     * chip beside it already says how far, and a word that grew with the
+     * number would be the same mistake as a recoil that grew with the
+     * multiplier: a verdict on the board.
+     */
+    const boosted = BOOST.exec(line);
+    if (boosted?.[1] && boosted[2] && boosted[3]) {
+      add({ kind: 'boost', side: boosted[1] as ActorSide, subject: boosted[2], detail: boosted[3] });
+      continue;
+    }
+
+    const unboosted = UNBOOST.exec(line);
+    if (unboosted?.[1] && unboosted[2] && unboosted[3]) {
+      add({ kind: 'unboost', side: unboosted[1] as ActorSide, subject: unboosted[2], detail: unboosted[3] });
+      continue;
+    }
+
+    /*
+     * An ability announcing itself. It names itself in the line, exactly as a
+     * berry does, so there is no table: "Intimidate" is the word.
+     */
+    const ability = ABILITY.exec(line);
+    if (ability?.[1] && ability[2] && ability[3]) {
+      add({ kind: 'ability', side: ability[1] as ActorSide, subject: ability[2], detail: ability[3] });
+      continue;
+    }
+
+    /*
+     * A volatile beginning, **filtered to the ones the panel is willing to
+     * name**. `DISPLAYED_VOLATILES` is that allowlist and it is already
+     * exported for the tooltip coverage test, so this reuses it rather than
+     * growing a second list that could disagree.
+     *
+     * The filter is what makes this class usable at all. The census found a
+     * long tail on `-start` — `Charge`, `Doom Desire`, `Salt Cure`, `Quark
+     * Drive` — that are engine bookkeeping or single moves, and naming them
+     * would fill the strip with words a player cannot act on. The allowlist
+     * drops every one of them for free.
+     *
+     * `typechange` is handled above and never reaches here, which is why this
+     * branch sits after it.
+     */
+    const volatile_ = VOLATILE.exec(line);
+    if (volatile_?.[1] && volatile_[2] && volatile_[3] && DISPLAYED_VOLATILES.includes(volatile_[3])) {
+      add({ kind: 'volatile', side: volatile_[1] as ActorSide, subject: volatile_[2], detail: volatile_[3] });
+      continue;
+    }
+
+    /*
+     * Weather and terrain: **the one kind that is about neither Pokemon.**
+     *
+     * Two rules the census forced. The name is in the first field, not the
+     * third, and a line carrying `[upkeep]` is the weather *continuing* rather
+     * than starting — 6.1% of battles on its own, and flagging it would report
+     * the weather every turn of a sandstorm instead of reporting the turn.
+     *
+     * A `Flag` needs a side and a subject and the board has neither, so it is
+     * attributed to whoever caused it: the engine's own `[of]` when it says,
+     * and otherwise whoever just acted. A field effect with no cause at all —
+     * which the protocol does not produce — is dropped rather than guessed.
+     */
+    const weather = WEATHER.exec(line);
+    const terrain = weather ? null : FIELDSTART.exec(line);
+    const field = weather ?? terrain;
+    if (field?.[1] && !UPKEEP_TAG.test(line) && field[1] !== 'none') {
+      const of = OF_SIDE.exec(line);
+      const side = (of?.[1] as ActorSide | undefined) ?? action?.side;
+      const subject = of?.[2] ?? action?.actor;
+      if (side && subject) add({ kind: 'field', side, subject, detail: field[1] });
+      continue;
+    }
+
+    /*
      * Every spent item, filtered to the berries. **Item 4.**
      *
      * `-enditem` covers a Focus Sash and a Knock Off as well, which is exactly
@@ -367,6 +536,10 @@ function readBatch(
  * detail that teaches a player to stop trusting the row.
  */
 function settle(flags: readonly Flag[]): Flag[] {
-  const landed = !flags.some((flag) => flag.kind === 'miss' || flag.kind === 'immune');
+  // `failed` joins the two since Branch 2, and for the reason the comment above
+  // gives rather than for symmetry: a move that failed did nothing, so it made
+  // no contact and got no same-type bonus either. `CONTACT` under `Failed` is
+  // the same lie as `CONTACT` under `MISSED`.
+  const landed = !flags.some((flag) => flag.kind === 'miss' || flag.kind === 'immune' || flag.kind === 'failed');
   return landed ? [...flags] : flags.filter((flag) => flag.kind !== 'contact' && flag.kind !== 'stab');
 }

@@ -3726,3 +3726,91 @@ posture is the one the sprite CDN rule set.
 No `core/` file. No `data/` file. No balance number, no version axis —
 `contentHash` is still `b381d0`. The abnormality vocabulary and its beats are
 Branch 2 and Branch 3B, and neither is started.
+
+## 23. The battle animation run, Branch 2: the abnormality vocabulary
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 2. Branch `claude/busy-noether-jfszvi`, 2026-09-16. Evidence:
+[`reports/battle-anim-2-protocol-census.md`](reports/battle-anim-2-protocol-census.md).
+
+`FlagKind` goes from ten to seventeen: `prevented`, `failed`, `boost`,
+`unboost`, `ability`, `volatile`, `field`.
+
+### Deviation 1: the words are in `data/flagWords.ts`, and the plan said not to
+
+**The plan said new copy goes in `src/ui/copy/`, never under `src/data/`.** That
+rule is right about its own reason — `contentHash` globs `src/data/**` minus an
+exclusion list, so a *new* table there is hashed by default and moves every seed
+until somebody remembers to exclude it. It is wrong about this case, for two
+reasons that only became visible with the code in front of it.
+
+**`flagWords.ts` is already on the exclusion list.** Adding a word to a file
+that is already excluded moves nothing; the hazard is creating a new file, not
+extending an old one. Verified: `npm run content-hash` reads `b381d0` before and
+after.
+
+**And `FLAG_WORDS` and `FLAG_BLURBS` are `Record<FlagKind, string>` — total
+records.** Widening the union produced exactly two compile errors, one per
+table, and neither could be satisfied anywhere else. Splitting half the flag
+vocabulary into `ui/copy/` would have meant either making those records partial,
+which destroys the one mechanism guaranteeing every kind has a word and a
+tooltip, or keeping two files that must be read together to answer "what is this
+flag called". Both are worse than the wart.
+
+So the wart is not widened and it is not fixed either; it is left exactly as
+large as it was. Moving `flagWords.ts` wholesale to `ui/copy/` is still the right
+eventual answer and is still not this patch's.
+
+### Deviation 2: two classes were cut and one narrowed, on evidence
+
+The census (699 battles) is the authority here, not the plan's guesses:
+
+- **Damage shape: cut.** `-recoil`, `-drain` and `-hitcount` appear **not once**.
+  The plan had drafted words for all three.
+- **Identity: deferred** at 2.9% of battles.
+- **`-item`: deferred** at 2.1%, though its class (trait fired) is built. Below
+  the identity class that was deferred, so including it would have been
+  inconsistent — `-ability` at 39.9% carries that class on its own.
+- **Volatiles: narrowed to `DISPLAYED_VOLATILES`.** The raw `-start` tail is
+  `Charge` (4.7%), `Doom Desire` (2.9%), `Salt Cure` (2.1%), `Quark Drive` —
+  engine bookkeeping and single moves with no word a player can act on. Filtering
+  on the allowlist the panel already uses drops all of them, and takes the
+  volatile flag from a noisy 45% to a meaningful 4.8%.
+
+### Deviation 3: `settle()` now retracts on `failed` too
+
+Not asked for. A move that failed did nothing, so it made no contact and got no
+same-type bonus — the identical argument the function's own comment already
+makes for a miss and an immunity. `CONTACT` under `Failed` is the same lie as
+`CONTACT` under `MISSED`, and it would have shipped the day `failed` did.
+
+### Two line shapes the census caught, which would have shipped wrong words
+
+Both produce *plausible* output rather than an error, which is the kind that
+survives review.
+
+1. **Weather and terrain name themselves in the protocol's first field, not its
+   third.** `|-weather|RainDance|[from] ability: Drizzle` — the third field is
+   the `[from]` tag. Keying on it, as every other flag in this file does, yields
+   "Rain [upkeep]".
+2. **A weather line repeats every turn it is up.** `-weather|[upkeep]` is 6.1%
+   of battles on its own; flagging it would put "Sandstorm" on the strip for
+   every turn of a sandstorm, which reports the weather rather than the turn.
+   Only a start is an event.
+
+A field effect also has no Pokemon to be about, which every other flag assumes.
+It is attributed to the engine's own `[of]` when the line carries one, and
+otherwise to whoever just acted; a field effect with neither is dropped rather
+than guessed at.
+
+### What it does not change
+
+`view.ts` is imported from and not modified: this branch adds **events**, not
+projections. Stat stages, status and volatiles were already projected and drawn
+as panel chips — present tense, what is true now — and what was missing is the
+moment of change. No `RUN_LOG_VERSION` bump, because flags are derived every
+render and never serialized. `ui/flag-strip.ts`, `ui/chip.ts` and
+`ui/tooltips.ts` needed **no change at all**: the strip maps kinds generically
+and the tooltip resolves `flag:<kind>` against the blurb table.
+
+No version axis moved. `contentHash` is still `b381d0`.

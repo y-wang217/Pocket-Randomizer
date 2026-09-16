@@ -119,3 +119,66 @@ regardless, because it is the only class whose events are *invisible by
 construction* — a flinched turn produces no damage, no chunk and no beat, so
 today it is indistinguishable from a turn that did not happen. The other four
 at least leave a changed panel behind.
+
+
+---
+
+# Step 2: what was built, and how it measured
+
+Seven kinds in five classes. Verified by replaying 20 fresh runs (**438
+battles**, prefix `FLAGCHK`, tiered opponents) and reading the flags back
+through `readFlags` — the same reader the strip uses — rather than by counting
+protocol lines a second time.
+
+| kind | % of battles | census comparison |
+|---|---|---|
+| `unboost` | 52.5% | state change class 59.5% as a union with `boost` |
+| `boost` | 26.0% | " |
+| `ability` | 35.2% | trait fired 44.8% less `-item`, deferred |
+| `field` | 18.3% | field 23.2% less `-fieldend`/`-sidestart`, not built |
+| `failed` | 9.8% | part of prevented 16.5% |
+| `prevented` | 5.3% | census `cant` 5.7% — **essentially exact** |
+| `volatile` | 4.8% | narrowed from a raw 45% by the panel's allowlist |
+
+`prevented` landing within 0.4 points of the census figure for the line it reads
+is the strongest single check here: two independent instruments, one counting
+protocol lines and one reading flags through the shipped reader, agreeing on the
+same event.
+
+The gaps are all deliberate and named above: `-item` and `-fieldend` are not
+built, and the volatile filter is doing exactly what it was added for — a raw
+`-start` flag would have fired on 45% of battles, most of it `Charge` and
+`Doom Desire`, which are not things a player can act on.
+
+Sample flags, one per kind, taken from the same run:
+
+```
+Rhyhorn:    ability(Intimidate)      Salazzle:   field(Sandstorm)
+Aster:      prevented(slp)           Aster:      volatile(confusion)
+Gimmighoul: unboost(spa)             Alomomola:  boost(spe)
+Galvantula: failed(-)
+```
+
+## The words
+
+Checked directly rather than inferred. Part 4 holds throughout — each is a
+restatement of a protocol line, and none says whether what happened was good:
+
+```
+prevented flinch          -> "Flinched"        boost  atk      -> "Attack rose"
+prevented par             -> "Fully paralysed" unboost spe     -> "Speed fell"
+prevented slp             -> "Asleep"          unboost spa     -> "Sp. Atk fell"
+prevented frz             -> "Frozen solid"    ability Intimidate -> "Intimidate"
+prevented ability: Truant -> "Truant"          volatile confusion -> "Confused"
+failed    -               -> "Failed"          field  RainDance -> "Rain"
+                                               field  SunnyDay  -> "Harsh sunlight"
+```
+
+A stat stage says **which stat and which way, and not how far**. The panel's
+stage chip beside it already carries the magnitude, and a word that grew with
+the number would be the mistake `--hit-recoil`'s comment names: a verdict on the
+board rather than a fact about the turn.
+
+An unfamiliar `cant` reason is still shown, in sentence case, on the same
+argument the `status` fallback already makes — a word the player has not seen
+before is one they can look up, and a silent gap is not.

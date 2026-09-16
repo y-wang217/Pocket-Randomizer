@@ -56,6 +56,86 @@ const STATUS_INFLICTED: Record<string, string> = {
   tox: 'Badly poisoned',
 };
 
+/**
+ * How a `|cant|` reason reads. **Branch 2.**
+ *
+ * The turns where nothing happened, which is the whole reason this class was
+ * built first — a flinched turn draws no damage, so no chunk and no beat, and
+ * without a word it is indistinguishable from a turn that did not happen.
+ *
+ * Part 4 applies as everywhere else: these say what stopped the move, never
+ * that the player was unlucky. "Flinched" is correct; "wasted turn" is not.
+ */
+const PREVENTED: Record<string, string> = {
+  flinch: 'Flinched',
+  par: 'Fully paralysed',
+  slp: 'Asleep',
+  frz: 'Frozen solid',
+  recharge: 'Recharging',
+};
+
+/**
+ * How a volatile reads once it has begun.
+ *
+ * **A different register from `core/battle/view.ts`'s `VOLATILE_LABELS`, and
+ * deliberately so** — the same split this file already makes for status, where
+ * the panel says `BRN` and the strip says `Burned`. The panel names a condition
+ * that is true now; the strip names a thing that happened. Present tense and
+ * past tense are not the same word and one table cannot hold both.
+ *
+ * Keyed by the ids in `DISPLAYED_VOLATILES`, which is what `flags.ts` filters
+ * on, so the two cannot drift apart about which volatiles exist — only about
+ * how each is said, which is this file's job.
+ */
+const VOLATILE_BEGAN: Record<string, string> = {
+  confusion: 'Confused',
+  substitute: 'Substitute up',
+  leechseed: 'Seeded',
+  flinch: 'Flinched',
+  partiallytrapped: 'Bound',
+  trapped: 'Trapped',
+  taunt: 'Taunted',
+  encore: 'Encored',
+  disable: 'Disabled',
+  attract: 'Infatuated',
+  curse: 'Cursed',
+  nightmare: 'Nightmare',
+  yawn: 'Drowsy',
+  perishsong: 'Perish Song',
+  torment: 'Tormented',
+  aquaring: 'Aqua Ring',
+  ingrain: 'Ingrained',
+  focusenergy: 'Focused',
+};
+
+/** The six stats, as a stat stage line names them. */
+const STAT_WORDS: Record<string, string> = {
+  atk: 'Attack',
+  def: 'Defence',
+  spa: 'Sp. Atk',
+  spd: 'Sp. Def',
+  spe: 'Speed',
+  accuracy: 'Accuracy',
+  evasion: 'Evasion',
+};
+
+/**
+ * Weather and terrain, where the engine's id is not a word.
+ *
+ * Only the ids that need translating are here; anything else falls through to
+ * its own name, which is already readable — `Sandstorm`, `Electric Terrain`.
+ */
+const FIELD_WORDS: Record<string, string> = {
+  RainDance: 'Rain',
+  SunnyDay: 'Harsh sunlight',
+  Sandstorm: 'Sandstorm',
+  Hail: 'Hail',
+  Snow: 'Snow',
+  DeltaStream: 'Strong winds',
+  DesolateLand: 'Extreme sun',
+  PrimordialSea: 'Heavy rain',
+};
+
 /** The word each kind wears, before any detail is folded in. */
 const FLAG_WORDS: Record<FlagKind, string> = {
   stab: 'STAB',
@@ -68,6 +148,13 @@ const FLAG_WORDS: Record<FlagKind, string> = {
   priority: 'Priority',
   status: 'Status',
   berry: 'Berry',
+  prevented: 'Could not move',
+  failed: 'Failed',
+  boost: 'Rose',
+  unboost: 'Fell',
+  ability: 'Ability',
+  volatile: 'Condition',
+  field: 'Field',
 };
 
 /**
@@ -85,6 +172,37 @@ export function flagWord(kind: FlagKind, detail: string | null): string {
   // and says more.
   if (kind === 'berry' && detail) return detail;
   if (kind === 'priority' && detail) return `Priority ${detail}`;
+  /*
+   * The abnormalities. **Branch 2.**
+   *
+   * An ability names itself for the same reason a berry does: "Intimidate" is
+   * shorter than "Ability (Intimidate)" and says more. A `cant` reason of the
+   * form `ability: Truant` is the same case one level in, so the prefix comes
+   * off rather than being printed.
+   */
+  if (kind === 'ability' && detail) return detail;
+  if (kind === 'prevented' && detail) {
+    const named = /^ability: (.+)$/.exec(detail);
+    if (named?.[1]) return named[1];
+    /*
+     * An unfamiliar reason is still shown, for the reason `status` gives above:
+     * a word the player has not seen before is one they can look up, and a
+     * silent gap is not. Sentence case rather than the raw id, because a
+     * lowercase chip sitting in a row of Title Case ones reads as a defect
+     * rather than as an unknown.
+     */
+    return PREVENTED[detail] ?? `${detail.charAt(0).toUpperCase()}${detail.slice(1)}`;
+  }
+  if (kind === 'volatile' && detail) return VOLATILE_BEGAN[detail] ?? detail;
+  /*
+   * A stat stage says which stat and which way, and **not how far**. The stage
+   * chip on the panel beside it already carries the magnitude, and a word that
+   * grew with the number would be the mistake `--hit-recoil`'s comment names:
+   * a verdict on the board rather than a fact about the turn.
+   */
+  if (kind === 'boost' && detail) return `${STAT_WORDS[detail] ?? detail} rose`;
+  if (kind === 'unboost' && detail) return `${STAT_WORDS[detail] ?? detail} fell`;
+  if (kind === 'field' && detail) return FIELD_WORDS[detail] ?? detail;
   return FLAG_WORDS[kind];
 }
 
@@ -106,4 +224,11 @@ export const FLAG_BLURBS: Record<FlagKind, string> = {
   priority: 'A priority bracket, not Speed, put this move first. A higher bracket moves before every lower one.',
   status: 'A status condition was inflicted and stays until it is cured or the battle ends.',
   berry: 'A held berry fired and was used up. It is gone from the Pokemon for the rest of the run.',
+  prevented: 'A condition stopped the Pokemon moving, so its turn produced nothing at all.',
+  failed: 'The move resolved but did nothing. Its conditions were not met, or there was nothing for it to do.',
+  boost: 'A stat stage went up. The panel’s stage chip says by how much, and what the multiplier now is.',
+  unboost: 'A stat stage went down. The panel’s stage chip says by how much, and what the multiplier now is.',
+  ability: 'An ability announced itself and did something this turn. Abilities are always on; this is one firing.',
+  volatile: 'A temporary condition began. It lasts until it ends or the Pokemon leaves the field, and it is not a status.',
+  field: 'Weather or terrain began. It applies to both sides of the field, not to one Pokemon.',
 };
