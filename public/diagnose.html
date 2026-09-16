@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GYMRUN motion diagnostic</title>
+<meta name="color-scheme" content="dark light" />
+<link rel="icon" href="data:," />
+<style>
+  /* Deliberately plain and self-contained. This page must render and run on an
+     engine where the app's own stylesheet or bundle is the thing that is
+     broken, so it shares nothing with either. */
+  :root { color-scheme: dark light; --ok: #3ea76a; --bad: #d2483f; --warn: #c8922a; }
+  body { margin: 0; padding: 16px; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #14140f; color: #eee6d2; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 22px 0 6px; border-bottom: 1px solid #443f33; padding-bottom: 4px; }
+  p.lede { margin: 0 0 16px; color: #a49c88; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  td { padding: 4px 6px; border-bottom: 1px solid #2a271f; vertical-align: top; word-break: break-word; }
+  td:first-child { color: #a49c88; width: 45%; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); font-weight: 700; } .warn { color: var(--warn); }
+  #verdict { margin: 16px 0; padding: 12px; border-radius: 8px; background: #221f18; border-left: 4px solid #666; }
+  #verdict.is-bad { border-left-color: var(--bad); }
+  #verdict.is-ok { border-left-color: var(--ok); }
+  #verdict h3 { margin: 0 0 6px; font-size: 15px; }
+  #verdict p { margin: 0 0 8px; }
+  button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid #5a5344; background: #2b2820; color: inherit; width: 100%; margin-top: 8px; }
+  textarea { width: 100%; height: 180px; margin-top: 8px; font: 11px/1.4 ui-monospace, Menlo, monospace; background: #0e0e0a; color: #cfc7b2; border: 1px solid #443f33; border-radius: 6px; padding: 8px; }
+  /* The rig the app's own keyframes are applied to. Off-screen but laid out —
+     `display:none` would make every animation untestable. */
+  #rig { position: fixed; left: -9999px; top: 0; width: 400px; height: 300px; }
+</style>
+</head>
+<body>
+<h1>GYMRUN motion diagnostic</h1>
+<p class="lede">Runs the app's own shipped stylesheet against its own keyframes, on this device, and reports what actually happens. Nothing here is written from the desktop's point of view.</p>
+<div id="verdict"><h3>Running…</h3><p>Give it a couple of seconds.</p></div>
+<div id="out"></div>
+<div id="rig"></div>
+<button id="copy">Copy the whole report</button>
+<textarea id="blob" readonly></textarea>
+
+<script>
+(function () {
+  var lines = [];
+  var out = document.getElementById('out');
+
+  function section(title) {
+    var h = document.createElement('h2'); h.textContent = title; out.appendChild(h);
+    var t = document.createElement('table'); out.appendChild(t);
+    lines.push('', '## ' + title);
+    return function row(label, value, cls) {
+      var tr = t.insertRow();
+      tr.insertCell().textContent = label;
+      var c = tr.insertCell(); c.textContent = String(value); if (cls) c.className = cls;
+      lines.push(label + ': ' + value);
+    };
+  }
+
+  // ---- 1. The device, and the one setting that turns every animation off ----
+  var reduced = false;
+  try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  var env = section('This device');
+  env('User agent', navigator.userAgent);
+  env('Reduce Motion is ON', reduced ? 'YES' : 'no', reduced ? 'bad' : 'ok');
+  env('Device pixel ratio', window.devicePixelRatio);
+  env('Viewport', window.innerWidth + ' x ' + window.innerHeight);
+  env('getAnimations() exists', typeof document.createElement('div').getAnimations === 'function' ? 'yes' : 'NO', 'ok');
+  env('color-mix() supported', cssSupports('color', 'color-mix(in srgb, red 50%, blue)'));
+  env('backdrop-filter', cssSupports('backdrop-filter', 'blur(2px)'));
+  env('-webkit-backdrop-filter', cssSupports('-webkit-backdrop-filter', 'blur(2px)'));
+
+  function cssSupports(prop, value) {
+    try { return window.CSS && CSS.supports(prop, value) ? 'yes' : 'NO'; } catch (e) { return 'unknown'; }
+  }
+
+  // ---- 2. Which build is actually being looked at ----
+  var build = section('The build this page found');
+  var cssHref = null;
+
+  function loadAppStylesheet() {
+    // Discover the app's real stylesheet rather than guessing its hashed name,
+    // so this works against any deploy, old or new.
+    return fetch('./index.html', { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var m = html.match(/<link[^>]+rel=["']?stylesheet["']?[^>]*>/gi) || [];
+        var href = null;
+        for (var i = 0; i < m.length; i++) {
+          var h = m[i].match(/href=["']([^"']+)["']/);
+          if (h) { href = h[1]; break; }
+        }
+        if (!href) throw new Error('no stylesheet link in index.html');
+        cssHref = href.replace(/^\.?\//, '');
+        build('App stylesheet', cssHref);
+        var js = html.match(/src=["']([^"']*index[^"']*\.js)["']/);
+        build('App bundle', js ? js[1] : '(not found)');
+        return fetch('./' + cssHref, { cache: 'no-store' }).then(function (r) { return r.text(); });
+      })
+      .then(function (css) {
+        build('Stylesheet bytes', css.length);
+        // Fingerprints of this patch, so a stale deploy is obvious rather than
+        // being mistaken for a fix that did not work.
+        build('Has -webkit-backdrop-filter', /-webkit-backdrop-filter/.test(css) ? 'yes (patched build)' : 'NO (pre-patch build)', /-webkit-backdrop-filter/.test(css) ? 'ok' : 'bad');
+        build('Still zeroes --motion-outro', /--motion-outro:\s*0ms/.test(css) ? 'YES (pre-patch build)' : 'no (patched build)', /--motion-outro:\s*0ms/.test(css) ? 'bad' : 'ok');
+        var style = document.createElement('style');
+        style.textContent = css;
+        document.head.appendChild(style);
+      });
+  }
+
+  // ---- 3. The rig: the app's own markup, so its own selectors match ----
+  function buildRig() {
+    var rig = document.getElementById('rig');
+    rig.innerHTML =
+      '<div class="scene"><div class="stage">' +
+      '  <div class="stage__actor stage__actor--foe" data-side="p2">' +
+      '    <div class="sprite"></div><div class="sprite sprite--ghost"></div>' +
+      '    <div class="stage__mark"></div><div class="stage__ball"></div>' +
+      '  </div>' +
+      '  <div class="stage__actor stage__actor--me" data-side="p1">' +
+      '    <div class="sprite"></div><div class="sprite sprite--ghost"></div>' +
+      '    <div class="stage__mark"></div><div class="stage__ball"></div>' +
+      '  </div>' +
+      '  <div class="panel panel--me"><div class="hp"><div class="hp__fill"></div>' +
+      '    <div class="hp__shadow"></div></div></div>' +
+      '</div></div>';
+    // Every sprite needs a box, or there is nothing to move.
+    var sprites = rig.querySelectorAll('.sprite, .stage__mark, .stage__ball');
+    for (var i = 0; i < sprites.length; i++) {
+      sprites[i].style.width = '96px'; sprites[i].style.height = '96px';
+      sprites[i].style.background = '#555';
+    }
+  }
+
+  // ---- 4. The tokens, resolved on this device ----
+  function readTokens(label) {
+    var t = section(label);
+    var root = getComputedStyle(document.documentElement);
+    var names = ['--motion-duration', '--motion-beat', '--motion-outro', '--motion-swap',
+                 '--motion-hp-shadow', '--lunge-distance', '--hit-recoil', '--sprite-swap-travel'];
+    var resolved = {};
+    for (var i = 0; i < names.length; i++) {
+      var v = root.getPropertyValue(names[i]).trim();
+      resolved[names[i]] = v;
+      t(names[i], v === '' ? '(empty)' : v, v === '' ? 'bad' : null);
+    }
+    // What the engine actually computes for an animated element, which is the
+    // number that decides whether anything moves.
+    var actor = document.querySelector('.stage__actor--me');
+    actor.setAttribute('data-acted', '1');
+    var cs = getComputedStyle(actor);
+    t('computed animation-name', cs.animationName, cs.animationName === 'none' ? 'bad' : 'ok');
+    t('computed animation-duration', cs.animationDuration, /^0s$|^0ms$/.test(cs.animationDuration) ? 'bad' : 'ok');
+    t('computed animation-delay', cs.animationDelay);
+    resolved.__name = cs.animationName;
+    resolved.__dur = cs.animationDuration;
+    actor.removeAttribute('data-acted');
+    return resolved;
+  }
+
+  // ---- 5. Does each beat actually move? ----
+  var BEATS = [
+    ['lunge',        '.stage__actor--me', 'data-acted',    '1',        '.stage__actor--me'],
+    ['hit',          '.stage__actor--foe','data-hit',      '1',        '.stage__actor--foe .sprite:not(.sprite--ghost)'],
+    ['faint',        '.stage__actor--foe','data-fainting', 'true',     '.stage__actor--foe .sprite:not(.sprite--ghost)'],
+    ['switch-out',   '.stage__actor--me', 'data-swapped',  'true',     '.stage__actor--me .sprite--ghost'],
+    ['switch-in',    '.stage__actor--me', 'data-swapped',  'true',     '.stage__actor--me .sprite:not(.sprite--ghost)'],
+    ['recall',       '.stage__actor--foe','data-outro',    'recall',   '.stage__actor--foe .sprite:not(.sprite--ghost)'],
+    ['capture ball', '.stage__actor--foe','data-outro',    'caught',   '.stage__actor--foe .stage__ball'],
+    ['mark prevented','.stage__actor--foe','data-abnormal','prevented','.stage__actor--foe .stage__mark'],
+    ['mark stage',   '.stage__actor--foe','data-abnormal', 'stage',    '.stage__actor--foe .stage__mark'],
+    ['mark trait',   '.stage__actor--foe','data-abnormal', 'trait',    '.stage__actor--foe .stage__mark'],
+    ['mark volatile','.stage__actor--foe','data-abnormal', 'volatile', '.stage__actor--foe .stage__mark'],
+    ['mark field',   '.stage__actor--foe','data-abnormal', 'field',    '.stage__actor--foe .stage__mark']
+  ];
+
+  function shape(t) { return t === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : t; }
+
+  function testBeat(spec) {
+    var host = document.querySelector(spec[1]);
+    var watched = document.querySelector(spec[4]);
+    if (!host || !watched) return { name: spec[0], verdict: 'no element', moved: false, anim: '-' };
+    var restCs = getComputedStyle(watched);
+    var rest = { t: restCs.transform, o: restCs.opacity };
+    host.setAttribute(spec[2], spec[3]);
+    var cs = getComputedStyle(watched);
+    var animName = cs.animationName, dur = cs.animationDuration, delay = cs.animationDelay;
+    var moved = false, peak = '';
+    // Pause-and-seek: deterministic, and it does not depend on frame scheduling
+    // (which Low Power Mode throttles).
+    try {
+      var anims = watched.getAnimations ? watched.getAnimations() : [];
+      for (var i = 0; i < anims.length; i++) {
+        var a = anims[i];
+        var timing = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null;
+        var d = timing && typeof timing.duration === 'number' ? timing.duration : 0;
+        var dl = timing && timing.delay ? timing.delay : 0;
+        if (d <= 0) continue;
+        a.pause();
+        for (var f = 0.1; f < 0.95; f += 0.15) {
+          a.currentTime = dl + d * f;
+          var now = getComputedStyle(watched);
+          if (shape(now.transform) !== shape(rest.t) || now.opacity !== rest.o) { moved = true; peak = now.transform + ' / op ' + now.opacity; }
+        }
+        a.cancel();
+      }
+    } catch (e) { peak = 'error: ' + e.message; }
+    host.removeAttribute(spec[2]);
+    return { name: spec[0], anim: animName, dur: dur, delay: delay, moved: moved, peak: peak };
+  }
+
+  // ---- 6. The discriminator: literal duration vs the calc-derived token ----
+  function calcTest() {
+    var c = section('Is it the calc() in the duration?');
+    var st = document.createElement('style');
+    st.textContent =
+      '@keyframes dgLiteral { 0%{transform:none} 50%{transform:translateX(30px)} 100%{transform:none} }' +
+      '.dgBox{position:fixed;left:-9999px;top:0;width:60px;height:60px;background:#555}' +
+      '#dgA{animation:dgLiteral 400ms linear}' +
+      '#dgB{animation:dgLiteral var(--dgCalc) linear}' +
+      '#dgC{animation:dgLiteral var(--dgPlain) linear}' +
+      ':root{--dgPlain:400ms;--dgCalc:calc(var(--dgPlain) / 1)}';
+    document.head.appendChild(st);
+
+    var res = {};
+    /*
+     * Three separate elements, and that is not incidental. The first version of
+     * this check created one box and re-assigned its `id` between the three
+     * cases — so the cascade changed under an element whose animation had
+     * already started, the later cases never restarted, and it reported a
+     * healthy engine as "will not take a calc() duration". It said so on
+     * desktop Chromium, where every beat demonstrably moves. A diagnostic that
+     * can cry wolf is worse than no diagnostic.
+     */
+    ['A', 'B', 'C'].forEach(function (id) {
+      var host = document.createElement('div');
+      host.className = 'dgBox';
+      host.id = 'dg' + id;
+      document.body.appendChild(host);
+      // Force layout so the animation is certainly attached before it is read.
+      void host.offsetWidth;
+      var cs = getComputedStyle(host);
+      var moved = false;
+      try {
+        var anims = host.getAnimations ? host.getAnimations() : [];
+        for (var i = 0; i < anims.length; i++) {
+          var a = anims[i];
+          var timing = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null;
+          var d = timing && typeof timing.duration === 'number' ? timing.duration : 0;
+          if (d <= 0) continue;
+          a.pause();
+          a.currentTime = d * 0.5;
+          if (shape(getComputedStyle(host).transform) !== 'matrix(1, 0, 0, 1, 0, 0)') moved = true;
+          a.cancel();
+        }
+      } catch (e) {}
+      res[id] = { dur: cs.animationDuration, moved: moved };
+      host.remove();
+    });
+
+    c('literal 400ms', res.A.dur + ' \u2014 ' + (res.A.moved ? 'moves' : 'STATIC'), res.A.moved ? 'ok' : 'bad');
+    c('var() plain 400ms', res.C.dur + ' \u2014 ' + (res.C.moved ? 'moves' : 'STATIC'), res.C.moved ? 'ok' : 'bad');
+    c('var() wrapping calc()', res.B.dur + ' \u2014 ' + (res.B.moved ? 'moves' : 'STATIC'), res.B.moved ? 'ok' : 'bad');
+    return res;
+  }
+
+  // ---- 7. Frame rate, which is how Low Power Mode shows up ----
+  function measureFps() {
+    return new Promise(function (resolve) {
+      var frames = 0, t0 = performance.now();
+      function tick() { frames++; if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else resolve(Math.round(frames * 1000 / (performance.now() - t0))); }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ---- run ----
+  loadAppStylesheet().then(function () {
+    buildRig();
+    var tokens = readTokens('Motion tokens, as this device resolves them');
+
+    // The app writes --motion-duration onto the root at startup. This page is
+    // not the app, so both states are worth seeing: the stylesheet's own
+    // fallback, and the value the app would have published.
+    var beatsBefore = section('Each beat, on the stylesheet fallback alone');
+    var results = [];
+    BEATS.forEach(function (b) {
+      var r = testBeat(b);
+      results.push(r);
+      beatsBefore(r.name, (r.anim || '-') + ' @ ' + (r.dur || '-') + ' — ' + (r.moved ? 'MOVES' : 'STATIC'), r.moved ? 'ok' : 'bad');
+    });
+
+    document.documentElement.style.setProperty('--motion-duration', '750ms');
+    document.documentElement.style.setProperty('--motion-outro', '750ms');
+    var beatsAfter = section('Each beat, with --motion-duration published (as the app does)');
+    var results2 = [];
+    BEATS.forEach(function (b) {
+      var r = testBeat(b);
+      results2.push(r);
+      beatsAfter(r.name, (r.anim || '-') + ' @ ' + (r.dur || '-') + ' — ' + (r.moved ? 'MOVES' : 'STATIC'), r.moved ? 'ok' : 'bad');
+    });
+
+    var calc = calcTest();
+
+    return measureFps().then(function (fps) {
+      var perf = section('Frame rate');
+      perf('Frames per second', fps, fps < 45 ? 'warn' : 'ok');
+      perf('Reads as throttled', fps < 45 ? 'YES — Low Power Mode or a background tab' : 'no', fps < 45 ? 'warn' : 'ok');
+      verdict(reduced, results2, calc, fps, tokens);
+    });
+  }).catch(function (e) {
+    var err = section('This diagnostic could not finish');
+    err('Error', e && e.message ? e.message : String(e), 'bad');
+    err('Most likely', 'index.html was not reachable from this page — open it from the same site as the game', 'warn');
+    finish();
+  });
+
+  function verdict(reduced, results, calc, fps, tokens) {
+    var dead = results.filter(function (r) { return !r.moved; });
+    var v = document.getElementById('verdict');
+    var head, body;
+    if (reduced) {
+      v.className = 'is-bad';
+      head = 'Reduce Motion is ON for this device.';
+      body = 'This is almost certainly the whole answer. iOS Settings → Accessibility → Motion → Reduce Motion. '
+           + 'The game deliberately turns every battle animation off when this is set — that is what the setting asks for — so "no animations on iPhone, fine on desktop" is exactly what you would see. '
+           + 'Turn it off and reload to confirm. If the animations come back, nothing is broken.';
+    } else if (calc && calc.A.moved && !calc.B.moved && dead.length === results.length) {
+      v.className = 'is-bad';
+      head = 'This engine will not take a calc() duration through a custom property.';
+      body = 'A literal duration animates and the calc()-derived one does not. Every battle beat times off --motion-beat, which is calc(var(--motion-duration) / 4), so all of them resolve to no duration. This is a real engine bug and the fix is to publish the computed milliseconds from JavaScript instead of deriving them in CSS.';
+    } else if (dead.length === results.length) {
+      v.className = 'is-bad';
+      head = 'Nothing animates here, and it is not Reduce Motion.';
+      body = 'Every beat is static with Reduce Motion off. The per-beat tables above say what each one computed to — an animation-name of "none" means the rule never matched, and a duration of 0s means it matched and was given no time. Send the copied report.';
+    } else if (dead.length) {
+      v.className = 'is-bad';
+      head = dead.length + ' of ' + results.length + ' beats do not move on this device.';
+      body = 'Dead: ' + dead.map(function (r) { return r.name; }).join(', ') + '. The rest are fine, so this is specific rather than systemic.';
+    } else if (fps < 45) {
+      v.className = 'is-bad';
+      head = 'Every beat animates here, but this device is running at ' + fps + 'fps.';
+      body = 'The CSS is fine on this engine. A frame rate this low usually means Low Power Mode, which throttles and can suspend animation. Settings → Battery → Low Power Mode.';
+    } else {
+      v.className = 'is-ok';
+      head = 'Every beat animates on this device.';
+      body = 'The motion system works here, at ' + fps + 'fps, with Reduce Motion off. If the game still looks static, the problem is upstream of the CSS — which build is deployed, or whether the battle screen is reaching these states at all. Send the copied report.';
+    }
+    v.innerHTML = '<h3></h3><p></p>';
+    v.querySelector('h3').textContent = head;
+    v.querySelector('p').textContent = body;
+    lines.unshift('# GYMRUN motion diagnostic', '', 'VERDICT: ' + head, body, '');
+    finish();
+  }
+
+  function finish() {
+    var blob = document.getElementById('blob');
+    blob.value = lines.join('\n');
+    document.getElementById('copy').addEventListener('click', function () {
+      blob.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      if (navigator.clipboard) { navigator.clipboard.writeText(blob.value).catch(function () {}); }
+      this.textContent = 'Copied — paste it back into the chat';
+    });
+  }
+})();
+</script>
+</body>
+</html>
