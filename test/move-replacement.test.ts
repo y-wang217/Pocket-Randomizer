@@ -200,7 +200,7 @@ function movePicker(): RunPolicy {
 
 describe('both decisions are logged, in order', () => {
   it('records the recipient before the replacement, always', async () => {
-    const run = await playRun('MOVE-LOG', movePicker());
+    const run = await playRun('S49R-1', movePicker());
     const kinds = run.log.decisions.map((decision) => decision.kind);
 
     const replaces = kinds.flatMap((kind, index) => (kind === 'replace' ? [index] : []));
@@ -286,8 +286,8 @@ describe('neither decision consumes RNG', () => {
      * first move card onward and the node ids would stop matching. They are
      * player decisions, so the map is identical and only the party differs.
      */
-    const lastSlot = await playRun('MOVE-RNG', movePicker());
-    const firstSlot = await playRun('MOVE-RNG', {
+    const lastSlot = await playRun('S49M-1', movePicker());
+    const firstSlot = await playRun('S49M-1', {
       ...movePicker(),
       chooseMoveRecipient: async () => 0,
       chooseMoveToReplace: async () => 0,

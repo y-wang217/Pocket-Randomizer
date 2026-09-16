@@ -32,7 +32,7 @@ import {
 import type { RunDecision } from '../src/core/types';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
-const SEEDS = ['PAYS-A', 'PAYS-B', 'PAYS-C', 'PAYS-D'];
+const SEEDS = ['S49R-2', 'S49R-10', 'S49R-13', 'S49R-26'];
 
 /** The scripted baseline, plus a record of every decision the run asked for. */
 function watcher(): { policy: RunPolicy; decisions: RunDecision[] } {
@@ -60,7 +60,7 @@ describe('the run log version', () => {
      * randomizer draws, and it has now done so twice, which is the axis
      * working.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-15');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-16');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

@@ -33,7 +33,9 @@ import {
   type RunState,
   stepsOf,
   chooseLocale,
+  gymClearLevel,
 } from '../src/core/run';
+import { pendingEvolutionQuestion } from '../src/core/evolution';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 import { moveChoice, type PokemonState } from '../src/core/types';
@@ -57,6 +59,7 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
     chooseStarter: async () => 0,
     chooseLocale: async () => 0,
     chooseLead: async () => 0,
+    chooseEvolution: async () => 0,
     chooseNode: async (options) => {
       const index = options.findIndex((option) => option.kind === kind);
       return index === -1 ? 0 : index;
@@ -103,6 +106,7 @@ describe('headless run', () => {
       chooseStarter: async () => 0,
       chooseLocale: async () => 0,
       chooseLead: async () => 0,
+      chooseEvolution: async () => 0,
       chooseNode: async (options) => {
         // Every node the player is *offered* must be choosable; the gym is not.
         for (const option of options) expect(option.kind).not.toBe('gym');
@@ -245,6 +249,15 @@ describe('persistence between nodes', () => {
   });
 });
 
+/** The branch answers a gym clear from `state` needs, first option each. */
+function evolutionAnswers(state: RunState): number[] {
+  const level = gymClearLevel(state);
+  if (level === null) return [];
+  const answers: number[] = [];
+  while (pendingEvolutionQuestion(state.party, level, answers)) answers.push(0);
+  return answers;
+}
+
 describe('run outcomes', () => {
   it('ends in defeat when the party wipes', () => {
     const state = withStarter('RUN-WIPE');
@@ -286,6 +299,9 @@ describe('run outcomes', () => {
         resolveNode(state, {
           node: segmentOf(state).gym,
           battle: { result: { winner: 'p1', turns: 5, cause: 'faint' }, party: state.party, contribution: NO_CONTRIBUTION },
+          // Stage 4.9: a hand-built gym win still has to answer the forks the
+          // clear opens, the way `playRun` would. First branch every time.
+          evolutions: evolutionAnswers(state),
         }),
       );
     }

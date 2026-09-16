@@ -3517,7 +3517,209 @@ coverage fails, and why reduced motion has to be decided at URL time are in
 [`engine-notes.md`](engine-notes.md), under "Animated sprites through
 `@pkmn/img`: what it would take".
 
-## 21. The battle animation run, Branch 1: the display split moved the hash once
+## 21. Stage 4.9: levels, evolution, gated power, the wider roster, harder gyms
+
+Prompt: [`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),
+a planning conversation filed verbatim. Branch `claude/charming-ride-q4ogfb`.
+This section is the account of what was built; where it deviates from the
+prompt the deviation is dated here and the prompt is untouched.
+
+### What is drawn, and what is not
+
+**Evolution draws nothing.** A gym clear moves the party's level
+(`levelParty`, unchanged) and then, from this stage, its species
+(`core/evolution.ts` `evolveParty`): every member whose species has a target
+at or below the new level becomes it, the whole chain if two thresholds were
+crossed, and where the dex forks the player chooses. A level-up is a function
+of segment index, an evolution is a function of species and level, and a
+branch is a decision. Player decisions consume no RNG, so no key was added to
+`core/streamKeys.ts` and a party that evolved and one that did not have
+identical draw counts on every stream. `test/evolution-run.test.ts` holds it
+as a measurement: two runs answering the same fork differently generate the
+same map, node for node.
+
+**One new draw per opponent, in front of the species draw.** Species bands are
+a distribution per segment now (`speciesBandWeights`), the shape
+`moveBandWeights` has had since 4.6b and for the same reason: a window is a
+staircase and a distribution is a slope. `rollSpec` draws the band, then a
+species inside it, then level, ability, moves, gender, berry. The band draw
+is spent whether or not the pick then has to widen, so the count is a function
+of the table and never of what a team already holds.
+
+**Three filters inside the band, none of which draws.** The stage gate
+(`data/evolution.ts` `stageAllowedAt`, against the *lowest* level the
+encounter can roll, so every level in the range is legal and the draw order
+holds); the kind's own filter (a wild node's locale types, a gym's type and
+lists); and the blacklist, at draw time as before. A band emptied by all three
+folds its weight into the next band down. Band 0 has a base form of every
+type (`test/evolution-data.test.ts`), so a type-narrowed draw always lands.
+
+**Teams draw without repeats.** `rollSpec` takes the team so far and skips a
+species already on it, widening to the neighbouring bands before it would ever
+repeat — the `generateStarters` rule applied to every team. The roster report
+in the prompt's second ruling measured the reason: a six-member Dragon gym
+drawn with replacement from fifteen species repeated a species 68% of the time.
+
+### The data
+
+**The pool admits `Past` species: 635 to 900.** `scripts/gen-pools.ts` had
+excluded every species the gen 9 dex marks `Past`, on the argument that
+their data was another generation's. The argument was wrong for this game: a
+`Past` species is one Scarlet/Violet does not ship, not one whose gen 9 base
+stats and types are missing, and GYMRUN runs Custom Game and validates
+nothing. The exclusion had cost the low-tier base forms a level-7 start is
+made of — Pidgey, Caterpie, Rattata, Spearow — and left the segment-0 Rock
+gym drawing from six species. `Future`, `CAP`, `Custom`, `LGPE`, every forme
+and every tagged legendary stay out. One admitted species could not be built
+by the damage calc's gen 9 table — Aegislash, present only as its formes —
+and is blacklisted with that reason; `test/evolution-data.test.ts` now builds
+every drawable species in the calc so the next one is caught at the table.
+
+**The evolution graph is child-side on the generated table.** Each entry
+carries `prevo` (the pool id it evolves from, or null) and `evoLevel` (the
+level it becomes a legal stage at, or null for a base form). Targets are
+derived once by inverting `prevo` in dex order (`data/evolution.ts`), which
+gives a branch the stable index the run log records. A child whose parent is
+a forme outside the pool (Obstagoon, Perrserker, Clodsire and seven more)
+keeps its `evoLevel` and is nobody's target: it can still be drawn at its
+level, and it is never a starter.
+
+**Synthetic thresholds, Kaizo style** (`data/evolutionThresholds.ts`). No
+typed evolution in the gen 9 dex carries a level, so every trade, stone,
+friendship, held-item, known-move and "other" evolution gets one from a
+table: trade 36, stone 30, friendship 16, known move 32, held item 35, the
+rest 30; Emerald Kaizo's Golem 42, Machamp 50, Gengar 50 and Alakazam 55 as
+named overrides. Three rules hold it, each a test: a **floor by band** (20,
+36, 50 for bands 2, 3, 4), so a synthetic-method final form is gated like a
+dex one of the same weight — Kingambit and Archaludon at 50, the eight
+Eeveelutions at 36; **monotone chains**, a child never below its parent,
+which is why friendship is 16 (Azumarill's real 18 sits under Marill);
+**siblings agree**, every branch of a family at one level, or the branch that
+qualifies first fires alone and the choice is never asked (Politoed and
+Poliwrath 37, Slowking 37 beside Slowbro's real 37, Gallade 30 beside
+Gardevoir, Froslass 42 beside Glalie). A real dex level is never raised.
+Three lines end one stage short because their real level is above the run's
+last: Hydreigon 64, Volcarona 59, Dragapult 60. The user accepted that.
+
+### The decision
+
+`evolve`, an index into a fork's options in dex order, asked after the
+level-up and before the gym's own questions, once per branching step in party
+order then chain order. `pendingEvolutionQuestion` is the one definition of
+"does the player get asked", shared by `playRun` and `resolveNode`, the
+`isTargeted` discipline. Single-target steps ask nothing, so a party that
+never reaches a fork writes the log it did. `RUN_LOG_VERSION` moves to `-16`.
+`ui/storage.ts` learned the kind in the same commit (open item 15's trap).
+The result screen carries the block between the party and the cards: the
+records a clear applies, and the fork's option cards — sprite, species,
+types, the six stats at the member's level, dex order, no marker.
+
+### The curve, the rosters, the AI
+
+`playerLevel` is 7, 14, 20, 27, 33, 40, 47, 55, each clear sized to cross a
+threshold cluster; wild a fifth to a third below, trainer a sixth to a
+quarter below, gym at or above (0..+1 to +2..+4). `TIER_MODIFIERS.level`
+became `levelShare`, a fraction of the player's level, because `-3` at level
+7 was 43% of it. A gym fields the player's slot count (2, 3, 3, 4, 4, 5, 5,
+6); the schedule itself moved from `[3,3,4,4,5,5,6,6,6]` to
+`[2,3,3,4,4,5,5,6,6]`. Wild plays the easy AI, an ordinary trainer the
+medium, `hard` and `elite` trainers and every gym the hard; the profiles are
+untouched, so `AI_VERSION` holds. Starters are band-0 base forms with an
+evolution and at least 280 base stat total.
+
+### Superseded, 2026-09-15
+
+- **"There is no evolution: a species is fixed from the moment it is
+  generated"** (`data/items.ts`). Deleted. Eviolite's text is true now.
+- **"Fully evolved, roughly 490+"** as the starter window (`data/starters.ts`).
+  Inverted: the measliest base form that goes somewhere.
+- **"Every step up in team size is paid for with a step down in level"** for
+  gyms (`data/scaling.ts` header, `TIER_MODIFIERS.elite`). Deleted for gyms;
+  elite's level discount deleted too, because under the stage gate a level
+  discount is a species discount (an elite at 33 cannot field a form that
+  evolves at 36 while the hard node beside it can) and `test/tiers.test.ts`
+  measured elite at 99% of hard's power.
+- **`isNonstandard === null`** as the pool cut (`scripts/gen-pools.ts`).
+- **The gym `teamSize` override** (`data/gyms.ts`). Never set; deleted.
+- **The "+13 levels at gym 8" finding** (section 4 of `README.md`). Closed by
+  construction: the gym column is positive.
+
+### Deviations from the plan, dated 2026-09-15
+
+- **The gym species-band bonus was built and deleted inside the stage.** The
+  plan gave the gym one species band up, the twin of `GYM_MOVE_BAND_BONUS`.
+  The first sweep killed it: 92.5% of deaths at gym 1, an 11% clear rate, a
+  Relicanth at level 8 against a band-0 starter. Deleted, not zeroed.
+- **The gym move-band spike starts at segment 2** (`GYM_MOVE_BAND_BONUS_FROM_SEGMENT`).
+  With it from segment 0, 82% of deaths were at gym 1 to Rock Slide, Ancient
+  Power and Rock Tomb — band-2 moves against twenty-HP base forms. The gym
+  clear's *reward* still pays one band up from gym 1.
+- **A starter floor of 280 base stats.** Band 0 runs from 180; a Caterpie at
+  level 7 is a run that ends at the first trainer.
+- **Content-dependent pins moved.** Two `visual-v5` move-grid tests read
+  SMOKE24's first board and needed a marker and an unwrapped meta row; the new
+  SMOKE24 opens with Fighting moves whose type chip wraps the meta row at
+  390px. They read `GRID49-6` now. That wrap is a pre-existing limit of the
+  move button, not this stage's. The map fold guard is likewise re-pinned to a
+  seed that passes, and the pre-change build overflowed it on other seeds
+  (988px on one), so the overflow — a two-row party plus a two-card step —
+  is older than this stage and is carried as an open item.
+- **Every seed the suite pins was rescanned, and the smoke bot's with them.**
+  Under this curve the old seeds mostly died before the thing they pinned — a
+  gym, an event that pays, a relic, a taught move, a capture offer on the
+  result screen — so each test names a seed found by scanning with that
+  test's own policy, and the gallery's result fixtures read `S49B-1`. The
+  smoke bot (hardest move, never switches) loses gym 1 on most seeds; its
+  seed was found by emulating it headlessly over the seed space and
+  confirming the hit in the browser (`SMK49-2`). The greedy bot wins no run
+  at all on 400 seeds, so the one test that needs a victory renders a played
+  run with its outcome set, and says so.
+- **Two presentation defects surfaced by the new seeds, fixed in place.** The
+  reduced-motion block never cancelled the arriving sprite's rise: the rule
+  it overrides is written with `:not(.sprite--ghost)`, which carries its
+  argument's specificity, so the plain override lost and the body rose for
+  anybody who had asked it not to; latent until a seed put a send-in on the
+  measured turn. And the chip legibility sweep found no status chip on any
+  seed this bot walks at level 7 — a status is a ten-percent rider on a
+  band-1 move in a two-turn fight — so the sweep now also samples the
+  gallery's loaded party, which carries two statused members by
+  construction, rather than hunting a seed for the rider.
+- **The gym move-band spike moved twice.** First built as planned (from
+  segment 0, as `GYM_MOVE_BAND_BONUS` always was), then held until segment
+  2; see above.
+
+### What this moves
+
+`RUN_LOG_VERSION` `-16`, `RANDOMIZER_VERSION` `-16`, `contentHash` by every
+table above; `AI_VERSION` holds. The hash moved once more at the merge with
+`main` after PR #38, from `5fb6be` to `08e9e6`, because the pointer in
+`data/items.ts`'s comment was renumbered from section 20 to 21 and the hash
+is over bytes; nothing generated changed, and the benchmark rows keep the
+stamp they were measured under. Every seeded fixture re-minted: the visual
+baseline runs and digest, `heights.json` (content moved, `decisionTop` did
+not, in every mode), `test/fixtures/sim-report.json`, and the smoke bot's
+loop bound raised to 900 for the longer runs.
+
+### Gates
+
+Type check, lint, build, the full suite (125 files, 1668 tests), the full
+suite under `GYMRUN_TRIM_STRICT=1` (the same 1668, so nothing new consulted a
+learnset — evolution reads the pokedex table, which the trim leaves alone),
+and the smoke run on `SMK49-2`: all green at the stage's last commit, each
+run alone rather than beside another suite, because two heavy runs at once
+produce vitest worker timeouts that read as errors and are not.
+
+### The benchmark
+
+`docs/balance.md` section 0 carries the rows: the `randomizer-15` baseline
+(4.92 mean gyms, 39.3% completion, gym 1 at 99.5%) and the stage's first pass.
+**The first pass is far below the baseline by construction and by design**,
+and the numbers are recorded rather than chased: the stage was asked for a
+measly start, fierce gyms with a full roster from the first badge, and
+opponents that evolve on the same clock the player does. Where the greedy
+bot dies, and to what, is in the report; the levers that were *not* pulled
+are the gym's level offset and the roster rule, both the user's call.
+## 22. The battle animation run, Branch 1: the display split moved the hash once
 
 Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
 Branch 1. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
@@ -3624,7 +3826,7 @@ No balance number. No `core/` file. `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
 `AI_VERSION` all stand still; `contentHash` is the only axis that moved and
 deviation 1 is its account.
 
-## 22. The battle animation run, Branch 3A: the one thing that waits
+## 23. The battle animation run, Branch 3A: the one thing that waits
 
 Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
 Branch 3, half A. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
@@ -3727,7 +3929,7 @@ No `core/` file. No `data/` file. No balance number, no version axis —
 `contentHash` is still `b381d0`. The abnormality vocabulary and its beats are
 Branch 2 and Branch 3B, and neither is started.
 
-## 23. The battle animation run, Branch 2: the abnormality vocabulary
+## 24. The battle animation run, Branch 2: the abnormality vocabulary
 
 Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
 Branch 2. Branch `claude/busy-noether-jfszvi`, 2026-09-16. Evidence:
@@ -3815,7 +4017,7 @@ and the tooltip resolves `flag:<kind>` against the blurb table.
 
 No version axis moved. `contentHash` is still `b381d0`.
 
-## 24. The battle animation run, Branch 3B: the abnormality beats
+## 25. The battle animation run, Branch 3B: the abnormality beats
 
 Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
 Branch 3, half B. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
@@ -3937,3 +4139,96 @@ rather than merely marked.
 
 No `core/` file, no `data/` file, no version axis. `contentHash` is still
 `b381d0`. The flag strip is untouched: it already listed every flag.
+## 26. Stage 4.9 merged into the battle animation run
+
+Branch `claude/busy-noether-jfszvi`, 2026-09-16. Stage 4.9 (section 21) reached
+`main` while the animation run (sections 22 to 25) was in flight, so it was
+merged in rather than the other way round.
+
+### The two features compose with no code change
+
+`core/run.ts` calls `chooseEvolution` **after** `reviewBattle`, so a gym clear
+now runs: the fight ends → the outro plays → the result screen → the evolution
+fork. That is the order it should be in, and it falls out of where each hook
+already sat. The only edit `app.ts` needed was the one the merge itself forced —
+`reviewBattle` was a plain arrow on main and an `async` one here, so the merged
+body awaits the outro first and then runs Stage 4.9's evolution preview.
+
+### `contentHash` is a fourth value, and generation still did not move
+
+| | value |
+|---|---|
+| fork point | `53145f` |
+| this branch alone | `b381d0` |
+| `main` alone | `08e9e6b` |
+| **merged** | **`c3964b`** |
+
+Main changed the data tables; this branch removed three fields from `tuning.ts`.
+Neither pin could survive, so it was recomputed rather than guessed.
+
+**The proof that this branch is still presentation-only survived the merge, and
+is now much stronger.** `test/fixtures/sim-report.json` and the six baseline run
+records were regenerated on the merged tree and diffed against main's:
+
+```
+$ diff main-fixture.json test/fixtures/sim-report.json | grep -E '^[<>]' | grep -vc contentHash
+0
+$ diff -r mainbase freshbase | grep -E '^[<>]' | grep -v contentHash
+< 08e9e6b2…   > c3964b9b…          # data-digest.txt, which is the bare hash
+```
+
+Zero non-hash lines in the fixture, and the only two in the baseline are the
+digest file's own value. Every party, node, decision, casualty and protocol
+across six seeds is byte identical to main's — **under Stage 4.9's new curve and
+roster**, which is a far larger surface than the pre-merge proof covered.
+
+### Deviation: main found a specificity bug, and this branch had the same shape
+
+Stage 4.9 fixed a reduced-motion rule that had never worked:
+`.stage__actor[data-swapped='true'] .sprite` never outranked
+`… .sprite:not(.sprite--ghost)`, because `:not()` carries its argument's
+specificity — so the arriving body still rose for anyone who had asked it not
+to. Latent until a Stage 4.9 seed put a send-in on the measured turn.
+
+Prompted by that, this branch's own cancellations were re-checked. The outro
+rules were sound: each names the live selector exactly. **The abnormality rule
+was not, quite.** `[data-abnormal]` and `[data-abnormal="stage"]` have identical
+specificity, so the bare form did cancel the five class rules — but only because
+the media block sits later in the file. That is a guarantee that stops holding
+the moment someone moves a block, which is precisely how main's bug survived.
+
+The cancellation now names every live rule, including the slot delay. True by
+construction rather than by ordering.
+
+### A load-sensitive browser test, and this branch makes the load slightly worse
+
+`test/visual-phone-seed-bar.test.ts` failed twice during the merge gates,
+asserting `documentElement.scrollWidth === 390` on the starter screen and
+getting **393 once and 401 the next time**. It passes in isolation, passes
+alongside two other visual files, and the full suite then passed clean on the
+same tree. A value that moves between runs is a timing race, not a layout
+defect.
+
+The mechanism is in `test/visual/harness.ts`: **`openHarness` runs its own Vite
+build and launches its own Chromium, once per test file**, and nothing caps
+vitest's file concurrency. A full visual run is therefore ~22 simultaneous
+builds and browsers, and under that pressure a screen can be measured before its
+pixel face has settled — the same contention class recorded in
+`handoff/battle-anim-1-timing.md`, where unrelated files timed out at ~670s and
+looked like assertion failures.
+
+**This branch adds the 22nd such file** (`test/visual-battle-outro.test.ts`),
+main having 21, so it raises peak load by roughly a twentieth. The fragility is
+the harness's and predates this work; the extra file is this branch's. Left as
+it is rather than folded into a neighbouring file, because one browser test per
+concern is the right shape and the real fix is a concurrency cap on the visual
+suite — which is a change to shared config and not this branch's to make.
+Recorded so the next red suite is read with the durations and the file count in
+view before anybody hunts a layout bug that is not there.
+
+### Docs
+
+Main took section 21, so the animation run's four sections moved from 21–24 to
+**22–25**, and a dozen cross-references in six files moved with them.
+`test/boundaries.test.ts` verifies that documented *paths* resolve; it cannot
+see a wrong section *number*, so those were checked by grep.

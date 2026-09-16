@@ -93,11 +93,13 @@ describe('the tier table', () => {
 
   it('assigns a tier by node kind, node tier and segment, with no logic in the generator', () => {
     expect(aiTierFor('wild', 'elite', 7)).toBe('easy');
-    expect(aiTierFor('trainer', 'normal', 0)).toBe('easy');
-    expect(aiTierFor('trainer', 'hard', 0)).toBe('medium');
+    // Stage 4.9: a trainer is at least a normal trainer, a gym leader plays the
+    // board from the first badge.
+    expect(aiTierFor('trainer', 'normal', 0)).toBe('medium');
+    expect(aiTierFor('trainer', 'hard', 0)).toBe('hard');
     expect(aiTierFor('trainer', 'elite', 0)).toBe('hard');
-    expect(aiTierFor('gym', null, 0)).toBe('medium');
-    expect(aiTierFor('gym', null, 3)).toBe('medium');
+    expect(aiTierFor('gym', null, 0)).toBe('hard');
+    expect(aiTierFor('gym', null, 3)).toBe('hard');
     expect(aiTierFor('gym', null, 4)).toBe('hard');
     expect(aiTierFor('gym', null, 7)).toBe('hard');
   });

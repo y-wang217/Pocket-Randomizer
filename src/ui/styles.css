@@ -3321,7 +3321,13 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      anyway, so the outgoing body simply is not drawn. Reduced motion removes
      the movement, not the Pokemon. */
   .stage__actor[data-swapped='true'] .sprite,
+  .stage__actor[data-swapped='true'] .sprite:not(.sprite--ghost),
   .stage__actor[data-swapped='true'] .sprite--ghost { animation: none; }
+  /* The `:not(.sprite--ghost)` form is the one the rise rule actually uses,
+     and `:not()` carries its argument's specificity, so the plain `.sprite`
+     above never outranked it: the arriving body still rose for anybody who
+     had asked it not to. Latent until Stage 4.9's seed put a send-in on the
+     measured turn; caught by the same test as the chunk. */
 
   /*
    * The outro. **Zeroing the token is the important half**, not the three
@@ -3348,7 +3354,21 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * end state is the only thing lost, and the panel's own chip already carries
    * that fact.
    */
-  .stage__actor[data-abnormal] .stage__mark { animation: none; }
+  .stage__actor[data-abnormal] .stage__mark,
+  .stage__actor[data-abnormal="prevented"] .stage__mark,
+  .stage__actor[data-abnormal="stage"] .stage__mark,
+  .stage__actor[data-abnormal="trait"] .stage__mark,
+  .stage__actor[data-abnormal="volatile"] .stage__mark,
+  .stage__actor[data-abnormal="field"] .stage__mark,
+  .stage__actor[data-abnormal-slot="2"] .stage__mark { animation: none; }
+  /* Every live rule is named, not just the bare-attribute one, **and Stage 4.9
+     is why**. `[data-abnormal]` and `[data-abnormal="stage"]` have identical
+     specificity, so the bare form here did cancel them — but only because this
+     block sits later in the file, which is exactly the kind of guarantee that
+     stops holding when someone moves a block. Main shipped that bug on the swap
+     rule and it was latent until a seed changed; the note above it is the
+     account. Matching every rule makes the cancellation true by construction
+     rather than by ordering. */
 }
 
 /* ==========================================================================
@@ -5348,3 +5368,21 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * question by making the chip unreadable, which is not an answer.
    */
 }
+
+/* The evolution block, Stage 4.9. Same seam as the capture: a different
+   question about the same gym, separated by a rule. The record row is two
+   sprites and a line; the option cards are the target cards' shape. */
+.result__evolution {
+  margin-top: calc(var(--space-4h) * var(--density-gap));
+  padding-top: calc(var(--space-2) * var(--density-gap));
+  border-top: var(--hairline) solid var(--border);
+}
+.result__evolution[hidden] { display: none; }
+.evolve__records { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--space-2) * var(--density-gap)); }
+.evolve__record { display: flex; align-items: center; gap: var(--space-2); }
+.evolve__record .sprite { width: 48px; height: 48px; }
+.evolve__line { font-size: var(--fs-base); }
+.evolve__blurb { color: var(--text-dim); font-size: var(--fs-base); margin: calc(var(--space-2) * var(--density-gap)) 0; }
+.evolve__options { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: calc(var(--space-2) * var(--density-gap)); }
+.evolve__option { display: grid; justify-items: start; gap: var(--space-1); }
+.evolve__option .sprite { width: 64px; height: 64px; }

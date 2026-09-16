@@ -511,6 +511,8 @@ describe('the battle UI boundary', () => {
       // test exists for. It goes in the list with the screen.
       'chooseLocale',
       'chooseNode',
+      // Stage 4.9: the evolution fork, on the result screen of a gym clear.
+      'chooseEvolution',
       'chooseReward',
       'chooseShopPurchases',
       'chooseEventOption',

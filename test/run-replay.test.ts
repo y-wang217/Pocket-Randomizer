@@ -46,6 +46,7 @@ function wobbling(): RunPolicy {
     chooseStarter: async () => 1,
     chooseLocale: async () => 0,
     chooseLead: async () => 0,
+    chooseEvolution: async () => 0,
     chooseNode: async (options) => options.length - 1,
     // Last card, for the same reason as the last node: a policy that always
     // answers 0 would agree with the scripted default and prove nothing.
@@ -267,6 +268,10 @@ describe('save mid-run, reload, continue', () => {
         return 0;
       },
       chooseLead: async () => {
+        liveCalls++;
+        return 0;
+      },
+      chooseEvolution: async () => {
         liveCalls++;
         return 0;
       },

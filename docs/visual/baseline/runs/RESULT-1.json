@@ -1,9 +1,9 @@
 {
   "seed": "RESULT-1",
   "versions": {
-    "runLog": "gymrun-run-15/gymrun-0.3.0",
-    "contentHash": "b381d0b728f8a28d4ef2941d1c9f2754634e3bc45ee2d8625f9dfe1465ab55b6",
-    "randomizer": "gymrun-randomizer-15",
+    "runLog": "gymrun-run-16/gymrun-0.3.0",
+    "contentHash": "c3964b9bd0d087330e2b7149510bbcd748aaff07991a4e63f13540a1e6903db2",
+    "randomizer": "gymrun-randomizer-16",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -13,15 +13,13 @@
     "segment": 1,
     "leader": "Marina",
     "kind": "gym",
-    "species": "Fallow",
-    "bySpecies": "Skrelp",
-    "byMove": "Jet Punch",
+    "species": "Verbena",
+    "bySpecies": "Mantyke",
+    "byMove": "Water Shuriken",
     "indirect": null
   },
   "currency": 107,
   "backpack": [
-    "mysticwater",
-    "muscleband",
     "shellbell"
   ],
   "relics": [
@@ -29,45 +27,45 @@
   ],
   "party": [
     {
-      "species": "Hatterene",
-      "level": 36,
+      "species": "Pumpkaboo",
+      "level": 14,
       "ability": "Tera Shift",
       "moves": [
-        "Fairy Wind 46/48",
-        "Trailblaze 32/32",
-        "Outrage 14/16",
-        "Night Slash 24/24"
-      ],
-      "item": "occaberry",
-      "hp": "0/98",
-      "fainted": true
-    },
-    {
-      "species": "Volbeat",
-      "level": 36,
-      "ability": "Zero to Hero",
-      "moves": [
-        "Fury Cutter 27/32",
-        "Shadow Sneak 48/48",
-        "Razor Leaf 38/40",
-        "Weather Ball 16/16"
+        "Trailblaze 30/32",
+        "Outrage 16/16",
+        "Night Slash 23/24",
+        "Icy Wind 23/24"
       ],
       "item": "miracleseed",
-      "hp": "0/103",
+      "hp": "0/42",
       "fainted": true
     },
     {
-      "species": "Medicham",
-      "level": 36,
-      "ability": "Analytic",
+      "species": "Pancham",
+      "level": 14,
+      "ability": "Adaptability",
       "moves": [
-        "Triple Kick 13/16",
-        "Lick 48/48",
-        "Leafage 64/64",
-        "Vacuum Wave 42/48"
+        "Vacuum Wave 45/48",
+        "Rapid Spin 64/64",
+        "Snore 24/24",
+        "Thunder Shock 48/48"
       ],
-      "item": "rindoberry",
-      "hp": "0/100",
+      "item": "mysticwater",
+      "hp": "0/47",
+      "fainted": true
+    },
+    {
+      "species": "Omanyte",
+      "level": 14,
+      "ability": "Ice Scales",
+      "moves": [
+        "Aqua Jet 32/32",
+        "Smack Down 21/24",
+        "Snore 22/24",
+        "Fake Tears 32/32"
+      ],
+      "item": "muscleband",
+      "hp": "0/38",
       "fainted": true
     }
   ],
@@ -77,10 +75,10 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "hard",
-      "opponent": "Wild Volbeat",
+      "opponent": "Wild Pancham",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 51,
+      "hpAfter": 24,
       "casualties": []
     },
     {
@@ -88,10 +86,10 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "normal",
-      "opponent": "Wild Medicham",
-      "turns": 1,
+      "opponent": "Wild Fletchling",
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 133,
+      "hpAfter": 51,
       "casualties": []
     },
     {
@@ -102,7 +100,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 256,
+      "hpAfter": 54,
       "casualties": []
     },
     {
@@ -113,7 +111,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 256,
+      "hpAfter": 54,
       "casualties": []
     },
     {
@@ -122,9 +120,9 @@
       "label": "Garnet's Gym",
       "tier": null,
       "opponent": "Garnet (Rock)",
-      "turns": 2,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 241,
+      "hpAfter": 43,
       "casualties": []
     },
     {
@@ -132,10 +130,10 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "hard",
-      "opponent": "Wild Venomoth",
+      "opponent": "Wild Omanyte",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 227,
+      "hpAfter": 76,
       "casualties": []
     },
     {
@@ -146,7 +144,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 227,
+      "hpAfter": 114,
       "casualties": []
     },
     {
@@ -155,9 +153,9 @@
       "label": "Trainer battle",
       "tier": "normal",
       "opponent": "Trainer (2)",
-      "turns": 5,
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 190,
+      "hpAfter": 95,
       "casualties": []
     },
     {
@@ -165,20 +163,11 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "hard",
-      "opponent": "Wild Crawdaunt",
-      "turns": 10,
+      "opponent": "Wild Rhyhorn",
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 59,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Fallow",
-          "level": 36,
-          "bySpecies": "Oinkologne",
-          "byMove": "Fury Attack",
-          "indirect": null
-        }
-      ]
+      "hpAfter": 95,
+      "casualties": []
     },
     {
       "segment": 1,
@@ -188,7 +177,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 109,
+      "hpAfter": 95,
       "casualties": []
     },
     {
@@ -197,32 +186,35 @@
       "label": "Marina's Gym",
       "tier": null,
       "opponent": "Marina (Water)",
-      "turns": 7,
+      "turns": 13,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
           "name": "Cedar",
-          "level": 36,
-          "bySpecies": "Oshawott",
-          "byMove": "Surging Strikes",
+          "level": 14,
+          "species": "Pumpkaboo",
+          "bySpecies": "Wailmer",
+          "byMove": "Water Shuriken",
           "indirect": null
         },
         {
           "side": "p1",
           "name": "Gale",
-          "level": 36,
-          "bySpecies": "Oshawott",
-          "byMove": "Surging Strikes",
+          "level": 14,
+          "species": "Pancham",
+          "bySpecies": "Mantyke",
+          "byMove": "Water Shuriken",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Fallow",
-          "level": 36,
-          "bySpecies": "Skrelp",
-          "byMove": "Jet Punch",
+          "name": "Verbena",
+          "level": 14,
+          "species": "Omanyte",
+          "bySpecies": "Mantyke",
+          "byMove": "Water Shuriken",
           "indirect": null
         }
       ]
@@ -231,10 +223,10 @@
   "log": {
     "seed": "RESULT-1",
     "versions": {
-      "runLog": "gymrun-run-15/gymrun-0.3.0",
-      "contentHash": "b381d0b728f8a28d4ef2941d1c9f2754634e3bc45ee2d8625f9dfe1465ab55b6",
+      "runLog": "gymrun-run-16/gymrun-0.3.0",
+      "contentHash": "c3964b9bd0d087330e2b7149510bbcd748aaff07991a4e63f13540a1e6903db2",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-15"
+      "randomizerVersion": "gymrun-randomizer-16"
     },
     "decisions": [
       {
@@ -253,56 +245,15 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 3
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "accept"
-        }
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [
-            {
-              "slot": 0,
-              "item": "occaberry"
-            }
-          ],
-          "discards": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
       },
       {
         "kind": "battle",
@@ -316,9 +267,45 @@
         "index": 0
       },
       {
+        "kind": "target",
+        "index": 0
+      },
+      {
+        "kind": "replace",
+        "slot": 2
+      },
+      {
         "kind": "acquisition",
         "decision": {
           "kind": "accept"
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
         }
       },
       {
@@ -326,12 +313,8 @@
         "plan": {
           "assignments": [
             {
-              "slot": 1,
+              "slot": 0,
               "item": "miracleseed"
-            },
-            {
-              "slot": 2,
-              "item": "rindoberry"
             }
           ],
           "discards": []
@@ -363,7 +346,12 @@
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 1,
+              "item": "mysticwater"
+            }
+          ],
           "discards": []
         }
       },
@@ -386,12 +374,19 @@
         }
       },
       {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
         "kind": "target",
         "index": 0
       },
       {
         "kind": "replace",
-        "slot": 2
+        "slot": 1
       },
       {
         "kind": "reward",
@@ -416,13 +411,6 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 1
         }
       },
@@ -437,7 +425,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -447,13 +442,18 @@
       {
         "kind": "acquisition",
         "decision": {
-          "kind": "decline"
+          "kind": "accept"
         }
       },
       {
         "kind": "items",
         "plan": {
-          "assignments": [],
+          "assignments": [
+            {
+              "slot": 2,
+              "item": "muscleband"
+            }
+          ],
           "discards": []
         }
       },
@@ -480,28 +480,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
@@ -518,10 +497,6 @@
       {
         "kind": "target",
         "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 1
       },
       {
         "kind": "items",
@@ -544,64 +519,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "move",
           "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {
@@ -650,14 +569,21 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
           "slot": 2
         }
       },
@@ -686,7 +612,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
@@ -701,6 +634,34 @@
         "choice": {
           "kind": "move",
           "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
         }
       },
       {

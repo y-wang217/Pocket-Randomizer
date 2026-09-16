@@ -153,13 +153,19 @@ export const HP_AWARE = {
  * A starting table, to be moved by a report and not by taste.
  */
 export function aiTierFor(kind: NodeKind, tier: Tier | null, segment: number): AiTier {
-  if (kind === 'gym') return segment >= 4 ? 'hard' : 'medium';
+  /*
+   * **Stage 4.9: a wild Pokemon is the floor, a trainer is at least a normal
+   * trainer, and every gym leader plays the board.** The first table had
+   * ordinary trainers on the wild tier and gyms 1 to 4 on medium; the stage's
+   * brief is that the road is where a wild fight is cheap, a trainer is the
+   * challenge, and the gym is a fierce, Kaizo-like opponent from the first
+   * badge — the gym's roster and level (`data/scaling.ts`) moved with it.
+   * `segment` is kept in the signature: the table may key on it again.
+   */
+  void segment;
+  if (kind === 'gym') return 'hard';
   if (kind === 'wild') return 'easy';
-  if (kind === 'trainer') {
-    if (tier === 'elite') return 'hard';
-    if (tier === 'hard') return 'medium';
-    return 'easy';
-  }
+  if (kind === 'trainer') return tier === 'normal' ? 'medium' : 'hard';
   // Rest, shop and event nodes do not fight. Answering rather than throwing
   // because a caller asking about a node with no encounter is asking a question
   // with an obvious answer, and the alternative is a guard at every call site.

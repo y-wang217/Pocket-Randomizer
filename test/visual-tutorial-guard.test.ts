@@ -50,7 +50,7 @@ describe.each(SURFACES)('%s in Pocket on a first launch', (surface, screen) => {
     const context = await harness.browser.newContext({ viewport: PHONE });
     await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
     const page = await context.newPage();
-    await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=pocket&fixture=loaded&tutorial=fresh`, {
+    await page.goto(`${harness.url}/gallery.html#seed=S49B-1&screen=${surface}&density=pocket&fixture=loaded&tutorial=fresh`, {
       waitUntil: 'load',
     });
     await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });

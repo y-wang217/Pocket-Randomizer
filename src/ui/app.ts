@@ -18,6 +18,7 @@ import type { AcquisitionDecision } from '../core/acquisition';
 import { releaseMember, reorderParty } from '../core/party';
 import {
   defaultItemPlan,
+  gymClearLevel,
   isReplayable,
   localeOf,
   partyCapacity,
@@ -28,33 +29,8 @@ import {
   type RunResult,
   type RunState,
 } from '../core/run';
+import { previewEvolutions } from '../core/evolution';
 
-/**
- * How this fight should end on the stage. **The battle animation run.**
- *
- * Pure, and derived from the review the policy is already handed, so `core/`
- * knows nothing about the outro and no field was added to carry it.
- *
- *   - **Lost** -> `defeat`. No recall: the body that ended it has already sunk.
- *     The hold still runs, and a loss is where it matters most — a wipe ends
- *     the battle on the same frame the last body faints, so its beats were the
- *     most reliably swallowed of all.
- *   - **Won a wild fight that offers a capture** -> `caught`. `node.acquisition`
- *     is the offer `core/run.ts`'s `acquisitionOffered` will read a moment
- *     later from the same `NodeSpec`, so the ball and the offer on the next
- *     screen cannot disagree about whether there is something to catch.
- *   - **Won anything else** -> `recall`, the gym and trainer case.
- *
- * An event node's capture is deliberately *not* a `caught`: that offer comes
- * from the chosen outcome's grant rather than from the node, there may have
- * been no fight at all, and a ball closing over a gym leader's Pokemon because
- * the event behind it happened to pay a species would be a lie about what just
- * happened.
- */
-export function outroFor(review: BattleReview): OutroKind {
-  if (!review.won) return 'defeat';
-  return review.node.acquisition ? 'caught' : 'recall';
-}
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
@@ -84,6 +60,8 @@ import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
+
+
 import { createSummary } from './screens/summary';
 import { createStamps } from './stamps';
 import { createPreGymScreen } from './screens/pre-gym';
@@ -96,6 +74,34 @@ import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
 import { applyDensity } from './theme/density';
 import { applyMoveBar } from './theme/move-bar';
+
+/**
+ * How this fight should end on the stage. **The battle animation run.**
+ *
+ * Pure, and derived from the review the policy is already handed, so `core/`
+ * knows nothing about the outro and no field was added to carry it.
+ *
+ *   - **Lost** -> `defeat`. No recall: the body that ended it has already sunk.
+ *     The hold still runs, and a loss is where it matters most — a wipe ends
+ *     the battle on the same frame the last body faints, so its beats were the
+ *     most reliably swallowed of all.
+ *   - **Won a wild fight that offers a capture** -> `caught`. `node.acquisition`
+ *     is the offer `core/run.ts`'s `acquisitionOffered` will read a moment
+ *     later from the same `NodeSpec`, so the ball and the offer on the next
+ *     screen cannot disagree about whether there is something to catch.
+ *   - **Won anything else** -> `recall`, the gym and trainer case.
+ *
+ * An event node's capture is deliberately *not* a `caught`: that offer comes
+ * from the chosen outcome's grant rather than from the node, there may have
+ * been no fight at all, and a ball closing over a gym leader's Pokemon because
+ * the event behind it happened to pay a species would be a lie about what just
+ * happened.
+ */
+export function outroFor(review: BattleReview): OutroKind {
+  if (!review.won) return 'defeat';
+  return review.node.acquisition ? 'caught' : 'recall';
+}
+
 
 export function mountApp(root: HTMLElement): void {
   /*
@@ -446,6 +452,7 @@ export function mountApp(root: HTMLElement): void {
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<EventArchetype>();
     const leadPick = createPending<number>();
+    const evolvePick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     const releaseBattle = (): void => {
       detachBattle?.();
@@ -471,6 +478,7 @@ export function mountApp(root: HTMLElement): void {
       shopBasket.cancel();
       eventPick.cancel();
       leadPick.cancel();
+      evolvePick.cancel();
       releaseBattle();
     };
 
@@ -569,12 +577,58 @@ export function mountApp(root: HTMLElement): void {
          * `releaseBattle()` is not called when a battle ends, only at the next
          * `onBattle` or at the end of the run, so the screen keeps its
          * subscription and its last frame for the whole hold.
+         *
+         * **It is the first thing in the function, and after Stage 4.9 that
+         * ordering carries more than it did.** Three things now hang off a gym
+         * clear — the outro, the evolution preview below, and `chooseEvolution`
+         * after it (`core/run.ts` calls that one *after* `reviewBattle`). The
+         * fight finishing on screen comes before any of them, so a player sees
+         * the Pokemon that won leave the field before being told what it became.
          */
         await battleScreen.outro(outroFor(review));
         lastReview = review;
-        resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
+        /*
+         * A gym clear shows what it does to the party before it shows what it
+         * pays. Stage 4.9: the level-up's evolutions, previewed up to the first
+         * fork; the fork itself is asked by `chooseEvolution` below, on this
+         * same screen. Answers are collected across that clear's questions so
+         * each re-render shows every step decided so far.
+         */
+        evolveAnswers.length = 0;
+        const clearLevel = review.node.kind === 'gym' && review.won ? gymClearLevel(state) : null;
+        const preview = clearLevel === null ? null : previewEvolutions(state.party, clearLevel, []);
+        resultScreen.render(
+          review,
+          review.offer,
+          state,
+          (index) => rewardPick.submit(index),
+          null,
+          preview ? { records: preview.records } : null,
+        );
         showScreen('result');
         return rewardPick.wait();
+      },
+      /*
+       * The fork. Stage 4.9. Same screen, the block between the party and the
+       * cards; choosing a branch is the continue, so the actions row is empty
+       * while it is up. `state.party` is the pre-clear party, which is what the
+       * question was computed from.
+       */
+      chooseEvolution: (question, state) => {
+        const level = gymClearLevel(state);
+        const preview = level === null ? { records: [] } : previewEvolutions(state.party, level, evolveAnswers);
+        resultScreen.render(lastReview, null, state, () => undefined, null, {
+          records: preview.records,
+          question: {
+            question,
+            onChoose: (index) => {
+              evolveAnswers.push(index);
+              evolvePick.submit(index);
+            },
+          },
+        });
+        showScreen('result');
+        return evolvePick.wait();
       },
       /*
        * Required by `RunPolicy` and unreachable from `playRun` while
@@ -753,6 +807,8 @@ export function mountApp(root: HTMLElement): void {
      * blank one.
      */
     let lastReview: BattleReview | null = null;
+    /** The branch answers given so far on the current gym clear. Stage 4.9. */
+    const evolveAnswers: number[] = [];
 
     /*
      * The item plan the player has composed on the party screen, if any.

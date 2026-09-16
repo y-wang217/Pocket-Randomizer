@@ -84,6 +84,7 @@ function isRunDecision(value: unknown): boolean {
     case 'starter':
     case 'locale':
     case 'lead':
+    case 'evolve':
     case 'node':
     case 'reward':
     case 'target':

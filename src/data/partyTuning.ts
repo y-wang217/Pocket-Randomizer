@@ -36,22 +36,21 @@
  * node completion and made the first half of a run play at the roster width of
  * the second.
  *
- * **Three at the start, and that is held rather than lowered.** The opening is
- * what 4.6c measured, and narrowing it would make every early benchmark row
- * incomparable for no gain — the thing this item adds is growth, not a harder
- * opening. The first unlock is at gym 2 because that is the earliest a player
- * has seen enough of the game for another slot to mean something, and because
- * it puts the moment inside the stretch most runs actually reach.
- *
- * **Six by gym 6, so the last two gyms are played at full width** rather than
- * still growing. An unlock at gym 7 would arrive with one segment left to use
- * it, which is a reward the run has no time to spend.
+ * **Two at the start, and a slot every other gym, from Stage 4.9.** It was
+ * three at the start, four at gym 2, five at gym 4, six at gym 6. The stage
+ * reframed the schedule as the *gym's* roster as well as the player's — a gym
+ * fields exactly this many (`scaling.opponentTeamSize`), two against at most
+ * two at gym 1, six against six at gym 8 — so the schedule is now the rhythm
+ * of the whole run: the level rises at every gym, the roster widens at every
+ * other one, and gyms 1 and 2 stop being formalities because the player's own
+ * width is what they are sized to. 4.8's argument for holding three at the
+ * start was benchmark comparability, and the stage moves every row anyway.
  *
  * Every number here is a balance number. What would move them is the
  * simulator's `party.sizeBySegment` section, which prints the measured party
  * beside what the curve assumed, segment by segment.
  */
-export const SLOT_UNLOCK_SCHEDULE: readonly number[] = [3, 3, 4, 4, 5, 5, 6, 6, 6];
+export const SLOT_UNLOCK_SCHEDULE: readonly number[] = [2, 3, 3, 4, 4, 5, 5, 6, 6];
 
 /**
  * The most slots a run can ever have. The schedule's own ceiling.
@@ -149,7 +148,9 @@ export const PARTY_TUNING: PartyTuning = {
  * encounters you choose within a segment change *what you get*, not *how strong
  * you are*), and `party.levelParty` applies it to the whole party when a gym
  * falls. A Pokemon that sat out eight fights arrives at segment 5 at exactly the
- * level of one that fought all eight.
+ * level of one that fought all eight — and, from Stage 4.9, at exactly the
+ * same *stage*: evolution reads the same shared level, so the bench evolves
+ * with the front.
  *
  * That is the entire reason an XP system is absent rather than deferred. Adding
  * one would not be adding a feature to the party — it would be reversing the

@@ -273,7 +273,7 @@ describe('4. moveset validity', () => {
         for (const node of nodesOf(segment)) {
           // Only fights have a level band; a shop has no opponent to bound.
           if (!isBattleKind(node.kind)) continue;
-          const bonus = node.tier ? TIER_MODIFIERS[node.tier].level : 0;
+          const bonus = node.tier ? Math.round(row.playerLevel * TIER_MODIFIERS[node.tier].levelShare) : 0;
           for (const member of node.encounter?.team ?? []) {
             const offset = row.levelOffset[node.kind];
             expect(member.level).toBeGreaterThanOrEqual(row.playerLevel + offset.min + bonus);
@@ -322,7 +322,7 @@ describe('5. gym identity', () => {
      * happens to be false early on.
      */
     for (const gym of GYMS) {
-      const expected = opponentTeamSize('gym', gym.segment, 'normal', gym.teamSize);
+      const expected = opponentTeamSize('gym', gym.segment, 'normal');
       expect(expected, `${gym.leader}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
       for (let seed = 0; seed < 5; seed++) {
         const team = generateGymTeam(gym, gym.segment, createRng(`SIZE-${gym.id}-${seed}`).randomizer.at('test'));
@@ -365,7 +365,7 @@ describe('5. gym identity', () => {
     const slots = partyCapacityAfter(last.segment);
     expect(expectedPartySize(last.segment)).toBe(slots - 1);
     expect(expectedPartySize(last.segment)).toBeLessThan(MAX_TEAM_SIZE);
-    expect(opponentTeamSize('gym', last.segment, 'normal', last.teamSize)).toBeGreaterThan(
+    expect(opponentTeamSize('gym', last.segment, 'normal')).toBeGreaterThan(
       expectedPartySize(last.segment),
     );
   });
@@ -398,6 +398,8 @@ describe('5. gym identity', () => {
         const entry = speciesByName.get(member.species);
         expect(entry?.band, `${member.species} at gym 1`).toBeLessThanOrEqual(1);
         expect(entry?.bst ?? 0, `${member.species} at gym 1`).toBeLessThanOrEqual(420);
+        // Stage 4.9: and nothing evolved, by the stage gate.
+        expect(entry?.evoLevel, `${member.species} at gym 1 is an evolved form`).toBeNull();
       }
     }
   });

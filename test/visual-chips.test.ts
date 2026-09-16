@@ -34,7 +34,7 @@
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import { PHONE, openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
 import { ratio } from '../scripts/visual/contrast.mjs';
 import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
@@ -218,7 +218,7 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
  * variant list rather than by the length of the run.
  */
 async function sweep(): Promise<ChipSample[]> {
-  const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+  const { page, context } = await openApp(harness.browser, harness.url, 'STAT49-298');
   const scratch = await context.newPage();
   await scratch.setContent('<canvas></canvas>');
   const samples: ChipSample[] = [];
@@ -282,6 +282,35 @@ async function sweep(): Promise<ChipSample[]> {
     await stepOnce(page);
     await page.waitForTimeout(25);
   }
+
+  /*
+   * The status chip, from the gallery's loaded party.
+   *
+   * Stage 4.9. A run walked by this bot at level 7 rarely has anyone statused
+   * at a node boundary — band-1 moves burn or paralyse on a ten-percent
+   * rider, and the fights are two turns long — so the sweep's status sample
+   * came from whichever seed happened to roll one, and on this curve none of
+   * a dozen did. The gallery's loaded party fixture is the app's own party
+   * screen under the app's own chrome with two members statused by
+   * construction (`ui/gallery-fixtures.ts`), so it is sampled here as one more
+   * surface rather than a seed being hunted for the rider.
+   */
+  const galleryHarness = await openHarness({ gallery: true });
+  try {
+    const galleryContext = await galleryHarness.browser.newContext({ viewport: PHONE });
+    const gallery = await galleryContext.newPage();
+    await gallery.goto(`${galleryHarness.url}/gallery.html#seed=S49B-1&screen=party&fixture=loaded`, { waitUntil: 'load' });
+    await gallery.waitForSelector(`${visible('party')} .chip`, { timeout: 20_000 });
+    await gallery.mouse.move(0, 0);
+    await gallery.waitForTimeout(250);
+    const galleryChips = await chipsOn(gallery, scratch, 'party');
+    for (const sample of galleryChips) seenVariants.add(sample.variant);
+    samples.push(...galleryChips.map((sample) => ({ ...sample, screen: 'party (gallery, loaded)' })));
+    await galleryContext.close();
+  } finally {
+    await galleryHarness.close();
+  }
+
   await context.close();
   return samples;
 }

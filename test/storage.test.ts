@@ -24,7 +24,7 @@ beforeEach(() => {
 describe('the run log round trip', () => {
   it('loads every log a real run saves, whatever kinds it holds', async () => {
     const logs: RunLog[] = [];
-    await playRun('SMOKE24', scriptedRunPolicy(greedyAiPolicy), undefined, {
+    await playRun('S49B-1', scriptedRunPolicy(greedyAiPolicy), undefined, {
       opponent: greedyAiPolicy,
       onDecision: (log) => logs.push(structuredClone(log)),
     });

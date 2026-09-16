@@ -2,7 +2,7 @@
 
 Prompt: [`../../spec/gymrun-overnight-battle-animation.md`](../../spec/gymrun-overnight-battle-animation.md),
 Branch 1. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
-Deviations: [`../../generation.md`](../../generation.md) section 21.
+Deviations: [`../../generation.md`](../../generation.md) section 23.
 
 ## 1. What the report said, and what was actually wrong
 
@@ -56,7 +56,7 @@ takes the three fields no `core/` file reads:
 | `battleFeedbackMs` | `tuning.ts` | read by `ui/theme/motion.ts` and the visual tests only |
 | `minChipFontSizePx` | `tuning.ts` | read by `test/visual-chips.test.ts` only |
 | `minChipContrastRatio` | `tuning.ts` | read by `test/visual-chips.test.ts` only |
-| `maxMoveTagsOnFace` | **stays** | `core/battle/view.ts` reads it — see generation.md §21 deviation 2 |
+| `maxMoveTagsOnFace` | **stays** | `core/battle/view.ts` reads it — see generation.md §22 deviation 2 |
 
 **The hash moved once, from `53145f` to `b381d0`, and the prompt said it would
 not.** Section 21 deviation 1 is the account. In short: removing fields from a
@@ -359,7 +359,7 @@ true of a **finished** fight for the whole hold, which is the entire point. Both
 copies began asserting against a fight that was over. The third condition is
 that the run has asked for another choice: an enabled move button, which a
 finished fight has none of whether or not the result screen has arrived.
-Generalised in section 22: *a test that waits a fixed fraction of the feedback
+Generalised in section 23: *a test that waits a fixed fraction of the feedback
 budget and then reads the screen is making an assumption about what the budget
 is for.*
 
@@ -395,7 +395,7 @@ browser proof above.
 
 # Branch 3B: the abnormality beats
 
-Deviations: [`../../generation.md`](../../generation.md) section 24.
+Deviations: [`../../generation.md`](../../generation.md) section 25.
 Vocabulary: [`../../reports/battle-anim-2-protocol-census.md`](../../reports/battle-anim-2-protocol-census.md).
 
 ## 11. Five beats, and they cost the turn nothing
@@ -443,7 +443,7 @@ Caught by the two cases written for it, before anything shipped:
 **The fix was already in the tree.** `ui/flag-strip.ts`'s `latest()` prefers the
 last group carrying flags and falls back to the last with actions; `beats()` now
 mirrors that rather than inventing a second rule, so the strip and the stage
-answer "which turn is being shown" identically. Generalised in §24: *a consumer
+answer "which turn is being shown" identically. Generalised in §25: *a consumer
 that finds "the current turn" by looking for actions cannot see the turns where
 nothing acted* — and those are the interesting ones.
 

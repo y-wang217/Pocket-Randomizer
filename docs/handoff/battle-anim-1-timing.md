@@ -2,7 +2,7 @@
 
 Branch `claude/busy-noether-jfszvi`, from
 [`../spec/gymrun-overnight-battle-animation.md`](../spec/gymrun-overnight-battle-animation.md),
-Branch 1. Deviations: [`../generation.md`](../generation.md) section 21.
+Branch 1. Deviations: [`../generation.md`](../generation.md) section 22.
 Report: [`../visual/reports/patch-battle-animation.md`](../visual/reports/patch-battle-animation.md).
 
 ## Merged at

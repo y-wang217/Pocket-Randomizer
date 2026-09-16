@@ -10,8 +10,8 @@
  * every surface the shell can route to at its worst case, in any of the three
  * modes.
  *
- *   gallery.html#seed=SMOKE24&screen=party&density=pocket
- *   gallery.html#seed=SMOKE24&screen=result-capture
+ *   gallery.html#seed=S49B-1&screen=party&density=pocket
+ *   gallery.html#seed=S49B-1&screen=result-capture
  *   gallery.html#seed=V5-LOADED-1&screen=battle
  *
  * `screen` is one of `ui/gallery-surfaces.ts`'s names; `density` is one of
@@ -97,7 +97,7 @@ function isDensity(value: string | null): value is Density {
 
 async function main(): Promise<void> {
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
-  const seed = params.get('seed') ?? 'SMOKE24';
+  const seed = params.get('seed') ?? 'S49B-1';
   const requested = params.get('screen') ?? 'summary';
   const surface: GallerySurface = isSurface(requested) ? requested : 'summary';
 

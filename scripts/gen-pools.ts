@@ -30,6 +30,7 @@ import { join } from 'node:path';
 
 import { Dex } from '@pkmn/sim';
 import type { Move, Species } from '@pkmn/sim';
+import { SYNTHETIC_BY_METHOD, syntheticThreshold, type EvoMethod } from '../src/data/evolutionThresholds';
 
 const GEN = 9;
 const dex = Dex.forGen(GEN);
@@ -61,9 +62,15 @@ function bstOf(species: Species): number {
 /**
  * Species the randomizer may draw.
  *
- *   - `isNonstandard` must be null. Past/Future/CAP/Custom entries have data,
- *     but their data is a different generation's and the balance numbers this
- *     stage produces should describe one ruleset.
+ *   - `isNonstandard` must be null or `'Past'`. Future/CAP/Custom/LGPE entries
+ *     are out: their data is another ruleset's or nobody's. **`Past` is in
+ *     from Stage 4.9.** It was out on the argument above, and the argument was
+ *     wrong for this game: a `Past` species is one Scarlet/Violet does not
+ *     ship, not one whose gen 9 stats and types are missing — the dex carries
+ *     them all — and GYMRUN runs Custom Game and validates nothing. Excluding
+ *     them cost 265 species, most of them the low-tier base forms a level-7
+ *     start is made of (Pidgey, Caterpie, Rattata, Spearow), and left the
+ *     segment-0 Rock gym drawing from six species.
  *   - No alternate formes, battle-only formes or item-locked formes. A Mega
  *     needs a stone the run has no way to give it, and a battle-only forme
  *     handed straight to the sim is a Pokemon that cannot legally be on the
@@ -96,7 +103,7 @@ function speciesAllowed(species: Species): boolean {
   return (
     species.exists &&
     species.num > 0 &&
-    species.isNonstandard === null &&
+    (species.isNonstandard === null || species.isNonstandard === 'Past') &&
     !species.forme &&
     !species.battleOnly &&
     !species.requiredItem &&
@@ -112,6 +119,10 @@ interface SpeciesRow {
   band: number;
   /** Chance of rolling male, 0..1. `null` for a genderless species. */
   maleChance: number | null;
+  /** Pool id this evolves from; null for a base form or a parent outside the pool. */
+  prevo: string | null;
+  /** The level this species becomes a legal stage at; null iff it has no dex prevo. */
+  evoLevel: number | null;
 }
 
 /**
@@ -138,9 +149,47 @@ function maleChanceOf(species: Species): number | null {
   return total > 0 ? ratio.M / total : null;
 }
 
-const speciesRows: SpeciesRow[] = dex.species
-  .all()
-  .filter(speciesAllowed)
+const allowedSpecies: Species[] = dex.species.all().filter(speciesAllowed);
+const allowedIds = new Set(allowedSpecies.map((species) => species.id));
+
+/**
+ * Where a species sits in its evolution line, as two facts on the *child*.
+ *
+ * Child-side rather than a list of targets on the parent, for three reasons
+ * `core/evolution.ts` spells out: eligibility ("may this species exist at
+ * level L") reads one field on the entry being drawn; targets are derived by
+ * inverting `prevo` in dex order, which gives a branching choice a stable
+ * index for the run log for free; and a dropped edge is handled by asymmetry —
+ * a child whose parent is outside the pool keeps its `evoLevel` (it is still
+ * not a base form and must not be drawn at level 5) but is nobody's target.
+ *
+ * The level is the dex's own where the dex has one. Every other method gets a
+ * synthetic level from `data/evolutionThresholds.ts`, which is the Kaizo
+ * convention and is where the numbers are argued. In the gen 9 dex no typed
+ * evolution carries an `evoLevel`, so "dex level or synthetic" is a clean
+ * split rather than a precedence rule.
+ */
+const thresholdMemo = new Map<string, number>();
+
+/** The level `species` becomes a legal stage at; 0 for a base form. Memoised, because a chain asks for its parent's. */
+function thresholdOf(species: Species): number {
+  if (!species.prevo) return 0;
+  const cached = thresholdMemo.get(species.id);
+  if (cached !== undefined) return cached;
+  const parent = dex.species.get(species.prevo);
+  const method = (species.evoType ?? 'other') as EvoMethod;
+  const level = species.evoLevel ?? syntheticThreshold(species.id, method, bandOf(bstOf(species)), thresholdOf(parent));
+  thresholdMemo.set(species.id, level);
+  return level;
+}
+
+function evolutionOf(species: Species): { prevo: string | null; evoLevel: number | null } {
+  if (!species.prevo) return { prevo: null, evoLevel: null };
+  const parent = dex.species.get(species.prevo);
+  return { prevo: allowedIds.has(parent.id) ? parent.id : null, evoLevel: thresholdOf(species) };
+}
+
+const speciesRows: SpeciesRow[] = allowedSpecies
   .map((species) => ({
     id: species.id,
     species: species.name,
@@ -148,6 +197,7 @@ const speciesRows: SpeciesRow[] = dex.species
     bst: bstOf(species),
     band: bandOf(bstOf(species)),
     maleChance: maleChanceOf(species),
+    ...evolutionOf(species),
   }))
   // Sorted by dex number, not by name or by band. The order is a draw order:
   // the randomizer picks an index into a filtered view of this list, so a
@@ -421,7 +471,7 @@ const BANNER = `/**
 
 function emitSpecies(): string {
   const rows = speciesRows
-    .map((row) => `  { id: '${row.id}', species: ${quote(row.species)}, types: [${row.types.map(quote).join(', ')}], bst: ${row.bst}, band: ${row.band}, maleChance: ${row.maleChance} },`)
+    .map((row) => `  { id: '${row.id}', species: ${quote(row.species)}, types: [${row.types.map(quote).join(', ')}], bst: ${row.bst}, band: ${row.band}, maleChance: ${row.maleChance}, prevo: ${row.prevo === null ? 'null' : `'${row.prevo}'`}, evoLevel: ${row.evoLevel} },`)
     .join('\n');
 
   return `${BANNER}
@@ -448,6 +498,22 @@ export interface SpeciesEntry {
    * gender, which also means one fewer draw off the battle PRNG per Pokemon.
    */
   maleChance: number | null;
+  /**
+   * The pool id this species evolves **from**, or \`null\` for a base form.
+   *
+   * Also \`null\` when the dex parent is outside the pool (a tagged legendary,
+   * a forme): the edge is dropped, and this species is then nobody's target.
+   * \`data/evolution.ts\` inverts this field to find what a species becomes.
+   */
+  prevo: string | null;
+  /**
+   * The level at which this species is a legal stage: the dex's own
+   * \`evoLevel\` for a level-up evolution, else the synthetic threshold from
+   * \`data/evolutionThresholds.ts\`. \`null\` iff the dex gives it no prevo at
+   * all. The randomizer will not draw a species below this level, and a party
+   * member evolves into it the first time its level reaches it.
+   */
+  evoLevel: number | null;
 }
 
 /**
@@ -574,6 +640,41 @@ console.log(`species: ${speciesRows.length}`);
 for (let band = 0; band <= BST_CUTS.length; band++) {
   const rows = speciesRows.filter((row) => row.band === band);
   console.log(`  band ${band}: ${String(rows.length).padStart(3)} species`);
+}
+{
+  // The evolution report. Read it: these are the facts `data/evolutionThresholds.ts`
+  // and `test/evolution-data.test.ts` argue over, printed where they change.
+  const byId = new Map(speciesRows.map((row) => [row.id, row]));
+  const past = allowedSpecies.filter((species) => species.isNonstandard === 'Past').length;
+  console.log(`  of which \`Past\` (not in Scarlet/Violet): ${past}`);
+  const baseForms = speciesRows.filter((row) => row.evoLevel === null);
+  console.log(`base forms: ${baseForms.length}`);
+  for (const band of [...new Set(speciesRows.map((row) => row.band))].sort()) {
+    console.log(`  band ${band}: ${String(baseForms.filter((row) => row.band === band).length).padStart(3)} base forms`);
+  }
+  const synthetic = new Map<string, number>();
+  for (const species of allowedSpecies) {
+    if (species.prevo && !species.evoLevel) {
+      const method = species.evoType ?? 'other';
+      synthetic.set(method, (synthetic.get(method) ?? 0) + 1);
+    }
+  }
+  console.log(`synthetic thresholds: ${[...synthetic].map(([method, n]) => `${method} ${n}`).join(', ')}`);
+  for (const method of Object.keys(SYNTHETIC_BY_METHOD)) {
+    if (!synthetic.has(method)) console.log(`  (no ${method} evolution in the pool)`);
+  }
+  const dropped = allowedSpecies.filter((species) => species.prevo && !allowedIds.has(dex.species.get(species.prevo).id));
+  console.log(`dropped edges (parent outside the pool): ${dropped.map((species) => `${species.prevo} -> ${species.name}`).join(', ') || 'none'}`);
+  const families = new Map<string, SpeciesRow[]>();
+  for (const row of speciesRows) if (row.prevo) families.set(row.prevo, [...(families.get(row.prevo) ?? []), row]);
+  const branching = [...families].filter(([, children]) => children.length > 1);
+  console.log(`branching families: ${branching.length}`);
+  for (const [parent, children] of branching) {
+    const levels = new Set(children.map((child) => child.evoLevel));
+    console.log(`  ${byId.get(parent)?.species ?? parent} -> ${children.map((child) => `${child.species} ${child.evoLevel}`).join(', ')}${levels.size > 1 ? '   <-- UNEQUAL' : ''}`);
+  }
+  const late = speciesRows.filter((row) => (row.evoLevel ?? 0) > 50).map((row) => `${row.species} ${row.evoLevel}`);
+  console.log(`thresholds above 50: ${late.join(', ') || 'none'}`);
 }
 console.log(`damaging moves: ${damagingRows.length}`);
 for (let band = 1; band <= POWER_CUTS.length + 1; band++) {

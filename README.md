@@ -316,7 +316,7 @@ decided or defaulted?" has one answer.
 |---|---|
 | Locale select is a pre-step, not a node — the node budget is unchanged from 4.5.1 | `tuning.localeOfferCount` |
 | Routes for every offered locale are generated up front and discarded at selection | `docs/generation.md` §1c |
-| A captured Pokémon arrives at the level, moveset and item it was fought with | `core/acquisition.ts` |
+| A captured Pokémon arrives at the segment's player level with the moveset it was fought with, and evolves at the next gym clear if its level allows | `core/acquisition.ts`, `core/evolution.ts` |
 | Its held item goes to the **backpack**, not into its hands | `core/acquisition.ts` |
 | The guaranteed wild step is all-wild at distinct tiers, not a one-option step | `tuning.wildStepOptionCount` |
 | The capture renders inside the result screen; the standalone acquisition screen is gone | `ui/screens/acquisition.ts` |
