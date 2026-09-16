@@ -120,6 +120,27 @@ build, strict trim, smoke run, and the full suite.
 Standing policy and the benchmark table: [`docs/balance.md`](docs/balance.md)
 section 0.
 
+## Secrets and private material
+
+- Every branch of this repository is public. Nothing private is committed on
+  any branch, ever, `claude/*` included. There is no private branch and no
+  branch format that hides a file.
+- Secrets never enter the repository through any door: not `src/`, not
+  `docs/`, not a `docs/spec/` prompt, not a report, not a commit message.
+  `.env.example` carries variable names with empty values, never a value.
+  A prompt that arrives carrying a secret is filed with `[REDACTED: what]`
+  in its place; that is the one exception to the verbatim rule.
+- The deploy is `dist/` and only `dist/`. Nothing under `docs/`, `supabase/`,
+  `test/` or `scripts/` reaches it. Asserted by `test/security.test.ts`.
+- Private operational material lives in the private companion repository
+  named in `docs/security.md`. This repository may name it and never
+  references it: no submodule, no path, no build or test input.
+- Server-side security is row level security, never schema secrecy. Migrations
+  and policies are public and reviewed in the open; abuse limits are data the
+  private repository seeds, not constants in a public file.
+
+Memo: [`docs/security.md`](docs/security.md).
+
 ## Where to find things
 
 | you want | read |
@@ -130,3 +151,4 @@ section 0.
 | balance history and every number | [`docs/balance.md`](docs/balance.md) |
 | layers, seams and run logs | [`docs/architecture.md`](docs/architecture.md) |
 | `@pkmn/sim` findings and the bundle | [`docs/engine-notes.md`](docs/engine-notes.md) |
+| the security memo: what is private, where it lives, and the deploy rule | [`docs/security.md`](docs/security.md) |

@@ -58,6 +58,22 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: the security memo, and the daily stats scope.** Branch
+`claude/determined-davinci-2bm0ch`, prompts
+[`spec/gymrun-security-memo.md`](spec/gymrun-security-memo.md) and
+[`spec/gymrun-patch-daily-stats.md`](spec/gymrun-patch-daily-stats.md). The
+first is built: [`security.md`](security.md), a `CLAUDE.md` section, `.env.example`,
+the `.gitignore` lines and `test/security.test.ts`, which scans every tracked
+text file for the shapes secrets take and asserts that `dist/` carries no
+document. It exists because the second is the project's first server: a
+Supabase-backed tracker of the day's most and least used species, moves and
+items and the mean gyms cleared, scoped at nine half-days and **not yet
+started** — the scope report, the four decisions it rests on and the validated
+Supabase assumption are in the prompt file. The one fact that reshaped the
+security ask: this repository is public, so no branch can hide a file, and
+private material goes to a private companion repository the memo names.
+Presentation and documents only so far: no `core/` change, no version axis moves.
+
 **In flight: Stage 4.9, levels, evolution, gated power, the wider roster and
 harder gyms.** Branch `claude/charming-ride-q4ogfb`, prompt
 [`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),

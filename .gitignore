@@ -17,3 +17,10 @@ sim-reports/*
 
 # The gallery build (src/ui/gallery.ts), never shipped.
 dist-gallery/
+
+# Configuration and secrets never enter the repository. docs/security.md.
+# `.env.example` carries names with empty values and is the one committed file.
+.env
+.env.*
+!.env.example
+supabase/.temp/
