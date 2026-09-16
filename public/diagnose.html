@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <title>GYMRUN — on-device motion diagnostic</title>
+    <!--
+      Inline, like the app's own. Not decoration: a page with no icon makes the
+      browser request `/favicon.ico` anyway, and on a static host that is a 404
+      in the console of a tool whose whole output is a console-clean report.
+    -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Cpath d='M5 20l5-8 5 6 4-5 8 7' stroke='%23ef7d3b' stroke-width='3' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+
+    <!--
+      WHAT THIS IS, AND WHY IT IS NOT IN `src/`.
+
+      The iOS animations patch (PR #41) could not reproduce the reported defect.
+      On Playwright's WebKit at the reported device's descriptor every animated
+      class on the battle stage starts and moves, so the patch shipped the
+      harness, fixed what the harness found, and recorded — honestly — that
+      Linux WebKit shares iOS Safari's engine and not its graphics stack, its
+      accessibility settings or its power management. The remaining question is
+      therefore one only the device can answer, and this file is how it gets
+      asked.
+
+      It lives in `public/`, which Vite copies verbatim into `dist/`, for one
+      reason that decides everything else about it: **the instrument has to
+      still run on a device where the app's own stylesheet or entry script is
+      what is broken.** So it imports nothing, bundles nothing, and shares no
+      code with the app. Its own presentation is inline below and complete
+      before a single byte of the app is fetched. It enters no chunk, moves no
+      `contentHash`, and costs the shipped bundle nothing.
+
+      It reads computed style freely, which `test/no-computed-timing.test.ts`
+      forbids across the whole of `src/`. That rule is about *app timing*: a
+      duration read back out of CSS was Bug A, and a value must travel one way.
+      An instrument whose entire job is to report what the device's CSS engine
+      resolved is the one thing that must read in the other direction, and it
+      is outside `src/` so the structural test still holds over everything the
+      rule is for.
+    -->
+    <style>
+      /*
+       * The diagnostic's own presentation, entirely self-contained.
+       *
+       * Every selector is rooted at `#dg`, so it outranks the app stylesheet
+       * this page loads at runtime on specificity rather than on source order —
+       * the app's sheet arrives *after* this one and would otherwise win every
+       * tie. The stage box below is deliberately left alone: it is supposed to
+       * be styled by the app.
+       */
+      :root {
+        color-scheme: dark;
+        --dg-bg: #0d1117;
+        --dg-ink: #e6edf3;
+        --dg-dim: #9aa7b4;
+        --dg-line: #263140;
+        --dg-ok: #4ec98a;
+        --dg-warn: #e3b341;
+        --dg-bad: #f2705d;
+        --dg-accent: #ef7d3b;
+      }
+
+      html { background: var(--dg-bg); }
+
+      #dg {
+        box-sizing: border-box;
+        max-width: 46rem;
+        margin: 0 auto;
+        padding: 1rem 1rem 3rem;
+        background: var(--dg-bg);
+        color: var(--dg-ink);
+        font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      #dg *, #dg *::before, #dg *::after { box-sizing: border-box; }
+
+      #dg h1 {
+        margin: 0 0 0.25rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--dg-ink);
+      }
+
+      #dg .dg-sub { margin: 0 0 1rem; color: var(--dg-dim); font-size: 0.82rem; }
+
+      #dg h2 {
+        margin: 1.6rem 0 0.5rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 1px solid var(--dg-line);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--dg-dim);
+      }
+
+      #dg .dg-row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: baseline;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid rgba(38, 49, 64, 0.5);
+      }
+
+      #dg .dg-label { flex: 1 1 auto; min-width: 0; color: var(--dg-dim); font-size: 0.82rem; word-break: break-word; }
+      #dg .dg-value { flex: 0 1 auto; text-align: right; font-size: 0.82rem; word-break: break-all; }
+
+      #dg .dg-ok { color: var(--dg-ok); }
+      #dg .dg-warn { color: var(--dg-warn); }
+      #dg .dg-bad { color: var(--dg-bad); }
+      #dg .dg-info { color: var(--dg-ink); }
+
+      #dg .dg-verdict {
+        margin: 0 0 1rem;
+        padding: 0.85rem 1rem;
+        border: 1px solid var(--dg-line);
+        border-left: 4px solid var(--dg-dim);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 0.88rem;
+      }
+
+      #dg .dg-verdict[data-state="ok"] { border-left-color: var(--dg-ok); }
+      #dg .dg-verdict[data-state="warn"] { border-left-color: var(--dg-warn); }
+      #dg .dg-verdict[data-state="bad"] { border-left-color: var(--dg-bad); }
+
+      #dg .dg-verdict strong { display: block; margin-bottom: 0.35rem; font-size: 0.95rem; }
+      #dg .dg-verdict p { margin: 0.4rem 0 0; color: var(--dg-dim); }
+
+      #dg .dg-note { margin: 0.5rem 0 0; color: var(--dg-dim); font-size: 0.78rem; }
+
+      #dg button {
+        appearance: none;
+        -webkit-appearance: none;
+        display: block;
+        width: 100%;
+        margin: 1.25rem 0 0.5rem;
+        padding: 0.8rem 1rem;
+        border: 1px solid var(--dg-accent);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--dg-accent);
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        /* A tap target that clears the 44px iOS minimum without arithmetic. */
+        min-height: 48px;
+      }
+
+      #dg button:active { background: rgba(239, 125, 59, 0.14); }
+
+      #dg pre {
+        margin: 0.5rem 0 0;
+        padding: 0.75rem;
+        max-height: 22rem;
+        overflow: auto;
+        border: 1px solid var(--dg-line);
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--dg-dim);
+        font: inherit;
+        font-size: 0.72rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /*
+       * The three `calc()` control cases, each on its own element.
+       *
+       * **One element per case is the whole point, and the first build of this
+       * instrument got it wrong.** It reused a single element and re-assigned
+       * its `id` between cases, so the engine saw no change that would restart
+       * an animation, cases two and three reported no animation at all, and the
+       * tool shouted "this engine cannot animate a calc() duration" at a
+       * perfectly healthy desktop Chromium. A false headline from a diagnostic
+       * is worse than no diagnostic, so the cases cannot share an element.
+       *
+       * The keyframes are this file's own, not the app's, because the question
+       * is about the engine's arithmetic and not about the app's stylesheet.
+       */
+      #dg .dg-probe {
+        width: 24px;
+        height: 12px;
+        margin: 0.2rem 0;
+        border-radius: 2px;
+        background: var(--dg-dim);
+      }
+
+      #dg-calc-literal { animation: dg-probe-slide 800ms linear; }
+
+      #dg-calc-var { --dg-d: 800ms; animation: dg-probe-slide var(--dg-d) linear; }
+
+      #dg-calc-calc {
+        --dg-base: 3200ms;
+        --dg-d: calc(var(--dg-base) / 4);
+        animation: dg-probe-slide var(--dg-d) linear;
+      }
+
+      @keyframes dg-probe-slide {
+        0% { transform: translateX(0); opacity: 1; }
+        50% { transform: translateX(40px); opacity: 0.25; }
+        100% { transform: translateX(0); opacity: 1; }
+      }
+
+      /*
+       * The live stage. Not styled here on purpose — every rule that paints and
+       * moves it is supposed to arrive from the app's own shipped stylesheet,
+       * which is exactly what is under test. The frame and the label are.
+       */
+      #dg .dg-stage-frame {
+        margin: 0.5rem 0 0;
+        padding: 0.5rem;
+        border: 1px dashed var(--dg-line);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="dg">
+      <h1>GYMRUN — on-device motion diagnostic</h1>
+      <p class="dg-sub">
+        Standalone. Loads the deployed app's real stylesheet at runtime and
+        drives the app's own stage markup with it. Nothing here is part of the
+        app bundle.
+      </p>
+      <div class="dg-verdict" id="dg-verdict"><strong>Running…</strong></div>
+      <div id="dg-body"></div>
+      <button id="dg-copy" type="button">Copy the full report</button>
+      <pre id="dg-text">Running…</pre>
+    </div>
+
+    <script>
+      /* eslint-disable */
+      (function () {
+        'use strict';
+
+        // ==================================================================
+        // Output: every finding goes to the DOM and to a plain-text buffer at
+        // the same time, so what gets pasted back is exactly what was seen.
+        // ==================================================================
+
+        var body = document.getElementById('dg-body');
+        var textEl = document.getElementById('dg-text');
+        var verdictEl = document.getElementById('dg-verdict');
+        var lines = [];
+
+        function section(title) {
+          var h = document.createElement('h2');
+          h.textContent = title;
+          body.appendChild(h);
+          lines.push('', '== ' + title.toUpperCase() + ' ==');
+        }
+
+        function row(label, value, state) {
+          var div = document.createElement('div');
+          div.className = 'dg-row';
+          var l = document.createElement('span');
+          l.className = 'dg-label';
+          l.textContent = label;
+          var v = document.createElement('span');
+          v.className = 'dg-value dg-' + (state || 'info');
+          v.textContent = String(value);
+          div.appendChild(l);
+          div.appendChild(v);
+          body.appendChild(div);
+          lines.push(
+            '  ' + label + ': ' + String(value) + (state && state !== 'info' ? '  [' + state.toUpperCase() + ']' : ''),
+          );
+        }
+
+        function note(text) {
+          var p = document.createElement('p');
+          p.className = 'dg-note';
+          p.textContent = text;
+          body.appendChild(p);
+          lines.push('  ( ' + text + ' )');
+        }
+
+        function flush() {
+          textEl.textContent = lines.join('\n');
+        }
+
+        /** FNV-1a, 32-bit. A fingerprint, not a security hash. */
+        function fingerprint(text) {
+          var h = 0x811c9dc5;
+          for (var i = 0; i < text.length; i += 1) {
+            h ^= text.charCodeAt(i);
+            h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+          }
+          return ('00000000' + h.toString(16)).slice(-8);
+        }
+
+        function raf() {
+          return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+              requestAnimationFrame(resolve);
+            });
+          });
+        }
+
+        // ==================================================================
+        // The twelve beats.
+        //
+        // The same table `test/visual-motion.test.ts` asserts against, kept in
+        // the same order and with the same labels so a device report and a CI
+        // run can be read side by side line for line. `on` is where the
+        // attribute goes, `watch` is the element the engine puts the animation
+        // on, and they differ for nine of the twelve.
+        // ==================================================================
+
+        var BEATS = [
+          { label: 'the lunge', keyframes: 'actor-lunge', on: '.stage__actor--me', watch: '.stage__actor--me', attribute: 'data-acted', value: '1' },
+          { label: 'the hit', keyframes: 'sprite-hit', on: '.stage__actor--foe', watch: '.stage__actor--foe .sprite:not(.sprite--ghost)', attribute: 'data-hit', value: '1' },
+          { label: 'the faint', keyframes: 'sprite-sink', on: '.stage__actor--foe', watch: '.stage__actor--foe .sprite:not(.sprite--ghost)', attribute: 'data-fainting', value: 'true' },
+          { label: 'the switch-out (broken since V5.5)', keyframes: 'sprite-sink', on: '.stage__actor--me', watch: '.stage__actor--me .sprite--ghost', attribute: 'data-swapped', value: 'true' },
+          { label: 'the switch-in', keyframes: 'sprite-rise', on: '.stage__actor--me', watch: '.stage__actor--me .sprite:not(.sprite--ghost)', attribute: 'data-swapped', value: 'true' },
+          { label: 'the recall', keyframes: 'sprite-recall', on: '.stage__actor--foe', watch: '.stage__actor--foe .sprite:not(.sprite--ghost)', attribute: 'data-outro', value: 'recall' },
+          { label: 'the capture', keyframes: 'ball-catch', on: '.stage__actor--foe', watch: '.stage__actor--foe .stage__ball', attribute: 'data-outro', value: 'caught' },
+          { label: 'a prevented abnormality', keyframes: 'mark-halt', on: '.stage__actor--foe', watch: '.stage__actor--foe .stage__mark', attribute: 'data-abnormal', value: 'prevented' },
+          { label: 'a stage abnormality', keyframes: 'mark-shift', on: '.stage__actor--foe', watch: '.stage__actor--foe .stage__mark', attribute: 'data-abnormal', value: 'stage' },
+          { label: 'a trait abnormality', keyframes: 'mark-pulse', on: '.stage__actor--foe', watch: '.stage__actor--foe .stage__mark', attribute: 'data-abnormal', value: 'trait' },
+          { label: 'a volatile abnormality', keyframes: 'mark-settle', on: '.stage__actor--foe', watch: '.stage__actor--foe .stage__mark', attribute: 'data-abnormal', value: 'volatile' },
+          { label: 'a field abnormality', keyframes: 'mark-sweep', on: '.stage__actor--foe', watch: '.stage__actor--foe .stage__mark', attribute: 'data-abnormal', value: 'field' },
+        ];
+
+        /** Every motion token the stage times off, as the device resolves them. */
+        var TOKENS = [
+          '--motion-duration',
+          '--motion-beat',
+          '--motion-swap',
+          '--motion-outro',
+          '--motion-hp-shadow',
+          '--motion-idle',
+          '--lunge-distance',
+          '--hit-recoil',
+          '--hit-dip',
+          '--sprite-swap-travel',
+          '--recall-origin',
+          '--recall-travel',
+          '--mark-size',
+          '--mark-travel',
+        ];
+
+        // ==================================================================
+        // The stage, built to `ui/scene.ts`'s own markup.
+        //
+        // `createActor` appends ghost, sprite, ball and mark in that order,
+        // inside `.stage__actor stage__actor--<kind>`. The sprite `src` is a
+        // transparent data URI rather than a Showdown URL: a diagnostic that
+        // needs the CDN to be reachable would report a network failure as a
+        // motion failure, and every animation here is `transform` and
+        // `opacity`, neither of which cares what the image is.
+        // ==================================================================
+
+        var BLANK =
+          'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        function buildStage() {
+          var stage = document.createElement('div');
+          stage.className = 'stage';
+          ['me', 'foe'].forEach(function (kind) {
+            var actor = document.createElement('div');
+            actor.className = 'stage__actor stage__actor--' + kind;
+            actor.setAttribute('aria-hidden', 'true');
+            var ghost = document.createElement('img');
+            ghost.className = 'sprite sprite--ghost';
+            ghost.src = BLANK;
+            ghost.width = 96;
+            ghost.height = 96;
+            ghost.alt = '';
+            var img = document.createElement('img');
+            img.className = 'sprite';
+            img.src = BLANK;
+            img.width = 96;
+            img.height = 96;
+            img.alt = '';
+            var ball = document.createElement('span');
+            ball.className = 'stage__ball';
+            var mark = document.createElement('span');
+            mark.className = 'stage__mark';
+            actor.appendChild(ghost);
+            actor.appendChild(img);
+            actor.appendChild(ball);
+            actor.appendChild(mark);
+            stage.appendChild(actor);
+          });
+          return stage;
+        }
+
+        // ==================================================================
+        // Observing a beat: pause and seek, never wait.
+        //
+        // `test/visual-motion.test.ts` records three wrong ways to do this and
+        // why each one lost. The one that survived is the one used here, and it
+        // is the only one that can work on a phone at all: ask the element for
+        // its `Animation` objects, **pause them and seek** to chosen points
+        // inside the active window, and read the computed style at each. That
+        // is the same interpolated value the engine would have painted,
+        // obtained without depending on when anything is scheduled.
+        //
+        // Which matters more here than in CI, because the two things this
+        // instrument exists to catch — Low Power Mode throttling and a
+        // suspended compositor — are precisely the conditions under which
+        // "wait 200ms and look" reports a healthy animation as dead.
+        // ==================================================================
+
+        function snap(el) {
+          var cs = getComputedStyle(el);
+          return { transform: cs.transform, opacity: cs.opacity };
+        }
+
+        function observe(beat) {
+          var host = document.querySelector(beat.on);
+          var watched = document.querySelector(beat.watch);
+          if (!host || !watched) {
+            return { error: 'element not found: ' + (host ? beat.watch : beat.on) };
+          }
+
+          // Clear first and force a reflow, so an attribute left over from an
+          // earlier case cannot make this one look like it never started.
+          host.removeAttribute(beat.attribute);
+          void host.offsetWidth;
+          var rest = snap(watched);
+
+          host.setAttribute(beat.attribute, beat.value);
+          void host.offsetWidth;
+
+          var declared = getComputedStyle(watched);
+          var declaredName = declared.animationName;
+          var declaredDuration = declared.animationDuration;
+          var declaredDelay = declared.animationDelay;
+
+          var anims = [];
+          try {
+            anims = watched.getAnimations ? watched.getAnimations() : [];
+          } catch (err) {
+            anims = [];
+          }
+
+          var started = anims.map(function (a) {
+            return a.animationName || '(unnamed)';
+          });
+
+          var samples = [];
+          anims.forEach(function (a) {
+            try {
+              a.pause();
+            } catch (err) {
+              /* an animation that will not pause is still worth sampling */
+            }
+          });
+
+          [0.15, 0.3, 0.5, 0.7, 0.9].forEach(function (frac) {
+            anims.forEach(function (a) {
+              try {
+                var timing = a.effect.getComputedTiming();
+                var delay = timing.delay || 0;
+                var active = timing.activeDuration;
+                if (!isFinite(active) || active <= 0) return;
+                a.currentTime = delay + active * frac;
+              } catch (err) {
+                /* keep going: one unsampleable animation is not a verdict */
+              }
+            });
+            samples.push(snap(watched));
+          });
+
+          anims.forEach(function (a) {
+            try {
+              a.cancel();
+            } catch (err) {
+              /* nothing to undo */
+            }
+          });
+          host.removeAttribute(beat.attribute);
+
+          var moved = samples.some(function (s) {
+            return s.transform !== rest.transform || s.opacity !== rest.opacity;
+          });
+
+          return {
+            started: started,
+            moved: moved,
+            rest: rest,
+            samples: samples,
+            declaredName: declaredName,
+            declaredDuration: declaredDuration,
+            declaredDelay: declaredDelay,
+          };
+        }
+
+        // ==================================================================
+        // Frame rate. How Low Power Mode shows up, and the one measurement
+        // here that is about the device rather than about the stylesheet.
+        // ==================================================================
+
+        function measureFps(ms) {
+          return new Promise(function (resolve) {
+            var frames = 0;
+            var t0 = performance.now();
+            function tick(now) {
+              frames += 1;
+              var elapsed = now - t0;
+              if (elapsed >= ms) {
+                resolve({ fps: frames / (elapsed / 1000), frames: frames, elapsed: elapsed });
+              } else {
+                requestAnimationFrame(tick);
+              }
+            }
+            requestAnimationFrame(tick);
+          });
+        }
+
+        // ==================================================================
+        // The run.
+        // ==================================================================
+
+        var state = {
+          reduced: false,
+          sheetLoaded: false,
+          sheetHref: null,
+          keyframesFound: 0,
+          keyframesMissing: [],
+          beatsMoved: 0,
+          beatsTotal: BEATS.length,
+          beatsStatic: [],
+          beatsNeverStarted: [],
+          calcBroken: false,
+          calcVarBroken: false,
+          fps: null,
+          tokenFailures: [],
+        };
+
+        async function run() {
+          // ---- 1. Reduce Motion, first, because it explains the whole report
+          section('1. Reduce Motion');
+
+          var mq = null;
+          try {
+            mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+          } catch (err) {
+            mq = null;
+          }
+          state.reduced = mq ? mq.matches : false;
+
+          row(
+            'prefers-reduced-motion: reduce',
+            mq ? (state.reduced ? 'ON' : 'off') : 'matchMedia unavailable',
+            mq ? (state.reduced ? 'bad' : 'ok') : 'warn',
+          );
+          if (state.reduced) {
+            note(
+              'iOS Settings > Accessibility > Motion > Reduce Motion is on. GYMRUN ' +
+                'cancels every battle animation by design when it is set. If this is ' +
+                'the only red line below, nothing is broken.',
+            );
+          }
+          row('user agent', navigator.userAgent, 'info');
+          row('device pixel ratio', String(window.devicePixelRatio), 'info');
+          row('viewport', window.innerWidth + ' x ' + window.innerHeight, 'info');
+          row(
+            'touch',
+            'ontouchstart' in window || navigator.maxTouchPoints > 0 ? 'yes' : 'no',
+            'info',
+          );
+          flush();
+
+          // ---- 2. Which build is deployed, fingerprinted two ways
+          section('2. The deployed build');
+
+          var appIndex = new URL('./index.html', location.href);
+          var cssHref = null;
+          var scriptSrc = null;
+          var cssText = null;
+          var indexError = null;
+
+          try {
+            var res = await fetch(appIndex.href, { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            var html = await res.text();
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var link = doc.querySelector('link[rel="stylesheet"]');
+            var script = doc.querySelector('script[type="module"][src]');
+            if (link) cssHref = new URL(link.getAttribute('href'), appIndex.href).href;
+            if (script) scriptSrc = new URL(script.getAttribute('src'), appIndex.href).href;
+          } catch (err) {
+            indexError = String(err && err.message ? err.message : err);
+          }
+
+          row('app index', appIndex.href, indexError ? 'bad' : 'ok');
+          if (indexError) {
+            row('could not read the app index', indexError, 'bad');
+            note(
+              'Everything below still runs, but without the app stylesheet it ' +
+                'reports on this page rather than on GYMRUN.',
+            );
+          }
+
+          // Fingerprint one: the asset names. Vite puts a content hash in them,
+          // so a stale deploy cannot masquerade as a failed fix.
+          row('stylesheet asset', cssHref ? cssHref.split('/').pop() : 'not found', cssHref ? 'ok' : 'bad');
+          row('script asset', scriptSrc ? scriptSrc.split('/').pop() : 'not found', scriptSrc ? 'ok' : 'warn');
+
+          // Fingerprint two: a checksum of the bytes this device actually got.
+          // Independent of the filename, so a proxy or a cache that serves old
+          // content under a new name is still caught.
+          if (cssHref) {
+            try {
+              var cssRes = await fetch(cssHref, { cache: 'no-store' });
+              if (!cssRes.ok) throw new Error('HTTP ' + cssRes.status);
+              cssText = await cssRes.text();
+              row('stylesheet bytes', String(cssText.length), 'info');
+              row('stylesheet fingerprint', fingerprint(cssText), 'info');
+            } catch (err) {
+              row('stylesheet fetch failed', String(err && err.message ? err.message : err), 'bad');
+            }
+          }
+
+          // And load it for real, which is a third and stronger signal: a sheet
+          // that fetches and does not apply is a different failure from one
+          // that never arrives.
+          if (cssHref) {
+            state.sheetHref = cssHref;
+            state.sheetLoaded = await new Promise(function (resolve) {
+              var l = document.createElement('link');
+              l.rel = 'stylesheet';
+              l.href = cssHref;
+              l.onload = function () {
+                resolve(true);
+              };
+              l.onerror = function () {
+                resolve(false);
+              };
+              document.head.appendChild(l);
+            });
+            row('stylesheet applied', state.sheetLoaded ? 'yes' : 'NO', state.sheetLoaded ? 'ok' : 'bad');
+            // Give an `@import`ed sheet a frame to arrive before anything is read.
+            await raf();
+          }
+          flush();
+
+          // ---- 3. Did this device's parser keep the rules
+          section('3. What this device parsed');
+
+          /*
+           * The fifth of the patch's five candidate causes, asked of the device
+           * directly: WebKit discards a whole declaration on one unrecognised
+           * token, and a dropped `@keyframes` is invisible from the outside —
+           * the class is still on the element, the animation just never moves
+           * anything. Walking the CSSOM asks the engine what it kept rather
+           * than asking the text what was sent.
+           */
+          var keyframeNames = {};
+          var ruleCount = 0;
+
+          function walk(sheet, depth) {
+            if (depth > 4) return;
+            var rules = null;
+            try {
+              rules = sheet.cssRules;
+            } catch (err) {
+              return; // cross-origin; not expected here, but never throw
+            }
+            if (!rules) return;
+            for (var i = 0; i < rules.length; i += 1) {
+              var rule = rules[i];
+              ruleCount += 1;
+              if (rule.type === 7 || String(rule.constructor.name).indexOf('Keyframes') >= 0) {
+                if (rule.name) keyframeNames[rule.name] = true;
+              }
+              if (rule.styleSheet) walk(rule.styleSheet, depth + 1);
+              if (rule.cssRules && !rule.styleSheet) {
+                walk({ cssRules: rule.cssRules }, depth + 1);
+              }
+            }
+          }
+
+          for (var s = 0; s < document.styleSheets.length; s += 1) {
+            walk(document.styleSheets[s], 0);
+          }
+
+          row('CSS rules the engine kept', String(ruleCount), ruleCount > 100 ? 'ok' : 'warn');
+
+          var wanted = [];
+          BEATS.forEach(function (b) {
+            if (wanted.indexOf(b.keyframes) < 0) wanted.push(b.keyframes);
+          });
+          wanted.forEach(function (name) {
+            var present = !!keyframeNames[name];
+            if (!present) state.keyframesMissing.push(name);
+            else state.keyframesFound += 1;
+            row('@keyframes ' + name, present ? 'parsed' : 'MISSING', present ? 'ok' : 'bad');
+          });
+
+          // Feature support, measured on the device rather than inferred from a
+          // support table. The patch fixed `backdrop-filter` on documented
+          // history for want of a device; this is the measurement it wanted.
+          var features = [
+            ['color-mix()', 'color: color-mix(in srgb, red 50%, blue)'],
+            ['backdrop-filter', 'backdrop-filter: blur(4px)'],
+            ['-webkit-backdrop-filter', '-webkit-backdrop-filter: blur(4px)'],
+            ['calc() in a duration', 'animation-duration: calc(1s / 4)'],
+            ['custom property in a duration', 'animation-duration: var(--x)'],
+          ];
+          features.forEach(function (pair) {
+            var ok = false;
+            try {
+              ok = window.CSS && CSS.supports ? CSS.supports(pair[1]) : false;
+            } catch (err) {
+              ok = false;
+            }
+            row('supports ' + pair[0], ok ? 'yes' : 'no', ok ? 'ok' : 'warn');
+          });
+          flush();
+
+          // ---- 4. The stage, and every motion token as this device resolves it
+          section('4. The motion tokens');
+
+          var frame = document.createElement('div');
+          frame.className = 'dg-stage-frame';
+          var stage = buildStage();
+          frame.appendChild(stage);
+          body.appendChild(frame);
+          lines.push('  ( the live stage was built and driven below )');
+          await raf();
+
+          var rootStyle = getComputedStyle(document.documentElement);
+          TOKENS.forEach(function (token) {
+            var value = rootStyle.getPropertyValue(token).trim();
+            var bad = value === '';
+            if (bad) state.tokenFailures.push(token);
+            row(token, bad ? 'EMPTY — unresolved' : value, bad ? 'bad' : 'info');
+          });
+          note(
+            'These are the stylesheet fallbacks. The app writes --motion-duration ' +
+              'and --motion-outro onto the root at startup from data/displayTuning.ts, ' +
+              'and this page does not run the app, so a difference here is expected ' +
+              'and is not a defect. An EMPTY value is a defect.',
+          );
+
+          // A real beat's computed animation properties, which is the question
+          // "is it wired" — kept, because a static beat that is also unwired is
+          // a different bug from a static beat that is wired correctly.
+          var me = stage.querySelector('.stage__actor--me');
+          me.setAttribute('data-acted', '1');
+          await raf();
+          var beatStyle = getComputedStyle(me);
+          row('a live beat: animation-name', beatStyle.animationName, beatStyle.animationName === 'actor-lunge' ? 'ok' : 'bad');
+          row('a live beat: animation-duration', beatStyle.animationDuration, beatStyle.animationDuration === '0s' ? 'bad' : 'info');
+          row('a live beat: animation-play-state', beatStyle.animationPlayState, 'info');
+          me.removeAttribute('data-acted');
+          flush();
+
+          // ---- 5. All twelve beats
+          section('5. The twelve beats');
+
+          for (var b = 0; b < BEATS.length; b += 1) {
+            var beat = BEATS[b];
+            var seen = observe(beat);
+            if (seen.error) {
+              state.beatsStatic.push(beat.label);
+              row(beat.label, 'NO ELEMENT (' + seen.error + ')', 'bad');
+              continue;
+            }
+            var didStart = seen.started.indexOf(beat.keyframes) >= 0;
+            if (!didStart) state.beatsNeverStarted.push(beat.label);
+            if (seen.moved) {
+              state.beatsMoved += 1;
+            } else {
+              state.beatsStatic.push(beat.label);
+            }
+            row(
+              beat.label + '  [' + beat.keyframes + ']',
+              seen.moved ? 'MOVES' : didStart ? 'STATIC (started, nothing moved)' : 'STATIC (never started)',
+              seen.moved ? 'ok' : 'bad',
+            );
+            lines.push(
+              '      declared: ' +
+                seen.declaredName +
+                ' / ' +
+                seen.declaredDuration +
+                ' / delay ' +
+                seen.declaredDelay,
+            );
+            lines.push('      started: ' + (seen.started.length ? seen.started.join(', ') : 'none'));
+            lines.push('      rest:    ' + seen.rest.transform + ' | opacity ' + seen.rest.opacity);
+            seen.samples.forEach(function (sample, i) {
+              lines.push('      s' + i + ':      ' + sample.transform + ' | opacity ' + sample.opacity);
+            });
+            // Yield between beats so a throttled device is not asked to do all
+            // twelve inside one frame budget.
+            await raf();
+          }
+          row('beats that moved', state.beatsMoved + ' of ' + state.beatsTotal, state.beatsMoved === state.beatsTotal ? 'ok' : 'bad');
+          flush();
+
+          // ---- 6. The calc() discriminator
+          section('6. A calc() duration through a custom property');
+
+          note(
+            '--motion-beat is calc(var(--motion-duration) / 4) and every beat times ' +
+              'off it, so an engine that cannot resolve that arithmetic loses all ' +
+              'twelve at once while every class stays correctly wired.',
+          );
+
+          var CASES = [
+            { id: 'dg-calc-literal', label: 'a literal duration (control)', key: 'literal' },
+            { id: 'dg-calc-var', label: 'a plain var() duration (control)', key: 'var' },
+            { id: 'dg-calc-calc', label: 'calc() through a custom property', key: 'calc' },
+          ];
+
+          var probeHost = document.createElement('div');
+          body.appendChild(probeHost);
+
+          for (var c = 0; c < CASES.length; c += 1) {
+            var probeCase = CASES[c];
+            // Its own element, created fresh. See the stylesheet's note: the
+            // first build of this instrument shared one element between the
+            // three cases and reported a healthy engine as broken.
+            var el = document.createElement('div');
+            el.className = 'dg-probe';
+            el.id = probeCase.id;
+            probeHost.appendChild(el);
+            await raf();
+
+            var cs = getComputedStyle(el);
+            var resolvedDuration = cs.animationDuration;
+            var probeAnims = [];
+            try {
+              probeAnims = el.getAnimations ? el.getAnimations() : [];
+            } catch (err) {
+              probeAnims = [];
+            }
+
+            var restSnap = { transform: 'none', opacity: '1' };
+            var movedProbe = false;
+            probeAnims.forEach(function (a) {
+              try {
+                a.pause();
+                var timing = a.effect.getComputedTiming();
+                a.currentTime = (timing.delay || 0) + timing.activeDuration * 0.5;
+              } catch (err) {
+                /* sampled below regardless */
+              }
+            });
+            var mid = snap(el);
+            movedProbe = mid.transform !== restSnap.transform || mid.opacity !== restSnap.opacity;
+
+            if (probeCase.key === 'calc' && !movedProbe) state.calcBroken = true;
+            if (probeCase.key === 'var' && !movedProbe) state.calcVarBroken = true;
+
+            row(
+              probeCase.label,
+              (movedProbe ? 'MOVES' : 'STATIC') + '  (resolved ' + resolvedDuration + ', ' + probeAnims.length + ' animation' + (probeAnims.length === 1 ? '' : 's') + ')',
+              movedProbe ? 'ok' : 'bad',
+            );
+            lines.push('      mid-flight: ' + mid.transform + ' | opacity ' + mid.opacity);
+
+            probeAnims.forEach(function (a) {
+              try {
+                a.cancel();
+              } catch (err) {
+                /* nothing to undo */
+              }
+            });
+          }
+          flush();
+
+          // ---- 7. Frame rate
+          section('7. Frame rate');
+
+          var idle = await measureFps(1000);
+          state.fps = idle.fps;
+          row(
+            'frames per second, idle',
+            idle.fps.toFixed(1) + ' (' + idle.frames + ' frames in ' + idle.elapsed.toFixed(0) + 'ms)',
+            idle.fps >= 45 ? 'ok' : idle.fps >= 20 ? 'warn' : 'bad',
+          );
+          if (idle.fps < 45) {
+            note(
+              'Under 45fps. Low Power Mode throttles and can suspend CSS animation ' +
+                'entirely, which looks exactly like a stylesheet that does not work.',
+            );
+          }
+          flush();
+
+          // ---- The verdict
+          renderVerdict();
+          flush();
+        }
+
+        // ==================================================================
+        // The verdict.
+        //
+        // Ordered, and it stops at the first rule that fires, because the whole
+        // value of a headline is that it names *one* thing to go and check.
+        // Every rule below is a statement about what was measured on this
+        // device; none of them is a guess about the app.
+        // ==================================================================
+
+        function renderVerdict() {
+          var head;
+          var detail;
+          var level;
+
+          if (state.reduced) {
+            level = 'warn';
+            head = 'Reduce Motion is ON — this explains it.';
+            detail =
+              'iOS Settings > Accessibility > Motion > Reduce Motion is switched on. ' +
+              'GYMRUN cancels every battle animation by design when it is set, and ' +
+              'turns the end-of-fight hold down to its floor rather than off. Turn it ' +
+              'off and reload this page to test the engine itself. Nothing below is ' +
+              'evidence of a defect while this line is red.';
+          } else if (state.sheetHref && !state.sheetLoaded) {
+            level = 'bad';
+            head = "The app's stylesheet did not load on this device.";
+            detail =
+              'It was found in the app index and then failed to apply, so nothing ' +
+              'about the motion system can be concluded from the rest of this report. ' +
+              'This is a delivery problem — a path, a MIME type or a cache — not a ' +
+              'CSS one.';
+          } else if (state.keyframesMissing.length > 0) {
+            level = 'bad';
+            head = "This device's CSS parser dropped " + state.keyframesMissing.length + ' of the stage keyframes.';
+            detail =
+              'Missing: ' +
+              state.keyframesMissing.join(', ') +
+              '. WebKit discards a whole declaration on one unrecognised token, so a ' +
+              'keyframe that is in the file and not in the CSSOM is the fifth ' +
+              'candidate cause, confirmed on hardware. This is the answer.';
+          } else if (state.tokenFailures.length > 0) {
+            level = 'bad';
+            head = 'Motion tokens did not resolve on this device.';
+            detail =
+              'Empty: ' +
+              state.tokenFailures.join(', ') +
+              '. A duration that resolves to nothing gives every rule that reads it an ' +
+              'invalid value, and an invalid duration is a dropped declaration.';
+          } else if (state.calcBroken && !state.calcVarBroken) {
+            level = 'bad';
+            head = 'This engine will not animate a calc() duration through a custom property.';
+            detail =
+              'The literal and plain-var() controls both moved and the calc() case did ' +
+              'not, so this is arithmetic and not custom properties. --motion-beat is ' +
+              'calc(var(--motion-duration) / 4), which is why all twelve beats go at ' +
+              'once. The fix is to publish the beat length from JavaScript the way ' +
+              '--motion-outro already is, rather than deriving it in CSS.';
+          } else if (state.calcVarBroken) {
+            level = 'bad';
+            head = 'This engine will not animate a duration held in a custom property.';
+            detail =
+              'Even the plain var() control was static. Every motion length in the ' +
+              'stylesheet is a custom property, so this takes the whole system.';
+          } else if (state.beatsMoved === 0) {
+            level = 'bad';
+            head = 'Nothing on the stage moves on this device, and the usual causes are ruled out.';
+            detail =
+              'The stylesheet loaded, every keyframe parsed, every token resolved and ' +
+              'the calc() controls all moved — and no beat moved. That is a new ' +
+              'finding, not one of the five candidates. Paste this report back: the ' +
+              'per-beat sample lines below carry the resting and mid-flight values ' +
+              'that say which property refused to interpolate.';
+          } else if (state.beatsStatic.length > 0) {
+            level = 'bad';
+            head = state.beatsStatic.length + ' of ' + state.beatsTotal + ' beats are static on this device.';
+            detail =
+              'Static: ' +
+              state.beatsStatic.join('; ') +
+              '. A partial failure is more informative than a total one — these share ' +
+              'something the working beats do not. Paste this report back.';
+          } else if (state.fps !== null && state.fps < 20) {
+            level = 'warn';
+            head = 'Every beat moves, but this device is rendering at ' + state.fps.toFixed(0) + 'fps.';
+            detail =
+              'The motion system is intact and the frame rate is not. Low Power Mode ' +
+              'throttles and can suspend CSS animation outright, which on screen is ' +
+              'indistinguishable from animations that never run. Check the battery ' +
+              'setting and re-run.';
+          } else if (state.fps !== null && state.fps < 45) {
+            level = 'warn';
+            head = 'Every beat moves, at ' + state.fps.toFixed(0) + 'fps.';
+            detail =
+              'Nothing is broken, but the frame rate is low enough that a 187ms beat ' +
+              'gets few frames to be seen in. Low Power Mode is the first thing to ' +
+              'check.';
+          } else {
+            level = 'ok';
+            head = 'Everything this instrument can see is healthy.';
+            detail =
+              'All ' +
+              state.beatsTotal +
+              ' beats move, every keyframe parsed, every token resolved, the calc() ' +
+              'controls pass and the frame rate is normal. If the app still shows no ' +
+              'animation on this device, the fault is above the CSS — check section 2 ' +
+              'to confirm this is the build you think it is, then paste this report ' +
+              'back.';
+          }
+
+          verdictEl.setAttribute('data-state', level);
+          verdictEl.textContent = '';
+          var strong = document.createElement('strong');
+          strong.textContent = head;
+          var p = document.createElement('p');
+          p.textContent = detail;
+          verdictEl.appendChild(strong);
+          verdictEl.appendChild(p);
+
+          lines.unshift(
+            'GYMRUN on-device motion diagnostic',
+            new Date().toISOString(),
+            location.href,
+            '',
+            'VERDICT: ' + head,
+            detail,
+          );
+        }
+
+        // ==================================================================
+        // Copy. The clipboard API needs a user gesture and a secure context on
+        // iOS, and the button click is one — but a page served over plain HTTP
+        // has no `navigator.clipboard` at all, so the textarea path is not a
+        // nicety. The report is also rendered in full below the button, so a
+        // device where both fail can still be read and screenshotted.
+        // ==================================================================
+
+        document.getElementById('dg-copy').addEventListener('click', function () {
+          var button = this;
+          var text = textEl.textContent;
+          function done(ok) {
+            button.textContent = ok ? 'Copied — paste it back' : 'Copy failed; select the text below';
+            setTimeout(function () {
+              button.textContent = 'Copy the full report';
+            }, 2600);
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(
+              function () {
+                done(true);
+              },
+              function () {
+                legacyCopy(text, done);
+              },
+            );
+          } else {
+            legacyCopy(text, done);
+          }
+        });
+
+        function legacyCopy(text, done) {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '0';
+          ta.style.left = '0';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          var ok = false;
+          try {
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            ok = document.execCommand('copy');
+          } catch (err) {
+            ok = false;
+          }
+          document.body.removeChild(ta);
+          done(ok);
+        }
+
+        // A diagnostic that dies silently is worse than none: whatever goes
+        // wrong, the page says so and keeps whatever it had already collected.
+        run().catch(function (err) {
+          verdictEl.setAttribute('data-state', 'bad');
+          verdictEl.textContent = '';
+          var strong = document.createElement('strong');
+          strong.textContent = 'The diagnostic itself failed.';
+          var p = document.createElement('p');
+          p.textContent = String((err && err.stack) || err);
+          verdictEl.appendChild(strong);
+          verdictEl.appendChild(p);
+          lines.unshift('DIAGNOSTIC ERROR: ' + String((err && err.stack) || err), '');
+          flush();
+        });
+      })();
+    </script>
+  </body>
+</html>
