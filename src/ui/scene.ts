@@ -20,6 +20,7 @@
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
 import type { FlaggedTurn } from '../core/battle/flags';
+import type { AbnormalityMark } from './abnormality';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -94,6 +95,21 @@ interface Actor {
    * something that is not in the fight is one repaint away from showing it.
    */
   ball: HTMLElement;
+  /**
+   * Where an abnormality is drawn. **Branch 3B.**
+   *
+   * Its own element, and that is forced rather than tidy:
+   * `.sprite:not(.sprite--ghost)` already carries four animation rules — the
+   * hit, the faint, the swap and the recall — and a fifth would cancel one of
+   * them. The faint's comment in `styles.css` documents managing that exact
+   * collision by rule order, and a fifth contender is not worth managing.
+   *
+   * So the mark animates alongside the sprite rather than on it, which also
+   * buys the thing Branch 3B is for: an abnormality beat can run *concurrently*
+   * with the hit it accompanies, so a turn carrying six of them costs exactly
+   * what a turn carrying none costs.
+   */
+  mark: HTMLElement;
   /** `p1` faces away, `p2` faces the player. The protocol's own sides. */
   side: 'p1' | 'p2';
 }
@@ -159,7 +175,22 @@ export interface Scene {
    * here is that there is then no second reading to disagree with the log.
    * Omitted on a redraw that is not the result of new protocol.
    */
-  update(view: BattleUiView, onChoose: (choice: Choice) => void, turns?: readonly FlaggedTurn[]): void;
+  update(
+    view: BattleUiView,
+    onChoose: (choice: Choice) => void,
+    turns?: readonly FlaggedTurn[],
+    /**
+     * The abnormality marks for this turn, already reduced. **Branch 3B.**
+     *
+     * Handed in rather than derived here, and that is a boundary rather than a
+     * convenience: `test/boundaries.test.ts` forbids this file from reading a
+     * flag, because a beat that could see severity is one step from a beat that
+     * shows it. `ui/abnormality.ts` does the reduction; `screens/battle.ts`
+     * calls it off the same single protocol reading it already makes, so there
+     * is still one source of truth about a turn and now three consumers of it.
+     */
+    marks?: readonly AbnormalityMark[],
+  ): void;
   /**
    * Play the end of the fight, and park until it has been seen.
    *
@@ -321,7 +352,7 @@ export function createScene(): Scene {
       settleActor(meActor);
       finishOutro();
     },
-    update(view, onChoose, turns) {
+    update(view, onChoose, turns, marks) {
       updateActor(foeActor, view.opponent);
       updateActor(meActor, view.player);
       // Whether each bar drew a chunk. The hit beat reads this and nothing
@@ -333,7 +364,7 @@ export function createScene(): Scene {
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
-      beats({ me: meActor, foe: foeActor }, hit, turns);
+      beats({ me: meActor, foe: foeActor }, hit, turns, marks ?? []);
     },
   };
 }
@@ -388,9 +419,16 @@ function createActor(kind: 'me' | 'foe', side: 'p1' | 'p2'): Actor {
   const sprite = pokeballSprite();
   ball.style.backgroundImage = sprite.backgroundImage;
   ball.style.backgroundPosition = sprite.backgroundPosition;
+  /*
+   * The abnormality mark. Built once and never drawn at rest, like the ball —
+   * an element on the stage holding a thing that is not happening is one
+   * repaint away from showing it.
+   */
+  const mark = el('span', 'stage__mark');
+  mark.setAttribute('aria-hidden', 'true');
   // Ghost first, so the arriving sprite paints over the one it replaced.
-  root.append(ghost, img, ball);
-  return { root, img, ghost, ball, side };
+  root.append(ghost, img, ball, mark);
+  return { root, img, ghost, ball, mark, side };
 }
 
 /**
@@ -496,6 +534,9 @@ function settleActor(actor: Actor): void {
    * still stays off this list: it is state, not a beat.
    */
   delete actor.root.dataset['outro'];
+  // The abnormality beat is a beat like the rest, so a tap ends it. Branch 3B.
+  delete actor.root.dataset['abnormal'];
+  delete actor.root.dataset['abnormalSlot'];
   actor.ghost.removeAttribute('src');
 }
 
@@ -923,6 +964,7 @@ function beats(
   actors: { me: Actor; foe: Actor },
   hit: { me: boolean; foe: boolean },
   turns: readonly FlaggedTurn[] | undefined,
+  marks: readonly AbnormalityMark[],
 ): void {
   for (const actor of [actors.me, actors.foe]) {
     delete actor.root.dataset['acted'];
@@ -950,6 +992,30 @@ function beats(
     const other = side === 'p1' ? 'p2' : 'p1';
     const slot = seen.indexOf(other);
     actorOf(side).root.dataset['hit'] = String(slot >= 0 ? slot + 1 : Math.max(seen.length, 1));
+  }
+
+  /*
+   * The abnormality marks, **handed in rather than read here.** Branch 3B.
+   *
+   * `ui/abnormality.ts` reduces the turn's flags to at most one class and slot
+   * per side, and this only writes them. That split is a boundary rather than a
+   * tidy-up: `test/boundaries.test.ts` forbids this file from touching `.flags`
+   * at all, because "a beat that read `flags` would be one step from a recoil
+   * that grew with the multiplier, which is a verdict drawn on the board". The
+   * scene cannot weight a beat by severity because it never sees severity.
+   *
+   * The slot is the slot of the action that caused the flag, so a mark runs
+   * concurrently with the lunge or hit it accompanies and the turn gains no
+   * time at all.
+   */
+  for (const actor of [actors.me, actors.foe]) {
+    delete actor.root.dataset['abnormal'];
+    delete actor.root.dataset['abnormalSlot'];
+  }
+  for (const mark of marks) {
+    const actor = actorOf(mark.side);
+    actor.root.dataset['abnormal'] = mark.klass;
+    actor.root.dataset['abnormalSlot'] = String(mark.slot);
   }
 }
 

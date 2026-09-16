@@ -2015,6 +2015,110 @@ body {
   animation: sprite-recall calc(var(--motion-outro) * 0.55) ease-in both;
 }
 
+/*
+ * The abnormality beats. **Branch 3B.**
+ *
+ * Five classes — `prevented`, `stage`, `trait`, `volatile`, `field` — one beat
+ * each, on `.stage__mark` and never on `.sprite`. That is forced:
+ * `.sprite:not(.sprite--ghost)` already carries the hit, the faint, the swap
+ * and the recall, and a fifth animation there would cancel one of them.
+ *
+ * **Every class has its own shape and none has more weight than another.** The
+ * five share `--motion-beat`, share `--mark-travel`, share their opacity curve,
+ * and differ only in what they do with them. `flags.ts` says there is "no
+ * severity field, no rank, no ordering by importance, and there never will
+ * be"; a beat that was larger for a status than for a stat drop would be the
+ * first place that broke, and it would break silently.
+ *
+ * **They cost nothing.** The delay is the slot of the action that produced the
+ * flag, written by `beats()`, so a mark runs concurrently with the lunge or hit
+ * it accompanies rather than after it. A turn carrying six abnormalities takes
+ * exactly as long as a turn carrying none.
+ *
+ * `transform` and `opacity` only, and **nothing travels outside the body's own
+ * box** — `--mark-travel` is a fraction of a 96px actor and the marks start
+ * centred on it. That rule is not aesthetic: `.stage` has no `overflow: hidden`
+ * and cannot have one, because the two panels are its children and overhang it
+ * by design, so a transform reaching past the edge widens the document on a
+ * 390px phone. `sprite-recall`'s note above is the same finding.
+ */
+.stage__mark {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--mark-size);
+  height: var(--mark-size);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  /* The stage's own ink, not a hue. A colour here would rank one class against
+     another the moment a second colour appeared beside it. */
+  border: 2px solid var(--text-dim);
+}
+
+.stage__actor[data-abnormal] .stage__mark {
+  animation-duration: var(--motion-beat);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+/* The slot, matching the lunge and hit delays exactly.
+
+   Slot 1 has no rule of its own: its delay is zero, which is already the
+   initial value, and writing `0ms` would be a hardcoded duration —
+   `test/visual-tokens.test.ts` counts those and caught exactly this. When the
+   slot moves back to 1 the rule below stops matching and the delay reverts on
+   its own, so nothing needs resetting. */
+.stage__actor[data-abnormal-slot="2"] .stage__mark { animation-delay: calc(var(--motion-beat) * 2); }
+
+/* **prevented** — the ring closes and stops. The one beat that reads as
+   absence, which is what these events are: the turn produced nothing. */
+.stage__actor[data-abnormal="prevented"] .stage__mark { animation-name: mark-halt; }
+@keyframes mark-halt {
+  0% { opacity: 0; transform: scale(1.35); }
+  45% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* **stage** — a stat moved, so the ring moves on that axis. Direction is not
+   carried here: `boost` and `unboost` share the beat, because which way it went
+   is a word on the strip and a chip on the panel, and a beat that rose for one
+   and fell for the other would be the board taking a view on which is better. */
+.stage__actor[data-abnormal="stage"] .stage__mark { animation-name: mark-shift; }
+@keyframes mark-shift {
+  0% { opacity: 0; transform: translateY(var(--mark-travel)) scale(0.9); }
+  45% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(calc(var(--mark-travel) * -1)) scale(1); }
+}
+
+/* **trait** — an ability fired: one pulse from the body itself. */
+.stage__actor[data-abnormal="trait"] .stage__mark { animation-name: mark-pulse; }
+@keyframes mark-pulse {
+  0% { opacity: 0; transform: scale(0.55); }
+  40% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
+/* **volatile** — something settled onto the body and stayed. It ends held
+   rather than gone, which is the one shape difference that says "this is still
+   true" without saying anything about how bad it is. */
+.stage__actor[data-abnormal="volatile"] .stage__mark { animation-name: mark-settle; }
+@keyframes mark-settle {
+  0% { opacity: 0; transform: scale(1.3) rotate(-8deg); }
+  55% { opacity: 1; transform: scale(1) rotate(0deg); }
+  100% { opacity: 0.45; transform: scale(1) rotate(0deg); }
+}
+
+/* **field** — about neither Pokemon, so it sweeps rather than centres. Still
+   inside the actor's box: the board has no element of its own on this stage,
+   and giving it one is a bigger change than this patch. */
+.stage__actor[data-abnormal="field"] .stage__mark { animation-name: mark-sweep; }
+@keyframes mark-sweep {
+  0% { opacity: 0; transform: translateX(calc(var(--mark-travel) * -1)) scaleX(0.6); }
+  50% { opacity: 1; transform: translateX(0) scaleX(1); }
+  100% { opacity: 0; transform: translateX(var(--mark-travel)) scaleX(0.6); }
+}
+
 /* ---------- screens ---------- */
 
 /*
@@ -3235,6 +3339,16 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   .stage__actor--me[data-outro='recall'] .sprite:not(.sprite--ghost),
   .stage__actor[data-outro='caught'] .sprite:not(.sprite--ghost) { animation: none; }
   .stage__actor[data-outro='caught'] .stage__ball { animation: none; }
+
+  /*
+   * The abnormality beats. Cancelled like every other, and the mark's resting
+   * state is `opacity: 0` — so reduced motion removes the movement and the
+   * flag word on the strip beside it still says exactly what happened. Nothing
+   * is withheld from a player who asked for less motion; `volatile`'s held
+   * end state is the only thing lost, and the panel's own chip already carries
+   * that fact.
+   */
+  .stage__actor[data-abnormal] .stage__mark { animation: none; }
 }
 
 /* ==========================================================================

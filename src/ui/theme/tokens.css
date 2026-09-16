@@ -363,6 +363,14 @@
      in — see `sprite-recall`'s note in styles.css for why nothing in the outro
      may leave that box. */
   --recall-travel: 22px;
+  /* The abnormality mark's size and how far it travels. **Branch 3B.**
+     Both are fractions of the 96px actor and the mark starts centred on it, so
+     no beat reaches outside the box its body stands in — `.stage` cannot clip,
+     because the two panels are its children and overhang it by design, so a
+     transform past the edge would widen the document on a 390px phone. Shared
+     by all five classes: they differ in shape, never in size. */
+  --mark-size: 46px;
+  --mark-travel: 10px;
   /* The idle bob on a figure: two held frames, so one cycle is two of these
      halves. **Idle-sprites patch.** Not derived from `--motion-duration`,
      deliberately: that number is the added time per battle turn, and an idle

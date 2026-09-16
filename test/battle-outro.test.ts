@@ -31,8 +31,14 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createBattle } from '../src/core/battle/driver';
+import { readFlags, type FlagDeps } from '../src/core/battle/flags';
+import { buildBattleUiView } from '../src/core/battle/view';
 import type { BattleReview } from '../src/core/run';
+import { abilityEffects } from '../src/data/abilityEffects';
+import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { outroFor } from '../src/ui/app';
+import { abnormalityMarks } from '../src/ui/abnormality';
 import { createScene, type Scene } from '../src/ui/scene';
 import { resetSettings } from '../src/ui/settings';
 
@@ -219,5 +225,118 @@ describe('the result screen does not arrive before the fight has ended', () => {
     // would promise something the run is about to decline.
     const lostAtWild = { won: false, node: { acquisition: { species: 'Pikachu' } } } as unknown as BattleReview;
     expect(outroFor(lostAtWild)).toBe('defeat');
+  });
+});
+
+/**
+ * The abnormality beats. **Branch 3B.**
+ *
+ * Driven by hand-written protocol rather than played battles, for the reason
+ * `test/flags.test.ts`'s stub block gives: the point of each case is a specific
+ * shape, and waiting for a real fight to produce a flinch is a slow way to
+ * assert one.
+ *
+ * The scene is fed a view and a `FlaggedTurn[]` exactly as `screens/battle.ts`
+ * does, so what is asserted is the wiring that ships.
+ */
+describe('an abnormality gets a beat, and it costs the turn nothing', () => {
+  const STUB: FlagDeps = {
+    priorityOf: () => 0,
+    moveIdentityOf: () => ({ type: 'Normal', category: 'Physical', contact: true }),
+    typesOf: () => ['Normal'],
+  };
+
+  /**
+   * A turn's worth of protocol, read and handed to a fresh scene.
+   *
+   * Deliberately the same three calls `ui/screens/battle.ts` makes — one
+   * `readFlags` over the batch, `abnormalityMarks` over the result, then
+   * `scene.update(view, onChoose, turns, marks)` — so what is asserted below is
+   * the wiring that ships rather than a rehearsal of it. The scene derives no
+   * mark of its own: `test/boundaries.test.ts` forbids it from reading a flag.
+   */
+  function watch(lines: readonly string[]): Scene {
+    const scene = createScene();
+    const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'ABNORM01' });
+    const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+    const turns = readFlags([...lines], STUB);
+    scene.update(view, () => undefined, turns, abnormalityMarks(turns));
+    return scene;
+  }
+
+  const OPEN = ['|switch|p1a: Snorlax|Snorlax, L50, M|235/235', '|switch|p2a: Golem|Golem, L50, M|155/155', '|turn|1'];
+
+  it('marks a flinched turn, which today leaves no other trace at all', () => {
+    const scene = watch([...OPEN, '|cant|p1a: Snorlax|flinch']);
+    expect(actor(scene, 'me').dataset['abnormal']).toBe('prevented');
+  });
+
+  it('gives a stat change its own shape, and both directions the same one', () => {
+    const rose = watch([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-boost|p1a: Snorlax|atk|1']);
+    const fell = watch([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-unboost|p1a: Snorlax|atk|1']);
+    expect(rose.root.querySelector('.stage__actor--me')?.getAttribute('data-abnormal')).toBe('stage');
+    /*
+     * The same beat for a rise and a fall, deliberately. Which way it went is a
+     * word on the strip and a chip on the panel; a beat that rose for one and
+     * fell for the other would be the board taking a view on which is better.
+     */
+    expect(fell.root.querySelector('.stage__actor--me')?.getAttribute('data-abnormal')).toBe('stage');
+  });
+
+  it('tells the five classes apart', () => {
+    const cases: ReadonlyArray<[string, string]> = [
+      ['|-ability|p1a: Snorlax|Intimidate|boost', 'trait'],
+      ['|-start|p1a: Snorlax|confusion', 'volatile'],
+      ['|-weather|RainDance|[from] ability: Drizzle|[of] p1a: Snorlax', 'field'],
+      ['|-fail|p1a: Snorlax', 'prevented'],
+    ];
+    for (const [line, klass] of cases) {
+      const scene = watch([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', line]);
+      expect(actor(scene, 'me').dataset['abnormal'], line).toBe(klass);
+    }
+  });
+
+  /*
+   * **The negative, and the one a plausible one-line change breaks.** The beats
+   * must cost an ordinary turn nothing at all — not "be fast on", but "not
+   * exist on".
+   */
+  it('marks nothing on a turn that was only damage', () => {
+    const scene = watch([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-damage|p2a: Golem|100/155']);
+    expect(actor(scene, 'me').dataset['abnormal']).toBeUndefined();
+    expect(actor(scene, 'foe').dataset['abnormal']).toBeUndefined();
+  });
+
+  it('rides the slot of the action that caused it, so it adds no time', () => {
+    const scene = watch([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-unboost|p2a: Golem|spe|1']);
+    // p1 acted first, so its target's mark sits in slot 1 with p1's own lunge.
+    expect(actor(scene, 'foe').dataset['abnormalSlot']).toBe('1');
+  });
+
+  it('takes one mark per side, and the strip keeps the rest', () => {
+    const scene = watch([
+      ...OPEN,
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-unboost|p2a: Golem|spe|1',
+      '|-unboost|p2a: Golem|atk|1',
+      '|-start|p2a: Golem|confusion',
+    ]);
+    // First in protocol order — which `flags.ts` calls "the one ordering that is
+    // a fact rather than an opinion", so taking the first is not a ranking.
+    expect(actor(scene, 'foe').dataset['abnormal']).toBe('stage');
+  });
+
+  it('clears on a tap, like every other beat on the stage', () => {
+    const scene = watch([...OPEN, '|cant|p1a: Snorlax|flinch']);
+    expect(actor(scene, 'me').dataset['abnormal']).toBe('prevented');
+    scene.root.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(actor(scene, 'me').dataset['abnormal']).toBeUndefined();
+    expect(actor(scene, 'me').dataset['abnormalSlot']).toBeUndefined();
+  });
+
+  it('builds a mark that is not drawn until something happens', () => {
+    const scene = createScene();
+    expect(scene.root.querySelector('.stage__mark'), 'the mark is built with the actor').not.toBeNull();
+    expect(actor(scene, 'me').dataset['abnormal']).toBeUndefined();
   });
 });

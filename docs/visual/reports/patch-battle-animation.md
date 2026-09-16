@@ -389,3 +389,102 @@ that a defeat marks neither side; the hold resolving at once when the token is
 zero, which is also the reduced-motion path; cancel resolving rather than
 rejecting; a tap clearing it), and `test/visual-battle-outro.test.ts`, the
 browser proof above.
+
+
+---
+
+# Branch 3B: the abnormality beats
+
+Deviations: [`../../generation.md`](../../generation.md) section 24.
+Vocabulary: [`../../reports/battle-anim-2-protocol-census.md`](../../reports/battle-anim-2-protocol-census.md).
+
+## 11. Five beats, and they cost the turn nothing
+
+| class | shape | fires on (% of battles) |
+|---|---|---|
+| `prevented` | the ring closes and stops | `cant` 5.3%, `failed` 9.8% |
+| `stage` | shifts on an axis | `boost` 26.0% + `unboost` 52.5% |
+| `trait` | one pulse from the body | `ability` 35.2% |
+| `volatile` | settles and holds | `volatile` 4.8% |
+| `field` | sweeps across | `field` 18.3% |
+
+**A mark's delay is the delay of the lunge or hit it accompanies**, not a slot
+after it, so a turn carrying six abnormalities takes exactly as long as a turn
+carrying none. Release C's "total added time per turn is one number" holds with
+no amendment. The alternative — a slot each — was declined in planning, and the
+census says why it would have hurt: at 59.5% and 45% for the two commonest
+classes, serialising would have lengthened most turns in the game.
+
+The five share duration, size, travel and opacity curve and differ only in
+shape. The mark is drawn in the stage's own ink, not a hue: a colour would rank
+one class against another the moment a second appeared beside it. **`boost` and
+`unboost` share one beat** — which way a stat went is a word on the strip and a
+chip on the panel, and a beat that rose for one and fell for the other would be
+the board taking a view on which is better.
+
+## 12. The first build reproduced the bug it was fixing
+
+`prevented` was built first because a flinched turn is invisible by
+construction: no damage, no chunk, no beat. **That turned out to be true of the
+beat scheduler too.**
+
+`beats()` finds the turn to animate by `actions.length > 0`. `|cant|` *replaces*
+the `|move|` line rather than accompanying it, so `readTurns` produces no action
+for a prevented turn and its flag lands in `residual` — and the first build
+therefore marked nothing on exactly the turn that already leaves no other trace.
+
+Caught by the two cases written for it, before anything shipped:
+
+```
+× marks a flinched turn, which today leaves no other trace at all
+  → expected undefined to be 'prevented'
+```
+
+**The fix was already in the tree.** `ui/flag-strip.ts`'s `latest()` prefers the
+last group carrying flags and falls back to the last with actions; `beats()` now
+mirrors that rather than inventing a second rule, so the strip and the stage
+answer "which turn is being shown" identically. Generalised in §24: *a consumer
+that finds "the current turn" by looking for actions cannot see the turns where
+nothing acted* — and those are the interesting ones.
+
+## 12b. The scene is not allowed to see a flag, and that is the good part
+
+The first build reduced flags to classes inside `beats()`, in `ui/scene.ts`.
+`test/boundaries.test.ts` refused it, and its reason is the whole patch's
+argument turned into a guarantee:
+
+> A beat that read `flags` would be one step from a recoil that grew with the
+> multiplier, which is a verdict drawn on the board.
+
+Every comment that build wrote — "none has more weight than another", "not a
+ranking" — is precisely the sort of promise the rule exists to replace. A scene
+that *can* see severity is one plausible edit from showing it.
+
+So the reduction moved out to `src/ui/abnormality.ts`: a pure function from
+`FlaggedTurn[]` to at most one `{ side, klass, slot }` per side. The scene is
+handed a class and a slot and **cannot** weight a beat by severity, because it
+never sees severity. `screens/battle.ts` still reads the protocol once and now
+feeds three consumers — the log, the strip and the marks — rather than two,
+which is the rule that file opens with.
+
+Better than what it replaced, not merely compliant: the reducer is pure and
+tested without a DOM, the scene is write-only, and the seam is covered from both
+ends.
+
+## 13. Gates at 3B
+
+`tsc`, `eslint`, `npm run build`, `npm run smoke` green. `contentHash` unmoved
+at `b381d0` — 3B touches no `core/` or `data/` file.
+
+`test/battle-outro.test.ts` grows to 21 cases: one per class, the slot
+assertion, one-mark-per-side, tap-to-clear, the mark not drawn at rest, and
+**the negative that a turn which was only damage marks nothing at all** — not
+"is fast", but "does not exist".
+
+`test/visual-battle-outro.test.ts` gains the assertion `scripts/smoke.mjs`
+cannot make: it plays until a real turn carries an abnormality, then checks
+`scrollWidth` is still 390 and the mark is genuinely animating. A transform
+contributes to scrollable overflow and `.stage` cannot clip — its two panel
+children overhang it by design — so a mark reaching past the actor's box would
+widen the document on a phone with nothing else to catch it. Same blind spot 3A
+found with the recall.

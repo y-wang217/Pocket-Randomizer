@@ -101,3 +101,42 @@ describe('a fight ends on the stage it was fought on', () => {
     throw new Error('never reached the end of a fight');
   }, 300_000);
 });
+
+describe('an abnormality beat stays inside the body it is about', () => {
+  /*
+   * **The assertion `scripts/smoke.mjs` cannot make.** A smoke walk never
+   * produces an abnormality beat, and a transform contributes to scrollable
+   * overflow — so a mark reaching past the actor's box widens the document on a
+   * 390px phone with nothing to catch it. `.stage` cannot clip: the two panels
+   * are its children and overhang it by design. Branch 3A learned this with the
+   * recall and Branch 3B inherits the constraint.
+   */
+  it('overflows nothing, on a turn that actually carries one', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', PHONE);
+    await playUntil(page, (screen) => screen === 'battle');
+
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await stepOnce(page);
+      await page.waitForTimeout(40);
+      const probe = await page.evaluate(() => ({
+        marks: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal]')].map(
+          (a) => (a as HTMLElement).dataset['abnormal'],
+        ),
+        scrollWidth: globalThis.document.documentElement.scrollWidth,
+        running: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal] .stage__mark')].map(
+          (n) => globalThis.getComputedStyle(n).animationName,
+        ),
+      }));
+      if (probe.marks.length === 0) continue;
+
+      expect(probe.scrollWidth, `an abnormality beat overflowed: ${probe.marks.join(',')}`).toBe(PHONE.width);
+      // Marked and actually animating, not merely marked.
+      expect(probe.running.every((name) => name.startsWith('mark-')), probe.running.join(',')).toBe(true);
+      await context.close();
+      return;
+    }
+
+    await context.close();
+    throw new Error('never reached a turn carrying an abnormality');
+  }, 300_000);
+});

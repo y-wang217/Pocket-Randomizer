@@ -25,6 +25,7 @@ import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, type LogSheet } from '../log-sheet';
+import { abnormalityMarks } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 
 /**
@@ -152,7 +153,23 @@ export function createBattleScreen(): BattleScreen {
       // function of the facts, so rebuilding it is cheaper than keeping one
       // alive and wondering which turn it describes.
       const draw = (turns?: readonly FlaggedTurn[]): void => {
-        scene.update(buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects), onChoose, turns);
+        /*
+         * The third consumer of the one reading. **Branch 3B.**
+         *
+         * `abnormalityMarks` reduces the turn's flags to at most one class and
+         * slot per side, and the scene is handed that rather than the flags —
+         * `test/boundaries.test.ts` forbids the scene from reading a flag,
+         * because a beat that can see severity is one step from a beat that
+         * shows it. The reduction happens here, off the same `turns` the log
+         * and the strip already get, so the rule at the top of this file still
+         * holds: one reading of the protocol, now three consumers.
+         */
+        scene.update(
+          buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects),
+          onChoose,
+          turns,
+          abnormalityMarks(turns),
+        );
       };
 
       /*

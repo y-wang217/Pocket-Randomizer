@@ -3814,3 +3814,126 @@ render and never serialized. `ui/flag-strip.ts`, `ui/chip.ts` and
 and the tooltip resolves `flag:<kind>` against the blurb table.
 
 No version axis moved. `contentHash` is still `b381d0`.
+
+## 24. The battle animation run, Branch 3B: the abnormality beats
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 3, half B. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
+
+Five beats — `prevented`, `stage`, `trait`, `volatile`, `field` — one per class
+rather than one per kind, riding the slot of the action that produced the flag.
+
+### The defect the class was built for went one level deeper than expected
+
+`prevented` was built first on the argument that a flinched turn is invisible by
+construction: no damage, so no chunk, so no beat. **That turned out to be true
+of the beat scheduler itself**, and the first build of Branch 3B reproduced the
+bug it was fixing.
+
+`beats()` picks the turn to animate with
+`turns.reverse().find((turn) => turn.actions.length > 0)`. That is right for a
+lunge and a hit, which are things an action did. But `|cant|` **replaces** the
+`|move|` line rather than accompanying it, so `readTurns` produces no action for
+a prevented turn at all and its flag lands in `residual`. Reading the beats off
+that group marked nothing on exactly the turn that already leaves no other
+trace. Caught by `test/battle-outro.test.ts`'s first two abnormality cases,
+which is what they were written for.
+
+**The fix was already in the tree.** `ui/flag-strip.ts`'s own `latest()` had
+solved it — prefer the last group carrying flags, fall back to the last with
+actions — so `beats()` mirrors that rule rather than inventing a second one. The
+strip and the stage now answer "which turn is being shown" identically, which is
+the property that keeps them from disagreeing about a turn. Generalised: **a
+consumer that finds "the current turn" by looking for actions cannot see the
+turns where nothing acted**, and those are the interesting ones.
+
+### The beats are concurrent, and that is the design
+
+A mark's `animation-delay` is the delay of the lunge or hit it accompanies, not
+a slot after them. So an abnormality costs the turn **nothing**: a turn carrying
+six takes exactly as long as a turn carrying none, and Release C's "total added
+time per turn is one number" holds without amendment.
+
+The alternative — a slot per abnormality — was declined in planning and the
+census says why it would have hurt: 59.5% of battles carry a stat change and
+45% a volatile, so serialising them would have lengthened most turns in the
+game.
+
+### One mark per actor per slot
+
+A side whose slot carries several abnormalities takes the **first in protocol
+order** and the strip carries the rest, which it already did. That is not a
+ranking: `flags.ts` calls protocol order "the one ordering that is a fact rather
+than an opinion", which is exactly what makes taking the first safe. Residual
+flags ride the last slot rather than earning a fifth, because a fifth slot is
+the added time the whole arrangement exists to avoid.
+
+### Deviation: the scene may not read a flag, and the first build did
+
+**The most useful thing that happened in this branch.** Branch 3B's first build
+put the flag-to-class reduction inside `beats()`, in `ui/scene.ts`, with careful
+comments promising not to rank anything. `test/boundaries.test.ts` refused it:
+
+> **never reads a flag in the scene** — the stage's beats read `action.side` and
+> the bar's chunk boolean, and nothing else. A beat that read `flags` would be
+> one step from a recoil that grew with the multiplier, which is a verdict drawn
+> on the board.
+
+The rule is exactly right and the build was exactly wrong. Every comment that
+first version wrote — "none has more weight than another", "not a ranking" — is
+the kind of promise this rule exists to replace with a guarantee. A scene that
+*can* see severity is one edit from showing it, and the edit would look
+reasonable.
+
+So the reduction moved to a new `src/ui/abnormality.ts`, a pure function from
+`FlaggedTurn[]` to at most one `{ side, klass, slot }` per side, and the scene is
+**handed** the result. It cannot weight a beat by severity because it never sees
+severity — true by construction rather than by care, which is the standard the
+rest of the battle UI is already held to.
+
+This also satisfies the sibling rule the same file states, that the scene "may
+name the shape; the moment it calls the reader it has become the second source
+of truth". `screens/battle.ts` still reads the protocol exactly once and now
+hands the result to **three** consumers — the log, the strip, and the marks —
+rather than two.
+
+The restructure is strictly better than what it replaced: the reducer is pure
+and unit-tested without a DOM (`test/abnormality.test.ts`, 9 cases), the scene
+is write-only for marks, and the seam is covered from both sides.
+
+### The marks are on their own element, and that was forced
+
+`.sprite:not(.sprite--ghost)` already carries four animation rules — the hit,
+the faint, the swap and the recall — and a fifth would cancel one of them; the
+faint's comment documents managing that collision by rule order already. So the
+beats live on `.stage__mark`, following `.stage__ball` from 3A. That also buys
+the concurrency: a mark and a hit can run at once because they are two elements.
+
+### Identity without weight, which is the rule the patch turns on
+
+The five classes share duration, size, travel and opacity curve, and differ only
+in shape: `prevented` closes and stops, `stage` shifts on an axis, `trait`
+pulses, `volatile` settles and holds, `field` sweeps. None is larger, longer or
+brighter than another, and the mark is drawn in the stage's own ink rather than
+a hue — a colour would rank one class against another the moment a second
+colour appeared beside it.
+
+**`boost` and `unboost` share one beat.** Which way a stat went is a word on the
+strip and a chip on the panel; a beat that rose for one and fell for the other
+would be the board taking a view on which is better. Same argument
+`--hit-recoil`'s comment makes for not scaling a recoil with the multiplier.
+
+### What smoke cannot catch, again
+
+A transform contributes to scrollable overflow and `.stage` cannot clip, so a
+mark reaching past the actor's box would widen the document on a 390px phone.
+`scripts/smoke.mjs` never produces an abnormality beat, so it cannot see this —
+the same blind spot Branch 3A found with the recall.
+`test/visual-battle-outro.test.ts` now plays until a real turn carries one and
+asserts `scrollWidth` at that frame, and that the mark is actually animating
+rather than merely marked.
+
+### What it does not change
+
+No `core/` file, no `data/` file, no version axis. `contentHash` is still
+`b381d0`. The flag strip is untouched: it already listed every flag.
