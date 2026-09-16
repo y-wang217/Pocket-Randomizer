@@ -3893,7 +3893,7 @@ rest of the battle UI is already held to.
 
 This also satisfies the sibling rule the same file states, that the scene "may
 name the shape; the moment it calls the reader it has become the second source
-of truth". `screens/battle.ts` still reads the protocol exactly once and now
+of truth". `ui/screens/battle.ts` still reads the protocol exactly once and now
 hands the result to **three** consumers — the log, the strip, and the marks —
 rather than two.
 
