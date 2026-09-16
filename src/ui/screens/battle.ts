@@ -25,7 +25,7 @@ import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, type LogSheet } from '../log-sheet';
-import { createScene, el, type Scene } from '../scene';
+import { createScene, el, type OutroKind, type Scene } from '../scene';
 
 /**
  * The dex lookups the flag reader cannot have, supplied once by the adapter.
@@ -55,6 +55,26 @@ export interface BattleScreen {
      */
     segment?: number,
   ): () => void;
+  /**
+   * Play the end of the fight and park until it has been seen.
+   *
+   * Straight through to the scene, which owns every beat on the stage. It is on
+   * the screen rather than reached for on `scene` directly because `app.ts`
+   * holds a `BattleScreen` and nothing else — the same reason `attach` is here.
+   *
+   * Safe to call when no battle is attached: the scene resolves at once if
+   * there is no hold to run, so a caller never has to ask whether a fight is on
+   * screen before ending one.
+   */
+  outro(kind: OutroKind): Promise<void>;
+  /**
+   * End a parked outro and settle the stage.
+   *
+   * Called when the run is released — a new battle starting, the run ending, or
+   * the player abandoning it mid-hold. Without it an abandoned run leaves
+   * `reviewBattle` awaiting a timer whose screen is gone.
+   */
+  cancel(): void;
 }
 
 export function createBattleScreen(): BattleScreen {
@@ -103,6 +123,8 @@ export function createBattleScreen(): BattleScreen {
 
   return {
     root,
+    outro: (kind) => scene.outro(kind),
+    cancel: () => scene.cancel(),
     attach(session, node, reveal, onChoose, segment) {
       title.textContent = node.label;
       // Team size on the header, because a gym with three Pokemon is a

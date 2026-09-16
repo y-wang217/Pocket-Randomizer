@@ -1896,6 +1896,125 @@ body {
 }
 
 
+/*
+ * The outro: how a fight ends on the stage. **The battle animation run.**
+ *
+ * Until this patch a fight that ended in one hit showed no animation at all.
+ * The last turn's beats started on the frame the KO arrived and `app.ts`
+ * swapped to the result screen on the same microtask, so not one frame of them
+ * was ever painted. `scene.ts`'s `outro()` now parks until the beats have run
+ * and these have played; `docs/generation.md` records the superseded rule.
+ *
+ * **Four cases, one attribute.** `data-outro` on the actor says what is
+ * leaving and how:
+ *
+ *   - `recall` — the body is called back by its trainer. Both sides use it:
+ *     the defeated opponent on a won gym or trainer fight, and the player's
+ *     own lead on any win.
+ *   - `caught` — the fainted wild body is taken by a ball instead.
+ *
+ * A body that already fainted is not recalled. It has sunk, `data-fainted`
+ * holds it down, and raising it to full opacity to shrink it again would be
+ * the same double-animation the ghost rule avoids on a swap.
+ *
+ * `transform` and `opacity` only, so this runs on the compositor and cannot
+ * reflow a stage the player is about to leave.
+ */
+/*
+ * **The body collapses toward its trainer's side; it does not travel there.**
+ *
+ * The first cut translated it outward by `--recall-travel` — the foe sits at
+ * `right: 0` of the stage and the player at `left: 0`, so "toward its trainer"
+ * is away from the middle on both sides, and `--beat-direction` already carries
+ * that sign. It read correctly and it was wrong: `.stage` has no
+ * `overflow: hidden`, a transform contributes to scrollable overflow, and a
+ * 96px body moving 22px past the edge of a 390px screen is horizontal overflow
+ * during a fight. `scripts/smoke.mjs` asserts against exactly that and could
+ * not have caught it, because the outro never runs in a smoke walk.
+ *
+ * Clipping the stage instead was the other option and is worse: the two panels
+ * are children of `.stage` and float over it deliberately, so `overflow:
+ * hidden` there would cut a chip that overhangs by design.
+ *
+ * So the direction is carried by `transform-origin`, which moves nothing and
+ * therefore overflows nothing: the sprite shrinks *into* the corner it already
+ * stands in. The read is the same — the body is drawn to a point on its own
+ * side — and the body never leaves the box it occupied, which is the rule
+ * `--lunge-distance` was written under too.
+ */
+@keyframes sprite-recall {
+  from { opacity: 1; transform: none; }
+  60% { opacity: 1; }
+  to { opacity: 0; transform: scale(0.08); }
+}
+
+.stage__actor[data-outro='recall'] .sprite:not(.sprite--ghost) {
+  /* `--beat-direction` is -1 on the foe and 1 on the player, so this resolves
+     to the far edge on each side: the point each body is drawn back to. */
+  transform-origin: calc(50% - var(--recall-origin) * var(--beat-direction)) 60%;
+  animation: sprite-recall var(--motion-outro) ease-in both;
+}
+
+/*
+ * The player's own recall, on a win, runs at half the budget's offset so the
+ * two sides are one event rather than two. Not a ranking: the opponent leaves
+ * first because the opponent is what the turn resolved against, and the offset
+ * is the same whichever species is standing there.
+ */
+.stage__actor--me[data-outro='recall'] .sprite:not(.sprite--ghost) {
+  animation-delay: calc(var(--motion-outro) / 2);
+}
+
+/*
+ * The capture. The ball is an `<img>` off Showdown's item sheet, the same CDN
+ * source `ui/slots.ts` already draws every held item from — **not** a shape
+ * authored here. `ui/theme/scenes/index.ts` bans a hand-drawn Pokeball and that
+ * rule stands: it is about scenery shipping in the repo, and nothing raster is
+ * added by pointing at the sheet the game already loads.
+ *
+ * At rest it is not drawn at all, so a stage that is not ending a wild fight is
+ * never one repaint away from showing a ball.
+ */
+.stage__ball {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  /* One cell of Showdown's 24px item sheet, doubled so it reads beside a 96px
+     body. `background-size` is left alone and the cell is scaled by `transform`
+     in the keyframes instead, because scaling the background would resample the
+     sheet and pull in its neighbours. */
+  width: 24px;
+  height: 24px;
+  transform-origin: center;
+  opacity: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.stage__actor[data-outro='caught'] .stage__ball {
+  animation: ball-catch var(--motion-outro) ease-in-out both;
+}
+
+@keyframes ball-catch {
+  /* Vertical only, and less than half the actor's own height, so the ball
+     never reaches past the box the body stood in. */
+  0% { opacity: 0; transform: translateY(calc(var(--recall-travel) * -1)) scale(0.9); }
+  35% { opacity: 1; transform: scale(1.5); }
+  /* The shut: one squash where the body finishes going in, then held. The
+     wobble a real capture has is deliberately absent — it would be a verdict
+     on whether the catch was close, and the offer on the next screen is the
+     only thing that says what was caught. */
+  55% { opacity: 1; transform: scale(1.75, 1.25); }
+  70% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 1; transform: scale(1.5); }
+}
+
+/* The body goes in as the ball shuts, on the same clock. */
+.stage__actor[data-outro='caught'] .sprite:not(.sprite--ghost) {
+  animation: sprite-recall calc(var(--motion-outro) * 0.55) ease-in both;
+}
+
 /* ---------- screens ---------- */
 
 /*
@@ -3099,6 +3218,23 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      the movement, not the Pokemon. */
   .stage__actor[data-swapped='true'] .sprite,
   .stage__actor[data-swapped='true'] .sprite--ghost { animation: none; }
+
+  /*
+   * The outro. **Zeroing the token is the important half**, not the three
+   * `animation: none` rules beside it: `scene.ts` reads `--motion-outro` to
+   * decide how long to park, so this is what makes the result screen arrive
+   * without a wait. The rules then stop the movement that would otherwise run
+   * inside a zero-length hold.
+   *
+   * Reduced motion removes the movement, not the outcome — the fight still
+   * ends, the result screen still follows, and nothing about what happened is
+   * withheld from a player who asked for less motion.
+   */
+  :root { --motion-outro: 0ms; }
+  .stage__actor[data-outro='recall'] .sprite:not(.sprite--ghost),
+  .stage__actor--me[data-outro='recall'] .sprite:not(.sprite--ghost),
+  .stage__actor[data-outro='caught'] .sprite:not(.sprite--ghost) { animation: none; }
+  .stage__actor[data-outro='caught'] .stage__ball { animation: none; }
 }
 
 /* ==========================================================================

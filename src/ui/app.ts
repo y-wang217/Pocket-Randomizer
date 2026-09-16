@@ -28,6 +28,33 @@ import {
   type RunResult,
   type RunState,
 } from '../core/run';
+
+/**
+ * How this fight should end on the stage. **The battle animation run.**
+ *
+ * Pure, and derived from the review the policy is already handed, so `core/`
+ * knows nothing about the outro and no field was added to carry it.
+ *
+ *   - **Lost** -> `defeat`. No recall: the body that ended it has already sunk.
+ *     The hold still runs, and a loss is where it matters most — a wipe ends
+ *     the battle on the same frame the last body faints, so its beats were the
+ *     most reliably swallowed of all.
+ *   - **Won a wild fight that offers a capture** -> `caught`. `node.acquisition`
+ *     is the offer `core/run.ts`'s `acquisitionOffered` will read a moment
+ *     later from the same `NodeSpec`, so the ball and the offer on the next
+ *     screen cannot disagree about whether there is something to catch.
+ *   - **Won anything else** -> `recall`, the gym and trainer case.
+ *
+ * An event node's capture is deliberately *not* a `caught`: that offer comes
+ * from the chosen outcome's grant rather than from the node, there may have
+ * been no fight at all, and a ball closing over a gym leader's Pokemon because
+ * the event behind it happened to pay a species would be a lie about what just
+ * happened.
+ */
+export function outroFor(review: BattleReview): OutroKind {
+  if (!review.won) return 'defeat';
+  return review.node.acquisition ? 'caught' : 'recall';
+}
 import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
@@ -41,7 +68,7 @@ import { createDensityGuard } from './density-guard';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
-import { createWorldScene, el } from './scene';
+import { createWorldScene, el, type OutroKind } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
 import { createSeedBar } from './seed-bar';
 import { createBattleScreen } from './screens/battle';
@@ -423,6 +450,13 @@ export function mountApp(root: HTMLElement): void {
     const releaseBattle = (): void => {
       detachBattle?.();
       detachBattle = null;
+      /*
+       * And end any parked outro. A run abandoned while the stage is playing
+       * the end of a fight would otherwise leave `reviewBattle` waiting on a
+       * timer whose screen is gone — the leaked-promise case `ui/pending.ts`
+       * exists for, arrived at from the other direction.
+       */
+      battleScreen.cancel();
     };
 
     abandon = () => {
@@ -508,7 +542,35 @@ export function mountApp(root: HTMLElement): void {
        * it; taking one is the continue, and when there are none the screen
        * grows a Carry on button instead.
        */
-      reviewBattle: (review, state) => {
+      reviewBattle: async (review, state) => {
+        /*
+         * **The end of the fight is played before the screen leaves it.**
+         *
+         * This one `await` is the whole fix for "a fight that ends in a
+         * one-hit KO shows no animation". It was never only a 1HKO: the last
+         * turn of *every* fight was swallowed, and a 1HKO is the case where the
+         * last turn is the only turn, so it was the one where nothing moved at
+         * all.
+         *
+         * The chain it interrupts: `driver.ts` drains the final protocol batch
+         * and calls `notify` synchronously, `screens/battle.ts` renders, the
+         * stage sets `data-fainting`/`data-hit` and the bar paints its chunk —
+         * three CSS animations start — the battle loop exits, `run.ts` awaits
+         * this policy, and the line below used to flip `hidden` on the battle
+         * screen in the same microtask. No yield, no paint.
+         *
+         * **`reviewBattle` is the right seam because it is the only one.**
+         * `core/run.ts` calls it for every battle completion, won or lost, with
+         * cards or without, and says so: "It is one path, not a second one." So
+         * one `await` covers gym, trainer, wild, victory and defeat with no
+         * branch in `core/` and no new projection field — `won` and the node's
+         * capture offer are already on the review.
+         *
+         * `releaseBattle()` is not called when a battle ends, only at the next
+         * `onBattle` or at the end of the run, so the screen keeps its
+         * subscription and its last frame for the whole hold.
+         */
+        await battleScreen.outro(outroFor(review));
         lastReview = review;
         resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
         showScreen('result');

@@ -232,3 +232,111 @@ where a stale red gate was believed and a patch was planned around it.
 
 No new animation. No `core/` change. No balance number. The outro, the gate on
 the result screen and the abnormality vocabulary are Branches 2 and 3.
+
+---
+
+# Branch 3A: the gate, and the outro
+
+Deviations: [`../../generation.md`](../../generation.md) section 22.
+
+## 7. The one line that fixes the reported bug
+
+```ts
+reviewBattle: async (review, state) => {
+  await battleScreen.outro(outroFor(review));   // this
+  lastReview = review;
+  resultScreen.render(review, review.offer, state, (index) => rewardPick.submit(index));
+  showScreen('result');
+  return rewardPick.wait();
+},
+```
+
+`reviewBattle` is the only path every battle completion takes — `core/run.ts`
+says so itself, "It is one path, not a second one" — so one `await` covers gym,
+trainer, wild, victory and defeat with **no `core/` change, no new projection
+field and no version axis moved.** `won` and the node's capture offer are
+already on the review, so `outroFor` is pure and reads nothing new.
+
+This supersedes `ui/theme/motion.ts`'s "nothing waits for this", at this seam
+and nowhere else. Section 22 is the record; the file's own header was corrected
+in the same commit rather than left asserting a rule the tree no longer keeps.
+
+## 8. The proof, in a browser
+
+jsdom resolves no custom properties, so no hold ever runs there and **the one
+claim the patch exists for cannot be asserted in jsdom at all.**
+`test/visual-battle-outro.test.ts` plays a real fight on SMOKE24 to its end and
+reads the frame that did not previously exist:
+
+```
+OUTRO PROBE {"screen":"battle","scrollWidth":390,
+             "kinds":["caught","recall"],
+             "anim":["sprite-recall","sprite-recall"]}
+AFTER HOLD  result
+```
+
+Read across: the **stage is still up** while the outro plays, where before the
+screen was already `result`; both bodies are actually animating rather than
+merely marked; the wild foe is taken by the ball and the player's own lead is
+recalled, the two sides getting different treatments; nothing overflows a 390px
+phone; and the hold ends.
+
+| | before | after |
+|---|---|---|
+| screen at the KO frame | `result` | **`battle`** |
+| frames of the last turn's beats painted | 0 | the whole budget |
+
+## 9. Three things the build got wrong first
+
+Recorded because each was caught by an instrument rather than by care, and the
+next animation patch will meet all three again.
+
+**1. A recalled body must not travel.** The first cut moved the sprite toward
+its trainer by `--recall-travel`, using the `--beat-direction` the lunge already
+carries per side. It read correctly and it was a horizontal-overflow bug: the
+foe sits at `right: 0` of the stage, `.stage` has no `overflow: hidden`, and a
+transform contributes to scrollable overflow — so a 96px body moving 22px past
+the edge of a 390px screen widens the document. `scripts/smoke.mjs` asserts
+against exactly that and **could not have caught it**, because the outro never
+runs in a smoke walk. Clipping the stage was the other option and is worse: the
+two panels are children of `.stage` and overhang it deliberately. The direction
+is now carried by `transform-origin`, which moves nothing and so overflows
+nothing, and the browser test asserts `scrollWidth` at the outro frame.
+
+**2. A browser helper's witness stopped being sufficient.** `playATurn` finds a
+turn *the fight survived*, so later assertions read a live battle. Its witness
+was "still on the battle screen, and the log grew" — and the gate makes both
+true of a **finished** fight for the whole hold, which is the entire point. Both
+copies began asserting against a fight that was over. The third condition is
+that the run has asked for another choice: an enabled move button, which a
+finished fight has none of whether or not the result screen has arrived.
+Generalised in section 22: *a test that waits a fixed fraction of the feedback
+budget and then reads the screen is making an assumption about what the budget
+is for.*
+
+**3. The Poké Ball is spritenum 345.** A guess would have said 4. It is read off
+`@pkmn/sim`'s `Dex.items.get('pokeball').spritenum`, because a wrong spritenum
+draws a different item and nothing fails — no exception, no test, just the wrong
+picture. The asset rule in `theme/scenes/index.ts` is not bent: the ball is a
+cell of the Showdown item sheet the party screen already draws every held item
+from, so nothing raster is added.
+
+A fourth was a flaw in a *test* rather than in the code, and is recorded because
+it produced a false green for one run: `settled()` in `test/battle-outro.test.ts`
+raced a promise against `Promise.resolve()`, and a `.then` continuation runs one
+microtask later than the marker it races — so an already-resolved promise lost
+its own race and the helper returned `false` for everything. It flushes a fixed
+number of microtask turns and reads a flag now.
+
+## 10. Gates at 3A
+
+`tsc --noEmit` clean, `eslint` clean, `npm run build` green, `npm run smoke`
+passed. `contentHash` unmoved at `b381d0` — Branch 3A touches no `data/` file
+and no `core/` file at all.
+
+New: `test/battle-outro.test.ts`, 13 jsdom cases (which body leaves and how,
+including the negative that a body which already fainted is not recalled and
+that a defeat marks neither side; the hold resolving at once when the token is
+zero, which is also the reduced-motion path; cancel resolving rather than
+rejecting; a tap clearing it), and `test/visual-battle-outro.test.ts`, the
+browser proof above.

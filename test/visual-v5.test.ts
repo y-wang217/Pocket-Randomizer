@@ -33,6 +33,12 @@ afterAll(async () => {
  * SMOKE24 the opening fight ends in a turn, screens are hidden rather than
  * unmounted, and "reach a battle and click" otherwise reads a screen the
  * player has already left.
+ *
+ * **The enabled-move condition came with the outro gate**, and is lifted with
+ * the rest. A finished fight now stays on the battle screen for the whole of
+ * `--motion-outro`, log and all, so the screen and the log together no longer
+ * distinguish a turn the fight survived from the turn that ended it. An enabled
+ * move button does: it means the run has asked for another choice.
  */
 async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Promise<void> {
   const entries = async (): Promise<number> => page.locator('.log-entry').count();
@@ -46,7 +52,10 @@ async function playATurn(page: Awaited<ReturnType<typeof openApp>>['page']): Pro
     const screen = await page.evaluate(() =>
       globalThis.document.querySelector('.screen:not([hidden])')?.getAttribute('data-screen'),
     );
-    if (screen === 'battle' && (await entries()) > before) return;
+    const asking = await page.locator('.screen--battle .move:not(:disabled)').count();
+    if (screen === 'battle' && (await entries()) > before && asking > 0) return;
+    // That turn ended the fight: wait the outro out rather than racing it.
+    await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs);
   }
   throw new Error('never found a turn that resolved and left the battle on screen');
 }

@@ -332,6 +332,37 @@
      event — a thing on the board resolving — and because the two never happen
      on the same turn: a swap draws no HP chunk. */
   --motion-swap: var(--motion-duration);
+  /* The outro: how long the stage is held after the last turn of a fight, so
+     that turn's beats are seen before the result screen arrives. **The battle
+     animation run, Branch 3, and the one place anything waits.**
+
+     The whole budget, like the shadow and the swap, because it is the same
+     kind of event — a thing on the board resolving — and because it never
+     overlaps them: the outro begins where the last turn's beats end.
+
+     **Zeroed under `prefers-reduced-motion` in `styles.css`, and that is the
+     mechanism rather than a courtesy**: `scene.ts` reads this property to
+     decide how long to park, so a zero here is a hold of zero length and the
+     result screen arrives as fast as it ever did. Nothing in TypeScript
+     branches on the media query, which is what lets it re-answer itself when
+     the OS setting changes mid-session. */
+  --motion-outro: var(--motion-duration);
+  /* Where a recalled body shrinks *to*, as an offset from its own centre
+     toward its trainer's side. An origin rather than a translate, deliberately:
+     a body that travelled toward the edge would push the stage's scrollable
+     width past the viewport on a 390px phone, and `.stage` cannot clip because
+     the two panels are its children and overhang it by design.
+     `--beat-direction` already carries the sign per side, so one keyframe
+     serves both.
+
+     Percentage-free because `transform-origin` takes a length here; 30% of a
+     96px body, which puts the vanishing point well inside it. */
+  --recall-origin: 29px;
+  /* How far the ball drops in from above before it shuts. Vertical only, and
+     under half the actor's height, so it stays inside the box the body stood
+     in — see `sprite-recall`'s note in styles.css for why nothing in the outro
+     may leave that box. */
+  --recall-travel: 22px;
   /* The idle bob on a figure: two held frames, so one cycle is two of these
      halves. **Idle-sprites patch.** Not derived from `--motion-duration`,
      deliberately: that number is the added time per battle turn, and an idle

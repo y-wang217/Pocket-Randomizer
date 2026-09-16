@@ -3595,3 +3595,106 @@ is believed.
 No balance number. No `core/` file. `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and
 `AI_VERSION` all stand still; `contentHash` is the only axis that moved and
 deviation 1 is its account.
+
+## 22. The battle animation run, Branch 3A: the one thing that waits
+
+Prompt: [`spec/gymrun-overnight-battle-animation.md`](spec/gymrun-overnight-battle-animation.md),
+Branch 3, half A. Branch `claude/busy-noether-jfszvi`, 2026-09-16.
+
+### Superseded: "nothing waits for this"
+
+`ui/theme/motion.ts` has said since Release C:
+
+> **Why it is not a delay.** Nothing waits for this. The bar, the HP text, the
+> flag words and the move buttons are all correct and interactive on the frame
+> the update arrives, and a tap resolves every animation early. The number says
+> how long the feedback *stays*, not how long the player is held.
+
+**That rule is retired in one place and kept everywhere else.** The header now
+reads "Why it is not a delay, with one exception" and names the seam. Recorded
+here and rewritten there in the same commit, per the rule that a superseded rule
+is deleted from the lineage rather than left behind a flag — and because a file
+every session reads that asserts something the tree no longer does is the
+failure open item 8 documents.
+
+**What was wrong with it.** The rule is correct for a turn mid-fight, where the
+next decision is the thing worth reaching and holding the player from it is a
+cost with no benefit. It fails at the end of a fight, where there is no next
+decision and the screen leaves before the feedback does. The observed symptom
+was "a one-hit KO shows no animation", and that was a narrower description than
+the defect: **the last turn of every fight was swallowed.** A 1HKO is the case
+where the last turn is the only turn, so it was the one where nothing moved at
+all and therefore the one that got reported.
+
+The chain, unchanged except for the last line: `driver.ts` drains the final
+protocol batch and calls `notify` synchronously -> `ui/screens/battle.ts` renders
+-> `scene.ts` sets `data-fainting` and `data-hit`, `bar.ts` paints the chunk,
+three CSS animations start -> the `while (!session.ended)` loop exits ->
+`run.ts` awaits `policy.reviewBattle` -> `app.ts` **awaits the outro** before
+`showScreen('result')`.
+
+**Why exactly one seam.** `core/run.ts` calls `reviewBattle` for every battle
+completion, won or lost, with cards or without, and its own doc says "It is one
+path, not a second one." So one `await` covers gym, trainer, wild, victory and
+defeat with no branch in `core/`, no new projection field, and no version axis
+moved. Every other transition is untouched and still non-blocking.
+
+**What the rule keeps.** The hold is skippable by tapping — the `pointerdown`
+handler that already settles both actors now resolves the parked promise in the
+same breath, because a gate that cannot be skipped is a stall. And it is zero
+under reduced motion, through the stylesheet rather than through a `matchMedia`
+branch: `scene.ts` reads `--motion-outro` to decide how long to park, the
+reduced-motion block sets that token to `0ms`, and so the query re-answers
+itself when the OS setting changes mid-session exactly as `motion.ts` argued it
+must.
+
+### Deviation: a browser helper's witness stopped being sufficient
+
+`playATurn`, in `test/visual-release-c.test.ts` and lifted into
+`test/visual-v5.test.ts`, plays turns until it finds one **the fight survived**,
+so the assertions after it read a live battle rather than a stale one. Its
+witness was "still on the battle screen, and the log grew", and its own header
+already recorded two earlier debugging passes that made it that strict.
+
+The gate invalidated it. A finished fight now stays on the battle screen, log
+and all, for the whole of `--motion-outro` — which is the entire point — so the
+two conditions together no longer separate a surviving turn from the turn that
+ended the fight. Both files began asserting against a fight that was over: no
+second lunge, and move buttons correctly dead.
+
+The third condition is that the run has **asked for another choice**: an enabled
+move button. A fight that is over has none, whether or not the result screen has
+arrived, so that property outlives the gate in a way the other two did not. Both
+helpers also now wait the hold out before looping, rather than racing it.
+
+Recorded rather than quietly fixed because it is the shape of thing the next
+animation patch will hit again: **a test that waits a fixed fraction of the
+feedback budget and then reads the screen is making an assumption about what the
+budget is for.**
+
+### Deviation: the ball is not in `ui/theme/itemIcons.ts`, and its number was checked
+
+The prompt said to put the spritenum in a UI-side constant rather than in the
+generated icon table, and that stands: `scripts/gen-item-icons.ts` writes that
+table from `data/items.ts` and `test/item-icons.test.ts` regenerates and diffs
+it, so an entry with no item behind it would be deleted by the next run. A ball
+is never held, offered, bought or stowed, and inventing one under `data/` to
+draw a picture would put a thing the run does not have into the table the run
+reads.
+
+It lives in `ui/slots.ts` beside the one `Icons` instance, as a reserved
+resolver key. **The number is 345, not the 4 a guess would have produced** — read
+off `@pkmn/sim`'s `Dex.items.get('pokeball').spritenum`, as the prompt insisted,
+because a wrong spritenum draws a different item and nothing fails.
+
+The asset rule in `ui/theme/scenes/index.ts` — "No Pokemon, no Pokeball, no
+landmark from anywhere" — **is not bent and not amended.** It governs scenery
+authored into this repo. The ball is a cell of the Showdown item sheet the party
+screen already draws every held item from, so nothing raster is added and the IP
+posture is the one the sprite CDN rule set.
+
+### What Branch 3A did not change
+
+No `core/` file. No `data/` file. No balance number, no version axis —
+`contentHash` is still `b381d0`. The abnormality vocabulary and its beats are
+Branch 2 and Branch 3B, and neither is started.
