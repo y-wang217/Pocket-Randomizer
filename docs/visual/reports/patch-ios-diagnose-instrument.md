@@ -29,7 +29,7 @@ seventh, and puts a gate behind it so the same thing cannot happen twice.
 ## 1. How to use it
 
 1. Deploy this branch.
-2. On the iPhone, open **`<your-deploy-url>/diagnose.html`**.
+2. On the iPhone, open the deployed site's **/diagnose.html**.
 3. Read the headline. It names one thing.
 4. Tap **Copy the full report** and paste it back.
 

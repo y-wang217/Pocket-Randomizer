@@ -4544,3 +4544,23 @@ on trust. The suite file carries the same four cases forward.
 **What this patch does not do is answer the iPhone question.** It cannot: that
 answer is on a device this repository cannot reach, which is the whole reason
 the instrument exists. What changed is that the question can now be asked.
+
+### The contention flake section 27 filed, reproduced — and this patch makes it likelier
+
+Section 27 recorded one flake on the full gate: a browser test that is green in
+isolation and on re-run, failing under a full suite because the visual files run
+concurrently and starve each other. It named the real answer — a concurrency cap
+on the visual suite — and said it was not that patch's to make, being a change
+to shared config.
+
+It happened again here, on the first full `npm run check`: `visual-v2`'s seed
+stamp copy case failed on a `page.goto` timeout at 30s, with no assertion
+reached. Green on its own (5/5) and green on the re-run of the whole WebKit leg
+(27 files, 209 passed, 2 skipped).
+
+**This patch makes it likelier and should say so.** `visual-diagnose` is a 27th
+browser file and it launches two contexts of its own. The item is unchanged and
+still not this patch's to fix, but it now has two sightings rather than one, and
+a second cause to be read against: a `page.goto` that times out with no
+assertion reached is contention, not a regression, and the distinguishing test
+is a re-run in isolation.

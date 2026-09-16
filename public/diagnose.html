@@ -109,8 +109,35 @@
         border-bottom: 1px solid rgba(38, 49, 64, 0.5);
       }
 
-      #dg .dg-label { flex: 1 1 auto; min-width: 0; color: var(--dg-dim); font-size: 0.82rem; word-break: break-word; }
-      #dg .dg-value { flex: 0 1 auto; text-align: right; font-size: 0.82rem; word-break: break-all; }
+      /*
+       * Explicit bases on both columns, because `auto` lets one long
+       * unbreakable value — a user agent string, an asset URL — take the whole
+       * row and squeeze the label down to a character a line. `anywhere` rather
+       * than `break-all`: it breaks a 200-character URL and still keeps
+       * `MOVES (resolved 0.8s, 1 animation)` in whole words.
+       */
+      #dg .dg-label {
+        flex: 1 1 auto;
+        /* The floor is the whole fix: a long unbreakable value — a user agent
+           string, an asset URL — was otherwise taking the row and squeezing the
+           label down to a character a line. A floor rather than a fixed share,
+           so the common case, a one-word value, still gives the label the rest
+           of the line instead of wrapping it against an empty column. */
+        min-width: 45%;
+        color: var(--dg-dim);
+        font-size: 0.82rem;
+        overflow-wrap: anywhere;
+      }
+
+      #dg .dg-value {
+        flex: 0 1 auto;
+        min-width: 0;
+        text-align: right;
+        font-size: 0.82rem;
+        /* `anywhere` rather than `break-all`: it breaks a 200-character URL and
+           still keeps `MOVES (resolved 0.8s, 1 animation)` in whole words. */
+        overflow-wrap: anywhere;
+      }
 
       #dg .dg-ok { color: var(--dg-ok); }
       #dg .dg-warn { color: var(--dg-warn); }
@@ -223,6 +250,19 @@
         border-radius: 6px;
         overflow: hidden;
       }
+
+      /*
+       * And it lives at the foot of the page rather than inside section 4.
+       *
+       * It has to be rendered — an animation on a `display: none` element does
+       * not run, and every beat below is read off this markup — but it is the
+       * height of the battle stage and its sprites are blank, so in the middle
+       * of the report it is several screens of nothing between the reader and
+       * the answer. Rendered, kept, and moved out of the reading order.
+       */
+      #dg .dg-stage-host { margin-top: 2rem; }
+
+      #dg .dg-stage-host p { margin: 0; color: var(--dg-dim); font-size: 0.72rem; }
     </style>
   </head>
   <body>
@@ -237,6 +277,14 @@
       <div id="dg-body"></div>
       <button id="dg-copy" type="button">Copy the full report</button>
       <pre id="dg-text">Running…</pre>
+      <div class="dg-stage-host" id="dg-stage-host">
+        <p>
+          The live stage this instrument drove — the app's own markup under the
+          app's own stylesheet. Blank sprites on purpose: every beat is transform
+          and opacity, and a diagnostic that needed Showdown's CDN to be
+          reachable would report a network failure as a motion failure.
+        </p>
+      </div>
     </div>
 
     <script>
@@ -730,8 +778,8 @@
           frame.className = 'dg-stage-frame';
           var stage = buildStage();
           frame.appendChild(stage);
-          body.appendChild(frame);
-          lines.push('  ( the live stage was built and driven below )');
+          document.getElementById('dg-stage-host').appendChild(frame);
+          lines.push('  ( the live stage was built and driven; it is at the foot of the page )');
           await raf();
 
           var rootStyle = getComputedStyle(document.documentElement);
