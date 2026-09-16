@@ -75,8 +75,11 @@ async function openDiagnostic(
   url: string,
   reduced: boolean,
 ): Promise<{ page: Page; context: BrowserContext; report: Report; errors: string[] }> {
+  // `engine` rather than `browser.browserType().name()`: the harness launched
+  // this browser from that same constant, and the driver's own type for the
+  // parameter is the narrowed union rather than a bare string.
   const context = await browser.newContext({
-    ...contextFor(PHONE, browser.browserType().name()),
+    ...contextFor(PHONE, engine),
     reducedMotion: reduced ? 'reduce' : 'no-preference',
   });
   const page = await context.newPage();

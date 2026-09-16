@@ -58,7 +58,43 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the iOS animations patch — a second engine in the harness.** Branch
+**In flight: the on-device diagnostic, and the artefact PR #41 did not ship.**
+Branch `claude/hopeful-lovelace-w118jz`, prompt
+[`spec/gymrun-patch-ios-diagnose-instrument.md`](spec/gymrun-patch-ios-diagnose-instrument.md),
+record [`generation.md`](generation.md) section 28, report
+[`visual/reports/patch-ios-diagnose-instrument.md`](visual/reports/patch-ios-diagnose-instrument.md).
+On top of merged PR #41. Diagnostic tooling only: no `core/` change, no `ui/`
+change, no version axis moves, `contentHash` unmoved, shipped bundle byte
+identical.
+
+**The PR #41 handoff told the reader to open `public/diagnose.html` on their
+iPhone, and that file was never committed** — not on the PR #41 branch, not at
+any commit on any branch. Everything else that handoff claims did land and is
+gated; the one deliverable with no test behind it is the one that was not there.
+The rule worth carrying: **an artefact that no test runs can be reported as
+shipped and not be.**
+
+**So the instrument arrives with a gate.** `public/diagnose.html` is standalone
+— inline CSS and script, no import, nothing fetched at parse time — because the
+device it is opened on may be one where the app's stylesheet or entry chunk is
+what is broken. It loads the app's *real shipped* stylesheet at runtime, builds
+the app's own stage markup under it, and reports seven sections: Reduce Motion,
+the deployed build fingerprinted two ways, what this device's parser kept, every
+motion token as it resolves here, all twelve beats as MOVES or STATIC by
+pause-and-seek, a `calc()` duration through a custom property with two controls,
+and the measured frame rate. `test/visual-diagnose.test.ts` runs it on both
+engines under `npm run check` and holds that a known-good engine is reported as
+healthy, that emulated Reduce Motion is named rather than reported as twelve
+dead animations, and that the file makes no parse-time request of its own.
+
+**It does not answer the iPhone question and cannot.** That answer is on a
+device this repository cannot reach, which is the reason the instrument exists.
+To get it: deploy this branch, open `<deploy-url>/diagnose.html` on the phone,
+tap **Copy the full report**, paste it back. Check
+Settings → Accessibility → Motion → Reduce Motion first — if it is on, the
+reported symptom is fully explained and nothing is broken.
+
+**Previously: the iOS animations patch — a second engine in the harness.** Branch
 `claude/awesome-noether-h6p8fj`, prompt
 [`spec/gymrun-patch-ios-animations-webkit-harness.md`](spec/gymrun-patch-ios-animations-webkit-harness.md),
 record [`generation.md`](generation.md) section 27, report
@@ -514,7 +550,12 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
-1. **Fight length.** Early fights are an exchange rather than a shape. It is now
+1. **The iPhone still has not been measured.** `public/diagnose.html` exists to
+   ask, and nothing here can answer it: deploy, open `<url>/diagnose.html` on
+   the device, paste the report back. Reduce Motion is the leading candidate and
+   is the first line the tool prints. `generation.md` section 28, report
+   [`visual/reports/patch-ios-diagnose-instrument.md`](visual/reports/patch-ios-diagnose-instrument.md).
+0. **Fight length.** Early fights are an exchange rather than a shape. It is now
    the root cause behind two separate carried misses, below, and has earned its
    own investigation. `balance.md`, and open question 1 in the root README.
    Stage 4.9 moved it the other way at the start — 3.7 turns in segment 1 at
