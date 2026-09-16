@@ -40,6 +40,7 @@
  * the Mobile Safari user agent and 3x device pixel ratio are all in play — the
  * three properties a 390px desktop window was missing.
  */
+import type { BrowserContext, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { contextFor, openApp, playUntil, PHONE, visible } from '../scripts/visual/browser.mjs';
@@ -57,7 +58,7 @@ afterAll(async () => {
 });
 
 interface Observed {
-  /** Animations the engine actually started, by keyframe name. */
+  /** Animations the engine created for this element, by keyframe name. */
   started: string[];
   /** Whether a sampled transform or opacity differed from the resting value. */
   moved: boolean;
@@ -75,37 +76,41 @@ interface Observed {
  * engine that will not interpolate an unregistered custom property, which is
  * the first of the five causes this patch had to rule out.
  *
- * **The window is read off the element, and sampled across rather than at.**
- * Two earlier versions of this helper each produced a wrong answer about WebKit
- * before it sampled this way, and both mistakes are worth keeping written down
- * because they are the ones an animation test is prone to.
+**The sampling is deterministic, and getting there took three tries.** Each
+ * wrong turn is kept written down, because they are the ones an animation test
+ * is prone to and this project has now paid for all three.
  *
- * The first sampled at two fixed offsets and closed its listener at 220ms. Four
- * of the twelve beats below carry an `animation-delay` — the hit's second slot
- * starts at `--motion-beat * 3`, 562ms at the shipped budget — so it was asking
- * whether an animation had started *before it was due to*, and it called the
- * hit dead on WebKit on a 200ms event against a 220ms deadline. That is a coin
- * toss, not a finding.
+ * The first version sampled at two fixed offsets and closed its listener at
+ * 220ms. Four of the twelve beats below carry an `animation-delay` — the hit's
+ * second slot starts at `--motion-beat * 3`, 562ms at the shipped budget — so
+ * it was asking whether an animation had started *before it was due to*, and it
+ * called the hit dead on WebKit on a 200ms event against a 220ms deadline.
  *
  * The second read the window off the element but still sampled it at two
- * instants, 25% and 66% in. **WebKit begins an attribute-triggered animation
- * roughly a frame later than Chromium does**, so a sample taken near the start
- * of a 187ms window can land before the engine has begun, read the 0% keyframe,
- * and report a working animation as static. It called the lunge dead on WebKit
- * while the lunge was in fact reaching 5.95px of its 6px peak.
+ * instants. WebKit begins an attribute-triggered animation about a frame later
+ * than Chromium does, so a sample near the start of a 187ms window can land
+ * before the engine has begun, read the 0% keyframe, and report a working
+ * animation as static. It called the lunge dead while the lunge was reaching
+ * 5.95px of its 6px peak.
  *
- * So it polls: every frame or so across the whole declared window, keeping the
- * largest deviation from rest. That is insensitive to start latency, to frame
- * scheduling and to where in the curve a keyframe puts its peak, and it still
- * fails hard on the thing it is for — an animation that runs and moves nothing.
+ * The third polled densely across the window, which was right in principle and
+ * still lost races: under a full 26-file suite the polling loop starves, and a
+ * 187ms window can pass with one sample taken in it.
  *
- * `docs/generation.md` records the general form, because this project has now
- * paid for it three times: **a test that waits a fixed fraction of a motion
- * budget and then reads the screen is making an assumption about what the
- * budget is for.**
+ * So it does not race at all. It asks the element for its `Animation` objects,
+ * **pauses them and seeks** to chosen points inside the active window, and
+ * reads the computed style at each. That is the same interpolated value the
+ * engine would have painted, obtained without depending on when anything is
+ * scheduled — no flake under load, no sensitivity to start latency, and it
+ * still fails hard on what it is for: an animation that exists and moves
+ * nothing.
+ *
+ * `docs/generation.md` records the general form: **a test that waits a fixed
+ * fraction of a motion budget and then reads the screen is making an assumption
+ * about what the budget is for.**
  */
 async function observe(
-  page: import('playwright').Page,
+  page: Page,
   selector: string,
   apply: { on: string; attribute: string; value: string },
 ): Promise<Observed> {
@@ -120,57 +125,52 @@ async function observe(
         return { transform: cs.transform, opacity: cs.opacity };
       };
 
-      const started: string[] = [];
-      const listener = (event: Event): void => {
-        started.push((event as AnimationEvent).animationName);
-      };
-      document.addEventListener('animationstart', listener, true);
-
-      const rest = style();
-      (host as HTMLElement).setAttribute(attribute as string, value as string);
-
-      // The window the engine says it is going to use, in ms. Read after the
-      // attribute is set, because the attribute is what selects the rule.
-      const seconds = (raw: string): number => {
-        const first = raw.split(',')[0]?.trim() ?? '0s';
-        return first.endsWith('ms') ? Number.parseFloat(first) : Number.parseFloat(first) * 1000;
-      };
-      const live = getComputedStyle(watched);
-      const delay = Math.max(0, seconds(live.animationDelay));
-      const duration = Math.max(1, seconds(live.animationDuration));
-
       /*
        * `none` and the identity matrix are the same rendering and different
        * strings. Comparing the strings counted the switch from `transform: none`
        * at rest to `matrix(1, 0, 0, 1, 0, 0)` at the 0% keyframe as *motion* —
-       * which is how a static animation passed as a moving one.
+       * which is how a static animation once passed as a moving one.
        */
       const IDENTITY = 'matrix(1, 0, 0, 1, 0, 0)';
       const shape = (t: string): string => (t === 'none' ? IDENTITY : t);
 
+      const rest = style();
+      (host as HTMLElement).setAttribute(attribute as string, value as string);
+
+      /*
+       * The engine's own view of what it is about to run. Asked for immediately
+       * and with no waiting: `getAnimations()` reports the animations the
+       * cascade has produced for this element, so a rule that did not apply —
+       * or a declaration the engine dropped whole — shows up as an empty list
+       * rather than as an event that never arrives.
+       */
+      const running = watched.getAnimations();
+      const started = running.map((animation) => (animation as CSSAnimation).animationName ?? '');
+
       const samples: { at: number; transform: string; opacity: string }[] = [];
-      const start = performance.now();
-      const ends = delay + duration;
       let moved = false;
-      for (;;) {
-        const at = performance.now() - start;
-        if (at > ends + 40) break;
-        if (at >= delay - 20) {
+      for (const animation of running) {
+        const timing = animation.effect?.getComputedTiming();
+        const duration = typeof timing?.duration === 'number' ? timing.duration : 0;
+        const delay = timing?.delay ?? 0;
+        if (duration <= 0) continue;
+        animation.pause();
+        // Across the whole active window: a keyframe can put its peak anywhere
+        // in it, and `ball-catch` holds its end state while `actor-lunge` peaks
+        // at 40% and returns to rest.
+        for (const fraction of [0.1, 0.25, 0.4, 0.55, 0.7, 0.85]) {
+          animation.currentTime = delay + duration * fraction;
           const now = style();
           if (shape(now.transform) !== shape(rest.transform) || now.opacity !== rest.opacity) {
             moved = true;
-            if (samples.length < 6) samples.push({ at: Math.round(at), ...now });
+            if (samples.length < 6) samples.push({ at: Math.round(duration * fraction), ...now });
           }
         }
-        await new Promise((resolve) => setTimeout(resolve, 12));
+        animation.cancel();
       }
-      if (!samples.length) samples.push({ at: Math.round(ends), ...style() });
+      if (!samples.length) samples.push({ at: 0, ...style() });
 
-      // Past the end, so a start event is never missed by closing early.
-      await new Promise((resolve) => setTimeout(resolve, 40));
-      document.removeEventListener('animationstart', listener, true);
       (host as HTMLElement).removeAttribute(attribute as string);
-
       return { started, moved, samples, rest };
     },
     [selector, apply.on, apply.attribute, apply.value],
@@ -201,8 +201,8 @@ const BEATS = [
 ] as const;
 
 describe(`the stage actually moves on ${engine}`, () => {
-  let page: import('playwright').Page;
-  let context: import('playwright').BrowserContext;
+  let page: Page;
+  let context: BrowserContext;
 
   beforeAll(async () => {
     const opened = await openApp(harness.browser, harness.url, 'SMOKE24', PHONE);
@@ -243,6 +243,40 @@ describe(`the stage actually moves on ${engine}`, () => {
       seen.moved,
       `${beat.keyframes} started on ${engine} but nothing moved — resting ${JSON.stringify(seen.rest)}, sampled ${JSON.stringify(seen.samples)}`,
     ).toBe(true);
+  });
+
+  /*
+   * `getAnimations()` says the engine *created* an animation. This says it
+   * **ran** one, start to finish, on its own clock with nothing seeking it.
+   *
+   * The two questions are genuinely different and only the pair covers the
+   * ground: a paused-and-seeked animation would still report interpolated
+   * values on an engine that never scheduled it, and an `animationstart` alone
+   * says nothing about whether anything moved. The lunge is the case used here
+   * because it carries no `animation-delay` in slot 1, so the window is the
+   * whole of `--motion-beat` and the wait below is bounded by the tuning rather
+   * than by a guess.
+   */
+  it('runs a beat to completion on its own clock, start and end', async () => {
+    const budget = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
+    const seen = await page.evaluate(async (beat) => {
+      const actor = document.querySelector('.stage__actor--me');
+      if (!actor) throw new Error('no player actor on the stage');
+      const events: string[] = [];
+      const record = (event: Event): void => {
+        events.push(`${event.type}:${(event as AnimationEvent).animationName}`);
+      };
+      for (const type of ['animationstart', 'animationend']) actor.addEventListener(type, record);
+      actor.setAttribute('data-acted', '1');
+      // A whole feedback budget is four beats; one beat cannot outlast it.
+      await new Promise((resolve) => setTimeout(resolve, beat as number));
+      for (const type of ['animationstart', 'animationend']) actor.removeEventListener(type, record);
+      actor.removeAttribute('data-acted');
+      return events;
+    }, budget);
+
+    expect(seen, `the lunge did not start on ${engine}`).toContain('animationstart:actor-lunge');
+    expect(seen, `the lunge started but never finished on ${engine}`).toContain('animationend:actor-lunge');
   });
 
   /*

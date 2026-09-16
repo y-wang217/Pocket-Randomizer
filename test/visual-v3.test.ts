@@ -14,7 +14,7 @@ import { measureContrast, type ContrastReading } from '../scripts/visual/contras
 import { traceMapScroll } from '../scripts/visual/perf.mjs';
 import { LOCALE_IDS } from '../src/data/locales';
 import { SCENES, TRAVELLING_KINDS } from '../src/ui/theme/scenes';
-import { openHarness, type Harness } from './visual/harness';
+import { skipOn, expectBaselineHeights, openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
 
@@ -31,8 +31,8 @@ describe('the vertical budget', () => {
     const expected = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/baseline/heights.json'), 'utf8'));
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.problems ?? []).toEqual([]);
-    expect(measured.map).toEqual(expected.map);
-    expect(measured.battle).toEqual(expected.battle);
+    expectBaselineHeights(measured.map, expected.map, expect);
+    expectBaselineHeights(measured.battle, expected.battle, expect);
   }, 180_000);
 });
 
@@ -106,7 +106,30 @@ describe('the world', () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await playUntil(page, (screen) => screen === 'map');
     await page.evaluate(() => globalThis.scrollTo(0, 200));
-    await page.waitForTimeout(150);
+    /*
+     * **Wait for the layers to have moved, not for 150ms. The iOS animations
+     * patch.** The parallax is applied on a `requestAnimationFrame` throttle,
+     * so the fixed wait this replaces was betting that a frame would be
+     * scheduled and served inside it. Under the full browser suite — 26 files,
+     * two engines' worth of builds, the contention section 26 records — that
+     * bet loses: this asserted `-40` against a layer still reading `0` on the
+     * WebKit leg, and passed on the same commit when run on its own.
+     *
+     * Same rule the patch's own motion helper had to learn three times over:
+     * a test that waits a fixed fraction of a motion budget and then reads the
+     * screen is making an assumption about what the budget is for. Waiting for
+     * the condition costs nothing when the frame is prompt and does not lie
+     * when it is late.
+     */
+    await page.waitForFunction(
+      () => {
+        const far = globalThis.document.querySelector('.world__layer--far');
+        if (!far) return false;
+        const matrix = globalThis.getComputedStyle(far).transform;
+        return matrix !== 'none' && !/^matrix\(1, 0, 0, 1, 0, -?0\)$/.test(matrix);
+      },
+      { timeout: 10_000 },
+    );
     const { y, transforms } = await page.evaluate(() => ({
       y: globalThis.scrollY,
       transforms: ['far', 'mid', 'near'].map((layer) => globalThis.getComputedStyle(globalThis.document.querySelector(`.world__layer--${layer}`)!).transform),
@@ -212,7 +235,25 @@ describe('contrast over the scene', () => {
 });
 
 describe('performance', () => {
-  it('keeps the throttled map scroll under 16ms of work a frame and 4ms of paint, on the busiest locale', async () => {
+  /*
+   * **Chromium only, and it is the instrument rather than the subject.** The
+   * iOS animations patch.
+   *
+   * `scripts/visual/perf.mjs` measures frame work through
+   * `context.newCDPSession`, and the Chrome DevTools Protocol is Chromium's.
+   * Playwright offers no WebKit equivalent — not a slower one, none — so there
+   * is no version of this measurement to take on the other engine, and a
+   * `frameWorkMs.p95` recorded from a different tracer would not be comparable
+   * to the number in `v3-perf.json` even if one existed.
+   *
+   * This is the only case in the suite that is declined outright rather than
+   * narrowed. The rule the patch added is that a test which cannot run on both
+   * says which engine and why, in the title, so a skipped case carries its own
+   * reason into the runner output instead of needing this comment open beside
+   * it.
+   */
+  const cdp = skipOn('webkit', 'frame timing comes from the Chrome DevTools Protocol, which WebKit has no equivalent of');
+  it.skipIf(cdp.skip)(`keeps the throttled map scroll under 16ms of work a frame and 4ms of paint, on the busiest locale ${cdp.why}`, async () => {
     const busiest = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/reports/v3-perf.json'), 'utf8')).busiest as string;
     const result = await traceMapScroll(harness.url, harness.browser, { locale: busiest });
     expect(result.frames).toBeGreaterThan(20);

@@ -112,11 +112,33 @@ function parseColor(text: string): [number, number, number] | null {
  * modal colour inside a chip's box is its fill: the label's glyphs are a
  * minority of the pixels at any chip size.
  */
+/**
+ * The dominant colour behind each box, read out of a full-page screenshot.
+ *
+ * **`ratio` scales CSS pixels to image pixels, and leaving it out was a real
+ * defect. The iOS animations patch.** `boxes` come from
+ * `getBoundingClientRect`, which is CSS pixels; a screenshot is device pixels.
+ * On the desktop Chromium this suite ran in for its whole life the two were the
+ * same number, so the conversion was invisible by being the identity.
+ *
+ * The moment a 3x device descriptor arrived, every box indexed a region a third
+ * of the way into the image and reported the colour of whatever happened to be
+ * there — which produced four confident contrast failures naming ratios as low
+ * as 1.32:1, against chips whose computed colours are byte-identical on both
+ * engines. An instrument that reads the wrong pixels does not fail; it answers.
+ */
 async function sampleBoxes(
   scratch: Page,
   png: Buffer,
   boxes: { x: number; y: number; width: number; height: number }[],
+  ratio: number,
 ): Promise<([number, number, number] | null)[]> {
+  const scaled = boxes.map((box) => ({
+    x: box.x * ratio,
+    y: box.y * ratio,
+    width: box.width * ratio,
+    height: box.height * ratio,
+  }));
   return scratch.evaluate(
     async ([base64, regions]) => {
       const img = new globalThis.Image();
@@ -144,7 +166,7 @@ async function sampleBoxes(
         return best![0].split(',').map((v) => (Number(v) << 2) + 2) as [number, number, number];
       });
     },
-    [png.toString('base64'), boxes] as const,
+    [png.toString('base64'), scaled] as const,
   );
 }
 
@@ -181,7 +203,10 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
 
   if (found.length === 0) return [];
   const png = await page.screenshot({ fullPage: true });
-  const backgrounds = await sampleBoxes(scratch, png, found.map((chip) => chip.box));
+  // Device pixels per CSS pixel, asked of the page rather than assumed. 1 on
+  // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
+  const dpr = await page.evaluate(() => globalThis.devicePixelRatio);
+  const backgrounds = await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr);
 
   const out: ChipSample[] = [];
   for (const [index, chip] of found.entries()) {

@@ -45,6 +45,47 @@ export function skipOn(which: Engine, reason: string): { skip: boolean; why: str
   return { skip: engine === which, why: `[${which}: ${reason}]` };
 }
 
+/**
+ * Compare a measured guarded-screen block against `docs/visual/baseline/`.
+ *
+ * **Exact on Chromium, within a pixel on WebKit, and the asymmetry is the
+ * honest reading rather than a concession.** `heights.json` is a recording, and
+ * what it records is a layout as laid out by one engine: every number in it was
+ * produced by the pinned Chromium. WebKit's text metrics round differently — the
+ * map screen comes out 944.36 against a recorded 944.5 — so `toEqual` on the
+ * WebKit leg is not asking "did this layout regress", it is asking "is this
+ * Chromium", to which the answer is no and always will be.
+ *
+ * Re-recording a second baseline was the alternative and is worse: two files
+ * that must be regenerated together, and a real regression on one engine hiding
+ * behind a re-record of the other. A tolerance keeps **one** recording and
+ * still gates WebKit on the thing the baseline exists for — a layout that moved
+ * by an amount a person could see. 1px is well inside that and well outside
+ * rasterisation.
+ */
+export function expectBaselineHeights(
+  measured: object,
+  expected: object,
+  expect: (actual: unknown, message?: string) => { toEqual(value: unknown): void; toBeCloseTo(value: number, digits: number): void },
+): void {
+  if (engine === 'chromium') {
+    expect(measured).toEqual(expected);
+    return;
+  }
+  for (const [key, value] of Object.entries(expected as Record<string, unknown>)) {
+    const got = (measured as Record<string, number | null>)[key];
+    if (typeof value !== 'number') {
+      expect(got, `${key} [webkit: compared against a Chromium-recorded baseline]`).toEqual(value);
+      continue;
+    }
+    // `toBeCloseTo(v, 0)` is |difference| < 0.5; a whole pixel is the line.
+    expect(
+      Math.abs((got ?? Number.NaN) - value) <= 1,
+      `${key}: ${String(got)} is more than a pixel from the recorded ${value} [webkit: heights.json is a Chromium recording, so the engines are compared within a pixel rather than exactly]`,
+    ).toEqual(true);
+  }
+}
+
 export interface Harness {
   url: string;
   browser: Browser;

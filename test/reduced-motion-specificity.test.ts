@@ -253,7 +253,9 @@ describe('every animation is cancelled by a rule that can actually beat it', () 
     const offenders: string[] = [];
     postcss.parse(CSS).walkAtRules('media', (atRule) => {
       if (!REDUCED.test(atRule.params)) return;
-      atRule.walkDecls(/^--motion-outro$/, (decl) => offenders.push(`${(decl.parent as Rule).selector}: ${decl.value}`));
+      atRule.walkDecls(/^--motion-outro$/, (decl) => {
+        offenders.push(`${(decl.parent as Rule).selector}: ${decl.value}`);
+      });
     });
     expect(offenders, 'the reduced-motion block sets the outro length again').toEqual([]);
   });
