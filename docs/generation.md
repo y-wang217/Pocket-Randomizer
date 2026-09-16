@@ -4545,6 +4545,38 @@ on trust. The suite file carries the same four cases forward.
 answer is on a device this repository cannot reach, which is the whole reason
 the instrument exists. What changed is that the question can now be asked.
 
+### It was asked, and the answer is Reduce Motion
+
+Added 2026-09-16, the same day, after the instrument reached the device. **The
+tester checked and reported Reduce Motion on.** That closes the iOS thread:
+there is no engine bug, there never was one, and every animation the report
+described as missing was being cancelled by an OS accessibility setting that
+GYMRUN honours by design.
+
+Three things are worth keeping out of how it landed.
+
+**Section 27's hypothesis was right, and it was right while being properly
+hedged.** It said Reduce Motion "is the only configuration that reproduces the
+reported symptom on the engine in question" and, in the same paragraph, "this is
+not proof that the reporter had Reduce Motion on". Both halves were correct. The
+hedge is the part to keep: the patch shipped the fix for it anyway — item 5, the
+hold that no longer goes to zero — so being unable to prove the cause cost
+nothing, because the change was worth making on its own terms.
+
+**The instrument was not wasted by the answer being simple.** It is what moved
+the claim from suspicion to fact, and it did it in one page-open rather than
+another patch. A standing suspicion that nobody can discharge is a defect that
+stays open; this one is closed. The next "no animations on a phone" report is
+settled the same way, by the first line of section 1, before anyone reads a
+stylesheet.
+
+**What it says about the two patches before it.** PR #41 spent its length ruling
+out five candidate causes for a bug that did not exist, and was right to: it
+could not tell from a Linux box, and the five experiments are what establish
+that. The cheaper path was never a better guess — it was a way to ask the
+device, and that did not exist until now. The cost of not having an instrument
+is paid in patches that investigate instead of measuring.
+
 ### The contention flake section 27 filed, reproduced — and this patch makes it likelier
 
 Section 27 recorded one flake on the full gate: a browser test that is green in

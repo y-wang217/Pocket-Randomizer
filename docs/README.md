@@ -87,12 +87,16 @@ engines under `npm run check` and holds that a known-good engine is reported as
 healthy, that emulated Reduce Motion is named rather than reported as twelve
 dead animations, and that the file makes no parse-time request of its own.
 
-**It does not answer the iPhone question and cannot.** That answer is on a
-device this repository cannot reach, which is the reason the instrument exists.
-To get it: deploy this branch, open the deployed site's **/diagnose.html** on the phone,
-tap **Copy the full report**, paste it back. Check
-Settings → Accessibility → Motion → Reduce Motion first — if it is on, the
-reported symptom is fully explained and nothing is broken.
+**And it answered the question. Reduce Motion was on.** The tester checked the
+device and reported it, 2026-09-16, which closes the defect the whole iOS thread
+was chasing: **there is no engine bug.** Section 27 called this "not proof that
+the reporter had Reduce Motion on" and named it as the only configuration that
+reproduces the reported symptom on the engine in question. It was right, and it
+is now confirmed rather than inferred.
+
+The instrument stays. It is what turned a standing suspicion into an answer, and
+the next report of "no animations on a phone" is one page-open from being
+settled instead of a patch away.
 
 **Previously: the iOS animations patch — a second engine in the harness.** Branch
 `claude/awesome-noether-h6p8fj`, prompt
@@ -550,11 +554,6 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
-1. **The iPhone still has not been measured.** `public/diagnose.html` exists to
-   ask, and nothing here can answer it: deploy, open the site's
-   **/diagnose.html** on the device, paste the report back. Reduce Motion is the leading candidate and
-   is the first line the tool prints. `generation.md` section 28, report
-   [`visual/reports/patch-ios-diagnose-instrument.md`](visual/reports/patch-ios-diagnose-instrument.md).
 0. **Fight length.** Early fights are an exchange rather than a shape. It is now
    the root cause behind two separate carried misses, below, and has earned its
    own investigation. `balance.md`, and open question 1 in the root README.

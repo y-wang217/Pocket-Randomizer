@@ -24,7 +24,7 @@ seventh, and puts a gate behind it so the same thing cannot happen twice.
 | ships | `public/diagnose.html`, copied verbatim into `dist/` by Vite |
 | gate | `test/visual-diagnose.test.ts`, both engines, under `npm run check` |
 | bundle cost | none — it enters no chunk and is not processed by the build |
-| answers the iPhone question | **no.** It lets the question be asked |
+| answers the iPhone question | not by itself — but the question was asked on the device the same day, and **the answer is Reduce Motion.** Section 6 |
 
 ## 1. How to use it
 
@@ -103,9 +103,37 @@ lines individually rather than asserting the absence of `STATIC`.
 
 ## 5. What this does not do
 
-It does not answer the iPhone question, and it cannot. That answer is on a
-device this repository cannot reach — which is the entire reason the instrument
-exists. Linux WebKit shares iOS Safari's engine and not its graphics stack, its
-accessibility settings or its power management, and all three are live
-candidates. What changed is that the question can now be asked, on the device,
-by someone holding it.
+It does not answer the iPhone question by itself, and it cannot. That answer is
+on a device this repository cannot reach — which is the entire reason the
+instrument exists. Linux WebKit shares iOS Safari's engine and not its graphics
+stack, its accessibility settings or its power management, and all three were
+live candidates. What changed is that the question could now be asked, on the
+device, by someone holding it.
+
+## 6. It was asked. The answer is Reduce Motion
+
+**2026-09-16, the same day: the tester checked the device and reported Reduce
+Motion on.** That closes the iOS thread. There is no engine bug. Every animation
+the original report described as missing was being cancelled by an OS
+accessibility setting that GYMRUN honours by design, and the end-of-fight hold
+that went with it is already fixed — that was item 5 of the PR #41 brief, and it
+shipped before the cause was confirmed.
+
+Three things worth keeping:
+
+- **The hypothesis was right and correctly hedged.** Section 27 said Reduce
+  Motion "is the only configuration that reproduces the reported symptom on the
+  engine in question" *and* "this is not proof that the reporter had Reduce
+  Motion on". Both were true. The hedge cost nothing, because the fix for it was
+  worth making on its own terms and shipped anyway.
+- **A simple answer does not make the instrument wasted.** It is what moved the
+  claim from suspicion to fact in one page-open rather than another patch. A
+  suspicion nobody can discharge is a defect that stays open; this one is closed,
+  and the next report of this shape is settled by the first line of section 1
+  before anyone opens a stylesheet.
+- **The cost of not having an instrument is paid in patches that investigate
+  instead of measuring.** PR #41 spent its length ruling out five candidate
+  causes for a bug that did not exist, and was right to — it could not tell from
+  a Linux box, and those five experiments are what establish that. The cheaper
+  path was never a better guess. It was a way to ask the device, and it did not
+  exist until now.
