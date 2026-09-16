@@ -88,26 +88,75 @@ Fixture sha256: `72bd4b9d3571b66f0d7d206dc1229e108ba864f6ec7110d51d2aac4933d6487
 
 | value | hash |
 |---|---|
-| 900 (shipped) | `b381d0` |
+| 900 (first build) | `b381d0` |
 | 1234 | `b381d0` |
-| 900 (restored) | `b381d0` |
+| 500 (reverted to) | `b381d0` |
+| **750 (shipped)** | `b381d0` |
 
-The exclusion works. This is the last time a display edit refuses a seed.
+The exclusion works, and this run exercised it for real rather than as a
+demonstration: the number was moved to 900, back to 500 on a ruling, and then to
+750, and the hash did not flinch. **That is the last time a display edit refuses
+a seed.**
 
 ## 3. The retune
 
-`battleFeedbackMs: 500` -> **900**. Derived, so one number still sets the whole
+`battleFeedbackMs: 500` -> **750**. Derived, so one number still sets the whole
 feel of a turn:
 
 | token | before | after |
 |---|---|---|
-| `--motion-duration` | 500ms | **900ms** |
-| `--motion-beat` (`D/4`) | 125ms | **225ms** |
-| `--motion-hp-shadow` (`D`) | 500ms | **900ms** |
-| `--motion-swap` (`D`) | 500ms | **900ms** |
+| `--motion-duration` | 500ms | **750ms** |
+| `--motion-beat` (`D/4`) | 125ms | **187.5ms** |
+| `--motion-hp-shadow` (`D`) | 500ms | **750ms** |
+| `--motion-swap` (`D`) | 500ms | **750ms** |
+| `--lunge-distance` | 8px | **6px** |
+| `--hit-recoil` | 4px | **`calc(--lunge-distance / 2)`** = 3px |
 
-Slots, unchanged in shape: 0 / 225 / 450 / 675ms, the last ending at 900 where
-the shadow's fade ends. The four-slot partition is **kept**.
+Slots, unchanged in shape: 0 / 187.5 / 375 / 562.5ms, the last ending at 750
+where the shadow's fade ends. The four-slot partition is **kept**.
+
+### The number shipped is 750, and the lunge came down with it
+
+**Recorded after the fact, because 900 was built first and reverted.** The
+ruling was: take the split now, but do not take an unwatched number with it —
+and then, having seen the frame table, shrink the lunge rather than only
+lengthen the beat.
+
+That instinct is right, and the reason is a quantity nobody had costed.
+`actor-lunge` peaks at **40% of a beat**, and a beat is a quarter of the budget,
+so the whole lunge distance is spent in 10% of the budget:
+
+| budget / lunge | peak px | out-phase | frames @60Hz | px per frame |
+|---|---|---|---|---|
+| 500 / 8px (was) | 8.94 | 50ms | **3.0** | **2.98** |
+| 750 / 8px | 8.94 | 75ms | 4.5 | 1.99 |
+| **750 / 6px (shipped)** | 6.71 | 75ms | 4.5 | **1.49** |
+| 900 / 8px (built, reverted) | 8.94 | 90ms | 5.4 | 1.66 |
+
+**A three-frame lunge is a jump cut, not a fast lunge**, which is why it read as
+broken rather than as quick — and why raising the budget alone would not have
+fixed it: 8px at 750 is still ~2px a frame, a slow stutter instead of a fast
+one. The two had to move together.
+
+6px is not a free choice either. `--idle-rise`'s comment already puts the jitter
+threshold at two pixels on a small body, so 1.49px a frame sits under a line
+this codebase had already drawn for itself.
+
+`--hit-recoil` became `calc(var(--lunge-distance) / 2)` rather than `3px`. Its
+comment has always claimed "half the lunge, so the answer reads as smaller than
+the question"; until now that was a coincidence of two literals that the next
+person to tune the lunge would have silently broken. Verified in a browser: the
+token resolves to exactly `3px`.
+
+**750 also divides better than 900.** Every derived length lands on an exact
+binary fraction — beat `0.1875s`, delays `0.375s` and `0.5625s` — so the
+browser's serialization and the tests' `ms / 4000` arithmetic cannot disagree.
+Section 3 flagged that as a risk to spot-check at 900 (`0.225s`); at 750 it
+cannot arise. `Swift` is 2/3 of 750, which is exactly 500 — today's motion, one
+tap away.
+
+The duration tests needed **no edit at all** to follow 500 → 900 → 750. That is
+the evidence the derivation is real rather than a comment.
 
 ### The two decisions the prompt asked for, and their answers
 

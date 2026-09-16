@@ -126,15 +126,49 @@ export interface DisplayTuning {
  */
 export const DEFAULT_DISPLAY_TUNING: DisplayTuning = {
   /*
-   * 900, up from Release C's unmeasured 500, which put a beat at 125ms — an
-   * 8px out-and-back in about seven frames, so the sprite sat at peak
-   * displacement for roughly one of them. The swap beat has always read where
-   * the lunge did not, and the reason is visible in the numbers: it spends
-   * 14px over the whole budget where the lunge spends 8px over a quarter of it.
-   * 900 makes a beat 225ms and the whole turn still resolves inside a second.
-   * Measured in `docs/visual/reports/patch-battle-animation.md`.
+   * **750, and the distance moved with it.** The battle animation run.
+   *
+   * Release C shipped 500 as the prompt's default, never measured, with its own
+   * comment admitting it was "waiting on a playtest rather than on a sweep".
+   * The playtest arrived and said the beats were too fast to see. This is the
+   * answer to it.
+   *
+   * **The number nobody had costed is the lunge's outward phase.**
+   * `actor-lunge` peaks at 40% of a beat, and a beat is a quarter of this — so
+   * at 500 the sprite travelled its whole 8px in 50ms, three frames at 60Hz,
+   * about 3px per frame. That is not a fast lunge, it is a jump cut, which is
+   * why it read as broken rather than as quick.
+   *
+   * | budget / lunge | out-phase | frames | px per frame |
+   * |---|---|---|---|
+   * | 500 / 8px (was) | 50ms | 3.0 | 2.98 |
+   * | 750 / 8px | 75ms | 4.5 | 1.99 |
+   * | **750 / 6px (shipped)** | 75ms | 4.5 | **1.49** |
+   *
+   * **Duration alone would not have fixed it**: 8px at 750 is still ~2px a
+   * frame, a slow stutter rather than a fast one. The distance had to come
+   * down with the budget going up, and `--lunge-distance` did — to 6px, with
+   * `--hit-recoil` derived from it rather than re-typed. 1.49px per frame sits
+   * under a line this codebase has already drawn: `--idle-rise`'s comment says
+   * two pixels on a small body "read as jitter".
+   *
+   * **Why 750 and not 900.** 900 was built, measured and reverted — it is the
+   * number the px-per-frame ratio alone points at, and it was rejected as too
+   * much to take on a frame count with nobody having watched a fight. 750 also
+   * divides better: every derived length lands on an exact binary fraction —
+   * beat `0.1875s`, delays `0.375s` and `0.5625s` — so the browser's
+   * serialization and the tests' `ms / 4000` arithmetic cannot disagree. At 900
+   * that was a flagged risk.
+   *
+   * `Swift` in the drawer is 2/3 of this, which is 500 — today's motion, still
+   * one tap away for anyone who wants it back.
+   *
+   * Still not a balance finding, and still not something `npm run sim` can
+   * measure. It is swept by watching. What changed is that it is now free to
+   * move: this file is off the `contentHash` glob, so the next revision costs
+   * nobody a shared seed.
    */
-  battleFeedbackMs: 900,
+  battleFeedbackMs: 750,
 
   minChipFontSizePx: 11,
   minChipContrastRatio: 4.5,

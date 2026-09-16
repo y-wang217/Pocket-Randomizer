@@ -3590,6 +3590,34 @@ seed shared across the edit, and why it could not move. This is the same class
 of failure open item 8 records: a stale statement in a file every session reads
 is believed.
 
+### Deviation 4: the shipped number is 750, reached by two rulings
+
+The prompt's step 2 left the figure to the branch, "judged by watching", with a
+suggested 900-1000. 900 was built and measured. Two rulings moved it:
+
+1. **Do not ship an unwatched number.** Reverted to 500, keeping the split — the
+   point of which is that the number is now free, so deferring it costs nothing.
+2. **Shrink the lunge and take 750.** This is the one that found something the
+   branch had missed: `actor-lunge` peaks at 40% of a beat and a beat is a
+   quarter of the budget, so the whole lunge distance is spent in **10% of the
+   budget** — 50ms at 500, three frames at 60Hz, near 3px a frame. That is a
+   jump cut, not a fast lunge, and it is why the motion read as broken rather
+   than as quick. **Raising the budget alone would not have fixed it**: 8px at
+   750 is still ~2px a frame. Distance and duration had to move together.
+
+So `--lunge-distance` is 6px (1.49px a frame, under the two-pixel jitter line
+`--idle-rise` already draws), and `--hit-recoil` is now
+`calc(var(--lunge-distance) / 2)` rather than a second literal — its comment has
+always claimed "half the lunge" and that was a coincidence until this edit.
+
+750 also divides better than 900: beat `0.1875s`, delays `0.375s` and
+`0.5625s`, all exact binary fractions, so the browser's serialization and the
+tests' `ms / 4000` arithmetic cannot disagree. The spot-check this section's
+gates asked for at 900 cannot fail at 750.
+
+The three trips — 500 to 900 to 500 to 750 — all left `contentHash` at
+`b381d0`, which is the split working as designed rather than a claim about it.
+
 ### What Branch 1 did not change
 
 No balance number. No `core/` file. `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and

@@ -69,7 +69,10 @@ display numbers no `core/` file reads moved out of `tuning.ts` into
 open item 3 of
 [`handoff/overnight-1-contenthash.md`](handoff/overnight-1-contenthash.md) and
 the "open, small" item in section 9 of `generation.md`; `battleFeedbackMs` then
-went 500 to 900, taking a beat from 125ms to 225ms; and `ui/settings.ts` gained
+went 500 to **750**, taking a beat from 125ms to 187.5ms, with `--lunge-distance`
+coming down 8px to 6px at the same time — the lunge spends its whole distance in
+10% of the budget, so at 500 it was a three-frame jump cut and duration alone
+would not have fixed it; and `ui/settings.ts` gained
 `battleSpeed`, a third presentation axis, as three multipliers on that one
 number. **`contentHash` moved once, `53145f` to `b381d0`**, which the prompt
 said would not happen — deviation 1 of section 21 is the account, and the
