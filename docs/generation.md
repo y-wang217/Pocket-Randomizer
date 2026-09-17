@@ -5546,3 +5546,27 @@ only thing that distinguishes them.
 every guarded screen and every budget still holds — battle's decision bottom at 708
 and the map's at 687.6, both under the 740 fold line — so the movement is seed
 drift in the pixels rather than a layout change.
+
+### 33.13 The gate, and the one line in it that is not a pass
+
+`npm run check` exits 0: lint, typecheck, the full suite, the WebKit browser leg
+and strict trim. **136 files, 1807 tests, all passing.** `npm run build` and
+`npm run smoke` pass, and smoke still walks `SMK49-2` — the seed whose header
+records five predecessors retired by exactly this kind of bump did not need a
+sixth.
+
+Vitest also reports `Errors 1 error` on the strict-trim leg, and it is recorded
+here rather than left for someone to rediscover. The error is
+`[vitest-worker]: Timeout calling "onTaskUpdate"` — the reporter's IPC channel
+timing out on a 12-minute run, with no assertion behind it and no test file
+marked failed. It first appeared on a diagnostic run made *concurrently* with the
+smoke browser walk, which flagged a file as failed; run alone the file count is
+136 of 136 and the error survives as a bare warning. Vitest's own message says an
+unhandled error "might cause false positive tests", so the claim being made here
+is narrow: the suite is green on two independent runs, and this line is
+infrastructure rather than product. If it starts appearing with a file attached,
+that is a different finding.
+
+The benchmark is `RETUNE`, 400 seeds, `ai-6-spent-item` pinned — 0.56 mean gyms,
+0% completion — and the row in [`balance.md`](balance.md) carries what it means
+and what it cannot see.
