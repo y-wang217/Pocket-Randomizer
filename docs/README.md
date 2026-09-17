@@ -808,6 +808,30 @@ which `reviewBattle` waits on. Predates the chip audit by three patches and
 was exposed by it; `generation.md` section 32 is the account, and
 `test/visual-sprites.test.ts` holds the figure's box.
 
+### Carried out of the sprite patch
+
+**`visual-v0`'s "one accent" walk reads the screen and the count in two round
+trips.** Filed, not built.
+
+It failed twice across four full-suite runs on 2026-09-17, with two different
+messages — once `summary has a primary action: expected 0 to be 1`, once
+`battle has no primary action: expected 1 to be 0` — and passed standalone every
+time, on this branch and on `main`.
+
+Both messages have one explanation. The walk calls `openScreen(page)` for the
+screen's name, then `count()` for the number of visible `.primary-action`
+elements, and those are two separate round trips to the page. If the app
+transitions between them — battle to result, say — the count belongs to a
+different screen than the name, and `seen.set(screen, Math.max(...))` makes that
+sample permanent. Under full-suite load the gap between the two calls widens and
+the straddle gets likelier.
+
+**The fix is to read both in one `page.evaluate`**, so the pair is taken from a
+single layout. That is a change to a gate, on a branch whose diff is one CSS
+declaration, so it is filed rather than smuggled in. The first of the two
+failures had a real cause underneath it — the bench-row dead tap — which is why
+this was not filed sooner: the race and a genuine defect produced the same red.
+
 ### Carried out of the chip audit
 
 **The horizontal-overflow guard covers three screens out of twelve, and nothing
