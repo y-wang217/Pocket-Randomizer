@@ -305,6 +305,7 @@ because a number copied into two files disagrees with itself within two stages.
 | `npm run check` | **The gate.** Nine legs, every one of them run; see below |
 | `npm run sim` | Play N runs headless and report the balance |
 | `npm run gen:pools` | Regenerate the species, move and ability tables from the dex |
+| `npm run pool-report` | What the move pool holds, how thin each band's per-type slice is, and what a real starter roll produces |
 | `npm run content-hash` | Print the `contentHash` of the working tree; `--files` lists what it covers |
 | `npm run smoke` | Browser smoke test against `dist/` (build first) |
 | `npm run measure` | Gzipped bundle size per dependency (build first) |

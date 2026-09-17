@@ -23,7 +23,8 @@
     "gen:pools": "vite-node scripts/gen-pools.ts",
     "content-hash": "vite-node scripts/content-hash.ts",
     "measure": "npm run build && node scripts/measure-bundle.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "pool-report": "vite-node scripts/pool-report.ts"
   },
   "dependencies": {
     "@pkmn/img": "^0.3.4",

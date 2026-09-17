@@ -2,8 +2,8 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-17/gymrun-0.3.0",
-    "contentHash": "73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b",
-    "randomizer": "gymrun-randomizer-17",
+    "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
+    "randomizer": "gymrun-randomizer-18",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -15,7 +15,7 @@
     "kind": "gym",
     "species": "Dusk",
     "bySpecies": "Nosepass",
-    "byMove": "Snarl",
+    "byMove": "Confusion",
     "indirect": null
   },
   "currency": 30,
@@ -27,10 +27,10 @@
       "level": 7,
       "ability": "Mimicry",
       "moves": [
-        "Draining Kiss 14/16",
+        "Fairy Wind 48/48",
         "Disarming Voice 24/24",
-        "Ice Shard 47/48",
-        "Pounce 32/32"
+        "Pounce 32/32",
+        "Draining Kiss 15/16"
       ],
       "item": "payapaberry",
       "hp": "0/27",
@@ -41,7 +41,7 @@
       "level": 7,
       "ability": "Healer",
       "moves": [
-        "Rock Throw 20/24",
+        "Rock Throw 21/24",
         "Ice Shard 47/48",
         "Flame Charge 32/32",
         "Agility 48/48"
@@ -80,9 +80,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Toedscool",
-      "turns": 1,
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 43,
+      "hpAfter": 28,
       "casualties": []
     },
     {
@@ -113,7 +113,7 @@
       "label": "Garnet's Gym",
       "tier": null,
       "opponent": "Garnet (Rock)",
-      "turns": 8,
+      "turns": 6,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -123,7 +123,7 @@
           "level": 7,
           "species": "Snubbull",
           "bySpecies": "Nosepass",
-          "byMove": "Clear Smog",
+          "byMove": "Cross Poison",
           "indirect": null
         },
         {
@@ -132,7 +132,7 @@
           "level": 7,
           "species": "Nosepass",
           "bySpecies": "Nosepass",
-          "byMove": "Snarl",
+          "byMove": "Confusion",
           "indirect": null
         }
       ]
@@ -142,9 +142,9 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-17/gymrun-0.3.0",
-      "contentHash": "73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b",
+      "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-17"
+      "randomizerVersion": "gymrun-randomizer-18"
     },
     "decisions": [
       {
@@ -163,21 +163,21 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 4
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 4
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 4
         }
       },
       {
@@ -237,7 +237,7 @@
       },
       {
         "kind": "replace",
-        "slot": 3
+        "slot": 2
       },
       {
         "kind": "items",
@@ -249,6 +249,13 @@
       {
         "kind": "node",
         "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
       },
       {
         "kind": "battle",
@@ -317,21 +324,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 4
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
+          "slot": 4
         }
       },
       {
@@ -339,13 +339,6 @@
         "choice": {
           "kind": "switch",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {

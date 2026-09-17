@@ -253,6 +253,22 @@ describe('the capture flow reads live capacity', () => {
   });
 });
 
+/**
+ * Seeds for the two played-run tests below, tried in order until one gets far
+ * enough. See the note inside the first of them.
+ */
+const SLOT_SEEDS = [
+  // Known to clear a gym at `gymrun-randomizer-18`, so the search usually stops
+  // on the first one and the tests stay fast...
+  'S49B-10', 'S49B-12', 'S49B-13', 'S49B-33',
+  // ...and a tail, because the scripted policy clears a gym on roughly one seed
+  // in five, so a short list is a coin flip at the next bump rather than a pin
+  // that fails honestly. Eighteen of these miss together about once in a
+  // thousand bumps, which is the point of the tail rather than of the order.
+  'S49B-11', 'S49B-26', 'S49B-29', 'S49B-32', 'S49B-34', 'S49B-36', 'S49B-51',
+  'S49B-1', 'S49B-2', 'S49B-3', 'S49B-4', 'S49B-5', 'S49B-6', 'S49B-7',
+];
+
 describe('the backpack grows with the party', () => {
   it('is the slots plus the slack, at every gym count', () => {
     for (let gyms = 0; gyms <= SEGMENTS_PER_RUN; gyms++) {
@@ -281,20 +297,31 @@ describe('the backpack grows with the party', () => {
      * `DEFAULT_TUNING`, so it could not follow a party that grows however the
      * schedule was written. This watches the live pair over a played run.
      */
+    /*
+     * Searched across seeds rather than pinned to one, from the
+     * `gymrun-randomizer-18` bump. The pair only *moves* once a gym is
+     * cleared, and whether a given seed clears one is a property of the draw
+     * that every bump reshuffles — `test/backpack.test.ts` records the same
+     * lesson at length. The map is keyed by gyms cleared and the relation it
+     * checks is a pure function of that, so merging seeds is sound.
+     */
     const seen = new Map<number, number>();
-    await playRun('S49B-1', capturePolicy(), DEFAULT_TUNING, {
-      onState: (state) => {
-        seen.set(gymsCleared(state), backpackCapacity(partyCapacity(state), state.tuning));
-      },
-    });
+    for (const seed of SLOT_SEEDS) {
+      await playRun(seed, capturePolicy(), DEFAULT_TUNING, {
+        onState: (state) => {
+          seen.set(gymsCleared(state), backpackCapacity(partyCapacity(state), state.tuning));
+        },
+      });
+      if (seen.size > 1) break;
+    }
 
-    expect(seen.size).toBeGreaterThan(1);
+    expect(seen.size, 'no seed cleared a gym, so the pair never moved').toBeGreaterThan(1);
     for (const [gyms, bag] of seen) {
       expect(bag, `bag at ${gyms} gyms`).toBe(
         partyCapacityAfter(gyms) + DEFAULT_TUNING.backpackSlack,
       );
     }
-  }, 120_000);
+  }, 300_000);
 });
 
 describe('the party never exceeds its slots, over a played run', () => {
@@ -303,19 +330,26 @@ describe('the party never exceeds its slots, over a played run', () => {
     let over = 0;
     let peakCapacity = 0;
 
-    await playRun('S49B-1', capturePolicy(), DEFAULT_TUNING, {
-      onState: (state) => {
-        peak = Math.max(peak, state.party.length);
-        peakCapacity = Math.max(peakCapacity, partyCapacity(state));
-        if (state.party.length > partyCapacity(state)) over++;
-      },
-    });
+    // Searched across seeds for the reason the test above gives: an unlock
+    // needs a cleared gym, and which seeds clear one moves with every bump.
+    // `over` is checked on every run either way, so widening the search
+    // strengthens that half rather than merely rescuing the other.
+    for (const seed of SLOT_SEEDS) {
+      await playRun(seed, capturePolicy(), DEFAULT_TUNING, {
+        onState: (state) => {
+          peak = Math.max(peak, state.party.length);
+          peakCapacity = Math.max(peakCapacity, partyCapacity(state));
+          if (state.party.length > partyCapacity(state)) over++;
+        },
+      });
+      if (peakCapacity > partyCapacityAfter(0) && peak > 1) break;
+    }
 
     expect(over, 'a party was wider than the slots it had').toBe(0);
     // The run has to actually reach an unlock, or the assertion above is vacuous.
-    expect(peakCapacity).toBeGreaterThan(partyCapacityAfter(0));
+    expect(peakCapacity, 'no seed reached a slot unlock').toBeGreaterThan(partyCapacityAfter(0));
     expect(peak).toBeGreaterThan(1);
-  }, 120_000);
+  }, 300_000);
 });
 
 // ---------------------------------------------------------------------------

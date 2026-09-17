@@ -33,7 +33,15 @@ import {
 import type { RunDecision } from '../src/core/types';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
-const SEEDS = ['S49R-2', 'S49R-10', 'S49R-13', 'S49R-26'];
+/*
+ * Widened at the `gymrun-randomizer-18` bump, for the reason
+ * `test/backpack.test.ts` states at length: how far a seed gets is a property
+ * of the draw, and a gym move can only be declined by a run that reaches a gym.
+ */
+const SEEDS = [
+  'S49R-2', 'S49R-10', 'S49R-13', 'S49R-26',
+  'S49R-5', 'S49R-8', 'S49R-17', 'S49R-23',
+];
 
 /** The scripted baseline, plus a record of every decision the run asked for. */
 function watcher(): { policy: RunPolicy; decisions: RunDecision[] } {
@@ -58,10 +66,11 @@ describe('the run log version', () => {
      * relic an event pays gained a drawn order and a fallback. The assertion's
      * subject is that the two axes are *different*, and that still holds —
      * this literal is the thing that moves when a later patch changes what the
-     * randomizer draws, and it has now done so twice, which is the axis
-     * working.
+     * randomizer draws, and it has now done so three times — the victory-order
+     * patch to `-17`, then the shop and moveset-variance patch to `-18` — which
+     * is the axis working.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-17');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-18');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
@@ -197,7 +206,12 @@ describe('declining a gym move', () => {
   }
 
   it('teaches nobody, and leaves the party exactly as the fight left it', async () => {
-    for (const seed of SEEDS.slice(0, 3)) {
+    // Counted across the search rather than per seed: a seed that dies before
+    // gym 1 declines nothing and is not a failure, but the search as a whole
+    // finding nothing to decline would mean this test asserts nothing.
+    let declinedAnywhere = 0;
+    let tookAnywhere = 0;
+    for (const seed of SEEDS.slice(0, 6)) {
       const taken = await playRun(seed, scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
       const refused = await playRun(seed, decliner(), DEFAULT_TUNING);
 
@@ -211,7 +225,7 @@ describe('declining a gym move', () => {
       const declined = refused.log.decisions.filter(
         (decision) => decision.kind === 'target' && decision.index === DECLINED_MOVE,
       );
-      expect(declined.length, `${seed}: nothing was declined, so this asserts nothing`).toBeGreaterThan(0);
+      declinedAnywhere += declined.length;
 
       for (let i = 0; i < refused.log.decisions.length; i++) {
         const decision = refused.log.decisions[i];
@@ -223,11 +237,17 @@ describe('declining a gym move', () => {
       }
 
       // And the control: a run that takes its moves does write them.
-      expect(
-        taken.log.decisions.some((decision) => decision.kind === 'target' && decision.index >= 0),
-      ).toBe(true);
+      if (taken.log.decisions.some((decision) => decision.kind === 'target' && decision.index >= 0)) {
+        tookAnywhere += 1;
+      }
     }
-  }, 240_000);
+
+    // The search has to have found both halves, or this asserts nothing. A
+    // single seed that dies before its first move card is not a failure; the
+    // whole search coming back empty is.
+    expect(declinedAnywhere, 'no seed declined anything').toBeGreaterThan(0);
+    expect(tookAnywhere, 'no seed took a move either').toBeGreaterThan(0);
+  }, 300_000);
 
   it('replays to the identical party, so the decline is in the log', async () => {
     for (const seed of SEEDS.slice(0, 3)) {

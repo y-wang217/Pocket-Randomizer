@@ -856,7 +856,56 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
        */
       return Math.max(0, incoming - strongest) * 1.5 + Math.max(0, incoming - weakest) * 0.35;
     }
+
+    /*
+     * A status move, priced flat and priced **net of what it displaces**.
+     *
+     * Flat for the reason the relic above is flat: the bot cannot see what a
+     * Swords Dance is worth to it. Its battle policy is a one-turn damage
+     * maximiser, so a move whose whole value is on the *next* turn scores zero
+     * on the turn it is offered, and any cleverer number here would be the
+     * scorer inventing a forecast the game does not give it.
+     *
+     * Net, because of what this bot's own replacement rule does with it.
+     * `greedyMoveToReplace` below sheds a spare status move when a member holds
+     * two, and otherwise displaces the weakest *damaging* move — so the first
+     * technique a member takes costs it an attack slot, every time. A flat
+     * value that ignored that would have the bot buy techniques until its party
+     * could not fight, and the report would read that as demand.
+     *
+     * (`core/run.ts`'s `defaultMoveReplacement` is a *different* rule with a
+     * different answer — it never reaches a status slot while any damaging move
+     * is held — and it is the scripted policy's, not this one's. The two are
+     * easy to confuse and the report did confuse them once.)
+     *
+     * **This number is a confound and is written up as one**:
+     * `docs/reports/moveset-pool-validation.md` section 5. It is deliberately
+     * below a same-band tm so that the first benchmark measures a bot that will
+     * take a technique when little else is on the shelf and not otherwise —
+     * a floor on interest rather than an estimate of worth.
+     */
+    case 'technique':
+      return Math.max(0, 40 - weakestDamaging(state.party) * 0.35);
   }
+}
+
+/**
+ * The base power of the move a technique would push out, across the party.
+ *
+ * Mirrors `defaultMoveReplacement`'s own rule rather than guessing at it: the
+ * weakest damaging move of whichever member has the least to lose. Zero when
+ * nothing in the party holds an attack, which cannot happen in a run but can
+ * happen in a fixture.
+ */
+function weakestDamaging(party: readonly PokemonState[]): number {
+  let lowest = Number.POSITIVE_INFINITY;
+  for (const member of party) {
+    for (const move of describeSpecCard(member.spec).moves) {
+      if (move.category === 'Status') continue;
+      lowest = Math.min(lowest, move.basePower);
+    }
+  }
+  return Number.isFinite(lowest) ? lowest : 0;
 }
 
 /**

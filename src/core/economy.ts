@@ -27,7 +27,15 @@ import { applyRelicPassives, NO_RELIC_EFFECTS, type RelicEffects } from './relic
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import type { NodeSpec } from './encounters';
-import { currencyScaleFor, NODE_PAYOUT, priceAt, shopEntriesFor, TIER_PAYOUT } from '../data/shop';
+import {
+  currencyScaleFor,
+  NODE_PAYOUT,
+  priceAt,
+  shopEntriesFor,
+  type ShopEntry,
+  shopSlotsFor,
+  TIER_PAYOUT,
+} from '../data/shop';
 import type { BattleKind } from '../data/tuning';
 import type { Tuning } from '../data/tuning';
 
@@ -114,10 +122,21 @@ export interface ShopStock {
  * reward offer: drawing at node entry would make the shelf depend on how the
  * player got there.
  *
- * Entries are drawn **with** replacement — a shop selling two different items is
- * good, and forcing five distinct entry kinds would need a bigger table than
- * the shelf — but the *resolved* results are deduplicated, so two rolls of the
- * same heal collapse into one and the shelf is shorter rather than repetitive.
+ * **One draw per guaranteed category, then `shopExtraSlots` free rows.** It was
+ * one weighted walk over a single flat table, repeated a drawn number of times,
+ * and a shelf could legally come back as three heals — `data/shop.ts` carries
+ * the argument for why that is not a shop. Each category now rolls *within
+ * itself*, so the question a slot asks is "which heal" rather than "a heal at
+ * all", and the extra rows on top are still the old free-for-all.
+ *
+ * Every slot draws exactly once whether or not it has anything to choose
+ * between: a single-entry category still spends its `nextFloat`. That is the
+ * same discipline `rollMoveset` follows, and the same reason — retuning a
+ * weight, or giving a category a second price point, must never change how many
+ * times the stream is read, or every roll after it in the seed moves with it.
+ *
+ * The *resolved* results are deduplicated, so an extra row that repeats a
+ * guaranteed one collapses and the shelf is shorter rather than repetitive.
  * The draw count stays fixed either way, which is what keeps the stream
  * position independent of what came out of it.
  */
@@ -127,39 +146,46 @@ export function generateShopStock(
   stream: RngStream,
   tuning: Tuning,
 ): ShopStock {
+  const slots = shopSlotsFor(segment);
   const entries = shopEntriesFor(segment);
-  const size = stream.inRange(tuning.shopStockSize);
+  const extra = stream.inRange(tuning.shopExtraSlots);
 
   const items: ShopItem[] = [];
   const seen = new Set<string>();
   const takenItems = new Set<string>();
   const takenMoves = new Set<string>();
 
-  for (let slot = 0; slot < size; slot++) {
-    const total = entries.reduce((sum, entry) => sum + Math.max(0, entry.weight), 0);
-    if (total <= 0) break;
-    let roll = stream.nextFloat() * total;
-    let chosen = entries.filter((entry) => entry.weight > 0).at(-1);
-    for (const entry of entries) {
-      roll -= Math.max(0, entry.weight);
-      if (roll < 0) {
-        chosen = entry;
-        break;
-      }
+  /** One weighted pick from `from`. Always exactly one draw. */
+  const choose = (from: readonly ShopEntry[]): ShopEntry | null => {
+    const total = from.reduce((sum, entry) => sum + Math.max(0, entry.weight), 0);
+    // The draw happens before the guard so that an empty or zero-weight list —
+    // a data bug, not a path — costs the stream the same as a full one.
+    const roll = stream.nextFloat() * (total > 0 ? total : 1);
+    if (total <= 0) return null;
+    let remaining = roll;
+    for (const entry of from) {
+      remaining -= Math.max(0, entry.weight);
+      if (remaining < 0) return entry;
     }
-    if (!chosen) break;
+    return from.filter((entry) => entry.weight > 0).at(-1) ?? null;
+  };
 
+  const stock = (chosen: ShopEntry | null): void => {
+    if (!chosen) return;
     // A shop sells at `normal` tier bands: the shelf is a function of how far
     // into the run you are, not of the node you fought to get here. A shop node
     // has no tier of its own, so there is nothing else it could use.
     const reward = resolveRewardEntry(chosen, segment, 'normal', stream, takenItems, takenMoves, entries);
-    if (!reward) continue;
+    if (!reward) return;
 
     const signature = JSON.stringify(reward);
-    if (seen.has(signature)) continue;
+    if (seen.has(signature)) return;
     seen.add(signature);
     items.push({ reward, price: priceAt(chosen.price, segment) });
-  }
+  };
+
+  for (const slot of slots) stock(choose(slot.entries));
+  for (let row = 0; row < extra; row++) stock(choose(entries));
 
   return { nodeId, segment, items };
 }

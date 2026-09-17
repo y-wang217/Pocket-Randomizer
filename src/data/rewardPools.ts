@@ -59,6 +59,7 @@
  */
 import type { Tier } from '../core/types';
 import { BERRIES, CHOICE_ITEMS, GOOD_ITEMS, MODEST_ITEMS, PREMIUM_ITEMS, TYPE_ITEMS } from './items';
+import type { MoveImpact } from './movePools';
 import { GYM_MOVE_BAND_BONUS } from './scaling';
 
 /**
@@ -85,6 +86,31 @@ export type RewardEntry =
   | { kind: 'tm'; weight: number; bandOffset?: number }
   /** The same mechanism, aimed higher. See the note on why both exist. */
   | { kind: 'tutor'; weight: number; bandOffset?: number }
+  /**
+   * A **status** move added to the party. The third move kind, and the only one
+   * that is not a band.
+   *
+   * A status move has no base power, so `bandOffset` would mean nothing to it —
+   * `impacts` is the equivalent lever, naming which of the four groups in
+   * `data/movePools.ts` a card may pay. **Left absent everywhere it is used
+   * today, which means every impact**: `CLAUDE.md` says a curated list starts
+   * near empty and is populated from simulator evidence, never from a feeling
+   * that something is strong, so the field ships and the filtering waits for a
+   * report.
+   *
+   * Why it exists at all:
+   * [`docs/reports/moveset-pool-validation.md`](../../docs/reports/moveset-pool-validation.md)
+   * section 2. Status moves were not under-weighted in these tables, they were
+   * *absent from the table the offer routes read* — all four call
+   * `damagingInBands` — so no weight or price anywhere in `data/` could ever
+   * have produced one. That is why this is a kind and not a row.
+   *
+   * **Shops and the elite pool only**, and that restriction is the absence of
+   * this entry from `NORMAL`, `HARD` and `GYM` rather than a check anywhere in
+   * the code, exactly as `relic` below is elite-and-gym-only. Battles pay
+   * coverage; shops pay options.
+   */
+  | { kind: 'technique'; weight: number; impacts?: readonly MoveImpact[] }
   /** Restore this fraction of max HP and PP. */
   | { kind: 'heal'; weight: number; fraction: number }
   /**
@@ -263,6 +289,19 @@ const ELITE: readonly RewardBand[] = [
       { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
       { kind: 'relic', weight: 4 },
       { kind: 'tutor', weight: 8 },
+      /*
+       * The one place outside a shop that pays a status move, and it is
+       * deliberately thin.
+       *
+       * Weight 2 against 24 is about one elite card in twelve. The brief's
+       * split is that battles pay coverage and shops pay options, so this is
+       * not the route — it is the exception that keeps the elite pool's own
+       * rule true, that an elite node can pay something no other node can.
+       * A run that takes the risk can come back with a Swords Dance instead of
+       * another number, which is a different kind of payout rather than a
+       * smaller one.
+       */
+      { kind: 'technique', weight: 2 },
       { kind: 'currency', weight: 2, min: 62, max: 95 },
       { kind: 'heal', weight: 6, fraction: 1 },
     ],
@@ -273,6 +312,7 @@ const ELITE: readonly RewardBand[] = [
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
       { kind: 'relic', weight: 4 },
       { kind: 'tutor', weight: 8 },
+      { kind: 'technique', weight: 2 },
       { kind: 'currency', weight: 2, min: 85, max: 135 },
       { kind: 'heal', weight: 7, fraction: 1 },
     ],

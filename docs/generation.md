@@ -4808,14 +4808,482 @@ tooltip layer *is* the reference, so a missing trigger reads as the ability havi
 no explanation rather than as this card having no trigger. The screen where that
 costs most is the one where a Pokemon is taken largely on its ability.
 
-## 30. The CI patch, part 1: a gate that reports every leg
+## 30. The chip audit: two filed decisions superseded, and a watermark
+
+**2026-09-17**, on `claude/serene-bohr-xn433h`. Prompt:
+[`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md).
+
+Presentation only. No `core/` change, no version axis moves, `contentHash`
+unmoved: the one new data-shaped file, `ui/theme/typeIcons.ts`, is under `ui/`
+for the reason `ui/theme/itemIcons.ts` is, and nothing under `core/` imports it.
+
+The brief asked for two audits and one small feature. Both audits landed on
+decisions already in the lineage, so neither was implemented as a rediscovery —
+each was put to the author with the standing decision quoted, and each answer is
+dated today. This section is the account of what those answers retire.
+
+### 30a. Patch 4.8.0.3 item 3 is superseded
+
+**The retired rule:** the archetype chip is removed from every surface that
+draws the six stat bars, because the bars show the same shape and the chip can
+be wrong — `archetypeOf` reads base stats only, so a fully randomized move set
+leaves a `pTank` attacking specially.
+
+**What replaced it:** the chip is drawn on every surface that draws a Pokemon.
+
+The audit that found this also found what the rule had cost. The chip was on
+four surfaces and off six, and a label that appears on four surfaces out of ten
+is not a shorthand anybody learns — it is a thing that turns up sometimes. The
+known failure mode is real and unchanged; it is answered where it was always
+answered, in `ARCHETYPE_CAVEAT`, inside the panel every one of these chips
+opens.
+
+The surfaces that gained it: the party card (so the party screen, the drawer and
+the pre-gym lead chooser, all three through `memberCardContents`), starter
+select, evolution, the acquire offer panel, and the learn-move recipient.
+
+**The learn-move recipient was not a judgement call.** It is the one surface
+that had neither the chip nor the bars the chip was traded for, so it carried no
+shape information at all — the screen that decides which of four moves a Pokemon
+keeps said least about the Pokemon. That is a hole rather than a decision, and
+it would have been worth closing under the old rule too.
+
+`src/ui/screens/locale-select.ts` had been hand-rolling `badge badge--archetype`
+instead of calling `archetypeChip`, which is `.badge`'s metrics with none of
+`.chip`'s recipe — bare uppercase text among siblings that all carry the fill
+and the hairline outline. `test/chip.test.ts` exists to catch exactly that and
+did not, because its regex lists the badge modifiers it knows about and
+`badge--archetype` was not one. The modifier is in the list now, with `ability`.
+
+### 30b. The 2026-09-10 type wheel ruling is superseded for Pokemon badges only
+
+**The retired rule:** "keep the wheel, drop the trigger from the two Pokemon
+panel type badges" (`spec/README.md`, "The register supersedes an archived
+instruction").
+
+**What the audit found:** it had been applied to every type chip in the app
+rather than to the two it named. The wheel was reachable from a battle move card
+and from nowhere else — not from a party card, an acquire panel, a learn-move
+recipient, a result summary or either battle panel. The mechanism is why:
+`screens/starter-select.typeChip` is a bare one-argument wrapper that nine
+screens pass straight to `.map`, so there was no site at which a Pokemon's type
+and a gym leader's type could be told apart.
+
+**What replaced it:** `ui/chip.ts` grows `monTypeChip`, which is that site. A
+Pokemon's types open the wheel. A gym leader's type, a locale's types, a threat
+entry's type and the type an item boosts do not, because those are forecasts
+about content the player has not reached and `CLAUDE.md` forbids them.
+
+**The objection this leaves open, recorded rather than resolved.** `scene.ts`
+carried a longer argument than the release plan's, from a playtester: on a
+*Pokemon* panel the wheel answers "what does Water do offensively" beside a
+Pokemon whose four moves are drawn off-species and predict nothing of the kind.
+That argument is better evidenced than the ruling quoted in the question, and it
+is preserved verbatim in the source under the new note. What it establishes is
+that the wheel's **offensive** half is misleading on a Pokemon badge; it does
+not establish that the **defensive** half is, and the defensive half is the
+question a player asks of the thing standing opposite them. The wheel renders
+both, so restoring the trigger restored both. The narrowing that would close it
+— a Pokemon badge opening the defending half only — was not asked for and is not
+built.
+
+### 30c. The ability was a chip on two surfaces out of nine
+
+Not a superseded rule, just drift, and one kind of it is worth naming. The
+ability was a real chip on the result summary and the battle panel, a bare
+`<span>` carrying a `data-tip` on the party card and the acquire panel, plain
+text inside a concatenated string on starter select, and absent on the
+learn-move, item-target, evolution and locale surfaces.
+
+**The `<span>` case is the one that justifies a shared builder.** `ui/tooltips.ts`
+binds `keydown` for Enter and Space, and an element with no `tabIndex` never
+takes focus, so it never receives either. Those two triggers opened under a
+mouse or a finger and did not exist for a keyboard reader — present in the
+source, absent in use. `abilityChip` is now the one builder and it sets
+`tabIndex` and `role`.
+
+The battle panel's unrevealed case stays a plain `neutralChip`: there is nothing
+to open, and a focusable chip that opens nothing is a keyboard trap.
+`revealOpponentAbility` still decides which branch that is.
+
+### 30d. One layout regression, found by looking
+
+`.replace__owner` was a species, a level and two type chips, which fitted one
+line at 390 with room to spare. Adding the archetype chip and the ability made
+it overflow: the ability ran off the right edge and the sprite was pushed out of
+the viewport. It wraps now and reserves the sprite's gutter off `--figure-size`,
+the same way `.party__member > .panel__header` has since the idle-sprites patch.
+
+Caught by screenshotting the surfaces rather than by a test, which is the honest
+account — and the first version of this paragraph got the reason wrong. It said
+nothing measures horizontal overflow. Something does: `scripts/smoke.mjs`
+asserts `documentElement.scrollWidth <= innerWidth`, and two visual tests assert
+it for the outro and the seed bar. **The guard exists, works, and would have
+caught this**, because no ancestor of a screen clips horizontally — `body`,
+`.shell` and `.screen` set no `overflow`. It is pointed at the locale screen,
+the map and a battle, and `replace` is none of those.
+
+That is a narrower defect than "untested" and a more useful one, so it is filed
+rather than folded into this section: see "Carried out of the chip audit" in
+[`README.md`](README.md) section 5. The short version is that the three
+surfaces are a hand-picked list and nothing asserts the list is complete, which
+is the property `test/visual-chips.test.ts` already holds for chip variants and
+this guard does not.
+
+### 30e. The move-card type watermark
+
+`ui/theme/typeIcons.ts`: nineteen glyphs, one per type with a colour token, each
+a single closed silhouette in a 24-unit box with interior detail cut as an
+even-odd hole. Drawn for this repo rather than traced from the reference sheet
+the brief arrived with — the sheet is somebody else's artwork, and at the size
+and opacity this ships at, detail would not survive anyway.
+
+The mark is redundant by design: the type is already on the button in words, on
+the chip at the head of the identity line. So it is `aria-hidden`, carries no
+tooltip, and `typeIconPath` returns `null` for an unknown type rather than
+drawing a fallback a player would try to learn. Battle buttons only — `moveCard`
+draws the same component outside a fight and carries the 4.7.2 expander in the
+corner this would occupy.
+
+**Three things were changed after looking at them**, and they are the reason the
+report carries a contact sheet:
+
+- The Bug glyph was one silhouette with the elytra split cut out of it, which
+  even-odd rendered as a hairline outline: it read as a stick figure, not a
+  beetle. It is separate solids now.
+- The Dragon glyph read as a rocket, then as a pen nib. The pointed snout was
+  doing it; it is blunt now, and the glyph is still the weakest of the nineteen.
+- The mark was first placed at the button's vertical centre, which is where the
+  fact chips are — they painted over its left half and the result read as a
+  clipped icon rather than as a background. It sits in the corner beside the
+  name now, and `.moves .move__name` yields 34px so that corner is reliably
+  empty.
+
+The brief's ceiling — "50% opacity max" — is a token, `--move-watermark`, and
+`test/type-icons.test.ts` asserts it rather than a comment claiming it. It ships
+at 0.3, well under, because at 0.5 the glyph competes with the move name.
+
+**`test/type-icons.test.ts` has no bounds assertion, and its first draft did.**
+That draft read every number out of the path data and asserted each was inside
+the box, which is not what those numbers are — a lowercase path command takes
+relative deltas and an arc takes radii and flags before its endpoint. It called
+the Normal ring's legal `-7.4` an escape. It was deleted rather than loosened,
+and the file says why in place of it.
+
+## 31. The shop and moveset-variance patch: a category nothing drew, and a slot with no draw
+
+**2026-09-17**, branch `claude/intelligent-newton-5ftz3j`. Prompt:
+[`spec/gymrun-patch-shop-and-moveset-variance.md`](spec/gymrun-patch-shop-and-moveset-variance.md).
+Report, filed before any code and treated as a hard stop:
+[`reports/moveset-pool-validation.md`](reports/moveset-pool-validation.md).
+
+Axes: `RANDOMIZER_VERSION` to `gymrun-randomizer-18`, `contentHash` to `fd9b5e`.
+**`RUN_LOG_VERSION` holds at `-17`** and `AI_VERSION` holds.
+
+### 31.1 Status moves were unreachable, not under-weighted
+
+All four routes that hand a player a move — reward card
+(`core/rewards.ts`), shop shelf (`core/economy.ts`), event grant
+(`core/events.ts`), gym clear (`GYM_MOVE_ENTRY`) — call `damagingInBands`, and
+`DAMAGING_MOVES` cannot hold a status move because `scripts/gen-pools.ts`
+excludes the category at generation. **So no weight, price or table edit
+anywhere in `data/` could ever have produced one.** That is why the fix is a
+reward *kind* and not a row: `technique`, drawn through the new
+`statusByImpact` in `core/randomizer.ts`, which is `damagingInBands`' opposite
+number and reaches the same `STATUS_AVAILABLE` list `rollMoveset` already uses.
+One pool, two doors.
+
+`MoveReward` gaining the kind is the load-bearing line — `askMoveQuestions`,
+`applyReward`, `party.teachMove` and the move-replace screen all work
+unchanged, because a status move asks exactly what a TM asks.
+
+**One reader did not come along, and it is the case `docs/README.md` open item
+15 exists to warn about.** `isTargeted` was
+`kind === 'tm' || kind === 'tutor'`, which stays valid TypeScript when the union
+widens and silently answers `false` for the new kind. It did: a bought technique
+reached `teachMove` with no slot and threw at the first party member holding
+four moves, because `playRun` never asked the question. It is an exhaustive
+`switch` with no `default` now, so the next kind is a compile error there.
+
+### 31.2 The shelf is a list of categories
+
+`data/shop.ts` was one weighted table walked `shopStockSize` times, so a shelf
+could legally come out as three heals. It is an ordered list of `ShopSlot`s now
+— battle move, technique, berry, heal, item, and a relic from segment 3 — each
+drawn *within itself*, so the question a slot asks is "which heal" rather than
+"a heal at all". The mapping is the brief's: Slay the Spire's cards, colorless
+cards, potions, relics and removal.
+
+`tuning.shopStockSize` became `tuning.shopExtraSlots`, `{ min: 0, max: 1 }`:
+bonus rows above the guarantees, drawn from the flattened table. **It stayed a
+range on purpose.** It is the only knob in `tuning.ts` that changes how much the
+`rewards` stream is drawn, and `test/tiers.test.ts` and `test/rewards.test.ts`
+use exactly that to prove a rewards-side change moves neither the map, the teams
+nor the battle seeds. That lever was `allowSpeciesRewards`, then
+`shopStockSize`; it moves when the feature under it does, and deleting it
+outright would have left the property with nothing to pull.
+
+Every slot draws exactly once whether or not it has anything to choose between,
+so a single-entry category still spends its `nextFloat`. Same discipline as
+`rollMoveset`, same reason.
+
+### 31.3 The forced STAB slot got a window, and `stabBias` was measured and declined
+
+Band 1 holds 82 moves, which reads healthy until it is sliced by type: **one
+Psychic move and one Dragon move.** Thirteen of the 191 starters therefore had
+no draw at all on slot 1 — every Psychic opened with Confusion, every Dragon
+with Twister — and for Axew (base Attack 87, base Special Attack 30) that
+mandatory move is a 40 BP *special*. Six types' band-1 pool is entirely one
+attack category.
+
+`MOVESET.stabWindow = 1` lets a STAB-restricted slot draw from its band and the
+one above. Measured: 6.8 mean options to 14.5, thirteen deterministic species to
+none, six single-category types to one. **It costs no randomness** — `take()` is
+one `pick` whatever the pool size — so the draw count stays a function of
+`MOVESET.slots` alone, which is the whole reason to prefer it to widening the
+band.
+
+Segments 0-2 moved from `moveBandWeights: { 1: 1 }` to `{ 1: 4, 2: 1 }`. Band 2
+is 13.3% Normal against band 1's 20.7%, so it dilutes the beige problem from
+both directions, and it applies to the player and every opponent equally.
+
+**`stabBias` was the obvious lever and is declined**, with the arithmetic in the
+report's section 4: Normal is 20.7% of band 1, so every coverage slot handed
+back to an open draw is a one-in-five chance of the worst coverage type in the
+game. Zero `stabBias` buys about half a distinct attacking type and ten points
+of Normal, and does nothing about the thirteen, because that slot is forced by
+`stabSlots`. Written down because it is cheap to reach for.
+
+### 31.4 What the benchmark said, and what it could not see
+
+`randomizer-18` · `fd9b5e`, 400 seeds, RETUNE, against the `-17` row: **+0.075
+mean gyms (0.47 to 0.545), completion unmoved at zero**, gym 1 +5.1pt and gym 3
++5.0pt. Recorded, not chased; `balance.md` §0 carries the row.
+
+**The shop half is essentially unmeasured by it.** 95 shop visits landed in
+segment 1 and 12 in segment 2, none past it, so the relic slot, the late price
+band and every segment-3-onward shelf never appeared in the population. The one
+reading worth carrying forward is `broke on arrival` at 86.9%: the early shelf
+is priced above what a segment-1 wallet holds. That is a number to watch rather
+than to act on, and acting on it would be retuning against a curve that this
+patch just moved.
+
+### 31.5 Seed-pinned tests, and the pattern they moved to
+
+Seven tests failed on the bump for a reason with nothing to do with what they
+assert: they pinned a seed, and a `RANDOMIZER_VERSION` bump reshuffles how far a
+seed gets. They now search across a seed list and assert that the search found
+something — the pattern `test/backpack.test.ts` already records and explains.
+`test/party-slots.test.ts` carries the sharpest version: the scripted policy
+clears a gym on roughly one seed in five, so its list leads with four that work
+today and carries a tail of fourteen, because a short list is a coin flip at the
+next bump rather than a pin that fails honestly.
+
+`test/banding.test.ts` is the exception and was rewritten rather than
+re-seeded. It asserted "never gives a starter a move above band 1", which the
+window makes false on purpose; the assertion's real job was that a starter
+cannot reach the middle of the table, and that job survives intact one band
+wider.
+
+### 31.6 The shelf's move card, and the gate that caught its height
+
+Open item 13 — the shelf printed `Tutor: Flamethrower` and nothing else while
+the reward screen offering the identical move printed its type, base power,
+band, PP, category and tags — is closed here rather than left, because this
+patch put a *third* move kind on that shelf and shipping it with the same gap
+was worse than fixing it. The rows go through `scene.moveCard` over
+`moveCardData`, the reward screen's own insertion point, with no holder passed.
+
+**It cost height, and the assumption that it was free was wrong.** The shop is
+not one of the two screens `heights.json` guards, and that was mistaken for "the
+shop is not guarded": `test/visual-pocket.test.ts` holds *every* decision
+surface, the shop included, to a document `scrollHeight` at or under 844 — "a
+hard gate, no exemptions". With five or six guaranteed rows instead of three or
+four drawn ones, two of them carrying a card, a segment-0 shop measured 864.
+
+Pocket hides the cards, in CSS (`:root[data-density="pocket"] .shop__item >
+.move--card`). Not by a branch in the screen: a screen that reasoned about
+density in JS would not re-render when the mode is switched live, and
+`test/density.test.ts` greps for exactly that. Detailed and Simple keep the
+cards and scroll, which they always did.
+
+The lesson is the ordinary one and it is worth the line: **the gate found this,
+not the reasoning that preceded it.** "The shop is not a guarded screen" was
+said in this session, with confidence, and was false.
+
+### 31.7 The WebKit leg of the gate did not run, and this is the record of that
+
+`npm run check` is five legs chained with `&&`: lint, typecheck, `vitest run`,
+`test:webkit`, `test:trim-strict`. **On the container this patch was built in,
+two of them could not run**, and the reason is worth writing down because the
+failure mode is the one `docs/README.md` open item 8 exists to remember — a gate
+believed to be green, or believed to be red, by a session that never read it.
+
+Only Chromium is installed here. `GYMRUN_ENGINE=webkit` fails at launch with
+`Executable doesn't exist at /opt/pw-browsers/webkit-2359/pw_run.sh`, and the
+environment forbids `npx playwright install`. All 24 browser test files then
+fail at `openHarness`, before any assertion. Because the legs are `&&`-chained,
+**`test:trim-strict` never ran in that invocation either** — and the wrapper
+still reported exit 0, which is exactly how a chained gate lies.
+
+What did run, and passed, run directly rather than through `check`:
+
+| leg | result |
+|---|---|
+| `eslint .` | clean |
+| `tsc --noEmit` | clean |
+| `vitest run` (Chromium) | 136 files, 1805 tests, all passing |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | 136 files, 1805 tests, all passing |
+| `test:webkit` | **did not run — no WebKit binary** |
+
+Both suite figures are from the *merged* tree, after the chip audit came in and
+after the height re-record section 31.8 describes. Run directly rather than
+through `npm run check`, because the wrapper's `&&` chain stops at the WebKit
+leg and would have skipped the strict trim run behind it.
+
+There is no CI in this repository, so the WebKit leg is local-only and nothing
+else will run it. **It has to be run by hand on a machine that has the binary
+before this branch merges**, and this section is here so that "the gate was
+green" is not read off a run that skipped a fifth of it.
+
+The patch's own risk against that leg is small but not zero: it changes one
+stylesheet rule (`:root[data-density="pocket"] .shop__item > .move--card`) and
+the shop screen's DOM, and the WebKit suite is the one that measures layout on
+the second engine. The Pocket no-scroll gate passed on Chromium at 17/17.
+
+### 31.8 The merge with the chip audit, and the 21px neither patch caused
+
+PR #44 merged while this branch was building and the code conflicts were none:
+two documents that both grew a section 30, and a register that grew two rows.
+`styles.css` auto-merged because the two rule sets are disjoint, and `scene.ts`'s
+`moveCard` — which this branch calls from the shop shelf — kept its signature
+across the audit.
+
+**The guarded battle screen did not merge cleanly, and neither patch is at
+fault.** The chip audit put a type icon on the move buttons and moved
+`heights.json` by nothing on `main`. This branch moved the battle screen 5.5px
+*shorter*, because the moveset change gives SMOKE24's lead different moves and
+their names cost one line less. Together the new icons land on those different
+names and the screen measures **610.5**: +21 on this branch's 589.5, +15.5 on
+main's 595. Four `visual-v*` height tests failed on the merged tree and on
+neither parent.
+
+Re-recorded against the merged tree, which is the only tree that produces the
+number. `decisionTop` is unmoved everywhere and the map did not move at all, so
+the guard's own property held through the interaction — what moved is content
+under an unchanged layout, which is what the guard is shaped to allow.
+
+**The cost is headroom.** `test/visual-v0.test.ts` holds both decision points at
+or above y=740, and the battle screen's margin went from 37.5px to **16.5px**
+(723.5 against 740). It passes, and it is a real assertion rather than an
+`it.fails` marker. But two independent patches that each looked free spent
+57% of that slack between them without either one measuring it, and the next row
+added to a move button will find the line. `docs/visual/baseline/README.md`
+carries the correction and the numbers.
+
+## 32. The missing sprite was 84px wide, and the alt text is why
+
+**2026-09-17**, on `claude/serene-bohr-xn433h`, after PR #44 merged at `df2982f`.
+Presentation only: one CSS declaration and one regression test. No `core/`
+change, no version axis moves, `contentHash` unmoved.
+
+**The defect predates the chip-audit patch and was exposed by it.** That
+distinction is the whole reason this section exists rather than a line in
+section 30.
+
+### How it surfaced
+
+`test/visual-phone-seed-bar.test.ts` asserts `documentElement.scrollWidth`
+equals 390 on the starter screen. It began failing at 401 — but only inside the
+full 136-file run. It passed standalone, passed under `GYMRUN_TRIM_STRICT=1`,
+and passed with all 28 browser files in parallel. A probe on that screen in the
+passing configurations found nothing past 390.
+
+The first three explanations were all wrong and all plausible: a font falling
+back (there are no web fonts in this project, so metrics are deterministic), the
+new ability chip failing to wrap (it wraps, and `.starter__meta` was given
+`flex-wrap` anyway), and CPU contention (the run that failed had the machine to
+itself).
+
+Two measurements settled it. A full-suite run on `9616ade` — the commit before
+the chip audit — **passed**, which said the branch was responsible. Then the
+failing assertion itself was instrumented to dump every element past 390, and it
+named one: `img.sprite`, 84px wide, right edge at 401. Running the same probe on
+`9616ade` reproduced it **identically**, which said the branch was not
+responsible after all. Both are true: the bug is older, and the patch changed
+the starter card's render enough to move the timing that hid it.
+
+### The mechanism
+
+`ui/sprites.ts` sets `alt = species` and `width = height = 96` as attributes;
+`.figure > .sprite` sizes the image to `--figure-size` in CSS, which beats a
+presentational hint. That holds while the image loads.
+
+It stops holding when the image fails. **A broken `<img>` carrying alt text is
+no longer a replaced element** — Chromium lays it out as an inline box around
+the alt string, and `width` does not apply to a non-replaced inline. So the box
+becomes as wide as the species name. On one seed's three starters:
+
+| alt | characters | width, in a 48px figure |
+|---|---|---|
+| `Zorua` | 5 | 48px |
+| `Flabébé` | 9 | 59px |
+| `Hippopotas` | 10 | **84px** |
+
+`.sprite[data-missing='true']` used `visibility: hidden`, which hides the box and
+keeps every pixel of it in the layout. So the longest species name on screen
+pushed the document 11px past a 390px viewport.
+
+### The fix, and the three that were rejected — one of them after it shipped
+
+`display: inline-block`, keeping `visibility: hidden`. `width` does not apply to
+a non-replaced inline; it does apply to a non-replaced inline-block. One word
+gives the alt-text box back the dimensions the stylesheet already specifies, and
+nothing else about the element changes.
+
+**`display: none` was tried, committed, and reverted in the same session.** It
+returns the page to 390 and it broke four tests in `test/visual-motion.test.ts`:
+`sprite-hit`, `sprite-sink`, the switch-in and the recall all stopped firing,
+because an element that is not displayed runs no CSS animation.
+
+That is not a test artifact, and it is the more serious defect of the two.
+Branch 3A of the battle-animation run (section 23) made `reviewBattle` *wait* on
+those beats — the one place in this project where something waits on an
+animation. A player whose sprite request failed would have been waiting on an
+animation that could never start. **The overflow makes a page scroll sideways;
+this would have stalled a fight.** Caught by the full suite on the commit that
+shipped it, which is the argument for running the whole thing rather than the
+files a change looks like it touches.
+
+**Clearing the alt text** also returns the page to 390 and was rejected: the alt
+is correct when the image loads, and a layout that holds only while no species
+has a long name is not a layout.
+
+**Clipping the figure** was rejected for the reason the stylesheet already gives
+at `.stage`: a box that clips is a box that cuts something which overhangs by
+design.
+
+### Why the sandbox saw it and a player might not
+
+Every sprite is broken in this environment — there is no route to the sprite
+CDN — so the defect is permanent here and intermittent anywhere with a network.
+A player meets it when a request fails: a phone page that scrolls sideways
+because one Pokemon has a long name and the network dropped.
+
+`test/visual-sprites.test.ts` already aborts the CDN and its header already
+claims "a figure is a fixed box whether or not its image arrived". That claim
+was false for three patches and is now asserted — against the figure rather than
+a pixel count, so it fails for the right reason, with the document-level check
+beside it because that is the symptom a player would actually meet.
+
+## 33. The CI patch, part 1: a gate that reports every leg
 
 Prompt: [`spec/gymrun-patch-ci-workflow.md`](spec/gymrun-patch-ci-workflow.md),
 filed 2026-09-17 before any work. Build infrastructure only — no `src/` change,
 no version axis moved, `docs/visual/baseline/` untouched, and the shipped bundle
 is byte identical because nothing that enters it was edited.
 
-### 30.1 What the `&&` chain was hiding
+### 33.1 What the `&&` chain was hiding
 
 `npm run check` was five legs joined by `&&`:
 
@@ -4848,7 +5316,7 @@ strict-trim step, which was run on its own", and `scripts/visual/gate.sh` still
 carries a comment about its own first version printing "gate green" over two
 failing files.
 
-### 30.2 Nine legs, and why the two full-suite legs split
+### 33.2 Nine legs, and why the two full-suite legs split
 
 `scripts/check.mjs` runs `lint`, `typecheck`, `test:node`, `test:chromium`,
 `test:webkit`, `trim:node`, `trim:browser`, `build`, `smoke`, always all of
@@ -4865,7 +5333,7 @@ second question and answered "add both".
 `tsc --noEmit && vite build`: the type check is already leg 2 and a gate that
 runs it twice spends a minute proving the same thing.
 
-### 30.3 The split is computed, and the skip is guarded
+### 33.3 The split is computed, and the skip is guarded
 
 `scripts/browser-tests.mjs` derives which files need a browser by looking for
 the ones that reach Playwright — directly, or through `test/visual/harness.ts`
@@ -4882,7 +5350,7 @@ skip for that reason. A detection bug that turned into a silent skip would be
 worse than no gate at all; this one turns into a red leg with Playwright's own
 message under it.
 
-### 30.4 Two kinds of SKIPPED, one of them promoted
+### 33.4 Two kinds of SKIPPED, one of them promoted
 
 The brief asks for SKIPPED to become FAILED under `process.env.CI`. There are
 two ways a leg can fail to run and only one of them is that kind:
@@ -4900,7 +5368,7 @@ two ways a leg can fail to run and only one of them is that kind:
   promoting `smoke` too would print two failures for one cause and send the
   reader hunting a second bug.
 
-### 30.5 `--only`, and the branches that would otherwise be untested
+### 33.5 `--only`, and the branches that would otherwise be untested
 
 `node scripts/check.mjs --only=lint,build` runs a named subset with the same
 reporting, and `--list` prints the legs without running anything.
@@ -4916,7 +5384,7 @@ installed on the development container, so
 absent binary rather than a simulated one. The dependency skip was exercised on
 a throwaway copy of the runner with `build` pointed at a bad flag.
 
-### 30.6 What `package.json` kept
+### 33.6 What `package.json` kept
 
 `test:trim-strict` still means the whole suite, unsplit, because
 [`../README.md`](../README.md), `build-config/trim-sim-data.ts` and
@@ -4931,12 +5399,12 @@ One existing name did change meaning: `test:browser` was the 24-file glob with
 three Node-only passengers and is now the derived 24, so `GYMRUN_ENGINE` only
 reaches tests it means something to.
 
-## 31. The CI patch, part 2: the workflow, and the engine it does not run
+## 34. The CI patch, part 2: the workflow, and the engine it does not run
 
-Same prompt as section 30, same scope: build infrastructure only, no `src/`
+Same prompt as section 33, same scope: build infrastructure only, no `src/`
 change, no version axis moved, no baseline re-recorded.
 
-### 31.1 The structure was supplied, and one line of it could not work
+### 34.1 The structure was supplied, and one line of it could not work
 
 The brief said "per the structure above" and no structure was above it — the
 message it arrived in had none. That gap is recorded in the prompt file rather
@@ -4963,7 +5431,7 @@ at section 28, where a handoff reported an artefact as shipped that no run
 touched. The engine axis already exists as `GYMRUN_ENGINE`, so the step became
 a leg selection instead.
 
-### 31.2 Every job goes through the runner
+### 34.2 Every job goes through the runner
 
 Each job runs `scripts/check.mjs --only=<legs>` rather than the npm scripts
 directly, and the leg names line up with the matrix so
@@ -4991,7 +5459,7 @@ because `smoke` plays a run in a real Chromium. `check.mjs` already knows the
 dependency between them, so a failed build reports `smoke` as SKIPPED naming
 build rather than as a second failure for the same cause.
 
-### 31.3 The container runs a Chromium no developer box runs
+### 34.3 The container runs a Chromium no developer box runs
 
 This is the finding that decided the container line, and it was measured rather
 than assumed.
@@ -5032,7 +5500,7 @@ next reader of that container line will have the same question.
 **No baseline was re-recorded and none needed to be.** The finding is that the
 pin is narrower than the tests require, not that the tests were wrong.
 
-### 31.4 What CI needs on disk, and what it does not
+### 34.4 What CI needs on disk, and what it does not
 
 - **Not a sparse or shallow-path checkout.** `boundaries.test.ts` indexes every
   file under `docs/` carrying one of the seven extensions it recognises
@@ -5044,7 +5512,7 @@ pin is narrower than the tests require, not that the tests were wrong.
   `npm ci` would otherwise pull the browsers into `static` and `unit`, neither
   of which launches one, and the container jobs already carry theirs.
 
-### 31.5 The heights gap, recorded rather than closed
+### 34.5 The heights gap, recorded rather than closed
 
 `heights.json` holds **60** fields — both guarded screens across the detailed
 mode, two density modes and three layout-by-density combinations. The four
@@ -5060,7 +5528,40 @@ absolute gates do not include a heights comparison, and adding one here would be
 new gating nobody asked for. **It is recorded here so that it is a known gap
 rather than a forgotten one.**
 
-### 31.6 What is not verified
+### 34.6 WebKit, which had never run here at all
+
+Recorded because it was the standing flag on three patches, not just this one:
+`npm run check`'s WebKit leg had never executed in a Claude Code container,
+because the image pre-bakes Chromium only. Two branch reports closed with it
+open, and both named it the last gate on work that had already merged.
+
+It runs. Two commands, both of which worked on this box:
+
+```sh
+npx playwright install webkit        # the binary; lands at webkit-2359
+npx playwright install-deps webkit   # GTK4, gstreamer, flite and ~20 more
+```
+
+Without the second, the binary is present and cannot launch — 25 missing
+libraries. With it, WebKit 26.6 launches, which is the version section 27's
+work was written against.
+
+**The leg then passed: 24 files, 201 tests, 522s.** That is the first honest
+WebKit result this environment has produced, and it is a baseline rather than a
+clearance — it was taken at this branch's own tree, which is 23 commits behind
+`main`, so it certifies the state *before* the chip audit and the sprite fix
+rather than after. If WebKit fails once `main` is merged in, those 23 commits
+are where it is, and this is the boundary that says so.
+
+**The install does not persist.** The container is rebuilt per session, so this
+is a fact about what is possible here, not a capability the next session
+inherits. Making it inherit would need a `SessionStart` hook committed to the
+repo, and the cost is a few hundred MB of apt on every session including the
+ones that never open a browser. That is why the workflow, rather than a hook,
+is where this patch puts WebKit: CI pays it once per push, on a machine nobody
+is waiting on.
+
+### 34.7 What is not verified
 
 Stated plainly because the rest of this section is measurement and this part is
 not. The workflow file has never executed — there is no way to run GitHub
