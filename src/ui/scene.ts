@@ -240,6 +240,23 @@ export interface Scene {
   outro(kind: OutroKind): Promise<void>;
   /** Abandon a parked outro, so a torn-down screen leaks no promise. */
   cancel(): void;
+  /**
+   * Drop the panels a finished fight left behind, before the next one draws.
+   *
+   * Both choice panels deliberately survive a view that offers nothing, so that
+   * neither collapses out from under the player between turns — see
+   * `renderMoves` and `renderBench`. That rule is written for the *inside* of a
+   * fight and has no business spanning two of them: the scene is built once in
+   * `createScene`, `app.ts` builds the battle screen once for the page, and a
+   * run is not a lifetime either. Without this the last fight's buttons are
+   * what a new one opens on, and a new *seed* can open on a Pokemon the run has
+   * never owned.
+   *
+   * The same rule `screens/battle.ts` already applies to the log, the strip and
+   * the history sheet, and it is called from the same place for the same
+   * reason.
+   */
+  reset(): void;
 }
 
 export function createScene(): Scene {
@@ -391,6 +408,10 @@ export function createScene(): Scene {
       settleActor(foeActor);
       settleActor(meActor);
       finishOutro();
+    },
+    reset() {
+      moves.replaceChildren();
+      clearBench(bench);
     },
     update(view, onChoose, turns, marks) {
       updateActor(foeActor, view.opponent);
@@ -1258,6 +1279,19 @@ function beats(
   }
 }
 
+/**
+ * Empty the bench and take its forced marker with it.
+ *
+ * `.bench:empty` hides the panel, so clearing the container is how the bench
+ * says it has nothing — and `data-forced` has to go in the same breath, since a
+ * stylesheet reading `.bench[data-forced='true']` off an empty container is a
+ * rule matching a heading that is not there.
+ */
+function clearBench(container: HTMLElement): void {
+  container.replaceChildren();
+  delete container.dataset['forced'];
+}
+
 function renderMoves(
   container: HTMLElement,
   view: BattleUiView,
@@ -1301,11 +1335,38 @@ function renderBench(
   onChoose: (choice: Choice) => void,
 ): void {
   const bench = view.switches.filter((member) => member.block !== 'active');
-  if (bench.length === 0) {
-    if (view.switches.length === 0) return;
-    // Between turns the view carries no switches at all; leave the last render
-    // in place, disabled, rather than collapsing the panel.
+
+  /*
+   * **The two empty cases are different, and they were the wrong way round.**
+   *
+   * `view.switches` is `[]` only when the side is not being asked to choose —
+   * between turns, and once the battle has ended (`battle/driver.ts` gates it
+   * on `awaiting`). There the last render stays, disabled, for the reason the
+   * moves column keeps its buttons: collapsing a panel out from under the
+   * player mid-fight is worse than showing it unavailable.
+   *
+   * A *filtered* bench of zero against a non-empty `switches` is the opposite
+   * situation and the opposite answer: the side is being asked, and everything
+   * it has is already on the field. That is a party of one, which this
+   * function's header has always said has nothing to say here — and saying
+   * nothing means an empty container, because `.bench:empty` is what hides the
+   * panel.
+   *
+   * Until this patch the first case returned without disabling and the second
+   * disabled without clearing, each carrying the other's comment. The second
+   * half is the defect a player can see: a run whose party is just the starter
+   * inherits whatever the *previous* run left under the heading and keeps it
+   * for the whole fight, so a new seed opened on a dead Pokemon it had never
+   * owned. The bench is built once, in `createScene`, and `app.ts` builds the
+   * battle screen once for the life of the page — so "the last render" is not
+   * bounded by the battle, or by the run.
+   */
+  if (view.switches.length === 0) {
     for (const button of container.querySelectorAll('button')) button.disabled = true;
+    return;
+  }
+  if (bench.length === 0) {
+    clearBench(container);
     return;
   }
 

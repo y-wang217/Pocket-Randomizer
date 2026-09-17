@@ -227,6 +227,17 @@ export function createBattleScreen(): BattleScreen {
 
       log.clear();
       flags.clear();
+      /*
+       * And the board's own two panels. **The bench-carryover patch.**
+       *
+       * The moves column and the bench both keep their last render when a view
+       * offers nothing, so that neither collapses mid-fight. Nothing bounded
+       * that to one fight: this screen is built once for the life of the page,
+       * so the panels a finished battle left behind were what the next one
+       * opened on — and across a new seed that meant a party the run had never
+       * owned, which is the defect this line closes.
+       */
+      scene.reset();
       // A sheet left open across a battle would put the last fight's history
       // over the first turn of the next one. Same rule `app.ts` applies to the
       // party drawer on navigation, for the same reason.

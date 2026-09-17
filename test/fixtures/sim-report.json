@@ -1,7 +1,7 @@
 {
   "version": "gymrun-run-17/gymrun-0.3.0",
   "randomizerVersion": "gymrun-randomizer-18",
-  "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
+  "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
   "aiVersion": "gymrun-ai-6-spent-item",
   "runs": [
     {
@@ -118,10 +118,10 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 306,
-            "damageTaken": 188,
-            "kos": 8,
-            "faints": 4,
+            "damageDealt": 311,
+            "damageTaken": 187,
+            "kos": 9,
+            "faints": 3,
             "turnsOnField": 21
           },
           "status": null,
@@ -149,15 +149,15 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 84,
-            "damageTaken": 71,
-            "kos": 2,
+            "damageDealt": 36,
+            "damageTaken": 40,
+            "kos": 0,
             "faints": 1,
-            "turnsOnField": 7
+            "turnsOnField": 4
           },
           "status": null,
           "pp": [
-            13,
+            15,
             13,
             24,
             56
@@ -174,7 +174,7 @@
             "Ice Punch",
             "Water Shuriken"
           ],
-          "item": "passhoberry",
+          "item": null,
           "hp": 0,
           "maxHp": 36,
           "fainted": true,
@@ -252,16 +252,9 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 4,
-          "hpAfter": 19,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Sorrel",
-              "bySpecies": "Rolycoly",
-              "byMove": "Accelerock"
-            }
-          ]
+          "turns": 3,
+          "hpAfter": 29,
+          "casualties": []
         },
         {
           "id": "s1-summit-0-0",
@@ -333,7 +326,7 @@
           "kind": "gym",
           "tier": null,
           "winner": "p2",
-          "turns": 9,
+          "turns": 7,
           "hpAfter": 0,
           "casualties": [
             {
@@ -346,13 +339,13 @@
               "side": "p1",
               "name": "Grist",
               "bySpecies": "Omanyte",
-              "byMove": "Salt Cure"
+              "byMove": "Acid"
             },
             {
               "side": "p1",
               "name": "Flint",
-              "bySpecies": "Frillish",
-              "byMove": "Mega Drain"
+              "bySpecies": "Arrokuda",
+              "byMove": "Surf"
             }
           ]
         }
@@ -504,20 +497,6 @@
           "choice": {
             "kind": "move",
             "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
           }
         },
         {
@@ -826,20 +805,6 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
             "slot": 2
           }
         },
@@ -890,7 +855,7 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 70,
+            "damageDealt": 72,
             "damageTaken": 35,
             "kos": 3,
             "faints": 1,
@@ -921,15 +886,15 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 31,
+            "damageDealt": 33,
             "damageTaken": 36,
             "kos": 1,
             "faints": 1,
-            "turnsOnField": 3
+            "turnsOnField": 4
           },
           "status": null,
           "pp": [
-            15,
+            14,
             24,
             24,
             16
@@ -993,7 +958,7 @@
           "kind": "gym",
           "tier": null,
           "winner": "p2",
-          "turns": 3,
+          "turns": 4,
           "hpAfter": 0,
           "casualties": [
             {
@@ -1199,6 +1164,13 @@
           "choice": {
             "kind": "switch",
             "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
           }
         },
         {

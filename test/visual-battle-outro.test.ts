@@ -111,32 +111,58 @@ describe('an abnormality beat stays inside the body it is about', () => {
    * are its children and overhang it by design. Branch 3A learned this with the
    * recall and Branch 3B inherits the constraint.
    */
+  /**
+   * **Several seeds, not one, and that is a repair rather than a widening.**
+   *
+   * This walked `SMOKE24` alone and threw if twenty-four steps produced no
+   * mark. The assertion is about the mark; the walk is only how one is
+   * produced — so a single seed made "does `SMOKE24` happen to boost, fail or
+   * trigger an ability early" a load-bearing fact, and **the gym level column
+   * going to parity (`generation.md` section 35) is what falsified it.** That
+   * seed's first two fights carry crits, STAB and super-effective hits, none of
+   * which are abnormality classes (`ui/abnormality.ts` reduces seventeen kinds
+   * to five and a hit is not one of them), and the gym fight in between is the
+   * one that moved.
+   *
+   * Walking a list instead means the test fails when **no** seed can produce a
+   * mark, which is a claim about the mechanism, rather than when one seed's
+   * fights are rearranged, which is a claim about a fixture. Measured while
+   * making this change: of these four, `SMOKE24` produces none inside the
+   * budget and the other three produce one at steps 0, 11 and 11.
+   */
+  const SEEDS = ['SMOKE24', 'SEED-A', 'SEED-B', 'GYMRUN01'];
+
   it('overflows nothing, on a turn that actually carries one', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', PHONE);
-    await playUntil(page, (screen) => screen === 'battle');
+    for (const seed of SEEDS) {
+      const { page, context } = await openApp(harness.browser, harness.url, seed, PHONE);
+      await playUntil(page, (screen) => screen === 'battle');
 
-    for (let attempt = 0; attempt < 24; attempt += 1) {
-      await stepOnce(page);
-      await page.waitForTimeout(40);
-      const probe = await page.evaluate(() => ({
-        marks: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal]')].map(
-          (a) => (a as HTMLElement).dataset['abnormal'],
-        ),
-        scrollWidth: globalThis.document.documentElement.scrollWidth,
-        running: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal] .stage__mark')].map(
-          (n) => globalThis.getComputedStyle(n).animationName,
-        ),
-      }));
-      if (probe.marks.length === 0) continue;
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        await stepOnce(page);
+        await page.waitForTimeout(40);
+        const probe = await page.evaluate(() => ({
+          marks: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal]')].map(
+            (a) => (a as HTMLElement).dataset['abnormal'],
+          ),
+          scrollWidth: globalThis.document.documentElement.scrollWidth,
+          running: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal] .stage__mark')].map(
+            (n) => globalThis.getComputedStyle(n).animationName,
+          ),
+        }));
+        if (probe.marks.length === 0) continue;
 
-      expect(probe.scrollWidth, `an abnormality beat overflowed: ${probe.marks.join(',')}`).toBe(PHONE.width);
-      // Marked and actually animating, not merely marked.
-      expect(probe.running.every((name) => name.startsWith('mark-')), probe.running.join(',')).toBe(true);
+        expect(probe.scrollWidth, `an abnormality beat overflowed on ${seed}: ${probe.marks.join(',')}`).toBe(
+          PHONE.width,
+        );
+        // Marked and actually animating, not merely marked.
+        expect(probe.running.every((name) => name.startsWith('mark-')), probe.running.join(',')).toBe(true);
+        await context.close();
+        return;
+      }
+
       await context.close();
-      return;
     }
 
-    await context.close();
-    throw new Error('never reached a turn carrying an abnormality');
+    throw new Error(`no seed of ${SEEDS.join(', ')} reached a turn carrying an abnormality`);
   }, 300_000);
 });
