@@ -128,10 +128,17 @@ export function createBattleScreen(): BattleScreen {
     cancel: () => scene.cancel(),
     attach(session, node, reveal, onChoose, segment) {
       title.textContent = node.label;
-      // Team size on the header, because a gym with three Pokemon is a
-      // different fight from one with one and the player is about to budget PP
-      // against it.
-      const size = node.encounter?.team.length ?? 0;
+      /*
+       * **The team size came off this header**, and it had to.
+       *
+       * It was a fixed count read straight off the node's generated team, which
+       * was right when nothing else said it and wrong the moment the opposing
+       * panel started carrying a live one: a header reading `3 Pokemon` beside
+       * a panel reading `1/? left` is the same screen answering one question two
+       * ways, and the header's answer is the one the wild node is not supposed
+       * to give. The panel's row is live, it is on the side it describes, and it
+       * honours the reveal policy. This line was none of those things.
+       */
       /*
        * And who is playing it. **The AI tiers patch.**
        *
@@ -143,7 +150,6 @@ export function createBattleScreen(): BattleScreen {
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
       detail.textContent = [
         node.encounter?.opponent ?? '',
-        ...(size > 1 ? [`${size} Pokemon`] : []),
         ...(tier ? [AI_TIER_LABEL[tier]] : []),
       ]
         .filter((part) => part.length > 0)

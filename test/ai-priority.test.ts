@@ -301,7 +301,7 @@ describe('the version axes', () => {
      * entries.
      */
     // Stage 4.9's schema bump, for the evolution fork a gym clear now asks.
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-16/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-17/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -318,7 +318,7 @@ describe('the version axes', () => {
      *
      * Stage 4.9 then moved it properly, by rewriting the level curve, the
      * species pools and the tier table. That one *does* change what a seed
-     * produces, which is why it came with `gymrun-run-16` above.
+     * produces, which is why it came with `gymrun-run-17` above.
      *
      * The literal below is neither: it is the two together. The display split
      * remains the **last** time this number moves for a display edit —

@@ -28,8 +28,8 @@ import {
 import { abilityEffects } from '../src/data/abilityEffects';
 import type { TeamSpec } from '../src/core/types';
 
-const REVEAL_ALL: RevealPolicy = { ability: true, item: true };
-const REVEAL_NONE: RevealPolicy = { ability: false, item: false };
+const REVEAL_ALL: RevealPolicy = { ability: true, item: true, teamSize: true };
+const REVEAL_NONE: RevealPolicy = { ability: false, item: false, teamSize: false };
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -96,6 +96,9 @@ function facts(overrides: Partial<BattleFacts> = {}): BattleFacts {
     trapped: false,
     awaitingChoice: true,
     invertedSpeed: false,
+    // A lone opponent, which is what every hand-built view in this file is
+    // about. The roster readout has its own file.
+    opponentRoster: { standing: 1, total: 1 },
     ...overrides,
   };
 }
@@ -171,7 +174,7 @@ describe('type effectiveness', () => {
         opponent: active({ types: ['Flying'] }),
         moves: [move({ type: 'Ground', typeMultiplier: 0 }), move({ type: 'Normal', category: 'Status' })],
       }),
-      { ability: true, item: true },
+      { ability: true, item: true, teamSize: true },
       () => [],
     );
     expect(view.moves[0]?.band).toBe('none');

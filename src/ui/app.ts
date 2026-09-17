@@ -708,9 +708,12 @@ export function mountApp(root: HTMLElement): void {
         showScreen('event');
         return eventPick.wait();
       },
-      chooseMoveRecipient: (offer, party, state) => {
-        // The run's tuning, for the move card's face-tag cap (4.8.0.2).
-        targetScreen.render(offer, party, (slot) => targetPick.submit(slot), state.tuning);
+      chooseMoveRecipient: (offer, party, state, allowSkip) => {
+        // The run's tuning, for the move card's face-tag cap (4.8.0.2), and
+        // whether this move may be handed back. `core/run.ts` sets the second
+        // at the gym's guaranteed move and nowhere else; the screen shows a
+        // decline control only where it is set.
+        targetScreen.render(offer, party, (slot) => targetPick.submit(slot), state.tuning, allowSkip);
         showScreen('target');
         return targetPick.wait();
       },
@@ -978,6 +981,16 @@ export function mountApp(root: HTMLElement): void {
       const reveal = {
         ability: state.tuning.revealOpponentAbility,
         item: state.tuning.revealOpponentItem,
+        /*
+         * And the third one, which is the node's rather than the tuning's.
+         *
+         * A trainer and a gym leader arrive with a team, so the count is theirs
+         * to show. A wild encounter is whatever the grass has left, and a number
+         * there would be the game telling the player how long the fight lasts
+         * before it has happened. `kind` is the only input: a wild node is the
+         * one that withholds it, everything else is a person with a party.
+         */
+        teamSize: node.kind !== 'wild',
       };
       detachBattle = battleScreen.attach(
         session,

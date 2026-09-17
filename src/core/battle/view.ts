@@ -234,6 +234,20 @@ export interface BattleFacts {
   awaitingChoice: boolean;
   /** Trick Room is on, so the *slower* side moves first. */
   invertedSpeed: boolean;
+  /**
+   * How much of the opposing team is still standing, and how much there was.
+   *
+   * Counted off the sim's own side rather than off the node's team spec,
+   * because the node spec is what was *generated* and this has to be what is
+   * *left* — and because the fainted flag is the sim's, so the readout cannot
+   * drift from the fight. `total` is the whole roster including the bodies
+   * already down; `standing` is the ones that are not.
+   *
+   * Whether the player is allowed to see `total` is not decided here. A fact
+   * is collected once and the reveal policy narrows it, the same split
+   * `ability` and `item` already use.
+   */
+  opponentRoster: { standing: number; total: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -452,6 +466,18 @@ export interface BattleUiView {
    * category of lie as a 2x badge over a visible Levitate.
    */
   fasterSide: 'player' | 'opponent' | 'tie';
+  /**
+   * How many of the opponent's Pokemon are still standing, out of how many.
+   *
+   * **`total` is null when the player has not been told**, and that is the
+   * whole of the wild/trainer difference: a trainer walks in with a team and
+   * the player can count it, a wild encounter is whatever the grass has left.
+   * Null renders as `?`, never as a guess and never as the number withheld.
+   *
+   * It is an attribute and not a verdict. It says what is on the other side of
+   * the field; it does not say whether that is good news.
+   */
+  opponentLeft: { standing: number; total: number | null };
   switches: SwitchView[];
   forceSwitch: boolean;
   trapped: boolean;
@@ -539,7 +565,7 @@ export function buildBattleUiView(
    */
   maxMoveTagsOnFace: number = DEFAULT_MAX_MOVE_TAGS,
 ): BattleUiView {
-  const player = toActiveUiView(facts.player, { ability: true, item: true });
+  const player = toActiveUiView(facts.player, { ability: true, item: true, teamSize: true });
   const opponent = toActiveUiView(facts.opponent, reveal);
 
   return {
@@ -551,6 +577,10 @@ export function buildBattleUiView(
       toMoveUiView(move, facts.opponent, facts.player, maxMoveTagsOnFace, reveal, abilityEffects),
     ),
     fasterSide: fasterSide(facts, reveal),
+    opponentLeft: {
+      standing: facts.opponentRoster.standing,
+      total: reveal.teamSize ? facts.opponentRoster.total : null,
+    },
     switches: facts.switches,
     forceSwitch: facts.forceSwitch,
     trapped: facts.trapped,

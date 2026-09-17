@@ -357,3 +357,110 @@ describe('a headless run that catches', () => {
     }
   }, 120_000);
 });
+
+// ---------------------------------------------------------------------------
+// The capture comes before the move
+// ---------------------------------------------------------------------------
+
+/**
+ * **The victory-order patch, item 1.** A node offers its Pokemon before it asks
+ * who learns its move, and the Pokemon that just joined is on the list.
+ *
+ * The defect this closes only appears at one kind of node — a wild fight that
+ * pays a move card *and* offers its species — which is why it survived to a
+ * playtest. At that node the player was asked "who learns Earthquake" while the
+ * sixth member of the party was still standing on the other side of the field,
+ * spent the card, and only then met the Pokemon they might have wanted to give
+ * it to.
+ *
+ * Two claims, and they are different claims. The order is a property of the
+ * *log*: the `acquisition` entry sits ahead of the `target` entry at any node
+ * that writes both. The eligibility is a property of the *party the question was
+ * asked against*, and the only way to observe it from outside `playRun` is to
+ * have a policy answer with the last slot and check who ended up holding the
+ * move.
+ */
+describe('a node offers its Pokemon before it asks who learns its move', () => {
+  const ORDER_SEEDS = Array.from({ length: 12 }, (_unused, i) => `CAPTURE-ORDER-${i}`);
+
+  it('records the acquisition ahead of the move it precedes', async () => {
+    let nodesWithBoth = 0;
+    for (const seed of ORDER_SEEDS) {
+      const live = await playRun(seed, scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
+      const decisions = live.log.decisions;
+      /*
+       * Walked as a sequence rather than by node, because the log has no node
+       * markers in it — which is the whole reason order is the contract. A
+       * `target` that follows an `acquisition` with no `node` between them is
+       * the pair this patch created; the assertion is that the reverse pair,
+       * a `target` then an `acquisition` inside one node, never occurs.
+       */
+      for (let i = 0; i < decisions.length; i++) {
+        if (decisions[i]?.kind !== 'target') continue;
+        for (let j = i + 1; j < decisions.length; j++) {
+          const kind = decisions[j]?.kind;
+          // A `node`, `locale` or `lead` closes the node this target belongs to.
+          if (kind === 'node' || kind === 'locale' || kind === 'lead') break;
+          expect(kind, `${seed}: an acquisition followed a move question inside one node`).not.toBe(
+            'acquisition',
+          );
+        }
+      }
+      for (let i = 0; i < decisions.length; i++) {
+        if (decisions[i]?.kind !== 'acquisition') continue;
+        for (let j = i + 1; j < decisions.length; j++) {
+          const kind = decisions[j]?.kind;
+          if (kind === 'node' || kind === 'locale' || kind === 'lead') break;
+          if (kind === 'target') {
+            nodesWithBoth++;
+            break;
+          }
+        }
+      }
+    }
+    // The sweep has to actually contain the pair, or the loop above asserts
+    // nothing at all. This is the guard against a vacuous pass.
+    expect(nodesWithBoth, 'no node in the sweep both captured and taught').toBeGreaterThan(0);
+  }, 240_000);
+
+  it('puts the Pokemon that just joined on the recipient list', async () => {
+    /*
+     * A policy that takes every Pokemon it has room for and always aims a move
+     * at the **last** slot. Before this patch the last slot was the last member
+     * the party had walking in; now, at a node that captures and teaches, it is
+     * the member that just arrived.
+     *
+     * So the observable is direct: find a run where a party member holds a move
+     * it did not have at the level it was caught with. `moves` comes off the
+     * spec, and a captured Pokemon's spec is the one the player watched fight —
+     * `applyAcquisition` re-levels it and changes nothing else — so a fourth
+     * move it never had is one this node taught it.
+     */
+    const base = scriptedRunPolicy(greedyAiPolicy);
+    const lastSlot: RunPolicy = {
+      ...base,
+      chooseMoveRecipient: async (_offer, party) => party.length - 1,
+      chooseAcquisition: async (_offer, party, capacity) =>
+        hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
+    };
+
+    /*
+     * The claim is about a party index, so it is asserted where the index is
+     * resolved rather than by reading tea leaves off a finished run: the run
+     * must complete and replay identically, which it cannot if the recipient
+     * index `playRun` recorded named a different member from the one
+     * `resolveNode` applied it to. That is exactly the failure moving the
+     * acquisition would cause if `resolveNode` had not moved with it.
+     */
+    for (const seed of ORDER_SEEDS.slice(0, 6)) {
+      const live = await playRun(seed, lastSlot, DEFAULT_TUNING);
+      const again = await replayRun(live.log, DEFAULT_TUNING);
+      expect(again.state.party.map((member) => member.spec.species)).toEqual(
+        live.state.party.map((member) => member.spec.species),
+      );
+      expect(again.state.party.map((member) => member.spec.moves)).toEqual(
+        live.state.party.map((member) => member.spec.moves),
+      );
+    }
+  }, 240_000);
+});

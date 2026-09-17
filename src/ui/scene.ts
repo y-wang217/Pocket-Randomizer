@@ -119,6 +119,16 @@ interface SidePanel {
   root: HTMLElement;
   name: HTMLElement;
   level: HTMLElement;
+  /**
+   * How much of this side is still standing, on the foe panel only.
+   *
+   * The player's own remaining team is already on screen, named and with its
+   * HP, in the bench panel under the moves; a second readout of it would be
+   * the same fact printed twice. The opposing side has no bench panel and
+   * never will — it is the other player's hand — so this row is the only place
+   * the count can live.
+   */
+  roster: HTMLElement;
   /** The Part 7 label, beside the level on both sides of the field. */
   archetype: HTMLElement;
   types: HTMLElement;
@@ -380,6 +390,8 @@ export function createScene(): Scene {
         foe: updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent'),
         me: updateSidePanel(me, view.player, false, view.fasterSide === 'player'),
       };
+      // The opposing side's count, on the opposing panel and nowhere else.
+      renderRoster(foe.roster, view.opponentLeft);
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
@@ -607,6 +619,19 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   meta.append(hpText, status);
 
   /*
+   * The opposing side's remaining count. **A row, not a chip.**
+   *
+   * It is above the name rather than among the chips because it is a fact
+   * about the *side* and everything in `panel__chips` is a fact about the one
+   * Pokemon standing. A "3/4 left" sitting between `PHYS. ATTACKER` and
+   * `BRN` would read as another thing true about that body.
+   *
+   * Empty on the player's panel and hidden by the stylesheet when it is, so
+   * `panel--me` costs no line for it.
+   */
+  const roster = el('div', 'panel__roster');
+
+  /*
    * One row for everything a turn can have done to this Pokemon: its stat
    * stages, its ability and item, and whatever it is currently suffering.
    *
@@ -631,8 +656,78 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    */
   chips.append(types, archetype, traits, volatiles, stages);
 
-  root.append(header, hp.root, meta, chips);
-  return { root, name, level, archetype, types, hp, hpText, status, volatiles, traits, stages };
+  root.append(roster, header, hp.root, meta, chips);
+  return { root, name, level, roster, archetype, types, hp, hpText, status, volatiles, traits, stages };
+}
+
+/**
+ * The opposing side's remaining count, as a row of marks and the number.
+ *
+ * ## Both, and not one or the other
+ *
+ * The marks are the thing a player reads without looking — four dots with one
+ * dimmed is a fact taken in at a glance — and the number is the thing that
+ * still works at ten, on a phone, for a player who cannot tell nine dots from
+ * ten. Neither alone covers the range the readout has to cover, so the row
+ * carries both and the marks are `aria-hidden`: a screen reader gets the
+ * sentence once, off the row's own label, rather than ten list items and then
+ * the sentence.
+ *
+ * ## The unknown total is drawn, not guessed
+ *
+ * `total: null` is a wild encounter, where the player has not been told how
+ * many there are. The row then shows only the standing marks and reads
+ * `1/? left`. It does **not** fall back to the standing count as a total,
+ * which would be the UI inventing a fact — and would be wrong in the one
+ * direction that matters, because it would say "this is the last one" every
+ * single turn.
+ *
+ * ## Ten is the width it is built to, not the width it usually draws
+ *
+ * A side fields at most `MAX_TEAM_SIZE` today, and the row is laid out so that
+ * ten marks still sit on one line at the narrowest phone this repo pins. That
+ * is deliberate slack: a readout that breaks at a number the game could later
+ * field is a readout that has to be rebuilt, and the cost of the slack is a
+ * flex rule.
+ *
+ * ## It is an attribute
+ *
+ * It says what is on the other side of the field. It does not say whether that
+ * is good news, it carries no colour that ranks it, and it never compares the
+ * two sides — `CLAUDE.md`'s copy rule.
+ */
+function renderRoster(row: HTMLElement, left: { standing: number; total: number | null }): void {
+  const { standing, total } = left;
+  /*
+   * Nothing at all before the first real reading.
+   *
+   * A zero-of-zero row would flash on the frame the screen attaches, and an
+   * empty container renders as no line rather than as an empty one.
+   */
+  if (total === null && standing <= 0) {
+    row.replaceChildren();
+    delete row.dataset['known'];
+    row.removeAttribute('aria-label');
+    return;
+  }
+
+  row.dataset['known'] = total === null ? 'false' : 'true';
+  const marks = el('span', 'panel__roster-marks');
+  marks.setAttribute('aria-hidden', 'true');
+  // A mark per member when the total is known, so the ones already down are
+  // still on the row as spent slots. Only the standing ones when it is not,
+  // because a spent slot the player was never told about is not a fact.
+  const drawn = total === null ? standing : total;
+  for (let i = 0; i < drawn; i++) {
+    const mark = el('span', 'panel__roster-mark');
+    if (i < standing) mark.dataset['on'] = 'true';
+    marks.append(mark);
+  }
+
+  const label = el('span', 'panel__roster-label');
+  label.textContent = `${standing}/${total ?? '?'} left`;
+  row.setAttribute('aria-label', `Opponent: ${standing} of ${total ?? 'an unknown number'} left`);
+  row.replaceChildren(marks, label);
 }
 
 /** Redraw a panel. Returns whether its bar drew a chunk, which is what the hit beat keys off. */

@@ -92,7 +92,8 @@ import {
 } from '../data/locales';
 import { starterLevel } from '../data/scaling';
 import {
-  restFloorFor,
+  hasBattlePair,
+  restFloorForRoute,
   stepsRangeFor,
   tierWeightsFor,
   type ChoosableKind,
@@ -446,7 +447,7 @@ function buildRoute(segment: number, locale: LocaleId, rng: Rng, tuning: Tuning)
     );
   }
 
-  enforceComposition(shape, shapeStream, tuning);
+  enforceComposition(shape, shapeStream, tuning, segment);
 
   // Tiers, still pass 1 and still the `map` stream, but only once the kinds are
   // final. See the header: the fix-ups rewrite kinds, so a tier drawn before
@@ -693,8 +694,32 @@ const PLACEHOLDER_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
  * rewrite kinds at all: at this point nothing has been drawn for these nodes, so
  * changing what they are strands no draw.
  */
-function enforceComposition(shape: ChoosableKind[][], stream: RngStream, tuning: Tuning): void {
+function enforceComposition(
+  shape: ChoosableKind[][],
+  stream: RngStream,
+  tuning: Tuning,
+  segment: number,
+): void {
   const claimed = new Set<number>();
+
+  /*
+   * **The battle pair, placed before everything else.** See
+   * `tuning.battlePairFromSegment`.
+   *
+   * First rather than last, and the ordering is load-bearing in two different
+   * ways. It claims two *adjacent* steps, which is the only guarantee here that
+   * cares where its steps are; every rule below takes any unclaimed step it can
+   * get, so running them first would leave the pair choosing between whatever
+   * gaps they happened to leave — and on a short route there may be no adjacent
+   * pair left at all. Running the pair first cannot starve them in return,
+   * because the segments this applies to are the longest ones the curve builds
+   * and three floors over four remaining steps still fit.
+   *
+   * It draws nothing at all on a segment the rule does not cover, so segments 0
+   * to 6 consume exactly the values they consumed before this existed. The
+   * final segment's routes move, which is what `RANDOMIZER_VERSION` is for.
+   */
+  placeBattlePair(shape, stream, tuning, segment, claimed);
 
   /*
    * The wild step: every option a wild encounter, so the segment's one
@@ -728,7 +753,112 @@ function enforceComposition(shape: ChoosableKind[][], stream: RngStream, tuning:
    * across a four-step one, and the guarantee 4.6a wrote is about recovery.
    * `restFloorFor` takes the larger of the count and the density.
    */
-  ensureKind(shape, 'rest', restFloorFor(tuning, shape.length), stream, claimed, tuning.restEarliestStep);
+  /*
+   * **A route with a battle pair guarantees that a rest exists, not that rests
+   * are dense**, and the difference is the one the floor was written to
+   * protect.
+   *
+   * `restFloorFor` is two numbers taken together: `minRestSteps`, which is the
+   * guarantee — "a run whose seed decided there was nowhere to heal is not a
+   * hard run, it is a run the player had no hand in" — and a density, which is
+   * a comfort target that grew out of segments getting longer. The pair claims
+   * two steps and the wild and event floors claim two more, so on a six-step
+   * route the density target and the pair are competing for the same steps and
+   * one of them has to give.
+   *
+   * The pair wins, because it is the rule that says this segment is the
+   * gauntlet, and the density is what it is trading against. The *guarantee*
+   * does not move: `minRestSteps` still holds, and `placeBattlePair` refuses to
+   * place at all on a route too short to leave room for it. So the worst a
+   * paired segment gets is one rest rather than two — fewer than the curve
+   * would like, never none.
+   */
+  ensureKind(
+    shape,
+    'rest',
+    restFloorForRoute(tuning, segment, shape.length),
+    stream,
+    claimed,
+    tuning.restEarliestStep,
+  );
+}
+
+/**
+ * Two consecutive steps, each a straight wild-versus-trainer choice.
+ *
+ * ## What it guarantees and what it leaves open
+ *
+ * Guaranteed: two steps, adjacent, neither of which offers a rest, a shop or an
+ * event. Open: which pair of steps, and which side of each step the wild is on.
+ * Both come off the shape stream, so the pair moves between locales and between
+ * seeds rather than sitting at the same index in every run that reaches it.
+ *
+ * The player is not cornered. Four routes cross the pair — wild then wild, wild
+ * then trainer, trainer then wild, trainer then trainer — and the tier badges
+ * the next pass writes distinguish them further. What is removed is the option
+ * to *not fight*, twice, and that is the whole of the rule.
+ *
+ * ## Why the width is two and not `nodeChoiceCount`
+ *
+ * The same reason `wildStepOptionCount` is a constant: the step's identity is
+ * the choice it offers, and a wild-versus-trainer step with a third option is a
+ * different step. There are exactly two kinds in `BATTLE_KINDS`, so the width
+ * is the list's length and a third battle kind would widen it here for free.
+ *
+ * ## Draws
+ *
+ * One value for the placement, then one per step for which way round the two
+ * options sit — a fixed count, drawn eagerly, whatever the shape it is handed.
+ * Nothing about how many values this consumes depends on what it drew, which is
+ * the eager contract every other pass in this file keeps.
+ *
+ * ## It yields to the guarantees, and only to the guarantees
+ *
+ * On a route with no room for it, it places nothing and draws nothing. "Room"
+ * is not "two adjacent steps": it is two adjacent steps **plus** everything the
+ * floors below still have to fit — the wild step, `minEventSteps` events,
+ * `minRestSteps` rests, and the one step at the head of the route that may
+ * never be a rest. Claiming greedily and letting the rest floor come up short
+ * would trade a guarantee for a preference, and `minRestSteps` is the
+ * guarantee: a run with nowhere to heal is not a hard run, it is a run the
+ * player had no hand in.
+ *
+ * What it *does* displace is the rest **density** — see `enforceComposition`,
+ * which drops a paired route to the hard floor. That is a preference, it is
+ * stated where it is traded away, and `test/node-curve.test.ts` holds both
+ * halves.
+ *
+ * At the shipped curve the covered segment is six to seven steps and the pair
+ * always lands. The short-route branch exists for a sweep, which may
+ * legitimately try `stepsPerSegment: 1` — a generator that threw there would
+ * make the sweep the thing that has to know this rule.
+ *
+ * It reports nothing back. Whether a pair was placed and what the rest floor
+ * costs are two readings of `hasBattlePair`, taken from the same inputs, so the
+ * generator and the table agree by construction rather than by this function
+ * telling the one below it what it did.
+ */
+function placeBattlePair(
+  shape: ChoosableKind[][],
+  stream: RngStream,
+  tuning: Tuning,
+  segment: number,
+  claimed: Set<number>,
+): void {
+  // The room check is `data/tuning.hasBattlePair`, so this and the rest floor
+  // that pays for it cannot disagree about which routes are the gauntlet.
+  if (!hasBattlePair(tuning, segment, shape.length)) return;
+  // `length - 1` starts, because a start at the last index has no neighbour.
+  const starts = shape.length - 1;
+
+  const start = stream.nextInt(starts);
+  for (const step of [start, start + 1]) {
+    // One draw per step, always, so the count does not depend on the roll.
+    const flipped = stream.nextInt(2) === 1;
+    const kinds = flipped ? [...BATTLE_KINDS].reverse() : [...BATTLE_KINDS];
+    shape[step] = kinds;
+    claimed.add(step);
+  }
 }
 
 /**

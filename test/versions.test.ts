@@ -69,7 +69,7 @@ describe('the versions block', () => {
      * archetype; `-15` the event move, where a `T2` or `T3` outcome that pays
      * a move asks who learns it and what it displaces.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-16/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-17/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });

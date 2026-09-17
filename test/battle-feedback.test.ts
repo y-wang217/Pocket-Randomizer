@@ -44,7 +44,7 @@ beforeEach(() => {
 /** A real view off a real battle, which is what the scene is written against. */
 function baseView(seed = 'FEEDBACK01'): BattleUiView {
   const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed });
-  return buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+  return buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
 }
 
 /** The same view with one side's HP moved, which is the only variable here. */
@@ -93,7 +93,7 @@ function playOneTurn(p1: TeamSpec, p2: TeamSpec, slot: number, seed: string): { 
   const turns = readFlags(batch, FLAGS);
   const scene = createScene();
   scene.update(
-    buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects),
+    buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects),
     NOOP,
     turns,
   );
@@ -379,7 +379,7 @@ describe('the hit and the faint', () => {
    */
   function watchOneTurn(slot: number, seed: string): Scene {
     const session = createBattle({ teams: { p1: SLOW, p2: FAST }, seed });
-    const view = (): BattleUiView => buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+    const view = (): BattleUiView => buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
     const scene = createScene();
     scene.update(view(), NOOP);
     const before = session.protocolFor('p1').length;

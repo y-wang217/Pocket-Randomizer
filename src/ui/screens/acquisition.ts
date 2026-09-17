@@ -185,6 +185,19 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
 
   const ability = el('span', 'party__ability');
   ability.textContent = detail.ability;
+  /*
+   * And it opens the ability tooltip, exactly as the same span does on a party
+   * member card (`ui/member-card.ts`).
+   *
+   * It did not, and the gap was invisible on a desktop because the card names
+   * the ability in words and a reader can go and look it up. On a phone there
+   * is nowhere to go and look: the tooltip layer *is* the reference, and a
+   * trigger that is missing on one card reads as the ability having no
+   * explanation rather than as this card having no trigger. The screen where
+   * that hurts most is this one, because taking a Pokemon is a decision made
+   * largely on its ability.
+   */
+  ability.dataset['tip'] = `ability:${detail.abilityId}`;
   header.append(ability);
 
   const meta = el('div', 'panel__meta');

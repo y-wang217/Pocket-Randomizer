@@ -748,6 +748,15 @@ export type RunDecision =
    * tutor. A heal is party-wide and a currency card lands nowhere, so asking
    * about those would put an entry in the log for a question nobody was asked,
    * and replay would run out of step at the first one.
+   *
+   * **`DECLINED_MOVE` is a legal index, and only for a move nobody chose.**
+   * The gym's guaranteed move is the one payout in the game the player never
+   * picked over alternatives, so it is the one they may hand back; every other
+   * taught move reaches this question because it was already chosen, and
+   * `askMoveQuestions` refuses to offer a decline for those. A declined move
+   * records this index and asks no `replace` after it, exactly as a member with
+   * a free slot does — the entry is present either way, which is what keeps the
+   * cursor in step.
    */
   | { kind: 'target'; index: number }
   /**

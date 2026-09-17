@@ -153,7 +153,7 @@ describe('the band badge renders on every surface that renders a move', () => {
 
   it('2. the battle move button — scene.ts, from the projection', () => {
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'R12BAND' });
-    const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+    const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
 
     // The projection's own field first: the button can only be right if what it
     // is handed is right, and `powerBand` must be `bandOfMove` and not a second
@@ -384,7 +384,7 @@ describe('every band chip carries the same weight', () => {
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'R12BAND' });
     const scene = createScene();
     scene.update(
-      buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects),
+      buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects),
       () => undefined,
     );
     surfaces.push(['battle button', scene.root.querySelector('.moves .move .band')!]);

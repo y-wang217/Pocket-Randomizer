@@ -289,7 +289,7 @@ describe('the type wheel', () => {
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'WHEEL' });
     const scene = createScene();
     scene.update(
-      buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects),
+      buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects),
       () => undefined,
     );
 

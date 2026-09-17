@@ -35,7 +35,7 @@ beforeEach(() => {
 
 function sceneFor(seed = 'STAGE01'): { scene: Scene; view: BattleUiView } {
   const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed });
-  const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+  const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
   const scene = createScene();
   scene.update(view, () => {});
   return { scene, view };
@@ -142,12 +142,12 @@ describe('the floating panel', () => {
   it('names the stat a stage is on, so a multiplier is not 2.0x of what', () => {
     const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed: 'STAGE02' });
     const scene = createScene();
-    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects), () => {});
     // Swords Dance, both sides submitting, so the player's Attack is +2.
     for (const side of ['p1', 'p2'] as const) {
       if (session.viewFor(side).awaitingChoice) session.submit(side, { kind: 'move', slot: 1 } as never);
     }
-    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects), () => {});
 
     const chips = [...panelOf(scene, 'me').querySelectorAll('.panel__stages .chip--stage')];
     expect(chips.length).toBeGreaterThan(0);
@@ -220,7 +220,7 @@ describe('the effectiveness marker', () => {
   function markers(): { scene: Scene; badges: HTMLElement[] } {
     const session = createBattle({ teams: { p1: SPREAD, p2: FOE }, seed: 'EFFECT01' });
     const scene = createScene();
-    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+    scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects), () => {});
     return { scene, badges: [...scene.root.querySelectorAll('.moves .badge--effect')] as HTMLElement[] };
   }
 
@@ -295,7 +295,7 @@ describe('the species swap', () => {
     const session = createBattle({ teams: { p1: TWO, p2: FOE }, seed });
     const scene = createScene();
     const draw = (): void =>
-      scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects), () => {});
+      scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects), () => {});
     draw();
     return { session, scene, draw };
   }

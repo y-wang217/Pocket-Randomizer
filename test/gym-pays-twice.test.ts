@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
+import { DECLINED_MOVE } from '../src/core/rewards';
 import {
   gymsCleared,
   playRun,
@@ -60,7 +61,7 @@ describe('the run log version', () => {
      * randomizer draws, and it has now done so twice, which is the axis
      * working.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-16');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-17');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
@@ -161,5 +162,102 @@ describe('what a gym clear hands over', () => {
         expect(target, `${seed}: a gym's card came before its move`).toBeLessThan(reward);
       }
     }
+  }, 240_000);
+});
+
+// ---------------------------------------------------------------------------
+// Handing the move back
+// ---------------------------------------------------------------------------
+
+/**
+ * The gym's guaranteed move may be declined. **The victory-order patch, item 3.**
+ *
+ * It is the only taught move in the game that can be. Every other one — a
+ * reward card, a shop TM, an event's grant — reached its recipient question
+ * *because* the player chose it over alternatives, and `chooseMoveToReplace`'s
+ * own rule covers those: "the place to skip a move reward is the reward screen,
+ * where it was already chosen over two alternatives; a second escape hatch here
+ * would make that pick meaningless." A gym's move was chosen over nothing, so
+ * there is no such screen behind it and this is the first escape hatch rather
+ * than the second.
+ *
+ * Three things are held: that declining teaches nobody, that the log keeps its
+ * shape so a declined run replays, and that the sentinel is refused where it was
+ * not offered — which is the half that stops a bug in one policy becoming a move
+ * silently vanishing at some other node.
+ */
+describe('declining a gym move', () => {
+  /** A policy that hands back every move it is allowed to, and takes the rest. */
+  function decliner(): RunPolicy {
+    const base = scriptedRunPolicy(greedyAiPolicy);
+    return {
+      ...base,
+      chooseMoveRecipient: async (_offer, _party, _state, allowSkip) => (allowSkip ? DECLINED_MOVE : 0),
+    };
+  }
+
+  it('teaches nobody, and leaves the party exactly as the fight left it', async () => {
+    for (const seed of SEEDS.slice(0, 3)) {
+      const taken = await playRun(seed, scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
+      const refused = await playRun(seed, decliner(), DEFAULT_TUNING);
+
+      /*
+       * The two runs diverge — a party with different moves fights differently
+       * from the next node on — so this is not a comparison of end states. What
+       * it asserts is the one thing that must be true of the refusing run: it
+       * never wrote a `replace` entry behind a declined `target`, because a
+       * declined move displaces nothing.
+       */
+      const declined = refused.log.decisions.filter(
+        (decision) => decision.kind === 'target' && decision.index === DECLINED_MOVE,
+      );
+      expect(declined.length, `${seed}: nothing was declined, so this asserts nothing`).toBeGreaterThan(0);
+
+      for (let i = 0; i < refused.log.decisions.length; i++) {
+        const decision = refused.log.decisions[i];
+        if (decision?.kind !== 'target' || decision.index !== DECLINED_MOVE) continue;
+        expect(
+          refused.log.decisions[i + 1]?.kind,
+          `${seed}: a declined move still asked what it replaced`,
+        ).not.toBe('replace');
+      }
+
+      // And the control: a run that takes its moves does write them.
+      expect(
+        taken.log.decisions.some((decision) => decision.kind === 'target' && decision.index >= 0),
+      ).toBe(true);
+    }
+  }, 240_000);
+
+  it('replays to the identical party, so the decline is in the log', async () => {
+    for (const seed of SEEDS.slice(0, 3)) {
+      const live = await playRun(seed, decliner(), DEFAULT_TUNING);
+      const again = await replayRun(live.log, DEFAULT_TUNING);
+      expect(again.state.party.map((member) => member.spec.moves)).toEqual(
+        live.state.party.map((member) => member.spec.moves),
+      );
+      expect(again.state.party.map((member) => member.spec.species)).toEqual(
+        live.state.party.map((member) => member.spec.species),
+      );
+    }
+  }, 240_000);
+
+  it('refuses the sentinel at a move the player already chose', async () => {
+    /*
+     * A policy that answers `DECLINED_MOVE` everywhere, including at reward
+     * cards and shop TMs where no decline was offered. That is a policy out of
+     * step with the questions — or a log replayed against a build that asks
+     * different ones — and it has to fail loudly rather than quietly drop a
+     * move the player paid for.
+     *
+     * The failure is the ordinary out-of-range `RangeError`, which is the
+     * point: `askMoveQuestions` does not special-case the sentinel where the
+     * decline was not offered, so it is just an index that is not a slot.
+     */
+    const base = scriptedRunPolicy(greedyAiPolicy);
+    const always: RunPolicy = { ...base, chooseMoveRecipient: async () => DECLINED_MOVE };
+    await expect(playRun(SEEDS[0] ?? 'S49R-0', always, DEFAULT_TUNING)).rejects.toThrow(
+      /Move recipient -1 out of range/,
+    );
   }, 240_000);
 });

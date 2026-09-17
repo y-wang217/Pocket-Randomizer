@@ -126,7 +126,7 @@ describe('the surfaces', () => {
       encounter: { team: FOE, opponent: 'A trainer', simSeed: 'FIGURE01' },
       rewards: [],
     } as unknown as NodeSpec;
-    screen.attach(session, node, { ability: true, item: true }, () => {});
+    screen.attach(session, node, { ability: true, item: true, teamSize: true }, () => {});
     // Phased by the protocol's slot, which is 1-based: Gengar is the second
     // member, slot 2. A position on the team, the same number the switch
     // choice carries.

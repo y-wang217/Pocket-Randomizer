@@ -92,6 +92,46 @@ export function restFloorFor(tuning: Tuning, steps: number): number {
   return Math.max(tuning.minRestSteps, byDensity);
 }
 
+/**
+ * Whether a route of `steps` in `segment` carries the battle pair.
+ *
+ * **The single definition**, read by `encounters.placeBattlePair` when it
+ * decides whether to place and by `restFloorForRoute` below when it decides
+ * what that costs. Two copies of this would be two answers to "is this the
+ * gauntlet", and the symptom would be a route that got the pair *and* the full
+ * rest density target, which is more guarantees than its steps can hold.
+ *
+ * Room is not "two adjacent steps". It is two adjacent steps plus everything
+ * the floors in `enforceComposition` still have to fit: the guaranteed wild
+ * step, the event floor, the rest floor's own guarantee, and the head of the
+ * route, which `restEarliestStep` bars from carrying a rest and which therefore
+ * cannot be counted towards one.
+ */
+export function hasBattlePair(tuning: Tuning, segment: number, steps: number): boolean {
+  const from = tuning.battlePairFromSegment;
+  if (from === null || segment < from) return false;
+  const needed =
+    2 + tuning.wildStepsPerSegment + tuning.minEventSteps + tuning.minRestSteps + tuning.restEarliestStep;
+  return steps >= needed && steps >= 2;
+}
+
+/**
+ * The rest floor a route actually gets. **What generation enforces.**
+ *
+ * `restFloorFor` is the density rule and this is the rule as applied: a route
+ * carrying the battle pair drops to `minRestSteps`, the guarantee, because the
+ * pair has claimed two of its steps and the density target and the pair are
+ * otherwise competing for the same ones.
+ *
+ * The trade is one-directional and worth being exact about. The *guarantee*
+ * never moves — every route in the game still offers somewhere to heal, which
+ * is the thing `minRestSteps` was written for. What moves is the density
+ * target, on the one segment that is meant to be the hardest, and only there.
+ */
+export function restFloorForRoute(tuning: Tuning, segment: number, steps: number): number {
+  return hasBattlePair(tuning, segment, steps) ? tuning.minRestSteps : restFloorFor(tuning, steps);
+}
+
 export interface Tuning {
   // --- map shape -----------------------------------------------------------
 
@@ -185,6 +225,30 @@ export interface Tuning {
    * wild step derived its width from the tier weights.
    */
   wildStepOptionCount: number;
+  /**
+   * The first segment whose route must contain a **battle pair**: two
+   * consecutive steps, each a straight wild-versus-trainer choice with no rest,
+   * shop or event on either. Null switches the rule off entirely.
+   *
+   * Every other composition guarantee in this table is a floor on *variety* —
+   * at least one wild step, at least one event, at least one rest — because for
+   * seven segments the failure mode worth guarding is a route with nothing on
+   * it. The back of the run has the opposite problem: a party with six members,
+   * a full bag and a locale picked for its matchups can walk the last leg
+   * taking a rest every other step, and the last gym is then the first thing
+   * all run that asks the roster a question it cannot answer by resting.
+   *
+   * So this is a floor on *pressure*, and it is the only one. Two fights in a
+   * row with no recovery between them is the shape the final gym is sized
+   * against, and the player still chooses both: wild or trainer, at each of the
+   * two steps, which is four routes through the pair rather than a corridor.
+   *
+   * It is a segment index and not a boolean because the natural next tuning
+   * question is "should the back *half* have this", and a number answers that
+   * without another knob. Today it is the last segment and nothing else.
+   */
+  battlePairFromSegment: number | null;
+
   /**
    * Minimum steps in a segment that offer an event.
    *
@@ -539,6 +603,16 @@ export const DEFAULT_TUNING: Tuning = {
   wildStepsPerSegment: 1,
   wildStepOptionCount: 2,
   minEventSteps: 1,
+  /*
+   * The last segment, and only the last segment.
+   *
+   * 7 rather than `SEGMENT_COUNT - 1` because this file may not import
+   * `data/scaling.ts` — scaling reads tuning — and because a literal that has
+   * to be moved by hand when the run length changes is better than a knob that
+   * silently re-aims itself at a segment nobody balanced.
+   * `test/node-curve.test.ts` holds it against `SEGMENT_COUNT`.
+   */
+  battlePairFromSegment: 7,
   minRestSteps: 1,
   restStepsPerGuarantee: 3,
 
