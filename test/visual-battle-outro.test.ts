@@ -118,7 +118,7 @@ describe('an abnormality beat stays inside the body it is about', () => {
    * mark. The assertion is about the mark; the walk is only how one is
    * produced — so a single seed made "does `SMOKE24` happen to boost, fail or
    * trigger an ability early" a load-bearing fact, and **the gym level column
-   * going to parity (`generation.md` section 33) is what falsified it.** That
+   * going to parity (`generation.md` section 35) is what falsified it.** That
    * seed's first two fights carry crits, STAB and super-effective hits, none of
    * which are abnormality classes (`ui/abnormality.ts` reduces seventeen kinds
    * to five and a hit is not one of them), and the gym fight in between is the

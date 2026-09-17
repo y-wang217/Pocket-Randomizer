@@ -346,7 +346,7 @@ describe('the version axes', () => {
      * than an omission — `RANDOMIZER_VERSION` says the *composition* of the
      * draws moved, and this changes only the range a level is drawn from and
      * the species pool that range gates. Same keys, same order, same count.
-     * `docs/generation.md` section 33 is the account, including the proof:
+     * `docs/generation.md` section 35 is the account, including the proof:
      * `docs/visual/baseline/battles/GYMRUN01.json` is byte identical across it.
      *
      * The literal below is all five together. The display split remains the

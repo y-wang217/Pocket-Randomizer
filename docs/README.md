@@ -61,7 +61,7 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 **In flight: the bench carryover and the gym level column.** Branch
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
-record [`generation.md`](generation.md) section 33. Two items from one playtest
+record [`generation.md`](generation.md) section 35. Two items from one playtest
 report. `contentHash` moves from `fd9b5e` to `94c6c1`, by one column of
 `data/scaling.ts`;
 `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold.
@@ -95,6 +95,16 @@ content hash, two changed outcome, and the determinism seed's battle protocol is
 byte identical. One browser test was repaired rather than re-baselined: the
 abnormality case walked a single seed and the gym column moved that seed's
 fights, so it walks a list and fails only when no seed can produce a mark.
+
+**Merged before it: the CI patch**, in two parts. Branch
+`claude/brave-hopper-th7one`, prompt
+[`spec/gymrun-patch-ci-workflow.md`](spec/gymrun-patch-ci-workflow.md), record
+[`generation.md`](generation.md) sections 33 and 34. Build infrastructure only:
+`npm run check` becomes nine reported legs instead of an `&&` chain that stops
+at the first failure, and the GitHub Actions workflow runs them. No `src/`
+change, no version axis moves. It is named here because it merged between the
+chip audit and this patch and section 4 is read as a chronology; the gate
+section above is where it is described.
 
 **Merged before it: the chip audit.** Branch `claude/serene-bohr-xn433h`, prompt
 [`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md),
@@ -221,9 +231,25 @@ change, no version axis moves, `contentHash` unmoved at `c3964b`.
 Chromium or WebKit, the WebKit leg uses Playwright's iPhone 14 Pro Max
 descriptor — touch, the Mobile Safari user agent, 3x density, at this repo's
 pinned 390x844 — and `npm run check` runs both, so a WebKit failure fails the
-suite. `npm run test:webkit` is the second leg on its own. It needs
+suite. `npm run test:webkit` is that engine's leg on its own. It needs
 `npx playwright install webkit`; the box also needs
 `npx playwright install-deps webkit`.
+
+**Since the CI patch, a box without WebKit reports it rather than losing the
+run.** `npm run check` is nine legs in `scripts/check.mjs`, each one run and
+each one reported, and a missing engine is SKIPPED locally and FAILED under
+`CI`. That keeps the rule this section states — a known-good engine reported as
+unverified is the failure — while letting a contributor who has only Chromium
+still gate the other eight legs. [`generation.md`](generation.md) section 33 is
+the account.
+
+**And it has now actually run: green on WebKit 26.6, 24 files, 201 tests**, the
+first honest WebKit result this project has had — measured twice, once either
+side of the merge with `main`, so a future failure has a boundary to bisect
+against. `install-deps` is the step that was missing: the binary alone downloads
+and cannot launch. **When to run it, and how to read a failure, is the WebKit
+runbook in the root README's gate section**, which is the place to look when a
+phone bug arrives or a change touches layout, a sprite, or motion.
 
 **Two of the patch's five items were not what the brief said they were**, and
 both are worth knowing before reading the brief:
@@ -680,7 +706,7 @@ One line each. The analysis lives where the pointer goes, not here.
    while rescanning the evolution fixture (`S49B-3036` at the pre-parity curve,
    a different seed after it), and the crash path reads no level. Out of scope
    for the patch that found it and filed rather than fixed. `generation.md`
-   section 33.
+   section 35.
 0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
