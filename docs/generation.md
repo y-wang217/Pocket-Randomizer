@@ -5132,9 +5132,14 @@ What did run, and passed, run directly rather than through `check`:
 |---|---|
 | `eslint .` | clean |
 | `tsc --noEmit` | clean |
-| `vitest run` (Chromium) | 135 files, 1798 tests, all passing |
-| `GYMRUN_TRIM_STRICT=1 vitest run` | **in flight when this was written; result recorded below** |
+| `vitest run` (Chromium) | 136 files, 1805 tests, all passing |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | 136 files, 1805 tests, all passing |
 | `test:webkit` | **did not run — no WebKit binary** |
+
+Both suite figures are from the *merged* tree, after the chip audit came in and
+after the height re-record section 31.8 describes. Run directly rather than
+through `npm run check`, because the wrapper's `&&` chain stops at the WebKit
+leg and would have skipped the strict trim run behind it.
 
 There is no CI in this repository, so the WebKit leg is local-only and nothing
 else will run it. **It has to be run by hand on a machine that has the binary
