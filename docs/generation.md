@@ -4948,3 +4948,38 @@ cards and scroll, which they always did.
 The lesson is the ordinary one and it is worth the line: **the gate found this,
 not the reasoning that preceded it.** "The shop is not a guarded screen" was
 said in this session, with confidence, and was false.
+
+### 30.7 The WebKit leg of the gate did not run, and this is the record of that
+
+`npm run check` is five legs chained with `&&`: lint, typecheck, `vitest run`,
+`test:webkit`, `test:trim-strict`. **On the container this patch was built in,
+two of them could not run**, and the reason is worth writing down because the
+failure mode is the one `docs/README.md` open item 8 exists to remember — a gate
+believed to be green, or believed to be red, by a session that never read it.
+
+Only Chromium is installed here. `GYMRUN_ENGINE=webkit` fails at launch with
+`Executable doesn't exist at /opt/pw-browsers/webkit-2359/pw_run.sh`, and the
+environment forbids `npx playwright install`. All 24 browser test files then
+fail at `openHarness`, before any assertion. Because the legs are `&&`-chained,
+**`test:trim-strict` never ran in that invocation either** — and the wrapper
+still reported exit 0, which is exactly how a chained gate lies.
+
+What did run, and passed, run directly rather than through `check`:
+
+| leg | result |
+|---|---|
+| `eslint .` | clean |
+| `tsc --noEmit` | clean |
+| `vitest run` (Chromium) | 135 files, 1798 tests, all passing |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | **in flight when this was written; result recorded below** |
+| `test:webkit` | **did not run — no WebKit binary** |
+
+There is no CI in this repository, so the WebKit leg is local-only and nothing
+else will run it. **It has to be run by hand on a machine that has the binary
+before this branch merges**, and this section is here so that "the gate was
+green" is not read off a run that skipped a fifth of it.
+
+The patch's own risk against that leg is small but not zero: it changes one
+stylesheet rule (`:root[data-density="pocket"] .shop__item > .move--card`) and
+the shop screen's DOM, and the WebKit suite is the one that measures layout on
+the second engine. The Pocket no-scroll gate passed on Chromium at 17/17.
