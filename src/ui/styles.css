@@ -5001,7 +5001,31 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   image-rendering: pixelated;
 }
 
-.sprite[data-missing='true'] { visibility: hidden; }
+/*
+ * **`display: none`, not `visibility: hidden`, and the difference is 11px of
+ * horizontal overflow.** Found 2026-09-17 by the chip-audit patch; the defect
+ * predates it. `docs/generation.md` section 31.
+ *
+ * `ui/sprites.ts` gives every sprite `alt = species` and `width = height = 96`
+ * as attributes, and `.figure > .sprite` sizes it to `--figure-size` in CSS,
+ * which beats a presentational hint. That holds while the image loads.
+ *
+ * It stops holding when the image *fails*. A broken `<img>` carrying alt text
+ * is no longer a replaced element: Chromium lays it out as an inline box around
+ * the alt string, and `width` does not apply to a non-replaced inline. So the
+ * box becomes as wide as the species name — measured on one seed's starters,
+ * `Zorua` gave 48px, `Flabébé` 59px and `Hippopotas` 84px inside a 48px figure.
+ * `visibility: hidden` hid it and kept every pixel of that box in the layout,
+ * so the widest name pushed the document 11px past a 390px viewport.
+ *
+ * `display: none` takes it out of the flow, which is what "the CDN did not have
+ * it" always meant. The mark stays in the DOM, so `:has(> .sprite[data-missing])`
+ * below and the tests that read the attribute are unaffected.
+ *
+ * The alt text is not the thing to remove: it is right when the image loads,
+ * and a rule that depends on a species never being long is not a rule.
+ */
+.sprite[data-missing='true'] { display: none; }
 
 /* ==========================================================================
    Idle-sprites patch — the figure

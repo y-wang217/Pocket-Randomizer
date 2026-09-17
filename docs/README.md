@@ -776,6 +776,16 @@ One line each. The analysis lives where the pointer goes, not here.
    consumer yet — retires that duration and takes the pin to 16. One small
    patch; `generation.md` section 17.
 
+### Closed: the missing sprite's alt text
+
+**2026-09-17, fixed.** A broken `<img>` with alt text is not a replaced element,
+so CSS `width` did not apply and the box grew to fit the species name — 84px for
+`Hippopotas` inside a 48px figure, which pushed a 390px page to 401px.
+`visibility: hidden` had been hiding it while keeping it in the flow.
+`display: none` now takes it out. Predates the chip audit by three patches and
+was exposed by it; `generation.md` section 31 is the account, and
+`test/visual-sprites.test.ts` holds the figure's box.
+
 ### Carried out of the chip audit
 
 **The horizontal-overflow guard covers three screens out of twelve, and nothing

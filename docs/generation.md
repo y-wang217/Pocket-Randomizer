@@ -4969,3 +4969,84 @@ the box, which is not what those numbers are — a lowercase path command takes
 relative deltas and an arc takes radii and flags before its endpoint. It called
 the Normal ring's legal `-7.4` an escape. It was deleted rather than loosened,
 and the file says why in place of it.
+
+## 31. The missing sprite was 84px wide, and the alt text is why
+
+**2026-09-17**, on `claude/serene-bohr-xn433h`, after PR #44 merged at `df2982f`.
+Presentation only: one CSS declaration and one regression test. No `core/`
+change, no version axis moves, `contentHash` unmoved.
+
+**The defect predates the chip-audit patch and was exposed by it.** That
+distinction is the whole reason this section exists rather than a line in
+section 30.
+
+### How it surfaced
+
+`test/visual-phone-seed-bar.test.ts` asserts `documentElement.scrollWidth`
+equals 390 on the starter screen. It began failing at 401 — but only inside the
+full 136-file run. It passed standalone, passed under `GYMRUN_TRIM_STRICT=1`,
+and passed with all 28 browser files in parallel. A probe on that screen in the
+passing configurations found nothing past 390.
+
+The first three explanations were all wrong and all plausible: a font falling
+back (there are no web fonts in this project, so metrics are deterministic), the
+new ability chip failing to wrap (it wraps, and `.starter__meta` was given
+`flex-wrap` anyway), and CPU contention (the run that failed had the machine to
+itself).
+
+Two measurements settled it. A full-suite run on `9616ade` — the commit before
+the chip audit — **passed**, which said the branch was responsible. Then the
+failing assertion itself was instrumented to dump every element past 390, and it
+named one: `img.sprite`, 84px wide, right edge at 401. Running the same probe on
+`9616ade` reproduced it **identically**, which said the branch was not
+responsible after all. Both are true: the bug is older, and the patch changed
+the starter card's render enough to move the timing that hid it.
+
+### The mechanism
+
+`ui/sprites.ts` sets `alt = species` and `width = height = 96` as attributes;
+`.figure > .sprite` sizes the image to `--figure-size` in CSS, which beats a
+presentational hint. That holds while the image loads.
+
+It stops holding when the image fails. **A broken `<img>` carrying alt text is
+no longer a replaced element** — Chromium lays it out as an inline box around
+the alt string, and `width` does not apply to a non-replaced inline. So the box
+becomes as wide as the species name. On one seed's three starters:
+
+| alt | characters | width, in a 48px figure |
+|---|---|---|
+| `Zorua` | 5 | 48px |
+| `Flabébé` | 9 | 59px |
+| `Hippopotas` | 10 | **84px** |
+
+`.sprite[data-missing='true']` used `visibility: hidden`, which hides the box and
+keeps every pixel of it in the layout. So the longest species name on screen
+pushed the document 11px past a 390px viewport.
+
+### The fix, and the two that were rejected
+
+`display: none`. It takes the image out of the flow, which is what "the CDN did
+not have it" always meant, and the mark stays in the DOM so
+`:has(> .sprite[data-missing='true'])` and every test that reads the attribute
+are unaffected.
+
+**Clearing the alt text** also returns the page to 390 and was rejected: the alt
+is correct when the image loads, and a layout that holds only while no species
+has a long name is not a layout.
+
+**Clipping the figure** was rejected for the reason the stylesheet already gives
+at `.stage`: a box that clips is a box that cuts something which overhangs by
+design.
+
+### Why the sandbox saw it and a player might not
+
+Every sprite is broken in this environment — there is no route to the sprite
+CDN — so the defect is permanent here and intermittent anywhere with a network.
+A player meets it when a request fails: a phone page that scrolls sideways
+because one Pokemon has a long name and the network dropped.
+
+`test/visual-sprites.test.ts` already aborts the CDN and its header already
+claims "a figure is a fixed box whether or not its image arrived". That claim
+was false for three patches and is now asserted — against the figure rather than
+a pixel count, so it fails for the right reason, with the document-level check
+beside it because that is the symptom a player would actually meet.

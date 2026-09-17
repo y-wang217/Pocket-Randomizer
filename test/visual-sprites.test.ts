@@ -72,6 +72,56 @@ async function readFigures(page: Page): Promise<FigureReading[]> {
   );
 }
 
+/**
+ * **A figure is a fixed box whether or not its image arrived.**
+ *
+ * That is this file's opening claim and it was false for three patches. Added
+ * 2026-09-17, after the chip-audit patch made `test/visual-phone-seed-bar.ts`
+ * fail intermittently at `scrollWidth` 401 in a 390px viewport — a failure that
+ * reproduced identically on the commit before that patch, so the patch exposed
+ * it rather than caused it. `docs/generation.md` section 31.
+ *
+ * The mechanism, because it is not guessable from the symptom: a broken `<img>`
+ * carrying alt text stops being a replaced element, so CSS `width` no longer
+ * applies to it and the box grows to fit the alt string. Every sprite here is
+ * broken by design — this file aborts the CDN — so every sprite was as wide as
+ * its species name, and `Hippopotas` is 84px inside a 48px figure.
+ *
+ * **Asserted against the figure rather than against a pixel count**, so it
+ * fails for the right reason: a sprite may not be wider than the box that is
+ * supposed to be fixed around it. The document-level check is the second
+ * assertion, because that is the symptom a player would actually meet — a phone
+ * page that scrolls sideways when the network drops.
+ */
+describe('a missing sprite costs its figure nothing', () => {
+  for (const surface of ['starter', 'party'] as const) {
+    it(`keeps every sprite inside its figure on ${surface}, with the CDN gone`, async () => {
+      const { page, close } = await open(harness.browser, surface, 'detailed');
+      await page.waitForFunction(
+        () => globalThis.document.querySelector('.figure > .sprite')?.getAttribute('data-missing') === 'true',
+        undefined,
+        { timeout: 20_000 },
+      );
+      const reading = await page.evaluate(() => {
+        const escapes: string[] = [];
+        for (const sprite of [...globalThis.document.querySelectorAll<HTMLElement>('.figure > .sprite')]) {
+          const figure = sprite.parentElement;
+          if (!figure) continue;
+          const inner = sprite.getBoundingClientRect();
+          const outer = figure.getBoundingClientRect();
+          if (inner.width > outer.width + 0.5 || inner.right > outer.right + 0.5) {
+            escapes.push(`${(sprite as HTMLImageElement).alt}: ${Math.round(inner.width)}px in a ${Math.round(outer.width)}px figure`);
+          }
+        }
+        return { escapes, scrollWidth: globalThis.document.documentElement.scrollWidth };
+      });
+      await close();
+      expect(reading.escapes, 'a sprite grew past the figure that is meant to be a fixed box').toEqual([]);
+      expect(reading.scrollWidth, 'a missing sprite pushed the page sideways').toBe(PHONE.width);
+    });
+  }
+});
+
 describe('the idle bob', () => {
   it('does not run on an empty box: a sprite the CDN did not have holds still', async () => {
     const { page, close } = await open(harness.browser, 'party', 'detailed');
