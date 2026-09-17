@@ -781,8 +781,10 @@ One line each. The analysis lives where the pointer goes, not here.
 **2026-09-17, fixed.** A broken `<img>` with alt text is not a replaced element,
 so CSS `width` did not apply and the box grew to fit the species name — 84px for
 `Hippopotas` inside a 48px figure, which pushed a 390px page to 401px.
-`visibility: hidden` had been hiding it while keeping it in the flow.
-`display: none` now takes it out. Predates the chip audit by three patches and
+`visibility: hidden` had been hiding it while keeping it in the flow, and
+`display: inline-block` now gives it back the size the stylesheet already
+specifies — `display: none` was tried first and stopped every stage animation,
+which `reviewBattle` waits on. Predates the chip audit by three patches and
 was exposed by it; `generation.md` section 31 is the account, and
 `test/visual-sprites.test.ts` holds the figure's box.
 

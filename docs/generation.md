@@ -5023,12 +5023,26 @@ becomes as wide as the species name. On one seed's three starters:
 keeps every pixel of it in the layout. So the longest species name on screen
 pushed the document 11px past a 390px viewport.
 
-### The fix, and the two that were rejected
+### The fix, and the three that were rejected — one of them after it shipped
 
-`display: none`. It takes the image out of the flow, which is what "the CDN did
-not have it" always meant, and the mark stays in the DOM so
-`:has(> .sprite[data-missing='true'])` and every test that reads the attribute
-are unaffected.
+`display: inline-block`, keeping `visibility: hidden`. `width` does not apply to
+a non-replaced inline; it does apply to a non-replaced inline-block. One word
+gives the alt-text box back the dimensions the stylesheet already specifies, and
+nothing else about the element changes.
+
+**`display: none` was tried, committed, and reverted in the same session.** It
+returns the page to 390 and it broke four tests in `test/visual-motion.test.ts`:
+`sprite-hit`, `sprite-sink`, the switch-in and the recall all stopped firing,
+because an element that is not displayed runs no CSS animation.
+
+That is not a test artifact, and it is the more serious defect of the two.
+Branch 3A of the battle-animation run (section 23) made `reviewBattle` *wait* on
+those beats — the one place in this project where something waits on an
+animation. A player whose sprite request failed would have been waiting on an
+animation that could never start. **The overflow makes a page scroll sideways;
+this would have stalled a fight.** Caught by the full suite on the commit that
+shipped it, which is the argument for running the whole thing rather than the
+files a change looks like it touches.
 
 **Clearing the alt text** also returns the page to 390 and was rejected: the alt
 is correct when the image loads, and a layout that holds only while no species
