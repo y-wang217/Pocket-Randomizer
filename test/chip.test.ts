@@ -90,12 +90,23 @@ describe('no screen builds a chip by hand', () => {
     });
   }
 
+  /*
+   * `archetype` and `ability` joined the list at the chip-audit patch, and
+   * they joined it because of what the scan did *not* catch.
+   *
+   * `screens/locale-select.ts` built its own `badge badge--archetype` — the
+   * `.badge` metrics with none of the `.chip` recipe, so it drew as bare
+   * uppercase text beside siblings that all had the fill and the outline — and
+   * this test passed the whole time, because the modifier was not one of the
+   * five it knew to look for. A scan with a hand-written list of what counts is
+   * a scan with a hand-written list of what does not.
+   */
   it('builds tiers, bands, types, statuses, stages and gates through ui/chip.ts only', () => {
     const offenders = walk(join(ROOT, 'src/ui'))
       .filter((file) => !file.endsWith('chip.ts'))
       .filter((file) => {
         const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
-        return /['"`](?:[a-z_ -]*\s)?(?:type type--|tier tier--|band band--|badge badge--(?:status|up|down|category|effect)|node__gate-(?:need|band))/.test(source);
+        return /['"`](?:[a-z_ -]*\s)?(?:type type--|tier tier--|band band--|badge badge--(?:status|up|down|category|effect|archetype|ability)|node__gate-(?:need|band))/.test(source);
       })
       .map((file) => relative(ROOT, file));
     expect(offenders).toEqual([]);

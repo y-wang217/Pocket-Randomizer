@@ -41,7 +41,8 @@ import { moveCardData } from '../move-detail';
 import { setProse } from '../dom';
 import { REPLACE_COPY } from '../copy/screens';
 import type { Tuning } from '../../data/tuning';
-import { typeChip } from './starter-select';
+import { abilityChip, monTypeChip } from '../chip';
+import { archetypeChip } from '../archetype-chip';
 import { spriteFigure } from '../sprites';
 
 export interface MoveReplaceScreen {
@@ -97,7 +98,28 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
       const level = el('span', 'panel__level');
       level.textContent = `Lv${detail.level}${genderMark(detail.gender)}`;
       // And its body, at the line's right. Idle-sprites patch.
-      owner.replaceChildren(name, level, ...detail.types.map(typeChip), spriteFigure(detail.species));
+      /*
+       * **The archetype chip and the ability, added by the chip-audit patch.**
+       *
+       * This line was the audit's one unambiguous finding, and it was a hole
+       * rather than a judgement call: every other Pokemon surface carried the
+       * label or carried the six stat bars that 4.8.0.3 replaced it with, and
+       * this one carried neither. The screen that decides which of four moves a
+       * Pokemon keeps was the screen that said least about the Pokemon.
+       *
+       * The ability is here for the same reason it is on the acquire panel: a
+       * move's worth to a holder is an ability question about as often as it is
+       * a stat question — a Levitate holder has no use for the Ground move that
+       * would otherwise be its best button.
+       */
+      owner.replaceChildren(
+        name,
+        level,
+        archetypeChip(detail.baseStats),
+        ...detail.types.map(monTypeChip),
+        abilityChip(detail.ability, detail.abilityId),
+        spriteFigure(detail.species),
+      );
 
       /*
        * Slot order, never sorted.

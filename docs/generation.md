@@ -4807,3 +4807,165 @@ the card names the ability and a reader can go and look it up; on a phone the
 tooltip layer *is* the reference, so a missing trigger reads as the ability having
 no explanation rather than as this card having no trigger. The screen where that
 costs most is the one where a Pokemon is taken largely on its ability.
+
+## 30. The chip audit: two filed decisions superseded, and a watermark
+
+**2026-09-17**, on `claude/serene-bohr-xn433h`. Prompt:
+[`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md).
+
+Presentation only. No `core/` change, no version axis moves, `contentHash`
+unmoved: the one new data-shaped file, `ui/theme/typeIcons.ts`, is under `ui/`
+for the reason `ui/theme/itemIcons.ts` is, and nothing under `core/` imports it.
+
+The brief asked for two audits and one small feature. Both audits landed on
+decisions already in the lineage, so neither was implemented as a rediscovery —
+each was put to the author with the standing decision quoted, and each answer is
+dated today. This section is the account of what those answers retire.
+
+### 30a. Patch 4.8.0.3 item 3 is superseded
+
+**The retired rule:** the archetype chip is removed from every surface that
+draws the six stat bars, because the bars show the same shape and the chip can
+be wrong — `archetypeOf` reads base stats only, so a fully randomized move set
+leaves a `pTank` attacking specially.
+
+**What replaced it:** the chip is drawn on every surface that draws a Pokemon.
+
+The audit that found this also found what the rule had cost. The chip was on
+four surfaces and off six, and a label that appears on four surfaces out of ten
+is not a shorthand anybody learns — it is a thing that turns up sometimes. The
+known failure mode is real and unchanged; it is answered where it was always
+answered, in `ARCHETYPE_CAVEAT`, inside the panel every one of these chips
+opens.
+
+The surfaces that gained it: the party card (so the party screen, the drawer and
+the pre-gym lead chooser, all three through `memberCardContents`), starter
+select, evolution, the acquire offer panel, and the learn-move recipient.
+
+**The learn-move recipient was not a judgement call.** It is the one surface
+that had neither the chip nor the bars the chip was traded for, so it carried no
+shape information at all — the screen that decides which of four moves a Pokemon
+keeps said least about the Pokemon. That is a hole rather than a decision, and
+it would have been worth closing under the old rule too.
+
+`src/ui/screens/locale-select.ts` had been hand-rolling `badge badge--archetype`
+instead of calling `archetypeChip`, which is `.badge`'s metrics with none of
+`.chip`'s recipe — bare uppercase text among siblings that all carry the fill
+and the hairline outline. `test/chip.test.ts` exists to catch exactly that and
+did not, because its regex lists the badge modifiers it knows about and
+`badge--archetype` was not one. The modifier is in the list now, with `ability`.
+
+### 30b. The 2026-09-10 type wheel ruling is superseded for Pokemon badges only
+
+**The retired rule:** "keep the wheel, drop the trigger from the two Pokemon
+panel type badges" (`spec/README.md`, "The register supersedes an archived
+instruction").
+
+**What the audit found:** it had been applied to every type chip in the app
+rather than to the two it named. The wheel was reachable from a battle move card
+and from nowhere else — not from a party card, an acquire panel, a learn-move
+recipient, a result summary or either battle panel. The mechanism is why:
+`screens/starter-select.typeChip` is a bare one-argument wrapper that nine
+screens pass straight to `.map`, so there was no site at which a Pokemon's type
+and a gym leader's type could be told apart.
+
+**What replaced it:** `ui/chip.ts` grows `monTypeChip`, which is that site. A
+Pokemon's types open the wheel. A gym leader's type, a locale's types, a threat
+entry's type and the type an item boosts do not, because those are forecasts
+about content the player has not reached and `CLAUDE.md` forbids them.
+
+**The objection this leaves open, recorded rather than resolved.** `scene.ts`
+carried a longer argument than the release plan's, from a playtester: on a
+*Pokemon* panel the wheel answers "what does Water do offensively" beside a
+Pokemon whose four moves are drawn off-species and predict nothing of the kind.
+That argument is better evidenced than the ruling quoted in the question, and it
+is preserved verbatim in the source under the new note. What it establishes is
+that the wheel's **offensive** half is misleading on a Pokemon badge; it does
+not establish that the **defensive** half is, and the defensive half is the
+question a player asks of the thing standing opposite them. The wheel renders
+both, so restoring the trigger restored both. The narrowing that would close it
+— a Pokemon badge opening the defending half only — was not asked for and is not
+built.
+
+### 30c. The ability was a chip on two surfaces out of nine
+
+Not a superseded rule, just drift, and one kind of it is worth naming. The
+ability was a real chip on the result summary and the battle panel, a bare
+`<span>` carrying a `data-tip` on the party card and the acquire panel, plain
+text inside a concatenated string on starter select, and absent on the
+learn-move, item-target, evolution and locale surfaces.
+
+**The `<span>` case is the one that justifies a shared builder.** `ui/tooltips.ts`
+binds `keydown` for Enter and Space, and an element with no `tabIndex` never
+takes focus, so it never receives either. Those two triggers opened under a
+mouse or a finger and did not exist for a keyboard reader — present in the
+source, absent in use. `abilityChip` is now the one builder and it sets
+`tabIndex` and `role`.
+
+The battle panel's unrevealed case stays a plain `neutralChip`: there is nothing
+to open, and a focusable chip that opens nothing is a keyboard trap.
+`revealOpponentAbility` still decides which branch that is.
+
+### 30d. One layout regression, found by looking
+
+`.replace__owner` was a species, a level and two type chips, which fitted one
+line at 390 with room to spare. Adding the archetype chip and the ability made
+it overflow: the ability ran off the right edge and the sprite was pushed out of
+the viewport. It wraps now and reserves the sprite's gutter off `--figure-size`,
+the same way `.party__member > .panel__header` has since the idle-sprites patch.
+
+Caught by screenshotting the surfaces rather than by a test, which is the honest
+account — and the first version of this paragraph got the reason wrong. It said
+nothing measures horizontal overflow. Something does: `scripts/smoke.mjs`
+asserts `documentElement.scrollWidth <= innerWidth`, and two visual tests assert
+it for the outro and the seed bar. **The guard exists, works, and would have
+caught this**, because no ancestor of a screen clips horizontally — `body`,
+`.shell` and `.screen` set no `overflow`. It is pointed at the locale screen,
+the map and a battle, and `replace` is none of those.
+
+That is a narrower defect than "untested" and a more useful one, so it is filed
+rather than folded into this section: see "Carried out of the chip audit" in
+[`README.md`](README.md) section 5. The short version is that the three
+surfaces are a hand-picked list and nothing asserts the list is complete, which
+is the property `test/visual-chips.test.ts` already holds for chip variants and
+this guard does not.
+
+### 30e. The move-card type watermark
+
+`ui/theme/typeIcons.ts`: nineteen glyphs, one per type with a colour token, each
+a single closed silhouette in a 24-unit box with interior detail cut as an
+even-odd hole. Drawn for this repo rather than traced from the reference sheet
+the brief arrived with — the sheet is somebody else's artwork, and at the size
+and opacity this ships at, detail would not survive anyway.
+
+The mark is redundant by design: the type is already on the button in words, on
+the chip at the head of the identity line. So it is `aria-hidden`, carries no
+tooltip, and `typeIconPath` returns `null` for an unknown type rather than
+drawing a fallback a player would try to learn. Battle buttons only — `moveCard`
+draws the same component outside a fight and carries the 4.7.2 expander in the
+corner this would occupy.
+
+**Three things were changed after looking at them**, and they are the reason the
+report carries a contact sheet:
+
+- The Bug glyph was one silhouette with the elytra split cut out of it, which
+  even-odd rendered as a hairline outline: it read as a stick figure, not a
+  beetle. It is separate solids now.
+- The Dragon glyph read as a rocket, then as a pen nib. The pointed snout was
+  doing it; it is blunt now, and the glyph is still the weakest of the nineteen.
+- The mark was first placed at the button's vertical centre, which is where the
+  fact chips are — they painted over its left half and the result read as a
+  clipped icon rather than as a background. It sits in the corner beside the
+  name now, and `.moves .move__name` yields 34px so that corner is reliably
+  empty.
+
+The brief's ceiling — "50% opacity max" — is a token, `--move-watermark`, and
+`test/type-icons.test.ts` asserts it rather than a comment claiming it. It ships
+at 0.3, well under, because at 0.5 the glyph competes with the move name.
+
+**`test/type-icons.test.ts` has no bounds assertion, and its first draft did.**
+That draft read every number out of the path data and asserted each was inside
+the box, which is not what those numbers are — a lowercase path command takes
+relative deltas and an arc takes radii and flags before its endpoint. It called
+the Normal ring's legal `-7.4` an escape. It was deleted rather than loosened,
+and the file says why in place of it.

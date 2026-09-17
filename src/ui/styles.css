@@ -1680,6 +1680,98 @@ body {
   cursor: not-allowed;
 }
 
+/*
+ * The type watermark. **Chip-audit patch, item 3.**
+ *
+ * A silhouette of the move's type, in the type's own colour, in the corner
+ * beside the move name.
+ *
+ * **Scoped to `.moves`, the battle grid, and nothing wider.** `.move--card` is
+ * the same component on the reward, replacement, party and summary screens, and
+ * those cards carry the 4.7.2 expander in this corner — so they neither get a
+ * watermark nor a containing block they have no use for. `scene.renderMove` is
+ * the only builder that emits one; this rule only has to agree with it.
+ *
+ * **No `overflow: hidden`.** An earlier placement bled the glyph off the right
+ * edge and needed the crop; this one sits fully inside the padding box, so the
+ * clip would only ever be a trap for something later.
+ *
+ * **The ceiling is the brief's: 50% opacity, never more.** The token ships at
+ * well under it, because at 0.5 against `--bg-raised` the glyph competes with
+ * the move name for the same eye. It is a token so a playtest can move it
+ * without touching this rule, and `test/type-icons.test.ts` asserts the ceiling
+ * rather than trusting this sentence.
+ */
+/* Opacity, and the glyph's edge. The gutter below is derived from the size
+   rather than restated, the way `--figure-size` works for a sprite: the two
+   numbers are one fact and a patch that changes one must not be able to leave
+   the other behind. */
+:root { --move-watermark: 0.3; --move-watermark-size: 32px; }
+
+.moves .move { position: relative; }
+
+.moves .move__watermark {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1h);
+  width: var(--move-watermark-size);
+  height: var(--move-watermark-size);
+  color: var(--chip);
+  opacity: var(--move-watermark);
+  pointer-events: none;
+}
+
+/*
+ * The name yields the corner rather than running under the glyph.
+ *
+ * The first placement put the mark at the card's vertical centre, which is
+ * where the fact chips are — so the chips painted over its left half and the
+ * result read as a clipped icon rather than as a background. The corner beside
+ * the name is the one region of this card that is reliably empty, and it is
+ * only reliably empty if the name is told to stop short of it.
+ */
+.moves .move__name { padding-right: calc(var(--move-watermark-size) + var(--space-h)); }
+
+.moves .move__watermark svg { display: block; width: 100%; height: 100%; }
+
+/* A disabled button already drops to 0.42; the watermark dropping with it would
+   put the glyph under a tenth of an alpha, which is a smudge rather than a
+   mark. It comes off entirely instead — the button is not a choice this turn,
+   so it has nothing to be scanned for. */
+.moves .move:disabled .move__watermark { display: none; }
+
+/*
+ * In the four-column bar the button is 85px wide and the glyph would sit on top
+ * of the fields the layout exists to make comparable. It keeps its place and
+ * loses its size: the colour is still there at a glance, which is the half of
+ * the signal that survives at that width.
+ */
+/*
+ * In the four-column bar the button is 85px wide and there is no corner to
+ * yield: two clamped lines of name already use the full width. So the mark
+ * stops being a glyph in a corner and becomes a wash behind the whole button —
+ * bigger, fainter, centred, and with the name's padding given back.
+ *
+ * What survives at that size is the colour, which is the half of the signal the
+ * brief actually asked for ("show types in certain colors"). The silhouette is
+ * the bonus that the 2x2 has room for.
+ */
+[data-move-bar='columns'] .moves .move__name { padding-right: 0; }
+
+[data-move-bar='columns'] .moves .move__watermark {
+  --move-watermark-size: 54px;
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  opacity: calc(var(--move-watermark) * 0.6);
+}
+
+/* Reduced motion is not the axis here, but reduced *transparency* is: a reader
+   who has asked for more contrast should not have a tinted shape behind text. */
+@media (prefers-contrast: more) {
+  .moves .move__watermark { display: none; }
+}
+
 .move__name { font-weight: 600; }
 
 /*
@@ -2355,7 +2447,27 @@ body {
 .starter__header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .starter__name { font-weight: 600; font-size: var(--fs-xl); }
 .starter__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
-.starter__meta { color: var(--text-dim); font-family: var(--font-body); font-size: var(--fs-sm); }
+/* Holds the ability chip and the HP figure since the chip-audit patch, so it is
+   a row rather than a line of text. */
+.starter__meta {
+  display: flex;
+  /*
+   * **Wraps.** It did not, and `test/visual-phone-seed-bar.test.ts` caught the
+   * consequence: an ability chip is uppercase with letter-spacing, so
+   * `ELECTRIC SURGE` beside the HP figure took the starter screen to 401px in a
+   * 390px viewport. A non-wrapping flex row cannot shrink below its content and
+   * nothing above it clips, so the overflow reached the document.
+   *
+   * That assertion covers the starter screen. Nine screens have no equivalent,
+   * which is the item filed in `docs/README.md` section 5.
+   */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+}
 
 .starter__moves {
   margin: 0;
@@ -3018,10 +3130,25 @@ body {
   margin-top: calc(var(--space-2) * var(--density-gap));
 }
 
+/*
+ * **Wraps, and keeps a gutter for the sprite. Chip-audit patch, item 1.**
+ *
+ * This row was a species, a level and two type chips, which fitted one line at
+ * 390 with room to spare. The patch added the archetype chip and the ability,
+ * and a non-wrapping row met that by running the ability off the right edge and
+ * pushing the sprite out of the viewport entirely.
+ *
+ * The gutter is the same trick `.party__member > .panel__header` uses and for
+ * the same reason: the figure is absolutely positioned at the right, so a
+ * wrapped chip would otherwise sit underneath it. `--figure-size` is the one
+ * the figure's own rule reads, so the two cannot drift.
+ */
 .replace__owner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1) var(--space-2);
+  padding-right: calc(var(--figure-size) + var(--space-2));
   margin-top: calc(var(--space-4h) * var(--density-gap));
   font-size: var(--fs-base);
 }
@@ -4942,6 +5069,20 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 :root:not([data-density="pocket"]) .party__member:has(> .figure) > .panel__header,
 :root:not([data-density="pocket"]) .starter:has(> .figure) > .starter__header,
 :root:not([data-density="pocket"]) .event__gate:has(> .figure-row) { padding-right: calc(var(--figure-size) + var(--space-2)); }
+
+/*
+ * **The bench row reserves no gutter, and it is the one host that does not.**
+ * Chip-audit patch; filed in `docs/README.md` section 5, "Carried out of the
+ * chip audit", not fixed here.
+ *
+ * Of the five hosts above, four now reserve `--figure-size` at their right —
+ * three of them outside Pocket, `.replace__owner` unconditionally after this
+ * patch overflowed it. `.bench__member` reserves none, and in Detailed and
+ * Simple it is `flex-direction: column`, so every child is full width and the
+ * 32px figure floats over whatever sits at the vertical centre. Adding a chip
+ * to a bench row is the move that breaks it, and no overflow assertion runs on
+ * a screen that draws one.
+ */
 
 /* The learn-move owner line and a bench row are one line tall: the figure is
    centred on the line and overflows its margins rather than growing it.
