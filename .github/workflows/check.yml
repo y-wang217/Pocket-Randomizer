@@ -1,0 +1,150 @@
+# The gate, in CI.
+#
+# Structure supplied by the author and kept: these five jobs, these triggers,
+# this concurrency group, the Playwright container and the two-engine matrix.
+# What changed is recorded in docs/generation.md section 31 rather than argued
+# here -- three names in the skeleton did not exist in the tree until part 1 of
+# this patch, and one step named a test runner this repo does not use.
+#
+# Every job invokes scripts/check.mjs rather than the npm scripts directly.
+# That is deliberate: the runner promotes a SKIPPED leg to FAILED when CI is
+# set, and Actions sets CI itself, so a browser that fails to install fails the
+# job instead of quietly reporting nothing to run. Invoked any other way that
+# promotion never executes in the one environment it was written for, and this
+# repo already has the rule that covers it -- an artefact no run exercises can
+# be reported as shipped and not be. The npm scripts still exist for people.
+name: check
+
+on: [push, pull_request]
+
+concurrency:
+  # The skeleton grouped on github.ref alone. Scoped to the workflow as well so
+  # that a second workflow added later cannot cancel this one's runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # npm ci would otherwise pull ~300MB of browsers into jobs that never launch
+  # one. The container jobs already carry theirs at /ms-playwright.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  static:
+    name: lint + typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/check.mjs --only=lint,typecheck
+
+  unit:
+    name: node suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Not a sparse or shallow-path checkout. test/boundaries.test.ts indexes
+      # every .ts/.mjs/.js/.md/.json/.css/.html file under docs/, and
+      # test/visual-baseline.test.ts and test/summary.test.ts read
+      # docs/visual/baseline/ -- so the docs tree has to be on disk. No test
+      # reads git history, so fetch-depth stays at the default 1.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # 111 files, 1595 tests, no browser anywhere in it.
+      - run: node scripts/check.mjs --only=test:node
+
+  browser:
+    name: browser suite (${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    # Pinned to the lockfile's Playwright, which is exactly 1.63.0 for both
+    # `playwright` and `playwright-core`. The tag must track the lockfile: the
+    # image carries the browser revisions that version expects, and a mismatch
+    # is how a suite ends up measuring an engine nobody chose.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      # Chromium in Docker shares memory through /dev/shm, which is 64MB by
+      # default; --ipc=host is Playwright's own recommendation and prevents the
+      # crashes that look like flakes.
+      options: --ipc=host
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # The leg names are test:chromium and test:webkit, so the matrix value
+      # selects the leg directly and GYMRUN_ENGINE is set by the leg itself.
+      #
+      # **The engine this runs is not the one a developer box runs.**
+      # scripts/visual/browser.mjs pins Chromium to
+      # /opt/pw-browsers/chromium-1194, which does not exist in this image, so
+      # launch() falls through to the registry and gets revision 1243 --
+      # Chrome 153 against the pinned box's Chrome 141. That matters because
+      # four files (visual-v0 through visual-v3) compare guarded-screen heights
+      # against docs/visual/baseline/heights.json, exactly on Chromium.
+      #
+      # Checked rather than hoped: all 60 recorded height fields are identical
+      # on 1194 and 1243, and the whole 24-file browser half passes on both.
+      # docs/generation.md section 31 has the measurement. No baseline was
+      # re-recorded, and none needs to be.
+      - run: node scripts/check.mjs --only=test:${{ matrix.engine }}
+
+  strict-trim:
+    name: strict trim
+    runs-on: ubuntu-latest
+    # In the container because the strict-trim gate covers the browser half as
+    # well as the Node half. The skeleton put this on a bare runner, which
+    # would have gated it more weakly than `npm run check` does locally, and
+    # CLAUDE.md names strict trim an absolute gate without qualifying it.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Both halves, with the trim's stubs set to throw on any access.
+      - run: node scripts/check.mjs --only=trim:node,trim:browser
+
+  bundle:
+    name: build + smoke
+    runs-on: ubuntu-latest
+    # smoke plays a run in a real Chromium against dist/, so this needs the
+    # container too.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Two legs, in this order, in one job: smoke serves dist/ and cannot run
+      # without it. check.mjs knows the dependency -- if build fails, smoke
+      # reports SKIPPED naming build rather than a second failure for the same
+      # cause, and the job still fails on build.
+      - run: node scripts/check.mjs --only=build,smoke

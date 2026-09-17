@@ -4930,3 +4930,147 @@ the chain and had no script of its own.
 One existing name did change meaning: `test:browser` was the 24-file glob with
 three Node-only passengers and is now the derived 24, so `GYMRUN_ENGINE` only
 reaches tests it means something to.
+
+## 31. The CI patch, part 2: the workflow, and the engine it does not run
+
+Same prompt as section 30, same scope: build infrastructure only, no `src/`
+change, no version axis moved, no baseline re-recorded.
+
+### 31.1 The structure was supplied, and one line of it could not work
+
+The brief said "per the structure above" and no structure was above it — the
+message it arrived in had none. That gap is recorded in the prompt file rather
+than filled by guesswork, because a reconstruction of a design is
+indistinguishable from the design once it is committed and
+[`spec/README.md`](spec/README.md) already holds why this project does not do
+that. Asked, the author supplied a five-job YAML skeleton, and it is filed
+verbatim under the brief.
+
+The skeleton's job topology, triggers, concurrency group, container and
+two-engine matrix are all kept. Four names in it did not resolve against the
+tree, three of which part 1 created (`npm run types`, `npm run test:unit`,
+`npm run test:trim`), and one of which was a different kind of problem:
+
+> `steps: [..., npx playwright test --project=${{ matrix.engine }}]`
+
+**There is no Playwright Test runner in this repo.** No config declaring
+projects, nothing that command could collect, and the 24 browser files are
+vitest files that drive Playwright as a library through
+[`test/visual/harness.ts`](../test/visual/harness.ts). That step
+would have found zero tests and **exited 0** — a browser job permanently green
+while testing nothing, which is the failure this repo has already paid for once
+at section 28, where a handoff reported an artefact as shipped that no run
+touched. The engine axis already exists as `GYMRUN_ENGINE`, so the step became
+a leg selection instead.
+
+### 31.2 Every job goes through the runner
+
+Each job runs `scripts/check.mjs --only=<legs>` rather than the npm scripts
+directly, and the leg names line up with the matrix so
+`--only=test:${{ matrix.engine }}` selects the right one.
+
+The reason is part 1's own specification. `check.mjs` promotes a SKIPPED leg to
+FAILED when `CI` is set, Actions sets `CI` itself, and **invoked any other way
+that promotion never runs in the one environment it was written for.** A
+missing browser would then surface as whatever vitest happens to do rather than
+as the deliberate answer the brief asked for. The npm scripts stay for people.
+
+Two other deviations from the skeleton, both recorded rather than silent:
+
+- **`concurrency.group` is scoped to the workflow**, not `github.ref` alone, so
+  a second workflow added later cannot cancel this one's runs.
+- **`strict-trim` runs in the container and covers both halves.** The skeleton
+  put it on a bare runner, which reaches only the Node half —
+  [`../CLAUDE.md`](../CLAUDE.md) names strict trim an absolute gate without
+  qualifying it, and a CI gate weaker than the local one is worth less than the
+  minute it saves.
+
+`build` and `smoke` had no job in the skeleton at all, though they are two of
+the nine legs part 1 added. They are the fifth job, `bundle`, in the container
+because `smoke` plays a run in a real Chromium. `check.mjs` already knows the
+dependency between them, so a failed build reports `smoke` as SKIPPED naming
+build rather than as a second failure for the same cause.
+
+### 31.3 The container runs a Chromium no developer box runs
+
+This is the finding that decided the container line, and it was measured rather
+than assumed.
+
+[`scripts/visual/browser.mjs`](../scripts/visual/browser.mjs) pins Chromium to
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. That path does not exist
+in the Playwright image, whose browsers live under `/ms-playwright`, so
+`launch()` falls through to Playwright's own registry — and Playwright 1.63.0's
+registry wants revision **1243**, not 1194:
+
+| | revision | Chrome | layout |
+|---|---|---|---|
+| the repo's pin | 1194 | 141.0.7390.37 | `chrome-linux/` |
+| what 1.63.0 installs | 1243 | 153.0.8010.12 | `chrome-linux64/` |
+
+Twelve major versions apart, and a different directory layout. Four files —
+[`visual-v0.test.ts`](../test/visual-v0.test.ts) through `visual-v3` — compare
+guarded-screen heights against `docs/visual/baseline/heights.json`, **exactly**
+on Chromium, and that file is a recording made on 1194. A container that
+silently swapped the engine under those four tests is precisely how a baseline
+gets "fixed" by re-recording it, which this brief forbids.
+
+So both engines were measured before the workflow was written. 1243 was
+installed alongside 1194, nothing was removed, and the guarded screens were
+measured on each:
+
+| engine | fields compared | result |
+|---|---|---|
+| 1194 (control) | 60 | identical to the recording |
+| 1243 | 60 | **identical to the recording** |
+
+Then the whole browser half on 1243, by preferring it in the repo's own
+candidate list for the length of one run: **24 files, 201 tests, all passing**,
+in 517s against 503s on 1194. The engine swap is therefore safe for this corpus,
+and the workflow says so in a comment at the step where it matters, because the
+next reader of that container line will have the same question.
+
+**No baseline was re-recorded and none needed to be.** The finding is that the
+pin is narrower than the tests require, not that the tests were wrong.
+
+### 31.4 What CI needs on disk, and what it does not
+
+- **Not a sparse or shallow-path checkout.** `boundaries.test.ts` indexes every
+  file under `docs/` carrying one of the seven extensions it recognises
+  (`.ts, .mjs, .js, .md, .json, .css, .html`),
+  and `visual-baseline.test.ts` and `summary.test.ts` read
+  `docs/visual/baseline/`. The docs tree is a test input.
+- **`fetch-depth` stays at the default.** No test reads git history.
+- **`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` is set at workflow level**, because
+  `npm ci` would otherwise pull the browsers into `static` and `unit`, neither
+  of which launches one, and the container jobs already carry theirs.
+
+### 31.5 The heights gap, recorded rather than closed
+
+`heights.json` holds **60** fields — both guarded screens across the detailed
+mode, two density modes and three layout-by-density combinations. The four
+tests that read it assert **10**: `map` and `battle` at the top level only.
+
+The other 50 are gated by `node scripts/visual/measure.mjs --compare`, which
+`scripts/visual/gate.sh` runs and **`npm run check` does not**. So five sixths
+of the recorded baseline is currently outside the suite.
+
+Put to the author, who chose to leave it to `gate.sh`. That is the right call
+for this patch and the reason is scope: the gap predates the patch, `CLAUDE.md`'s
+absolute gates do not include a heights comparison, and adding one here would be
+new gating nobody asked for. **It is recorded here so that it is a known gap
+rather than a forgotten one.**
+
+### 31.6 What is not verified
+
+Stated plainly because the rest of this section is measurement and this part is
+not. The workflow file has never executed — there is no way to run GitHub
+Actions from this container — so what is checked is that it parses, that its
+five jobs name real legs, and that every command in it passes locally.
+
+The one thing a first run may still find is the container's own environment:
+the Playwright image runs as root, and Chromium in Docker as root is the classic
+sandbox failure. `--ipc=host` is set, which is Playwright's documented
+recommendation and covers the `/dev/shm` crash, but not that. If the browser
+jobs fail on a sandbox error rather than on a test, the fix is a bare
+`ubuntu-latest` with `npx playwright install --with-deps <engine>` in place of
+the container — which also pulls revision 1243, the one measured above.

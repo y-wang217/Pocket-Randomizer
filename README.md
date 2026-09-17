@@ -330,6 +330,12 @@ stopping at the first failure. Nine legs, in order:
 `node scripts/check.mjs --list` prints them without running anything, and
 `--only=lint,build` runs a named subset with the same reporting.
 
+CI runs the same legs, split across five jobs so the slowest engine rather than
+the sum of everything sets the wall clock. Each job calls the runner with
+`--only`, because a leg SKIPPED for a missing browser is promoted to FAILED
+when `CI` is set and that promotion only happens if the runner is what CI
+invokes.
+
 It exits 1 if any leg failed. A leg can also report SKIPPED, for one of two
 reasons, and the difference matters:
 
