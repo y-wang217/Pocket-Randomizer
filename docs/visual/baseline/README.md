@@ -18,6 +18,27 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-17, the shop and moveset-variance patch** (`randomizer-18`,
+  `contentHash` `fd9b5e`). Re-recorded on all three instruments, and the two
+  halves are independent as usual.
+
+  **Runs, the battle protocol and the digest moved wholesale**, which is the
+  generation change rather than a layout one: the forced STAB slot now draws
+  from its band *and the one above* (`MOVESET.stabWindow`), segments 0-2 stopped
+  drawing from band 1 alone, and a shop shelf became a fixed list of guaranteed
+  category slots. Every seed rolls different moves and every shop stocks
+  different rows, so every recorded run differs.
+
+  **`heights.json`: the battle screen fell 5.5px** in Detailed (595 to 589.5)
+  and in Simple (577.44 to 571.94), with `decisionBottom` following it down
+  (708 to 702.5, 673.94 to 668.44). **`decisionTop` is unmoved in every mode and
+  every layout** — 472, 445.44, 355.39 — which is what the guard is for, and
+  **the map did not move on any field**. Pocket did not move either. The 5.5px
+  is content under the same layout: SMOKE24's lead draws a different move and
+  its name costs one line less in the fact strip. It moves *toward* the 390x844
+  budget rather than away from it, so `test/visual-v0.test.ts`'s 740 line is not
+  at risk.
+
 - **2026-09-15, Stage 4.9, the pool.** Re-recorded on all three instruments
   because the species pool was regenerated (`randomizer-16`: 635 to 900
   species with `Past` admitted, plus the evolution graph on every entry), so

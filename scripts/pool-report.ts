@@ -112,11 +112,29 @@ for (const row of SEGMENTS) {
 heading('3. The forced STAB slot: how many moves the first slot may draw');
 
 const STARTERS = getStarterPool();
-/** The windows compared in the report. The first is what ships today. */
+/** The windows compared in the report. */
 const WINDOWS: readonly (readonly number[])[] = [[1], [1, 2], [1, 2, 3]];
 
+/**
+ * The window a starter's forced slot actually reaches, read off the live
+ * constant rather than hardcoded.
+ *
+ * A starter draws from `STARTER_MOVE_BANDS`, so its lowest band plus
+ * `stabWindow` is what the first slot sees. **The instrument has to derive this
+ * rather than assume it**: a report that kept calling band 1 "today" after the
+ * window shipped would describe a build nobody is playing, which is the exact
+ * failure `docs/README.md` open item 8 is kept around to remember.
+ */
+const LIVE_WINDOW: readonly number[] = (() => {
+  const lowest = Math.min(...STARTER_MOVE_BANDS);
+  const out: number[] = [];
+  for (let band = lowest; band <= lowest + MOVESET.stabWindow; band++) out.push(band);
+  return out;
+})();
+
 console.log(`starter pool: ${STARTERS.length} species; STARTER_MOVE_BANDS ${JSON.stringify(STARTER_MOVE_BANDS)}`);
-console.log(`MOVESET ${JSON.stringify(MOVESET)}\n`);
+console.log(`MOVESET ${JSON.stringify(MOVESET)}`);
+console.log(`live starter STAB window: [${LIVE_WINDOW.join(',')}]\n`);
 
 for (const window of WINDOWS) {
   let total = 0;
@@ -135,27 +153,33 @@ for (const window of WINDOWS) {
     }
   }
   const n = STARTERS.length;
+  const live = window.join(',') === LIVE_WINDOW.join(',') ? ' <- live' : '';
   console.log(
     `window ${`[${window.join(',')}]`.padEnd(9)}`,
     `mean ${(total / n).toFixed(1).padStart(5)} options`,
     `| deterministic ${String(deterministic).padStart(3)} (${pct(deterministic, n)})`,
     `| <=3 options ${String(thin).padStart(3)} (${pct(thin, n)})`,
-    `| both categories ${pct(bothCategories, n)}`,
+    `| both categories ${pct(bothCategories, n)}${live}`,
   );
 }
 
-console.log('\nThe species with exactly one legal first move today:');
+console.log(`\nSpecies with no choice of first move on the live window [${LIVE_WINDOW.join(',')}]:`);
+let stuck = 0;
 for (const entry of STARTERS) {
-  const pool = DAMAGING.filter((move) => bandOf(move) === 1 && entry.types.includes(move.type));
+  const pool = DAMAGING.filter(
+    (move) => LIVE_WINDOW.includes(bandOf(move) ?? 0) && entry.types.includes(move.type),
+  );
   if (pool.length > 1) continue;
+  stuck += 1;
   const only = pool[0];
   console.log(
     ' ',
     entry.species.padEnd(12),
     entry.types.join('/').padEnd(16),
-    only ? `${only.name} (${only.category} ${only.basePower})` : '(nothing in band)',
+    only ? `${only.name} (${only.category} ${only.basePower})` : '(nothing in window)',
   );
 }
+if (stuck === 0) console.log('  (none)');
 
 // ---------------------------------------------------------------------------
 // 4. What a real starter roll produces

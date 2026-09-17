@@ -330,12 +330,21 @@ describe('the version axes', () => {
      * changes what generation draws in the final segment. It arrives beside
      * `gymrun-randomizer-17`, which is the axis that says the draws moved.
      *
-     * The literal below is all three together. The display split remains the
+     * The shop and moveset-variance patch moved it a fourth time, from
+     * `73c1ee`, and it is the ordinary case again: four hashed files changed
+     * together — `data/scaling.ts` gained `MOVESET.stabWindow` and opened
+     * segments 0-2 off band 1 alone, `data/shop.ts` became a list of
+     * guaranteed category slots, `data/rewardPools.ts` gained the `technique`
+     * kind, and `data/tuning.ts` traded `shopStockSize` for `shopExtraSlots`.
+     * All four change what a seed draws, which is why `gymrun-randomizer-18`
+     * arrives beside it.
+     *
+     * The literal below is all four together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b');
+    expect(CONTENT_HASH).toBe('fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

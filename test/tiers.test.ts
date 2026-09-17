@@ -175,21 +175,24 @@ describe('tier stream isolation', () => {
     };
 
     /*
-     * The lever is `shopStockSize`, and it changed in Stage 4.6b.
+     * The lever is `shopExtraSlots`, and it has now moved twice.
      *
      * It was `allowSpeciesRewards`, which added a whole reward kind — and the
      * species entry resolved a species, an ability and four moves, which is
-     * exactly where a stray `randomizer` draw would have shown up. That flag is
-     * deleted with the kind, so the knob is now the shelf: a bigger shop draws
-     * more from `rewards` and must move nothing else.
+     * exactly where a stray `randomizer` draw would have shown up. That flag
+     * went with the kind in Stage 4.6b and the knob became `shopStockSize`,
+     * the drawn length of the shelf. The shelf is a fixed list of guaranteed
+     * categories now, so its length is no longer the variable part — the
+     * *extra* rows above the guarantees are. Same property, same direction:
+     * a shop that draws more from `rewards` must move nothing else.
      *
      * Both sides are named explicitly rather than one leaning on the default,
      * which is the lesson the old comment here recorded: `off` used to be
      * `DEFAULT_TUNING` and silently stopped testing anything the day the
      * default changed.
      */
-    const off = positions(withTuning({ shopStockSize: { min: 2, max: 2 } }));
-    const on = positions(withTuning({ shopStockSize: { min: 6, max: 6 } }));
+    const off = positions(withTuning({ shopExtraSlots: { min: 0, max: 0 } }));
+    const on = positions(withTuning({ shopExtraSlots: { min: 4, max: 4 } }));
 
     expect(on.map).toBe(off.map);
     expect(on.randomizer).toBe(off.randomizer);

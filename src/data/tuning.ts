@@ -318,8 +318,26 @@ export interface Tuning {
 
   // --- shops and events ----------------------------------------------------
 
-  /** How many things a shop stocks. Drawn per shop at map generation. */
-  shopStockSize: Range;
+  /**
+   * Extra shelf rows a shop draws **on top of** its guaranteed categories.
+   *
+   * The shelf itself is not a count any more: `data/shop.ts` gives every band
+   * an ordered list of category slots and each one is always filled, so a shop
+   * can never come out as three heals and no move. This is the bonus above
+   * that — a roll over the whole flattened table, so an extra row may be a
+   * second item, a second heal, or a duplicate that the shelf's own
+   * deduplication then drops.
+   *
+   * It stays a `Range` rather than becoming a constant for two reasons. Shops
+   * that are byte-identical in shape every visit read as a menu rather than a
+   * shop, and this is **the only knob in this file that changes how much the
+   * `rewards` stream is drawn** — which is what `test/tiers.test.ts` and
+   * `test/rewards.test.ts` use to prove that a rewards-side change moves
+   * neither the map, nor the teams, nor the battle seeds. Its predecessor
+   * `shopStockSize` held that job, and `allowSpeciesRewards` held it before
+   * that; the lever moves when the feature under it does.
+   */
+  shopExtraSlots: Range;
   /**
    * Fraction of max HP an event may never take a party member below.
    *
@@ -640,7 +658,7 @@ export const DEFAULT_TUNING: Tuning = {
   ],
   distinctTiersPerStep: true,
 
-  shopStockSize: { min: 3, max: 4 },
+  shopExtraSlots: { min: 0, max: 1 },
   eventDamageFloor: 0.05,
 
   allowEncounterAcquisitions: true,

@@ -138,6 +138,8 @@ function describeStock(reward: Reward): string {
       return `TM: ${reward.move}`;
     case 'tutor':
       return `Tutor: ${reward.move}`;
+    case 'technique':
+      return `Technique: ${reward.move}`;
     case 'currency':
       return `${reward.amount} coins`;
   }
@@ -152,6 +154,7 @@ function detailOf(reward: Reward): Node {
       return prose(SHOP_COPY.heal);
     case 'tm':
     case 'tutor':
+    case 'technique':
       // Stage 4.5.1: the shop asks the same two questions a reward card does —
       // who learns it, then what it displaces — so the shelf can no longer
       // promise which move goes.

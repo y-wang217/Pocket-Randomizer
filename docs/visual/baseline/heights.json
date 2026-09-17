@@ -14,11 +14,11 @@
         "decisionBottom": 609.31
       },
       "battle": {
-        "screenHeight": 577.44,
+        "screenHeight": 571.94,
         "scrollHeight": 844,
         "decisionCount": 4,
         "decisionTop": 445.44,
-        "decisionBottom": 673.94
+        "decisionBottom": 668.44
       }
     },
     "pocket": {
@@ -98,10 +98,10 @@
     "decisionBottom": 687.56
   },
   "battle": {
-    "screenHeight": 595,
+    "screenHeight": 589.5,
     "scrollHeight": 844,
     "decisionCount": 4,
     "decisionTop": 472,
-    "decisionBottom": 708
+    "decisionBottom": 702.5
   }
 }

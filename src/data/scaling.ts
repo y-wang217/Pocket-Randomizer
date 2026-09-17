@@ -171,7 +171,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 7,
     levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: 0, max: 1 } },
     speciesBandWeights: { 0: 5, 1: 1 },
-    moveBandWeights: { 1: 1 },
+    moveBandWeights: { 1: 4, 2: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
@@ -179,7 +179,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 14,
     levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: 0, max: 1 } },
     speciesBandWeights: { 0: 4, 1: 2 },
-    moveBandWeights: { 1: 1 },
+    moveBandWeights: { 1: 4, 2: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
@@ -187,7 +187,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
     playerLevel: 20,
     levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: 0, max: 2 } },
     speciesBandWeights: { 0: 2, 1: 3, 2: 2 },
-    moveBandWeights: { 1: 1 },
+    moveBandWeights: { 1: 4, 2: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
@@ -376,6 +376,40 @@ export const MOVESET = {
   statusChance: 0.55,
   /** Chance a coverage slot re-rolls as STAB instead of open coverage. */
   stabBias: 0.3,
+  /**
+   * How many bands **above** the drawn one a STAB-restricted slot may reach.
+   *
+   * **The answer to the measurement in
+   * [`docs/reports/moveset-pool-validation.md`](../../docs/reports/moveset-pool-validation.md)
+   * section 3b, and the reason it is a window rather than a wider band.**
+   *
+   * A band is a *strength* statement and a type is a *flavour* one, and the two
+   * tables have very different shapes. Band 1 holds 82 moves, which is a
+   * healthy draw — but sliced by type it holds one Psychic move and one Dragon
+   * move, so the forced first slot of a Psychic or Dragon species was not a
+   * draw at all. Thirteen of the 191 starters opened with a move the seed did
+   * not choose: every Psychic with Confusion, every Dragon with Twister, and
+   * for Axew at base Attack 87 against base Special Attack 30 that mandatory
+   * move is a 40 BP *special*. A dead slot, handed out deterministically.
+   *
+   * At 1 the same measurement reads 6.8 mean options to 14.5, thirteen
+   * deterministic species to none, and six types whose band-1 pool is entirely
+   * one attack category down to one.
+   *
+   * **It costs no randomness, and that is what makes it the right lever.**
+   * `take()` is a single `pick` whatever the size of the list handed to it, so
+   * widening the list does not change how many times the stream is read. The
+   * draw count stays a function of `MOVESET.slots` alone, which is the property
+   * `rollMoveset` exists to protect.
+   *
+   * The lever *not* pulled is `stabBias`: section 4 of the same report measures
+   * it and declines it, because Normal is 20.7% of band 1 and every slot handed
+   * back to open coverage is a one-in-five chance of the worst coverage type in
+   * the game.
+   *
+   * Zero restores the pre-patch behaviour exactly.
+   */
+  stabWindow: 1,
 } as const;
 
 // ---------------------------------------------------------------------------

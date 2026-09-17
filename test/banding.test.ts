@@ -16,7 +16,7 @@
  *   3. The distribution is a ramp: later segments are strictly harder, gyms are
  *      harder than the segment around them, and nothing runs off the table.
  *   4. Every generated moveset still has an attack in it, and a starter never
- *      holds a move above band 1.
+ *      holds a move above its band plus `MOVESET.stabWindow`.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -42,6 +42,7 @@ import {
 import { COMPUTED_MAX_MOVE_BAND, DAMAGING_MOVES, STATUS_MOVES } from '../src/data/movePools';
 import {
   GYM_MOVE_BAND_BONUS,
+  MOVESET,
   moveBandsFor,
   moveBandWeightsFor,
   SEGMENTS,
@@ -170,9 +171,25 @@ describe('the segment ramp', () => {
     expect(bands.at(-1)).toBe(MAX_MOVE_BAND);
   });
 
-  it('opens on band 1 alone and ends on band 4', () => {
-    expect(moveBandsFor(0, 'normal')).toEqual([1]);
-    expect(moveBandsFor(1, 'normal')).toEqual([1]);
+  it('opens mostly on band 1 and ends on band 4', () => {
+    /*
+     * It read `toEqual([1])` for segments 0 and 1, and the opening is a
+     * *distribution* now rather than a single band —
+     * `docs/reports/moveset-pool-validation.md` section 6 is the argument. Band
+     * 1 sliced by type is one Psychic move and one Dragon move, so an opening
+     * drawn from band 1 alone is not thin in the way "82 moves" suggests; it is
+     * thin per species, and Normal is 20.7% of it.
+     *
+     * What still has to hold is that the opening *leans* on band 1 and that
+     * band 4 is nowhere near it, which is what "a run starts with Tackle and
+     * Growl" means. The weight, not the membership.
+     */
+    for (const segment of [0, 1, 2]) {
+      const weights = moveBandWeightsFor(segment, 'normal');
+      expect(Object.keys(weights).map(Number).sort(), `segment ${segment}`).toEqual([1, 2]);
+      expect(weights[1] ?? 0, `segment ${segment} leans on band 1`).toBeGreaterThan(weights[2] ?? 0);
+      expect(segmentMoveBand(segment), `segment ${segment}`).toBe(MIN_MOVE_BAND);
+    }
     expect(moveBandsFor(7, 'normal')).toContain(MAX_MOVE_BAND);
   });
 
@@ -248,16 +265,37 @@ describe('generated movesets under banding', () => {
     }
   });
 
-  it('never gives a starter a move above band 1', () => {
+  it('keeps a starter inside its band plus the STAB window, and no further', () => {
+    /*
+     * This asserted band 1 flat, and the `stabWindow` patch makes that false on
+     * purpose: the forced STAB slot reaches one band above the one it drew, so
+     * a starter can open holding a band-2 move of its own type and nothing
+     * higher.
+     *
+     * **The ceiling is the test, not the floor.** The old assertion's real job
+     * was that the starter cannot reach the middle of the table, which is the
+     * whole of Stage 4.6b's opening position — and that job survives intact,
+     * one band wider. `data/scaling.ts` `stabWindow` carries the argument and
+     * the measurement; `docs/reports/moveset-pool-validation.md` section 3b is
+     * the reason it is not zero.
+     */
     expect(STARTER_MOVE_BANDS).toEqual([1]);
+    const ceiling = Math.min(MAX_MOVE_BAND, Math.max(...STARTER_MOVE_BANDS) + MOVESET.stabWindow);
+    let aboveTheBase = 0;
     for (const seed of SEEDS) {
       for (const spec of generateStarters(3, starterLevel(), createRng(seed).randomizer.at('test'))) {
         for (const move of describeSpecCard(spec).moves) {
           if (move.category === 'Status') continue;
-          expect(bandFromPower(move.basePower), `${spec.species} knows ${move.name}`).toBe(1);
+          const band = bandFromPower(move.basePower);
+          expect(band, `${spec.species} knows ${move.name}`).toBeLessThanOrEqual(ceiling);
+          expect(band, `${spec.species} knows ${move.name}`).toBeGreaterThanOrEqual(1);
+          if (band > 1) aboveTheBase += 1;
         }
       }
     }
+    // ...and the window genuinely reaches, or the ceiling above passes because
+    // nothing ever tries to cross it.
+    expect(aboveTheBase, 'no starter ever drew through the STAB window').toBeGreaterThan(0);
   });
 
   it('spends the same number of draws whatever the weights say', () => {
