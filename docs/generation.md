@@ -5418,6 +5418,26 @@ seed's luck, and it is the narrowest repair available: nothing was skipped,
 loosened or re-recorded, and a widened step budget was tried first and does not
 help — sixty steps on `SMOKE24` still find nothing.
 
+### One thing the rescan found that this patch did not cause
+
+Scanning six thousand seeds for a replacement evolution fixture walked into a
+crash: `RangeError: Snover already knows Confusion; nothing is displaced`, out
+of `party.teachMove` by way of `rewards.applyReward`. A replacement slot is
+chosen against one reading of the party and applied against another, so
+`replacementNeeded` answers `'known'` at the point `teachMove` is handed a slot
+— and a slot in that case is a caller bug by that function's own contract.
+
+**It is pre-existing, and that is measured rather than assumed.** The same scan
+on the pre-parity curve reproduces the identical message at `S49B-3036`, and
+nothing on the path reads a level. It is the stale-decision family of sections
+19 and 29 — the same shape as the item plan that spent a node after it was
+composed, and as the capture that had to resolve before the move question —
+rather than a new one.
+
+Filed rather than fixed: it is a third defect in a two-item patch, and this
+document's own rule is that work starts from a filed prompt. `README.md` section
+5 carries it as an open item.
+
 ### Balance
 
 Not gated, per [`balance.md`](balance.md) section 0, but **measured**, because

@@ -670,6 +670,17 @@ One line each. The analysis lives where the pointer goes, not here.
    own investigation. `balance.md`, and open question 1 in the root README.
    Stage 4.9 moved it the other way at the start — 3.7 turns in segment 1 at
    level 7 — and the stage's benchmark row is where the next reading is.
+0. **A move reward can be applied to a member that already knows the move, and
+   it throws.** `RangeError: Snover already knows Confusion; nothing is
+   displaced`, from `party.teachMove` via `rewards.applyReward`. The slot is
+   chosen against one reading of the party and applied against another, which
+   is the stale-decision family of `generation.md` sections 19 and 29 rather
+   than a new one; `recipientFor` and `replacementNeeded` are where it is
+   decided. **Pre-existing and confirmed so**: found by a brute-force seed scan
+   while rescanning the evolution fixture (`S49B-3036` at the pre-parity curve,
+   a different seed after it), and the crash path reads no level. Out of scope
+   for the patch that found it and filed rather than fixed. `generation.md`
+   section 33.
 0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
