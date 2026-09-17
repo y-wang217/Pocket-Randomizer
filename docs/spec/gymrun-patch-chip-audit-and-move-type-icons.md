@@ -47,3 +47,38 @@ referent.
 Three items. The first two are audits and produce a report; the third is a
 build. The brief calls the whole thing "a small qol patch", which is a scope
 instruction and is treated as one: no `core/` change, no version axis moves.
+
+## The two questions, asked after the audit and before any code
+
+The audits found that both items 1 and 2 collide with decisions already on the
+record, so neither was implemented as a rediscovery. Both were put to the author
+with the standing decision named, and both answers supersede it with today's
+date. `docs/spec/README.md`: "If you believe the register is wrong, that is a
+new decision with a new date, not a rediscovery."
+
+**Q1 — archetype chip scope.** Asked with Patch 4.8.0.3 item 3 quoted: the chip
+is deliberately absent from the party popup, party screen, pre-gym lead, starter
+select, evolution and the acquire offer panel, because those surfaces draw the
+six stat bars and the chip reads base stats only. The only surface with neither
+bars nor chip is the learn-move recipient. Three options offered: fill the one
+gap, chip everywhere, or chip everywhere plus bars on learn-move.
+
+> **Chip everywhere, bars or not.**
+
+So **Patch 4.8.0.3 item 3 is superseded.** The chip returns to every surface
+that carries a Pokemon, bars or no bars. Recorded in `../generation.md`.
+
+**Q2 — type and ability chips.** Asked with the 2026-09-10 type wheel ruling
+quoted ("keep the wheel, drop the trigger from the two Pokemon panel type
+badges"), and with the finding that it had been applied far wider than the two
+panels it named: type chips trigger nothing on *any* Pokemon surface, and
+abilities are a real chip on two surfaces, a non-focusable span on two, bare
+text on one, and absent on four. Three options offered: types plus abilities,
+abilities only, or types everywhere including gym and threat badges.
+
+> **Types on mon surfaces + abilities everywhere.**
+
+So **the 2026-09-10 ruling is superseded for Pokemon type badges** and stands
+everywhere else: a gym leader's type, a locale's types, a threat entry's type
+and an item's boosted type keep no trigger. That split is why the wrapper is
+not simply given a tooltip — see `monTypeChip`.

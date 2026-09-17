@@ -58,7 +58,38 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the victory-order patch.** Branch
+**In flight: the chip audit.** Branch `claude/serene-bohr-xn433h`, prompt
+[`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md),
+record [`generation.md`](generation.md) section 30, report
+[`visual/reports/patch-chip-audit.md`](visual/reports/patch-chip-audit.md).
+Presentation only: no `core/` change, no version axis moves, `contentHash`
+unmoved.
+
+Two audits and one small feature, and **both audits landed on decisions already
+in the lineage**, so both were put to the author before any code rather than
+rediscovered:
+
+- **Patch 4.8.0.3 item 3 is superseded.** The archetype chip is on every surface
+  that draws a Pokemon again, bars or no bars. The learn-move recipient was the
+  one surface that had neither the chip nor the bars it was traded for.
+- **The 2026-09-10 type wheel ruling is superseded for Pokemon type badges, and
+  stands everywhere else.** It had been applied to every type chip in the app
+  rather than the two it named, so the wheel was reachable from a battle move
+  card and nowhere else. A gym leader's type, a locale's types, a threat's type
+  and an item's boosted type stay inert.
+- The ability is one focusable chip on all nine surfaces that show one. It was a
+  real chip on two, a non-focusable `<span>` on two, bare text on one and absent
+  on four.
+- Battle move buttons carry a type watermark, `ui/theme/typeIcons.ts`.
+
+**One objection is open rather than settled.** `scene.ts` carried a
+playtest-derived argument — stronger than the ruling the question quoted — that
+the wheel's *offensive* half is misleading beside a Pokemon whose moves are
+drawn off-species. It is preserved verbatim in the source. The narrowing that
+would close it, a Pokemon badge opening the defending half only, was not asked
+for and is not built. See the report's Part 2.
+
+**Merged before it: the victory-order patch.** Branch
 `claude/victory-screen-battle-ui-p3op20`, prompt
 [`spec/gymrun-patch-victory-order-and-battle-readouts.md`](spec/gymrun-patch-victory-order-and-battle-readouts.md),
 record [`generation.md`](generation.md) section 29. Six items from one playtest
