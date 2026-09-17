@@ -79,6 +79,20 @@ export const REPLACE_COPY = {
 
 export const TARGET_COPY = {
   blurb: { long: 'Who learns it? You choose what it replaces next.', short: 'Who learns it?' },
+  /**
+   * The control for handing a gym's move back, and the line under it.
+   *
+   * Shown only where the decline is offered, which is the gym's guaranteed
+   * move and nothing else — see `core/rewards.DECLINED_MOVE`. The wording is
+   * deliberately flat: "Don't learn it" states the action, where a "skip
+   * (recommended if your moves are good)" would be the UI ranking the option
+   * against the party, which the copy rule bars.
+   */
+  decline: { long: "Don't learn it", short: "Don't learn it" },
+  declineNote: {
+    long: 'Nobody learns this move. It is not offered again.',
+    short: 'Nobody learns it. Not offered again.',
+  },
 } as const satisfies Record<string, Prose>;
 
 /** What a move would do to one member, in one line. Facts about the pairing only. */

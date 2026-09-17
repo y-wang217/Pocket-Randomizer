@@ -15,7 +15,7 @@ import { generateSegment, nodesOf, routeStepsOf, type Segment } from '../src/cor
 import { createRng } from '../src/core/rng';
 import { chooseLocale, chooseStarter, createRun, localeOf, nodeOptions, stepsOf } from '../src/core/run';
 import { LOCALES, LOCALE_IDS, localeById, type LocaleId } from '../src/data/locales';
-import { restFloorFor, DEFAULT_TUNING, withTuning } from '../src/data/tuning';
+import { restFloorForRoute, DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
 const SEEDS = Array.from({ length: 24 }, (_, index) => `LOCALE-${index}`);
 const MANY_SEEDS = Array.from({ length: 80 }, (_, index) => `LOCALE-WIDE-${index}`);
@@ -301,14 +301,22 @@ describe('composition guarantees, per route', () => {
             DEFAULT_TUNING.minEventSteps,
           );
           /*
-           * **The rest floor is the segment's own, from Stage 4.8 item 3.** It
-           * was `minRestSteps`, a flat count, which with a length curve would
-           * have let a seven-step segment satisfy the guarantee with the single
-           * rest a four-step one gets. `restFloorFor` is the same function
+           * **The rest floor is the segment's own, from Stage 4.8 item 3**, and
+           * the route's own since the battle pair. It was `minRestSteps`, a flat
+           * count, which with a length curve would have let a seven-step segment
+           * satisfy the guarantee with the single rest a four-step one gets; and
+           * `restFloorFor` alone is now the density rule rather than the rule, because
+           * a route carrying the final segment's battle pair trades the density
+           * down to the guarantee. `restFloorForRoute` is the same function
            * generation enforces, so this asserts the rule rather than a copy.
            */
           expect(has('rest'), `${seed} s${segment.index} ${route.locale} rests`).toBeGreaterThanOrEqual(
-            restFloorFor(DEFAULT_TUNING, route.steps.length),
+            restFloorForRoute(DEFAULT_TUNING, segment.index, route.steps.length),
+          );
+          // And the guarantee itself, on every route in the game, paired or
+          // not: there is always somewhere to heal.
+          expect(has('rest'), `${seed} s${segment.index} ${route.locale} rest guarantee`).toBeGreaterThanOrEqual(
+            DEFAULT_TUNING.minRestSteps,
           );
         }
       }

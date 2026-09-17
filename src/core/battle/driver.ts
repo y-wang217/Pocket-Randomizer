@@ -1070,7 +1070,24 @@ export function createBattle(options: BattleOptions): BattleSession {
       // Trick Room inverts the comparison rather than the numbers, which is why
       // it is a flag on the facts rather than a modifier folded into a speed.
       invertedSpeed: 'trickroom' in battle.field.pseudoWeather,
+      opponentRoster: rosterCount(opposingSide(side)),
     };
+  }
+
+  /**
+   * How much of a side is still standing, off the sim's own Pokemon list.
+   *
+   * `side.pokemon` reorders itself on every switch — which is why
+   * `readPartyState` reads the *submitted* order instead — but neither the
+   * length nor the number of fainted bodies in it depends on the order, and
+   * those are the only two facts this answers. Reading the sim rather than the
+   * node's team spec is what keeps the readout and the fight the same thing:
+   * a member that fainted to entry damage is down here the moment it is down
+   * there.
+   */
+  function rosterCount(side: SideId): { standing: number; total: number } {
+    const roster = battle.sides[sideIndex(side)]?.pokemon ?? [];
+    return { standing: roster.filter((mon) => !mon.fainted).length, total: roster.length };
   }
 
   // Drain the opening protocol (team sizes, switch-ins, `|turn|1`) so a

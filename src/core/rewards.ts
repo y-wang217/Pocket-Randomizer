@@ -441,6 +441,38 @@ export type MoveReward = Extract<Reward, { kind: 'tm' } | { kind: 'tutor' }>;
 export type TargetedReward = MoveReward;
 
 /**
+ * The recipient index that means "nobody — hand the move back".
+ *
+ * ## Why a sentinel and not a separate decision kind
+ *
+ * A declined move has to leave *something* in the run log, because the question
+ * was asked and a replay walks the log in the order the questions come. An
+ * absent entry would be a cursor that slips at the first gym a player declined
+ * at, and every answer after it read against the wrong question. So the entry is
+ * the same `{ kind: 'target' }` it always was, carrying a value that is not a
+ * party slot.
+ *
+ * ## Why -1 rather than the party length
+ *
+ * Because it must not be a number the party could grow into. A "one past the
+ * end" sentinel is the same integer as a legal slot in a party one member
+ * larger, and the run *does* grow a party mid-node now — the acquisition is
+ * resolved before this question is asked. A negative index can never be a slot.
+ *
+ * ## Where it is legal
+ *
+ * Exactly one payout: the gym's guaranteed move. Everything else that teaches a
+ * move — a reward card, a shop TM, an event's grant — was chosen by the player
+ * over alternatives, and `chooseMoveToReplace`'s own rule applies: "the place to
+ * skip a move reward is the reward screen, where it was already chosen over two
+ * alternatives; a second escape hatch here would make that pick meaningless."
+ * The gym's move is the one that was never picked over anything, so it is the
+ * one that can be handed back. `askMoveQuestions` refuses the sentinel anywhere
+ * else rather than trusting its callers.
+ */
+export const DECLINED_MOVE = -1;
+
+/**
  * Whether this card needs the player to pick who gets it.
  *
  * Currency and heals are party-wide. A species offer is not targeted either —

@@ -35,8 +35,8 @@ import {
 } from '../src/core/battle/effectiveness';
 import { abilityEffects } from '../src/data/abilityEffects';
 
-const REVEALED = { ability: true, item: true };
-const HIDDEN = { ability: false, item: true };
+const REVEALED = { ability: true, item: true, teamSize: true };
+const HIDDEN = { ability: false, item: true, teamSize: true };
 
 function move(overrides: Partial<EffectivenessMove> = {}): EffectivenessMove {
   return { type: 'Normal', category: 'Physical', flags: ['contact', 'protect'], ...overrides };

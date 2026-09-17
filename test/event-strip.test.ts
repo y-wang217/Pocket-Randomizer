@@ -154,7 +154,7 @@ describe('the history sheet', () => {
     document.body.replaceChildren(screen.root);
 
     const chosen: Choice[] = [];
-    screen.attach(session, nodeFor(session, 'SHEET01'), { ability: true, item: true }, (choice) => chosen.push(choice));
+    screen.attach(session, nodeFor(session, 'SHEET01'), { ability: true, item: true, teamSize: true }, (choice) => chosen.push(choice));
     // A resolved turn, so the strip has something on it and the board is in a
     // state a change would be visible against.
     turn(session);
@@ -185,7 +185,7 @@ describe('the history sheet', () => {
     const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed: 'SHEET02' });
     const screen = createBattleScreen();
     document.body.replaceChildren(screen.root);
-    screen.attach(session, nodeFor(session, 'SHEET02'), { ability: true, item: true }, () => {});
+    screen.attach(session, nodeFor(session, 'SHEET02'), { ability: true, item: true, teamSize: true }, () => {});
     turn(session);
 
     const log = screen.root.querySelector('.log') as HTMLElement;

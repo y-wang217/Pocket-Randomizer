@@ -471,7 +471,7 @@ function mountLoadedBattle(
     encounter: { team: LOADED_P2, opponent: 'A trainer', simSeed: seed },
     rewards: [],
   } as unknown as NodeSpec;
-  battle.attach(session, node, { ability: true, item: true }, () => undefined);
+  battle.attach(session, node, { ability: true, item: true, teamSize: true }, () => undefined);
 
   const loaded = (): boolean => {
     const facts = session.factsFor('p1');

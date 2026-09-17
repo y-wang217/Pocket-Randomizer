@@ -141,7 +141,7 @@ function mount(screen: TutorialScreen): Mounted {
         encounter: { team: MILOTIC, opponent: 'A trainer', simSeed: session.simSeed },
         rewards: [],
       } as unknown as NodeSpec;
-      battle.attach(session, node, { ability: true, item: true }, fire);
+      battle.attach(session, node, { ability: true, item: true, teamSize: true }, fire);
       root = battle.root;
       break;
     }

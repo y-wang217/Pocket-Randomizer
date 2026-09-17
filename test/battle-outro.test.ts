@@ -343,7 +343,7 @@ describe('an abnormality gets a beat, and it costs the turn nothing', () => {
   function watch(lines: readonly string[]): Scene {
     const scene = createScene();
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'ABNORM01' });
-    const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true }, abilityEffects);
+    const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
     const turns = readFlags([...lines], STUB);
     scene.update(view, () => undefined, turns, abnormalityMarks(turns));
     return scene;

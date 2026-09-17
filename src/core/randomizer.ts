@@ -242,7 +242,27 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * starter pool, and the level curve. A version axis names a content state,
  * not a changeset.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-16';
+/*
+ * **`-17`: the final segment's battle pair.**
+ *
+ * `enforceComposition` gained a pass that runs *before* the guaranteed wild
+ * step, and it draws three values — a placement and one orientation per step —
+ * on the route's own `map` sub-stream. It draws them only on the segments
+ * `tuning.battlePairFromSegment` covers, which today is the last one.
+ *
+ * So segments 0 to 6 consume exactly the values they consumed at `-16`, and
+ * the final segment's routes reshape completely: the three extra draws push
+ * every later value in that stream along, so the wild step, the tiers, the
+ * event and the rest all land somewhere else even on the routes the pair did
+ * not touch. That is the whole reason this is a bump rather than an addition —
+ * a `-16` log replayed here would reconstruct a different last leg while every
+ * decision index still lined up.
+ *
+ * `RUN_LOG_VERSION` moves in the same patch and for unrelated reasons. Two
+ * guards, two messages: that one says the questions changed, this one says the
+ * answers would now mean something else.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-17';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

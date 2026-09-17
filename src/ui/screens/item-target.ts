@@ -18,7 +18,7 @@ import { createBar } from '../bar';
 import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
 import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
-import { describeReward } from '../../core/rewards';
+import { DECLINED_MOVE, describeReward } from '../../core/rewards';
 import type { PokemonState } from '../../core/types';
 import type { Tuning } from '../../data/tuning';
 import { moveCardData } from '../move-detail';
@@ -36,6 +36,16 @@ export interface ItemTargetScreen {
     onTarget: (slot: number) => void,
     /** For `tuning.maxMoveTagsOnFace`. See `ui/move-detail.ts`. */
     tuning: Tuning,
+    /**
+     * Whether this move may be handed back, from `RunPolicy.chooseMoveRecipient`.
+     *
+     * True at the gym's guaranteed move and nowhere else. The screen renders a
+     * decline control when it is set and must not when it is not — a control
+     * that submitted `DECLINED_MOVE` to a question with no decline in it would
+     * put a value in the run log that `askMoveQuestions` refuses, and the run
+     * would throw rather than skip.
+     */
+    allowSkip?: boolean,
   ): void;
 }
 
@@ -46,12 +56,13 @@ export function createItemTargetScreen(): ItemTargetScreen {
   const blurb = el('p', 'screen__blurb');
   const offer = el('div', 'target__move');
   const list = el('div', 'party party--target');
+  const decline = el('div', 'target__decline-row');
 
-  root.append(title, blurb, offer, list);
+  root.append(title, blurb, offer, list, decline);
 
   return {
     root,
-    render(reward, party, onTarget, tuning) {
+    render(reward, party, onTarget, tuning, allowSkip = false) {
       title.textContent = describeReward(reward);
       // Items no longer reach this screen — they go to the backpack and are
       // assigned on the party screen, where the choice is free and reversible.
@@ -78,6 +89,32 @@ export function createItemTargetScreen(): ItemTargetScreen {
       offer.replaceChildren(...(facts ? [moveCard(moveCardData(facts, tuning))] : []));
 
       list.replaceChildren(...party.map((member, index) => renderTarget(reward, member, index, onTarget)));
+
+      /*
+       * The decline, **after** the members and never among them.
+       *
+       * Below rather than beside, because it is a different kind of answer: the
+       * six buttons above are "this one", and this one is "none". A seventh
+       * card in the grid would read as a seventh Pokemon, and on a phone it
+       * would be the one under the thumb.
+       *
+       * It carries no marker of any kind and sits in no order that implies one.
+       * Whether handing a move back is the right call is exactly the judgement
+       * the copy rule reserves for the player.
+       */
+      decline.replaceChildren();
+      if (allowSkip) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'target__decline';
+        const label = el('span', 'target__decline-label');
+        setProse(label, TARGET_COPY.decline);
+        const note = el('span', 'target__decline-note');
+        setProse(note, TARGET_COPY.declineNote);
+        button.append(label, note);
+        button.addEventListener('click', () => onTarget(DECLINED_MOVE));
+        decline.append(button);
+      }
     },
   };
 }

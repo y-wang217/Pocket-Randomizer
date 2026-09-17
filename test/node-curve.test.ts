@@ -29,6 +29,28 @@ import { DEFAULT_TUNING, restFloorFor, stepsRangeFor, type Tuning } from '../src
 
 const SEEDS = Array.from({ length: 24 }, (_unused, i) => `CURVE-${i}`);
 
+/** A step that is exactly the wild-versus-trainer choice, in either order. */
+function isBattleChoice(step: { options: readonly { kind: string }[] }): boolean {
+  const kinds = step.options.map((option) => option.kind);
+  return kinds.length === 2 && kinds.includes('wild') && kinds.includes('trainer');
+}
+
+/**
+ * Where a route's battle pair starts, or null if it has none.
+ *
+ * Read off the finished route rather than off the generator, so it is the
+ * player's view of the rule: two steps, next to each other, each offering a
+ * fight either way. A route that happens to draw one such step is not a pair.
+ */
+function battlePairAt(route: { steps: readonly { options: readonly { kind: string }[] }[] }): number | null {
+  for (let i = 0; i + 1 < route.steps.length; i++) {
+    const first = route.steps[i];
+    const second = route.steps[i + 1];
+    if (first && second && isBattleChoice(first) && isBattleChoice(second)) return i;
+  }
+  return null;
+}
+
 /** Tuning whose every segment is exactly `steps` long. */
 function atLength(steps: number): Tuning {
   return {
@@ -175,8 +197,25 @@ describe('the 4.6a composition guarantees hold at every length in the curve', ()
             expect(offering('event'), `${where} events`).toBeGreaterThanOrEqual(
               tuning.minEventSteps,
             );
+            /*
+             * **The rest floor, which a battle pair trades down.**
+             *
+             * `restFloorFor` is a guarantee (`minRestSteps`) and a density
+             * target taken together. A route carrying the final segment's
+             * battle pair has four of its steps claimed before the rest pass
+             * runs, so the density target and the pair compete for the same
+             * steps; `enforceComposition` resolves that in the pair's favour
+             * and drops the route to the guarantee. Asserted here as the two
+             * separate rules they are, because a single number would hide
+             * which one a regression broke.
+             */
             expect(offering('rest'), `${where} rests`).toBeGreaterThanOrEqual(
-              restFloorFor(tuning, steps),
+              battlePairAt(route) === null ? restFloorFor(tuning, steps) : tuning.minRestSteps,
+            );
+            // And the guarantee holds on every route, paired or not. There is
+            // no route anywhere in the curve with nowhere to heal.
+            expect(offering('rest'), `${where} rest guarantee`).toBeGreaterThanOrEqual(
+              tuning.minRestSteps,
             );
 
             // Still never before the earliest step, at any length.
@@ -251,5 +290,102 @@ describe('a real run down the shipped curve', () => {
       }
     }
     expect([...lengths].some((pattern) => new Set(pattern.split('/')).size > 1)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The battle pair
+// ---------------------------------------------------------------------------
+
+/**
+ * Two consecutive steps in the final segment, each a wild-versus-trainer
+ * choice, on every route of every seed.
+ *
+ * The rule is a floor on *pressure* rather than on variety, which is what makes
+ * it the only guarantee in `enforceComposition` that cares where its steps are:
+ * two fights separated by a rest is not the thing being guaranteed. So the
+ * assertions below are about adjacency, about the kinds on the two steps, and
+ * about the segments that must *not* have one — a pair that leaked into segment
+ * 3 would be a run whose back half arrived early.
+ */
+describe('the final segment carries a battle pair', () => {
+  it('places two adjacent wild-or-trainer steps in the covered segment, on every route', () => {
+    const from = DEFAULT_TUNING.battlePairFromSegment;
+    expect(from, 'the knob is set; this whole block is about the segment it names').not.toBeNull();
+    for (const seed of SEEDS) {
+      for (const segment of createRun(seed).segments) {
+        if (from === null || segment.index < from) continue;
+        for (const route of segment.routes) {
+          const at = battlePairAt(route);
+          expect(at, `${seed} s${segment.index} ${route.locale}`).not.toBeNull();
+        }
+      }
+    }
+  });
+
+  it('offers a fight either way across the pair, and nothing else', () => {
+    const from = DEFAULT_TUNING.battlePairFromSegment ?? SEGMENTS_PER_RUN;
+    for (const seed of SEEDS) {
+      for (const segment of createRun(seed).segments) {
+        if (segment.index < from) continue;
+        for (const route of segment.routes) {
+          const at = battlePairAt(route);
+          if (at === null) throw new Error(`${seed} s${segment.index} ${route.locale}: no pair`);
+          for (const step of [route.steps[at], route.steps[at + 1]]) {
+            const kinds = (step?.options ?? []).map((option) => option.kind).sort();
+            // Not "contains no rest": the whole option set, so a third option
+            // of any kind fails here rather than being argued about later.
+            expect(kinds, `${seed} s${segment.index} ${route.locale}`).toEqual(['trainer', 'wild']);
+          }
+        }
+      }
+    }
+  });
+
+  it('puts the wild on either side of the choice rather than always first', () => {
+    /*
+     * The orientation is drawn, so over 24 seeds both arrangements appear. A
+     * fixed order would be a decision the player could stop reading after the
+     * first run — the same reason `distinctKindsPerStep` exists.
+     */
+    const from = DEFAULT_TUNING.battlePairFromSegment ?? SEGMENTS_PER_RUN;
+    const seen = new Set<string>();
+    for (const seed of SEEDS) {
+      for (const segment of createRun(seed).segments) {
+        if (segment.index < from) continue;
+        for (const route of segment.routes) {
+          const at = battlePairAt(route);
+          if (at === null) continue;
+          for (const step of [route.steps[at], route.steps[at + 1]]) {
+            seen.add((step?.options ?? []).map((option) => option.kind).join('>'));
+          }
+        }
+      }
+    }
+    expect(seen).toEqual(new Set(['wild>trainer', 'trainer>wild']));
+  });
+
+  it('leaves every earlier segment alone', () => {
+    /*
+     * A pair *can* occur by draw anywhere — two steps that both happen to roll
+     * wild and trainer is a legal roll — so this is not "no earlier segment has
+     * one". It is that they are rare rather than universal, which is what
+     * distinguishes a guarantee from a coincidence: if the rule had leaked, the
+     * covered fraction below would be 1.
+     */
+    const from = DEFAULT_TUNING.battlePairFromSegment ?? SEGMENTS_PER_RUN;
+    let routes = 0;
+    let paired = 0;
+    for (const seed of SEEDS) {
+      for (const segment of createRun(seed).segments) {
+        if (segment.index >= from) continue;
+        for (const route of segment.routes) {
+          routes++;
+          if (battlePairAt(route) !== null) paired++;
+        }
+      }
+    }
+    expect(routes).toBeGreaterThan(100);
+    expect(paired / routes, 'earlier segments are not guaranteed a pair').toBeLessThan(0.5);
   });
 });

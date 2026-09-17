@@ -93,7 +93,7 @@ describe('the battle screen', () => {
     const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed });
     const screen = createBattleScreen();
     document.body.replaceChildren(screen.root);
-    screen.attach(session, nodeFor(seed), { ability: true, item: true }, () => {});
+    screen.attach(session, nodeFor(seed), { ability: true, item: true, teamSize: true }, () => {});
     turn(session);
     return { session, screen };
   }

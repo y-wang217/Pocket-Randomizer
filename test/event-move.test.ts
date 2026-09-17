@@ -136,7 +136,7 @@ describe('the version axes this patch moved', () => {
   });
 
   it('bumped the randomizer, because a relic grant now draws an order', () => {
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-16');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-17');
   });
 });
 

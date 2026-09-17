@@ -399,3 +399,304 @@ describe(`reduced motion keeps the outcome on ${engine}`, () => {
     await context.close();
   }, 180_000);
 });
+
+/**
+ * The turn's beats in the order the turn resolved. **The victory-order patch,
+ * item 2.**
+ *
+ * ## The report
+ *
+ * "Animations are not tied to speed right now, are they? I just saw a Snubbull
+ * go before my Sizzlipede and the animation for my attack went first."
+ *
+ * ## What was already covered, and what was not
+ *
+ * The *markers* are covered and were correct. `ui/scene.beats` places a side by
+ * its first action in the turn the protocol reported, and
+ * `test/battle-feedback.test.ts` drives a real Snorlax/Jolteon fight through the
+ * real adapter and asserts both directions: the priority move gets slot 1 and,
+ * on the turn where Speed decides, the fast side does. Nothing there is a
+ * stylesheet reading its own intentions back — it is the sim's protocol.
+ *
+ * What nothing asserted anywhere is that **slot 2 is later than slot 1 on the
+ * screen**. `[data-acted="2"]` is one `animation-delay` declaration, sitting at
+ * the same specificity as the rule it overrides and winning only on source
+ * order; the twelve beats above all trigger slot 1; and every other motion test
+ * in the repo reads a single element in isolation. A build where that one
+ * declaration was dropped, overridden, or resolved to `0s` would show both
+ * bodies lunging on the same frame — and two simultaneous lunges is exactly
+ * what "the animation for my attack went first" looks like, because a player
+ * watching their own side sees their own body move at the same instant the
+ * other one does and reads the pair as their own turn.
+ *
+ * ## How it is asserted
+ *
+ * The same pause-and-seek `observe` uses, applied to both actors at once and
+ * read at two points on a shared timeline. It is a statement about the
+ * *relative* schedule rather than about either animation alone, which is the
+ * thing the report is about and the thing no per-element test can see.
+ */
+describe(`the two lunges are ordered on ${engine}`, () => {
+  let page: Page;
+  let context: BrowserContext;
+
+  beforeAll(async () => {
+    const opened = await openApp(harness.browser, harness.url, 'SMOKE24', PHONE);
+    page = opened.page;
+    context = opened.context;
+    await playUntil(page, (screen) => screen === 'battle');
+    await page.waitForTimeout(1200);
+  }, 180_000);
+
+  afterAll(async () => {
+    await context?.close();
+  });
+
+  /**
+   * Both actors marked as one turn, sampled at a shared offset from the turn's
+   * start. Returns whether each is displaced from its resting transform.
+   *
+   * `first` and `second` are the slots, not the sides: the caller decides which
+   * body went first, which is what makes the two cases below mirror images.
+   */
+  async function atOffset(
+    first: 'me' | 'foe',
+    fractionOfBeat: number,
+  ): Promise<{ first: boolean; second: boolean; beat: number }> {
+    return page.evaluate(
+      async ([firstSide, fraction]) => {
+        const second = (firstSide as string) === 'me' ? 'foe' : 'me';
+        const of = (side: string): HTMLElement => {
+          const actor = document.querySelector(`.stage__actor--${side}`);
+          if (!(actor instanceof HTMLElement)) throw new Error(`no ${side} actor`);
+          return actor;
+        };
+        const IDENTITY = 'matrix(1, 0, 0, 1, 0, 0)';
+        const shape = (t: string): string => (t === 'none' ? IDENTITY : t);
+        const transformOf = (el: HTMLElement): string => shape(getComputedStyle(el).transform);
+
+        const actors = { first: of(firstSide as string), second: of(second) };
+
+        // Settle any attribute a previous case left mid-recalc before reading a
+        // resting transform off these elements. See the note in the slot-2 delay
+        // case below: style resolves on a frame, and `getAnimations()` answers
+        // about what has already resolved.
+        for (const actor of [actors.first, actors.second]) actor.removeAttribute('data-acted');
+        void getComputedStyle(actors.first).animationName;
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+        const rest = { first: transformOf(actors.first), second: transformOf(actors.second) };
+
+        // The turn, exactly as `beats()` writes it: the side that acted first
+        // in slot 1, the other in slot 2.
+        actors.first.setAttribute('data-acted', '1');
+        actors.second.setAttribute('data-acted', '2');
+
+        /*
+         * The beat, read off the engine rather than recomputed here. It is the
+         * *duration* of the lunge, which is `--motion-beat`, and taking it from
+         * the animation means this test cannot disagree with the tuning about
+         * what a beat is.
+         */
+        void getComputedStyle(actors.first).animationName;
+        const lunge = (el: HTMLElement): Animation | undefined =>
+          el.getAnimations().find((a) => (a as CSSAnimation).animationName === 'actor-lunge');
+        const one = lunge(actors.first);
+        const two = lunge(actors.second);
+        if (!one || !two) throw new Error('one of the two lunges was never created');
+
+        const timingOf = (a: Animation): { duration: number; delay: number } => {
+          const t = a.effect?.getComputedTiming();
+          return {
+            duration: typeof t?.duration === 'number' ? t.duration : 0,
+            delay: t?.delay ?? 0,
+          };
+        };
+        const beat = timingOf(one).duration;
+
+        /*
+         * One shared clock. Each animation's `currentTime` is measured from its
+         * own start *including* its delay, so seeking both to the same absolute
+         * offset reads the frame the engine would paint at that moment of the
+         * turn. An animation still inside its delay has no fill mode here, so
+         * it reads as its resting transform — which is the whole assertion.
+         */
+        const at = beat * (fraction as number);
+        const displaced: { first: boolean; second: boolean } = { first: false, second: false };
+        for (const [key, animation] of [['first', one], ['second', two]] as const) {
+          animation.pause();
+          animation.currentTime = at;
+          displaced[key] = transformOf(actors[key]) !== rest[key];
+        }
+        for (const animation of [one, two]) animation.cancel();
+
+        actors.first.removeAttribute('data-acted');
+        actors.second.removeAttribute('data-acted');
+        return { ...displaced, beat };
+      },
+      [first, fractionOfBeat] as const,
+    );
+  }
+
+  /*
+   * Both directions, because the defect the report describes is direction-
+   * specific: a player only notices when the side that moved first on screen
+   * was not the side that acted first in the fight, and they are only ever
+   * watching one of the two.
+   */
+  for (const first of ['foe', 'me'] as const) {
+    const second = first === 'foe' ? 'me' : 'foe';
+
+    it(`holds the ${second} body still while the ${first} body lunges`, async () => {
+      // 0.4 of a beat is the peak of `actor-lunge`'s keyframe. The second
+      // actor's window has not opened: its delay is two whole beats.
+      const seen = await atOffset(first, 0.4);
+      expect(seen.beat, 'the lunge has no duration at all').toBeGreaterThan(0);
+      expect(seen.first, `the ${first} body did not lunge in its own slot on ${engine}`).toBe(true);
+      expect(
+        seen.second,
+        `the ${second} body lunged in the ${first} body's slot on ${engine} — the two are simultaneous, which is the reported defect`,
+      ).toBe(false);
+    });
+
+    it(`lunges the ${second} body two beats later, in its own slot`, async () => {
+      // 2.4 beats in: slot 2's window is open and at the same 40% peak.
+      const seen = await atOffset(first, 2.4);
+      expect(seen.second, `the ${second} body never lunged at all on ${engine}`).toBe(true);
+    });
+  }
+
+  it('gives slot 2 exactly the two-beat delay the four-slot budget is built from', async () => {
+    /*
+     * The declaration itself, read off the engine. The two cases above would
+     * also pass if the delay were any number larger than a beat, and the
+     * stylesheet's four-slot layout — first actor, its target, second actor,
+     * its target, each `--motion-beat` long — depends on it being exactly two.
+     * A drift here is a turn whose beats no longer land inside one feedback
+     * budget, which is the thing `battleFeedbackMs` is the single source of.
+     */
+    const timing = await page.evaluate(async () => {
+      const actor = document.querySelector('.stage__actor--me');
+      if (!(actor instanceof HTMLElement)) throw new Error('no player actor');
+      /*
+       * **Settle first, then set.** This is the fourth timing trap this file
+       * has paid for and it is a different one from the three in `observe`'s
+       * note.
+       *
+       * `getAnimations()` reports what style has already been resolved into,
+       * and the cascade runs on a frame. A previous case in this suite removes
+       * `data-acted` at the end of its own `evaluate`; if this one sets it again
+       * before that removal has been recalculated, the engine sees no net change
+       * to the computed style and creates nothing — and the case reports "slot
+       * 2 has no lunge" on a build whose slot 2 works perfectly. It failed
+       * exactly that way, intermittently, before this was written.
+       *
+       * So the attribute is cleared, a frame is allowed to pass, and only then
+       * is it set. A computed read after that is the flush that makes
+       * `getAnimations()` answer about the rule we just applied.
+       */
+      actor.removeAttribute('data-acted');
+      void getComputedStyle(actor).animationName;
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+      actor.setAttribute('data-acted', '2');
+      void getComputedStyle(actor).animationName;
+      const animation = actor
+        .getAnimations()
+        .find((a) => (a as CSSAnimation).animationName === 'actor-lunge');
+      const computed = animation?.effect?.getComputedTiming();
+      const out = {
+        duration: typeof computed?.duration === 'number' ? computed.duration : 0,
+        delay: computed?.delay ?? 0,
+      };
+      actor.removeAttribute('data-acted');
+      return out;
+    });
+
+    expect(timing.duration, `slot 2 has no lunge on ${engine}`).toBeGreaterThan(0);
+    expect(timing.delay / timing.duration).toBeCloseTo(2, 5);
+  });
+
+  /**
+   * The chunk a bar draws, held through its slot and faded after it.
+   *
+   * This is the half of the report the lunges were not: both bars used to
+   * resolve on the frame the update arrived, whoever had acted, so a turn's
+   * damage appeared before the turn's movement did. The fix is an
+   * `animation-delay` and an `animation-fill-mode`, and the fill mode is the
+   * part that a plausible tidy-up would drop — without a backwards fill the
+   * shadow sits at its base rule's `opacity: 0` through the delay, and the
+   * chunk is simply invisible for the part of the turn it is waiting out.
+   * Observed here rather than read off the rule, for the reason at the top of
+   * this file.
+   */
+  it.each([['1', 1, 3], ['2', 3, 1]] as const)(
+    'holds a slot %s chunk at full strength through its delay, then fades it',
+    async (slot, delayInBeats, durationInBeats) => {
+      const seen = await page.evaluate((which) => {
+        const shadow = document.querySelector('.panel--foe .hp__shadow');
+        if (!(shadow instanceof HTMLElement)) throw new Error('no foe shadow on the stage');
+
+        // A chunk to look at. `ui/bar.ts` writes these three the same way.
+        shadow.style.left = '40%';
+        shadow.style.width = '20%';
+        delete shadow.dataset['fading'];
+        delete shadow.dataset['slot'];
+        shadow.dataset['slot'] = which as string;
+        void shadow.offsetWidth;
+        shadow.dataset['fading'] = 'true';
+
+        void getComputedStyle(shadow).animationName;
+        const animation = shadow
+          .getAnimations()
+          .find((a) => (a as CSSAnimation).animationName === 'hp-chunk');
+        const computed = animation?.effect?.getComputedTiming();
+        const duration = typeof computed?.duration === 'number' ? computed.duration : 0;
+        const delay = computed?.delay ?? 0;
+
+        const opacityAt = (at: number): number => {
+          if (!animation) return -1;
+          animation.pause();
+          animation.currentTime = at;
+          return Number(getComputedStyle(shadow).opacity);
+        };
+
+        const out = {
+          duration,
+          delay,
+          // Mid-delay: the chunk is at full strength, waiting for its slot.
+          held: opacityAt(delay / 2),
+          // Just inside its own window: still essentially full.
+          opening: opacityAt(delay + duration * 0.02),
+          // At the end: gone.
+          ended: opacityAt(delay + duration),
+        };
+
+        animation?.cancel();
+        delete shadow.dataset['fading'];
+        delete shadow.dataset['slot'];
+        shadow.style.width = '0%';
+        return out;
+      }, slot);
+
+      expect(seen.duration, `slot ${slot} has no chunk animation on ${engine}`).toBeGreaterThan(0);
+
+      /*
+       * Delay plus duration is four beats on both slots, which is exactly
+       * `--motion-duration`. The fade still ends where the last lunge does, so
+       * a turn's whole feedback is still the one number — what moved is where
+       * inside that window the chunk resolves.
+       */
+      const beat = (seen.delay + seen.duration) / 4;
+      expect(seen.delay / beat, `slot ${slot} delay on ${engine}`).toBeCloseTo(delayInBeats, 4);
+      expect(seen.duration / beat, `slot ${slot} duration on ${engine}`).toBeCloseTo(durationInBeats, 4);
+
+      expect(
+        seen.held,
+        `a slot ${slot} chunk was invisible during its delay on ${engine} — the backwards fill is missing`,
+      ).toBeCloseTo(1, 2);
+      expect(seen.opening).toBeGreaterThan(0.5);
+      expect(seen.ended, `a slot ${slot} chunk never faded on ${engine}`).toBeCloseTo(0, 2);
+    },
+  );
+});

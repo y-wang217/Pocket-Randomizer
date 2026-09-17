@@ -300,8 +300,12 @@ describe('the version axes', () => {
      * the hash is `data/eventPools.ts` gaining a fallback on its relic
      * entries.
      */
-    // Stage 4.9's schema bump, for the evolution fork a gym clear now asks.
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-16/gymrun-0.3.0');
+    /*
+     * The victory-order patch's schema bump: a node offers its Pokemon before
+     * it asks who learns its move, so the questions come in a different order,
+     * and a gym's guaranteed move may be handed back.
+     */
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-17/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -318,14 +322,20 @@ describe('the version axes', () => {
      *
      * Stage 4.9 then moved it properly, by rewriting the level curve, the
      * species pools and the tier table. That one *does* change what a seed
-     * produces, which is why it came with `gymrun-run-16` above.
+     * produces, which is why it came with a schema bump above.
      *
-     * The literal below is neither: it is the two together. The display split
-     * remains the **last** time this number moves for a display edit —
+     * The victory-order patch moved it a third time, from `c3964b`, and that
+     * one is the ordinary case the axis exists for: `data/tuning.ts` gained
+     * `battlePairFromSegment`, a hashed file gained a field, and the field
+     * changes what generation draws in the final segment. It arrives beside
+     * `gymrun-randomizer-17`, which is the axis that says the draws moved.
+     *
+     * The literal below is all three together. The display split remains the
+     * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('c3964b9bd0d087330e2b7149510bbcd748aaff07991a4e63f13540a1e6903db2');
+    expect(CONTENT_HASH).toBe('73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

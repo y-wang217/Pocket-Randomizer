@@ -69,6 +69,17 @@ export type AbilityTypeEffect =
 export interface RevealPolicy {
   ability: boolean;
   item: boolean;
+  /**
+   * Whether the player may be told how many Pokemon the opponent brought.
+   *
+   * Unlike the two above it is not a tuning knob, it is a property of the
+   * node: a trainer and a gym leader arrive with a team the player can see,
+   * and a wild encounter is whatever the grass has left. So this one is set
+   * per fight rather than per run, and the screen renders `?` where it is
+   * false — the count is withheld, never guessed at and never quietly
+   * replaced by the number it would have been.
+   */
+  teamSize: boolean;
 }
 
 /** The ability-effect lookup, injected so `view.ts` stays a leaf. */

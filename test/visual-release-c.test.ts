@@ -144,7 +144,16 @@ describe('the one tuning number reaches the screen', () => {
       });
       const timing = (node: Element | null): { duration: string; delay: string } | null =>
         node ? { duration: globalThis.getComputedStyle(node).animationDuration, delay: globalThis.getComputedStyle(node).animationDelay } : null;
-      return { shadow: shadow ? globalThis.getComputedStyle(shadow).animationDuration : null, first: timing(first), second: timing(second), hits };
+      return {
+        shadow: shadow ? globalThis.getComputedStyle(shadow).animationDuration : null,
+        // The slot the chunk landed in, so the assertion below can read the
+        // rule that actually applied rather than the one it usually does.
+        shadowSlot: shadow ? (shadow as HTMLElement).dataset['slot'] : undefined,
+        shadowDelay: shadow ? globalThis.getComputedStyle(shadow).animationDelay : null,
+        first: timing(first),
+        second: timing(second),
+        hits,
+      };
     });
 
     // The shadow spends the whole budget; the four beats run inside it, one
@@ -152,7 +161,29 @@ describe('the one tuning number reaches the screen', () => {
     // rather than aspirational.
     const ms = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
     const beat = `${ms / 4000}s`;
-    expect(applied.shadow).toBe(`${ms / 1000}s`);
+    /*
+     * **The chunk still spends the whole budget — delay included.** The
+     * victory-order patch slotted it, so on a turn the scene could place it
+     * holds at full strength until the slot of the move that caused it and
+     * fades over what is left. Delay plus duration is unchanged, and that is
+     * the claim this case exists to make: where inside the budget the chunk
+     * resolves moved, how long the budget is did not.
+     *
+     * Unslotted — the opening draw, and any bar off the battle stage — it is
+     * the whole budget with no delay, which is what it always was.
+     */
+    const seconds = (value: string | null | undefined): number => Number((value ?? '0s').replace('s', ''));
+    expect(seconds(applied.shadow) + seconds(applied.shadowDelay)).toBeCloseTo(ms / 1000, 4);
+    if (applied.shadowSlot === undefined) {
+      expect(applied.shadow).toBe(`${ms / 1000}s`);
+      expect(applied.shadowDelay).toBe('0s');
+    } else {
+      // Slot 1 holds for a beat and fades over three; slot 2 holds for three
+      // and fades over one. The same two slots the hit beside it uses.
+      const holds = applied.shadowSlot === '1' ? 1 : 3;
+      expect(seconds(applied.shadowDelay)).toBeCloseTo((ms * holds) / 4000, 4);
+      expect(seconds(applied.shadow)).toBeCloseTo((ms * (4 - holds)) / 4000, 4);
+    }
     expect(applied.first).toEqual({ duration: beat, delay: '0s' });
     expect(applied.second).toEqual({ duration: beat, delay: `${ms / 2000}s` });
     // A turn where both sides used a move lands at least one hit, and every

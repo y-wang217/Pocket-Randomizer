@@ -446,6 +446,64 @@ body {
   margin-bottom: var(--space-2);
 }
 
+/* ---------- how much of the opposing side is left ----------
+   A row above the name, on the foe panel only: a mark per member with the
+   standing ones filled, then the number. The marks are the glance and the
+   number is the fact — nine marks and ten marks are the same picture at this
+   size, so the row never asks the player to count.
+
+   `:empty` is the whole of the "player's panel costs nothing" rule. The
+   element is in the DOM on both sides because `createSidePanel` builds one
+   shape, and `scene.ts` fills only the foe's; an empty one draws no line, no
+   gap and no margin.
+
+   Built to ten on one line at 390px. `flex-wrap: nowrap` with a shrinkable
+   mark is what does it: past six the marks narrow rather than the row
+   wrapping, so the count stays one readable line at any size a side could
+   field. The label never shrinks — it is the half that still works when the
+   marks have gone thin.
+
+   No colour that ranks. A filled mark and a spent one differ in opacity and
+   nothing else, the same way `.band__pip` distinguishes filled from empty,
+   because a red "nearly out" would be the board drawing a verdict. */
+.panel__roster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  min-width: 0;
+}
+
+.panel__roster:empty { display: none; }
+
+.panel__roster-marks {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-h);
+  min-width: 0;
+}
+
+.panel__roster-mark {
+  flex: 0 1 auto;
+  width: 6px;
+  min-width: 2px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  opacity: 0.3;
+}
+
+.panel__roster-mark[data-on="true"] { opacity: 1; }
+
+.panel__roster-label {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
 .panel__name { font-weight: 600; }
 .panel__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
 /* `margin-left: auto` pushed the types to the far end of the header. On the
@@ -707,6 +765,46 @@ body {
 
 .hp__shadow[data-fading] {
   animation: hp-chunk var(--motion-hp-shadow) ease-out forwards;
+}
+
+/* ---------- the chunk, in the slot the hit landed in ----------
+   The victory-order patch, item 2.
+
+   The reported symptom was "the animation for my attack went first" on a turn
+   the player lost the Speed check. The lunges were ordered correctly — that is
+   asserted on both engines now — but both bars drew their chunk on the frame
+   the update arrived, so the damage the player *dealt* was on screen before the
+   attack that preceded theirs had visibly happened. Two chunks at once is a
+   turn with no order in it, and the bar is where the eye goes.
+
+   So a chunk holds at full strength until the slot of the move that caused it,
+   then fades — the same two slots `data-hit` uses on the sprite beside it, from
+   the same reading of the protocol. `both` is what makes the hold work: without
+   a backwards fill the shadow sits at the base rule's `opacity: 0` through its
+   delay and the chunk is invisible for the part of the turn it is waiting out.
+
+   **The total is unchanged, and that is deliberate.** Delay plus duration is
+   four beats on both slots, which is exactly `--motion-duration`, so the fade
+   still ends where the last lunge does and a turn's whole feedback is still the
+   one number. What moved is where inside that window the chunk resolves, not
+   how long the window is.
+
+   **The bar's number does not wait for any of this.** The fill goes to the new
+   value on the frame the update arrives, as it always has (`ui/bar.ts`), and
+   the HP text, the flag strip and the move buttons with it. What is slotted is
+   the outline of the ground that was lost, which is emphasis rather than
+   information — the rule in `ui/theme/motion.ts` that nothing mid-fight waits
+   on a motion budget is untouched. */
+.hp__shadow[data-fading][data-slot="1"] {
+  animation-delay: var(--motion-beat);
+  animation-duration: calc(var(--motion-beat) * 3);
+  animation-fill-mode: both;
+}
+
+.hp__shadow[data-fading][data-slot="2"] {
+  animation-delay: calc(var(--motion-beat) * 3);
+  animation-duration: var(--motion-beat);
+  animation-fill-mode: both;
 }
 
 @keyframes hp-chunk {
@@ -2843,6 +2941,49 @@ body {
    lottery the player loses four fights later. */
 .target__effect--dud { color: var(--text-dim); }
 
+/* ---------- handing a gym's move back ----------
+   The one taught move in the game the player never chose over alternatives is
+   the one they may refuse, and this is the control. It is empty and draws
+   nothing on every other move reward.
+
+   Below the members and full width, so it is a different answer rather than a
+   seventh member. Quiet rather than absent: it is styled as a secondary
+   control and carries no marker, because whether refusing a move is the right
+   call is the judgement the copy rule leaves to the player. No colour ranks it,
+   nothing distinguishes it as the better or worse road, and it is last only
+   because "none of the above" is not a member. */
+.target__decline-row:empty { display: none; }
+
+.target__decline-row {
+  margin-top: var(--space-4);
+}
+
+.target__decline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  /* The member cards' own padding, density-scaled the same way, so the row
+     reads as part of the same list of answers rather than as chrome under it.
+     What it does not take is their `border-left` accent: that marks a Pokemon,
+     and there is no Pokemon here. */
+  padding: calc(var(--space-3) * var(--density-pad)) calc(var(--space-3h) * var(--density-pad));
+  text-align: left;
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
+  color: var(--text);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.target__decline-label { font-weight: 600; }
+
+.target__decline-note {
+  font-size: var(--fs-md);
+  color: var(--text-dim);
+}
+
 /* The offered move, as a card above the members it could go to (4.8.0.2).
    Outside the member buttons on purpose: its Explain control must not sit
    inside anything that submits. */
@@ -3335,7 +3476,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      on fading for anybody who had asked it not to. Caught by
      `test/visual-release-c.test.ts`, which reads the computed animation rather
      than trusting the rule to have applied. */
-  .hp__shadow, .hp__shadow[data-fading] { animation: none; }
+  .hp__shadow,
+  .hp__shadow[data-fading],
+  .hp__shadow[data-fading][data-slot="1"],
+  .hp__shadow[data-fading][data-slot="2"] { animation: none; }
   /* The beats: the lunge on the actor, the hit and the faint on the sprite.
      Selectors matched to every rule they override, the slot delays and the
      KO-turn duration included, for the reason the chunk's note gives. The
