@@ -254,6 +254,22 @@ band-0 base form, so the counterplay to a type-advantaged gym is the guaranteed
 wild encounter the segment already contains. Whether it lands is a playtest
 question, and this row of `balance.md` is where the next reading goes.
 
+> **Added after the build, because the benchmark disagreed with this section and
+> the report is not edited to hide that.** The per-slot arithmetic above is
+> right — the one-shot rate does rise from 14.2% to 22.3%. The *outcome* went the
+> other way: gym 1 clears 56.4% against 48.3%, and mean gyms 0.545 to 0.56.
+>
+> What this section did not price is that closing the STAB window is the larger
+> effect. Gym 1 now fields 83% band 1 / 17% band 2 / no band 3, where the leak in
+> §1 was producing 61/34/5. A player meeting fewer band-2 moves and no band-3
+> moves wins more often even though each individual super-effective hit is
+> likelier to kill. Those are two different measurements and this section
+> conflated them.
+>
+> The lesson worth keeping: a per-slot damage statistic is not a win rate, and
+> this report reached for the first because it could compute it without running
+> the game. `generation.md` §33.7 and the `randomizer-19` row of `balance.md`.
+
 ## 6. The gym reward, and a rule that is deleted
 
 The gym clear paid `segment + 3` (§1). It now pays `segment + 1`, which for gym 1
