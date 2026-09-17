@@ -102,11 +102,39 @@ action rather than a way around the gate. What moved, read before re-minting:
 - **The recorded battle protocol is byte identical.** Nothing about how a fight
   resolves moved, which is the half `ENGINE_VERSION` would have had to answer for.
 
-## Balance
+## Balance: recorded, not chased
 
-Not re-measured. `CLAUDE.md`'s standing policy is that balance is not a gate, and
-this patch moves two things that will show up on the next benchmark: the final
-segment is two guaranteed fights harder and has one fewer rest, and a declining
-player has a different move economy from a taking one. The scripted baseline
-never declines, so only the first will appear in a sweep against it. **Both are
-expected to lower mean gyms cleared and neither was tuned against.**
+400 seeds, `RETUNE`, `greedy` pinned, both rows in
+[`../balance.md`](../balance.md) section 0.
+
+| | completion | mean gyms |
+|---|---|---|
+| parent (`a8db385`), `randomizer-16` · `c3964b` | 0.0% | 0.46 |
+| this patch, `randomizer-17` · `73c1ee` | 0.0% | **0.47** |
+
+**The parent was measured too, and that is the point of quoting both.** The
+nearest row already in the table is at `2eea4c`, a different hash again, so
+reading this patch against it would be reading across a yardstick that moved in
+between — the mistake section 0 says was already made once and written into the
+README.
+
+**+0.01 mean gyms is noise.** Gym clear rates are 42.5 → 43.2 at gym 1 and
+identical at gyms 2 through 5; the gym 6 column swings 100% → 0% on a sample of
+one run.
+
+**The battle pair is not in this number at all.** No seed in this population
+reaches segment 7, which is the only segment it touches — so the patch's one
+deliberate difficulty change is unmeasured here and will first appear in a
+population that gets that far. It is expected to lower mean gyms when it does.
+The reorder and the decline are both in the number and moved nothing, which is
+what they should do: the scripted baseline never declines, and the reorder
+changes which party a target index resolves against rather than what the bot
+answers.
+
+## Gates
+
+`npm run check` green end to end — lint, typecheck, 135 files on Node, 27 files
+on WebKit (216 passed, 2 skipped), and the strict-trim leg's 135 again. `npm run
+build` and `npm run smoke` green separately. WebKit needed
+`npx playwright install-deps webkit && npx playwright install webkit` on this
+box; it was not present at session start.
