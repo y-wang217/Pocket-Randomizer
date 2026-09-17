@@ -4915,8 +4915,20 @@ the viewport. It wraps now and reserves the sprite's gutter off `--figure-size`,
 the same way `.party__member > .panel__header` has since the idle-sprites patch.
 
 Caught by screenshotting the surfaces rather than by a test, which is the honest
-account. The density guards measure fold height, not horizontal overflow of a
-row whose last child is absolutely positioned.
+account — and the first version of this paragraph got the reason wrong. It said
+nothing measures horizontal overflow. Something does: `scripts/smoke.mjs`
+asserts `documentElement.scrollWidth <= innerWidth`, and two visual tests assert
+it for the outro and the seed bar. **The guard exists, works, and would have
+caught this**, because no ancestor of a screen clips horizontally — `body`,
+`.shell` and `.screen` set no `overflow`. It is pointed at the locale screen,
+the map and a battle, and `replace` is none of those.
+
+That is a narrower defect than "untested" and a more useful one, so it is filed
+rather than folded into this section: see "Carried out of the chip audit" in
+[`README.md`](README.md) section 5. The short version is that the three
+surfaces are a hand-picked list and nothing asserts the list is complete, which
+is the property `test/visual-chips.test.ts` already holds for chip variants and
+this guard does not.
 
 ### 30e. The move-card type watermark
 

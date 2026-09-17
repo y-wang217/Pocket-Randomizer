@@ -5056,6 +5056,20 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 :root:not([data-density="pocket"]) .starter:has(> .figure) > .starter__header,
 :root:not([data-density="pocket"]) .event__gate:has(> .figure-row) { padding-right: calc(var(--figure-size) + var(--space-2)); }
 
+/*
+ * **The bench row reserves no gutter, and it is the one host that does not.**
+ * Chip-audit patch; filed in `docs/README.md` section 5, "Carried out of the
+ * chip audit", not fixed here.
+ *
+ * Of the five hosts above, four now reserve `--figure-size` at their right —
+ * three of them outside Pocket, `.replace__owner` unconditionally after this
+ * patch overflowed it. `.bench__member` reserves none, and in Detailed and
+ * Simple it is `flex-direction: column`, so every child is full width and the
+ * 32px figure floats over whatever sits at the vertical centre. Adding a chip
+ * to a bench row is the move that breaks it, and no overflow assertion runs on
+ * a screen that draws one.
+ */
+
 /* The learn-move owner line and a bench row are one line tall: the figure is
    centred on the line and overflows its margins rather than growing it.
    Centred by a margin and not a transform, because the bob owns transform. */

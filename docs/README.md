@@ -776,6 +776,57 @@ One line each. The analysis lives where the pointer goes, not here.
    consumer yet — retires that duration and takes the pin to 16. One small
    patch; `generation.md` section 17.
 
+### Carried out of the chip audit
+
+**The horizontal-overflow guard covers three screens out of twelve, and nothing
+asserts that list is complete.** Filed, not built.
+
+The chip audit broke `.replace__owner` — the ability chip ran off the right edge
+at 390 and pushed the sprite out of the viewport — and it was found by
+screenshotting the surface, not by a gate. That is worth a line here because the
+guard that should have caught it **exists and works**:
+
+- `scripts/smoke.mjs` asserts `documentElement.scrollWidth <= innerWidth` on
+  exactly three surfaces: the locale screen (line 909), the map (line 928) and a
+  battle (line 1110).
+- `test/visual-battle-outro.test.ts` asserts it for the outro and the
+  abnormality beats; `test/visual-phone-seed-bar.test.ts` for the seed bar.
+- Nothing asserts it on `replace`, `target`, `party`, `acquisition`, `result`,
+  `summary`, `shop`, `event`, `pre-gym` or `starter`.
+
+**It would have caught this one.** No ancestor of a screen clips horizontally —
+`body`, `.shell` and `.screen` set no `overflow`, checked — so an overflowing row
+does push `documentElement.scrollWidth` past 390. The check was simply not
+pointed at the screen that broke.
+
+The shape of the fix is already in this repo. `test/visual-chips.test.ts`
+asserts that the set of chip variants its sweep *saw* equals the set
+`ui/chip.ts` can build, so a variant the walk stops reaching fails the test
+rather than passing quietly. The overflow guard has no such claim: its three
+surfaces are a hand-picked list, and a screen added tomorrow joins nothing.
+
+Two things make this more than a one-off:
+
+- **Five hosts carry an absolutely positioned `.figure` at their right edge**
+  (`.starter`, `.party__member`, `.replace__owner`, `.event__gate`,
+  `.bench__member`), and a row that overflows under one of those is overlapping
+  a sprite rather than merely being wide. Four now reserve a gutter off
+  `--figure-size`; **`.bench__member` reserves none**, and in Detailed and
+  Simple it is `flex-direction: column`, so each child is full width with the
+  32px figure floating over whatever sits at the vertical centre. It is the
+  most exposed of the five and the least watched.
+- The gutters on `.party__member`, `.starter` and `.event__gate` are scoped
+  `:root:not([data-density="pocket"])`, deliberately and with a reason in the
+  stylesheet. So Pocket is the mode with the fewest gutters and the narrowest
+  columns, and no overflow assertion runs in it at all — the smoke walk's three
+  surfaces are walked in one density.
+
+**Not built here on purpose.** A sweep over every screen in every density is a
+gate change, it will find pre-existing overflows that are nobody's fault in this
+patch, and triaging those is its own piece of work rather than a line item on a
+patch whose brief said "this is a small qol patch". `generation.md` section 30d
+records the defect this came out of.
+
 ### Carried out of patch 4.8.0.3
 
 Three, filed rather than built. The closeout prompt

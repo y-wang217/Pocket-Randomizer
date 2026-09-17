@@ -145,9 +145,21 @@ with room to spare. The two new chips overflowed it: the ability ran off the
 right edge and the sprite was pushed out of the viewport. It wraps now and
 reserves the sprite's gutter off `--figure-size`.
 
-**Found by screenshotting the surfaces, not by a test.** The density guards
-measure fold height; this was horizontal overflow of a row whose last child is
-absolutely positioned, which nothing in the suite was watching.
+**Found by screenshotting the surfaces, not by a test** — and the reason is
+worth more than the bug. `scripts/smoke.mjs` already asserts
+`documentElement.scrollWidth <= innerWidth`, and no ancestor of a screen clips
+horizontally, so **that assertion would have caught this**. It runs on the
+locale screen, the map and a battle. `replace` is none of those, and neither
+are the other eight screens.
+
+So the defect is not "untested", it is "the guard is pointed at a hand-picked
+list of three and nothing asserts the list is complete" — which is exactly the
+property `test/visual-chips.test.ts` holds for chip variants and this one does
+not. Filed in [`../../README.md`](../../README.md) section 5, "Carried out of
+the chip audit", with the two things that make it more than a one-off: the bench
+row is the one `.figure` host with no gutter reserved, and the three gutters
+that do exist are scoped out of Pocket, which is the mode with the narrowest
+columns and no overflow assertion running in it at all.
 
 ## A test that was deleted rather than loosened
 
