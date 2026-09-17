@@ -5175,3 +5175,98 @@ or above y=740, and the battle screen's margin went from 37.5px to **16.5px**
 57% of that slack between them without either one measuring it, and the next row
 added to a move button will find the line. `docs/visual/baseline/README.md`
 carries the correction and the numbers.
+
+## 32. The missing sprite was 84px wide, and the alt text is why
+
+**2026-09-17**, on `claude/serene-bohr-xn433h`, after PR #44 merged at `df2982f`.
+Presentation only: one CSS declaration and one regression test. No `core/`
+change, no version axis moves, `contentHash` unmoved.
+
+**The defect predates the chip-audit patch and was exposed by it.** That
+distinction is the whole reason this section exists rather than a line in
+section 30.
+
+### How it surfaced
+
+`test/visual-phone-seed-bar.test.ts` asserts `documentElement.scrollWidth`
+equals 390 on the starter screen. It began failing at 401 — but only inside the
+full 136-file run. It passed standalone, passed under `GYMRUN_TRIM_STRICT=1`,
+and passed with all 28 browser files in parallel. A probe on that screen in the
+passing configurations found nothing past 390.
+
+The first three explanations were all wrong and all plausible: a font falling
+back (there are no web fonts in this project, so metrics are deterministic), the
+new ability chip failing to wrap (it wraps, and `.starter__meta` was given
+`flex-wrap` anyway), and CPU contention (the run that failed had the machine to
+itself).
+
+Two measurements settled it. A full-suite run on `9616ade` — the commit before
+the chip audit — **passed**, which said the branch was responsible. Then the
+failing assertion itself was instrumented to dump every element past 390, and it
+named one: `img.sprite`, 84px wide, right edge at 401. Running the same probe on
+`9616ade` reproduced it **identically**, which said the branch was not
+responsible after all. Both are true: the bug is older, and the patch changed
+the starter card's render enough to move the timing that hid it.
+
+### The mechanism
+
+`ui/sprites.ts` sets `alt = species` and `width = height = 96` as attributes;
+`.figure > .sprite` sizes the image to `--figure-size` in CSS, which beats a
+presentational hint. That holds while the image loads.
+
+It stops holding when the image fails. **A broken `<img>` carrying alt text is
+no longer a replaced element** — Chromium lays it out as an inline box around
+the alt string, and `width` does not apply to a non-replaced inline. So the box
+becomes as wide as the species name. On one seed's three starters:
+
+| alt | characters | width, in a 48px figure |
+|---|---|---|
+| `Zorua` | 5 | 48px |
+| `Flabébé` | 9 | 59px |
+| `Hippopotas` | 10 | **84px** |
+
+`.sprite[data-missing='true']` used `visibility: hidden`, which hides the box and
+keeps every pixel of it in the layout. So the longest species name on screen
+pushed the document 11px past a 390px viewport.
+
+### The fix, and the three that were rejected — one of them after it shipped
+
+`display: inline-block`, keeping `visibility: hidden`. `width` does not apply to
+a non-replaced inline; it does apply to a non-replaced inline-block. One word
+gives the alt-text box back the dimensions the stylesheet already specifies, and
+nothing else about the element changes.
+
+**`display: none` was tried, committed, and reverted in the same session.** It
+returns the page to 390 and it broke four tests in `test/visual-motion.test.ts`:
+`sprite-hit`, `sprite-sink`, the switch-in and the recall all stopped firing,
+because an element that is not displayed runs no CSS animation.
+
+That is not a test artifact, and it is the more serious defect of the two.
+Branch 3A of the battle-animation run (section 23) made `reviewBattle` *wait* on
+those beats — the one place in this project where something waits on an
+animation. A player whose sprite request failed would have been waiting on an
+animation that could never start. **The overflow makes a page scroll sideways;
+this would have stalled a fight.** Caught by the full suite on the commit that
+shipped it, which is the argument for running the whole thing rather than the
+files a change looks like it touches.
+
+**Clearing the alt text** also returns the page to 390 and was rejected: the alt
+is correct when the image loads, and a layout that holds only while no species
+has a long name is not a layout.
+
+**Clipping the figure** was rejected for the reason the stylesheet already gives
+at `.stage`: a box that clips is a box that cuts something which overhangs by
+design.
+
+### Why the sandbox saw it and a player might not
+
+Every sprite is broken in this environment — there is no route to the sprite
+CDN — so the defect is permanent here and intermittent anywhere with a network.
+A player meets it when a request fails: a phone page that scrolls sideways
+because one Pokemon has a long name and the network dropped.
+
+`test/visual-sprites.test.ts` already aborts the CDN and its header already
+claims "a figure is a fixed box whether or not its image arrived". That claim
+was false for three patches and is now asserted — against the figure rather than
+a pixel count, so it fails for the right reason, with the document-level check
+beside it because that is the symptom a player would actually meet.
