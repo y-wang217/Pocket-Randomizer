@@ -2,7 +2,7 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-17/gymrun-0.3.0",
-    "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
+    "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
     "randomizer": "gymrun-randomizer-18",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
@@ -13,9 +13,9 @@
     "segment": 0,
     "leader": "Garnet",
     "kind": "gym",
-    "species": "Dusk",
-    "bySpecies": "Nosepass",
-    "byMove": "Confusion",
+    "species": "Cedar",
+    "bySpecies": "Binacle",
+    "byMove": "Poison Tail",
     "indirect": null
   },
   "currency": 30,
@@ -27,12 +27,12 @@
       "level": 7,
       "ability": "Mimicry",
       "moves": [
-        "Fairy Wind 48/48",
+        "Fairy Wind 47/48",
         "Disarming Voice 24/24",
         "Pounce 32/32",
         "Draining Kiss 15/16"
       ],
-      "item": "payapaberry",
+      "item": null,
       "hp": "0/27",
       "fainted": true
     },
@@ -41,7 +41,7 @@
       "level": 7,
       "ability": "Healer",
       "moves": [
-        "Rock Throw 21/24",
+        "Rock Throw 19/24",
         "Ice Shard 47/48",
         "Flame Charge 32/32",
         "Agility 48/48"
@@ -113,26 +113,26 @@
       "label": "Garnet's Gym",
       "tier": null,
       "opponent": "Garnet (Rock)",
-      "turns": 6,
+      "turns": 10,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
-          "name": "Cedar",
+          "name": "Dusk",
           "level": 7,
-          "species": "Snubbull",
-          "bySpecies": "Nosepass",
-          "byMove": "Cross Poison",
+          "species": "Nosepass",
+          "bySpecies": "Binacle",
+          "byMove": "Whirlpool",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Dusk",
+          "name": "Cedar",
           "level": 7,
-          "species": "Nosepass",
-          "bySpecies": "Nosepass",
-          "byMove": "Confusion",
+          "species": "Snubbull",
+          "bySpecies": "Binacle",
+          "byMove": "Poison Tail",
           "indirect": null
         }
       ]
@@ -142,7 +142,7 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-17/gymrun-0.3.0",
-      "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
+      "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-18"
     },
@@ -324,14 +324,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
+          "slot": 1
         }
       },
       {
@@ -366,7 +359,42 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
           "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
         }
       }
     ]

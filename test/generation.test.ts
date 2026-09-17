@@ -17,7 +17,7 @@ import { generateSegment, generateStarterOptions, nodesOf, type Segment,
 } from '../src/core/encounters';
 import { isBattleKind } from '../src/core/economy';
 import { createRng } from '../src/core/rng';
-import { playerLevel, SEGMENT_COUNT, segmentScaling, starterLevel } from '../src/data/scaling';
+import { opponentLevel, playerLevel, SEGMENT_COUNT, segmentScaling, starterLevel } from '../src/data/scaling';
 import { getStarterPool } from '../src/data/starters';
 import { stepsRangeFor, DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
@@ -254,6 +254,36 @@ describe('generation rules', () => {
     // And the index genuinely moves the numbers rather than being accepted and
     // ignored, which is what the Stage 1 version of this test was really for.
     expect(new Set(gymLevels).size).toBe(gymLevels.length);
+  });
+
+  /**
+   * **A gym is exactly the party's level, at every segment and every tier.**
+   *
+   * The test above reads the gym offset out of the table, so it passes for any
+   * offset the table holds; this one pins the offset itself, because parity is
+   * a rule rather than a tuning number. A level in Gen 3 raises Speed with
+   * everything else, and Speed is read as a comparison — so a gym one level up
+   * takes the first move in every tie the party would otherwise win, and no
+   * amount of team building gets it back. `data/scaling.ts` carries the
+   * argument; a tuning pass that wants a harder gym has the roster, the move
+   * band and the AI tier to spend and not this.
+   *
+   * Every tier, not just `normal`, even though `generateGymTeam` hardcodes
+   * `normal` today: the assertion is about what `opponentLevel` may return for
+   * a gym, so that a later stage handing a gym a tier cannot quietly reopen
+   * this through `TIER_MODIFIERS[tier].levelShare`.
+   */
+  it('fields a gym at exactly the player level, never above and never below', () => {
+    for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
+      const row = segmentScaling(segment);
+      expect(row.levelOffset.gym).toEqual({ min: 0, max: 0 });
+      for (const tier of ['normal', 'hard', 'elite'] as const) {
+        expect(opponentLevel('gym', segment, tier)).toEqual({
+          min: playerLevel(segment),
+          max: playerLevel(segment),
+        });
+      }
+    }
   });
 
   it('keeps the starter pool additive, so unlocks cannot reshape a recorded seed', () => {
