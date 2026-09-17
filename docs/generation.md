@@ -4596,3 +4596,214 @@ still not this patch's to fix, but it now has two sightings rather than one, and
 a second cause to be read against: a `page.goto` that times out with no
 assertion reached is contention, not a regression, and the distinguishing test
 is a re-run in isolation.
+
+## 29. The victory-order patch: the capture moved in front of the move
+
+Branch `claude/victory-screen-battle-ui-p3op20`, prompt
+[`spec/gymrun-patch-victory-order-and-battle-readouts.md`](spec/gymrun-patch-victory-order-and-battle-readouts.md),
+2026-09-17. A playtest report of six items, three of which were open on scope and
+were answered by the author before any code — the answers are in the prompt file
+under its verbatim text.
+
+Three axes moved: `RUN_LOG_VERSION` to `-17`, `RANDOMIZER_VERSION` to `-17`, and
+`contentHash` from `c3964b` to `73c1ee`. `AI_VERSION` holds.
+
+### 29.1 The order, and why `resolveNode` had to move with it
+
+A node used to ask its move questions and then offer its Pokemon. That is
+invisible at every node but one — a wild fight that pays a TM *and* offers its
+species — where the player was asked "who learns Earthquake" while the Pokemon
+they were about to catch was still standing on the other side of the field, spent
+the card, and only then met the member they might have wanted to give it to.
+
+The capture resolves first now. `playRun` builds `learners` —
+`partyAfterAcquisition`, which runs the same `applyAcquisition` `resolveNode`
+runs, on the same decision — and both move questions are asked against it.
+
+**The half that is easy to leave out is the fold.** A recorded target index names
+a slot in whichever party the question was asked against, so `resolveNode` had to
+apply the acquisition ahead of both `applyReward` calls on both of its branches.
+Leaving it where it was would resolve that index against a party one member
+shorter, and after a release against one whose members had all shifted down a
+slot — the move would land on somebody else, silently, and only at the nodes that
+do both. The old comment's rule ("a fixed order is what stops the two being a
+race") was right about needing a fixed order and free to pick either one, because
+nothing then depended on which. Something does now.
+
+**One run in the visual baseline changed its party, and the cause is the
+backpack.** `SEED-B` ends holding the same two items on the same two members —
+swapped. Its decision kinds went `reward acquisition items` to
+`acquisition reward items`, so the captured Pokemon's held Lum Berry now reaches
+the backpack *before* the reward card's Silk Scarf, and `defaultItemPlan` walks
+the bag in order. Nothing else about the run moved: same nodes, same outcome,
+same species, same moves. It is worth naming rather than waving through, because
+"the fold order changed" and "a bag is ordered" compose into a visible
+difference, and the next person reading a baseline diff for this patch should
+find the answer here rather than derive it.
+
+**What did not move: `reward` stays after Part A.** Stage 4.8 item 2 pinned the
+gym's unconditional move ahead of the card chosen over two others, and that pair
+is untouched — the `reward` entry is still recorded where it was, below the gym's
+`target`. Only the acquisition moved, and it moved above both. A second
+reordering with nothing asking for it would have been a second reason for every
+recorded seed to be unreplayable.
+
+The fixture is the evidence and it is worth quoting. `FIXTURE-CHARLIE`'s decision
+kinds went from `… reward target replace acquisition …` to
+`… acquisition reward target replace …` at three nodes, the gym's
+`… target replace reward …` is unchanged, **every decision value is the same, and
+the nodes, party, HP and outcome are byte identical.** The reorder changed the
+order of the questions and nothing about the run.
+
+### 29.2 The gym move can be handed back, and nothing else can
+
+`rewards.DECLINED_MOVE` is `-1`, legal at exactly one payout. The rule is the one
+`chooseMoveToReplace` already stated from the other side: "the place to skip a
+move reward is the reward screen, where it was already chosen over two
+alternatives; a second escape hatch here would make that pick meaningless." A
+gym's move has no reward screen behind it — it was chosen over nothing — so
+refusing it is the *first* escape hatch rather than a second one. That rule is
+unchanged for reward cards, shop TMs and event grants, and
+`askMoveQuestions` refuses the sentinel where it was not offered rather than
+trusting its callers: it falls through to the ordinary range check and fails by
+name.
+
+Three details that a plausible simpler version gets wrong:
+
+- **It is still a `target` entry.** An absent entry would be a cursor that slips
+  at the first gym anybody declined at, and every answer after it read against
+  the wrong question.
+- **`-1`, not the party length.** A "one past the end" sentinel is the same
+  integer as a legal slot in a party one member larger, and the party *does* grow
+  mid-node now — see 29.1. A negative index can never be a slot.
+- **`result.gymMoveDeclined` is a flag, not an absent target.** Absence already
+  means "no gym, or a gym not won", and `resolveNode`'s `?? 0` would hand the
+  refused move to slot 0.
+
+`scriptedRunPolicy` never declines, at the gym or anywhere. A baseline that
+sometimes refused a free move would put a move-economy heuristic inside every
+balance figure recorded against it.
+
+### 29.3 The animation report was right about the symptom and wrong about the cause
+
+> "Animations are not tied to speed right now, are they? I just saw a Snubbull go
+> before my Sizzlipede and the animation for my attack went first."
+
+**The lunges were correct.** `ui/scene.ts`'s `beats` places a side by its first action in
+the protocol the engine already resolved, and `test/battle-feedback.test.ts` has
+driven a real Snorlax/Jolteon fight through the real adapter and asserted both
+directions since Release C. Nothing there was wrong.
+
+What was asserted **nowhere** is that slot 2 is later than slot 1 *on screen*.
+`[data-acted="2"]` is one `animation-delay` declaration sitting at the same
+specificity as the rule it overrides and winning only on source order; all twelve
+beats in `visual-motion` trigger slot 1; and every other motion test in the repo
+reads one element in isolation. So the first thing this patch shipped was the
+missing assertion — both engines, both directions, plus the exact two-beat ratio
+the four-slot budget is built from — and it passes. **The order is fine and now
+it is held.**
+
+**The defect is the bar.** Both sides' chunks were drawn on the frame the update
+arrived, whoever had acted, so on a turn where both sides took damage the outline
+of the hit the player *dealt* appeared simultaneously with the one they took —
+before either body had moved. Two chunks at once is a turn with no order in it,
+and the eye goes to the bar, not the sprite. From the losing side of a Speed
+check that reads exactly as "the animation for my attack went first".
+
+So the chunk is slotted, to the same two slots `data-hit` already uses, from the
+same reading: `actingOrder` is lifted out of `beats` and read once per update,
+before the panels redraw, and handed to both.
+
+**What is not slotted, and the rule this does not break.** The bar's *fill*, the
+HP text, the flag words and the move buttons are correct on the frame the update
+arrives, and `ui/theme/motion.ts`'s "nothing mid-fight waits for this" is
+untouched. The chunk is the ghost of the ground that was lost — emphasis, not
+information — and a player who never looks at it loses no fact. Delay plus
+duration is four beats on both slots, exactly `--motion-duration`, so the fade
+still ends where the last lunge does and a turn's whole feedback is still the one
+number.
+
+`animation-fill-mode: both` is load-bearing and is the part a tidy-up would drop:
+without a backwards fill the shadow sits at its base rule's `opacity: 0` through
+the delay, and the chunk is invisible for the part of the turn it is waiting out.
+The browser case asserts the held opacity directly for that reason.
+
+### 29.4 A fourth timing trap, in the file that already documents three
+
+`test/visual-motion.test.ts`'s header records three wrong turns in sampling an
+animation. This patch paid for a fourth, and it is a different kind: not *when*
+you sample, but *whether the cascade has run*.
+
+`getAnimations()` reports what style has already been resolved into, and style
+resolves on a frame. A case that removes `data-acted` at the end of its own
+`evaluate` and a later case that sets it again can leave the engine seeing no net
+change to the computed style — so it creates nothing, and the test reports "slot
+2 has no lunge" on a build whose slot 2 works. It failed exactly that way,
+intermittently. The fix is to clear, let a frame pass, then set, then read a
+computed property as the flush. **The general form: an animation test must settle
+the cascade before it asks what the cascade produced.**
+
+### 29.5 The final segment's battle pair, and the one guarantee it is allowed to cost
+
+`tuning.battlePairFromSegment` (7, the last segment) makes every route there carry
+two consecutive steps that are a straight wild-versus-trainer choice. The player
+still chooses at both — four routes across the pair — and what is removed is the
+option to not fight, twice.
+
+It is placed **first** in `enforceComposition`, before the guaranteed wild step,
+and that is load-bearing in both directions. It is the only rule there that cares
+*where* its steps are; every other floor takes any unclaimed step it can get, so
+running them first would leave the pair choosing between whatever gaps they
+happened to leave, and on a short route there may be no adjacent pair at all.
+
+**It costs the rest density, and it is not allowed to cost the rest guarantee.**
+`restFloorFor` is two numbers taken together: `minRestSteps`, which is the
+guarantee that a route has somewhere to heal, and a density target that grew out
+of segments getting longer. Four of a six-step route are claimed before the rest
+pass runs, so the density target and the pair compete for the same steps.
+`restFloorForRoute` resolves that in the pair's favour and drops a paired route to
+the guarantee; `hasBattlePair` is the single predicate both it and
+`placeBattlePair` read, so the generator and the table cannot disagree about which
+routes are the gauntlet. And `hasBattlePair` refuses to place at all on a route
+without room for the pair *plus* the wild step, the event floor, `minRestSteps`,
+and the head of the route that `restEarliestStep` bars from being a rest.
+
+At the shipped curve the covered segment is six to seven steps and the pair always
+lands. The short-route branch exists for a sweep, which may legitimately try
+`stepsPerSegment: 1`.
+
+**The three fixture seeds do not reach segment 7** — they die in segments 0 and 1
+— which is why the fixture's run payload is byte identical across this patch and
+why the pair is covered by `test/node-curve.test.ts` and `test/locales.test.ts`
+instead. That is a real gap in what the fixture proves, and it is named rather
+than papered over: the fixture proves the *earlier* segments did not move, which
+is the half `RANDOMIZER_VERSION` makes a claim about.
+
+### 29.6 The opposing side's count, and the line that came off the header
+
+`BattleUiView.opponentLeft` carries `{ standing, total }` with **`total: null`
+when the player has not been told**. `RevealPolicy` gains `teamSize`, set per node
+rather than per run — a trainer and a gym leader arrive with a team the player can
+see, a wild encounter is whatever the grass has left — and the row renders `?`
+rather than the number withheld.
+
+The row carries marks *and* the number, and both are needed at the range it has to
+cover: the marks are the glance, and the number is what still works at ten, on a
+phone, for a player who cannot tell nine marks from ten. Built to ten on one line
+at 390px, which is slack — a side fields at most `MAX_TEAM_SIZE` today and that
+number does not move in this patch.
+
+**The battle header's `N Pokemon` came out with it.** It was a fixed count read
+straight off the node's generated team, which was right when nothing else said it
+and wrong the moment the opposing panel carried a live one: a header reading
+`3 Pokemon` beside a panel reading `1/? left` is one screen answering one question
+two ways, and the header's answer is the one a wild node is not supposed to give.
+
+### 29.7 The tooltip that was missing on one card
+
+`src/ui/screens/acquisition.ts` built its ability span without the
+`data-tip="ability:…"` that `member-card.ts` sets. Invisible on a desktop, where
+the card names the ability and a reader can go and look it up; on a phone the
+tooltip layer *is* the reference, so a missing trigger reads as the ability having
+no explanation rather than as this card having no trigger. The screen where that
+costs most is the one where a Pokemon is taken largely on its ability.

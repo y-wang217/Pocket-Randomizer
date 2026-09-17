@@ -483,6 +483,128 @@ describe('the hit and the faint', () => {
   });
 });
 
+/**
+ * The chunk each bar draws, placed in the slot of the move that caused it.
+ * **The victory-order patch, item 2.**
+ *
+ * ## What was reported, and what it turned out to be
+ *
+ * "Animations are not tied to speed right now, are they? I just saw a Snubbull
+ * go before my Sizzlipede and the animation for my attack went first."
+ *
+ * The lunges were not the problem. They are placed off the protocol's own
+ * ordering and the cases above assert both directions against a real fight;
+ * `test/visual-motion.test.ts` asserts on both engines that slot 2 is held back
+ * by exactly the two beats the stylesheet's four-slot layout is built from.
+ *
+ * What had no order in it at all was the **bar**. Both sides' chunks were drawn
+ * on the frame the update arrived, so on a turn where both sides took damage
+ * the outline of the hit the player *dealt* appeared simultaneously with the one
+ * they took — before either body had moved. The eye goes to the bar, and two
+ * chunks at once reads as "both attacks happened now", which from the losing
+ * side of a Speed check reads as your own attack going first.
+ *
+ * ## What is slotted, and what emphatically is not
+ *
+ * The chunk is the ghost of the ground that was lost: emphasis, not
+ * information. The bar's *fill*, the HP text, the flag words and the move
+ * buttons are correct on the frame the update arrives and nothing here changes
+ * that — the rule in `ui/theme/motion.ts` is untouched. A player who never
+ * looks at the chunk loses no fact.
+ */
+describe('the chunk lands in the turn order', () => {
+  function slotOf(scene: Scene, side: 'me' | 'foe'): string | undefined {
+    return shadowOf(scene, side).dataset['slot'];
+  }
+
+  /** Both sides at full, then both damaged on one turn with the given order. */
+  function twoHits(order: ('p1' | 'p2')[]): Scene {
+    const scene = createScene();
+    const full = baseView();
+    scene.update(full, NOOP);
+    const hurt = withHp(withHp(full, 'opponent', 0.5), 'player', 0.5);
+    scene.update(hurt, NOOP, turnOf(order));
+    return scene;
+  }
+
+  it('gives each side the slot after the other side acted', () => {
+    // p1 first: the foe's chunk answers p1's move (slot 1), the player's answers
+    // p2's (slot 2). The same rule the recoil beside it uses, from the same list.
+    const first = twoHits(['p1', 'p2']);
+    expect(slotOf(first, 'foe')).toBe('1');
+    expect(slotOf(first, 'me')).toBe('2');
+    // And the recoil agrees, because both read one `actingOrder`.
+    expect(beatsOf(first, 'hit')).toEqual({ me: '2', foe: '1' });
+  });
+
+  it('mirrors when the other side goes first, which is the reported turn', () => {
+    const second = twoHits(['p2', 'p1']);
+    expect(slotOf(second, 'me')).toBe('1');
+    expect(slotOf(second, 'foe')).toBe('2');
+    expect(beatsOf(second, 'hit')).toEqual({ me: '1', foe: '2' });
+  });
+
+  it('carries no slot at all when there is no turn to place it in', () => {
+    /*
+     * The opening draw and every non-battle bar. Without a reading there is no
+     * order, so the chunk fades across the whole budget from now — exactly what
+     * every bar did before slots existed. Asserted because the plausible wrong
+     * change is to default to slot 1, which would hold the chunk at full
+     * strength for a beat on a screen with no turn behind it.
+     */
+    const scene = createScene();
+    const full = baseView();
+    scene.update(full, NOOP);
+    scene.update(withHp(full, 'opponent', 0.5), NOOP);
+    expect(slotOf(scene, 'foe')).toBeUndefined();
+    expect(shadowOf(scene, 'foe').dataset['fading']).toBe('true');
+  });
+
+  it('drops the slot when the chunk is cleared, so nothing is left held', () => {
+    /*
+     * A slotted chunk holds at full strength through its delay. A cleared one
+     * that kept its slot would be a visible chunk with no animation left to
+     * fade it — the shadow's `opacity: 0` base rule is what resolves it, and
+     * `animation-fill-mode: both` overrides exactly that.
+     */
+    const scene = twoHits(['p2', 'p1']);
+    expect(slotOf(scene, 'me')).toBe('1');
+    scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
+    expect(slotOf(scene, 'me')).toBeUndefined();
+    expect(shadowOf(scene, 'me').dataset['fading']).toBeUndefined();
+  });
+
+  it('places the chunk from the same reading the log numbers the turn with', () => {
+    /*
+     * Not a synthetic turn: a real fight, through the real adapter, on the turn
+     * the report describes — the fast side moves first because Speed decided
+     * it, and the slow side's chunk is the one in slot 1 because the fast
+     * side's move is what took it.
+     *
+     * What is taken from the fight is the *reading*, not the HP: a real turn's
+     * damage may or may not clear `MIN_CHUNK` on either side, and this case is
+     * about which slot a chunk lands in rather than about whether that fight
+     * drew one. So the bars are then driven full-then-halved by hand, and the
+     * `turns` handed to the second of those is the real one.
+     *
+     * The intermediate full draw is also what absorbs the species change:
+     * `Bar.set` is told `chunk: false` on a swapped body, because the
+     * difference between two different bodies' bars is not damage.
+     */
+    const { scene, turns } = playOneTurn(SLOW, FAST, 2, 'JIGGLE01');
+    const order = turns.flatMap((turn) => turn.actions.map((each) => each.action.side));
+    expect(order[0], 'the fixture no longer has the fast side moving first').toBe('p2');
+
+    const full = baseView();
+    scene.update(full, NOOP);
+    const hurt = withHp(withHp(full, 'opponent', 0.5), 'player', 0.5);
+    scene.update(hurt, NOOP, turns);
+    // p2 acted first, so the player's chunk answers it and lands in slot 1.
+    expect(slotOf(scene, 'me')).toBe('1');
+    expect(slotOf(scene, 'foe')).toBe('2');
+  });
+});
+
 describe('the flag strip', () => {
   function words(strip: FlagStrip): string[] {
     return [...strip.root.querySelectorAll('.chip')].map((chip) => chip.textContent ?? '');

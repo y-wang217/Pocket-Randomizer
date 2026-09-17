@@ -480,7 +480,7 @@ body {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-h);
   min-width: 0;
 }
 
@@ -765,6 +765,46 @@ body {
 
 .hp__shadow[data-fading] {
   animation: hp-chunk var(--motion-hp-shadow) ease-out forwards;
+}
+
+/* ---------- the chunk, in the slot the hit landed in ----------
+   The victory-order patch, item 2.
+
+   The reported symptom was "the animation for my attack went first" on a turn
+   the player lost the Speed check. The lunges were ordered correctly — that is
+   asserted on both engines now — but both bars drew their chunk on the frame
+   the update arrived, so the damage the player *dealt* was on screen before the
+   attack that preceded theirs had visibly happened. Two chunks at once is a
+   turn with no order in it, and the bar is where the eye goes.
+
+   So a chunk holds at full strength until the slot of the move that caused it,
+   then fades — the same two slots `data-hit` uses on the sprite beside it, from
+   the same reading of the protocol. `both` is what makes the hold work: without
+   a backwards fill the shadow sits at the base rule's `opacity: 0` through its
+   delay and the chunk is invisible for the part of the turn it is waiting out.
+
+   **The total is unchanged, and that is deliberate.** Delay plus duration is
+   four beats on both slots, which is exactly `--motion-duration`, so the fade
+   still ends where the last lunge does and a turn's whole feedback is still the
+   one number. What moved is where inside that window the chunk resolves, not
+   how long the window is.
+
+   **The bar's number does not wait for any of this.** The fill goes to the new
+   value on the frame the update arrives, as it always has (`ui/bar.ts`), and
+   the HP text, the flag strip and the move buttons with it. What is slotted is
+   the outline of the ground that was lost, which is emphasis rather than
+   information — the rule in `ui/theme/motion.ts` that nothing mid-fight waits
+   on a motion budget is untouched. */
+.hp__shadow[data-fading][data-slot="1"] {
+  animation-delay: var(--motion-beat);
+  animation-duration: calc(var(--motion-beat) * 3);
+  animation-fill-mode: both;
+}
+
+.hp__shadow[data-fading][data-slot="2"] {
+  animation-delay: calc(var(--motion-beat) * 3);
+  animation-duration: var(--motion-beat);
+  animation-fill-mode: both;
 }
 
 @keyframes hp-chunk {
@@ -3436,7 +3476,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
      on fading for anybody who had asked it not to. Caught by
      `test/visual-release-c.test.ts`, which reads the computed animation rather
      than trusting the rule to have applied. */
-  .hp__shadow, .hp__shadow[data-fading] { animation: none; }
+  .hp__shadow,
+  .hp__shadow[data-fading],
+  .hp__shadow[data-fading][data-slot="1"],
+  .hp__shadow[data-fading][data-slot="2"] { animation: none; }
   /* The beats: the lunge on the actor, the hit and the faint on the sprite.
      Selectors matched to every rule they override, the slot delays and the
      KO-turn duration included, for the reason the chunk's note gives. The

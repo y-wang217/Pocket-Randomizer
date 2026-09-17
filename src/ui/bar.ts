@@ -71,6 +71,29 @@ export interface SetOptions {
    * therefore not a hit.
    */
   chunk?: boolean;
+  /**
+   * Which slot of the turn this chunk belongs to, 1-based, or null.
+   *
+   * **The victory-order patch, item 2.** The bar's *number* is still correct on
+   * the frame the update arrives and always will be — that is the rule in
+   * `ui/theme/motion.ts` and nothing here moves it. What is slotted is the
+   * chunk, which is not information but emphasis: the outline of the ground a
+   * hit took, held at full strength until the moment in the turn that hit
+   * landed, then faded.
+   *
+   * The reported symptom was "the animation for my attack went first" on a turn
+   * the player lost the Speed check. The lunges were correctly ordered — that is
+   * asserted on both engines in `test/visual-motion.test.ts` — but *both* bars
+   * drew their chunk on the same frame, before either body had moved, so the
+   * damage the player dealt was on screen before the attack that preceded theirs
+   * had visibly happened. Two chunks at once is a turn with no order in it, and
+   * the eye goes to the bar.
+   *
+   * Null is the opening draw and every caller that is not the battle stage: the
+   * chunk fades across the whole budget from now, which is what every bar did
+   * before slots existed.
+   */
+  slot?: number | null;
 }
 
 export interface Bar {
@@ -130,6 +153,10 @@ export function createBar(options: BarOptions = {}): Bar {
     // Clearing rather than leaving the last chunk standing: a shadow that
     // outlives the hit it describes is a lie about the current turn.
     delete shadow.dataset['fading'];
+    // And the slot with it. A slotted chunk holds at full strength through its
+    // delay, so a cleared one that kept its slot would be a visible chunk with
+    // no animation left to fade it.
+    delete shadow.dataset['slot'];
     shadow.style.width = '0%';
   };
 
@@ -162,6 +189,17 @@ export function createBar(options: BarOptions = {}): Bar {
       shadow.style.left = `${fraction * 100}%`;
       shadow.style.width = `${lost * 100}%`;
       delete shadow.dataset['fading'];
+      /*
+       * The slot goes on **before** the restart, not after.
+       *
+       * It selects the rule that sets this fade's delay and duration, and
+       * changing either on a running animation re-times it mid-flight rather
+       * than replaying it. Written first, the reflow below starts an animation
+       * that already has its final timing — the same discipline the restart
+       * itself exists for.
+       */
+      if (setOptions.slot === null || setOptions.slot === undefined) delete shadow.dataset['slot'];
+      else shadow.dataset['slot'] = String(setOptions.slot);
       void shadow.offsetWidth;
       shadow.dataset['fading'] = 'true';
       return true;

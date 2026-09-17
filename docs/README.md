@@ -58,7 +58,49 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the on-device diagnostic, and the artefact PR #41 did not ship.**
+**In flight: the victory-order patch.** Branch
+`claude/victory-screen-battle-ui-p3op20`, prompt
+[`spec/gymrun-patch-victory-order-and-battle-readouts.md`](spec/gymrun-patch-victory-order-and-battle-readouts.md),
+record [`generation.md`](generation.md) section 29. Six items from one playtest
+report. Three axes move: `RUN_LOG_VERSION` to `-17`, `RANDOMIZER_VERSION` to
+`-17`, `contentHash` from `c3964b` to `73c1ee`. `AI_VERSION` holds.
+
+**The headline is that a node offers its Pokemon before it asks who learns its
+move.** That is invisible at every node but one — a wild fight that pays a TM
+*and* offers its species — where the player spent the card while the member they
+might have wanted to give it to was still standing on the far side of the field.
+The capture resolves first now and both move questions are asked against the
+party it produced. `resolveNode` folds the acquisition ahead of both cards to
+match: the same index has to name the same member in both places, or the move
+lands on somebody else, silently, and only at those nodes.
+
+**A gym's guaranteed move may now be declined, and nothing else may.** It is the
+one taught move in the game the player never chose over alternatives, which is
+exactly the argument `chooseMoveToReplace` already makes from the other side for
+why every *other* move has no decline. `DECLINED_MOVE` is refused where it was
+not offered rather than trusted.
+
+**The animation report was right about the symptom and wrong about the cause,
+and that is the most useful thing in the patch.** "A Snubbull went before my
+Sizzlipede and the animation for my attack went first" is not the lunges — those
+are placed off the protocol and have been asserted against a real fight since
+Release C. What had no order in it was the *bar*: both sides drew their chunk on
+the frame the update arrived, so the damage the player dealt appeared
+simultaneously with the damage they took, before either body moved. The chunk is
+slotted now, to the same two slots the recoil uses, from the same reading. The
+bar's number still does not wait for anything.
+
+The missing assertion shipped too: nothing anywhere held that slot 2 is later
+than slot 1 *on screen*. It is held now, on both engines, both directions, and
+the exact two-beat ratio the four-slot budget is built from — and it passes,
+which is what says the lunges were never the defect.
+
+Also: the final segment's route always carries two consecutive wild-or-trainer
+steps (it trades the rest *density* for them, never the rest guarantee); the
+opposing panel carries how much of that side is left, withheld as `?` on a wild
+encounter; and the caught-Pokemon card finally has its ability tooltip.
+
+**Previously: the on-device diagnostic, and the artefact PR #41 did not ship.**
 Branch `claude/hopeful-lovelace-w118jz`, prompt
 [`spec/gymrun-patch-ios-diagnose-instrument.md`](spec/gymrun-patch-ios-diagnose-instrument.md),
 record [`generation.md`](generation.md) section 28, report

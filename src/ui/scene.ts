@@ -386,16 +386,30 @@ export function createScene(): Scene {
       updateActor(meActor, view.player);
       // Whether each bar drew a chunk. The hit beat reads this and nothing
       // else, so the recoil and the chunk agree by construction.
+      /*
+       * **The turn's order, read once and used three times.** See `actingOrder`.
+       *
+       * It has to be read *before* the panels redraw, because the chunk a bar
+       * draws is now slotted to the move that caused it and `Bar.set` writes the
+       * slot and the chunk in one go. `beats` is handed the same list rather
+       * than re-deriving it, so the lunge, the recoil and the chunk cannot
+       * disagree about who went first.
+       */
+      const order = actingOrder(turns);
+      // No reading, no slot: the bar fades its chunk across the whole budget
+      // from now, which is what it did before slots existed. See `hitSlot`.
+      const chunkSlot = (side: 'p1' | 'p2'): number | null =>
+        order.length === 0 ? null : hitSlot(side, order);
       const hit = {
-        foe: updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent'),
-        me: updateSidePanel(me, view.player, false, view.fasterSide === 'player'),
+        foe: updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent', chunkSlot('p2')),
+        me: updateSidePanel(me, view.player, false, view.fasterSide === 'player', chunkSlot('p1')),
       };
       // The opposing side's count, on the opposing panel and nowhere else.
       renderRoster(foe.roster, view.opponentLeft);
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
-      beats({ me: meActor, foe: foeActor }, hit, turns, marks ?? []);
+      beats({ me: meActor, foe: foeActor }, hit, order, marks ?? []);
     },
   };
 }
@@ -736,6 +750,13 @@ function updateSidePanel(
   active: ActiveUiView,
   isFoe: boolean,
   isFaster: boolean,
+  /**
+   * Which slot of the turn a hit on this side belongs to, from `hitSlot`.
+   *
+   * Passed down rather than read here, so the chunk this bar draws and the
+   * recoil `beats` writes on the same body are two uses of one reading.
+   */
+  slot: number | null = null,
 ): boolean {
   /*
    * Whether the body on this side changed. **The panel reads it; it no longer
@@ -799,7 +820,7 @@ function updateSidePanel(
    * never happened, on the one turn the player most needs to read the board
    * correctly.
    */
-  const hit = panel.hp.set(active.hp.fraction, { chunk: !swapped });
+  const hit = panel.hp.set(active.hp.fraction, { chunk: !swapped, slot });
   /*
    * Both sides now show exact HP.
    *
@@ -1074,21 +1095,81 @@ function panelTypeChip(type: string): HTMLElement {
  * switched — the hit takes the last slot there is, so it still reads as a
  * consequence of the turn rather than as something that happened before it.
  */
+/**
+ * The sides of a turn, in the order they first acted. **One reading, three
+ * consumers.**
+ *
+ * Lifted out of `beats` by the victory-order patch, because the HP chunk is
+ * slotted now and the bar is drawn before the beats are written. Three things
+ * on the stage key off this list — the lunge, the recoil, and the chunk a bar
+ * draws — and two independent readings of "who went first" sitting a hundred
+ * pixels apart is exactly the disagreement `screens/battle.ts` reads the
+ * protocol once to prevent, one level up.
+ *
+ * ## Which turn, and which sides
+ *
+ * The last group in the batch that has any actions, and **not** the last group
+ * with a turn number — those are different, and the difference is a bug worth
+ * not reintroducing. An incremental update arrives as `|move| … |move| …
+ * |upkeep| |turn|N+1`: the actions that just resolved sit in the leading group,
+ * which has no number yet because the line that would have numbered it came at
+ * the *start* of the previous batch, and the trailing `|turn|` opens an empty
+ * group for a turn nobody has played. Reading a turn number here moves nothing,
+ * forever.
+ *
+ * A side is placed by its *first* action, so a replacement switch after a faint
+ * does not re-place a side that has already moved. That caps the list at two,
+ * which is what the stylesheet's four slots are built around.
+ *
+ * ## It never computes an order
+ *
+ * There is no sort here, no Speed comparison and no second call to `readTurns`.
+ * The order is the one the engine already resolved and the log already
+ * numbered, so the beats and the log's ordinals cannot disagree.
+ */
+function actingOrder(turns: readonly FlaggedTurn[] | undefined): ('p1' | 'p2')[] {
+  const latest = turns ? [...turns].reverse().find((turn) => turn.actions.length > 0) : undefined;
+  const seen: ('p1' | 'p2')[] = [];
+  for (const { action } of latest?.actions ?? []) {
+    if (!seen.includes(action.side)) seen.push(action.side);
+  }
+  return seen;
+}
+
+/**
+ * Which slot a hit on `side` lands in, 1-based, or null when there is no turn.
+ *
+ * The slot of the *other* side's lunge: a hit is the answer to the move that
+ * caused it, so it follows that move's beat. When the other side did not act at
+ * all — recoil damage, weather, a burn on a turn the opponent switched — it
+ * takes the last slot there is, so it still reads as a consequence of the turn
+ * rather than as something that happened before it.
+ *
+ * With no turn reading at all — the opening draw, and the chunk-only fixtures
+ * in `test/battle-feedback.test.ts` — the answer is slot 1, the first there is.
+ * That is the pre-slot behaviour of the recoil and it is kept exactly: a hit
+ * that cannot be placed still lands rather than going unmarked.
+ *
+ * The *bar* wants the other answer in that case — no slot, fade across the
+ * whole budget from now, which is what every bar did before slots existed — so
+ * `update` asks for null there rather than this function inventing a second
+ * meaning for the same question.
+ */
+function hitSlot(side: 'p1' | 'p2', order: readonly ('p1' | 'p2')[]): number {
+  const other = side === 'p1' ? 'p2' : 'p1';
+  const slot = order.indexOf(other);
+  return slot >= 0 ? slot + 1 : Math.max(order.length, 1);
+}
+
 function beats(
   actors: { me: Actor; foe: Actor },
   hit: { me: boolean; foe: boolean },
-  turns: readonly FlaggedTurn[] | undefined,
+  seen: readonly ('p1' | 'p2')[],
   marks: readonly AbnormalityMark[],
 ): void {
   for (const actor of [actors.me, actors.foe]) {
     delete actor.root.dataset['acted'];
     delete actor.root.dataset['hit'];
-  }
-
-  const latest = turns ? [...turns].reverse().find((turn) => turn.actions.length > 0) : undefined;
-  const seen: ('p1' | 'p2')[] = [];
-  for (const { action } of latest?.actions ?? []) {
-    if (!seen.includes(action.side)) seen.push(action.side);
   }
 
   // Restart rather than extend, the same as the swap beat and the HP chunk:
@@ -1103,9 +1184,7 @@ function beats(
   }
   for (const [side, took] of [['p1', hit.me], ['p2', hit.foe]] as const) {
     if (!took) continue;
-    const other = side === 'p1' ? 'p2' : 'p1';
-    const slot = seen.indexOf(other);
-    actorOf(side).root.dataset['hit'] = String(slot >= 0 ? slot + 1 : Math.max(seen.length, 1));
+    actorOf(side).root.dataset['hit'] = String(hitSlot(side, seen));
   }
 
   /*

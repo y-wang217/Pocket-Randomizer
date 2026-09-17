@@ -1,9 +1,9 @@
 {
   "seed": "RESULT-1",
   "versions": {
-    "runLog": "gymrun-run-16/gymrun-0.3.0",
-    "contentHash": "c3964b9bd0d087330e2b7149510bbcd748aaff07991a4e63f13540a1e6903db2",
-    "randomizer": "gymrun-randomizer-16",
+    "runLog": "gymrun-run-17/gymrun-0.3.0",
+    "contentHash": "73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b",
+    "randomizer": "gymrun-randomizer-17",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -223,10 +223,10 @@
   "log": {
     "seed": "RESULT-1",
     "versions": {
-      "runLog": "gymrun-run-16/gymrun-0.3.0",
-      "contentHash": "c3964b9bd0d087330e2b7149510bbcd748aaff07991a4e63f13540a1e6903db2",
+      "runLog": "gymrun-run-17/gymrun-0.3.0",
+      "contentHash": "73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-16"
+      "randomizerVersion": "gymrun-randomizer-17"
     },
     "decisions": [
       {
@@ -263,6 +263,12 @@
         }
       },
       {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "accept"
+        }
+      },
+      {
         "kind": "reward",
         "index": 0
       },
@@ -273,12 +279,6 @@
       {
         "kind": "replace",
         "slot": 2
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "accept"
-        }
       },
       {
         "kind": "node",
@@ -299,14 +299,14 @@
         }
       },
       {
-        "kind": "reward",
-        "index": 0
-      },
-      {
         "kind": "acquisition",
         "decision": {
           "kind": "decline"
         }
+      },
+      {
+        "kind": "reward",
+        "index": 0
       },
       {
         "kind": "items",
@@ -436,14 +436,14 @@
         }
       },
       {
-        "kind": "reward",
-        "index": 0
-      },
-      {
         "kind": "acquisition",
         "decision": {
           "kind": "accept"
         }
+      },
+      {
+        "kind": "reward",
+        "index": 0
       },
       {
         "kind": "items",
@@ -531,14 +531,14 @@
         }
       },
       {
-        "kind": "reward",
-        "index": 0
-      },
-      {
         "kind": "acquisition",
         "decision": {
           "kind": "decline"
         }
+      },
+      {
+        "kind": "reward",
+        "index": 0
       },
       {
         "kind": "items",
