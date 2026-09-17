@@ -70,7 +70,7 @@ describe('the run log version', () => {
      * patch to `-17`, then the shop and moveset-variance patch to `-18` — which
      * is the axis working.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-18');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-19');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

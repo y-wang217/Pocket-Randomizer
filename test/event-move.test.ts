@@ -154,7 +154,7 @@ describe('the version axes this patch moved', () => {
      * so the number tracks the head of the axis rather than being frozen at
      * the value this patch left it.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-18');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-19');
   });
 });
 

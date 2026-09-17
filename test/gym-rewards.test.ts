@@ -37,6 +37,7 @@ import { nodesOf, type Segment,
 import { createRun } from '../src/core/run';
 import { GYM_OFFER_SIZE, OFFER_SIZE } from '../src/core/rewards';
 import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../src/data/rewardPools';
+import { MAX_MOVE_BAND } from '../src/data/moveOverrides';
 import { GYM_MOVE_BAND_BONUS, rewardMoveBand } from '../src/data/scaling';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
@@ -83,34 +84,47 @@ describe('the offer a gym clear produces', () => {
     }
   });
 
-  it('hands over a guaranteed move as well, at every gym', () => {
-    // Part A. Not a card and not a choice: every gym pays it, so a player who
-    // takes the gold still leaves with a move.
+  it('offers a page of three distinct moves as well, at every gym', () => {
+    // Part A. A choice of three now rather than a grant, but still unconditional
+    // on the cards: a player who takes the gold on page 2 still leaves with a move.
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
-        expect(gym.gymMove, `${gym.id} has no guaranteed move`).toBeTruthy();
-        expect(['tm', 'tutor'], `${gym.id} guaranteed a ${gym.gymMove?.kind}`).toContain(
-          gym.gymMove?.kind,
-        );
+        expect(gym.gymMoveOffer, `${gym.id} has no move page`).toBeTruthy();
+        const options = gym.gymMoveOffer?.options ?? [];
+        expect(options, `${gym.id} move page`).toHaveLength(GYM_OFFER_SIZE);
+        for (const option of options) {
+          expect(['tm', 'tutor'], `${gym.id} offered a ${option.kind}`).toContain(option.kind);
+        }
+        // Distinct, which is what the shared `takenMoves` set buys.
+        const names = options.map((option) => (option.kind === 'tm' || option.kind === 'tutor' ? option.move : ''));
+        expect(new Set(names).size, `${gym.id} repeats a move on its own page`).toBe(names.length);
       }
     }
   });
 
-  it('pays that move at the band the gym tutor card used to, and reads one number for it', () => {
+  it('pays its move page one band above the segment, and reads one number for it', () => {
     /*
-     * **Item 2's "read that same number, do not introduce a second one".**
+     * **The band recut moved this from +3 to +1, and the rule it served is gone.**
      *
-     * The chain is `REWARD_BAND_OFFSET.elite` (+2, owned by `data/scaling.ts`) plus
-     * `GYM_MOVE_BAND_BONUS` (+1, owned by the same file), which is exactly what the
-     * gym's own tutor *card* resolved at before this item replaced it. Asserted as
-     * the composition rather than as the number 3, so moving either constant moves
-     * this test with it instead of past it.
+     * It used to assert `paid >= elite`, the "a gym offer is strictly better than
+     * an elite node's" rule, with the chain `REWARD_BAND_OFFSET.elite` (+2) plus
+     * `GYM_MOVE_BAND_BONUS` (+1). At segment 0 that clamped to the top of the
+     * table and gym 1 paid a band-4 move every time. The rule is deleted —
+     * `data/rewardPools.ts` carries the argument — and what is asserted now is
+     * the chain that replaced it: the segment's own band plus the gym bonus,
+     * resolved at `normal`.
+     *
+     * Still asserted as the composition rather than as a literal, so moving
+     * either constant moves this test with it instead of past it.
      */
     expect(GYM_MOVE_ENTRY.bandOffset).toBe(GYM_MOVE_BAND_BONUS);
     for (let segment = 0; segment < 8; segment++) {
-      const paid = rewardMoveBand(segment, 'elite', GYM_MOVE_ENTRY.bandOffset ?? 0);
-      const elite = rewardMoveBand(segment, 'elite', 0);
-      expect(paid, `segment ${segment}`).toBeGreaterThanOrEqual(elite);
+      const paid = rewardMoveBand(segment, 'normal', GYM_MOVE_ENTRY.bandOffset ?? 0);
+      const own = rewardMoveBand(segment, 'normal', 0);
+      expect(paid, `segment ${segment}`).toBeGreaterThan(own);
+      expect(paid, `segment ${segment} is one band up, not three`).toBe(
+        Math.min(MAX_MOVE_BAND, own + GYM_MOVE_BAND_BONUS),
+      );
     }
   });
 
@@ -120,11 +134,14 @@ describe('the offer a gym clear produces', () => {
     // offer, and nobody would notice from the screen.
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
-        const granted = gym.gymMove;
-        if (granted?.kind !== 'tm' && granted?.kind !== 'tutor') continue;
-        for (const option of gym.reward?.options ?? []) {
-          if (option.kind !== 'tm' && option.kind !== 'tutor') continue;
-          expect(option.move, `${gym.id} offers the move it already gave`).not.toBe(granted.move);
+        for (const granted of gym.gymMoveOffer?.options ?? []) {
+          if (granted.kind !== 'tm' && granted.kind !== 'tutor') continue;
+          for (const option of gym.reward?.options ?? []) {
+            if (option.kind !== 'tm' && option.kind !== 'tutor') continue;
+            expect(option.move, `${gym.id} offers a move its own page already offers`).not.toBe(
+              granted.move,
+            );
+          }
         }
       }
     }
@@ -222,7 +239,7 @@ describe('when the offer is drawn', () => {
       // Stage 4.8: Part A is drawn eagerly too, from the same stream, before the
       // cards. A move that appeared only at gym completion would make the roll a
       // function of how the fight went.
-      expect(gym.gymMove).not.toBeNull();
+      expect(gym.gymMoveOffer).not.toBeNull();
     }
   });
 

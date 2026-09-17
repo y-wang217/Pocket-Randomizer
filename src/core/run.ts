@@ -327,7 +327,36 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * pair. Two guards, two messages: that one says the answers would mean
  * something else, this one says the questions changed.
  */
-export const RUN_LOG_VERSION = `gymrun-run-17/${ENGINE_VERSION}`;
+/*
+ * ## `-18`: the gym's guaranteed move became a choice
+ *
+ * **A question was added where there was none, which is the plainest case this
+ * guard has ever carried.**
+ *
+ * A gym used to hand over one move at the segment's band +3 and then ask who
+ * should learn it. It offers three moves at +1 now and asks which one first, so
+ * a gym node records **two** `reward` entries where it recorded one: the move
+ * page, then the relic-or-gold page. No decision *kind* was added — the replay
+ * cursor is positional and kind-checked, so two `reward` entries in one node
+ * need only a fixed order, which `playRun` gives them — but the sequence a gym
+ * writes is one entry longer.
+ *
+ * A `-17` log replayed against this build would read its gym `reward` entry as
+ * the answer to the move page and then run out of step at the card, or worse,
+ * line up by coincidence and apply the wrong card. That is exactly what this
+ * axis exists to refuse.
+ *
+ * The `DECLINED_MOVE` sentinel from `-17` survives unchanged and still rides in
+ * the `target` entry. Its *justification* changed — the move is chosen over two
+ * others now, which is the condition `chooseMoveToReplace` cites when it refuses
+ * a decline of its own — and `playRun` carries the argument for why it stays.
+ * The shape did not change, so that half is not what moved this number.
+ *
+ * `RANDOMIZER_VERSION` moves in the same patch, to `-19`, for the band recut and
+ * the level curve. Two guards, two messages: that one says the answers would
+ * mean something else, this one says the questions changed.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-18/${ENGINE_VERSION}`;
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -1813,6 +1842,22 @@ export async function playRun(
     const offer = drawn ? resolveOffer(drawn, state.relics) : null;
     let reviewedIndex: number | null = null;
 
+    /*
+     * **A gym's cards are not shown on the review screen, and that is the
+     * two-page order.**
+     *
+     * Every other node answers its one offer on the result screen, in the same
+     * beat as the battle outcome — that is what `reviewedIndex` is for. A gym
+     * has two offers now, three moves and then three relics-or-gold, and the
+     * moves come first. Handing the review screen the *card* offer would answer
+     * page 2 before page 1 had been asked, so the gym passes it nothing and both
+     * of its pages go through `chooseReward` below, in order.
+     *
+     * `offer` itself is untouched — the card block still reads it. Only what the
+     * review is shown, and therefore what it may answer, changes.
+     */
+    const reviewOffer = result.node.kind === 'gym' ? null : offer;
+
     if (result.battle && policy.reviewBattle) {
       const picked = await policy.reviewBattle(
         {
@@ -1822,13 +1867,13 @@ export async function playRun(
           party: result.battle.party,
           contribution: result.battle.contribution,
           currencyEarned: won ? nodePayout(result.node, state.currentSegment, applyRelicPassives(state.relics)) : 0,
-          offer,
+          offer: reviewOffer,
         },
         state,
       );
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
-      if (offer) reviewedIndex = picked ?? 0;
+      if (reviewOffer) reviewedIndex = picked ?? 0;
     }
 
     /*
@@ -1944,26 +1989,49 @@ export async function playRun(
      */
     const learners = partyAfterAcquisition(state, result);
 
-    if (result.node.kind === 'gym' && result.node.gymMove && result.battle?.result.winner === 'p1') {
-      const granted = result.node.gymMove;
+    if (result.node.kind === 'gym' && result.node.gymMoveOffer && result.battle?.result.winner === 'p1') {
+      /*
+       * **Page 1 of the gym's two, and it is a choice now rather than a grant.**
+       *
+       * The `reward` entry recorded here is the first of two a gym node writes;
+       * the card page below writes the second. The replay cursor is positional
+       * and kind-checked, so the pair needs no new decision kind — only this
+       * fixed order, which is also the order the player meets the pages in.
+       */
+      const moveOffer = result.node.gymMoveOffer;
+      const moveIndex = await policy.chooseReward(moveOffer, state);
+      record({ kind: 'reward', index: moveIndex });
+      const granted = moveOffer.options[moveIndex];
+      if (!granted) {
+        throw new RangeError(
+          `Gym move choice ${moveIndex} out of range (${moveOffer.options.length} offered)`,
+        );
+      }
       result.gymMove = granted;
       if (isTargeted(granted)) {
         /*
-         * **The one move in the game that may be handed back.** Item 3.
+         * **The one move in the game that may be handed back.** Item 3, and its
+         * justification is rewritten rather than retired.
          *
-         * A gym pays this move unconditionally — there is no card, no pair of
-         * alternatives, nothing the player weighed it against. Every other
-         * taught move reached its recipient question *because* it was chosen,
-         * and `chooseMoveToReplace` says why a decline there would be wrong:
-         * "the place to skip a move reward is the reward screen, where it was
-         * already chosen over two alternatives". This one has no such screen
-         * behind it, so refusing it is not a second escape hatch; it is the
-         * first and only one.
+         * The old argument was that a gym pays this move unconditionally — no
+         * card, no alternatives, nothing weighed against it — so refusing it was
+         * the first and only escape hatch. **That argument is dead**: the move
+         * page is three cards now and the player did pick one over two others,
+         * which is exactly the condition `chooseMoveToReplace` cites when it
+         * refuses a decline of its own.
+         *
+         * The decline survives on a different and still-true argument. An
+         * ordinary reward node offers a move *against an item or a relic*, so
+         * declining the move is spending the card elsewhere. A gym move page
+         * offers three moves and nothing else — the relics and the gold are on
+         * the next page, already guaranteed — so a player whose four slots are
+         * all doing work has no "take the other thing" answer available on the
+         * page where the question is asked. This is that answer.
          *
          * It matters because the move is not free. A party whose four slots are
          * all doing work pays for a gym move in whichever of them it displaces,
-         * and until now the only way to decline was to aim it at the member it
-         * would hurt least — a decision made by picking a victim.
+         * and the only alternative would be to aim it at the member it would
+         * hurt least — a decision made by picking a victim.
          *
          * Declining still records a `target` entry (`DECLINED_MOVE`) and asks
          * no `replace` after it, so the log keeps a fixed shape and the cursor
@@ -1999,13 +2067,16 @@ export async function playRun(
       /*
        * **The card is recorded here, after Part A, exactly where it was.**
        *
-       * The answer itself was taken at the top, on the result screen, and it
-       * has been sitting in `reviewedIndex` ever since — that is unchanged and
-       * predates this patch. What the log fixes is the *order the entries go
-       * in*, and this pair is the one Stage 4.8 item 2 pinned: the gym's
-       * unconditional move before the card chosen over two others. Moving the
-       * `reward` entry above it would have been a second reordering with
-       * nothing asking for it.
+       * At an ordinary node the answer was taken at the top, on the result
+       * screen, and has been sitting in `reviewedIndex` ever since — unchanged
+       * and older than this patch. At a **gym** `reviewedIndex` is always null
+       * by construction (see `reviewOffer`), so this is a real question asked
+       * here: page 2 of two, after the move page above it.
+       *
+       * Either way the log order is the one Stage 4.8 item 2 pinned and the band
+       * recut kept: the gym's move before its card. Both are `reward` entries
+       * now, which the replay cursor handles because it is positional and
+       * kind-checked — it steps through them in the order this code asks.
        */
       const index = reviewedIndex ?? (await policy.chooseReward(offer, state));
       reviewedIndex = null;

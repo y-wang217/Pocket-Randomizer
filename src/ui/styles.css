@@ -2508,16 +2508,19 @@ body {
   border: var(--hairline) solid transparent;
 }
 
-/* Stage V0: the four bands render identically. The opacity ramp that used to
+/* Stage V0: the five bands render identically. The opacity ramp that used to
    distinguish them was an ordering, and an ordering is a verdict. Patch
    4.8.0.3 keeps that: the pips differ in *count*, which is the band, and in
-   nothing else — one hue, one weight, filled or not. */
+   nothing else — one hue, one weight, filled or not. The band recut added the
+   fifth; there is deliberately no fifth colour, because there was never a
+   first one. */
 .band--1,
 .band--2,
 .band--3,
-.band--4 { opacity: 1; }
+.band--4,
+.band--5 { opacity: 1; }
 
-/* The band pips. Patch 4.8.0.3, item 3: `BAND 3` became three of four filled.
+/* The band pips. Patch 4.8.0.3, item 3: `BAND 3` became three of five filled.
 
    Sized off the chip's own font so they scale with every density and font
    setting the rest of the badge does, rather than being pinned in px and

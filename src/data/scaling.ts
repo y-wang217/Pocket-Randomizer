@@ -104,8 +104,9 @@ export interface SegmentScaling {
    * widened or moved; a weight can be moved by a tenth.
    *
    * A band with no entry has weight zero and cannot be drawn, which is what
-   * keeps band 4 out of the opening segments — the same idiom `tuning.tierBands`
-   * uses to keep `elite` out of them.
+   * keeps the top bands out of the opening segments — the same idiom
+   * `tuning.tierBands` uses to keep `elite` out of them. From the five-band
+   * recut that is bands 3 and up through segment 1, and band 5 until segment 5.
    */
   moveBandWeights: Readonly<Record<number, number>>;
   /**
@@ -138,13 +139,36 @@ export interface SegmentScaling {
  * pass the simulator is asked to move; `docs/balance.md` section 0 has the
  * baseline it is read against.
  *
- * **Levels start at 7 and end at 55.** Kaizo pace, compressed to eight gyms:
- * Crystal Kaizo caps its gyms at 14, 16, 21, 28, 30, 35, 45, 46. Each gym
- * clear is sized to cross a threshold cluster in the dex, so the post-gym
- * evolution beat has something to show — 16 to 20 at gym 2, 25 to 27 at gym
- * 3, 28 to 33 at gym 4 and deliberately not 36, 36 to 40 at gym 5, 42 to 45
- * at gym 6, 48 to 55 at gym 7. Seven rather than five at the start because
- * the wild offset plus `rollSpec`'s clamp would make the first fights level 2.
+ * **Levels start at 15 and end at 58.** Emerald pace rather than Kaizo pace,
+ * stretched: vanilla Emerald's gyms are 15, 19, 24, 29, 31, 33, 42, 46 and its
+ * Champion is 58. Gyms 1 and 2 are taken from that list; the middle is
+ * stretched because Emerald's own is flat — 29, 31, 33 across three gyms — and
+ * the dex's final-evolution mass sits at 30 to 36 with a median of 35, so the
+ * vanilla curve parks *under* the entire cluster for three gyms and shows the
+ * player nothing. Gym 8 takes the Champion's 58 rather than the eighth gym's
+ * 46, because this game's eighth gym is its final fight and because 46 is below
+ * every pseudo-legendary's threshold: at 46 a Tyranitar or Dragonite line could
+ * never finish in any run.
+ *
+ * Measured against the starter pool, the curve reaches 36% of lines fully
+ * evolved by gym 4, 89% by gym 6 and 97% by gym 7. The two goals it misses are
+ * recorded rather than chased: stage 1 by gym 2 reaches 20% (dex stage-1 levels
+ * cluster at 16 to 30, and a majority needs gym 2 at about 26, which makes the
+ * opening a sprint), and Tyranitar and Dragonite at a *real* dex 55 finish at
+ * gym 8 rather than gym 7 — `data/evolutionThresholds.ts` may not raise a real
+ * dex level, and the Dragon gym is arguably where they belong.
+ *
+ * **Raising the level does not soften the early swing; it sharpens it.** The
+ * damage formula's level term is `floor(2L/5) + 2`, which doubles from 4 to 8
+ * between level 7 and level 15, while median starter HP grows from 26 to 44 —
+ * a factor of 1.69. Damage outgrows HP because the flat `+10` in the HP formula
+ * dominates at very low level and stops mattering by 15. Gym 1's chance that a
+ * STAB super-effective hit one-shots goes 14.2% to 22.3% across this patch: the
+ * band work took it *down* to 11.3% and the level raise took it back up. The
+ * curve is justified on evolution pacing and on nothing else. Accepted
+ * deliberately — the counterplay is the segment's guaranteed wild encounter,
+ * which is what makes catching for gym 1 a decision now that the starter is a
+ * band-0 base form. `docs/reports/early-game-band-and-curve.md` section 5.
  *
  * **Offsets still grow with level**, the Stage 3 finding kept: wild roughly
  * a fifth to a third below, trainer a sixth to a quarter below, and the gym
@@ -160,15 +184,31 @@ export interface SegmentScaling {
  * carrying weight at segment 6 so the pseudo-legendaries are a late-gym
  * exclusive; a gym draws the segment's own distribution.
  *
- * **Move bands are unchanged.** They matter more than levels — the Stage 1
- * finding that a fully evolved Pokemon's best move one-shots another one is
- * only truer at level 7 — and holding them still is what keeps the benchmark
- * delta attributable to the level and roster change.
+ * **Move bands are rewritten, and for the first time against something
+ * external.** They had to be: `POWER_CUTS` went from three cuts to four, so the
+ * old band 3 (76-95) splits across the new bands 3 and 4 and every row means
+ * something different than it did. There was no option to hold them still.
+ *
+ * The shares below are fitted to what a real Pokemon actually carries at each
+ * of these levels — gen-9 level-up learnsets for all 900 pool species, pre-evo
+ * chains walked, scored as the four most recently learned damaging moves. That
+ * measurement says two things the old table got wrong in opposite directions:
+ * the opening weights were already about right (real games give 58/18 at level
+ * 15 against a written 80/20, and the 61/34 this game *measured* was the STAB
+ * window leaking, not the weights), and the back half was the under-specified
+ * end — real gym 8 is 38% top-band and the old table had no top band to give.
+ *
+ * So segment 7 is the first row whose modal band is the ceiling. `gymMovePool`
+ * and `segmentMoveBand` both read the mode, and ties go to the higher band, so
+ * gym 8 draws and pays band 5. That is the epic conclusion, as one row.
+ *
+ * `docs/reports/early-game-band-and-curve.md` section 3 carries the table these
+ * are fitted to and the seed counts behind the measured shares.
  */
 export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 0,
-    playerLevel: 7,
+    playerLevel: 15,
     levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: 0, max: 1 } },
     speciesBandWeights: { 0: 5, 1: 1 },
     moveBandWeights: { 1: 4, 2: 1 },
@@ -176,58 +216,58 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   },
   {
     segment: 1,
-    playerLevel: 14,
+    playerLevel: 20,
     levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: 0, max: 1 } },
     speciesBandWeights: { 0: 4, 1: 2 },
-    moveBandWeights: { 1: 4, 2: 1 },
+    moveBandWeights: { 1: 3, 2: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
     segment: 2,
-    playerLevel: 20,
+    playerLevel: 26,
     levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: 0, max: 2 } },
     speciesBandWeights: { 0: 2, 1: 3, 2: 2 },
-    moveBandWeights: { 1: 4, 2: 1 },
+    moveBandWeights: { 1: 2, 2: 3, 3: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
     segment: 3,
-    playerLevel: 27,
+    playerLevel: 32,
     levelOffset: { wild: { min: -9, max: -6 }, trainer: { min: -7, max: -4 }, gym: { min: 0, max: 2 } },
     speciesBandWeights: { 0: 1, 1: 3, 2: 3 },
-    moveBandWeights: { 1: 3, 2: 5 },
+    moveBandWeights: { 1: 1, 2: 3, 3: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
     segment: 4,
-    playerLevel: 33,
+    playerLevel: 38,
     levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -8, max: -5 }, gym: { min: 1, max: 2 } },
     speciesBandWeights: { 1: 2, 2: 3, 3: 2 },
-    moveBandWeights: { 1: 3, 2: 5 },
+    moveBandWeights: { 2: 2, 3: 5, 4: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
     segment: 5,
-    playerLevel: 40,
+    playerLevel: 44,
     levelOffset: { wild: { min: -13, max: -9 }, trainer: { min: -10, max: -6 }, gym: { min: 1, max: 3 } },
     speciesBandWeights: { 1: 1, 2: 3, 3: 3 },
-    moveBandWeights: { 2: 5, 3: 3 },
+    moveBandWeights: { 2: 2, 3: 5, 4: 1, 5: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
     segment: 6,
-    playerLevel: 47,
+    playerLevel: 50,
     levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -11, max: -7 }, gym: { min: 1, max: 3 } },
     speciesBandWeights: { 2: 2, 3: 3, 4: 1 },
-    moveBandWeights: { 2: 3, 3: 5 },
+    moveBandWeights: { 3: 4, 4: 2, 5: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
   {
     segment: 7,
-    playerLevel: 55,
+    playerLevel: 58,
     levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -13, max: -8 }, gym: { min: 2, max: 4 } },
     speciesBandWeights: { 2: 1, 3: 3, 4: 2 },
-    moveBandWeights: { 3: 3, 4: 5 },
+    moveBandWeights: { 3: 3, 4: 2, 5: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },
   },
 ];
@@ -264,8 +304,11 @@ export interface TierModifier {
    * rounded. Stage 4.9: at level 7 the old `elite: -3` was 43% of the level
    * and put a two-body elite at level 2; at level 47 it was the 6% it had
    * been tuned as. A share reproduces the tuned numbers where they were tuned
-   * (+1 / -3 at 47 to 55) and rounds to 0 / -1 at 7 to 20, where a second body
-   * against a two-slot party is already the whole of the price.
+   * (+1 / -3 at 47 to 55) and rounds small at the bottom of the curve, where a
+   * second body against a two-slot party is already the whole of the price.
+   * The stretched curve starts at 15 rather than 7, so `hard`'s 0.03 now rounds
+   * to 0 at gym 1 and 2 at gym 8 — the level-2 elite the share was introduced
+   * to prevent cannot happen at any point on this curve.
    */
   levelShare: number;
   /**
@@ -379,37 +422,54 @@ export const MOVESET = {
   /**
    * How many bands **above** the drawn one a STAB-restricted slot may reach.
    *
-   * **The answer to the measurement in
+   * **Zero, and the reason it is zero now is the reason it was one before.**
+   *
+   * It was added because band 1 was too thin to draw from: at 82 moves it held
+   * one Psychic move and one Dragon move, so the forced first slot of those
+   * species was not a draw at all — thirteen of the 191 starters opened with a
+   * move the seed did not choose, and for Axew at base Attack 87 against base
+   * Special Attack 30 that mandatory move was a 40 BP *special*. A dead slot,
+   * handed out deterministically.
    * [`docs/reports/moveset-pool-validation.md`](../../docs/reports/moveset-pool-validation.md)
-   * section 3b, and the reason it is a window rather than a wider band.**
+   * section 3b is that measurement.
    *
-   * A band is a *strength* statement and a type is a *flavour* one, and the two
-   * tables have very different shapes. Band 1 holds 82 moves, which is a
-   * healthy draw — but sliced by type it holds one Psychic move and one Dragon
-   * move, so the forced first slot of a Psychic or Dragon species was not a
-   * draw at all. Thirteen of the 191 starters opened with a move the seed did
-   * not choose: every Psychic with Confusion, every Dragon with Twister, and
-   * for Axew at base Attack 87 against base Special Attack 30 that mandatory
-   * move is a 40 BP *special*. A dead slot, handed out deterministically.
+   * The fix worked and cost more than it looked like it cost. A window reaches a
+   * band *up*, so segments 0-2 — written `{ 1: 4, 2: 1 }`, an 80/20 split — were
+   * measured fielding **61% band 1, 34% band 2 and 5% band 3** across 600 seeds.
+   * The opening was drawing from a table nobody had written, and the leak was
+   * invisible at the table because it happens at the slot.
    *
-   * At 1 the same measurement reads 6.8 mean options to 14.5, thirteen
-   * deterministic species to none, and six types whose band-1 pool is entirely
-   * one attack category down to one.
+   * So the window closes and the *band* widens instead, which is the same fix
+   * applied to the cause rather than the symptom. `POWER_CUTS`'s first cut moved
+   * 55 to 60 and band 1 went from 82 moves to 117: types whose whole band-1
+   * slice is one attack category drop from six to three, and types with fewer
+   * than three band-1 moves from four to two. A wider band gives the forced slot
+   * a real draw *without* reaching up into power the segment is not supposed to
+   * have.
    *
-   * **It costs no randomness, and that is what makes it the right lever.**
-   * `take()` is a single `pick` whatever the size of the list handed to it, so
-   * widening the list does not change how many times the stream is read. The
-   * draw count stays a function of `MOVESET.slots` alone, which is the property
-   * `rollMoveset` exists to protect.
+   * **Three types are still thin, and that is accepted rather than fixed.**
+   * Psychic holds exactly one band-1 move (Confusion), Steel two, Fairy three.
+   * Every Psychic species' first slot is therefore deterministic again — the
+   * defect this field was added to fix, reintroduced knowingly, on the argument
+   * that Psychic is a strong typing and ought to cost something to field. The
+   * three type gaps the recut opens in the upper bands (band 2 has no Dragon,
+   * band 4 no Bug, band 5 no Dark) are pinned in `test/data-tables.test.ts` on
+   * the same terms.
    *
-   * The lever *not* pulled is `stabBias`: section 4 of the same report measures
-   * it and declines it, because Normal is 20.7% of band 1 and every slot handed
-   * back to open coverage is a one-in-five chance of the worst coverage type in
-   * the game.
+   * **Closing it costs no randomness either**, which is what made it a safe
+   * lever in both directions: `take()` is a single `pick` whatever the size of
+   * the list handed to it, so narrowing the list does not change how many times
+   * the stream is read. The draw count stays a function of `MOVESET.slots`
+   * alone, which is the property `rollMoveset` exists to protect.
    *
-   * Zero restores the pre-patch behaviour exactly.
+   * The lever still *not* pulled is `stabBias`: section 4 of the same report
+   * measures it and declines it, because Normal is 20.7% of band 1 and every
+   * slot handed back to open coverage is a one-in-five chance of the worst
+   * coverage type in the game.
+   *
+   * One restores the windowed behaviour exactly.
    */
-  stabWindow: 1,
+  stabWindow: 0,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -475,9 +535,10 @@ function shiftSpeciesWeights(
  * The band distribution a segment draws damaging moves from, tier applied.
  *
  * The tier shifts the whole distribution up by `TIER_MODIFIERS[tier].moveBand`,
- * clamped at the ceiling — so a `hard` node in segment 4 is mostly band 4 where
- * an ordinary one is mostly band 3, and the weights keep their shape rather
- * than being replaced by a different table per tier.
+ * clamped at the ceiling — so an `elite` node in segment 4 is mostly band 4
+ * where an ordinary one is mostly band 3, and the weights keep their shape
+ * rather than being replaced by a different table per tier. (`hard` shifts the
+ * species band and the level, not the move band; only `elite` moves this one.)
  *
  * Two bands that collide at the ceiling have their weights **summed**, which is
  * the honest reading of "shift a distribution into a wall": the probability
@@ -617,7 +678,7 @@ export const REWARD_BAND_OFFSET: Record<Tier, number> = { normal: 0, hard: 1, el
  * A gym takes no tier — it is the segment's difficulty statement, and a second
  * dial on the same number is a dial the balance report cannot attribute — so
  * the spike it *does* get has to be visible somewhere, and this is the somewhere.
- * At +1 a gym in segment 4 draws mostly band 4 while the trainers around it draw
+ * At +1 a gym in segment 6 draws mostly band 4 while the trainers around it draw
  * mostly band 3.
  *
  * It applies to the move band only. Level, team size and species band come from
@@ -636,6 +697,18 @@ export const GYM_MOVE_BAND_BONUS = 1;
  * segment's own move band; the spike starts where the player's own kit has
  * begun to climb. The gym clear's *reward* still pays one band up from the
  * first gym (`rewardPools.ts`), which is what lets the kit climb at all.
+ *
+ * **Held at 2 through the band recut, deliberately, and it is the number to
+ * look at first if gym 3 reads as a wall.** The stated reason above is a level-7
+ * argument and the curve starts at 15 now, so it no longer carries its own
+ * weight — but the *measurement* behind it (gym 1 at 28% clear, 82% of deaths)
+ * was real, and moving two dials between one benchmark and the next is how a
+ * report stops being attributable. What the recut does change is where the
+ * spike lands: segment 2's own weights are `{ 1: 2, 2: 3, 3: 2 }`, so gym 3
+ * draws `{ 2: 2, 3: 3, 4: 2 }` — 29% band 2, 43% band 3, 29% band 4 — against a
+ * real-game reference at that level of 29/34/30/2/5. Gym 3 is the one fight in
+ * the opening that sits materially *above* what a real Pokemon carries, and it
+ * is recorded here rather than tuned away before the first playtest.
  */
 export const GYM_MOVE_BAND_BONUS_FROM_SEGMENT = 2;
 

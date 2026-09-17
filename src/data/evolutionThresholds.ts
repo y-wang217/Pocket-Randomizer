@@ -70,7 +70,7 @@ export const SYNTHETIC_BY_METHOD: Readonly<Record<EvoMethod, SyntheticLevel>> = 
   },
   useItem: {
     level: 30,
-    reason: 'a stone is a mid-game find; Crystal Kaizo sells them at Goldenrod, the third gym, and the gym 4 clear (27 to 33) crosses 30',
+    reason: 'a stone is a mid-game find; Crystal Kaizo sells them at Goldenrod, the third gym, and the gym 3 clear (26 to 32) crosses 30',
   },
   levelMove: {
     level: 32,
@@ -114,7 +114,7 @@ export const SYNTHETIC_OVERRIDES: Readonly<Record<string, SyntheticLevel>> = {
   golem: { level: 42, reason: 'Emerald Kaizo: Graveler to Golem at 42' },
   machamp: { level: 50, reason: 'Emerald Kaizo: Machoke to Machamp at 50' },
   gengar: { level: 50, reason: 'Emerald Kaizo: Haunter to Gengar at 50' },
-  alakazam: { level: 55, reason: 'Emerald Kaizo: Kadabra to Alakazam at 55' },
+  alakazam: { level: 50, reason: 'Emerald Kaizo puts this at 55, and 55 is one level above the gym 7 fight on the stretched curve — the one synthetic the curve strands. 50 is the gym 6 clear, which is where Gengar and Machamp already sit, so the three trade evolutions the design calls late bloomers finish together and in time for gym 7' },
   politoed: { level: 37, reason: 'sibling rule: Poliwhirl branches; 37 is Emerald Kaizo\'s Politoed level and Poliwrath matches it' },
   poliwrath: { level: 37, reason: 'sibling rule: matches Politoed so the Poliwhirl branch is asked rather than decided by whichever fires first' },
   slowking: { level: 37, reason: 'sibling rule: Slowbro is a real 37, so the Slowpoke branch fires together' },

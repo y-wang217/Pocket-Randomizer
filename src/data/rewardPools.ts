@@ -392,18 +392,40 @@ const GYM: readonly RewardBand[] = [
 ];
 
 /**
- * The move a gym clear hands over, win or pick. **Stage 4.8, item 2 Part A.**
+ * The moves a gym clear offers. **Stage 4.8 item 2 Part A, rebuilt by the band
+ * recut.**
  *
  * One entry rather than a band table, because there is nothing to weight: every
  * gym pays exactly this, and what varies is the segment the bands are resolved
- * against.
+ * against. It is drawn three times now instead of once — `generateGymRewardOffer`
+ * shares one `takenMoves` set across the three, so the page is three *distinct*
+ * moves in the same band rather than one move three times.
  *
- * `bandOffset` is `GYM_MOVE_BAND_BONUS` and the resolution tier is `elite`, which
- * is **the same chain the gym's tutor card used before this item existed**: the
- * tier rule pays +2 and the gym bonus pays one more, so the move is at +3 as it
- * always was. Item 2 says to read that number rather than introduce a second one,
- * and this is the reading — `data/scaling.ts` owns the +1 and `REWARD_BAND_OFFSET`
- * owns the +2, and neither is restated here.
+ * ## The band went from +3 to +1, and a rule died with it
+ *
+ * `bandOffset` is still `GYM_MOVE_BAND_BONUS`. What changed is the tier it
+ * resolves against: `elite` became `normal`, so the chain is the segment's own
+ * band plus the gym's +1, and no longer plus `REWARD_BAND_OFFSET.elite`'s +2 on
+ * top. It used to be +3, and at segment 0 that clamped to the top of the table:
+ * measured 300 times out of 300, **gym 1 handed the player a band-4 move** — Fire
+ * Blast, Cross Chop, Sacred Fire, Overheat — at level 14. The single largest
+ * swing in the opening, and it was on the player's side.
+ *
+ * The +2 was there to serve a rule this file used to state: *a gym offer is
+ * strictly better than an elite node's.* That rule is **deleted**, not weakened,
+ * and the argument that replaces it is that it was measuring the wrong axis. An
+ * elite node pays one card. A gym pays a choice of three moves, then a choice of
+ * three relics-or-gold, and it unlocks the level step and the evolutions that
+ * come with it. A gym is worth more than an elite by volume and by progression;
+ * it does not also need to win on band, and making it win on band is what put a
+ * 130 BP move in a level-14 party.
+ *
+ * An elite node out-paying a gym *on the single move* is now possible and is
+ * fine: an elite is optional and risky, a gym is neither, and the player weighs
+ * that going in.
+ *
+ * `docs/generation.md` section 33 records the deletion; the measurement is in
+ * `docs/reports/early-game-band-and-curve.md` sections 1 and 6.
  */
 export const GYM_MOVE_ENTRY: Extract<RewardEntry, { kind: 'tutor' }> = {
   kind: 'tutor',
