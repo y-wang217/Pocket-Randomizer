@@ -866,11 +866,17 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
      * on the turn it is offered, and any cleverer number here would be the
      * scorer inventing a forecast the game does not give it.
      *
-     * Net, because `defaultMoveReplacement` returns `weakestSlot ?? statusSlot`
-     * — it displaces the weakest *damaging* move whenever the member has one,
-     * so a technique always costs an attack slot. A flat value that ignored
-     * that would have the bot buy techniques until its party could not fight,
-     * and the report would read that as demand.
+     * Net, because of what this bot's own replacement rule does with it.
+     * `greedyMoveToReplace` below sheds a spare status move when a member holds
+     * two, and otherwise displaces the weakest *damaging* move — so the first
+     * technique a member takes costs it an attack slot, every time. A flat
+     * value that ignored that would have the bot buy techniques until its party
+     * could not fight, and the report would read that as demand.
+     *
+     * (`core/run.ts`'s `defaultMoveReplacement` is a *different* rule with a
+     * different answer — it never reaches a status slot while any damaging move
+     * is held — and it is the scripted policy's, not this one's. The two are
+     * easy to confuse and the report did confuse them once.)
      *
      * **This number is a confound and is written up as one**:
      * `docs/reports/moveset-pool-validation.md` section 5. It is deliberately
