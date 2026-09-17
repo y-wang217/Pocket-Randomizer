@@ -22,8 +22,10 @@ import {
   generateShopStock,
   isBattleKind,
   nodePayout,
+  type ShopItem,
 } from '../src/core/economy';
 import { nodesOf, routeStepsOf, type NodeSpec } from '../src/core/encounters';
+import { isTargeted } from '../src/core/rewards';
 import {
   applyEventOutcome,
   definitionOf,
@@ -44,7 +46,15 @@ import {
 } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
 import { EVENTS } from '../src/data/events';
-import { NODE_PAYOUT, shopEntriesFor, TIER_PAYOUT } from '../src/data/shop';
+import {
+  NODE_PAYOUT,
+  shopEntriesFor,
+  shopSlotsFor,
+  TIER_PAYOUT,
+  type ShopCategory,
+} from '../src/data/shop';
+import { BERRIES } from '../src/data/items';
+import { STATUS_MOVES } from '../src/data/movePools';
 import { SEGMENT_COUNT } from '../src/data/scaling';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
 
@@ -183,15 +193,106 @@ describe('shop and event nodes', () => {
     }
   });
 
-  it('respects the stock-size tuning', () => {
-    const big = withTuning({ shopStockSize: { min: 6, max: 6 } });
-    const sizes = new Set<number>();
+  /*
+   * The property the slot shelf exists for, asserted on the shelf a player is
+   * actually shown rather than on the table it came from.
+   *
+   * A category is read back off the resolved reward, not stored on the row,
+   * deliberately: storing it would let the shelf claim a category it did not
+   * deliver, and this is the one test that would then pass while the screen
+   * showed three heals. The berry and item categories are told apart by the id,
+   * which is the same distinction `data/shop.ts` draws between them.
+   */
+  it('guarantees one row of every category its band sells', () => {
+    const berryIds = new Set(BERRIES.map((entry) => entry.id));
+    const categoryOf = (reward: ShopItem['reward']): ShopCategory | null => {
+      switch (reward.kind) {
+        case 'tm':
+        case 'tutor':
+          return 'move';
+        case 'technique':
+          return 'technique';
+        case 'heal':
+          return 'heal';
+        case 'relic':
+          return 'relic';
+        case 'item':
+          return berryIds.has(reward.item) ? 'berry' : 'item';
+        default:
+          return null;
+      }
+    };
+
+    let shops = 0;
     for (const seed of seeds) {
-      for (const node of allNodes(seed, big)) if (node.shop) sizes.add(node.shop.items.length);
+      for (const segment of createRun(seed).segments) {
+        const wanted = new Set(shopSlotsFor(segment.index).map((slot) => slot.category));
+        for (const node of nodesOf(segment)) {
+          if (!node.shop) continue;
+          shops += 1;
+          const got = new Set(node.shop.items.map((item) => categoryOf(item.reward)));
+          for (const category of wanted) {
+            expect(got.has(category), `${node.id} (segment ${segment.index}) has no ${category}`).toBe(
+              true,
+            );
+          }
+        }
+      }
     }
-    expect(sizes.size).toBeGreaterThan(0);
-    // Dedup can shorten a shelf but never lengthen it past the draw.
-    for (const size of sizes) expect(size).toBeLessThanOrEqual(6);
+    expect(shops).toBeGreaterThan(0);
+  });
+
+  /*
+   * A technique is on every shelf, and the only fight that pays one is elite.
+   *
+   * The brief's split, asserted rather than trusted: battles pay coverage and
+   * shops pay options, with one deliberate exception in the elite pool. The
+   * restriction lives nowhere but the absence of the entry from the `NORMAL`,
+   * `HARD` and `GYM` tables — there is no tier check in the code — so a table
+   * edit is exactly how it would be lost, and a table edit is what this
+   * catches.
+   *
+   * It also pins the half that was impossible before this patch: every move a
+   * technique names is really in `STATUS_MOVES`.
+   */
+  it('sells status moves and pays one for a fight only at elite', () => {
+    const statusNames = new Set(STATUS_MOVES.map((move) => move.name));
+    let sold = 0;
+    let paid = 0;
+    for (const seed of seeds) {
+      for (const node of allNodes(seed)) {
+        for (const item of node.shop?.items ?? []) {
+          if (item.reward.kind !== 'technique') continue;
+          sold += 1;
+          expect(statusNames.has(item.reward.move), item.reward.move).toBe(true);
+        }
+        for (const reward of node.reward?.options ?? []) {
+          if (reward.kind !== 'technique') continue;
+          paid += 1;
+          expect(statusNames.has(reward.move), reward.move).toBe(true);
+          expect(node.tier, `${node.id} pays a technique at tier ${node.tier}`).toBe('elite');
+        }
+      }
+    }
+    expect(sold).toBeGreaterThan(0);
+    expect(paid).toBeGreaterThan(0);
+  });
+
+  it('respects the extra-slot tuning', () => {
+    const guaranteed = (segment: number): number => shopSlotsFor(segment).length;
+    const big = withTuning({ shopExtraSlots: { min: 4, max: 4 } });
+    let seen = 0;
+    for (const seed of seeds) {
+      for (const segment of createRun(seed, big).segments) {
+        for (const node of nodesOf(segment)) {
+          if (!node.shop) continue;
+          seen += 1;
+          // Dedup can shorten a shelf but never lengthen it past the draw.
+          expect(node.shop.items.length).toBeLessThanOrEqual(guaranteed(segment.index) + 4);
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 });
 
@@ -289,9 +390,21 @@ describe('currency never goes negative', () => {
   it('charges exactly the basket price and applies every item', () => {
     const rich = started('ECON', 100_000);
     const basket = stock.items.map((_, index) => index);
-    const after = applyPurchases(rich, stock, basket);
+    /*
+     * One answer per taught move, and the shelf now guarantees two of them.
+     *
+     * It used to buy the whole shelf with no `moveChoices` at all, which passed
+     * only because a drawn shelf often held no move. Every shelf holds a battle
+     * move *and* a technique from this patch, so the pair of questions is not
+     * optional any more — and a fixture that dodged them was testing a basket
+     * the game cannot assemble.
+     */
+    const taught = stock.items.filter((item) => isTargeted(item.reward)).length;
+    const choices = Array.from({ length: taught }, () => ({ target: 0, replaceSlot: 3 }));
+    const after = applyPurchases(rich, stock, basket, choices);
     expect(after.currency).toBe(100_000 - basketCost(stock, basket));
     expect(after.currency).toBeGreaterThanOrEqual(0);
+    expect(taught).toBeGreaterThanOrEqual(2);
   });
 
   it('leaves the run alone on an empty basket', () => {

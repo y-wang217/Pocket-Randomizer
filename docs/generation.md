@@ -4970,7 +4970,213 @@ relative deltas and an arc takes radii and flags before its endpoint. It called
 the Normal ring's legal `-7.4` an escape. It was deleted rather than loosened,
 and the file says why in place of it.
 
-## 31. The missing sprite was 84px wide, and the alt text is why
+## 31. The shop and moveset-variance patch: a category nothing drew, and a slot with no draw
+
+**2026-09-17**, branch `claude/intelligent-newton-5ftz3j`. Prompt:
+[`spec/gymrun-patch-shop-and-moveset-variance.md`](spec/gymrun-patch-shop-and-moveset-variance.md).
+Report, filed before any code and treated as a hard stop:
+[`reports/moveset-pool-validation.md`](reports/moveset-pool-validation.md).
+
+Axes: `RANDOMIZER_VERSION` to `gymrun-randomizer-18`, `contentHash` to `fd9b5e`.
+**`RUN_LOG_VERSION` holds at `-17`** and `AI_VERSION` holds.
+
+### 31.1 Status moves were unreachable, not under-weighted
+
+All four routes that hand a player a move — reward card
+(`core/rewards.ts`), shop shelf (`core/economy.ts`), event grant
+(`core/events.ts`), gym clear (`GYM_MOVE_ENTRY`) — call `damagingInBands`, and
+`DAMAGING_MOVES` cannot hold a status move because `scripts/gen-pools.ts`
+excludes the category at generation. **So no weight, price or table edit
+anywhere in `data/` could ever have produced one.** That is why the fix is a
+reward *kind* and not a row: `technique`, drawn through the new
+`statusByImpact` in `core/randomizer.ts`, which is `damagingInBands`' opposite
+number and reaches the same `STATUS_AVAILABLE` list `rollMoveset` already uses.
+One pool, two doors.
+
+`MoveReward` gaining the kind is the load-bearing line — `askMoveQuestions`,
+`applyReward`, `party.teachMove` and the move-replace screen all work
+unchanged, because a status move asks exactly what a TM asks.
+
+**One reader did not come along, and it is the case `docs/README.md` open item
+15 exists to warn about.** `isTargeted` was
+`kind === 'tm' || kind === 'tutor'`, which stays valid TypeScript when the union
+widens and silently answers `false` for the new kind. It did: a bought technique
+reached `teachMove` with no slot and threw at the first party member holding
+four moves, because `playRun` never asked the question. It is an exhaustive
+`switch` with no `default` now, so the next kind is a compile error there.
+
+### 31.2 The shelf is a list of categories
+
+`data/shop.ts` was one weighted table walked `shopStockSize` times, so a shelf
+could legally come out as three heals. It is an ordered list of `ShopSlot`s now
+— battle move, technique, berry, heal, item, and a relic from segment 3 — each
+drawn *within itself*, so the question a slot asks is "which heal" rather than
+"a heal at all". The mapping is the brief's: Slay the Spire's cards, colorless
+cards, potions, relics and removal.
+
+`tuning.shopStockSize` became `tuning.shopExtraSlots`, `{ min: 0, max: 1 }`:
+bonus rows above the guarantees, drawn from the flattened table. **It stayed a
+range on purpose.** It is the only knob in `tuning.ts` that changes how much the
+`rewards` stream is drawn, and `test/tiers.test.ts` and `test/rewards.test.ts`
+use exactly that to prove a rewards-side change moves neither the map, the teams
+nor the battle seeds. That lever was `allowSpeciesRewards`, then
+`shopStockSize`; it moves when the feature under it does, and deleting it
+outright would have left the property with nothing to pull.
+
+Every slot draws exactly once whether or not it has anything to choose between,
+so a single-entry category still spends its `nextFloat`. Same discipline as
+`rollMoveset`, same reason.
+
+### 31.3 The forced STAB slot got a window, and `stabBias` was measured and declined
+
+Band 1 holds 82 moves, which reads healthy until it is sliced by type: **one
+Psychic move and one Dragon move.** Thirteen of the 191 starters therefore had
+no draw at all on slot 1 — every Psychic opened with Confusion, every Dragon
+with Twister — and for Axew (base Attack 87, base Special Attack 30) that
+mandatory move is a 40 BP *special*. Six types' band-1 pool is entirely one
+attack category.
+
+`MOVESET.stabWindow = 1` lets a STAB-restricted slot draw from its band and the
+one above. Measured: 6.8 mean options to 14.5, thirteen deterministic species to
+none, six single-category types to one. **It costs no randomness** — `take()` is
+one `pick` whatever the pool size — so the draw count stays a function of
+`MOVESET.slots` alone, which is the whole reason to prefer it to widening the
+band.
+
+Segments 0-2 moved from `moveBandWeights: { 1: 1 }` to `{ 1: 4, 2: 1 }`. Band 2
+is 13.3% Normal against band 1's 20.7%, so it dilutes the beige problem from
+both directions, and it applies to the player and every opponent equally.
+
+**`stabBias` was the obvious lever and is declined**, with the arithmetic in the
+report's section 4: Normal is 20.7% of band 1, so every coverage slot handed
+back to an open draw is a one-in-five chance of the worst coverage type in the
+game. Zero `stabBias` buys about half a distinct attacking type and ten points
+of Normal, and does nothing about the thirteen, because that slot is forced by
+`stabSlots`. Written down because it is cheap to reach for.
+
+### 31.4 What the benchmark said, and what it could not see
+
+`randomizer-18` · `fd9b5e`, 400 seeds, RETUNE, against the `-17` row: **+0.075
+mean gyms (0.47 to 0.545), completion unmoved at zero**, gym 1 +5.1pt and gym 3
++5.0pt. Recorded, not chased; `balance.md` §0 carries the row.
+
+**The shop half is essentially unmeasured by it.** 95 shop visits landed in
+segment 1 and 12 in segment 2, none past it, so the relic slot, the late price
+band and every segment-3-onward shelf never appeared in the population. The one
+reading worth carrying forward is `broke on arrival` at 86.9%: the early shelf
+is priced above what a segment-1 wallet holds. That is a number to watch rather
+than to act on, and acting on it would be retuning against a curve that this
+patch just moved.
+
+### 31.5 Seed-pinned tests, and the pattern they moved to
+
+Seven tests failed on the bump for a reason with nothing to do with what they
+assert: they pinned a seed, and a `RANDOMIZER_VERSION` bump reshuffles how far a
+seed gets. They now search across a seed list and assert that the search found
+something — the pattern `test/backpack.test.ts` already records and explains.
+`test/party-slots.test.ts` carries the sharpest version: the scripted policy
+clears a gym on roughly one seed in five, so its list leads with four that work
+today and carries a tail of fourteen, because a short list is a coin flip at the
+next bump rather than a pin that fails honestly.
+
+`test/banding.test.ts` is the exception and was rewritten rather than
+re-seeded. It asserted "never gives a starter a move above band 1", which the
+window makes false on purpose; the assertion's real job was that a starter
+cannot reach the middle of the table, and that job survives intact one band
+wider.
+
+### 31.6 The shelf's move card, and the gate that caught its height
+
+Open item 13 — the shelf printed `Tutor: Flamethrower` and nothing else while
+the reward screen offering the identical move printed its type, base power,
+band, PP, category and tags — is closed here rather than left, because this
+patch put a *third* move kind on that shelf and shipping it with the same gap
+was worse than fixing it. The rows go through `scene.moveCard` over
+`moveCardData`, the reward screen's own insertion point, with no holder passed.
+
+**It cost height, and the assumption that it was free was wrong.** The shop is
+not one of the two screens `heights.json` guards, and that was mistaken for "the
+shop is not guarded": `test/visual-pocket.test.ts` holds *every* decision
+surface, the shop included, to a document `scrollHeight` at or under 844 — "a
+hard gate, no exemptions". With five or six guaranteed rows instead of three or
+four drawn ones, two of them carrying a card, a segment-0 shop measured 864.
+
+Pocket hides the cards, in CSS (`:root[data-density="pocket"] .shop__item >
+.move--card`). Not by a branch in the screen: a screen that reasoned about
+density in JS would not re-render when the mode is switched live, and
+`test/density.test.ts` greps for exactly that. Detailed and Simple keep the
+cards and scroll, which they always did.
+
+The lesson is the ordinary one and it is worth the line: **the gate found this,
+not the reasoning that preceded it.** "The shop is not a guarded screen" was
+said in this session, with confidence, and was false.
+
+### 31.7 The WebKit leg of the gate did not run, and this is the record of that
+
+`npm run check` is five legs chained with `&&`: lint, typecheck, `vitest run`,
+`test:webkit`, `test:trim-strict`. **On the container this patch was built in,
+two of them could not run**, and the reason is worth writing down because the
+failure mode is the one `docs/README.md` open item 8 exists to remember — a gate
+believed to be green, or believed to be red, by a session that never read it.
+
+Only Chromium is installed here. `GYMRUN_ENGINE=webkit` fails at launch with
+`Executable doesn't exist at /opt/pw-browsers/webkit-2359/pw_run.sh`, and the
+environment forbids `npx playwright install`. All 24 browser test files then
+fail at `openHarness`, before any assertion. Because the legs are `&&`-chained,
+**`test:trim-strict` never ran in that invocation either** — and the wrapper
+still reported exit 0, which is exactly how a chained gate lies.
+
+What did run, and passed, run directly rather than through `check`:
+
+| leg | result |
+|---|---|
+| `eslint .` | clean |
+| `tsc --noEmit` | clean |
+| `vitest run` (Chromium) | 135 files, 1798 tests, all passing |
+| `GYMRUN_TRIM_STRICT=1 vitest run` | **in flight when this was written; result recorded below** |
+| `test:webkit` | **did not run — no WebKit binary** |
+
+There is no CI in this repository, so the WebKit leg is local-only and nothing
+else will run it. **It has to be run by hand on a machine that has the binary
+before this branch merges**, and this section is here so that "the gate was
+green" is not read off a run that skipped a fifth of it.
+
+The patch's own risk against that leg is small but not zero: it changes one
+stylesheet rule (`:root[data-density="pocket"] .shop__item > .move--card`) and
+the shop screen's DOM, and the WebKit suite is the one that measures layout on
+the second engine. The Pocket no-scroll gate passed on Chromium at 17/17.
+
+### 31.8 The merge with the chip audit, and the 21px neither patch caused
+
+PR #44 merged while this branch was building and the code conflicts were none:
+two documents that both grew a section 30, and a register that grew two rows.
+`styles.css` auto-merged because the two rule sets are disjoint, and `scene.ts`'s
+`moveCard` — which this branch calls from the shop shelf — kept its signature
+across the audit.
+
+**The guarded battle screen did not merge cleanly, and neither patch is at
+fault.** The chip audit put a type icon on the move buttons and moved
+`heights.json` by nothing on `main`. This branch moved the battle screen 5.5px
+*shorter*, because the moveset change gives SMOKE24's lead different moves and
+their names cost one line less. Together the new icons land on those different
+names and the screen measures **610.5**: +21 on this branch's 589.5, +15.5 on
+main's 595. Four `visual-v*` height tests failed on the merged tree and on
+neither parent.
+
+Re-recorded against the merged tree, which is the only tree that produces the
+number. `decisionTop` is unmoved everywhere and the map did not move at all, so
+the guard's own property held through the interaction — what moved is content
+under an unchanged layout, which is what the guard is shaped to allow.
+
+**The cost is headroom.** `test/visual-v0.test.ts` holds both decision points at
+or above y=740, and the battle screen's margin went from 37.5px to **16.5px**
+(723.5 against 740). It passes, and it is a real assertion rather than an
+`it.fails` marker. But two independent patches that each looked free spent
+57% of that slack between them without either one measuring it, and the next row
+added to a move button will find the line. `docs/visual/baseline/README.md`
+carries the correction and the numbers.
+
+## 32. The missing sprite was 84px wide, and the alt text is why
 
 **2026-09-17**, on `claude/serene-bohr-xn433h`, after PR #44 merged at `df2982f`.
 Presentation only: one CSS declaration and one regression test. No `core/`

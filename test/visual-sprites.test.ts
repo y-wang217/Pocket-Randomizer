@@ -79,7 +79,7 @@ async function readFigures(page: Page): Promise<FigureReading[]> {
  * 2026-09-17, after the chip-audit patch made `test/visual-phone-seed-bar.ts`
  * fail intermittently at `scrollWidth` 401 in a 390px viewport — a failure that
  * reproduced identically on the commit before that patch, so the patch exposed
- * it rather than caused it. `docs/generation.md` section 31.
+ * it rather than caused it. `docs/generation.md` section 32.
  *
  * The mechanism, because it is not guessable from the symptom: a broken `<img>`
  * carrying alt text stops being a replaced element, so CSS `width` no longer

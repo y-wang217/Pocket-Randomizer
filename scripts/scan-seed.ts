@@ -26,6 +26,7 @@
  * reports, loudly, as the assertion it already carries.
  */
 import { greedyAiPolicy } from '../src/core/battle/ai';
+import { isTargeted } from '../src/core/rewards';
 
 import { defaultItemPlan, playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 /** test/move-replacement.test.ts: the census of every Stage 4.5.1 decision. */
@@ -33,7 +34,7 @@ function census(seen: Set<string>): RunPolicy {
   return {
     ...scriptedRunPolicy(greedyAiPolicy),
     chooseReward: async (offer) => {
-      const move = offer.options.findIndex((option) => option.kind === 'tm' || option.kind === 'tutor');
+      const move = offer.options.findIndex((option) => isTargeted(option));
       return move === -1 ? 0 : move;
     },
     chooseShopPurchases: async (stock, state) => {

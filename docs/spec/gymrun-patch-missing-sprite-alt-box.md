@@ -78,4 +78,4 @@ rule is deleted from the lineage and recorded with a dated note.
 
 Presentation only: one CSS declaration and one regression test. No `core/`
 change, no version axis moves, `contentHash` unmoved. Account in
-`../generation.md` section 31.
+`../generation.md` section 32.

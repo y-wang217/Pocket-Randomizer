@@ -45,7 +45,17 @@ import type { EventArchetype } from '../src/data/eventPools';
 import type { RunDecision } from '../src/core/types';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
-const SEEDS = ['S49R-1', 'S49R-3', 'S49R-9'];
+/*
+ * Widened from three seeds at the `gymrun-randomizer-18` bump.
+ *
+ * Whether a seed ever walks into a paying question mark, and how far it gets
+ * before it dies, are both properties of the draw — and every bump reshuffles
+ * them. `test/backpack.test.ts` records the same lesson: a search across seeds
+ * with a "the search found something" assertion survives a bump, and a short
+ * pinned list fails on it for a reason that has nothing to do with the
+ * behaviour under test.
+ */
+const SEEDS = ['S49R-1', 'S49R-3', 'S49R-9', 'S49R-4', 'S49R-7', 'S49R-11', 'S49R-15', 'S49R-21'];
 
 function movePaid(move: string): EventOutcome {
   return { tier: 'T2', entryId: 't2-move', cost: [], grant: [{ kind: 'move', move }] };
@@ -136,7 +146,15 @@ describe('the version axes this patch moved', () => {
   });
 
   it('bumped the randomizer, because a relic grant now draws an order', () => {
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-17');
+    /*
+     * Moved to `-18` by the shop and moveset-variance patch, which widened the
+     * STAB slot's pool and turned a shop shelf into a fixed list of category
+     * slots. This assertion's subject is *this* patch's bump, and a literal is
+     * still the only kind of check that can catch one that failed to happen —
+     * so the number tracks the head of the axis rather than being frozen at
+     * the value this patch left it.
+     */
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-18');
   });
 });
 
