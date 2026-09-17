@@ -58,7 +58,45 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the chip audit.** Branch `claude/serene-bohr-xn433h`, prompt
+**In flight: the bench carryover and the gym level column.** Branch
+`claude/amazing-edison-1koyiy`, prompt
+[`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
+record [`generation.md`](generation.md) section 33. Two items from one playtest
+report. `contentHash` moves from `fd9b5e` to `94c6c1`, by one column of
+`data/scaling.ts`;
+`RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold.
+
+**"On a new seed, party is not reset" was a `<div>`.** The party was reset —
+`createRun` returns `party: []` and nothing in `core/` has ever spanned two
+runs. `renderBench` had its two empty cases the wrong way round, each carrying
+the other's comment, and the half that mattered is a *party of one*: everything
+the side has is on the field, so the panel is cleared, and it was not. The scene
+is built once for the life of the page, so a new seed opened on whatever the
+previous run had left under SWITCH. The fix is the two branches separated plus a
+`Scene.reset()` that `attach` calls, beside the `log.clear()` that was already
+there. No test had ever attached two fights to one screen.
+
+**Gym teams are exactly the party's level, everywhere, and that column is no
+longer a tuning number.** Stage 4.9 had it at `+0/+1` rising to `+2/+4`; the
+report named the consequence rather than the number — a level raises Speed with
+everything else, and Speed is read as a comparison, so a gym a level up takes
+the first move in every tie the party would otherwise win and no team building
+gets it back. Every other lever a gym has is a quantity and survives tuning;
+this one is a threshold. The exam is unchanged otherwise: the player's own slot
+count, one move band over the segment, the hard AI. Pinned in `opponentLevel`
+rather than only in the table, so a later caller cannot reopen it through
+`TIER_MODIFIERS`.
+
+**Measured rather than predicted**: 400 seeds, mean gyms cleared **0.545 →
+0.81** on the pinned control, completion unmoved at zero; gym 1 clears in 63.8%
+of the parties that reach it against 48.3%. `balance.md` section 0 has the row.
+The visual baseline was re-recorded — four of its six runs changed only in the
+content hash, two changed outcome, and the determinism seed's battle protocol is
+byte identical. One browser test was repaired rather than re-baselined: the
+abnormality case walked a single seed and the gym column moved that seed's
+fights, so it walks a list and fails only when no seed can produce a mark.
+
+**Merged before it: the chip audit.** Branch `claude/serene-bohr-xn433h`, prompt
 [`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md),
 record [`generation.md`](generation.md) section 30, report
 [`visual/reports/patch-chip-audit.md`](visual/reports/patch-chip-audit.md).

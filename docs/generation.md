@@ -5275,3 +5275,163 @@ claims "a figure is a fixed box whether or not its image arrived". That claim
 was false for three patches and is now asserted — against the figure rather than
 a pixel count, so it fails for the right reason, with the document-level check
 beside it because that is the symptom a player would actually meet.
+
+## 33. The bench outlived its run, and the gym column goes to zero
+
+**2026-09-17**, on `claude/amazing-edison-1koyiy`. Prompt
+[`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md).
+
+Two items from one playtest report. The first is presentation only. The second
+moves `contentHash`, **from `fd9b5e` to `94c6c1`**, by one column of
+`data/scaling.ts`; `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all
+hold, because nothing about *what* is drawn or *in what order* changes — the
+gym's level draw is the same draw from the same key against a narrower range.
+
+`fd9b5e` is the hash stamped on the screenshot the report arrived with, so
+unlike some of the reports in this document it was met on the build it
+describes.
+
+### Item 1: "party is not reset" was a `<div>`, not a run
+
+The report read: *"on a new seed, party is not reset. screenshot shows a dead
+horsea when i'm on a new seed."*
+
+**The party was reset.** `createRun` returns `party: []`, `chooseStarter`
+replaces it with exactly one member, and no state in `core/` has ever spanned
+two runs. The Horsea in the screenshot was not in the battle, was not in the
+party, and was not in the run — it was in the DOM.
+
+`renderBench` in `ui/scene.ts` has two empty cases and **they were the wrong way
+round, each carrying the other's comment**:
+
+| the view | what should happen | what happened |
+|---|---|---|
+| `switches` is `[]` — not being asked, so between turns or after the end | keep the last render, disabled | returned, touching nothing |
+| `switches` is non-empty but every entry is `active` — being asked, and everything the side has is on the field | clear the panel | disabled the buttons and kept them |
+
+The first row is the rule the moves column states for itself: a panel that
+collapses out from under the player mid-fight is worse than one that shows
+itself unavailable. The second row is a **party of one**, which is what the
+function's own header has always said has nothing to say here — and saying
+nothing means an empty container, because `.bench:empty { display: none }` is
+what hides the panel.
+
+So a run whose party was just the starter never cleared the heading. The scene
+is built once in `createScene`, `ui/screens/battle.ts` builds it once, and `app.ts`
+builds *that* once for the life of the page — so "the last render" was bounded
+by neither the battle nor the run. A new seed opened on whatever the previous
+run had left under SWITCH and kept it for the whole fight.
+
+**The fix is the two branches separated**, plus a `Scene.reset()` that
+`ui/screens/battle.ts` calls from `attach`, beside the `log.clear()`,
+`flags.clear()` and `sheet.close()` that were already there for the same reason.
+`renderBench` alone closes the reported case; `reset()` closes the one it
+cannot, because a view that is not being asked is exactly the view the panel is
+meant to hold — and an **ended** session is such a view, so a screen attached to
+one draws no bench at all. `test/bench-carryover.test.ts` constructs that case
+rather than asserting the call.
+
+**Why this was not caught.** Every battle-UI test in the suite builds a fresh
+`createBattleScreen()`, so no test had ever attached two fights to one screen.
+The bug needs two runs and a party of one, which is the opening state of every
+run and the state no fixture was in.
+
+### Item 2: the gym column is zero, and it is not a tuning number
+
+The report read: *"gyms have mons at higher level than the player, which makes
+speed nearly impossible to compete against. let's reset gym levels to EQUAL to
+the player, never higher."*
+
+Stage 4.9 (section 21) made the gym offset positive and growing — `+0/+1` at
+segment 0 to `+2/+4` at segment 7 — on the argument that a gym is the segment's
+exam and should be sized above the party. That argument is about difficulty and
+it is sound. **The report is about the lever, not its size.**
+
+A level in Gen 3 raises every stat at once, and among them Speed. Speed is the
+one stat read as a *comparison* rather than as a quantity: two points and two
+hundred buy the same thing, the first move. So a gym one level above the party
+takes the first move in every tie the party would otherwise win, and **no amount
+of team building gets it back** — a Pokemon picked to outrun the exam cannot
+outrun it at any level the player can reach. Every other lever a gym has is a
+quantity and survives being tuned; this one is a threshold and does not. It is
+pinned at parity rather than lowered.
+
+What the gym keeps: the player's own slot count (`opponentTeamSize`), one move
+band over the segment (`GYM_MOVE_BAND_BONUS`), and the hard AI at every segment
+(`data/ai.ts`). Nothing about the exam changes except that it stops buying an
+advantage with the one currency that cannot be spent back.
+
+**Pinned in `opponentLevel` and not only in the table.** `generateGymTeam` has
+passed `normal` since Stage 3, and that is the second place the rule was already
+written down — so `TIER_MODIFIERS[tier].levelShare` never reaches a gym today.
+It now cannot: `opponentLevel` zeroes the tier bonus for `kind === 'gym'`.
+Behaviour is unchanged, and the difference is that the rule no longer holds only
+because one caller passes one argument. `hard`'s three percent is enough on its
+own — at segment 2 it rounds to a whole level, which is the entire effect the
+report named.
+
+`test/generation.test.ts` asserts parity against every tier rather than against
+the table, because the test beside it already reads the table and so passes for
+any offset the table happens to hold.
+
+**The roster moves a little too, and it is a consequence rather than a second
+change.** `generateGymTeam` hands the drawn level range to `gymSpeciesFor`,
+which hands it to `bandedSpeciesPool`, where it gates evolved forms by their
+evolution level (`data/evolution.ts`). A narrower and lower window means the
+forms that were only eligible on the high end of the old offset — an evolution
+threshold sitting one to four levels above the party — drop out. That is the
+stage gate doing exactly what it is for: the gym stops fielding a form the
+player's own party cannot have reached yet. No pool, weight or threshold was
+edited to produce it.
+
+### What the gates moved, and one test that had to be repaired
+
+Two things outside the patch's own files failed, and both are worth the space
+because neither is a code defect.
+
+**The visual baseline was re-recorded, and it is allowed to move here.**
+`test/visual-baseline.test.ts` exists to prove a *presentation* change moves no
+generated byte; this is a data change, so it moves several. `data-digest.txt`
+goes `fd9b5e` → `94c6c1`, and of the six recorded runs **four changed only in
+that hash** — `SEED-A`, `SEED-B`, `SMOKE24` and `RESULT-0` — while `GYMRUN01`
+and `RESULT-1` changed outcome, which is what a different gym fight looks like.
+`RESULT-1` goes from two gyms to one and dies to Marina rather than to a wild
+Minun. That is one seed under a scripted policy and is not a balance reading;
+the 400-seed row below is. `docs/visual/baseline/battles/GYMRUN01.json`, the determinism
+seed's battle protocol, is **byte identical**, which is the check that the change is
+confined to the gym column.
+
+**`test/visual-battle-outro.test.ts`'s abnormality case was repaired rather than
+re-baselined.** It walked one seed, `SMOKE24`, for twenty-four steps and threw
+if no abnormality mark appeared. The assertion is that a mark does not overflow
+a 390px page and is really animating; the walk is only how a mark is produced —
+so one seed made "does `SMOKE24` boost, fail or trigger an ability early" a
+load-bearing fact about a fixture, and the gym column falsified it. Measured
+while fixing it: `SMOKE24` produces no mark inside the budget (its early fights
+carry crits, STAB and super-effective hits, and `ui/abnormality.ts` counts none
+of those — five classes out of seventeen kinds, and a hit is not one), while
+`SEED-A`, `SEED-B` and `GYMRUN01` produce one at steps 0, 11 and 11.
+
+It walks the list now and throws only if **no** seed produces a mark. That is
+the same assertion against a claim about the mechanism rather than about one
+seed's luck, and it is the narrowest repair available: nothing was skipped,
+loosened or re-recorded, and a widened step budget was tried first and does not
+help — sixty steps on `SMOKE24` still find nothing.
+
+### Balance
+
+Not gated, per [`balance.md`](balance.md) section 0, but **measured**, because
+this is a deliberate balance change rather than a side effect of one: 400 seeds,
+`ladder` policy, `RETUNE` prefix, read against the row directly above it.
+
+Mean gyms cleared **0.545 → 0.81** on the pinned greedy control, completion
+unmoved at zero. Gym 1 clears in 63.8% of the 290 parties that reach it against
+48.3%, gym 2 in 58.6% of 157 against 49.2%; from gym 4 on the columns are ten to
+twenty runs each and move both ways. The report's own instrument says the change
+landed — *mean level delta across every gym reached: 0.00*, against a table that
+read up to +4 at segment 7 before it.
+
+The direction is the one the change argues for and the magnitude is larger than
+the level arithmetic alone suggests, which is the Speed threshold showing up in
+the number. Nothing else was tuned against this run. The full row, including
+what it says about the standing gym 3 outlier, is in `balance.md` section 0.
