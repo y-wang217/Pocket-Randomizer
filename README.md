@@ -31,7 +31,7 @@ disagrees with one of the documents below, the document is right.
 ```sh
 npm install
 npm run dev      # play it
-npm run check    # lint + typecheck + tests, including the strict trim run
+npm run check    # the nine-leg gate; every leg runs, table at the end
 npm run build    # static bundle in dist/, deploys to any static host
 ```
 
@@ -296,15 +296,56 @@ because a number copied into two files disagrees with itself within two stages.
 |---|---|
 | `npm run dev` | Vite dev server |
 | `npm run build` | Typecheck, then static bundle to `dist/` |
-| `npm test` | Vitest, headless |
+| `npm test` | Vitest, headless, the whole suite |
+| `npm run test:unit` | The suite's Node-only half — no browser needed |
+| `npm run test:browser` | The suite's browser half; `GYMRUN_ENGINE` picks the engine |
+| `npm run test:webkit` | The browser half on WebKit |
+| `npm run types` | `tsc --noEmit` on its own |
 | `npm run test:trim-strict` | Tests with the bundle trim's stubs set to throw on any access |
-| `npm run check` | Lint, typecheck, both test runs |
+| `npm run check` | **The gate.** Nine legs, every one of them run; see below |
 | `npm run sim` | Play N runs headless and report the balance |
 | `npm run gen:pools` | Regenerate the species, move and ability tables from the dex |
 | `npm run content-hash` | Print the `contentHash` of the working tree; `--files` lists what it covers |
 | `npm run smoke` | Browser smoke test against `dist/` (build first) |
 | `npm run measure` | Gzipped bundle size per dependency (build first) |
 | `GYMRUN_FULL_DEX=1 npm run build` | Build without the bundle trim |
+
+### The gate
+
+`npm run check` is `scripts/check.mjs`, and it runs **every** leg rather than
+stopping at the first failure. Nine legs, in order:
+
+| leg | needs a browser |
+|---|---|
+| `lint` | |
+| `typecheck` | |
+| `test:node` — the suite's 111 Node-only files | |
+| `test:chromium` — the 24 browser files | yes |
+| `test:webkit` — the same 24, other engine | yes |
+| `trim:node` — strict trim, Node half | |
+| `trim:browser` — strict trim, Chromium half | yes |
+| `build` | |
+| `smoke` — needs `dist/`, so it follows `build` | yes |
+
+`node scripts/check.mjs --list` prints them without running anything, and
+`--only=lint,build` runs a named subset with the same reporting.
+
+It exits 1 if any leg failed. A leg can also report SKIPPED, for one of two
+reasons, and the difference matters:
+
+- **No browser binary.** SKIPPED locally, so a contributor without WebKit
+  installed still gets a real answer about the other eight legs. **FAILED when
+  `CI` is set** — an engine the workflow was supposed to install and did not is
+  a broken workflow, not a pass.
+- **A dependency failed.** `smoke` cannot run without a `dist/`. Never promoted
+  by `CI`: the leg it depended on already reported FAILED and already fails the
+  run, so promoting this one would print two failures for one cause.
+
+Which test files need a browser is computed, not listed —
+`scripts/browser-tests.mjs` looks for the files that reach Playwright, directly
+or through `test/visual/harness.ts`. A missing-browser SKIPPED is only ever
+honoured on a leg declared as a browser leg, so if that detection ever misses a
+file, the Node leg goes red on it rather than quietly skipping.
 
 ## Ratified, and no longer open
 

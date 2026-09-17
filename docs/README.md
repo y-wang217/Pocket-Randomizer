@@ -152,9 +152,17 @@ change, no version axis moves, `contentHash` unmoved at `c3964b`.
 Chromium or WebKit, the WebKit leg uses Playwright's iPhone 14 Pro Max
 descriptor — touch, the Mobile Safari user agent, 3x density, at this repo's
 pinned 390x844 — and `npm run check` runs both, so a WebKit failure fails the
-suite. `npm run test:webkit` is the second leg on its own. It needs
+suite. `npm run test:webkit` is that engine's leg on its own. It needs
 `npx playwright install webkit`; the box also needs
 `npx playwright install-deps webkit`.
+
+**Since the CI patch, a box without WebKit reports it rather than losing the
+run.** `npm run check` is nine legs in `scripts/check.mjs`, each one run and
+each one reported, and a missing engine is SKIPPED locally and FAILED under
+`CI`. That keeps the rule this section states — a known-good engine reported as
+unverified is the failure — while letting a contributor who has only Chromium
+still gate the other eight legs. [`generation.md`](generation.md) section 30 is
+the account.
 
 **Two of the patch's five items were not what the brief said they were**, and
 both are worth knowing before reading the brief:

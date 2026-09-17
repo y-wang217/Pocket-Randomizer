@@ -4807,3 +4807,126 @@ the card names the ability and a reader can go and look it up; on a phone the
 tooltip layer *is* the reference, so a missing trigger reads as the ability having
 no explanation rather than as this card having no trigger. The screen where that
 costs most is the one where a Pokemon is taken largely on its ability.
+
+## 30. The CI patch, part 1: a gate that reports every leg
+
+Prompt: [`spec/gymrun-patch-ci-workflow.md`](spec/gymrun-patch-ci-workflow.md),
+filed 2026-09-17 before any work. Build infrastructure only — no `src/` change,
+no version axis moved, `docs/visual/baseline/` untouched, and the shipped bundle
+is byte identical because nothing that enters it was edited.
+
+### 30.1 What the `&&` chain was hiding
+
+`npm run check` was five legs joined by `&&`:
+
+```
+npm run lint && tsc --noEmit && vitest run && npm run test:webkit && npm run test:trim-strict
+```
+
+Three findings from expanding it, none of which are visible in the one-line form:
+
+1. **Three of the five legs needed a browser, not one.** `vite.config.ts`
+   includes `test/**/*.test.ts` and has no engine filter, so the 24
+   browser-dependent files ran inside `vitest run` and `test:trim-strict` as
+   well as inside `test:webkit`. A box without Chromium therefore lost the 111
+   Node-only files and their 1595 tests as collateral, and the chain reported
+   one failure for it.
+2. **`test:webkit` carried three passengers.** Its glob was
+   `test/visual-*.test.ts`, which is 24 files, but only 21 reach a browser.
+   `visual-baseline`, `visual-locales` (jsdom) and `visual-tokens` (a CSS grep)
+   were re-run under `GYMRUN_ENGINE=webkit`, where the variable means nothing to
+   them.
+3. **The gate was two legs short of `CLAUDE.md`'s own list.** Build and smoke
+   run are named absolute gates and `check` ran neither. The section that says
+   `npm run check` is the gate and the section that lists nine gates disagreed,
+   and the chain was the one that was wrong.
+
+The cost of the chain's shape is already in this file's history rather than
+hypothetical: [`visual/reports/patch-idle-sprites-and-locale-motion.md`](visual/reports/patch-idle-sprites-and-locale-motion.md)
+records a reporter timeout in the third leg that made `check` "stop before the
+strict-trim step, which was run on its own", and `scripts/visual/gate.sh` still
+carries a comment about its own first version printing "gate green" over two
+failing files.
+
+### 30.2 Nine legs, and why the two full-suite legs split
+
+`scripts/check.mjs` runs `lint`, `typecheck`, `test:node`, `test:chromium`,
+`test:webkit`, `trim:node`, `trim:browser`, `build`, `smoke`, always all of
+them, and prints a PASS/FAIL/SKIPPED table.
+
+The old legs 3 and 5 each became two, which was put to the author before any
+code and answered "split each into node + browser". The reason is the first
+finding above: unsplit, a missing engine reports SKIPPED over 135 files, and
+1595 tests that were perfectly capable of running go unverified. Split, the
+browser halves skip and the Node halves still gate. `build` and `smoke` were the
+second question and answered "add both".
+
+`build` runs `vite build` rather than `npm run build`, which is
+`tsc --noEmit && vite build`: the type check is already leg 2 and a gate that
+runs it twice spends a minute proving the same thing.
+
+### 30.3 The split is computed, and the skip is guarded
+
+`scripts/browser-tests.mjs` derives which files need a browser by looking for
+the ones that reach Playwright — directly, or through `test/visual/harness.ts`
+or `scripts/visual/browser.mjs`. **Deliberately not a hand-written list and
+deliberately not a filename match.** A list is a second place to remember, and
+the three Node-only `visual-*` files are exactly the case a filename match gets
+wrong — the pre-patch glob got it wrong on all three.
+
+That leaves one hole, and `scripts/check.mjs` closes it from the other side: a
+missing-browser SKIPPED is only honoured on a leg declared `browser: true`. If
+the detection ever misses a file, that file lands in the Node leg, meets the
+same Playwright error, and **fails** — because the Node leg is not allowed to
+skip for that reason. A detection bug that turned into a silent skip would be
+worse than no gate at all; this one turns into a red leg with Playwright's own
+message under it.
+
+### 30.4 Two kinds of SKIPPED, one of them promoted
+
+The brief asks for SKIPPED to become FAILED under `process.env.CI`. There are
+two ways a leg can fail to run and only one of them is that kind:
+
+- **No browser binary**, detected from Playwright's own words
+  (`Executable doesn't exist at`, the install banner, and the missing
+  host-dependencies line, since a browser that cannot start for want of a
+  system library is as absent as one that is not installed). SKIPPED locally,
+  FAILED under `CI`. This is the brief's case, and `docs/README.md` already
+  holds the rule it is an instance of: a known-good engine reported as
+  unverified is the failure, not the absence.
+- **A dependency failed.** `smoke` serves `dist/`, so it cannot run when
+  `build` did not produce one. **Not promoted**, and the asymmetry is the
+  point: `build` already reported FAILED and the run already exits 1, so
+  promoting `smoke` too would print two failures for one cause and send the
+  reader hunting a second bug.
+
+### 30.5 `--only`, and the branches that would otherwise be untested
+
+`node scripts/check.mjs --only=lint,build` runs a named subset with the same
+reporting, and `--list` prints the legs without running anything.
+
+It is not decoration. A full run is tens of minutes, which means the three
+branches the brief actually specifies — the missing-browser skip, the `CI`
+promotion, and the dependency skip — were unreachable in any reasonable
+verification, and an unreachable branch is an untested one. All three were
+exercised through this flag before the runner was committed: WebKit is not
+installed on the development container, so
+`node scripts/check.mjs --only=test:webkit` produces the skip and
+`CI=true` the same leg produces the promoted failure, both against the real
+absent binary rather than a simulated one. The dependency skip was exercised on
+a throwaway copy of the runner with `build` pointed at a bad flag.
+
+### 30.6 What `package.json` kept
+
+`test:trim-strict` still means the whole suite, unsplit, because
+[`../README.md`](../README.md), `build-config/trim-sim-data.ts` and
+`test/trimmed-data.test.ts` all name it and all mean that. `npm test` still
+means the whole suite for the same reason: every figure any report in `docs/`
+has recorded against a plain `vitest run` keeps its meaning. The split halves
+got new names (`test:unit`, `test:browser`, `test:trim`, `test:trim:browser`)
+rather than redefining old ones, and `types` is new because leg 2 was inline in
+the chain and had no script of its own.
+
+One existing name did change meaning: `test:browser` was the 24-file glob with
+three Node-only passengers and is now the derived 24, so `GYMRUN_ENGINE` only
+reaches tests it means something to.
