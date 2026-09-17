@@ -2,8 +2,8 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-17/gymrun-0.3.0",
-    "contentHash": "73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b",
-    "randomizer": "gymrun-randomizer-17",
+    "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
+    "randomizer": "gymrun-randomizer-18",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -14,11 +14,11 @@
     "leader": "Garnet",
     "kind": "wild",
     "species": "Umber",
-    "bySpecies": "Venipede",
-    "byMove": "Poison Tail",
+    "bySpecies": "Stufful",
+    "byMove": "Double Hit",
     "indirect": null
   },
-  "currency": 53,
+  "currency": 61,
   "backpack": [],
   "relics": [],
   "party": [
@@ -27,9 +27,9 @@
       "level": 7,
       "ability": "Shed Skin",
       "moves": [
-        "Disarming Voice 23/24",
-        "Snore 22/24",
-        "Electroweb 23/24",
+        "Bug Bite 31/32",
+        "Snarl 21/24",
+        "Rock Throw 24/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -41,7 +41,7 @@
       "level": 7,
       "ability": "Mind's Eye",
       "moves": [
-        "Snore 19/24",
+        "Scratch 53/56",
         "Powder Snow 40/40",
         "Clear Smog 24/24",
         "Spore 24/24"
@@ -58,9 +58,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Spearow",
-      "turns": 2,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 18,
+      "hpAfter": 16,
       "casualties": []
     },
     {
@@ -71,7 +71,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 42,
+      "hpAfter": 40,
       "casualties": []
     },
     {
@@ -80,7 +80,18 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Venipede",
-      "turns": 8,
+      "turns": 4,
+      "winner": "p1",
+      "hpAfter": 30,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "normal",
+      "opponent": "Wild Stufful",
+      "turns": 3,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -89,8 +100,8 @@
           "name": "Fennel",
           "level": 7,
           "species": "Spearow",
-          "bySpecies": "Venipede",
-          "byMove": "Poison Tail",
+          "bySpecies": "Stufful",
+          "byMove": "Weather Ball",
           "indirect": null
         },
         {
@@ -98,8 +109,8 @@
           "name": "Umber",
           "level": 7,
           "species": "Cutiefly",
-          "bySpecies": "Venipede",
-          "byMove": "Poison Tail",
+          "bySpecies": "Stufful",
+          "byMove": "Double Hit",
           "indirect": null
         }
       ]
@@ -109,9 +120,9 @@
     "seed": "SEED-B",
     "versions": {
       "runLog": "gymrun-run-17/gymrun-0.3.0",
-      "contentHash": "73c1ee22cbda32b1e1d685184757cb526ef8e6d3eadb0310848fe98186c0567b",
+      "contentHash": "fd9b5ec77049a153f3b6281740803df57617712e3801d8886e2566dcf846c302",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-17"
+      "randomizerVersion": "gymrun-randomizer-18"
     },
     "decisions": [
       {
@@ -130,14 +141,21 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {
@@ -214,17 +232,39 @@
         }
       },
       {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
         }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "target",
+        "index": 0
+      },
+      {
+        "kind": "replace",
+        "slot": 2
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
@@ -245,7 +285,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       }
     ]

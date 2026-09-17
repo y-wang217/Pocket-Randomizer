@@ -15,7 +15,7 @@
  */
 import type { Tier } from '../core/types';
 import type { RewardEntry } from './rewardPools';
-import { CHOICE_ITEMS, MODEST_ITEMS, STAPLE_ITEMS, TYPE_ITEMS } from './items';
+import { BERRIES, CHOICE_ITEMS, MODEST_ITEMS, STAPLE_ITEMS, TYPE_ITEMS } from './items';
 import type { BattleKind, Range } from './tuning';
 
 // ---------------------------------------------------------------------------
@@ -92,10 +92,36 @@ export const TIER_PAYOUT: Record<Tier, number> = {
  */
 export type ShopEntry = RewardEntry & { price: number };
 
+/**
+ * One row of a shelf: what kind of thing it is, and what may fill it.
+ *
+ * **A shelf is a list of categories, not a list of draws, and that is the
+ * change.** It was one weighted walk over a single table, `shopStockSize` times
+ * — which meant a shelf could legally come out as three heals and no move at
+ * all. A shop that sometimes sells nothing you can use is not a decision, it is
+ * a node you walk past, and the player has already paid a step to stand there.
+ *
+ * The shape is Slay the Spire's, named as the mapping the brief asked for:
+ * cards, colorless cards, potions, relics and the removal. Here that is a
+ * battle move, a status move, a berry, a relic and a heal — see
+ * `../../docs/spec/gymrun-patch-shop-and-moveset-variance.md`.
+ *
+ * `entries` is drawn *within* the slot, so a category with two price points —
+ * a half heal against a full one — is still a roll, and the roll is over what
+ * *kind of that thing* rather than over whether you get one.
+ */
+export interface ShopSlot {
+  category: ShopCategory;
+  entries: readonly ShopEntry[];
+}
+
+/** The categories a shelf guarantees. One row each, in this order. */
+export type ShopCategory = 'move' | 'technique' | 'berry' | 'heal' | 'item' | 'relic';
+
 /** What a shop sells over a stretch of the run, and nothing about who buys it. */
 export interface ShopBand {
   throughSegment: number;
-  entries: readonly ShopEntry[];
+  slots: readonly ShopSlot[];
 }
 
 const ids = (entries: readonly { id: string }[]): readonly string[] => entries.map((entry) => entry.id);
@@ -108,31 +134,76 @@ const ids = (entries: readonly { id: string }[]): readonly string[] => entries.m
  * shop is the worst possible place to test a mechanic that can end a run: the
  * player has already paid for it.
  *
- * What is left is the interesting three. Items are the reason to save; healing
- * is the reason to spend *now*; a TM is the reason to spend when neither of the
- * other two is worth it. With one item per Pokemon and no inventory, a shop
- * visit is usually one item plus a heal, which is a real budget decision rather
- * than a shopping list.
+ * What is left is the five, and each is a different *reason to spend*. An item
+ * is the reason to save. A heal is the reason to spend now. A battle move is
+ * the reason to spend when neither of the other two is worth it. A berry is the
+ * denomination that makes a near-empty wallet still worth something. And a
+ * technique is the one thing on the shelf that no fight in the game will ever
+ * hand you — which is the point of it, and the answer to section 2 of
+ * `../../docs/reports/moveset-pool-validation.md`.
  */
 const SHOP_STOCK: readonly ShopBand[] = [
   {
     throughSegment: 2,
-    entries: [
-      { kind: 'item', weight: 4, price: 55, items: [...ids(MODEST_ITEMS), ...ids(TYPE_ITEMS)] },
-      { kind: 'item', weight: 3, price: 130, items: ids(STAPLE_ITEMS) },
-      { kind: 'heal', weight: 4, price: 40, fraction: 0.5 },
-      { kind: 'heal', weight: 2, price: 85, fraction: 1 },
-      { kind: 'tm', weight: 3, price: 70, bandOffset: 0 },
+    slots: [
+      { category: 'move', entries: [{ kind: 'tm', weight: 1, price: 70, bandOffset: 0 }] },
+      /*
+       * Priced just under the battle move beside it, and the argument is that
+       * a technique changes a kit permanently without raising its ceiling.
+       *
+       * A TM moves the number the player hits with. A Swords Dance moves how
+       * they get to use it, and costs a turn to do it. Cheaper, therefore, but
+       * not much cheaper: both are permanent and both displace a move slot,
+       * which is the cost neither price says out loud.
+       */
+      { category: 'technique', entries: [{ kind: 'technique', weight: 1, price: 60 }] },
+      /*
+       * Berries, at the bottom of the price list, which is where 4.6b put them
+       * in the reward pools and where they have never been purchasable.
+       *
+       * Cheap enough that a wallet too thin for anything else still buys one,
+       * which is the whole job of a low denomination. `docs/README.md` open
+       * item 2 records a berry clog past gym 6 — this slot does not make that
+       * worse, because a clog is bag pressure and every berry here is bought
+       * rather than given.
+       */
+      { category: 'berry', entries: [{ kind: 'item', weight: 1, price: 25, items: ids(BERRIES) }] },
+      {
+        category: 'heal',
+        entries: [
+          { kind: 'heal', weight: 4, price: 40, fraction: 0.5 },
+          { kind: 'heal', weight: 2, price: 85, fraction: 1 },
+        ],
+      },
+      {
+        category: 'item',
+        entries: [
+          { kind: 'item', weight: 4, price: 55, items: [...ids(MODEST_ITEMS), ...ids(TYPE_ITEMS)] },
+          { kind: 'item', weight: 3, price: 130, items: ids(STAPLE_ITEMS) },
+        ],
+      },
     ],
   },
   {
     throughSegment: 7,
-    entries: [
-      { kind: 'item', weight: 4, price: 145, items: ids(STAPLE_ITEMS) },
-      { kind: 'item', weight: 2, price: 165, items: ids(CHOICE_ITEMS) },
-      { kind: 'heal', weight: 4, price: 60, fraction: 0.5 },
-      { kind: 'heal', weight: 3, price: 120, fraction: 1 },
-      { kind: 'tm', weight: 3, price: 110, bandOffset: 1 },
+    slots: [
+      { category: 'move', entries: [{ kind: 'tm', weight: 1, price: 110, bandOffset: 1 }] },
+      { category: 'technique', entries: [{ kind: 'technique', weight: 1, price: 95 }] },
+      { category: 'berry', entries: [{ kind: 'item', weight: 1, price: 35, items: ids(BERRIES) }] },
+      {
+        category: 'heal',
+        entries: [
+          { kind: 'heal', weight: 4, price: 60, fraction: 0.5 },
+          { kind: 'heal', weight: 3, price: 120, fraction: 1 },
+        ],
+      },
+      {
+        category: 'item',
+        entries: [
+          { kind: 'item', weight: 4, price: 145, items: ids(STAPLE_ITEMS) },
+          { kind: 'item', weight: 2, price: 165, items: ids(CHOICE_ITEMS) },
+        ],
+      },
       /*
        * A relic on the shelf, priced past a staple item.
        *
@@ -141,22 +212,35 @@ const SHOP_STOCK: readonly ShopBand[] = [
        * of nothing. From segment 3 it is a real decision against two heals
        * and a TM.
        */
-      { kind: 'relic', weight: 2, price: 260 },
+      { category: 'relic', entries: [{ kind: 'relic', weight: 1, price: 260 }] },
     ],
   },
 ];
 
 /**
- * The stock table a shop in this segment draws from.
+ * The slots a shop in this segment guarantees, in shelf order.
  *
  * Falls back to the last band rather than throwing, for the same reason
  * `tierWeightsFor` and `rewardEntriesFor` do: a `SEGMENT_COUNT` raised without a
  * matching row should keep generating rather than crash a run.
  */
-export function shopEntriesFor(segment: number): readonly ShopEntry[] {
+export function shopSlotsFor(segment: number): readonly ShopSlot[] {
   const row = SHOP_STOCK.find((band) => segment <= band.throughSegment) ?? SHOP_STOCK[SHOP_STOCK.length - 1];
   if (!row) throw new RangeError('No shop stock defined');
-  return row.entries;
+  return row.slots;
+}
+
+/**
+ * Everything a shop in this segment may stock, flattened out of the slots.
+ *
+ * Two callers, and they want it for different reasons. `generateShopStock`
+ * draws the *extra* rows from it — `tuning.shopExtraSlots`, the bonus on top of
+ * the guarantees — so an extra is a roll over the whole shelf rather than a
+ * second row of one category. And a test asking "can a segment-0 shop sell a
+ * relic" wants one list to ask rather than six.
+ */
+export function shopEntriesFor(segment: number): readonly ShopEntry[] {
+  return shopSlotsFor(segment).flatMap((slot) => slot.entries);
 }
 
 /** A price, scaled to the segment it is being charged in. Always at least 1. */

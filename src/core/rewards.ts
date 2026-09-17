@@ -34,7 +34,7 @@
  * both get their own entry in the run log — see `TargetedReward` below and
  * `core/acquisition.ts`.
  */
-import { damagingInBands } from './randomizer';
+import { damagingInBands, statusByImpact } from './randomizer';
 import { stow } from './items';
 import { leadOf, recoverParty, teachMove } from './party';
 import type { RngStream } from './rng';
@@ -60,6 +60,15 @@ export type Reward =
   | { kind: 'currency'; amount: number }
   | { kind: 'tm'; move: string }
   | { kind: 'tutor'; move: string }
+  /**
+   * A status move. Same shape as the two above, and deliberately so.
+   *
+   * It carries a move name and nothing else, because a status move asks the
+   * player exactly what a TM asks: who learns it, and what it displaces. The
+   * separate kind buys one thing — a card, a shelf row and a report line can
+   * say *which* of the three it is without inspecting the move.
+   */
+  | { kind: 'technique'; move: string }
   | { kind: 'heal'; fraction: number }
   /**
    * A relic, and the two things that make it resolvable later.
@@ -355,6 +364,29 @@ export function resolveRewardEntry(
       takenMoves.add(move.name);
       return { kind: entry.kind, move: move.name };
     }
+    case 'technique': {
+      /*
+       * One draw, from the status pool, sharing `takenMoves` with the two
+       * above.
+       *
+       * Sharing the set is the point rather than an economy: an offer holding
+       * a TM and a technique must not name the same move twice, and a status
+       * move and a damaging one can never collide anyway, so the shared set
+       * costs nothing and removes a rule nobody would remember to keep.
+       *
+       * No band, no segment and no tier. A status move has no base power, so
+       * there is nothing for `rewardMoveBands` to say about it — a Recover is
+       * the same Recover at segment 1 and segment 7, and what changes with the
+       * run is what it is *worth*, which is a price rather than a draw.
+       */
+      const available = statusByImpact(entry.impacts ?? []).filter(
+        (move) => !takenMoves.has(move.name),
+      );
+      if (available.length === 0) return null;
+      const move = stream.pick(available);
+      takenMoves.add(move.name);
+      return { kind: 'technique', move: move.name };
+    }
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
   }
@@ -429,7 +461,10 @@ export function resolveOffer(offer: RewardOffer, relics: readonly RelicId[]): Re
  * `applyReward` has to use it. Three copies of "is it an item, a tm or a
  * tutor?" is three places for the fourth kind to be forgotten.
  */
-export type MoveReward = Extract<Reward, { kind: 'tm' } | { kind: 'tutor' }>;
+export type MoveReward = Extract<
+  Reward,
+  { kind: 'tm' } | { kind: 'tutor' } | { kind: 'technique' }
+>;
 
 /**
  * The old name for `MoveReward`, kept only where the UI still speaks it.
@@ -486,11 +521,31 @@ export const DECLINED_MOVE = -1;
  * screen would be asking a question whose answer the player can change for free
  * ten seconds later — which is not a decision, it is a prompt.
  *
- * What is left is the two cards that teach a move, and those are targeted in
+ * What is left is the three cards that teach a move, and those are targeted in
  * the strong sense: the choice is irreversible and it costs a move slot.
+ *
+ * **Written as an exhaustive switch rather than a chain of `||`, and that is a
+ * correctness change rather than a style one.** `docs/README.md` open item 15
+ * is the standing risk that a widened union is not walked through its readers,
+ * and this function is exactly such a reader: it shipped as
+ * `kind === 'tm' || kind === 'tutor'`, which stays perfectly valid TypeScript
+ * the day a third move kind arrives and quietly answers `false` for it. It did:
+ * the `technique` card reached `teachMove` with no slot and threw at the first
+ * party member holding four moves, because `playRun` never asked the question.
+ * A switch with no `default` makes the next one a compile error here.
  */
 export function isTargeted(reward: Reward): reward is TargetedReward {
-  return reward.kind === 'tm' || reward.kind === 'tutor';
+  switch (reward.kind) {
+    case 'tm':
+    case 'tutor':
+    case 'technique':
+      return true;
+    case 'item':
+    case 'currency':
+    case 'heal':
+    case 'relic':
+      return false;
+  }
 }
 
 /**
@@ -535,6 +590,7 @@ export function applyReward(
 
     case 'tm':
     case 'tutor':
+    case 'technique':
       return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
 
     case 'relic':
@@ -634,6 +690,8 @@ export function describeReward(reward: Reward): string {
       return `TM: ${reward.move}`;
     case 'tutor':
       return `Tutor: ${reward.move}`;
+    case 'technique':
+      return `Technique: ${reward.move}`;
     case 'heal':
       return reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
   }

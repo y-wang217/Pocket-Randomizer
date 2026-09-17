@@ -198,10 +198,11 @@ describe('reward determinism', () => {
           simSeed: node.encounter?.simSeed,
         })),
       );
-    // The knob is a reward-stream one: a bigger shelf draws more from
-    // `rewards` and must leave the map, the teams and the battle seeds alone.
-    // It was `allowSpeciesRewards` until Stage 4.6b deleted the kind.
-    expect(mapOf(withTuning({ shopStockSize: { min: 6, max: 6 } }))).toEqual(mapOf(DEFAULT_TUNING));
+    // The knob is a reward-stream one: a shelf with more rows on it draws more
+    // from `rewards` and must leave the map, the teams and the battle seeds
+    // alone. It was `allowSpeciesRewards`, then `shopStockSize`; the shelf's
+    // guaranteed categories are fixed now, so the variable part is the extras.
+    expect(mapOf(withTuning({ shopExtraSlots: { min: 4, max: 4 } }))).toEqual(mapOf(DEFAULT_TUNING));
   });
 });
 

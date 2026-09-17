@@ -100,15 +100,28 @@ describe('a whole run', () => {
      * through — and a second `lead` entry in the log would desynchronise the
      * replay cursor at the next decision.
      */
-    const picks: number[] = [];
-    const run = await playRun('LEAD-COUNT', contrarian(picks), DEFAULT_TUNING);
+    /*
+     * Searched across seeds rather than pinned to one, from the
+     * `gymrun-randomizer-18` bump. The count is only a count of *something* on
+     * a seed that reaches a gym, and how far a seed gets is a property of the
+     * draw that every bump reshuffles — `test/backpack.test.ts` states the
+     * lesson at length. The equality is checked on every seed either way, so
+     * the search strengthens the assertion rather than merely rescuing it.
+     */
+    let reached = 0;
+    for (const seed of ['LEAD-COUNT', 'LEAD-COUNT-2', 'LEAD-COUNT-3', 'LEAD-COUNT-4', 'LEAD-COUNT-5']) {
+      const picks: number[] = [];
+      const run = await playRun(seed, contrarian(picks), DEFAULT_TUNING);
 
-    const gyms = run.state.history.filter((visit) => visit.node.kind === 'gym').length;
-    const leads = run.log.decisions.filter((decision) => decision.kind === 'lead').length;
+      const gyms = run.state.history.filter((visit) => visit.node.kind === 'gym').length;
+      const leads = run.log.decisions.filter((decision) => decision.kind === 'lead').length;
 
-    expect(gyms, 'this seed never reached a gym').toBeGreaterThan(0);
-    expect(leads).toBe(gyms);
-    expect(picks).toHaveLength(gyms);
+      expect(leads, seed).toBe(gyms);
+      expect(picks, seed).toHaveLength(gyms);
+      reached += gyms;
+    }
+
+    expect(reached, 'no seed reached a gym, so this asserts nothing').toBeGreaterThan(0);
   }, 120_000);
 
   it('records the lead immediately before the gym it belongs to', async () => {

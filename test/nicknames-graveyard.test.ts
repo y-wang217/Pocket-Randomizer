@@ -28,7 +28,12 @@ import { NICKNAMES } from '../src/data/nicknames';
 import { playerLevel } from '../src/data/scaling';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
-const SEEDS = ['NAME-A', 'NAME-B', 'NAME-C'];
+/*
+ * Widened at the `gymrun-randomizer-18` bump: a survivor whose level has moved
+ * since a party-mate fell needs a run that lives long enough to level, which
+ * the draw decides. See `test/backpack.test.ts` on pinned seeds and bumps.
+ */
+const SEEDS = ['NAME-A', 'NAME-B', 'NAME-C', 'NAME-D', 'NAME-E', 'NAME-F', 'NAME-G', 'NAME-H'];
 
 /** Catches whatever it is offered, so names and deaths both accumulate. */
 function catcher(): RunPolicy {

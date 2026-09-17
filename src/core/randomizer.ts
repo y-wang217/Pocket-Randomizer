@@ -57,7 +57,7 @@ import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
 import type { BattleKind } from '../data/tuning';
 import { localeAdmits, type LocaleId } from '../data/locales';
-import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry } from '../data/movePools';
+import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry, type MoveImpact } from '../data/movePools';
 import { BERRIES } from '../data/items';
 import {
   berryHoldRate,
@@ -69,7 +69,7 @@ import {
   opponentTeamSize,
   speciesBandWeightsFor,
 } from '../data/scaling';
-import { bandOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../data/moveOverrides';
+import { bandOf, impactOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../data/moveOverrides';
 import { SPECIES_POOL, type SpeciesEntry } from '../data/speciesPools';
 import { stageAllowedAt } from '../data/evolution';
 import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
@@ -262,7 +262,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * guards, two messages: that one says the questions changed, this one says the
  * answers would now mean something else.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-17';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-18';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -401,6 +401,33 @@ const DAMAGING_AVAILABLE: readonly MoveEntry[] = DAMAGING_MOVES.filter(
 );
 
 /**
+ * Status moves of the given impacts, blacklist applied.
+ *
+ * **`damagingInBands`' opposite number, and it exists for the same reason that
+ * one does:** a reward that handed out moves from a table nothing else draws
+ * from would be a second pool to keep balanced. This is the door a `technique`
+ * reward goes through, and `rollMoveset` reaches the same list by a different
+ * route — `STATUS_AVAILABLE` below — so a move that a wild Pokemon can hold is
+ * a move a shop can sell.
+ *
+ * An empty `allowed` means every impact, which is what the shipped tables ask
+ * for: `CLAUDE.md` is explicit that a curated list starts near empty and is
+ * populated from simulator evidence, so the *filter* ships and the *filtering*
+ * does not. Falls back to the whole pool rather than returning nothing when a
+ * filter empties the list, the same guard and the same reasoning as
+ * `damagingInBands`.
+ */
+export function statusByImpact(allowed: readonly MoveImpact[] = []): MoveEntry[] {
+  if (allowed.length === 0) return [...STATUS_AVAILABLE];
+  const wanted = new Set(allowed);
+  const matching = STATUS_AVAILABLE.filter((move) => {
+    const impact = impactOf(move);
+    return impact !== null && wanted.has(impact);
+  });
+  return matching.length > 0 ? matching : [...STATUS_AVAILABLE];
+}
+
+/**
  * Damaging moves in one band, memoized.
  *
  * A pure function of two constant tables, asked once per move slot — four times
@@ -415,6 +442,37 @@ function damagingInBand(band: number): readonly MoveEntry[] {
   if (cached) return cached;
   const pool = DAMAGING_AVAILABLE.filter((move) => bandOf(move) === band);
   BY_BAND.set(band, pool);
+  return pool;
+}
+
+/**
+ * Damaging moves a **STAB-restricted** slot may reach: the drawn band and
+ * `MOVESET.stabWindow` bands above it. Memoized on the same terms as `BY_BAND`.
+ *
+ * Separate from `damagingInBand` rather than a parameter on it, because the two
+ * answer different questions and only one of them widens. An *open* coverage
+ * slot draws from its band and nothing else — that is what a band means. A slot
+ * filtered down to one species' two types is asking a much narrower question of
+ * the same table, and `docs/reports/moveset-pool-validation.md` section 3a is
+ * the measurement of how narrow: band 1 carries one Psychic move and one
+ * Dragon move, so the filter reduced a 82-move band to a single candidate.
+ *
+ * `data/scaling.ts`'s `stabWindow` carries the argument and the numbers. What
+ * matters here is that the widening is a change to the *list*, never to the
+ * number of times the stream is read: `take()` picks once whatever it is
+ * handed.
+ */
+const BY_STAB_WINDOW = new Map<number, readonly MoveEntry[]>();
+
+function damagingInStabWindow(band: number): readonly MoveEntry[] {
+  const cached = BY_STAB_WINDOW.get(band);
+  if (cached) return cached;
+  const top = band + MOVESET.stabWindow;
+  const pool = DAMAGING_AVAILABLE.filter((move) => {
+    const its = bandOf(move) ?? 0;
+    return its >= band && its <= top;
+  });
+  BY_STAB_WINDOW.set(band, pool);
   return pool;
 }
 
@@ -556,7 +614,12 @@ function rollMoveset(entry: SpeciesEntry, pool: BandedMovePool, stream: RngStrea
   const takeDamaging = (stabOnly: boolean): MoveEntry | null => {
     const band = drawBand(pool.weights, stream);
     const inBand = damagingInBand(band);
-    const from = stabOnly ? inBand.filter((move) => types.has(move.type)) : inBand;
+    // A STAB-restricted slot reads the *window* and an open one reads the band.
+    // See `damagingInStabWindow`: the type filter is what makes a band thin, so
+    // it is the filtered draw that gets the extra reach and not the other one.
+    const from = stabOnly
+      ? damagingInStabWindow(band).filter((move) => types.has(move.type))
+      : inBand;
     // Falls back out of the band before it falls back out of STAB: a species
     // with no in-band move of its own types should still hit something hard,
     // and a band is a strength statement where STAB is a flavour one.
