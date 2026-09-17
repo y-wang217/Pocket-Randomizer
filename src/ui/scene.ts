@@ -1334,8 +1334,30 @@ function renderBenchMember(
   const level = el('span', 'bench__level');
   level.textContent = `Lv${member.level}${genderMark(member.gender)}`;
 
+  /*
+   * **The bench keeps inert type chips, and it is the one place the chip-audit
+   * patch's answer is narrowed. Read this before widening it back.**
+   *
+   * A bench row is not a panel, it is the switch control: the whole row is one
+   * tap and that tap spends the turn. `ui/tooltips.ts` stops a click that lands
+   * on a `[data-tip]` element — deliberately, so opening a tooltip cannot also
+   * submit a move — so a tipped chip inside this button is a dead patch of the
+   * only control that gets a fainted Pokemon off the field. The chips are most
+   * of the row's width, so that patch is large.
+   *
+   * This is the third time this project has met the same hazard and the first
+   * two are in `scripts/visual/browser.mjs`: a chip under a move button's
+   * centre stalled the walk for 900 steps at 4.8.0.2, and the reward card's
+   * expander did it again at 4.7.2 step 5. Both were fixed by aiming the tap at
+   * something that is never a trigger. Here there is nothing to re-aim — a
+   * player's thumb lands where it lands.
+   *
+   * **Nothing is lost by it.** The same Pokemon's types are on the battle panel
+   * above with the wheel on them, and the bench row's copy is an identifier
+   * rather than a readout.
+   */
   const types = el('span', 'bench__types');
-  types.replaceChildren(...member.types.map((type) => panelTypeChip(type)));
+  types.replaceChildren(...member.types.map((type) => typeChip(type)));
 
   const bar = createBar({ variant: 'slim' });
   bar.set(member.hpFraction);

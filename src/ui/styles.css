@@ -1702,7 +1702,11 @@ body {
  * without touching this rule, and `test/type-icons.test.ts` asserts the ceiling
  * rather than trusting this sentence.
  */
-:root { --move-watermark: 0.3; }
+/* Opacity, and the glyph's edge. The gutter below is derived from the size
+   rather than restated, the way `--figure-size` works for a sprite: the two
+   numbers are one fact and a patch that changes one must not be able to leave
+   the other behind. */
+:root { --move-watermark: 0.3; --move-watermark-size: 32px; }
 
 .moves .move { position: relative; }
 
@@ -1710,8 +1714,8 @@ body {
   position: absolute;
   top: var(--space-1);
   right: var(--space-1h);
-  width: 32px;
-  height: 32px;
+  width: var(--move-watermark-size);
+  height: var(--move-watermark-size);
   color: var(--chip);
   opacity: var(--move-watermark);
   pointer-events: none;
@@ -1726,7 +1730,7 @@ body {
  * the name is the one region of this card that is reliably empty, and it is
  * only reliably empty if the name is told to stop short of it.
  */
-.moves .move__name { padding-right: 34px; }
+.moves .move__name { padding-right: calc(var(--move-watermark-size) + var(--space-h)); }
 
 .moves .move__watermark svg { display: block; width: 100%; height: 100%; }
 
@@ -1755,10 +1759,9 @@ body {
 [data-move-bar='columns'] .moves .move__name { padding-right: 0; }
 
 [data-move-bar='columns'] .moves .move__watermark {
+  --move-watermark-size: 54px;
   top: 50%;
   right: 50%;
-  width: 54px;
-  height: 54px;
   transform: translate(50%, -50%);
   opacity: calc(var(--move-watermark) * 0.6);
 }
@@ -2448,6 +2451,17 @@ body {
    a row rather than a line of text. */
 .starter__meta {
   display: flex;
+  /*
+   * **Wraps.** It did not, and `test/visual-phone-seed-bar.test.ts` caught the
+   * consequence: an ability chip is uppercase with letter-spacing, so
+   * `ELECTRIC SURGE` beside the HP figure took the starter screen to 401px in a
+   * 390px viewport. A non-wrapping flex row cannot shrink below its content and
+   * nothing above it clips, so the overflow reached the document.
+   *
+   * That assertion covers the starter screen. Nine screens have no equivalent,
+   * which is the item filed in `docs/README.md` section 5.
+   */
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   color: var(--text-dim);

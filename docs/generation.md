@@ -4848,7 +4848,7 @@ shape information at all — the screen that decides which of four moves a Pokem
 keeps said least about the Pokemon. That is a hole rather than a decision, and
 it would have been worth closing under the old rule too.
 
-`screens/locale-select.ts` had been hand-rolling `badge badge--archetype`
+`src/ui/screens/locale-select.ts` had been hand-rolling `badge badge--archetype`
 instead of calling `archetypeChip`, which is `.badge`'s metrics with none of
 `.chip`'s recipe — bare uppercase text among siblings that all carry the fill
 and the hairline outline. `test/chip.test.ts` exists to catch exactly that and
