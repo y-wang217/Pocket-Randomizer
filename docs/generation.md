@@ -4922,3 +4922,29 @@ re-seeded. It asserted "never gives a starter a move above band 1", which the
 window makes false on purpose; the assertion's real job was that a starter
 cannot reach the middle of the table, and that job survives intact one band
 wider.
+
+### 30.6 The shelf's move card, and the gate that caught its height
+
+Open item 13 — the shelf printed `Tutor: Flamethrower` and nothing else while
+the reward screen offering the identical move printed its type, base power,
+band, PP, category and tags — is closed here rather than left, because this
+patch put a *third* move kind on that shelf and shipping it with the same gap
+was worse than fixing it. The rows go through `scene.moveCard` over
+`moveCardData`, the reward screen's own insertion point, with no holder passed.
+
+**It cost height, and the assumption that it was free was wrong.** The shop is
+not one of the two screens `heights.json` guards, and that was mistaken for "the
+shop is not guarded": `test/visual-pocket.test.ts` holds *every* decision
+surface, the shop included, to a document `scrollHeight` at or under 844 — "a
+hard gate, no exemptions". With five or six guaranteed rows instead of three or
+four drawn ones, two of them carrying a card, a segment-0 shop measured 864.
+
+Pocket hides the cards, in CSS (`:root[data-density="pocket"] .shop__item >
+.move--card`). Not by a branch in the screen: a screen that reasoned about
+density in JS would not re-render when the mode is switched live, and
+`test/density.test.ts` greps for exactly that. Detailed and Simple keep the
+cards and scroll, which they always did.
+
+The lesson is the ordinary one and it is worth the line: **the gate found this,
+not the reasoning that preceded it.** "The shop is not a guarded screen" was
+said in this session, with confidence, and was false.

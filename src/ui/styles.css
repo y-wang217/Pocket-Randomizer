@@ -3720,10 +3720,15 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   padding: 0;
 }
 
+/* A column, since the shop patch: the row's own line, then the move card that a
+   move row carries under it. Everything that was on one line still is —
+   `.shop__item-row` is that line — and a row without a card renders identically
+   to how it did before. */
 .shop__item {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
   padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
@@ -3737,7 +3742,29 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   background: var(--bg-sunken);
 }
 
+.shop__item-row { display: flex; align-items: center; gap: var(--space-3); }
 .shop__item-label { display: flex; flex-direction: column; gap: var(--space-h); flex: 1; min-width: 0; }
+/* Pocket drops the shelf's move cards.
+   The card is the open-item-13 fix — a shelf row that teaches a move now says
+   what the move is, through the same component the reward screen uses — and it
+   costs height that Pocket does not have. Pocket's definition is a hard
+   no-scroll gate on every decision surface (`test/visual-pocket.test.ts`), and
+   the shelf grew from three or four drawn rows to five or six guaranteed ones
+   in the same patch, so the two together push a segment-0 shop over 844.
+   Hidden in CSS rather than skipped in the screen, because a screen that
+   branched on density in JS would not re-render when the mode is switched
+   live — and `test/density.test.ts` greps for exactly that mistake. The name,
+   the category and the price are on the row in every mode; what Pocket loses
+   is the detail, which is what Pocket loses everywhere. */
+:root[data-density="pocket"] .shop__item > .move--card { display: none; }
+
+.shop__item-kind {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
 .shop__item-name { font-weight: 600; font-size: var(--fs-base); }
 .shop__item-detail { color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.4; }
 
@@ -4153,6 +4180,7 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .seedbar__label,
 .bench__heading,
 .reward__kind,
+.shop__item-kind,
 .shop__coin-label,
 .summary__seed-label,
 .stat__label,

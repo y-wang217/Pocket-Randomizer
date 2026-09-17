@@ -231,19 +231,30 @@ session reaching for it finds this paragraph first.
 
 ## 5. The confound to name before any benchmark is read
 
-`defaultMoveReplacement` (`core/run.ts:2388`) returns
-`weakestSlot ?? statusSlot ?? 0`. It displaces the weakest *damaging* move and
-falls back to a status slot only when the member holds no damaging move at all.
+**There are two replacement heuristics, not one, and they behave differently.**
+Worth stating plainly because they are easy to confuse and only one of them is
+what a benchmark measures.
 
-**The simulator's bot therefore never discards a status move.** That is fine
-today, when status moves arrive only by generation. The moment they can be
-*bought*, this rule plus whatever shelf policy the bot uses is what decides
-whether a status move looks strong in a benchmark. Any figure produced after the
-patch is measuring the replacement policy as much as the move.
+- `defaultMoveReplacement` (`core/run.ts:2388`) returns
+  `weakestSlot ?? statusSlot ?? 0`. It displaces the weakest *damaging* move and
+  reaches a status slot only when the member holds no damaging move at all — so
+  it **never** discards a status move in practice. This is the reference
+  heuristic `scriptedRunPolicy` uses, which means the **tests**, not the
+  simulator.
+- `greedyMoveToReplace` (`scripts/sim.ts:1243`) is what the **simulator**
+  actually runs. It drops the first status move when a member holds *more than
+  one*, and otherwise the weakest damaging move.
 
-Named rather than fixed: changing the policy is a change to what the baseline
-bot *is*, and `balance.md` §0 is explicit that the yardstick does not move in
-the same patch as the thing it measures.
+So the confound is real but narrower than "the bot hoards status moves": the sim
+will shed a spare, and will otherwise pay for a technique with an attack slot
+every single time. Since the sim's battle policy is a one-turn damage maximiser,
+a move whose value lands on the *next* turn scores zero on the turn it is
+offered while its cost is immediate and visible. **Any post-patch figure on
+technique demand is measuring those two policies at least as much as the move.**
+
+Named rather than fixed: changing either is a change to what the baseline bot
+*is*, and `balance.md` §0 is explicit that the yardstick does not move in the
+same patch as the thing it measures.
 
 ## 6. What this report recommends
 

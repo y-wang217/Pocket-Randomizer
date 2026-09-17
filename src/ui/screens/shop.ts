@@ -14,12 +14,14 @@
  * save for. The disabling is a courtesy either way — `economy.applyPurchases`
  * is what actually refuses an overdraft, because a replayed log has no buttons.
  */
+import { describeMove } from '../../core/battle/driver';
 import { basketCost, type ShopStock } from '../../core/economy';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { relicById } from '../../data/relics';
-import { itemById } from '../../data/items';
-import { el } from '../scene';
+import { itemById, BERRIES } from '../../data/items';
+import { moveCardData } from '../move-detail';
+import { el, moveCard } from '../scene';
 import { prose, setProse } from '../dom';
 import { SHOP_COPY } from '../copy/screens';
 
@@ -86,11 +88,25 @@ export function createShopScreen(): ShopScreen {
           row.dataset['price'] = String(item.price);
 
           const label = el('div', 'shop__item-label');
+          /*
+           * The category, printed on the row.
+           *
+           * The shelf guarantees one of each (`data/shop.ts`), and a guarantee
+           * the player cannot see is not a guarantee they can plan around — it
+           * is a coincidence they have to infer over several visits. Read back
+           * off the resolved reward rather than carried on the row, so the
+           * label can never claim a category the row did not deliver.
+           *
+           * It is an attribute and not a verdict: no ordering by it, no marker
+           * on a better one, and the rows stay in shelf order.
+           */
+          const kind = el('span', 'shop__item-kind');
+          kind.textContent = categoryLabel(item.reward);
           const name = el('span', 'shop__item-name');
           name.textContent = describeStock(item.reward);
           const detail = el('span', 'shop__item-detail');
           detail.replaceChildren(detailOf(item.reward));
-          label.append(name, detail);
+          label.append(kind, name, detail);
 
           const price = el('span', 'shop__price');
           price.textContent = `${item.price}`;
@@ -104,7 +120,31 @@ export function createShopScreen(): ShopScreen {
             refresh();
           });
 
-          row.append(label, price, add);
+          const top = el('div', 'shop__item-row');
+          top.append(label, price, add);
+          row.append(top);
+
+          /*
+           * The move card, which closes `docs/README.md` open item 13.
+           *
+           * The shelf printed `Tutor: Flamethrower` and nothing else, while the
+           * reward screen offering the identical move printed its type, base
+           * power, band, PP, category and tags. Same decision, same move, two
+           * different amounts of information depending on which screen it was
+           * met on — and the shop is the screen where the player is also being
+           * asked to price it.
+           *
+           * The same insertion point the reward screen uses (`scene.moveCard`
+           * over `moveCardData`), so the two cannot drift. **No holder is
+           * passed**, for the reason `screens/reward.ts` gives at length: the
+           * move is unassigned until the purchase asks who learns it, so a STAB
+           * tag here would claim something not yet true.
+           */
+          if (isMoveRow(item.reward)) {
+            const facts = describeMove(item.reward.move);
+            if (facts) row.append(moveCard(moveCardData(facts, state.tuning)));
+          }
+
           return row;
         }),
       );
@@ -142,6 +182,39 @@ function describeStock(reward: Reward): string {
       return `Technique: ${reward.move}`;
     case 'currency':
       return `${reward.amount} coins`;
+  }
+}
+
+/** Whether this row teaches a move, and therefore earns a card under it. */
+function isMoveRow(reward: Reward): reward is Extract<Reward, { move: string }> {
+  return reward.kind === 'tm' || reward.kind === 'tutor' || reward.kind === 'technique';
+}
+
+const BERRY_IDS = new Set(BERRIES.map((entry) => entry.id));
+
+/**
+ * The category a row fills, read back off what it resolved to.
+ *
+ * Mirrors `ShopCategory` in `data/shop.ts` without importing the slot tables:
+ * what the player is owed is one row of each category, and what this says is
+ * which one they got. A berry and a held item are both `kind: 'item'` and are
+ * told apart by the id, exactly as the shelf tables tell them apart.
+ */
+function categoryLabel(reward: Reward): string {
+  switch (reward.kind) {
+    case 'tm':
+    case 'tutor':
+      return 'Battle move';
+    case 'technique':
+      return 'Technique';
+    case 'heal':
+      return 'Restore';
+    case 'relic':
+      return 'Relic';
+    case 'item':
+      return BERRY_IDS.has(reward.item) ? 'Berry' : 'Held item';
+    case 'currency':
+      return 'Coins';
   }
 }
 

@@ -693,9 +693,29 @@ One line each. The analysis lives where the pointer goes, not here.
    unconditionally, so a party of four-move members must displace one. A
    decline is a `core/` change and a `RUN_LOG_VERSION` bump. Surfaced by
    4.8.0.2, which relabelled the heading that was being tapped as one.
-13. **The shop shelf shows `Tutor: X` with no card.** Same gap 4.8.0.2 closed
-   on the recipient screen, same two lines to close it; not in that patch's
-   brief.
+13. **The shop shelf shows `Tutor: X` with no card. Closed 2026-09-17** by the
+   shop and moveset-variance patch, which had to touch every move row on that
+   shelf anyway and would otherwise have shipped a third move kind with the
+   same defect. The rows go through `scene.moveCard` over `moveCardData` now —
+   the reward screen's own insertion point, so the two cannot drift — with no
+   holder passed, because a shelf move is unassigned until the purchase asks
+   who learns it.
+
+   **It costs height, and the Pocket gate is what said so.** At 390x844 a
+   segment-0 shelf shows two and a half rows above the fold in Detailed where it
+   used to show four: five guaranteed categories instead of three or four drawn
+   ones, two of them carrying a card. Detailed and Simple scroll and always
+   could. **Pocket may not** — `test/visual-pocket.test.ts` holds every decision
+   surface to a document `scrollHeight` at or under 844, "a hard gate, no
+   exemptions" — and the shop came out at 864. So Pocket hides the shelf's move
+   cards, in CSS rather than by a branch in the screen, because a screen that
+   reasoned about density in JS would not re-render when the mode is switched
+   live and `test/density.test.ts` greps for that mistake. The name, the
+   category and the price are on the row in every mode.
+
+   If a later pass wants the card back in Pocket, the lever is a disclosure
+   rather than a shorter shelf: the shelf's shape is the feature.
+   `generation.md` section 30.
 14. **The density modes patch is built, on `claude/bold-clarke-xcwko1`, and
    awaits review and merge.** All seven steps, every gate green, the
    guarded Detailed heights unchanged to the pixel. On merge the register
