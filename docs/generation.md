@@ -5145,3 +5145,33 @@ The patch's own risk against that leg is small but not zero: it changes one
 stylesheet rule (`:root[data-density="pocket"] .shop__item > .move--card`) and
 the shop screen's DOM, and the WebKit suite is the one that measures layout on
 the second engine. The Pocket no-scroll gate passed on Chromium at 17/17.
+
+### 31.8 The merge with the chip audit, and the 21px neither patch caused
+
+PR #44 merged while this branch was building and the code conflicts were none:
+two documents that both grew a section 30, and a register that grew two rows.
+`styles.css` auto-merged because the two rule sets are disjoint, and `scene.ts`'s
+`moveCard` — which this branch calls from the shop shelf — kept its signature
+across the audit.
+
+**The guarded battle screen did not merge cleanly, and neither patch is at
+fault.** The chip audit put a type icon on the move buttons and moved
+`heights.json` by nothing on `main`. This branch moved the battle screen 5.5px
+*shorter*, because the moveset change gives SMOKE24's lead different moves and
+their names cost one line less. Together the new icons land on those different
+names and the screen measures **610.5**: +21 on this branch's 589.5, +15.5 on
+main's 595. Four `visual-v*` height tests failed on the merged tree and on
+neither parent.
+
+Re-recorded against the merged tree, which is the only tree that produces the
+number. `decisionTop` is unmoved everywhere and the map did not move at all, so
+the guard's own property held through the interaction — what moved is content
+under an unchanged layout, which is what the guard is shaped to allow.
+
+**The cost is headroom.** `test/visual-v0.test.ts` holds both decision points at
+or above y=740, and the battle screen's margin went from 37.5px to **16.5px**
+(723.5 against 740). It passes, and it is a real assertion rather than an
+`it.fails` marker. But two independent patches that each looked free spent
+57% of that slack between them without either one measuring it, and the next row
+added to a move button will find the line. `docs/visual/baseline/README.md`
+carries the correction and the numbers.

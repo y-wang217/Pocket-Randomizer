@@ -18,6 +18,34 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-17, the merge of the chip audit into the shop and moveset-variance
+  patch.** `heights.json` re-recorded a second time that day, and the reason is
+  an *interaction* rather than either patch: **neither branch moved the battle
+  screen this far on its own.**
+
+  On `main`, the chip audit added a type icon to the move buttons and did not
+  move `heights.json` at all. On this branch, the moveset-variance change made
+  the battle screen 5.5px *shorter*, because SMOKE24's lead draws different
+  moves now and the names cost one line less. Merged, the new icons land on
+  those different move names and the screen goes to **610.5**, +21 over this
+  branch's own 589.5 and +15.5 over main's 595. A patch that re-recorded against
+  either parent alone would have recorded a number the merged tree does not
+  produce.
+
+  **`decisionTop` is unmoved in every mode and every layout** — 472, 445.44,
+  355.39 — and **the map did not move on any field**. `decisionBottom` follows
+  the height down the column: 702.5 to 723.5 Detailed, 668.44 to 689.44 Simple,
+  494.39 to 515.39 Pocket. Pocket's own gate is a document `scrollHeight` at or
+  under 844 and is nowhere near it.
+
+  **What this spends is budget headroom, and it is the number to watch.**
+  `test/visual-v0.test.ts` holds both decision points at or above y=740. The
+  battle screen's margin was 37.5px on this branch alone and is **16.5px** now
+  (723.5 against 740); the map's is 52.44px. The assertion passes and is a real
+  assertion — see open item 7 — but the next patch that adds a row to a move
+  button will hit it, and this entry is where the next reader finds out why the
+  slack went.
+
 - **2026-09-17, the shop and moveset-variance patch** (`randomizer-18`,
   `contentHash` `fd9b5e`). Re-recorded on all three instruments, and the two
   halves are independent as usual.
