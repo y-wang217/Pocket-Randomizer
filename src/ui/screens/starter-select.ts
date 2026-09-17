@@ -19,7 +19,8 @@ import type { PokemonSpec, StatName } from '../../core/types';
 import { el } from '../scene';
 import { setProse } from '../dom';
 import { STARTER_COPY } from '../copy/screens';
-import { typeChip as chip } from '../chip';
+import { abilityChip, monTypeChip, typeChip as chip } from '../chip';
+import { archetypeChip } from '../archetype-chip';
 import { spriteFigure } from '../sprites';
 
 export interface StarterSelect {
@@ -69,11 +70,24 @@ function renderCard(spec: PokemonSpec, index: number, onPick: () => void): HTMLE
   const detail = describeSpecCard(spec);
   name.textContent = detail.species;
   level.textContent = `Lv${detail.level}`;
-  // No archetype chip: this card draws the six-stat `statLine` below, and the
-  // bars are the shape the label described. Patch 4.8.0.3, item 3.
-  archetype.replaceChildren();
-  types.replaceChildren(...detail.types.map(typeChip));
-  meta.textContent = `${detail.ability} · ${detail.maxHp} HP`;
+  // The chip is back in the slot that was always reserved for it. Chip-audit
+  // patch, question 1. The note on `const archetype` above still says why the
+  // first screen of a run is the one the vocabulary has to be learnable on;
+  // 4.8.0.3 emptied the span and left that argument standing over an empty
+  // element, which is how the span survived the removal to be refilled here.
+  archetype.replaceChildren(archetypeChip(detail.baseStats));
+  types.replaceChildren(...detail.types.map(monTypeChip));
+  /*
+   * The ability is a chip rather than half of a concatenated string.
+   *
+   * `${detail.ability} · ${detail.maxHp} HP` put the one fact on this card
+   * that has an explanation behind it into a run of text with no trigger in
+   * it — so on the screen where a player has the least context to judge an
+   * ability by, it was the only surface that offered no way to look it up.
+   */
+  const hp = el('span', 'starter__hp');
+  hp.textContent = `${detail.maxHp} HP`;
+  meta.replaceChildren(abilityChip(detail.ability, detail.abilityId), hp);
 
   moves.replaceChildren(
     ...detail.moves.map((move) => {

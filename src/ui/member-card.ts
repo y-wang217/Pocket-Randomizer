@@ -28,7 +28,8 @@ import { createBar } from './bar';
 import { collapsible } from './collapse';
 import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
-import { neutralChip, statusChip, typeChip } from './chip';
+import { abilityChip, monTypeChip, neutralChip, statusChip } from './chip';
+import { archetypeChip } from './archetype-chip';
 import { slotNumber } from './slots';
 import { spriteFigure } from './sprites';
 
@@ -97,27 +98,32 @@ export function memberCardContents(
   // the same marker the hotbar above it wears.
   if (options.index !== undefined) header.append(slotNumber(options.index));
   /*
-   * **No archetype chip here. Patch 4.8.0.3, item 3.**
+   * **The archetype chip is back. Chip-audit patch, 2026-09-17, question 1,
+   * which supersedes Patch 4.8.0.3 item 3.**
    *
-   * The six stat bars this card draws below (`statBlock`) already show the
-   * shape the label was summarising, and they show it without the label's
-   * known failure mode: `archetypeOf` reads base stats only, so a Pokemon with
-   * a fully randomized move set reads `pTank` while attacking specially. A
-   * chip that is sometimes wrong sitting directly above the bars that are
-   * always right is the label at its least useful.
+   * 4.8.0.3 took it off every surface that draws the six stat bars, on the
+   * argument that the bars show the same shape without the label's known
+   * failure mode — `archetypeOf` reads base stats only, so a fully randomized
+   * move set can leave a `pTank` attacking specially.
    *
-   * `archetypeOf` and `ActiveUiView.archetype` are untouched, and the chip
-   * stays on every surface that has no bars — the battle panel, the item
-   * target, the result summary, the acquisition slot row — where it is the
-   * only shape information there is.
+   * That argument was about *this card* and it was answered by what it left
+   * behind: a label that appears on four surfaces and not the other six is not
+   * a shorthand a player learns, it is a thing that turns up sometimes. The
+   * chip's value is that one word means the same thing everywhere a Pokemon is
+   * drawn, and a chip removed wherever there was room to justify removing it
+   * is a chip with no vocabulary left.
+   *
+   * The failure mode is real and is unchanged. It is answered where it was
+   * always answered — `ARCHETYPE_CAVEAT`, in the panel every one of these
+   * chips opens — rather than by removing the label from the surfaces that
+   * happen to have somewhere else to look.
    */
-  header.append(name, level, ...spec.types.map((type) => typeChip(type)));
+  header.append(name, level, archetypeChip(spec.baseStats), ...spec.types.map(monTypeChip));
   if (options.isLead) header.append(neutralChip('Lead', 'lead'));
 
-  const ability = el('span', 'party__ability');
-  ability.textContent = spec.ability;
-  ability.dataset['tip'] = `ability:${spec.abilityId}`;
-  header.append(ability);
+  // `.party__ability` keeps its class: the stylesheet positions it and hides it
+  // on a collapsed Pocket card, and neither rule is this patch's to move.
+  header.append(abilityChip(spec.ability, spec.abilityId, 'party__ability'));
 
   const bar = createBar();
   bar.set(hpFraction(member));

@@ -58,7 +58,38 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the victory-order patch.** Branch
+**In flight: the chip audit.** Branch `claude/serene-bohr-xn433h`, prompt
+[`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md),
+record [`generation.md`](generation.md) section 30, report
+[`visual/reports/patch-chip-audit.md`](visual/reports/patch-chip-audit.md).
+Presentation only: no `core/` change, no version axis moves, `contentHash`
+unmoved.
+
+Two audits and one small feature, and **both audits landed on decisions already
+in the lineage**, so both were put to the author before any code rather than
+rediscovered:
+
+- **Patch 4.8.0.3 item 3 is superseded.** The archetype chip is on every surface
+  that draws a Pokemon again, bars or no bars. The learn-move recipient was the
+  one surface that had neither the chip nor the bars it was traded for.
+- **The 2026-09-10 type wheel ruling is superseded for Pokemon type badges, and
+  stands everywhere else.** It had been applied to every type chip in the app
+  rather than the two it named, so the wheel was reachable from a battle move
+  card and nowhere else. A gym leader's type, a locale's types, a threat's type
+  and an item's boosted type stay inert.
+- The ability is one focusable chip on all nine surfaces that show one. It was a
+  real chip on two, a non-focusable `<span>` on two, bare text on one and absent
+  on four.
+- Battle move buttons carry a type watermark, `ui/theme/typeIcons.ts`.
+
+**One objection is open rather than settled.** `scene.ts` carried a
+playtest-derived argument — stronger than the ruling the question quoted — that
+the wheel's *offensive* half is misleading beside a Pokemon whose moves are
+drawn off-species. It is preserved verbatim in the source. The narrowing that
+would close it, a Pokemon badge opening the defending half only, was not asked
+for and is not built. See the report's Part 2.
+
+**Merged before it: the victory-order patch.** Branch
 `claude/victory-screen-battle-ui-p3op20`, prompt
 [`spec/gymrun-patch-victory-order-and-battle-readouts.md`](spec/gymrun-patch-victory-order-and-battle-readouts.md),
 record [`generation.md`](generation.md) section 29. Six items from one playtest
@@ -715,7 +746,7 @@ One line each. The analysis lives where the pointer goes, not here.
 
    If a later pass wants the card back in Pocket, the lever is a disclosure
    rather than a shorter shelf: the shelf's shape is the feature.
-   `generation.md` section 30.
+   `generation.md` section 31.
 14. **The density modes patch is built, on `claude/bold-clarke-xcwko1`, and
    awaits review and merge.** All seven steps, every gate green, the
    guarded Detailed heights unchanged to the pixel. On merge the register
@@ -764,6 +795,57 @@ One line each. The analysis lives where the pointer goes, not here.
    `neutral` variant — which shipped with the bar and beats patch and has no
    consumer yet — retires that duration and takes the pin to 16. One small
    patch; `generation.md` section 17.
+
+### Carried out of the chip audit
+
+**The horizontal-overflow guard covers three screens out of twelve, and nothing
+asserts that list is complete.** Filed, not built.
+
+The chip audit broke `.replace__owner` — the ability chip ran off the right edge
+at 390 and pushed the sprite out of the viewport — and it was found by
+screenshotting the surface, not by a gate. That is worth a line here because the
+guard that should have caught it **exists and works**:
+
+- `scripts/smoke.mjs` asserts `documentElement.scrollWidth <= innerWidth` on
+  exactly three surfaces: the locale screen (line 909), the map (line 928) and a
+  battle (line 1110).
+- `test/visual-battle-outro.test.ts` asserts it for the outro and the
+  abnormality beats; `test/visual-phone-seed-bar.test.ts` for the seed bar.
+- Nothing asserts it on `replace`, `target`, `party`, `acquisition`, `result`,
+  `summary`, `shop`, `event`, `pre-gym` or `starter`.
+
+**It would have caught this one.** No ancestor of a screen clips horizontally —
+`body`, `.shell` and `.screen` set no `overflow`, checked — so an overflowing row
+does push `documentElement.scrollWidth` past 390. The check was simply not
+pointed at the screen that broke.
+
+The shape of the fix is already in this repo. `test/visual-chips.test.ts`
+asserts that the set of chip variants its sweep *saw* equals the set
+`ui/chip.ts` can build, so a variant the walk stops reaching fails the test
+rather than passing quietly. The overflow guard has no such claim: its three
+surfaces are a hand-picked list, and a screen added tomorrow joins nothing.
+
+Two things make this more than a one-off:
+
+- **Five hosts carry an absolutely positioned `.figure` at their right edge**
+  (`.starter`, `.party__member`, `.replace__owner`, `.event__gate`,
+  `.bench__member`), and a row that overflows under one of those is overlapping
+  a sprite rather than merely being wide. Four now reserve a gutter off
+  `--figure-size`; **`.bench__member` reserves none**, and in Detailed and
+  Simple it is `flex-direction: column`, so each child is full width with the
+  32px figure floating over whatever sits at the vertical centre. It is the
+  most exposed of the five and the least watched.
+- The gutters on `.party__member`, `.starter` and `.event__gate` are scoped
+  `:root:not([data-density="pocket"])`, deliberately and with a reason in the
+  stylesheet. So Pocket is the mode with the fewest gutters and the narrowest
+  columns, and no overflow assertion runs in it at all — the smoke walk's three
+  surfaces are walked in one density.
+
+**Not built here on purpose.** A sweep over every screen in every density is a
+gate change, it will find pre-existing overflows that are nobody's fault in this
+patch, and triaging those is its own piece of work rather than a line item on a
+patch whose brief said "this is a small qol patch". `generation.md` section 30d
+records the defect this came out of.
 
 ### Carried out of patch 4.8.0.3
 

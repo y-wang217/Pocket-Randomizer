@@ -111,7 +111,15 @@ describe('the drawer itself', () => {
 
     expect(card!.querySelectorAll('.stat')).toHaveLength(6);
     expect(card!.querySelectorAll('.move--card').length).toBeGreaterThan(0);
-    expect(card!.querySelector('.badge--archetype'), 'the bars replace the label here').toBeNull();
+    /*
+     * **The chip and the bars, both.** Chip-audit patch, 2026-09-17: this
+     * asserted the chip was absent, which was Patch 4.8.0.3 item 3 — the bars
+     * replace the label — superseded by the author's answer to question 1.
+     * `docs/generation.md` section 30a. A label carried on four surfaces out of
+     * ten is not a vocabulary, and the failure mode 4.8.0.3 named is answered
+     * by `ARCHETYPE_CAVEAT` inside the panel the chip opens.
+     */
+    expect(card!.querySelector('.badge--archetype'), 'the drawer carries the label too').not.toBeNull();
     expect(card!.querySelector('.party__item')).not.toBeNull();
     expect(card!.querySelector('.panel__hp-text')?.textContent ?? '').not.toBe('');
   });

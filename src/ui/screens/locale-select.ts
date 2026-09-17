@@ -54,16 +54,16 @@
  * patch and it wants its own playtest. It is a UI change with no structural or
  * version consequence, so revisiting it later is cheap.
  */
-import { archetypeOf } from '../../core/archetype';
 import { describeSpecCard } from '../../core/battle/driver';
 import type { PokemonState } from '../../core/types';
-import { ARCHETYPE_DISPLAY } from '../../data/archetypes';
 import type { GymDefinition } from '../../data/gyms';
 import { localeById, type LocaleId } from '../../data/locales';
 import { el } from '../scene';
 import { setProse } from '../dom';
 import { LOCALE_COPY } from '../copy/screens';
 import { typeChip } from './starter-select';
+import { abilityChip, monTypeChip } from '../chip';
+import { archetypeChip } from '../archetype-chip';
 
 export interface LocaleSelect {
   root: HTMLElement;
@@ -147,13 +147,24 @@ function renderStripMember(member: PokemonState): HTMLElement {
   const level = el('span', 'panel__level');
   level.textContent = `Lv${card.level}`;
 
-  const archetype = el('span', 'badge badge--archetype');
-  archetype.textContent = ARCHETYPE_DISPLAY[archetypeOf(card.baseStats)].short;
-  archetype.dataset['tip'] = 'archetype:all';
-  archetype.tabIndex = 0;
-  archetype.setAttribute('role', 'button');
-
-  row.append(name, level, ...card.types.map(typeChip), archetype);
+  /*
+   * **Through `archetypeChip`, not by hand. Chip-audit patch, question 1.**
+   *
+   * This row built its own `badge badge--archetype`, which is `.badge`'s
+   * metrics without `.chip`'s recipe — so it drew as bare uppercase text among
+   * siblings that all have the faint fill and the hairline outline. The V2 rule
+   * is that no screen builds a chip by hand, and `test/chip.test.ts` enforces
+   * it with a regex that lists the badge modifiers it knows about;
+   * `badge--archetype` was not among them, so this one slipped through. The
+   * modifier is added to that list in the same patch.
+   */
+  row.append(
+    name,
+    level,
+    ...card.types.map(monTypeChip),
+    archetypeChip(card.baseStats),
+    abilityChip(card.ability, card.abilityId),
+  );
   return row;
 }
 

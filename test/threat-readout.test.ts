@@ -274,17 +274,24 @@ describe('the type wheel', () => {
     expect((badge as HTMLElement).dataset['tip']).toBe('type:Rock');
   });
 
-  it('is no longer reachable from either Pokemon panel', () => {
+  it('is reachable from both Pokemon panels again, and not from a bench row', () => {
     /*
+     * **Rewritten by the chip-audit patch, 2026-09-17.** It asserted the
+     * opposite — that a panel type badge carries no trigger — which was the
+     * 2026-09-10 ruling, superseded for Pokemon type badges by the author's
+     * answer to question 2. `docs/generation.md` section 30b.
+     *
+     * The argument the old assertion rested on is not disproved and is kept in
+     * `ui/scene.ts` above `panelTypeChip`: the wheel's *offensive* half answers
+     * "what does Water do offensively" beside a Pokemon whose four moves are
+     * drawn off-species. What it does not reach is the defensive half, which is
+     * the question asked of the thing standing opposite. Both halves came back
+     * together because the wheel renders both.
+     *
      * A real battle rather than a hand-built view, because the thing under test
      * is what `scene.update` puts in the DOM and a fabricated `BattleUiView`
      * would be asserting against a shape this test wrote rather than the one
      * the projection produces.
-     *
-     * The wheel on a panel answered "what does Water do offensively" beside a
-     * Pokemon whose four moves are drawn off-species — a Water type here
-     * routinely knows no Water move at all. The badge invited a reading that
-     * was true about the type and false about the Pokemon wearing it.
      */
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'WHEEL' });
     const scene = createScene();
@@ -297,10 +304,27 @@ describe('the type wheel', () => {
     // Both panels drew types, so the assertion below is not vacuous.
     expect(panelBadges.length).toBeGreaterThan(1);
     for (const badge of panelBadges) {
-      expect((badge as HTMLElement).dataset['tip']).toBeUndefined();
-      // And it is no longer keyboard-focusable or announced as a button, which
-      // is what a trigger with no tooltip behind it would leave behind.
-      expect(badge.getAttribute('role')).toBeNull();
+      expect((badge as HTMLElement).dataset['tip']).toMatch(/^type:/);
+      // And reachable by a keyboard, which is the half of "clickable" that the
+      // bare `data-tip` spelling silently left out on four surfaces before this
+      // patch: `ui/tooltips.ts` binds `keydown`, and an element that never
+      // takes focus never receives one.
+      expect(badge.getAttribute('role')).toBe('button');
+      expect((badge as HTMLElement).tabIndex).toBe(0);
+    }
+
+    /*
+     * **And the bench keeps none**, which is the one place the patch's answer
+     * was narrowed. A bench row is the switch control rather than a readout,
+     * `ui/tooltips.ts` stops a click that lands on a trigger, and the chips are
+     * most of that row's width — so a tipped chip there is a dead patch of the
+     * only control that gets a fainted Pokemon off the field. The reasoning is
+     * at `renderBenchMember` in `ui/scene.ts`; this is the assertion that stops
+     * it being widened back by accident.
+     */
+    const benchBadges = [...scene.root.querySelectorAll('.bench .type')];
+    for (const badge of benchBadges) {
+      expect((badge as HTMLElement).dataset['tip'], 'a bench row is a control, not a panel').toBeUndefined();
     }
 
     // The move buttons in the same scene still carry it.
