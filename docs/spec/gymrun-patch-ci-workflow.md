@@ -26,9 +26,65 @@ layout, a matrix, a runner image, a trigger set or a caching strategy for
 and not in the message.
 
 So part 2 does not begin from an assumption about what it named. The part 1
-report asks the author for the structure, and whatever they answer is appended
-below this line verbatim, the way the idle-sprites and map-drawer prompts
-record the answers their own open questions needed.
+report asked the author for the structure, and their answer is the next
+section, verbatim, the way the idle-sprites and map-drawer prompts record the
+answers their own open questions needed.
+
+## The three answers, verbatim
+
+Asked before any code, alongside the part 1 report. Two design questions the
+brief left open, and the missing structure.
+
+**Q1 — legs 3 and 5 each run all 135 test files, so a missing Chromium would
+skip the 111 Node-only tests along with the 24 browser ones. How should
+`check.mjs` treat them?**
+
+> Split each into node + browser (Recommended)
+
+**Q2 — `CLAUDE.md` lists build and smoke run as absolute gates, but
+`npm run check` does not include them. Add them as legs?**
+
+> Add both build and smoke (Recommended)
+
+**Q3 — what structure should `.github/workflows/check.yml` have? Part 2's
+"structure above" was not in the message.**
+
+> here's the yaml you're looking for name: check
+> ```yaml
+> on: [push, pull_request]
+> concurrency:
+>   group: ${{ github.ref }}
+>   cancel-in-progress: true
+>
+> jobs:
+>   static:
+>     runs-on: ubuntu-latest
+>     steps: [checkout, setup-node w/ cache: npm, npm ci, npm run lint, npm run types]
+>
+>   unit:
+>     runs-on: ubuntu-latest
+>     steps: [..., npm run test:unit]     # non-browser vitest, 1798 tests
+>
+>   browser:
+>     runs-on: ubuntu-latest
+>     container: mcr.microsoft.com/playwright:v1.XX.X-noble
+>     strategy:
+>       fail-fast: false
+>       matrix:
+>         engine: [chromium, webkit]
+>     steps: [..., npx playwright test --project=${{ matrix.engine }}]
+>
+>   strict-trim:
+>     runs-on: ubuntu-latest
+>     steps: [..., GYMRUN_TRIM_STRICT=1 npm run test:trim]
+> ```
+
+That answer is a skeleton with four names in it that this repo does not have —
+`npm run types`, `npm run test:unit`, `npm run test:trim`, and
+`npx playwright test --project=`, which is the Playwright Test runner and not
+the vitest suite the browser tests are actually written in. The part 2 report
+is where each one is reconciled against the tree; they are **not** silently
+substituted here, because the skeleton is the record of what was asked.
 
 ## Scope, from the brief's own last line
 
