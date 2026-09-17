@@ -195,6 +195,14 @@ unverified is the failure — while letting a contributor who has only Chromium
 still gate the other eight legs. [`generation.md`](generation.md) section 33 is
 the account.
 
+**And it has now actually run: green on WebKit 26.6, 24 files, 201 tests**, the
+first honest WebKit result this project has had — measured twice, once either
+side of the merge with `main`, so a future failure has a boundary to bisect
+against. `install-deps` is the step that was missing: the binary alone downloads
+and cannot launch. **When to run it, and how to read a failure, is the WebKit
+runbook in the root README's gate section**, which is the place to look when a
+phone bug arrives or a change touches layout, a sprite, or motion.
+
 **Two of the patch's five items were not what the brief said they were**, and
 both are worth knowing before reading the brief:
 

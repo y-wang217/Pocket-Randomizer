@@ -354,6 +354,53 @@ or through `test/visual/harness.ts`. A missing-browser SKIPPED is only ever
 honoured on a leg declared as a browser leg, so if that detection ever misses a
 file, the Node leg goes red on it rather than quietly skipping.
 
+### WebKit: when to run it, and how
+
+**WebKit is the engine this project is most likely to be wrong on, and the one
+least likely to have been run.** It is Mobile Safari, the app is phone-first and
+pinned at 390x844, and for most of this repo's life the WebKit leg had never
+executed at all — the development containers ship Chromium only, so it reported
+as absent and the `&&` chain died on it. Three patches shipped with WebKit
+listed as their one open gate.
+
+It is two commands, and **the second is the one people miss**:
+
+```sh
+npx playwright install webkit        # the binary alone cannot launch
+npx playwright install-deps webkit   # GTK4, gstreamer, flite, ~25 libraries
+npm run test:webkit                  # 24 files, 201 tests, about 9 minutes
+```
+
+Without `install-deps` the browser downloads and then fails with a list of
+missing libraries, which reads like a broken install rather than a missing step.
+A container is rebuilt per session, so this does not persist and is not
+something a session inherits.
+
+**Run it before merging, not after, when the change touches any of these:**
+
+| trigger | why |
+|---|---|
+| layout: `display`, `flex`, wrapping, sizing, intrinsic size | where the engines genuinely differ, and where every regression so far has been |
+| a replaced element that can fail — `<img>`, a sprite, an icon | a broken `<img>` is not a replaced element, so `width` stops applying; this shipped once and pushed a 390px page to 401px |
+| anything under `theme/`, motion, animation, or a duration | the motion system had never run on WebKit until the iOS patch, and two defects were living in exactly that gap |
+| a phone or iOS bug report | the reporter is on WebKit; Chromium cannot reproduce it, and assuming otherwise cost a whole patch chasing a defect that did not exist |
+| the guarded screen heights | `docs/visual/baseline/heights.json` is a **Chromium** recording, so WebKit is compared within a pixel rather than exactly |
+
+**Reading a WebKit failure.** Expect the instrument to be wrong before the app
+is. The first honest WebKit run in this repo produced 11 failures and **seven
+were this repo's own test instruments** — a screenshot indexed in CSS pixels at
+3x density, a motion helper with three separate timing errors, a parallax case
+waiting a fixed 150ms for a throttled frame. Check the harness before changing
+a stylesheet, and never re-record a baseline to make a WebKit number agree:
+`expectBaselineHeights` already compares within a pixel there, on purpose, and a
+re-record would hide a real Chromium regression behind it.
+
+**Status.** Green as of 2026-09-17 on WebKit 26.6, 24 files and 201 tests,
+measured twice — once before this patch's merge with `main` and once after — so
+a future failure has a commit boundary to bisect against. CI runs it on every
+push, so the manual route above is for a local reproduction rather than the
+routine gate.
+
 ## Ratified, and no longer open
 
 Stage 4.6a shipped six calls flagged for review. All six are ratified and are
