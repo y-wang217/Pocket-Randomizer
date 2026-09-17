@@ -54,11 +54,18 @@ function eliteEntry(segment: number, kind: RewardEntry['kind']): RewardEntry | u
 }
 
 describe('the offer a gym clear produces', () => {
-  it('gives every gym exactly two distinct options', () => {
-    // Stage 4.8, item 2 Part B. Two, not three, and the only offer in the game
-    // that is not `OFFER_SIZE`.
-    expect(GYM_OFFER_SIZE).toBe(2);
-    expect(GYM_OFFER_SIZE).toBeLessThan(OFFER_SIZE);
+  it('gives every gym page exactly three distinct options', () => {
+    /*
+     * **Three now, and the exception is retired.** Stage 4.8 item 2 Part B made
+     * this 2 — the only offer in the game that was not `OFFER_SIZE` — because a
+     * relic against a currency lump beat either against a padded third card. The
+     * gym pays two pages of three now, and the item page fills its third card by
+     * drawing a second distinct relic rather than a filler, so the rewards
+     * invariant (every offer is exactly three distinct options) holds on both
+     * pages where it held on neither.
+     */
+    expect(GYM_OFFER_SIZE).toBe(3);
+    expect(GYM_OFFER_SIZE).toBe(OFFER_SIZE);
 
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
@@ -121,10 +128,14 @@ describe('the offer a gym clear produces', () => {
     for (let segment = 0; segment < 8; segment++) {
       const paid = rewardMoveBand(segment, 'normal', GYM_MOVE_ENTRY.bandOffset ?? 0);
       const own = rewardMoveBand(segment, 'normal', 0);
-      expect(paid, `segment ${segment}`).toBeGreaterThan(own);
+      // One band up, clamped — the last segment is already at the ceiling, so
+      // its gym pays the top band rather than one past it.
       expect(paid, `segment ${segment} is one band up, not three`).toBe(
         Math.min(MAX_MOVE_BAND, own + GYM_MOVE_BAND_BONUS),
       );
+      if (own < MAX_MOVE_BAND) {
+        expect(paid, `segment ${segment} pays above its own band`).toBeGreaterThan(own);
+      }
     }
   });
 

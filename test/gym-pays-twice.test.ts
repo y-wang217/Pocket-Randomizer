@@ -144,12 +144,20 @@ describe('what a gym clear hands over', () => {
     }
   }, 240_000);
 
-  it('asks the move before the cards, every time', async () => {
+  it('asks the move page before the card page, every time', async () => {
     /*
-     * Order inside the log is the contract. Part A is the unconditional half, so
-     * it is asked first; if the two ever swapped, every recorded seed's gym would
-     * read one answer as the other and the symptom would be a replay that taught
-     * the wrong move to the wrong Pokemon.
+     * Order inside the log is the contract. The move page is the half the player
+     * meets first; if the two ever swapped, every recorded seed's gym would read
+     * one answer as the other and the symptom would be a replay that taught the
+     * wrong move to the wrong Pokemon.
+     *
+     * **Both pages are `reward` entries now**, which is what the band recut
+     * changed here. The move used to be a grant, so the shape to look for was "a
+     * `target` before the one `reward`". A gym writes two `reward` entries today
+     * — move page, then card page — and the move page's `target` sits between
+     * them. That is the shape asserted below, and it is a stronger claim than
+     * the old one: it pins the pair *and* their order, where before there was
+     * only one card to be after.
      */
     for (const seed of SEEDS) {
       const decisions: RunDecision[] = [];
@@ -160,15 +168,34 @@ describe('what a gym clear hands over', () => {
         },
       });
 
-      // Every `lead` marks a gym. Between a lead and the `reward` that follows it,
-      // a `target` must appear — that is Part A sitting where it belongs.
+      // Every `lead` marks a gym. What follows it, on a win, is the move page's
+      // `reward`, then that move's `target`, then the card page's `reward`.
       for (let i = 0; i < decisions.length; i++) {
         if (decisions[i]?.kind !== 'lead') continue;
         const rest = decisions.slice(i + 1);
-        const reward = rest.findIndex((decision) => decision.kind === 'reward');
-        const target = rest.findIndex((decision) => decision.kind === 'target');
-        if (reward === -1 || target === -1) continue;
-        expect(target, `${seed}: a gym's card came before its move`).toBeLessThan(reward);
+        // Stop at the next gym so a run's later gyms cannot supply the entries
+        // this one is missing.
+        const nextLead = rest.findIndex((decision) => decision.kind === 'lead');
+        const window = nextLead === -1 ? rest : rest.slice(0, nextLead);
+
+        const rewards = window.flatMap((decision, index) => (decision.kind === 'reward' ? [index] : []));
+        const target = window.findIndex((decision) => decision.kind === 'target');
+        // A lost gym pays nothing and a declined move still records its target,
+        // so only a gym that produced both pages is asserted on.
+        if (rewards.length < 2) continue;
+
+        const [movePage, cardPage] = rewards as [number, number];
+        expect(movePage, `${seed}: a gym's card page came before its move page`).toBeLessThan(
+          cardPage,
+        );
+        if (target !== -1) {
+          expect(target, `${seed}: a gym's move target came before the move was chosen`).toBeGreaterThan(
+            movePage,
+          );
+          expect(target, `${seed}: a gym's move target came after the card page`).toBeLessThan(
+            cardPage,
+          );
+        }
       }
     }
   }, 240_000);

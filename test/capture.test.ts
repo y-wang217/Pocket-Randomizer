@@ -285,21 +285,55 @@ function catcher(caught: string[]): RunPolicy {
   };
 }
 
+/**
+ * Seeds to search for a run that actually reaches a capture.
+ *
+ * **A list rather than a pin, which is the pattern `test/backpack.test.ts`
+ * records and `test/party-slots.test.ts` sharpens.** This was `CAP-RUN` and
+ * `CAP-SAVE`, two seeds chosen because they caught something. A
+ * `RANDOMIZER_VERSION` bump reshuffles how far a seed gets and what it meets on
+ * the way, so a pinned seed fails for a reason that has nothing to do with what
+ * the test asserts — which is exactly what the band recut did to both of them.
+ *
+ * What the tests below want is *a* run that catches, not a particular one. So
+ * they search, and assert the search found one: if no seed in this list ever
+ * reaches a capture, that is a real finding about the game and it fails loudly.
+ */
+const CAPTURE_SEEDS = Array.from({ length: 20 }, (_unused, index) => `CAP-RUN-${index}`);
+
+/** The first seed whose catching run satisfies `want`, with its run. Throws if none does. */
+async function firstCatchingRun(
+  make: () => RunPolicy,
+  want: (run: Awaited<ReturnType<typeof playRun>>) => boolean,
+): Promise<{ seed: string; run: Awaited<ReturnType<typeof playRun>> }> {
+  for (const seed of CAPTURE_SEEDS) {
+    const run = await playRun(seed, make(), DEFAULT_TUNING);
+    if (want(run)) return { seed, run };
+  }
+  throw new Error(`no seed in CAPTURE_SEEDS produced the run this test needs`);
+}
+
 describe('a headless run that catches', () => {
   it('completes under Node, taking captures as they come', async () => {
     expect(typeof globalThis.document).toBe('undefined');
     const caught: string[] = [];
-    const run = await playRun('CAP-RUN', catcher(caught));
+    const { run } = await firstCatchingRun(
+      () => catcher(caught),
+      (candidate) => candidate.log.decisions.some((decision) => decision.kind === 'acquisition'),
+    );
 
     expect(['victory', 'defeat']).toContain(run.outcome);
-    expect(caught.length, 'this seed never offered a capture').toBeGreaterThan(0);
+    expect(caught.length, 'no seed ever offered a capture').toBeGreaterThan(0);
     expect(run.log.decisions.some((decision) => decision.kind === 'acquisition')).toBe(true);
     expect(run.log.decisions.some((decision) => decision.kind === 'locale')).toBe(true);
-  }, 120_000);
+  }, 240_000);
 
   it('replays a catching run to the same party', async () => {
     const caught: string[] = [];
-    const original = await playRun('CAP-RUN', catcher(caught));
+    const { run: original } = await firstCatchingRun(
+      () => catcher(caught),
+      (candidate) => candidate.log.decisions.some((decision) => decision.kind === 'acquisition'),
+    );
     const replayed = await replayRun(original.log);
 
     expect(replayed.outcome).toBe(original.outcome);
@@ -314,15 +348,30 @@ describe('a headless run that catches', () => {
       ...catcher([]),
       chooseAcquisition: async () => ({ kind: 'decline' }),
     };
-    const greedy = await playRun('CAP-RUN', catcher([]));
-    const averse = await playRun('CAP-RUN', decliner);
+    /*
+     * Searched on the *pair*, not on the greedy run alone: a seed that catches
+     * is not automatically a seed where declining reaches a smaller party, and
+     * the second is what this asserts.
+     */
+    let greedy: Awaited<ReturnType<typeof playRun>> | null = null;
+    let averse: Awaited<ReturnType<typeof playRun>> | null = null;
+    for (const seed of CAPTURE_SEEDS) {
+      const took = await playRun(seed, catcher([]), DEFAULT_TUNING);
+      if (!took.log.decisions.some((decision) => decision.kind === 'acquisition')) continue;
+      const refused = await playRun(seed, decliner, DEFAULT_TUNING);
+      if (refused.state.party.length >= took.state.party.length) continue;
+      greedy = took;
+      averse = refused;
+      break;
+    }
+    expect(averse, 'no seed reached a capture worth declining').not.toBeNull();
 
-    const declines = averse.log.decisions.filter(
+    const declines = averse!.log.decisions.filter(
       (decision) => decision.kind === 'acquisition' && decision.decision.kind === 'decline',
     );
     expect(declines.length).toBeGreaterThan(0);
-    expect(averse.state.party.length).toBeLessThan(greedy.state.party.length);
-  }, 120_000);
+    expect(averse!.state.party.length).toBeLessThan(greedy!.state.party.length);
+  }, 240_000);
 
   it('resumes from the save taken between a wild victory and the capture decision', async () => {
     /*
@@ -337,25 +386,36 @@ describe('a headless run that catches', () => {
      * displaced move slot. That is the whole reason this is asserted by walking
      * the log rather than by assuming the capture follows the fight directly.
      */
-    const saves: RunLog[] = [];
-    const original = await playRun('CAP-SAVE', catcher([]), DEFAULT_TUNING, {
-      onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
-    });
-
-    const beforeCapture = saves.filter(
-      (_, index) => saves[index + 1]?.decisions.at(-1)?.kind === 'acquisition',
-    );
-    expect(beforeCapture.length, 'this seed never reached a capture decision').toBeGreaterThan(0);
+    let saves: RunLog[] = [];
+    let original: Awaited<ReturnType<typeof playRun>> | null = null;
+    let beforeCapture: RunLog[] = [];
+    for (const seed of CAPTURE_SEEDS) {
+      const collected: RunLog[] = [];
+      const run = await playRun(seed, catcher([]), DEFAULT_TUNING, {
+        onDecision: (log) => collected.push(JSON.parse(JSON.stringify(log)) as RunLog),
+      });
+      const points = collected.filter(
+        (_, index) => collected[index + 1]?.decisions.at(-1)?.kind === 'acquisition',
+      );
+      if (points.length === 0) continue;
+      saves = collected;
+      original = run;
+      beforeCapture = points;
+      break;
+    }
+    expect(original, 'no seed ever reached a capture decision').not.toBeNull();
+    expect(saves.length).toBeGreaterThan(0);
+    expect(beforeCapture.length, 'no seed ever reached a capture decision').toBeGreaterThan(0);
 
     for (const save of beforeCapture) {
       const resumed = await resumeRun(save, catcher([]));
-      expect(resumed.outcome).toBe(original.outcome);
-      expect(resumed.log.decisions).toEqual(original.log.decisions);
+      expect(resumed.outcome).toBe(original!.outcome);
+      expect(resumed.log.decisions).toEqual(original!.log.decisions);
       expect(resumed.state.party.map((member) => member.spec.species)).toEqual(
-        original.state.party.map((member) => member.spec.species),
+        original!.state.party.map((member) => member.spec.species),
       );
     }
-  }, 120_000);
+  }, 240_000);
 });
 
 // ---------------------------------------------------------------------------

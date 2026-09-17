@@ -99,18 +99,18 @@ describe('describeMove over the sweep the brief names', () => {
    * Test 7 of the brief, and the case it was written for.
    *
    * Banding happens on a multi-hit move's *total* power, so Population Bomb is
-   * band 4 at 20 base power. Both numbers are right and a card showing one
+   * band 5 at 20 base power. Both numbers are right and a card showing one
    * without the other reads as a bug — so the panel carries both, plus the line
    * that reconciles them.
    */
-  it('reports Population Bomb at 20 base power and band 4, and says why', () => {
+  it('reports Population Bomb at 20 base power and band 5, and says why', () => {
     const move = explain('Population Bomb');
     expect(move.basePower).toBe(20);
-    expect(move.band).toBe(4);
+    expect(move.band).toBe(5);
 
     const rows = rowsFor('Population Bomb');
     expect(rows['Base power']).toEqual(['20']);
-    expect(rows['Band']).toEqual(['4']);
+    expect(rows['Band']).toEqual(['5']);
     expect(rows['Multi-hit']).toEqual(['Hits 10 times, 20 base power each.']);
   });
 
