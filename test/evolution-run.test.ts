@@ -36,7 +36,7 @@ import { greedyAiPolicy } from '../src/core/battle/ai';
 import { playRun, replayRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { moveChoice, switchChoice, type RunLog } from '../src/core/types';
-import type { Policy } from '../src/core/battle/ai';
+import type { Policy } from '../src/core/battle/policy';
 import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
 
 /**

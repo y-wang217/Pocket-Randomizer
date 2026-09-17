@@ -612,6 +612,21 @@ body {
 .flags .chip {
   flex: 0 0 auto;
   white-space: nowrap;
+  /* Full cream rather than the dim default, and this is a **legibility floor
+     fix, not a weight change**.
+
+     The flags strip is the one place a chip sits on the locale-tinted battle
+     stage rather than on a panel, and the dim recipe measured 4.36:1 against
+     the darkest tint — under `displayTuning.minChipContrastRatio`. The defect
+     predates the band recut and was exposed by it: the seed the contrast sweep
+     walks reaches a green-tinted locale now and did not before, so the pairing
+     had never been sampled. `test/visual-chips.test.ts` is where it surfaced.
+
+     Every flag moves together, so the Release C rule this strip is holding is
+     untouched: a kind is still identical to every other kind within a side, and
+     `[data-side='p1']` below is still the only thing that distinguishes them. A
+     side is not a verdict and neither is this. */
+  --chip: var(--cream);
 }
 
 /* The tap that opens the history. Last in the row and never shrinks: a

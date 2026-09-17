@@ -344,7 +344,7 @@ describe('the version axes', () => {
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('2b6561069ee48d517ef1c74d84ed456ef6defc0ccfd3d17f2f4aa6874ae17814');
+    expect(CONTENT_HASH).toBe('49e50f47ea9dcecd54f7d0d7a065750d8372dcca46ba7e80e973375fde10bf7a');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

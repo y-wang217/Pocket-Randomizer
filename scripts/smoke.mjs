@@ -205,7 +205,8 @@ async function playRun(label) {
   // advanced would be a progression indicator that does not indicate progress.
   let railHigh = 0;
 
-  // 900 from Stage 4.9: a run that starts at level 7 with a base form and a
+  // 900 from Stage 4.9: a run that starts with a base form (level 7 then, 15
+  // from the band recut) and a
   // roster that grows to six is a longer run than 400 iterations covered, and
   // SMOKE24 now plays into the sixth segment. Still bounded, still a stall
   // report if it runs out.

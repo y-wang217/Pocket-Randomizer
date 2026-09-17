@@ -112,31 +112,54 @@ describe('an abnormality beat stays inside the body it is about', () => {
    * recall and Branch 3B inherits the constraint.
    */
   it('overflows nothing, on a turn that actually carries one', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', PHONE);
-    await playUntil(page, (screen) => screen === 'battle');
+    /*
+     * **Searched across seeds rather than pinned to one.** This walked SMOKE24
+     * alone. A `RANDOMIZER_VERSION` bump changes what that seed's opening fight
+     * is made of — which movesets, which abilities, and therefore whether a
+     * status lands inside the turns a walk has time for — so pinning it made
+     * this test fail for a reason that has nothing to do with overflow. The
+     * band recut did exactly that.
+     *
+     * The subject is the *mark*, not the seed: a transform contributes to
+     * scrollable overflow, so a mark reaching past the actor's box widens the
+     * document on a 390px phone with nothing to catch it. Any seed that carries
+     * one will do. The throw at the end is the search's own assertion — if no
+     * seed in the list ever produces an abnormality, that is a real finding
+     * about the game and it fails loudly rather than passing vacuously.
+     */
+    const SEEDS = ['SMOKE24', 'SMK49-2', 'GYMRUN01', 'SEED-A', 'SEED-B', 'ABN-0', 'ABN-1', 'ABN-2'];
 
-    for (let attempt = 0; attempt < 24; attempt += 1) {
-      await stepOnce(page);
-      await page.waitForTimeout(40);
-      const probe = await page.evaluate(() => ({
-        marks: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal]')].map(
-          (a) => (a as HTMLElement).dataset['abnormal'],
-        ),
-        scrollWidth: globalThis.document.documentElement.scrollWidth,
-        running: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal] .stage__mark')].map(
-          (n) => globalThis.getComputedStyle(n).animationName,
-        ),
-      }));
-      if (probe.marks.length === 0) continue;
+    for (const seed of SEEDS) {
+      const { page, context } = await openApp(harness.browser, harness.url, seed, PHONE);
+      await playUntil(page, (screen) => screen === 'battle');
 
-      expect(probe.scrollWidth, `an abnormality beat overflowed: ${probe.marks.join(',')}`).toBe(PHONE.width);
-      // Marked and actually animating, not merely marked.
-      expect(probe.running.every((name) => name.startsWith('mark-')), probe.running.join(',')).toBe(true);
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        await stepOnce(page);
+        await page.waitForTimeout(40);
+        const probe = await page.evaluate(() => ({
+          marks: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal]')].map(
+            (a) => (a as HTMLElement).dataset['abnormal'],
+          ),
+          scrollWidth: globalThis.document.documentElement.scrollWidth,
+          running: [...globalThis.document.querySelectorAll('.stage__actor[data-abnormal] .stage__mark')].map(
+            (n) => globalThis.getComputedStyle(n).animationName,
+          ),
+        }));
+        if (probe.marks.length === 0) continue;
+
+        expect(
+          probe.scrollWidth,
+          `an abnormality beat overflowed on ${seed}: ${probe.marks.join(',')}`,
+        ).toBe(PHONE.width);
+        // Marked and actually animating, not merely marked.
+        expect(probe.running.every((name) => name.startsWith('mark-')), probe.running.join(',')).toBe(true);
+        await context.close();
+        return;
+      }
+
       await context.close();
-      return;
     }
 
-    await context.close();
-    throw new Error('never reached a turn carrying an abnormality');
+    throw new Error('no seed reached a turn carrying an abnormality');
   }, 300_000);
 });
