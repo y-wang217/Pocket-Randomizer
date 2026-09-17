@@ -5275,3 +5275,368 @@ claims "a figure is a fixed box whether or not its image arrived". That claim
 was false for three patches and is now asserted — against the figure rather than
 a pixel count, so it fails for the right reason, with the document-level check
 beside it because that is the symptom a player would actually meet.
+
+## 33. The CI patch, part 1: a gate that reports every leg
+
+Prompt: [`spec/gymrun-patch-ci-workflow.md`](spec/gymrun-patch-ci-workflow.md),
+filed 2026-09-17 before any work. Build infrastructure only — no `src/` change,
+no version axis moved, `docs/visual/baseline/` untouched, and the shipped bundle
+is byte identical because nothing that enters it was edited.
+
+### 33.1 What the `&&` chain was hiding
+
+`npm run check` was five legs joined by `&&`:
+
+```
+npm run lint && tsc --noEmit && vitest run && npm run test:webkit && npm run test:trim-strict
+```
+
+Three findings from expanding it, none of which are visible in the one-line form:
+
+1. **Three of the five legs needed a browser, not one.** `vite.config.ts`
+   includes `test/**/*.test.ts` and has no engine filter, so the 24
+   browser-dependent files ran inside `vitest run` and `test:trim-strict` as
+   well as inside `test:webkit`. A box without Chromium therefore lost the 111
+   Node-only files and their 1595 tests as collateral, and the chain reported
+   one failure for it.
+2. **`test:webkit` carried three passengers.** Its glob was
+   `test/visual-*.test.ts`, which is 24 files, but only 21 reach a browser.
+   `visual-baseline`, `visual-locales` (jsdom) and `visual-tokens` (a CSS grep)
+   were re-run under `GYMRUN_ENGINE=webkit`, where the variable means nothing to
+   them.
+3. **The gate was two legs short of `CLAUDE.md`'s own list.** Build and smoke
+   run are named absolute gates and `check` ran neither. The section that says
+   `npm run check` is the gate and the section that lists nine gates disagreed,
+   and the chain was the one that was wrong.
+
+The cost of the chain's shape is already in this file's history rather than
+hypothetical: [`visual/reports/patch-idle-sprites-and-locale-motion.md`](visual/reports/patch-idle-sprites-and-locale-motion.md)
+records a reporter timeout in the third leg that made `check` "stop before the
+strict-trim step, which was run on its own", and `scripts/visual/gate.sh` still
+carries a comment about its own first version printing "gate green" over two
+failing files.
+
+### 33.2 Nine legs, and why the two full-suite legs split
+
+`scripts/check.mjs` runs `lint`, `typecheck`, `test:node`, `test:chromium`,
+`test:webkit`, `trim:node`, `trim:browser`, `build`, `smoke`, always all of
+them, and prints a PASS/FAIL/SKIPPED table.
+
+The old legs 3 and 5 each became two, which was put to the author before any
+code and answered "split each into node + browser". The reason is the first
+finding above: unsplit, a missing engine reports SKIPPED over 135 files, and
+1595 tests that were perfectly capable of running go unverified. Split, the
+browser halves skip and the Node halves still gate. `build` and `smoke` were the
+second question and answered "add both".
+
+`build` runs `vite build` rather than `npm run build`, which is
+`tsc --noEmit && vite build`: the type check is already leg 2 and a gate that
+runs it twice spends a minute proving the same thing.
+
+### 33.3 The split is computed, and the skip is guarded
+
+`scripts/browser-tests.mjs` derives which files need a browser by looking for
+the ones that reach Playwright — directly, or through `test/visual/harness.ts`
+or `scripts/visual/browser.mjs`. **Deliberately not a hand-written list and
+deliberately not a filename match.** A list is a second place to remember, and
+the three Node-only `visual-*` files are exactly the case a filename match gets
+wrong — the pre-patch glob got it wrong on all three.
+
+That leaves one hole, and `scripts/check.mjs` closes it from the other side: a
+missing-browser SKIPPED is only honoured on a leg declared `browser: true`. If
+the detection ever misses a file, that file lands in the Node leg, meets the
+same Playwright error, and **fails** — because the Node leg is not allowed to
+skip for that reason. A detection bug that turned into a silent skip would be
+worse than no gate at all; this one turns into a red leg with Playwright's own
+message under it.
+
+### 33.4 Two kinds of SKIPPED, one of them promoted
+
+The brief asks for SKIPPED to become FAILED under `process.env.CI`. There are
+two ways a leg can fail to run and only one of them is that kind:
+
+- **No browser binary**, detected from Playwright's own words
+  (`Executable doesn't exist at`, the install banner, and the missing
+  host-dependencies line, since a browser that cannot start for want of a
+  system library is as absent as one that is not installed). SKIPPED locally,
+  FAILED under `CI`. This is the brief's case, and `docs/README.md` already
+  holds the rule it is an instance of: a known-good engine reported as
+  unverified is the failure, not the absence.
+- **A dependency failed.** `smoke` serves `dist/`, so it cannot run when
+  `build` did not produce one. **Not promoted**, and the asymmetry is the
+  point: `build` already reported FAILED and the run already exits 1, so
+  promoting `smoke` too would print two failures for one cause and send the
+  reader hunting a second bug.
+
+### 33.5 `--only`, and the branches that would otherwise be untested
+
+`node scripts/check.mjs --only=lint,build` runs a named subset with the same
+reporting, and `--list` prints the legs without running anything.
+
+It is not decoration. A full run is tens of minutes, which means the three
+branches the brief actually specifies — the missing-browser skip, the `CI`
+promotion, and the dependency skip — were unreachable in any reasonable
+verification, and an unreachable branch is an untested one. All three were
+exercised through this flag before the runner was committed: WebKit is not
+installed on the development container, so
+`node scripts/check.mjs --only=test:webkit` produces the skip and
+`CI=true` the same leg produces the promoted failure, both against the real
+absent binary rather than a simulated one. The dependency skip was exercised on
+a throwaway copy of the runner with `build` pointed at a bad flag.
+
+### 33.6 What `package.json` kept
+
+`test:trim-strict` still means the whole suite, unsplit, because
+[`../README.md`](../README.md), `build-config/trim-sim-data.ts` and
+`test/trimmed-data.test.ts` all name it and all mean that. `npm test` still
+means the whole suite for the same reason: every figure any report in `docs/`
+has recorded against a plain `vitest run` keeps its meaning. The split halves
+got new names (`test:unit`, `test:browser`, `test:trim`, `test:trim:browser`)
+rather than redefining old ones, and `types` is new because leg 2 was inline in
+the chain and had no script of its own.
+
+One existing name did change meaning: `test:browser` was the 24-file glob with
+three Node-only passengers and is now the derived 24, so `GYMRUN_ENGINE` only
+reaches tests it means something to.
+
+## 34. The CI patch, part 2: the workflow, and the engine it does not run
+
+Same prompt as section 33, same scope: build infrastructure only, no `src/`
+change, no version axis moved, no baseline re-recorded.
+
+### 34.1 The structure was supplied, and one line of it could not work
+
+The brief said "per the structure above" and no structure was above it — the
+message it arrived in had none. That gap is recorded in the prompt file rather
+than filled by guesswork, because a reconstruction of a design is
+indistinguishable from the design once it is committed and
+[`spec/README.md`](spec/README.md) already holds why this project does not do
+that. Asked, the author supplied a five-job YAML skeleton, and it is filed
+verbatim under the brief.
+
+The skeleton's job topology, triggers, concurrency group, container and
+two-engine matrix are all kept. Four names in it did not resolve against the
+tree, three of which part 1 created (`npm run types`, `npm run test:unit`,
+`npm run test:trim`), and one of which was a different kind of problem:
+
+> `steps: [..., npx playwright test --project=${{ matrix.engine }}]`
+
+**There is no Playwright Test runner in this repo.** No config declaring
+projects, nothing that command could collect, and the 24 browser files are
+vitest files that drive Playwright as a library through
+[`test/visual/harness.ts`](../test/visual/harness.ts). That step
+would have found zero tests and **exited 0** — a browser job permanently green
+while testing nothing, which is the failure this repo has already paid for once
+at section 28, where a handoff reported an artefact as shipped that no run
+touched. The engine axis already exists as `GYMRUN_ENGINE`, so the step became
+a leg selection instead.
+
+### 34.2 Every job goes through the runner
+
+Each job runs `scripts/check.mjs --only=<legs>` rather than the npm scripts
+directly, and the leg names line up with the matrix so
+`--only=test:${{ matrix.engine }}` selects the right one.
+
+The reason is part 1's own specification. `check.mjs` promotes a SKIPPED leg to
+FAILED when `CI` is set, Actions sets `CI` itself, and **invoked any other way
+that promotion never runs in the one environment it was written for.** A
+missing browser would then surface as whatever vitest happens to do rather than
+as the deliberate answer the brief asked for. The npm scripts stay for people.
+
+Two other deviations from the skeleton, both recorded rather than silent:
+
+- **`concurrency.group` is scoped to the workflow**, not `github.ref` alone, so
+  a second workflow added later cannot cancel this one's runs.
+- **`strict-trim` runs in the container and covers both halves.** The skeleton
+  put it on a bare runner, which reaches only the Node half —
+  [`../CLAUDE.md`](../CLAUDE.md) names strict trim an absolute gate without
+  qualifying it, and a CI gate weaker than the local one is worth less than the
+  minute it saves.
+
+`build` and `smoke` had no job in the skeleton at all, though they are two of
+the nine legs part 1 added. They are the fifth job, `bundle`, in the container
+because `smoke` plays a run in a real Chromium. `check.mjs` already knows the
+dependency between them, so a failed build reports `smoke` as SKIPPED naming
+build rather than as a second failure for the same cause.
+
+### 34.3 The container runs a Chromium no developer box runs
+
+This is the finding that decided the container line, and it was measured rather
+than assumed.
+
+[`scripts/visual/browser.mjs`](../scripts/visual/browser.mjs) pins Chromium to
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. That path does not exist
+in the Playwright image, whose browsers live under `/ms-playwright`, so
+`launch()` falls through to Playwright's own registry — and Playwright 1.63.0's
+registry wants revision **1243**, not 1194:
+
+| | revision | Chrome | layout |
+|---|---|---|---|
+| the repo's pin | 1194 | 141.0.7390.37 | `chrome-linux/` |
+| what 1.63.0 installs | 1243 | 153.0.8010.12 | `chrome-linux64/` |
+
+Twelve major versions apart, and a different directory layout. Four files —
+[`visual-v0.test.ts`](../test/visual-v0.test.ts) through `visual-v3` — compare
+guarded-screen heights against `docs/visual/baseline/heights.json`, **exactly**
+on Chromium, and that file is a recording made on 1194. A container that
+silently swapped the engine under those four tests is precisely how a baseline
+gets "fixed" by re-recording it, which this brief forbids.
+
+So both engines were measured before the workflow was written. 1243 was
+installed alongside 1194, nothing was removed, and the guarded screens were
+measured on each:
+
+| engine | fields compared | result |
+|---|---|---|
+| 1194 (control) | 60 | identical to the recording |
+| 1243 | 60 | **identical to the recording** |
+
+Then the whole browser half on 1243, by preferring it in the repo's own
+candidate list for the length of one run: **24 files, 201 tests, all passing**,
+in 517s against 503s on 1194.
+
+**That measurement was sound and the conclusion drawn from it was not.** It was
+taken with 1243 running *inside this development container*, which holds
+everything but the engine revision constant — so what it establishes is that
+the revision jump is harmless. It was then written up as "the container is
+safe", which is a different claim about a different environment, and section
+34.8 is the first CI run disproving it. The engine was never the variable that
+mattered.
+
+**No baseline was re-recorded and none needed to be.** The finding is that the
+pin is narrower than the tests require, not that the tests were wrong.
+
+### 34.4 What CI needs on disk, and what it does not
+
+- **Not a sparse or shallow-path checkout.** `boundaries.test.ts` indexes every
+  file under `docs/` carrying one of the seven extensions it recognises
+  (`.ts, .mjs, .js, .md, .json, .css, .html`),
+  and `visual-baseline.test.ts` and `summary.test.ts` read
+  `docs/visual/baseline/`. The docs tree is a test input.
+- **`fetch-depth` stays at the default.** No test reads git history.
+- **`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` is set at workflow level**, because
+  `npm ci` would otherwise pull the browsers into `static` and `unit`, neither
+  of which launches one, and the container jobs already carry theirs.
+
+### 34.5 The heights gap, recorded rather than closed
+
+`heights.json` holds **60** fields — both guarded screens across the detailed
+mode, two density modes and three layout-by-density combinations. The four
+tests that read it assert **10**: `map` and `battle` at the top level only.
+
+The other 50 are gated by `node scripts/visual/measure.mjs --compare`, which
+`scripts/visual/gate.sh` runs and **`npm run check` does not**. So five sixths
+of the recorded baseline is currently outside the suite.
+
+Put to the author, who chose to leave it to `gate.sh`. That is the right call
+for this patch and the reason is scope: the gap predates the patch, `CLAUDE.md`'s
+absolute gates do not include a heights comparison, and adding one here would be
+new gating nobody asked for. **It is recorded here so that it is a known gap
+rather than a forgotten one.**
+
+### 34.6 WebKit, which had never run here at all
+
+Recorded because it was the standing flag on three patches, not just this one:
+`npm run check`'s WebKit leg had never executed in a Claude Code container,
+because the image pre-bakes Chromium only. Two branch reports closed with it
+open, and both named it the last gate on work that had already merged.
+
+It runs. Two commands, both of which worked on this box:
+
+```sh
+npx playwright install webkit        # the binary; lands at webkit-2359
+npx playwright install-deps webkit   # GTK4, gstreamer, flite and ~20 more
+```
+
+Without the second, the binary is present and cannot launch — 25 missing
+libraries. With it, WebKit 26.6 launches, which is the version section 27's
+work was written against.
+
+**The leg then passed: 24 files, 201 tests, 522s.** That is the first honest
+WebKit result this environment has produced, and it is a baseline rather than a
+clearance — it was taken at this branch's own tree, which is 23 commits behind
+`main`, so it certifies the state *before* the chip audit and the sprite fix
+rather than after. If WebKit fails once `main` is merged in, those 23 commits
+are where it is, and this is the boundary that says so.
+
+**The install does not persist.** The container is rebuilt per session, so this
+is a fact about what is possible here, not a capability the next session
+inherits. Making it inherit would need a `SessionStart` hook committed to the
+repo, and the cost is a few hundred MB of apt on every session including the
+ones that never open a browser. That is why the workflow, rather than a hook,
+is where this patch puts WebKit: CI pays it once per push, on a machine nobody
+is waiting on.
+
+### 34.7 What is not verified
+
+Stated plainly because the rest of this section is measurement and this part is
+not. The workflow file has never executed — there is no way to run GitHub
+Actions from this container — so what is checked is that it parses, that its
+five jobs name real legs, and that every command in it passes locally.
+
+The one thing a first run may still find is the container's own environment:
+the Playwright image runs as root, and Chromium in Docker as root is the classic
+sandbox failure. `--ipc=host` is set, which is Playwright's documented
+recommendation and covers the `/dev/shm` crash, but not that. If the browser
+jobs fail on a sandbox error rather than on a test, the fix is a bare
+`ubuntu-latest` with `npx playwright install --with-deps <engine>` in place of
+the container — which also pulls revision 1243, the one measured above.
+
+### 34.8 The first CI run, and the two things it found
+
+Recorded because the section above claimed one of them could not happen.
+
+**Three failures, none of them a defect in the tree**, and all five jobs ran
+twice over.
+
+**The duplicate runs** are `on: [push, pull_request]` doing exactly what it
+says: on a branch with an open PR both events fire, so every job ran once per
+event and the merge box listed ten checks for five jobs. Narrowed to
+`push: branches: [main]` plus `pull_request`, which keeps a gate on every PR
+and a record of `main`'s own state without paying twice for either.
+
+**The Node leg failed with every test passing.** `112 passed (112)`,
+`1604 passed (1604)`, and one unhandled error:
+`[vitest-worker]: Timeout calling "onTaskUpdate"`. Vitest's reporter RPC gave up
+under load and vitest exited non-zero for it. Section 15 already records this
+against two full suite runs, and the branch reports carry it as the reason a
+green 136-file run exited 1 — **so this was not merely foreseeable, it was
+already written down, and the gate was still built to fail on it.**
+`scripts/check.mjs` now reads the tally: the `onTaskUpdate` string, plus a
+passing files tally, plus no failure tally anywhere, reports PASS with the cause
+named. Narrow on purpose, because the failure mode of getting it wrong is a
+masked defect — a real failure prints `N failed` and stays FAILED even when the
+reporter times out alongside it, which is checked rather than assumed.
+
+**The pinned heights failed by 47px, and that is the interesting one.** In the
+container the map screen measures 897.22 against a recorded 944.5, and the
+document 1090 against 1138. Forty-seven pixels is forty-seven times the
+tolerance the WebKit branch of `expectBaselineHeights` allows, and none of it is
+a layout regression.
+
+The cause is that **`heights.json` was never portable**, and nothing in the tree
+says so. `tokens.css` sets the entire UI in a system stack —
+`ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace` — with no
+`@font-face` and no font file shipped anywhere in the repo. So every number in
+that file is a measurement of one machine's font set, and the Playwright image
+has a different one. The recording is a regression guard against the box that
+recorded it, not against layout as such.
+
+Four responses were possible and the choice was put to the author rather than
+taken here:
+
+| | why not |
+|---|---|
+| re-record against the container | trades a Chromium regression guard for a picture of the container's fonts, and the brief forbade it |
+| install matching fonts in CI | pins CI to a font package version; the numbers move again silently on any image change |
+| ship a webfont | **the real fix**, and out of scope: it changes `src/`, moves every recorded number and forces a full re-record, which is a decision about typography rather than CI |
+| scope the assertion to where the recording applies | chosen |
+
+So `skipWhereRecordingDoesNotApply` in
+[`test/visual/harness.ts`](../test/visual/harness.ts) gates the four
+assertions on `CI`, and they stay a hard gate locally and before a merge, which
+is where a height regression is introduced. The skip carries its reason in the
+test name, the way `skipOn` does, so a skipped case still says why. **The
+webfont remains the open item**, and until it is taken, CI does not gate layout
+height — recorded here rather than left as a surprise for whoever next reads a
+green browser job and assumes it covered the pixels.
