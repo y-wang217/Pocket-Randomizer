@@ -20,7 +20,9 @@ import { EVOLUTION_CHOICE, EVOLUTION_HEADING, EVOLUTION_LINE } from '../copy/scr
 import { prose } from '../dom';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
-import { statLine, typeChip } from './starter-select';
+import { statLine } from './starter-select';
+import { abilityChip, monTypeChip } from '../chip';
+import { archetypeChip } from '../archetype-chip';
 
 export interface EvolutionPrompt {
   /** What the clear has already decided, in walk order. */
@@ -82,7 +84,22 @@ function renderOption(option: SpeciesEntry, question: EvolutionQuestion, index: 
   const header = el('div', 'panel__header');
   const name = el('span', 'panel__name');
   name.textContent = option.species;
-  header.append(name, ...detail.types.map(typeChip));
+  /*
+   * The archetype chip joins the header. Chip-audit patch, question 1.
+   *
+   * This is the surface the "bars are enough" argument was strongest on — the
+   * whole card is a before-and-after of the six bars — and it is also where
+   * the one word is doing the most work, because the player is comparing two
+   * *different species* rather than reading one. `statLine` below says the
+   * numbers moved; the chip says whether the thing it is becoming is a
+   * different kind of thing.
+   */
+  header.append(
+    name,
+    archetypeChip(detail.baseStats),
+    ...detail.types.map(monTypeChip),
+    abilityChip(detail.ability, detail.abilityId),
+  );
 
   card.append(spriteFigure(option.species, { phase: index }), header, statLine(detail.baseStatsAtLevel, detail.maxHp));
   card.addEventListener('click', onChoose);

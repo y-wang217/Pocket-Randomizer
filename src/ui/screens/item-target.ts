@@ -25,7 +25,7 @@ import { moveCardData } from '../move-detail';
 import { el, moveCard } from '../scene';
 import { setProse, type Prose } from '../dom';
 import { TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
-import { typeChip } from './starter-select';
+import { abilityChip, monTypeChip } from '../chip';
 import { spriteFigure } from '../sprites';
 
 export interface ItemTargetScreen {
@@ -141,7 +141,13 @@ function renderTarget(
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
+  header.append(
+    name,
+    level,
+    archetypeChip(detail.baseStats),
+    ...detail.types.map(monTypeChip),
+    abilityChip(detail.ability, detail.abilityId),
+  );
 
   const bar = createBar();
   bar.set(hpFraction(member));

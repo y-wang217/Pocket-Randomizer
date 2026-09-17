@@ -39,12 +39,23 @@ import {
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
 import { outroHoldMs } from './theme/motion';
-import { bandChip, categoryChip, effectChip, neutralChip, stageChip, statusChip, typeChip } from './chip';
+import {
+  abilityChip,
+  bandChip,
+  categoryChip,
+  effectChip,
+  monTypeChip,
+  neutralChip,
+  stageChip,
+  statusChip,
+  typeChip,
+} from './chip';
 import { el } from './dom';
 import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
+import { TYPE_ICON_VIEWBOX, typeIconPath } from './theme/typeIcons';
 import type { MoveTag } from '../data/moveTags';
 import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, moveFactAriaLabel } from '../data/moveFactInfo';
 import type { MoveFact } from '../core/moveFacts';
@@ -979,8 +990,17 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
   const chips: HTMLElement[] = [];
 
   if (active.ability) {
+    /*
+     * Through `abilityChip` when it is revealed — the same builder every other
+     * surface uses since the chip-audit patch, which is what makes it focusable.
+     *
+     * The unrevealed case stays a plain `neutralChip`: there is nothing to open,
+     * and a focusable chip that opens nothing is a keyboard trap for a reader
+     * who cannot see that it is a placeholder. `revealOpponentAbility` decides
+     * which branch this is and nothing here second-guesses it.
+     */
     const chip = active.ability.revealed
-      ? neutralChip(active.ability.name, 'ability', { tip: `ability:${active.ability.id}` })
+      ? abilityChip(active.ability.name, active.ability.id)
       : neutralChip('Ability ?', 'ability');
     if (!active.ability.revealed) chip.dataset['hidden'] = 'true';
     chips.push(chip);
@@ -999,7 +1019,32 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
 }
 
 /**
- * A Pokemon's type, as a badge and **not** as a door into the reference wheel.
+ * A Pokemon's type, as a badge that **does** open the reference wheel again.
+ *
+ * **Chip-audit patch, 2026-09-17, question 1. Read the objection below before
+ * changing this back, and read this paragraph before agreeing with it.**
+ *
+ * The author's decision was that a Pokemon's type chip is a clickable chip on
+ * every surface that draws a Pokemon, this panel included. The argument this
+ * comment carried against that is preserved verbatim underneath, because it is
+ * the better-evidenced half of the disagreement — it came from a playtester and
+ * it is specifically about *this* game rather than about tooltips in general.
+ *
+ * What the objection establishes, exactly: the wheel's **offensive** half is
+ * misleading on a Pokemon badge, because moves are drawn off-species and a
+ * Water type routinely knows no Water move. What it does not establish is that
+ * the **defensive** half is, and the defensive half is the question a player
+ * asks of the thing standing opposite them. The wheel renders both halves, so
+ * restoring the trigger restores the misleading half with the useful one.
+ *
+ * That is a live tension, not a settled one. The narrowing that would close it
+ * — a Pokemon badge opening the defending half only — was not what was asked
+ * for and is not built here; it is recorded in the patch report as the one
+ * follow-up this item leaves open.
+ *
+ * ---
+ *
+ * The original note, which argued the opposite and won for three patches:
  *
  * Stage 4.5 made every type badge open the wheel. On a *move* badge that was
  * right and still is: "what does my Rock move hit" is a real question, and it
@@ -1019,13 +1064,14 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
  * cannot answer" from the whole party, on the screens where a team-level fact
  * can be acted on.
  *
- * This is byte-identical to `screens/starter-select.typeChip` now, and stays
- * here rather than importing it: `scene.ts` is the module every screen imports
- * `el` from, so reaching the other way would invert the dependency and close a
- * cycle. The rule the two share is that a type badge is a *label*.
+ * It stays a function here rather than a direct call, so that the panel keeps
+ * one place to change its mind: `scene.ts` is the module every screen imports
+ * `el` from, so importing a screen's wrapper the other way would invert the
+ * dependency and close a cycle. `monTypeChip` comes from `ui/chip.ts`, which
+ * is below both.
  */
 function panelTypeChip(type: string): HTMLElement {
-  return typeChip(type);
+  return monTypeChip(type);
 }
 
 /**
@@ -1313,6 +1359,53 @@ function renderBenchMember(
   return button;
 }
 
+/**
+ * The type watermark on a move button. **Chip-audit patch, item 3.**
+ *
+ * The brief: "since we have some dead space inside move cards (in battle), i'd
+ * like a small QOL to show types in certain colors [...] as a visibility to
+ * enforce what type each is. these icons should be 50% opacity max, and
+ * shouldn't distract."
+ *
+ * ## It is redundant on purpose, and that is the whole design
+ *
+ * The type is already on the button in words, on the chip at the head of the
+ * identity line. This adds nothing the card did not say — it says it again in
+ * a channel that costs no reading. Four buttons scanned at a glance become four
+ * silhouettes and four colours before a single word is parsed, which is what a
+ * player does on the turns where they already know what the moves are and are
+ * only picking between them.
+ *
+ * Because it is redundant, it must never be the *only* carrier of anything:
+ * `aria-hidden`, no tooltip, no title, and `typeIconPath` returns `null` for a
+ * type it does not know rather than drawing a mark the player would try to
+ * learn.
+ *
+ * ## The colour comes from the chip table, not a second one
+ *
+ * The span wears `type--<name>`, which is where `--chip` is already defined for
+ * every type in the game. It is not a chip and does not wear `.chip`, so it
+ * picks up the custom property and none of the recipe. The alternative was
+ * nineteen new `.move--<type>` rules restating the same nineteen colours, which
+ * is a table free to drift from the one the chips use.
+ *
+ * ## Battle only
+ *
+ * `moveCard` draws the same component on the reward and replacement screens and
+ * does not get one: the brief says "in battle", and those cards carry the
+ * 4.7.2 expander in the corner this would occupy.
+ */
+function typeWatermark(type: string): HTMLElement | null {
+  const path = typeIconPath(type);
+  if (!path) return null;
+  const mark = el('span', `move__watermark type--${type.toLowerCase()}`);
+  // Decorative, and `aria-hidden` is what keeps it that way: a screen reader
+  // that announced it would be reading the type chip's word a second time.
+  mark.setAttribute('aria-hidden', 'true');
+  mark.innerHTML = `<svg viewBox="${TYPE_ICON_VIEWBOX}" fill="currentColor" aria-hidden="true" focusable="false">${path}</svg>`;
+  return mark;
+}
+
 function renderMove(
   move: MoveUiView,
   enabled: boolean,
@@ -1450,7 +1543,11 @@ function renderMove(
   // `facts`. `scene.ts` may not reach `describeMove`, so the list arrives
   // derived. Mirrors `moveBandChip`, and like it the two sites stay two.
   const strip = moveFactStrip(move.facts, { band, effect: effectBadge });
-  button.append(name, meta, ...(strip ? [strip] : []), footer);
+  // The watermark first, so every other child paints over it without anything
+  // here needing a z-index. It is positioned out of flow, so its place in the
+  // child order costs the layout nothing.
+  const watermark = typeWatermark(move.type);
+  button.append(...(watermark ? [watermark] : []), name, meta, ...(strip ? [strip] : []), footer);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }

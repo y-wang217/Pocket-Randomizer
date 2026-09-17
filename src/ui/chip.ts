@@ -60,6 +60,67 @@ export function typeChip(type: string, options: ChipOptions = {}): HTMLElement {
   return build('type', `type type--${type.toLowerCase()}`, type, options);
 }
 
+/**
+ * A type chip **on a Pokemon**, which opens the type wheel.
+ *
+ * Chip-audit patch, 2026-09-17, question 2. This supersedes the 2026-09-10
+ * ruling for Pokemon type badges and for those only.
+ *
+ * ## Why this is a second function and not an option on the first
+ *
+ * That ruling — "keep the wheel, drop the trigger from the two Pokemon panel
+ * type badges" — had been applied to every type chip in the app rather than to
+ * the two it named, so the wheel was reachable from a battle move card and
+ * from nowhere else. The audit that found that also found why the wide version
+ * survived: nine screens take `typeChip` through one wrapper and pass it
+ * straight to `.map`, so there was no site at which a Pokemon's type and a gym
+ * leader's type could be told apart.
+ *
+ * This is that site. A Pokemon's types open the wheel; a gym leader's type, a
+ * locale's types, a threat entry's type and the type an item boosts do not,
+ * because those are the screens where "what beats this" is a forecast about
+ * content the player has not reached and `CLAUDE.md` forbids it. The split is
+ * a call-site decision, so it is spelled as two functions rather than a flag
+ * somebody can pass the wrong way round.
+ *
+ * **Safe under `.map`.** One parameter, so `types.map(monTypeChip)` cannot
+ * hand it an index as a second argument. That is not hypothetical care: every
+ * caller is exactly that expression.
+ */
+export function monTypeChip(type: string): HTMLElement {
+  const chip = typeChip(type, { tip: `type:${type}` });
+  chip.tabIndex = 0;
+  chip.setAttribute('role', 'button');
+  return chip;
+}
+
+/**
+ * A Pokemon's ability, as a chip that opens its explanation.
+ *
+ * Chip-audit patch, 2026-09-17, question 2. Before it the ability was a real
+ * chip on the result summary and the battle panel, a bare `<span>` carrying a
+ * `data-tip` on the party card and the acquire panel, plain text inside a
+ * concatenated string on starter select, and absent on the learn-move, item
+ * target, evolution and locale surfaces.
+ *
+ * The middle case is the one that justifies a shared builder. A `<span>` with
+ * `data-tip` and no `tabIndex` opens under a mouse or a finger and cannot be
+ * reached by a keyboard at all — `ui/tooltips.ts` binds `keydown` for Enter and
+ * Space, and an element that never takes focus never receives either. So the
+ * trigger looked present in the source and was absent for a keyboard reader,
+ * which is the failure mode a hand-rolled chip has every time.
+ *
+ * `extra` is for a slot that already has metrics keyed off its own class —
+ * `.party__ability` is positioned and is hidden on a collapsed Pocket card —
+ * and those rules are kept rather than restyled.
+ */
+export function abilityChip(name: string, abilityId: string, extra?: string): HTMLElement {
+  const chip = neutralChip(name, 'ability', { tip: `ability:${abilityId}`, ...(extra ? { extra } : {}) });
+  chip.tabIndex = 0;
+  chip.setAttribute('role', 'button');
+  return chip;
+}
+
 /** A tier, as its word. No colour: a tier that were a colour would be a verdict. */
 export function tierChip(tier: string): HTMLElement {
   return build('tier', `tier tier--${tier}`, tier.toUpperCase());

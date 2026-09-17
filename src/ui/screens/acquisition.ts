@@ -52,7 +52,8 @@ import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
 import { slotNumber } from '../slots';
-import { statLine, typeChip } from './starter-select';
+import { statLine } from './starter-select';
+import { abilityChip, monTypeChip } from '../chip';
 import { openBand } from '../band';
 import { neutralChip, statusChip } from '../chip';
 import { spriteFigure } from '../sprites';
@@ -178,26 +179,27 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
   level.textContent = `Lv${detail.level}`;
-  // No archetype chip: `statLine` below draws the six bars the label
-  // summarised. Patch 4.8.0.3, item 3. The slot card further down keeps its
-  // chip — that one has no bars.
-  header.append(name, level, ...detail.types.map(typeChip));
+  // The archetype chip is back beside the bars. Chip-audit patch, question 1:
+  // the label is a vocabulary, and a vocabulary with holes in it is not one.
+  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
 
-  const ability = el('span', 'party__ability');
-  ability.textContent = detail.ability;
+  const ability = abilityChip(detail.ability, detail.abilityId, 'party__ability');
   /*
-   * And it opens the ability tooltip, exactly as the same span does on a party
-   * member card (`ui/member-card.ts`).
+   * And it opens the ability tooltip, through the same builder the party card
+   * uses (`ui/chip.ts`, `abilityChip`).
    *
-   * It did not, and the gap was invisible on a desktop because the card names
-   * the ability in words and a reader can go and look it up. On a phone there
-   * is nowhere to go and look: the tooltip layer *is* the reference, and a
-   * trigger that is missing on one card reads as the ability having no
-   * explanation rather than as this card having no trigger. The screen where
-   * that hurts most is this one, because taking a Pokemon is a decision made
-   * largely on its ability.
+   * It did not open anything at all once, and the gap was invisible on a
+   * desktop because the card names the ability in words and a reader can go and
+   * look it up. On a phone there is nowhere to go and look: the tooltip layer
+   * *is* the reference, and a trigger that is missing on one card reads as the
+   * ability having no explanation rather than as this card having no trigger.
+   * The screen where that hurts most is this one, because taking a Pokemon is a
+   * decision made largely on its ability.
+   *
+   * It was then a `<span>` with a `data-tip` and no `tabIndex` for two patches,
+   * which is the same gap again for a keyboard reader and read as fixed in the
+   * source. The shared builder is what stops it coming back a third time.
    */
-  ability.dataset['tip'] = `ability:${detail.abilityId}`;
   header.append(ability);
 
   const meta = el('div', 'panel__meta');
@@ -249,7 +251,7 @@ function renderExisting(
   // in for the result screen's slot row in Pocket, where that row is off
   // screen, and a slot is the one fact the row had that the card did not.
   // Density modes patch, Part 4.
-  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), ...detail.types.map(typeChip));
+  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
 
   const bar = createBar();
   bar.set(hpFraction(member));

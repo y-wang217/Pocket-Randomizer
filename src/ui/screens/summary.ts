@@ -43,7 +43,7 @@ import { deathLine, shareText, type ShareView } from '../copy/share';
 import { localeById } from '../../data/locales';
 import { relicById } from '../../data/relics';
 import { WHEEL_TYPES } from '../../core/battle/driver';
-import { neutralChip, typeChip } from '../chip';
+import { abilityChip, monTypeChip } from '../chip';
 import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
 import { el, moveCard } from '../scene';
 import { setProse } from '../dom';
@@ -415,7 +415,7 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
   const level = el('span', 'starter__level');
   level.textContent = `Lv${detail.level}`;
   const types = el('span', 'panel__types');
-  types.replaceChildren(...detail.types.map((type) => typeChip(type)));
+  types.replaceChildren(...detail.types.map(monTypeChip));
   header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), types);
 
   const figure = el('div', 'summary__member-figure');
@@ -423,7 +423,7 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
   figure.append(spriteFigure(detail.species, { phase: index }));
 
   const meta = el('div', 'summary__member-meta');
-  meta.append(neutralChip(detail.ability, 'ability', { tip: `ability:${detail.abilityId}` }));
+  meta.append(abilityChip(detail.ability, detail.abilityId));
   if (member.item) {
     const held = el('span', 'summary__member-item');
     held.append(itemIcon(member.item));
