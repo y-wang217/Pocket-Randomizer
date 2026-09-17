@@ -94,3 +94,34 @@ substituted here, because the skeleton is the record of what was asked.
   and `docs/`.
 - No version axis moves: not `contentHash` (nothing under `src/data/`),
   not `RUN_LOG_VERSION`, not `RANDOMIZER_VERSION`, not `AI_VERSION`.
+
+## An addition, asked for after both parts were built
+
+Filed under the same protocol as the brief itself, and marked as later rather
+than folded in above, because it was not in the original message.
+
+Asked, verbatim:
+
+> yes do 1 and 2 so we can get answers
+
+referring to two items put to the author once the WebKit question had been
+traced properly:
+
+1. Fix `visual-v0`'s non-atomic read before the workflow lands.
+2. Merge `main` into this branch and open the PR, so that PR's own browser job
+   is the first WebKit run against everything already on `main`.
+
+**Why the first one belongs to this patch rather than a separate one.** The
+race is not this patch's defect — it was found and filed on the sprite branch,
+which recorded it failing twice in one session with two different messages and
+passing standalone every time. But it is a *gate* defect, and this patch's
+whole subject is the gate. Turning on a browser job that runs a known false-red
+generator on every push buys an alarm that cries wolf, and this repo has
+already written down what that costs: `test/boundaries.test.ts` says a check
+that fails on something it should not is "how a useful test earns a reputation
+for noise and stops being run". Fixing it before CI is worth more than fixing
+it after, and the repair is one `evaluate` in place of two.
+
+The second is sequencing, not scope: the three patches ahead of this one are
+already merged, so without the merge the workflow's first WebKit run would land
+on `main` as a discovery rather than on a PR as a gate.

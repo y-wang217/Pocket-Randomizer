@@ -116,6 +116,38 @@ describe('one accent', () => {
     const count = async (): Promise<number> =>
       page.evaluate(() => [...globalThis.document.querySelectorAll('.primary-action')].filter((el) => (el as HTMLElement).offsetParent !== null).length);
 
+    /**
+     * Which screen is up **and** how many accents it shows, in one round trip.
+     *
+     * The two facts used to be fetched separately — `openScreen(page)`, then
+     * `count()` — and the pair is what this test records against a screen
+     * name. Two round trips is two moments, and the app moves between them: a
+     * fight that ends in the gap credits `battle` with the *result* screen's
+     * primary action, and the walk then fails at the end with
+     * `battle has no primary action: expected 1 to be 0` — a screen that never
+     * had an accent reported as having one.
+     *
+     * Reached rather than theoretical. It failed twice in one session with two
+     * different messages and passed standalone every time, which is the
+     * signature of a race and also the signature of nothing at all, so it cost
+     * two rounds of being called a flake before it was read properly.
+     *
+     * One `evaluate` closes it: the name and the count are read from the same
+     * DOM, so whatever transition follows cannot land between them. The page
+     * may still transition immediately afterwards, and that is fine — the next
+     * iteration reads the new screen and attributes it correctly.
+     */
+    const readScreen = async (): Promise<{ screen: string | null; primaries: number }> =>
+      page.evaluate(() => {
+        const open = [...globalThis.document.querySelectorAll('.screen')].find((el) => !(el as HTMLElement).hidden);
+        return {
+          screen: open ? ((open as HTMLElement).dataset.screen ?? null) : null,
+          primaries: [...globalThis.document.querySelectorAll('.primary-action')].filter(
+            (el) => (el as HTMLElement).offsetParent !== null,
+          ).length,
+        };
+      });
+
     let opened = false;
     for (let step = 0; step < 500; step++) {
       const screen = await openScreen(page);
@@ -138,9 +170,16 @@ describe('one accent', () => {
         opened = true;
         continue;
       }
-      const n = await count();
-      seen.set(screen, Math.max(seen.get(screen) ?? 0, n));
-      expect(n, `${screen} shows ${n} primary actions`).toBeLessThanOrEqual(1);
+      /*
+       * The name from this read, not the `screen` above: the branches between
+       * them click, so by now the app may legitimately be somewhere else, and
+       * the accent count belongs to wherever it actually is.
+       */
+      const { screen: at, primaries } = await readScreen();
+      if (at) {
+        seen.set(at, Math.max(seen.get(at) ?? 0, primaries));
+        expect(primaries, `${at} shows ${primaries} primary actions`).toBeLessThanOrEqual(1);
+      }
       await stepOnce(page);
       await page.waitForTimeout(25);
     }
