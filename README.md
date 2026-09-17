@@ -397,9 +397,18 @@ re-record would hide a real Chromium regression behind it.
 
 **Status.** Green as of 2026-09-17 on WebKit 26.6, 24 files and 201 tests,
 measured twice — once before this patch's merge with `main` and once after — so
-a future failure has a commit boundary to bisect against. CI runs it on every
-push, so the manual route above is for a local reproduction rather than the
-routine gate.
+a future failure has a commit boundary to bisect against.
+
+**CI runs both engines, but CI does not gate the heights, and that is the one
+thing to know before trusting a green browser job.** `heights.json` is a
+recording of one machine's *fonts*: the UI is set in a system stack with no
+`@font-face` and no font file in the repo, so the same layout measures 897.22 in
+the CI container against a recorded 944.5 here. The four height assertions are
+therefore scoped to where the recording applies and skip under `CI`, with the
+reason in the test name. **Running them is local work, and it is the reason to
+run the browser suite yourself before a merge that touches layout.** Making them
+portable means shipping a webfont, which would move every recorded number; it is
+an open item, not a decision taken.
 
 ## Ratified, and no longer open
 

@@ -5493,9 +5493,15 @@ measured on each:
 
 Then the whole browser half on 1243, by preferring it in the repo's own
 candidate list for the length of one run: **24 files, 201 tests, all passing**,
-in 517s against 503s on 1194. The engine swap is therefore safe for this corpus,
-and the workflow says so in a comment at the step where it matters, because the
-next reader of that container line will have the same question.
+in 517s against 503s on 1194.
+
+**That measurement was sound and the conclusion drawn from it was not.** It was
+taken with 1243 running *inside this development container*, which holds
+everything but the engine revision constant — so what it establishes is that
+the revision jump is harmless. It was then written up as "the container is
+safe", which is a different claim about a different environment, and section
+34.8 is the first CI run disproving it. The engine was never the variable that
+mattered.
 
 **No baseline was re-recorded and none needed to be.** The finding is that the
 pin is narrower than the tests require, not that the tests were wrong.
@@ -5575,3 +5581,62 @@ recommendation and covers the `/dev/shm` crash, but not that. If the browser
 jobs fail on a sandbox error rather than on a test, the fix is a bare
 `ubuntu-latest` with `npx playwright install --with-deps <engine>` in place of
 the container — which also pulls revision 1243, the one measured above.
+
+### 34.8 The first CI run, and the two things it found
+
+Recorded because the section above claimed one of them could not happen.
+
+**Three failures, none of them a defect in the tree**, and all five jobs ran
+twice over.
+
+**The duplicate runs** are `on: [push, pull_request]` doing exactly what it
+says: on a branch with an open PR both events fire, so every job ran once per
+event and the merge box listed ten checks for five jobs. Narrowed to
+`push: branches: [main]` plus `pull_request`, which keeps a gate on every PR
+and a record of `main`'s own state without paying twice for either.
+
+**The Node leg failed with every test passing.** `112 passed (112)`,
+`1604 passed (1604)`, and one unhandled error:
+`[vitest-worker]: Timeout calling "onTaskUpdate"`. Vitest's reporter RPC gave up
+under load and vitest exited non-zero for it. Section 15 already records this
+against two full suite runs, and the branch reports carry it as the reason a
+green 136-file run exited 1 — **so this was not merely foreseeable, it was
+already written down, and the gate was still built to fail on it.**
+`scripts/check.mjs` now reads the tally: the `onTaskUpdate` string, plus a
+passing files tally, plus no failure tally anywhere, reports PASS with the cause
+named. Narrow on purpose, because the failure mode of getting it wrong is a
+masked defect — a real failure prints `N failed` and stays FAILED even when the
+reporter times out alongside it, which is checked rather than assumed.
+
+**The pinned heights failed by 47px, and that is the interesting one.** In the
+container the map screen measures 897.22 against a recorded 944.5, and the
+document 1090 against 1138. Forty-seven pixels is forty-seven times the
+tolerance the WebKit branch of `expectBaselineHeights` allows, and none of it is
+a layout regression.
+
+The cause is that **`heights.json` was never portable**, and nothing in the tree
+says so. `tokens.css` sets the entire UI in a system stack —
+`ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace` — with no
+`@font-face` and no font file shipped anywhere in the repo. So every number in
+that file is a measurement of one machine's font set, and the Playwright image
+has a different one. The recording is a regression guard against the box that
+recorded it, not against layout as such.
+
+Four responses were possible and the choice was put to the author rather than
+taken here:
+
+| | why not |
+|---|---|
+| re-record against the container | trades a Chromium regression guard for a picture of the container's fonts, and the brief forbade it |
+| install matching fonts in CI | pins CI to a font package version; the numbers move again silently on any image change |
+| ship a webfont | **the real fix**, and out of scope: it changes `src/`, moves every recorded number and forces a full re-record, which is a decision about typography rather than CI |
+| scope the assertion to where the recording applies | chosen |
+
+So `skipWhereRecordingDoesNotApply` in
+[`test/visual/harness.ts`](../test/visual/harness.ts) gates the four
+assertions on `CI`, and they stay a hard gate locally and before a merge, which
+is where a height regression is introduced. The skip carries its reason in the
+test name, the way `skipOn` does, so a skipped case still says why. **The
+webfont remains the open item**, and until it is taken, CI does not gate layout
+height — recorded here rather than left as a surprise for whoever next reads a
+green browser job and assumes it covered the pixels.

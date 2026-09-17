@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible, skipTutorialIn } from '../scripts/visual/browser.mjs';
 import { formatSeedString } from '../src/core/seedString';
 import { stampCollisions } from '../scripts/visual/stamps.mjs';
-import { engine, expectBaselineHeights, openHarness, type Harness } from './visual/harness';
+import { skipWhereRecordingDoesNotApply, engine, expectBaselineHeights, openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
 
@@ -52,7 +52,8 @@ async function openReleaseBand(page: Page): Promise<void> {
 }
 
 describe('the vertical budget', () => {
-  it('leaves both guarded screens at the baseline height, to the pixel', async () => {
+  const recorded = skipWhereRecordingDoesNotApply();
+  it.skipIf(recorded.skip)(`leaves both guarded screens at the baseline height, to the pixel ${recorded.why}`, async () => {
     const expected = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/baseline/heights.json'), 'utf8'));
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.problems ?? []).toEqual([]);

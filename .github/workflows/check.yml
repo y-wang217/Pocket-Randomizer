@@ -15,7 +15,15 @@
 # be reported as shipped and not be. The npm scripts still exist for people.
 name: check
 
-on: [push, pull_request]
+# The skeleton said `on: [push, pull_request]`, and the first run showed what
+# that costs: on a branch with an open PR both events fire, so all five jobs ran
+# twice and the merge box listed every check in duplicate. Narrowing push to the
+# default branch keeps the two things worth having -- a gate on every PR, and a
+# record of main's own state after a merge -- without paying twice for either.
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 concurrency:
   # The skeleton grouped on github.ref alone. Scoped to the workflow as well so

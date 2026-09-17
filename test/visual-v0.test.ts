@@ -12,7 +12,7 @@ import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { measureGuardedScreens, openApp, openScreen, playUntil, stepOnce, visible } from '../scripts/visual/browser.mjs';
-import { expectBaselineHeights, openHarness, type Harness } from './visual/harness';
+import { skipWhereRecordingDoesNotApply, expectBaselineHeights, openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
 
@@ -25,7 +25,8 @@ afterAll(async () => {
 });
 
 describe('the vertical budget', () => {
-  it('leaves both guarded screens at the baseline height, to the pixel', async () => {
+  const recorded = skipWhereRecordingDoesNotApply();
+  it.skipIf(recorded.skip)(`leaves both guarded screens at the baseline height, to the pixel ${recorded.why}`, async () => {
     const expected = JSON.parse(readFileSync(join(process.cwd(), 'docs/visual/baseline/heights.json'), 'utf8'));
     const measured = await measureGuardedScreens(harness.url, harness.browser);
     expect(measured.problems ?? []).toEqual([]);
