@@ -2,8 +2,8 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-19/gymrun-0.3.0",
-    "contentHash": "a7b5f07b38581b67b9145948da1552597b9af3892985b175ae45ecdf064b154e",
-    "randomizer": "gymrun-randomizer-19",
+    "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
+    "randomizer": "gymrun-randomizer-20",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -119,9 +119,9 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-19/gymrun-0.3.0",
-      "contentHash": "a7b5f07b38581b67b9145948da1552597b9af3892985b175ae45ecdf064b154e",
+      "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-19"
+      "randomizerVersion": "gymrun-randomizer-20"
     },
     "decisions": [
       {

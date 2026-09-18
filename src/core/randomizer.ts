@@ -289,8 +289,28 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * Not one draw changed position inside `rollMoveset`, and every seed rolls a
  * different run anyway. `RUN_LOG_VERSION` moves with it at `-18`, because the
  * gym's grant became a choice and that is a question where there was none.
+ *
+ * ## `-20`: the duplicate reward cards
+ *
+ * **The R19 rulings, item 1a.** `core/rewards.ts` now narrows a pool's
+ * candidates before every weighted pick, so a fungible kind — `currency`,
+ * `heal` — cannot be drawn twice onto one table, and the gym pool gained an
+ * `item` entry for the draw to land on instead.
+ *
+ * **Not one draw changed position or count.** `pickWeighted` spends one
+ * `nextFloat` whatever list it is handed, `shuffledRelics` is the same full
+ * permutation it always was, and a relic's fallback still resolves at
+ * generation in the same place — the first reading thought the fix needed the
+ * fallback re-ordered and it did not. What moved is which *entry* a roll
+ * selects, which is composition, which is this axis. `RUN_LOG_VERSION` holds:
+ * a reward is still one question with one index for an answer.
+ *
+ * The two resolution-side fixes that ride with it consume no RNG at all and
+ * would not have moved this on their own — a relic card now reads past a relic
+ * the same offer already showed, and `resolveOffer` carries the same rule
+ * through collapse.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-19';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-20';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

@@ -381,12 +381,20 @@ describe('the version axes', () => {
      * made one hash stand for two rulings and neither attributable. No axis
      * beside it: a price is read at resolution and draws nothing.
      *
-     * The literal below is all seven together. The display split remains the
+     * And an eighth time, from `a7b5f0`, for the R19 duplicate-card fix: the
+     * gym pool in `data/rewardPools.ts` gained an `item` entry, because
+     * `core/rewards.ts` now refuses to deal a second `currency` card and a pool
+     * of two kinds dealt three times had nowhere else to go. **This is the one
+     * `contentHash` move in the patch that does arrive beside another axis** —
+     * `gymrun-randomizer-20`, because a new pool entry changes which entry a
+     * roll selects. `docs/generation.md` section 43 is the account.
+     *
+     * The literal below is all eight together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('a7b5f07b38581b67b9145948da1552597b9af3892985b175ae45ecdf064b154e');
+    expect(CONTENT_HASH).toBe('b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

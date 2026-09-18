@@ -1,7 +1,7 @@
 {
   "version": "gymrun-run-19/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-19",
-  "contentHash": "a7b5f07b38581b67b9145948da1552597b9af3892985b175ae45ecdf064b154e",
+  "randomizerVersion": "gymrun-randomizer-20",
+  "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
   "aiVersion": "gymrun-ai-6-spent-item",
   "runs": [
     {
@@ -441,7 +441,7 @@
       "seed": "FIXTURE-CHARLIE",
       "outcome": "defeat",
       "gymsCleared": 1,
-      "currency": 276,
+      "currency": 138,
       "backpack": [],
       "party": [
         {
@@ -486,7 +486,7 @@
             "Rollout",
             "Curse"
           ],
-          "item": "mysticwater",
+          "item": "focussash",
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
@@ -517,7 +517,7 @@
             "Thunder Shock",
             "Glaciate"
           ],
-          "item": null,
+          "item": "mysticwater",
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
@@ -935,7 +935,12 @@
         {
           "kind": "items",
           "plan": {
-            "assignments": [],
+            "assignments": [
+              {
+                "slot": 1,
+                "item": "focussash"
+              }
+            ],
             "discards": [],
             "teaches": [],
             "discardTms": []
@@ -1060,7 +1065,7 @@
           "plan": {
             "assignments": [
               {
-                "slot": 1,
+                "slot": 2,
                 "item": "mysticwater"
               }
             ],

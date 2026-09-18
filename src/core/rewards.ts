@@ -118,6 +118,78 @@ export interface RewardOffer {
 }
 
 /** How many cards an offer holds. Three is a spec constant, not a taste. */
+/**
+ * The kinds where a second card is the **same decision with a different number
+ * on it**, and therefore not a distinct option.
+ *
+ * `CLAUDE.md`: "Every offer is exactly 3 distinct options." The R19 playtest
+ * showed a gym page with two coin cards on it, and the measurement behind
+ * `docs/spec/gymrun-patch-r19-overnight-playtest.md` put that at 26.3% of gym
+ * pages with a further 5.4% showing three.
+ *
+ * **Two item cards are not this, and neither are two move cards.** A Leftovers
+ * against a Charcoal is a real choice and `taken.items` already guarantees the
+ * two differ; so does `taken.moves` for a TM against a tutor. Two relic cards
+ * are a real choice *provided they are different relics*, which is what
+ * `taken.relics` is for. What is left is `currency` and `heal`: 159 coins
+ * against 150 coins is one card printed twice, and two full restores is worse.
+ *
+ * A set rather than a predicate, because the question "is this kind fungible"
+ * is asked in three places — the offer loop, the gym loop and the relic
+ * fallback — and three copies of the answer is three places for the next
+ * fungible kind to be forgotten.
+ */
+const FUNGIBLE_KINDS: ReadonlySet<Reward['kind']> = new Set(['currency', 'heal']);
+
+/**
+ * What an offer has already handed out, threaded through every draw in it.
+ *
+ * **One object rather than four parameters**, and that is the change the R19
+ * duplicate-card fix is built on. `resolveRewardEntry` took `takenItems` and
+ * `takenMoves` as separate arguments, which is why relics were never tracked:
+ * adding a third set meant an eighth parameter, so nobody added it, and the
+ * measurement found 11.3% of gym pages offering the same relic on two cards —
+ * against a comment two functions up claiming the opposite.
+ *
+ * Distinctness is now one idea in one place. A kind that needs a rule adds a
+ * field here and every draw site gets it.
+ */
+export interface OfferDraw {
+  /** Item ids already on the table. */
+  items: Set<string>;
+  /** Move names already on the table, shared across `tm`, `tutor`, `technique`. */
+  moves: Set<string>;
+  /** Relics already shown, so a second relic card cannot repeat the first. */
+  relics: Set<RelicId>;
+  /** Every kind drawn so far, consulted only for `FUNGIBLE_KINDS`. */
+  kinds: Set<Reward['kind']>;
+}
+
+/** An empty draw record. One per offer, never shared between two. */
+export function newOfferDraw(): OfferDraw {
+  return { items: new Set(), moves: new Set(), relics: new Set(), kinds: new Set() };
+}
+
+/**
+ * The entries still worth drawing, given what the table already holds.
+ *
+ * **This is the whole duplicate fix, and it costs no RNG.** `pickWeighted`
+ * spends exactly one `nextFloat` whatever it is handed, so narrowing the
+ * candidate list before the pick changes the answer without changing the draw
+ * count — which is what lets the eager-generation contract survive a fix that
+ * the first reading thought would need the fallback re-ordered.
+ *
+ * Only the fungible kinds are removed. Everything else is kept and made
+ * distinct at resolution instead, because an `item` entry can still yield a
+ * *different* item and a `relic` entry a different relic.
+ */
+function drawable(entries: readonly RewardEntry[], taken: OfferDraw): readonly RewardEntry[] {
+  if (!entries.some((entry) => FUNGIBLE_KINDS.has(entry.kind) && taken.kinds.has(entry.kind))) {
+    return entries;
+  }
+  return entries.filter((entry) => !(FUNGIBLE_KINDS.has(entry.kind) && taken.kinds.has(entry.kind)));
+}
+
 export const OFFER_SIZE = 3;
 
 /**
@@ -176,17 +248,28 @@ export function generateRewardOffer(
   const pool = rewardEntriesFor(tier, segment);
 
   const options: Reward[] = [];
-  const takenMoves = new Set<string>();
-  const takenItems = new Set<string>();
+  const taken = newOfferDraw();
   let remaining = [...pool];
 
   for (let card = 0; card < OFFER_SIZE; card++) {
     if (remaining.length === 0) break;
-    const entry = pickWeighted(remaining, stream);
+    /*
+     * `drawable` narrows the candidates to the ones that would not repeat a
+     * fungible kind already on the table. One `nextFloat` either way — see its
+     * own note — so this is a distinctness rule rather than a draw change.
+     *
+     * Without replacement *and* narrowed, because the two rules answer
+     * different questions: `remaining` stops one entry filling two cards, and
+     * `drawable` stops two entries of the same fungible kind doing it. This
+     * pool never holds two `currency` entries, so only the first was needed
+     * here — but the gym pool draws *with* replacement, and one rule that holds
+     * in both places is worth more than two that each hold in one.
+     */
+    const entry = pickWeighted(drawable(remaining, taken), stream);
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
 
-    const reward = resolveRewardEntry(entry, segment, tier, stream, takenItems, takenMoves, pool);
+    const reward = resolveRewardEntry(entry, segment, tier, stream, taken, pool);
     if (reward) options.push(reward);
   }
 
@@ -256,23 +339,17 @@ export function generateGymRewardOffer(
    * Page 1: three distinct moves, one band above the segment's own.
    *
    * Resolved at `normal` so the band is `segmentMoveBand + GYM_MOVE_BAND_BONUS`
-   * and nothing else — see `GYM_MOVE_ENTRY`. One `takenMoves` set across all
-   * three draws is what makes them distinct; `resolveRewardEntry` consults it
-   * and redraws rather than repeating, which is the same mechanism the ordinary
-   * three-card offer uses.
+   * and nothing else — see `GYM_MOVE_ENTRY`. One `OfferDraw` across all three
+   * draws is what makes them distinct; `resolveRewardEntry` consults its
+   * `moves` set and redraws rather than repeating, which is the same mechanism
+   * the ordinary three-card offer uses.
    */
-  const moveTaken = new Set<string>();
+  const moveTaken = newOfferDraw();
   const moveOptions: Reward[] = [];
   for (let card = 0; card < GYM_OFFER_SIZE; card++) {
-    const drawn = resolveRewardEntry(
+    const drawn = resolveRewardEntry(GYM_MOVE_ENTRY, segment, 'normal', stream, moveTaken, [
       GYM_MOVE_ENTRY,
-      segment,
-      'normal',
-      stream,
-      new Set<string>(),
-      moveTaken,
-      [GYM_MOVE_ENTRY],
-    );
+    ]);
     if (drawn) moveOptions.push(drawn);
   }
   if (moveOptions.length < GYM_OFFER_SIZE) {
@@ -287,10 +364,17 @@ export function generateGymRewardOffer(
    * **The entry is not removed after it is drawn, and that is the change.** It
    * used to be, which capped this page at the pool's two entry kinds and is why
    * `GYM_OFFER_SIZE` was 2. Distinctness is a property of the resolved *payload*
-   * rather than of the entry — `resolveRewardEntry` takes `takenItems` and
-   * `takenMoves` and will not hand back a relic the page already holds — so
-   * drawing `relic` twice yields two different relics, which is a better third
-   * card than any filler kind would have been.
+   * rather than of the entry, so drawing `relic` twice yields two different
+   * relics — a better third card than any filler kind would have been.
+   *
+   * **That sentence used to name the wrong mechanism, and the gap it hid is
+   * what the R19 measurement found.** It said `resolveRewardEntry` "takes
+   * `takenItems` and `takenMoves` and will not hand back a relic the page
+   * already holds", which those two sets could not do: neither of them tracked
+   * relics, nothing else did either, and 11.3% of gym pages offered the same
+   * relic on two cards. `OfferDraw.relics` is the set that actually does it
+   * now, at generation, with `resolveOffer` carrying the same rule through
+   * resolution.
    *
    * A draw that resolves to nothing (a pool exhausted of distinct payloads) is
    * skipped rather than retried, so the draw count stays a function of
@@ -298,13 +382,24 @@ export function generateGymRewardOffer(
    */
   const pool = gymRewardEntriesFor(segment);
   const options: Reward[] = [];
-  const takenMoves = new Set<string>();
-  const takenItems = new Set<string>();
+  const taken = newOfferDraw();
 
   for (let card = 0; card < GYM_OFFER_SIZE; card++) {
-    const entry = pickWeighted(pool, stream);
+    /*
+     * **`drawable` is what stops the reported bug, and this loop is where it
+     * was reported.** Drawing with replacement over a pool of two entries —
+     * one relic, one currency — put two coin cards on 26.3% of gym pages and
+     * three on a further 5.4%, measured over 4,000 seeds with no relics held.
+     * The first diagnosis blamed the relic fallback and was wrong: the
+     * fallback contributes nothing here until the run holds all ten relics.
+     *
+     * With `currency` removed from the candidates once it has been drawn, and
+     * an `item` entry now in the pool for the draw to land on instead, the
+     * three cards are three distinct decisions again.
+     */
+    const entry = pickWeighted(drawable(pool, taken), stream);
     if (!entry) break;
-    const reward = resolveRewardEntry(entry, segment, 'elite', stream, takenItems, takenMoves, pool);
+    const reward = resolveRewardEntry(entry, segment, 'elite', stream, taken, pool);
     if (reward) options.push(reward);
   }
 
@@ -342,11 +437,16 @@ function pickWeighted(entries: readonly RewardEntry[], stream: RngStream): Rewar
 /**
  * Turn a pool entry into a concrete reward.
  *
- * `takenItems` and `takenMoves` are how distinctness is kept without a retry:
- * a second item entry draws from its list minus what the first one took, so two
- * cards can never be the same Leftovers. Returns null only when a pool is so
- * narrow that filtering emptied it, which `generateRewardOffer` reports as the
- * data bug it is.
+ * `taken` is how distinctness is kept without a retry: a second item entry
+ * draws from its list minus what the first one took, so two cards can never be
+ * the same Leftovers, and the same holds for moves and — since R19 — relics.
+ * Returns null only when a pool is so narrow that filtering emptied it, which
+ * `generateRewardOffer` reports as the data bug it is.
+ *
+ * **Every entry stamps its kind into `taken.kinds` on the way through**,
+ * including a fallback resolved inside a relic card. That is what `drawable`
+ * reads, and doing it here rather than in the two loops is what makes it
+ * impossible to add a third loop that forgets to.
  *
  * Exported for `core/economy.ts`, which resolves shop stock through it. A shop
  * sells the same things a reward pays out, so it draws them the same way — a
@@ -358,10 +458,10 @@ export function resolveRewardEntry(
   segment: number,
   tier: Tier,
   stream: RngStream,
-  takenItems: Set<string>,
-  takenMoves: Set<string>,
+  taken: OfferDraw,
   pool: readonly RewardEntry[] = [],
 ): Reward | null {
+  taken.kinds.add(entry.kind);
   switch (entry.kind) {
     case 'relic': {
       /*
@@ -370,25 +470,52 @@ export function resolveRewardEntry(
        * The shuffle is a full permutation rather than one pick because the
        * first choice may be held by the time the player arrives, and the
        * alternates have to already be decided — resolution consumes no RNG.
-       * The fallback comes from this pool's non-relic entries, so a run that
-       * has collected everything still gets a card the tier would have paid.
+       *
+       * **The card shown is the first relic in that permutation this offer has
+       * not already shown, not the first one outright.** Nothing consulted
+       * anything before the R19 fix, despite the comment above the gym page-2
+       * loop asserting that it did, and 11.3% of gym pages offered the same
+       * relic on two cards. Reading further down a permutation that was drawn
+       * in full anyway costs nothing: the shuffle is the same shuffle and the
+       * draw count is the same draw count.
        */
       const order = shuffledRelics(RELIC_IDS, stream);
-      const ordinary = pool.filter((candidate) => candidate.kind !== 'relic');
+      /*
+       * **The fallback excludes the fungible kinds as well as relics**, and
+       * that one filter is both halves of the R19 item-1a ask.
+       *
+       * It cannot duplicate a coin or a heal card, because it can no longer
+       * *be* one — which fixes the 8.8% of elite offers that showed two, and
+       * fixes it without the re-ordering the first reading said it would need.
+       * The fallback still resolves here, at generation, in the same position,
+       * consuming the same draws. And what it lands on instead is an item,
+       * which is the report's own request: "Put an item option there, whatever
+       * would be comparable to the move like a good one."
+       *
+       * `pickWeighted` is one `nextFloat` for any candidate list, so the
+       * narrowing is free. A pool with nothing left to offer returns null and
+       * the card is dropped, which `generateRewardOffer` reports as the data
+       * bug it would be; `test/rewards.test.ts` holds that no shipped pool can
+       * reach it.
+       */
+      const ordinary = pool.filter(
+        (candidate) => candidate.kind !== 'relic' && !FUNGIBLE_KINDS.has(candidate.kind),
+      );
       const fallbackEntry = ordinary.length > 0 ? pickWeighted(ordinary, stream) : null;
       const fallback = fallbackEntry
-        ? resolveRewardEntry(fallbackEntry, segment, tier, stream, takenItems, takenMoves, [])
+        ? resolveRewardEntry(fallbackEntry, segment, tier, stream, taken, [])
         : null;
-      const [first, ...alternates] = order;
+      const [first, ...alternates] = orderFrom(order, taken.relics);
       if (!first || !fallback) return fallback;
+      taken.relics.add(first);
       return { kind: 'relic', relic: first, alternates, fallback };
     }
 
     case 'item': {
-      const available = entry.items.filter((id) => !takenItems.has(id) && itemById(id));
+      const available = entry.items.filter((id) => !taken.items.has(id) && itemById(id));
       if (available.length === 0) return null;
       const item = stream.pick(available);
-      takenItems.add(item);
+      taken.items.add(item);
       return { kind: 'item', item };
     }
     case 'currency': {
@@ -401,15 +528,15 @@ export function resolveRewardEntry(
     case 'tm':
     case 'tutor': {
       const bands = rewardMoveBands(segment, tier, entry.bandOffset ?? 0);
-      const available = damagingInBands(bands).filter((move) => !takenMoves.has(move.name));
+      const available = damagingInBands(bands).filter((move) => !taken.moves.has(move.name));
       if (available.length === 0) return null;
       const move = stream.pick(available);
-      takenMoves.add(move.name);
+      taken.moves.add(move.name);
       return { kind: entry.kind, move: move.name };
     }
     case 'technique': {
       /*
-       * One draw, from the status pool, sharing `takenMoves` with the two
+       * One draw, from the status pool, sharing `taken.moves` with the two
        * above.
        *
        * Sharing the set is the point rather than an economy: an offer holding
@@ -423,16 +550,37 @@ export function resolveRewardEntry(
        * run is what it is *worth*, which is a price rather than a draw.
        */
       const available = statusByImpact(entry.impacts ?? []).filter(
-        (move) => !takenMoves.has(move.name),
+        (move) => !taken.moves.has(move.name),
       );
       if (available.length === 0) return null;
       const move = stream.pick(available);
-      takenMoves.add(move.name);
+      taken.moves.add(move.name);
       return { kind: 'technique', move: move.name };
     }
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
   }
+}
+
+/**
+ * A drawn relic order, rotated so the first entry is one this offer has not
+ * already shown.
+ *
+ * **Pure, and that is the requirement.** The permutation was drawn in full by
+ * `shuffledRelics`; this only decides where to start reading it, so it consumes
+ * no RNG and cannot move a later roll. Nothing is removed — the already-shown
+ * relics stay in `alternates`, because `concreteReward` walks that list against
+ * what the *run* holds and a relic another card is offering is not a relic the
+ * run holds.
+ *
+ * Falls back to the order as drawn when every relic is spoken for, which can
+ * only happen on a page showing more relic cards than there are relics. The
+ * card is then a duplicate again, and that is better than no card at all.
+ */
+function orderFrom(order: readonly RelicId[], shown: ReadonlySet<RelicId>): readonly RelicId[] {
+  const at = order.findIndex((id) => !shown.has(id));
+  if (at <= 0) return order;
+  return [...order.slice(at), ...order.slice(0, at)];
 }
 
 /**
@@ -469,10 +617,25 @@ export function shuffledRelics(ids: readonly RelicId[], stream: RngStream): Reli
  * other kind passes straight through, so a caller can map an offer through
  * this without asking what each card is.
  */
-export function concreteReward(reward: Reward, relics: readonly RelicId[]): Reward {
+export function concreteReward(
+  reward: Reward,
+  relics: readonly RelicId[],
+  alsoTaken: ReadonlySet<RelicId> = new Set(),
+): Reward {
   if (reward.kind !== 'relic') return reward;
   const order = [reward.relic, ...reward.alternates];
-  const free = order.find((id) => !relics.includes(id));
+  /*
+   * `alsoTaken` is the relics *this offer* has already resolved onto, and it is
+   * the resolution-time half of the R19 duplicate-relic fix. Generation makes
+   * the two cards show different relics; without this, two cards could still
+   * converge here, because each walked its own `alternates` against the run
+   * with no knowledge of the other.
+   *
+   * It defaults to empty so a caller resolving one card in isolation — the
+   * item-target screen, a test — gets the old behaviour exactly. `resolveOffer`
+   * is the caller that threads it, and it is the one that has three cards.
+   */
+  const free = order.find((id) => !relics.includes(id) && !alsoTaken.has(id));
   return free ? { kind: 'relic', relic: free, alternates: [], fallback: reward.fallback } : reward.fallback;
 }
 
@@ -488,7 +651,18 @@ export function concreteReward(reward: Reward, relics: readonly RelicId[]): Rewa
  */
 export function resolveOffer(offer: RewardOffer, relics: readonly RelicId[]): RewardOffer {
   if (!offer.options.some((option) => option.kind === 'relic')) return offer;
-  return { ...offer, options: offer.options.map((option) => concreteReward(option, relics)) };
+  /*
+   * Left to right, carrying what has already been resolved onto. Still pure and
+   * still idempotent: a resolved card has an empty `alternates`, so a second
+   * pass finds the same relic free and returns the same object.
+   */
+  const shown = new Set<RelicId>();
+  const options = offer.options.map((option) => {
+    const resolved = concreteReward(option, relics, shown);
+    if (resolved.kind === 'relic') shown.add(resolved.relic);
+    return resolved;
+  });
+  return { ...offer, options };
 }
 
 // ---------------------------------------------------------------------------

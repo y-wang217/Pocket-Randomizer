@@ -6973,3 +6973,131 @@ to prevent. `a036d6` -> `eba446` is the gym ladder; `eba446` -> `a7b5f0` is this
 The six visual baseline records and `test/fixtures/sim-report.json` moved in the
 `contentHash` field and in no other field, as expected: a price is read at
 resolution and draws nothing, so no seed's composition can move with it.
+
+## 43. Three cards, three decisions — and the diagnosis that had to be redone first
+
+**The R19 rulings, item 1a**, same branch as sections 41 and 42. Moves
+`RANDOMIZER_VERSION` from `gymrun-randomizer-19` to `-20` and `contentHash` from
+`a7b5f0` to `b8b419`. `RUN_LOG_VERSION` holds: a reward is still one question
+with one index for an answer.
+
+### The first diagnosis was wrong, and the badge is why
+
+A previous session root-caused the reported screenshot — a `SHORE 1/8` offer
+badged `ELITE` showing a blank `RELIC` card and two coin cards — as the relic
+fallback on an elite node, and filed 18,000 offers of supporting measurement.
+**It is a gym clear's second reward page.** Three independent readings agree:
+
+- **The numbers.** Elite currency at segment 0 is `62–95` at
+  `currencyScaleFor(0) = 1`. The gym pool at the same segment is `110–165`.
+  159 and 150 are inside the gym band and unreachable from the elite one.
+- **The pool.** `GYM` at `throughSegment: 2` held exactly two entries, one
+  `relic` and one `currency`, which is the card set in the screenshot.
+- **The badge.** `generateGymRewardOffer` returns `tier: 'elite'` on both pages
+  and `src/ui/screens/result.ts` prints `tierBadge(offer.tier)`, so **every gym reward
+  page in the game badges `ELITE`.**
+
+That last one is not a defect and is **deliberately not changed here**.
+`generateGymRewardOffer`'s own header argues it: *"a display fact rather than a
+draw... a gym offer that badged as `normal` would be the screen contradicting
+the cards in front of it."* The argument holds. What it did not anticipate is
+that the badge is also the only tier label a reader has, so a gym page is
+indistinguishable from an elite node in a screenshot — which cost one session a
+wrong root cause and 18,000 wasted measurements. **Filed as an open item rather
+than fixed**: `RewardOffer.tier` is a `Tier` and a gym has no tier, so a `GYM`
+badge means widening that type or adding a field beside it, and neither is item
+1a's business.
+
+### Three defects, measured before and after
+
+All rates over 4,000 seeds per configuration. Before, then after:
+
+| | before | after |
+|---|---|---|
+| gym page with 2+ coin cards, no relics held | 31.8% | **0** |
+| gym page with 3 coin cards | 5.4% | **0** |
+| gym page with 2+ coin cards, all 10 relics held | 100% | **0** |
+| gym page showing the same relic twice | 11.3% | **0** |
+| elite offer with two fungible cards, all relics held | 8.8% | **0** |
+
+Zero at every relic count a run can be at — 0, 1, 3, 6, 9 and 10 — on both gym
+pages, at every tier, at every segment. `test/offer-distinctness.test.ts` holds
+all of it.
+
+### The fix, and why it needed no re-ordering
+
+The first reading said the fix "needs the fallback drawn after the other two
+cards, or resolved last — either moves `RANDOMIZER_VERSION`". It needs neither.
+
+**`pickWeighted` spends exactly one `nextFloat` whatever list it is handed**, so
+narrowing the *candidates* before a pick changes the answer without changing the
+draw. That single observation is what let all three defects be fixed inside the
+eager-generation contract:
+
+1. **`drawable(entries, taken)`** removes a fungible kind — `currency`, `heal` —
+   from the candidates once it is on the table. Both offer loops call it. The
+   gym loop is where the bug was reported, because it draws *with replacement*
+   over what was a two-entry pool.
+2. **The relic fallback excludes the fungible kinds as well as relics.** It
+   still resolves at generation, in the same position, consuming the same
+   draws — it simply cannot *be* a coin or a heal any more. This is the elegant
+   part: the same one-line filter fixes the 8.8% and satisfies the report's own
+   ask, *"Put an item option there, whatever would be comparable to the move like
+   a good one"*, because an item is what it lands on instead.
+3. **`OfferDraw.relics`** makes a relic card read past a relic the same offer has
+   already shown, via `orderFrom` — a rotation of a permutation that was drawn in
+   full anyway, so it is pure. `resolveOffer` carries the same rule through
+   collapse, because two cards could otherwise still converge there while each
+   walked its own `alternates` against the run with no knowledge of the other.
+
+Only (1) and the pool entry move the version axis. (2) and (3) consume no RNG
+and would not have moved it on their own.
+
+### `OfferDraw`, and the comment that was false
+
+`resolveRewardEntry` took `takenItems` and `takenMoves` as separate parameters.
+That is *why* relics were never tracked: a third set meant an eighth parameter,
+so nobody added one — and the comment above the gym page-2 loop asserted the
+work was being done anyway:
+
+> `resolveRewardEntry` takes `takenItems` and `takenMoves` and will not hand
+> back a relic the page already holds
+
+Neither set tracked relics and nothing else did. The four sets are one
+`OfferDraw` now, and `resolveRewardEntry` stamps every entry's kind into it on
+the way through rather than leaving that to the loops — so a third draw loop
+cannot be written that forgets to.
+
+### The gym pool's item entry
+
+`PREMIUM_ITEM_IDS` at weight 4, plus `CHOICE_ITEM_IDS` from segment 3 on the
+same gate `ELITE` applies. The ruling asked for it directly — *"Def add items as
+reward option"* — and the pool's own header had predicted it, calling the
+removal *"a narrowing a tuning pass may want to undo"*. That paragraph is left
+standing because it was right.
+
+It also carries a second job the original never had: **it is what `drawable` has
+to send a refused `currency` draw to.** A distinctness rule with nowhere to go
+is a pool that cannot fill its own offer. The `tutor` entry stays gone, still for
+the reason given — it is what page 1 hands over unconditionally.
+
+`test/gym-rewards.test.ts` asserted the old shape (`['relic', 'currency']`) and
+is widened rather than deleted, with the superseded argument kept in place.
+
+### Evidence in the recordings
+
+The six visual baseline records moved in `contentHash` and `randomizer` and **in
+no other field** — no decision log, outcome, visit or casualty changed, which is
+what a fix confined to reward *composition* should look like on seeds whose
+recorded decisions are indices.
+
+`test/fixtures/sim-report.json` did move in gameplay, and it is the clearest
+single piece of evidence in the patch: the one fixture run that clears a gym now
+walks away with a **Focus Sash assigned to a party slot** where it previously
+took a currency card. That is the duplicate being replaced by the item, visible
+in a recorded run rather than in an aggregate.
+
+### Gates
+
+Types, lint, build, smoke, strict trim, the full node suite (1,641) and the
+browser suite (203) all green.
