@@ -7356,7 +7356,214 @@ head. WebKit ran 457s and 480s on PR #54 against 347s and 368s on two recent
 that into an answer**: if the leg now passes, it was latency; if it still fails,
 the lunge genuinely does not complete on that head and that is a defect to find.
 
-## 47. The badge said Rookie and the app played the baseline
+## 47. Two red legs on `main`, and neither was the tree
+
+**Applied at the author's direction** after `main`'s `check` workflow came back
+red on two jobs at `46118e8` — run 21, the merge of PR #54. Test, gate and
+workflow only: nothing under `src/` is touched, `contentHash` is unmoved at
+`b8b419`, and no version axis moves.
+
+The two failures had nothing to do with each other and nothing to do with the
+commit that carried them:
+
+| job | what it said |
+|---|---|
+| `browser suite (chromium)`, and `strict trim`'s `trim:browser` | `test/visual-chips.test.ts` — `party (gallery, loaded) "Ghost" 4.43:1 rgb(165,144,175) on rgb(46,50,54)` |
+| `strict trim`'s `trim:node` | `[vitest-worker]: Timeout calling "onTaskUpdate"`, under `120 passed (120)` and `1650 passed (1650)` |
+
+### 47.1 The ruling on order: instrument first
+
+The first instinct was to lift the Ghost hue until the number cleared, and the
+author stopped it. A measurement that disagrees between two machines is a
+measurement to audit before it is a measurement to act on, and this one
+disagreed loudly: on a developer box the same commit reads that chip at
+**5.13:1** on `rgb(34,38,58)`, against the container's 4.43:1 on
+`rgb(46,50,54)` — with byte-identical computed colours on both. One of those
+two numbers is about Ghost. At most one of them is.
+
+So the colour table is **not** touched by this section. What is touched is the
+instrument.
+
+### 47.2 The sampler was reading a page that had not finished arriving
+
+`chipsOn` took its full-page screenshot as soon as the screen was open. Nothing
+raster ships in this repository — `ui/sprites.ts` addresses Showdown's CDN, and
+the elements it builds are `loading="lazy"` and `decoding="async"` — so whether
+a sprite is painted when the shutter opens is a property of the network, not of
+the build. The chips do not *move* when a sprite lands, because `spriteImg`
+sets an explicit 96x96; what changes is what is **behind** them, which is the
+one thing this file exists to sample.
+
+`imagesSettled` now waits for every `<img>` to report `complete` before any
+chip is measured. `complete` rather than a successful load, deliberately: a
+sprite that 404s is a state the app handles and the sampler is entitled to
+measure it. What it is not entitled to measure is the interval in which nobody
+yet knows which of the two it will be.
+
+**The wait does not terminate without one more thing, and finding that out was
+the useful part.** A lazy image the viewport has never reached is not slow, it
+is *not started*, and it reports `complete === false` for as long as the page is
+open. On the party screen exactly three sprites sit at 2877px, 3714px and
+4501px down an 844px viewport and stay pending indefinitely; the first build of
+this wait timed out on them after thirty seconds. They are not out of scope for
+being out of view — the screenshot is `fullPage: true` and the chips beside them
+are sampled — so `loading` is flipped to `eager` first. That is what makes the
+wait both finish and mean something.
+
+### 47.3 A chip with no text is not a text-contrast question
+
+`bandChip` sets no `textContent` at all: it draws five `.band__pip` spans,
+because Stage V0 ruled that a band is a count and not a word. Its computed
+`color` is still the chip recipe's, so the sweep was comparing a colour nothing
+on screen is painted in against whatever its box happened to contain. Both
+floors in this file are floors on *text*; against a box with no glyphs in it,
+neither one is a weak measurement — it is a measurement of nothing, free to
+land anywhere, including under the floor.
+
+`chipsOn` skips a chip whose trimmed text is empty, and `band` comes off
+`VARIANTS` as the direct consequence. That costs the sweep its claim to cover
+every variant `ui/chip.ts` builds, which is a real loss and is named in the
+list's own comment rather than left for a reader to infer from a variant that
+quietly stopped appearing. What a pip meter needs is a contrast rule between a
+filled pip and an empty one; that is a different assertion in a different file,
+and it is filed as an open item.
+
+### 47.4 What the re-run could and could not settle
+
+The chromium leg was re-run on the instrumented file. **On this box it is
+green, and it was green before the change as well** — which is exactly the
+problem: this container cannot reach `play.pokemonshowdown.com` at all (every
+sprite request fails `net::ERR_CERT_AUTHORITY_INVALID` behind the agent proxy),
+so sprites are uniformly absent here, before and after, and the instrument fix
+has nothing to bite on. The full sweep reports 10 variants, 0 rows under the
+floor and a minimum of 4.59:1.
+
+So the split the author predicted — Ghost and Dark surviving on
+`party (gallery, loaded)`, the three 1.32:1 rows vanishing — **could not be
+reproduced or refuted here.** It is a container measurement and it needs the
+container. Per the standing instruction, the colour work stops at this line
+rather than proceeding on a local reading that cannot see the thing being
+argued about.
+
+What was measured, and is recorded because it will be wanted when that run
+happens: on the CI-sampled background `rgb(46,50,54)`, with `--chip-text` at
+60%, **five** type hues sit under 4.5 — Dragon 4.15, Dark 4.26, Fighting 4.35,
+Poison 4.40, Ghost 4.43 — and Ghost is merely the first one a chip of that type
+was drawn for. Any answer that lifts one hue is an answer to one fifth of it.
+
+### 47.5 The reporter RPC timeout, and the two-line bug behind the gate lying
+
+`scripts/check.mjs` has carried a guard against this since section 33: the
+`onTaskUpdate` string, plus a passing files tally, plus no failure tally
+anywhere, reported as a pass with the cause named. It has never once fired.
+
+It is matched against **coloured** output. The legs are spawned onto pipes, and
+vitest colours a pipe anyway when `CI` is set — tinyrainbow treats the variable
+as consent, the way it treats `FORCE_COLOR`. So in Actions the tally arrives as
+
+```
+\x1b[2m Test Files \x1b[22m \x1b[1m\x1b[32m120 passed\x1b[39m\x1b[22m\x1b[90m (120)\x1b[39m
+```
+
+and `/Test Files\s+\d+ passed \(\d+\)/` finds no `\s+` between the label and the
+count. Locally, with no `CI`, vitest emits plain text and the same guard
+matches — which is how a bug of this shape survives being tested. The output is
+stripped of CSI sequences before matching now, rather than the patterns being
+loosened to tolerate them: a pattern that steps over arbitrary control
+sequences is a pattern nobody can read, and `ANY_FAILED` has to keep meaning
+what it says.
+
+Verified on the verbatim line above and on its plain-text twin, and on the case
+that must not flip: a run carrying **both** the timeout and a real `1 failed`
+stays FAILED.
+
+### 47.6 ERRORED, because a green suite and a clean run are different facts
+
+The guard used to report PASS. It reports **ERRORED** now — a fourth status,
+alongside PASS, FAILED and SKIPPED, which does not fail the run. A reader
+scanning the table for "is the tree green" still gets a yes; a reader asking
+why a leg took four minutes and printed an unhandled error now has a word to
+search for, instead of a PASS with a note they have to already know to read.
+The summary line counts it separately and the closing verdict names the legs.
+
+### 47.7 The other half: stop provoking it
+
+Reporting the error honestly does not make it rarer. The runner is a standard
+GitHub-hosted `ubuntu-latest`; nothing in `vite.config.ts` sets `pool`,
+`poolOptions`, `maxWorkers` or `minWorkers`, so vitest 3.2.7's defaults apply —
+`pool: 'forks'`, and a non-watch run sizes the pool at
+`max(availableParallelism() - 1, 1)`. Four cores, three forks, each a full Node
+process replaying runs, on a machine also carrying the parent, the reporter and
+the Vite transform. The timeout is that reporter channel not being scheduled in
+time. It is a contention symptom, which is what every recorded sighting of it
+has said: *it tracks load, not outcome.*
+
+`scripts/vitest-split.mjs` caps the Node half at **two forks under `CI`**. Not
+locally, because a developer box is not the contended machine. Not on the
+browser halves, because the error has not been seen there and retuning a leg
+that did not report a problem is how a fix acquires a second thing to explain.
+Withheld entirely when the caller names `--maxWorkers` themselves, because
+vitest's parser collects a repeated flag into an *array* — `--maxWorkers=2
+--maxWorkers=1` is a pool size of `[2, 1]`, not "the last one wins" — and a
+measurement run has to be able to ask for a different number.
+
+`check.mjs` now prints the core count it saw in its header line, so the number
+the cap is reasoned from is read off each run rather than trusted from a
+comment.
+
+**The cap is not yet confirmed against the failure.** It wants three CI runs of
+the leg and this branch cannot trigger one: `check.yml` fires on `push` to
+`main` and on `pull_request`, and nothing else. Locally, at the cap and with
+`CI=1`, the leg is green in 204.3s over 120 files on a box with the same four
+cores — which says the flag is wired and costs little, and says nothing at all
+about whether the timeout returns.
+
+### 47.8 WebKit comes off the critical path
+
+`test:webkit` is out of `check.yml` entirely. The engine matrix is one value,
+kept as a matrix so that `browser suite (chromium)` stays the job name a branch
+protection rule would reference and so that putting an engine back is a
+one-word diff.
+
+It lives in `.github/workflows/webkit.yml` now: a weekly cron, a
+`workflow_dispatch`, and a `pull_request` path filter on the motion CSS
+(`src/ui/styles.css`, `src/ui/theme/tokens.css`, `src/ui/theme/motion.ts`), the
+sprite code (`src/ui/sprites.ts`, `src/ui/scene.ts`) and
+`test/visual-motion.test.ts` — the three surfaces every engine
+difference this repository has actually met has been on.
+
+Three things about it are deliberate and each is a cost:
+
+1. **It cannot block.** The suite step carries `continue-on-error: true` and
+   the job publishes its outcome as an output, so a red engine leaves the
+   workflow green and the merge box clear. The signal goes to one pinned issue,
+   found by an HTML marker rather than by its title, edited in place by every
+   run and closed on the run that goes green again. That issue is now the only
+   thing standing between a broken engine and nobody noticing, which is the
+   trade being made with open eyes.
+2. **It never writes a deploy status.** `permissions` is `contents: read` plus
+   `issues: write`; there is no `deployments` scope, no environment and no
+   status API call in the file. A workflow that is not allowed to block should
+   not be holding a lever that blocks.
+3. **It is not in the Playwright container.** The container already carries the
+   engines, so there would be nothing to cache. On a bare runner
+   `~/.cache/ms-playwright` is worth caching, keyed on the version read off the
+   installed `playwright-core` rather than off `package.json`'s range — a key
+   built from `^1.63.0` would survive a lockfile bump and hand the suite
+   browser revisions that version never expected. No `restore-keys`, for the
+   same reason: a partial restore is another version's browsers on disk, plus a
+   reported miss.
+
+`npm run check` still runs the WebKit leg locally. What moved is which machine
+is obliged to.
+
+**The install timing is not measured yet.** Both numbers — cold and on a cache
+hit — come off the workflow's own step summary, which needs the file to be on
+`main` before `workflow_dispatch` is offered for it. The step records
+`webkit install: Ns (cache hit|miss)` on every run so that the figure is a
+record rather than a thing somebody has to go and time.
+
+## 48. The badge said Rookie and the app played the baseline
 
 **2026-09-18.** Prompt
 [`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),

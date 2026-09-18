@@ -1342,7 +1342,7 @@ export function mountApp(root: HTMLElement): void {
        * patch added `tieredOpponentFor` as the default without removing the
        * pin, so the shipped game went on playing `GREEDY_BASELINE`,
        * `smartSwitching` and all, behind a card that said `Rookie`. See
-       * `generation.md` section 47.
+       * `generation.md` section 48.
        *
        * Leaving it out is what makes the badge true: `tieredOpponentFor` reads
        * `aiTierFor` per node, which is the same reading the node card and the

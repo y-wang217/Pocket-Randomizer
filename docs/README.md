@@ -61,7 +61,7 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 **In flight: the wild encounter that swaps out.** Branch
 `claude/wild-encounter-swap-bug-1vd4q8`, prompt
 [`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
-record [`generation.md`](generation.md) section 47, measurement
+record [`generation.md`](generation.md) section 48, measurement
 [`balance.md`](balance.md) section 20. `AI_VERSION` to
 `gymrun-ai-7-tiers-reach-the-app`; **`contentHash`, `RANDOMIZER_VERSION` and
 `RUN_LOG_VERSION` all hold.**
@@ -78,11 +78,34 @@ app's wiring, **0 under the default**. The fix deletes the key; `AI_VERSION`
 moves because the opponent in every shipped fight does, and because a save
 recorded before it would otherwise resume against a different bot.
 
-Two things it leaves standing, both named in section 47: the simulator still
+Two things it leaves standing, both named in section 48: the simulator still
 defaults to `--ai pinned`, so the benchmark column and the shipped game are now
 two different opponents — a decision, not a consequence — and the shipped
 opponent is worth **+0.18 mean gyms** against the pin at 400 seeds, recorded and
 not chased.
+
+**In flight: `main`'s two red CI legs.** Branch
+`claude/epic-thompson-yr4eer`, record
+[`generation.md`](generation.md) section 47. Test, gate and workflow only:
+nothing under `src/`, `contentHash` unmoved at `b8b419`, no axis moves.
+
+- **The chip sweep was measuring a page that had not finished arriving.**
+  `test/visual-chips.test.ts` waits for every `<img>` to report `complete`
+  before it screenshots, and skips a chip with no text. `band` comes off the
+  variant list as a consequence, which is a real loss of coverage and is named
+  where the list is.
+- **The Ghost hue is deliberately untouched.** The 4.43:1 failure is a
+  container reading that a developer box does not reproduce; the ruling was
+  instrument first, and the re-run that would decide it needs the container.
+  Open item below.
+- **A green suite stops reporting as FAILED.** `scripts/check.mjs` matched its
+  reporter-timeout guard against coloured output and so never fired in CI; it
+  strips CSI sequences now and reports a fourth status, ERRORED.
+- **The Node half is capped at two forks under `CI`**, against the reporter RPC
+  timeout. Unconfirmed against the failure itself — open item below.
+- **WebKit is off the critical path**, in its own non-blocking workflow with a
+  weekly cron, a dispatch and a path filter on motion CSS, sprite code and the
+  motion tests.
 
 **Previously: the R19 playtest rulings.** Branch
 `claude/blissful-brown-5tv8fv`, prompt
@@ -873,6 +896,38 @@ One line each. The analysis lives where the pointer goes, not here.
    because a gym has no tier, and that reasoning is untouched. No axis moves and
    no CSS was needed: Stage V0's ban on colour per tier means every tier chip is
    already the same chip. `generation.md` section 45.
+
+0. **Five type hues sit under the contrast floor on the gallery's loaded
+   party, and only one of them has ever failed.** On the background the
+   container samples there, `rgb(46,50,54)`, Dragon reads 4.15, Dark 4.26,
+   Fighting 4.35, Poison 4.40 and Ghost 4.43. Ghost is the one that failed
+   because Ghost is the one a chip was drawn for. **Nothing has been changed
+   yet and nothing should be until the sweep is re-run in the Playwright
+   container with `test/visual-chips.test.ts`'s image wait in place** — the same
+   commit reads Ghost at 5.13 on a developer box, so at most one of the two
+   numbers is about Ghost. `generation.md` section 47.1 and 47.4.
+
+0. **The chip sweep no longer covers the `band` variant.** A pip meter has no
+   text, and both floors in that file are floors on text. What it wants is a
+   contrast rule between a filled pip and an empty one, which is a different
+   assertion in a different file. `generation.md` section 47.3.
+
+0. **The CI fork cap is wired but unconfirmed.** Two forks on the Node half
+   under `CI` is the answer to `[vitest-worker]: Timeout calling "onTaskUpdate"`,
+   and it has not yet been run against the failure: `check.yml` fires on `push`
+   to `main` and on `pull_request` only, so the branch that carries the cap
+   cannot trigger one. It wants three runs of the leg at the cap.
+   `generation.md` section 47.7.
+
+0. **A red WebKit now blocks nothing, and one issue is the whole signal.** The
+   new workflow is non-blocking by construction. The issue it edits has to be
+   **pinned by hand** the first time it is opened — Actions cannot pin one — and
+   an unpinned or ignored issue is an engine nobody is testing. `generation.md`
+   section 47.8.
+
+0. **The WebKit install is unmeasured, cold and cached.** Both figures come off
+   the new workflow's step summary, which needs the file on `main` before a
+   dispatch is offered for it. `generation.md` section 47.8.
 
 0. **A gym's difficulty now moves on two dials.** The gym's move band bonus and
    its held-item ladder both scale with segment, and the rule deleted in section

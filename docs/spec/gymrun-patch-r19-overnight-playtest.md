@@ -292,7 +292,7 @@ irrelevant — **`src/ui/app.ts` pinned `opponent: greedyAiPolicy`, so no tier w
 ever played in the shipped game.** Every fight was `GREEDY_BASELINE`, which
 holds `smartSwitching`. Both readings on this item asked what the wild tier
 does; neither asked whether the app reads the table.
-[`../generation.md`](../generation.md) section 47 is the account, per the
+[`../generation.md`](../generation.md) section 48 is the account, per the
 `CLAUDE.md` rule that a superseded reading is recorded rather than deleted.
 
 ## Item 3 — status moves are underpriced

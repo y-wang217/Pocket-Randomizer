@@ -627,7 +627,7 @@ describe('map generation', () => {
  * was played by `GREEDY_BASELINE` — `smartSwitching` included — behind a card
  * that read `Rookie`, and the playtest report of a wild encounter swapping out
  * was exactly right while a 500-call measurement of `AI_TIERS.easy` was also
- * exactly right. See `docs/generation.md` section 47.
+ * exactly right. See `docs/generation.md` section 48.
  *
  * Two assertions, because either one alone is weak. The first reads the app's
  * source, which is the thing that regressed and the only place the wiring

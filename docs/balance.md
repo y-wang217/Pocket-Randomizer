@@ -2324,7 +2324,7 @@ pass.
 **2026-09-18, `AI_VERSION` `gymrun-ai-6-spent-item` →
 `gymrun-ai-7-tiers-reach-the-app`.** Prompt
 [`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
-record [`generation.md`](generation.md) section 47.
+record [`generation.md`](generation.md) section 48.
 
 The patch is one deleted option key: `src/ui/app.ts` pinned
 `opponent: greedyAiPolicy` on its run options, which is the documented switch
