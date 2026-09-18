@@ -81,6 +81,9 @@ Four items built in the order the report proposed:
 4. **Every offer is three distinct options again.** Three defects — fungible
    kinds, duplicate relics, and a relic fallback with no knowledge of the
    table — all measured to zero at every relic count. Section 43.
+5. **A gym reward page badges `GYM`**, not `ELITE`. The close-out of the one
+   item section 43 filed rather than fixed, and the thing that made item 1a's
+   first diagnosis wrong. No axis. Section 44.
 
 **Item 2 of the playtest, wild encounters swapping optimally, is deferred to a
 reproduction rather than to a later patch**: the wild tier holds neither
@@ -812,14 +815,14 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
-0. **Every gym reward page badges `ELITE`.** `generateGymRewardOffer` returns
-   `tier: 'elite'` on both pages and the result screen prints it, which its own
-   header argues for — a gym page badged `normal` would contradict the cards on
-   it. But it is the only tier label a reader gets, so a gym page and an elite
-   node are indistinguishable in a screenshot, and that cost one session a wrong
-   root cause and 18,000 wasted measurements. A `GYM` badge means widening
-   `RewardOffer.tier`, which is a `Tier`, or adding a field beside it.
-   `generation.md` section 43.
+0. ~~**Every gym reward page badges `ELITE`.**~~ **Closed 2026-09-18, same
+   branch.** `RewardOffer.tier: Tier` is `RewardOffer.badge: OfferBadge` now,
+   where `OfferBadge = Tier | 'gym'`, and both gym pages print `GYM`. The field
+   is renamed rather than widened because a field called `tier` holding `'gym'`
+   is the same lie one level down — `NodeSpec.tier` is nullable precisely
+   because a gym has no tier, and that reasoning is untouched. No axis moves and
+   no CSS was needed: Stage V0's ban on colour per tier means every tier chip is
+   already the same chip. `generation.md` section 44.
 
 0. **A gym's difficulty now moves on two dials.** The gym's move band bonus and
    its held-item ladder both scale with segment, and the rule deleted in section

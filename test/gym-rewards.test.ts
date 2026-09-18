@@ -79,6 +79,27 @@ describe('the offer a gym clear produces', () => {
     }
   });
 
+  /*
+   * **A gym page says `GYM`, and it said `ELITE` until the R19 close-out.**
+   *
+   * That was a deliberate choice with an argument behind it — a gym page badged
+   * `normal` would contradict the cards in front of it — and it was wrong in a
+   * way only a reader could find. A gym page and an elite node are the same
+   * screenshot when both say `ELITE`, and item 1a of the R19 playtest was
+   * root-caused against the elite pool on exactly that evidence: a wrong
+   * diagnosis and 18,000 measurements of the wrong thing.
+   *
+   * Asserted on both pages, because both had it.
+   */
+  it('badges both of its pages as a gym rather than as an elite node', () => {
+    for (const seed of seeds) {
+      for (const gym of gymsOf(seed)) {
+        expect(gym.reward?.badge, `${gym.id} page 2`).toBe('gym');
+        expect(gym.gymMoveOffer?.badge, `${gym.id} page 1`).toBe('gym');
+      }
+    }
+  });
+
   it('offers a relic, a currency lump or a premium item, at every segment', () => {
     /*
      * **This read `['relic', 'currency']` and the R19 rulings widened it.**

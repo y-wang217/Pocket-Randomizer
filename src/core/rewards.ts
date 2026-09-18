@@ -109,11 +109,45 @@ export type Reward =
  * 4.6a moved onto the capture card.
  */
 
+/**
+ * What the reward screen prints beside `TAKE ONE`.
+ *
+ * **Four values, not three, and the fourth is why this type exists.** It was
+ * `Tier`, and `generateGymRewardOffer` put `'elite'` in it because that was the
+ * closest available lie — its own header argued the case, that a gym page
+ * badged `normal` would contradict the cards in front of it, and the argument
+ * was right about `normal` and wrong about the conclusion.
+ *
+ * The cost of the lie was paid by a reader. A gym page and an elite node are
+ * indistinguishable in a screenshot when both say `ELITE`, and the R19 playtest
+ * duplicate-card report was root-caused against the elite pool on exactly that
+ * evidence — a wrong diagnosis and 18,000 measurements of the wrong thing,
+ * corrected in `docs/generation.md` section 43.
+ *
+ * `'gym'` is not a tier and this type does not claim it is. `NodeSpec.tier` is
+ * nullable precisely because a gym has no tier — there is one gym per segment
+ * and no version of it you could have taken instead, so a tier would be a risk
+ * label on a decision nobody made. That reasoning is untouched. What this says
+ * is narrower and true: these are the four things a reward screen can be
+ * labelled, and three of them happen to be tiers.
+ */
+export type OfferBadge = Tier | 'gym';
+
 /** The three cards a node offers. Exactly three, always distinct. */
 export interface RewardOffer {
   /** The node this belongs to, so a screen or a test can tie the two together. */
   nodeId: string;
-  tier: Tier;
+  /**
+   * The label the screen prints. **Display only — nothing draws off it.**
+   *
+   * Named `badge` rather than `tier` since the R19 close-out, and the rename is
+   * the point rather than tidying: a field called `tier` holding `'gym'` would
+   * be the same lie one level down, and a field called `tier` is one an
+   * unsuspecting caller reaches for when it wants `REWARD_POOLS[offer.tier]`.
+   * A gym's pool comes from `gymRewardEntriesFor` and a node's from
+   * `rewardEntriesFor(tier, segment)`, both off the *node*, never off here.
+   */
+  badge: OfferBadge;
   options: Reward[];
 }
 
@@ -282,7 +316,7 @@ export function generateRewardOffer(
       `Reward pool for ${tier} at segment ${segment} produced ${options.length} options, need ${OFFER_SIZE}`,
     );
   }
-  return { nodeId, tier, options };
+  return { nodeId, badge: tier, options };
 }
 
 /**
@@ -299,11 +333,17 @@ export function generateRewardOffer(
  * `rewardEntriesFor(null, segment)` a thing that has to be handled rather than a
  * thing that cannot be said.
  *
- * `tier` on both returned offers is `'elite'`, and that is a display fact rather
- * than a draw: nothing here consulted it (the item pool came from
- * `gymRewardEntriesFor` and the move page from `GYM_MOVE_ENTRY`), but
- * `RewardOffer.tier` is what the reward screen badges, and a gym offer that
- * badged as `normal` would be the screen contradicting the cards in front of it.
+ * **Both returned offers badge `'gym'`, and they used to badge `'elite'`.**
+ * That was a display fact rather than a draw — nothing here consulted it, the
+ * item pool came from `gymRewardEntriesFor` and the move page from
+ * `GYM_MOVE_ENTRY` — and the argument for it was that a gym page badged
+ * `normal` would be the screen contradicting the cards in front of it. True,
+ * and it ruled out one wrong answer rather than finding the right one.
+ *
+ * `RewardOffer.badge` carries a fourth value now and this says `gym`. What the
+ * old arrangement cost is in `OfferBadge`'s own note: a gym page and an elite
+ * node read identically in a screenshot, and one root cause was filed against
+ * the wrong pool because of it.
  *
  * ## The move page used to be a grant
  *
@@ -409,8 +449,10 @@ export function generateGymRewardOffer(
     );
   }
   return {
-    moveOffer: { nodeId, tier: 'elite', options: moveOptions },
-    offer: { nodeId, tier: 'elite', options },
+    // Both pages badge `GYM`. They used to badge `ELITE` — see `OfferBadge`
+    // for what that cost and why the type has a fourth value now.
+    moveOffer: { nodeId, badge: 'gym', options: moveOptions },
+    offer: { nodeId, badge: 'gym', options },
   };
 }
 

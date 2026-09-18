@@ -42,7 +42,7 @@
  */
 import { describeMove } from '../../core/battle/driver';
 import { moveCardData } from '../move-detail';
-import type { Reward } from '../../core/rewards';
+import type { OfferBadge, Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { relicById } from '../../data/relics';
@@ -67,9 +67,19 @@ import { typeChip } from './starter-select';
  * the move card, beside the base power it can disagree with.
  */
 
-/** The tier chip, shared with the map so the two screens agree at a glance. */
-export function tierBadge(tier: string): HTMLElement {
-  return tierChip(tier);
+/**
+ * The chip beside `TAKE ONE`, shared with the map so the two screens agree at
+ * a glance.
+ *
+ * **Was `tierBadge`, and takes an `OfferBadge` rather than a `string` now.**
+ * A gym's reward page prints `GYM`, which is not a tier, and a parameter typed
+ * `string` is what let it print `ELITE` for as long as it did without anything
+ * objecting. `tierChip` underneath is still generic and still unchanged: it
+ * draws `.tier--<value>`, and Stage V0's rule that no tier carries a colour
+ * means the fourth value needs no stylesheet entry to look right.
+ */
+export function offerBadge(badge: OfferBadge): HTMLElement {
+  return tierChip(badge);
 }
 
 /**

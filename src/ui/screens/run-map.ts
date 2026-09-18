@@ -57,10 +57,9 @@ import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
-import { capabilityBandChip, capabilityChip, neutralChip, statusChip } from '../chip';
+import { capabilityBandChip, capabilityChip, neutralChip, statusChip, tierChip } from '../chip';
 import { hpTip } from '../member-card';
 import { el } from '../scene';
-import { tierBadge } from './reward';
 import { typeChip } from './starter-select';
 
 const KIND_LABELS: Record<NodeSpec['kind'], string> = {
@@ -435,11 +434,20 @@ function renderNode(
       ? `${node.label}${size > 1 ? ` · ${size} Pokemon` : ''}`
       : KIND_LABELS[node.kind];
 
-  // The tier, on the label line, on every step the player can still see. Not
-  // only the current one: taking a fight now is a different decision when you
-  // can see an elite two steps ahead.
+  /*
+   * The tier, on the label line, on every step the player can still see. Not
+   * only the current one: taking a fight now is a different decision when you
+   * can see an elite two steps ahead.
+   *
+   * **Through `tierChip` directly since the R19 close-out.** It came through
+   * `tierBadge` in `screens/reward.ts`, which was the reward screen re-exporting
+   * a chip the map needed — and when the reward screen's badge stopped being a
+   * tier (a gym page prints `GYM`, see `OfferBadge`) the shared name stopped
+   * describing either caller. This one badges `node.tier`, which really is a
+   * tier and really is nullable, so it says so.
+   */
   if (node.tier) {
-    const badge = tierBadge(node.tier);
+    const badge = tierChip(node.tier);
     if (phase === 'current') badge.dataset['tutorial'] = 'tier';
     label.append(document.createTextNode(' '), badge);
   }

@@ -7101,3 +7101,80 @@ in a recorded run rather than in an aggregate.
 
 Types, lint, build, smoke, strict trim, the full node suite (1,641) and the
 browser suite (203) all green.
+
+## 44. The gym page stops calling itself an elite node
+
+**The R19 close-out**, same branch as sections 41 to 43, and the one item
+section 43 filed rather than fixed. No version axis moves: `contentHash` is
+unchanged at `b8b419`, nothing under `src/data/**` is touched, and
+`RewardOffer` is not serialised into a run log — a reward decision records an
+index.
+
+`generateGymRewardOffer` returned `tier: 'elite'` on both pages and
+`src/ui/screens/result.ts` printed it, so **every gym reward page in the game
+badged `ELITE`**.
+
+### It was a decision, and the argument for it was sound
+
+From the function's own header: *"a display fact rather than a draw... a gym
+offer that badged as `normal` would be the screen contradicting the cards in
+front of it."* That is true. `RewardOffer.tier` was a `Tier`, `normal`, `hard`
+and `elite` were the only values available, and of the three `elite` is the one
+that does not lie about the cards.
+
+What it ruled out was one wrong answer. What it did not do is notice that the
+badge is the only tier label a reader gets, so **a gym page and an elite node
+are the same screenshot.** Item 1a of the R19 playtest was root-caused against
+the elite pool on exactly that evidence — a wrong diagnosis and 18,000
+measurements of the wrong thing, corrected in section 43. This is that cost
+being paid off.
+
+### `OfferBadge`, and why the field is renamed rather than widened
+
+`RewardOffer.tier: Tier` becomes `RewardOffer.badge: OfferBadge`, where
+`OfferBadge = Tier | 'gym'`.
+
+**The rename is the point, not tidying.** A field called `tier` holding `'gym'`
+is the same lie one level down, and `NodeSpec.tier` is nullable precisely
+because a gym has no tier — one gym per segment, no version of it you could have
+taken instead, so a tier would be a risk label on a decision nobody made. That
+reasoning is untouched. `OfferBadge` claims something narrower and true: these
+are the four labels a reward screen can print, and three of them happen to be
+tiers.
+
+A field called `tier` is also the one an unsuspecting caller reaches for when it
+wants `REWARD_POOLS[offer.tier]`. Nothing did — a gym's pool comes from
+`gymRewardEntriesFor` and a node's from `rewardEntriesFor(tier, segment)`, both
+off the *node* — and the rename is what keeps it that way.
+
+### Two renames that fall out of it
+
+`src/ui/screens/reward.ts` exported `tierBadge(tier: string)`, and `src/ui/screens/run-map.ts`
+imported it. That was the reward screen re-exporting a chip the map needed, and
+once the reward screen's badge stopped being a tier the shared name described
+neither caller.
+
+- `tierBadge` -> `offerBadge(badge: OfferBadge)`, typed rather than `string` —
+  a `string` parameter is what let `ELITE` print for as long as it did without
+  anything objecting.
+- `src/ui/screens/run-map.ts` calls `tierChip` from `ui/chip.ts` directly. It badges
+  `node.tier`, which really is a tier and really is nullable.
+
+### No stylesheet entry
+
+`tierChip` draws `.tier--<value>`, so the new value produces `.tier--gym`. There
+is no rule for it and none is needed: **Stage V0 removed colour per tier**
+("`hard` in amber and `elite` in red was a ramp, and a ramp is the stylesheet
+saying which node is better"), so every tier chip is already the same chip and
+the fourth value inherits it.
+
+That rule doing useful work three stages later is worth noting, because the
+editorial ban on ranked colour is usually argued on its own terms. Here it also
+meant a fourth label cost zero CSS.
+
+### Gates
+
+Types, lint, the offer, reward-card, result-screen, map and summary suites, and
+the browser smoke run. `test/gym-rewards.test.ts` pins the badge on both pages.
+The full suite was not re-run at the author's direction; `contentHash` is
+unmoved, so no baseline or fixture needed re-recording.
