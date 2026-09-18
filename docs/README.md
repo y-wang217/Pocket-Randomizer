@@ -85,7 +85,27 @@ took it to 22.3%, because the damage formula's level term doubles between 7 and
 15 while median HP grows 1.69x. The curve is justified on evolution pacing and
 nothing else. Section 33.7 has the arithmetic and the ruling.
 
-**Merged before it: the bench carryover and the gym level column.** Branch
+**Also in flight, on its own branch: the learn-move refresh.** Prompt
+[`spec/gymrun-patch-learn-move-refresh.md`](spec/gymrun-patch-learn-move-refresh.md),
+record [`generation.md`](generation.md) section 41. The audit below answered the
+lag on the *run's* clock; this is the same lag on the *player's*. Teaching
+became part of an `ItemPlan` at section 37 and a plan applies at the next node
+boundary, so a move the player had just taught was not drawn until they walked
+back to the map — and a moveset is the only confirmation a teach has.
+`ui/party-layout.ts` had folded the plan's items into every readout since Stage
+4.7 and its teaches into none. `core/party.ts` gains `teachApplies` — the three
+conditions `reconcileItemPlan` had inline, moved rather than copied — and
+`partyAfterTeaches`, a pure projection the party screen, the drawer, the pre-gym
+screen and both teach questions now read.
+
+**The order was the half that was not cosmetic.** Both teach questions were
+gated on `replacementNeeded(state.party[slot], move)`, and `reconcileItemPlan`
+reads the *running* party. A member handed two TMs in one plan was therefore
+asked "free slot?" twice, answered yes twice, and the boundary dropped the
+second teach with the TM silently back in the bag — **1 of 2 kept**, measured.
+Presentation only: no transition moved, no decision reshaped, no version axis
+moves, `contentHash` unmoved.
+
 **Also in flight, on its own branch: the update sequence audit.** Prompt
 [`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
 record [`generation.md`](generation.md) section 39. `onState` is the app's only
@@ -139,6 +159,8 @@ capture is the second of the two paths that shorten a party, and it was carrying
 an unspent `ItemPlan` across the slots it shifted — `showParty`'s `onRelease`
 has dropped the plan for that reason since 4.7, and `chooseAcquisition` does now
 too.
+
+**Merged before it: the bench carryover and the gym level column.** Branch
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest

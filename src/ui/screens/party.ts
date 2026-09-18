@@ -47,6 +47,7 @@
  */
 import { memberCardContents } from '../member-card';
 import { backpackCapacity } from '../../core/items';
+import { partyAfterTeaches } from '../../core/party';
 import { relicById, type RelicId } from '../../data/relics';
 import { CAPABILITY_LABELS } from '../../data/eventCopy';
 import type { ItemId, ItemPlan, PokemonState, TmTeach } from '../../core/types';
@@ -218,15 +219,6 @@ export function createPartyScreen(): PartyScreen {
       onDone = handlers.onDone;
       done.textContent = view.backTo;
       /*
-       * From the party alone, and redrawn here rather than in `draw()`.
-       *
-       * `draw()` runs on every item move, and an item changes nothing about
-       * which types hit the party — held items are not in the matchup model.
-       * What does change it is a release or a reorder, and both of those come
-       * back through `render`.
-       */
-      threats.render(view.party);
-      /*
        * Seed from the unspent plan if there is one, and from the run otherwise.
        *
        * The pool has to be rebuilt rather than read off the plan directly: a
@@ -261,10 +253,37 @@ export function createPartyScreen(): PartyScreen {
       }
 
       const draw = (): void => {
+        /*
+         * **What the plan has already done to the party, drawn as done.**
+         *
+         * The learn-move refresh patch. A teach is composed here and spent at
+         * the next node boundary, and until this line the cards below went on
+         * listing the move the player had just replaced — the only answer they
+         * get to "did that work", and the wrong one. This folds the working
+         * copy's teaches exactly the way `reconcileItemPlan` will, through the
+         * same `party.teachApplies` rule, so nothing is drawn here that the
+         * boundary then refuses.
+         *
+         * `view.party` stays the write path: `onReorder` and `onRelease` name
+         * run slots, and the plan is dropped when either fires. Slot order and
+         * length are the same in both readings, so an index means one thing.
+         */
+        const shown = partyAfterTeaches(view.party, teaches);
+        /*
+         * Redrawn per `draw()` rather than once per `render`, **because a teach
+         * is in the matchup model and an item is not.**
+         *
+         * It used to sit in `render` on the argument that nothing this screen
+         * does changes which types hit the party — true while the screen only
+         * moved items, since held items are not in the model. `partyThreats`
+         * reads `offensiveCoverage`, which reads movesets, so a teach composed
+         * here changes the answer and has to redraw with everything else.
+         */
+        threats.render(shown);
         partySlots.replaceChildren(
           renderSlots(
             'party',
-            view.party.map((member, slot) => ({
+            shown.map((member, slot) => ({
               label: member.spec.species,
               item: held[slot] ?? null,
               tip: held[slot] ? `item:${held[slot]}` : undefined,
@@ -273,8 +292,8 @@ export function createPartyScreen(): PartyScreen {
           ),
         );
         list.replaceChildren(
-          ...view.party.map((member, index) =>
-            renderManaged(member, index, view.party.length, held[index] ?? null, view.tuning, {
+          ...shown.map((member, index) =>
+            renderManaged(member, index, shown.length, held[index] ?? null, view.tuning, {
               ...handlers,
               onUnequip: () => {
                 const item = held[index];
