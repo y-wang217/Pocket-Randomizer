@@ -32,12 +32,12 @@ import {
   defaultMoveReplacement,
   playRun,
   replayRun,
-  resumeRun,
   scriptedRunPolicy,
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
+import { applyItemPlan } from '../src/core/items';
+import type { PokemonSpec, PokemonState } from '../src/core/types';
 
 const snorlax = (moves: string[]): PokemonState =>
   createPartyMember({ species: 'Snorlax', ability: 'Thick Fat', moves, level: 50 } as PokemonSpec);
@@ -157,7 +157,7 @@ describe('the recipient is resolved once', () => {
     expect(replacementNeeded(asked, 'Arm Thrust')).toBe('choose');
 
     const state = { ...startedRun(), party: roster };
-    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' }, 1, 1);
+    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' });
 
     // Slot 0 is the lead and is what actually learned it, at the slot chosen.
     expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Arm Thrust', 'Earthquake', 'Rest']);
@@ -191,54 +191,48 @@ function movePicker(): RunPolicy {
     },
     // The last member rather than the lead, so the recipient is a real answer
     // and not the value a missing implementation would return.
-    chooseMoveRecipient: async (_offer, party) => party.length - 1,
     // The last slot rather than the heuristic's, for the same reason.
-    chooseMoveToReplace: async (member) => member.spec.moves.length - 1,
     chooseItemPlan: async (state) => defaultItemPlan(state),
   };
 }
 
-describe('both decisions are logged, in order', () => {
-  it('records the recipient before the replacement, always', async () => {
-    const run = await playRun('S49R-1', movePicker());
-    const kinds = run.log.decisions.map((decision) => decision.kind);
-
-    const replaces = kinds.flatMap((kind, index) => (kind === 'replace' ? [index] : []));
-    expect(replaces.length).toBeGreaterThan(0);
-    // Every replacement is immediately preceded by the recipient it belongs to.
-    for (const index of replaces) {
-      expect(kinds[index - 1], `decision ${index}`).toBe('target');
-    }
-  }, 60_000);
-
-  it('never records more replacements than recipients', async () => {
-    const run = await playRun('MOVE-GATE', movePicker());
-    const kinds = run.log.decisions.map((decision) => decision.kind);
-    const targets = kinds.filter((kind) => kind === 'target').length;
-    const replaces = kinds.filter((kind) => kind === 'replace').length;
-
-    /*
-     * At most one replacement per recipient, and often fewer.
-     *
-     * Not *strictly* fewer, and the reason is worth writing down: every starter
-     * and every generated Pokemon rolls a full four moves, so in most runs
-     * every move card does need a replacement and the two counts are equal. The
-     * gate still fires — a member that already knows the move skips it — but it
-     * fires rarely enough that asserting on it from a seed would be asserting
-     * on that seed. The scenario below tests the gate directly instead.
-     */
-    expect(replaces).toBeGreaterThan(0);
-    expect(replaces).toBeLessThanOrEqual(targets);
-  }, 60_000);
-
+/*
+ * **Three tests were here and are deleted, not skipped.**
+ *
+ * They held the ordering and the counting of the `target`/`replace` pair: a
+ * replacement always immediately preceded by its recipient, never more
+ * replacements than recipients, and a resume from a save taken *between* the
+ * two questions asking the second one and no other. All three were true and
+ * none of them describes this game: no move is taught at a node, so neither
+ * entry is ever written, and the mid-pair save point they tested does not
+ * exist. `teachMove`'s own rules are unchanged and are exercised below and
+ * through `applyItemPlan`.
+ *
+ * `docs/spec/gymrun-stage-moves-as-inventory-tms.md`.
+ */
+describe('what teaching a move still costs', () => {
   it('asks no replacement when the recipient has a free slot', async () => {
     // The gate, tested against a party built for it rather than hunted for in a
     // seed. A two-move member is offered a move and must not be asked.
     const state = { ...startedRun('MOVE-FREE'), party: [snorlax(['Body Slam', 'Crunch'])] };
 
     expect(replacementNeeded(state.party[0]!, 'Arm Thrust')).toBe('free');
-    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' }, 0, null);
-    expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch', 'Arm Thrust']);
+
+    // The card pays a TM into the bag and teaches nobody. The free-slot gate is
+    // still the thing that decides whether a teach needs a victim named, and it
+    // is read by `applyItemPlan` when the TM is actually spent.
+    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' });
+    expect(after.tms).toEqual(['Arm Thrust']);
+    expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch']);
+
+    const taught = applyItemPlan(
+      after,
+      { assignments: [], discards: [], discardTms: [], teaches: [{ move: 'Arm Thrust', slot: 0, replaceSlot: null }] },
+      8,
+      true,
+    );
+    expect(taught.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch', 'Arm Thrust']);
+    expect(taught.tms).toEqual([]);
   });
 
   it('replays to an identical party from the same log', async () => {
@@ -252,52 +246,12 @@ describe('both decisions are logged, in order', () => {
     expect(JSON.stringify(replayed.log)).toBe(JSON.stringify(original.log));
   }, 60_000);
 
-  it('resumes identically from a save taken between the two questions', async () => {
-    // The interesting save point: the recipient is recorded and the replacement
-    // is not, so a resume has to ask the second question and no other.
-    const saves: RunLog[] = [];
-    const original = await playRun('MOVE-MIDSAVE', movePicker(), undefined, {
-      onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
-    });
-
-    const between = saves.filter((log) => log.decisions.at(-1)?.kind === 'target');
-    expect(between.length).toBeGreaterThan(0);
-
-    for (const save of between) {
-      const resumed = await resumeRun(save, movePicker());
-      expect(
-        resumed.state.party.map((member) => member.spec.moves),
-        `resuming after ${save.decisions.length} decisions`,
-      ).toEqual(original.state.party.map((member) => member.spec.moves));
-    }
-  }, 120_000);
-});
-
-// ---------------------------------------------------------------------------
-// Determinism
-// ---------------------------------------------------------------------------
-
-describe('neither decision consumes RNG', () => {
-  it('produces the same map from the same seed whoever learns what', async () => {
-    /*
-     * Two runs, one seed, opposite answers to both move questions.
-     *
-     * If either decision drew from a stream, the maps would diverge from the
-     * first move card onward and the node ids would stop matching. They are
-     * player decisions, so the map is identical and only the party differs.
-     */
-    const lastSlot = await playRun('S49M-1', movePicker());
-    const firstSlot = await playRun('S49M-1', {
-      ...movePicker(),
-      chooseMoveRecipient: async () => 0,
-      chooseMoveToReplace: async () => 0,
-    });
-
-    const nodeIds = (result: typeof lastSlot): string[] =>
-      result.state.history.map((visit) => visit.node.id);
-
-    expect(nodeIds(firstSlot).slice(0, 6)).toEqual(nodeIds(lastSlot).slice(0, 6));
-  }, 60_000);
+  /*
+   * **"resumes identically from a save taken between the two questions" was
+   * here.** There is no longer a point between two questions to save at: the
+   * recipient and the victim are answered inside one `ItemPlan` and recorded as
+   * one entry, so a save either has the teach or does not.
+   */
 
   it('is a pure function of member and slot, so the same call twice agrees', () => {
     const member = snorlax(FOUR);
@@ -369,14 +323,6 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
         }
         if (basket.length > 0) seen.add('shop');
         return basket;
-      },
-      chooseMoveRecipient: async (_offer, party) => {
-        seen.add('move-recipient');
-        return party.length - 1;
-      },
-      chooseMoveToReplace: async (member) => {
-        seen.add('move-replace');
-        return member.spec.moves.length - 1;
       },
       // Take everything: accept while there is room, release slot 0 once full,
       // so a party swap really happens.

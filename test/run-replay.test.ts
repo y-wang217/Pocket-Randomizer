@@ -17,7 +17,6 @@ import {
   RUN_LOG_VERSION,
   assertReplayable,
   defaultItemPlan,
-  defaultMoveReplacement,
   isReplayable,
   playRun,
   replayRun,
@@ -68,8 +67,6 @@ function wobbling(): RunPolicy {
     // The last member, for the same reason as the last card: a policy that
     // always answered 0 would agree with the scripted default and prove
     // nothing about whether the target is really replayed.
-    chooseMoveRecipient: async (_offer, party) => party.length - 1,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     // Takes everything, releasing the lead once full. The most destructive
     // legal answer, so a replay that reproduces it has reproduced the party
     // churning rather than a party that only ever grew.
@@ -290,14 +287,6 @@ describe('save mid-run, reload, continue', () => {
       chooseEventOption: async () => {
         liveCalls++;
         return 'safe' as const;
-      },
-      chooseMoveRecipient: async () => {
-        liveCalls++;
-        return 0;
-      },
-      chooseMoveToReplace: async (member, incoming) => {
-        liveCalls++;
-        return defaultMoveReplacement(member, incoming);
       },
       chooseAcquisition: async () => {
         liveCalls++;

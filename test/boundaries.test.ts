@@ -516,8 +516,14 @@ describe('the battle UI boundary', () => {
       'chooseReward',
       'chooseShopPurchases',
       'chooseEventOption',
-      'chooseMoveRecipient',
-      'chooseMoveToReplace',
+      /*
+       * `chooseMoveRecipient` and `chooseMoveToReplace` were here and are gone
+       * with the policy methods. Both questions are still asked — a TM has to
+       * reach somebody — but inside whoever answers `chooseItemPlan`, which is
+       * one decision and one entry, so there is no policy key for this test to
+       * find. The screens they drove still exist and are still reachable; what
+       * this test can no longer hold is that `playRun` is what reaches them.
+       */
       'chooseAcquisition',
       'battle',
     ];

@@ -21,7 +21,6 @@ import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
-import { DECLINED_MOVE } from '../src/core/rewards';
 import {
   gymsCleared,
   playRun,
@@ -112,14 +111,16 @@ describe('what a gym clear hands over', () => {
       });
 
       const cleared = gymsCleared(run.state);
-      const targets = decisions.filter((decision) => decision.kind === 'target').length;
+      const stowed = decisions.filter((decision) => decision.kind === 'items').length;
 
       /*
-       * **At least one target per gym won.** Not exactly: a `tm`/`tutor` card
-       * elsewhere in the run also targets, and Part B cannot (relic and currency
-       * are untargeted), so the floor is the gyms and the rest is ordinary play.
+       * **At least one bag plan per gym won**, which is what replaced the
+       * target entry this test used to count. A gym pays a TM, so the run is
+       * carrying something from that node on, so `needsItemPlan` is true at
+       * every boundary after it. Not exactly one per gym: every other node that
+       * pays anything asks it too, which is ordinary play.
        */
-      expect(targets, `${seed} cleared ${cleared} gyms with ${targets} targets`).toBeGreaterThanOrEqual(
+      expect(stowed, `${seed} cleared ${cleared} gyms with ${stowed} bag plans`).toBeGreaterThanOrEqual(
         cleared,
       );
     }
@@ -166,9 +167,11 @@ describe('what a gym clear hands over', () => {
         if (decisions[i]?.kind !== 'lead') continue;
         const rest = decisions.slice(i + 1);
         const reward = rest.findIndex((decision) => decision.kind === 'reward');
-        const target = rest.findIndex((decision) => decision.kind === 'target');
-        if (reward === -1 || target === -1) continue;
-        expect(target, `${seed}: a gym's card came before its move`).toBeLessThan(reward);
+        const plan = rest.findIndex((decision) => decision.kind === 'items');
+        if (reward === -1 || plan === -1) continue;
+        // The card is taken at the node; the bag is arranged after it. The gym's
+        // own move needs no entry at all now — it is stowed, not answered.
+        expect(reward, `${seed}: a gym's bag plan came before its card`).toBeLessThan(plan);
       }
     }
   }, 240_000);
@@ -178,106 +181,16 @@ describe('what a gym clear hands over', () => {
 // Handing the move back
 // ---------------------------------------------------------------------------
 
-/**
- * The gym's guaranteed move may be declined. **The victory-order patch, item 3.**
+/*
+ * **The "declining a gym move" section was here and is deleted, not skipped.**
  *
- * It is the only taught move in the game that can be. Every other one — a
- * reward card, a shop TM, an event's grant — reached its recipient question
- * *because* the player chose it over alternatives, and `chooseMoveToReplace`'s
- * own rule covers those: "the place to skip a move reward is the reward screen,
- * where it was already chosen over two alternatives; a second escape hatch here
- * would make that pick meaningless." A gym's move was chosen over nothing, so
- * there is no such screen behind it and this is the first escape hatch rather
- * than the second.
+ * It held three things: that declining taught nobody, that a declined run
+ * replayed, and that the sentinel was refused at the three payouts where no
+ * decline was offered. All three were true and none of them is a statement
+ * about this game any more — a gym's move is a TM in the bag, so there is no
+ * teach at the node to decline and no sentinel to refuse. The behaviour it
+ * guarded is replaced by the capacity rule, which `test/backpack.test.ts`
+ * covers, and by the stow assertion above.
  *
- * Three things are held: that declining teaches nobody, that the log keeps its
- * shape so a declined run replays, and that the sentinel is refused where it was
- * not offered — which is the half that stops a bug in one policy becoming a move
- * silently vanishing at some other node.
+ * `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 6.
  */
-describe('declining a gym move', () => {
-  /** A policy that hands back every move it is allowed to, and takes the rest. */
-  function decliner(): RunPolicy {
-    const base = scriptedRunPolicy(greedyAiPolicy);
-    return {
-      ...base,
-      chooseMoveRecipient: async (_offer, _party, _state, allowSkip) => (allowSkip ? DECLINED_MOVE : 0),
-    };
-  }
-
-  it('teaches nobody, and leaves the party exactly as the fight left it', async () => {
-    // Counted across the search rather than per seed: a seed that dies before
-    // gym 1 declines nothing and is not a failure, but the search as a whole
-    // finding nothing to decline would mean this test asserts nothing.
-    let declinedAnywhere = 0;
-    let tookAnywhere = 0;
-    for (const seed of SEEDS.slice(0, 6)) {
-      const taken = await playRun(seed, scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
-      const refused = await playRun(seed, decliner(), DEFAULT_TUNING);
-
-      /*
-       * The two runs diverge — a party with different moves fights differently
-       * from the next node on — so this is not a comparison of end states. What
-       * it asserts is the one thing that must be true of the refusing run: it
-       * never wrote a `replace` entry behind a declined `target`, because a
-       * declined move displaces nothing.
-       */
-      const declined = refused.log.decisions.filter(
-        (decision) => decision.kind === 'target' && decision.index === DECLINED_MOVE,
-      );
-      declinedAnywhere += declined.length;
-
-      for (let i = 0; i < refused.log.decisions.length; i++) {
-        const decision = refused.log.decisions[i];
-        if (decision?.kind !== 'target' || decision.index !== DECLINED_MOVE) continue;
-        expect(
-          refused.log.decisions[i + 1]?.kind,
-          `${seed}: a declined move still asked what it replaced`,
-        ).not.toBe('replace');
-      }
-
-      // And the control: a run that takes its moves does write them.
-      if (taken.log.decisions.some((decision) => decision.kind === 'target' && decision.index >= 0)) {
-        tookAnywhere += 1;
-      }
-    }
-
-    // The search has to have found both halves, or this asserts nothing. A
-    // single seed that dies before its first move card is not a failure; the
-    // whole search coming back empty is.
-    expect(declinedAnywhere, 'no seed declined anything').toBeGreaterThan(0);
-    expect(tookAnywhere, 'no seed took a move either').toBeGreaterThan(0);
-  }, 300_000);
-
-  it('replays to the identical party, so the decline is in the log', async () => {
-    for (const seed of SEEDS.slice(0, 3)) {
-      const live = await playRun(seed, decliner(), DEFAULT_TUNING);
-      const again = await replayRun(live.log, DEFAULT_TUNING);
-      expect(again.state.party.map((member) => member.spec.moves)).toEqual(
-        live.state.party.map((member) => member.spec.moves),
-      );
-      expect(again.state.party.map((member) => member.spec.species)).toEqual(
-        live.state.party.map((member) => member.spec.species),
-      );
-    }
-  }, 240_000);
-
-  it('refuses the sentinel at a move the player already chose', async () => {
-    /*
-     * A policy that answers `DECLINED_MOVE` everywhere, including at reward
-     * cards and shop TMs where no decline was offered. That is a policy out of
-     * step with the questions — or a log replayed against a build that asks
-     * different ones — and it has to fail loudly rather than quietly drop a
-     * move the player paid for.
-     *
-     * The failure is the ordinary out-of-range `RangeError`, which is the
-     * point: `askMoveQuestions` does not special-case the sentinel where the
-     * decline was not offered, so it is just an index that is not a slot.
-     */
-    const base = scriptedRunPolicy(greedyAiPolicy);
-    const always: RunPolicy = { ...base, chooseMoveRecipient: async () => DECLINED_MOVE };
-    await expect(playRun(SEEDS[0] ?? 'S49R-0', always, DEFAULT_TUNING)).rejects.toThrow(
-      /Move recipient -1 out of range/,
-    );
-  }, 240_000);
-});

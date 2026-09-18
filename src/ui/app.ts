@@ -28,6 +28,7 @@ import {
   type RunPolicy,
   type RunResult,
   type RunState,
+  canTeachNow,
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
@@ -694,6 +695,7 @@ export function mountApp(root: HTMLElement): void {
           state,
           plan,
           backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+          canTeachNow(state),
         );
       },
       chooseShopPurchases: (stock, state) => {
@@ -708,35 +710,16 @@ export function mountApp(root: HTMLElement): void {
         showScreen('event');
         return eventPick.wait();
       },
-      chooseMoveRecipient: (offer, party, state, allowSkip) => {
-        // The run's tuning, for the move card's face-tag cap (4.8.0.2), and
-        // whether this move may be handed back. `core/run.ts` sets the second
-        // at the gym's guaranteed move and nowhere else; the screen shows a
-        // decline control only where it is set.
-        targetScreen.render(offer, party, (slot) => targetPick.submit(slot), state.tuning, allowSkip);
-        showScreen('target');
-        return targetPick.wait();
-      },
       /*
-       * The second half of a move reward, and the one the app used to answer
-       * for the player.
+       * `chooseMoveRecipient` and `chooseMoveToReplace` were wired here and are
+       * gone with the policy methods themselves.
        *
-       * It was wired to `defaultMoveReplacement` — the reference heuristic the
-       * scripted baseline uses — on the note that the screen would land in a
-       * later display pass. That pass did not land, so the reward screen's
-       * "you choose what it replaces next" was a promise the app broke every
-       * time, silently, by dropping the weakest attack. `core/run.ts` was
-       * asking the question and the run log was recording the answer the whole
-       * time; only this line was not asking anybody.
-       *
-       * The heuristic stays where it belongs: `scripts/sim.ts` and the replay
-       * baseline still answer with it, which is why it is still exported.
+       * The two screens they drove are not gone — `targetScreen` and
+       * `replaceScreen` still exist and still ask exactly what they asked — but
+       * they are reached from the party screen while a plan is being composed
+       * now, not from `playRun` at the node that paid for the move. A teach is
+       * part of one `ItemPlan` rather than two log entries of its own.
        */
-      chooseMoveToReplace: (member, incoming, state) => {
-        replaceScreen.render(member, incoming, (slot) => replacePick.submit(slot), state.tuning);
-        showScreen('replace');
-        return replacePick.wait();
-      },
       /*
        * The capture, rendered back onto the result screen the fight ended on.
        *

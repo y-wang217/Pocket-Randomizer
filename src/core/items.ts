@@ -39,7 +39,20 @@
  * `ItemEntry` is a lookup any reader can do — storing entries would mean the
  * run state held a copy of `data/items.ts` that a pool edit could not reach.
  */
-import type { ItemId, ItemPlan, PokemonSpec, PokemonState } from './types';
+/*
+ * `./party` is imported for `teachMove` and `replacementNeeded`, and that makes
+ * this file and `party.ts` mutually importing — `party.ts` takes
+ * `battleSpecFor` from here.
+ *
+ * Taken deliberately rather than worked around. The alternative was to apply a
+ * plan's teaches in `party.ts` and the rest of it here, and an item plan is one
+ * decision: splitting its application across two files would give the log's
+ * single `items` entry two readers, which is the exact shape every replay bug
+ * in this project has had. Neither module calls the other at module-init time,
+ * so the cycle is a call graph rather than an evaluation order.
+ */
+import { replacementNeeded, teachMove } from './party';
+import type { ItemId, ItemPlan, PokemonSpec, PokemonState, TmTeach } from './types';
 import { itemById, type ItemEntry } from '../data/items';
 import type { Tuning } from '../data/tuning';
 import { NO_RELIC_EFFECTS, type RelicEffects } from './relics';
@@ -111,9 +124,37 @@ export function takeItem(member: PokemonState): { member: PokemonState; displace
  */
 export function needsItemPlan(state: {
   backpack: readonly ItemId[];
+  tms: readonly string[];
   party: readonly PokemonState[];
 }): boolean {
-  return state.backpack.length > 0 || state.party.some((member) => member.item !== undefined);
+  return (
+    state.backpack.length > 0 ||
+    state.tms.length > 0 ||
+    state.party.some((member) => member.item !== undefined)
+  );
+}
+
+/**
+ * What the run is carrying, against one capacity.
+ *
+ * **One number over two lists, and that is the whole mechanic.** A TM and a
+ * Leftovers compete for the same slot, so the question the bag asks is "more
+ * moves banked for later, or more items working now" rather than two
+ * independent questions with two independent answers.
+ *
+ * The two lists stay separate in state because nothing else about them is
+ * alike: an item is assigned to a Pokemon, a TM is spent on one; an item can be
+ * held and therefore uncounted here, a TM never is. A single tagged array would
+ * have made every held-item reader — `giveItem`, `spendItems`, an event's
+ * forced discard, the sim's berry accounting — carry a guard for a kind it can
+ * never legally see. The thing they genuinely share is scarcity, and scarcity
+ * is this function.
+ */
+export function inventoryLoad(state: {
+  backpack: readonly ItemId[];
+  tms: readonly string[];
+}): number {
+  return state.backpack.length + state.tms.length;
 }
 
 /**
@@ -239,7 +280,9 @@ export function spendItems<S extends { party: PokemonState[]; backpack: ItemId[]
  * capacity. Loud, because every one of those is either a UI bug or a hand-edited
  * log, and a silently trimmed backpack would replay as a different run.
  */
-export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemId[]; tuning: Tuning }>(
+export function applyItemPlan<
+  S extends { party: PokemonState[]; backpack: ItemId[]; tms: string[]; tuning: Tuning },
+>(
   state: S,
   plan: ItemPlan,
   /**
@@ -253,6 +296,17 @@ export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemI
    * and a default would let a caller keep the old behaviour by saying nothing.
    */
   capacity: number,
+  /**
+   * Whether this boundary is one where a TM may be spent.
+   *
+   * Passed rather than derived for the same reason `capacity` is: it is a fact
+   * about the node, and the node lives a layer up. `run.canTeachAt` is the one
+   * definition, and a plan carrying a teach where this is false throws rather
+   * than silently carrying the TM forward — a dropped teach is a plan the
+   * player composed and the run did not honour, which replays as a different
+   * run.
+   */
+  canTeach: boolean,
 ): S {
   const seen = new Set<number>();
   for (const assignment of plan.assignments) {
@@ -272,6 +326,65 @@ export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemI
   // trade items in one plan.
   const pool = [...state.backpack];
   const party = [...state.party];
+  const tms = [...state.tms];
+
+  /*
+   * The teaches, before anything touches the bag.
+   *
+   * Walked in order rather than as a set, because two teaches may name the same
+   * party slot and the second one's `replaceSlot` is an index into the moveset
+   * the first one left. Every other part of a plan is a destination and can be
+   * read in any order; this is the exception, and it is why `teaches` is a list
+   * of acts.
+   *
+   * A replaced move is destroyed here and that is the design, not an omission:
+   * nothing is pushed back to `tms`. See `types.TmTeach`.
+   */
+  if (plan.teaches.length > 0 && !canTeach) {
+    throw new RangeError(
+      `Item plan spends ${plan.teaches.length} TM(s) at a node where TMs cannot be taught. ` +
+        'Teaching is allowed at rest and shop nodes only — see run.canTeachAt.',
+    );
+  }
+  for (const teach of plan.teaches) {
+    const held = tms.indexOf(teach.move);
+    if (held === -1) {
+      throw new RangeError(`Item plan teaches ${teach.move}, which the run does not carry as a TM`);
+    }
+    const learner = party[teach.slot];
+    if (!learner) {
+      throw new RangeError(
+        `Item plan teaches ${teach.move} to slot ${teach.slot}, but the party has ${party.length}`,
+      );
+    }
+    /*
+     * The slot is checked against `replacementNeeded` here rather than left to
+     * `teachMove`, so the message names the plan rather than the member. Both
+     * throw on the same cases; this one says which act of the plan was wrong.
+     */
+    const need = replacementNeeded(learner, teach.move);
+    if (need === 'choose' && teach.replaceSlot === null) {
+      throw new RangeError(
+        `Item plan teaches ${teach.move} to a full moveset without naming what it replaces`,
+      );
+    }
+    if (need !== 'choose' && teach.replaceSlot !== null) {
+      throw new RangeError(
+        `Item plan names a replaced slot for ${teach.move}, which displaces nothing`,
+      );
+    }
+    party[teach.slot] = teachMove(learner, teach.move, teach.replaceSlot);
+    tms.splice(held, 1);
+  }
+
+  for (const discarded of plan.discardTms) {
+    const index = tms.indexOf(discarded);
+    if (index === -1) {
+      throw new RangeError(`Item plan discards a ${discarded} TM, which the run does not carry`);
+    }
+    tms.splice(index, 1);
+  }
+
   for (const assignment of plan.assignments) {
     const { member, displaced } = takeItem(party[assignment.slot]!);
     party[assignment.slot] = member;
@@ -299,14 +412,16 @@ export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemI
     pool.splice(index, 1);
   }
 
-  if (pool.length > capacity) {
+  const carried = pool.length + tms.length;
+  if (carried > capacity) {
     throw new RangeError(
-      `Item plan leaves ${pool.length} items in a backpack that holds ${capacity}. ` +
+      `Item plan leaves ${carried} things (${pool.length} items, ${tms.length} TMs) in a bag ` +
+        `that holds ${capacity}. ` +
         'Over-capacity is resolved by discarding, never by dropping the overflow.',
     );
   }
 
-  return { ...state, party, backpack: pool };
+  return { ...state, party, backpack: pool, tms };
 }
 
 /**
@@ -358,11 +473,59 @@ export function applyItemPlan<S extends { party: PokemonState[]; backpack: ItemI
  * answer, and the composed answer is what the log records.
  */
 export function reconcileItemPlan(
-  state: { party: readonly PokemonState[]; backpack: readonly ItemId[] },
+  state: { party: readonly PokemonState[]; backpack: readonly ItemId[]; tms: readonly string[] },
   plan: ItemPlan,
   /** As `applyItemPlan`: `backpackCapacity(partyCapacity(state), ...)`. */
   capacity: number,
+  /** As `applyItemPlan`: `run.canTeachAt(node.kind)`. */
+  canTeach: boolean,
 ): ItemPlan {
+  /*
+   * The teaches, brought forward first, because every one that survives frees a
+   * slot the item half is then allowed to fill.
+   *
+   * Four ways a teach goes stale, and all four drop it rather than repair it.
+   * A teach is not a destination — it is an irreversible act naming a specific
+   * move, a specific member and a specific victim slot — so there is no weaker
+   * version of it to fall back to the way an assignment falls back to an
+   * unequip. The TM stays in the bag, which is the outcome the player can still
+   * act on at the next rest.
+   */
+  const tms = [...state.tms];
+  const teaches: TmTeach[] = [];
+  const taught: PokemonState[] = [...state.party];
+  if (canTeach) {
+    for (const teach of plan.teaches) {
+      const held = tms.indexOf(teach.move);
+      if (held === -1) continue;
+      const learner = taught[teach.slot];
+      if (!learner) continue;
+      // Re-read against the moveset this plan's earlier teaches produced, not
+      // the one the player composed against: a first teach can turn a free slot
+      // into a full one, and `applyItemPlan` would then refuse the second.
+      const need = replacementNeeded(learner, teach.move);
+      if (need === 'choose' && teach.replaceSlot === null) continue;
+      if (need !== 'choose' && teach.replaceSlot !== null) continue;
+      if (
+        need === 'choose' &&
+        (teach.replaceSlot === null || !learner.spec.moves[teach.replaceSlot])
+      ) {
+        continue;
+      }
+      taught[teach.slot] = teachMove(learner, teach.move, teach.replaceSlot);
+      tms.splice(held, 1);
+      teaches.push(teach);
+    }
+  }
+
+  const discardTms: string[] = [];
+  for (const discarded of plan.discardTms) {
+    const at = tms.indexOf(discarded);
+    if (at === -1) continue;
+    tms.splice(at, 1);
+    discardTms.push(discarded);
+  }
+
   const slots = new Set<number>();
   const named = plan.assignments.filter((assignment) => {
     if (!state.party[assignment.slot] || slots.has(assignment.slot)) return false;
@@ -396,11 +559,26 @@ export function reconcileItemPlan(
     discards.push(discarded);
   }
 
-  // What is left is what the backpack would hold. Over the line, the oldest go.
-  const over = pool.length - Math.max(0, capacity);
-  if (over > 0) discards.push(...pool.slice(0, over));
+  /*
+   * What is left is what the bag would hold. Over the line, the oldest go.
+   *
+   * **Items are shed before TMs, and that is a rule with an argument.** The
+   * overflow rule has always been "the oldest go", and the two lists have no
+   * shared clock to read that off — a TM banked at gym 1 and a Leftovers picked
+   * up at gym 5 have no order between them. Shedding items first keeps the
+   * existing rule exactly where it can still be stated, and leaves the TMs,
+   * which are the thing the player deliberately chose to carry across nodes,
+   * for last. A run that is over capacity on TMs alone still sheds the oldest
+   * of those.
+   */
+  const over = pool.length + tms.length - Math.max(0, capacity);
+  if (over > 0) {
+    const fromItems = Math.min(over, pool.length);
+    discards.push(...pool.slice(0, fromItems));
+    if (over > fromItems) discardTms.push(...tms.slice(0, over - fromItems));
+  }
 
-  return { assignments, discards };
+  return { assignments, discards, teaches, discardTms };
 }
 
 /** What a member is holding, resolved to its whitelist entry. Null if nothing. */

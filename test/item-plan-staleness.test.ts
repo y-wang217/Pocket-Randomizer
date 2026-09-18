@@ -101,14 +101,14 @@ describe('the plan the player left the party screen with', () => {
         { slot: 0, item: 'sharpbeak' },
         { slot: 1, item: 'charcoal' },
       ],
-      discards: [],
+      discards: [], teaches: [], discardTms: [],
     };
 
     const after = walkIntoTheShaft(before);
     expect(after.currency).toBe(before.currency + 42);
     expect(after.backpack).toEqual(['leftovers']);
 
-    expect(() => applyItemPlan(after, composed, capacityOf(after))).toThrow(/does not hold/);
+    expect(() => applyItemPlan(after, composed, capacityOf(after), true)).toThrow(/does not hold/);
   });
 
   it('is brought forward instead, and keeps every assignment the run can still honour', () => {
@@ -118,11 +118,11 @@ describe('the plan the player left the party screen with', () => {
         { slot: 0, item: 'sharpbeak' },
         { slot: 1, item: 'charcoal' },
       ],
-      discards: [],
+      discards: [], teaches: [], discardTms: [],
     };
 
-    const plan = reconcileItemPlan(after, composed, capacityOf(after));
-    const applied = applyItemPlan(after, plan, capacityOf(after));
+    const plan = reconcileItemPlan(after, composed, capacityOf(after), true);
+    const applied = applyItemPlan(after, plan, capacityOf(after), true);
 
     // The Sharp Beak stays where the player put it; the destroyed Charcoal
     // leaves slot 1 empty rather than taking the Sharp Beak down with it.
@@ -142,27 +142,27 @@ describe('the plan the player left the party screen with', () => {
         { slot: 0, item: 'charcoal' },
         { slot: 1, item: 'sharpbeak' },
       ],
-      discards: [],
+      discards: [], teaches: [], discardTms: [],
     };
 
-    const applied = applyItemPlan(after, reconcileItemPlan(after, composed, capacityOf(after)), capacityOf(after));
+    const applied = applyItemPlan(after, reconcileItemPlan(after, composed, capacityOf(after), true), capacityOf(after), true);
     expect(applied.party[1]?.item).toBe('sharpbeak');
     expect(applied.party[0]?.item).toBeUndefined();
   });
 
   it('drops a discard of something the run no longer holds', () => {
     const after = walkIntoTheShaft(reportedRun());
-    const composed: ItemPlan = { assignments: [], discards: ['charcoal'] };
-    const plan = reconcileItemPlan(after, composed, capacityOf(after));
+    const composed: ItemPlan = { assignments: [], discards: ['charcoal'], teaches: [], discardTms: [] };
+    const plan = reconcileItemPlan(after, composed, capacityOf(after), true);
     expect(plan.discards).toEqual([]);
-    expect(applyItemPlan(after, plan, capacityOf(after)).backpack).toEqual(['leftovers']);
+    expect(applyItemPlan(after, plan, capacityOf(after), true).backpack).toEqual(['leftovers']);
   });
 
   it('discards the oldest when a grant has put the bag over capacity', () => {
     const state = { ...reportedRun(), backpack: ['leftovers', 'charcoal', 'mysticwater', 'magnet'] as ItemId[] };
-    const plan = reconcileItemPlan(state, { assignments: [], discards: [] }, 2);
+    const plan = reconcileItemPlan(state, { assignments: [], discards: [], teaches: [], discardTms: [] }, 2, true);
     expect(plan.discards).toEqual(['leftovers', 'charcoal']);
-    expect(applyItemPlan(state, plan, 2).backpack).toEqual(['mysticwater', 'magnet']);
+    expect(applyItemPlan(state, plan, 2, true).backpack).toEqual(['mysticwater', 'magnet']);
   });
 
   it('drops an assignment naming a slot the party no longer has, and a slot named twice', () => {
@@ -175,12 +175,13 @@ describe('the plan the player left the party screen with', () => {
           { slot: 0, item: 'charcoal' },
           { slot: 9, item: 'charcoal' },
         ],
-        discards: [],
+        discards: [], teaches: [], discardTms: [],
       },
       capacityOf(state),
+      true,
     );
     expect(plan.assignments).toEqual([{ slot: 0, item: 'leftovers' }]);
-    expect(() => applyItemPlan(state, plan, capacityOf(state))).not.toThrow();
+    expect(() => applyItemPlan(state, plan, capacityOf(state), true)).not.toThrow();
   });
 
   /**
@@ -193,17 +194,17 @@ describe('the plan the player left the party screen with', () => {
     const capacity = capacityOf(state);
     const ghosts: ItemId[] = ['charcoal', 'mysticwater', 'sitrusberry', 'magnet'];
     const plans: ItemPlan[] = [
-      { assignments: [], discards: [] },
-      { assignments: [{ slot: 0, item: null }], discards: ['leftovers'] },
-      { assignments: ghosts.map((item, slot) => ({ slot, item })), discards: [...ghosts] },
-      { assignments: [{ slot: 1, item: 'leftovers' }], discards: ['leftovers'] },
-      { assignments: [{ slot: 0, item: 'sharpbeak' }], discards: ['sharpbeak'] },
-      { assignments: [{ slot: 0, item: null }, { slot: 1, item: null }], discards: [] },
+      { assignments: [], discards: [], teaches: [], discardTms: [] },
+      { assignments: [{ slot: 0, item: null }], discards: ['leftovers'], teaches: [], discardTms: [] },
+      { assignments: ghosts.map((item, slot) => ({ slot, item })), discards: [...ghosts], teaches: [], discardTms: [] },
+      { assignments: [{ slot: 1, item: 'leftovers' }], discards: ['leftovers'], teaches: [], discardTms: [] },
+      { assignments: [{ slot: 0, item: 'sharpbeak' }], discards: ['sharpbeak'], teaches: [], discardTms: [] },
+      { assignments: [{ slot: 0, item: null }, { slot: 1, item: null }], discards: [], teaches: [], discardTms: [] },
     ];
 
     for (const plan of plans) {
-      const brought = reconcileItemPlan(state, plan, capacity);
-      expect(() => applyItemPlan(state, brought, capacity)).not.toThrow();
+      const brought = reconcileItemPlan(state, plan, capacity, true);
+      expect(() => applyItemPlan(state, brought, capacity, true)).not.toThrow();
     }
   });
 });

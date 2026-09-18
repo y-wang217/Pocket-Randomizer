@@ -5820,3 +5820,118 @@ The direction is the one the change argues for and the magnitude is larger than
 the level arithmetic alone suggests, which is the Speed threshold showing up in
 the number. Nothing else was tuned against this run. The full row, including
 what it says about the standing gym 3 outlier, is in `balance.md` section 0.
+
+## 36. Moves became inventory TMs, and four questions left the node
+
+The account of
+[`spec/gymrun-stage-moves-as-inventory-tms.md`](spec/gymrun-stage-moves-as-inventory-tms.md).
+**Checkpoint 1 of the stage: core and the simulator. The UI is not built.**
+
+### What the brief asked for, and what it withdrew
+
+The playtest report it opens with asks for a decline control on every
+learn-move screen, on the evidence of a `?` event paying a 40 BP Water Gun to a
+Lv14 party with no way to refuse it. That is not what shipped, and the reason
+is in the brief's own third message and the answer under it: a move that
+arrives is stowed as a TM, costs a bag slot against the held items from that
+moment, and is taught later or thrown away. There is no moment at a node to
+decline, so the decline is **retired rather than extended**.
+
+Two rules arrived with the teach-moment answer and neither was in the question:
+a replaced move is destroyed rather than banked, and a TM is one use. The first
+is the load-bearing one — banking the displaced move would make the backpack a
+free move buffer and the capacity squeeze would buy nothing.
+
+### The four routes, and the one list they now feed
+
+`reports/moveset-pool-validation.md` section 2 enumerated the four routes that
+hand a player a move, for a different reason — all four called `damagingInBands`,
+which is why a status move was unreachable. The same four are the ones that
+change here, and it is the same list because there is only one:
+
+| route | was | is |
+|---|---|---|
+| reward card | taught at the node, two log entries | stows a TM, no entry |
+| shop TM / tutor | taught at the node, two entries per TM in the basket | stows a TM |
+| event move grant | taught at the node, two entries | stows a TM |
+| gym clear move | taught at the node, two entries, declinable | stows a TM |
+
+### Two lists, one capacity
+
+`RunState.tms` is a separate list from `backpack`, and `items.inventoryLoad` is
+the one number they share. A single tagged array was the other option and was
+rejected: every held-item reader — `giveItem`, `spendItems`, an event's forced
+discard, the sim's berry accounting — would have carried a guard for a kind it
+can never legally see, which is the distributed version of the `isTargeted` bug
+section 31 records. What the two genuinely share is scarcity, and scarcity is a
+function rather than a container.
+
+**Items are shed before TMs when a bag overflows.** The overflow rule has always
+been "the oldest go", and the two lists have no shared clock to read that off —
+a TM banked at gym 1 and a Leftovers picked up at gym 5 have no order between
+them. Shedding items first keeps the existing rule where it can still be stated
+and leaves the thing the player deliberately carried for last.
+
+### The teach is part of the item plan
+
+`ItemPlan` grew `teaches` and `discardTms`. `teaches` is an ordered list of acts
+rather than a destination list, and it is the one exception in a structure whose
+whole design is that it is order-free: two teaches can name the same party slot,
+and the second one's `replaceSlot` indexes the moveset the first one left.
+
+`run.canTeachAt` is the single definition of where a TM may be spent — rest and
+shop — read by `playRun` when it applies a plan and by `canTeachNow` when the UI
+composes one. `applyItemPlan` throws on a teach anywhere else rather than
+dropping it: a dropped teach is a plan the player composed and the run did not
+honour, which replays as a different run.
+
+### A deliberate import cycle
+
+`core/items.ts` now imports `teachMove` and `replacementNeeded` from
+`core/party.ts`, which already imports `battleSpecFor` from `core/items.ts`. The
+cycle is taken deliberately. The alternative was to apply a plan's teaches in
+`core/party.ts` and the rest of it in `core/items.ts`, and an item plan is one decision
+recorded as one log entry — splitting its application would give that entry two
+readers, which is the shape of every replay bug this project has had. Neither
+module calls the other at module-init time, so it is a call graph and not an
+evaluation order.
+
+### Versions
+
+`RUN_LOG_VERSION` to `-18`: the `target` and `replace` entries are gone from
+four places and `ItemPlan` reshaped, so the same seed and the same clicks
+produce a different sequence.
+
+`RANDOMIZER_VERSION` holds at `-18`, and that is the claim worth checking: every
+draw is made from the same key in the same order, and what changed is only where
+the drawn move goes. `contentHash` unmoved — no `data/` table was touched.
+
+### What is not built, and is not a deviation
+
+**The party screen has no teach control.** A TM reaches the bag, costs a slot,
+is shed on overflow and is spent by the simulator's policy at every rest and
+shop — the mechanic is proven headless, which is the bar `CLAUDE.md` sets before
+UI. What is missing is the surface: a TM row, a Teach control, and the two
+screens it would open. Both of those screens still exist and still ask exactly
+what they asked when `playRun` drove them; `ui/screens/item-target.ts` keeps its
+decline control, now meaning "back out of this teach", against a UI-local
+`TEACH_CANCELLED` rather than the retired core sentinel.
+
+Until that lands, a run on this branch banks TMs it cannot spend. That is the
+checkpoint boundary, not the design.
+
+### Tests retired rather than skipped
+
+Three groups went, each because its subject no longer exists rather than because
+it failed:
+
+- `gym-pays-twice.test.ts`'s "declining a gym move" section, all three cases.
+- `move-replacement.test.ts`'s ordering and counting of the `target`/`replace`
+  pair, and its resume-from-between-the-two-questions case. There is no longer a
+  point between two questions to save at.
+- `event-move.test.ts`'s two "lands on the member the answer names" cases,
+  rewritten to assert the move lands in the bag and the party is untouched.
+
+The ordering assertions that survived were re-pointed from `target` to `items`,
+which is a true statement of the same property: the entry that has to come after
+a capture is the item plan, composed against the party the capture produced.

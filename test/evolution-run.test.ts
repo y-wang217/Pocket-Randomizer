@@ -59,7 +59,7 @@ describe('the evolve decision in a played run', () => {
     const at = run.log.decisions.findIndex((decision) => decision.kind === 'evolve');
     const before = run.log.decisions.slice(0, at).map((decision) => decision.kind);
     expect(before.at(-1)).toBe('battle');
-    expect(run.log.decisions[at + 1]?.kind === 'reward' || run.log.decisions[at + 1]?.kind === 'target').toBe(true);
+    expect(run.log.decisions[at + 1]?.kind === 'reward' || run.log.decisions[at + 1]?.kind === 'items').toBe(true);
   }, 120_000);
 
   it('replays to the same run, evolution included', async () => {

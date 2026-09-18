@@ -18,7 +18,21 @@ import { createBar } from '../bar';
 import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
 import { hpFraction, replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
-import { DECLINED_MOVE, describeReward } from '../../core/rewards';
+import { describeReward } from '../../core/rewards';
+
+/**
+ * What this screen submits when the player backs out of a teach.
+ *
+ * **A UI constant now, where `rewards.DECLINED_MOVE` was a core one.** The old
+ * sentinel was a legal value in the run log: a gym's move could be handed back
+ * and the log recorded that refusal as a `target` entry carrying -1. No move is
+ * taught at a node any more, so nothing records a recipient and this never
+ * leaves the screen — it travels from here to whoever opened it and no further.
+ *
+ * Still -1, and still for the reason the old one gave: it must not be a number
+ * a party could grow into, and a negative index never is.
+ */
+export const TEACH_CANCELLED = -1;
 import type { PokemonState } from '../../core/types';
 import type { Tuning } from '../../data/tuning';
 import { moveCardData } from '../move-detail';
@@ -112,7 +126,7 @@ export function createItemTargetScreen(): ItemTargetScreen {
         const note = el('span', 'target__decline-note');
         setProse(note, TARGET_COPY.declineNote);
         button.append(label, note);
-        button.addEventListener('click', () => onTarget(DECLINED_MOVE));
+        button.addEventListener('click', () => onTarget(TEACH_CANCELLED));
         decline.append(button);
       }
     },

@@ -78,7 +78,9 @@ import {
   type CauseOfDeath,
   type RunPolicy,
   type RunState,
+  canTeachNow,
 } from '../src/core/run';
+import { replacementNeeded, teachMove } from '../src/core/party';
 import {
   describeMove,
   describeSpecCard,
@@ -1321,7 +1323,7 @@ function valueOfItemFor(itemId: string, member: PokemonState): number {
  * It is not clever. It needs to be deterministic and written down, because a
  * heuristic that changes between reports makes two reports incomparable.
  */
-function greedyItemPlan(state: RunState): ItemPlan {
+function greedyItemPlan(state: RunState, canTeach: boolean): ItemPlan {
   const pool = [...state.backpack, ...state.party.flatMap((member) => (member.item ? [member.item] : []))];
   const openSlots = state.party.map((_, slot) => slot);
   const assignments: ItemAssignment[] = [];
@@ -1351,9 +1353,48 @@ function greedyItemPlan(state: RunState): ItemPlan {
     if (state.party[slot]?.item !== undefined) assignments.push({ slot, item: null });
   }
 
+  /*
+   * **The teaches, and this is the floor on TM play rather than a strategy.**
+   *
+   * At a rest or a shop the bot spends every TM it is carrying, in the order
+   * they arrived, on the recipient `greedyMoveRecipient` names and over the
+   * slot `greedyMoveToReplace` names — the same two heuristics that answered
+   * these questions when `playRun` asked them at the node, so the baseline is
+   * continuous across the stage that moved them.
+   *
+   * Spending everything is deliberately the dumbest defensible policy. Banking
+   * a TM for a later member is the decision the stage exists to create, and a
+   * bot that tried to make it would put its own guess in the middle of every
+   * number the report prints. What this measures is the cost of the *carry* —
+   * a bag slot held between the node that paid the TM and the next rest — which
+   * is the part of the mechanic that is not a judgement call.
+   *
+   * Walked against a party the earlier teaches have already changed, because
+   * `applyItemPlan` reads them in this order and a `replaceSlot` chosen against
+   * a stale moveset is exactly what it throws on.
+   */
+  const teaches: ItemPlan['teaches'] = [];
+  const keptTms = [...state.tms];
+  if (canTeach) {
+    const learners = [...state.party];
+    for (const move of state.tms) {
+      const offer: MoveReward = { kind: 'tm', move };
+      const slot = greedyMoveRecipient(offer, learners);
+      const learner = learners[slot];
+      if (!learner) continue;
+      const need = replacementNeeded(learner, move);
+      const incoming = describeMove(move);
+      if (need === 'choose' && !incoming) continue;
+      const replaceSlot = need === 'choose' ? greedyMoveToReplace(learner, incoming!) : null;
+      teaches.push({ move, slot, replaceSlot });
+      learners[slot] = teachMove(learner, move, replaceSlot);
+      keptTms.splice(keptTms.indexOf(move), 1);
+    }
+  }
+
   const capacity = backpackCapacity(partyCapacity(state), state.tuning);
-  const overflow = Math.max(0, remaining.length - capacity);
-  if (overflow === 0) return { assignments, discards: [] };
+  const overflow = Math.max(0, remaining.length + keptTms.length - capacity);
+  if (overflow === 0) return { assignments, discards: [], teaches, discardTms: [] };
 
   const ranked = remaining
     .map((item, index) => ({
@@ -1363,7 +1404,11 @@ function greedyItemPlan(state: RunState): ItemPlan {
     }))
     .sort((a, b) => a.score - b.score || a.index - b.index);
 
-  return { assignments, discards: ranked.slice(0, overflow).map((entry) => entry.item) };
+  // Items first, TMs only if shedding every item still leaves the bag over —
+  // the same order `reconcileItemPlan` sheds in, and for the same reason.
+  const discards = ranked.slice(0, Math.min(overflow, ranked.length)).map((entry) => entry.item);
+  const discardTms = overflow > discards.length ? keptTms.slice(0, overflow - discards.length) : [];
+  return { assignments, discards, teaches, discardTms };
 }
 
 /**
@@ -1686,10 +1731,7 @@ function buildPolicy(
      * measurement wants — a targeting rule that only works when played
      * perfectly is a rule the report cannot generalise from.
      */
-    chooseMoveRecipient: async (offer, party) => greedyMoveRecipient(offer, party),
-    chooseMoveToReplace: async (member, incoming) => greedyMoveToReplace(member, incoming),
-
-    chooseItemPlan: async (state) => greedyItemPlan(state),
+    chooseItemPlan: async (state) => greedyItemPlan(state, canTeachNow(state)),
 
     /*
      * Take a Pokemon while there is room; once full, take it only if it beats

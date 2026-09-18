@@ -270,6 +270,23 @@ export function createPartyScreen(): PartyScreen {
         handlers.onPlan({
           assignments: view.party.map((_, slot) => ({ slot, item: held[slot] ?? null })),
           discards: [...discarded],
+          /*
+           * **No teach control on this screen yet, and that is a checkpoint
+           * boundary rather than an oversight.**
+           *
+           * A TM reaches the bag, costs a slot against the held items and is
+           * shed by `reconcileItemPlan` when the bag overflows — all of which
+           * is core and proven headless by the simulator. What is missing is
+           * the surface that spends one: a TM row, a Teach control, and the
+           * two screens it would open (`item-target`, `move-replace`), both of
+           * which still exist and still ask exactly what they asked when
+           * `playRun` drove them.
+           *
+           * `docs/spec/gymrun-stage-moves-as-inventory-tms.md`, and the process
+           * rule it follows is `CLAUDE.md`'s: UI comes last in every stage.
+           */
+          teaches: [],
+          discardTms: [],
         });
         draw();
       };
