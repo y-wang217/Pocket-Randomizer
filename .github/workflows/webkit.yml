@@ -1,0 +1,224 @@
+# The WebKit half, off the critical path.
+#
+# It used to be the second value of the `browser` matrix in check.yml, which
+# meant every pull request in this repository waited on it. The argument for
+# moving it is in docs/generation.md section 47; in one line, it was gating a
+# surface almost no change touches, at the price of a slot on every PR.
+#
+# ## Non-blocking is a property of this file, not a promise about it
+#
+# The suite step carries `continue-on-error: true` and the job publishes its
+# outcome as an output. So a WebKit failure leaves this workflow **green** and
+# the merge box unblocked, and the signal goes to the pinned issue instead. That
+# is the whole design and it is a real trade: a red engine no longer stops
+# anybody, so the issue is the only thing that will, and a stale issue here is
+# an engine nobody is testing. `report` exists to make sure the issue is never
+# stale.
+#
+# **It never writes a deploy status.** `permissions` grants `issues: write` and
+# nothing else that can affect a ref's state; there is no `deployments` scope,
+# no environment, and no status-check API call anywhere in this file. A workflow
+# that is not allowed to block should not hold a lever that blocks.
+#
+# ## Why this one is not in the Playwright container
+#
+# check.yml's browser job runs in `mcr.microsoft.com/playwright:v1.63.0-noble`,
+# which already carries the engines, so there is nothing there to cache. This
+# job installs WebKit onto a bare runner instead, which is what makes
+# `~/.cache/ms-playwright` worth caching -- and what makes the cache key
+# correctness-critical rather than a speed tweak: a cache restored for the wrong
+# Playwright version hands the suite browser revisions that version never
+# expected, which is the same class of mistake as an unpinned container tag.
+name: webkit
+
+on:
+  # Weekly, so the engine is exercised on a schedule even in a month where no
+  # pull request touches anything it guards. Sunday 06:00 UTC: off the Monday
+  # morning queue, and far from the hour every other cron in the world picks.
+  schedule:
+    - cron: '0 6 * * 0'
+  # On demand, which is how anybody investigating a WebKit report gets a run
+  # without inventing a commit. NOTE: GitHub only offers `workflow_dispatch` for
+  # a workflow that exists on the default branch, so this becomes usable once
+  # this file is merged, not while it sits on a branch.
+  workflow_dispatch:
+  # And on a pull request that touches what WebKit is here to catch. The list is
+  # deliberately short: every engine difference this repository has actually met
+  # has been an animation-timing or a sprite-painting one.
+  pull_request:
+    paths:
+      # The motion CSS. `styles.css` carries every keyframe and the
+      # reduced-motion rules; `tokens.css` carries the durations and distances
+      # they derive from; `motion.ts` writes those tokens onto the document.
+      - 'src/ui/styles.css'
+      - 'src/ui/theme/tokens.css'
+      - 'src/ui/theme/motion.ts'
+      # The sprite code. `sprites.ts` builds the element and owns the
+      # missing-sprite fallback; `scene.ts` is the battle stage that moves it.
+      - 'src/ui/sprites.ts'
+      - 'src/ui/scene.ts'
+      # The tests that ask the questions above.
+      - 'test/visual-motion*.test.ts'
+      # And this file, so a change to the gate is gated by the gate.
+      - '.github/workflows/webkit.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # For `report` only, and it is the one write this workflow has.
+  issues: write
+
+env:
+  # npm ci pulls ~300MB of browsers on install otherwise, all three engines of
+  # them. WebKit is installed explicitly below, into the directory this job
+  # caches, so the postinstall has nothing useful to do.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  webkit:
+    name: webkit suite (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      result: ${{ steps.suite.outcome }}
+      install: ${{ steps.install.outputs.seconds }}
+      cache: ${{ steps.cache.outputs.cache-hit == 'true' && 'hit' || 'miss' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      # The version is read off the installed package rather than off
+      # package.json, because package.json carries a range (`^1.63.0`) and the
+      # lockfile carries the number. A key built from the range would survive a
+      # lockfile bump, which is exactly the stale-browser case above.
+      - name: Playwright version
+        id: pw
+        run: |
+          version="$(node -p "require('playwright-core/package.json').version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "playwright-core ${version}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cache browsers
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          # No `restore-keys`. A partial restore would put some other version's
+          # browsers on disk and then be reported as a miss, which is the worst
+          # of both: the install still runs, and it runs over a directory it
+          # did not write.
+          key: ms-playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      # `--with-deps` on a miss and without it on a hit. The apt side is not in
+      # the cache and does not need to be: the runner image already carries the
+      # libraries, and asking for them costs a minute of `apt-get` on every run
+      # for a dependency that was already satisfied. On a miss it is asked for
+      # once, because a cold runner is the case where it might not be.
+      - name: Install WebKit
+        id: install
+        run: |
+          start=${SECONDS}
+          if [ "${{ steps.cache.outputs.cache-hit }}" = 'true' ]; then
+            npx playwright install webkit
+          else
+            npx playwright install --with-deps webkit
+          fi
+          seconds=$(( SECONDS - start ))
+          echo "seconds=${seconds}" >> "$GITHUB_OUTPUT"
+          echo "webkit install: ${seconds}s (cache ${{ steps.cache.outputs.cache-hit == 'true' && 'hit' || 'miss' }})" >> "$GITHUB_STEP_SUMMARY"
+
+      # The one step allowed to fail. `scripts/check.mjs` rather than the npm
+      # script for the same reason check.yml gives: the runner promotes a
+      # missing engine from SKIPPED to FAILED when CI is set, so an install that
+      # silently did nothing fails here instead of reporting nothing to run.
+      - name: WebKit suite
+        id: suite
+        continue-on-error: true
+        run: node scripts/check.mjs --only=test:webkit
+
+      - name: Record the outcome
+        run: |
+          echo "webkit suite: ${{ steps.suite.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+
+  # One issue, edited in place, for as long as WebKit is red. Not a new issue
+  # per failure: a weekly cron against a standing breakage would open a
+  # thread a week, and the thing a reader wants is the current state plus the
+  # run that last measured it.
+  #
+  # On a green run the issue is closed with a comment rather than left open
+  # with a stale body, so "is the issue open" is the whole of the answer.
+  report:
+    name: pinned issue
+    needs: webkit
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RESULT: ${{ needs.webkit.result == 'success' && needs.webkit.outputs.result || 'failure' }}
+          INSTALL: ${{ needs.webkit.outputs.install }}
+          CACHE: ${{ needs.webkit.outputs.cache }}
+        with:
+          script: |
+            // The marker, not the title, is what makes it one issue: a title is
+            // edited by people and a search for one finds whatever they renamed
+            // it to, or nothing, and opens a second.
+            const MARKER = '<!-- gymrun:webkit-status -->';
+            const TITLE = 'WebKit suite: status';
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const failed = process.env.RESULT !== 'success';
+
+            const found = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo, state: 'all', per_page: 100, labels: 'webkit',
+            });
+            const issue = found.find((i) => (i.body ?? '').includes(MARKER));
+
+            const body = [
+              MARKER,
+              '',
+              `**WebKit is ${failed ? 'failing' : 'green'}** as of ${new Date().toISOString()}.`,
+              '',
+              `- run: ${run}`,
+              `- trigger: \`${context.eventName}\` on \`${context.ref}\``,
+              `- commit: ${context.sha}`,
+              `- browser install: ${process.env.INSTALL || 'n/a'}s, cache ${process.env.CACHE || 'n/a'}`,
+              '',
+              'This workflow is **non-blocking**: a red engine does not fail a pull',
+              'request and never writes a deploy or commit status. This issue is the',
+              'signal. It is edited in place by every run, so its body is the current',
+              'state and its history is the log.',
+            ].join('\n');
+
+            if (!issue) {
+              if (!failed) return;  // Nothing to say, and nothing to say it on.
+              const created = await github.rest.issues.create({
+                ...context.repo, title: TITLE, body, labels: ['webkit'],
+              });
+              core.notice(`opened #${created.data.number} — pin it in the repository's issue list`);
+              return;
+            }
+
+            // A green run against an already-closed issue is the steady state,
+            // and the steady state is weekly. Saying so every week would bury
+            // the transitions -- which are the only entries anybody reads this
+            // thread for -- under fifty-two identical ones.
+            if (!failed && issue.state === 'closed') return;
+
+            await github.rest.issues.update({
+              ...context.repo, issue_number: issue.number, title: TITLE, body,
+              state: failed ? 'open' : 'closed',
+              ...(failed ? {} : { state_reason: 'completed' }),
+            });
+            await github.rest.issues.createComment({
+              ...context.repo, issue_number: issue.number,
+              body: failed
+                ? `Still failing. ${run}`
+                : `Green again, closing. ${run}`,
+            });

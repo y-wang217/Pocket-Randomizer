@@ -37,7 +37,58 @@ if (files.length === 0) {
  * mistyped `--exclude` pattern silently excludes nothing and the "Node-only"
  * leg would run the browser files after all.
  */
-const args = ['vitest', 'run', ...files, ...process.argv.slice(3)];
+/*
+ * The fork cap, in CI, on the Node half only.
+ *
+ * ## What it is fixing
+ *
+ * `[vitest-worker]: Timeout calling "onTaskUpdate"` — vitest's reporter RPC
+ * giving up while every test passes. `docs/generation.md` sections 15, 33 and
+ * 36 all record it, and on Actions it took the Node half of the gate red with
+ * `1650 passed (1650)` printed directly underneath. `scripts/check.mjs` now
+ * reports that as ERRORED rather than FAILED, which stops the gate lying; this
+ * is the other half, which is to stop provoking it.
+ *
+ * ## Why capping workers is the lever
+ *
+ * The runner is a standard GitHub-hosted `ubuntu-latest`, which is four vCPUs
+ * at the time of writing — `scripts/check.mjs` prints the count it actually saw
+ * in its header line, so the number is read off the run rather than trusted
+ * from here. Nothing in
+ * `vite.config.ts` sets `pool`, `poolOptions`, `maxWorkers` or `minWorkers`, so
+ * vitest 3's defaults apply: `pool: 'forks'`, and a non-watch run sizes the
+ * pool at `max(availableParallelism() - 1, 1)` — three forks, each a full Node
+ * process replaying runs, on four cores that are also carrying the parent, the
+ * reporter and the Vite transform. The timeout is that reporter channel not
+ * being scheduled in time, so it is a contention symptom: it tracks load and
+ * not outcome, which is exactly what every recorded sighting of it has said.
+ *
+ * Two forks leaves a core for the parent. It costs wall-clock on a leg that is
+ * already the long pole, and that is the trade being made deliberately: a slower
+ * green leg is worth more than a fast one nobody can read.
+ *
+ * ## Why only here
+ *
+ * **CI only**, because a developer box is not the contended machine and has no
+ * reason to give up a third of its parallelism. **The Node half only**, because
+ * that is where the error has been seen and because the browser halves —
+ * chromium and webkit alike — are left byte-identical rather than retuned
+ * alongside a fix for something they did not report. If the browser halves
+ * start carrying it, they get their own measurement, not this one's leftovers.
+ */
+const CI_NODE_MAX_FORKS = 2;
+const extra = process.argv.slice(3);
+/*
+ * Withheld when the caller names the flag themselves, rather than passed and
+ * left to lose a fight it would not have won: vitest's argument parser collects
+ * a repeated flag into an *array*, so `--maxWorkers=2 --maxWorkers=1` is not
+ * "the last one wins", it is a pool size of `[2, 1]`. A measurement run that
+ * wants a different number has to be able to ask for one.
+ */
+const capped = process.env.CI && half === 'node' && !extra.some((arg) => arg.startsWith('--maxWorkers'));
+const cap = capped ? [`--maxWorkers=${CI_NODE_MAX_FORKS}`] : [];
+
+const args = ['vitest', 'run', ...cap, ...files, ...extra];
 const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, {
   stdio: 'inherit',
   env: process.env,

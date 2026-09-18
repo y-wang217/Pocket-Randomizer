@@ -62,11 +62,25 @@ afterAll(async () => {
  * a gated node on the route; `flag` is a post-resolution word, which needs a
  * turn that produced one. Both are reachable on SMOKE24 and both are asserted
  * below, so if a tuning pass moves the route this test says so.
+ *
+ * **`band` is off the list, and it is the one omission.** `ui/chip.ts` builds
+ * it, and this file cannot measure it: `bandChip` sets no text — it draws five
+ * `.band__pip` spans, because Stage V0 ruled a band is a count and not a word —
+ * and both floors here are floors on *text*. A font size on a box with no
+ * glyphs in it and a contrast ratio against a colour nothing is painted in are
+ * not weak measurements, they are measurements of nothing, and `chipsOn` now
+ * declines to take them.
+ *
+ * So the list is what this instrument can answer for rather than everything the
+ * component can build, and the gap is named here rather than left for a reader
+ * to infer from a variant that quietly stopped appearing. What a pip meter
+ * needs is a contrast rule between a filled pip and an empty one, which is a
+ * different assertion in a different file; it is filed as an open item in
+ * `docs/README.md`.
  */
 const VARIANTS = [
   'type',
   'tier',
-  'band',
   'status',
   'stage',
   'capability',
@@ -170,8 +184,52 @@ async function sampleBoxes(
   );
 }
 
+/**
+ * Every `<img>` on the page has finished, one way or the other.
+ *
+ * **The instrument was measuring a page that was still arriving.** Nothing
+ * raster ships in this repo: `ui/sprites.ts` addresses Showdown's CDN and the
+ * elements are `loading="lazy"` and `decoding="async"`, so on a fast box the
+ * sprites are painted before the screenshot and on a slow or contended one they
+ * are not. The chips do not move when a sprite lands — `spriteImg` sets an
+ * explicit 96x96, so the layout is stable either way — but *what is behind a
+ * chip* is exactly what this file samples, and a panel with a sprite in it and
+ * the same panel without are different pixels.
+ *
+ * That is the difference between a measurement and a coin flip, and it showed
+ * as one: the same commit read a chip at 4.43:1 in the Playwright container and
+ * comfortably over the floor on a developer box, with byte-identical computed
+ * colours on both.
+ *
+ * `complete` rather than a successful load, deliberately. A sprite that 404s is
+ * a state the app handles — `spriteImg`'s `onerror` marks it missing and the
+ * box stays empty — and it is a state the sampler is entitled to measure. What
+ * it is not entitled to measure is the half-second in which nobody yet knows
+ * which of the two it will be.
+ *
+ * **`loading` is flipped to `eager` first, and without that this never
+ * returns.** A lazy image the viewport has never reached is not slow, it is
+ * *not started*, and it reports `complete === false` for as long as the page is
+ * open: on the party screen three sprites sit at 2877px, 3714px and 4501px down
+ * a 844px viewport and stay pending indefinitely. They are not out of scope for
+ * being out of view — the screenshot below is `fullPage: true`, so every chip
+ * on the page is sampled, including the ones beside those three. Asking for
+ * them is what makes the wait finish *and* what makes it mean something.
+ */
+async function imagesSettled(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    for (const img of globalThis.document.images) img.loading = 'eager';
+  });
+  await page.waitForFunction(
+    () => [...globalThis.document.images].every((img) => img.complete),
+    undefined,
+    { timeout: 30_000 },
+  );
+}
+
 /** Every rendered chip on the screen currently open, measured. */
 async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipSample[]> {
+  await imagesSettled(page);
   const found = await page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
     if (!root) return [];
@@ -185,9 +243,25 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
       if (style.visibility === 'hidden' || style.opacity === '0') return [];
       const variant = [...node.classList].find((name) => name.startsWith('chip--'))?.slice(6);
       if (!variant) return [];
+      /*
+       * A chip with no text is not a text-contrast question.
+       *
+       * `bandChip` is the population: it draws five `.band__pip` spans and sets
+       * no `textContent` at all, because a band is a count and Stage V0 banned
+       * the word. Its computed `color` is still the chip recipe's, so the
+       * sampler was comparing a colour nothing on screen is painted in against
+       * whatever the box happened to contain — a number with no referent, and
+       * one that is free to land anywhere, including under the floor.
+       *
+       * A floor asserted against a reading like that is not strict, it is
+       * random, and a random assertion in a gate is worse than none: it teaches
+       * the reader to re-run rather than to look.
+       */
+      const text = (node.textContent ?? '').trim();
+      if (!text) return [];
       return [{
         variant,
-        text: (node.textContent ?? '').trim(),
+        text,
         fontSize: Number.parseFloat(style.fontSize),
         color: style.color,
         // Page coordinates, to index into a full-page screenshot.
