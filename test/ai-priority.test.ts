@@ -305,7 +305,7 @@ describe('the version axes', () => {
      * it asks who learns its move, so the questions come in a different order,
      * and a gym's guaranteed move may be handed back.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-17/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-18/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -354,7 +354,7 @@ describe('the version axes', () => {
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483');
+    expect(CONTENT_HASH).toBe('a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

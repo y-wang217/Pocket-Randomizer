@@ -219,13 +219,42 @@ const speciesRows: SpeciesRow[] = allowedSpecies
  * remember and somebody eventually gets wrong. Species bands stay 0-based
  * because they are never named outside this codebase.
  *
- * The first cut is **55 and not the spec's 50**, which is a ratified
- * exception: 55 is where Stage 2 put it after measuring that segments 1-2 need
- * opponents under 55 BP to produce a fight lasting more than a turn, and
- * moving it to 50 would have re-opened that measurement for the sake of a
- * round number.
+ * ## Five bands, and the cuts sit in the dex's own gaps
+ *
+ * This read `[55, 75, 95]` and now reads `[60, 75, 90, 110]`. Two changes at
+ * once, and they answer different complaints.
+ *
+ * **Band 1 was too narrow to draw from.** At 82 moves it held one Psychic move
+ * and one Dragon move, which is why `MOVESET.stabWindow` had to exist at all —
+ * the forced first slot of those species was not a draw. At 117 it is a real
+ * pool: types whose entire band-1 slice is one attack category go from six to
+ * three, and types with fewer than three band-1 moves from four to two. That is
+ * what makes closing the window affordable, and closing the window is what stops
+ * segments 0-2 fielding 36% band 2 against a written 20%.
+ *
+ * **Band 4 was too coarse to mean anything.** It ran 96 and up, so Stone Edge,
+ * Gigaton Hammer and Population Bomb were the same label. The split at 110 puts
+ * the recoil, stat-drop and signature moves — Close Combat, Flare Blitz, Draco
+ * Meteor, Overheat, Boomburst, Head Smash — in a band of their own, which is
+ * what the last two segments are for.
+ *
+ * **No move has effective power in 91-94 or in 111-119.** The new cuts land in
+ * empty ranges the dex already has, so not one move is reclassified by an
+ * arbitrary edge. That is the whole argument for these four numbers rather than
+ * four neighbouring ones, and it is checkable: change a cut, re-run, and the
+ * census in the report moves.
+ *
+ * The old first cut was **55 and not the spec's 50**, a ratified exception from
+ * Stage 2 on a measurement that segments 1-2 need opponents under 55 BP to
+ * produce a fight lasting more than a turn. That exception is retired rather
+ * than raised: the 60 here is not a relaxation of it but a consequence of the
+ * measurement above, and the fight-length question it answered now belongs to
+ * the level curve, which moved in the same patch.
+ *
+ * Census, argument and the learnset validation the per-band shares are fitted
+ * to: `docs/reports/early-game-band-and-curve.md`.
  */
-const POWER_CUTS = [55, 75, 95] as const;
+const POWER_CUTS = [60, 75, 90, 110] as const;
 
 function powerBandOf(basePower: number): number {
   const index = POWER_CUTS.findIndex((cut) => basePower <= cut);

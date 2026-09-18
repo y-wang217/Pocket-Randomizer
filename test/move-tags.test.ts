@@ -127,12 +127,12 @@ describe('the multi-hit disagreement', () => {
   it('reports per-hit base power and a band that disagrees, without either being wrong', () => {
     /*
      * The brief's own test, and the failure it prevents: banding happens on
-     * *total* power, so Population Bomb reads band 4 at 20 base power. Both
+     * *total* power, so Population Bomb reads band 5 at 20 base power. Both
      * numbers on the card or the badge looks broken.
      */
     const bomb = explain('Population Bomb');
     expect(bomb.basePower).toBe(20);
-    expect(bomb.band).toBe(4);
+    expect(bomb.band).toBe(5);
     expect(bomb.multiHit).toBeDefined();
 
     // And the sentence that says so names both.

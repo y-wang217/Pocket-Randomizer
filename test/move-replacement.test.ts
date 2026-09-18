@@ -200,7 +200,7 @@ function movePicker(): RunPolicy {
 
 describe('both decisions are logged, in order', () => {
   it('records the recipient before the replacement, always', async () => {
-    const run = await playRun('S49R-1', movePicker());
+    const run = await playRun('MOVE-REP-7', movePicker());
     const kinds = run.log.decisions.map((decision) => decision.kind);
 
     const replaces = kinds.flatMap((kind, index) => (kind === 'replace' ? [index] : []));

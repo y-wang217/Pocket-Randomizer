@@ -121,19 +121,25 @@ export interface RewardOffer {
 export const OFFER_SIZE = 3;
 
 /**
- * How many cards a **gym** clear offers. **Stage 4.8, item 2 Part B.**
+ * How many cards a **gym** clear offers, on each of its two pages.
  *
- * Two, and this is the only offer in the game that is not three. The exception is
- * deliberate and recorded in `docs/generation.md` section 7c so that a later
- * reader does not meet it as a bug and normalise it back: a relic against a
- * currency lump is a cleaner decision than either of them against a padded third
- * option, and the gym already pays a guaranteed move beside it.
+ * **Three, and the exception is retired.** This was 2 from Stage 4.8 item 2 Part
+ * B, the only offer in the game that was not three, on the argument that a relic
+ * against a currency lump is a cleaner decision than either against a padded
+ * third option — `docs/generation.md` section 7c. The padding argument was
+ * sound and no longer applies: the gym pays two pages now, three moves and then
+ * three relics-or-gold, and the item page fills its third card from the same two
+ * entry kinds by drawing a *second distinct relic* rather than a filler.
  *
- * Every other offer in the game stays at `OFFER_SIZE`. A single constant covering
- * both would have made "how many cards does this offer have" a question with one
- * answer, which is exactly what stopped being true.
+ * So `OFFER_SIZE` and this are the same number again, and the reason they are
+ * still two constants is that they answer different questions — "how many cards
+ * does a node offer" and "how many does a gym page offer" — and the next patch
+ * that wants to move one should not have to prove it is not moving the other.
+ *
+ * CLAUDE.md's rewards invariant (every offer is exactly three distinct options)
+ * is satisfied by both gym pages now, which it was not before.
  */
-export const GYM_OFFER_SIZE = 2;
+export const GYM_OFFER_SIZE = 3;
 
 // ---------------------------------------------------------------------------
 // Generating an offer
@@ -197,9 +203,9 @@ export function generateRewardOffer(
 }
 
 /**
- * Draw what a gym clear pays: one guaranteed move, then two cards to choose from.
+ * Draw what a gym clear pays: **two pages, three cards each.**
  *
- * **Stage 4.8, item 2. A gym pays twice now**, and both halves are drawn here, in
+ * **Stage 4.8, item 2. A gym pays twice**, and both halves are drawn here, in
  * this order, from the one `rewards` stream the gym has always used. Nothing is
  * drawn at gym completion — that would make the roll depend on how the fight went,
  * which is the failure the whole eager-generation contract exists to prevent.
@@ -210,60 +216,94 @@ export function generateRewardOffer(
  * `rewardEntriesFor(null, segment)` a thing that has to be handled rather than a
  * thing that cannot be said.
  *
- * `tier` on the returned offer is `'elite'`, and that is a display fact rather
- * than a draw: nothing here consulted it (the pool came from
- * `gymRewardEntriesFor`), but `RewardOffer.tier` is what the reward screen badges,
- * and a gym offer that badged as `normal` would be the screen contradicting the
- * cards in front of it.
+ * `tier` on both returned offers is `'elite'`, and that is a display fact rather
+ * than a draw: nothing here consulted it (the item pool came from
+ * `gymRewardEntriesFor` and the move page from `GYM_MOVE_ENTRY`), but
+ * `RewardOffer.tier` is what the reward screen badges, and a gym offer that
+ * badged as `normal` would be the screen contradicting the cards in front of it.
  *
- * ## Why the move is drawn first
+ * ## The move page used to be a grant
  *
- * Order inside a stream is the stream's contract. The move is the guaranteed half,
- * so it is drawn first and the choice second — which is also the order the player
- * meets them. Swapping them later would reshuffle every gym in every recorded
- * seed for no gain.
+ * Part A was one move, handed over unconditionally, at the segment's band **+3**
+ * — which clamped to the top of the table at segment 0, so gym 1 paid a band-4
+ * move 300 times out of 300. It is a choice of three at **+1** now, and
+ * `data/rewardPools.ts`'s `GYM_MOVE_ENTRY` carries that argument and the rule it
+ * deleted.
+ *
+ * That is a **decision-schema change**, not only a balance one: the player now
+ * answers a `reward` question where they previously received a grant, so a gym
+ * node records two `reward` entries instead of one and `RUN_LOG_VERSION` moves
+ * with it. The replay cursor is strictly positional and kind-checked, so two
+ * `reward` entries in one node need no new decision kind — only a fixed order,
+ * which is the order below and the order the player meets them in.
+ *
+ * ## Why the moves are drawn first
+ *
+ * Order inside a stream is the stream's contract. The move page was the
+ * guaranteed half and is drawn first for that reason; it stays first now that it
+ * is a choice, because it is still the page the player meets first and because
+ * swapping them would reshuffle every gym in every recorded seed for no gain.
  */
 export function generateGymRewardOffer(
   nodeId: string,
   segment: number,
   stream: RngStream,
   tuning: Tuning,
-): { offer: RewardOffer; move: Reward } {
+): { moveOffer: RewardOffer; offer: RewardOffer } {
   void tuning;
 
   /*
-   * Part A, drawn first and never a choice.
+   * Page 1: three distinct moves, one band above the segment's own.
    *
-   * Resolved at `elite` for the same reason the cards below are: the *bands* are a
-   * function of the tier (`rewardMoveBands`), so resolving the entry's
-   * `GYM_MOVE_BAND_BONUS` against `normal` would quietly hand back a mid-tier move
-   * and the "strictly better than elite" rule would fail silently in the one place
-   * nobody looks.
+   * Resolved at `normal` so the band is `segmentMoveBand + GYM_MOVE_BAND_BONUS`
+   * and nothing else — see `GYM_MOVE_ENTRY`. One `takenMoves` set across all
+   * three draws is what makes them distinct; `resolveRewardEntry` consults it
+   * and redraws rather than repeating, which is the same mechanism the ordinary
+   * three-card offer uses.
    */
-  const move = resolveRewardEntry(
-    GYM_MOVE_ENTRY,
-    segment,
-    'elite',
-    stream,
-    new Set<string>(),
-    new Set<string>(),
-    [GYM_MOVE_ENTRY],
-  );
-  if (!move) {
-    throw new RangeError(`Gym at segment ${segment} could not resolve its guaranteed move`);
+  const moveTaken = new Set<string>();
+  const moveOptions: Reward[] = [];
+  for (let card = 0; card < GYM_OFFER_SIZE; card++) {
+    const drawn = resolveRewardEntry(
+      GYM_MOVE_ENTRY,
+      segment,
+      'normal',
+      stream,
+      new Set<string>(),
+      moveTaken,
+      [GYM_MOVE_ENTRY],
+    );
+    if (drawn) moveOptions.push(drawn);
+  }
+  if (moveOptions.length < GYM_OFFER_SIZE) {
+    throw new RangeError(
+      `Gym at segment ${segment} could resolve only ${moveOptions.length} of ${GYM_OFFER_SIZE} moves`,
+    );
   }
 
+  /*
+   * Page 2: three distinct relics-or-gold.
+   *
+   * **The entry is not removed after it is drawn, and that is the change.** It
+   * used to be, which capped this page at the pool's two entry kinds and is why
+   * `GYM_OFFER_SIZE` was 2. Distinctness is a property of the resolved *payload*
+   * rather than of the entry — `resolveRewardEntry` takes `takenItems` and
+   * `takenMoves` and will not hand back a relic the page already holds — so
+   * drawing `relic` twice yields two different relics, which is a better third
+   * card than any filler kind would have been.
+   *
+   * A draw that resolves to nothing (a pool exhausted of distinct payloads) is
+   * skipped rather than retried, so the draw count stays a function of
+   * `GYM_OFFER_SIZE` alone and the loop cannot spin.
+   */
   const pool = gymRewardEntriesFor(segment);
   const options: Reward[] = [];
   const takenMoves = new Set<string>();
   const takenItems = new Set<string>();
-  let remaining = [...pool];
 
   for (let card = 0; card < GYM_OFFER_SIZE; card++) {
-    if (remaining.length === 0) break;
-    const entry = pickWeighted(remaining, stream);
+    const entry = pickWeighted(pool, stream);
     if (!entry) break;
-    remaining = remaining.filter((candidate) => candidate !== entry);
     const reward = resolveRewardEntry(entry, segment, 'elite', stream, takenItems, takenMoves, pool);
     if (reward) options.push(reward);
   }
@@ -273,7 +313,10 @@ export function generateGymRewardOffer(
       `Gym reward pool at segment ${segment} produced ${options.length} options, need ${GYM_OFFER_SIZE}`,
     );
   }
-  return { offer: { nodeId, tier: 'elite', options }, move };
+  return {
+    moveOffer: { nodeId, tier: 'elite', options: moveOptions },
+    offer: { nodeId, tier: 'elite', options },
+  };
 }
 
 /**
