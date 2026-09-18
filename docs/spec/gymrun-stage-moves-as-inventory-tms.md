@@ -102,7 +102,30 @@ the same finite space as held items, and the player decides later who learns it
 
 ---
 
-## 5. What this replaces
+## 5. The second question, and the answer
+
+Asked after the plan was drafted and before any code, because when a banked TM
+may be spent decides both the log shape and whether the carry is a real cost.
+Three options were offered: any node boundary, rest and shop nodes only, or gym
+clears only.
+
+**Answer, verbatim:**
+
+> rest and shop nodes only PLUS, TMs replace a move, not displaces it into the
+> inventory. they're one-use only, if that was not explicit
+
+Three rules, and the second was not in the question:
+
+1. **Rest and shop nodes only.** A TM cannot be spent at an arbitrary node
+   boundary. The bag is a bank and those two node kinds are the counter.
+2. **A replaced move is destroyed, not banked.** Teaching over a move does not
+   hand its predecessor back as a TM. This closes the loop that would otherwise
+   make the inventory a free move buffer — carry four, rotate them per fight —
+   and it is the reason the carry decision has teeth.
+3. **A TM is consumed by teaching it.** One use. This was assumed in the draft
+   plan and is now explicit.
+
+## 6. What this replaces
 
 **The gym-only decline rule, and the argument under it.** `docs/README.md`
 states it as *"A gym's guaranteed move may now be declined, and nothing else
@@ -118,7 +141,7 @@ therefore in scope to be retired rather than extended, which is the opposite of
 what the second message asks for. That is a deliberate supersession by the
 third message and the answer, not a dropped item.
 
-## 6. Named non-goals
+## 7. Named non-goals
 
 Neither of these is asked for anywhere above, and both are the obvious places
 scope would leak to:
