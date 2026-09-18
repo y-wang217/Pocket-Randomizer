@@ -58,7 +58,35 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the bench carryover and the gym level column.** Branch
+**In flight: the party drawer showed a released Pokemon.** Branch
+`claude/party-check-mantyke-anorith-xttrxm`, prompt
+[`spec/gymrun-patch-party-drawer-stale-capture.md`](spec/gymrun-patch-party-drawer-stale-capture.md),
+record [`generation.md`](generation.md) section 36. Presentation only: no
+`core/` change, no version axis moves, `contentHash` unmoved at `94c6c1`.
+
+**The two readouts disagreed because one of them was a node behind.** Section
+29 moved the capture in front of the move question, so `playRun` asks "who
+learns Air Slash" against `partyAfterAcquisition` — the party with the capture
+folded in — while `resolveNode` still applies it at the end of the node. Between
+those two moments the run has been *told* about a party it has not *adopted*,
+and `ui/app.ts`'s `live` is replaced only by `onState`, at the bottom of the
+node loop. The recipient screen listed the Anorith; the drawer opened from the
+same header listed the Mantyke it replaced. `core/` cannot close it from its
+side — nothing has happened to run state, so there is no `onState` to fire — and
+the fold must not move, per section 29.1.
+
+**The drawer holds the party `core` hands the question, rather than deriving
+one.** `decidedParty` sits beside `pendingPlan`: set by `chooseMoveRecipient`
+from its own argument, cleared by `onState`, read by `readDrawer` ahead of
+`live.party`. Read-only surfaces only, because the party screen is a write path
+and pointing it at a party the run has not adopted would drop the edit at the
+node boundary. One item the report does not raise came with it: a releasing
+capture is the second of the two paths that shorten a party, and it was carrying
+an unspent `ItemPlan` across the slots it shifted — `showParty`'s `onRelease`
+has dropped the plan for that reason since 4.7, and `chooseAcquisition` does now
+too.
+
+**Merged: the bench carryover and the gym level column.** Branch
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest

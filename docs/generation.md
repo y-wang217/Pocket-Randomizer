@@ -5820,3 +5820,122 @@ The direction is the one the change argues for and the magnitude is larger than
 the level arithmetic alone suggests, which is the Speed threshold showing up in
 the number. Nothing else was tuned against this run. The full row, including
 what it says about the standing gym 3 outlier, is in `balance.md` section 0.
+
+## 36. The drawer showed a Pokemon the run had already been told to release
+
+**2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
+[`spec/gymrun-patch-party-drawer-stale-capture.md`](spec/gymrun-patch-party-drawer-stale-capture.md).
+
+One playtest report, two screenshots one second apart, and no axis moves:
+presentation only, `contentHash` unmoved at `94c6c1`. `94c6c1` is the hash
+stamped on both screenshots, so this one was met on the build it describes.
+
+The recipient screen for `TM: Air Slash` listed Sobble, Spiritomb and
+**Anorith** — the party the player had just made by releasing their Mantyke to
+take the Anorith the node offered. The `PARTY` trigger in the same header, in
+the same second, opened on Sobble, Spiritomb and **Mantyke**.
+
+### 36.1 The window, and why `core/` cannot close it from its side
+
+Section 29 moved the capture in front of the move question, and it did so by
+building `learners` — `partyAfterAcquisition`, the run's own
+`applyAcquisition` on the run's own decision — and asking both move questions
+against it. What it deliberately did **not** do is apply the acquisition to
+`state` at that point: `resolveNode` owns state transitions and folds
+everything in at the end of the node, which is the split that keeps a replayed
+decision and a clicked one indistinguishable.
+
+So between the capture and the end of the node there is a window in which the
+run has been *told* about a party it has not *adopted*. Inside it:
+
+| reads | drew from | showed |
+|---|---|---|
+| the recipient screen | the `party` argument, which is `learners` | Anorith |
+| the drawer | `live.party`, and `live` is replaced only by `onState` | Mantyke |
+
+`onState` fires at the bottom of the node loop, after `resolveNode`. There is no
+earlier moment for it to fire *at*: nothing has happened to run state, so a hook
+there would be reporting a state that does not exist. The asymmetry is not a
+bug in `core/` and is not fixable there without moving the fold, which section
+29.1 spends its length explaining must not move.
+
+### 36.2 The fix is in `ui/app.ts`, and it holds the argument rather than recomputing it
+
+`decidedParty` is a second local beside `pendingPlan`: the party a decision has
+settled on while `live` is still behind. `chooseMoveRecipient` sets it to the
+`party` it was handed, `onState` clears it, and `readDrawer` resolves
+`decidedParty ?? state.party`.
+
+Three things about that shape are the fix rather than incidental to it:
+
+- **It holds the argument.** `ui/` does not run `applyAcquisition` itself.
+  `partyAfterAcquisition`'s own header names a second reading of "who is in the
+  party now" as precisely how a recorded target index ends up teaching the wrong
+  Pokemon, and a drawer that derived its own would be that second reading with
+  no test able to see the two diverge.
+- **`chooseMoveRecipient` is the only place it is set, and it covers
+  `chooseMoveToReplace` too.** `askMoveQuestions` asks the second question
+  immediately after the first, about a member drawn from that same list, so one
+  assignment spans the pair. Every other screen in the window — there are none —
+  would need its own.
+- **`onState` is the only place it is cleared**, because that is the one moment
+  `live` catches up. An override that outlived it would be a stand-in for a
+  party that is now simply readable, and the next node's reorder or release
+  would not reach it.
+
+**Read-only surfaces only, and that is a rule rather than an omission.** The
+party screen is a *write* path — `onReorder` and `onRelease` mutate the array
+they were handed through `core/party.ts` — and pointing it at a party the run
+has not adopted would drop the edit at the node boundary. It is unreachable
+during this window anyway; the drawer is the one surface open on every screen,
+which is both why it is the only one that had the bug and why it is the only one
+that needs the fix.
+
+The map overlay reads `live` too and is untouched: it draws the route and
+nothing else. `map-drawer.ts` says so in its header and gives the reason — the
+party block is one tap away in the same bar, so printing it twice would be two
+readouts to keep in agreement, which is this section.
+
+### 36.3 The item plan is the same defect one line away, and it was carried
+
+The report says nothing about items. It did not have to: a plan names **slots**,
+`applyAcquisition` removes the released slot and appends the newcomer, and so
+every slot behind the released one becomes a different Pokemon.
+
+`showParty`'s `onRelease` already drops the pending plan for exactly this
+reason, in a comment that states the rule in full. A releasing *capture* is the
+other of the two paths that can shorten a party and it was carrying the plan
+across — so a drawer drawing the shortened party through a stale plan would hand
+the Leftovers the player chose for their Mantyke to whoever shifted up into that
+slot, silently and with no error to notice.
+
+`chooseAcquisition` drops it now, on `release` and only on `release`: `accept`
+appends and touches no existing slot, `decline` changes nothing at all.
+
+This is scope the report did not ask for, and it is in because the first fix is
+what makes it visible rather than because it was nearby. Before it, the drawer
+drew the old party through a plan composed against the old party, which is at
+least self-consistent.
+
+### 36.4 What is asserted, and where it had to be asserted
+
+`test/drawer-live-party.test.ts`. The wiring is three locals inside `mountApp`'s
+closure — `live`, the override, and the drawer's getter — and there is no seam
+between them a unit test can reach, so the first block asserts on the source the
+way `test/boundaries.test.ts` asserts that the human policy asks every question
+it claims to. Four cases: the getter does not read the lagging party unguarded,
+the move question feeds the override, `onState` clears it, and a releasing
+capture drops the plan.
+
+The second block is behavioural and runs the real `applyAcquisition`: it pins
+what an unspent plan *would* have done to the shortened party — `slot 2 holds
+the Leftovers` surviving as a sentence and pointing at the Anorith that just
+arrived — and then that the layout reads off run state once the plan is dropped,
+with the released member's item in the backpack where `applyAcquisition` freed
+it.
+
+**Why this was not caught.** `test/party-drawer.test.ts` asserts the drawer's
+three properties per surface — opening it advances nothing, submits nothing and
+draws nothing — and all three are properties of the *trigger*. None of them is
+about what the view contains, and the view is handed in, so every one of them
+passes just as happily on a party from the wrong moment.

@@ -31,7 +31,7 @@ import {
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
+import type { Choice, ItemPlan, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -709,6 +709,16 @@ export function mountApp(root: HTMLElement): void {
         return eventPick.wait();
       },
       chooseMoveRecipient: (offer, party, state, allowSkip) => {
+        /*
+         * **The party this question is asked against is the party the drawer
+         * must show**, and this is the only place the run hands it over.
+         *
+         * It is `partyAfterAcquisition` — `state.party` with the node's capture
+         * folded in — and it stays set through `chooseMoveToReplace`, which is
+         * asked immediately after this one about a member drawn from this same
+         * list. See the declaration of `decidedParty`.
+         */
+        decidedParty = party;
         // The run's tuning, for the move card's face-tag cap (4.8.0.2), and
         // whether this move may be handed back. `core/run.ts` sets the second
         // at the gym's guaranteed move and nowhere else; the screen shows a
@@ -756,7 +766,26 @@ export function mountApp(root: HTMLElement): void {
           resultScreen.render(lastReview, null, state, () => undefined, {
             offer,
             party,
-            onDecide: (decision) => acquirePick.submit(decision),
+            onDecide: (decision) => {
+              /*
+               * **A release drops the pending plan, for the reason the party
+               * screen's own release does.**
+               *
+               * A plan names *slots*, and `applyAcquisition` removes the
+               * released slot and appends the new member — so every slot behind
+               * it becomes a different Pokemon. Carrying the plan across would
+               * hand the Leftovers the player chose for their Mantyke to
+               * whoever shifted up into that slot, silently and with no error
+               * to notice. `showParty`'s `onRelease` states the rule; this is
+               * the same edit arrived at from the capture side, which is the
+               * other of the two paths that can shorten a party.
+               *
+               * `accept` appends and touches no existing slot, so it keeps the
+               * plan. `decline` changes nothing at all.
+               */
+              if (decision.kind === 'release') pendingPlan = null;
+              acquirePick.submit(decision);
+            },
           });
           showScreen('result');
         }
@@ -789,9 +818,13 @@ export function mountApp(root: HTMLElement): void {
     readDrawer = () => {
       const state = live;
       if (!state) return null;
+      // `decidedParty` where the run has been told about a capture it has not
+      // applied yet; `live.party` everywhere else, which is every screen
+      // outside a node's move questions. See the declaration.
+      const party = decidedParty ?? state.party;
       return {
-        party: state.party,
-        holding: itemLayoutOf(state.party, pendingPlan),
+        party,
+        holding: itemLayoutOf(party, pendingPlan),
         relics: state.relics,
         tuning: state.tuning,
       };
@@ -823,6 +856,36 @@ export function mountApp(root: HTMLElement): void {
      * before the screen has ever been shown.
      */
     let pendingPlan: ItemPlan | null = null;
+
+    /*
+     * The party a decision has already settled on, while `live` is still behind.
+     *
+     * **`live` lags inside a node, and the drawer is the surface where that
+     * shows.** `playRun` applies a capture in `resolveNode`, at the end of the
+     * node, but it asks the move questions *before* that — against
+     * `partyAfterAcquisition`, the party with the decision folded in. So
+     * between "release the Mantyke for this Anorith" and the end of the node,
+     * the recipient screen lists Anorith and `live.party` still holds Mantyke.
+     * A player who opened the drawer on that screen was shown a party
+     * contradicting the one they were picking from, which is the readout
+     * failure `ui/party-layout.ts` names and the drawer exists to remove.
+     *
+     * `core/run.ts` cannot close it from its side: nothing has happened to run
+     * state yet, so there is no `onState` for it to fire. What it does hand
+     * over is the party it is asking against, which is the applied result of
+     * `applyAcquisition` rather than a second guess at it — so this holds that
+     * array rather than recomputing one, and `ui/` stays out of deciding what a
+     * capture means.
+     *
+     * Read-only surfaces only. The party screen is a *write* path — a reorder
+     * or a release mutates the array it was handed — and pointing that at a
+     * party the run has not adopted yet would drop the edit at the node
+     * boundary. It is unreachable during this window anyway: the drawer is the
+     * one surface open on every screen.
+     *
+     * Cleared in `onState`, which is exactly the moment `live` catches up.
+     */
+    let decidedParty: readonly PokemonState[] | null = null;
 
     /**
      * The gym the pre-gym screen is asking about, while it is asking.
@@ -954,6 +1017,9 @@ export function mountApp(root: HTMLElement): void {
       // what makes a rest node visible: it resolves without a decision, so the
       // only evidence it happened is the party panel refilling.
       live = state;
+      // And the override goes with it: `live` is now the party the run holds,
+      // so a stand-in for it is a second answer to a question with one.
+      decidedParty = null;
       /*
        * The world's palette, from the same projection the map names the
        * region with. Stage V1. Set here rather than on the locale screen's
