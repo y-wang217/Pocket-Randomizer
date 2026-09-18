@@ -6102,11 +6102,24 @@ drift in the pixels rather than a layout change.
 
 ### 36.13 The gate, and the one line in it that is not a pass
 
-`npm run check` exits 0: lint, typecheck, the full suite, the WebKit browser leg
-and strict trim. **136 files, 1807 tests, all passing.** `npm run build` and
-`npm run smoke` pass, and smoke still walks `SMK49-2` — the seed whose header
-records five predecessors retired by exactly this kind of bump did not need a
-sixth.
+`npm run check` is section 33's nine-leg runner now, and on the merged tree it
+reports **8 passed, 0 failed, 1 skipped**: lint, typecheck, `test:node`,
+`test:chromium`, `trim:node`, `trim:browser`, `build` and `smoke` all green.
+Smoke still walks `SMK49-2` — the seed whose header records five predecessors
+retired by exactly this kind of bump did not need a sixth.
+
+**The skipped leg is `test:webkit`, and the runner says so rather than rounding
+up**: this container has no WebKit binary, so the summary line reads *"green, 1
+leg(s) skipped — not a full gate"*. That is section 33's own promotion rule
+working as designed — under `CI` a skip becomes a failure, so the GitHub Actions
+run is where the WebKit half is actually gated, and it is not claimed here.
+
+One earlier run of the gate reported `test:chromium` FAILED, and it is recorded
+because the diagnosis matters more than the result: the 400-seed benchmark was
+running against it at the same time, and the browser height tests are
+timing-sensitive. Run alone, all 24 browser files and 203 tests pass, and
+`trim:browser` — the same files under strict trim — passed even in the contended
+run. **Do not run the benchmark and the browser legs concurrently.**
 
 Vitest also reports `Errors 1 error` on the strict-trim leg, and it is recorded
 here rather than left for someone to rediscover. The error is
