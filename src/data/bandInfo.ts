@@ -14,13 +14,13 @@
  * written in the file that renders it, drifts from the mechanic.
  *
  * **Part 4 applies to every word below.** A band is an attribute — which of
- * four power brackets a move sits in — and the copy says what the bracket is
+ * five power brackets a move sits in — and the copy says what the bracket is
  * and where it comes from. It does not say that a higher band is better, that
  * the player should take one, or that any band is worth more than the card
  * beside it. The player knows what their party is holding; the screen does not
  * get to do the comparison for them.
  *
- * The ranges are stated because they are checkable. A player who reads "96 and
+ * The ranges are stated because they are checkable. A player who reads "111 and
  * over" and then reads `120 BP` on the same card has learned the whole system
  * from one tooltip, which is the standard every other tooltip in this game is
  * written to.
@@ -35,7 +35,7 @@ export interface BandEntry {
 }
 
 /**
- * Keyed by band number, 1 to 4.
+ * Keyed by band number, 1 to 5.
  *
  * The ranges mirror `POWER_CUTS` in `scripts/gen-pools.ts` and have to agree
  * with it; `test/tooltips.test.ts` asserts every band has an entry, and
@@ -45,32 +45,39 @@ export interface BandEntry {
 /**
  * How many pips the band meter draws. **Patch 4.8.0.3, item 3.**
  *
- * Four, because there are four bands, and the meter is a count of them rather
+ * Five, because there are five bands, and the meter is a count of them rather
  * than a scale. It lives here beside the table it counts so the two cannot
- * disagree — `test/band-badge.test.ts` holds it to `BAND_INFO`'s own size.
+ * disagree — `test/band-badge.test.ts` holds it to `BAND_INFO`'s own size, and
+ * `test/battle-readout.test.ts` holds the pair to each other. It was four until
+ * the band recut split the old top band at 110.
  */
-export const BAND_PIPS = 4;
+export const BAND_PIPS = 5;
 
 export const BAND_INFO: Readonly<Record<number, BandEntry>> = {
   1: {
     label: 'Band 1',
-    range: '55 base power and under',
-    text: 'Where a run starts. Every starter opens holding these, and so does everything in the first two segments.',
+    range: '60 base power and under',
+    text: 'Where a run starts. Every starter opens holding these, and so does most of what the first two segments field.',
   },
   2: {
     label: 'Band 2',
-    range: '56 to 75 base power',
-    text: 'The middle of the table. Most of what the middle segments field, and what an ordinary reward pays there.',
+    range: '61 to 75 base power',
+    text: 'The step up out of the opening. What the third segment mostly fields, and what the first gyms pay.',
   },
   3: {
     label: 'Band 3',
-    range: '76 to 95 base power',
-    text: 'The back half of the run. A risky node reaches here before the segments do.',
+    range: '76 to 90 base power',
+    text: 'The middle of the table, and the widest part of it. Most of what the middle segments field.',
   },
   4: {
     label: 'Band 4',
-    range: '96 base power and over',
-    text: 'The top of the table. The last segments field these, and gym leaders draw one band above the segment around them.',
+    range: '91 to 110 base power',
+    text: 'The back half of the run. A risky node reaches here before the segments do.',
+  },
+  5: {
+    label: 'Band 5',
+    range: '111 base power and over',
+    text: 'The top of the table. Mostly moves that cost something to use. The last segments field these, and the last gym pays one.',
   },
 };
 
@@ -84,7 +91,7 @@ export function bandInfo(band: number): BandEntry | null {
  *
  * Said out loud in the tooltip because it is the one place the badge and the
  * base power on the same card *disagree*: Population Bomb reads `20 BP` and
- * `BAND 4`, and a player who cannot account for that learns to distrust both
+ * `BAND 5`, and a player who cannot account for that learns to distrust both
  * numbers. See `effectivePower` in `scripts/gen-pools.ts`.
  */
 export const BAND_MULTIHIT_NOTE =

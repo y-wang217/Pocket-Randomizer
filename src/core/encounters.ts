@@ -70,7 +70,6 @@ import { generateEncounterAcquisition, generateEventAcquisition, type Acquisitio
 import { generateShopStock, type ShopStock } from './economy';
 import { EventPicker, generateEvent, type EventInstance } from './events';
 import { named } from './nicknames';
-import type { Reward } from './rewards';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
 import {
@@ -182,12 +181,18 @@ export interface NodeSpec {
    * that pays twice. Drawn in pass 6 from the same stream as the cards beside it,
    * before them, so the order inside that stream is fixed.
    *
-   * It is a `Reward` rather than a `MoveReward` because `resolveRewardEntry`
-   * returns the union and narrowing here would be a second place that knows a
-   * tutor entry resolves to a tutor card. `run.ts` narrows it with `isTargeted`,
-   * which is the single definition of "this card needs a target".
+   * **A `RewardOffer` of three moves, not one `Reward`.** It was a grant until
+   * the band recut; it is the gym's first page now, and the player picks one of
+   * three. `run.ts` asks a `reward` question against it exactly as it does for
+   * an ordinary node's offer, so a gym records two `reward` entries.
+   *
+   * The options are `Reward`s rather than `MoveReward`s because
+   * `resolveRewardEntry` returns the union and narrowing here would be a second
+   * place that knows a tutor entry resolves to a tutor card. `run.ts` narrows
+   * the chosen one with `isTargeted`, the single definition of "this card needs
+   * a target".
    */
-  gymMove: Reward | null;
+  gymMoveOffer: RewardOffer | null;
   /** The shelf, for a shop node. Null for everything else. */
   shop: ShopStock | null;
   /**
@@ -532,7 +537,7 @@ export function generateSegment(
     shop: null,
     event: null,
     acquisition: null,
-    gymMove: null,
+    gymMoveOffer: null,
   };
 
   const segment: Segment = {
@@ -664,7 +669,7 @@ export function generateSegment(
     tuning,
   );
   segment.gym.reward = gymPays.offer;
-  segment.gym.gymMove = gymPays.move;
+  segment.gym.gymMoveOffer = gymPays.moveOffer;
 
   return segment;
 }
@@ -983,7 +988,7 @@ function buildNode(
       shop: null,
       event: null,
       acquisition: null,
-      gymMove: null,
+      gymMoveOffer: null,
     };
   }
   if (!tier) throw new Error(`Battle node ${id} was generated without a tier`);
@@ -1019,7 +1024,7 @@ function buildNode(
     shop: null,
     event: null,
     acquisition: null,
-    gymMove: null,
+    gymMoveOffer: null,
   };
 }
 

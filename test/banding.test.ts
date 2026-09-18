@@ -42,6 +42,7 @@ import {
 import { COMPUTED_MAX_MOVE_BAND, DAMAGING_MOVES, STATUS_MOVES } from '../src/data/movePools';
 import {
   GYM_MOVE_BAND_BONUS,
+  GYM_MOVE_BAND_BONUS_FROM_SEGMENT,
   MOVESET,
   moveBandsFor,
   moveBandWeightsFor,
@@ -55,7 +56,7 @@ const SEGMENT_INDEXES = SEGMENTS.map((row) => row.segment);
 const SEEDS = Array.from({ length: 24 }, (_, index) => `BAND-${index}`);
 
 /** The cuts in `scripts/gen-pools.ts`, restated so a drift in either is loud. */
-const POWER_CUTS = [55, 75, 95];
+const POWER_CUTS = [60, 75, 90, 110];
 
 function bandFromPower(power: number): number {
   const index = POWER_CUTS.findIndex((cut) => power <= cut);
@@ -67,7 +68,7 @@ function bandFromPower(power: number): number {
 // ---------------------------------------------------------------------------
 
 describe('band assignment', () => {
-  it('bands every damaging move from 1 to 4, and no status move at all', () => {
+  it('bands every damaging move from 1 to 5, and no status move at all', () => {
     expect(MIN_MOVE_BAND).toBe(1);
     expect(COMPUTED_MAX_MOVE_BAND).toBe(POWER_CUTS.length + 1);
 
@@ -171,7 +172,7 @@ describe('the segment ramp', () => {
     expect(bands.at(-1)).toBe(MAX_MOVE_BAND);
   });
 
-  it('opens mostly on band 1 and ends on band 4', () => {
+  it('opens mostly on band 1 and ends on the top band', () => {
     /*
      * It read `toEqual([1])` for segments 0 and 1, and the opening is a
      * *distribution* now rather than a single band —
@@ -180,17 +181,36 @@ describe('the segment ramp', () => {
      * drawn from band 1 alone is not thin in the way "82 moves" suggests; it is
      * thin per species, and Normal is 20.7% of it.
      *
-     * What still has to hold is that the opening *leans* on band 1 and that
-     * band 4 is nowhere near it, which is what "a run starts with Tackle and
+     * **Segment 2 left the opening at the band recut, and that is the change
+     * this assertion records.** It used to be the third row that leaned on band
+     * 1; the weights are fitted to real gen-9 learnsets now, and at level 26 a
+     * real Pokemon carries 29% band 1 against 34% band 2 — so segment 2 leans
+     * *up*, and the opening it belongs to is two rows long, not three.
+     * `docs/reports/early-game-band-and-curve.md` section 3 is the table.
+     *
+     * What still has to hold is that the run *opens* leaning on band 1 with the
+     * top band nowhere near it, which is what "a run starts with Tackle and
      * Growl" means. The weight, not the membership.
      */
-    for (const segment of [0, 1, 2]) {
+    for (const segment of [0, 1]) {
       const weights = moveBandWeightsFor(segment, 'normal');
       expect(Object.keys(weights).map(Number).sort(), `segment ${segment}`).toEqual([1, 2]);
       expect(weights[1] ?? 0, `segment ${segment} leans on band 1`).toBeGreaterThan(weights[2] ?? 0);
       expect(segmentMoveBand(segment), `segment ${segment}`).toBe(MIN_MOVE_BAND);
     }
+
+    /*
+     * The opening never reaches the top of the table, however the cuts are
+     * drawn. Asserted against `MAX_MOVE_BAND` rather than a literal so a sixth
+     * band would move it rather than pass it.
+     */
+    for (const segment of [0, 1, 2]) {
+      const drawable = moveBandsFor(segment, 'normal');
+      expect(drawable, `segment ${segment} reaches the top band`).not.toContain(MAX_MOVE_BAND);
+    }
+
     expect(moveBandsFor(7, 'normal')).toContain(MAX_MOVE_BAND);
+    expect(segmentMoveBand(7), 'the last segment is at the top of the table').toBe(MAX_MOVE_BAND);
   });
 
   it('makes a hard node draw above a normal one, and elite above hard', () => {
@@ -224,20 +244,48 @@ describe('the segment ramp', () => {
     }
   });
 
-  it('gives a gym leader a band the segment around it does not draw', () => {
+  it('gives a gym leader a band the segment around it does not draw, where the spike applies', () => {
     expect(GYM_MOVE_BAND_BONUS).toBeGreaterThan(0);
-    // Measured through the roll rather than the table, because the bonus is
-    // applied in `gymMovePool` and a constant nobody reads is not a spike.
-    for (const segment of [0, 3, 6]) {
+
+    /*
+     * **Only from `GYM_MOVE_BAND_BONUS_FROM_SEGMENT` on, and only across a seed
+     * list.** Two things about this test were wrong and both were hidden by the
+     * STAB window.
+     *
+     * It asserted the spike at segment 0, where `gymMoveBandBonus` returns 0 and
+     * there is by definition no spike. It passed anyway, because the window let
+     * the forced slot reach a band above whatever it drew — so gym 1 looked like
+     * it was drawing above its segment when what it was doing was leaking. With
+     * the window closed the premise is visible and false, which is the leak this
+     * patch removed showing up in the one test written to measure it.
+     *
+     * It also measured one seed. A segment-0 gym fields two Pokemon and band 2
+     * carries a fifth of the weight, so "this seed drew no band 2" is a one-in-
+     * four coincidence rather than a finding. Measured across the list now, and
+     * still through the roll rather than the table, because the bonus is applied
+     * in `gymMovePool` and a constant nobody reads is not a spike.
+     */
+    for (const segment of SEGMENT_INDEXES) {
       const gym = GYMS[segment]!;
-      const gymBands = new Set(
-        generateGymTeam(gym, segment, createRng(`GYM-BAND-${segment}`).randomizer.at('test'))
-          .flatMap((spec) => describeSpecCard(spec).moves)
-          .filter((move) => move.category !== 'Status')
-          .map((move) => bandFromPower(move.basePower)),
+      const bands = new Set(
+        SEEDS.flatMap((seed) =>
+          generateGymTeam(gym, segment, createRng(`GYM-BAND-${seed}`).randomizer.at('test'))
+            .flatMap((spec) => describeSpecCard(spec).moves)
+            .filter((move) => move.category !== 'Status')
+            .map((move) => bandFromPower(move.basePower)),
+        ),
       );
       const segmentTop = Math.max(...moveBandsFor(segment, 'normal'));
-      expect(Math.max(...gymBands), `gym ${segment}`).toBeGreaterThanOrEqual(segmentTop);
+      if (segment >= GYM_MOVE_BAND_BONUS_FROM_SEGMENT) {
+        expect(Math.max(...bands), `gym ${segment} draws above its segment`).toBeGreaterThan(
+          segmentTop - 1,
+        );
+      } else {
+        // No spike yet: the leader draws the segment's own table and nothing above it.
+        expect(Math.max(...bands), `gym ${segment} draws past its segment`).toBeLessThanOrEqual(
+          segmentTop,
+        );
+      }
     }
   });
 });
@@ -267,17 +315,20 @@ describe('generated movesets under banding', () => {
 
   it('keeps a starter inside its band plus the STAB window, and no further', () => {
     /*
-     * This asserted band 1 flat, and the `stabWindow` patch makes that false on
-     * purpose: the forced STAB slot reaches one band above the one it drew, so
-     * a starter can open holding a band-2 move of its own type and nothing
-     * higher.
+     * **The ceiling is the test, not the floor**, and the ceiling is derived
+     * from `stabWindow` rather than written down — which is what lets this
+     * assertion survive the window opening and closing again.
      *
-     * **The ceiling is the test, not the floor.** The old assertion's real job
-     * was that the starter cannot reach the middle of the table, which is the
-     * whole of Stage 4.6b's opening position — and that job survives intact,
-     * one band wider. `data/scaling.ts` `stabWindow` carries the argument and
-     * the measurement; `docs/reports/moveset-pool-validation.md` section 3b is
-     * the reason it is not zero.
+     * It asserted band 1 flat originally. The `stabWindow` patch made that false
+     * on purpose and it was rewritten one band wider. The band recut closes the
+     * window again (`data/scaling.ts` carries the argument: the band widened
+     * instead, 82 moves to 117, which is the same fix applied to the cause), so
+     * the ceiling computes back down to 1 and the starter is band 1 flat once
+     * more — without this test having to be rewritten a third time.
+     *
+     * The job underneath all three versions is unchanged: a starter cannot reach
+     * the middle of the table. That is Stage 4.6b's opening position and it has
+     * never moved.
      */
     expect(STARTER_MOVE_BANDS).toEqual([1]);
     const ceiling = Math.min(MAX_MOVE_BAND, Math.max(...STARTER_MOVE_BANDS) + MOVESET.stabWindow);
@@ -293,9 +344,18 @@ describe('generated movesets under banding', () => {
         }
       }
     }
-    // ...and the window genuinely reaches, or the ceiling above passes because
-    // nothing ever tries to cross it.
-    expect(aboveTheBase, 'no starter ever drew through the STAB window').toBeGreaterThan(0);
+    /*
+     * ...and the window's state is asserted rather than assumed, in whichever
+     * direction it is set. Open, it has to genuinely reach, or the ceiling above
+     * passes because nothing ever tries to cross it. Closed, nothing may cross
+     * the base at all — which is the stronger claim, and the one that would
+     * catch the window being reopened by accident.
+     */
+    if (MOVESET.stabWindow > 0) {
+      expect(aboveTheBase, 'no starter ever drew through the STAB window').toBeGreaterThan(0);
+    } else {
+      expect(aboveTheBase, 'a starter drew above band 1 with the STAB window closed').toBe(0);
+    }
   });
 
   it('spends the same number of draws whatever the weights say', () => {

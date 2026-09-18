@@ -224,7 +224,7 @@ describe('a whole run', () => {
      * rather than silently changing the model.
      */
     const seen: { segment: number; position: number; lead: string }[] = [];
-    await playRun('S49L-1', contrarian(), DEFAULT_TUNING, {
+    await playRun('LEAD-RUN-10', contrarian(), DEFAULT_TUNING, {
       onState: (state) => {
         const lead = state.party[0];
         if (!lead) return;
@@ -263,8 +263,8 @@ describe('a whole run', () => {
      * everything except the answer to one question — and the run diverges,
      * because who is in front decides who takes the gym leader's first hit.
      */
-    const contrary = await playRun('LEAD-DIVERGE', contrarian(), DEFAULT_TUNING);
-    const flat = await playRun('LEAD-DIVERGE', scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
+    const contrary = await playRun('LEAD-RUN-25', contrarian(), DEFAULT_TUNING);
+    const flat = await playRun('LEAD-RUN-25', scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
 
     const leads = contrary.log.decisions.filter((decision) => decision.kind === 'lead');
     expect(leads.length).toBeGreaterThan(0);

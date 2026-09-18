@@ -453,7 +453,7 @@ describe('a whole run that acquires', () => {
      */
     let peak = 0;
     let overCapacity = 0;
-    const run = await playRun('PARTY-D2', collector(), DEFAULT_TUNING, {
+    const run = await playRun('PARTY-D0', collector(), DEFAULT_TUNING, {
       onState: (state) => {
         peak = Math.max(peak, state.party.length);
         if (state.party.length > partyCapacity(state)) overCapacity++;
@@ -466,7 +466,7 @@ describe('a whole run that acquires', () => {
   });
 
   it('records the target and the acquisition as decisions of their own', async () => {
-    const run = await playRun('PARTY-D2', collector());
+    const run = await playRun('PARTY-D0', collector());
     const kinds = run.log.decisions.map((decision) => decision.kind);
 
     expect(kinds).toContain('acquisition');
@@ -478,7 +478,7 @@ describe('a whole run that acquires', () => {
   });
 
   it('replays a run that acquired, released and targeted to the same party', async () => {
-    const original = await playRun('PARTY-D2', collector());
+    const original = await playRun('PARTY-D0', collector());
     const replayed = await replayRun(original.log);
 
     expect(replayed.outcome).toBe(original.outcome);
@@ -831,7 +831,7 @@ describe('a full eight-gym run, headless', () => {
   };
 
   const victoryRun = (): Promise<RunResult> =>
-    playRun('WIN-MECHANISM', everything(), VICTORY_TUNING, { opponent: pacifist });
+    playRun('WIN-MECH-0', everything(), VICTORY_TUNING, { opponent: pacifist });
 
   it('reaches the last gym, levelling and healing all the way, acquiring and releasing', async () => {
     expect(typeof globalThis.document).toBe('undefined');

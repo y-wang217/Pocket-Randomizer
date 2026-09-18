@@ -102,24 +102,51 @@ describe('move pools', () => {
 
   it('offers every type in every band', () => {
     // `rollMoveset` asks for "a damaging move of this species' type in this
-    // band" and falls back to open coverage if there is none. That fallback is
-    // meant to be unreachable, and this is what keeps it that way: a band
-    // missing a type would silently strip STAB from every species of it.
+    // band" and falls back to open coverage if there is none. Every type has to
+    // exist *somewhere*, or that species has no STAB at any band.
     const types = new Set(DAMAGING_MOVES.map((move) => move.type));
     expect(types.size).toBe(18);
 
-    // Bands are 1..4 from Stage 4.6b, and `bandOf` rather than `move.band`
-    // because an override can move a move between bands — a band emptied of a
-    // type by an override is the same failure as one emptied by the generator.
-    // Both ceilings, because they can differ: the generator's is what base
-    // power produced, and the live one is what overrides left. A band that
-    // exists only because an override put a move there still needs 18 types.
+    /*
+     * **Three bands are a type short, and the list is pinned rather than
+     * asserted away.**
+     *
+     * This read "every band covers all 18 types", and the fallback in
+     * `rollMoveset` was meant to be unreachable. The band recut made it
+     * reachable: the dex simply has no Dragon move between 61 and 75, no Bug
+     * move between 91 and 110, and no Dark move at 111 or above. No cut can fix
+     * that without moving an edge somewhere the dex is dense, which would
+     * reclassify dozens of moves to rescue one.
+     *
+     * So a species of those types drawing that band loses STAB for that slot
+     * and takes open coverage instead — the same trade already accepted for
+     * Psychic when `stabWindow` closed. What is asserted instead is exactly as
+     * much as is true: **every band is non-empty and carries at least 15 of 18
+     * types, and the set of gaps is this one.** A regeneration that opens a
+     * fourth gap, or closes one of these, fails here and has to say so.
+     *
+     * `bandOf` rather than `move.band` because an override can move a move
+     * between bands, and a gap opened by an override is the same fact as one
+     * opened by the generator. Both ceilings, because they can differ: the
+     * generator's is what base power produced, the live one is what overrides
+     * left.
+     */
+    const KNOWN_TYPE_GAPS: Readonly<Record<number, readonly string[]>> = {
+      2: ['Dragon'],
+      4: ['Bug'],
+      5: ['Dark'],
+    };
+
     expect(MAX_MOVE_BAND).toBeGreaterThanOrEqual(COMPUTED_MAX_MOVE_BAND);
     for (let band = MIN_MOVE_BAND; band <= MAX_MOVE_BAND; band++) {
       const inBand = new Set(
         DAMAGING_MOVES.filter((move) => bandOf(move) === band).map((move) => move.type),
       );
-      expect(inBand.size, `band ${band} covers ${inBand.size}/18 types`).toBe(18);
+      expect(inBand.size, `band ${band} is empty`).toBeGreaterThan(0);
+      expect(inBand.size, `band ${band} covers only ${inBand.size}/18 types`).toBeGreaterThanOrEqual(15);
+
+      const missing = [...types].filter((type) => !inBand.has(type)).sort();
+      expect(missing, `band ${band} type gaps`).toEqual([...(KNOWN_TYPE_GAPS[band] ?? [])].sort());
     }
   });
 

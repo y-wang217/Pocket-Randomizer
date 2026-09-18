@@ -1,9 +1,9 @@
 {
   "seed": "SEED-A",
   "versions": {
-    "runLog": "gymrun-run-18/gymrun-0.3.0",
-    "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
-    "randomizer": "gymrun-randomizer-18",
+    "runLog": "gymrun-run-19/gymrun-0.3.0",
+    "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
+    "randomizer": "gymrun-randomizer-19",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -12,28 +12,42 @@
   "causeOfDeath": {
     "segment": 0,
     "leader": "Garnet",
-    "kind": "trainer",
+    "kind": "wild",
     "species": "Brook",
-    "bySpecies": "Falinks",
-    "byMove": "Triple Arrows",
+    "bySpecies": "Mantyke",
+    "byMove": "Acrobatics",
     "indirect": null
   },
-  "currency": 14,
+  "currency": 52,
   "backpack": [],
   "relics": [],
   "party": [
     {
       "species": "Mankey",
-      "level": 7,
+      "level": 15,
       "ability": "Supreme Overlord",
       "moves": [
-        "Triple Kick 13/16",
+        "Triple Kick 16/16",
         "Astonish 24/24",
-        "Ice Shard 48/48",
-        "Water Shuriken 30/32"
+        "Force Palm 13/16",
+        "Water Pulse 32/32"
+      ],
+      "item": "blackbelt",
+      "hp": "0/41",
+      "fainted": true
+    },
+    {
+      "species": "Skwovet",
+      "level": 15,
+      "ability": "Pure Power",
+      "moves": [
+        "Pay Day 31/32",
+        "Fairy Wind 48/48",
+        "Snore 24/24",
+        "Acid Armor 32/32"
       ],
       "item": null,
-      "hp": "0/24",
+      "hp": "0/50",
       "fainted": true
     }
   ],
@@ -43,10 +57,10 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer's Scraggy",
-      "turns": 3,
+      "opponent": "Trainer's Mantyke",
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 16,
+      "hpAfter": 15,
       "casualties": []
     },
     {
@@ -55,17 +69,59 @@
       "label": "Trainer battle",
       "tier": "hard",
       "opponent": "Trainer's Falinks",
-      "turns": 2,
+      "turns": 3,
+      "winner": "p1",
+      "hpAfter": 15,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "normal",
+      "opponent": "Wild Skwovet",
+      "turns": 1,
+      "winner": "p1",
+      "hpAfter": 41,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "normal",
+      "opponent": "Wild Rattata",
+      "turns": 1,
+      "winner": "p1",
+      "hpAfter": 91,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "hard",
+      "opponent": "Wild Mantyke",
+      "turns": 4,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
+          "name": "Ivy",
+          "level": 15,
+          "species": "Skwovet",
+          "bySpecies": "Mantyke",
+          "byMove": "Brine",
+          "indirect": null
+        },
+        {
+          "side": "p1",
           "name": "Brook",
-          "level": 7,
+          "level": 15,
           "species": "Mankey",
-          "bySpecies": "Falinks",
-          "byMove": "Triple Arrows",
+          "bySpecies": "Mantyke",
+          "byMove": "Acrobatics",
           "indirect": null
         }
       ]
@@ -74,10 +130,10 @@
   "log": {
     "seed": "SEED-A",
     "versions": {
-      "runLog": "gymrun-run-18/gymrun-0.3.0",
-      "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
+      "runLog": "gymrun-run-19/gymrun-0.3.0",
+      "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-18"
+      "randomizerVersion": "gymrun-randomizer-19"
     },
     "decisions": [
       {
@@ -96,21 +152,28 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {
@@ -142,6 +205,130 @@
         "choice": {
           "kind": "move",
           "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "accept"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [
+            {
+              "slot": 0,
+              "item": "blackbelt"
+            }
+          ],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       }
     ]

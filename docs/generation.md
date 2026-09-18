@@ -3616,8 +3616,9 @@ types, the six stats at the member's level, dex order, no marker.
 
 ### The curve, the rosters, the AI
 
-`playerLevel` is 7, 14, 20, 27, 33, 40, 47, 55, each clear sized to cross a
-threshold cluster; wild a fifth to a third below, trainer a sixth to a
+`playerLevel` was 7, 14, 20, 27, 33, 40, 47, 55, each clear sized to cross a
+threshold cluster (**the band recut moved it to 15, 20, 26, 32, 38, 44, 50, 58 —
+section 36**); wild a fifth to a third below, trainer a sixth to a
 quarter below, gym at or above (0..+1 to +2..+4). `TIER_MODIFIERS.level`
 became `levelShare`, a fraction of the player's level, because `-3` at level
 7 was 43% of it. A gym fields the player's slot count (2, 3, 3, 4, 4, 5, 5,
@@ -3654,8 +3655,9 @@ evolution and at least 280 base stat total.
   With it from segment 0, 82% of deaths were at gym 1 to Rock Slide, Ancient
   Power and Rock Tomb — band-2 moves against twenty-HP base forms. The gym
   clear's *reward* still pays one band up from gym 1.
-- **A starter floor of 280 base stats.** Band 0 runs from 180; a Caterpie at
-  level 7 is a run that ends at the first trainer.
+- **A starter floor of 280 base stats.** Band 0 runs from 180; a Caterpie is a
+  run that ends at the first trainer. (Derived at level 7; the band recut moved
+  the opening to 15 without re-deriving it — section 36.6.)
 - **Content-dependent pins moved.** Two `visual-v5` move-grid tests read
   SMOKE24's first board and needed a marker and an unwrapped meta row; the new
   SMOKE24 opens with Fighting moves whose type chip wraps the meta row at
@@ -5820,8 +5822,322 @@ The direction is the one the change argues for and the magnitude is larger than
 the level arithmetic alone suggests, which is the Speed threshold showing up in
 the number. Nothing else was tuned against this run. The full row, including
 what it says about the standing gym 3 outlier, is in `balance.md` section 0.
+## 36. The opening was drawing from a table nobody wrote
 
-## 36. Moves became inventory TMs, and four questions left the node
+**2026-09-17**, branch `claude/admiring-euler-dhn536`. Prompt:
+[`spec/gymrun-patch-band-recut-and-level-curve.md`](spec/gymrun-patch-band-recut-and-level-curve.md).
+Report, filed before any code and treated as a hard stop:
+[`reports/early-game-band-and-curve.md`](reports/early-game-band-and-curve.md) —
+which is also the decision record, because the instruction that produced it asked
+for one.
+
+Axes: `RANDOMIZER_VERSION` to `gymrun-randomizer-19`, `RUN_LOG_VERSION` to
+`gymrun-run-18`, `contentHash` to `a036d6`. **`AI_VERSION` holds** at
+`gymrun-ai-6-spent-item`, deliberately: `GREEDY_BASELINE` is the yardstick every
+benchmark row is read against, and moving it would move every row with it.
+
+### 36.1 The complaint was band 2, and the cause was not the weights
+
+The report opens on a measurement. Segments 0 to 2 are written
+`moveBandWeights: { 1: 4, 2: 1 }` — 80/20 — and across 600 seeds gym 1 was
+measured fielding **61% band 1, 34% band 2 and 5% band 3**. The opening was
+drawing from a distribution that appears in no file.
+
+Two channels. `MOVESET.stabWindow` was 1, so the forced STAB slot read
+`damagingInStabWindow(band)` — its band *and the one above* — and `rollMoveset`'s
+`take(from) ?? take(inBand) ?? take(pool.all)` fallback reaches the whole pool
+whenever the type filter empties, which at band 1 it frequently did.
+
+Both arrived in `40dbb0b`, whose message describes the window and not the weights:
+that commit also moved segments 0 to 2 from `{ 1: 1 }` to `{ 1: 4, 2: 1 }` without
+saying so. `starters.ts` still claimed "segments 1-2 draw band 1 only" and had
+been wrong since.
+
+### 36.2 Five bands, cut where the dex is empty
+
+`POWER_CUTS` went `[55, 75, 95]` to `[60, 75, 90, 110]`.
+
+| band | range | moves |
+|---|---|---|
+| 1 | ≤60 | 117 |
+| 2 | 61-75 | 63 |
+| 3 | 76-90 | 114 |
+| 4 | 91-110 | 58 |
+| 5 | 111+ | 45 |
+
+**No move in the pool has effective power in 91-94 or in 111-119**, so the two new
+edges fall in ranges the dex already leaves empty and not one move is reclassified
+by an arbitrary boundary. That is the argument for these four numbers rather than
+four neighbouring ones, and it is checkable by re-running the census.
+
+Band 1 going from 82 moves to 117 is what makes closing the window affordable.
+The window existed because band 1 held one Psychic move and one Dragon move; at
+117 the count of types whose entire band-1 slice is one attack category drops from
+six to three, and of types with fewer than three band-1 moves from four to two.
+The fix moved from the symptom to the cause.
+
+### 36.3 Three type gaps, pinned rather than designed around
+
+The recut leaves band 2 with no Dragon move, band 4 with no Bug move and band 5
+with no Dark move. `test/data-tables.test.ts` required every band to hold all 18
+types; that requirement is now false and no cut makes it true without moving an
+edge into a dense part of the dex and reclassifying dozens of moves to rescue one.
+
+The test asserts what is true instead: every band non-empty, at least 15 of 18
+types, and **this exact set of gaps**. A fourth gap fails it and so does closing
+one of these. A species of those types drawing that band loses STAB for that slot
+and takes open coverage — the same trade accepted for Psychic below.
+
+### 36.4 Deterministic Confusion, accepted
+
+With the window closed, Psychic holds exactly one band-1 move. Every Psychic
+species' forced first slot is Confusion, deterministically — the defect
+`stabWindow` was added to fix, reintroduced knowingly. Steel has two band-1 moves
+and Fairy three, all one category.
+
+The user's ruling, in full: *"yes accept the deterministic. psychic is a strong
+typing and needs investment to win."*
+
+### 36.5 The first external reference the ramp has ever had
+
+[`reports/moveset-pool-validation.md`](reports/moveset-pool-validation.md) records
+that this project ships no learnsets and that this is permanent. True of the
+*game*; it does not stop the dex being read at analysis time, and this patch is
+the first to do it.
+
+Gen-9 level-up learnsets for all **900 pool species** (0 failures), pre-evolution
+chains walked, scored as the four most recently learned damaging moves — what a
+nuzlocke Pokemon actually carries. All eight `moveBandWeights` rows are fitted to
+that table. They had to be rewritten regardless: the old band 3 (76-95) splits
+across the new bands 3 and 4, so every row meant something different than it did.
+
+The measurement says two things the old table got wrong in opposite directions.
+The opening weights were already about right — real games give 58/18 at level 15
+against a written 80/20, and the 61/34 measured was the leak, not the table. And
+the back half was the under-specified end: real gym 8 is 38% top-band and the old
+table had no top band to give. Segment 7 is the first row whose modal band is the
+ceiling, so gym 8 draws and pays band 5.
+
+### 36.6 The curve, and the two goals the dex will not give
+
+`playerLevel` went `7, 14, 20, 27, 33, 40, 47, 55` to `15, 20, 26, 32, 38, 44, 50, 58`.
+
+Emerald pace rather than Kaizo pace, stretched. Vanilla Emerald's gyms are 15, 19,
+24, 29, 31, 33, 42, 46 and its Champion is 58. Gyms 1 and 2 are taken from that
+list; the middle is stretched because Emerald's own is flat — 29, 31, 33 across
+three gyms — while the dex's final-evolution mass sits at 30 to 36 with a median
+of 35, so the vanilla curve parks under the entire cluster and shows the player
+nothing for three gyms. Measured over the starter pool, verbatim Emerald reaches
+38% fully evolved by gym 6 where the stretched curve reaches 89%.
+
+Gym 8 takes the Champion's 58 rather than the eighth gym's 46, for two reasons: it
+is this game's final fight, and at 46 no pseudo-legendary line could ever finish.
+
+**Two stated goals are missed and recorded rather than chased.** "First evolutions
+by gym 2" reaches 20% — dex stage-1 levels cluster at 16 to 30 and a majority needs
+gym 2 at about 26, which makes the opening a sprint. And Tyranitar and Dragonite at
+a *real* dex 55 finish at gym 8 rather than gym 7; `evolutionThresholds.ts` may not
+raise a real dex level, and the Dragon gym is arguably where they belong.
+
+One synthetic moved: **Alakazam 55 to 50**, the only one the curve stranded. Gengar
+(50), Machamp (50) and Golem (42) already land by the gym 7 fight.
+
+### 36.7 Raising levels sharpens the early swing; it does not soften it
+
+Recorded because the patch's own framing had it backwards until the report
+measured it, and because the next reader will assume the same thing.
+
+The damage formula's level term is `floor(2L/5) + 2`, which doubles from 4 to 8
+between level 7 and level 15. Median starter HP grows from 26 to 44, a factor of
+1.69. Damage outgrows HP, because the flat `+10` in the HP formula dominates at
+very low level and stops mattering by 15.
+
+Chance a STAB super-effective hit one-shots, per damaging slot, over every
+drawable move and every starter-pool defender:
+
+| config | rate |
+|---|---|
+| before, gym 1 at L7 | 14.2% |
+| gym 1 at L7, new cuts, window closed | **11.3%** |
+| after, gym 1 at L15 | **22.3%** |
+
+The band work did what it was asked to do and the level raise undid it and more.
+**The curve is justified on evolution pacing and on nothing else.** Neutral-damage
+OHKO rate is 0.0-0.6% at every level and config, so all of the swing is
+super-effective hits — which is ordinary Pokemon, and the one forecast the UI is
+already allowed to show.
+
+**And then the benchmark said the opposite, which is why it is the benchmark.**
+Measured alone, against the pinned `greedy` baseline at 400 seeds, gym 1 cleared
+**56.4%** — up from 48.3% — and mean gyms went 0.545 to 0.56.
+
+**Re-measured on the merged tree it reads differently again**, because the gym
+level column went to zero on another branch in between (section 35) and that
+change is worth more than this one at gym 1. The shipped row is **0.65 mean
+gyms and 0.3% completion**: down 0.16 from the 0.81 the parity change alone
+produced, and the first non-zero completion this population has recorded since
+Stage 4.9. One run in 400 cleared all eight gyms. Gym 3 is +25.3pt, gym 1 is
+-5.8pt, and everything past gym 4 is two to twenty runs a column. The
+`randomizer-19` row of `balance.md` carries the full reading.
+
+A wrong number was carried for part of this patch and is corrected here rather
+than quietly dropped: an interim 120-seed run was read off the `ladder` policy's
+*first* sample, which is `random`, not `greedy`. `random` clears gym 1 at 22.7%
+and always has; the baseline every row in `balance.md` is read against is
+`greedy`, and reading across them is the "read down a prefix, never across" rule
+failing in a new direction.
+
+So the arithmetic above stands — the per-slot one-shot rate really does rise —
+and the outcome does not follow it. The closed window is why. Gym 1's measured
+band mix is now **83% band 1, 17% band 2, no band 3**, against the 61/34/5 the
+leak was producing; a player facing fewer band-2 and no band-3 moves wins more
+often even though each individual super-effective hit is likelier to one-shot.
+The two effects are not the same measurement, and only one of them is the game.
+
+Gym 1 fields **0% evolved forms** and its mean `specPower` matches the starter's,
+so the widened stage gate is not doing anything either way.
+
+The user's standing ruling on clear rate, given before these numbers arrived:
+*"don't worry about your clear rates... the game was too easy in a prior case and
+average gyms was 3, and I was clearing all 8 consistently. the slay the spire
+comparison only is apt if it's genuinely difficult but gives tools to a player
+(read: real strategist) to progress non-trivially."*
+
+### 36.8 A superseded rule: the gym offer is no longer strictly better than elite
+
+`rewardPools.ts` stated that a gym offer must be strictly better than an elite
+node's, and `GYM_MOVE_ENTRY` resolved at `elite` to pay for it: the segment's band
+plus `REWARD_BAND_OFFSET.elite`'s +2 plus `GYM_MOVE_BAND_BONUS`'s +1. At segment 0
+that clamped to the ceiling, and **300 gym-1 clears out of 300 handed the player a
+band-4 move** — Fire Blast, Cross Chop, Sacred Fire, Overheat — at level 14. The
+largest single swing in the opening, on the player's side.
+
+**The rule is deleted from the lineage, not weakened.** It was measuring the wrong
+axis. The replacement argument, in the user's words: *"gym already pays +1 move and
+relic/gold, which is strictly better than +2 move. elites are also just the move,
+while gyms also unlock a level up to the next tier. elites being better
+rewards/harder than a gym is also not terrible. the player makes that decision
+going in."*
+
+So a gym clear is **two pages of three**: three distinct moves at the segment's
+band +1, then three distinct relics-or-gold. `GYM_OFFER_SIZE` went 2 to 3, which
+retires the Stage 4.8 item 2 Part B exception recorded in section 7c — the third
+card on the item page is a second distinct relic rather than the padding that
+exception was avoiding. CLAUDE.md's rewards invariant (every offer is exactly three
+distinct options) now holds on both pages where it held on neither.
+
+Bands paid, by gym: 2, 2, 3, 4, 4, 4, 4, 5.
+
+### 36.9 Why `RUN_LOG_VERSION` moved, and the decline that survived it
+
+The gym's grant became a question, so a gym node records **two** `reward` entries
+where it recorded one. No decision *kind* was added — the replay cursor is
+positional and kind-checked, so the pair needs only a fixed order — but the
+sequence a gym writes is one entry longer, and a `-17` log replayed here would read
+its gym `reward` as the move page and then run out of step at the card.
+
+`playRun` also stops handing the review screen a gym's cards. Every other node
+answers its one offer there; a gym would otherwise answer page 2 before page 1 was
+asked, so `reviewOffer` is null for gyms and both pages go through `chooseReward`.
+`test/result-screen.test.ts` asserts that exemption rather than tolerating it.
+
+The `DECLINED_MOVE` sentinel survives with a **rewritten justification**. Its old
+argument — that a gym move is unconditional, so refusing it is the first and only
+escape hatch — is dead, because the move is now chosen over two others, which is
+exactly the condition `chooseMoveToReplace` cites when it refuses a decline of its
+own. What replaces it: an ordinary reward node offers a move *against an item or a
+relic*, so declining spends the card elsewhere; a gym move page offers three moves
+and nothing else, the relics being on the next page and already guaranteed. A
+player whose four slots all work has no "take the other thing" answer on the page
+where the question is asked. This is that answer.
+
+### 36.10 Two tests were passing for the wrong reason
+
+`test/banding.test.ts` asserted the gym move-band spike at segment 0, where
+`gymMoveBandBonus` returns 0 and there is by definition no spike. It passed because
+the STAB window was leaking a band above whatever the slot drew. It also measured
+one seed, and a segment-0 gym fields two Pokemon with band 2 at a fifth of the
+weight, so "this seed drew no band 2" was a one-in-four coincidence. It asserts
+across the seed list now, and asserts the *absence* of a spike below
+`GYM_MOVE_BAND_BONUS_FROM_SEGMENT`.
+
+The starter ceiling in the same file derives from `MOVESET.stabWindow` rather than
+restating it, which is why it survived the window opening and closing without a
+third rewrite — and it now asserts the closed case (nothing above band 1) as well
+as the open one.
+
+### 36.11 Seed-pinned tests, and the one that could not be re-seeded
+
+The pattern section 31.5 records — search a seed list, assert the search found
+something — covers `capture`, `lead-selection`, `move-replacement` and `party`.
+
+`test/evolution-run.test.ts` could not be fixed that way and says so. **Nothing in
+400 seeds reached a branching evolution**: only 14 species in the pool fork at all,
+and a run has to be holding one when a gym clear crosses its threshold. It uses a
+**pacifist opponent** now — the idiom `test/party.test.ts` already uses for its
+full run, on that file's own argument that whether the game is winnable is
+`npm run sim`'s question and what this file tests is the plumbing. Its replay needed
+the opponent handed to it too: a `RunLog` records the player's decisions and nothing
+about the bot across from them, so replaying a pacifist run against the default
+opponent runs out of step at the first reward that is no longer there.
+
+### 36.12 A contrast defect the recut exposed
+
+`test/visual-chips.test.ts` found the `STAB` flag chip at **4.36:1** against a
+green locale tint, under `displayTuning.minChipContrastRatio`'s 4.5. The flags
+strip is the one place a chip sits on the locale-tinted battle stage rather than a
+panel, and the seed the sweep walks reaches that tint now and did not before — so
+the pairing had never been sampled.
+
+**The defect predates this patch and was exposed by it**, the same shape as section
+32. `.flags .chip` takes full cream instead of the dim default. Every flag moves
+together, so the Release C rule the strip holds is untouched: a kind is still
+identical to every other kind within a side, and `[data-side='p1']` is still the
+only thing that distinguishes them.
+
+`docs/visual/baseline/heights.json` was re-minted. `decisionCount` is unchanged on
+every guarded screen and every budget still holds — battle's decision bottom at 708
+and the map's at 687.6, both under the 740 fold line — so the movement is seed
+drift in the pixels rather than a layout change.
+
+### 36.13 The gate, and the one line in it that is not a pass
+
+`npm run check` is section 33's nine-leg runner now, and on the merged tree it
+reports **8 passed, 0 failed, 1 skipped**: lint, typecheck, `test:node`,
+`test:chromium`, `trim:node`, `trim:browser`, `build` and `smoke` all green.
+Smoke still walks `SMK49-2` — the seed whose header records five predecessors
+retired by exactly this kind of bump did not need a sixth.
+
+**The skipped leg is `test:webkit`, and the runner says so rather than rounding
+up**: this container has no WebKit binary, so the summary line reads *"green, 1
+leg(s) skipped — not a full gate"*. That is section 33's own promotion rule
+working as designed — under `CI` a skip becomes a failure, so the GitHub Actions
+run is where the WebKit half is actually gated, and it is not claimed here.
+
+One earlier run of the gate reported `test:chromium` FAILED, and it is recorded
+because the diagnosis matters more than the result: the 400-seed benchmark was
+running against it at the same time, and the browser height tests are
+timing-sensitive. Run alone, all 24 browser files and 203 tests pass, and
+`trim:browser` — the same files under strict trim — passed even in the contended
+run. **Do not run the benchmark and the browser legs concurrently.**
+
+Vitest also reports `Errors 1 error` on the strict-trim leg, and it is recorded
+here rather than left for someone to rediscover. The error is
+`[vitest-worker]: Timeout calling "onTaskUpdate"` — the reporter's IPC channel
+timing out on a 12-minute run, with no assertion behind it and no test file
+marked failed. It first appeared on a diagnostic run made *concurrently* with the
+smoke browser walk, which flagged a file as failed; run alone the file count is
+136 of 136 and the error survives as a bare warning. Vitest's own message says an
+unhandled error "might cause false positive tests", so the claim being made here
+is narrow: the suite is green on two independent runs, and this line is
+infrastructure rather than product. If it starts appearing with a file attached,
+that is a different finding.
+
+The benchmark is `RETUNE`, 400 seeds, `ai-6-spent-item` pinned — 0.56 mean gyms,
+0% completion — and the row in [`balance.md`](balance.md) carries what it means
+and what it cannot see.
+
+## 37. Moves became inventory TMs, and four questions left the node
 
 The account of
 [`spec/gymrun-stage-moves-as-inventory-tms.md`](spec/gymrun-stage-moves-as-inventory-tms.md).
@@ -5896,15 +6212,28 @@ readers, which is the shape of every replay bug this project has had. Neither
 module calls the other at module-init time, so it is a call graph and not an
 evaluation order.
 
-### Versions
+### Versions, and the collision the merge found
 
-`RUN_LOG_VERSION` to `-18`: the `target` and `replace` entries are gone from
-four places and `ItemPlan` reshaped, so the same seed and the same clicks
-produce a different sequence.
+`RUN_LOG_VERSION` to **`-19`**, not `-18`.
 
-`RANDOMIZER_VERSION` holds at `-18`, and that is the claim worth checking: every
-draw is made from the same key in the same order, and what changed is only where
-the drawn move goes. `contentHash` unmoved — no `data/` table was touched.
+This stage and section 36's band recut were built in parallel and **both bumped
+the axis to `-18`, each honestly**. Merged, the schema is neither of the two
+things `-18` named: the recut's `-18` was "a gym writes two `reward` entries",
+this one's was "four pairs of `target`/`replace` entries are gone", and the
+merged tree is both at once. One number meaning two incompatible shapes is
+precisely the failure `CLAUDE.md` names — *never silently reinterpret a seed* —
+so the merged schema takes the next number rather than either input's.
+
+Worth naming as a process finding rather than an accident: nothing in the repo
+*could* have caught this before the merge. Each branch's version test asserted
+its own literal and passed. What caught it was reading the other side's
+`RUN_LOG_VERSION` comment during conflict resolution, which is an argument for
+that comment carrying its reason in prose rather than only its number.
+
+`RANDOMIZER_VERSION` is `-19` from the band recut alone; this stage moves it not
+at all, and that is the claim worth checking — every draw is made from the same
+key in the same order, and what changed is only where the drawn move goes.
+`contentHash` likewise moves for the recut's tables and not for this.
 
 ### The UI, and the gate that refused to let it wait
 

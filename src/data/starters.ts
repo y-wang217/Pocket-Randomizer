@@ -44,8 +44,9 @@ export const STARTER_BANDS: readonly number[] = [0];
  * The lowest base stat total a starter may have.
  *
  * Band 0 runs from Sunkern at 180 to the 340 cut, and a Caterpie or a Magikarp
- * at level 7 is not a measly starter, it is a run that ends at the first
- * trainer. The real starters sit at 309 to 318 and every pseudo-legendary's
+ * is not a measly starter, it is a run that ends at the first trainer. (The
+ * sweep that produced this floor ran at level 7; the band recut moved the
+ * opening to 15 and the floor was not re-derived against it.) The real starters sit at 309 to 318 and every pseudo-legendary's
  * base form at 300; 280 keeps those and the Nidorans, Growlithe and Machop,
  * and drops the ninety-odd base forms whose first stage is a cocoon or a
  * baby. The first Stage 4.9 sweep without this floor cleared gym 1 27% of the

@@ -1,9 +1,9 @@
 {
   "seed": "RESULT-0",
   "versions": {
-    "runLog": "gymrun-run-18/gymrun-0.3.0",
-    "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
-    "randomizer": "gymrun-randomizer-18",
+    "runLog": "gymrun-run-19/gymrun-0.3.0",
+    "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
+    "randomizer": "gymrun-randomizer-19",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -24,16 +24,16 @@
   "party": [
     {
       "species": "Shelmet",
-      "level": 7,
+      "level": 15,
       "ability": "Power Construct",
       "moves": [
         "Fury Cutter 32/32",
-        "Lick 48/48",
-        "Poison Tail 39/40",
+        "Ice Shard 46/48",
+        "Pay Day 32/32",
         "Amnesia 32/32"
       ],
       "item": null,
-      "hp": "0/26",
+      "hp": "0/44",
       "fainted": true
     }
   ],
@@ -51,7 +51,7 @@
         {
           "side": "p1",
           "name": "Jasper",
-          "level": 7,
+          "level": 15,
           "species": "Shelmet",
           "bySpecies": "Pidove",
           "byMove": "Acrobatics",
@@ -63,10 +63,10 @@
   "log": {
     "seed": "RESULT-0",
     "versions": {
-      "runLog": "gymrun-run-18/gymrun-0.3.0",
-      "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
+      "runLog": "gymrun-run-19/gymrun-0.3.0",
+      "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-18"
+      "randomizerVersion": "gymrun-randomizer-19"
     },
     "decisions": [
       {
@@ -85,14 +85,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       }
     ]

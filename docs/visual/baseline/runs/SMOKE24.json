@@ -1,9 +1,9 @@
 {
   "seed": "SMOKE24",
   "versions": {
-    "runLog": "gymrun-run-18/gymrun-0.3.0",
-    "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
-    "randomizer": "gymrun-randomizer-18",
+    "runLog": "gymrun-run-19/gymrun-0.3.0",
+    "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
+    "randomizer": "gymrun-randomizer-19",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -13,27 +13,41 @@
     "segment": 0,
     "leader": "Garnet",
     "kind": "wild",
-    "species": "Mire",
-    "bySpecies": "Karrablast",
-    "byMove": "Chilling Water",
+    "species": "Loam",
+    "bySpecies": "Oricorio",
+    "byMove": "Terrain Pulse",
     "indirect": null
   },
-  "currency": 0,
+  "currency": 22,
   "backpack": [],
   "relics": [],
   "party": [
     {
       "species": "Hippopotas",
-      "level": 7,
+      "level": 15,
       "ability": "Rocky Payload",
       "moves": [
-        "Stomping Tantrum 13/16",
-        "Sand Tomb 24/24",
-        "Mud Shot 24/24",
-        "Bulldoze 32/32"
+        "Sand Tomb 23/24",
+        "Mud-Slap 16/16",
+        "Bulldoze 28/32",
+        "Mud Shot 24/24"
       ],
-      "item": null,
-      "hp": "0/28",
+      "item": "passhoberry",
+      "hp": "0/50",
+      "fainted": true
+    },
+    {
+      "species": "Karrablast",
+      "level": 15,
+      "ability": "Suction Cups",
+      "moves": [
+        "Fell Stinger 40/40",
+        "Skitter Smack 16/16",
+        "Breaking Swipe 22/24",
+        "Shore Up 8/8"
+      ],
+      "item": "silkscarf",
+      "hp": "0/44",
       "fainted": true
     }
   ],
@@ -45,16 +59,69 @@
       "tier": "normal",
       "opponent": "Wild Karrablast",
       "turns": 4,
+      "winner": "p1",
+      "hpAfter": 9,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "rest",
+      "label": "Rest site",
+      "tier": null,
+      "opponent": null,
+      "turns": null,
+      "winner": null,
+      "hpAfter": 94,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "trainer",
+      "label": "Trainer battle",
+      "tier": "normal",
+      "opponent": "Trainer's Bagon",
+      "turns": 4,
+      "winner": "p1",
+      "hpAfter": 58,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "event",
+      "label": "Something happens",
+      "tier": null,
+      "opponent": null,
+      "turns": null,
+      "winner": null,
+      "hpAfter": 58,
+      "casualties": []
+    },
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "hard",
+      "opponent": "Wild Oricorio",
+      "turns": 5,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
           "name": "Mire",
-          "level": 7,
+          "level": 15,
           "species": "Hippopotas",
-          "bySpecies": "Karrablast",
-          "byMove": "Chilling Water",
+          "bySpecies": "Oricorio",
+          "byMove": "Terrain Pulse",
+          "indirect": null
+        },
+        {
+          "side": "p1",
+          "name": "Loam",
+          "level": 15,
+          "species": "Karrablast",
+          "bySpecies": "Oricorio",
+          "byMove": "Terrain Pulse",
           "indirect": null
         }
       ]
@@ -63,10 +130,10 @@
   "log": {
     "seed": "SMOKE24",
     "versions": {
-      "runLog": "gymrun-run-18/gymrun-0.3.0",
-      "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
+      "runLog": "gymrun-run-19/gymrun-0.3.0",
+      "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-18"
+      "randomizerVersion": "gymrun-randomizer-19"
     },
     "decisions": [
       {
@@ -76,6 +143,142 @@
       {
         "kind": "locale",
         "index": 0
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "accept"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [
+            {
+              "slot": 0,
+              "item": "passhoberry"
+            }
+          ],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "event",
+        "archetype": "safe"
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [
+            {
+              "slot": 1,
+              "item": "silkscarf"
+            }
+          ],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
       },
       {
         "kind": "node",
@@ -98,8 +301,22 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {

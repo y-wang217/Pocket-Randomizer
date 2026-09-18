@@ -226,11 +226,15 @@ function movePicker(): RunPolicy {
  * They held the ordering and the counting of the `target`/`replace` pair: a
  * replacement always immediately preceded by its recipient, never more
  * replacements than recipients, and a resume from a save taken *between* the
- * two questions asking the second one and no other. All three were true and
- * none of them describes this game: no move is taught at a node, so neither
- * entry is ever written, and the mid-pair save point they tested does not
- * exist. `teachMove`'s own rules are unchanged and are exercised below and
- * through `applyItemPlan`.
+ * two questions asking the second one and no other. All three were true, and
+ * the band recut had just re-pinned the first of them to a fresh seed — which
+ * is worth noting, because it means they were live and passing right up to this
+ * merge rather than quietly rotting.
+ *
+ * None of them describes this game. No move is taught at a node, so neither
+ * entry is ever written and the mid-pair save point does not exist.
+ * `teachMove`'s own rules are unchanged and are exercised below and through
+ * `applyItemPlan`.
  *
  * `docs/spec/gymrun-stage-moves-as-inventory-tms.md`.
  */
@@ -372,12 +376,17 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * this policy to hit every branch.
      *
      * It was `ALL-DECISIONS` until Stage 4.6a rekeyed the RNG streams and then
-     * added locales. Nothing about the census changed; every seed simply rolls
-     * a different run, which is what a `RANDOMIZER_VERSION` bump means.
-     * `npx vite-node scripts/scan-seed.ts census` is how the replacement was
-     * found.
+     * added locales, and `ALL-DECISIONS-6` until the band recut and the
+     * moves-as-inventory stage were merged. Nothing about the census changed
+     * either time; every seed simply rolls a different run, which is what a
+     * `RANDOMIZER_VERSION` bump means — and this time the *census itself* also
+     * got shorter, because two of the six decisions it counted no longer exist.
+     * `npx vite-node scripts/scan-seed.ts census` is how each replacement was
+     * found, and its own wanted-list had to lose the same two entries first:
+     * a scanner asking for a decision the game cannot produce searches every
+     * seed and reports none.
      */
-    const run = await playRun('ALL-DECISIONS-6', policy);
+    const run = await playRun('ALL-DECISIONS-1', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
     /*

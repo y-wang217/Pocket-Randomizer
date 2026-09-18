@@ -115,7 +115,14 @@ const mode = process.argv[2] ?? 'census';
 const attempts = Number(process.argv[3] ?? 200);
 
 if (mode === 'census') {
-  const wanted = ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign'];
+  /*
+   * `move-recipient` and `move-replace` left this list with the questions
+   * themselves — a move is stowed as a TM now and taught out of an item plan —
+   * and the test this feeds dropped them in the same change. They are named
+   * here only because a scanner still asking for a decision the game cannot
+   * produce searches every seed and reports none, which is what it did.
+   */
+  const wanted = ['acquisition', 'release', 'shop', 'item-assign'];
   for (let i = 0; i < attempts; i++) {
     const seed = i === 0 ? 'ALL-DECISIONS' : `ALL-DECISIONS-${i}`;
     const seen = new Set<string>();

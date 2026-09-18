@@ -69,7 +69,7 @@ describe('the run log version', () => {
      * patch to `-17`, then the shop and moveset-variance patch to `-18` — which
      * is the axis working.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-18');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-19');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
@@ -145,12 +145,20 @@ describe('what a gym clear hands over', () => {
     }
   }, 240_000);
 
-  it('asks the move before the cards, every time', async () => {
+  it('asks the move page before the card page, every time', async () => {
     /*
-     * Order inside the log is the contract. Part A is the unconditional half, so
-     * it is asked first; if the two ever swapped, every recorded seed's gym would
-     * read one answer as the other and the symptom would be a replay that taught
-     * the wrong move to the wrong Pokemon.
+     * Order inside the log is the contract. The move page is the half the player
+     * meets first; if the two ever swapped, every recorded seed's gym would read
+     * one answer as the other and the symptom would be a replay that taught the
+     * wrong move to the wrong Pokemon.
+     *
+     * **Both pages are `reward` entries now**, which is what the band recut
+     * changed here. The move used to be a grant, so the shape to look for was "a
+     * `target` before the one `reward`". A gym writes two `reward` entries today
+     * — move page, then card page — and the move page's `target` sits between
+     * them. That is the shape asserted below, and it is a stronger claim than
+     * the old one: it pins the pair *and* their order, where before there was
+     * only one card to be after.
      */
     for (const seed of SEEDS) {
       const decisions: RunDecision[] = [];
@@ -161,17 +169,38 @@ describe('what a gym clear hands over', () => {
         },
       });
 
-      // Every `lead` marks a gym. Between a lead and the `reward` that follows it,
-      // a `target` must appear — that is Part A sitting where it belongs.
+      // Every `lead` marks a gym. What follows it, on a win, is the move
+      // page's `reward` and then the card page's `reward`, with nothing between
+      // them: the chosen move is a TM and asks nobody anything.
       for (let i = 0; i < decisions.length; i++) {
         if (decisions[i]?.kind !== 'lead') continue;
         const rest = decisions.slice(i + 1);
-        const reward = rest.findIndex((decision) => decision.kind === 'reward');
-        const plan = rest.findIndex((decision) => decision.kind === 'items');
-        if (reward === -1 || plan === -1) continue;
-        // The card is taken at the node; the bag is arranged after it. The gym's
-        // own move needs no entry at all now — it is stowed, not answered.
-        expect(reward, `${seed}: a gym's bag plan came before its card`).toBeLessThan(plan);
+        // Stop at the next gym so a run's later gyms cannot supply the entries
+        // this one is missing.
+        const nextLead = rest.findIndex((decision) => decision.kind === 'lead');
+        const window = nextLead === -1 ? rest : rest.slice(0, nextLead);
+
+        const rewards = window.flatMap((decision, index) => (decision.kind === 'reward' ? [index] : []));
+        // A lost gym pays nothing, so only a gym that produced both pages is
+        // asserted on.
+        if (rewards.length < 2) continue;
+
+        const [movePage, cardPage] = rewards as [number, number];
+        expect(movePage, `${seed}: a gym's card page came before its move page`).toBeLessThan(
+          cardPage,
+        );
+
+        /*
+         * **The `target` entry the band recut put between the two pages is
+         * gone, and there is deliberately no assertion that it is.**
+         *
+         * It was written there when the move page's winner was taught on the
+         * spot. The chosen move is a TM now, so the pages sit next to each
+         * other — and `target` has left `RunDecision` altogether, which makes
+         * "no target in this window" a statement the compiler already enforces.
+         * A runtime check of it would be a test that cannot fail, which is the
+         * thing this file's own comments keep warning about.
+         */
       }
     }
   }, 240_000);

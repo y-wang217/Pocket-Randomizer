@@ -1,9 +1,9 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-18/gymrun-0.3.0",
-    "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
-    "randomizer": "gymrun-randomizer-18",
+    "runLog": "gymrun-run-19/gymrun-0.3.0",
+    "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
+    "randomizer": "gymrun-randomizer-19",
     "ai": "gymrun-ai-6-spent-item",
     "engine": "gymrun-0.3.0"
   },
@@ -14,8 +14,8 @@
     "leader": "Garnet",
     "kind": "wild",
     "species": "Fennel",
-    "bySpecies": "Swablu",
-    "byMove": "Air Slash",
+    "bySpecies": "Gulpin",
+    "byMove": "Cross Poison",
     "indirect": null
   },
   "currency": 69,
@@ -24,30 +24,30 @@
   "party": [
     {
       "species": "Cutiefly",
-      "level": 7,
+      "level": 15,
       "ability": "Shed Skin",
       "moves": [
         "Bug Bite 32/32",
-        "Snarl 20/24",
-        "Echoed Voice 21/24",
+        "Snarl 19/24",
+        "Clear Smog 24/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
-      "hp": "0/24",
+      "hp": "0/41",
       "fainted": true
     },
     {
-      "species": "Spearow",
-      "level": 7,
+      "species": "Rattata",
+      "level": 15,
       "ability": "Mind's Eye",
       "moves": [
-        "Scratch 50/56",
-        "Powder Snow 40/40",
-        "Clear Smog 24/24",
+        "Swift 30/32",
+        "Pounce 32/32",
+        "Brutal Swing 30/32",
         "Spore 24/24"
       ],
       "item": "silkscarf",
-      "hp": "0/24",
+      "hp": "0/38",
       "fainted": true
     }
   ],
@@ -57,10 +57,10 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "normal",
-      "opponent": "Wild Spearow",
-      "turns": 3,
+      "opponent": "Wild Rattata",
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 16,
+      "hpAfter": 34,
       "casualties": []
     },
     {
@@ -71,7 +71,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 40,
+      "hpAfter": 72,
       "casualties": []
     },
     {
@@ -80,9 +80,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Venipede",
-      "turns": 4,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 30,
+      "hpAfter": 60,
       "casualties": []
     },
     {
@@ -90,18 +90,18 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "normal",
-      "opponent": "Wild Stufful",
+      "opponent": "Wild Salandit",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 18,
+      "hpAfter": 19,
       "casualties": [
         {
           "side": "p1",
           "name": "Umber",
-          "level": 7,
+          "level": 15,
           "species": "Cutiefly",
-          "bySpecies": "Stufful",
-          "byMove": "Double Hit",
+          "bySpecies": "Salandit",
+          "byMove": "Cross Poison",
           "indirect": null
         }
       ]
@@ -111,7 +111,7 @@
       "kind": "wild",
       "label": "Wild encounter",
       "tier": "normal",
-      "opponent": "Wild Swablu",
+      "opponent": "Wild Gulpin",
       "turns": 4,
       "winner": "p2",
       "hpAfter": 0,
@@ -119,19 +119,19 @@
         {
           "side": "p1",
           "name": "Umber",
-          "level": 7,
+          "level": 15,
           "species": "Cutiefly",
-          "bySpecies": "Swablu",
-          "byMove": "Air Slash",
+          "bySpecies": "Gulpin",
+          "byMove": "Cross Poison",
           "indirect": null
         },
         {
           "side": "p1",
           "name": "Fennel",
-          "level": 7,
-          "species": "Spearow",
-          "bySpecies": "Swablu",
-          "byMove": "Air Slash",
+          "level": 15,
+          "species": "Rattata",
+          "bySpecies": "Gulpin",
+          "byMove": "Cross Poison",
           "indirect": null
         }
       ]
@@ -140,10 +140,10 @@
   "log": {
     "seed": "SEED-B",
     "versions": {
-      "runLog": "gymrun-run-18/gymrun-0.3.0",
-      "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
+      "runLog": "gymrun-run-19/gymrun-0.3.0",
+      "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
       "aiVersion": "gymrun-ai-6-spent-item",
-      "randomizerVersion": "gymrun-randomizer-18"
+      "randomizerVersion": "gymrun-randomizer-19"
     },
     "decisions": [
       {
@@ -162,21 +162,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
@@ -238,65 +231,7 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "decline"
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
           "slot": 2
         }
       },
@@ -359,10 +294,61 @@
         }
       },
       {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       }
     ]

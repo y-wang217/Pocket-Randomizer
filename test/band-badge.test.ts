@@ -429,7 +429,7 @@ describe('every band chip carries the same weight', () => {
 
     expect(selectors.length, 'the .band recipe exists').toBeGreaterThan(0);
     // `.band` alone, and the four `.band--n` rows V0 flattened. Nothing scoped.
-    const allowed = new Set(['.band', '.band--1', '.band--2', '.band--3', '.band--4']);
+    const allowed = new Set(['.band', '.band--1', '.band--2', '.band--3', '.band--4', '.band--5']);
     expect(selectors.filter((selector) => !allowed.has(selector))).toEqual([]);
   });
 });

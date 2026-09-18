@@ -120,7 +120,7 @@ export const SPECIES_POOL: readonly SpeciesEntry[] = [
   { id: 'poliwrath', species: 'Poliwrath', types: ['Water', 'Fighting'], bst: 510, band: 3, maleChance: 0.5, prevo: 'poliwhirl', evoLevel: 37 },
   { id: 'abra', species: 'Abra', types: ['Psychic'], bst: 310, band: 0, maleChance: 0.75, prevo: null, evoLevel: null },
   { id: 'kadabra', species: 'Kadabra', types: ['Psychic'], bst: 400, band: 1, maleChance: 0.75, prevo: 'abra', evoLevel: 16 },
-  { id: 'alakazam', species: 'Alakazam', types: ['Psychic'], bst: 500, band: 3, maleChance: 0.75, prevo: 'kadabra', evoLevel: 55 },
+  { id: 'alakazam', species: 'Alakazam', types: ['Psychic'], bst: 500, band: 3, maleChance: 0.75, prevo: 'kadabra', evoLevel: 50 },
   { id: 'machop', species: 'Machop', types: ['Fighting'], bst: 305, band: 0, maleChance: 0.75, prevo: null, evoLevel: null },
   { id: 'machoke', species: 'Machoke', types: ['Fighting'], bst: 405, band: 1, maleChance: 0.75, prevo: 'machop', evoLevel: 28 },
   { id: 'machamp', species: 'Machamp', types: ['Fighting'], bst: 505, band: 3, maleChance: 0.75, prevo: 'machoke', evoLevel: 50 },

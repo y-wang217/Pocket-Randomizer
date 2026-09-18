@@ -324,21 +324,41 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * something else, this one says the questions changed.
  */
 /*
- * **18: moves became inventory TMs and four questions left the node.**
+ * ## `-18`: the gym's guaranteed move became a choice
  *
- * The `target` and `replace` entries that every reward card, shop TM, event
- * grant and gym clear used to write are gone from those four places entirely —
- * a move is stowed on arrival now and taught, if ever, out of an `ItemPlan` at
- * a rest or a shop. So the same seed and the same clicks produce a different
- * sequence of entries, which is precisely what this axis guards, and an old log
- * replayed against the new questions would read a recipient index as an item
- * assignment. `ItemPlan` also grew `teaches` and `discardTms`, reshaping the
- * `items` entry that carries it.
+ * A gym used to hand over one move at the segment's band +3 and then ask who
+ * should learn it. It offers three moves at +1 now and asks which one first, so
+ * a gym node records **two** `reward` entries where it recorded one: the move
+ * page, then the relic-or-gold page. No decision *kind* was added — the replay
+ * cursor is positional and kind-checked, so two `reward` entries in one node
+ * need only a fixed order, which `playRun` gives them — but the sequence a gym
+ * writes is one entry longer.
  *
- * `RANDOMIZER_VERSION` deliberately holds: every draw is made from the same key
- * in the same order, and what changed is only where the drawn move goes.
+ * ## `-19`: moves became inventory TMs and four questions left the node
+ *
+ * **Two branches both reached `-18`, for different reasons, and this number is
+ * what that costs.** The band recut above and the moves-as-inventory stage were
+ * built in parallel and each bumped the axis to `-18` honestly; merged, the
+ * schema is neither of the two things `-18` named. A single number meaning two
+ * incompatible shapes is the one failure this axis exists to prevent, so the
+ * merged schema takes the next one rather than either input's.
+ *
+ * What `-19` is: the `target` and `replace` entries that every reward card,
+ * shop TM, event grant and gym clear used to write are gone from those four
+ * places entirely. A move is stowed as a TM on arrival and taught, if ever, out
+ * of an `ItemPlan` at a rest or a shop, so `ItemPlan` grew `teaches` and
+ * `discardTms` and the `items` entry that carries it is reshaped. The gym's two
+ * `reward` entries from `-18` both survive — the move page is still a choice
+ * among three, and what changed is only that the chosen move goes into the bag.
+ *
+ * `RANDOMIZER_VERSION` moves to `-19` in the same merge, for the band recut and
+ * the level curve. Two guards, two messages: that one says the answers would
+ * mean something else, this one says the questions changed. The
+ * moves-as-inventory half moves it not at all — every draw is made from the
+ * same key in the same order, and only the destination of the drawn move
+ * changed.
  */
-export const RUN_LOG_VERSION = `gymrun-run-18/${ENGINE_VERSION}`;
+export const RUN_LOG_VERSION = `gymrun-run-19/${ENGINE_VERSION}`;
 
 /**
  * The node kinds at which a carried TM may be spent. **Rest and shop only.**
@@ -351,7 +371,7 @@ export const RUN_LOG_VERSION = `gymrun-run-18/${ENGINE_VERSION}`;
  * Why these two and not every boundary: a TM you can spend anywhere is a move
  * you already have, and the carry costs nothing. Rest and shop are where a run
  * already stops to spend things, so binding the teach to them makes banking a
- * band-4 TM through three fights a real commitment rather than a formality.
+ * top-band TM through three fights a real commitment rather than a formality.
  * `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 5 is the ruling.
  */
 export function canTeachAt(kind: NodeKind): boolean {
@@ -1737,6 +1757,22 @@ export async function playRun(
     const offer = drawn ? resolveOffer(drawn, state.relics) : null;
     let reviewedIndex: number | null = null;
 
+    /*
+     * **A gym's cards are not shown on the review screen, and that is the
+     * two-page order.**
+     *
+     * Every other node answers its one offer on the result screen, in the same
+     * beat as the battle outcome — that is what `reviewedIndex` is for. A gym
+     * has two offers now, three moves and then three relics-or-gold, and the
+     * moves come first. Handing the review screen the *card* offer would answer
+     * page 2 before page 1 had been asked, so the gym passes it nothing and both
+     * of its pages go through `chooseReward` below, in order.
+     *
+     * `offer` itself is untouched — the card block still reads it. Only what the
+     * review is shown, and therefore what it may answer, changes.
+     */
+    const reviewOffer = result.node.kind === 'gym' ? null : offer;
+
     if (result.battle && policy.reviewBattle) {
       const picked = await policy.reviewBattle(
         {
@@ -1746,13 +1782,13 @@ export async function playRun(
           party: result.battle.party,
           contribution: result.battle.contribution,
           currencyEarned: won ? nodePayout(result.node, state.currentSegment, applyRelicPassives(state.relics)) : 0,
-          offer,
+          offer: reviewOffer,
         },
         state,
       );
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
-      if (offer) reviewedIndex = picked ?? 0;
+      if (reviewOffer) reviewedIndex = picked ?? 0;
     }
 
     /*
@@ -1861,24 +1897,45 @@ export async function playRun(
      * actually came out of it.
      */
 
-    if (result.node.kind === 'gym' && result.node.gymMove && result.battle?.result.winner === 'p1') {
-      const granted = result.node.gymMove;
+    if (result.node.kind === 'gym' && result.node.gymMoveOffer && result.battle?.result.winner === 'p1') {
       /*
-       * **The decline that used to live here is gone, and it is not a
-       * regression.**
+       * **Page 1 of the gym's two, and it is a choice now rather than a grant.**
        *
-       * A gym's move was the one taught move nobody chose over alternatives, so
-       * it was the one that could be handed back — that was the argument, and it
-       * was right for a game where a move was taught the moment it arrived.
-       * Under a TM inventory nothing is taught at a node, so there is no moment
-       * here to decline: the gym's move goes into the bag on the same terms as
-       * every other, and the decision it was standing in for — is this worth a
-       * slot — is now asked of it by the capacity rule, continuously, until the
-       * player spends it or throws it away.
+       * The `reward` entry recorded here is the first of two a gym node writes;
+       * the card page below writes the second. The replay cursor is positional
+       * and kind-checked, so the pair needs no new decision kind — only this
+       * fixed order, which is also the order the player meets the pages in.
+       */
+      const moveOffer = result.node.gymMoveOffer;
+      const moveIndex = await policy.chooseReward(moveOffer, state);
+      record({ kind: 'reward', index: moveIndex });
+      const granted = moveOffer.options[moveIndex];
+      if (!granted) {
+        throw new RangeError(
+          `Gym move choice ${moveIndex} out of range (${moveOffer.options.length} offered)`,
+        );
+      }
+      /*
+       * **The decline that lived here is gone, and its argument went with it
+       * rather than being overruled.**
+       *
+       * The band-recut patch had just rewritten that argument: a gym move page
+       * offers three moves and nothing else — the relics and the gold are on
+       * the next page and already guaranteed — so a player whose four slots are
+       * all doing work had no "take the other thing" answer available on the
+       * page where the question is asked, and the decline was that answer.
+       *
+       * It was true while the chosen move was taught the moment it was chosen.
+       * Nothing is taught at a node now: the move goes into the bag as a TM, so
+       * the page costs a bag slot rather than a move slot, and "take the other
+       * thing" is answered by the bag itself — carry it, spend it at a rest, or
+       * throw it away. The four slots the old argument was protecting are not
+       * touched by this page at all.
        *
        * So `DECLINED_MOVE` and the `allowSkip` overload are retired rather than
-       * extended to the other three routes, which is what the playtest report
-       * asked for and the opposite of what the design it arrived with needs.
+       * extended to the other three routes — which is what the playtest report
+       * that opened the stage asked for, and the opposite of what the design it
+       * arrived with needs.
        * `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 6.
        */
       result.gymMove = granted;
@@ -1897,13 +1954,16 @@ export async function playRun(
       /*
        * **The card is recorded here, after Part A, exactly where it was.**
        *
-       * The answer itself was taken at the top, on the result screen, and it
-       * has been sitting in `reviewedIndex` ever since — that is unchanged and
-       * predates this patch. What the log fixes is the *order the entries go
-       * in*, and this pair is the one Stage 4.8 item 2 pinned: the gym's
-       * unconditional move before the card chosen over two others. Moving the
-       * `reward` entry above it would have been a second reordering with
-       * nothing asking for it.
+       * At an ordinary node the answer was taken at the top, on the result
+       * screen, and has been sitting in `reviewedIndex` ever since — unchanged
+       * and older than this patch. At a **gym** `reviewedIndex` is always null
+       * by construction (see `reviewOffer`), so this is a real question asked
+       * here: page 2 of two, after the move page above it.
+       *
+       * Either way the log order is the one Stage 4.8 item 2 pinned and the band
+       * recut kept: the gym's move before its card. Both are `reward` entries
+       * now, which the replay cursor handles because it is positional and
+       * kind-checked — it steps through them in the order this code asks.
        */
       const index = reviewedIndex ?? (await policy.chooseReward(offer, state));
       reviewedIndex = null;

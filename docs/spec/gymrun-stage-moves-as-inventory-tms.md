@@ -147,10 +147,16 @@ Neither of these is asked for anywhere above, and both are the obvious places
 scope would leak to:
 
 - **The band a gym clear pays.** The report that opened this thread found that
-  `GYM_MOVE_ENTRY` resolves to band 4 at every segment from gym 1 onward,
+  `GYM_MOVE_ENTRY` resolved to band 4 at every segment from gym 1 onward,
   because `segmentMoveBand + REWARD_BAND_OFFSET.elite + GYM_MOVE_BAND_BONUS`
-  clamps at `MAX_MOVE_BAND`. That is a live finding and it is **not** this
-  stage's to fix; it needs its own brief and a benchmark. Recorded here only so
-  the next session does not rediscover it as part of this work.
+  clamped at `MAX_MOVE_BAND`. A live finding, and **not** this stage's to fix.
+
+  **Closed on 2026-09-18, by someone else.** The band-recut-and-level-curve
+  patch landed on `main` while this stage was being built and fixed it on its
+  own terms — five bands instead of four, and a gym move page that offers three
+  cards at +1 rather than granting one at +3, which removes the clamp this
+  finding was about. This stage merged that in rather than around it: the gym's
+  move page survives as a choice among three, and what this stage changes is
+  only that the chosen card goes into the bag.
 - **What a TM costs in a shop.** Prices are `data/shop.ts` and a tuning pass,
   not a design change.

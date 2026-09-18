@@ -112,6 +112,7 @@ import type { CapabilityBand } from '../src/core/capabilities';
 import { RELIC_IDS, relicById } from '../src/data/relics';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
+import { MAX_MOVE_BAND } from '../src/data/moveOverrides';
 import { MAX_PARTY_CAPACITY, SLOT_UNLOCK_SCHEDULE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
@@ -132,8 +133,19 @@ const BERRY_IDS = new Set(BERRIES.map((entry) => entry.id));
  * tuning table.
  */
 function bandOfPower(basePower: number): number {
-  return basePower <= 55 ? 1 : basePower <= 75 ? 2 : basePower <= 95 ? 3 : 4;
+  return basePower <= 60 ? 1 : basePower <= 75 ? 2 : basePower <= 90 ? 3 : basePower <= 110 ? 4 : 5;
 }
+
+/**
+ * The bands the ramp report has columns for.
+ *
+ * Derived from `MAX_MOVE_BAND` rather than written out, because the last two
+ * times the cuts moved, the literal `[1, 2, 3, 4]` beside them did not — and a
+ * share array one element short drops the top band out of the report silently
+ * rather than failing. The header row is built from this list too, so the
+ * columns and the numbers under them cannot disagree.
+ */
+const RAMP_BANDS = Array.from({ length: MAX_MOVE_BAND }, (_, index) => index + 1);
 
 // ---------------------------------------------------------------------------
 // Arguments
@@ -2994,7 +3006,7 @@ function summarizeRamp(records: RunRecord[]): Sample['ramp'] {
     const gym = index + 1;
     const rows = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym === gym));
     const bands = rows.flatMap((row) => row.moveBands);
-    const shares = [1, 2, 3, 4].map((band) =>
+    const shares = RAMP_BANDS.map((band) =>
       bands.length === 0 ? 0 : bands.filter((held) => held === band).length / bands.length,
     );
     return {
@@ -3504,7 +3516,7 @@ function render(sample: Sample): string {
   out.push('', "The ramp — what the player's moves are banded at, entering each gym");
   out.push(
     table(
-      ['gym', 'parties', 'band 1', 'band 2', 'band 3', 'band 4', 'mean', 'reads as'],
+      ['gym', 'parties', ...RAMP_BANDS.map((band) => `band ${band}`), 'mean', 'reads as'],
       ramp.bandsAtGym
         .filter((row) => row.parties > 0)
         .map((row) => [
@@ -4233,15 +4245,31 @@ function verdicts(sample: Sample): string[] {
      *     dropped by segment 6; a party still carrying them into gym 6 is a
      *     party the reward pools never offered anything better.
      */
+    /*
+     * **Both of these were minted against a four-band table and now measure a
+     * five-band one.** Neither literal has been moved, deliberately: `balance.md`
+     * §0 forbids moving a target to make a miss disappear, and the first
+     * benchmark after the recut is the only thing that can say honestly what
+     * they should be.
+     *
+     * Read them knowing what shifted underneath them. Band 1 went from 82 moves
+     * to 117 when the first cut moved 55 to 60, so the band-1 share rises for
+     * free without the ramp having got any flatter. And a mean over five bands
+     * is not a mean over four: 2.0 was two-thirds of the way up the old table
+     * and is halfway up this one, so the same number is a weaker claim than it
+     * was. If the first RETUNE row clears both comfortably, that is the
+     * arithmetic and not the ramp, and these two lines want re-deriving from
+     * that row rather than congratulating.
+     */
     const atFive = sample.ramp.bandsAtGym.find((row) => row.gym === 5);
     if (atFive && atFive.parties > 0) {
       lines.push(
-        check(atFive.mean >= 2, `move band entering gym 5 is ${atFive.mean.toFixed(2)} (target >= 2.0)`),
+        check(atFive.mean >= 2, `move band entering gym 5 is ${atFive.mean.toFixed(2)} (target >= 2.0, minted on the 4-band table)`),
       );
       lines.push(
         check(
           (atFive.shares[0] ?? 0) <= 0.55,
-          `${pct(atFive.shares[0] ?? 0)} of moves still band 1 at gym 5 (target <= 55%)`,
+          `${pct(atFive.shares[0] ?? 0)} of moves still band 1 at gym 5 (target <= 55%, minted when band 1 held 82 moves not 117)`,
         ),
       );
     }

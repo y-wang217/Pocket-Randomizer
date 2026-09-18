@@ -23,9 +23,12 @@
  * Rescan with `npx vite-node scripts/scan-seed.ts fork 6000`, which prints a
  * seed, the two branch species and where the decision lands — the three
  * literals below. S49B-96 and its Tyrogue were what it printed before the gym
- * column moved; S49B-2850 and Wurmple's two-way split are what it prints now.
- * The later stage applies itself: only the fork is a decision, so one `evolve`
- * entry becomes a Beautifly or a Dustox several clears later.
+ * column moved; S49B-2850 and Wurmple's two-way split were what it printed
+ * after it. **S49B-840 and Tyrogue's three-way split are what it prints now**,
+ * rescanned for the band recut, which moved `contentHash` again and stranded
+ * the previous seed exactly as this header predicts. The later stage applies
+ * itself: only the fork is a decision, so one `evolve` entry becomes a
+ * Hitmonlee or a Hitmonchan several clears later.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -37,7 +40,7 @@ import { DEFAULT_TUNING } from '../src/data/tuning';
 import type { RunLog } from '../src/core/types';
 import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
 
-const SEED = 'S49B-2850';
+const SEED = 'S49B-840';
 
 function capturePolicy(branch = 0): RunPolicy {
   return {
@@ -53,7 +56,7 @@ describe('the evolve decision in a played run', () => {
     const run = await playRun(SEED, capturePolicy(0), DEFAULT_TUNING);
     const evolves = run.log.decisions.filter((decision) => decision.kind === 'evolve');
     expect(evolves).toHaveLength(1);
-    expect(run.state.party.map((member) => member.spec.species)).toContain('Beautifly');
+    expect(run.state.party.map((member) => member.spec.species)).toContain('Hitmonlee');
     // The fork is asked after the gym is won and before its cards: the entry
     // sits after that gym's battle decisions and before the next reward.
     const at = run.log.decisions.findIndex((decision) => decision.kind === 'evolve');
@@ -73,16 +76,16 @@ describe('the evolve decision in a played run', () => {
   }, 120_000);
 
   it('is a decision: the other branch changes the party and nothing the seed drew', async () => {
-    const beautifly = await playRun(SEED, capturePolicy(0), DEFAULT_TUNING);
-    const dustox = await playRun(SEED, capturePolicy(1), DEFAULT_TUNING);
-    expect(dustox.state.party.map((member) => member.spec.species)).toContain('Dustox');
+    const hitmonlee = await playRun(SEED, capturePolicy(0), DEFAULT_TUNING);
+    const hitmonchan = await playRun(SEED, capturePolicy(1), DEFAULT_TUNING);
+    expect(hitmonchan.state.party.map((member) => member.spec.species)).toContain('Hitmonchan');
     // Player decisions consume no RNG: the map, drawn before any decision, is
     // the same map, every node's team and reward included.
-    expect(dustox.state.segments).toEqual(beautifly.state.segments);
+    expect(hitmonchan.state.segments).toEqual(hitmonlee.state.segments);
     // And the two logs agree on every entry up to the fork.
-    const at = beautifly.log.decisions.findIndex((decision) => decision.kind === 'evolve');
-    expect(dustox.log.decisions.slice(0, at)).toEqual(beautifly.log.decisions.slice(0, at));
-    expect(dustox.log.decisions[at]).toEqual({ kind: 'evolve', index: 1 });
+    const at = hitmonlee.log.decisions.findIndex((decision) => decision.kind === 'evolve');
+    expect(hitmonchan.log.decisions.slice(0, at)).toEqual(hitmonlee.log.decisions.slice(0, at));
+    expect(hitmonchan.log.decisions[at]).toEqual({ kind: 'evolve', index: 1 });
   }, 120_000);
 
   it('saves and reloads through storage', async () => {

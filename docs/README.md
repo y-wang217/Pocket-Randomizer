@@ -58,7 +58,34 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the bench carryover and the gym level column.** Branch
+**In flight: the band recut and the level curve.** Branch
+`claude/admiring-euler-dhn536`, prompt
+[`spec/gymrun-patch-band-recut-and-level-curve.md`](spec/gymrun-patch-band-recut-and-level-curve.md),
+record [`generation.md`](generation.md) section 36, report — filed before any
+code and doubling as the decision record —
+[`reports/early-game-band-and-curve.md`](reports/early-game-band-and-curve.md).
+`RANDOMIZER_VERSION` to `-19`, `RUN_LOG_VERSION` to `-18`, `contentHash` to
+`a036d6`; **`AI_VERSION` holds**, because `GREEDY_BASELINE` is the yardstick
+every benchmark row is read against.
+
+Move bands went from four to five, cut at `[60, 75, 90, 110]` — edges chosen
+because no move in the pool has effective power in 91-94 or 111-119, so nothing
+is reclassified by an arbitrary boundary. `MOVESET.stabWindow` is 0: it was
+leaking a band above every forced STAB slot, so segments 0-2 measured 61/34/5
+against a written 80/20. All eight `moveBandWeights` rows are refitted to gen-9
+level-up learnsets for all 900 pool species, which is the first external
+reference the ramp has ever had. `playerLevel` is a stretched Emerald curve, 15
+to 58. A gym clear pays two pages of three instead of one grant plus two cards,
+at the segment's band +1 rather than +3 — **the "a gym offer is strictly better
+than elite" rule is deleted**, and the invariant register below records it.
+
+Known and accepted: gym 1 clears 20.4% against 48.3% at `randomizer-18`. The
+band work moved it the other way (14.2% to 11.3% one-shot rate); the level raise
+took it to 22.3%, because the damage formula's level term doubles between 7 and
+15 while median HP grows 1.69x. The curve is justified on evolution pacing and
+nothing else. Section 33.7 has the arithmetic and the ruling.
+
+**Merged before it: the bench carryover and the gym level column.** Branch
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest
@@ -325,8 +352,9 @@ that matters is to watch a fight: nothing here has been seen on a phone.
 **In flight: Stage 4.9, levels, evolution, gated power, the wider roster and
 harder gyms.** Branch `claude/charming-ride-q4ogfb`, prompt
 [`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),
-record [`generation.md`](generation.md) section 21. The run starts at level 7
-with a band-0 base form and levels to 55 across the eight gym clears; every
+record [`generation.md`](generation.md) section 21. The run starts with a
+band-0 base form and levels across the eight gym clears (**7 to 55 as the stage
+shipped it; 15 to 58 from the band recut, section 36**); every
 clear evolves the party along the dex's own thresholds, with synthetic
 Kaizo-style levels for the methods the dex does not level, and a fork asked
 as a new `evolve` decision on the gym's result screen. The species pool
@@ -721,7 +749,17 @@ One line each. The analysis lives where the pointer goes, not here.
 0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
-   `data/scaling.ts` and the "gym fields the slot count" rule. Two
+   `data/scaling.ts` and the "gym fields the slot count" rule.
+   **58.0% on the merged tree at `randomizer-19`**, and the run completed for
+   the first time since the stage — one seed in 400, which is not a rate but is
+   not the flat zero the eleven rows before it are. The report predicted the per-slot one-shot
+   rate would rise and it did; what it could not predict is that closing the
+   STAB window matters more. Gym 1's band mix is 83/17/0 where the leak was
+   producing 61/34/5. The author's standing ruling is that clear rate is not the
+   thing to optimise anyway: an earlier build averaged 3 gyms and cleared all 8
+   consistently, and the roguelike comparison only holds if the run is genuinely
+   difficult and hands a strategist the tools to progress. The lever named above
+   is still the lever. `generation.md` section 36.7. Two
    pre-existing phone-layout limits surfaced by the wider roster are carried
    here too: a Fighting- or Electric-type chip wraps the move button's meta
    row at 390px, and a two-row party plus a two-card step pushes the map's
@@ -1056,7 +1094,8 @@ without being one of the five.
 | the sequential stream API is still exported and drawable | **closed**, Branch 1. A named stream is `at(key)`, `keys` and `totalDraws`; `test/determinism.test.ts` and `test/stream-keys.test.ts` group 5 guard the deletion |
 | `AI_VERSION` is stamped onto reports but never guarded at replay | **closed**, Branch 1. `aiVersion` is an axis of the log's `versions` block and `versionMismatch` checks it |
 | `Math.random` survives in `scripts/measure-bundle.mjs` | **open**. Not this branch's job; the lint rule now covers every extension and the boundary test walks `src/` only |
-| four verdict strings remain in player-facing copy | **open, found 2026-09-14** by the closeout's check-1 grep, which widened the search past the one word the audit named. Four live strings, each rendered: `src/data/categoryInfo.ts` line 48 — "Worth it when you can survive the reply", on the move category tooltip; `src/data/statusInfo.ts` line 125 — "usually better than rolling the dice three times", on the paralysis tooltip; `src/data/statusInfo.ts` line 242 — "so it is strongest into a wall", on the crit tooltip; `src/data/bandInfo.ts` line 68 — "A risky node reaches here before the segments do", on the band tooltip. Each tells the player what an option is worth rather than what it is, which is the Part 4 rule. **Filed, not fixed**: 4.8.0.3 is a presentation patch that had already closed the one violation the register tracked, and rewriting four more strings on my own reading is a copy pass, not a closeout. All four files are outside `contentHash`, so the fix is cheap when it is scoped |
+| four verdict strings remain in player-facing copy | **open, found 2026-09-14** by the closeout's check-1 grep, which widened the search past the one word the audit named. Four live strings, each rendered: `src/data/categoryInfo.ts` line 48 — "Worth it when you can survive the reply", on the move category tooltip; `src/data/statusInfo.ts` line 125 — "usually better than rolling the dice three times", on the paralysis tooltip; `src/data/statusInfo.ts` line 242 — "so it is strongest into a wall", on the crit tooltip; `src/data/bandInfo.ts` — "A risky node reaches here before the segments do", on the band tooltip (**still live, moved from band 3's entry to band 4's by the five-band recut, section 36.2; the line number moved with it and is deliberately not restated here**). Each tells the player what an option is worth rather than what it is, which is the Part 4 rule. **Filed, not fixed**: 4.8.0.3 is a presentation patch that had already closed the one violation the register tracked, and rewriting four more strings on my own reading is a copy pass, not a closeout. All four files are outside `contentHash`, so the fix is cheap when it is scoped |
+| a gym offer is strictly better than an elite node's | **deleted, 2026-09-17, the band recut.** Not closed — *retired*. `rewardPools.ts` stated it and `GYM_MOVE_ENTRY` resolved at `elite` to pay for it, which at segment 0 clamped to the ceiling and handed gym 1 a band-4 move 300 times out of 300. It was measuring the wrong axis: a gym pays two pages of three and the level step behind them, and does not also need to win on band. An elite out-paying a gym on the single move is now possible and is the player's call going in. `generation.md` section 36.8 |
 | one "best" marker remains in player-facing copy | **closed, 2026-09-14, patch 4.8.0.3 item 3.** The audit's line, `run-map.ts:87`, lost its marker at `6351009` when the tier copy moved into `data/tierInfo.ts`. The last one, `data/statusInfo.ts`'s Disable advice ("Usually your best move, by design"), is now the attribute it was describing: Disable always takes the move just used. The patch's prompt named `run-map.ts:87` from the stale audit line; the marker had already moved, and the fix went where the marker actually was. No "best" marker remains in player-facing copy |
 
 ## 6. The design lineage, briefly
