@@ -58,9 +58,9 @@ import type { GymDefinition } from '../data/gyms';
 import type { BattleKind } from '../data/tuning';
 import { localeAdmits, type LocaleId } from '../data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES, type MoveEntry, type MoveImpact } from '../data/movePools';
-import { BERRIES } from '../data/items';
+import { heldItemPoolFor } from '../data/items';
 import {
-  berryHoldRate,
+  heldItemRate,
   gymMoveBandBonus,
   MOVESET,
   moveBandsFor,
@@ -715,27 +715,39 @@ export function rollGender(entry: SpeciesEntry, stream: RngStream): Gender {
 }
 
 /**
- * A held berry, or nothing. **Exactly one draw either way.**
+ * A held item, or nothing. **Exactly two draws either way.**
  *
  * Stage 4.6b, appended to the spec draw order for the reason gender was: any
  * insertion point reshuffles every recorded seed and costs the same version
  * bump, so the end is the position that makes the history readable.
  *
- * The draw happens whether or not the rate can succeed — a gym's rate is zero
- * and it still costs a value — so the per-Pokemon draw count is a constant and
- * retuning `BERRY_HOLD_RATE` cannot move a single roll that follows it. That is
- * the same rule `rollGender` follows for a genderless species, and the same one
- * `drawBand` follows for a slot that ends up taking a status move.
+ * The draw happens whether or not the rate can succeed — this is the rule that
+ * made the R19 gym-items ruling a data edit instead of a version bump. It was
+ * written when a gym's rate was zero *and it still cost a value*, so a gym
+ * member has been drawing an item and throwing it away on every seed ever
+ * recorded. Turning the rate up spends the same two draws in the same order and
+ * reads a different answer out of them: `contentHash` moves, and
+ * `RANDOMIZER_VERSION` does not.
+ *
+ * `stream.pick` is one `nextUint32` for an array of any length (`nextInt`
+ * bounds the value, not the draw), so widening the gym's pool from fifteen
+ * berries to a segment-dependent band costs nothing either. That is what lets
+ * `heldItemPoolFor` vary by kind and segment at all.
  *
  * Two draws rather than one, and the second is spent unconditionally for the
- * same reason: which berry is a separate question from whether, and folding
- * them into one weighted pick over "nothing plus fifteen berries" would make
- * the count depend on the outcome.
+ * same reason: *which* item is a separate question from *whether*, and folding
+ * them into one weighted pick over "nothing plus the pool" would make the count
+ * depend on the outcome.
+ *
+ * **Was `rollBerry`.** It drew from `BERRIES` unconditionally, which is now one
+ * of the answers `heldItemPoolFor` gives rather than the only thing there was
+ * to draw — a trainer and a wild Pokemon still get exactly that list, and
+ * `test/gym-held-items.test.ts` pins that their teams did not move.
  */
-function rollBerry(kind: BattleKind, segment: number, stream: RngStream): string | undefined {
+function rollHeldItem(kind: BattleKind, segment: number, stream: RngStream): string | undefined {
   const roll = stream.nextFloat();
-  const berry = stream.pick(BERRIES);
-  return roll < berryHoldRate(kind, segment) ? berry.id : undefined;
+  const held = stream.pick(heldItemPoolFor(kind, segment));
+  return roll < heldItemRate(kind, segment) ? held.id : undefined;
 }
 
 /**
@@ -769,8 +781,10 @@ function rollSpecies(pool: BandedSpeciesPool, stream: RngStream, seen: ReadonlyS
 /**
  * One Pokemon.
  *
- * The draw order — band, species, level, ability, moves, gender, berry — is a
- * contract.
+ * The draw order — band, species, level, ability, moves, gender, held item — is
+ * a contract. (The last was "berry" until the R19 rulings widened what a gym
+ * may draw; the position and the count are unchanged, which is the only part
+ * the contract was ever about.)
  * Everything that generates a team goes through here so there is exactly one
  * order to remember.
  *
@@ -797,17 +811,18 @@ function rollSpec(
     gender: rollGender(entry, stream),
   };
   /*
-   * The berry draw is skipped entirely for a Pokemon nobody is holding one
+   * The held-item draw is skipped entirely for a Pokemon nobody is holding one
    * for — a starter, and (before 4.6b removed it) a reward species.
    *
-   * That is a *different* rule from the draw-and-discard inside `rollBerry`,
-   * and the distinction matters: within a population that can hold berries the
-   * count is constant, so the rate is free to move. A starter is not in that
-   * population at all, and giving it a discarded draw would be paying for a
-   * question nobody asked.
+   * That is a *different* rule from the draw-and-discard inside `rollHeldItem`,
+   * and the distinction matters: within a population that can hold items the
+   * count is constant, so the rate is free to move — which is exactly the
+   * freedom the R19 gym-items ruling spent. A starter is not in that population
+   * at all, and giving it a discarded draw would be paying for a question
+   * nobody asked.
    */
   if (!holding) return spec;
-  const item = rollBerry(holding.kind, holding.segment, stream);
+  const item = rollHeldItem(holding.kind, holding.segment, stream);
   return item ? { ...spec, item } : spec;
 }
 
@@ -871,9 +886,15 @@ export function generateGymTeam(gym: GymDefinition, segment: number, stream: Rng
   const size = opponentTeamSize('gym', segment, tier);
   const seen = new Set<string>();
 
-  // `holding` is passed even though a gym's rate is zero, so a gym member costs
-  // the same draws as any other opponent and the table is the only thing
-  // deciding what it holds.
+  /*
+   * `holding` is passed so a gym member costs the same draws as any other
+   * opponent and the table is the only thing deciding what it holds.
+   *
+   * **That sentence was written when a gym's rate was zero, and it is the
+   * reason the R19 ruling cost no version bump.** The draws were already being
+   * spent; only the table changed. `HELD_ITEM_RATE`'s gym column now climbs to
+   * 1.0 and `heldItemPoolFor` widens with the segment, and nothing here moved.
+   */
   return Array.from({ length: size }, () =>
     rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }, seen),
   );

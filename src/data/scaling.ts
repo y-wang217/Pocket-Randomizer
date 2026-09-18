@@ -658,39 +658,67 @@ function shiftWeights(
 }
 
 /**
- * How often an opponent walks in holding a berry, by segment.
+ * How often an opponent walks in holding something, by segment.
  *
- * **Stage 4.6b, and the shape of the curve is the point.** Berries are the low
- * denomination: they matter when a health bar is small and fade as HP totals
- * scale, so an opponent holding one is a real complication in segment 1 and
- * noise by segment 7. Weighting the rate the same way means the *player* meets
- * the mechanic while it still teaches something — a fight that goes one turn
- * longer than it should is how you learn to read `-enditem` on the battle log.
+ * **Stage 4.6b built this for berries, and the R19 rulings widened it to held
+ * items and gave it a gym column.** The name moved with the meaning: it was
+ * `BERRY_HOLD_RATE`, and a table with a gym column that pays out Leftovers is
+ * not a berry table. What it draws *from* is `heldItemPoolFor` in
+ * `data/items.ts`; this says only how often.
  *
- * A trainer holds them far more often than a wild Pokemon. A trainer prepared;
- * a wild Pokemon is holding whatever it was holding. That is flavour, and it is
- * also the lever that keeps the guaranteed wild encounter from becoming the
- * hardest node in the segment.
+ * **The two original columns are unchanged, to the number.** Berries are the
+ * low denomination: they matter when a health bar is small and fade as HP
+ * totals scale, so an opponent holding one is a real complication in segment 1
+ * and noise by segment 7. Weighting the rate the same way means the *player*
+ * meets the mechanic while it still teaches something — a fight that goes one
+ * turn longer than it should is how you learn to read `-enditem` on the battle
+ * log. A trainer holds them far more often than a wild Pokemon: a trainer
+ * prepared, a wild Pokemon is holding whatever it was holding.
  *
- * Gym leaders are not on this table and hold nothing. A gym is the segment's
- * difficulty statement and it already draws at `GYM_MOVE_BAND_BONUS`; a second
- * dial on the same fight is a dial the balance report cannot attribute.
+ * ## The gym column runs the other way, and that is the whole point
+ *
+ * Trainer and wild descend, 0.5 to 0.2 and 0.25 to 0.1. **Gym ascends, 0.25 to
+ * 1.0**, and the two directions are not in tension — they are the same idea
+ * read from both ends. The road gets less dangerous relative to the player as
+ * the player's own options widen; the exam does not.
+ *
+ * The top of the column is not a taste call. The ruling states it as a target:
+ * *"Gym 8 should have 6 mons w 6 battle items equipped"*. `opponentTeamSize`
+ * gives gym 8 a roster of six (`partyCapacityAfter(7)`), so **1.0 at segment 7
+ * is that sentence written as a number**, and `test/gym-held-items.test.ts`
+ * asserts the sentence rather than the number.
+ *
+ * The superseded rule, recorded rather than deleted: *"Gym leaders are not on
+ * this table and hold nothing. A gym is the segment's difficulty statement and
+ * it already draws at `GYM_MOVE_BAND_BONUS`; a second dial on the same fight is
+ * a dial the balance report cannot attribute."* The first half is now false by
+ * decision. The second half is still true and is now a thing to watch: a gym's
+ * difficulty moves on two dials, and a balance row that reads a gym clear needs
+ * to say which of them moved. `docs/balance.md` is where that is recorded.
  */
-export const BERRY_HOLD_RATE: readonly { trainer: number; wild: number }[] = [
-  { trainer: 0.5, wild: 0.25 },
-  { trainer: 0.5, wild: 0.25 },
-  { trainer: 0.4, wild: 0.2 },
-  { trainer: 0.4, wild: 0.2 },
-  { trainer: 0.3, wild: 0.15 },
-  { trainer: 0.3, wild: 0.15 },
-  { trainer: 0.2, wild: 0.1 },
-  { trainer: 0.2, wild: 0.1 },
+export const HELD_ITEM_RATE: readonly { trainer: number; wild: number; gym: number }[] = [
+  { trainer: 0.5, wild: 0.25, gym: 0.25 },
+  { trainer: 0.5, wild: 0.25, gym: 0.35 },
+  { trainer: 0.4, wild: 0.2, gym: 0.45 },
+  { trainer: 0.4, wild: 0.2, gym: 0.6 },
+  { trainer: 0.3, wild: 0.15, gym: 0.7 },
+  { trainer: 0.3, wild: 0.15, gym: 0.8 },
+  { trainer: 0.2, wild: 0.1, gym: 0.9 },
+  // Gym 8: a full roster, every member holding. The ruling's own target.
+  { trainer: 0.2, wild: 0.1, gym: 1 },
 ];
 
-/** The chance a `kind` opponent in this segment holds a berry. Gyms hold none. */
-export function berryHoldRate(kind: BattleKind, segment: number): number {
-  if (kind === 'gym') return 0;
-  const row = BERRY_HOLD_RATE[Math.max(0, Math.min(BERRY_HOLD_RATE.length - 1, segment))];
+/**
+ * The chance a `kind` opponent in this segment holds an item.
+ *
+ * **No kind is special-cased any more.** This function used to open with
+ * `if (kind === 'gym') return 0;`, which is why the table had no gym column to
+ * read; both halves of that arrangement are gone together. Every battle kind is
+ * now a column, so changing how often a gym leader holds something is a number
+ * in the table above rather than a branch in here.
+ */
+export function heldItemRate(kind: BattleKind, segment: number): number {
+  const row = HELD_ITEM_RATE[Math.max(0, Math.min(HELD_ITEM_RATE.length - 1, segment))];
   return row ? row[kind] : 0;
 }
 

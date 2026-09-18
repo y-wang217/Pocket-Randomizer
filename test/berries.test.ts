@@ -12,7 +12,10 @@
  *   2. `-enditem` is read off the protocol, for the player's side only.
  *   3. A fired berry leaves the party *and* the bag, permanently — it does not
  *      restock at the next node.
- *   4. Opponents hold them at the rate the table says, and gyms hold none.
+ *   4. Trainers and wild Pokemon hold them at the rate the table says. (Gyms
+ *      held none until the R19 rulings and now hold items from their own
+ *      ladder, which is `test/gym-held-items.test.ts` rather than this file —
+ *      a gym's Leftovers is not a berry and does not belong in a berry test.)
  */
 import { describe, expect, it } from 'vitest';
 
@@ -30,7 +33,7 @@ import { createRun, playRun, resolveNode, scriptedRunPolicy, type RunPolicy } fr
 import type { PokemonSpec, TeamSpec } from '../src/core/types';
 import { GYMS } from '../src/data/gyms';
 import { BERRIES, ITEMS, itemById } from '../src/data/items';
-import { berryHoldRate, SEGMENT_COUNT } from '../src/data/scaling';
+import { heldItemRate, SEGMENT_COUNT } from '../src/data/scaling';
 
 /**
  * A hand-built `NodeResult` reporting no per-member counters. **Stage 4.7.**
@@ -248,7 +251,7 @@ describe('opponents holding berries', () => {
 
   it('gives trainers berries at roughly the rate the table names', () => {
     for (const segment of [0, 4, 7]) {
-      const expected = berryHoldRate('trainer', segment);
+      const expected = heldItemRate('trainer', segment);
       const measured = rateOf('trainer', segment);
       expect(measured, `segment ${segment} trainer`).toBeGreaterThan(expected - 0.18);
       expect(measured, `segment ${segment} trainer`).toBeLessThan(expected + 0.18);
@@ -257,28 +260,50 @@ describe('opponents holding berries', () => {
 
   it('gives wild Pokemon berries less often than trainers, in every segment', () => {
     for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
-      expect(berryHoldRate('wild', segment), `segment ${segment}`).toBeLessThan(
-        berryHoldRate('trainer', segment),
+      expect(heldItemRate('wild', segment), `segment ${segment}`).toBeLessThan(
+        heldItemRate('trainer', segment),
       );
     }
   });
 
   it('weights the early segments higher, because that is when a berry matters', () => {
-    expect(berryHoldRate('trainer', 0)).toBeGreaterThan(berryHoldRate('trainer', 7));
-    expect(berryHoldRate('wild', 0)).toBeGreaterThan(berryHoldRate('wild', 7));
+    expect(heldItemRate('trainer', 0)).toBeGreaterThan(heldItemRate('trainer', 7));
+    expect(heldItemRate('wild', 0)).toBeGreaterThan(heldItemRate('wild', 7));
   });
 
-  it('gives a gym leader nothing to hold', () => {
-    expect(berryHoldRate('gym', 3)).toBe(0);
-    for (const segment of [0, 3, 7]) {
-      const team = generateGymTeam(GYMS[segment]!, segment, createRng(`GYM-HOLD-${segment}`).randomizer.at('test'));
-      for (const spec of team) expect(spec.item, `${spec.species}`).toBeUndefined();
+  /*
+   * **This assertion was `gives a gym leader nothing to hold`, and the R19
+   * rulings reversed it.** The rule it pinned — `heldItemRate('gym', n) === 0`
+   * and no gym member holding anything — was the current behaviour written
+   * down, not an invariant, and it is superseded rather than deleted: see
+   * `docs/generation.md` section 41.
+   *
+   * What survives here is the half of it that is still this file's business. A
+   * gym leader holds items now, and **none of them is a berry except the one
+   * the ruling named** — Sitrus, in the top band only. A berry test should
+   * still be able to say that a Chople Berry never turns up on a gym leader,
+   * because that would mean the gym ladder was drawing from `BERRIES` after
+   * all.
+   */
+  it('keeps the berry list off a gym leader, but for the one the ruling named', () => {
+    const allowed = new Set(['sitrusberry']);
+    for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
+      const team = generateGymTeam(
+        GYMS[segment]!,
+        segment,
+        createRng(`GYM-HOLD-${segment}`).randomizer.at('test'),
+      );
+      for (const spec of team) {
+        if (spec.item && BERRY_IDS.has(spec.item)) {
+          expect(allowed.has(spec.item), `${spec.species} holds ${spec.item}`).toBe(true);
+        }
+      }
     }
   });
 
   it('costs the same draws whether the Pokemon ends up holding one or not', () => {
     /*
-     * The invariant that lets `BERRY_HOLD_RATE` be retuned freely: the roll and
+     * The invariant that lets `HELD_ITEM_RATE` be retuned freely: the roll and
      * the pick both happen on every opponent, so the per-Pokemon draw count is
      * a constant and no later roll in the seed moves with the table.
      */

@@ -356,12 +356,29 @@ describe('the version axes', () => {
      * `docs/generation.md` section 35 is the account, including the proof:
      * `docs/visual/baseline/battles/GYMRUN01.json` is byte identical across it.
      *
-     * The literal below is all five together. The display split remains the
+     * The R19 gym-items ruling moved it a sixth time, from `a036d6`, and it is
+     * the bench-carryover case again rather than the ordinary one: two files,
+     * `data/scaling.ts` (`BERRY_HOLD_RATE` became `HELD_ITEM_RATE` and gained a
+     * gym column that climbs to 1.0) and `data/items.ts` (`GYM_ITEM_BANDS` and
+     * `heldItemPoolFor`, built out of the five item lists that already existed).
+     * **No axis arrives beside it, and that was designed in rather than
+     * discovered**: `rollHeldItem` — `rollBerry` before this — has always spent
+     * its roll and its pick unconditionally, so a gym member was already
+     * drawing an item and discarding it on every seed ever recorded. Same keys,
+     * same order, same count; only the answer read out of them changed.
+     *
+     * The proof is in two places. `test/gym-held-items.test.ts` pins a digest
+     * of 4,800 trainer and wild teams recorded against the tree *before* the
+     * ladder existed, and `docs/visual/baseline/runs/` moved in the
+     * `contentHash` field and in no other field of any of the six records.
+     * `docs/generation.md` section 41 is the account.
+     *
+     * The literal below is all six together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69');
+    expect(CONTENT_HASH).toBe('eba446d43290e86084bf7fa1ea7163d10ac77ec9858d2f9ccf074d3a766b8aed');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

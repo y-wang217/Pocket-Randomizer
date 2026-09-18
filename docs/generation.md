@@ -6779,3 +6779,127 @@ Widening `canTeachAt`, letting a teach wait for the next legal boundary rather
 than being dropped, or paying TMs nearer to rests are all answers. All three are
 balance decisions, so this is filed in `README.md` section 5 rather than
 guessed at.
+
+## 41. A gym leader was already drawing an item and throwing it away
+
+**The R19 rulings, item 5**, built on `claude/blissful-brown-5tv8fv` from
+[`spec/gymrun-patch-r19-rulings.md`](spec/gymrun-patch-r19-rulings.md). Moves
+`contentHash` from `a036d6` to `eba446` and **no other axis**.
+
+### The conditional the ruling asked, and the branch this took
+
+The instruction has an `if` in it, and the build owes an answer to which side it
+came down on:
+
+> do item scaling: leftovers is much stronger than expert belt for example. If
+> we already have scaling, just use the same bands. Otherwise, we increase
+> number of non-berry items as gyms progress.
+
+**We already had scaling, and it was already that exact example.** `Leftovers`
+is a `PREMIUM_ITEMS` entry and `Expert Belt` is a `GOOD_ITEMS` entry, and the
+two lists were split apart by the Stage 3 tuning pass for precisely the reason
+the ruling gives — one `STAPLE_ITEMS` list fed both the hard and the elite pools
+and made the reward gradient between them "nothing but a heal fraction".
+
+So `GYM_ITEM_BANDS` invents no list and grades no item by hand. It is the five
+existing lists — `TYPE_ITEMS`, `MODEST_ITEMS`, `GOOD_ITEMS`, `PREMIUM_ITEMS`,
+`CHOICE_ITEMS` — read against the **segment** instead of against the node tier.
+A gym leader early in the run holds the filler a normal node pays; a gym leader
+late in the run holds what an elite node pays.
+
+The fallback branch ("increase number of non-berry items as gyms progress") was
+not needed as a *pool* rule, and it is what the rate column does anyway.
+
+### The one item named by hand, and the lookup that did not happen
+
+> (also heal 1/4 hp berry is top tier) if this doesnt exist check smogon for top
+> items usage in pvp
+
+It exists. `sitrusberry` — "Restores 1/4 max HP when the holder drops below
+half", `restores: { fraction: 0.25 }` — has been in `BERRIES` since 4.6b. **The
+second half of that sentence is conditional on the first and the condition was
+false, so no external list was consulted and none is cited anywhere in this
+patch.** Sitrus is the only berry on the gym ladder, it appears in the top band
+only, and it is there as a judgement about that berry rather than about berries.
+
+### Why this cost no `RANDOMIZER_VERSION`, and why that was not luck
+
+`rollBerry` — now `rollHeldItem` — has always spent **two draws
+unconditionally**, a `nextFloat` for whether and a `pick` for which, and only
+then compared against the rate. Its own comment said why, and named the gym as
+the case: *"The draw happens whether or not the rate can succeed — a gym's rate
+is zero and it still costs a value."* `generateGymTeam` said the same from the
+other side: *"`holding` is passed even though a gym's rate is zero, so a gym
+member costs the same draws as any other opponent and the table is the only
+thing deciding what it holds."*
+
+Both were written by earlier passes that expected this one. **A gym member has
+been drawing an item and discarding it on every seed ever recorded**, so turning
+the rate up spends the same draws in the same order and reads a different answer
+out of them.
+
+The pool widening is free for the same class of reason: `stream.pick` is one
+`nextUint32` for an array of any length, because `nextInt` bounds the *value*
+and not the draw. Fifteen berries and a nineteen-entry premium band cost the
+same.
+
+Two proofs, because the claim is the whole justification for the axis:
+
+- `test/gym-held-items.test.ts` pins a SHA-256 of 4,800 trainer and wild teams —
+  300 seeds x 8 segments x 3 tiers x 2 kinds — **recorded against the tree
+  before the ladder existed**. A future change that moves a trainer or a wild
+  team by one field fails it and owes `RANDOMIZER_VERSION` a bump.
+- `docs/visual/baseline/runs/` was re-recorded and moved in the `contentHash`
+  field and **in no other field of any of the six records**. Decision logs,
+  outcomes, visits, casualties and `battles/GYMRUN01.json` are byte identical.
+  `test/fixtures/sim-report.json` likewise, and one of its three runs clears a
+  gym — which is a weak witness rather than a strong one, because gym 1 draws
+  from the weakest band at the lowest rate, and it is reported as weak here
+  rather than presented as proof.
+
+The live evidence is the measurement instead: over 150 generated maps, 4,800 gym
+Pokemon, **3,378 holding (70.4%)**, tracking the table at every rung — gym 1 at
+25%, gym 4 at 59%, gym 7 at 90%, gym 8 at 900/900.
+
+### The superseded rule
+
+Deleted from `data/scaling.ts` and recorded here, per the `CLAUDE.md` rule:
+
+> Gym leaders are not on this table and hold nothing. A gym is the segment's
+> difficulty statement and it already draws at `GYM_MOVE_BAND_BONUS`; a second
+> dial on the same fight is a dial the balance report cannot attribute.
+
+**The first sentence is now false by decision.** The second is still true and is
+now a standing hazard rather than an argument: a gym's difficulty moves on two
+dials, and a balance row that reads a gym clear has to say which of them moved.
+`docs/balance.md` is where that gets recorded.
+
+`test/berries.test.ts` carried the same rule as an assertion — *"gives a gym
+leader nothing to hold"*, `heldItemRate('gym', 3) === 0` — and it is replaced
+rather than deleted: that file now asserts the half still in its remit, that no
+berry but Sitrus reaches a gym leader. A Chople Berry on a gym leader would mean
+the ladder was drawing from `BERRIES` after all.
+
+### Renames
+
+`BERRY_HOLD_RATE` -> `HELD_ITEM_RATE`, `berryHoldRate` -> `heldItemRate`,
+`rollBerry` -> `rollHeldItem`. A table with a gym column that pays out Leftovers
+is not a berry table, and leaving the old names would have been the one thing
+this file exists to stop: a name that is a record of what the code used to do.
+
+The `if (kind === 'gym') return 0;` guard is gone with them. Every battle kind is
+a column now, so how often a gym leader holds something is a number in a table
+rather than a branch in a function.
+
+### What is deliberately left
+
+- **Eviolite can be a dud.** It is a `GOOD_ITEMS` entry and does nothing on a
+  fully evolved holder, which a late gym leader usually is. That is the cost of
+  "at random for now" and the ruling said "for now" itself.
+- **Choice items are a gamble the AI takes blind.** `legalChoices` filters on
+  `move.usable`, so a locked leader only ever offers its locked move and the
+  scorer cannot pick an illegal one — the mechanic is sound. Whether a leader
+  locked into the wrong move is *easier* than one without an item is a balance
+  question and is not answered here.
+- **No benchmark row.** `CLAUDE.md`: balance is not a gate. The rates are a
+  first cut, recorded, and the pass keeps going.
