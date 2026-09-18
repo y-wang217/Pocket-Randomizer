@@ -7275,3 +7275,83 @@ Types, lint, the offer, reward-card, result-screen, map and summary suites, and
 the browser smoke run. `test/gym-rewards.test.ts` pins the badge on both pages.
 The full suite was not re-run at the author's direction; `contentHash` is
 unmoved, so no baseline or fixture needed re-recording.
+
+## 46. The last assertion in the motion file that still waited on a clock
+
+**The R19 close-out, second item**, applied at the author's direction after the
+WebKit leg of PR #54 failed on it. Test-only: `contentHash` is unmoved at
+`b8b419` and no version axis moves. Nothing under `src/` is touched.
+
+### What failed
+
+`test/visual-motion.test.ts`, *"runs a beat to completion on its own clock,
+start and end"*, on the WebKit leg and only there:
+
+```
+expected [ 'animationstart:actor-lunge' ] to include 'animationend:actor-lunge'
+```
+
+It reproduced identically on the one re-run. The head it failed on changes no
+CSS, no `src/ui/theme/motion.ts`, no battle stage and no sprite code, and the same file
+passes on Chromium in the same CI run and locally.
+
+### The fourth wrong turn, on a file that had already recorded three
+
+`observe`, the helper the other twelve beats use, carries a written account of
+three ways an animation assertion can race and the fix that ended them: **do not
+race — take the element's `Animation` objects, pause them, and seek.**
+
+This test cannot take that fix and keep its meaning. Seeking is precisely what
+it exists *not* to do: `getAnimations()` says the engine created an animation,
+and this one says it ran one, start to finish, on its own clock. So it was the
+last place in the file still waiting on the engine, and it waited the wrong way:
+
+```js
+actor.setAttribute('data-acted', '1');
+// A whole feedback budget is four beats; one beat cannot outlast it.
+await new Promise((resolve) => setTimeout(resolve, beat));
+```
+
+**That comment is true about the animation's duration and silent about its
+start.** Nothing bounds how long an engine may take to schedule an
+attribute-triggered animation. A start delayed into the back of the window
+pushes `animationend` past the deadline while `animationstart` still lands
+inside it — which is exactly the pair the failure reported.
+
+It is the same reading `observe` already recorded for the other beats: *a test
+that waits a fixed fraction of a motion budget and then reads the screen is
+making an assumption about what the budget is for.* This test was the one case
+that had not been re-read against it.
+
+### The change
+
+The wait resolves on the `animationend` **event**; the timeout is a ceiling
+rather than the measurement. In the ordinary case it returns in about a beat,
+as before. Under load it waits as long as the engine needs.
+
+`LUNGE_CEILING_MS` is 10,000 against a 750ms `battleFeedbackMs` — more than an
+order of magnitude of headroom, and deliberately **not** derived from the beat,
+because a beat-derived ceiling would rebuild the coupling being removed. A lunge
+that has not finished in ten seconds has not been delayed; it is broken.
+
+The listener is armed before the attribute is set, so an engine that starts and
+ends the animation inside one frame cannot slip through the gap.
+
+### What was verified, including the part that was verified wrong first
+
+- Passes on Chromium, 24/24.
+- **The negative case, on the second attempt.** The first sabotage changed the
+  promise's keyframe filter and the test still passed — correctly, because the
+  recorder captures events independently of the promise, so the real
+  `animationend` was still recorded. That proved nothing and is written down
+  because it looked like a passing negative test. Cutting the *observation
+  window* instead — `LUNGE_CEILING_MS` to 1 — fails it, which is the assertion
+  still being load-bearing.
+
+### What this does not settle
+
+Whether the WebKit failure was scheduling latency or something real about that
+head. WebKit ran 457s and 480s on PR #54 against 347s and 368s on two recent
+`main` runs, and that 24–38% gap is unexplained. **This change is what turns
+that into an answer**: if the leg now passes, it was latency; if it still fails,
+the lunge genuinely does not complete on that head and that is a defect to find.
