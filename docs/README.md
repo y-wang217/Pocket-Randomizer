@@ -58,7 +58,36 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the band recut and the level curve.** Branch
+**In flight: the R19 playtest rulings.** Branch
+`claude/blissful-brown-5tv8fv`, prompt
+[`spec/gymrun-patch-r19-rulings.md`](spec/gymrun-patch-r19-rulings.md) with the
+diagnosis it answers at
+[`spec/gymrun-patch-r19-overnight-playtest.md`](spec/gymrun-patch-r19-overnight-playtest.md),
+records [`generation.md`](generation.md) sections 41, 42 and 43.
+`RANDOMIZER_VERSION` to `-20`, `contentHash` to `b8b419`; **`RUN_LOG_VERSION`
+and `AI_VERSION` both hold.**
+
+Four items built in the order the report proposed:
+
+1. **The relic and technique reward cards render.** Both had no `case` in
+   `renderRewardCard`'s switch and drew a label over an empty card. A relic now
+   names its effect, not only itself. No axis.
+2. **Gym leaders hold items**, off the item ladder the reward pools already
+   grade themselves with. Gym 8 fields six and every one holds. `contentHash`
+   only — the draws were already being spent and discarded, by design, since
+   4.6b. Section 41.
+3. **The technique shelf price** to 150 / 190, derived from the table's own +40
+   band step. Held loose by the ruling. Section 42.
+4. **Every offer is three distinct options again.** Three defects — fungible
+   kinds, duplicate relics, and a relic fallback with no knowledge of the
+   table — all measured to zero at every relic count. Section 43.
+
+**Item 2 of the playtest, wild encounters swapping optimally, is deferred to a
+reproduction rather than to a later patch**: the wild tier holds neither
+`smartSwitching` nor `smartSendIn` and switched 0 times in 500 calls on a board
+where medium and hard both switched. It stays open in the playtest file.
+
+**Previously: the band recut and the level curve.** Branch
 `claude/admiring-euler-dhn536`, prompt
 [`spec/gymrun-patch-band-recut-and-level-curve.md`](spec/gymrun-patch-band-recut-and-level-curve.md),
 record [`generation.md`](generation.md) section 36, report — filed before any
@@ -782,6 +811,24 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+0. **Every gym reward page badges `ELITE`.** `generateGymRewardOffer` returns
+   `tier: 'elite'` on both pages and the result screen prints it, which its own
+   header argues for — a gym page badged `normal` would contradict the cards on
+   it. But it is the only tier label a reader gets, so a gym page and an elite
+   node are indistinguishable in a screenshot, and that cost one session a wrong
+   root cause and 18,000 wasted measurements. A `GYM` badge means widening
+   `RewardOffer.tier`, which is a `Tier`, or adding a field beside it.
+   `generation.md` section 43.
+
+0. **A gym's difficulty now moves on two dials.** The gym's move band bonus and
+   its held-item ladder both scale with segment, and the rule deleted in section
+   41 warned about exactly this: a balance row that reads a gym clear has to say
+   which of them moved. `balance.md`.
+
+0. **Eviolite can be a dead gym item.** It is a `GOOD_ITEMS` entry and does
+   nothing on a fully evolved holder, which a late gym leader usually is. The
+   cost of "at random for now". `generation.md` section 41.
 
 0. **A TM is spendable in 13% of runs.** 43.5% of runs earn one; only 13.3%
    ever reach a rest or a shop while still holding it, which is the only
