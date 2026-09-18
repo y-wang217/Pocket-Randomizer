@@ -75,8 +75,12 @@ describe('the run log version', () => {
      * coin cards — and it moved the randomizer while leaving `RUN_LOG_VERSION`
      * exactly where this patch left it, which is the separation asserted on the
      * line below.
+     *
+     * And to `-21` by the gym level spread, which moved `contentHash` with it
+     * and left `RUN_LOG_VERSION` alone — the same separation again, from the
+     * data-table side this time.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-20');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

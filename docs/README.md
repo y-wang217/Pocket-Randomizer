@@ -958,7 +958,13 @@ One line each. The analysis lives where the pointer goes, not here.
 0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
-   `data/scaling.ts` and the "gym fields the slot count" rule.
+   `data/scaling.ts` and the "gym fields the slot count" rule. **The first of
+   those was spent on 2026-09-18** — `levelOffset.gym.min` is a spread below
+   parity now, fitted to the 0.91 team mean FireRed and Emerald average across
+   all sixteen of their gyms, with `max` still pinned at zero because that is
+   the half of the parity rule the Speed argument carries. The roster rule is
+   still unspent and is a named non-goal of that patch. `generation.md`
+   section 49.
    **58.0% on the merged tree at `randomizer-19`**, and the run completed for
    the first time since the stage — one seed in 400, which is not a rate but is
    not the flat zero the eleven rows before it are. The report predicted the per-slot one-shot

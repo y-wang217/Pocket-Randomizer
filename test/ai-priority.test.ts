@@ -393,12 +393,19 @@ describe('the version axes', () => {
      * `gymrun-randomizer-20`, because a new pool entry changes which entry a
      * roll selects. `docs/generation.md` section 44 is the account.
      *
-     * The literal below is all eight together. The display split remains the
+     * And a ninth time, for the gym level spread: `levelOffset.gym.min` is
+     * negative and growing across all eight rows of `data/scaling.ts`. **The
+     * second `contentHash` move that arrives beside another axis** —
+     * `gymrun-randomizer-21`, because the same float off the same key now lands
+     * a gym member somewhere in a range instead of on one number.
+     * `docs/generation.md` section 49 is the account.
+     *
+     * The literal below is all nine together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68');
+    expect(CONTENT_HASH).toBe('d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

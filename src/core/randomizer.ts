@@ -310,7 +310,34 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * the same offer already showed, and `resolveOffer` carries the same rule
  * through collapse.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-20';
+/*
+ * ## `-21`: the gym level spread, and a level clamped to its species
+ *
+ * Two changes, one axis, and neither adds or removes a draw. `rollSpec` still
+ * spends exactly one `inRange` on a level; `rollSpecies` still spends a band and
+ * a pick. What moved is **what those draws resolve to**.
+ *
+ * `levelOffset.gym.min` is negative and grows with the segment, so the same
+ * float off the same key now lands a gym member somewhere in a range instead of
+ * on one number. And `levelFor` clamps that value up to the drawn species' own
+ * evolution level, so a seed that used to field a Salamence at parity fields it
+ * at parity still while a Shelgon beside it sits lower.
+ *
+ * **A recorded seed therefore produces different gym teams, which is exactly
+ * what this axis guards**, and `contentHash` moves beside it for the table.
+ * `RUN_LOG_VERSION` holds at `-20`: the questions are unchanged and so are the
+ * answers' shapes — a gym is still fought, not negotiated with.
+ *
+ * **A correction rides with this bump.** `7d8b623` narrowed the same column to
+ * parity and held this axis, on the reading in `types.ts` that it covers a draw
+ * added, removed or relocated "in code with no table edited". That reading is
+ * narrower than `CLAUDE.md`'s ("draw composition") and narrower than this file's
+ * own `-19` note, which bumped for a `SEGMENTS` edit and gave our reason: levels
+ * feed the stage gate, so a segment draws from a different species list. The
+ * practical harm was nil — `contentHash` moved, so no seed replayed silently —
+ * but the axis was the wrong one. `docs/generation.md` section 49.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-21';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -813,6 +840,53 @@ function rollSpecies(pool: BandedSpeciesPool, stream: RngStream, seen: ReadonlyS
  * costs the same `RANDOMIZER_VERSION` bump — so the end is the position that
  * makes the history of the contract readable.
  */
+/**
+ * The level one drawn species is fielded at.
+ *
+ * One draw from the range, then **clamped up to the species' own evolution
+ * level**. A Shelgon drawn for a gym whose range reaches down to 48 may be
+ * fielded at 48; a Salamence drawn from the same pool cannot, because there is
+ * no level 48 Salamence, and the clamp puts it at 50 where it belongs.
+ *
+ * **This is what makes a level range and a species pool compose.**
+ * `bandedSpeciesPool` gates its whole pool on one level — it has to, because it
+ * is built once and every member then draws its own — so widening a range
+ * downward without this would strip out every species that evolves above the
+ * new floor. Measured at the gym spread: segment 4's Fire band-3 pool fell from
+ * 21 species to 3, segment 7's Dragon band-4 from 7 to 2, and segment 6's
+ * band-4 Ghost pool to **zero**, which would have left `speciesBandWeights`
+ * advertising a band the code could not draw. With the clamp the pool is built
+ * at the range's *ceiling* and nothing is lost.
+ *
+ * **It is a no-op for every caller but the gym**, and by construction rather
+ * than by care: a wild and a trainer pool are gated at their own `level.min`,
+ * so every entry in them satisfies `evoLevel <= level.min <= drawn` already.
+ *
+ * **It consumes exactly one draw, as the un-clamped read did.** The clamp is
+ * arithmetic on the value, not a re-roll, so `RANDOMIZER_VERSION` moves for what
+ * the draw resolves to and never for how much of the stream it spends.
+ */
+function levelFor(
+  entry: SpeciesEntry,
+  level: { min: number; max: number },
+  stream: RngStream,
+): number {
+  const drawn = Math.max(stream.inRange(level), entry.evoLevel ?? 0);
+  if (drawn > level.max) {
+    /*
+     * Loud, because the only way here is a pool gated above the range it is
+     * drawn against, and the symptom would otherwise be a gym quietly fielding
+     * a Pokemon above the player — the one thing `levelOffset.gym.max` exists
+     * to forbid.
+     */
+    throw new RangeError(
+      `${entry.species} evolves at ${entry.evoLevel} but the range tops out at ${level.max}; ` +
+        'the pool was gated above the level it is drawn against.',
+    );
+  }
+  return Math.max(1, Math.min(100, drawn));
+}
+
 function rollSpec(
   pool: BandedSpeciesPool,
   damaging: BandedMovePool,
@@ -825,7 +899,7 @@ function rollSpec(
   seen.add(entry.id);
   const spec: PokemonSpec = {
     species: entry.species,
-    level: Math.max(1, Math.min(100, stream.inRange(level))),
+    level: levelFor(entry, level, stream),
     ability: rollAbility(stream),
     moves: rollMoveset(entry, damaging, stream),
     gender: rollGender(entry, stream),
@@ -895,7 +969,25 @@ export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStre
 export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream): TeamSpec {
   const tier: Tier = 'normal';
   const level = opponentLevel('gym', segment, tier);
-  const pool = gymSpeciesFor(gym, segment, level);
+  /*
+   * **The pool is built at the range's ceiling, not its floor, and the level is
+   * drawn against the whole range.** Those are two different questions and they
+   * were one while the gym column was pinned flat, because `min` and `max` were
+   * the same number.
+   *
+   * `bandedSpeciesPool` gates on the level it is handed. Handing it the spread's
+   * floor would ask "which species could exist at the *lowest* level any member
+   * might roll", and answer by deleting every species that evolves above it —
+   * which at segment 6 emptied a band the table still carried a weight for. The
+   * ceiling is the right question: a gym may field anything the player's own
+   * level could have, and `levelFor` then places each drawn species no lower
+   * than its own evolution allows.
+   *
+   * Today's pool is unchanged by this. The column was `{ min: 0, max: 0 }` until
+   * 2026-09-18, so the floor and the ceiling were the same number and this line
+   * asks what it always asked.
+   */
+  const pool = gymSpeciesFor(gym, segment, { min: level.max, max: level.max });
   /*
    * The one place a move pool is not the segment's own: a gym leader draws one
    * band higher (`GYM_MOVE_BAND_BONUS`). That is the difficulty spike, and it

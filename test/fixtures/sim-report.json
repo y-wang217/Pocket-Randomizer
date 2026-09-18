@@ -1,7 +1,7 @@
 {
   "version": "gymrun-run-20/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-20",
-  "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
+  "randomizerVersion": "gymrun-randomizer-21",
+  "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
   "aiVersion": "gymrun-ai-6-spent-item",
   "runs": [
     {
@@ -94,46 +94,47 @@
     {
       "seed": "FIXTURE-BRAVO",
       "outcome": "defeat",
-      "gymsCleared": 0,
-      "currency": 21,
+      "gymsCleared": 1,
+      "currency": 61,
       "backpack": [
-        "passhoberry"
+        "passhoberry",
+        "leftovers"
       ],
       "party": [
         {
-          "species": "Grookey",
-          "level": 15,
+          "species": "Thwackey",
+          "level": 20,
           "ability": "Magnet Pull",
           "gender": "M",
           "moves": [
-            "Leafage",
+            "Upper Hand",
             "Rapid Spin",
             "Syrup Bomb",
             "Water Pulse"
           ],
           "item": "wiseglasses",
           "hp": 0,
-          "maxHp": 44,
+          "maxHp": 64,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 75,
-            "damageTaken": 72,
-            "kos": 2,
-            "faints": 1,
-            "turnsOnField": 7
+            "damageDealt": 136,
+            "damageTaken": 136,
+            "kos": 3,
+            "faints": 2,
+            "turnsOnField": 17
           },
           "status": null,
           "pp": [
+            18,
             64,
-            64,
-            13,
+            16,
             32
           ]
         },
         {
           "species": "Finneon",
-          "level": 15,
+          "level": 20,
           "ability": "Simple",
           "gender": "F",
           "moves": [
@@ -144,20 +145,20 @@
           ],
           "item": "habanberry",
           "hp": 0,
-          "maxHp": 44,
+          "maxHp": 55,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 70,
-            "damageTaken": 44,
+            "damageDealt": 48,
+            "damageTaken": 60,
             "kos": 1,
             "faints": 1,
-            "turnsOnField": 4
+            "turnsOnField": 5
           },
-          "status": null,
+          "status": "par",
           "pp": [
-            20,
-            32,
+            23,
+            30,
             40,
             24
           ]
@@ -219,21 +220,38 @@
           "segment": 0,
           "kind": "gym",
           "tier": null,
+          "winner": "p1",
+          "turns": 8,
+          "hpAfter": 39,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Sorrel",
+              "bySpecies": "Rolycoly",
+              "byMove": "Accelerock"
+            }
+          ]
+        },
+        {
+          "id": "s1-summit-0-0",
+          "segment": 1,
+          "kind": "trainer",
+          "tier": "normal",
           "winner": "p2",
-          "turns": 7,
+          "turns": 10,
           "hpAfter": 0,
           "casualties": [
             {
               "side": "p1",
               "name": "Sorrel",
-              "bySpecies": "Bonsly",
-              "byMove": "Freeze-Dry"
+              "bySpecies": "Shieldon",
+              "byMove": "Brick Break"
             },
             {
               "side": "p1",
               "name": "Grist",
-              "bySpecies": "Rolycoly",
-              "byMove": "Accelerock"
+              "bySpecies": "Quaxly",
+              "byMove": "Thunder Fang"
             }
           ]
         }
@@ -403,6 +421,121 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 4
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": [],
+            "teaches": [
+              {
+                "move": "Upper Hand",
+                "slot": 0,
+                "replaceSlot": 0
+              }
+            ],
+            "discardTms": []
+          }
+        },
+        {
+          "kind": "locale",
+          "index": 0
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "switch",
             "slot": 2
           }
@@ -418,21 +551,21 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 2
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 2
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 2
           }
         }
       ]
@@ -461,15 +594,15 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 485,
-            "damageTaken": 125,
+            "damageDealt": 508,
+            "damageTaken": 123,
             "kos": 11,
             "faints": 2,
             "turnsOnField": 25
           },
           "status": null,
           "pp": [
-            9,
+            8,
             16,
             32,
             32
@@ -492,15 +625,15 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 45,
+            "damageDealt": 69,
             "damageTaken": 56,
             "kos": 2,
             "faints": 1,
-            "turnsOnField": 3
+            "turnsOnField": 4
           },
           "status": null,
           "pp": [
-            15,
+            14,
             24,
             32,
             16
@@ -603,7 +736,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 54,
+          "hpAfter": 56,
           "casualties": []
         },
         {
@@ -669,7 +802,7 @@
           "kind": "gym",
           "tier": null,
           "winner": "p2",
-          "turns": 3,
+          "turns": 4,
           "hpAfter": 0,
           "casualties": [
             {
@@ -682,7 +815,7 @@
               "side": "p1",
               "name": "Fennel",
               "bySpecies": "Finneon",
-              "byMove": "Bubble Beam"
+              "byMove": "Aqua Jet"
             },
             {
               "side": "p1",
@@ -1220,6 +1353,13 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "switch",
             "slot": 3
           }
@@ -1228,7 +1368,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 2
           }
         }
       ]
