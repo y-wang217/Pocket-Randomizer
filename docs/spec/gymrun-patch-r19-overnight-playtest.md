@@ -56,7 +56,61 @@ options."
 
 Two things are worth separating, because the report names one of them.
 
-**a. The duplicate.** Checked against R18. It is not a gym offer: a gym pays
+**a. The duplicate. Root-caused and measured on the merged tree.**
+
+**It is the relic fallback, and the problem is bigger than the report.** Every
+relic card carries a `fallback` drawn by `resolveRewardEntry` from
+`pool.filter(kind !== 'relic')`, and `resolveOffer` collapses onto it when the
+run already holds the relic. **That fallback is drawn with no knowledge of the
+other two cards on the table**, so it can land on a kind already there.
+
+Scanned 18,000 generated offers across three tiers and five segments, resolved
+against a run holding every relic:
+
+| | offers | share |
+|---|---|---|
+| three distinct kinds | 14,956 | 83.1% |
+| a repeated kind | **3,044** | **16.9%** |
+
+Broken down: `item` 1,674, `tutor` 729, `heal` 528, `technique` 60,
+**`currency` 53**.
+
+**Most of that is not a defect.** Two `item` cards are two *different* items —
+`takenItems` guarantees it, `NORMAL` deliberately carries a berry entry and a
+type-item entry, and a Leftovers against a Charcoal is a real choice. Same for
+two move cards, which `takenMoves` keeps distinct. Those are "distinct options"
+in the sense `CLAUDE.md` means.
+
+**The defect is the fungible kinds**, where a second card is the same decision
+with a different number on it: `currency` (53, the reported screenshot) and
+`heal` (528, and strictly worse — two identical full heals). Both come from the
+relic fallback and only from it; a pool never holds two `currency` entries, so
+without-replacement drawing cannot produce the reported card pair on its own.
+
+Worked examples from the scan:
+
+```
+elite seg1: [relic, tutor, heal] → [tutor, tutor, heal]
+elite seg3: [item,  tutor, relic] → [item, tutor, item]
+elite seg7: [tutor, relic, heal] → [tutor, heal, heal]
+```
+
+**Fix direction, and the constraint on it.** The information needed is available
+where the cards are drawn — `generateRewardOffer` has all three — but the
+fallback is currently computed per entry inside `resolveRewardEntry`, before the
+other cards exist when the relic is card 0. So the fix is either to re-draw a
+relic's fallback after the loop, excluding kinds already on the table, or to
+resolve the relic entry last. **Either changes draw order and therefore moves
+`RANDOMIZER_VERSION`** — the eager-generation contract means a fallback must
+still be decided at map generation and consume no RNG at resolution.
+
+The report's own ask fits here cleanly: making the fallback prefer an `item`
+entry over `currency`/`heal` both removes the duplicate and puts "a good one"
+in its place, which is what was asked for. Which item list, and whether the
+preference is a hard rule or a weight, is the tuning call.
+
+*(Superseded first reading, kept because it was wrong in an instructive way:*
+checked against R18, It is not a gym offer: a gym pays
 `GYM_OFFER_SIZE = 2` cards from a two-entry pool (one relic, one currency), and
 this screen says three and badges `ELITE`. It is an elite *node*. The elite pool
 has exactly one `currency` entry and `generateRewardOffer` draws entries
@@ -67,6 +121,8 @@ a `fallback` drawn from the pool's non-relic entries, and `resolveOffer`
 collapses a relic the run already holds onto that fallback. A fallback that is
 `currency`, beside the pool's own currency card, is two coin cards from one
 draw. Unverified on R19.
+
+*— end of the superseded first reading.)*
 
 **b. The blank relic card.** Not mentioned in the report and possibly the same
 defect seen from the other side: `describeReward` returns
