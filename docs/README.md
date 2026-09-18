@@ -739,8 +739,9 @@ One line each. The analysis lives where the pointer goes, not here.
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
    `data/scaling.ts` and the "gym fields the slot count" rule.
-   **Eased by the band recut, against the prediction: 56.4% at
-   `randomizer-19`**, up from 48.3%. The report predicted the per-slot one-shot
+   **58.0% on the merged tree at `randomizer-19`**, and the run completed for
+   the first time since the stage — one seed in 400, which is not a rate but is
+   not the flat zero the eleven rows before it are. The report predicted the per-slot one-shot
    rate would rise and it did; what it could not predict is that closing the
    STAB window matters more. Gym 1's band mix is 83/17/0 where the leak was
    producing 61/34/5. The author's standing ruling is that clear rate is not the

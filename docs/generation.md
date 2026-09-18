@@ -5968,8 +5968,17 @@ super-effective hits — which is ordinary Pokemon, and the one forecast the UI 
 already allowed to show.
 
 **And then the benchmark said the opposite, which is why it is the benchmark.**
-Against the pinned `greedy` baseline at 400 seeds, gym 1 clears **56.4%** — up
-from 48.3% at `randomizer-18` — and mean gyms goes 0.545 to **0.56**.
+Measured alone, against the pinned `greedy` baseline at 400 seeds, gym 1 cleared
+**56.4%** — up from 48.3% — and mean gyms went 0.545 to 0.56.
+
+**Re-measured on the merged tree it reads differently again**, because the gym
+level column went to zero on another branch in between (section 35) and that
+change is worth more than this one at gym 1. The shipped row is **0.65 mean
+gyms and 0.3% completion**: down 0.16 from the 0.81 the parity change alone
+produced, and the first non-zero completion this population has recorded since
+Stage 4.9. One run in 400 cleared all eight gyms. Gym 3 is +25.3pt, gym 1 is
+-5.8pt, and everything past gym 4 is two to twenty runs a column. The
+`randomizer-19` row of `balance.md` carries the full reading.
 
 A wrong number was carried for part of this patch and is corrected here rather
 than quietly dropped: an interim 120-seed run was read off the `ladder` policy's
