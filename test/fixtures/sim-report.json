@@ -1,7 +1,7 @@
 {
   "version": "gymrun-run-18/gymrun-0.3.0",
   "randomizerVersion": "gymrun-randomizer-19",
-  "contentHash": "49e50f47ea9dcecd54f7d0d7a065750d8372dcca46ba7e80e973375fde10bf7a",
+  "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
   "aiVersion": "gymrun-ai-6-spent-item",
   "runs": [
     {
@@ -448,7 +448,7 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 489,
+            "damageDealt": 485,
             "damageTaken": 125,
             "kos": 11,
             "faints": 2,
@@ -510,15 +510,15 @@
           "fainted": true,
           "joinedSegment": 1,
           "contribution": {
-            "damageDealt": 72,
+            "damageDealt": 57,
             "damageTaken": 84,
             "kos": 1,
             "faints": 2,
-            "turnsOnField": 5
+            "turnsOnField": 4
           },
           "status": null,
           "pp": [
-            14,
+            15,
             23,
             48,
             16
@@ -656,7 +656,7 @@
           "kind": "gym",
           "tier": null,
           "winner": "p2",
-          "turns": 4,
+          "turns": 3,
           "hpAfter": 0,
           "casualties": [
             {
@@ -675,7 +675,7 @@
               "side": "p1",
               "name": "Nettle",
               "bySpecies": "Finneon",
-              "byMove": "Aqua Jet"
+              "byMove": "Bubble Beam"
             }
           ]
         }
@@ -1185,13 +1185,6 @@
           "choice": {
             "kind": "switch",
             "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
           }
         },
         {

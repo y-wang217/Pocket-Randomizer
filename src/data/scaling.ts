@@ -65,13 +65,23 @@ export interface SegmentScaling {
   /**
    * Opponent level relative to `playerLevel`, drawn per encounter.
    *
-   * **Stage 4.9: wild below, trainer nearer, gym at or above.** A wild Pokemon
-   * is a step on the road; a trainer is the fight the road is for; a gym is the
-   * segment's exam, sized to the party and played by the hard AI. The old
-   * table paid every gym's team size with levels below the party, tuned against
-   * the pre-tiers opponent, and the party reached gym 8 thirteen levels above
-   * it. The gym column is positive everywhere now, and the sim says what that
-   * costs.
+   * **Wild below, trainer nearer, gym exactly level. 2026-09-17.** A wild
+   * Pokemon is a step on the road; a trainer is the fight the road is for; a
+   * gym is the segment's exam, sized to the party and played by the hard AI.
+   *
+   * The gym column is zero in both directions at every segment, and it is the
+   * one column in this table that is not a tuning number. **A gym is never
+   * above the party and never below it**, which makes it the only fight in the
+   * run whose speed tie is decided by the Pokemon rather than by the level —
+   * see the note on the table below for why that is the point.
+   *
+   * Stage 4.9 had it positive and growing, to +2/+4 by segment 7, on the
+   * argument that a gym is sized to the party and should read as an exam. The
+   * argument was sound and the lever was wrong: a level advantage in Gen 3
+   * scales every stat at once, and the stat it decides fights with is Speed.
+   * The gym keeps its exam difficulty — the full roster (`opponentTeamSize`),
+   * the band bonus (`GYM_MOVE_BAND_BONUS`) and the hard AI (`data/ai.ts`) are
+   * all untouched — and pays for none of it in levels.
    */
   levelOffset: Record<BattleKind, Range>;
   /**
@@ -170,15 +180,49 @@ export interface SegmentScaling {
  * which is what makes catching for gym 1 a decision now that the starter is a
  * band-0 base form. `docs/reports/early-game-band-and-curve.md` section 5.
  *
- * **Offsets still grow with level**, the Stage 3 finding kept: wild roughly
- * a fifth to a third below, trainer a sixth to a quarter below, and the gym
- * at or above the party, which is the ask and the largest change in the
- * table. The old rule that every step up in team size is paid for with a
- * step down in level is **deleted for gyms, 2026-09-15**: it was measured
- * against an opponent that did not switch or look ahead, and against a party
- * that started fully evolved at 30. A gym now fields the player's roster
- * (`opponentTeamSize`) at the player's level or a little above, and plays the
- * hard AI at every segment (`data/ai.ts`).
+ * **Both of those readings are per-slot damage statistics, and the benchmark
+ * disagreed with them.** Gym 1 clears more often after this patch, not less,
+ * because closing `MOVESET.stabWindow` matters more than the level term: the
+ * opening fields 83/17/0 where the leak was producing 61/34/5. A likelier
+ * one-shot per slot and a lower win rate are not the same measurement.
+ *
+ * **And the gym column went to zero in the same merge**, for a playtest
+ * complaint about the same mechanic from the other side — see `levelOffset`
+ * above. So a gym now sits at exactly the level this column gives the party,
+ * and the stretched curve moves both of them together rather than opening a gap.
+ * The two changes were built on separate branches for separate reasons and both
+ * push the early game the same way; the `randomizer-19` row of
+ * `docs/balance.md` is measured on the merged tree and is the only reading that
+ * describes what ships.
+ *
+ * **Offsets still grow with level for the two node kinds that have one**, the
+ * Stage 3 finding kept: wild roughly a fifth to a third below, trainer a sixth
+ * to a quarter below. The old rule that every step up in team size is paid for
+ * with a step down in level stays **deleted for gyms, 2026-09-15**: a gym
+ * fields the player's roster (`opponentTeamSize`) and plays the hard AI at
+ * every segment (`data/ai.ts`), and pays for neither.
+ *
+ * **The gym column is zero at every segment, 2026-09-17, and it is not a
+ * tuning number.** Stage 4.9 made it positive and growing — +0/+1 early to
+ * +2/+4 at segment 7 — and a playtest reported the consequence rather than the
+ * number: *"gyms have mons at higher level than the player, which makes speed
+ * nearly impossible to compete against."*
+ *
+ * That is a statement about the lever, not about its size. A level in Gen 3
+ * raises every stat at once, and among them Speed, which is the only stat that
+ * is read as a *comparison* rather than as a quantity: two points of Speed and
+ * two hundred buy exactly the same thing, the first move, and a gym a level
+ * above the party takes it in every tie the party would otherwise win. So the
+ * cost of a positive gym offset is not paid in the damage race it looks like
+ * it is paid in — it is paid by deleting a whole axis of team building, since
+ * a fast Pokemon picked to outrun the exam cannot outrun it at any level the
+ * player can reach. Every other difficulty lever a gym has is a quantity and
+ * survives being tuned; this one is a threshold and does not, which is why it
+ * is pinned at parity rather than lowered.
+ *
+ * The exam is unchanged otherwise. `GYM_MOVE_BAND_BONUS` still gives a leader
+ * one band of move power over the segment, the roster is still the player's
+ * own slot count, and the AI is still the hard tier.
  *
  * **Species bands are a distribution** (see the field), with band 4 first
  * carrying weight at segment 6 so the pseudo-legendaries are a late-gym
@@ -209,7 +253,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 0,
     playerLevel: 15,
-    levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: 0, max: 1 } },
+    levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 0: 5, 1: 1 },
     moveBandWeights: { 1: 4, 2: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -217,7 +261,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 1,
     playerLevel: 20,
-    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: 0, max: 1 } },
+    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 0: 4, 1: 2 },
     moveBandWeights: { 1: 3, 2: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -225,7 +269,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 2,
     playerLevel: 26,
-    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: 0, max: 2 } },
+    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 0: 2, 1: 3, 2: 2 },
     moveBandWeights: { 1: 2, 2: 3, 3: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -233,7 +277,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 3,
     playerLevel: 32,
-    levelOffset: { wild: { min: -9, max: -6 }, trainer: { min: -7, max: -4 }, gym: { min: 0, max: 2 } },
+    levelOffset: { wild: { min: -9, max: -6 }, trainer: { min: -7, max: -4 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 0: 1, 1: 3, 2: 3 },
     moveBandWeights: { 1: 1, 2: 3, 3: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -241,7 +285,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 4,
     playerLevel: 38,
-    levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -8, max: -5 }, gym: { min: 1, max: 2 } },
+    levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -8, max: -5 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 1: 2, 2: 3, 3: 2 },
     moveBandWeights: { 2: 2, 3: 5, 4: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -249,7 +293,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 5,
     playerLevel: 44,
-    levelOffset: { wild: { min: -13, max: -9 }, trainer: { min: -10, max: -6 }, gym: { min: 1, max: 3 } },
+    levelOffset: { wild: { min: -13, max: -9 }, trainer: { min: -10, max: -6 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 1: 1, 2: 3, 3: 3 },
     moveBandWeights: { 2: 2, 3: 5, 4: 1, 5: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -257,7 +301,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 6,
     playerLevel: 50,
-    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -11, max: -7 }, gym: { min: 1, max: 3 } },
+    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -11, max: -7 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 2: 2, 3: 3, 4: 1 },
     moveBandWeights: { 3: 4, 4: 2, 5: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -265,7 +309,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 7,
     playerLevel: 58,
-    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -13, max: -8 }, gym: { min: 2, max: 4 } },
+    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -13, max: -8 }, gym: { min: 0, max: 0 } },
     speciesBandWeights: { 2: 1, 3: 3, 4: 2 },
     moveBandWeights: { 3: 3, 4: 2, 5: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -709,6 +753,14 @@ export const GYM_MOVE_BAND_BONUS = 1;
  * real-game reference at that level of 29/34/30/2/5. Gym 3 is the one fight in
  * the opening that sits materially *above* what a real Pokemon carries, and it
  * is recorded here rather than tuned away before the first playtest.
+ *
+ * **Softened from the other side by the gym column going to zero**, which
+ * landed on its own branch in the same merge. A gym is at exactly the party's
+ * level now, so gym 3's band spike is no longer stacked on a level advantage the
+ * way it was when this note was written. The band reading above stands — it is a
+ * statement about what the leader *holds* — and the fight around it is easier
+ * than the numbers alone suggest. Still the first number to move if gym 3 reads
+ * as a wall, and still not moved yet.
  */
 export const GYM_MOVE_BAND_BONUS_FROM_SEGMENT = 2;
 
@@ -890,11 +942,26 @@ export function opponentTeamSize(kind: BattleKind, segment: number, tier: Tier):
   return Math.max(1, Math.min(MAX_TEAM_SIZE, expectedPartySize(segment) + advantage));
 }
 
-/** The opponent level band for a node kind in a segment, tier applied. */
+/**
+ * The opponent level band for a node kind in a segment, tier applied.
+ *
+ * **A gym takes no tier bonus, here rather than only at the call site.**
+ * `randomizer.generateGymTeam` passes `normal` and has done since Stage 3, for
+ * the reason its own note gives — a gym *is* the segment's difficulty
+ * statement, and a node tier modifying it would be two dials on one number. So
+ * this changes nothing today. What it changes is what a gym can become: the
+ * gym column is pinned at parity because a level advantage is the one
+ * difficulty lever that deletes Speed as a build axis rather than scaling it
+ * (see `levelOffset`), and a rule that holds only because one caller passes one
+ * argument is a rule the next caller repeals by accident.
+ *
+ * `hard`'s three percent is enough on its own: at segment 2 it rounds to a
+ * whole level, which is the entire effect the playtest reported.
+ */
 export function opponentLevel(kind: BattleKind, segment: number, tier: Tier): Range {
   const row = segmentScaling(segment);
   const offset = row.levelOffset[kind];
-  const bonus = Math.round(row.playerLevel * TIER_MODIFIERS[tier].levelShare);
+  const bonus = kind === 'gym' ? 0 : Math.round(row.playerLevel * TIER_MODIFIERS[tier].levelShare);
   return { min: row.playerLevel + offset.min + bonus, max: row.playerLevel + offset.max + bonus };
 }
 

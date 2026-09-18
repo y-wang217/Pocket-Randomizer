@@ -3618,7 +3618,7 @@ types, the six stats at the member's level, dex order, no marker.
 
 `playerLevel` was 7, 14, 20, 27, 33, 40, 47, 55, each clear sized to cross a
 threshold cluster (**the band recut moved it to 15, 20, 26, 32, 38, 44, 50, 58 —
-section 33**); wild a fifth to a third below, trainer a sixth to a
+section 36**); wild a fifth to a third below, trainer a sixth to a
 quarter below, gym at or above (0..+1 to +2..+4). `TIER_MODIFIERS.level`
 became `levelShare`, a fraction of the player's level, because `-3` at level
 7 was 43% of it. A gym fields the player's slot count (2, 3, 3, 4, 4, 5, 5,
@@ -3657,7 +3657,7 @@ evolution and at least 280 base stat total.
   clear's *reward* still pays one band up from gym 1.
 - **A starter floor of 280 base stats.** Band 0 runs from 180; a Caterpie is a
   run that ends at the first trainer. (Derived at level 7; the band recut moved
-  the opening to 15 without re-deriving it — section 33.6.)
+  the opening to 15 without re-deriving it — section 36.6.)
 - **Content-dependent pins moved.** Two `visual-v5` move-grid tests read
   SMOKE24's first board and needed a marker and an unwrapped meta row; the new
   SMOKE24 opens with Fighting moves whose type chip wraps the meta row at
@@ -5278,7 +5278,551 @@ was false for three patches and is now asserted — against the figure rather th
 a pixel count, so it fails for the right reason, with the document-level check
 beside it because that is the symptom a player would actually meet.
 
-## 33. The opening was drawing from a table nobody wrote
+## 33. The CI patch, part 1: a gate that reports every leg
+
+Prompt: [`spec/gymrun-patch-ci-workflow.md`](spec/gymrun-patch-ci-workflow.md),
+filed 2026-09-17 before any work. Build infrastructure only — no `src/` change,
+no version axis moved, `docs/visual/baseline/` untouched, and the shipped bundle
+is byte identical because nothing that enters it was edited.
+
+### 33.1 What the `&&` chain was hiding
+
+`npm run check` was five legs joined by `&&`:
+
+```
+npm run lint && tsc --noEmit && vitest run && npm run test:webkit && npm run test:trim-strict
+```
+
+Three findings from expanding it, none of which are visible in the one-line form:
+
+1. **Three of the five legs needed a browser, not one.** `vite.config.ts`
+   includes `test/**/*.test.ts` and has no engine filter, so the 24
+   browser-dependent files ran inside `vitest run` and `test:trim-strict` as
+   well as inside `test:webkit`. A box without Chromium therefore lost the 111
+   Node-only files and their 1595 tests as collateral, and the chain reported
+   one failure for it.
+2. **`test:webkit` carried three passengers.** Its glob was
+   `test/visual-*.test.ts`, which is 24 files, but only 21 reach a browser.
+   `visual-baseline`, `visual-locales` (jsdom) and `visual-tokens` (a CSS grep)
+   were re-run under `GYMRUN_ENGINE=webkit`, where the variable means nothing to
+   them.
+3. **The gate was two legs short of `CLAUDE.md`'s own list.** Build and smoke
+   run are named absolute gates and `check` ran neither. The section that says
+   `npm run check` is the gate and the section that lists nine gates disagreed,
+   and the chain was the one that was wrong.
+
+The cost of the chain's shape is already in this file's history rather than
+hypothetical: [`visual/reports/patch-idle-sprites-and-locale-motion.md`](visual/reports/patch-idle-sprites-and-locale-motion.md)
+records a reporter timeout in the third leg that made `check` "stop before the
+strict-trim step, which was run on its own", and `scripts/visual/gate.sh` still
+carries a comment about its own first version printing "gate green" over two
+failing files.
+
+### 33.2 Nine legs, and why the two full-suite legs split
+
+`scripts/check.mjs` runs `lint`, `typecheck`, `test:node`, `test:chromium`,
+`test:webkit`, `trim:node`, `trim:browser`, `build`, `smoke`, always all of
+them, and prints a PASS/FAIL/SKIPPED table.
+
+The old legs 3 and 5 each became two, which was put to the author before any
+code and answered "split each into node + browser". The reason is the first
+finding above: unsplit, a missing engine reports SKIPPED over 135 files, and
+1595 tests that were perfectly capable of running go unverified. Split, the
+browser halves skip and the Node halves still gate. `build` and `smoke` were the
+second question and answered "add both".
+
+`build` runs `vite build` rather than `npm run build`, which is
+`tsc --noEmit && vite build`: the type check is already leg 2 and a gate that
+runs it twice spends a minute proving the same thing.
+
+### 33.3 The split is computed, and the skip is guarded
+
+`scripts/browser-tests.mjs` derives which files need a browser by looking for
+the ones that reach Playwright — directly, or through `test/visual/harness.ts`
+or `scripts/visual/browser.mjs`. **Deliberately not a hand-written list and
+deliberately not a filename match.** A list is a second place to remember, and
+the three Node-only `visual-*` files are exactly the case a filename match gets
+wrong — the pre-patch glob got it wrong on all three.
+
+That leaves one hole, and `scripts/check.mjs` closes it from the other side: a
+missing-browser SKIPPED is only honoured on a leg declared `browser: true`. If
+the detection ever misses a file, that file lands in the Node leg, meets the
+same Playwright error, and **fails** — because the Node leg is not allowed to
+skip for that reason. A detection bug that turned into a silent skip would be
+worse than no gate at all; this one turns into a red leg with Playwright's own
+message under it.
+
+### 33.4 Two kinds of SKIPPED, one of them promoted
+
+The brief asks for SKIPPED to become FAILED under `process.env.CI`. There are
+two ways a leg can fail to run and only one of them is that kind:
+
+- **No browser binary**, detected from Playwright's own words
+  (`Executable doesn't exist at`, the install banner, and the missing
+  host-dependencies line, since a browser that cannot start for want of a
+  system library is as absent as one that is not installed). SKIPPED locally,
+  FAILED under `CI`. This is the brief's case, and `docs/README.md` already
+  holds the rule it is an instance of: a known-good engine reported as
+  unverified is the failure, not the absence.
+- **A dependency failed.** `smoke` serves `dist/`, so it cannot run when
+  `build` did not produce one. **Not promoted**, and the asymmetry is the
+  point: `build` already reported FAILED and the run already exits 1, so
+  promoting `smoke` too would print two failures for one cause and send the
+  reader hunting a second bug.
+
+### 33.5 `--only`, and the branches that would otherwise be untested
+
+`node scripts/check.mjs --only=lint,build` runs a named subset with the same
+reporting, and `--list` prints the legs without running anything.
+
+It is not decoration. A full run is tens of minutes, which means the three
+branches the brief actually specifies — the missing-browser skip, the `CI`
+promotion, and the dependency skip — were unreachable in any reasonable
+verification, and an unreachable branch is an untested one. All three were
+exercised through this flag before the runner was committed: WebKit is not
+installed on the development container, so
+`node scripts/check.mjs --only=test:webkit` produces the skip and
+`CI=true` the same leg produces the promoted failure, both against the real
+absent binary rather than a simulated one. The dependency skip was exercised on
+a throwaway copy of the runner with `build` pointed at a bad flag.
+
+### 33.6 What `package.json` kept
+
+`test:trim-strict` still means the whole suite, unsplit, because
+[`../README.md`](../README.md), `build-config/trim-sim-data.ts` and
+`test/trimmed-data.test.ts` all name it and all mean that. `npm test` still
+means the whole suite for the same reason: every figure any report in `docs/`
+has recorded against a plain `vitest run` keeps its meaning. The split halves
+got new names (`test:unit`, `test:browser`, `test:trim`, `test:trim:browser`)
+rather than redefining old ones, and `types` is new because leg 2 was inline in
+the chain and had no script of its own.
+
+One existing name did change meaning: `test:browser` was the 24-file glob with
+three Node-only passengers and is now the derived 24, so `GYMRUN_ENGINE` only
+reaches tests it means something to.
+
+## 34. The CI patch, part 2: the workflow, and the engine it does not run
+
+Same prompt as section 33, same scope: build infrastructure only, no `src/`
+change, no version axis moved, no baseline re-recorded.
+
+### 34.1 The structure was supplied, and one line of it could not work
+
+The brief said "per the structure above" and no structure was above it — the
+message it arrived in had none. That gap is recorded in the prompt file rather
+than filled by guesswork, because a reconstruction of a design is
+indistinguishable from the design once it is committed and
+[`spec/README.md`](spec/README.md) already holds why this project does not do
+that. Asked, the author supplied a five-job YAML skeleton, and it is filed
+verbatim under the brief.
+
+The skeleton's job topology, triggers, concurrency group, container and
+two-engine matrix are all kept. Four names in it did not resolve against the
+tree, three of which part 1 created (`npm run types`, `npm run test:unit`,
+`npm run test:trim`), and one of which was a different kind of problem:
+
+> `steps: [..., npx playwright test --project=${{ matrix.engine }}]`
+
+**There is no Playwright Test runner in this repo.** No config declaring
+projects, nothing that command could collect, and the 24 browser files are
+vitest files that drive Playwright as a library through
+[`test/visual/harness.ts`](../test/visual/harness.ts). That step
+would have found zero tests and **exited 0** — a browser job permanently green
+while testing nothing, which is the failure this repo has already paid for once
+at section 28, where a handoff reported an artefact as shipped that no run
+touched. The engine axis already exists as `GYMRUN_ENGINE`, so the step became
+a leg selection instead.
+
+### 34.2 Every job goes through the runner
+
+Each job runs `scripts/check.mjs --only=<legs>` rather than the npm scripts
+directly, and the leg names line up with the matrix so
+`--only=test:${{ matrix.engine }}` selects the right one.
+
+The reason is part 1's own specification. `check.mjs` promotes a SKIPPED leg to
+FAILED when `CI` is set, Actions sets `CI` itself, and **invoked any other way
+that promotion never runs in the one environment it was written for.** A
+missing browser would then surface as whatever vitest happens to do rather than
+as the deliberate answer the brief asked for. The npm scripts stay for people.
+
+Two other deviations from the skeleton, both recorded rather than silent:
+
+- **`concurrency.group` is scoped to the workflow**, not `github.ref` alone, so
+  a second workflow added later cannot cancel this one's runs.
+- **`strict-trim` runs in the container and covers both halves.** The skeleton
+  put it on a bare runner, which reaches only the Node half —
+  [`../CLAUDE.md`](../CLAUDE.md) names strict trim an absolute gate without
+  qualifying it, and a CI gate weaker than the local one is worth less than the
+  minute it saves.
+
+`build` and `smoke` had no job in the skeleton at all, though they are two of
+the nine legs part 1 added. They are the fifth job, `bundle`, in the container
+because `smoke` plays a run in a real Chromium. `check.mjs` already knows the
+dependency between them, so a failed build reports `smoke` as SKIPPED naming
+build rather than as a second failure for the same cause.
+
+### 34.3 The container runs a Chromium no developer box runs
+
+This is the finding that decided the container line, and it was measured rather
+than assumed.
+
+[`scripts/visual/browser.mjs`](../scripts/visual/browser.mjs) pins Chromium to
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. That path does not exist
+in the Playwright image, whose browsers live under `/ms-playwright`, so
+`launch()` falls through to Playwright's own registry — and Playwright 1.63.0's
+registry wants revision **1243**, not 1194:
+
+| | revision | Chrome | layout |
+|---|---|---|---|
+| the repo's pin | 1194 | 141.0.7390.37 | `chrome-linux/` |
+| what 1.63.0 installs | 1243 | 153.0.8010.12 | `chrome-linux64/` |
+
+Twelve major versions apart, and a different directory layout. Four files —
+[`visual-v0.test.ts`](../test/visual-v0.test.ts) through `visual-v3` — compare
+guarded-screen heights against `docs/visual/baseline/heights.json`, **exactly**
+on Chromium, and that file is a recording made on 1194. A container that
+silently swapped the engine under those four tests is precisely how a baseline
+gets "fixed" by re-recording it, which this brief forbids.
+
+So both engines were measured before the workflow was written. 1243 was
+installed alongside 1194, nothing was removed, and the guarded screens were
+measured on each:
+
+| engine | fields compared | result |
+|---|---|---|
+| 1194 (control) | 60 | identical to the recording |
+| 1243 | 60 | **identical to the recording** |
+
+Then the whole browser half on 1243, by preferring it in the repo's own
+candidate list for the length of one run: **24 files, 201 tests, all passing**,
+in 517s against 503s on 1194.
+
+**That measurement was sound and the conclusion drawn from it was not.** It was
+taken with 1243 running *inside this development container*, which holds
+everything but the engine revision constant — so what it establishes is that
+the revision jump is harmless. It was then written up as "the container is
+safe", which is a different claim about a different environment, and section
+34.8 is the first CI run disproving it. The engine was never the variable that
+mattered.
+
+**No baseline was re-recorded and none needed to be.** The finding is that the
+pin is narrower than the tests require, not that the tests were wrong.
+
+### 34.4 What CI needs on disk, and what it does not
+
+- **Not a sparse or shallow-path checkout.** `boundaries.test.ts` indexes every
+  file under `docs/` carrying one of the seven extensions it recognises
+  (`.ts, .mjs, .js, .md, .json, .css, .html`),
+  and `visual-baseline.test.ts` and `summary.test.ts` read
+  `docs/visual/baseline/`. The docs tree is a test input.
+- **`fetch-depth` stays at the default.** No test reads git history.
+- **`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` is set at workflow level**, because
+  `npm ci` would otherwise pull the browsers into `static` and `unit`, neither
+  of which launches one, and the container jobs already carry theirs.
+
+### 34.5 The heights gap, recorded rather than closed
+
+`heights.json` holds **60** fields — both guarded screens across the detailed
+mode, two density modes and three layout-by-density combinations. The four
+tests that read it assert **10**: `map` and `battle` at the top level only.
+
+The other 50 are gated by `node scripts/visual/measure.mjs --compare`, which
+`scripts/visual/gate.sh` runs and **`npm run check` does not**. So five sixths
+of the recorded baseline is currently outside the suite.
+
+Put to the author, who chose to leave it to `gate.sh`. That is the right call
+for this patch and the reason is scope: the gap predates the patch, `CLAUDE.md`'s
+absolute gates do not include a heights comparison, and adding one here would be
+new gating nobody asked for. **It is recorded here so that it is a known gap
+rather than a forgotten one.**
+
+### 34.6 WebKit, which had never run here at all
+
+Recorded because it was the standing flag on three patches, not just this one:
+`npm run check`'s WebKit leg had never executed in a Claude Code container,
+because the image pre-bakes Chromium only. Two branch reports closed with it
+open, and both named it the last gate on work that had already merged.
+
+It runs. Two commands, both of which worked on this box:
+
+```sh
+npx playwright install webkit        # the binary; lands at webkit-2359
+npx playwright install-deps webkit   # GTK4, gstreamer, flite and ~20 more
+```
+
+Without the second, the binary is present and cannot launch — 25 missing
+libraries. With it, WebKit 26.6 launches, which is the version section 27's
+work was written against.
+
+**The leg then passed: 24 files, 201 tests, 522s.** That is the first honest
+WebKit result this environment has produced, and it is a baseline rather than a
+clearance — it was taken at this branch's own tree, which is 23 commits behind
+`main`, so it certifies the state *before* the chip audit and the sprite fix
+rather than after. If WebKit fails once `main` is merged in, those 23 commits
+are where it is, and this is the boundary that says so.
+
+**The install does not persist.** The container is rebuilt per session, so this
+is a fact about what is possible here, not a capability the next session
+inherits. Making it inherit would need a `SessionStart` hook committed to the
+repo, and the cost is a few hundred MB of apt on every session including the
+ones that never open a browser. That is why the workflow, rather than a hook,
+is where this patch puts WebKit: CI pays it once per push, on a machine nobody
+is waiting on.
+
+### 34.7 What is not verified
+
+Stated plainly because the rest of this section is measurement and this part is
+not. The workflow file has never executed — there is no way to run GitHub
+Actions from this container — so what is checked is that it parses, that its
+five jobs name real legs, and that every command in it passes locally.
+
+The one thing a first run may still find is the container's own environment:
+the Playwright image runs as root, and Chromium in Docker as root is the classic
+sandbox failure. `--ipc=host` is set, which is Playwright's documented
+recommendation and covers the `/dev/shm` crash, but not that. If the browser
+jobs fail on a sandbox error rather than on a test, the fix is a bare
+`ubuntu-latest` with `npx playwright install --with-deps <engine>` in place of
+the container — which also pulls revision 1243, the one measured above.
+
+### 34.8 The first CI run, and the two things it found
+
+Recorded because the section above claimed one of them could not happen.
+
+**Three failures, none of them a defect in the tree**, and all five jobs ran
+twice over.
+
+**The duplicate runs** are `on: [push, pull_request]` doing exactly what it
+says: on a branch with an open PR both events fire, so every job ran once per
+event and the merge box listed ten checks for five jobs. Narrowed to
+`push: branches: [main]` plus `pull_request`, which keeps a gate on every PR
+and a record of `main`'s own state without paying twice for either.
+
+**The Node leg failed with every test passing.** `112 passed (112)`,
+`1604 passed (1604)`, and one unhandled error:
+`[vitest-worker]: Timeout calling "onTaskUpdate"`. Vitest's reporter RPC gave up
+under load and vitest exited non-zero for it. Section 15 already records this
+against two full suite runs, and the branch reports carry it as the reason a
+green 136-file run exited 1 — **so this was not merely foreseeable, it was
+already written down, and the gate was still built to fail on it.**
+`scripts/check.mjs` now reads the tally: the `onTaskUpdate` string, plus a
+passing files tally, plus no failure tally anywhere, reports PASS with the cause
+named. Narrow on purpose, because the failure mode of getting it wrong is a
+masked defect — a real failure prints `N failed` and stays FAILED even when the
+reporter times out alongside it, which is checked rather than assumed.
+
+**The pinned heights failed by 47px, and that is the interesting one.** In the
+container the map screen measures 897.22 against a recorded 944.5, and the
+document 1090 against 1138. Forty-seven pixels is forty-seven times the
+tolerance the WebKit branch of `expectBaselineHeights` allows, and none of it is
+a layout regression.
+
+The cause is that **`heights.json` was never portable**, and nothing in the tree
+says so. `tokens.css` sets the entire UI in a system stack —
+`ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace` — with no
+`@font-face` and no font file shipped anywhere in the repo. So every number in
+that file is a measurement of one machine's font set, and the Playwright image
+has a different one. The recording is a regression guard against the box that
+recorded it, not against layout as such.
+
+Four responses were possible and the choice was put to the author rather than
+taken here:
+
+| | why not |
+|---|---|
+| re-record against the container | trades a Chromium regression guard for a picture of the container's fonts, and the brief forbade it |
+| install matching fonts in CI | pins CI to a font package version; the numbers move again silently on any image change |
+| ship a webfont | **the real fix**, and out of scope: it changes `src/`, moves every recorded number and forces a full re-record, which is a decision about typography rather than CI |
+| scope the assertion to where the recording applies | chosen |
+
+So `skipWhereRecordingDoesNotApply` in
+[`test/visual/harness.ts`](../test/visual/harness.ts) gates the four
+assertions on `CI`, and they stay a hard gate locally and before a merge, which
+is where a height regression is introduced. The skip carries its reason in the
+test name, the way `skipOn` does, so a skipped case still says why. **The
+webfont remains the open item**, and until it is taken, CI does not gate layout
+height — recorded here rather than left as a surprise for whoever next reads a
+green browser job and assumes it covered the pixels.
+
+## 35. The bench outlived its run, and the gym column goes to zero
+
+**2026-09-17**, on `claude/amazing-edison-1koyiy`. Prompt
+[`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md).
+
+Two items from one playtest report. The first is presentation only. The second
+moves `contentHash`, **from `fd9b5e` to `94c6c1`**, by one column of
+`data/scaling.ts`; `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all
+hold, because nothing about *what* is drawn or *in what order* changes — the
+gym's level draw is the same draw from the same key against a narrower range.
+
+`fd9b5e` is the hash stamped on the screenshot the report arrived with, so
+unlike some of the reports in this document it was met on the build it
+describes.
+
+### Item 1: "party is not reset" was a `<div>`, not a run
+
+The report read: *"on a new seed, party is not reset. screenshot shows a dead
+horsea when i'm on a new seed."*
+
+**The party was reset.** `createRun` returns `party: []`, `chooseStarter`
+replaces it with exactly one member, and no state in `core/` has ever spanned
+two runs. The Horsea in the screenshot was not in the battle, was not in the
+party, and was not in the run — it was in the DOM.
+
+`renderBench` in `ui/scene.ts` has two empty cases and **they were the wrong way
+round, each carrying the other's comment**:
+
+| the view | what should happen | what happened |
+|---|---|---|
+| `switches` is `[]` — not being asked, so between turns or after the end | keep the last render, disabled | returned, touching nothing |
+| `switches` is non-empty but every entry is `active` — being asked, and everything the side has is on the field | clear the panel | disabled the buttons and kept them |
+
+The first row is the rule the moves column states for itself: a panel that
+collapses out from under the player mid-fight is worse than one that shows
+itself unavailable. The second row is a **party of one**, which is what the
+function's own header has always said has nothing to say here — and saying
+nothing means an empty container, because `.bench:empty { display: none }` is
+what hides the panel.
+
+So a run whose party was just the starter never cleared the heading. The scene
+is built once in `createScene`, `ui/screens/battle.ts` builds it once, and `app.ts`
+builds *that* once for the life of the page — so "the last render" was bounded
+by neither the battle nor the run. A new seed opened on whatever the previous
+run had left under SWITCH and kept it for the whole fight.
+
+**The fix is the two branches separated**, plus a `Scene.reset()` that
+`ui/screens/battle.ts` calls from `attach`, beside the `log.clear()`,
+`flags.clear()` and `sheet.close()` that were already there for the same reason.
+`renderBench` alone closes the reported case; `reset()` closes the one it
+cannot, because a view that is not being asked is exactly the view the panel is
+meant to hold — and an **ended** session is such a view, so a screen attached to
+one draws no bench at all. `test/bench-carryover.test.ts` constructs that case
+rather than asserting the call.
+
+**Why this was not caught.** Every battle-UI test in the suite builds a fresh
+`createBattleScreen()`, so no test had ever attached two fights to one screen.
+The bug needs two runs and a party of one, which is the opening state of every
+run and the state no fixture was in.
+
+### Item 2: the gym column is zero, and it is not a tuning number
+
+The report read: *"gyms have mons at higher level than the player, which makes
+speed nearly impossible to compete against. let's reset gym levels to EQUAL to
+the player, never higher."*
+
+Stage 4.9 (section 21) made the gym offset positive and growing — `+0/+1` at
+segment 0 to `+2/+4` at segment 7 — on the argument that a gym is the segment's
+exam and should be sized above the party. That argument is about difficulty and
+it is sound. **The report is about the lever, not its size.**
+
+A level in Gen 3 raises every stat at once, and among them Speed. Speed is the
+one stat read as a *comparison* rather than as a quantity: two points and two
+hundred buy the same thing, the first move. So a gym one level above the party
+takes the first move in every tie the party would otherwise win, and **no amount
+of team building gets it back** — a Pokemon picked to outrun the exam cannot
+outrun it at any level the player can reach. Every other lever a gym has is a
+quantity and survives being tuned; this one is a threshold and does not. It is
+pinned at parity rather than lowered.
+
+What the gym keeps: the player's own slot count (`opponentTeamSize`), one move
+band over the segment (`GYM_MOVE_BAND_BONUS`), and the hard AI at every segment
+(`data/ai.ts`). Nothing about the exam changes except that it stops buying an
+advantage with the one currency that cannot be spent back.
+
+**Pinned in `opponentLevel` and not only in the table.** `generateGymTeam` has
+passed `normal` since Stage 3, and that is the second place the rule was already
+written down — so `TIER_MODIFIERS[tier].levelShare` never reaches a gym today.
+It now cannot: `opponentLevel` zeroes the tier bonus for `kind === 'gym'`.
+Behaviour is unchanged, and the difference is that the rule no longer holds only
+because one caller passes one argument. `hard`'s three percent is enough on its
+own — at segment 2 it rounds to a whole level, which is the entire effect the
+report named.
+
+`test/generation.test.ts` asserts parity against every tier rather than against
+the table, because the test beside it already reads the table and so passes for
+any offset the table happens to hold.
+
+**The roster moves a little too, and it is a consequence rather than a second
+change.** `generateGymTeam` hands the drawn level range to `gymSpeciesFor`,
+which hands it to `bandedSpeciesPool`, where it gates evolved forms by their
+evolution level (`data/evolution.ts`). A narrower and lower window means the
+forms that were only eligible on the high end of the old offset — an evolution
+threshold sitting one to four levels above the party — drop out. That is the
+stage gate doing exactly what it is for: the gym stops fielding a form the
+player's own party cannot have reached yet. No pool, weight or threshold was
+edited to produce it.
+
+### What the gates moved, and one test that had to be repaired
+
+Two things outside the patch's own files failed, and both are worth the space
+because neither is a code defect.
+
+**The visual baseline was re-recorded, and it is allowed to move here.**
+`test/visual-baseline.test.ts` exists to prove a *presentation* change moves no
+generated byte; this is a data change, so it moves several. `data-digest.txt`
+goes `fd9b5e` → `94c6c1`, and of the six recorded runs **four changed only in
+that hash** — `SEED-A`, `SEED-B`, `SMOKE24` and `RESULT-0` — while `GYMRUN01`
+and `RESULT-1` changed outcome, which is what a different gym fight looks like.
+`RESULT-1` goes from two gyms to one and dies to Marina rather than to a wild
+Minun. That is one seed under a scripted policy and is not a balance reading;
+the 400-seed row below is. `docs/visual/baseline/battles/GYMRUN01.json`, the determinism
+seed's battle protocol, is **byte identical**, which is the check that the change is
+confined to the gym column.
+
+**`test/visual-battle-outro.test.ts`'s abnormality case was repaired rather than
+re-baselined.** It walked one seed, `SMOKE24`, for twenty-four steps and threw
+if no abnormality mark appeared. The assertion is that a mark does not overflow
+a 390px page and is really animating; the walk is only how a mark is produced —
+so one seed made "does `SMOKE24` boost, fail or trigger an ability early" a
+load-bearing fact about a fixture, and the gym column falsified it. Measured
+while fixing it: `SMOKE24` produces no mark inside the budget (its early fights
+carry crits, STAB and super-effective hits, and `ui/abnormality.ts` counts none
+of those — five classes out of seventeen kinds, and a hit is not one), while
+`SEED-A`, `SEED-B` and `GYMRUN01` produce one at steps 0, 11 and 11.
+
+It walks the list now and throws only if **no** seed produces a mark. That is
+the same assertion against a claim about the mechanism rather than about one
+seed's luck, and it is the narrowest repair available: nothing was skipped,
+loosened or re-recorded, and a widened step budget was tried first and does not
+help — sixty steps on `SMOKE24` still find nothing.
+
+### One thing the rescan found that this patch did not cause
+
+Scanning six thousand seeds for a replacement evolution fixture walked into a
+crash: `RangeError: Snover already knows Confusion; nothing is displaced`, out
+of `party.teachMove` by way of `rewards.applyReward`. A replacement slot is
+chosen against one reading of the party and applied against another, so
+`replacementNeeded` answers `'known'` at the point `teachMove` is handed a slot
+— and a slot in that case is a caller bug by that function's own contract.
+
+**It is pre-existing, and that is measured rather than assumed.** The same scan
+on the pre-parity curve reproduces the identical message at `S49B-3036`, and
+nothing on the path reads a level. It is the stale-decision family of sections
+19 and 29 — the same shape as the item plan that spent a node after it was
+composed, and as the capture that had to resolve before the move question —
+rather than a new one.
+
+Filed rather than fixed: it is a third defect in a two-item patch, and this
+document's own rule is that work starts from a filed prompt. `README.md` section
+5 carries it as an open item.
+
+### Balance
+
+Not gated, per [`balance.md`](balance.md) section 0, but **measured**, because
+this is a deliberate balance change rather than a side effect of one: 400 seeds,
+`ladder` policy, `RETUNE` prefix, read against the row directly above it.
+
+Mean gyms cleared **0.545 → 0.81** on the pinned greedy control, completion
+unmoved at zero. Gym 1 clears in 63.8% of the 290 parties that reach it against
+48.3%, gym 2 in 58.6% of 157 against 49.2%; from gym 4 on the columns are ten to
+twenty runs each and move both ways. The report's own instrument says the change
+landed — *mean level delta across every gym reached: 0.00*, against a table that
+read up to +4 at segment 7 before it.
+
+The direction is the one the change argues for and the magnitude is larger than
+the level arithmetic alone suggests, which is the Speed threshold showing up in
+the number. Nothing else was tuned against this run. The full row, including
+what it says about the standing gym 3 outlier, is in `balance.md` section 0.
+## 36. The opening was drawing from a table nobody wrote
 
 **2026-09-17**, branch `claude/admiring-euler-dhn536`. Prompt:
 [`spec/gymrun-patch-band-recut-and-level-curve.md`](spec/gymrun-patch-band-recut-and-level-curve.md).
@@ -5288,11 +5832,11 @@ which is also the decision record, because the instruction that produced it aske
 for one.
 
 Axes: `RANDOMIZER_VERSION` to `gymrun-randomizer-19`, `RUN_LOG_VERSION` to
-`gymrun-run-18`, `contentHash` to `49e50f`. **`AI_VERSION` holds** at
+`gymrun-run-18`, `contentHash` to `a036d6`. **`AI_VERSION` holds** at
 `gymrun-ai-6-spent-item`, deliberately: `GREEDY_BASELINE` is the yardstick every
 benchmark row is read against, and moving it would move every row with it.
 
-### 33.1 The complaint was band 2, and the cause was not the weights
+### 36.1 The complaint was band 2, and the cause was not the weights
 
 The report opens on a measurement. Segments 0 to 2 are written
 `moveBandWeights: { 1: 4, 2: 1 }` — 80/20 — and across 600 seeds gym 1 was
@@ -5309,7 +5853,7 @@ that commit also moved segments 0 to 2 from `{ 1: 1 }` to `{ 1: 4, 2: 1 }` witho
 saying so. `starters.ts` still claimed "segments 1-2 draw band 1 only" and had
 been wrong since.
 
-### 33.2 Five bands, cut where the dex is empty
+### 36.2 Five bands, cut where the dex is empty
 
 `POWER_CUTS` went `[55, 75, 95]` to `[60, 75, 90, 110]`.
 
@@ -5332,7 +5876,7 @@ The window existed because band 1 held one Psychic move and one Dragon move; at
 six to three, and of types with fewer than three band-1 moves from four to two.
 The fix moved from the symptom to the cause.
 
-### 33.3 Three type gaps, pinned rather than designed around
+### 36.3 Three type gaps, pinned rather than designed around
 
 The recut leaves band 2 with no Dragon move, band 4 with no Bug move and band 5
 with no Dark move. `test/data-tables.test.ts` required every band to hold all 18
@@ -5344,7 +5888,7 @@ types, and **this exact set of gaps**. A fourth gap fails it and so does closing
 one of these. A species of those types drawing that band loses STAB for that slot
 and takes open coverage — the same trade accepted for Psychic below.
 
-### 33.4 Deterministic Confusion, accepted
+### 36.4 Deterministic Confusion, accepted
 
 With the window closed, Psychic holds exactly one band-1 move. Every Psychic
 species' forced first slot is Confusion, deterministically — the defect
@@ -5354,7 +5898,7 @@ and Fairy three, all one category.
 The user's ruling, in full: *"yes accept the deterministic. psychic is a strong
 typing and needs investment to win."*
 
-### 33.5 The first external reference the ramp has ever had
+### 36.5 The first external reference the ramp has ever had
 
 [`reports/moveset-pool-validation.md`](reports/moveset-pool-validation.md) records
 that this project ships no learnsets and that this is permanent. True of the
@@ -5374,7 +5918,7 @@ the back half was the under-specified end: real gym 8 is 38% top-band and the ol
 table had no top band to give. Segment 7 is the first row whose modal band is the
 ceiling, so gym 8 draws and pays band 5.
 
-### 33.6 The curve, and the two goals the dex will not give
+### 36.6 The curve, and the two goals the dex will not give
 
 `playerLevel` went `7, 14, 20, 27, 33, 40, 47, 55` to `15, 20, 26, 32, 38, 44, 50, 58`.
 
@@ -5398,7 +5942,7 @@ raise a real dex level, and the Dragon gym is arguably where they belong.
 One synthetic moved: **Alakazam 55 to 50**, the only one the curve stranded. Gengar
 (50), Machamp (50) and Golem (42) already land by the gym 7 fight.
 
-### 33.7 Raising levels sharpens the early swing; it does not soften it
+### 36.7 Raising levels sharpens the early swing; it does not soften it
 
 Recorded because the patch's own framing had it backwards until the report
 measured it, and because the next reader will assume the same thing.
@@ -5450,7 +5994,7 @@ average gyms was 3, and I was clearing all 8 consistently. the slay the spire
 comparison only is apt if it's genuinely difficult but gives tools to a player
 (read: real strategist) to progress non-trivially."*
 
-### 33.8 A superseded rule: the gym offer is no longer strictly better than elite
+### 36.8 A superseded rule: the gym offer is no longer strictly better than elite
 
 `rewardPools.ts` stated that a gym offer must be strictly better than an elite
 node's, and `GYM_MOVE_ENTRY` resolved at `elite` to pay for it: the segment's band
@@ -5475,7 +6019,7 @@ distinct options) now holds on both pages where it held on neither.
 
 Bands paid, by gym: 2, 2, 3, 4, 4, 4, 4, 5.
 
-### 33.9 Why `RUN_LOG_VERSION` moved, and the decline that survived it
+### 36.9 Why `RUN_LOG_VERSION` moved, and the decline that survived it
 
 The gym's grant became a question, so a gym node records **two** `reward` entries
 where it recorded one. No decision *kind* was added — the replay cursor is
@@ -5498,7 +6042,7 @@ and nothing else, the relics being on the next page and already guaranteed. A
 player whose four slots all work has no "take the other thing" answer on the page
 where the question is asked. This is that answer.
 
-### 33.10 Two tests were passing for the wrong reason
+### 36.10 Two tests were passing for the wrong reason
 
 `test/banding.test.ts` asserted the gym move-band spike at segment 0, where
 `gymMoveBandBonus` returns 0 and there is by definition no spike. It passed because
@@ -5513,7 +6057,7 @@ restating it, which is why it survived the window opening and closing without a
 third rewrite — and it now asserts the closed case (nothing above band 1) as well
 as the open one.
 
-### 33.11 Seed-pinned tests, and the one that could not be re-seeded
+### 36.11 Seed-pinned tests, and the one that could not be re-seeded
 
 The pattern section 31.5 records — search a seed list, assert the search found
 something — covers `capture`, `lead-selection`, `move-replacement` and `party`.
@@ -5528,7 +6072,7 @@ the opponent handed to it too: a `RunLog` records the player's decisions and not
 about the bot across from them, so replaying a pacifist run against the default
 opponent runs out of step at the first reward that is no longer there.
 
-### 33.12 A contrast defect the recut exposed
+### 36.12 A contrast defect the recut exposed
 
 `test/visual-chips.test.ts` found the `STAB` flag chip at **4.36:1** against a
 green locale tint, under `displayTuning.minChipContrastRatio`'s 4.5. The flags
@@ -5547,7 +6091,7 @@ every guarded screen and every budget still holds — battle's decision bottom a
 and the map's at 687.6, both under the 740 fold line — so the movement is seed
 drift in the pixels rather than a layout change.
 
-### 33.13 The gate, and the one line in it that is not a pass
+### 36.13 The gate, and the one line in it that is not a pass
 
 `npm run check` exits 0: lint, typecheck, the full suite, the WebKit browser leg
 and strict trim. **136 files, 1807 tests, all passing.** `npm run build` and

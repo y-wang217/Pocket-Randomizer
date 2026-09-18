@@ -21,9 +21,19 @@
  *
  * That rewrites `test/fixtures/sim-report.json` and asserts nothing.
  * Do it **only** when a change to generation, the randomizer or the AI is
- * intended — in which case `RANDOMIZER_VERSION` or `AI_VERSION` is moving in
- * the same commit and the diff on this file is the evidence for it. Rewriting
- * the fixture to make a red test go green is the one use it does not have.
+ * intended — in which case a version axis is moving in the same commit and the
+ * diff on this file is the evidence for it. Rewriting the fixture to make a red
+ * test go green is the one use it does not have.
+ *
+ * **Three axes license a re-mint, not two.** This said `RANDOMIZER_VERSION` or
+ * `AI_VERSION`, and the bench-carryover and gym-levels patch is the case that
+ * showed the list was short: it changed what a gym fields at every segment and
+ * moved **neither**, because `RANDOMIZER_VERSION` covers the draw *order and
+ * count* (`core/randomizer.ts` says so at "the draw order") and that patch
+ * changes only the range a level is drawn from. The axis that covers
+ * `src/data/**` is `contentHash`, and for a data-only change it moves alone.
+ * A re-mint whose commit moves no axis at all is the one this paragraph still
+ * forbids.
  *
  * ## Why these three seeds
  *

@@ -424,7 +424,7 @@ const GYM: readonly RewardBand[] = [
  * fine: an elite is optional and risky, a gym is neither, and the player weighs
  * that going in.
  *
- * `docs/generation.md` section 33 records the deletion; the measurement is in
+ * `docs/generation.md` section 36 records the deletion; the measurement is in
  * `docs/reports/early-game-band-and-curve.md` sections 1 and 6.
  */
 export const GYM_MOVE_ENTRY: Extract<RewardEntry, { kind: 'tutor' }> = {

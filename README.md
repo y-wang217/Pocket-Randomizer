@@ -31,7 +31,7 @@ disagrees with one of the documents below, the document is right.
 ```sh
 npm install
 npm run dev      # play it
-npm run check    # lint + typecheck + tests, including the strict trim run
+npm run check    # the nine-leg gate; every leg runs, table at the end
 npm run build    # static bundle in dist/, deploys to any static host
 ```
 
@@ -296,9 +296,13 @@ because a number copied into two files disagrees with itself within two stages.
 |---|---|
 | `npm run dev` | Vite dev server |
 | `npm run build` | Typecheck, then static bundle to `dist/` |
-| `npm test` | Vitest, headless |
+| `npm test` | Vitest, headless, the whole suite |
+| `npm run test:unit` | The suite's Node-only half — no browser needed |
+| `npm run test:browser` | The suite's browser half; `GYMRUN_ENGINE` picks the engine |
+| `npm run test:webkit` | The browser half on WebKit |
+| `npm run types` | `tsc --noEmit` on its own |
 | `npm run test:trim-strict` | Tests with the bundle trim's stubs set to throw on any access |
-| `npm run check` | Lint, typecheck, both test runs |
+| `npm run check` | **The gate.** Nine legs, every one of them run; see below |
 | `npm run sim` | Play N runs headless and report the balance |
 | `npm run gen:pools` | Regenerate the species, move and ability tables from the dex |
 | `npm run pool-report` | What the move pool holds, how thin each band's per-type slice is, and what a real starter roll produces |
@@ -306,6 +310,105 @@ because a number copied into two files disagrees with itself within two stages.
 | `npm run smoke` | Browser smoke test against `dist/` (build first) |
 | `npm run measure` | Gzipped bundle size per dependency (build first) |
 | `GYMRUN_FULL_DEX=1 npm run build` | Build without the bundle trim |
+
+### The gate
+
+`npm run check` is `scripts/check.mjs`, and it runs **every** leg rather than
+stopping at the first failure. Nine legs, in order:
+
+| leg | needs a browser |
+|---|---|
+| `lint` | |
+| `typecheck` | |
+| `test:node` — the suite's 111 Node-only files | |
+| `test:chromium` — the 24 browser files | yes |
+| `test:webkit` — the same 24, other engine | yes |
+| `trim:node` — strict trim, Node half | |
+| `trim:browser` — strict trim, Chromium half | yes |
+| `build` | |
+| `smoke` — needs `dist/`, so it follows `build` | yes |
+
+`node scripts/check.mjs --list` prints them without running anything, and
+`--only=lint,build` runs a named subset with the same reporting.
+
+CI runs the same legs, split across five jobs so the slowest engine rather than
+the sum of everything sets the wall clock. Each job calls the runner with
+`--only`, because a leg SKIPPED for a missing browser is promoted to FAILED
+when `CI` is set and that promotion only happens if the runner is what CI
+invokes.
+
+It exits 1 if any leg failed. A leg can also report SKIPPED, for one of two
+reasons, and the difference matters:
+
+- **No browser binary.** SKIPPED locally, so a contributor without WebKit
+  installed still gets a real answer about the other eight legs. **FAILED when
+  `CI` is set** — an engine the workflow was supposed to install and did not is
+  a broken workflow, not a pass.
+- **A dependency failed.** `smoke` cannot run without a `dist/`. Never promoted
+  by `CI`: the leg it depended on already reported FAILED and already fails the
+  run, so promoting this one would print two failures for one cause.
+
+Which test files need a browser is computed, not listed —
+`scripts/browser-tests.mjs` looks for the files that reach Playwright, directly
+or through `test/visual/harness.ts`. A missing-browser SKIPPED is only ever
+honoured on a leg declared as a browser leg, so if that detection ever misses a
+file, the Node leg goes red on it rather than quietly skipping.
+
+### WebKit: when to run it, and how
+
+**WebKit is the engine this project is most likely to be wrong on, and the one
+least likely to have been run.** It is Mobile Safari, the app is phone-first and
+pinned at 390x844, and for most of this repo's life the WebKit leg had never
+executed at all — the development containers ship Chromium only, so it reported
+as absent and the `&&` chain died on it. Three patches shipped with WebKit
+listed as their one open gate.
+
+It is two commands, and **the second is the one people miss**:
+
+```sh
+npx playwright install webkit        # the binary alone cannot launch
+npx playwright install-deps webkit   # GTK4, gstreamer, flite, ~25 libraries
+npm run test:webkit                  # 24 files, 201 tests, about 9 minutes
+```
+
+Without `install-deps` the browser downloads and then fails with a list of
+missing libraries, which reads like a broken install rather than a missing step.
+A container is rebuilt per session, so this does not persist and is not
+something a session inherits.
+
+**Run it before merging, not after, when the change touches any of these:**
+
+| trigger | why |
+|---|---|
+| layout: `display`, `flex`, wrapping, sizing, intrinsic size | where the engines genuinely differ, and where every regression so far has been |
+| a replaced element that can fail — `<img>`, a sprite, an icon | a broken `<img>` is not a replaced element, so `width` stops applying; this shipped once and pushed a 390px page to 401px |
+| anything under `theme/`, motion, animation, or a duration | the motion system had never run on WebKit until the iOS patch, and two defects were living in exactly that gap |
+| a phone or iOS bug report | the reporter is on WebKit; Chromium cannot reproduce it, and assuming otherwise cost a whole patch chasing a defect that did not exist |
+| the guarded screen heights | `docs/visual/baseline/heights.json` is a **Chromium** recording, so WebKit is compared within a pixel rather than exactly |
+
+**Reading a WebKit failure.** Expect the instrument to be wrong before the app
+is. The first honest WebKit run in this repo produced 11 failures and **seven
+were this repo's own test instruments** — a screenshot indexed in CSS pixels at
+3x density, a motion helper with three separate timing errors, a parallax case
+waiting a fixed 150ms for a throttled frame. Check the harness before changing
+a stylesheet, and never re-record a baseline to make a WebKit number agree:
+`expectBaselineHeights` already compares within a pixel there, on purpose, and a
+re-record would hide a real Chromium regression behind it.
+
+**Status.** Green as of 2026-09-17 on WebKit 26.6, 24 files and 201 tests,
+measured twice — once before this patch's merge with `main` and once after — so
+a future failure has a commit boundary to bisect against.
+
+**CI runs both engines, but CI does not gate the heights, and that is the one
+thing to know before trusting a green browser job.** `heights.json` is a
+recording of one machine's *fonts*: the UI is set in a system stack with no
+`@font-face` and no font file in the repo, so the same layout measures 897.22 in
+the CI container against a recorded 944.5 here. The four height assertions are
+therefore scoped to where the recording applies and skip under `CI`, with the
+reason in the test name. **Running them is local work, and it is the reason to
+run the browser suite yourself before a merge that touches layout.** Making them
+portable means shipping a webfont, which would move every recorded number; it is
+an open item, not a decision taken.
 
 ## Ratified, and no longer open
 

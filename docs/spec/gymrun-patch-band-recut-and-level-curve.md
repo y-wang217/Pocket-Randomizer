@@ -5,7 +5,7 @@ Committed 2026-09-17 before any work, on `claude/admiring-euler-dhn536`.
 The prompts below are the user's, verbatim and in order, across the three turns
 that produced this patch. They are **not** edited to match what was built. Where
 the built work deviates, the deviation is recorded in
-[`../generation.md`](../generation.md) section 33.
+[`../generation.md`](../generation.md) section 36.
 
 The analysis that came back between turns — the band census, the learnset
 validation, the OHKO measurement and the evolution-reachability table — is not

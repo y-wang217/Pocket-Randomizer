@@ -1,11 +1,18 @@
 /**
  * Rescan the seeds the test suite pins.
  *
- * Two tests need a seed that does something a *typical* seed does not: one that
- * reaches every decision kind, and one that pays a card before it dies. Each is
- * chosen rather than assumed, and each stops being the right seed the moment a
- * stage changes what a seed rolls — which is exactly what a
- * `RANDOMIZER_VERSION` bump announces.
+ * Three tests need a seed that does something a *typical* seed does not: one
+ * that reaches every decision kind, one that pays a card before it dies, and
+ * one that reaches a branching evolution. Each is chosen rather than assumed,
+ * and each stops being the right seed the moment a stage changes what a seed
+ * rolls.
+ *
+ * **Any version axis moving is the signal to rescan, not only
+ * `RANDOMIZER_VERSION`.** This said otherwise until the bench-carryover and
+ * gym-levels patch, which moved the gym level column — `src/data/**`, so
+ * `contentHash` — and correctly left `RANDOMIZER_VERSION` alone, since the
+ * draw order and count did not change. Every seed pinned here still had to be
+ * rechecked, because what a gym fields decides how far a run gets.
  *
  * There was a third — a seed the scripted policy *wins* on — and it is gone.
  * A run only wins while the difficulty curve lets it, so pinning one coupled a
@@ -18,6 +25,7 @@
  *
  *   npx vite-node scripts/scan-seed.ts census     # test/move-replacement.test.ts
  *   npx vite-node scripts/scan-seed.ts spender    # test/economy.test.ts
+ *   npx vite-node scripts/scan-seed.ts fork 6000  # test/evolution-run.test.ts
  *
  * Each policy below is a copy of the one in the test it serves. That is
  * duplication, and it is the right kind: importing from a test file would make
@@ -74,6 +82,16 @@ function census(seen: Set<string>): RunPolicy {
   };
 }
 
+/** test/evolution-run.test.ts: captures what it can and takes one fork. */
+function fork(branch: number): RunPolicy {
+  return {
+    ...scriptedRunPolicy(greedyAiPolicy),
+    chooseAcquisition: async (_offer, party, capacity) =>
+      party.length < capacity ? { kind: 'accept' } : { kind: 'decline' },
+    chooseEvolution: async () => branch,
+  };
+}
+
 /** test/economy.test.ts: walks into shops and events and buys what it can. */
 function spender(): RunPolicy {
   return {
@@ -123,6 +141,41 @@ if (mode === 'census') {
       break;
     }
   }
+} else if (mode === 'fork') {
+  /*
+   * **The rarest of the three, by a wide margin.** A run has to survive to a
+   * gym clear *and* be carrying a member whose evolution branches at exactly
+   * the level that clear grants. Measured at the parity curve: about one seed
+   * in three hundred, so the default attempt count here is the one mode that
+   * needs raising rather than lowering.
+   *
+   * Both branches are played, because the test's claim is that the fork is a
+   * *decision*: the two runs must differ by exactly one species and agree on
+   * the map, since a player decision consumes no RNG. A seed where the two
+   * branches produce the same party is a seed that proves nothing.
+   */
+  for (let i = 0; i < attempts; i++) {
+    const seed = `S49B-${i}`;
+    const first = await playRun(seed, fork(0));
+    if (first.log.decisions.filter((decision) => decision.kind === 'evolve').length !== 1) continue;
+    const at = first.log.decisions.findIndex((decision) => decision.kind === 'evolve');
+    const after = first.log.decisions[at + 1]?.kind;
+    // The test asserts where the entry lands: after that gym's last battle
+    // decision and before its cards.
+    if (first.log.decisions[at - 1]?.kind !== 'battle') continue;
+    if (after !== 'reward' && after !== 'target') continue;
+
+    const second = await playRun(seed, fork(1));
+    const zero = first.state.party.map((member) => member.spec.species);
+    const one = second.state.party.map((member) => member.spec.species);
+    const onlyZero = zero.filter((species) => !one.includes(species));
+    const onlyOne = one.filter((species) => !zero.includes(species));
+    if (onlyZero.length !== 1 || onlyOne.length !== 1) continue;
+    if (JSON.stringify(first.state.segments) !== JSON.stringify(second.state.segments)) continue;
+
+    console.log(`fork: ${seed}  branch 0 -> ${onlyZero[0]}  branch 1 -> ${onlyOne[0]}  (followed by ${after})`);
+    break;
+  }
 } else {
-  console.log('modes: census | spender');
+  console.log('modes: census | spender | fork');
 }

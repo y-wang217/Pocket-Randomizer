@@ -290,7 +290,7 @@ So the gym clear becomes **two pages**: three moves at segment +1, then three
 cards from relic/gold. A gym pays more than an elite by volume and by the level
 step it unlocks, not by band. Per `CLAUDE.md` the superseded rule is deleted from
 the lineage rather than left behind a flag, and recorded in
-[`../generation.md`](../generation.md) section 33 and the invariant register in
+[`../generation.md`](../generation.md) section 36 and the invariant register in
 [`../README.md`](../README.md).
 
 Both pages are exactly three options, which is the rewards invariant the old
@@ -302,7 +302,7 @@ two-card gym offer did not satisfy.
   read down the `RETUNE` prefix and never across. The row above it is
   `randomizer-18` · `fd9b5e`, 400 seeds, 0.545 mean gyms.
 - What was built and where it deviated: [`../generation.md`](../generation.md)
-  section 33.
+  section 36.
 - The prompts, verbatim:
   [`../spec/gymrun-patch-band-recut-and-level-curve.md`](../spec/gymrun-patch-band-recut-and-level-curve.md).
 - The report this one follows, and whose §3 finding this patch reverses:

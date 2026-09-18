@@ -61,11 +61,11 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 **In flight: the band recut and the level curve.** Branch
 `claude/admiring-euler-dhn536`, prompt
 [`spec/gymrun-patch-band-recut-and-level-curve.md`](spec/gymrun-patch-band-recut-and-level-curve.md),
-record [`generation.md`](generation.md) section 33, report — filed before any
+record [`generation.md`](generation.md) section 36, report — filed before any
 code and doubling as the decision record —
 [`reports/early-game-band-and-curve.md`](reports/early-game-band-and-curve.md).
 `RANDOMIZER_VERSION` to `-19`, `RUN_LOG_VERSION` to `-18`, `contentHash` to
-`49e50f`; **`AI_VERSION` holds**, because `GREEDY_BASELINE` is the yardstick
+`a036d6`; **`AI_VERSION` holds**, because `GREEDY_BASELINE` is the yardstick
 every benchmark row is read against.
 
 Move bands went from four to five, cut at `[60, 75, 90, 110]` — edges chosen
@@ -84,6 +84,54 @@ band work moved it the other way (14.2% to 11.3% one-shot rate); the level raise
 took it to 22.3%, because the damage formula's level term doubles between 7 and
 15 while median HP grows 1.69x. The curve is justified on evolution pacing and
 nothing else. Section 33.7 has the arithmetic and the ruling.
+
+**Merged before it: the bench carryover and the gym level column.** Branch
+`claude/amazing-edison-1koyiy`, prompt
+[`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
+record [`generation.md`](generation.md) section 35. Two items from one playtest
+report. `contentHash` moves from `fd9b5e` to `94c6c1`, by one column of
+`data/scaling.ts`;
+`RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold.
+
+**"On a new seed, party is not reset" was a `<div>`.** The party was reset —
+`createRun` returns `party: []` and nothing in `core/` has ever spanned two
+runs. `renderBench` had its two empty cases the wrong way round, each carrying
+the other's comment, and the half that mattered is a *party of one*: everything
+the side has is on the field, so the panel is cleared, and it was not. The scene
+is built once for the life of the page, so a new seed opened on whatever the
+previous run had left under SWITCH. The fix is the two branches separated plus a
+`Scene.reset()` that `attach` calls, beside the `log.clear()` that was already
+there. No test had ever attached two fights to one screen.
+
+**Gym teams are exactly the party's level, everywhere, and that column is no
+longer a tuning number.** Stage 4.9 had it at `+0/+1` rising to `+2/+4`; the
+report named the consequence rather than the number — a level raises Speed with
+everything else, and Speed is read as a comparison, so a gym a level up takes
+the first move in every tie the party would otherwise win and no team building
+gets it back. Every other lever a gym has is a quantity and survives tuning;
+this one is a threshold. The exam is unchanged otherwise: the player's own slot
+count, one move band over the segment, the hard AI. Pinned in `opponentLevel`
+rather than only in the table, so a later caller cannot reopen it through
+`TIER_MODIFIERS`.
+
+**Measured rather than predicted**: 400 seeds, mean gyms cleared **0.545 →
+0.81** on the pinned control, completion unmoved at zero; gym 1 clears in 63.8%
+of the parties that reach it against 48.3%. `balance.md` section 0 has the row.
+The visual baseline was re-recorded — four of its six runs changed only in the
+content hash, two changed outcome, and the determinism seed's battle protocol is
+byte identical. One browser test was repaired rather than re-baselined: the
+abnormality case walked a single seed and the gym column moved that seed's
+fights, so it walks a list and fails only when no seed can produce a mark.
+
+**Merged before it: the CI patch**, in two parts. Branch
+`claude/brave-hopper-th7one`, prompt
+[`spec/gymrun-patch-ci-workflow.md`](spec/gymrun-patch-ci-workflow.md), record
+[`generation.md`](generation.md) sections 33 and 34. Build infrastructure only:
+`npm run check` becomes nine reported legs instead of an `&&` chain that stops
+at the first failure, and the GitHub Actions workflow runs them. No `src/`
+change, no version axis moves. It is named here because it merged between the
+chip audit and this patch and section 4 is read as a chronology; the gate
+section above is where it is described.
 
 **Merged before it: the chip audit.** Branch `claude/serene-bohr-xn433h`, prompt
 [`spec/gymrun-patch-chip-audit-and-move-type-icons.md`](spec/gymrun-patch-chip-audit-and-move-type-icons.md),
@@ -210,9 +258,25 @@ change, no version axis moves, `contentHash` unmoved at `c3964b`.
 Chromium or WebKit, the WebKit leg uses Playwright's iPhone 14 Pro Max
 descriptor — touch, the Mobile Safari user agent, 3x density, at this repo's
 pinned 390x844 — and `npm run check` runs both, so a WebKit failure fails the
-suite. `npm run test:webkit` is the second leg on its own. It needs
+suite. `npm run test:webkit` is that engine's leg on its own. It needs
 `npx playwright install webkit`; the box also needs
 `npx playwright install-deps webkit`.
+
+**Since the CI patch, a box without WebKit reports it rather than losing the
+run.** `npm run check` is nine legs in `scripts/check.mjs`, each one run and
+each one reported, and a missing engine is SKIPPED locally and FAILED under
+`CI`. That keeps the rule this section states — a known-good engine reported as
+unverified is the failure — while letting a contributor who has only Chromium
+still gate the other eight legs. [`generation.md`](generation.md) section 33 is
+the account.
+
+**And it has now actually run: green on WebKit 26.6, 24 files, 201 tests**, the
+first honest WebKit result this project has had — measured twice, once either
+side of the merge with `main`, so a future failure has a boundary to bisect
+against. `install-deps` is the step that was missing: the binary alone downloads
+and cannot launch. **When to run it, and how to read a failure, is the WebKit
+runbook in the root README's gate section**, which is the place to look when a
+phone bug arrives or a change touches layout, a sprite, or motion.
 
 **Two of the patch's five items were not what the brief said they were**, and
 both are worth knowing before reading the brief:
@@ -279,7 +343,7 @@ harder gyms.** Branch `claude/charming-ride-q4ogfb`, prompt
 [`spec/gymrun-stage4.9-levels-and-evolution.md`](spec/gymrun-stage4.9-levels-and-evolution.md),
 record [`generation.md`](generation.md) section 21. The run starts with a
 band-0 base form and levels across the eight gym clears (**7 to 55 as the stage
-shipped it; 15 to 58 from the band recut, section 33**); every
+shipped it; 15 to 58 from the band recut, section 36**); every
 clear evolves the party along the dex's own thresholds, with synthetic
 Kaizo-style levels for the methods the dex does not level, and a fork asked
 as a new `evolve` decision on the gym's result screen. The species pool
@@ -660,6 +724,17 @@ One line each. The analysis lives where the pointer goes, not here.
    own investigation. `balance.md`, and open question 1 in the root README.
    Stage 4.9 moved it the other way at the start — 3.7 turns in segment 1 at
    level 7 — and the stage's benchmark row is where the next reading is.
+0. **A move reward can be applied to a member that already knows the move, and
+   it throws.** `RangeError: Snover already knows Confusion; nothing is
+   displaced`, from `party.teachMove` via `rewards.applyReward`. The slot is
+   chosen against one reading of the party and applied against another, which
+   is the stale-decision family of `generation.md` sections 19 and 29 rather
+   than a new one; `recipientFor` and `replacementNeeded` are where it is
+   decided. **Pre-existing and confirmed so**: found by a brute-force seed scan
+   while rescanning the evolution fixture (`S49B-3036` at the pre-parity curve,
+   a different seed after it), and the crash path reads no level. Out of scope
+   for the patch that found it and filed rather than fixed. `generation.md`
+   section 35.
 0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
@@ -672,7 +747,7 @@ One line each. The analysis lives where the pointer goes, not here.
    thing to optimise anyway: an earlier build averaged 3 gyms and cleared all 8
    consistently, and the roguelike comparison only holds if the run is genuinely
    difficult and hands a strategist the tools to progress. The lever named above
-   is still the lever. `generation.md` section 33.7. Two
+   is still the lever. `generation.md` section 36.7. Two
    pre-existing phone-layout limits surfaced by the wider roster are carried
    here too: a Fighting- or Electric-type chip wraps the move button's meta
    row at 390px, and a two-row party plus a two-card step pushes the map's
@@ -1007,8 +1082,8 @@ without being one of the five.
 | the sequential stream API is still exported and drawable | **closed**, Branch 1. A named stream is `at(key)`, `keys` and `totalDraws`; `test/determinism.test.ts` and `test/stream-keys.test.ts` group 5 guard the deletion |
 | `AI_VERSION` is stamped onto reports but never guarded at replay | **closed**, Branch 1. `aiVersion` is an axis of the log's `versions` block and `versionMismatch` checks it |
 | `Math.random` survives in `scripts/measure-bundle.mjs` | **open**. Not this branch's job; the lint rule now covers every extension and the boundary test walks `src/` only |
-| four verdict strings remain in player-facing copy | **open, found 2026-09-14** by the closeout's check-1 grep, which widened the search past the one word the audit named. Four live strings, each rendered: `src/data/categoryInfo.ts` line 48 — "Worth it when you can survive the reply", on the move category tooltip; `src/data/statusInfo.ts` line 125 — "usually better than rolling the dice three times", on the paralysis tooltip; `src/data/statusInfo.ts` line 242 — "so it is strongest into a wall", on the crit tooltip; `src/data/bandInfo.ts` — "A risky node reaches here before the segments do", on the band tooltip (**still live, moved from band 3's entry to band 4's by the five-band recut, section 33.2; the line number moved with it and is deliberately not restated here**). Each tells the player what an option is worth rather than what it is, which is the Part 4 rule. **Filed, not fixed**: 4.8.0.3 is a presentation patch that had already closed the one violation the register tracked, and rewriting four more strings on my own reading is a copy pass, not a closeout. All four files are outside `contentHash`, so the fix is cheap when it is scoped |
-| a gym offer is strictly better than an elite node's | **deleted, 2026-09-17, the band recut.** Not closed — *retired*. `rewardPools.ts` stated it and `GYM_MOVE_ENTRY` resolved at `elite` to pay for it, which at segment 0 clamped to the ceiling and handed gym 1 a band-4 move 300 times out of 300. It was measuring the wrong axis: a gym pays two pages of three and the level step behind them, and does not also need to win on band. An elite out-paying a gym on the single move is now possible and is the player's call going in. `generation.md` section 33.8 |
+| four verdict strings remain in player-facing copy | **open, found 2026-09-14** by the closeout's check-1 grep, which widened the search past the one word the audit named. Four live strings, each rendered: `src/data/categoryInfo.ts` line 48 — "Worth it when you can survive the reply", on the move category tooltip; `src/data/statusInfo.ts` line 125 — "usually better than rolling the dice three times", on the paralysis tooltip; `src/data/statusInfo.ts` line 242 — "so it is strongest into a wall", on the crit tooltip; `src/data/bandInfo.ts` — "A risky node reaches here before the segments do", on the band tooltip (**still live, moved from band 3's entry to band 4's by the five-band recut, section 36.2; the line number moved with it and is deliberately not restated here**). Each tells the player what an option is worth rather than what it is, which is the Part 4 rule. **Filed, not fixed**: 4.8.0.3 is a presentation patch that had already closed the one violation the register tracked, and rewriting four more strings on my own reading is a copy pass, not a closeout. All four files are outside `contentHash`, so the fix is cheap when it is scoped |
+| a gym offer is strictly better than an elite node's | **deleted, 2026-09-17, the band recut.** Not closed — *retired*. `rewardPools.ts` stated it and `GYM_MOVE_ENTRY` resolved at `elite` to pay for it, which at segment 0 clamped to the ceiling and handed gym 1 a band-4 move 300 times out of 300. It was measuring the wrong axis: a gym pays two pages of three and the level step behind them, and does not also need to win on band. An elite out-paying a gym on the single move is now possible and is the player's call going in. `generation.md` section 36.8 |
 | one "best" marker remains in player-facing copy | **closed, 2026-09-14, patch 4.8.0.3 item 3.** The audit's line, `run-map.ts:87`, lost its marker at `6351009` when the tier copy moved into `data/tierInfo.ts`. The last one, `data/statusInfo.ts`'s Disable advice ("Usually your best move, by design"), is now the attribute it was describing: Disable always takes the move just used. The patch's prompt named `run-map.ts:87` from the stale audit line; the marker had already moved, and the fix went where the marker actually was. No "best" marker remains in player-facing copy |
 
 ## 6. The design lineage, briefly

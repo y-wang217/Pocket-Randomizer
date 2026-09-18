@@ -339,12 +339,22 @@ describe('the version axes', () => {
      * All four change what a seed draws, which is why `gymrun-randomizer-18`
      * arrives beside it.
      *
-     * The literal below is all four together. The display split remains the
+     * The bench-carryover and gym-levels patch moved it a fifth time, from
+     * `fd9b5e`, and it is the smallest move the axis has recorded: one column
+     * of `data/scaling.ts`, the gym's `levelOffset`, to zero at every segment.
+     * **No axis arrives beside it**, and that is the interesting part rather
+     * than an omission — `RANDOMIZER_VERSION` says the *composition* of the
+     * draws moved, and this changes only the range a level is drawn from and
+     * the species pool that range gates. Same keys, same order, same count.
+     * `docs/generation.md` section 35 is the account, including the proof:
+     * `docs/visual/baseline/battles/GYMRUN01.json` is byte identical across it.
+     *
+     * The literal below is all five together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('49e50f47ea9dcecd54f7d0d7a065750d8372dcca46ba7e80e973375fde10bf7a');
+    expect(CONTENT_HASH).toBe('a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
