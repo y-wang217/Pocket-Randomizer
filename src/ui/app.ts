@@ -713,8 +713,10 @@ export function mountApp(root: HTMLElement): void {
          */
         if (canTeachNow(state) && state.tms.length > 0) {
           live = state;
+          atTeachBoundary = true;
           showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
           const composed = await itemPlanPick.wait();
+          atTeachBoundary = false;
           pendingPlan = null;
           return reconcileItemPlan(
             state,
@@ -995,7 +997,11 @@ export function mountApp(root: HTMLElement): void {
             pendingGym = null;
             leadPick.submit(slot);
           },
-          onManageParty: () => showParty('pre-gym'),
+          onManageParty: () => {
+            // Not the boundary: this is the player looking, between decisions.
+            atTeachBoundary = false;
+            showParty('pre-gym');
+          },
         },
       );
     };
@@ -1008,6 +1014,36 @@ export function mountApp(root: HTMLElement): void {
      * — and a redraw must not quietly retarget the way out.
      */
     let partyReturn: ScreenName = 'map';
+
+    /*
+     * Whether the party screen is open **at** the boundary that may spend a TM.
+     *
+     * **This is the difference between a teach that happens and a teach that is
+     * silently thrown away**, and it is not the same question as
+     * `run.canTeachNow`.
+     *
+     * `canTeachNow` reads the node the run has just walked, and it stays true
+     * for the whole time the player then stands on the map — so the Manage
+     * button offered a Teach control after every rest and every shop. The plan
+     * that control composes is not spent there: it is held in `pendingPlan` and
+     * spent at the boundary of the node walked *next*, where `canTeachNow`
+     * reads that node instead. Walk into a fight, and `reconcileItemPlan` drops
+     * the teach — correctly, by its own rule, and silently — and the TM is back
+     * in the bag.
+     *
+     * Measured on the scripted baseline, 400 runs: of 111 teaches composed from
+     * the map, **9 survived and 57 were dropped** (the rest never reached a
+     * boundary before the run ended). A control that works 8% of the time is
+     * worse than one that is not offered, which is what the reported
+     * "teaching tms doesnt work, the tms return to inventory" was.
+     *
+     * So teaching is offered only where composing and spending are the same
+     * moment — the screen `chooseItemPlan` opens — which is what that function's
+     * own comment already said the design was. Set there, cleared when the plan
+     * is answered, and left alone by the re-renders (`back`, a reorder, a
+     * release) that re-enter this screen without leaving the boundary.
+     */
+    let atTeachBoundary = false;
 
     /*
      * The party screen, and **the way back out of it is a parameter**.
@@ -1036,7 +1072,7 @@ export function mountApp(root: HTMLElement): void {
           party: state.party,
           backpack: state.backpack,
           tms: state.tms,
-          canTeach: canTeachNow(state),
+          canTeach: atTeachBoundary && canTeachNow(state),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
@@ -1058,7 +1094,7 @@ export function mountApp(root: HTMLElement): void {
             pendingPlan = null;
             state.party = reorderParty(state.party, from, to);
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onRelease: (slot) => {
             pendingPlan = null;
@@ -1067,7 +1103,7 @@ export function mountApp(root: HTMLElement): void {
             // Their item goes to the bag, not with them.
             if (released.freed) state.backpack = [...state.backpack, released.freed];
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onPlan: (plan) => {
             pendingPlan = plan;
@@ -1193,7 +1229,7 @@ export function mountApp(root: HTMLElement): void {
         segments: state.segments.length,
         seed: state.seed,
       });
-      mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+      mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
     };
 
     /*

@@ -191,36 +191,60 @@ their price has ever been visible.
 > Alsk bug report: teaching tms doesnt work. When i click out of the teach
 > screen, the tms return to inventory. Check on that
 
-**Read on the merged tree, and it does not resolve to one cause.** Two
-candidates survive reading, and they call for different fixes, so neither was
-acted on.
+**Reproduced, root-caused and fixed.** The two candidates filed here first —
+"the copy is wrong" and "a completed teach is not sticking" — were both wrong,
+and they were guesses rather than measurements. The report named a rest and the
+reading did not go there. `generation.md` section 40 is the account.
 
-**Candidate A — it is behaving as designed and the copy is wrong.** The teach
-path renders `targetScreen` with `allowSkip: true`, and that screen's only exit
-is the decline control, whose copy is `TARGET_COPY.decline` — **"Don't learn
-it"**. That string was written for a different question: the gym's guaranteed
-move, the one payout that may be handed back. On this path it means "not this
-one, not now" and `app.ts` says so in a comment — the TM stays in the bag, by
-design. So a player who reaches the screen, changes their mind about *which*
-Pokemon, and presses the only control that leaves gets exactly the reported
-sentence, and nothing is broken except that the only way back is spelled as a
-refusal.
+**The mechanism was never broken.** `applyItemPlan` teaches, `reconcileItemPlan`
+keeps the teach, and all three screens fire their callbacks. Driven end to end
+through `playRun` over 300 seeds, **56 of 56** composed teaches landed on the
+member the plan named; the party, target and replace screens were each driven in
+jsdom and each behaved.
 
-**Candidate B — a teach that was completed is not sticking.** Traced and not
-found: `onTeach`'s `done` pushes onto `teaches` and calls `commit`, which is
-`handlers.onPlan`, which sets `pendingPlan`; `back()` re-renders through
-`showParty`, which passes `plan: pendingPlan`, and the re-render recomputes
-`carried` as `remaining(view.tms, teaches ∪ discardTms)` — so the TM should
-leave the bag panel and stay gone. `canTeachNow` gates the button, not the
-commit, so a teach composed where it is illegal cannot be silently dropped
-either.
+**What was wrong is where the control was offered.** `run.canTeachNow` reads the
+node the run has just walked, and stays true for the whole time the player then
+stands on the map — so the map's Manage button showed a Teach control after
+every rest and every shop. The plan it composes is not spent there: it is held
+in `pendingPlan` until the boundary of the node walked *next*, where
+`canTeachNow` reads that node instead. Walk into a fight and
+`reconcileItemPlan` drops the teach, correctly by its own rule and silently, and
+the TM is back in the bag.
 
-**What would settle it in one message**: a screenshot of the teach screen
-itself, or the answer to "did you pick a Pokemon before the TM came back, or
-did you leave without picking one?" If the answer is "left without picking",
-this is Candidate A and the fix is copy plus a separate Back control. If it is
-"picked one and it still came back", it is Candidate B and the trace above is
-wrong somewhere worth finding.
+Measured, scripted baseline, 400 runs: of **111** teaches composed from the map,
+**9** survived and **57** were dropped (the rest never reached another boundary
+before the run ended). A control that works 8% of the time is worse than one
+that is not offered.
+
+`chooseItemPlan` already described the fix in its own comment — "the screen
+opens here, where composing and spending are the same moment" — and opened the
+screen at the boundary. It just never stopped the other route offering the same
+control. `atTeachBoundary` now gates it, and `test/teach-boundary.test.ts` pins
+it. The browser smoke run still reaches the target and replacement screens, so
+the route that works is untouched.
+
+### The larger finding, which is not fixed
+
+**A TM is spendable in 13% of runs.** Same 400-run scan, with a policy that
+never teaches so the TM stays in the bag:
+
+| | |
+|---|---|
+| runs that ever hold a TM | 174 (43.5%) |
+| runs that ever reach a boundary where one can be spent | **53 (13.3%)** |
+| boundaries holding a TM where teaching was legal | 74 of 687 (10.8%) |
+
+So roughly seven in ten runs that earn a TM never get to use it. That is not a
+defect in any one function — teaching is legal at a rest or a shop
+(`run.canTeachAt`), and most runs die before reaching one while holding a move.
+`scripts/smoke.mjs` hit the same wall from the other side: its seed had to be
+re-chosen at the inventory-TM merge because the old one "stopped reaching a rest
+while holding a TM", and four of the five best candidates died on node 1 or 2.
+
+**Filed as a design question, not fixed.** Widening `canTeachAt`, letting a
+teach wait for the next legal boundary instead of being dropped, or paying TMs
+closer to rests are all answers, and they are balance decisions rather than bug
+fixes.
 
 ## Scope, for whoever picks this up
 

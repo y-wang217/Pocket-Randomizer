@@ -6697,3 +6697,85 @@ The result screen's coins — the balance updates at the boundary, and
 holds" deliberately, which its own comment states. The map overlay's position —
 the node has not resolved, so showing it unresolved is correct. The evolution
 fork's pre-level party — the fork has not been answered yet.
+## 40. The Teach control was offered where the teach could not be spent
+
+**2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
+[`spec/gymrun-patch-r19-overnight-playtest.md`](spec/gymrun-patch-r19-overnight-playtest.md),
+item 4. Presentation only: one flag in `ui/app.ts`, no `core/` change, no
+version axis moves.
+
+> "teaching tms doesnt work. When i click out of the teach screen, the tms
+> return to inventory."
+
+### 40.1 The first reading was two guesses, and both were wrong
+
+This item was first filed with two candidate causes and a question back to the
+author, on a reading that had not gone near a rest — which is where the report
+said the failure was. That is recorded rather than quietly replaced, because the
+failure was a method failure: the code was read, a story was built that fit the
+sentence, and nothing was run. The author's reply was "So you assumed conditions
+and didn't check?", and it was correct.
+
+What settled it was driving each layer:
+
+| layer | how | result |
+|---|---|---|
+| `applyItemPlan` + `reconcileItemPlan` | direct, with a composed teach | move taught, TM consumed |
+| the whole loop | `playRun`, 300 seeds, policy composing a teach at every legal boundary | **56 of 56** landed |
+| the TM shelf | jsdom, real `createPartyScreen` | Teach button present, `onPlan` carries the teach |
+| the target and replace screens | jsdom, clicking a member and a move | both callbacks fire |
+
+**The mechanism was never broken.**
+
+### 40.2 The bug is which screen offers the control
+
+`run.canTeachNow` reads the node the run has just walked. It therefore stays
+true for the whole time the player then stands on the map — so the map's Manage
+button showed a Teach control after every rest and every shop.
+
+The plan that control composes is not spent there. It is held in `pendingPlan`
+and spent at the boundary of the node walked *next*, where `canTeachNow` reads
+that node instead. Walk into a fight and `reconcileItemPlan` drops the teach —
+correctly, by its own documented rule ("the TM stays in the bag, which is the
+outcome the player can still act on at the next rest") and silently — and the TM
+is back in the bag.
+
+Measured, scripted baseline, 400 runs: of **111** teaches composed from the map,
+**9** survived to be spent and **57** were dropped; the rest never reached
+another boundary before the run ended.
+
+**`chooseItemPlan` already knew.** Its own comment says a map-composed teach
+"would be dropped, correctly and silently, and the player would watch a TM they
+had arranged simply fail to be spent", and it opens the party screen at the
+boundary for exactly that reason. What it never did was stop the *other* route
+offering the same control. The fix is `atTeachBoundary`: armed around the
+item-plan question, disarmed by the two Manage buttons, and left alone by the
+re-renders (`back` after a teach, a reorder, a release) that re-enter the screen
+without leaving the boundary.
+
+`test/teach-boundary.test.ts` pins it, three cases red without the fix. The
+browser smoke run still reports one move target and one move replacement, so the
+route that works is untouched.
+
+### 40.3 The larger finding, filed and not fixed
+
+**A TM is spendable in 13% of runs.** Same scan, policy never teaching so the TM
+stays in the bag:
+
+| | |
+|---|---|
+| runs that ever hold a TM | 174 of 400 (43.5%) |
+| runs that ever reach a boundary where one can be spent | **53 (13.3%)** |
+| boundaries holding a TM where teaching was legal | 74 of 687 (10.8%) |
+
+Roughly seven in ten runs that earn a TM never get to use one. Nothing is
+malfunctioning: teaching is legal at a rest or a shop, and most runs die before
+reaching one while holding a move. `scripts/smoke.mjs` met the same wall from
+the other side — its seed had to be re-chosen at the inventory-TM merge because
+the old one stopped reaching a rest while holding a TM, and its header records
+that four of the five best replacement candidates died on node 1 or 2.
+
+Widening `canTeachAt`, letting a teach wait for the next legal boundary rather
+than being dropped, or paying TMs nearer to rests are all answers. All three are
+balance decisions, so this is filed in `README.md` section 5 rather than
+guessed at.

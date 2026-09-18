@@ -783,6 +783,13 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
+0. **A TM is spendable in 13% of runs.** 43.5% of runs earn one; only 13.3%
+   ever reach a rest or a shop while still holding it, which is the only
+   boundary `run.canTeachAt` allows a teach at. Nothing malfunctions — most runs
+   die first. Answers are all balance calls: widen `canTeachAt`, let a composed
+   teach wait for the next legal boundary instead of being dropped, or pay TMs
+   nearer to rests. `generation.md` section 40.3.
+
 0. **Fight length.** Early fights are an exchange rather than a shape. It is now
    the root cause behind two separate carried misses, below, and has earned its
    own investigation. `balance.md`, and open question 1 in the root README.
