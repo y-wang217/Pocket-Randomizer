@@ -182,7 +182,7 @@ describe('the band badge renders on every surface that renders a move', () => {
         party: party(),
         backpack: [],
         tms: [],
-        canTeach: true,
+        teachable: new Set([]),
         relics: [],
         tuning: DEFAULT_TUNING,
         slots: partyCapacityAfter(0),

@@ -1,9 +1,9 @@
 {
   "seed": "SMOKE24",
   "versions": {
-    "runLog": "gymrun-run-19/gymrun-0.3.0",
-    "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
-    "randomizer": "gymrun-randomizer-20",
+    "runLog": "gymrun-run-20/gymrun-0.3.0",
+    "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
+    "randomizer": "gymrun-randomizer-21",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -27,8 +27,8 @@
       "level": 15,
       "ability": "Rocky Payload",
       "moves": [
-        "Sand Tomb 23/24",
-        "Mud-Slap 16/16",
+        "Sand Tomb 24/24",
+        "Razor Leaf 39/40",
         "Bulldoze 28/32",
         "Mud Shot 24/24"
       ],
@@ -130,10 +130,10 @@
   "log": {
     "seed": "SMOKE24",
     "versions": {
-      "runLog": "gymrun-run-19/gymrun-0.3.0",
-      "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
+      "runLog": "gymrun-run-20/gymrun-0.3.0",
+      "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-20"
+      "randomizerVersion": "gymrun-randomizer-21"
     },
     "decisions": [
       {
@@ -254,7 +254,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Razor Leaf",
+              "slot": 0,
+              "replaceSlot": 1
+            }
+          ],
           "discardTms": []
         }
       },
@@ -288,14 +294,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 2
         }
       },
       {

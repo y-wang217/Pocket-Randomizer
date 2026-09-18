@@ -156,6 +156,7 @@ function visitOf(node: NodeSpec, segment: number, result: 'won' | null, party: r
     segment,
     result: result ? { winner: 'p1', turns: 7 + segment, cause: 'faint' } : null,
     hpAfter: party.reduce((total, member) => total + member.hp, 0),
+    tmsPaid: [],
     casualties,
   };
 }

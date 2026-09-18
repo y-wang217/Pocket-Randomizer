@@ -7692,3 +7692,274 @@ Flipping the default would break the "read down an `AI_VERSION`" rule that
 section 0 of `docs/balance.md` rests on, so it is a decision rather than a
 consequence, and it is the author's. The pair of rows in section 20 is what it
 would be read from.
+## 49. A move may be taught at the node that paid it
+
+**2026-09-18**, on `claude/great-curie-99l9fm`. Prompt
+[`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
+item 1. Moves `RUN_LOG_VERSION` to `-20`; `RANDOMIZER_VERSION`, `AI_VERSION` and
+`contentHash` all hold.
+
+> "not being able to teach TMs immediately makes progression much harder earlier
+> on. let's give the option to the player upon acquisition: teach now, or store
+> as TM"
+
+### 49.1 The change is one parameter, and finding that out was the work
+
+The obvious reading of this brief is a new question: a fork at the moment a card
+is taken, its own `RunDecision`, its own `RunPolicy` method, asked at each of the
+four routes that pay a move. That design was drafted and it is not what shipped,
+because the tree already had every piece of it.
+
+`needsItemPlan` (`core/items.ts`) returns true whenever `state.tms` is non-empty.
+So `playRun` was **already** asking the item-plan question at the node that paid
+the TM, and the player was **already** landing on the party screen with the new
+move on the shelf. The teach already rides inside the existing
+`{ kind: 'items', plan }` entry as `ItemPlan.teaches`. The only thing refusing
+the teach was the fourth argument at the bottom of the node loop:
+`canTeachAt(result.node.kind)`.
+
+So what changed is that argument's type. `canTeach: boolean` became
+`teachable: ReadonlySet<string>` in `applyItemPlan` and `reconcileItemPlan`, and
+`run.teachableAt(visit, tms)` is the one definition of what goes in it: every TM
+at a rest or a shop, and at any other node **only the moves that node just
+paid**.
+
+**A set rather than a wider boolean, and that is the whole of the bank rule.** A
+boolean could only have said "teaching is open here", which at a node paying one
+TM would have unloaded the three banked behind it — the rule deleted by
+accident, at the one boundary meant to test it. The set says which, so the
+arriving move gets its answer and the bank keeps waiting.
+
+### 49.2 What `NodeVisit` had to learn, and why it is not a decision
+
+`teachableAt` needs to know which TMs in the bag arrived *here*, and the bag
+cannot tell: a move banked three nodes ago and one handed over a moment ago are
+the same string in the same list. So `NodeVisit` gained `tmsPaid`, filled by
+`movesPaidBy(result)` off the four routes the moveset-pool report enumerates —
+gym clear, reward card, event grant, shop basket, in that order.
+
+It is **state, not a decision**. A replay rebuilds it from the same `NodeResult`
+it rebuilds everything else from, so both sides of the log compute the same
+teachable set at the same point — the discipline `needsItemPlan`'s own header
+states, and the reason it is safe to gate a question on.
+
+### 49.3 Why the axis moves even though no entry was added or reshaped
+
+`RUN_LOG_VERSION` goes to `-20` and the rule in `CLAUDE.md` says a run log
+version bumps when a logged decision is added, removed, reordered or reshaped.
+None of those happened: the `items` entry is the same shape in the same place.
+
+What changed is which plans are **legal** at a boundary. A `-19` reader applies
+an item plan with `canTeachAt(node.kind)` and refuses a teach anywhere but a rest
+or a shop, so handed a `-20` log it would reject at the first node that paid a
+TM the player taught on the spot — or, worse, drop it silently. That is exactly
+the divergence the axis exists to catch, and catching it loudly is the point of
+stamping it.
+
+### 49.4 The measurement, closed
+
+The item filed at `README.md` section 5 and section 40.3 above:
+
+| | before | after |
+|---|---|---|
+| runs that ever hold a TM | 174 of 400 (43.5%) | 234 of 400 (58.5%) |
+| of those, share reaching a boundary where one can be spent | **30.6%** | **100%** |
+| boundaries holding a TM where teaching was legal | 74 of 687 (10.8%) | 715 of 1461 (48.9%) |
+
+The second row is the one that matters and it is **structural rather than
+tuned**: a node that pays a move allows that move to be taught there, so a TM is
+spendable at the moment it arrives, always. It cannot be otherwise by
+construction. The first row moved as a consequence — a baseline that spends its
+moves survives longer and reaches more of them — and is measured with the bag
+reconstructed forward rather than by the section 40.3 method, so the two are not
+strictly comparable and the ratio is the honest reading.
+
+### 49.5 The baseline changed, deliberately, and every future figure is against it
+
+`defaultItemPlan`'s rule 3 taught every TM to slot 0 at a rest or a shop. It now
+teaches every TM **the boundary allows**, which at an acquiring node is the
+arriving move. `scripts/sim.ts`'s `greedyItemPlan` follows, through the same
+`greedyMoveRecipient` and `greedyMoveToReplace` it already used.
+
+This was a choice and the alternative was worse. Had the baselines kept
+answering "store", the benchmark row for this patch would have been flat by
+construction and would have measured nothing — the window would have opened and
+no measured player would have walked through it.
+
+### 49.6 The UI defect this created, and what caught it
+
+The first cut changed the core and left `ui/app.ts`'s gate reading
+`canTeachNow(state) && state.tms.length > 0`. That is true at a rest and a shop
+and nowhere else, so at a node paying a TM the party screen did not open — and
+control fell through to `defaultItemPlan`, which now **taught the move to slot 0
+without asking**. A move landing on the lead, displacing something, with nobody
+consulted: the opposite of the brief.
+
+Two browser tests caught it and neither is about teaching.
+`visual-move-cards.test.ts` reaches the move explanation from seven surfaces and
+found five, because the two teach screens had stopped being reachable by a
+player. `visual-v2.test.ts` drove into a screen it did not expect and gave up
+after 900 steps. The gate is `teachableNow(state).size > 0` now, which is what
+makes teach-now a question rather than something done to the player.
+
+`atTeachBoundary` is untouched, and `test/teach-boundary.test.ts` still asserts
+its literal — so the section 40.2 defect, a Teach control on every post-rest map
+screen, cannot come back through the wider gate.
+
+### 49.7 What this does not change
+
+- **The stored-TM rule.** `canTeachAt` is still rest and shop, still exported,
+  still the definition of a counter. A move the player banks waits exactly as
+  long as it did.
+- **A replaced move is still destroyed** and **a TM is still consumed by
+  teaching it** — the two rules the inventory stage shipped alongside the one
+  this narrows.
+- **`rewards.applyReward` is byte-identical.** Teach-now is stow-then-spend, so
+  the claim in its header that it is the one path by which a reward changes
+  anything stays literally true.
+
+## 50. The gym level spread, and the pool that would have emptied under it
+
+**2026-09-18**, on `claude/great-curie-99l9fm`. Prompt
+[`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
+item 2. Moves `RANDOMIZER_VERSION` to `-21` and `contentHash` from `b8b419` to
+`d4e080`; `RUN_LOG_VERSION` holds at `-20` and `AI_VERSION` holds.
+
+> "early gyms are super punishing, so we can shave 1 level offthe gym mons or
+> something like that. Check out the nuzlock level caps and gym levels for
+> comparison."
+
+### 50.1 The research said the brief's own fix was the wrong shape
+
+The brief asked for a level shaved off the gym. The reference says the ratio is
+**flat**: FireRed and Emerald average **0.91** of the cap across all sixteen
+gyms, early and late alike, so there is no early-game slack in the level column
+to copy.
+
+What there is, is a **shape**. Nuzlocke convention sets the player's cap at the
+leader's *ace*, so ace-over-cap is 1.00 by definition and every other member
+sits below it. Emerald's gym 1 is a Geodude at 12 beside a Nosepass at 15,
+against a player capped at 15.
+
+**GYMRUN's player curve is already a stretched Emerald** — `data/scaling.ts`
+says so — so it had taken the reference's *cap* numbers for the player, which is
+right, and then handed them to the entire gym roster. Every gym Pokemon had ace
+status. That is the divergence, and a flat shave would not have fixed it: it
+would have moved the whole team down together and put the ace below the player,
+which no reference game does.
+
+So `levelOffset.gym.min` is `round(-0.18 x playerLevel)` — `-3, -4, -5, -6, -7,
+-8, -9, -10` — and `max` stays at zero.
+
+### 50.2 The rule that was superseded, and the half of it that survives
+
+The parity rule was pinned on 2026-09-17 (section 35) with an argument, and the
+argument is correct: a level in Gen 3 raises Speed with everything else, Speed is
+the only stat read as a *comparison*, and a gym one level up takes the first move
+in every tie the party would otherwise win. No team building gets that back.
+
+**That argument is entirely about a gym being *above* the party, and it is `max`
+that carries it.** `min` was pinned beside it by assumption rather than by
+argument. So `max === 0` survives, is still not a tuning number, and is now
+asserted on its own; `min` is a tuning number and always was. The old text is
+deleted from `data/scaling.ts` rather than left behind a flag, and
+`test/generation.test.ts`'s pin is replaced rather than edited — its new header
+says which half died.
+
+### 50.3 The measurement that changed what was built
+
+The proposed column was measured against the species tables before any of it was
+written, and it did not survive contact with them.
+
+`bandedSpeciesPool` gates its **whole pool** on one level — it must, because the
+pool is built once and every member then draws its own — and that level was
+`level.min`. Widening the range downward therefore deleted every species
+evolving above the new floor:
+
+| segment | gym | band | pool before → after |
+|---|---|---|---|
+| 3 | Grass | 2 | 23 → 8 |
+| 4 | Fire | 3 | 21 → 3 |
+| 6 | Ghost | 4 | **1 → 0** |
+| 7 | Dragon | 4 | 7 → 2 |
+
+Segment 6 is the one that settled it. Its only band-4 Ghost is Gholdengo at
+level 50 and `playerLevel(6)` is exactly 50, so **any** negative offset — even
+`-1` — empties that band, and `bandedSpeciesPool`'s carry rule then folds its
+weight onto band 3 silently. The table would have advertised a band the code
+could not draw. That is not a balance cost to accept; it is a table telling a
+lie.
+
+### 50.4 What shipped instead: the pool at the ceiling, the level at the species
+
+Two changes in `core/randomizer.ts`, neither adding or removing a draw.
+
+**`generateGymTeam` builds its pool at the range's ceiling.** "Which species
+could exist at the lowest level any member might roll" was the wrong question;
+"which species could the player's own level have" is the right one. Today's pool
+is unchanged by this, because the column was `{ min: 0, max: 0 }` until this
+patch and the floor and the ceiling were the same number.
+
+**`levelFor` clamps the drawn level up to the species' own `evoLevel`.** A
+Shelgon drawn for a gym whose range reaches to 48 may be fielded at 48; a
+Salamence cannot, and the clamp puts it at 50. It throws if the clamp would
+exceed `level.max`, because the only way there is a pool gated above the range it
+is drawn against and the symptom would otherwise be a gym quietly fielding a
+Pokemon above the player.
+
+**It is a no-op for wild and trainer by construction rather than by care**: their
+pools are gated at their own `level.min`, so every entry satisfies
+`evoLevel <= level.min <= drawn` already.
+
+Measured, 300 teams per segment:
+
+| seg | gym | cap | a sample team | mean/cap | ace at cap | distinct species |
+|---|---|---|---|---|---|---|
+| 0 | Rock | 15 | `15,13` | 0.895 | 38% | 25 |
+| 1 | Water | 20 | `17,16,20` | 0.904 | 53% | 71 |
+| 2 | Electric | 26 | `25,21,24` | 0.910 | 49% | 35 |
+| 3 | Grass | 32 | `26,30,30,30` | 0.921 | 48% | 86 |
+| 4 | Fire | 38 | `38,31,33,35` | 0.925 | 52% | 46 |
+| 5 | Psychic | 44 | `40,37,44,40,42` | 0.913 | 44% | 47 |
+| 6 | Ghost | 50 | `45,44,50,41,45` | 0.924 | 81% | 32 |
+| 7 | Dragon | 58 | `55,57,54,52,52,52` | 0.918 | 43% | 28 |
+
+Every segment lands between 0.895 and 0.925 against a reference of 0.91, no pool
+collapsed, and segment 0's `15,13` is Roxanne's team to within a level.
+
+### 50.5 The ace is emergent, and the rule is stated as a ceiling for it
+
+A uniform draw over `[min, 0]` lands nothing at `max` about **56%** of the time
+at both ends of the run — `(3/4)²` at a two-member gym 1, `(10/11)⁶` at a
+six-member gym 8. "The ace stays at parity" is therefore not something the table
+can promise, and the decision was narrowed rather than reversed: the rule is **a
+gym is never above the player, and its team mean sits at 0.91**.
+
+What pushes a member back to the cap is the clamp, which is how a real gym team
+gets its ace in the first place — the fully evolved member cannot be low. The
+measured "ace at cap" column above is 38% to 81% against the ~44% a bare uniform
+draw gives, and it is a consequence rather than a guarantee.
+
+Guaranteeing one in code was considered and declined: there is no "ace" concept
+anywhere in `core/`, `data/gyms.ts` or the gym screens, and inventing one would
+put a difficulty rule into `randomizer.ts` that `scaling.ts`'s own header
+forbids.
+
+### 50.6 A correction to section 35's axis
+
+`7d8b623` narrowed this same column to parity and held `RANDOMIZER_VERSION`, on
+the reading in `core/types.ts` that the axis covers a draw added, removed or
+relocated *"in code with no table edited"*.
+
+**That reading is wrong, and two things in the tree already said so.**
+`CLAUDE.md` defines the axis as "draw composition" with no code clause, and
+`randomizer.ts`'s own `-19` note bumps for a `SEGMENTS` edit giving exactly this
+patch's reason — levels feed `opponentLevel` and the stage gate, so a segment
+draws from a different species list. `data/speciesPools.ts` carries the same
+instruction in its header.
+
+The practical harm was nil: `contentHash` moved, so no recorded seed replayed
+silently, and the guard fired on the other axis. It is recorded rather than
+retro-bumped. The wording in `types.ts` is what misled and is worth reconciling
+to `CLAUDE.md`'s — the axis is *did which value a draw resolves to change*, and
+"code" is where that usually happens rather than what it means.

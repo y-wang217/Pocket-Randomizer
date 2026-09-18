@@ -1,9 +1,9 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-19/gymrun-0.3.0",
-    "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
-    "randomizer": "gymrun-randomizer-20",
+    "runLog": "gymrun-run-20/gymrun-0.3.0",
+    "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
+    "randomizer": "gymrun-randomizer-21",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -30,7 +30,7 @@
         "Draining Kiss 15/16",
         "Disarming Voice 24/24",
         "Force Palm 13/16",
-        "Fairy Wind 48/48"
+        "Poison Fang 24/24"
       ],
       "item": "payapaberry",
       "hp": "0/47",
@@ -118,10 +118,10 @@
   "log": {
     "seed": "GYMRUN01",
     "versions": {
-      "runLog": "gymrun-run-19/gymrun-0.3.0",
-      "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
+      "runLog": "gymrun-run-20/gymrun-0.3.0",
+      "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-20"
+      "randomizerVersion": "gymrun-randomizer-21"
     },
     "decisions": [
       {
@@ -236,7 +236,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Poison Fang",
+              "slot": 0,
+              "replaceSlot": 3
+            }
+          ],
           "discardTms": []
         }
       },

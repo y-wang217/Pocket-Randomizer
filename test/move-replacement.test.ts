@@ -35,7 +35,7 @@ import {
   scriptedRunPolicy,
   type RunPolicy,
   type RunState,
-  canTeachNow,
+  teachableNow,
 } from '../src/core/run';
 import { applyItemPlan } from '../src/core/items';
 import type { PokemonSpec, PokemonState } from '../src/core/types';
@@ -180,7 +180,7 @@ describe('the recipient is resolved once', () => {
         teaches: [{ move: 'Arm Thrust', slot: 1, replaceSlot: null }],
       },
       8,
-      true,
+      new Set(state.tms),
     );
 
     expect(after.party[1]!.spec.moves).toContain('Arm Thrust');
@@ -216,7 +216,7 @@ function movePicker(): RunPolicy {
     // The last member rather than the lead, so the recipient is a real answer
     // and not the value a missing implementation would return.
     // The last slot rather than the heuristic's, for the same reason.
-    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
+    chooseItemPlan: async (state) => defaultItemPlan(state, teachableNow(state)),
   };
 }
 
@@ -257,7 +257,7 @@ describe('what teaching a move still costs', () => {
       after,
       { assignments: [], discards: [], discardTms: [], teaches: [{ move: 'Arm Thrust', slot: 0, replaceSlot: null }] },
       8,
-      true,
+      new Set(after.tms),
     );
     expect(taught.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch', 'Arm Thrust']);
     expect(taught.tms).toEqual([]);
@@ -362,7 +362,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
         return { kind: 'release', slot: 0 };
       },
       chooseItemPlan: async (state) => {
-        const plan = defaultItemPlan(state, canTeachNow(state));
+        const plan = defaultItemPlan(state, teachableNow(state));
         if (plan.assignments.length > 0) seen.add('item-assign');
         if (plan.discards.length > 0) seen.add('item-discard');
         return plan;

@@ -55,7 +55,7 @@ describe('the party screen', () => {
       party,
       backpack: ['oranberry', 'charcoal'],
       tms: [],
-      canTeach: true,
+      teachable: new Set([]),
       relics: [],
       tuning: DEFAULT_TUNING,
       // Three members need at least three slots; the opening width is two

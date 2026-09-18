@@ -58,6 +58,35 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: teaching a move at the node that paid it, and a level spread for
+gyms.** Branch `claude/great-curie-99l9fm`, prompt
+[`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
+records [`generation.md`](generation.md) sections 49 and 50, measurements
+[`balance.md`](balance.md) section 0. Two patches on one branch with a benchmark
+between them, because they move different axes and one row could not attribute a
+gym clear to either: `RUN_LOG_VERSION` to `-20` for the first, and
+`RANDOMIZER_VERSION` to `-21` with `contentHash` to `d4e080` for the second.
+`AI_VERSION` holds.
+
+- **A move may be taught at the node that paid it.** The inventory stage left a
+  TM spendable in 13.3% of runs; of runs that hold one, **100%** can now spend
+  one. The change is one parameter — `canTeach: boolean` became
+  `teachable: ReadonlySet<string>` — because `needsItemPlan` was already asking
+  the item-plan question at the node that paid the TM. A set rather than a wider
+  boolean is what stops a node paying one move from unloading the bank behind
+  it; `canTeachAt` is unwidened and still governs a **stored** TM.
+- **A gym fields a spread below the player, never above.** The brief asked for a
+  level off the gym mons; the reference says the ratio is flat at 0.91 across
+  all sixteen gyms of FireRed and Emerald, and what is wrong is the shape — only
+  the ace belongs at the cap. `levelOffset.gym.max` stays at zero, which is the
+  half of the parity rule the Speed argument carries, and `min` is
+  `round(-0.18 x playerLevel)`. **0.660 to 1.085 mean gyms.**
+- **The measurement changed the implementation, not just the numbers.** Lowering
+  `level.min` would have emptied segment 6's band-4 Ghost pool — its only entry
+  is at level 50 and `playerLevel(6)` is 50 — leaving the table advertising a
+  band the code could not draw. So the pool is built at the range's ceiling and
+  `rollSpec` clamps each drawn level up to its species' own `evoLevel`.
+
 **In flight: the wild encounter that swaps out.** Branch
 `claude/wild-encounter-swap-bug-1vd4q8`, prompt
 [`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
@@ -888,6 +917,22 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
+0. **The baseline may be making itself worse with every move it takes.**
+   `greedyMoveToReplace` (`scripts/sim.ts`) and `defaultMoveReplacement`
+   (`core/run.ts`) both displace the weakest damaging move **whether or not the
+   incoming one beats it**, and the latter's own header says so outright — it
+   "always names a victim", and "a baseline run can now be made worse by a card
+   it took". That was a deliberate consequence of retiring the decline, and
+   nobody has since asked whether the bot is paying for it. The evidence that
+   it might be: the teach-now patch opened the teach window from 30.6% to
+   **100%** of TM-holding runs and moved the benchmark by **0.005**. A window
+   that wide buying nothing is either "most TMs arrive after gym 1, where 69.8%
+   of deaths are" or "the bot's move economy is a wash", and these figures
+   cannot separate them. **Filed rather than chased**: fixing it would move
+   every row in `balance.md` at once, so it wants its own prompt and its own
+   benchmark rather than riding in on a patch about gym levels.
+   `generation.md` section 49.4, `balance.md` section 0.
+
 0. ~~**Every gym reward page badges `ELITE`.**~~ **Closed 2026-09-18, same
    branch.** `RewardOffer.tier: Tier` is `RewardOffer.badge: OfferBadge` now,
    where `OfferBadge = Tier | 'gym'`, and both gym pages print `GYM`. The field
@@ -938,7 +983,13 @@ One line each. The analysis lives where the pointer goes, not here.
    nothing on a fully evolved holder, which a late gym leader usually is. The
    cost of "at random for now". `generation.md` section 42.
 
-0. **A TM is spendable in 13% of runs.** 43.5% of runs earn one; only 13.3%
+0. ~~**A TM is spendable in 13% of runs.**~~ **Closed 2026-09-18** by the
+   teach-now patch, which took a fourth answer this item did not list: a move
+   may be taught at the node that paid it, so a TM is spendable at the moment it
+   arrives and **100%** of runs that hold one can now spend one, against 30.6%
+   of holders before. `canTeachAt` is unwidened and still governs a *stored* TM,
+   so the bank rule the inventory stage was built for survives.
+   `generation.md` section 49. Original text: 43.5% of runs earn one; only 13.3%
    ever reach a rest or a shop while still holding it, which is the only
    boundary `run.canTeachAt` allows a teach at. Nothing malfunctions — most runs
    die first. Answers are all balance calls: widen `canTeachAt`, let a composed
@@ -980,7 +1031,13 @@ One line each. The analysis lives where the pointer goes, not here.
 0. **Stage 4.9's first pass is a wall at gym 1** (42.5% clear, 70% of deaths)
    and the run is not completed by the greedy bot on any of 400 seeds. The
    levers deliberately left to the user: the gym level column in
-   `data/scaling.ts` and the "gym fields the slot count" rule.
+   `data/scaling.ts` and the "gym fields the slot count" rule. **The first of
+   those was spent on 2026-09-18** — `levelOffset.gym.min` is a spread below
+   parity now, fitted to the 0.91 team mean FireRed and Emerald average across
+   all sixteen of their gyms, with `max` still pinned at zero because that is
+   the half of the parity rule the Speed argument carries. The roster rule is
+   still unspent and is a named non-goal of that patch. `generation.md`
+   section 50.
    **58.0% on the merged tree at `randomizer-19`**, and the run completed for
    the first time since the stage — one seed in 400, which is not a rate but is
    not the flat zero the eleven rows before it are. The report predicted the per-slot one-shot

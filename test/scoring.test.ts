@@ -52,6 +52,7 @@ function runWith(options: {
     result: { winner: (won ? 'p1' : 'p2') as 'p1' | 'p2', turns, cause: 'faint' as const },
     hpAfter: 1,
     casualties: [],
+      tmsPaid: [],
   });
 
   const turns = options.turns ?? 0;

@@ -156,9 +156,11 @@ describe('the version axes this patch moved', () => {
      * so the number tracks the head of the axis rather than being frozen at
      * the value this patch left it. `-19` was Stage 4.9; `-20` is the R19
      * duplicate-card fix, which narrows a pool's candidates before every
-     * weighted pick.
+     * weighted pick; `-21` is the gym level spread, where the same float off
+     * the same key lands a gym member somewhere in a range instead of on one
+     * number.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-20');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
   });
 });
 

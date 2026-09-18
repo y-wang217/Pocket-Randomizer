@@ -168,7 +168,7 @@ function mount(screen: TutorialScreen): Mounted {
           party: state.party,
           backpack: [],
           tms: [],
-          canTeach: true,
+          teachable: new Set([]),
           relics: [RELIC_IDS[0]!],
           tuning: state.tuning,
           slots: 3,

@@ -48,12 +48,19 @@ const APP = readFileSync(join(ROOT, 'src/ui/app.ts'), 'utf8');
 describe('the Teach control is offered only where the teach is spent', () => {
   it('gates the party screen on the boundary, not only on the node just walked', () => {
     /*
-     * `canTeachNow(state)` alone is the bug: it is still true while the player
-     * stands on the map after a rest, and a plan composed there is spent a node
-     * later. The gate has to be "this screen is the boundary's own screen".
+     * `teachableNow(state)` alone is the bug: it is still non-empty while the
+     * player stands on the map after a rest, and a plan composed there is spent
+     * a node later. The gate has to be "this screen is the boundary's own
+     * screen".
+     *
+     * **Unchanged in substance by the teach-now patch, and that is the point of
+     * still asserting it.** What moved is which moves the set holds at a given
+     * node; `atTeachBoundary` still decides whether the control is offered at
+     * all, so the post-rest map defect this test was written for cannot come
+     * back through the wider gate. `docs/generation.md` section 40.2.
      */
     expect(APP, 'the Teach control is back on every post-rest map screen').toContain(
-      'canTeach: atTeachBoundary && canTeachNow(state)',
+      'teachable: atTeachBoundary ? teachableNow(state) : new Set<string>(),',
     );
   });
 
@@ -106,10 +113,10 @@ describe('why that gate has to exist: core drops the teach rather than holding i
     };
     const capacity = backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics));
 
-    const atRest = reconcileItemPlan(state, plan, capacity, true);
+    const atRest = reconcileItemPlan(state, plan, capacity, new Set(state.tms));
     expect(atRest.teaches, 'a legal teach was dropped at a teachable boundary').toHaveLength(1);
 
-    const midRoute = reconcileItemPlan(state, plan, capacity, false);
+    const midRoute = reconcileItemPlan(state, plan, capacity, new Set());
     expect(midRoute.teaches, 'the teach survived a boundary that cannot spend it').toHaveLength(0);
   });
 });

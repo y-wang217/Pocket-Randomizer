@@ -79,7 +79,7 @@ describe('the party screen draws a teach the moment it is composed', () => {
       party,
       backpack: [],
       tms: ['Thunderbolt'],
-      canTeach: true,
+      teachable: new Set(['Thunderbolt']),
       relics: [],
       tuning: DEFAULT_TUNING,
       slots: partyCapacityAfter(0),
@@ -124,7 +124,7 @@ describe('the party screen draws a teach the moment it is composed', () => {
         party,
         backpack: [],
         tms: ['Thunderbolt'],
-        canTeach: true,
+        teachable: new Set(['Thunderbolt']),
         relics: [],
         tuning: DEFAULT_TUNING,
         slots: partyCapacityAfter(0),
@@ -173,7 +173,7 @@ describe('the teach questions are asked against the party the plan has taught', 
       ],
       1,
     );
-    const kept = reconcileItemPlan(state, plan, 8, true);
+    const kept = reconcileItemPlan(state, plan, 8, new Set(state.tms));
     expect(kept.teaches).toHaveLength(2);
     // And the preview the player was shown is what the boundary produces.
     expect(partyWithPlan(party, plan)[0]!.spec.moves).toEqual(['Ice Beam', 'Rest', 'Yawn', 'Earthquake']);
@@ -190,7 +190,7 @@ describe('the teach questions are asked against the party the plan has taught', 
       ],
       1,
     );
-    expect(reconcileItemPlan(state, stale, 8, true).teaches).toHaveLength(1);
+    expect(reconcileItemPlan(state, stale, 8, new Set(state.tms)).teaches).toHaveLength(1);
   });
 
   it('skips a teach the boundary would drop rather than drawing it', () => {

@@ -297,16 +297,21 @@ export function applyItemPlan<
    */
   capacity: number,
   /**
-   * Whether this boundary is one where a TM may be spent.
+   * The move names this boundary allows to be spent.
    *
    * Passed rather than derived for the same reason `capacity` is: it is a fact
-   * about the node, and the node lives a layer up. `run.canTeachAt` is the one
-   * definition, and a plan carrying a teach where this is false throws rather
-   * than silently carrying the TM forward — a dropped teach is a plan the
-   * player composed and the run did not honour, which replays as a different
-   * run.
+   * about the node, and the node lives a layer up. `run.teachableAt` is the one
+   * definition, and a plan carrying a teach outside this set throws rather than
+   * silently carrying the TM forward — a dropped teach is a plan the player
+   * composed and the run did not honour, which replays as a different run.
+   *
+   * **A set rather than the boolean it replaced.** At a rest or a shop it holds
+   * every TM the run carries; at any other node it holds exactly the moves that
+   * node just paid. A boolean could only say "teaching is open here", which at
+   * an acquiring node would have unloaded the whole bank on the strength of one
+   * arriving move.
    */
-  canTeach: boolean,
+  teachable: ReadonlySet<string>,
 ): S {
   const seen = new Set<number>();
   for (const assignment of plan.assignments) {
@@ -340,10 +345,13 @@ export function applyItemPlan<
    * A replaced move is destroyed here and that is the design, not an omission:
    * nothing is pushed back to `tms`. See `types.TmTeach`.
    */
-  if (plan.teaches.length > 0 && !canTeach) {
+  const refused = plan.teaches.filter((teach) => !teachable.has(teach.move));
+  if (refused.length > 0) {
     throw new RangeError(
-      `Item plan spends ${plan.teaches.length} TM(s) at a node where TMs cannot be taught. ` +
-        'Teaching is allowed at rest and shop nodes only — see run.canTeachAt.',
+      `Item plan spends ${refused.length} TM(s) this boundary does not allow: ` +
+        `${refused.map((teach) => teach.move).join(', ')}. ` +
+        'A stored TM is taught at a rest or a shop; anywhere else only the moves that node ' +
+        'just paid may be spent — see run.teachableAt.',
     );
   }
   for (const teach of plan.teaches) {
@@ -477,14 +485,17 @@ export function reconcileItemPlan(
   plan: ItemPlan,
   /** As `applyItemPlan`: `backpackCapacity(partyCapacity(state), ...)`. */
   capacity: number,
-  /** As `applyItemPlan`: `run.canTeachAt(node.kind)`. */
-  canTeach: boolean,
+  /** As `applyItemPlan`: `run.teachableAt(visit, state.tms)`. */
+  teachable: ReadonlySet<string>,
 ): ItemPlan {
   /*
    * The teaches, brought forward first, because every one that survives frees a
    * slot the item half is then allowed to fill.
    *
-   * Four ways a teach goes stale, and all four drop it rather than repair it.
+   * Five ways a teach goes stale, and all five drop it rather than repair it.
+   * The first is the boundary itself: a teach naming a move this node does not
+   * allow is dropped here so that `applyItemPlan` never sees it and never has
+   * to throw on a plan the player merely composed too early.
    * A teach is not a destination — it is an irreversible act naming a specific
    * move, a specific member and a specific victim slot — so there is no weaker
    * version of it to fall back to the way an assignment falls back to an
@@ -494,8 +505,9 @@ export function reconcileItemPlan(
   const tms = [...state.tms];
   const teaches: TmTeach[] = [];
   const taught: PokemonState[] = [...state.party];
-  if (canTeach) {
+  {
     for (const teach of plan.teaches) {
+      if (!teachable.has(teach.move)) continue;
       const held = tms.indexOf(teach.move);
       if (held === -1) continue;
       const learner = taught[teach.slot];

@@ -257,31 +257,52 @@ describe('generation rules', () => {
   });
 
   /**
-   * **A gym is exactly the party's level, at every segment and every tier.**
+   * **A gym is never above the player, at every segment and every tier.**
    *
    * The test above reads the gym offset out of the table, so it passes for any
-   * offset the table holds; this one pins the offset itself, because parity is
-   * a rule rather than a tuning number. A level in Gen 3 raises Speed with
-   * everything else, and Speed is read as a comparison — so a gym one level up
-   * takes the first move in every tie the party would otherwise win, and no
-   * amount of team building gets it back. `data/scaling.ts` carries the
-   * argument; a tuning pass that wants a harder gym has the roster, the move
-   * band and the AI tier to spend and not this.
+   * offset the table holds; this one pins the part of the offset that is a rule
+   * rather than a tuning number.
+   *
+   * **Half of what this test used to assert is gone, deliberately.** It pinned
+   * `levelOffset.gym` to `{ min: 0, max: 0 }` — the whole team at parity — on
+   * the argument that a level in Gen 3 raises Speed with everything else, and
+   * Speed is read as a comparison, so a gym one level up takes the first move in
+   * every tie the party would otherwise win and no amount of team building gets
+   * it back.
+   *
+   * **That argument is entirely about a gym being *above* the party, and it is
+   * `max` that carries it.** `min` was pinned alongside it by assumption rather
+   * than by argument, and the assumption was wrong: nuzlocke convention sets the
+   * player's cap at the leader's *ace*, so the ace sits at parity and every
+   * other member below it, and the team mean across all sixteen gyms of FireRed
+   * and Emerald is 0.91 of the cap. Pinning `min` at zero gave every gym
+   * Pokemon the status a real gym gives exactly one of them.
+   *
+   * So `max === 0` survives and is still not a tuning number, and `min` is now
+   * negative and growing. A tuning pass that wants a harder gym still has the
+   * roster, the move band and the AI tier to spend, and still not `max`.
+   * `data/scaling.ts` carries the argument; `docs/generation.md` section 50
+   * records the supersession.
    *
    * Every tier, not just `normal`, even though `generateGymTeam` hardcodes
    * `normal` today: the assertion is about what `opponentLevel` may return for
    * a gym, so that a later stage handing a gym a tier cannot quietly reopen
    * this through `TIER_MODIFIERS[tier].levelShare`.
    */
-  it('fields a gym at exactly the player level, never above and never below', () => {
+  it('fields a gym at or below the player level, never above', () => {
     for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
       const row = segmentScaling(segment);
-      expect(row.levelOffset.gym).toEqual({ min: 0, max: 0 });
+      // The rule. A gym is never above the party, at any segment.
+      expect(row.levelOffset.gym.max).toBe(0);
+      // The spread. Below parity at every segment, and deepening with it.
+      expect(row.levelOffset.gym.min).toBeLessThan(0);
+      if (segment > 0) {
+        expect(row.levelOffset.gym.min).toBeLessThan(segmentScaling(segment - 1).levelOffset.gym.min);
+      }
       for (const tier of ['normal', 'hard', 'elite'] as const) {
-        expect(opponentLevel('gym', segment, tier)).toEqual({
-          min: playerLevel(segment),
-          max: playerLevel(segment),
-        });
+        const level = opponentLevel('gym', segment, tier);
+        expect(level.max).toBe(playerLevel(segment));
+        expect(level.min).toBeLessThan(playerLevel(segment));
       }
     }
   });

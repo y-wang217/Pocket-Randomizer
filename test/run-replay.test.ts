@@ -27,7 +27,7 @@ import {
   type RunResult,
   type RunState,
   currentVersions,
-  canTeachNow,
+  teachableNow,
 } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
 
@@ -74,7 +74,7 @@ function wobbling(): RunPolicy {
     chooseAcquisition: async (_offer, party, capacity) =>
       // Stage 4.8: live capacity, handed in by `playRun`.
       party.length < capacity ? { kind: 'accept' } : { kind: 'release', slot: 0 },
-    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
+    chooseItemPlan: async (state) => defaultItemPlan(state, teachableNow(state)),
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -295,7 +295,7 @@ describe('save mid-run, reload, continue', () => {
       },
       chooseItemPlan: async (state) => {
         liveCalls++;
-        return defaultItemPlan(state, canTeachNow(state));
+        return defaultItemPlan(state, teachableNow(state));
       },
       battle: async (view) => {
         liveCalls++;

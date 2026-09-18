@@ -303,7 +303,7 @@ async function main(): Promise<void> {
           // The gallery draws a screen, not a boundary, so the Teach control is
           // shown: a contact sheet with the row's primary act missing would be
           // a picture of a state the game only reaches away from a rest.
-          canTeach: true,
+          teachable: new Set(state.tms),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),

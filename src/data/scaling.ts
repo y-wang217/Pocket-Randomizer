@@ -202,23 +202,44 @@ export interface SegmentScaling {
  * fields the player's roster (`opponentTeamSize`) and plays the hard AI at
  * every segment (`data/ai.ts`), and pays for neither.
  *
- * **The gym column is zero at every segment, 2026-09-17, and it is not a
- * tuning number.** Stage 4.9 made it positive and growing — +0/+1 early to
- * +2/+4 at segment 7 — and a playtest reported the consequence rather than the
- * number: *"gyms have mons at higher level than the player, which makes speed
- * nearly impossible to compete against."*
+ * **The gym column is a ceiling at parity with a spread below it, 2026-09-18.**
+ * Stage 4.9 made it positive and growing — +0/+1 early to +2/+4 at segment 7 —
+ * and a playtest reported the consequence rather than the number: *"gyms have
+ * mons at higher level than the player, which makes speed nearly impossible to
+ * compete against."* The column went to a flat zero on 2026-09-17 for that, and
+ * **the half of that ruling which survives is `max`.**
  *
- * That is a statement about the lever, not about its size. A level in Gen 3
- * raises every stat at once, and among them Speed, which is the only stat that
- * is read as a *comparison* rather than as a quantity: two points of Speed and
- * two hundred buy exactly the same thing, the first move, and a gym a level
- * above the party takes it in every tie the party would otherwise win. So the
- * cost of a positive gym offset is not paid in the damage race it looks like
- * it is paid in — it is paid by deleting a whole axis of team building, since
- * a fast Pokemon picked to outrun the exam cannot outrun it at any level the
- * player can reach. Every other difficulty lever a gym has is a quantity and
- * survives being tuned; this one is a threshold and does not, which is why it
- * is pinned at parity rather than lowered.
+ * The argument, unchanged: a level in Gen 3 raises every stat at once, and among
+ * them Speed, which is the only stat read as a *comparison* rather than as a
+ * quantity — two points of Speed and two hundred buy exactly the same thing, the
+ * first move, and a gym a level above the party takes it in every tie the party
+ * would otherwise win. So a gym *above* the player does not cost what it looks
+ * like it costs in the damage race; it deletes a whole axis of team building,
+ * since a fast Pokemon picked to outrun the exam cannot outrun it at any level
+ * the player can reach. **`max` is therefore pinned at zero and is not a tuning
+ * number.**
+ *
+ * What was wrong was `min`. Pinning the whole team at parity gave every gym
+ * Pokemon the status a real gym gives exactly one of them. Nuzlocke convention
+ * sets the player's cap at the leader's **ace** — so the ace is at parity by
+ * definition and every other member is below it, and across all sixteen gyms of
+ * FireRed and Emerald the team mean sits at **0.91** of the cap, flat, early and
+ * late alike. GYMRUN's player curve is already a stretched Emerald (see below),
+ * so it had taken the reference's cap numbers and then handed them to the whole
+ * roster.
+ *
+ * `min` is `round(-0.18 x playerLevel)`, which puts the uniform-draw team mean
+ * at 0.910 to 0.914 of the player's level at every segment — the reference
+ * figure, to three digits. It is a rule rather than eight tuned numbers, and the
+ * row is derivable from the column beside it.
+ *
+ * **The ace is emergent, not guaranteed, and the rule is stated as a ceiling
+ * for that reason.** A uniform draw over `[min, 0]` lands nothing at `max` about
+ * 56% of the time at both ends of the run — `(3/4)²` at a two-member gym 1 and
+ * `(10/11)⁶` at a six-member gym 8. So the rule is *a gym is never above the
+ * player, and its team mean sits at 0.91*; what pushes a member back up to the
+ * cap is `rollSpec`'s clamp to its own evolution level, which is how a real gym
+ * team gets its ace in the first place. See `core/randomizer.ts`.
  *
  * The exam is unchanged otherwise. `GYM_MOVE_BAND_BONUS` still gives a leader
  * one band of move power over the segment, the roster is still the player's
@@ -253,7 +274,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 0,
     playerLevel: 15,
-    levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: -3, max: 0 } },
     speciesBandWeights: { 0: 5, 1: 1 },
     moveBandWeights: { 1: 4, 2: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -261,7 +282,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 1,
     playerLevel: 20,
-    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: -4, max: 0 } },
     speciesBandWeights: { 0: 4, 1: 2 },
     moveBandWeights: { 1: 3, 2: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -269,7 +290,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 2,
     playerLevel: 26,
-    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: -5, max: 0 } },
     speciesBandWeights: { 0: 2, 1: 3, 2: 2 },
     moveBandWeights: { 1: 2, 2: 3, 3: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -277,7 +298,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 3,
     playerLevel: 32,
-    levelOffset: { wild: { min: -9, max: -6 }, trainer: { min: -7, max: -4 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -9, max: -6 }, trainer: { min: -7, max: -4 }, gym: { min: -6, max: 0 } },
     speciesBandWeights: { 0: 1, 1: 3, 2: 3 },
     moveBandWeights: { 1: 1, 2: 3, 3: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -285,7 +306,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 4,
     playerLevel: 38,
-    levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -8, max: -5 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -8, max: -5 }, gym: { min: -7, max: 0 } },
     speciesBandWeights: { 1: 2, 2: 3, 3: 2 },
     moveBandWeights: { 2: 2, 3: 5, 4: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -293,7 +314,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 5,
     playerLevel: 44,
-    levelOffset: { wild: { min: -13, max: -9 }, trainer: { min: -10, max: -6 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -13, max: -9 }, trainer: { min: -10, max: -6 }, gym: { min: -8, max: 0 } },
     speciesBandWeights: { 1: 1, 2: 3, 3: 3 },
     moveBandWeights: { 2: 2, 3: 5, 4: 1, 5: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -301,7 +322,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 6,
     playerLevel: 50,
-    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -11, max: -7 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -11, max: -7 }, gym: { min: -9, max: 0 } },
     speciesBandWeights: { 2: 2, 3: 3, 4: 1 },
     moveBandWeights: { 3: 4, 4: 2, 5: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -309,7 +330,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 7,
     playerLevel: 58,
-    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -13, max: -8 }, gym: { min: 0, max: 0 } },
+    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -13, max: -8 }, gym: { min: -10, max: 0 } },
     speciesBandWeights: { 2: 1, 3: 3, 4: 2 },
     moveBandWeights: { 3: 3, 4: 2, 5: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },

@@ -1,9 +1,9 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-19/gymrun-0.3.0",
-    "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
-    "randomizer": "gymrun-randomizer-20",
+    "runLog": "gymrun-run-20/gymrun-0.3.0",
+    "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
+    "randomizer": "gymrun-randomizer-21",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -28,8 +28,8 @@
       "ability": "Shed Skin",
       "moves": [
         "Bug Bite 32/32",
-        "Snarl 19/24",
-        "Clear Smog 24/24",
+        "Snarl 21/24",
+        "Incinerate 22/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -140,10 +140,10 @@
   "log": {
     "seed": "SEED-B",
     "versions": {
-      "runLog": "gymrun-run-19/gymrun-0.3.0",
-      "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
+      "runLog": "gymrun-run-20/gymrun-0.3.0",
+      "contentHash": "d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-20"
+      "randomizerVersion": "gymrun-randomizer-21"
     },
     "decisions": [
       {
@@ -257,7 +257,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Rock Smash",
+              "slot": 0,
+              "replaceSlot": 2
+            }
+          ],
           "discardTms": []
         }
       },
@@ -308,7 +314,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Incinerate",
+              "slot": 0,
+              "replaceSlot": 2
+            }
+          ],
           "discardTms": []
         }
       },
@@ -320,14 +332,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {
