@@ -464,6 +464,27 @@ async function playRun(label) {
     if (await page.locator(visible('party')).count()) {
       if (partyVisits === 0) await page.screenshot({ path: `stats/${label}-party.png`, fullPage: true });
       partyVisits++;
+
+      /*
+       * Spend a TM if one is offered here, and this is the branch that keeps
+       * the move-recipient screen reachable at all.
+       *
+       * A move is not taught at the node that pays it any more — it goes into
+       * the bag as a TM, and the only way to a recipient question is this
+       * control, at a rest or a shop. A smoke run that walked past it would
+       * never show the target or the replacement screen, and the two assertions
+       * about them below would be the kind that cannot fail.
+       *
+       * The first row, not a chosen one: which TM to spend is a real decision
+       * and the simulator's question. This is proving the control routes.
+       */
+      const teach = page.locator(`${visible('party')} .tms__item .button--small`).first();
+      if ((await teach.count()) && (await teach.textContent()) === 'Teach') {
+        await teach.click();
+        await page.waitForTimeout(25);
+        continue;
+      }
+
       await page.locator(`${visible('party')} .primary-action`).click();
       await page.waitForTimeout(25);
       continue;

@@ -304,8 +304,13 @@ describe('the version axes', () => {
      * The victory-order patch's schema bump: a node offers its Pokemon before
      * it asks who learns its move, so the questions come in a different order,
      * and a gym's guaranteed move may be handed back.
+     *
+     * `-18` is the moves-as-inventory stage, which deletes both of those
+     * questions from all four routes that paid a move. The bump this test
+     * pins is the same axis moving for the opposite reason: `-17` recorded
+     * that the questions were reordered, `-18` that they are not asked.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-17/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-18/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.

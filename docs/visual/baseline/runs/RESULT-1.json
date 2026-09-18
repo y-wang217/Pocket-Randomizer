@@ -1,7 +1,7 @@
 {
   "seed": "RESULT-1",
   "versions": {
-    "runLog": "gymrun-run-17/gymrun-0.3.0",
+    "runLog": "gymrun-run-18/gymrun-0.3.0",
     "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
     "randomizer": "gymrun-randomizer-18",
     "ai": "gymrun-ai-6-spent-item",
@@ -31,7 +31,7 @@
       "level": 14,
       "ability": "Tera Shift",
       "moves": [
-        "Trailblaze 31/32",
+        "Trailblaze 32/32",
         "Outrage 16/16",
         "Night Slash 23/24",
         "Icy Wind 23/24"
@@ -223,7 +223,7 @@
   "log": {
     "seed": "RESULT-1",
     "versions": {
-      "runLog": "gymrun-run-17/gymrun-0.3.0",
+      "runLog": "gymrun-run-18/gymrun-0.3.0",
       "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-18"
@@ -273,12 +273,13 @@
         "index": 0
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 2
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
       },
       {
         "kind": "node",
@@ -295,7 +296,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
@@ -317,7 +318,9 @@
               "item": "miracleseed"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -332,7 +335,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -352,7 +357,9 @@
               "item": "mysticwater"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -381,14 +388,6 @@
         }
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 1
-      },
-      {
         "kind": "reward",
         "index": 0
       },
@@ -396,7 +395,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -454,7 +455,9 @@
               "item": "muscleband"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -469,7 +472,20 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [
+            {
+              "move": "Night Slash",
+              "slot": 0,
+              "replaceSlot": 2
+            },
+            {
+              "move": "Outrage",
+              "slot": 0,
+              "replaceSlot": 1
+            }
+          ],
+          "discardTms": []
         }
       },
       {
@@ -495,14 +511,12 @@
         "index": 0
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -537,7 +551,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -552,7 +568,15 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [
+            {
+              "move": "Trailblaze",
+              "slot": 0,
+              "replaceSlot": null
+            }
+          ],
+          "discardTms": []
         }
       },
       {

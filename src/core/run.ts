@@ -45,7 +45,9 @@ import {
   levelParty,
   setLead,
   recoverParty,
+  replacementNeeded,
   restParty,
+  teachMove,
 } from './party';
 import {
   applyAcquisition,
@@ -93,6 +95,7 @@ import type {
   ItemAssignment,
   ItemId,
   ItemPlan,
+  TmTeach,
   MoveSpec,
   PokemonSpec,
   PokemonState,
@@ -2147,20 +2150,6 @@ async function playNode(
 // ---------------------------------------------------------------------------
 
 /**
- * Ask both move questions for one taught move, record both, return the answers.
- *
- * **One definition, two callers**, because a move bought from a shop and a move
- * taken from a reward card are the same act and must produce the same pair of
- * log entries in the same order. Two copies of this would be two places for the
- * `replacementNeeded` gate to be written slightly differently, and the symptom
- * would be a replay that runs out of step at the first shop that stocked a TM.
- *
- * The recipient is resolved through `rewards.recipientFor` before the second
- * question is asked, so the four moves on the table belong to the member that
- * will actually receive the move — see that function for the fainted-member
- * case this protects against.
- */
-/**
  * The reference move replacement: drop the weakest damaging move, else the last
  * status move.
  *
@@ -2230,7 +2219,7 @@ export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec)
  * capacity is refused, and a run whose bag filled up would end on a thrown
  * `RangeError` rather than on a decision.
  */
-export function defaultItemPlan(state: RunState): ItemPlan {
+export function defaultItemPlan(state: RunState, canTeach = false): ItemPlan {
   const capacity = backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics));
   const assignments: ItemAssignment[] = [];
 
@@ -2244,23 +2233,51 @@ export function defaultItemPlan(state: RunState): ItemPlan {
   });
 
   /*
+   * **Rule 3: at a rest or a shop, teach every TM to slot 0, displacing what
+   * `defaultMoveReplacement` names.**
+   *
+   * This is the old baseline restated, not a new judgement. Before moves became
+   * inventory, `scriptedRunPolicy` answered `chooseMoveRecipient` with `0` and
+   * `chooseMoveToReplace` with `defaultMoveReplacement`, so every scripted run
+   * took every move it was paid and put it on the lead. A baseline that stopped
+   * teaching would make every seed-pinned figure in this repo a measurement of
+   * a game where movesets never improve, and the drift would look like the
+   * stage's doing rather than the baseline's.
+   *
+   * Walked against the party the earlier teaches have already changed, because
+   * `applyItemPlan` reads them in order and a `replaceSlot` chosen against a
+   * stale moveset is what it throws on.
+   */
+  const teaches: TmTeach[] = [];
+  const kept = [...state.tms];
+  if (canTeach) {
+    let lead = state.party[0];
+    for (const move of state.tms) {
+      if (!lead) break;
+      const need = replacementNeeded(lead, move);
+      const incoming = describeMove(move);
+      if (need === 'choose' && !incoming) continue;
+      const replaceSlot = need === 'choose' ? defaultMoveReplacement(lead, incoming!) : null;
+      teaches.push({ move, slot: 0, replaceSlot });
+      lead = teachMove(lead, move, replaceSlot);
+      kept.splice(kept.indexOf(move), 1);
+    }
+  }
+
+  /*
    * Over the line, the oldest items go, then the oldest TMs — the same order
    * `reconcileItemPlan` sheds in, and the reason is the same: the two lists
    * have no shared clock, so "the oldest" can only be stated within one of
    * them.
-   *
-   * This policy never teaches. It is the do-nothing baseline a sweep measures
-   * against, and a baseline that spent TMs would be making the decision the
-   * stage exists to measure.
    */
   const left = state.backpack.slice(taken);
-  const over = left.length + state.tms.length - Math.max(0, capacity);
+  const over = left.length + kept.length - Math.max(0, capacity);
   const fromItems = Math.max(0, Math.min(over, left.length));
   return {
     assignments,
     discards: left.slice(0, fromItems),
-    teaches: [],
-    discardTms: over > fromItems ? state.tms.slice(0, over - fromItems) : [],
+    teaches,
+    discardTms: over > fromItems ? kept.slice(0, over - fromItems) : [],
   };
 }
 
@@ -2324,7 +2341,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      */
     chooseAcquisition: async (_offer, party, capacity) =>
       hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
     battle,
   };
 }

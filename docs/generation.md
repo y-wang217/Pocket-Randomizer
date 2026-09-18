@@ -5825,7 +5825,7 @@ what it says about the standing gym 3 outlier, is in `balance.md` section 0.
 
 The account of
 [`spec/gymrun-stage-moves-as-inventory-tms.md`](spec/gymrun-stage-moves-as-inventory-tms.md).
-**Checkpoint 1 of the stage: core and the simulator. The UI is not built.**
+Core, the simulator and the UI.
 
 ### What the brief asked for, and what it withdrew
 
@@ -5906,19 +5906,105 @@ produce a different sequence.
 draw is made from the same key in the same order, and what changed is only where
 the drawn move goes. `contentHash` unmoved — no `data/` table was touched.
 
-### What is not built, and is not a deviation
+### The UI, and the gate that refused to let it wait
 
-**The party screen has no teach control.** A TM reaches the bag, costs a slot,
-is shed on overflow and is spent by the simulator's policy at every rest and
-shop — the mechanic is proven headless, which is the bar `CLAUDE.md` sets before
-UI. What is missing is the surface: a TM row, a Teach control, and the two
-screens it would open. Both of those screens still exist and still ask exactly
-what they asked when `playRun` drove them; `ui/screens/item-target.ts` keeps its
-decline control, now meaning "back out of this teach", against a UI-local
-`TEACH_CANCELLED` rather than the retired core sentinel.
+**This was going to be checkpoint 2, and the smoke gate was right to refuse
+it.** The core landed with no teach control on the party screen, on the reading
+that `CLAUDE.md`'s "UI comes last" licensed a checkpoint where the mechanic was
+proven headless and unreachable by hand. `npm run smoke` disagreed in one line —
+*no move-recipient screen was ever shown — taught moves are unreachable* — and
+that is exactly what an absolute gate is for. A branch where a run banks TMs it
+cannot spend is not a checkpoint of this stage; it is a different game.
 
-Until that lands, a run on this branch banks TMs it cannot spend. That is the
-checkpoint boundary, not the design.
+What shipped instead: a TM section on the party screen, beside the backpack
+rather than inside it. A TM and a held item compete for one capacity, which the
+count line says in one number, but nothing the player can do to one applies to
+the other — filing them together would put a *Give to Squirtle* beside a *Teach*
+and invite the reading that a Pokemon can hold a TM. Rows render at every
+boundary, because what the run is carrying is a fact the player is entitled to;
+the **Teach** control is what is gated, and where it is unavailable the row says
+which boundary would take it rather than offering a dead button.
+
+Teach opens `item-target` and then, when the moveset is full, `move-replace` —
+the same two screens, in the same order, asking the same questions they asked
+when `playRun` drove them. What changed is who waits on the answer: `playRun`
+used to park on a pending promise, and the party screen hands in a continuation,
+because a teach is one part of a plan still being composed and backing out has
+to leave the player where they were with the plan intact. The decline control on
+the target screen is offered and now means "not this one, not now" — the TM
+stays in the bag — against a UI-local `TEACH_CANCELLED` rather than the retired
+core sentinel.
+
+### The timing bug the gate then exposed
+
+Wiring the control was not enough, and the reason is worth the space because it
+is invisible from the code.
+
+An item plan is composed on the party screen and spent at the *next* node
+boundary. That is harmless for an assignment — a Leftovers means the same thing
+at any boundary — and it is not harmless for a teach, because a teach is legal
+at exactly two node kinds. A plan composed on the map after a rest names a teach
+against the rest; it is spent at the boundary of whatever node the player walks
+next; and if that is a fight, `reconcileItemPlan` drops the teach. Correctly,
+silently, and the player watches a TM they arranged simply fail to be spent.
+
+So at a rest or a shop with a TM in hand, `chooseItemPlan` **opens the party
+screen and waits** rather than answering with the pre-composed plan. Composing
+and spending become the same moment, and `canTeachNow` is the same answer for
+both. Everywhere else the pre-composed plan still stands.
+
+Two drivers learned the control with it: `scripts/smoke.mjs` and the shared
+`scripts/visual/browser.mjs` walk. Neither is a gate being moved — the
+assertions are untouched, and a walk that always pressed the way out would have
+reached neither screen and passed by never arriving, which is the failure mode
+`smoke.mjs`'s own comment on this assertion already describes.
+
+**An empty TM shelf draws nothing.** `test/visual-pocket.test.ts` found the
+party screen 27px over the 844 it has to fit at Pocket density, and the heading
+plus the "None carried." line under it was the whole of the overage. The
+backpack keeps its heading and its `0 of N` when empty because capacity is a
+number the player is managing either way; a TM shelf with nothing on it is a
+heading and an apology. Note what this does *not* measure: the gallery's late
+state carries no TMs — `defaultItemPlan` spends them at every rest — so the
+populated shelf's height is not under that test.
+
+### The baseline teaches, and the discovery that it briefly did not
+
+`defaultItemPlan` spends every carried TM on slot 0 at a rest or a shop, using
+`defaultMoveReplacement` for the victim. That is the **pre-inventory baseline
+restated**, not a new heuristic: `scriptedRunPolicy` used to answer
+`chooseMoveRecipient` with `0` and `chooseMoveToReplace` with that same
+function, so every scripted run took every move it was paid and put it on the
+lead.
+
+The first build of this checkpoint had it never teach, on the reasoning that
+banking a TM is the decision the stage creates and a baseline should not make
+it. That was wrong in a way worth recording: it silently turned every
+seed-pinned figure in the repo into a measurement of a game where movesets never
+improve, and the drift would have read as the stage's doing rather than the
+baseline's. `test/nicknames-graveyard.test.ts` is what caught it — its
+discriminating case needs a run that lives long enough to level, and there were
+none. The simulator's own policy (`scripts/sim.ts`) spends TMs the same way, off
+`greedyMoveRecipient` and `greedyMoveToReplace`, for the same continuity reason.
+
+### Two recordings re-minted, and why that is not a presentation claim
+
+`test/fixtures/sim-report.json` and `docs/visual/baseline/` were both re-recorded.
+
+The visual baseline exists to prove that a presentation stage moved nothing in
+core, and it is deliberately not a snapshot a test may rewrite. **This stage is
+not a presentation stage** — it moves `RUN_LOG_VERSION`, deletes four pairs of
+questions and changes what `resolveNode` folds — so a baseline diff here is the
+expected outcome rather than the alarm it is meant to be. It was re-recorded
+with `scripts/visual/baseline.ts --write`, which is the one route that writes it.
+
+**The runs diverge without `RANDOMIZER_VERSION` moving, and that is the thing to
+understand before reading the diff.** Every draw is made from the same key in
+the same order. What changed is that a move arrives as a TM and is taught at the
+next rest or shop, so the party fights the intervening nodes with the moveset it
+already had — different battles, different casualties, different lengths, from
+identical draws. `test/nicknames-graveyard.test.ts` needed its seed population
+widened from A–H to A–Z for exactly this reason, and the entry there says so.
 
 ### Tests retired rather than skipped
 
@@ -5935,3 +6021,10 @@ it failed:
 The ordering assertions that survived were re-pointed from `target` to `items`,
 which is a true statement of the same property: the entry that has to come after
 a capture is the item plan, composed against the party the capture produced.
+
+`rewards.recipientFor` is retired with them. It redirected a move aimed at a
+fainted or out-of-range slot to the lead, and it existed because the recipient
+was named at the node that paid the card — where the member the player wanted
+could have died in the fight that paid for it. A teach is composed at a rest
+against the party as it stands, where a fainted member is a legitimate recipient
+rather than an accident: it revives between nodes with the move still on it.

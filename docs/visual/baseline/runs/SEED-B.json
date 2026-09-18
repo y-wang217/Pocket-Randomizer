@@ -1,7 +1,7 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-17/gymrun-0.3.0",
+    "runLog": "gymrun-run-18/gymrun-0.3.0",
     "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
     "randomizer": "gymrun-randomizer-18",
     "ai": "gymrun-ai-6-spent-item",
@@ -13,12 +13,12 @@
     "segment": 0,
     "leader": "Garnet",
     "kind": "wild",
-    "species": "Umber",
-    "bySpecies": "Stufful",
-    "byMove": "Double Hit",
+    "species": "Fennel",
+    "bySpecies": "Swablu",
+    "byMove": "Air Slash",
     "indirect": null
   },
-  "currency": 61,
+  "currency": 69,
   "backpack": [],
   "relics": [],
   "party": [
@@ -27,9 +27,9 @@
       "level": 7,
       "ability": "Shed Skin",
       "moves": [
-        "Bug Bite 31/32",
-        "Snarl 21/24",
-        "Rock Throw 24/24",
+        "Bug Bite 32/32",
+        "Snarl 20/24",
+        "Echoed Voice 21/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -41,7 +41,7 @@
       "level": 7,
       "ability": "Mind's Eye",
       "moves": [
-        "Scratch 53/56",
+        "Scratch 50/56",
         "Powder Snow 40/40",
         "Clear Smog 24/24",
         "Spore 24/24"
@@ -92,18 +92,9 @@
       "tier": "normal",
       "opponent": "Wild Stufful",
       "turns": 3,
-      "winner": "p2",
-      "hpAfter": 0,
+      "winner": "p1",
+      "hpAfter": 18,
       "casualties": [
-        {
-          "side": "p1",
-          "name": "Fennel",
-          "level": 7,
-          "species": "Spearow",
-          "bySpecies": "Stufful",
-          "byMove": "Weather Ball",
-          "indirect": null
-        },
         {
           "side": "p1",
           "name": "Umber",
@@ -114,12 +105,42 @@
           "indirect": null
         }
       ]
+    },
+    {
+      "segment": 0,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "normal",
+      "opponent": "Wild Swablu",
+      "turns": 4,
+      "winner": "p2",
+      "hpAfter": 0,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Umber",
+          "level": 7,
+          "species": "Cutiefly",
+          "bySpecies": "Swablu",
+          "byMove": "Air Slash",
+          "indirect": null
+        },
+        {
+          "side": "p1",
+          "name": "Fennel",
+          "level": 7,
+          "species": "Spearow",
+          "bySpecies": "Swablu",
+          "byMove": "Air Slash",
+          "indirect": null
+        }
+      ]
     }
   ],
   "log": {
     "seed": "SEED-B",
     "versions": {
-      "runLog": "gymrun-run-17/gymrun-0.3.0",
+      "runLog": "gymrun-run-18/gymrun-0.3.0",
       "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-18"
@@ -181,7 +202,9 @@
               "item": "silkscarf"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -196,7 +219,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -242,23 +267,75 @@
         "index": 0
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 2
-      },
-      {
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
         "kind": "node",
         "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
       },
       {
         "kind": "battle",
@@ -277,8 +354,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 2
+          "kind": "move",
+          "slot": 1
         }
       },
       {

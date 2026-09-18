@@ -1,5 +1,5 @@
 {
-  "version": "gymrun-run-17/gymrun-0.3.0",
+  "version": "gymrun-run-18/gymrun-0.3.0",
   "randomizerVersion": "gymrun-randomizer-18",
   "contentHash": "94c6c124fc8a1433e6fbf893d4749acc17fd693eec76fbbda11cf513e4848483",
   "aiVersion": "gymrun-ai-6-spent-item",
@@ -108,8 +108,8 @@
           "gender": "M",
           "moves": [
             "Horn Leech",
-            "Shadow Punch",
-            "Aqua Cutter",
+            "Razor Leaf",
+            "Syrup Bomb",
             "Volt Tackle"
           ],
           "item": "wiseglasses",
@@ -119,17 +119,17 @@
           "joinedSegment": 0,
           "contribution": {
             "damageDealt": 311,
-            "damageTaken": 187,
+            "damageTaken": 185,
             "kos": 9,
-            "faints": 3,
+            "faints": 2,
             "turnsOnField": 21
           },
           "status": null,
           "pp": [
-            9,
-            32,
-            32,
-            20
+            7,
+            40,
+            16,
+            22
           ]
         },
         {
@@ -263,15 +263,8 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 5,
-          "hpAfter": 40,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Sorrel",
-              "bySpecies": null,
-              "byMove": null
-            }
-          ]
+          "hpAfter": 59,
+          "casualties": []
         },
         {
           "id": "s1-summit-1-0",
@@ -280,7 +273,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 61,
+          "hpAfter": 59,
           "casualties": []
         },
         {
@@ -290,7 +283,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 3,
-          "hpAfter": 78,
+          "hpAfter": 76,
           "casualties": []
         },
         {
@@ -300,7 +293,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 3,
-          "hpAfter": 91,
+          "hpAfter": 89,
           "casualties": []
         },
         {
@@ -410,12 +403,13 @@
           "index": 0
         },
         {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 1
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
+          }
         },
         {
           "kind": "node",
@@ -447,7 +441,9 @@
                 "item": "wiseglasses"
               }
             ],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -467,7 +463,9 @@
                 "item": "habanberry"
               }
             ],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -478,7 +476,15 @@
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [
+              {
+                "move": "Razor Leaf",
+                "slot": 0,
+                "replaceSlot": 1
+              }
+            ],
+            "discardTms": []
           }
         },
         {
@@ -507,14 +513,6 @@
           }
         },
         {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 3
-        },
-        {
           "kind": "reward",
           "index": 0
         },
@@ -522,7 +520,9 @@
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -558,14 +558,14 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
+            "slot": 1
           }
         },
         {
@@ -576,7 +576,9 @@
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -591,7 +593,15 @@
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [
+              {
+                "move": "Volt Tackle",
+                "slot": 0,
+                "replaceSlot": 3
+              }
+            ],
+            "discardTms": []
           }
         },
         {
@@ -630,14 +640,6 @@
           "index": 0
         },
         {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 1
-        },
-        {
           "kind": "items",
           "plan": {
             "assignments": [
@@ -646,7 +648,9 @@
                 "item": "passhoberry"
               }
             ],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -688,7 +692,9 @@
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -748,18 +754,12 @@
           "index": 0
         },
         {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 2
-        },
-        {
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -846,7 +846,7 @@
           "moves": [
             "Force Palm",
             "Brick Break",
-            "Poison Fang",
+            "Double Kick",
             "Acid Spray"
           ],
           "item": "blackbelt",
@@ -864,8 +864,8 @@
           "status": null,
           "pp": [
             16,
-            22,
-            24,
+            21,
+            48,
             32
           ]
         },
@@ -1022,12 +1022,13 @@
           "index": 0
         },
         {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 2
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
+          }
         },
         {
           "kind": "node",
@@ -1053,7 +1054,9 @@
                 "item": "blackbelt"
               }
             ],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -1095,7 +1098,9 @@
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {
@@ -1113,7 +1118,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 2
           }
         },
         {
@@ -1127,18 +1132,12 @@
           "index": 0
         },
         {
-          "kind": "target",
-          "index": 0
-        },
-        {
-          "kind": "replace",
-          "slot": 2
-        },
-        {
           "kind": "items",
           "plan": {
             "assignments": [],
-            "discards": []
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
           }
         },
         {

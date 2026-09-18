@@ -67,9 +67,12 @@ describe('the versions block', () => {
      * failed to happen. `-13` was the versions block; `-14` the event rejig,
      * where the event decision stopped being an index and became its option's
      * archetype; `-15` the event move, where a `T2` or `T3` outcome that pays
-     * a move asks who learns it and what it displaces.
+     * a move asks who learns it and what it displaces; `-18` the
+     * moves-as-inventory stage, where all four of those questions leave the
+     * node — a move is stowed as a TM and taught out of an `ItemPlan`, which
+     * grew `teaches` and `discardTms` to carry the answers.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-17/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-18/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });

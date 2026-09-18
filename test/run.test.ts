@@ -33,6 +33,7 @@ import {
   stepsOf,
   chooseLocale,
   gymClearLevel,
+  canTeachNow,
 } from '../src/core/run';
 import { pendingEvolutionQuestion } from '../src/core/evolution';
 import { playerLevel } from '../src/data/scaling';
@@ -67,7 +68,7 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
     chooseShopPurchases: async () => [],
     chooseEventOption: async () => 'safe' as const,
     chooseAcquisition: async () => ({ kind: 'decline' }),
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
     battle,
   };
 }
@@ -114,7 +115,7 @@ describe('headless run', () => {
       chooseShopPurchases: async () => [],
       chooseEventOption: async () => 'safe' as const,
       chooseAcquisition: async () => ({ kind: 'decline' }),
-      chooseItemPlan: async (state) => defaultItemPlan(state),
+      chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
       battle: greedyAiPolicy,
     };
 

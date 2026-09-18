@@ -36,10 +36,10 @@
  */
 import { damagingInBands, statusByImpact } from './randomizer';
 import { stow } from './items';
-import { leadOf, recoverParty } from './party';
+import { recoverParty } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
-import type { PokemonState, Tier } from './types';
+import type { Tier } from './types';
 import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import { itemById } from '../data/items';
 import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
@@ -573,28 +573,21 @@ export function grantRelic(state: RunState, relic: RelicId): RunState {
  * reward silently resurrecting a finished run is the failure worth being
  * unreachable twice over.
  */
-/**
- * The member a targeted card actually lands on. **The single definition.**
+/*
+ * `recipientFor` was here and is retired.
  *
- * An out-of-range or fainted slot falls back to the lead rather than throwing.
- * That is not leniency about bad input — `playRun` validates the index when it
- * records the decision — it is about a member that *fainted in the fight that
- * paid the card*: a run that crashed rather than handing the TM elsewhere would
- * be a worse failure than the move moving.
+ * It redirected a move aimed at a fainted or out-of-range party slot to the
+ * lead, and it existed because the recipient was named at the node that paid
+ * the card — where the member the player wanted could have died in the fight
+ * that paid for it, and where a `RangeError` would have ended the run on its
+ * own reward screen.
  *
- * **Exported in Stage 4.5.1, and the export is the fix for a bug the fallback
- * would otherwise have caused.** The replacement slot is chosen for a
- * particular Pokemon's four moves. If `playRun` asked "which of *this* member's
- * moves goes" and then `applyReward` quietly redirected the card to the lead,
- * the answer would be applied to a different Pokemon's move list — displacing
- * whatever happened to sit at that index. So both sides resolve the recipient
- * through this function, once, and the question is asked about the member that
- * will actually receive it.
+ * A teach is composed at a rest or a shop now, against the party as it stands,
+ * and a fainted member is a legitimate recipient there rather than an accident:
+ * it revives between nodes and the move is still on it when it does. So the
+ * slot a plan names is the slot that learns, with no redirection, and an
+ * out-of-range one is the loud `RangeError` `applyItemPlan` raises.
  */
-export function recipientFor(party: readonly PokemonState[], slot: number): PokemonState | null {
-  const chosen = party[slot];
-  return chosen && !chosen.fainted ? chosen : leadOf(party);
-}
 
 // ---------------------------------------------------------------------------
 // Reading one

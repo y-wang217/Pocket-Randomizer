@@ -366,9 +366,24 @@ async function stepOnceUnparked(page) {
       await ((await name.count()) ? name : victim).click();
       return screen;
     }
-    case 'party':
+    case 'party': {
+      /*
+       * Spend a TM when one is offered here, and leave otherwise.
+       *
+       * The party screen is the only route to the `target` and `replace`
+       * screens now — a move is stowed as a TM and taught out of an item plan
+       * at a rest or a shop — so a walk that always pressed the way out would
+       * never reach either, and every case that measures them would pass by
+       * never arriving. Same rule as the smoke run's branch.
+       */
+      const teach = page.locator(`${visible('party')} .tms__item .button--small`).first();
+      if ((await teach.count()) && (await teach.textContent()) === 'Teach') {
+        await teach.click();
+        return screen;
+      }
       await page.locator(`${visible('party')} .primary-action, ${visible('party')} .button--primary`).first().click();
       return screen;
+    }
     case 'pre-gym': {
       // 4.7's lead pick, answered the way the headless runs answer `chooseLead`:
       // confirm the current lead. The confirm submits the lowest living slot, so

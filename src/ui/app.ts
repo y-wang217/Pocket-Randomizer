@@ -51,8 +51,10 @@ import { createSeedBar } from './seed-bar';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 
-import { createItemTargetScreen } from './screens/item-target';
+import { TEACH_CANCELLED, createItemTargetScreen } from './screens/item-target';
 import { createMoveReplaceScreen } from './screens/move-replace';
+import { describeMove } from '../core/battle/driver';
+import { replacementNeeded } from '../core/party';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
@@ -447,6 +449,7 @@ export function mountApp(root: HTMLElement): void {
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
     const rewardPick = createPending<number | null>();
+    const itemPlanPick = createPending<ItemPlan>();
     const targetPick = createPending<number>();
     const replacePick = createPending<number>();
     const acquirePick = createPending<AcquisitionDecision>();
@@ -473,6 +476,7 @@ export function mountApp(root: HTMLElement): void {
       nodePick.cancel();
       movePick.cancel();
       rewardPick.cancel();
+      itemPlanPick.cancel();
       targetPick.cancel();
       replacePick.cancel();
       acquirePick.cancel();
@@ -670,9 +674,38 @@ export function mountApp(root: HTMLElement): void {
        * the slots would mean something else.
        */
       chooseItemPlan: async (state) => {
+        /*
+         * **At a rest or a shop the player is asked, rather than answered for.**
+         *
+         * This is the boundary that may spend a TM — `run.canTeachAt` — and it
+         * is the *only* one, which makes the timing load-bearing in a way the
+         * item half never was. A plan composed on the map names a teach against
+         * the node the run has just walked; it is spent at the boundary of the
+         * node the player walks *next*, and if that one is a fight the teach is
+         * not legal there. `reconcileItemPlan` would drop it, correctly and
+         * silently, and the player would watch a TM they had arranged simply
+         * fail to be spent.
+         *
+         * So the screen opens here, where composing and spending are the same
+         * moment and `canTeachNow` is the same answer for both. Everywhere else
+         * the pre-composed plan still stands, because an item assignment means
+         * the same thing at any boundary.
+         */
+        if (canTeachNow(state) && state.tms.length > 0) {
+          live = state;
+          showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
+          const composed = await itemPlanPick.wait();
+          pendingPlan = null;
+          return reconcileItemPlan(
+            state,
+            composed,
+            backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+            true,
+          );
+        }
         const plan = pendingPlan;
         pendingPlan = null;
-        if (!plan) return defaultItemPlan(state);
+        if (!plan) return defaultItemPlan(state, canTeachNow(state));
         /*
          * **Brought forward before it is answered with, and this is the fix
          * for the Carry on soft lock.**
@@ -883,6 +916,8 @@ export function mountApp(root: HTMLElement): void {
         {
           party: state.party,
           backpack: state.backpack,
+          tms: state.tms,
+          canTeach: canTeachNow(state),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
@@ -919,11 +954,96 @@ export function mountApp(root: HTMLElement): void {
             pendingPlan = plan;
           },
           /*
+           * Spending a TM: the same two screens, reached from here instead of
+           * from `playRun`.
+           *
+           * **Neither screen changed and neither is a copy.** `targetScreen`
+           * asks who learns it against the whole party, and `replaceScreen`
+           * asks what it costs that member — the identical pair a move card
+           * asked at the node it was taken at, in the identical order, for the
+           * identical reason: the four moves on the table depend entirely on
+           * who is learning.
+           *
+           * What changed is who is waiting on the answer. `playRun` used to
+           * park on a pending promise; here the party screen hands in a
+           * continuation, because a teach is one part of a plan the player is
+           * still composing and backing out has to leave them on the party
+           * screen with the plan intact.
+           *
+           * The decline control on the target screen is offered, and it means
+           * "not this one, not now" rather than the retired "nobody ever" —
+           * the TM stays in the bag.
+           */
+          onTeach: (move, done) => {
+            const reward = { kind: 'tm' as const, move };
+            const back = (): void => {
+              showParty(partyReturn);
+            };
+            targetScreen.render(
+              reward,
+              state.party,
+              (slot) => {
+                if (slot === TEACH_CANCELLED) {
+                  done(null);
+                  back();
+                  return;
+                }
+                const learner = state.party[slot];
+                if (!learner) {
+                  done(null);
+                  back();
+                  return;
+                }
+                if (replacementNeeded(learner, move) !== 'choose') {
+                  done({ move, slot, replaceSlot: null });
+                  back();
+                  return;
+                }
+                const incoming = describeMove(move);
+                if (!incoming) {
+                  done(null);
+                  back();
+                  return;
+                }
+                replaceScreen.render(
+                  learner,
+                  incoming,
+                  (replaceSlot) => {
+                    done({ move, slot, replaceSlot });
+                    back();
+                  },
+                  state.tuning,
+                );
+                showScreen('replace');
+              },
+              state.tuning,
+              true,
+            );
+            showScreen('target');
+          },
+          /*
            * Back to whichever screen sent us, and redraw it first when that
            * screen is the pre-gym one. See `renderPreGym` for why the redraw is
            * load-bearing rather than tidy.
            */
           onDone: () => {
+            /*
+             * The way out is also the commit, and only when the boundary is
+             * waiting on one.
+             *
+             * `itemPlanPick.submit` answers false when nothing is armed, which
+             * is every ordinary visit to this screen from the map — there the
+             * plan is held in `pendingPlan` and spent at the next boundary, as
+             * it always was. When a rest or a shop opened the screen to ask,
+             * this is the answer, and the run continues from here.
+             */
+            const plan = pendingPlan ?? {
+              assignments: state.party.map((member, slot) => ({ slot, item: member.item ?? null })),
+              discards: [],
+              teaches: [],
+              discardTms: [],
+            };
+            if (itemPlanPick.submit(plan)) return;
             if (partyReturn === 'pre-gym') renderPreGym();
             showScreen(partyReturn);
           },

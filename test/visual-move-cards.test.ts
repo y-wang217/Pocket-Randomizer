@@ -49,8 +49,11 @@ afterAll(async () => {
  *
  * `party` covers the party screen and, through the same `memberCardContents`,
  * the drawer — which is opened explicitly below so it is measured rather than
- * assumed. `summary` arrives only at the end of a run. `target` is the
- * recipient screen, reached by every move reward and by every gym win.
+ * assumed. `summary` arrives only at the end of a run.
+ *
+ * `target` and `replace` are reached from the party screen's Teach control now
+ * rather than from `playRun` at the node that paid the move. Same two screens,
+ * same move card, same insertion point — what changed is who opens them.
  */
 const SURFACES = ['party', 'drawer', 'pre-gym', 'replace', 'result', 'target', 'summary'] as const;
 

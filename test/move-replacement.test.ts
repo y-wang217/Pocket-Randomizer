@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { describeMove } from '../src/core/battle/driver';
 import { createPartyMember, replacementNeeded, teachMove } from '../src/core/party';
-import { applyReward, recipientFor } from '../src/core/rewards';
+import { applyReward } from '../src/core/rewards';
 import {
   chooseStarter,
   createRun,
@@ -35,6 +35,7 @@ import {
   scriptedRunPolicy,
   type RunPolicy,
   type RunState,
+  canTeachNow,
 } from '../src/core/run';
 import { applyItemPlan } from '../src/core/items';
 import type { PokemonSpec, PokemonState } from '../src/core/types';
@@ -127,20 +128,20 @@ describe('the recipient is resolved once', () => {
     snorlax(['Tackle', 'Growl']),
   ];
 
-  it('redirects a fainted target to the lead, rather than crashing', () => {
-    // A member can faint in the fight that paid the card. One roster, because
-    // `toBe` is identity and `party()` builds fresh objects on every call.
-    const roster = party();
-    expect(recipientFor(roster, 1)).toBe(roster[0]);
-  });
-
-  it('redirects an out-of-range target to the lead', () => {
-    const roster = party();
-    expect(recipientFor(roster, 9)).toBe(roster[0]);
-  });
+  /*
+   * **Two redirection cases were here and are gone with `recipientFor`.**
+   *
+   * They held that a move aimed at a fainted slot, or at a slot past the end of
+   * the party, landed on the lead instead of crashing the run on its own reward
+   * screen. Neither can happen now: a teach is composed at a rest or a shop
+   * against the party as it stands, so a fainted slot is a deliberate choice
+   * and an out-of-range one is a broken plan. The first is honoured below; the
+   * second is the loud `RangeError` `applyItemPlan` raises, which
+   * `test/backpack.test.ts` holds.
+   */
 
   /*
-   * The bug the shared resolution exists to prevent.
+   * The bug the shared resolution existed to prevent, restated for the plan.
    *
    * The replacement slot is chosen against a *particular* Pokemon's four moves.
    * If `playRun` asked about the fainted member at slot 1 and `applyReward`
@@ -151,17 +152,40 @@ describe('the recipient is resolved once', () => {
    * Both sides go through `recipientFor`, so the member asked about and the
    * member taught are the same object.
    */
-  it('asks and applies against the same member when the target has fainted', () => {
+  /*
+   * **A fainted member is a legitimate recipient now, not a case to redirect.**
+   *
+   * This used to assert the `recipientFor` fallback: a move aimed at a fainted
+   * slot landed on the lead instead, because the recipient was named at the
+   * node that paid the card and the member the player wanted could have died in
+   * the fight that paid for it. A teach is composed at a rest or a shop now,
+   * against the party as it stands — and a fainted member revives between
+   * nodes with the move still on it, so honouring the slot named is both
+   * simpler and what the player meant.
+   */
+  it('teaches the slot the plan names, fainted or not, with no redirection', () => {
     const roster = party();
-    const asked = recipientFor(roster, 1)!;
-    expect(replacementNeeded(asked, 'Arm Thrust')).toBe('choose');
+    expect(roster[1]!.fainted).toBe(true);
+    // One move, so nothing is displaced — the point here is the recipient, not
+    // the victim, and a free slot keeps the case to the one thing it asserts.
+    expect(replacementNeeded(roster[1]!, 'Arm Thrust')).toBe('free');
 
-    const state = { ...startedRun(), party: roster };
-    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' });
+    const state = { ...startedRun(), party: roster, tms: ['Arm Thrust'] };
+    const after = applyItemPlan(
+      state,
+      {
+        assignments: [],
+        discards: [],
+        discardTms: [],
+        teaches: [{ move: 'Arm Thrust', slot: 1, replaceSlot: null }],
+      },
+      8,
+      true,
+    );
 
-    // Slot 0 is the lead and is what actually learned it, at the slot chosen.
-    expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Arm Thrust', 'Earthquake', 'Rest']);
-    expect(after.party[2]!.spec.moves).toEqual(['Tackle', 'Growl']);
+    expect(after.party[1]!.spec.moves).toContain('Arm Thrust');
+    expect(after.party[0]!.spec.moves).not.toContain('Arm Thrust');
+    expect(after.tms).toEqual([]);
   });
 });
 
@@ -192,7 +216,7 @@ function movePicker(): RunPolicy {
     // The last member rather than the lead, so the recipient is a real answer
     // and not the value a missing implementation would return.
     // The last slot rather than the heuristic's, for the same reason.
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
   };
 }
 
@@ -334,7 +358,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
         return { kind: 'release', slot: 0 };
       },
       chooseItemPlan: async (state) => {
-        const plan = defaultItemPlan(state);
+        const plan = defaultItemPlan(state, canTeachNow(state));
         if (plan.assignments.length > 0) seen.add('item-assign');
         if (plan.discards.length > 0) seen.add('item-discard');
         return plan;
@@ -356,7 +380,13 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
     const run = await playRun('ALL-DECISIONS-6', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
-    for (const decision of ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign']) {
+    /*
+     * `move-recipient` and `move-replace` left this census with the questions
+     * themselves. What replaced them is not a third entry here but the bag: a
+     * run that takes a move card is carrying a TM from that node on, which is
+     * what `item-assign` now fires on at every boundary after it.
+     */
+    for (const decision of ['acquisition', 'release', 'shop', 'item-assign']) {
       expect(seen.has(decision), `the run never exercised ${decision}`).toBe(true);
     }
 

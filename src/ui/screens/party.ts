@@ -49,7 +49,7 @@ import { memberCardContents } from '../member-card';
 import { backpackCapacity } from '../../core/items';
 import { relicById, type RelicId } from '../../data/relics';
 import { CAPABILITY_LABELS } from '../../data/eventCopy';
-import type { ItemId, ItemPlan, PokemonState } from '../../core/types';
+import type { ItemId, ItemPlan, PokemonState, TmTeach } from '../../core/types';
 import { itemById } from '../../data/items';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
@@ -86,6 +86,15 @@ export interface PartyScreen {
        * plan rather than a mutation.
        */
       onPlan: (plan: ItemPlan) => void;
+      /**
+       * Spend a TM: who learns it, and what it costs them.
+       *
+       * Handed upward rather than answered here, because the two questions are
+       * the `target` and `replace` screens and this screen does not own them.
+       * The caller resolves both and calls back with a complete act, or with
+       * null when the player backs out.
+       */
+      onTeach: (move: string, done: (teach: TmTeach | null) => void) => void;
       onDone: () => void;
     },
   ): void;
@@ -95,6 +104,17 @@ export interface PartyScreen {
 export interface PartyView {
   party: readonly PokemonState[];
   backpack: readonly ItemId[];
+  /** The TMs the run is carrying, by move name, in acquisition order. */
+  tms: readonly string[];
+  /**
+   * Whether a TM may be spent at this boundary — `run.canTeachNow`.
+   *
+   * The rows render either way, because what the run is carrying is a fact the
+   * player is entitled to at any boundary. What is gated is the Teach control,
+   * and the row says which boundary would take it rather than leaving a dead
+   * button to be discovered by tapping.
+   */
+  canTeach: boolean;
   /** The run's relics. Not the backpack — they are neither carried nor spent. */
   relics: readonly RelicId[];
   tuning: Tuning;
@@ -154,6 +174,7 @@ export function createPartyScreen(): PartyScreen {
   const partySlots = el('div', 'party__slots');
   const list = el('div', 'party party--manage');
   const bag = el('section', 'backpack');
+  const tmPanel = el('section', 'tms');
   const relics = el('section', 'relics');
 
   const done = document.createElement('button');
@@ -162,7 +183,7 @@ export function createPartyScreen(): PartyScreen {
   // Text set per render, from `view.backTo`: the screen has two entrances and a
   // label naming the wrong one is the softlock told to the player in advance.
 
-  root.append(title, blurb, threats.root, partySlots, list, bag, relics, done);
+  root.append(title, blurb, threats.root, partySlots, list, bag, tmPanel, relics, done);
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -179,6 +200,17 @@ export function createPartyScreen(): PartyScreen {
   let held: (ItemId | null)[] = [];
   let loose: ItemId[] = [];
   let discarded: ItemId[] = [];
+  /*
+   * The TM half of the working copy.
+   *
+   * `carried` is what is still in the bag after this plan's teaches and
+   * discards, which is what the capacity line has to count — a TM the player
+   * has just spent is not competing for a slot any more, and a screen that said
+   * otherwise would be asking them to discard something they already spent.
+   */
+  let carried: string[] = [];
+  let teaches: TmTeach[] = [];
+  let discardedTms: string[] = [];
 
   return {
     root,
@@ -213,10 +245,19 @@ export function createPartyScreen(): PartyScreen {
         );
         discarded = [...view.plan.discards];
         loose = remaining(owned, [...held.filter((id): id is ItemId => id !== null), ...discarded]);
+        teaches = view.plan.teaches.map((teach) => ({ ...teach }));
+        discardedTms = [...view.plan.discardTms];
+        carried = remaining(
+          view.tms,
+          [...teaches.map((teach) => teach.move), ...discardedTms],
+        );
       } else {
         held = view.party.map((member) => member.item ?? null);
         loose = [...view.backpack];
         discarded = [];
+        teaches = [];
+        discardedTms = [];
+        carried = [...view.tms];
       }
 
       const draw = (): void => {
@@ -246,6 +287,25 @@ export function createPartyScreen(): PartyScreen {
           ),
         );
         renderRelics(relics, view.relics);
+        renderTms(tmPanel, view, carried, teaches, {
+          onTeach: (move) => {
+            handlers.onTeach(move, (teach) => {
+              if (!teach) return;
+              const at = carried.indexOf(move);
+              if (at === -1) return;
+              carried.splice(at, 1);
+              teaches.push(teach);
+              commit();
+            });
+          },
+          onDiscard: (move) => {
+            const at = carried.indexOf(move);
+            if (at === -1) return;
+            carried.splice(at, 1);
+            discardedTms.push(move);
+            commit();
+          },
+        });
         renderBackpack(bag, view, loose, discarded, {
           onEquip: (item, slot) => {
             const displaced = held[slot] ?? null;
@@ -270,23 +330,8 @@ export function createPartyScreen(): PartyScreen {
         handlers.onPlan({
           assignments: view.party.map((_, slot) => ({ slot, item: held[slot] ?? null })),
           discards: [...discarded],
-          /*
-           * **No teach control on this screen yet, and that is a checkpoint
-           * boundary rather than an oversight.**
-           *
-           * A TM reaches the bag, costs a slot against the held items and is
-           * shed by `reconcileItemPlan` when the bag overflows — all of which
-           * is core and proven headless by the simulator. What is missing is
-           * the surface that spends one: a TM row, a Teach control, and the
-           * two screens it would open (`item-target`, `move-replace`), both of
-           * which still exist and still ask exactly what they asked when
-           * `playRun` drove them.
-           *
-           * `docs/spec/gymrun-stage-moves-as-inventory-tms.md`, and the process
-           * rule it follows is `CLAUDE.md`'s: UI comes last in every stage.
-           */
-          teaches: [],
-          discardTms: [],
+          teaches: teaches.map((teach) => ({ ...teach })),
+          discardTms: [...discardedTms],
         });
         draw();
       };
@@ -310,6 +355,114 @@ function remaining(owned: readonly ItemId[], taken: readonly ItemId[]): ItemId[]
     if (at !== -1) left.splice(at, 1);
   }
   return left;
+}
+
+/**
+ * The TMs the run is carrying, and the two things that can be done with one.
+ *
+ * **A section of its own beside the backpack, not a second list inside it.** A
+ * TM and a Leftovers compete for the same capacity, which is the whole
+ * mechanic, and the count line below says so in one number — but they are not
+ * the same kind of object and nothing the player can do to one applies to the
+ * other. Filing them together would put a Give to Squirtle beside a Teach and
+ * invite the reading that a Pokemon can hold a TM.
+ *
+ * The rows render at every boundary, because what the run is carrying is a fact
+ * the player is entitled to. **The Teach control is what is gated**, to rest and
+ * shop nodes — `run.canTeachAt` — and where it is unavailable the row says which
+ * boundary would take it rather than offering a button that does nothing.
+ *
+ * No marker distinguishes a stronger TM from a weaker one and the order is
+ * acquisition order, which is neither a ranking nor a recommendation. The move
+ * card the Teach control opens carries the attributes; this row carries the
+ * name and the two acts.
+ */
+function renderTms(
+  host: HTMLElement,
+  view: PartyView,
+  carried: readonly string[],
+  teaches: readonly TmTeach[],
+  handlers: {
+    onTeach: (move: string) => void;
+    onDiscard: (move: string) => void;
+  },
+): void {
+  /*
+   * An empty shelf draws nothing at all.
+   *
+   * The backpack keeps its heading and its `0 of N` line when empty, because
+   * capacity is a number the player is managing whether or not anything is in
+   * it. A TM shelf with nothing on it is a heading and an apology, and at
+   * Pocket density it is 27px of apology on a screen that has to fit 844 —
+   * which is how `test/visual-pocket.test.ts` found it.
+   */
+  if (carried.length === 0 && teaches.length === 0) {
+    host.replaceChildren();
+    return;
+  }
+
+  const heading = el('h3', 'tms__title');
+  heading.textContent = 'TMs';
+
+  const note = el('p', 'tms__note');
+  note.textContent = view.canTeach
+    ? 'A TM is used up by teaching it. The move it replaces is gone.'
+    : 'TMs are taught at a rest or a shop.';
+
+  const rows = el('ul', 'tms__list');
+  rows.replaceChildren(
+    ...carried.map((move, index) => {
+      const row = el('li', 'tms__item');
+      row.append(slotNumber(index));
+      row.append(neutralChip(move, 'move', { tip: `move:${move}` }));
+
+      const acts = el('span', 'tms__acts');
+      if (view.canTeach) {
+        const teach = document.createElement('button');
+        teach.type = 'button';
+        teach.className = 'button button--small';
+        teach.textContent = 'Teach';
+        teach.addEventListener('click', () => handlers.onTeach(move));
+        acts.append(teach);
+      }
+
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'button button--small button--danger';
+      drop.textContent = 'Discard';
+      // Through the band, like every other irreversible act on this screen.
+      drop.addEventListener('click', () =>
+        openBand({
+          title: `Discard the ${move} TM?`,
+          detail: 'It is gone for the rest of the run.',
+          confirm: 'Discard',
+          cancel: 'Keep it',
+          onConfirm: () => handlers.onDiscard(move),
+        }),
+      );
+      acts.append(drop);
+      row.append(acts);
+      return row;
+    }),
+  );
+
+  /*
+   * What this plan has already spent, named rather than simply absent.
+   *
+   * A teach removes its TM from the list above the moment it is composed, and a
+   * row that merely vanished would read as a bug on a screen whose whole job is
+   * to show what the run is holding. It is also the only place the player can
+   * see a teach they have arranged but not yet spent.
+   */
+  const spent = el('p', 'tms__spent');
+  spent.textContent =
+    teaches.length === 0
+      ? ''
+      : teaches
+          .map((teach) => `${teach.move} → ${view.party[teach.slot]?.spec.species ?? `slot ${teach.slot}`}`)
+          .join(', ');
+
+  host.replaceChildren(heading, note, rows, spent);
 }
 
 /**
