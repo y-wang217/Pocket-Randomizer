@@ -89,7 +89,7 @@ describe('the versions block', () => {
      * That is the divergence this axis exists to refuse, so it moves — which is
      * worth the literal, because the four-word rule in `CLAUDE.md` does not
      * obviously cover it and the next reader will wonder.
-     * `docs/generation.md` section 48.3.
+     * `docs/generation.md` section 49.3.
      */
     expect(RUN_LOG_VERSION.startsWith('gymrun-run-20/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');

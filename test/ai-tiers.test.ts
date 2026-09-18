@@ -14,6 +14,8 @@
  * it names, that the estimator reads the board rather than the spec, and that
  * noise is reproducible without touching a single structural draw.
  */
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -25,7 +27,7 @@ import {
   scoreChoices,
   type AiProfile,
 } from '../src/core/battle/ai';
-import { createBattle } from '../src/core/battle/driver';
+import { createBattle, type BattleSession } from '../src/core/battle/driver';
 import { estimateMatchup } from '../src/core/battle/matchup';
 import { knowledgeFrom } from '../src/core/battle/knowledge';
 import { AI_TIER_DETAIL, AI_TIER_LABEL, AI_TIERS, aiTierFor } from '../src/data/ai';
@@ -608,4 +610,66 @@ describe('map generation', () => {
       expect(JSON.stringify(previewRun(seed, CONTENT_HASH))).toBe(once);
     }
   });
+});
+
+// ---------------------------------------------------------------------------
+// The wiring: what the shipped app actually plays
+// ---------------------------------------------------------------------------
+
+/**
+ * **The half of the tier seam a unit test cannot see, and the one that was
+ * broken for a week.**
+ *
+ * Everything above proves the table gates what it says it gates. None of it
+ * says the *game* reads the table, and the game did not: `src/ui/app.ts` passed
+ * `opponent: greedyAiPolicy` on its `playRun` options, which is the documented
+ * switch for "one bot in every fight, consult no tier". So every shipped fight
+ * was played by `GREEDY_BASELINE` — `smartSwitching` included — behind a card
+ * that read `Rookie`, and the playtest report of a wild encounter swapping out
+ * was exactly right while a 500-call measurement of `AI_TIERS.easy` was also
+ * exactly right. See `docs/generation.md` section 48.
+ *
+ * Two assertions, because either one alone is weak. The first reads the app's
+ * source, which is the thing that regressed and the only place the wiring
+ * exists. The second plays the seeds that reproduced it and counts the switches
+ * the fix removes, so the guard fails if the default is ever changed out from
+ * under `app.ts` rather than in it.
+ */
+describe('the app plays the table', () => {
+  it('pins no opponent on the run options, so every fight reads its node tier', () => {
+    const source = readFileSync(new URL('../src/ui/app.ts', import.meta.url).pathname, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/\/\/[^\n]*/g, ' ');
+    // `PlayRunOptions.opponent` is the pin. `opponentFor` is the seam a caller
+    // isolating one flag is allowed to use, and the app uses neither.
+    expect(source).not.toMatch(/\bopponent\s*:/);
+    expect(source).not.toMatch(/\bopponentFor\s*:/);
+  });
+
+  it('never takes a voluntary switch at a wild node on the seeds that reproduced one', async () => {
+    /*
+     * These five seeds produce between one and three voluntary wild-side
+     * switches each under the pinned opponent, which is the bug as reported.
+     * Under the default they produce none, at every wild node with a bench.
+     */
+    const SEEDS = ['SWAPBUG-16', 'SWAPBUG-18', 'SWAPBUG-25', 'SWAPBUG-38', 'SWAPBUG-58'];
+    let benched = 0;
+    let voluntary = 0;
+    for (const seed of SEEDS) {
+      const wild: BattleSession[] = [];
+      await playRun(seed, scriptedRunPolicy(greedyAiPolicy), undefined, {
+        onBattle: (session, node) => {
+          if (node.kind !== 'wild') return;
+          if ((node.encounter?.team.length ?? 0) > 1) benched++;
+          wild.push(session);
+        },
+      });
+      for (const session of wild) voluntary += session.voluntarySwitches.p2;
+    }
+    // The count is what gives the assertion teeth: a wild fight against one
+    // Pokemon has nothing to switch to, so zero switches over zero benches
+    // would prove nothing at all.
+    expect(benched).toBeGreaterThan(0);
+    expect(voluntary).toBe(0);
+  }, 120_000);
 });

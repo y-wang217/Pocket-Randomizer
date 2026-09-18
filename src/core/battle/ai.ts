@@ -133,8 +133,26 @@ const gen = Generations.get(GYMRUN_GEN);
  * fire, and declined knockouts against a target with nothing left to save it.
  * Only tiers holding `itemAware` are affected, so `GREEDY_BASELINE` — and
  * every row measured with it — is untouched.
+ *
+ * `-7`, the tiers reaching the app: **not one line of this file moved.** The
+ * app pinned `opponent: greedyAiPolicy` on its `playRun` options, which is the
+ * switch that tells `core/run.ts` to consult no tier at all, so every fight in
+ * the shipped game was played by `GREEDY_BASELINE` while the card above it read
+ * `Rookie`, `Seasoned` or `Ace`. Removing the pin changes the opponent in every
+ * shipped fight, which is exactly what this axis is a version of — and a saved
+ * run resumed across the change would replay its battles against a different
+ * bot, which is the silent reinterpretation the guard exists to refuse. So it
+ * moves, and `isReplayable` retires the pre-patch saves by name.
+ *
+ * **Read balance rows across this bump, not down it.** The simulator defaults
+ * to `--ai pinned` and `pinned` is `GREEDY_BASELINE`, which did not move: a
+ * `-6` sweep and a `-7` sweep of the same command measure the same opponent.
+ * This is the one bump in the list where that is true, and it is true because
+ * the constant is versioning the app's wiring rather than this file's
+ * reasoning. `docs/balance.md` section 20 carries the measurement of what the
+ * *app* now plays, which is the number that actually changed.
  */
-export const AI_VERSION = 'gymrun-ai-6-spent-item';
+export const AI_VERSION = 'gymrun-ai-7-tiers-reach-the-app';
 
 // ---------------------------------------------------------------------------
 // Flags, and the one profile the whole file is parameterised by

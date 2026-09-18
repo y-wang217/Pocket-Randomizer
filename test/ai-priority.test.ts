@@ -260,9 +260,16 @@ describe('the version axes', () => {
    * message. The pre-patch log below is still a `-2` one, because a log two
    * versions old is refused on the same axis for the same reason and keeping
    * it is one fewer thing to re-edit next time.
+   *
+   * **`-7` moved it a fourth time and is the one entry where `ai.ts` did not
+   * change.** The app had pinned `GREEDY_BASELINE` on every fight, so no tier
+   * was ever played in the shipped game; removing that pin changes the
+   * opponent in every shipped fight, and a save recorded before it would
+   * replay its battles against a different bot. The axis is a version of the
+   * opponent, not of this file, which is why it moves for a wiring change.
    */
   it('moved AI_VERSION, and refuses a pre-patch log naming aiVersion and both values', () => {
-    expect(AI_VERSION).toBe('gymrun-ai-6-spent-item');
+    expect(AI_VERSION).toBe('gymrun-ai-7-tiers-reach-the-app');
     const prePatch: RunLog = {
       seed: 'PRE-PRIORITY',
       versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
@@ -271,7 +278,7 @@ describe('the version axes', () => {
     expect(isReplayable(prePatch)).toBe(false);
     expect(() => assertReplayable(prePatch)).toThrow(/mismatch on aiVersion/);
     expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-2-switching/);
-    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-6-spent-item/);
+    expect(() => assertReplayable(prePatch)).toThrow(/gymrun-ai-7-tiers-reach-the-app/);
   });
 
   /*
@@ -314,7 +321,7 @@ describe('the version axes', () => {
      *
      * `-20` is the teach-now patch: a move may be taught at the node that paid
      * it, so a plan that was illegal at that boundary is legal there now and a
-     * `-19` reader would drop it. `docs/generation.md` section 48.3.
+     * `-19` reader would drop it. `docs/generation.md` section 49.3.
      */
     expect(RUN_LOG_VERSION).toBe('gymrun-run-20/gymrun-0.3.0');
     /*
@@ -398,7 +405,7 @@ describe('the version axes', () => {
      * second `contentHash` move that arrives beside another axis** —
      * `gymrun-randomizer-21`, because the same float off the same key now lands
      * a gym member somewhere in a range instead of on one number.
-     * `docs/generation.md` section 49 is the account.
+     * `docs/generation.md` section 50 is the account.
      *
      * The literal below is all nine together. The display split remains the
      * **last** time this number moves for a display edit —

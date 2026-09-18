@@ -335,7 +335,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * own `-19` note, which bumped for a `SEGMENTS` edit and gave our reason: levels
  * feed the stage gate, so a segment draws from a different species list. The
  * practical harm was nil — `contentHash` moved, so no seed replayed silently —
- * but the axis was the wrong one. `docs/generation.md` section 49.
+ * but the axis was the wrong one. `docs/generation.md` section 50.
  */
 export const RANDOMIZER_VERSION = 'gymrun-randomizer-21';
 

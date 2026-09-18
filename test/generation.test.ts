@@ -281,7 +281,7 @@ describe('generation rules', () => {
    * So `max === 0` survives and is still not a tuning number, and `min` is now
    * negative and growing. A tuning pass that wants a harder gym still has the
    * roster, the move band and the AI tier to spend, and still not `max`.
-   * `data/scaling.ts` carries the argument; `docs/generation.md` section 49
+   * `data/scaling.ts` carries the argument; `docs/generation.md` section 50
    * records the supersession.
    *
    * Every tier, not just `normal`, even though `generateGymTeam` hardcodes

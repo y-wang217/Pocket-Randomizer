@@ -7563,7 +7563,136 @@ hit — come off the workflow's own step summary, which needs the file to be on
 `webkit install: Ns (cache hit|miss)` on every run so that the figure is a
 record rather than a thing somebody has to go and time.
 
-## 48. A move may be taught at the node that paid it
+## 48. The badge said Rookie and the app played the baseline
+
+**2026-09-18.** Prompt
+[`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
+branch `claude/wild-encounter-swap-bug-1vd4q8`. `AI_VERSION`
+`gymrun-ai-6-spent-item` → `gymrun-ai-7-tiers-reach-the-app`. No other axis
+moves: `contentHash`, `RANDOMIZER_VERSION` and `RUN_LOG_VERSION` all hold, and
+not one line of `core/battle/ai.ts` changed except the constant and its note.
+
+### The report, and why the last reading of it was wrong
+
+> Bug report wild encounter does swap out
+
+Two screenshots: a `Wild Cyclizar · Rookie` node on `SUMMIT`, and its history
+drawer. Turn 2 the wild Cyclizar faints and Skarmory comes in; turn 3 Skarmory
+attacks; **turn 4 the opponent sends out Aerodactyl with nothing fainted and the
+panel still reading `2/? left`.** A send-out in slot 1 of a turn nobody fainted
+on is a voluntary switch.
+
+The R19 playtest raised this as item 2 and the rulings deferred it to a
+reproduction. The reading that deferred it measured `aiPolicy(AI_TIERS.easy)`
+500 times on a board where medium and hard both switched, got **0 switches**,
+and concluded the player had seen a forced send-in. **That measurement was
+right and its conclusion was wrong**, and the gap between them is the whole of
+this section: it measured the tier. Nothing measured whether the game plays it.
+
+### The cause: one option key, in `ui/`
+
+`src/ui/app.ts` built its run options as
+
+```ts
+const options = { onState, onBattle, onProjection, onDecision: saveRunLog, opponent: greedyAiPolicy };
+```
+
+`PlayRunOptions.opponent` is documented, at its own declaration, as "one
+opponent for every fight in the run … **when it is set, `opponentFor` is not
+consulted and no tier is read**". It is the simulator's controlled-comparison
+seam — `--ai pinned` is exactly this — and the app had it set.
+
+So the shipped game never played a tier. Every wild encounter, every trainer and
+every gym leader was `GREEDY_BASELINE`: `takeTheKo`, `smartSendIn` and
+**`smartSwitching`**, at zero noise and zero switch failure. The node card and
+the battle panel read `Rookie`, `Seasoned` and `Ace` off `aiTierFor` the whole
+time, and `AI_TIER_DETAIL.easy` — "Reads base power and type matchups. Stays
+in." — was a promise nothing in the run loop was keeping.
+
+The pin predates the tiers by two days. It was correct when it was written, when
+`greedyAiPolicy` *was* the opponent; the tiers patch added `tieredOpponentFor`
+as the default for `opponentFor` and nothing came back for the override. Both
+halves of the seam were built and tested — `test/ai-tiers.test.ts` drives
+`playRun` with no options and proves the table gates what it says it gates — and
+the one line that decides which half the player gets was never asserted by
+anything.
+
+### Measured, both ways, before the fix
+
+60 runs a side under `scriptedRunPolicy(greedyAiPolicy)`, counting
+`session.voluntarySwitches.p2` at wild nodes only:
+
+| wiring | voluntary wild-side switches | wild battles | of those, with a bench |
+|---|---|---|---|
+| `opponent: greedyAiPolicy` (what shipped) | **11** | 139 | 23 |
+| default (`tieredOpponentFor`) | **0** | 155 | 32 |
+
+Eleven switches across twenty-three benched wild fights is roughly one in two,
+which is what the player saw. The bench count is the half that makes the zero
+mean anything: a wild encounter that is one Pokemon has nothing to switch to.
+
+### The fix
+
+Delete the key. Ten characters of behaviour, and the comment beside it now says
+what the absence is for. `tieredOpponentFor` was already the default and is
+already what every test in `test/ai-tiers.test.ts` exercises.
+
+`src/ui/gallery.ts` keeps its pin, deliberately: it is the visual gallery, its
+job is a deterministic scene, and it is not the game.
+
+### Why `AI_VERSION` moves for a change in `ui/`
+
+The axis is "did the *opponent* change?" (`core/types.ts`). It did, in every
+shipped fight. And a run saved before this patch would resume into battles
+played by a different bot against the same recorded decisions, which is the
+silent reinterpretation the version block exists to refuse — `isReplayable`
+now retires those saves by name, and the resume button goes with them.
+
+**This is the one bump in that constant's list where the reasoning in
+`src/core/battle/ai.ts` did not move**, and it is the one where a balance row may be read *across* the bump: the
+simulator defaults to `--ai pinned`, `pinned` is `GREEDY_BASELINE`, and
+`GREEDY_BASELINE` is untouched. Recorded in the constant's own note so the next
+reader of the benchmark table does not have to derive it.
+
+### What it costs, measured
+
+`docs/balance.md` section 20. 400 seeds, prefix `RETUNE`, player `greedy`,
+`randomizer-20` · `b8b419`: the app's old opponent (pinned) clears **0.655**
+mean gyms and its new one (table) clears **0.835**, so the fix is **+0.18 mean
+gyms** — the game gets easier, because the tiers hand the road to `easy` and
+only the gym to `hard`, and the road is most of the nodes. **Recorded, not
+chased.**
+
+### Gates
+
+Types, lint and the node suite green — 1,652 tests, two fixtures re-minted for
+the stamp and nothing else. `test/fixtures/sim-report.json` moved by one line
+and `docs/visual/baseline/` by twelve, all of them version strings: both record
+runs that already used the default wiring or pin the baseline policy on purpose,
+so a fix to the app's wiring cannot move their bytes, and it did not.
+
+### The guard
+
+`test/ai-tiers.test.ts` gains "the app plays the table", two assertions:
+
+1. `src/ui/app.ts`, comments stripped, matches neither `opponent:` nor
+   `opponentFor:`. It reads the app's source because the app's source is where
+   the wiring lives and the only place this defect could exist. Verified to fail
+   with the pin restored.
+2. The five seeds that reproduced the bug replay under the default wiring with
+   zero voluntary wild-side switches, asserting a non-zero bench count in the
+   same test so that a run of one-Pokemon encounters cannot pass it vacuously.
+
+### What this does not settle
+
+**The simulator still defaults to `--ai pinned`, so the benchmark column and the
+shipped game are now two different opponents.** That was true before this patch
+and invisible, because the app was pinned too; it is true after it and visible.
+Flipping the default would break the "read down an `AI_VERSION`" rule that
+section 0 of `docs/balance.md` rests on, so it is a decision rather than a
+consequence, and it is the author's. The pair of rows in section 20 is what it
+would be read from.
+## 49. A move may be taught at the node that paid it
 
 **2026-09-18**, on `claude/great-curie-99l9fm`. Prompt
 [`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
@@ -7574,7 +7703,7 @@ item 1. Moves `RUN_LOG_VERSION` to `-20`; `RANDOMIZER_VERSION`, `AI_VERSION` and
 > on. let's give the option to the player upon acquisition: teach now, or store
 > as TM"
 
-### 48.1 The change is one parameter, and finding that out was the work
+### 49.1 The change is one parameter, and finding that out was the work
 
 The obvious reading of this brief is a new question: a fork at the moment a card
 is taken, its own `RunDecision`, its own `RunPolicy` method, asked at each of the
@@ -7601,7 +7730,7 @@ TM would have unloaded the three banked behind it — the rule deleted by
 accident, at the one boundary meant to test it. The set says which, so the
 arriving move gets its answer and the bank keeps waiting.
 
-### 48.2 What `NodeVisit` had to learn, and why it is not a decision
+### 49.2 What `NodeVisit` had to learn, and why it is not a decision
 
 `teachableAt` needs to know which TMs in the bag arrived *here*, and the bag
 cannot tell: a move banked three nodes ago and one handed over a moment ago are
@@ -7614,7 +7743,7 @@ it rebuilds everything else from, so both sides of the log compute the same
 teachable set at the same point — the discipline `needsItemPlan`'s own header
 states, and the reason it is safe to gate a question on.
 
-### 48.3 Why the axis moves even though no entry was added or reshaped
+### 49.3 Why the axis moves even though no entry was added or reshaped
 
 `RUN_LOG_VERSION` goes to `-20` and the rule in `CLAUDE.md` says a run log
 version bumps when a logged decision is added, removed, reordered or reshaped.
@@ -7627,7 +7756,7 @@ TM the player taught on the spot — or, worse, drop it silently. That is exactl
 the divergence the axis exists to catch, and catching it loudly is the point of
 stamping it.
 
-### 48.4 The measurement, closed
+### 49.4 The measurement, closed
 
 The item filed at `README.md` section 5 and section 40.3 above:
 
@@ -7645,7 +7774,7 @@ moves survives longer and reaches more of them — and is measured with the bag
 reconstructed forward rather than by the section 40.3 method, so the two are not
 strictly comparable and the ratio is the honest reading.
 
-### 48.5 The baseline changed, deliberately, and every future figure is against it
+### 49.5 The baseline changed, deliberately, and every future figure is against it
 
 `defaultItemPlan`'s rule 3 taught every TM to slot 0 at a rest or a shop. It now
 teaches every TM **the boundary allows**, which at an acquiring node is the
@@ -7657,7 +7786,7 @@ answering "store", the benchmark row for this patch would have been flat by
 construction and would have measured nothing — the window would have opened and
 no measured player would have walked through it.
 
-### 48.6 The UI defect this created, and what caught it
+### 49.6 The UI defect this created, and what caught it
 
 The first cut changed the core and left `ui/app.ts`'s gate reading
 `canTeachNow(state) && state.tms.length > 0`. That is true at a rest and a shop
@@ -7677,7 +7806,7 @@ makes teach-now a question rather than something done to the player.
 its literal — so the section 40.2 defect, a Teach control on every post-rest map
 screen, cannot come back through the wider gate.
 
-### 48.7 What this does not change
+### 49.7 What this does not change
 
 - **The stored-TM rule.** `canTeachAt` is still rest and shop, still exported,
   still the definition of a counter. A move the player banks waits exactly as
@@ -7689,7 +7818,7 @@ screen, cannot come back through the wider gate.
   the claim in its header that it is the one path by which a reward changes
   anything stays literally true.
 
-## 49. The gym level spread, and the pool that would have emptied under it
+## 50. The gym level spread, and the pool that would have emptied under it
 
 **2026-09-18**, on `claude/great-curie-99l9fm`. Prompt
 [`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
@@ -7700,7 +7829,7 @@ item 2. Moves `RANDOMIZER_VERSION` to `-21` and `contentHash` from `b8b419` to
 > something like that. Check out the nuzlock level caps and gym levels for
 > comparison."
 
-### 49.1 The research said the brief's own fix was the wrong shape
+### 50.1 The research said the brief's own fix was the wrong shape
 
 The brief asked for a level shaved off the gym. The reference says the ratio is
 **flat**: FireRed and Emerald average **0.91** of the cap across all sixteen
@@ -7722,7 +7851,7 @@ which no reference game does.
 So `levelOffset.gym.min` is `round(-0.18 x playerLevel)` — `-3, -4, -5, -6, -7,
 -8, -9, -10` — and `max` stays at zero.
 
-### 49.2 The rule that was superseded, and the half of it that survives
+### 50.2 The rule that was superseded, and the half of it that survives
 
 The parity rule was pinned on 2026-09-17 (section 35) with an argument, and the
 argument is correct: a level in Gen 3 raises Speed with everything else, Speed is
@@ -7737,7 +7866,7 @@ deleted from `data/scaling.ts` rather than left behind a flag, and
 `test/generation.test.ts`'s pin is replaced rather than edited — its new header
 says which half died.
 
-### 49.3 The measurement that changed what was built
+### 50.3 The measurement that changed what was built
 
 The proposed column was measured against the species tables before any of it was
 written, and it did not survive contact with them.
@@ -7761,7 +7890,7 @@ weight onto band 3 silently. The table would have advertised a band the code
 could not draw. That is not a balance cost to accept; it is a table telling a
 lie.
 
-### 49.4 What shipped instead: the pool at the ceiling, the level at the species
+### 50.4 What shipped instead: the pool at the ceiling, the level at the species
 
 Two changes in `core/randomizer.ts`, neither adding or removing a draw.
 
@@ -7798,7 +7927,7 @@ Measured, 300 teams per segment:
 Every segment lands between 0.895 and 0.925 against a reference of 0.91, no pool
 collapsed, and segment 0's `15,13` is Roxanne's team to within a level.
 
-### 49.5 The ace is emergent, and the rule is stated as a ceiling for it
+### 50.5 The ace is emergent, and the rule is stated as a ceiling for it
 
 A uniform draw over `[min, 0]` lands nothing at `max` about **56%** of the time
 at both ends of the run — `(3/4)²` at a two-member gym 1, `(10/11)⁶` at a
@@ -7816,7 +7945,7 @@ anywhere in `core/`, `data/gyms.ts` or the gym screens, and inventing one would
 put a difficulty rule into `randomizer.ts` that `scaling.ts`'s own header
 forbids.
 
-### 49.6 A correction to section 35's axis
+### 50.6 A correction to section 35's axis
 
 `7d8b623` narrowed this same column to parity and held `RANDOMIZER_VERSION`, on
 the reading in `core/types.ts` that the axis covers a draw added, removed or
