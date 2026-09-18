@@ -910,7 +910,13 @@ One line each. The analysis lives where the pointer goes, not here.
    nothing on a fully evolved holder, which a late gym leader usually is. The
    cost of "at random for now". `generation.md` section 42.
 
-0. **A TM is spendable in 13% of runs.** 43.5% of runs earn one; only 13.3%
+0. ~~**A TM is spendable in 13% of runs.**~~ **Closed 2026-09-18** by the
+   teach-now patch, which took a fourth answer this item did not list: a move
+   may be taught at the node that paid it, so a TM is spendable at the moment it
+   arrives and **100%** of runs that hold one can now spend one, against 30.6%
+   of holders before. `canTeachAt` is unwidened and still governs a *stored* TM,
+   so the bank rule the inventory stage was built for survives.
+   `generation.md` section 48. Original text: 43.5% of runs earn one; only 13.3%
    ever reach a rest or a shop while still holding it, which is the only
    boundary `run.canTeachAt` allows a teach at. Nothing malfunctions — most runs
    die first. Answers are all balance calls: widen `canTeachAt`, let a composed

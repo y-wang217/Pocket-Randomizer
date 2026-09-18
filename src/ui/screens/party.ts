@@ -108,14 +108,20 @@ export interface PartyView {
   /** The TMs the run is carrying, by move name, in acquisition order. */
   tms: readonly string[];
   /**
-   * Whether a TM may be spent at this boundary — `run.canTeachNow`.
+   * The move names spendable at this boundary — `run.teachableNow`.
    *
    * The rows render either way, because what the run is carrying is a fact the
    * player is entitled to at any boundary. What is gated is the Teach control,
    * and the row says which boundary would take it rather than leaving a dead
    * button to be discovered by tapping.
+   *
+   * **Per row rather than per screen, which the boolean it replaced could not
+   * do.** At a rest or a shop this holds every TM and the shelf behaves as it
+   * always has. At a node that just paid a move it holds that move alone, so
+   * the row that arrived offers Teach and the three banked behind it do not —
+   * which is the bag staying a bank while the arriving move gets its answer.
    */
-  canTeach: boolean;
+  teachable: ReadonlySet<string>;
   /** The run's relics. Not the backpack — they are neither carried nor spent. */
   relics: readonly RelicId[];
   tuning: Tuning;
@@ -387,8 +393,9 @@ function remaining(owned: readonly ItemId[], taken: readonly ItemId[]): ItemId[]
  * invite the reading that a Pokemon can hold a TM.
  *
  * The rows render at every boundary, because what the run is carrying is a fact
- * the player is entitled to. **The Teach control is what is gated**, to rest and
- * shop nodes — `run.canTeachAt` — and where it is unavailable the row says which
+ * the player is entitled to. **The Teach control is what is gated**, per row,
+ * by `run.teachableAt` — every TM at a rest or a shop, and at any other node
+ * only a move that node just paid. Where it is unavailable the row says which
  * boundary would take it rather than offering a button that does nothing.
  *
  * No marker distinguishes a stronger TM from a weaker one and the order is
@@ -424,9 +431,13 @@ function renderTms(
   heading.textContent = 'TMs';
 
   const note = el('p', 'tms__note');
-  note.textContent = view.canTeach
-    ? 'A TM is used up by teaching it. The move it replaces is gone.'
-    : 'TMs are taught at a rest or a shop.';
+  const anyTeachable = carried.some((move) => view.teachable.has(move));
+  const allTeachable = carried.every((move) => view.teachable.has(move));
+  note.textContent = !anyTeachable
+    ? 'TMs are taught at a rest or a shop.'
+    : allTeachable
+      ? 'A TM is used up by teaching it. The move it replaces is gone.'
+      : 'A new move can be taught now or kept for a rest or a shop. Teaching uses the TM up, and the move it replaces is gone.';
 
   const rows = el('ul', 'tms__list');
   rows.replaceChildren(
@@ -436,7 +447,7 @@ function renderTms(
       row.append(neutralChip(move, 'move', { tip: `move:${move}` }));
 
       const acts = el('span', 'tms__acts');
-      if (view.canTeach) {
+      if (view.teachable.has(move)) {
         const teach = document.createElement('button');
         teach.type = 'button';
         teach.className = 'button button--small';

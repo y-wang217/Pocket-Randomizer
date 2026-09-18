@@ -7562,3 +7562,129 @@ hit — come off the workflow's own step summary, which needs the file to be on
 `main` before `workflow_dispatch` is offered for it. The step records
 `webkit install: Ns (cache hit|miss)` on every run so that the figure is a
 record rather than a thing somebody has to go and time.
+
+## 48. A move may be taught at the node that paid it
+
+**2026-09-18**, on `claude/great-curie-99l9fm`. Prompt
+[`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
+item 1. Moves `RUN_LOG_VERSION` to `-20`; `RANDOMIZER_VERSION`, `AI_VERSION` and
+`contentHash` all hold.
+
+> "not being able to teach TMs immediately makes progression much harder earlier
+> on. let's give the option to the player upon acquisition: teach now, or store
+> as TM"
+
+### 48.1 The change is one parameter, and finding that out was the work
+
+The obvious reading of this brief is a new question: a fork at the moment a card
+is taken, its own `RunDecision`, its own `RunPolicy` method, asked at each of the
+four routes that pay a move. That design was drafted and it is not what shipped,
+because the tree already had every piece of it.
+
+`needsItemPlan` (`core/items.ts`) returns true whenever `state.tms` is non-empty.
+So `playRun` was **already** asking the item-plan question at the node that paid
+the TM, and the player was **already** landing on the party screen with the new
+move on the shelf. The teach already rides inside the existing
+`{ kind: 'items', plan }` entry as `ItemPlan.teaches`. The only thing refusing
+the teach was the fourth argument at the bottom of the node loop:
+`canTeachAt(result.node.kind)`.
+
+So what changed is that argument's type. `canTeach: boolean` became
+`teachable: ReadonlySet<string>` in `applyItemPlan` and `reconcileItemPlan`, and
+`run.teachableAt(visit, tms)` is the one definition of what goes in it: every TM
+at a rest or a shop, and at any other node **only the moves that node just
+paid**.
+
+**A set rather than a wider boolean, and that is the whole of the bank rule.** A
+boolean could only have said "teaching is open here", which at a node paying one
+TM would have unloaded the three banked behind it — the rule deleted by
+accident, at the one boundary meant to test it. The set says which, so the
+arriving move gets its answer and the bank keeps waiting.
+
+### 48.2 What `NodeVisit` had to learn, and why it is not a decision
+
+`teachableAt` needs to know which TMs in the bag arrived *here*, and the bag
+cannot tell: a move banked three nodes ago and one handed over a moment ago are
+the same string in the same list. So `NodeVisit` gained `tmsPaid`, filled by
+`movesPaidBy(result)` off the four routes the moveset-pool report enumerates —
+gym clear, reward card, event grant, shop basket, in that order.
+
+It is **state, not a decision**. A replay rebuilds it from the same `NodeResult`
+it rebuilds everything else from, so both sides of the log compute the same
+teachable set at the same point — the discipline `needsItemPlan`'s own header
+states, and the reason it is safe to gate a question on.
+
+### 48.3 Why the axis moves even though no entry was added or reshaped
+
+`RUN_LOG_VERSION` goes to `-20` and the rule in `CLAUDE.md` says a run log
+version bumps when a logged decision is added, removed, reordered or reshaped.
+None of those happened: the `items` entry is the same shape in the same place.
+
+What changed is which plans are **legal** at a boundary. A `-19` reader applies
+an item plan with `canTeachAt(node.kind)` and refuses a teach anywhere but a rest
+or a shop, so handed a `-20` log it would reject at the first node that paid a
+TM the player taught on the spot — or, worse, drop it silently. That is exactly
+the divergence the axis exists to catch, and catching it loudly is the point of
+stamping it.
+
+### 48.4 The measurement, closed
+
+The item filed at `README.md` section 5 and section 40.3 above:
+
+| | before | after |
+|---|---|---|
+| runs that ever hold a TM | 174 of 400 (43.5%) | 234 of 400 (58.5%) |
+| of those, share reaching a boundary where one can be spent | **30.6%** | **100%** |
+| boundaries holding a TM where teaching was legal | 74 of 687 (10.8%) | 715 of 1461 (48.9%) |
+
+The second row is the one that matters and it is **structural rather than
+tuned**: a node that pays a move allows that move to be taught there, so a TM is
+spendable at the moment it arrives, always. It cannot be otherwise by
+construction. The first row moved as a consequence — a baseline that spends its
+moves survives longer and reaches more of them — and is measured with the bag
+reconstructed forward rather than by the section 40.3 method, so the two are not
+strictly comparable and the ratio is the honest reading.
+
+### 48.5 The baseline changed, deliberately, and every future figure is against it
+
+`defaultItemPlan`'s rule 3 taught every TM to slot 0 at a rest or a shop. It now
+teaches every TM **the boundary allows**, which at an acquiring node is the
+arriving move. `scripts/sim.ts`'s `greedyItemPlan` follows, through the same
+`greedyMoveRecipient` and `greedyMoveToReplace` it already used.
+
+This was a choice and the alternative was worse. Had the baselines kept
+answering "store", the benchmark row for this patch would have been flat by
+construction and would have measured nothing — the window would have opened and
+no measured player would have walked through it.
+
+### 48.6 The UI defect this created, and what caught it
+
+The first cut changed the core and left `ui/app.ts`'s gate reading
+`canTeachNow(state) && state.tms.length > 0`. That is true at a rest and a shop
+and nowhere else, so at a node paying a TM the party screen did not open — and
+control fell through to `defaultItemPlan`, which now **taught the move to slot 0
+without asking**. A move landing on the lead, displacing something, with nobody
+consulted: the opposite of the brief.
+
+Two browser tests caught it and neither is about teaching.
+`visual-move-cards.test.ts` reaches the move explanation from seven surfaces and
+found five, because the two teach screens had stopped being reachable by a
+player. `visual-v2.test.ts` drove into a screen it did not expect and gave up
+after 900 steps. The gate is `teachableNow(state).size > 0` now, which is what
+makes teach-now a question rather than something done to the player.
+
+`atTeachBoundary` is untouched, and `test/teach-boundary.test.ts` still asserts
+its literal — so the section 40.2 defect, a Teach control on every post-rest map
+screen, cannot come back through the wider gate.
+
+### 48.7 What this does not change
+
+- **The stored-TM rule.** `canTeachAt` is still rest and shop, still exported,
+  still the definition of a counter. A move the player banks waits exactly as
+  long as it did.
+- **A replaced move is still destroyed** and **a TM is still consumed by
+  teaching it** — the two rules the inventory stage shipped alongside the one
+  this narrows.
+- **`rewards.applyReward` is byte-identical.** Teach-now is stow-then-spend, so
+  the claim in its header that it is the one path by which a reward changes
+  anything stays literally true.

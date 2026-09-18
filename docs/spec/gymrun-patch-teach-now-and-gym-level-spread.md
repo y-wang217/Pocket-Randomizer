@@ -122,6 +122,61 @@ one benchmark, or levels first.
 
 ---
 
+## 4b. Two further questions, asked after patch 1 and before patch 2
+
+Both arose from measuring the proposed column rather than from the brief, and
+both were put to the author before any of patch 2 was written.
+
+**Question 4.** *The proposed offsets were measured against the species tables,
+and lowering `level.min` strips evolved species out of the gym pool — because
+`bandedSpeciesPool` gates the whole pool on `level.min` while every member draws
+its own level. Measured, per band, at the proposed column:*
+
+| segment | gym | band | species before → after |
+|---|---|---|---|
+| 3 | Grass | 2 | 23 → 8 |
+| 4 | Fire | 3 | 21 → 3 |
+| 6 | Ghost | 4 | **1 → 0** |
+| 7 | Dragon | 4 | 7 → 2 |
+
+*Segment 6 is the sharp one: its only band-4 Ghost is at level 50 and
+`playerLevel(6)` is exactly 50, so **any** negative offset empties that band and
+`bandedSpeciesPool`'s carry rule silently folds its weight into band 3 — a table
+claiming a band the code cannot draw.* Three options: clamp the level to the
+species, table-only plus deleting the dead weight, or hand-tuned floors at the
+cliffs.
+
+**Answer: clamp the level to the species.** The gym pool is built at parity, so
+it does not collapse at all; a species is drawn, a level is drawn in the range,
+and the level is then clamped **up** to that species' own `evoLevel`. It costs
+no extra draw, keeps every roster, and produces the shape the research section
+describes rather than approximating its mean: an unevolved member sits low and a
+fully evolved one sits near the cap, which is what Roxanne's Geodude at 12 beside
+a Nosepass at 15 actually is.
+
+**Question 5.** *A uniform draw over `[min, 0]` does not guarantee any member
+lands at parity. At gym 1 — two members over four values — the chance none does
+is `(3/4)² = 56%`, and at gym 8 it is `(10/11)⁶ = 56%`. So "the ace stays at
+parity" is not delivered by the table: the drawn maximum averages 0.96 to 0.98
+of the cap, not 1.00.* Three options: restate the rule as a ceiling, guarantee
+an ace in code, or raise `max` above zero.
+
+**Answer: restate it as a ceiling.** The rule is **a gym is never above the
+player, and its team mean sits at 0.91**; the ace is emergent rather than
+guaranteed. That is the half the Speed-threshold argument needs — it is entirely
+about a gym being *above* the party, and `max === 0` is what preserves it — and
+under the clamp above the most evolved member lands near parity on its own,
+which is how a real gym team gets its ace in the first place. Raising `max`
+above zero was declined on sight: it reintroduces the exact complaint that
+pinned the column at parity.
+
+**The decision in section 4's question 1 is therefore narrowed, not reversed.**
+"Ace at parity, the rest below" was the shape asked for; what is built is a
+ceiling at parity with the level clamped up to each drawn species, which
+produces that shape without asserting a guarantee the draw cannot keep.
+
+---
+
 ## 5. What this supersedes
 
 **The "rest and shop nodes only" rule**, from

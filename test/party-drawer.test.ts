@@ -287,7 +287,7 @@ describe('every decision surface', () => {
             party: partyOf(state),
             backpack: [],
             tms: [],
-            canTeach: true,
+            teachable: new Set([]),
             relics: [],
             tuning: state.tuning,
             // Stage 4.8: the slot grid is sized by the run, not a constant.

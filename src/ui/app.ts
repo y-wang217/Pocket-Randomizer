@@ -29,7 +29,7 @@ import {
   type RunProjection,
   type RunResult,
   type RunState,
-  canTeachNow,
+  teachableNow,
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
@@ -695,23 +695,35 @@ export function mountApp(root: HTMLElement): void {
        */
       chooseItemPlan: async (state) => {
         /*
-         * **At a rest or a shop the player is asked, rather than answered for.**
+         * **Wherever a TM may be spent the player is asked, rather than
+         * answered for.**
          *
-         * This is the boundary that may spend a TM — `run.canTeachAt` — and it
-         * is the *only* one, which makes the timing load-bearing in a way the
-         * item half never was. A plan composed on the map names a teach against
-         * the node the run has just walked; it is spent at the boundary of the
-         * node the player walks *next*, and if that one is a fight the teach is
-         * not legal there. `reconcileItemPlan` would drop it, correctly and
+         * A plan composed on the map names a teach against the node the run has
+         * just walked; it is spent at the boundary of the node the player walks
+         * *next*, and if that one does not allow the move the teach is not
+         * legal there. `reconcileItemPlan` would drop it, correctly and
          * silently, and the player would watch a TM they had arranged simply
          * fail to be spent.
          *
          * So the screen opens here, where composing and spending are the same
-         * moment and `canTeachNow` is the same answer for both. Everywhere else
-         * the pre-composed plan still stands, because an item assignment means
-         * the same thing at any boundary.
+         * moment and `teachableNow` is the same answer for both. Everywhere
+         * else the pre-composed plan still stands, because an item assignment
+         * means the same thing at any boundary.
+         *
+         * **The gate is the set being non-empty, and that is what makes
+         * teach-now a question rather than something done to the player.** It
+         * used to read `canTeachNow(state) && state.tms.length > 0`, which is
+         * true at a rest and a shop and nowhere else. A node that pays a move
+         * now puts that move in `teachableNow`, so the screen opens there too
+         * and the player answers *teach it now, or leave it in the bag* — which
+         * is the whole of the choice. Leaving is the default and costs nothing
+         * but the bag slot the TM was going to take anyway.
+         *
+         * Without this, `defaultItemPlan` below would have answered for them,
+         * and rule 3 teaches every teachable TM to slot 0 — a move landing on
+         * the lead, displacing something, with nobody asked.
          */
-        if (canTeachNow(state) && state.tms.length > 0) {
+        if (teachableNow(state).size > 0) {
           live = state;
           atTeachBoundary = true;
           showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
@@ -722,12 +734,12 @@ export function mountApp(root: HTMLElement): void {
             state,
             composed,
             backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
-            true,
+            teachableNow(state),
           );
         }
         const plan = pendingPlan;
         pendingPlan = null;
-        if (!plan) return defaultItemPlan(state, canTeachNow(state));
+        if (!plan) return defaultItemPlan(state, teachableNow(state));
         /*
          * **Brought forward before it is answered with, and this is the fix
          * for the Carry on soft lock.**
@@ -750,7 +762,7 @@ export function mountApp(root: HTMLElement): void {
           state,
           plan,
           backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
-          canTeachNow(state),
+          teachableNow(state),
         );
       },
       chooseShopPurchases: (stock, state) => {
@@ -1092,7 +1104,7 @@ export function mountApp(root: HTMLElement): void {
           party: state.party,
           backpack: state.backpack,
           tms: state.tms,
-          canTeach: atTeachBoundary && canTeachNow(state),
+          teachable: atTeachBoundary ? teachableNow(state) : new Set<string>(),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),

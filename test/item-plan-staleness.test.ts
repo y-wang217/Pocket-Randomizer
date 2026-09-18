@@ -108,7 +108,7 @@ describe('the plan the player left the party screen with', () => {
     expect(after.currency).toBe(before.currency + 42);
     expect(after.backpack).toEqual(['leftovers']);
 
-    expect(() => applyItemPlan(after, composed, capacityOf(after), true)).toThrow(/does not hold/);
+    expect(() => applyItemPlan(after, composed, capacityOf(after), new Set(after.tms))).toThrow(/does not hold/);
   });
 
   it('is brought forward instead, and keeps every assignment the run can still honour', () => {
@@ -121,8 +121,8 @@ describe('the plan the player left the party screen with', () => {
       discards: [], teaches: [], discardTms: [],
     };
 
-    const plan = reconcileItemPlan(after, composed, capacityOf(after), true);
-    const applied = applyItemPlan(after, plan, capacityOf(after), true);
+    const plan = reconcileItemPlan(after, composed, capacityOf(after), new Set(after.tms));
+    const applied = applyItemPlan(after, plan, capacityOf(after), new Set(after.tms));
 
     // The Sharp Beak stays where the player put it; the destroyed Charcoal
     // leaves slot 1 empty rather than taking the Sharp Beak down with it.
@@ -145,7 +145,7 @@ describe('the plan the player left the party screen with', () => {
       discards: [], teaches: [], discardTms: [],
     };
 
-    const applied = applyItemPlan(after, reconcileItemPlan(after, composed, capacityOf(after), true), capacityOf(after), true);
+    const applied = applyItemPlan(after, reconcileItemPlan(after, composed, capacityOf(after), new Set(after.tms)), capacityOf(after), new Set(after.tms));
     expect(applied.party[1]?.item).toBe('sharpbeak');
     expect(applied.party[0]?.item).toBeUndefined();
   });
@@ -153,16 +153,16 @@ describe('the plan the player left the party screen with', () => {
   it('drops a discard of something the run no longer holds', () => {
     const after = walkIntoTheShaft(reportedRun());
     const composed: ItemPlan = { assignments: [], discards: ['charcoal'], teaches: [], discardTms: [] };
-    const plan = reconcileItemPlan(after, composed, capacityOf(after), true);
+    const plan = reconcileItemPlan(after, composed, capacityOf(after), new Set(after.tms));
     expect(plan.discards).toEqual([]);
-    expect(applyItemPlan(after, plan, capacityOf(after), true).backpack).toEqual(['leftovers']);
+    expect(applyItemPlan(after, plan, capacityOf(after), new Set(after.tms)).backpack).toEqual(['leftovers']);
   });
 
   it('discards the oldest when a grant has put the bag over capacity', () => {
     const state = { ...reportedRun(), backpack: ['leftovers', 'charcoal', 'mysticwater', 'magnet'] as ItemId[] };
-    const plan = reconcileItemPlan(state, { assignments: [], discards: [], teaches: [], discardTms: [] }, 2, true);
+    const plan = reconcileItemPlan(state, { assignments: [], discards: [], teaches: [], discardTms: [] }, 2, new Set(state.tms));
     expect(plan.discards).toEqual(['leftovers', 'charcoal']);
-    expect(applyItemPlan(state, plan, 2, true).backpack).toEqual(['mysticwater', 'magnet']);
+    expect(applyItemPlan(state, plan, 2, new Set(state.tms)).backpack).toEqual(['mysticwater', 'magnet']);
   });
 
   it('drops an assignment naming a slot the party no longer has, and a slot named twice', () => {
@@ -178,10 +178,10 @@ describe('the plan the player left the party screen with', () => {
         discards: [], teaches: [], discardTms: [],
       },
       capacityOf(state),
-      true,
+      new Set(state.tms),
     );
     expect(plan.assignments).toEqual([{ slot: 0, item: 'leftovers' }]);
-    expect(() => applyItemPlan(state, plan, capacityOf(state), true)).not.toThrow();
+    expect(() => applyItemPlan(state, plan, capacityOf(state), new Set(state.tms))).not.toThrow();
   });
 
   /**
@@ -203,8 +203,8 @@ describe('the plan the player left the party screen with', () => {
     ];
 
     for (const plan of plans) {
-      const brought = reconcileItemPlan(state, plan, capacity, true);
-      expect(() => applyItemPlan(state, brought, capacity, true)).not.toThrow();
+      const brought = reconcileItemPlan(state, plan, capacity, new Set(state.tms));
+      expect(() => applyItemPlan(state, brought, capacity, new Set(state.tms))).not.toThrow();
     }
   });
 });

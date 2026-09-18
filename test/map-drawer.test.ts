@@ -280,7 +280,7 @@ describe('every decision surface', () => {
             party: partyOf(state),
             backpack: [],
             tms: [],
-            canTeach: true,
+            teachable: new Set([]),
             relics: [],
             tuning: state.tuning,
             slots: partyCapacityAfter(0),

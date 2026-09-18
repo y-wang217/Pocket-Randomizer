@@ -71,6 +71,7 @@ function withGyms(gyms: number): RunState {
       result: { winner: 'p1' as const, turns: 1, cause: 'faint' as const },
       hpAfter: 1,
       casualties: [],
+      tmsPaid: [],
     })),
   };
 }

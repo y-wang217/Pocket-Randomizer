@@ -78,7 +78,7 @@ import {
   type CauseOfDeath,
   type RunPolicy,
   type RunState,
-  canTeachNow,
+  teachableNow,
 } from '../src/core/run';
 import { replacementNeeded, teachMove } from '../src/core/party';
 import {
@@ -1335,7 +1335,7 @@ function valueOfItemFor(itemId: string, member: PokemonState): number {
  * It is not clever. It needs to be deterministic and written down, because a
  * heuristic that changes between reports makes two reports incomparable.
  */
-function greedyItemPlan(state: RunState, canTeach: boolean): ItemPlan {
+function greedyItemPlan(state: RunState, teachable: ReadonlySet<string>): ItemPlan {
   const pool = [...state.backpack, ...state.party.flatMap((member) => (member.item ? [member.item] : []))];
   const openSlots = state.party.map((_, slot) => slot);
   const assignments: ItemAssignment[] = [];
@@ -1387,9 +1387,10 @@ function greedyItemPlan(state: RunState, canTeach: boolean): ItemPlan {
    */
   const teaches: ItemPlan['teaches'] = [];
   const keptTms = [...state.tms];
-  if (canTeach) {
+  {
     const learners = [...state.party];
     for (const move of state.tms) {
+      if (!teachable.has(move)) continue;
       const offer: MoveReward = { kind: 'tm', move };
       const slot = greedyMoveRecipient(offer, learners);
       const learner = learners[slot];
@@ -1743,7 +1744,7 @@ function buildPolicy(
      * measurement wants — a targeting rule that only works when played
      * perfectly is a rule the report cannot generalise from.
      */
-    chooseItemPlan: async (state) => greedyItemPlan(state, canTeachNow(state)),
+    chooseItemPlan: async (state) => greedyItemPlan(state, teachableNow(state)),
 
     /*
      * Take a Pokemon while there is room; once full, take it only if it beats

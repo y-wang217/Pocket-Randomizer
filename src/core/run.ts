@@ -63,6 +63,7 @@ import { RANDOMIZER_VERSION } from './randomizer';
 import { CONTENT_HASH } from './contentHash';
 import {
   applyPurchases,
+  purchasedRewards,
   resolveStock,
   nodePayout,
   type ShopStock,
@@ -358,24 +359,109 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * same key in the same order, and only the destination of the drawn move
  * changed.
  */
-export const RUN_LOG_VERSION = `gymrun-run-19/${ENGINE_VERSION}`;
+/*
+ * ## `-20`: a move may be taught at the node that paid it
+ *
+ * **The `items` entry is not reshaped and no entry is added, removed or
+ * reordered — and the axis still moves.** What changed is which plans are
+ * *legal* at a boundary. A `-19` reader applies an item plan with
+ * `canTeachAt(node.kind)` and refuses a teach anywhere but a rest or a shop, so
+ * handed a `-20` log it would reject at the first node that paid a TM the
+ * player taught on the spot. That is the divergence this axis exists to catch,
+ * and catching it loudly is the whole point of stamping it.
+ *
+ * The rule it narrows: teaching at a rest or a shop was *the* rule and is now
+ * the rule for a **stored** TM, which is every TM the player did not spend on
+ * arrival. Both of the rules that came with it are untouched — a replaced move
+ * is still destroyed rather than banked, and a TM is still consumed by
+ * teaching it.
+ *
+ * Nothing else moves. `RANDOMIZER_VERSION` holds because no draw changes: the
+ * same moves are drawn from the same keys in the same order and only the
+ * moment they may leave the bag is different. `contentHash` holds because no
+ * table is touched.
+ * `docs/spec/gymrun-patch-teach-now-and-gym-level-spread.md`.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-20/${ENGINE_VERSION}`;
 
 /**
- * The node kinds at which a carried TM may be spent. **Rest and shop only.**
- *
- * The one definition, read by `playRun` when it applies a plan and by the UI
- * when it decides whether to offer the teach control, for the reason
- * `hasBattlePair` is one definition: a gate the generator and the floor state
- * separately is a gate that drifts.
+ * The node kinds at which a **stored** TM may be spent. **Rest and shop only.**
  *
  * Why these two and not every boundary: a TM you can spend anywhere is a move
  * you already have, and the carry costs nothing. Rest and shop are where a run
  * already stops to spend things, so binding the teach to them makes banking a
  * top-band TM through three fights a real commitment rather than a formality.
  * `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 5 is the ruling.
+ *
+ * **The word `stored` is doing work, and it was not there before.** This was
+ * the whole rule until 2026-09-18: a move went into the bag on arrival and
+ * came out at a rest. Measured, that left a TM spendable in **13.3%** of runs —
+ * 43.5% of runs earn one and most die before reaching a counter
+ * (`docs/generation.md` section 40.3). So a move may now be taught at the node
+ * that paid it, and this function is no longer the whole answer. It is the
+ * answer for every TM the player chose *not* to spend on arrival, which is what
+ * keeps the bag a bank rather than a pocket.
+ *
+ * Read `teachableAt` rather than this, unless you specifically mean the stored
+ * case. This one stays exported because it is still the definition of a
+ * counter, and `teachableAt` is written in terms of it.
  */
 export function canTeachAt(kind: NodeKind): boolean {
   return kind === 'rest' || kind === 'shop';
+}
+
+/**
+ * The move names that may be taught at this boundary.
+ *
+ * **A set rather than a boolean, and that is the mechanism.** At a rest or a
+ * shop it is every TM the run holds; at any other node it is exactly the moves
+ * *that node just paid*, and nothing else in the bag. One boolean could only
+ * have said "teaching is open here", which would have let a node that handed
+ * over one TM also unload the three banked behind it — the bank rule deleted by
+ * accident, at the one boundary that was supposed to test it.
+ *
+ * Derived from a `NodeVisit`, so both sides of the log read the same answer
+ * from the same reconstructed state: `playRun` asks it of the visit it is about
+ * to apply a plan at, and the UI asks it of the last entry in history. That is
+ * the discipline `needsItemPlan` states — a boundary where the question is
+ * answered one way live and another on replay puts the log out of step.
+ */
+export function teachableAt(
+  visit: { node: NodeSpec; tmsPaid: readonly string[] },
+  tms: readonly string[],
+): ReadonlySet<string> {
+  if (canTeachAt(visit.node.kind)) return new Set(tms);
+  const held = new Set(tms);
+  return new Set(visit.tmsPaid.filter((move) => held.has(move)));
+}
+
+/**
+ * Every move name a node handed the run, in the order the node pays them.
+ *
+ * The four routes are the ones `docs/reports/moveset-pool-validation.md`
+ * section 2 enumerates — reward card, shop, event grant, gym clear — and they
+ * are read off the `NodeResult` rather than off the bag, because the bag holds
+ * what the run was carrying *before* this node too and the two are
+ * indistinguishable once a move is in it.
+ *
+ * A node can pay more than one, which is why each route has its own field on
+ * `NodeResult` and why this returns a list.
+ */
+export function movesPaidBy(result: NodeResult): string[] {
+  const moves: string[] = [];
+  const take = (reward: Reward | undefined): void => {
+    if (reward && (reward.kind === 'tm' || reward.kind === 'tutor' || reward.kind === 'technique')) {
+      moves.push(reward.move);
+    }
+  };
+  take(result.gymMove);
+  take(result.reward);
+  take(result.eventMove);
+  const stock = result.shopStock ?? result.node.shop;
+  if (result.purchases && stock) {
+    for (const bought of purchasedRewards(stock, result.purchases)) take(bought);
+  }
+  return moves;
 }
 
 /**
@@ -393,6 +479,26 @@ export function canTeachAt(kind: NodeKind): boolean {
 export function canTeachNow(state: { history: readonly NodeVisit[] }): boolean {
   const last = state.history[state.history.length - 1];
   return last ? canTeachAt(last.node.kind) : false;
+}
+
+/**
+ * The move names spendable at the boundary this state is sitting at.
+ *
+ * `teachableAt` asked by whoever is *composing* a plan rather than applying one
+ * — the UI's `chooseItemPlan`, and the reconcile it runs first. It reads the
+ * node off the last history entry for the reason `canTeachNow` does: an item
+ * plan is asked after `resolveNode`, so the node just walked is the last thing
+ * in there, and that is the visit `playRun` will pass to `applyItemPlan`.
+ *
+ * Empty on an empty history, which is a run that has not walked a node yet and
+ * therefore cannot be holding a TM to spend.
+ */
+export function teachableNow(state: {
+  history: readonly NodeVisit[];
+  tms: readonly string[];
+}): ReadonlySet<string> {
+  const last = state.history[state.history.length - 1];
+  return last ? teachableAt(last, state.tms) : new Set();
 }
 
 export type RunOutcome = 'victory' | 'defeat';
@@ -417,6 +523,19 @@ export interface NodeVisit {
    * simulator counts.
    */
   casualties: Casualty[];
+  /**
+   * The moves this node paid, by name, in the order it paid them.
+   *
+   * Recorded rather than recomputed because `teachableAt` needs to know which
+   * TMs in the bag arrived *here*, and the bag cannot tell — a move banked
+   * three nodes ago and one handed over a moment ago are the same string in the
+   * same list. `movesPaidBy` is what fills it, off the `NodeResult`.
+   *
+   * Empty for the great majority of nodes. It is state, not a decision: a
+   * replay rebuilds it from the same result it rebuilds everything else from,
+   * so it is safe to gate the teach question on.
+   */
+  tmsPaid: readonly string[];
 }
 
 export interface RunState {
@@ -1070,6 +1189,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       result: result.battle?.result ?? null,
       hpAfter: partyHp(party),
       casualties: (result.battle?.casualties ?? []).filter((casualty) => casualty.side === 'p1'),
+      tmsPaid: movesPaidBy(result),
     },
   ];
 
@@ -2057,7 +2177,7 @@ export async function playRun(
         state,
         plan,
         backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
-        canTeachAt(result.node.kind),
+        teachableNow(state),
       );
     }
 
@@ -2430,7 +2550,7 @@ export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec)
  * capacity is refused, and a run whose bag filled up would end on a thrown
  * `RangeError` rather than on a decision.
  */
-export function defaultItemPlan(state: RunState, canTeach = false): ItemPlan {
+export function defaultItemPlan(state: RunState, teachable: ReadonlySet<string> = new Set()): ItemPlan {
   const capacity = backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics));
   const assignments: ItemAssignment[] = [];
 
@@ -2444,8 +2564,14 @@ export function defaultItemPlan(state: RunState, canTeach = false): ItemPlan {
   });
 
   /*
-   * **Rule 3: at a rest or a shop, teach every TM to slot 0, displacing what
+   * **Rule 3: teach every TM this boundary allows to slot 0, displacing what
    * `defaultMoveReplacement` names.**
+   *
+   * `teachable` is the set from `teachableAt`, so at a rest or a shop this is
+   * every TM the run holds and at a node that just paid one it is that move
+   * alone. The baseline therefore spends a move the moment it arrives, which is
+   * what the live player may now do and what every figure in a balance report
+   * from here on is measured against.
    *
    * This is the old baseline restated, not a new judgement. Before moves became
    * inventory, `scriptedRunPolicy` answered `chooseMoveRecipient` with `0` and
@@ -2461,10 +2587,11 @@ export function defaultItemPlan(state: RunState, canTeach = false): ItemPlan {
    */
   const teaches: TmTeach[] = [];
   const kept = [...state.tms];
-  if (canTeach) {
+  {
     let lead = state.party[0];
     for (const move of state.tms) {
       if (!lead) break;
+      if (!teachable.has(move)) continue;
       const need = replacementNeeded(lead, move);
       const incoming = describeMove(move);
       if (need === 'choose' && !incoming) continue;
@@ -2552,7 +2679,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      */
     chooseAcquisition: async (_offer, party, capacity) =>
       hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
-    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
+    chooseItemPlan: async (state) => defaultItemPlan(state, teachableNow(state)),
     battle,
   };
 }

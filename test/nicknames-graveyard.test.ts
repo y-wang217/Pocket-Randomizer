@@ -348,6 +348,7 @@ describe('the graveyard', () => {
               indirect: null,
             },
           ],
+      tmsPaid: [],
         },
       ],
     };
@@ -392,7 +393,7 @@ describe('the graveyard after an evolution', () => {
       ...state.party[0]!,
       spec: { ...state.starterOptions[0]!, species: 'Charizard', nickname: 'Ember', level: 47 },
     };
-    const visit = { node: state.segments[0]!.gym, segment: 2, result: null, hpAfter: 0, casualties: [fallen] };
+    const visit = { node: state.segments[0]!.gym, segment: 2, result: null, hpAfter: 0, casualties: [fallen], tmsPaid: [] };
     const deaths = deathsFrom({ ...state, party: [survivor], history: [visit] });
     expect(deaths).toHaveLength(1);
     expect(deaths[0]!.species).toBe('Charmander');
