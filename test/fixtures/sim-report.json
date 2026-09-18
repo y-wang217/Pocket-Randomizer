@@ -2,7 +2,7 @@
   "version": "gymrun-run-19/gymrun-0.3.0",
   "randomizerVersion": "gymrun-randomizer-20",
   "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
-  "aiVersion": "gymrun-ai-6-spent-item",
+  "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
   "runs": [
     {
       "seed": "FIXTURE-ALPHA",

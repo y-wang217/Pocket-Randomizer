@@ -18,6 +18,21 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-18, the wild-encounter swap fix** (`ai-7-tiers-reach-the-app`).
+  Re-recorded on the runs and the battle protocol, and the diff is **twelve
+  lines, every one of them a version stamp**: `versions.ai` in six run files and
+  the `aiVersion` inside each one's recorded log. Nothing else in this directory
+  moved — not a decision, not a visit, not a casualty, not the protocol, not the
+  data digest.
+
+  That is the point of recording it. The patch removes `opponent:
+  greedyAiPolicy` from the app's run options, so the shipped game stops playing
+  `GREEDY_BASELINE` in every fight and starts reading the tier table; this
+  script pins that same policy **deliberately**, because the baseline is a
+  frozen record rather than a picture of what ships. So the fix cannot move a
+  byte here, and it did not. `AI_VERSION` moves with it, which is the whole of
+  the diff.
+
 - **2026-09-17, the merge of the chip audit into the shop and moveset-variance
   patch.** `heights.json` re-recorded a second time that day, and the reason is
   an *interaction* rather than either patch: **neither branch moved the battle

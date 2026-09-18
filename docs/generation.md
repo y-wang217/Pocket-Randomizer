@@ -7355,3 +7355,133 @@ head. WebKit ran 457s and 480s on PR #54 against 347s and 368s on two recent
 `main` runs, and that 24–38% gap is unexplained. **This change is what turns
 that into an answer**: if the leg now passes, it was latency; if it still fails,
 the lunge genuinely does not complete on that head and that is a defect to find.
+
+## 47. The badge said Rookie and the app played the baseline
+
+**2026-09-18.** Prompt
+[`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
+branch `claude/wild-encounter-swap-bug-1vd4q8`. `AI_VERSION`
+`gymrun-ai-6-spent-item` → `gymrun-ai-7-tiers-reach-the-app`. No other axis
+moves: `contentHash`, `RANDOMIZER_VERSION` and `RUN_LOG_VERSION` all hold, and
+not one line of `core/battle/ai.ts` changed except the constant and its note.
+
+### The report, and why the last reading of it was wrong
+
+> Bug report wild encounter does swap out
+
+Two screenshots: a `Wild Cyclizar · Rookie` node on `SUMMIT`, and its history
+drawer. Turn 2 the wild Cyclizar faints and Skarmory comes in; turn 3 Skarmory
+attacks; **turn 4 the opponent sends out Aerodactyl with nothing fainted and the
+panel still reading `2/? left`.** A send-out in slot 1 of a turn nobody fainted
+on is a voluntary switch.
+
+The R19 playtest raised this as item 2 and the rulings deferred it to a
+reproduction. The reading that deferred it measured `aiPolicy(AI_TIERS.easy)`
+500 times on a board where medium and hard both switched, got **0 switches**,
+and concluded the player had seen a forced send-in. **That measurement was
+right and its conclusion was wrong**, and the gap between them is the whole of
+this section: it measured the tier. Nothing measured whether the game plays it.
+
+### The cause: one option key, in `ui/`
+
+`src/ui/app.ts` built its run options as
+
+```ts
+const options = { onState, onBattle, onProjection, onDecision: saveRunLog, opponent: greedyAiPolicy };
+```
+
+`PlayRunOptions.opponent` is documented, at its own declaration, as "one
+opponent for every fight in the run … **when it is set, `opponentFor` is not
+consulted and no tier is read**". It is the simulator's controlled-comparison
+seam — `--ai pinned` is exactly this — and the app had it set.
+
+So the shipped game never played a tier. Every wild encounter, every trainer and
+every gym leader was `GREEDY_BASELINE`: `takeTheKo`, `smartSendIn` and
+**`smartSwitching`**, at zero noise and zero switch failure. The node card and
+the battle panel read `Rookie`, `Seasoned` and `Ace` off `aiTierFor` the whole
+time, and `AI_TIER_DETAIL.easy` — "Reads base power and type matchups. Stays
+in." — was a promise nothing in the run loop was keeping.
+
+The pin predates the tiers by two days. It was correct when it was written, when
+`greedyAiPolicy` *was* the opponent; the tiers patch added `tieredOpponentFor`
+as the default for `opponentFor` and nothing came back for the override. Both
+halves of the seam were built and tested — `test/ai-tiers.test.ts` drives
+`playRun` with no options and proves the table gates what it says it gates — and
+the one line that decides which half the player gets was never asserted by
+anything.
+
+### Measured, both ways, before the fix
+
+60 runs a side under `scriptedRunPolicy(greedyAiPolicy)`, counting
+`session.voluntarySwitches.p2` at wild nodes only:
+
+| wiring | voluntary wild-side switches | wild battles | of those, with a bench |
+|---|---|---|---|
+| `opponent: greedyAiPolicy` (what shipped) | **11** | 139 | 23 |
+| default (`tieredOpponentFor`) | **0** | 155 | 32 |
+
+Eleven switches across twenty-three benched wild fights is roughly one in two,
+which is what the player saw. The bench count is the half that makes the zero
+mean anything: a wild encounter that is one Pokemon has nothing to switch to.
+
+### The fix
+
+Delete the key. Ten characters of behaviour, and the comment beside it now says
+what the absence is for. `tieredOpponentFor` was already the default and is
+already what every test in `test/ai-tiers.test.ts` exercises.
+
+`src/ui/gallery.ts` keeps its pin, deliberately: it is the visual gallery, its
+job is a deterministic scene, and it is not the game.
+
+### Why `AI_VERSION` moves for a change in `ui/`
+
+The axis is "did the *opponent* change?" (`core/types.ts`). It did, in every
+shipped fight. And a run saved before this patch would resume into battles
+played by a different bot against the same recorded decisions, which is the
+silent reinterpretation the version block exists to refuse — `isReplayable`
+now retires those saves by name, and the resume button goes with them.
+
+**This is the one bump in that constant's list where the reasoning in
+`src/core/battle/ai.ts` did not move**, and it is the one where a balance row may be read *across* the bump: the
+simulator defaults to `--ai pinned`, `pinned` is `GREEDY_BASELINE`, and
+`GREEDY_BASELINE` is untouched. Recorded in the constant's own note so the next
+reader of the benchmark table does not have to derive it.
+
+### What it costs, measured
+
+`docs/balance.md` section 20. 400 seeds, prefix `RETUNE`, player `greedy`,
+`randomizer-20` · `b8b419`: the app's old opponent (pinned) clears **0.655**
+mean gyms and its new one (table) clears **0.835**, so the fix is **+0.18 mean
+gyms** — the game gets easier, because the tiers hand the road to `easy` and
+only the gym to `hard`, and the road is most of the nodes. **Recorded, not
+chased.**
+
+### Gates
+
+Types, lint and the node suite green — 1,652 tests, two fixtures re-minted for
+the stamp and nothing else. `test/fixtures/sim-report.json` moved by one line
+and `docs/visual/baseline/` by twelve, all of them version strings: both record
+runs that already used the default wiring or pin the baseline policy on purpose,
+so a fix to the app's wiring cannot move their bytes, and it did not.
+
+### The guard
+
+`test/ai-tiers.test.ts` gains "the app plays the table", two assertions:
+
+1. `src/ui/app.ts`, comments stripped, matches neither `opponent:` nor
+   `opponentFor:`. It reads the app's source because the app's source is where
+   the wiring lives and the only place this defect could exist. Verified to fail
+   with the pin restored.
+2. The five seeds that reproduced the bug replay under the default wiring with
+   zero voluntary wild-side switches, asserting a non-zero bench count in the
+   same test so that a run of one-Pokemon encounters cannot pass it vacuously.
+
+### What this does not settle
+
+**The simulator still defaults to `--ai pinned`, so the benchmark column and the
+shipped game are now two different opponents.** That was true before this patch
+and invisible, because the app was pinned too; it is true after it and visible.
+Flipping the default would break the "read down an `AI_VERSION`" rule that
+section 0 of `docs/balance.md` rests on, so it is a decision rather than a
+consequence, and it is the author's. The pair of rows in section 20 is what it
+would be read from.
