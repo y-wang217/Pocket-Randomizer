@@ -1,7 +1,8 @@
 # The gate, in CI.
 #
 # Structure supplied by the author and kept: these five jobs, these triggers,
-# this concurrency group, the Playwright container and the two-engine matrix.
+# this concurrency group and the Playwright container. The engine matrix was
+# two values and is one; see the note above the `browser` job.
 # What changed is recorded in docs/generation.md section 31 rather than argued
 # here -- three names in the skeleton did not exist in the tree until part 1 of
 # this patch, and one step named a test runner this repo does not use.
@@ -72,6 +73,17 @@ jobs:
       # 111 files, 1595 tests, no browser anywhere in it.
       - run: node scripts/check.mjs --only=test:node
 
+  # WebKit used to be the second value of this matrix. It is not any more: it
+  # moved to .github/workflows/webkit.yml, which runs weekly, on demand, and on
+  # a PR that touches motion CSS, sprite code or the motion tests -- and which
+  # never blocks a merge. The argument is in docs/generation.md section 47; the
+  # short of it is that the engine was costing every PR eight minutes to gate a
+  # surface almost no PR touches, and that the one thing it caught in its whole
+  # life was an animation-timing race in the test, not in the app.
+  #
+  # The matrix is kept at one value rather than dissolved, because the job name
+  # `browser suite (chromium)` is what a branch protection rule names, and
+  # because putting an engine back is then a one-word diff.
   browser:
     name: browser suite (${{ matrix.engine }})
     runs-on: ubuntu-latest
@@ -89,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [chromium, webkit]
+        engine: [chromium]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -97,8 +109,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      # The leg names are test:chromium and test:webkit, so the matrix value
-      # selects the leg directly and GYMRUN_ENGINE is set by the leg itself.
+      # The leg name is test:<engine>, so the matrix value selects the leg
+      # directly and GYMRUN_ENGINE is set by the leg itself.
       #
       # **The engine this runs is not the one a developer box runs.**
       # scripts/visual/browser.mjs pins Chromium to

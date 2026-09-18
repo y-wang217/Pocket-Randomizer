@@ -23,9 +23,18 @@
  * `--list` exists because a leg table nobody can read without running it is
  * how a gate acquires a leg nobody knows about.
  *
- * ## The three statuses
+ * ## The four statuses
  *
- * PASS and FAIL are the exit status of the leg's own process, taken directly.
+ * PASS and FAILED are the exit status of the leg's own process, taken directly.
+ *
+ * ERRORED is a leg whose **tests all passed and whose runner then fell over on
+ * the way to saying so** — today that is exactly one thing, vitest's reporter
+ * RPC timing out, and `everyTestPassedAnyway` below is where the shape of it
+ * is argued. It is its own word rather than PASS because the two are not the
+ * same fact and the table is the place that difference is legible: a reader
+ * scanning for "is the tree green" gets a yes, and a reader asking "why did
+ * that leg take four minutes and print an unhandled error" gets a word to
+ * search for. It does not fail the run.
  *
  * SKIPPED is for a leg that never ran, and there are exactly two reasons:
  *
@@ -54,6 +63,7 @@
  * into a red leg with Playwright's own message under it.
  */
 import { spawn } from 'node:child_process';
+import { availableParallelism } from 'node:os';
 
 import { browserTests, nodeTests } from './browser-tests.mjs';
 
@@ -178,16 +188,43 @@ const REPORTER_RPC_TIMEOUT = /Timeout calling "onTaskUpdate"/;
 const ALL_FILES_PASSED = /Test Files\s+\d+ passed \(\d+\)/;
 const ANY_FAILED = /\d+ failed/;
 
+/**
+ * The output with its colour taken off, which is what the three patterns above
+ * are read against.
+ *
+ * **Without this the guard never fired in the one place it was written for.**
+ * The legs are spawned onto pipes, and vitest colours a pipe anyway when `CI`
+ * is set — tinyrainbow treats the variable as consent, the same way it treats
+ * `FORCE_COLOR`. So in Actions the summary arrives as
+ * `\x1b[2m Test Files \x1b[22m \x1b[1m\x1b[32m120 passed\x1b[39m\x1b[22m…`,
+ * `ALL_FILES_PASSED` finds no `\s+` between the label and the count, and a
+ * fully green leg was reported FAILED. Locally, with no `CI`, vitest emits
+ * plain text and the same guard matched — which is exactly how a bug of this
+ * shape survives being tested.
+ *
+ * Stripped rather than the patterns being loosened to tolerate escapes: a
+ * pattern that steps over arbitrary control sequences is a pattern nobody can
+ * read, and `ANY_FAILED` must keep meaning what it says.
+ */
+// eslint-disable-next-line no-control-regex -- stripping CSI sequences is the point
+const ANSI = /\x1b\[[0-9;]*m/g;
+const plain = (output) => output.replace(ANSI, '');
+
 function everyTestPassedAnyway(output) {
-  return REPORTER_RPC_TIMEOUT.test(output) && ALL_FILES_PASSED.test(output) && !ANY_FAILED.test(output);
+  const text = plain(output);
+  return REPORTER_RPC_TIMEOUT.test(text) && ALL_FILES_PASSED.test(text) && !ANY_FAILED.test(text);
 }
 
-/** The tallies, for the note on a leg that passed under a reporter timeout. */
+/** The tallies, for the note on a leg whose suite was green under a runner error. */
 function tally(output) {
-  const files = /Test Files\s+(\d+) passed/.exec(output)?.[1];
-  const tests = /Tests\s+(\d+) passed/.exec(output)?.[1];
+  const text = plain(output);
+  const files = /Test Files\s+(\d+) passed/.exec(text)?.[1];
+  const tests = /Tests\s+(\d+) passed/.exec(text)?.[1];
   return files && tests ? `${files} files, ${tests} tests` : 'every test';
 }
+
+/** A leg that did not fail: PASS, or a green suite under a runner error. */
+const isGreen = (status) => status === 'PASS' || status === 'ERRORED';
 
 const NO_BROWSER = [
   /Executable doesn't exist at/,
@@ -280,7 +317,12 @@ async function main() {
   }
 
   const legs = selected();
-  console.log(`check: ${legs.length} leg${legs.length === 1 ? '' : 's'}, CI=${CI ? 'yes' : 'no'}\n`);
+  // The core count is printed rather than assumed: it is what vitest sizes its
+  // fork pool from, and it is the first number anybody debugging a runner error
+  // on a machine they cannot log into will want.
+  console.log(
+    `check: ${legs.length} leg${legs.length === 1 ? '' : 's'}, CI=${CI ? 'yes' : 'no'}, ${availableParallelism()} cores\n`,
+  );
   const results = [];
 
   for (const leg of legs) {
@@ -289,7 +331,7 @@ async function main() {
     const needed = leg.needs && legs.some((other) => other.name === leg.needs)
       ? results.find((r) => r.name === leg.needs)
       : null;
-    if (needed && needed.status !== 'PASS') {
+    if (needed && !isGreen(needed.status)) {
       console.log(`-- ${leg.name}: SKIPPED (${leg.needs} did not pass)`);
       results.push({ name: leg.name, status: 'SKIPPED', ms: 0, note: `${leg.needs} did not pass` });
       continue;
@@ -306,13 +348,15 @@ async function main() {
 
     /*
      * Every test passed and vitest's reporter channel timed out on the way to
-     * saying so. Reported as PASS with the cause named, because the leg did the
-     * thing it exists to do. See `everyTestPassedAnyway` for why this cannot
-     * swallow a real failure.
+     * saying so. ERRORED rather than FAILED, because no test failed; ERRORED
+     * rather than PASS, because something did go wrong and the table is where
+     * a reader should be able to see which of the two it was. It does not fail
+     * the run. See `everyTestPassedAnyway` for why this cannot swallow a real
+     * failure, and the four-statuses note at the top for why it is its own word.
      */
     if (everyTestPassedAnyway(output)) {
-      console.log(`   PASS in ${seconds(ms)} — ${tally(output)} passed; vitest's reporter RPC timed out`);
-      results.push({ name: leg.name, status: 'PASS', ms, note: "reporter RPC timed out; suite green" });
+      console.log(`   ERRORED in ${seconds(ms)} — ${tally(output)} passed; vitest's reporter RPC timed out`);
+      results.push({ name: leg.name, status: 'ERRORED', ms, note: 'reporter RPC timed out; suite green' });
       continue;
     }
 
@@ -349,11 +393,16 @@ async function main() {
 
   const failed = results.filter((r) => r.status === 'FAILED');
   const skipped = results.filter((r) => r.status === 'SKIPPED');
+  const errored = results.filter((r) => r.status === 'ERRORED');
   console.log(
-    `\n${results.filter((r) => r.status === 'PASS').length} passed, ${failed.length} failed, ${skipped.length} skipped`,
+    `\n${results.filter((r) => r.status === 'PASS').length} passed, ${failed.length} failed, ${skipped.length} skipped, ${errored.length} runner error${errored.length === 1 ? '' : 's'}`,
   );
   if (failed.length) console.log(`check: FAILED — ${failed.map((r) => r.name).join(', ')}`);
-  else if (skipped.length) console.log(`check: green, ${skipped.length} leg(s) skipped — not a full gate`);
+  else if (errored.length) {
+    console.log(
+      `check: green, every test passed — ${errored.length} leg(s) hit a runner error: ${errored.map((r) => r.name).join(', ')}`,
+    );
+  } else if (skipped.length) console.log(`check: green, ${skipped.length} leg(s) skipped — not a full gate`);
   else console.log('check: green');
 
   return failed.length ? 1 : 0;
