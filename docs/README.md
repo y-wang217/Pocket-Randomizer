@@ -58,6 +58,32 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: the wild encounter that swaps out.** Branch
+`claude/wild-encounter-swap-bug-1vd4q8`, prompt
+[`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
+record [`generation.md`](generation.md) section 48, measurement
+[`balance.md`](balance.md) section 20. `AI_VERSION` to
+`gymrun-ai-7-tiers-reach-the-app`; **`contentHash`, `RANDOMIZER_VERSION` and
+`RUN_LOG_VERSION` all hold.**
+
+**This closes R19 item 2, and reverses its diagnosis.** `src/ui/app.ts` pinned
+`opponent: greedyAiPolicy` on its run options — the documented switch for "one
+bot in every fight, read no tier" — so the shipped game had never played a tier:
+every wild encounter, trainer and gym leader was `GREEDY_BASELINE`,
+`smartSwitching` included, behind a card reading `Rookie`, `Seasoned` or `Ace`.
+The measurement that deferred the item (the easy tier, 0 switches in 500 calls)
+was right about the tier and silent about the wiring. Measured before the fix:
+**11 voluntary wild-side switches across 23 benched wild fights** under the
+app's wiring, **0 under the default**. The fix deletes the key; `AI_VERSION`
+moves because the opponent in every shipped fight does, and because a save
+recorded before it would otherwise resume against a different bot.
+
+Two things it leaves standing, both named in section 48: the simulator still
+defaults to `--ai pinned`, so the benchmark column and the shipped game are now
+two different opponents — a decision, not a consequence — and the shipped
+opponent is worth **+0.18 mean gyms** against the pin at 400 seeds, recorded and
+not chased.
+
 **In flight: `main`'s two red CI legs.** Branch
 `claude/epic-thompson-yr4eer`, record
 [`generation.md`](generation.md) section 47. Test, gate and workflow only:
@@ -81,7 +107,7 @@ nothing under `src/`, `contentHash` unmoved at `b8b419`, no axis moves.
   weekly cron, a dispatch and a path filter on motion CSS, sprite code and the
   motion tests.
 
-**In flight: the R19 playtest rulings.** Branch
+**Previously: the R19 playtest rulings.** Branch
 `claude/blissful-brown-5tv8fv`, prompt
 [`spec/gymrun-patch-r19-rulings.md`](spec/gymrun-patch-r19-rulings.md) with the
 diagnosis it answers at
@@ -108,10 +134,12 @@ Four items built in the order the report proposed:
    item section 44 filed rather than fixed, and the thing that made item 1a's
    first diagnosis wrong. No axis. Section 45.
 
-**Item 2 of the playtest, wild encounters swapping optimally, is deferred to a
+**Item 2 of the playtest, wild encounters swapping optimally, was deferred to a
 reproduction rather than to a later patch**: the wild tier holds neither
 `smartSwitching` nor `smartSendIn` and switched 0 times in 500 calls on a board
-where medium and hard both switched. It stays open in the playtest file.
+where medium and hard both switched. **The reproduction arrived on 2026-09-18
+and closed it**, above — the measurement was right and the app was not playing
+the tier at all.
 
 **Previously: the band recut and the level curve.** Branch
 `claude/admiring-euler-dhn536`, prompt

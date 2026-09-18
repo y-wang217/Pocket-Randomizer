@@ -84,6 +84,8 @@ rather than being filled in from memory.
 | `randomizer-18` · `fd9b5e`, 400 | `ai-6-spent-item`, pinned | RETUNE | 0.0% | **0.545** | **the shop and moveset-variance patch**, 2026-09-17. Read against the row directly above: **+0.075 mean gyms, completion unmoved at zero.** Gym clear rates: 48.3 / 49.2 / 25.5 / 62.5 / 50.0 / 0.0 / – / – against 43.2 / 49.0 / 20.5 / 44.4 / 50.0 / 0 — **gym 1 is +5.1pt and gym 3 +5.0pt**, which are the two columns with enough runs behind them to mean anything (290 and 51 parties). The patch was not aimed at this number and the direction is the one its argument predicts: the forced STAB slot stopped being deterministic for 13 of 191 starters and stopped being the wrong attack category for five of them, so an opening kit that could not fight is rarer. **Recorded, not chased** — no number here was tuned against this run, and the shop half is almost entirely unmeasured by it: 95 shop visits landed in segment 1 and 12 in segment 2, none past it, so the relic slot, the late price band and the whole segment-3-onward shelf never appeared. `broke on arrival` is 86.9%, which says the early shelf is priced above what a segment-1 wallet holds; that is a reading to carry, not to act on yet. Report `sim-reports/benchmarks/2026-09-17T13-51-31-759Z-gymrun-randomizer-18-400.json` |
 | `randomizer-18` · `94c6c1`, 400 | `ai-6-spent-item`, pinned | RETUNE | 0.0% | **0.81** | **the gym level column at parity**, 2026-09-17 (`generation.md` section 35). Read against the row directly above: **+0.265 mean gyms, completion unmoved at zero.** Gym clear rates of the runs that reached each: 63.8 / 58.6 / 30.5 / 55.0 / 60.0 / 50.0 / 0.0 / – against 48.3 / 49.2 / 25.5 / 62.5 / 50.0 / 0.0 / – / – — **gym 1 is +15.5pt on 290 parties and gym 2 +9.4pt on 157**, which are the two columns with enough behind them to carry a signal; gym 4 onward is ten to twenty runs a column and moves in both directions. This is the one row in the table that was **not** recorded and left alone: it is the direct measurement of a deliberate change, and the direction is the one the change argues for. The report's own instrument says the change landed — *mean level delta across every gym reached: 0.00*, against a table that read up to +4 at segment 7 before it. The gym 3 column is the standing outlier at 30.5% and it was 25.5% before, so parity improved it and did not fix it; Volta is an Electric gym and the deaths there are still to Electric moves, which is a coverage problem rather than a level one. **Recorded, not chased**: no other number was tuned against this run. Report `sim-reports/benchmarks/2026-09-17T17-35-22-730Z-gymrun-randomizer-18-400.json` |
 | `randomizer-19` · `a036d6`, 400 | `ai-6-spent-item`, pinned | RETUNE | **0.3%** | **0.65** | **the band recut and the level curve**, 2026-09-18, measured on the merged tree. Read against the row directly above: **-0.16 mean gyms, and the first non-zero completion this population has produced since Stage 4.9.** Gym clear rates 58.0 / 56.4 / 55.8 / 45.5 / 50.0 / 50.0 / 100 / 50.0 against 63.8 / 58.6 / 30.5 / 55.0 / 60.0 / 50.0 / 0.0 / –, on parties of 250 / 117 / 52 / 22 / 8 / 4 / 2 / 2. **Gym 1 is -5.8pt on 250 parties and gym 3 is +25.3pt on 52**, and those are the only two columns with enough behind them to carry anything; from gym 4 on it is twenty runs falling to two and every figure there is one or two seeds moving. **One run cleared all eight.** That is a single seed out of 400 and is not a completion rate, but the previous eleven rows of this table are flat zero and this one is not. **This row is four changes and a merge, so no single lever owns the delta.** The five bands, the closed `stabWindow`, the stretched curve and the gym's two-page offer landed here; the row above zeroed the gym level column on a different branch. Both push the early game the same way and they were measured apart before being measured together — the mean coming *down* while the far end opens up is the shape that reading predicts, and neither branch was tuned against the other. The ramp is what the patch was aimed at and it reads: gym 1 at **83/17/0**, gym 3 at 36/47/15/3, gym 4 at 16/36/34/13. The leak this patch was built to close produced 61/34/5 at gym 1. Band 5 is still unmeasured — four parties reach gym 5 and two reach gym 8 — so the top of the recut is asserted by construction and not by this row. **Recorded, not chased.** The author's standing ruling is that clear rate is not the target: an earlier build averaged 3 gyms and cleared all 8 consistently, which is the failure mode this direction avoids, and the real reading is a playtest. Report `sim-reports/benchmarks/2026-09-18T02-56-01-432Z-gymrun-randomizer-19-400.json` |
+| `randomizer-20` · `b8b419`, 400 | `ai-7-tiers-reach-the-app`, pinned | RETUNE | 0.0% | **0.655** | **the wild-encounter swap fix, control arm**, 2026-09-18 (section 20). The opponent the app played *before* this patch, measured on the tree that fixes it: `GREEDY_BASELINE` in every fight. Not read against the row above — that one is a different `contentHash` and a different set of merged patches — but against the row below it, which is the same command with one flag changed. Gym clear rates 58.5 / 59.8 / 56.5 / 61.1 / 77.8 / 42.9 / 0 / 0 on parties of 248 / 117 / 46 / 18 / 9 / 7 / 3 / 0. Report `sim-reports/benchmarks/2026-09-18T16-23-08-993Z-gymrun-randomizer-20-400-pinned.json` |
+| `randomizer-20` · `b8b419`, 400 | `ai-7-tiers-reach-the-app`, table | RETUNE | 0.0% | **0.835** | **the wild-encounter swap fix, and what the app now plays**, 2026-09-18. Read against the row directly above, which is the same population and the same tree with `--ai pinned`: **+0.18 mean gyms, completion unmoved at zero.** The app had `opponent: greedyAiPolicy` pinned on its run options since before the tiers existed, so no tier was ever played in the shipped game; removing it hands the road to `easy` and `medium` and the gym to `hard`. Gym clear rates 64.6 / 57.8 / 57.4 / 75.0 / 31.8 / 57.1 / 50.0 / 0 on parties of 268 / 147 / 68 / 32 / 22 / 7 / 4 / 1 — **gym 1 is +6.1pt on 268 parties and gym 2 −2.0pt on 147**, the only two columns with enough behind them to carry a signal. **Recorded, not chased.** Report `sim-reports/benchmarks/2026-09-18T16-24-44-438Z-gymrun-randomizer-20-400-table.json` |
 
 > **Every event figure recorded before `9ce1895` is confounded.** Until that
 > commit, `resolveNode` dropped the backpack returned by `applyEventOutcome`,
@@ -2314,3 +2316,80 @@ relics or a much larger sweep — and section 18's open item, that the standing
 baseline never takes a Toll or a Gamble at an event, is the same gap seen from
 the other side. Both want an event-and-relic-aware bot, and that is its own
 pass.
+
+---
+
+## 20. The tiers reach the app — what the shipped opponent costs
+
+**2026-09-18, `AI_VERSION` `gymrun-ai-6-spent-item` →
+`gymrun-ai-7-tiers-reach-the-app`.** Prompt
+[`spec/gymrun-patch-wild-encounter-swap.md`](spec/gymrun-patch-wild-encounter-swap.md),
+record [`generation.md`](generation.md) section 48.
+
+The patch is one deleted option key: `src/ui/app.ts` pinned
+`opponent: greedyAiPolicy` on its run options, which is the documented switch
+for "one bot in every fight, read no tier". So until this patch **the shipped
+game's opponent was `GREEDY_BASELINE` in every fight** — the same bot
+`--ai pinned` plays — behind cards reading `Rookie`, `Seasoned` and `Ace`.
+
+### 20.1 The pair
+
+400 seeds, prefix `RETUNE`, nodes `rest`, player `greedy`, `randomizer-20` ·
+`b8b419`. Both rows taken on this tree, ten minutes apart, differing only in
+`--ai`. Read across this pair; it is the comparison.
+
+| | `--ai pinned` (what shipped) | `--ai table` (what ships now) | delta |
+|---|---|---|---|
+| **mean gyms cleared** | **0.655** | **0.835** | **+0.18** |
+| run completion | 0.0% | 0.0% | — |
+| gym clear rate, 1 to 8 | 58.5 / 59.8 / 56.5 / 61.1 / 77.8 / 42.9 / 0 / 0 | 64.6 / 57.8 / 57.4 / 75.0 / 31.8 / 57.1 / 50.0 / 0 | |
+| parties reaching each gym | 248 / 117 / 46 / 18 / 9 / 7 / 3 / 0 | 268 / 147 / 68 / 32 / 22 / 7 / 4 / 1 | |
+| opponent switches per battle | 0.297 | 0.274 | −0.023 |
+
+Reports
+`sim-reports/benchmarks/2026-09-18T16-23-08-993Z-gymrun-randomizer-20-400-pinned.json`
+and
+`sim-reports/benchmarks/2026-09-18T16-24-44-438Z-gymrun-randomizer-20-400-table.json`.
+
+**Gym 1 is +6.1pt on 248 and 268 parties and gym 2 is −2.0pt on 117 and 147**,
+and those two columns are the only ones with enough runs behind them to carry
+anything; from gym 4 on it is thirty runs falling to one and every figure there
+is a seed or two moving. The mean is the figure to read, per section 0.
+
+### 20.2 The direction is the one the tier table argues for
+
+**The road gets easier and only the gym gets harder, and the road is most of the
+nodes.** `aiTierFor` puts every wild encounter on `easy` — no `takeTheKo`, a
+`crudeDamage` estimate, 0.35 noise — and an ordinary trainer on `medium`, where
+the pin had all of them at `GREEDY_BASELINE`'s knockout instinct and perfect
+determinism. Gym leaders go the other way, to `hard`, which is `medium` plus one
+step of lookahead. So +0.18 mean gyms with the gym-1 column up six points and
+the later columns flat is the shape that reading predicts: more parties survive
+the road to reach each gym, and the gym itself is no easier.
+
+**Recorded, not chased.** Nothing was tuned against this run and no target
+moved. The 0.0% completion on both sides is the population's, not the patch's —
+it has read zero for eleven of the last twelve rows in section 0.
+
+### 20.3 The benchmark column and the shipped game are now two opponents
+
+`npm run sim` defaults to `--ai pinned`, and it defaults there for a stated
+reason: every historical row was measured that way, and section 0's "read down
+an `AI_VERSION`" rests on the yardstick holding still. That default was also,
+until this patch, **what the app did** — so the benchmark was measuring the
+shipped game by accident rather than by design.
+
+It is not any more. The table above is the size of the gap, and closing it means
+flipping the simulator's default and accepting a discontinuity in the column, or
+carrying a `--ai table` row beside the pinned one at each release. **That is a
+decision, not a consequence of this patch**, and it is the author's to make.
+
+### 20.4 Reading this bump
+
+`AI_VERSION` moved for a change in `ui/`, so the usual rule needs one exception
+written down: **a pinned row may be read across `-6` → `-7`.** `pinned` is
+`GREEDY_BASELINE` and `GREEDY_BASELINE` did not move — not a flag, not a weight,
+not a line of `core/battle/ai.ts`. The axis moved because the *app's* opponent
+did, and because a save recorded before the patch would otherwise resume into
+battles played by a different bot. Every other bump in that constant's list
+changed the reasoning, and for those the rule stands unchanged.

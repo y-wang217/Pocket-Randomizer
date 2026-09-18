@@ -10,7 +10,6 @@
  * This file owns exactly two things core/ cannot: where the first seed comes
  * from, and what a click means. Everything else it asks for.
  */
-import { greedyAiPolicy } from '../core/battle/ai';
 import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
@@ -1334,7 +1333,22 @@ export function mountApp(root: HTMLElement): void {
     };
 
     try {
-      const options = { onState, onBattle, onProjection, onDecision: saveRunLog, opponent: greedyAiPolicy };
+      /*
+       * **No `opponent` here, and its absence is the whole of the tier patch
+       * reaching the app.** `PlayRunOptions.opponent` pins one bot to every
+       * fight in the run and, when it is set, `opponentFor` is not consulted
+       * and no tier is read. It was set to `greedyAiPolicy` while that constant
+       * *was* the opponent — it predates the tiers by two days — and the tiers
+       * patch added `tieredOpponentFor` as the default without removing the
+       * pin, so the shipped game went on playing `GREEDY_BASELINE`,
+       * `smartSwitching` and all, behind a card that said `Rookie`. See
+       * `generation.md` section 48.
+       *
+       * Leaving it out is what makes the badge true: `tieredOpponentFor` reads
+       * `aiTierFor` per node, which is the same reading the node card and the
+       * battle panel already print.
+       */
+      const options = { onState, onBattle, onProjection, onDecision: saveRunLog };
       const result: RunResult = resume
         ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
         : await playRun(seed, policy, DEFAULT_TUNING, options);

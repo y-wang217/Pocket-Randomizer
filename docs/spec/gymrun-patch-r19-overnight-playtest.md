@@ -283,6 +283,18 @@ plays a different policy" is a table entry plus a policy rather than a special
 case in the run loop. What it got wrong was assuming the wild tier switches at
 all.)*
 
+**Closed 2026-09-18, and the reading above is superseded in turn.** The
+reproduction arrived
+([`gymrun-patch-wild-encounter-swap.md`](gymrun-patch-wild-encounter-swap.md)):
+a voluntary switch on turn 4 with nothing fainted, which is neither of the two
+routes named above. The 500-call measurement is still correct and still
+irrelevant — **`src/ui/app.ts` pinned `opponent: greedyAiPolicy`, so no tier was
+ever played in the shipped game.** Every fight was `GREEDY_BASELINE`, which
+holds `smartSwitching`. Both readings on this item asked what the wild tier
+does; neither asked whether the app reads the table.
+[`../generation.md`](../generation.md) section 48 is the account, per the
+`CLAUDE.md` rule that a superseded reading is recorded rather than deleted.
+
 ## Item 3 — status moves are underpriced
 
 > Also these status moves are way underpriced. They should be around the same
