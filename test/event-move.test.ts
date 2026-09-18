@@ -154,9 +154,11 @@ describe('the version axes this patch moved', () => {
      * slots. This assertion's subject is *this* patch's bump, and a literal is
      * still the only kind of check that can catch one that failed to happen —
      * so the number tracks the head of the axis rather than being frozen at
-     * the value this patch left it.
+     * the value this patch left it. `-19` was Stage 4.9; `-20` is the R19
+     * duplicate-card fix, which narrows a pool's candidates before every
+     * weighted pick.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-19');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-20');
   });
 });
 

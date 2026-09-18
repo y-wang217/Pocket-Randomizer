@@ -64,7 +64,7 @@ import { el } from '../scene';
 import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
 import { renderEvolutionBlock, type EvolutionPrompt } from './evolution';
-import { renderRewardCard, tierBadge } from './reward';
+import { offerBadge, renderRewardCard } from './reward';
 
 /**
  * A Pokemon on the table, and the party it is being weighed against.
@@ -194,7 +194,7 @@ export function createResultScreen(): ResultScreen {
       cardsHeading.hidden = !offer;
       cards.hidden = !offer;
       if (offer) {
-        cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), tierBadge(offer.tier));
+        cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), offerBadge(offer.badge));
         cards.replaceChildren(
           ...offer.options.map((option, index) =>
             renderRewardCard(option, state, () => onDone(index)),

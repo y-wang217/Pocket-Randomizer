@@ -68,8 +68,15 @@ describe('the run log version', () => {
      * randomizer draws, and it has now done so three times — the victory-order
      * patch to `-17`, then the shop and moveset-variance patch to `-18` — which
      * is the axis working.
+     *
+     * Twice more since: Stage 4.9 to `-19`, and the R19 duplicate-card fix to
+     * `-20`. That last one is this file's own subject seen from the other side
+     * — it is the gym's page 2, the one this patch built, that was dealing two
+     * coin cards — and it moved the randomizer while leaving `RUN_LOG_VERSION`
+     * exactly where this patch left it, which is the separation asserted on the
+     * line below.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-19');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-20');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

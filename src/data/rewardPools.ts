@@ -375,11 +375,40 @@ const GYM: readonly RewardBand[] = [
      * the tutor is no longer a card because it is the thing Part A hands over
      * unconditionally. The first is a narrowing a tuning pass may want to undo;
      * the second is the item working.
+     *
+     * **The R19 rulings undid the first, and the paragraph above is left
+     * standing because it predicted exactly that.** `item` is back below; the
+     * `tutor` is still gone and still for the reason given. Three entries is
+     * also now the minimum this page can have and stay honest — see the note
+     * on the entry itself.
      */
     throughSegment: 2,
     entries: [
       { kind: 'relic', weight: 5 },
       { kind: 'currency', weight: 3, min: 110, max: 165 },
+      /*
+       * **The item entry, restored by the R19 rulings: "Def add items as
+       * reward option".**
+       *
+       * The comment above called its removal "a real loss worth naming rather
+       * than a tidy-up" and "a narrowing a tuning pass may want to undo". A
+       * playtest undid it, and it arrives back carrying a second job the
+       * original never had: **it is the third kind this page needs in order to
+       * be three distinct decisions.**
+       *
+       * With two entries and a draw that does not remove them, 26.3% of gym
+       * pages showed two coin cards and 5.4% showed three. `drawable` in
+       * `core/rewards.ts` is what forbids the repeat; this is what the draw
+       * lands on instead. A rule with nowhere to go would have been a pool
+       * that could not fill its own offer.
+       *
+       * `PREMIUM_ITEM_IDS`, matching `ELITE` at this segment and matching this
+       * pool's own stated rule — "the premium items only, never the modest or
+       * type ones". The gradient over elite stays where the header puts it, in
+       * moves and money, which do not saturate; an item does, at one held item
+       * per member, so paying a *better* item here would buy nothing.
+       */
+      { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
     ],
   },
   {
@@ -387,6 +416,9 @@ const GYM: readonly RewardBand[] = [
     entries: [
       { kind: 'relic', weight: 5 },
       { kind: 'currency', weight: 3, min: 150, max: 230 },
+      // Choice items join from segment 3, the same gate `ELITE` applies and for
+      // the same reason — see the note above the elite bands.
+      { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
     ],
   },
 ];

@@ -232,6 +232,17 @@ function detailOf(reward: Reward): Node {
       // who learns it, then what it displaces — so the shelf can no longer
       // promise which move goes.
       return prose(SHOP_COPY.teach);
+    /*
+     * **The relic's own effect text, carried over with the R19 reward-card
+     * fix.** A relic row fell through to the empty default and showed a bare
+     * name, which is the same gap the reward card had: `describeStock` reads
+     * the table for the name and nothing read it for the effect. The ruling
+     * asked for relics to say what they are on the card, and a shelf that
+     * charged 260 coins for a name the reward card now explains would be the
+     * inconsistency this fix created rather than one it found.
+     */
+    case 'relic':
+      return document.createTextNode(relicById(reward.relic)?.playerDescription ?? '');
     default:
       return document.createTextNode('');
   }

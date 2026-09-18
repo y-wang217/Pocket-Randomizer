@@ -64,6 +64,8 @@
  */
 
 /** A held item the reward pools may draw. */
+import type { BattleKind } from './tuning';
+
 export interface ItemEntry {
   /**
    * True for a berry: a held item that fires once and is destroyed.
@@ -317,6 +319,91 @@ export const ITEMS: readonly ItemEntry[] = [
   // Appended, like every list before them, because the order is a draw order.
   ...BERRIES,
 ];
+
+/**
+ * What an opponent may be holding, by what kind of opponent it is.
+ *
+ * ## Why this exists at all, and why it is a ladder rather than a list
+ *
+ * Until the R19 rulings a gym leader held nothing: `heldItemRate` returned 0
+ * for `gym` before it reached its table. Every other opponent drew from
+ * `BERRIES` and only from `BERRIES`, so "what an opponent holds" was one list
+ * and needed no function.
+ *
+ * The ruling asks for two things at once — **"lets add battle items at random
+ * for now and do item scaling: leftovers is much stronger than expert belt for
+ * example"** — and then answers its own question about how: *"If we already
+ * have scaling, just use the same bands."*
+ *
+ * **We already have scaling, and it is already that exact example.** Leftovers
+ * is in `PREMIUM_ITEMS` and Expert Belt is in `GOOD_ITEMS`, and the two lists
+ * were split apart by the Stage 3 tuning pass for precisely the reason the
+ * ruling gives. So nothing new is invented here: the ladder below is the five
+ * existing lists, in the order those lists already claim for themselves, read
+ * against the segment instead of against the node tier.
+ *
+ * That is the whole design. A gym leader early in the run holds the filler a
+ * normal node pays; a gym leader late in the run holds what an elite node pays.
+ *
+ * ## The one item named by hand
+ *
+ * `SITRUS_BERRY`, because the ruling names it: *"also heal 1/4 hp berry is top
+ * tier"*. It exists already — `BERRIES` has carried it since 4.6b, restoring
+ * 1/4 max HP below half — so no list was consulted to find a replacement for
+ * it. It is the only berry in this table, it appears only in the top band, and
+ * it is there as a judgement about that berry rather than about berries.
+ *
+ * ## Two bands per step, never one
+ *
+ * Every row holds at least two lists, so no segment offers a single item. One
+ * list would make the leader's item a function of the segment alone, which is
+ * a fact the player could read off the gym rail before the fight rather than
+ * off the board during it.
+ */
+const SITRUS_BERRY: readonly ItemEntry[] = BERRIES.filter((entry) => entry.id === 'sitrusberry');
+
+/**
+ * The gym ladder: which lists are in play at which segment, weakest first.
+ *
+ * Eight rows, indexed by segment, clamped at both ends — the same shape and the
+ * same clamp as `HELD_ITEM_RATE` in `data/scaling.ts`, which is the other half
+ * of this decision. That one says *how often*; this one says *which*.
+ *
+ * Four steps rather than eight distinct rows, because the reward pools already
+ * move in two (`throughSegment: 2`, then `7`) and moving a leader's item pool
+ * every single segment would be a gradient nobody can feel. Pairs of gyms share
+ * a band, which is visible: gym 3 holds something gym 2 did not.
+ */
+export const GYM_ITEM_BANDS: readonly (readonly ItemEntry[])[] = [
+  [...TYPE_ITEMS, ...MODEST_ITEMS],
+  [...TYPE_ITEMS, ...MODEST_ITEMS],
+  [...MODEST_ITEMS, ...GOOD_ITEMS],
+  [...MODEST_ITEMS, ...GOOD_ITEMS],
+  [...GOOD_ITEMS, ...PREMIUM_ITEMS],
+  [...GOOD_ITEMS, ...PREMIUM_ITEMS],
+  [...PREMIUM_ITEMS, ...CHOICE_ITEMS, ...SITRUS_BERRY],
+  [...PREMIUM_ITEMS, ...CHOICE_ITEMS, ...SITRUS_BERRY],
+];
+
+/**
+ * The pool one opponent draws its held item from.
+ *
+ * **A trainer and a wild Pokemon still draw from `BERRIES` and nothing else**,
+ * which is not an oversight: changing their pool would move every recorded
+ * seed's trainer and wild teams, and the ruling asked for items on *gym* mons.
+ * `test/gym-held-items.test.ts` pins that those two are byte-identical to what
+ * they generated before this table existed.
+ *
+ * The signature mirrors `heldItemRate(kind, segment)` deliberately. Two
+ * functions, one shape, one asking how often and one asking which — a single
+ * function returning both would make the rate untunable without touching the
+ * pool, and those are the two edits a tuning pass makes separately.
+ */
+export function heldItemPoolFor(kind: BattleKind, segment: number): readonly ItemEntry[] {
+  if (kind !== 'gym') return BERRIES;
+  const index = Math.max(0, Math.min(GYM_ITEM_BANDS.length - 1, segment));
+  return GYM_ITEM_BANDS[index] ?? BERRIES;
+}
 
 const BY_ID = new Map(ITEMS.map((entry) => [entry.id, entry]));
 

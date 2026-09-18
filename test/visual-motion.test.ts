@@ -57,6 +57,18 @@ afterAll(async () => {
   await harness?.close();
 });
 
+/**
+ * How long the one un-seeked assertion in this file will wait for a lunge to
+ * finish. **A ceiling, not a budget.**
+ *
+ * `battleFeedbackMs` is 750 and a single beat is a quarter of that, so ten
+ * seconds is more than an order of magnitude of headroom. That is the point:
+ * the value exists to tolerate an arbitrarily slow *schedule* on a loaded
+ * runner, and deriving it from the beat would rebuild the coupling it is there
+ * to remove. It is not a timing assertion and nothing reads it as one.
+ */
+const LUNGE_CEILING_MS = 10_000;
+
 interface Observed {
   /** Animations the engine created for this element, by keyframe name. */
   started: string[];
@@ -254,12 +266,42 @@ describe(`the stage actually moves on ${engine}`, () => {
    * values on an engine that never scheduled it, and an `animationstart` alone
    * says nothing about whether anything moved. The lunge is the case used here
    * because it carries no `animation-delay` in slot 1, so the window is the
-   * whole of `--motion-beat` and the wait below is bounded by the tuning rather
-   * than by a guess.
+   * whole of `--motion-beat`.
+   *
+   * ## The fourth wrong turn, and it was this test's
+   *
+   * `observe` above records three ways an animation assertion can race and how
+   * each was fixed — by not racing, pausing the animation and seeking it. **This
+   * test cannot take that fix and keep its meaning**: seeking is the one thing
+   * it exists to not do. So it is the last place in the file that still waits
+   * on the engine, and it waited the wrong way.
+   *
+   * It set the attribute, slept `battleFeedbackMs`, and then asked which events
+   * had arrived — the comment reading "a whole feedback budget is four beats;
+   * one beat cannot outlast it." True about the animation's **duration** and
+   * silent about its **start**. Nothing bounds how long an engine may take to
+   * schedule an attribute-triggered animation, and a start delayed into the
+   * back of that window pushes `animationend` past the deadline while
+   * `animationstart` still lands inside it. That is exactly the signature the
+   * WebKit leg produced under a loaded runner — `['animationstart:actor-lunge']`
+   * with no end — on a head whose diff touched no CSS, no motion and no stage.
+   * The same reading `observe` already had about the other twelve beats: **a
+   * test that waits a fixed fraction of a motion budget and then reads the
+   * screen is making an assumption about what the budget is for.**
+   *
+   * So the wait now resolves on the `animationend` **event** and the timeout is
+   * a ceiling rather than the measurement. In the ordinary case it returns in
+   * about one beat, the same as before. Under load it waits as long as the
+   * engine needs. And it still fails hard on the thing it is for: an animation
+   * that starts and never ends runs the ceiling out and reports exactly that.
+   *
+   * The ceiling is deliberately far above any beat — a slow schedule is what is
+   * being tolerated, so a ceiling derived from the beat would re-introduce the
+   * coupling this is removing. A lunge that has not finished in ten seconds has
+   * not been delayed, it is broken.
    */
   it('runs a beat to completion on its own clock, start and end', async () => {
-    const budget = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
-    const seen = await page.evaluate(async (beat) => {
+    const seen = await page.evaluate(async (ceiling) => {
       const actor = document.querySelector('.stage__actor--me');
       if (!actor) throw new Error('no player actor on the stage');
       const events: string[] = [];
@@ -267,16 +309,40 @@ describe(`the stage actually moves on ${engine}`, () => {
         events.push(`${event.type}:${(event as AnimationEvent).animationName}`);
       };
       for (const type of ['animationstart', 'animationend']) actor.addEventListener(type, record);
+
+      /*
+       * Armed before the attribute is set, so an engine that starts and ends
+       * the animation faster than this frame cannot slip through between them.
+       */
+      const stage = actor;
+      const finished = new Promise<void>((resolve) => {
+        let timer = 0;
+        const onEnd = (event: Event): void => {
+          if ((event as AnimationEvent).animationName !== 'actor-lunge') return;
+          clearTimeout(timer);
+          stage.removeEventListener('animationend', onEnd);
+          resolve();
+        };
+        stage.addEventListener('animationend', onEnd);
+        timer = window.setTimeout(() => {
+          stage.removeEventListener('animationend', onEnd);
+          resolve();
+        }, ceiling as number);
+      });
+
       actor.setAttribute('data-acted', '1');
-      // A whole feedback budget is four beats; one beat cannot outlast it.
-      await new Promise((resolve) => setTimeout(resolve, beat as number));
+      await finished;
+
       for (const type of ['animationstart', 'animationend']) actor.removeEventListener(type, record);
       actor.removeAttribute('data-acted');
       return events;
-    }, budget);
+    }, LUNGE_CEILING_MS);
 
     expect(seen, `the lunge did not start on ${engine}`).toContain('animationstart:actor-lunge');
-    expect(seen, `the lunge started but never finished on ${engine}`).toContain('animationend:actor-lunge');
+    expect(
+      seen,
+      `the lunge started but never finished on ${engine} within ${LUNGE_CEILING_MS}ms — saw ${JSON.stringify(seen)}`,
+    ).toContain('animationend:actor-lunge');
   });
 
   /*

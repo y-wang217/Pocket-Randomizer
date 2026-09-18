@@ -42,9 +42,10 @@
  */
 import { describeMove } from '../../core/battle/driver';
 import { moveCardData } from '../move-detail';
-import type { Reward } from '../../core/rewards';
+import type { OfferBadge, Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
+import { relicById } from '../../data/relics';
 import { tierChip } from '../chip';
 import { el, moveCard } from '../scene';
 import { setProse } from '../dom';
@@ -66,9 +67,19 @@ import { typeChip } from './starter-select';
  * the move card, beside the base power it can disagree with.
  */
 
-/** The tier chip, shared with the map so the two screens agree at a glance. */
-export function tierBadge(tier: string): HTMLElement {
-  return tierChip(tier);
+/**
+ * The chip beside `TAKE ONE`, shared with the map so the two screens agree at
+ * a glance.
+ *
+ * **Was `tierBadge`, and takes an `OfferBadge` rather than a `string` now.**
+ * A gym's reward page prints `GYM`, which is not a tier, and a parameter typed
+ * `string` is what let it print `ELITE` for as long as it did without anything
+ * objecting. `tierChip` underneath is still generic and still unchanged: it
+ * draws `.tier--<value>`, and Stage V0's rule that no tier carries a colour
+ * means the fourth value needs no stylesheet entry to look right.
+ */
+export function offerBadge(badge: OfferBadge): HTMLElement {
+  return tierChip(badge);
 }
 
 /**
@@ -117,10 +128,53 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
       setProse(detail, REWARD_COPY.heal);
       break;
 
+    /*
+     * **The relic card. Added by the R19 rulings; it rendered blank until now.**
+     *
+     * This switch had no `case 'relic'` at all, so a relic card carried its
+     * `KIND_LABELS` chip and nothing else — no name, no effect — which is what
+     * the playtest screenshot shows. It was not a resolution bug: a relic card
+     * reaching this function has already survived `resolveOffer`, so it is a
+     * relic the run does not hold and the player can genuinely take.
+     *
+     * The ruling asks for more than the name: "relics should show you what they
+     * are. On the card." So the detail line is the relic's own
+     * `playerDescription`, read from the table the same way an item's card
+     * reads `blurb` — one field, written once, rendered wherever the object
+     * appears. Part 4 holds: that field is already written as an attribute and
+     * is already on screen for the rest of the run once taken.
+     *
+     * The id fallback mirrors `describeReward` and `screens/shop.ts`: a relic
+     * missing from the table shows its id rather than an empty card, because a
+     * blank card is exactly the failure this case exists to end.
+     */
+    case 'relic': {
+      const entry = relicById(reward.relic);
+      name.textContent = entry?.name ?? reward.relic;
+      detail.textContent = entry?.playerDescription ?? '';
+      setProse(note, REWARD_COPY.relic);
+      break;
+    }
+
+    /*
+     * **`technique` joins the two move kinds here, and was missing for the
+     * same reason `relic` was.** It is the third kind that carries a `move`,
+     * `isMoveRow` in `screens/shop.ts` has always treated all three together,
+     * and this switch did not — so every Technique card in the game has been
+     * blank since `generation.md` section 31 made status moves reachable.
+     *
+     * It shares the branch rather than getting one of its own because what a
+     * card does with a move is identical for all three: print the name, print
+     * the copy, and append the shared move card. Only the copy differs, and
+     * `MOVE_COPY` is that difference — a lookup keyed by the kind rather than a
+     * chain of conditionals, so the fourth move kind adds a row instead of
+     * another branch.
+     */
     case 'tm':
-    case 'tutor': {
+    case 'tutor':
+    case 'technique': {
       name.textContent = reward.move;
-      setProse(detail, reward.kind === 'tutor' ? REWARD_COPY.tutor : REWARD_COPY.tm);
+      setProse(detail, MOVE_COPY[reward.kind]);
       /*
        * The band. **Stage 4.6b's badge, on R12's insertion point.**
        *
@@ -179,6 +233,13 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
  * "what would this change about my party" belongs now that capture is the only
  * way a party member arrives.
  */
+
+/** The line under a move card's name, by which of the three move kinds it is. */
+const MOVE_COPY = {
+  tm: REWARD_COPY.tm,
+  tutor: REWARD_COPY.tutor,
+  technique: REWARD_COPY.technique,
+} as const satisfies Record<Extract<Reward, { move: string }>['kind'], unknown>;
 
 const KIND_LABELS: Record<Reward['kind'], string> = {
   item: 'Held item',

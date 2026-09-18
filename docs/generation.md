@@ -6877,3 +6877,481 @@ is drawn and what the questions are asked against — never what a write lands o
 agreement with `reconcileItemPlan` as a `core/` property, and the app wiring by
 source in the manner of `test/teach-boundary.test.ts`, because which party a
 question reads is not something a rendering assertion can see.
+## 42. A gym leader was already drawing an item and throwing it away
+
+**The R19 rulings, item 5**, built on `claude/blissful-brown-5tv8fv` from
+[`spec/gymrun-patch-r19-rulings.md`](spec/gymrun-patch-r19-rulings.md). Moves
+`contentHash` from `a036d6` to `eba446` and **no other axis**.
+
+### The conditional the ruling asked, and the branch this took
+
+The instruction has an `if` in it, and the build owes an answer to which side it
+came down on:
+
+> do item scaling: leftovers is much stronger than expert belt for example. If
+> we already have scaling, just use the same bands. Otherwise, we increase
+> number of non-berry items as gyms progress.
+
+**We already had scaling, and it was already that exact example.** `Leftovers`
+is a `PREMIUM_ITEMS` entry and `Expert Belt` is a `GOOD_ITEMS` entry, and the
+two lists were split apart by the Stage 3 tuning pass for precisely the reason
+the ruling gives — one `STAPLE_ITEMS` list fed both the hard and the elite pools
+and made the reward gradient between them "nothing but a heal fraction".
+
+So `GYM_ITEM_BANDS` invents no list and grades no item by hand. It is the five
+existing lists — `TYPE_ITEMS`, `MODEST_ITEMS`, `GOOD_ITEMS`, `PREMIUM_ITEMS`,
+`CHOICE_ITEMS` — read against the **segment** instead of against the node tier.
+A gym leader early in the run holds the filler a normal node pays; a gym leader
+late in the run holds what an elite node pays.
+
+The fallback branch ("increase number of non-berry items as gyms progress") was
+not needed as a *pool* rule, and it is what the rate column does anyway.
+
+### The one item named by hand, and the lookup that did not happen
+
+> (also heal 1/4 hp berry is top tier) if this doesnt exist check smogon for top
+> items usage in pvp
+
+It exists. `sitrusberry` — "Restores 1/4 max HP when the holder drops below
+half", `restores: { fraction: 0.25 }` — has been in `BERRIES` since 4.6b. **The
+second half of that sentence is conditional on the first and the condition was
+false, so no external list was consulted and none is cited anywhere in this
+patch.** Sitrus is the only berry on the gym ladder, it appears in the top band
+only, and it is there as a judgement about that berry rather than about berries.
+
+### Why this cost no `RANDOMIZER_VERSION`, and why that was not luck
+
+`rollBerry` — now `rollHeldItem` — has always spent **two draws
+unconditionally**, a `nextFloat` for whether and a `pick` for which, and only
+then compared against the rate. Its own comment said why, and named the gym as
+the case: *"The draw happens whether or not the rate can succeed — a gym's rate
+is zero and it still costs a value."* `generateGymTeam` said the same from the
+other side: *"`holding` is passed even though a gym's rate is zero, so a gym
+member costs the same draws as any other opponent and the table is the only
+thing deciding what it holds."*
+
+Both were written by earlier passes that expected this one. **A gym member has
+been drawing an item and discarding it on every seed ever recorded**, so turning
+the rate up spends the same draws in the same order and reads a different answer
+out of them.
+
+The pool widening is free for the same class of reason: `stream.pick` is one
+`nextUint32` for an array of any length, because `nextInt` bounds the *value*
+and not the draw. Fifteen berries and a nineteen-entry premium band cost the
+same.
+
+Two proofs, because the claim is the whole justification for the axis:
+
+- `test/gym-held-items.test.ts` pins a SHA-256 of 4,800 trainer and wild teams —
+  300 seeds x 8 segments x 3 tiers x 2 kinds — **recorded against the tree
+  before the ladder existed**. A future change that moves a trainer or a wild
+  team by one field fails it and owes `RANDOMIZER_VERSION` a bump.
+- `docs/visual/baseline/runs/` was re-recorded and moved in the `contentHash`
+  field and **in no other field of any of the six records**. Decision logs,
+  outcomes, visits, casualties and `docs/visual/baseline/battles/GYMRUN01.json` are byte identical.
+  `test/fixtures/sim-report.json` likewise, and one of its three runs clears a
+  gym — which is a weak witness rather than a strong one, because gym 1 draws
+  from the weakest band at the lowest rate, and it is reported as weak here
+  rather than presented as proof.
+
+The live evidence is the measurement instead: over 150 generated maps, 4,800 gym
+Pokemon, **3,378 holding (70.4%)**, tracking the table at every rung — gym 1 at
+25%, gym 4 at 59%, gym 7 at 90%, gym 8 at 900/900.
+
+### The superseded rule
+
+Deleted from `data/scaling.ts` and recorded here, per the `CLAUDE.md` rule:
+
+> Gym leaders are not on this table and hold nothing. A gym is the segment's
+> difficulty statement and it already draws at `GYM_MOVE_BAND_BONUS`; a second
+> dial on the same fight is a dial the balance report cannot attribute.
+
+**The first sentence is now false by decision.** The second is still true and is
+now a standing hazard rather than an argument: a gym's difficulty moves on two
+dials, and a balance row that reads a gym clear has to say which of them moved.
+`docs/balance.md` is where that gets recorded.
+
+`test/berries.test.ts` carried the same rule as an assertion — *"gives a gym
+leader nothing to hold"*, `heldItemRate('gym', 3) === 0` — and it is replaced
+rather than deleted: that file now asserts the half still in its remit, that no
+berry but Sitrus reaches a gym leader. A Chople Berry on a gym leader would mean
+the ladder was drawing from `BERRIES` after all.
+
+### Renames
+
+`BERRY_HOLD_RATE` -> `HELD_ITEM_RATE`, `berryHoldRate` -> `heldItemRate`,
+`rollBerry` -> `rollHeldItem`. A table with a gym column that pays out Leftovers
+is not a berry table, and leaving the old names would have been the one thing
+this file exists to stop: a name that is a record of what the code used to do.
+
+The `if (kind === 'gym') return 0;` guard is gone with them. Every battle kind is
+a column now, so how often a gym leader holds something is a number in a table
+rather than a branch in a function.
+
+### What is deliberately left
+
+- **Eviolite can be a dud.** It is a `GOOD_ITEMS` entry and does nothing on a
+  fully evolved holder, which a late gym leader usually is. That is the cost of
+  "at random for now" and the ruling said "for now" itself.
+- **Choice items are a gamble the AI takes blind.** `legalChoices` filters on
+  `move.usable`, so a locked leader only ever offers its locked move and the
+  scorer cannot pick an illegal one — the mechanic is sound. Whether a leader
+  locked into the wrong move is *easier* than one without an item is a balance
+  question and is not answered here.
+- **No benchmark row.** `CLAUDE.md`: balance is not a gate. The rates are a
+  first cut, recorded, and the pass keeps going.
+
+## 43. The first price a status move has ever had to justify
+
+**The R19 rulings, item 3**, same branch and same patch as section 41. Moves
+`contentHash` from `eba446` to `a7b5f0` and no other axis. One line of
+`data/shop.ts` in each of two bands.
+
+`technique` goes 60 -> 150 in shop band 1 and 95 -> 190 in band 2.
+
+### Why the old number was not a mistake
+
+The superseded argument is kept in place at the band-1 entry, because it was
+sound and simply never tested: *"A TM moves the number the player hits with. A
+Swords Dance moves how they get to use it, and costs a turn to do it. Cheaper,
+therefore, but not much cheaper."*
+
+Status moves were **structurally unreachable** until section 31 — all four
+routes that hand a player a move called `damagingInBands` — so the shop shelf is
+the first surface in the game's history on which a technique's price has been
+visible to anyone. The first playtest that saw one said it was underpriced. That
+is the system working, not a regression.
+
+### Where the number comes from
+
+The ask is a range: *"around the same value as a +2 band move or a relic, maybe
+less than a relic"*. **The shop sells no +2 band move at any price**, so there is
+no row to copy and the number has to be derived or invented.
+
+Derived. The only move-against-move comparison the price table contains is its
+own two TMs — `bandOffset: 0` at 70 in band 1, `bandOffset: 1` at 110 in band 2.
+That is this table's own price for one band step, **+40**. Two steps:
+
+| | band 1 | band 2 |
+|---|---|---|
+| TM, at its shelf's own offset | 70 | 110 |
+| **technique (+2 band steps)** | **150** | **190** |
+| relic | not stocked | 260 |
+
+"Around a +2 band move" by the table's own arithmetic, and under the relic,
+which is the range as stated. Band 1 stocks no relic, so only band 2 can satisfy
+the second half of the ask at all.
+
+### The two costs, named rather than buried
+
+1. **It is out of reach early.** 150 flat at segment 0, against a `NODE_PAYOUT`
+   of 8 for a wild fight, 14 for a trainer and 40 for a gym. At segment 2 it is
+   `priceAt(150, 2) = 203`, against the 190 the reporting playtester was
+   carrying in the screenshot — just short.
+2. **The technique slot is guaranteed, not drawn.** `shopSlotsFor` returns every
+   slot in the band, so `TECHNIQUE` is on every shelf. An unaffordable
+   guaranteed row is a permanently dead row rather than an occasionally
+   expensive one.
+
+Both accepted. The ruling holds the number loose — *"We can tune this number
+later. Currently ok w your plan"* — and `CLAUDE.md` says balance is not a gate:
+record the number and keep going. The cheaper answers a later report might want
+are a one-band step (110 / 150) or moving the technique behind a weight instead
+of a slot; both are edits to the same two lines.
+
+### Two bumps, not one
+
+The patch plan expected steps 2 and 3 to share a `contentHash` bump. They did
+not, because the gym ladder landed first and this is a separate decision that
+happens to ride the same branch. Folding them would have made one hash stand for
+two rulings and left neither attributable — which is the thing the axis exists
+to prevent. `a036d6` -> `eba446` is the gym ladder; `eba446` -> `a7b5f0` is this.
+
+The six visual baseline records and `test/fixtures/sim-report.json` moved in the
+`contentHash` field and in no other field, as expected: a price is read at
+resolution and draws nothing, so no seed's composition can move with it.
+
+## 44. Three cards, three decisions — and the diagnosis that had to be redone first
+
+**The R19 rulings, item 1a**, same branch as sections 41 and 42. Moves
+`RANDOMIZER_VERSION` from `gymrun-randomizer-19` to `-20` and `contentHash` from
+`a7b5f0` to `b8b419`. `RUN_LOG_VERSION` holds: a reward is still one question
+with one index for an answer.
+
+### The first diagnosis was wrong, and the badge is why
+
+A previous session root-caused the reported screenshot — a `SHORE 1/8` offer
+badged `ELITE` showing a blank `RELIC` card and two coin cards — as the relic
+fallback on an elite node, and filed 18,000 offers of supporting measurement.
+**It is a gym clear's second reward page.** Three independent readings agree:
+
+- **The numbers.** Elite currency at segment 0 is `62–95` at
+  `currencyScaleFor(0) = 1`. The gym pool at the same segment is `110–165`.
+  159 and 150 are inside the gym band and unreachable from the elite one.
+- **The pool.** `GYM` at `throughSegment: 2` held exactly two entries, one
+  `relic` and one `currency`, which is the card set in the screenshot.
+- **The badge.** `generateGymRewardOffer` returns `tier: 'elite'` on both pages
+  and `src/ui/screens/result.ts` prints `tierBadge(offer.tier)`, so **every gym reward
+  page in the game badges `ELITE`.**
+
+That last one is not a defect and is **deliberately not changed here**.
+`generateGymRewardOffer`'s own header argues it: *"a display fact rather than a
+draw... a gym offer that badged as `normal` would be the screen contradicting
+the cards in front of it."* The argument holds. What it did not anticipate is
+that the badge is also the only tier label a reader has, so a gym page is
+indistinguishable from an elite node in a screenshot — which cost one session a
+wrong root cause and 18,000 wasted measurements. **Filed as an open item rather
+than fixed**: `RewardOffer.tier` is a `Tier` and a gym has no tier, so a `GYM`
+badge means widening that type or adding a field beside it, and neither is item
+1a's business.
+
+### Three defects, measured before and after
+
+All rates over 4,000 seeds per configuration. Before, then after:
+
+| | before | after |
+|---|---|---|
+| gym page with 2+ coin cards, no relics held | 31.8% | **0** |
+| gym page with 3 coin cards | 5.4% | **0** |
+| gym page with 2+ coin cards, all 10 relics held | 100% | **0** |
+| gym page showing the same relic twice | 11.3% | **0** |
+| elite offer with two fungible cards, all relics held | 8.8% | **0** |
+
+Zero at every relic count a run can be at — 0, 1, 3, 6, 9 and 10 — on both gym
+pages, at every tier, at every segment. `test/offer-distinctness.test.ts` holds
+all of it.
+
+### The fix, and why it needed no re-ordering
+
+The first reading said the fix "needs the fallback drawn after the other two
+cards, or resolved last — either moves `RANDOMIZER_VERSION`". It needs neither.
+
+**`pickWeighted` spends exactly one `nextFloat` whatever list it is handed**, so
+narrowing the *candidates* before a pick changes the answer without changing the
+draw. That single observation is what let all three defects be fixed inside the
+eager-generation contract:
+
+1. **`drawable(entries, taken)`** removes a fungible kind — `currency`, `heal` —
+   from the candidates once it is on the table. Both offer loops call it. The
+   gym loop is where the bug was reported, because it draws *with replacement*
+   over what was a two-entry pool.
+2. **The relic fallback excludes the fungible kinds as well as relics.** It
+   still resolves at generation, in the same position, consuming the same
+   draws — it simply cannot *be* a coin or a heal any more. This is the elegant
+   part: the same one-line filter fixes the 8.8% and satisfies the report's own
+   ask, *"Put an item option there, whatever would be comparable to the move like
+   a good one"*, because an item is what it lands on instead.
+3. **`OfferDraw.relics`** makes a relic card read past a relic the same offer has
+   already shown, via `orderFrom` — a rotation of a permutation that was drawn in
+   full anyway, so it is pure. `resolveOffer` carries the same rule through
+   collapse, because two cards could otherwise still converge there while each
+   walked its own `alternates` against the run with no knowledge of the other.
+
+Only (1) and the pool entry move the version axis. (2) and (3) consume no RNG
+and would not have moved it on their own.
+
+### `OfferDraw`, and the comment that was false
+
+`resolveRewardEntry` took `takenItems` and `takenMoves` as separate parameters.
+That is *why* relics were never tracked: a third set meant an eighth parameter,
+so nobody added one — and the comment above the gym page-2 loop asserted the
+work was being done anyway:
+
+> `resolveRewardEntry` takes `takenItems` and `takenMoves` and will not hand
+> back a relic the page already holds
+
+Neither set tracked relics and nothing else did. The four sets are one
+`OfferDraw` now, and `resolveRewardEntry` stamps every entry's kind into it on
+the way through rather than leaving that to the loops — so a third draw loop
+cannot be written that forgets to.
+
+### The gym pool's item entry
+
+`PREMIUM_ITEM_IDS` at weight 4, plus `CHOICE_ITEM_IDS` from segment 3 on the
+same gate `ELITE` applies. The ruling asked for it directly — *"Def add items as
+reward option"* — and the pool's own header had predicted it, calling the
+removal *"a narrowing a tuning pass may want to undo"*. That paragraph is left
+standing because it was right.
+
+It also carries a second job the original never had: **it is what `drawable` has
+to send a refused `currency` draw to.** A distinctness rule with nowhere to go
+is a pool that cannot fill its own offer. The `tutor` entry stays gone, still for
+the reason given — it is what page 1 hands over unconditionally.
+
+`test/gym-rewards.test.ts` asserted the old shape (`['relic', 'currency']`) and
+is widened rather than deleted, with the superseded argument kept in place.
+
+### Evidence in the recordings
+
+The six visual baseline records moved in `contentHash` and `randomizer` and **in
+no other field** — no decision log, outcome, visit or casualty changed, which is
+what a fix confined to reward *composition* should look like on seeds whose
+recorded decisions are indices.
+
+`test/fixtures/sim-report.json` did move in gameplay, and it is the clearest
+single piece of evidence in the patch: the one fixture run that clears a gym now
+walks away with a **Focus Sash assigned to a party slot** where it previously
+took a currency card. That is the duplicate being replaced by the item, visible
+in a recorded run rather than in an aggregate.
+
+### Gates
+
+Types, lint, build, smoke, strict trim, the full node suite (1,641) and the
+browser suite (203) all green.
+
+## 45. The gym page stops calling itself an elite node
+
+**The R19 close-out**, same branch as sections 42 to 44, and the one item
+section 44 filed rather than fixed. No version axis moves: `contentHash` is
+unchanged at `b8b419`, nothing under `src/data/**` is touched, and
+`RewardOffer` is not serialised into a run log — a reward decision records an
+index.
+
+`generateGymRewardOffer` returned `tier: 'elite'` on both pages and
+`src/ui/screens/result.ts` printed it, so **every gym reward page in the game
+badged `ELITE`**.
+
+### It was a decision, and the argument for it was sound
+
+From the function's own header: *"a display fact rather than a draw... a gym
+offer that badged as `normal` would be the screen contradicting the cards in
+front of it."* That is true. `RewardOffer.tier` was a `Tier`, `normal`, `hard`
+and `elite` were the only values available, and of the three `elite` is the one
+that does not lie about the cards.
+
+What it ruled out was one wrong answer. What it did not do is notice that the
+badge is the only tier label a reader gets, so **a gym page and an elite node
+are the same screenshot.** Item 1a of the R19 playtest was root-caused against
+the elite pool on exactly that evidence — a wrong diagnosis and 18,000
+measurements of the wrong thing, corrected in section 44. This is that cost
+being paid off.
+
+### `OfferBadge`, and why the field is renamed rather than widened
+
+`RewardOffer.tier: Tier` becomes `RewardOffer.badge: OfferBadge`, where
+`OfferBadge = Tier | 'gym'`.
+
+**The rename is the point, not tidying.** A field called `tier` holding `'gym'`
+is the same lie one level down, and `NodeSpec.tier` is nullable precisely
+because a gym has no tier — one gym per segment, no version of it you could have
+taken instead, so a tier would be a risk label on a decision nobody made. That
+reasoning is untouched. `OfferBadge` claims something narrower and true: these
+are the four labels a reward screen can print, and three of them happen to be
+tiers.
+
+A field called `tier` is also the one an unsuspecting caller reaches for when it
+wants `REWARD_POOLS[offer.tier]`. Nothing did — a gym's pool comes from
+`gymRewardEntriesFor` and a node's from `rewardEntriesFor(tier, segment)`, both
+off the *node* — and the rename is what keeps it that way.
+
+### Two renames that fall out of it
+
+`src/ui/screens/reward.ts` exported `tierBadge(tier: string)`, and `src/ui/screens/run-map.ts`
+imported it. That was the reward screen re-exporting a chip the map needed, and
+once the reward screen's badge stopped being a tier the shared name described
+neither caller.
+
+- `tierBadge` -> `offerBadge(badge: OfferBadge)`, typed rather than `string` —
+  a `string` parameter is what let `ELITE` print for as long as it did without
+  anything objecting.
+- `src/ui/screens/run-map.ts` calls `tierChip` from `ui/chip.ts` directly. It badges
+  `node.tier`, which really is a tier and really is nullable.
+
+### No stylesheet entry
+
+`tierChip` draws `.tier--<value>`, so the new value produces `.tier--gym`. There
+is no rule for it and none is needed: **Stage V0 removed colour per tier**
+("`hard` in amber and `elite` in red was a ramp, and a ramp is the stylesheet
+saying which node is better"), so every tier chip is already the same chip and
+the fourth value inherits it.
+
+That rule doing useful work three stages later is worth noting, because the
+editorial ban on ranked colour is usually argued on its own terms. Here it also
+meant a fourth label cost zero CSS.
+
+### Gates
+
+Types, lint, the offer, reward-card, result-screen, map and summary suites, and
+the browser smoke run. `test/gym-rewards.test.ts` pins the badge on both pages.
+The full suite was not re-run at the author's direction; `contentHash` is
+unmoved, so no baseline or fixture needed re-recording.
+
+## 46. The last assertion in the motion file that still waited on a clock
+
+**The R19 close-out, second item**, applied at the author's direction after the
+WebKit leg of PR #54 failed on it. Test-only: `contentHash` is unmoved at
+`b8b419` and no version axis moves. Nothing under `src/` is touched.
+
+### What failed
+
+`test/visual-motion.test.ts`, *"runs a beat to completion on its own clock,
+start and end"*, on the WebKit leg and only there:
+
+```
+expected [ 'animationstart:actor-lunge' ] to include 'animationend:actor-lunge'
+```
+
+It reproduced identically on the one re-run. The head it failed on changes no
+CSS, no `src/ui/theme/motion.ts`, no battle stage and no sprite code, and the same file
+passes on Chromium in the same CI run and locally.
+
+### The fourth wrong turn, on a file that had already recorded three
+
+`observe`, the helper the other twelve beats use, carries a written account of
+three ways an animation assertion can race and the fix that ended them: **do not
+race — take the element's `Animation` objects, pause them, and seek.**
+
+This test cannot take that fix and keep its meaning. Seeking is precisely what
+it exists *not* to do: `getAnimations()` says the engine created an animation,
+and this one says it ran one, start to finish, on its own clock. So it was the
+last place in the file still waiting on the engine, and it waited the wrong way:
+
+```js
+actor.setAttribute('data-acted', '1');
+// A whole feedback budget is four beats; one beat cannot outlast it.
+await new Promise((resolve) => setTimeout(resolve, beat));
+```
+
+**That comment is true about the animation's duration and silent about its
+start.** Nothing bounds how long an engine may take to schedule an
+attribute-triggered animation. A start delayed into the back of the window
+pushes `animationend` past the deadline while `animationstart` still lands
+inside it — which is exactly the pair the failure reported.
+
+It is the same reading `observe` already recorded for the other beats: *a test
+that waits a fixed fraction of a motion budget and then reads the screen is
+making an assumption about what the budget is for.* This test was the one case
+that had not been re-read against it.
+
+### The change
+
+The wait resolves on the `animationend` **event**; the timeout is a ceiling
+rather than the measurement. In the ordinary case it returns in about a beat,
+as before. Under load it waits as long as the engine needs.
+
+`LUNGE_CEILING_MS` is 10,000 against a 750ms `battleFeedbackMs` — more than an
+order of magnitude of headroom, and deliberately **not** derived from the beat,
+because a beat-derived ceiling would rebuild the coupling being removed. A lunge
+that has not finished in ten seconds has not been delayed; it is broken.
+
+The listener is armed before the attribute is set, so an engine that starts and
+ends the animation inside one frame cannot slip through the gap.
+
+### What was verified, including the part that was verified wrong first
+
+- Passes on Chromium, 24/24.
+- **The negative case, on the second attempt.** The first sabotage changed the
+  promise's keyframe filter and the test still passed — correctly, because the
+  recorder captures events independently of the promise, so the real
+  `animationend` was still recorded. That proved nothing and is written down
+  because it looked like a passing negative test. Cutting the *observation
+  window* instead — `LUNGE_CEILING_MS` to 1 — fails it, which is the assertion
+  still being load-bearing.
+
+### What this does not settle
+
+Whether the WebKit failure was scheduling latency or something real about that
+head. WebKit ran 457s and 480s on PR #54 against 347s and 368s on two recent
+`main` runs, and that 24–38% gap is unexplained. **This change is what turns
+that into an answer**: if the leg now passes, it was latency; if it still fails,
+the lunge genuinely does not complete on that head and that is a defect to find.

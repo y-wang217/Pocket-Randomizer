@@ -21,7 +21,7 @@
  * never played. That is the exact failure the whole replay design exists to
  * prevent.
  */
-import { applyReward, concreteReward, resolveRewardEntry, type Reward } from './rewards';
+import { applyReward, concreteReward, newOfferDraw, resolveRewardEntry, type Reward } from './rewards';
 import type { RelicId } from '../data/relics';
 import { applyRelicPassives, NO_RELIC_EFFECTS, type RelicEffects } from './relics';
 import type { RngStream } from './rng';
@@ -152,8 +152,16 @@ export function generateShopStock(
 
   const items: ShopItem[] = [];
   const seen = new Set<string>();
-  const takenItems = new Set<string>();
-  const takenMoves = new Set<string>();
+  /*
+   * **A shelf keeps distinctness the same way an offer does, and since R19
+   * that is one object rather than two sets.** A shop is not a three-card
+   * offer — its rows are one per category and duplicates are caught by
+   * `seen` — so `OfferDraw.kinds` does nothing here beyond being stamped. What
+   * it does buy is that a relic on the shelf resolves its fallback under the
+   * same rule a relic card does, which is the point of a shop drawing through
+   * `resolveRewardEntry` at all.
+   */
+  const taken = newOfferDraw();
 
   /** One weighted pick from `from`. Always exactly one draw. */
   const choose = (from: readonly ShopEntry[]): ShopEntry | null => {
@@ -175,7 +183,7 @@ export function generateShopStock(
     // A shop sells at `normal` tier bands: the shelf is a function of how far
     // into the run you are, not of the node you fought to get here. A shop node
     // has no tier of its own, so there is nothing else it could use.
-    const reward = resolveRewardEntry(chosen, segment, 'normal', stream, takenItems, takenMoves, entries);
+    const reward = resolveRewardEntry(chosen, segment, 'normal', stream, taken, entries);
     if (!reward) return;
 
     const signature = JSON.stringify(reward);

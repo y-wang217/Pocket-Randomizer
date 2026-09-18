@@ -356,12 +356,45 @@ describe('the version axes', () => {
      * `docs/generation.md` section 35 is the account, including the proof:
      * `docs/visual/baseline/battles/GYMRUN01.json` is byte identical across it.
      *
-     * The literal below is all five together. The display split remains the
+     * The R19 gym-items ruling moved it a sixth time, from `a036d6`, and it is
+     * the bench-carryover case again rather than the ordinary one: two files,
+     * `data/scaling.ts` (`BERRY_HOLD_RATE` became `HELD_ITEM_RATE` and gained a
+     * gym column that climbs to 1.0) and `data/items.ts` (`GYM_ITEM_BANDS` and
+     * `heldItemPoolFor`, built out of the five item lists that already existed).
+     * **No axis arrives beside it, and that was designed in rather than
+     * discovered**: `rollHeldItem` — `rollBerry` before this — has always spent
+     * its roll and its pick unconditionally, so a gym member was already
+     * drawing an item and discarding it on every seed ever recorded. Same keys,
+     * same order, same count; only the answer read out of them changed.
+     *
+     * The proof is in two places. `test/gym-held-items.test.ts` pins a digest
+     * of 4,800 trainer and wild teams recorded against the tree *before* the
+     * ladder existed, and `docs/visual/baseline/runs/` moved in the
+     * `contentHash` field and in no other field of any of the six records.
+     * `docs/generation.md` section 42 is the account.
+     *
+     * The same patch moved it a seventh time, from `eba446`, for one line of
+     * `data/shop.ts`: the `technique` shelf price, 60 to 150 in band 1 and 95
+     * to 190 in band 2. **Two bumps rather than one for a patch that expected
+     * one**, because the gym ladder landed first and this is a separate
+     * decision that happens to ride the same branch — folding them would have
+     * made one hash stand for two rulings and neither attributable. No axis
+     * beside it: a price is read at resolution and draws nothing.
+     *
+     * And an eighth time, from `a7b5f0`, for the R19 duplicate-card fix: the
+     * gym pool in `data/rewardPools.ts` gained an `item` entry, because
+     * `core/rewards.ts` now refuses to deal a second `currency` card and a pool
+     * of two kinds dealt three times had nowhere else to go. **This is the one
+     * `contentHash` move in the patch that does arrive beside another axis** —
+     * `gymrun-randomizer-20`, because a new pool entry changes which entry a
+     * roll selects. `docs/generation.md` section 44 is the account.
+     *
+     * The literal below is all eight together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69');
+    expect(CONTENT_HASH).toBe('b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

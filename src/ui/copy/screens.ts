@@ -171,6 +171,27 @@ export const REWARD_COPY = {
   heal: { long: 'Heals HP and PP, and clears status, for the whole party.', short: 'Full HP, PP and status, whole party.' },
   tutor: { long: 'A strong move. You choose who learns it, and what it replaces.', short: 'You choose who learns it.' },
   tm: { long: 'A new move. You choose who learns it, and what it replaces.', short: 'You choose who learns it.' },
+  /*
+   * A technique says what a technique *is* rather than what it is worth.
+   *
+   * It cannot reuse `tm`'s line, because the thing that makes a status move a
+   * different decision is that it deals no damage — a player who reads "a new
+   * move" and picks it expecting an attack has been misled by the copy rather
+   * than by the card. Naming the absence is a fact about the move, in the same
+   * class as its type; it is not a verdict, and it says nothing about whether
+   * the pick is a good one.
+   */
+  technique: {
+    long: 'A status move — it deals no damage. You choose who learns it, and what it replaces.',
+    short: 'No damage. You choose who learns it.',
+  },
+  /*
+   * A relic's card carries the relic's *own* `playerDescription` on the detail
+   * line, so this is the line under it: what a relic is, as a class of thing,
+   * which the effect text does not say and which a first-time player has no
+   * other way to learn.
+   */
+  relic: { long: 'Yours for the rest of the run. It cannot be lost or replaced.', short: 'Kept for the whole run.' },
 } as const satisfies Record<string, Prose>;
 
 /** The coins already held, on a currency card. */

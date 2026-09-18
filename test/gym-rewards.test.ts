@@ -79,13 +79,50 @@ describe('the offer a gym clear produces', () => {
     }
   });
 
-  it('offers only a relic or a currency lump, at every segment', () => {
-    // Part B's whole shape: the choice is between a permanent object and money,
-    // which is a cleaner decision than either against a padded third option.
+  /*
+   * **A gym page says `GYM`, and it said `ELITE` until the R19 close-out.**
+   *
+   * That was a deliberate choice with an argument behind it — a gym page badged
+   * `normal` would contradict the cards in front of it — and it was wrong in a
+   * way only a reader could find. A gym page and an elite node are the same
+   * screenshot when both say `ELITE`, and item 1a of the R19 playtest was
+   * root-caused against the elite pool on exactly that evidence: a wrong
+   * diagnosis and 18,000 measurements of the wrong thing.
+   *
+   * Asserted on both pages, because both had it.
+   */
+  it('badges both of its pages as a gym rather than as an elite node', () => {
+    for (const seed of seeds) {
+      for (const gym of gymsOf(seed)) {
+        expect(gym.reward?.badge, `${gym.id} page 2`).toBe('gym');
+        expect(gym.gymMoveOffer?.badge, `${gym.id} page 1`).toBe('gym');
+      }
+    }
+  });
+
+  it('offers a relic, a currency lump or a premium item, at every segment', () => {
+    /*
+     * **This read `['relic', 'currency']` and the R19 rulings widened it.**
+     *
+     * Part B's shape was "a permanent object against money, which is a cleaner
+     * decision than either against a padded third option", and the argument was
+     * good for a two-card page. It stopped being good when `GYM_OFFER_SIZE`
+     * went to 3 and the draw kept its replacement: two entries dealt three
+     * times put two coin cards on 26.3% of gym pages, which is not a cleaner
+     * decision than a padded third option — it is a page with two of the same
+     * card on it.
+     *
+     * The item is not padding. It is `PREMIUM_ITEM_IDS`, the list this pool's
+     * own header already named ("the premium items only, never the modest or
+     * type ones"), plus the Choice items from segment 3 on the same gate
+     * `ELITE` applies. `docs/generation.md` section 44 is the account.
+     */
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
         for (const option of gym.reward?.options ?? []) {
-          expect(['relic', 'currency'], `${gym.id} offered a ${option.kind}`).toContain(option.kind);
+          expect(['relic', 'currency', 'item'], `${gym.id} offered a ${option.kind}`).toContain(
+            option.kind,
+          );
         }
       }
     }
@@ -102,7 +139,7 @@ describe('the offer a gym clear produces', () => {
         for (const option of options) {
           expect(['tm', 'tutor'], `${gym.id} offered a ${option.kind}`).toContain(option.kind);
         }
-        // Distinct, which is what the shared `takenMoves` set buys.
+        // Distinct, which is what the shared `OfferDraw.moves` set buys.
         const names = options.map((option) => (option.kind === 'tm' || option.kind === 'tutor' ? option.move : ''));
         expect(new Set(names).size, `${gym.id} repeats a move on its own page`).toBe(names.length);
       }

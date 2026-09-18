@@ -33,6 +33,14 @@ out of. Diagnosing it against this tree would be diagnosing different code.
 **So every diagnosis below is marked as either checked against R18 and
 carried over, or as awaiting the newer tree.**
 
+**Superseded 2026-09-18.** Every item has now been re-read and re-measured
+against the merged tree on `claude/blissful-brown-5tv8fv`, and the "awaiting the
+newer tree" caveat no longer applies to any of them. Two first readings turned
+out to be wrong — item 1's root cause and item 2's premise — and both are
+corrected in place with the original kept beside them, per the `CLAUDE.md` rule
+that a superseded rule is recorded rather than deleted. The summary table at the
+bottom is the current state. **Still nothing built.**
+
 ---
 
 ## Item 1 — two coin cards in one offer, and a blank relic card
@@ -56,7 +64,65 @@ options."
 
 Two things are worth separating, because the report names one of them.
 
-**a. The duplicate. Root-caused and measured on the merged tree.**
+**a. The duplicate. Re-measured, and the earlier root cause was wrong for this
+screenshot.**
+
+**This is not an elite node. It is a gym clear's second reward page.** Three
+readings force it and they agree:
+
+- The numbers. Elite currency at segment 1 is `62–95` against
+  `currencyScaleFor(0) = 1`. The gym pool at the same segment is `110–165`.
+  **159 and 150 are both inside the gym band and neither is reachable from the
+  elite one.**
+- The pool. `GYM` at `throughSegment: 2` holds exactly two entries — one
+  `relic`, one `currency` — which is the card set in the screenshot and nothing
+  else.
+- The badge lied. `generateGymRewardOffer` returns **`tier: 'elite'`** on both
+  pages, hardcoded, and `screens/result.ts` prints `tierBadge(offer.tier)`. So
+  every gym reward page in the game badges `ELITE`. That is what sent the first
+  reading to the elite pool.
+
+The same arithmetic confirms the header: `3 / 8` on the Item 3 screenshot is
+segment index 2, where `priceAt` scales by 1.35 and reproduces all four shelf
+prices exactly. `1 / 8` here is segment index 0, scale 1.
+
+**The mechanism is the gym page's own draw, not the relic fallback.** Page 2
+draws `GYM_OFFER_SIZE` times **with replacement** — the entry is deliberately
+not removed, which is the change that took `GYM_OFFER_SIZE` from 2 to 3 — over a
+two-entry pool. Two currency draws are therefore not merely possible, they are
+common. Measured over 4,000 seeds at segment 1/8, **holding no relics at all**:
+
+| page 2 shape | share |
+|---|---|
+| `currency + relic + relic` | 43.3% |
+| **`currency + currency + relic`** (the screenshot) | **26.3%** |
+| `relic + relic + relic` | 25.0% |
+| **`currency + currency + currency`** | **5.4%** |
+
+**Roughly one gym reward page in three shows two or more coin cards**, and the
+rate is flat across all eight segments (29.8%–32.6%). The relic fallback
+contributes *nothing* to it until the run holds all ten relics: `concreteReward`
+walks `alternates` first, so with 0, 1, 2, 3 or 4 relics held the duplicate rate
+is identically 31.8%. At 10 of 10 it becomes **100%** — three identical coin
+cards, every gym, forever.
+
+**A second violation in the same draw, not in the report.** `resolveRewardEntry`
+draws a relic as `shuffledRelics(RELIC_IDS, stream)` and consults **no** taken
+set — `takenItems` and `takenMoves` do not track relics. The comment above the
+page-2 loop says it "will not hand back a relic the page already holds"; the
+code does not do that. Measured: **11.3% of gym pages offer the same relic on
+two cards.** That is a harder reading of "three distinct options" than two coin
+cards is — it is literally the same card twice.
+
+For contrast, the elite *node* path is much healthier: two coin or two heal
+cards appear in 8.8% of elite offers and **0.0%** of normal and hard offers,
+and only once every relic is held.
+
+*(The relic-fallback reading below was the previous session's and is kept: it
+describes a real defect, it is the reason the elite figures above are not zero,
+and it is not the defect in this screenshot.)*
+
+**a-prime. The relic fallback, measured across all three tiers.**
 
 **It is the relic fallback, and the problem is bigger than the report.** Every
 relic card carries a `fallback` drawn by `resolveRewardEntry` from
@@ -124,11 +190,31 @@ draw. Unverified on R19.
 
 *— end of the superseded first reading.)*
 
-**b. The blank relic card.** Not mentioned in the report and possibly the same
-defect seen from the other side: `describeReward` returns
-`relicById(reward.relic)?.name ?? reward.relic`, which cannot render empty — so
-a blank card means the screen is drawing something other than a resolved relic
-reward. Worth fixing whatever item 1a turns out to be.
+**b. The blank relic card. Root-caused, and it is wider than one card.**
+
+Not "the screen is drawing something other than a resolved relic reward" — the
+screen has **no case for it**. `renderRewardCard`'s switch handles `item`,
+`currency`, `heal`, `tm` and `tutor`. There is no `case 'relic'` and no
+`case 'technique'`, so both fall through with `name` and `detail` left empty and
+only the `KIND_LABELS` chip rendered. Driven through jsdom:
+
+```
+currency   label="Coins"      name="159 coins"    detail="Spend it at a shop, ..."
+heal       label="Restore"    name="Full restore" detail="Heals HP and PP, ..."
+tm         label="TM"         name="Ice Beam"     detail="A new move. ..."
+technique  label="Technique"  name=""             detail=""
+relic      label="Relic"      name=""             detail=""
+```
+
+So a relic card the player could actually take renders nameless, and **so does
+every Technique card** — the elite pool carries one at weight 2 and it has been
+blank since status moves became reachable at all (`generation.md` section 31).
+
+`test/chip.test.ts` and `test/band-badge.test.ts` are the only tests that call
+`renderRewardCard`, and both pass `{ kind: 'tm' }`. That is the coverage gap
+that let two kinds ship unrendered.
+
+This is a UI-only fix. It moves no version axis.
 
 **What is asked for**: the duplicate becomes an item option, "whatever would be
 comparable to the move, like a good one". `PREMIUM_ITEM_IDS` and
@@ -137,29 +223,65 @@ the obvious source; which of them, and at what weight, is a tuning call the
 build should put back to the author with a measurement rather than guess.
 
 **Second request in the same message**: gym leader Pokemon should be able to
-hold items. A separate feature, touching gym definitions and team generation,
-and it moves `contentHash`.
+hold items. A separate feature, and it has its own section below — see **Item 5**.
 
 ## Item 2 — wild encounters should not swap optimally
 
 > Also wild encounters shouldnt be able to swap optimally. They should swap
 > randomly, with no knowledge of the opponent. Different ai.
 
-Awaiting the newer tree for the exact shape, but the seam is known and is the
-same in R18: `tieredOpponentFor` in `core/run.ts` reads `aiTierFor(node.kind,
-node.tier, segment)` and `data/ai.ts` holds the table, so "a wild node plays a
-different policy" is a table entry plus a policy, not a special case in the run
-loop — which is what `docs/generation.md` section 13 built that table for.
+**Measured on the merged tree, and the premise does not hold: a wild Pokemon
+already never swaps.** This is the one item of the four with nothing to build,
+and it needs a reply rather than a patch.
 
-It moves **`AI_VERSION`**, and by the standing policy in `balance.md` section 0
-it wants a benchmark row on mean gyms cleared rather than a retune.
+The chain, end to end:
 
-The design question the build must not answer on its own: "no knowledge of the
-opponent" is stronger than "random". A wild Pokemon that switches at random will
-sometimes switch into a Pokemon that is about to be knocked out, which is a
-different game from one that never switches — and the report says *how* they
-should swap, not *how often*. Whether the swap rate stays where the tier table
-has it is the author's call.
+- `aiTierFor('wild', tier, segment)` returns `'easy'` for every tier and every
+  segment — `void segment`, one line, no exceptions.
+- `EASY.flags` is `['avoidFailingMoves', 'crudeDamage']`. It holds neither
+  `smartSwitching` nor `smartSendIn`.
+- In `scoreChoices`, a voluntary switch without `smartSwitching` is scored and
+  then set to `Number.NEGATIVE_INFINITY`. It is never chosen.
+- `EASY.switchFailure` is `0` — there is no switch for it to fail.
+- The game's own copy already says so. `AI_TIER_DETAIL.easy`: *"Reads base power
+  and type matchups. **Stays in.**"*
+
+Driven on a board built to make switching unambiguous — the wild side's active
+is a Charizard facing a Blastoise, its bench holds a Jolteon that walls the
+matchup:
+
+| tier | best switch score | best move score | picks |
+|---|---|---|---|
+| easy | `-Infinity` | 0.40 | **move** |
+| medium | 5.35 | −2.19 | switch |
+| hard | 5.35 | −2.19 | switch |
+
+`aiPolicy(AI_TIERS.easy)` called 500 times on that board: **0 switches.**
+
+**So what did the playtest see?** There are exactly two routes left by which the
+wild side's Pokemon can change, and neither is a choice:
+
+1. **A forced send-in after a knockout.** Without `smartSendIn` this resolves
+   through `sequenceSendIn`, which scores `-member.slot` — the next one in party
+   order, the largest handicap in the table. A party-order send-in will
+   sometimes look well chosen, and that is almost certainly what was seen.
+2. **A pivot move.** There are none: `movePools.ts` contains no U-turn, Volt
+   Switch, Flip Turn, Baton Pass, Parting Shot or Teleport. `Dragon Tail` and
+   `Circle Throw` are in the pools, and both force the *player* to switch.
+
+**The question back to the author**, in place of the design question the first
+reading filed: which of those two was it, and is party order the "random" that
+was asked for? Party order is not random — it is deterministic and, in
+principle, learnable — but teams are regenerated per node, so there is nothing
+to learn across fights. If the ask is literally a random send-in, that is one
+new flag and a table entry and it moves `AI_VERSION`; if the ask was for wild
+opponents to stop *choosing*, it is already built.
+
+*(Superseded first reading, kept: the seam it names is correct and is where any
+future change would go — `tieredOpponentFor` reads `aiTierFor`, so "a wild node
+plays a different policy" is a table entry plus a policy rather than a special
+case in the run loop. What it got wrong was assuming the wild tier switches at
+all.)*
 
 ## Item 3 — status moves are underpriced
 
@@ -176,15 +298,72 @@ Screenshot: [`assets/r19-playtest-status-move-pricing.png`](assets/r19-playtest-
 | `BERRY` | Occa Berry | 34 |
 | `RESTORE` | Restore 50% | 54 |
 
-The target is stated as a range rather than a number — "around the same value as
-a +2 band move or a relic, maybe less than a relic" — so the build derives it
-from the existing price table rather than inventing one, and reports the number
-it picked. Moves `contentHash`.
+**The screen is decoded exactly**, which pins which band the report is about.
+`3 / 8` is segment index 2, inside `SHOP_STOCK` band 1 (`throughSegment: 2`),
+and `priceAt(base, 2)` scales by `CURRENCY_SCALE[2] = 1.35`:
+
+| shelf | base | ×1.35 | shown |
+|---|---|---|---|
+| TM (`bandOffset: 0`) | 70 | 94.5 | **95** |
+| Technique | 60 | 81.0 | **81** |
+| Berry | 25 | 33.75 | **34** |
+| Restore 50% | 40 | 54.0 | **54** |
+
+All four match. **So the number to move is the band-1 `technique` base of 60,
+and its band-2 twin of 95.**
+
+### Deriving the target rather than inventing one
+
+Every base price the shop holds, both bands:
+
+| | band 1 (seg 1–3) | band 2 (seg 4–8) |
+|---|---|---|
+| TM | **70** (`bandOffset: 0`) | **110** (`bandOffset: +1`) |
+| Technique | **60** | **95** |
+| Berry | 25 | 35 |
+| Restore 50% / full | 40 / 85 | 60 / 120 |
+| Item | 55 modest·type / 130 staple | 145 staple / 165 Choice |
+| Relic | — | **260** |
+
+A technique currently sits at ~86% of the same-shelf TM in both bands
+(60/70 = 0.857, 95/110 = 0.864). That is the thing the report is calling wrong.
+
+**The shop never sells a +2 band move at any price**, so there is no direct
+anchor for the phrase. The only move-to-move price comparison the table offers
+is the band-1 TM against the band-2 TM: `70 → 110`, a step of **+40 base per
+band offset**. Extending that ladder by two steps:
+
+| | band 1 | band 2 |
+|---|---|---|
+| TM at its shelf offset | 70 | 110 |
+| **+2 bands above it** | **150** | **190** |
+| Relic | — | 260 |
+
+**Proposed number: technique base `150` in band 1 and `190` in band 2.** Both
+are "around the same value as a +2 band move" by the table's own arithmetic and
+both are "less than a relic", which is the range as stated. It is one edit to
+two literals in `data/shop.ts` and moves `contentHash` only.
+
+### Two consequences the author should price in before saying yes
+
+1. **It takes the technique shelf out of reach early.** At segment 0 (scale 1.0)
+   a technique becomes 150 flat, against `NODE_PAYOUT` of 8 for a wild fight, 14
+   for a trainer and 40 for a gym. At the screenshot's segment 2 it becomes
+   `150 × 1.35 = 203` against the 190 the player was carrying — just out of
+   reach, which may be exactly right or may be a wasted row.
+2. **The technique slot is guaranteed, not drawn.** `shopSlotsFor` returns every
+   slot in the band, so `TECHNIQUE` is on every shelf. An unaffordable guaranteed
+   row is a permanently dead slot rather than an occasional expensive one. If
+   that is not wanted, the alternative is a smaller step (`+1` band, so 110/150)
+   or moving the technique behind a weight rather than a slot — both are changes
+   to the same file.
 
 `generation.md` section 31 is the relevant history: status moves were
 **structurally unreachable** before that patch (all four routes that hand the
 player a move called `damagingInBands`), so this is the first playtest in which
-their price has ever been visible.
+their price has ever been visible. **And see item 1b** — a Technique offered as
+a *reward card* currently renders blank, so the elite pool's weight-2 technique
+entry has never been legible either.
 
 ## Item 4 — teaching a TM does not stick
 
@@ -246,13 +425,96 @@ teach wait for the next legal boundary instead of being dropped, or paying TMs
 closer to rests are all answers, and they are balance decisions rather than bug
 fixes.
 
+## Item 5 — items on gym leaders' Pokemon
+
+> And we should add the ability to put items on gym mons
+
+From the same message as item 1. The first reading said "nothing measured, I
+didn't investigate this one at all". Investigated now, and **it is the cheapest
+of the four by a wide margin: the plumbing already exists and is already paid
+for.**
+
+`generateGymTeam` already passes `holding: { kind: 'gym', segment }` into
+`rollSpec`, and `rollSpec` already calls `rollBerry` for anything with a
+`holding`. `rollBerry` spends **both** of its draws unconditionally —
+`stream.nextFloat()` for whether, `stream.pick(BERRIES)` for which — and only
+then compares against the rate. Its own comment says why: *"retuning
+`BERRY_HOLD_RATE` cannot move a single roll that follows it."* `generateGymTeam`
+says the same from the other side: *"`holding` is passed even though a gym's
+rate is zero, so a gym member costs the same draws as any other opponent and
+**the table is the only thing deciding what it holds**."*
+
+So a gym member is already drawing an item and throwing it away, every time, on
+every seed. The only thing stopping it holding one is two lines in
+`data/scaling.ts`:
+
+```ts
+export const BERRY_HOLD_RATE: readonly { trainer: number; wild: number }[] = [...]
+
+export function berryHoldRate(kind: BattleKind, segment: number): number {
+  if (kind === 'gym') return 0;        // <- this
+  ...
+}
+```
+
+**Turning it on is: add a `gym` column to the table, delete the early return.**
+Both edits are inside `src/data/**`, so this moves **`contentHash` only** —
+`RANDOMIZER_VERSION` does not move, because the draw composition is byte-for-byte
+unchanged. That is not luck; it is the outcome the two comments above were
+written to guarantee.
+
+### The three calls the author still has to make
+
+1. **Which items.** `rollBerry` picks from `BERRIES` and nothing else, so the
+   one-number change gives gym leaders **berries only**. If the ask is held items
+   in the wider sense — Leftovers, a type item, a Choice item — the pick list has
+   to widen. That is still one `stream.pick` over a different array, so it stays
+   one draw and stays `contentHash`-only, but it is a rename away from
+   `rollBerry` and it needs a list per `BattleKind` rather than one shared
+   `BERRIES`.
+2. **Whether it scales by segment.** The existing table descends with segment
+   (trainer `0.5 → 0.2`, wild `0.25 → 0.1`) because the player's own options
+   widen. A gym column could descend with it, or hold flat, or *rise* — a gym is
+   the segment's difficulty statement and the ladder already widens its roster
+   and raises its move band, so rising is the one that matches the rest of the
+   gym curve. No evidence either way; this is a taste call, and per
+   `CLAUDE.md` it should be recorded as one.
+3. **Whether it is revealed.** Already answered, and the answer is yes with no
+   new rule: `tuning.revealOpponentItem` defaults to `true` and `ui/app.ts` feeds
+   it straight into the battle view. A gym's held item sits *inside* that rule
+   rather than beside it, exactly as the report asked — nothing to build.
+
+### The one thing that has to move with it
+
+`test/berries.test.ts` asserts `expect(berryHoldRate('gym', 3)).toBe(0)` under
+the name *"gives a gym leader nothing to hold"*, and the file's own header lists
+*"gyms hold none"* as rule 4. Both are the current rule written down, not an
+invariant — but they are a **gate**, so the change is not done until they move
+with it.
+
 ## Scope, for whoever picks this up
 
-Five items, none built. Item 1a is an invariant violation and is the only one
-that is unambiguously a bug with a right answer; 1b is an unreported defect
-found in the same screenshot; item 4 is a bug whose code this clone does not
-have. Items 1's second half, 2 and 3 are changes with a tuning or design call
-inside them, and each names the call rather than pre-empting it.
+**Re-read 2026-09-18 on `claude/blissful-brown-5tv8fv`, against the merged tree.
+Still nothing built.** Every item below was measured on this tree rather than
+reasoned about; where the earlier reading was wrong it is corrected above and
+the wrong reading is kept beside it.
 
-Axes: item 1 and item 3 move `contentHash`; item 2 moves `AI_VERSION`; items 1's
-second half and 4 are unknown until the newer tree is in hand.
+| item | what it actually is | axis |
+|---|---|---|
+| 1a — duplicate coin cards | **Confirmed and worse than reported.** Not the elite pool and not the relic fallback: the gym page-2 draw is with replacement over a two-entry pool. ~31% of gym pages, 100% once all ten relics are held. Plus 11.3% show the *same relic twice*. | `RANDOMIZER_VERSION` |
+| 1b — blank relic card | **Confirmed, and wider.** `renderRewardCard` has no `case 'relic'` and no `case 'technique'`. Both render label-only. No test covers either kind. | none (UI) |
+| 2 — wild swaps optimally | **Not reproducible. The premise does not hold.** The wild tier holds neither `smartSwitching` nor `smartSendIn`; 0 switches in 500 calls on a board where medium and hard both switch. Needs a reply, not a patch. | none, unless the ask is a random send-in |
+| 3 — status moves underpriced | **Confirmed.** Screen decoded exactly; a derived target of 150/190 base is proposed with its two consequences named. | `contentHash` |
+| 4 — teaching a TM | Fixed in the previous session. The larger finding — a TM is spendable in 13% of runs — is still open and still a design question. | shipped |
+| 5 — items on gym mons | **Cheapest of the set.** The draws are already spent and discarded; it is a table column and one deleted line, both in `data/`. | `contentHash` |
+
+**The one hard blocker across all of it**: item 1a's fix moves
+`RANDOMIZER_VERSION`, which by `CLAUDE.md` means every recorded seed is
+reinterpreted and the mismatch must fail loudly. Nothing else here does. Items
+1b, 3 and 5 are independent of it and of each other and can land in any order.
+
+**Order these sort into, if the author wants one**: 1b first (no axis, pure
+defect, unblocks reading a Technique card at all), then 5 and 3 together (one
+`contentHash` bump between them), then 1a on its own with the version bump and a
+benchmark row. Item 2 is a question, not work.
+
