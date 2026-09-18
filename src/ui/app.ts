@@ -15,7 +15,7 @@ import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
-import { releaseMember, reorderParty } from '../core/party';
+import { applyBattleState, releaseMember, reorderParty } from '../core/party';
 import {
   defaultItemPlan,
   gymClearLevel,
@@ -26,13 +26,14 @@ import {
   resumeRun,
   type BattleReview,
   type RunPolicy,
+  type RunProjection,
   type RunResult,
   type RunState,
   canTeachNow,
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemPlan, PokemonSpec, RunLog } from '../core/types';
+import type { Choice, ItemPlan, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -69,6 +70,7 @@ import { createSummary } from './screens/summary';
 import { createStamps } from './stamps';
 import { createPreGymScreen } from './screens/pre-gym';
 import type { GymDefinition } from '../data/gyms';
+import type { RelicId } from '../data/relics';
 import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { gymForSegment } from '../data/gyms';
@@ -458,9 +460,27 @@ export function mountApp(root: HTMLElement): void {
     const leadPick = createPending<number>();
     const evolvePick = createPending<number>();
     let detachBattle: (() => void) | null = null;
+    /*
+     * The fight in progress, and the party it was sent with.
+     *
+     * **This is the only source for what the drawer shows mid-fight**, and the
+     * drawer's own blurb is why it has to exist: it says "Your side, as the
+     * fight has left it", and until this was wired it showed the HP the node
+     * was *entered* with. `applyBattleState` folds the sim's read-back by
+     * `sendOrder` computed from the pre-battle party, so that exact party is
+     * kept here rather than re-read from `live` — a release or reorder cannot
+     * happen mid-fight, but keeping the array the send was computed from is
+     * what makes the mapping correct by construction rather than by luck.
+     *
+     * Measured before the wiring: 137 of 217 turns across twelve seeds
+     * disagreed with the field, the worst of them a Seel the fight had at
+     * 1 HP and the drawer at 25.
+     */
+    let liveBattle: { session: BattleSession; sent: readonly PokemonState[] } | null = null;
     const releaseBattle = (): void => {
       detachBattle?.();
       detachBattle = null;
+      liveBattle = null;
       /*
        * And end any parked outro. A run abandoned while the stage is playing
        * the end of a fight would otherwise leave `reviewBattle` waiting on a
@@ -693,8 +713,10 @@ export function mountApp(root: HTMLElement): void {
          */
         if (canTeachNow(state) && state.tms.length > 0) {
           live = state;
+          atTeachBoundary = true;
           showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
           const composed = await itemPlanPick.wait();
+          atTeachBoundary = false;
           pendingPlan = null;
           return reconcileItemPlan(
             state,
@@ -772,7 +794,26 @@ export function mountApp(root: HTMLElement): void {
           resultScreen.render(lastReview, null, state, () => undefined, {
             offer,
             party,
-            onDecide: (decision) => acquirePick.submit(decision),
+            onDecide: (decision) => {
+              /*
+               * **A release drops the pending plan, for the reason the party
+               * screen's own release does.**
+               *
+               * A plan names *slots*, and `applyAcquisition` removes the
+               * released slot and appends the new member — so every slot behind
+               * it becomes a different Pokemon. Carrying the plan across would
+               * hand the Leftovers the player chose for their Mantyke to
+               * whoever shifted up into that slot, silently and with no error
+               * to notice. `showParty`'s `onRelease` states the rule; this is
+               * the same edit arrived at from the capture side, which is the
+               * other of the two paths that can shorten a party.
+               *
+               * `accept` appends and touches no existing slot, so it keeps the
+               * plan. `decline` changes nothing at all.
+               */
+              if (decision.kind === 'release') pendingPlan = null;
+              acquirePick.submit(decision);
+            },
           });
           showScreen('result');
         }
@@ -805,10 +846,49 @@ export function mountApp(root: HTMLElement): void {
     readDrawer = () => {
       const state = live;
       if (!state) return null;
+      /*
+       * **The drawer shows what the surface underneath it shows, and that is
+       * the whole rule.**
+       *
+       * Three sources, read in order of how close each is to the moment the
+       * player is standing in:
+       *
+       *   1. `liveBattle` — a fight in progress. The only source that is not a
+       *      fold of run state at all, because mid-fight there is no run state
+       *      to fold: the damage is in the sim. An empty contribution list is
+       *      deliberate — `applyBattleState` keeps the member's own counters
+       *      when a delta is missing, and a fight's contribution is not final
+       *      until it ends.
+       *   2. `decidedParty` — a decision the run has taken and not applied,
+       *      from the projection hook. **It used to have a second setter** and
+       *      does not any more: the move questions were asked from `playRun`
+       *      against a party that did not fold the battle, so the drawer had to
+       *      be pinned to that reading or it would have shown live HP over a
+       *      screen showing pre-fight HP. Moves became bag items and teaching
+       *      moved to the party screen, which is reached between nodes where
+       *      `live` is already current — so the second reading, and the pin it
+       *      needed, are both gone. The projection is the only setter now.
+       *   3. `live.party` — between nodes, which is every other screen.
+       */
+      /*
+       * **The fight is only a source while its screen is up**, and the gate is
+       * the same condition the blurb uses rather than `liveBattle` being set.
+       *
+       * The session outlives its screen: `releaseBattle` runs when the *next*
+       * fight starts, so between the outro and the end of the node the ended
+       * session is still in hand. Reading it there is not merely redundant —
+       * `partyState` would keep answering with the battle's three members while
+       * the projection had already folded in the Pokemon the player caught,
+       * which is the reported defect wearing this patch's clothes.
+       */
+      const fight = router.current() === 'battle' ? liveBattle : null;
+      const party = fight
+        ? applyBattleState(fight.sent, fight.session.partyState('p1'), [])
+        : (decidedParty ?? state.party);
       return {
-        party: state.party,
-        holding: itemLayoutOf(state.party, pendingPlan),
-        relics: state.relics,
+        party,
+        holding: itemLayoutOf(party, pendingPlan),
+        relics: decidedRelics ?? state.relics,
         tuning: state.tuning,
       };
     };
@@ -839,6 +919,47 @@ export function mountApp(root: HTMLElement): void {
      * before the screen has ever been shown.
      */
     let pendingPlan: ItemPlan | null = null;
+
+    /*
+     * The party a decision has already settled on, while `live` is still behind.
+     *
+     * **`live` lags inside a node, and the drawer is the surface where that
+     * shows.** `playRun` applies a capture in `resolveNode`, at the end of the
+     * node, but it asks the move questions *before* that — against
+     * `partyAfterAcquisition`, the party with the decision folded in. So
+     * between "release the Mantyke for this Anorith" and the end of the node,
+     * the recipient screen lists Anorith and `live.party` still holds Mantyke.
+     * A player who opened the drawer on that screen was shown a party
+     * contradicting the one they were picking from, which is the readout
+     * failure `ui/party-layout.ts` names and the drawer exists to remove.
+     *
+     * `core/run.ts` cannot close it from its side: nothing has happened to run
+     * state yet, so there is no `onState` for it to fire. What it hands over
+     * instead is a projection — the applied result of the same folds
+     * `resolveNode` will perform, computed in `core/` — so `ui/` stays out of
+     * deciding what a capture means.
+     *
+     * Read-only surfaces only. The party screen is a *write* path — a reorder
+     * or a release mutates the array it was handed — and pointing that at a
+     * party the run has not adopted yet would drop the edit at the node
+     * boundary. It is unreachable during this window anyway: the drawer is the
+     * one surface open on every screen.
+     *
+     * Cleared in `onState`, which is exactly the moment `live` catches up.
+     */
+    let decidedParty: readonly PokemonState[] | null = null;
+
+    /*
+     * The relics held, when a card taken this node has not been folded yet.
+     *
+     * The same lag as `decidedParty` and the same lifetime: the player takes a
+     * relic on the result screen, `resolveNode` grants it at the end of the
+     * node, and the capture screen in between listed the relics they held
+     * before the choice they had just made. `core/run.ts` projects it, because
+     * reading a reward card's kind here would be `ui/` deciding what a card
+     * pays.
+     */
+    let decidedRelics: readonly RelicId[] | null = null;
 
     /**
      * The gym the pre-gym screen is asking about, while it is asking.
@@ -876,7 +997,11 @@ export function mountApp(root: HTMLElement): void {
             pendingGym = null;
             leadPick.submit(slot);
           },
-          onManageParty: () => showParty('pre-gym'),
+          onManageParty: () => {
+            // Not the boundary: this is the player looking, between decisions.
+            atTeachBoundary = false;
+            showParty('pre-gym');
+          },
         },
       );
     };
@@ -889,6 +1014,36 @@ export function mountApp(root: HTMLElement): void {
      * — and a redraw must not quietly retarget the way out.
      */
     let partyReturn: ScreenName = 'map';
+
+    /*
+     * Whether the party screen is open **at** the boundary that may spend a TM.
+     *
+     * **This is the difference between a teach that happens and a teach that is
+     * silently thrown away**, and it is not the same question as
+     * `run.canTeachNow`.
+     *
+     * `canTeachNow` reads the node the run has just walked, and it stays true
+     * for the whole time the player then stands on the map — so the Manage
+     * button offered a Teach control after every rest and every shop. The plan
+     * that control composes is not spent there: it is held in `pendingPlan` and
+     * spent at the boundary of the node walked *next*, where `canTeachNow`
+     * reads that node instead. Walk into a fight, and `reconcileItemPlan` drops
+     * the teach — correctly, by its own rule, and silently — and the TM is back
+     * in the bag.
+     *
+     * Measured on the scripted baseline, 400 runs: of 111 teaches composed from
+     * the map, **9 survived and 57 were dropped** (the rest never reached a
+     * boundary before the run ended). A control that works 8% of the time is
+     * worse than one that is not offered, which is what the reported
+     * "teaching tms doesnt work, the tms return to inventory" was.
+     *
+     * So teaching is offered only where composing and spending are the same
+     * moment — the screen `chooseItemPlan` opens — which is what that function's
+     * own comment already said the design was. Set there, cleared when the plan
+     * is answered, and left alone by the re-renders (`back`, a reorder, a
+     * release) that re-enter this screen without leaving the boundary.
+     */
+    let atTeachBoundary = false;
 
     /*
      * The party screen, and **the way back out of it is a parameter**.
@@ -917,7 +1072,7 @@ export function mountApp(root: HTMLElement): void {
           party: state.party,
           backpack: state.backpack,
           tms: state.tms,
-          canTeach: canTeachNow(state),
+          canTeach: atTeachBoundary && canTeachNow(state),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
@@ -939,7 +1094,7 @@ export function mountApp(root: HTMLElement): void {
             pendingPlan = null;
             state.party = reorderParty(state.party, from, to);
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onRelease: (slot) => {
             pendingPlan = null;
@@ -948,7 +1103,7 @@ export function mountApp(root: HTMLElement): void {
             // Their item goes to the bag, not with them.
             if (released.freed) state.backpack = [...state.backpack, released.freed];
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onPlan: (plan) => {
             pendingPlan = plan;
@@ -1057,6 +1212,10 @@ export function mountApp(root: HTMLElement): void {
       // what makes a rest node visible: it resolves without a decision, so the
       // only evidence it happened is the party panel refilling.
       live = state;
+      // And the overrides go with it: `live` is now what the run holds, so a
+      // stand-in for it is a second answer to a question with one.
+      decidedParty = null;
+      decidedRelics = null;
       /*
        * The world's palette, from the same projection the map names the
        * region with. Stage V1. Set here rather than on the locale screen's
@@ -1070,11 +1229,34 @@ export function mountApp(root: HTMLElement): void {
         segments: state.segments.length,
         seed: state.seed,
       });
-      mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
+      mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+    };
+
+    /*
+     * What the run has been told and not yet applied. **Stage: this patch.**
+     *
+     * The one wire for every mid-node readout: a finished fight, a taken relic
+     * and a capture all arrive here the moment they become true, rather than at
+     * the node boundary where `onState` would have reported them. `core/run.ts`
+     * computes it — folding battle state in `ui/` would be a second reading of
+     * what a node did, and the first divergence between the two would be
+     * invisible.
+     *
+     * It does not touch `live`. A projection is not a run state and the app
+     * must not start treating it as one: nothing decides against this, nothing
+     * is saved from it, and the map is not redrawn on it.
+     */
+    const onProjection = (projection: RunProjection): void => {
+      decidedParty = projection.party;
+      decidedRelics = projection.relics;
     };
 
     const onBattle = (session: BattleSession, node: NodeSpec, state: RunState): void => {
       releaseBattle();
+      // The fight and the party it was sent with, for the drawer. `releaseBattle`
+      // above has just cleared the previous one, so this is never the fight
+      // before's session.
+      liveBattle = { session, sent: state.party };
       /*
        * The reveal policy comes off the run's own tuning, not off the module
        * default, so a run started with a swept tuning shows what that run was
@@ -1112,7 +1294,7 @@ export function mountApp(root: HTMLElement): void {
     };
 
     try {
-      const options = { onState, onBattle, onDecision: saveRunLog, opponent: greedyAiPolicy };
+      const options = { onState, onBattle, onProjection, onDecision: saveRunLog, opponent: greedyAiPolicy };
       const result: RunResult = resume
         ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
         : await playRun(seed, policy, DEFAULT_TUNING, options);

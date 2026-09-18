@@ -86,6 +86,59 @@ took it to 22.3%, because the damage formula's level term doubles between 7 and
 nothing else. Section 33.7 has the arithmetic and the ruling.
 
 **Merged before it: the bench carryover and the gym level column.** Branch
+**Also in flight, on its own branch: the update sequence audit.** Prompt
+[`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
+record [`generation.md`](generation.md) section 39. `onState` is the app's only
+refresh signal and it fires once per node, so four readouts were drawing the run
+as the node started: the drawer mid-fight (**137 of 217 turns** disagreed with
+the field, worst case 1 HP on the field and 25 in the drawer), the drawer after
+a fight (**165 of 182** reviews disagreed with the result screen beside it), a
+taken relic, and the contribution rows. `core/run.ts` gains `RunProjection` and
+an optional `onProjection` hook — observation only, in the style of
+`onNodeResolved`, asserted to produce a byte-identical log — and the in-battle
+drawer reads the live session, which is the one case no projection of run state
+can answer. No transition moved; `contentHash` unmoved at `94c6c1`.
+
+**The repair that would have been a bug, and is not made.** The recipient
+screen's own cards still show the HP the node was entered with. Folding the
+battle into `partyAfterAcquisition` to fix that would change *who gets the
+move*: `recipientFor` returns the lead for a fainted slot, and the question's
+reading and the apply site's agree today only because neither has a fainted
+member in it — the question is pre-battle, and `resolveNode` applies the reward
+after `betweenNodes`, which revives. Measured: the move lands where the question
+said in **466 of 466** resolved cases, today's reading agrees with the apply
+site **316 of 316**, and a battle-folded reading would disagree **70 times**.
+A first scan claimed the opposite and was wrong; both halves are now pinned by
+a test written for it and deleted in the same merge that retired the mechanism
+— section 39.5 has the account. What is left is a design question, in section 5.
+
+**Merged into the same branch: the party drawer showed a released Pokemon.** Branch
+`claude/party-check-mantyke-anorith-xttrxm`, prompt
+[`spec/gymrun-patch-party-drawer-stale-capture.md`](spec/gymrun-patch-party-drawer-stale-capture.md),
+record [`generation.md`](generation.md) section 38. Presentation only: no
+`core/` change, no version axis moves, `contentHash` unmoved at `94c6c1`.
+
+**The two readouts disagreed because one of them was a node behind.** Section
+29 moved the capture in front of the move question, so `playRun` asks "who
+learns Air Slash" against `partyAfterAcquisition` — the party with the capture
+folded in — while `resolveNode` still applies it at the end of the node. Between
+those two moments the run has been *told* about a party it has not *adopted*,
+and `ui/app.ts`'s `live` is replaced only by `onState`, at the bottom of the
+node loop. The recipient screen listed the Anorith; the drawer opened from the
+same header listed the Mantyke it replaced. `core/` cannot close it from its
+side — nothing has happened to run state, so there is no `onState` to fire — and
+the fold must not move, per section 29.1.
+
+**The drawer holds the party `core` hands the question, rather than deriving
+one.** `decidedParty` sits beside `pendingPlan`: set by `chooseMoveRecipient`
+from its own argument, cleared by `onState`, read by `readDrawer` ahead of
+`live.party`. Read-only surfaces only, because the party screen is a write path
+and pointing it at a party the run has not adopted would drop the edit at the
+node boundary. One item the report does not raise came with it: a releasing
+capture is the second of the two paths that shorten a party, and it was carrying
+an unspent `ItemPlan` across the slots it shifted — `showParty`'s `onRelease`
+has dropped the plan for that reason since 4.7, and `chooseAcquisition` does now
+too.
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest
@@ -730,13 +783,36 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
+0. **A TM is spendable in 13% of runs.** 43.5% of runs earn one; only 13.3%
+   ever reach a rest or a shop while still holding it, which is the only
+   boundary `run.canTeachAt` allows a teach at. Nothing malfunctions — most runs
+   die first. Answers are all balance calls: widen `canTeachAt`, let a composed
+   teach wait for the next legal boundary instead of being dropped, or pay TMs
+   nearer to rests. `generation.md` section 40.3.
+
 0. **Fight length.** Early fights are an exchange rather than a shape. It is now
    the root cause behind two separate carried misses, below, and has earned its
    own investigation. `balance.md`, and open question 1 in the root README.
    Stage 4.9 moved it the other way at the start — 3.7 turns in segment 1 at
    level 7 — and the stage's benchmark row is where the next reading is.
+0. ~~**What should the recipient screen draw for a member who fainted in the
+   fight that paid the card?**~~ **Closed 2026-09-18 without being fixed**, by
+   the inventory-TM stage: the screen is reached from the party screen between
+   nodes now, where the party is current, so there is no stale reading left to
+   draw. The measurement that framed it is kept at `generation.md` section 39.5.
+   Original text: Its cards show the HP the node was entered with,
+   which reads wrong beside the result screen the player just left — but the
+   party behind them is a *decision* input, and folding the battle into it
+   changes who receives the move (`recipientFor` returns the lead for a fainted
+   slot; measured at 70 of 316). The member will be revived by `betweenNodes`
+   before the move lands, so "show them fainted" is not obviously right either.
+   A display-only party for that screen is the likely shape. Pinned both ways by
+   a test whose second case would have failed if the two readings ever
+   converged; it is deleted with the mechanism. `generation.md` section 39.5.
 0. **A move reward can be applied to a member that already knows the move, and
-   it throws.** `RangeError: Snover already knows Confusion; nothing is
+   it throws.** *(One cause ruled out 2026-09-18: it is **not** the recipient
+   divergence — that divergence does not exist, and the crash did not reproduce
+   in 300 seeds. `generation.md` section 39.6.)* `RangeError: Snover already knows Confusion; nothing is
    displaced`, from `party.teachMove` via `rewards.applyReward`. The slot is
    chosen against one reading of the party and applied against another, which
    is the stale-decision family of `generation.md` sections 19 and 29 rather

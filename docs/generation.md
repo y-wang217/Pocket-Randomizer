@@ -6396,3 +6396,386 @@ was named at the node that paid the card — where the member the player wanted
 could have died in the fight that paid for it. A teach is composed at a rest
 against the party as it stands, where a fainted member is a legitimate recipient
 rather than an accident: it revives between nodes with the move still on it.
+
+## 38. The drawer showed a Pokemon the run had already been told to release
+
+> **Superseded in part, 2026-09-18, by the inventory-TM stage (section 37).**
+> The screen this defect was reported on — the TM recipient list, asked from
+> `playRun` at the node that paid for the move — no longer exists: a move is
+> stowed in the bag and taught from the party screen, between nodes, where the
+> run state is already current. The `chooseMoveRecipient` pin described in 38.2
+> is therefore **deleted** rather than kept behind a flag, and `decidedParty`
+> has one setter, the projection hook of section 39. What survives unchanged is
+> the diagnosis: `live` lags inside a node, and a read-only surface that reads
+> it contradicts the screen it sits over. Section 39 is where that is fixed
+> generally.
+
+**2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
+[`spec/gymrun-patch-party-drawer-stale-capture.md`](spec/gymrun-patch-party-drawer-stale-capture.md).
+
+One playtest report, two screenshots one second apart, and no axis moves:
+presentation only, `contentHash` unmoved at `94c6c1`. `94c6c1` is the hash
+stamped on both screenshots, so this one was met on the build it describes.
+
+The recipient screen for `TM: Air Slash` listed Sobble, Spiritomb and
+**Anorith** — the party the player had just made by releasing their Mantyke to
+take the Anorith the node offered. The `PARTY` trigger in the same header, in
+the same second, opened on Sobble, Spiritomb and **Mantyke**.
+
+### 38.1 The window, and why `core/` cannot close it from its side
+
+Section 29 moved the capture in front of the move question, and it did so by
+building `learners` — `partyAfterAcquisition`, the run's own
+`applyAcquisition` on the run's own decision — and asking both move questions
+against it. What it deliberately did **not** do is apply the acquisition to
+`state` at that point: `resolveNode` owns state transitions and folds
+everything in at the end of the node, which is the split that keeps a replayed
+decision and a clicked one indistinguishable.
+
+So between the capture and the end of the node there is a window in which the
+run has been *told* about a party it has not *adopted*. Inside it:
+
+| reads | drew from | showed |
+|---|---|---|
+| the recipient screen | the `party` argument, which is `learners` | Anorith |
+| the drawer | `live.party`, and `live` is replaced only by `onState` | Mantyke |
+
+`onState` fires at the bottom of the node loop, after `resolveNode`. There is no
+earlier moment for it to fire *at*: nothing has happened to run state, so a hook
+there would be reporting a state that does not exist. The asymmetry is not a
+bug in `core/` and is not fixable there without moving the fold, which section
+29.1 spends its length explaining must not move.
+
+### 38.2 The fix is in `ui/app.ts`, and it holds the argument rather than recomputing it
+
+`decidedParty` is a second local beside `pendingPlan`: the party a decision has
+settled on while `live` is still behind. `chooseMoveRecipient` sets it to the
+`party` it was handed, `onState` clears it, and `readDrawer` resolves
+`decidedParty ?? state.party`.
+
+Three things about that shape are the fix rather than incidental to it:
+
+- **It holds the argument.** `ui/` does not run `applyAcquisition` itself.
+  `partyAfterAcquisition`'s own header names a second reading of "who is in the
+  party now" as precisely how a recorded target index ends up teaching the wrong
+  Pokemon, and a drawer that derived its own would be that second reading with
+  no test able to see the two diverge.
+- **`chooseMoveRecipient` is the only place it is set, and it covers
+  `chooseMoveToReplace` too.** `askMoveQuestions` asks the second question
+  immediately after the first, about a member drawn from that same list, so one
+  assignment spans the pair. Every other screen in the window — there are none —
+  would need its own.
+- **`onState` is the only place it is cleared**, because that is the one moment
+  `live` catches up. An override that outlived it would be a stand-in for a
+  party that is now simply readable, and the next node's reorder or release
+  would not reach it.
+
+**Read-only surfaces only, and that is a rule rather than an omission.** The
+party screen is a *write* path — `onReorder` and `onRelease` mutate the array
+they were handed through `core/party.ts` — and pointing it at a party the run
+has not adopted would drop the edit at the node boundary. It is unreachable
+during this window anyway; the drawer is the one surface open on every screen,
+which is both why it is the only one that had the bug and why it is the only one
+that needs the fix.
+
+The map overlay reads `live` too and is untouched: it draws the route and
+nothing else. `map-drawer.ts` says so in its header and gives the reason — the
+party block is one tap away in the same bar, so printing it twice would be two
+readouts to keep in agreement, which is this section.
+
+### 38.3 The item plan is the same defect one line away, and it was carried
+
+The report says nothing about items. It did not have to: a plan names **slots**,
+`applyAcquisition` removes the released slot and appends the newcomer, and so
+every slot behind the released one becomes a different Pokemon.
+
+`showParty`'s `onRelease` already drops the pending plan for exactly this
+reason, in a comment that states the rule in full. A releasing *capture* is the
+other of the two paths that can shorten a party and it was carrying the plan
+across — so a drawer drawing the shortened party through a stale plan would hand
+the Leftovers the player chose for their Mantyke to whoever shifted up into that
+slot, silently and with no error to notice.
+
+`chooseAcquisition` drops it now, on `release` and only on `release`: `accept`
+appends and touches no existing slot, `decline` changes nothing at all.
+
+This is scope the report did not ask for, and it is in because the first fix is
+what makes it visible rather than because it was nearby. Before it, the drawer
+drew the old party through a plan composed against the old party, which is at
+least self-consistent.
+
+### 38.4 What is asserted, and where it had to be asserted
+
+`test/drawer-live-party.test.ts`. The wiring is three locals inside `mountApp`'s
+closure — `live`, the override, and the drawer's getter — and there is no seam
+between them a unit test can reach, so the first block asserts on the source the
+way `test/boundaries.test.ts` asserts that the human policy asks every question
+it claims to. Four cases: the getter does not read the lagging party unguarded,
+the move question feeds the override, `onState` clears it, and a releasing
+capture drops the plan.
+
+The second block is behavioural and runs the real `applyAcquisition`: it pins
+what an unspent plan *would* have done to the shortened party — `slot 2 holds
+the Leftovers` surviving as a sentence and pointing at the Anorith that just
+arrived — and then that the layout reads off run state once the plan is dropped,
+with the released member's item in the backpack where `applyAcquisition` freed
+it.
+
+**Why this was not caught.** `test/party-drawer.test.ts` asserts the drawer's
+three properties per surface — opening it advances nothing, submits nothing and
+draws nothing — and all three are properties of the *trigger*. None of them is
+about what the view contains, and the view is handed in, so every one of them
+passes just as happily on a party from the wrong moment.
+
+## 39. `onState` fires once a node, and four readouts were a node behind
+
+**2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
+[`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
+which follows section 36's on the same branch.
+
+Presentation and observation only: no transition moved, no hook argument
+changed, no decision touched, no version axis moved, `contentHash` unmoved at
+`94c6c1`.
+
+Section 36 fixed one readout by holding the party `core` handed the move
+question. The follow-up asked whether the mechanism behind it had other
+victims. It had four, and one of them is worse than the reported bug.
+
+### 39.1 The mechanism, stated once
+
+`onState` is the app's only refresh signal and it fires once per node, at the
+bottom of the loop, because that is where `resolveNode` produces a state to fire
+it with. A node contains at least four moments at which something a readout is
+about changes: every turn of the fight, the end of the fight, each reward or
+capture decision, and `resolveNode` itself. Everything the app drew between the
+first three and the fourth was the run as the node *started*.
+
+Measured on this tree, scripted baseline, before any fix:
+
+| surface | measurement |
+|---|---|
+| the drawer, mid-fight | **137 of 217 turns** across 12 seeds disagreed with the field |
+| the drawer, after a fight | **165 of 182** reviews disagreed with the result screen beside it |
+| the drawer's relic list | a taken relic missing until the node ended |
+| the drawer's contribution rows | folded with HP, so they lagged with it |
+
+The sharpest single number is a Seel the fight had at **1 HP** and the drawer,
+open over that fight, reported at **25** — under a blurb that reads "Your side,
+as the fight has left it."
+
+### 39.2 What was approved, what was built, and why they differ
+
+The author chose, from four options, the one that moved `applyBattleState` out
+of `resolveNode` and fired `onState` early. **That is not what was built**, and
+the reason is a finding rather than a convenience.
+
+`resolveNode` is called directly by twelve test files, several of which exist to
+assert exactly what it folds. Moving the battle fold out would change what the
+function means for every caller and would break the invariant its own header
+states. It was also unnecessary: nothing about the *run* needs to happen
+earlier. What needed to happen earlier was the **reporting**.
+
+So `core/run.ts` gains `RunProjection` and an optional `onProjection` hook, in
+the style of `onNodeResolved`: observation only, no `RunState` handed out, no
+transition reached any earlier. `projectionOf` recomputes three of
+`resolveNode`'s folds **in `resolveNode`'s own order** — battle state, then the
+items the fight ate, then the capture — and the order is the whole correctness
+claim, because `applyBattleState` maps the sim's read-back by `sendOrder`
+computed from the pre-battle party. Folding a capture ahead of it would write
+damage onto the wrong Pokemon.
+
+It fires three times inside a node: when the fight ends, when the card is taken
+and when the capture is decided. Each is the moment the thing it reports became
+true.
+
+**The property that makes it safe is asserted first**, in
+`test/run-projection.test.ts`: a run played with the hook and one played without
+it produce byte-identical logs. Without that, every balance figure and every
+recorded seed in the repo would be conditional on whether a UI happened to be
+attached.
+
+### 39.3 Mid-fight there is no state to project, so the drawer reads the sim
+
+The in-battle case is the one the hook cannot answer: the damage is in the
+session, not in any `RunState`. `ui/app.ts` already receives the session from
+`onBattle`, so it now keeps it together with **the party the fight was sent
+with**, and the drawer folds `session.partyState('p1')` onto that party.
+
+Two details are load-bearing. The party kept is the one the send was computed
+from, so `applyBattleState`'s `sendOrder` mapping is right by construction
+rather than by luck. And the contribution list passed is **empty**, deliberately:
+`applyBattleState` keeps a member's own counters when a delta is missing, and a
+fight's contribution is not final until it ends.
+
+`releaseBattle` clears it, beside the `detachBattle` and `battleScreen.cancel()`
+already there, or the next screen would draw the previous fight.
+
+**And it is read only while its own screen is up**, which is a second gate and
+not a redundant one. The session outlives its screen: `releaseBattle` runs when
+the *next* fight starts, so between the outro and the end of the node the ended
+session is still in hand. The first version of this patch keyed on "is there a
+session" and would therefore have answered the capture screen with the battle's
+three members while the projection had already folded in the Pokemon the player
+had just caught — the reported defect, reintroduced by its own fix. Found by
+re-reading the diff rather than by a test, which is why there is now a test.
+
+### 39.4 The drawer shows what the surface underneath it shows
+
+Three sources, read in order of nearness to the moment the player is standing
+in: the live fight, then a decision the run has taken and not applied, then
+`live.party`. The rule is not "the drawer is as fresh as possible" — it is that
+**the drawer never contradicts the surface it is sitting over.**
+
+That rule is why `chooseMoveRecipient` also set the override from its own
+argument: the move question was asked against a party that did not fold the
+battle, so without it the drawer would have shown live HP over a screen showing
+pre-fight HP — the contradiction this patch is about, introduced by its own fix.
+**That second setter is gone**, with the question it existed for: section 37
+moved teaching to the party screen, which is reached between nodes where `live`
+is current. The projection is the only setter now, and the rule it served is
+unchanged.
+
+### 39.5 The repair that would have been a bug
+
+> **Retired, 2026-09-18, in the same merge.** `partyAfterAcquisition` and
+> `rewards.recipientFor` are both gone from the tree: with teaching moved to the
+> party screen there is no second reading of the party to disagree with, and no
+> fainted-slot fallback to disagree through. The test written to guard it
+> (`move-recipient-fold`) is **deleted** rather than left asserting against
+> retired code, which is why no path to it is named here.
+>
+> The measurement is kept below because it is the argument that the retirement
+> was an improvement rather than a wash, and because the near-miss is the
+> transferable part: a cosmetic complaint about a readout pointed at a repair
+> that would have changed a game rule, and the first scan run to check it
+> measured the wrong thing and said so confidently.
+
+The recipient screen's own cards show the HP the node was entered with. The
+obvious repair is to fold the battle into `partyAfterAcquisition`.
+
+**It would change who gets the move.** `rewards.recipientFor` returns the lead
+when the named slot is fainted. The question's reading and the apply site's
+reading agree today only because *neither* has a fainted member in it: the
+question is posed pre-battle, and `resolveNode` applies the reward after
+`betweenNodes`, which revives. Folding the battle in breaks that symmetry from
+one side only — the replace question would be posed about the lead's four moves
+while the move still landed on the slot's member.
+
+**This was nearly filed as a defect**, on a scan that compared the question
+against a battle-folded party *without* the node boundary: 123 of 605 move
+questions appeared to diverge. That scan was wrong, and it is recorded here
+because the wrong version is the plausible one. Against what `resolveNode`
+actually resolves against:
+
+- the move landed on the Pokemon the question named in **466 of 466** resolved
+  cases across 300 seeds, elsewhere in none;
+- today's reading agrees with the apply site **316 of 316** across 200 seeds;
+- a battle-folded reading would disagree **70 times** in those same 316 — 22%.
+
+The test written for this held both halves — that the move lands where the
+question said, and that the folded reading is *not* equivalent, the second
+failing if they ever converged. It is deleted with the mechanism; the numbers
+above are what it asserted. The rule is also written into `partyAfterAcquisition`'s header,
+where the next person will be standing when they think of it.
+
+What is left is a design question rather than a patch — what should the
+recipient screen draw for a member who fainted in the fight that paid the card
+and will be revived before the move lands — and it is filed in `README.md`
+section 5.
+
+### 39.6 One hypothesis killed
+
+Section 35's open `teachMove` crash (`Snover already knows Confusion`) was
+hypothesised to be this same divergence. It is not: it did not reproduce in 300
+seeds, and the divergence it would have rested on does not exist. The item
+stands, unexplained, with one more cause ruled out.
+
+### 39.7 What was checked and is not a defect
+
+The result screen's coins — the balance updates at the boundary, and
+`BattleReview.currencyEarned` splits "what this node paid" from "what the run
+holds" deliberately, which its own comment states. The map overlay's position —
+the node has not resolved, so showing it unresolved is correct. The evolution
+fork's pre-level party — the fork has not been answered yet.
+## 40. The Teach control was offered where the teach could not be spent
+
+**2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
+[`spec/gymrun-patch-r19-overnight-playtest.md`](spec/gymrun-patch-r19-overnight-playtest.md),
+item 4. Presentation only: one flag in `ui/app.ts`, no `core/` change, no
+version axis moves.
+
+> "teaching tms doesnt work. When i click out of the teach screen, the tms
+> return to inventory."
+
+### 40.1 The first reading was two guesses, and both were wrong
+
+This item was first filed with two candidate causes and a question back to the
+author, on a reading that had not gone near a rest — which is where the report
+said the failure was. That is recorded rather than quietly replaced, because the
+failure was a method failure: the code was read, a story was built that fit the
+sentence, and nothing was run. The author's reply was "So you assumed conditions
+and didn't check?", and it was correct.
+
+What settled it was driving each layer:
+
+| layer | how | result |
+|---|---|---|
+| `applyItemPlan` + `reconcileItemPlan` | direct, with a composed teach | move taught, TM consumed |
+| the whole loop | `playRun`, 300 seeds, policy composing a teach at every legal boundary | **56 of 56** landed |
+| the TM shelf | jsdom, real `createPartyScreen` | Teach button present, `onPlan` carries the teach |
+| the target and replace screens | jsdom, clicking a member and a move | both callbacks fire |
+
+**The mechanism was never broken.**
+
+### 40.2 The bug is which screen offers the control
+
+`run.canTeachNow` reads the node the run has just walked. It therefore stays
+true for the whole time the player then stands on the map — so the map's Manage
+button showed a Teach control after every rest and every shop.
+
+The plan that control composes is not spent there. It is held in `pendingPlan`
+and spent at the boundary of the node walked *next*, where `canTeachNow` reads
+that node instead. Walk into a fight and `reconcileItemPlan` drops the teach —
+correctly, by its own documented rule ("the TM stays in the bag, which is the
+outcome the player can still act on at the next rest") and silently — and the TM
+is back in the bag.
+
+Measured, scripted baseline, 400 runs: of **111** teaches composed from the map,
+**9** survived to be spent and **57** were dropped; the rest never reached
+another boundary before the run ended.
+
+**`chooseItemPlan` already knew.** Its own comment says a map-composed teach
+"would be dropped, correctly and silently, and the player would watch a TM they
+had arranged simply fail to be spent", and it opens the party screen at the
+boundary for exactly that reason. What it never did was stop the *other* route
+offering the same control. The fix is `atTeachBoundary`: armed around the
+item-plan question, disarmed by the two Manage buttons, and left alone by the
+re-renders (`back` after a teach, a reorder, a release) that re-enter the screen
+without leaving the boundary.
+
+`test/teach-boundary.test.ts` pins it, three cases red without the fix. The
+browser smoke run still reports one move target and one move replacement, so the
+route that works is untouched.
+
+### 40.3 The larger finding, filed and not fixed
+
+**A TM is spendable in 13% of runs.** Same scan, policy never teaching so the TM
+stays in the bag:
+
+| | |
+|---|---|
+| runs that ever hold a TM | 174 of 400 (43.5%) |
+| runs that ever reach a boundary where one can be spent | **53 (13.3%)** |
+| boundaries holding a TM where teaching was legal | 74 of 687 (10.8%) |
+
+Roughly seven in ten runs that earn a TM never get to use one. Nothing is
+malfunctioning: teaching is legal at a rest or a shop, and most runs die before
+reaching one while holding a move. `scripts/smoke.mjs` met the same wall from
+the other side — its seed had to be re-chosen at the inventory-TM merge because
+the old one stopped reaching a rest while holding a TM, and its header records
+that four of the five best replacement candidates died on node 1 or 2.
+
+Widening `canTeachAt`, letting a teach wait for the next legal boundary rather
+than being dropped, or paying TMs nearer to rests are all answers. All three are
+balance decisions, so this is filed in `README.md` section 5 rather than
+guessed at.
