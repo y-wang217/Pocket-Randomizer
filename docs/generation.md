@@ -6341,10 +6341,25 @@ Green on `b3f70c0`: determinism and stream isolation through the suite, the
 version guards, type check, lint, build, the smoke run, and the full suite at
 **1805 passing across 137 files, none failing**.
 
-**Strict trim was still running when this was written and its result is not
-recorded here.** It is an absolute gate, so that is an open item rather than a
-pass: the next session confirms `GYMRUN_TRIM_STRICT=1` before treating this
-stage as gated, and records the number in this section.
+### The smoke seed had to move, and why that is a finding
+
+`SMK49-2` was the smoke run's seed and it stopped satisfying this gate at the
+merge — not because it stopped clearing a gym or filling the party, both of
+which it still does, but because it stopped **reaching a rest while holding a
+TM**. That pairing did not exist as a requirement before: a move was taught at
+the node that paid it, so any seed that was paid a move showed the recipient
+screen. The only route to that screen now is the party screen's Teach control at
+a rest or a shop, so the seed has to be paid a move card *and then* reach a rest,
+both before the run dies. `SMK49-2` is paid its first TM one node after its last
+rest.
+
+`SMK50-128` replaces it. The search that found it ranked candidates by how early
+that pairing occurs rather than by how long the run lives, and the reason is
+worth keeping: **the browser bot dies far sooner than any headless emulation of
+it.** Four of the five best-ranked candidates cleared a gym headlessly and died
+on node 1 or 2 in the harness. A headless scan is a filter for this seed; the
+harness is the test, and the two disagree enough that trusting the first would
+have burned several rounds.
 
 The smoke run is the one worth naming, because it is the gate that decided the
 shape of this stage rather than merely confirming it — see the UI section above.

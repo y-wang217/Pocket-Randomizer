@@ -83,8 +83,23 @@ await new Promise((resolve) => server.listen(0, resolve));
  * move, rest when hurt, first node, last locale, first card, every capture)
  * over the seed space and confirming the hit here: it clears a gym, fills
  * the party, is taught a move, and dies with a cause line for the summary.
+ *
+ * **SMK50-128 replaces it at the moves-as-inventory merge, and the reason it
+ * had to is the interesting part.** SMK49-2 still clears a gym and still fills
+ * the party on this tree; what it stopped doing is *reach a rest while holding
+ * a TM*. A move is no longer taught at the node that pays it, so the only route
+ * to the recipient screen is the party screen's Teach control at a rest or a
+ * shop — which means this seed now has to satisfy an ordering it never used to:
+ * a move card first, a rest second, both before the run dies. SMK49-2 is paid
+ * its first TM one node *after* its last rest.
+ *
+ * The search that found the replacement therefore ranked seeds by how early
+ * that pairing occurs rather than by how long the run lives, because the
+ * browser bot dies much sooner than any headless emulation of it — four of the
+ * five best-ranked candidates died on node 1 or 2 here despite reaching a gym
+ * headlessly. Candidates are a filter; this harness is the test.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMK49-2';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMK50-128';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
