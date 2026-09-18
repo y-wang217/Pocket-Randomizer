@@ -25,7 +25,6 @@ import {
   type ShopItem,
 } from '../src/core/economy';
 import { nodesOf, routeStepsOf, type NodeSpec } from '../src/core/encounters';
-import { isTargeted } from '../src/core/rewards';
 import {
   applyEventOutcome,
   definitionOf,
@@ -323,7 +322,7 @@ describe('currency earned per node', () => {
       event: null,
       acquisition: null,
       // Stage 4.8, item 2: only a gym carries one, and payout does not read it.
-      gymMove: null,
+      gymMoveOffer: null,
     });
 
     expect(nodePayout(node('wild', 'hard'), 0)).toBeGreaterThan(nodePayout(node('wild', 'normal'), 0));
@@ -399,9 +398,11 @@ describe('currency never goes negative', () => {
      * optional any more — and a fixture that dodged them was testing a basket
      * the game cannot assemble.
      */
-    const taught = stock.items.filter((item) => isTargeted(item.reward)).length;
-    const choices = Array.from({ length: taught }, () => ({ target: 0, replaceSlot: 3 }));
-    const after = applyPurchases(rich, stock, basket, choices);
+    const taught = stock.items.filter(
+      (item) =>
+        item.reward.kind === 'tm' || item.reward.kind === 'tutor' || item.reward.kind === 'technique',
+    ).length;
+    const after = applyPurchases(rich, stock, basket);
     expect(after.currency).toBe(100_000 - basketCost(stock, basket));
     expect(after.currency).toBeGreaterThanOrEqual(0);
     expect(taught).toBeGreaterThanOrEqual(2);

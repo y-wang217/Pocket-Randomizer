@@ -32,8 +32,17 @@ import { DEFAULT_TUNING } from '../src/data/tuning';
  * Widened at the `gymrun-randomizer-18` bump: a survivor whose level has moved
  * since a party-mate fell needs a run that lives long enough to level, which
  * the draw decides. See `test/backpack.test.ts` on pinned seeds and bumps.
+ *
+ * **Widened again at the moves-as-inventory stage, and this time without a
+ * randomizer bump, which is the interesting part.** Every draw is made from the
+ * same key in the same order — `RANDOMIZER_VERSION` did not move — but a move
+ * now arrives as a TM and is taught at the next rest or shop rather than at the
+ * node that paid it, so the party fights the intervening nodes with the moveset
+ * it had. Runs therefore diverge from the same draws, and the discriminating
+ * case this file needs vanished from A–H entirely. A–Z restores it: the case is
+ * present in K, L, M, P, Y and Z.
  */
-const SEEDS = ['NAME-A', 'NAME-B', 'NAME-C', 'NAME-D', 'NAME-E', 'NAME-F', 'NAME-G', 'NAME-H'];
+const SEEDS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => `NAME-${letter}`);
 
 /** Catches whatever it is offered, so names and deaths both accumulate. */
 function catcher(): RunPolicy {

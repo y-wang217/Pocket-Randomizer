@@ -112,17 +112,35 @@ describe('every battle completion reaches the result screen', () => {
    * If a future node kind fields a battle and draws no cards, this fails and
    * the rewardless-win path is live again — which is fine and is what the
    * screen already handles, but it should be a decision rather than a surprise.
+   *
+   * **A gym is that decision, taken by the band recut.** A gym pays two pages
+   * now — three moves, then three relics-or-gold — and the review screen may not
+   * answer either of them: handing it the card page would answer page 2 before
+   * page 1 had been asked, so `playRun` passes it `null` and both pages go
+   * through `chooseReward` after the review. `run.ts`'s `reviewOffer` carries
+   * the argument. The rewardless-win path is therefore live and deliberate at
+   * exactly one node kind, which is what this asserts rather than tolerates.
    */
-  it('offers cards for every fight the player wins', async () => {
+  it('offers cards for every fight the player wins, except a gym, which pays two pages instead', async () => {
+    let gymWins = 0;
     for (const seed of seeds) {
       const { policy, reviews } = reviewing();
       await playRun(seed, policy);
       for (const review of reviews) {
-        if (review.won) {
-          expect(review.offer, `${review.node.id} won and offered nothing`).not.toBeNull();
+        if (!review.won) continue;
+        if (review.node.kind === 'gym') {
+          gymWins += 1;
+          expect(review.offer, `${review.node.id} answered its cards on the review screen`).toBeNull();
+          // The cards still exist — they are asked after the review, not lost.
+          expect(review.node.reward, `${review.node.id} drew no cards at all`).not.toBeNull();
+          expect(review.node.gymMoveOffer, `${review.node.id} drew no move page`).not.toBeNull();
+          continue;
         }
+        expect(review.offer, `${review.node.id} won and offered nothing`).not.toBeNull();
       }
     }
+    // The gym branch above is only an assertion if a gym was actually won.
+    expect(gymWins, 'no seed in this list cleared a gym').toBeGreaterThan(0);
   });
 
   it('carries the party as the fight left it, before the node boundary heals', async () => {

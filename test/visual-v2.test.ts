@@ -93,6 +93,9 @@ describe('the band', () => {
     // The pinned incoming move card on the replacement screen sits above the
     // band's range. Release A's confirm is not merged; this is the card it
     // would pin, measured where it renders today.
+    //
+    // Reached through the party screen's Teach control now rather than from a
+    // node's move card, so the walk passes through a rest or a shop.
     await page.locator(`${visible('party')} .primary-action`).click();
     const reached = await playUntil(page, (screen) => screen === 'replace', 900);
     expect(reached).toBe('replace');

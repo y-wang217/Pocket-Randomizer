@@ -3616,8 +3616,9 @@ types, the six stats at the member's level, dex order, no marker.
 
 ### The curve, the rosters, the AI
 
-`playerLevel` is 7, 14, 20, 27, 33, 40, 47, 55, each clear sized to cross a
-threshold cluster; wild a fifth to a third below, trainer a sixth to a
+`playerLevel` was 7, 14, 20, 27, 33, 40, 47, 55, each clear sized to cross a
+threshold cluster (**the band recut moved it to 15, 20, 26, 32, 38, 44, 50, 58 —
+section 36**); wild a fifth to a third below, trainer a sixth to a
 quarter below, gym at or above (0..+1 to +2..+4). `TIER_MODIFIERS.level`
 became `levelShare`, a fraction of the player's level, because `-3` at level
 7 was 43% of it. A gym fields the player's slot count (2, 3, 3, 4, 4, 5, 5,
@@ -3654,8 +3655,9 @@ evolution and at least 280 base stat total.
   With it from segment 0, 82% of deaths were at gym 1 to Rock Slide, Ancient
   Power and Rock Tomb — band-2 moves against twenty-HP base forms. The gym
   clear's *reward* still pays one band up from gym 1.
-- **A starter floor of 280 base stats.** Band 0 runs from 180; a Caterpie at
-  level 7 is a run that ends at the first trainer.
+- **A starter floor of 280 base stats.** Band 0 runs from 180; a Caterpie is a
+  run that ends at the first trainer. (Derived at level 7; the band recut moved
+  the opening to 15 without re-deriving it — section 36.6.)
 - **Content-dependent pins moved.** Two `visual-v5` move-grid tests read
   SMOKE24's first board and needed a marker and an unwrapped meta row; the new
   SMOKE24 opens with Fighting moves whose type chip wraps the meta row at
@@ -5820,8 +5822,593 @@ The direction is the one the change argues for and the magnitude is larger than
 the level arithmetic alone suggests, which is the Speed threshold showing up in
 the number. Nothing else was tuned against this run. The full row, including
 what it says about the standing gym 3 outlier, is in `balance.md` section 0.
+## 36. The opening was drawing from a table nobody wrote
 
-## 36. The drawer showed a Pokemon the run had already been told to release
+**2026-09-17**, branch `claude/admiring-euler-dhn536`. Prompt:
+[`spec/gymrun-patch-band-recut-and-level-curve.md`](spec/gymrun-patch-band-recut-and-level-curve.md).
+Report, filed before any code and treated as a hard stop:
+[`reports/early-game-band-and-curve.md`](reports/early-game-band-and-curve.md) —
+which is also the decision record, because the instruction that produced it asked
+for one.
+
+Axes: `RANDOMIZER_VERSION` to `gymrun-randomizer-19`, `RUN_LOG_VERSION` to
+`gymrun-run-18`, `contentHash` to `a036d6`. **`AI_VERSION` holds** at
+`gymrun-ai-6-spent-item`, deliberately: `GREEDY_BASELINE` is the yardstick every
+benchmark row is read against, and moving it would move every row with it.
+
+### 36.1 The complaint was band 2, and the cause was not the weights
+
+The report opens on a measurement. Segments 0 to 2 are written
+`moveBandWeights: { 1: 4, 2: 1 }` — 80/20 — and across 600 seeds gym 1 was
+measured fielding **61% band 1, 34% band 2 and 5% band 3**. The opening was
+drawing from a distribution that appears in no file.
+
+Two channels. `MOVESET.stabWindow` was 1, so the forced STAB slot read
+`damagingInStabWindow(band)` — its band *and the one above* — and `rollMoveset`'s
+`take(from) ?? take(inBand) ?? take(pool.all)` fallback reaches the whole pool
+whenever the type filter empties, which at band 1 it frequently did.
+
+Both arrived in `40dbb0b`, whose message describes the window and not the weights:
+that commit also moved segments 0 to 2 from `{ 1: 1 }` to `{ 1: 4, 2: 1 }` without
+saying so. `starters.ts` still claimed "segments 1-2 draw band 1 only" and had
+been wrong since.
+
+### 36.2 Five bands, cut where the dex is empty
+
+`POWER_CUTS` went `[55, 75, 95]` to `[60, 75, 90, 110]`.
+
+| band | range | moves |
+|---|---|---|
+| 1 | ≤60 | 117 |
+| 2 | 61-75 | 63 |
+| 3 | 76-90 | 114 |
+| 4 | 91-110 | 58 |
+| 5 | 111+ | 45 |
+
+**No move in the pool has effective power in 91-94 or in 111-119**, so the two new
+edges fall in ranges the dex already leaves empty and not one move is reclassified
+by an arbitrary boundary. That is the argument for these four numbers rather than
+four neighbouring ones, and it is checkable by re-running the census.
+
+Band 1 going from 82 moves to 117 is what makes closing the window affordable.
+The window existed because band 1 held one Psychic move and one Dragon move; at
+117 the count of types whose entire band-1 slice is one attack category drops from
+six to three, and of types with fewer than three band-1 moves from four to two.
+The fix moved from the symptom to the cause.
+
+### 36.3 Three type gaps, pinned rather than designed around
+
+The recut leaves band 2 with no Dragon move, band 4 with no Bug move and band 5
+with no Dark move. `test/data-tables.test.ts` required every band to hold all 18
+types; that requirement is now false and no cut makes it true without moving an
+edge into a dense part of the dex and reclassifying dozens of moves to rescue one.
+
+The test asserts what is true instead: every band non-empty, at least 15 of 18
+types, and **this exact set of gaps**. A fourth gap fails it and so does closing
+one of these. A species of those types drawing that band loses STAB for that slot
+and takes open coverage — the same trade accepted for Psychic below.
+
+### 36.4 Deterministic Confusion, accepted
+
+With the window closed, Psychic holds exactly one band-1 move. Every Psychic
+species' forced first slot is Confusion, deterministically — the defect
+`stabWindow` was added to fix, reintroduced knowingly. Steel has two band-1 moves
+and Fairy three, all one category.
+
+The user's ruling, in full: *"yes accept the deterministic. psychic is a strong
+typing and needs investment to win."*
+
+### 36.5 The first external reference the ramp has ever had
+
+[`reports/moveset-pool-validation.md`](reports/moveset-pool-validation.md) records
+that this project ships no learnsets and that this is permanent. True of the
+*game*; it does not stop the dex being read at analysis time, and this patch is
+the first to do it.
+
+Gen-9 level-up learnsets for all **900 pool species** (0 failures), pre-evolution
+chains walked, scored as the four most recently learned damaging moves — what a
+nuzlocke Pokemon actually carries. All eight `moveBandWeights` rows are fitted to
+that table. They had to be rewritten regardless: the old band 3 (76-95) splits
+across the new bands 3 and 4, so every row meant something different than it did.
+
+The measurement says two things the old table got wrong in opposite directions.
+The opening weights were already about right — real games give 58/18 at level 15
+against a written 80/20, and the 61/34 measured was the leak, not the table. And
+the back half was the under-specified end: real gym 8 is 38% top-band and the old
+table had no top band to give. Segment 7 is the first row whose modal band is the
+ceiling, so gym 8 draws and pays band 5.
+
+### 36.6 The curve, and the two goals the dex will not give
+
+`playerLevel` went `7, 14, 20, 27, 33, 40, 47, 55` to `15, 20, 26, 32, 38, 44, 50, 58`.
+
+Emerald pace rather than Kaizo pace, stretched. Vanilla Emerald's gyms are 15, 19,
+24, 29, 31, 33, 42, 46 and its Champion is 58. Gyms 1 and 2 are taken from that
+list; the middle is stretched because Emerald's own is flat — 29, 31, 33 across
+three gyms — while the dex's final-evolution mass sits at 30 to 36 with a median
+of 35, so the vanilla curve parks under the entire cluster and shows the player
+nothing for three gyms. Measured over the starter pool, verbatim Emerald reaches
+38% fully evolved by gym 6 where the stretched curve reaches 89%.
+
+Gym 8 takes the Champion's 58 rather than the eighth gym's 46, for two reasons: it
+is this game's final fight, and at 46 no pseudo-legendary line could ever finish.
+
+**Two stated goals are missed and recorded rather than chased.** "First evolutions
+by gym 2" reaches 20% — dex stage-1 levels cluster at 16 to 30 and a majority needs
+gym 2 at about 26, which makes the opening a sprint. And Tyranitar and Dragonite at
+a *real* dex 55 finish at gym 8 rather than gym 7; `evolutionThresholds.ts` may not
+raise a real dex level, and the Dragon gym is arguably where they belong.
+
+One synthetic moved: **Alakazam 55 to 50**, the only one the curve stranded. Gengar
+(50), Machamp (50) and Golem (42) already land by the gym 7 fight.
+
+### 36.7 Raising levels sharpens the early swing; it does not soften it
+
+Recorded because the patch's own framing had it backwards until the report
+measured it, and because the next reader will assume the same thing.
+
+The damage formula's level term is `floor(2L/5) + 2`, which doubles from 4 to 8
+between level 7 and level 15. Median starter HP grows from 26 to 44, a factor of
+1.69. Damage outgrows HP, because the flat `+10` in the HP formula dominates at
+very low level and stops mattering by 15.
+
+Chance a STAB super-effective hit one-shots, per damaging slot, over every
+drawable move and every starter-pool defender:
+
+| config | rate |
+|---|---|
+| before, gym 1 at L7 | 14.2% |
+| gym 1 at L7, new cuts, window closed | **11.3%** |
+| after, gym 1 at L15 | **22.3%** |
+
+The band work did what it was asked to do and the level raise undid it and more.
+**The curve is justified on evolution pacing and on nothing else.** Neutral-damage
+OHKO rate is 0.0-0.6% at every level and config, so all of the swing is
+super-effective hits — which is ordinary Pokemon, and the one forecast the UI is
+already allowed to show.
+
+**And then the benchmark said the opposite, which is why it is the benchmark.**
+Measured alone, against the pinned `greedy` baseline at 400 seeds, gym 1 cleared
+**56.4%** — up from 48.3% — and mean gyms went 0.545 to 0.56.
+
+**Re-measured on the merged tree it reads differently again**, because the gym
+level column went to zero on another branch in between (section 35) and that
+change is worth more than this one at gym 1. The shipped row is **0.65 mean
+gyms and 0.3% completion**: down 0.16 from the 0.81 the parity change alone
+produced, and the first non-zero completion this population has recorded since
+Stage 4.9. One run in 400 cleared all eight gyms. Gym 3 is +25.3pt, gym 1 is
+-5.8pt, and everything past gym 4 is two to twenty runs a column. The
+`randomizer-19` row of `balance.md` carries the full reading.
+
+A wrong number was carried for part of this patch and is corrected here rather
+than quietly dropped: an interim 120-seed run was read off the `ladder` policy's
+*first* sample, which is `random`, not `greedy`. `random` clears gym 1 at 22.7%
+and always has; the baseline every row in `balance.md` is read against is
+`greedy`, and reading across them is the "read down a prefix, never across" rule
+failing in a new direction.
+
+So the arithmetic above stands — the per-slot one-shot rate really does rise —
+and the outcome does not follow it. The closed window is why. Gym 1's measured
+band mix is now **83% band 1, 17% band 2, no band 3**, against the 61/34/5 the
+leak was producing; a player facing fewer band-2 and no band-3 moves wins more
+often even though each individual super-effective hit is likelier to one-shot.
+The two effects are not the same measurement, and only one of them is the game.
+
+Gym 1 fields **0% evolved forms** and its mean `specPower` matches the starter's,
+so the widened stage gate is not doing anything either way.
+
+The user's standing ruling on clear rate, given before these numbers arrived:
+*"don't worry about your clear rates... the game was too easy in a prior case and
+average gyms was 3, and I was clearing all 8 consistently. the slay the spire
+comparison only is apt if it's genuinely difficult but gives tools to a player
+(read: real strategist) to progress non-trivially."*
+
+### 36.8 A superseded rule: the gym offer is no longer strictly better than elite
+
+`rewardPools.ts` stated that a gym offer must be strictly better than an elite
+node's, and `GYM_MOVE_ENTRY` resolved at `elite` to pay for it: the segment's band
+plus `REWARD_BAND_OFFSET.elite`'s +2 plus `GYM_MOVE_BAND_BONUS`'s +1. At segment 0
+that clamped to the ceiling, and **300 gym-1 clears out of 300 handed the player a
+band-4 move** — Fire Blast, Cross Chop, Sacred Fire, Overheat — at level 14. The
+largest single swing in the opening, on the player's side.
+
+**The rule is deleted from the lineage, not weakened.** It was measuring the wrong
+axis. The replacement argument, in the user's words: *"gym already pays +1 move and
+relic/gold, which is strictly better than +2 move. elites are also just the move,
+while gyms also unlock a level up to the next tier. elites being better
+rewards/harder than a gym is also not terrible. the player makes that decision
+going in."*
+
+So a gym clear is **two pages of three**: three distinct moves at the segment's
+band +1, then three distinct relics-or-gold. `GYM_OFFER_SIZE` went 2 to 3, which
+retires the Stage 4.8 item 2 Part B exception recorded in section 7c — the third
+card on the item page is a second distinct relic rather than the padding that
+exception was avoiding. CLAUDE.md's rewards invariant (every offer is exactly three
+distinct options) now holds on both pages where it held on neither.
+
+Bands paid, by gym: 2, 2, 3, 4, 4, 4, 4, 5.
+
+### 36.9 Why `RUN_LOG_VERSION` moved, and the decline that survived it
+
+The gym's grant became a question, so a gym node records **two** `reward` entries
+where it recorded one. No decision *kind* was added — the replay cursor is
+positional and kind-checked, so the pair needs only a fixed order — but the
+sequence a gym writes is one entry longer, and a `-17` log replayed here would read
+its gym `reward` as the move page and then run out of step at the card.
+
+`playRun` also stops handing the review screen a gym's cards. Every other node
+answers its one offer there; a gym would otherwise answer page 2 before page 1 was
+asked, so `reviewOffer` is null for gyms and both pages go through `chooseReward`.
+`test/result-screen.test.ts` asserts that exemption rather than tolerating it.
+
+The `DECLINED_MOVE` sentinel survives with a **rewritten justification**. Its old
+argument — that a gym move is unconditional, so refusing it is the first and only
+escape hatch — is dead, because the move is now chosen over two others, which is
+exactly the condition `chooseMoveToReplace` cites when it refuses a decline of its
+own. What replaces it: an ordinary reward node offers a move *against an item or a
+relic*, so declining spends the card elsewhere; a gym move page offers three moves
+and nothing else, the relics being on the next page and already guaranteed. A
+player whose four slots all work has no "take the other thing" answer on the page
+where the question is asked. This is that answer.
+
+### 36.10 Two tests were passing for the wrong reason
+
+`test/banding.test.ts` asserted the gym move-band spike at segment 0, where
+`gymMoveBandBonus` returns 0 and there is by definition no spike. It passed because
+the STAB window was leaking a band above whatever the slot drew. It also measured
+one seed, and a segment-0 gym fields two Pokemon with band 2 at a fifth of the
+weight, so "this seed drew no band 2" was a one-in-four coincidence. It asserts
+across the seed list now, and asserts the *absence* of a spike below
+`GYM_MOVE_BAND_BONUS_FROM_SEGMENT`.
+
+The starter ceiling in the same file derives from `MOVESET.stabWindow` rather than
+restating it, which is why it survived the window opening and closing without a
+third rewrite — and it now asserts the closed case (nothing above band 1) as well
+as the open one.
+
+### 36.11 Seed-pinned tests, and the one that could not be re-seeded
+
+The pattern section 31.5 records — search a seed list, assert the search found
+something — covers `capture`, `lead-selection`, `move-replacement` and `party`.
+
+`test/evolution-run.test.ts` could not be fixed that way and says so. **Nothing in
+400 seeds reached a branching evolution**: only 14 species in the pool fork at all,
+and a run has to be holding one when a gym clear crosses its threshold. It uses a
+**pacifist opponent** now — the idiom `test/party.test.ts` already uses for its
+full run, on that file's own argument that whether the game is winnable is
+`npm run sim`'s question and what this file tests is the plumbing. Its replay needed
+the opponent handed to it too: a `RunLog` records the player's decisions and nothing
+about the bot across from them, so replaying a pacifist run against the default
+opponent runs out of step at the first reward that is no longer there.
+
+### 36.12 A contrast defect the recut exposed
+
+`test/visual-chips.test.ts` found the `STAB` flag chip at **4.36:1** against a
+green locale tint, under `displayTuning.minChipContrastRatio`'s 4.5. The flags
+strip is the one place a chip sits on the locale-tinted battle stage rather than a
+panel, and the seed the sweep walks reaches that tint now and did not before — so
+the pairing had never been sampled.
+
+**The defect predates this patch and was exposed by it**, the same shape as section
+32. `.flags .chip` takes full cream instead of the dim default. Every flag moves
+together, so the Release C rule the strip holds is untouched: a kind is still
+identical to every other kind within a side, and `[data-side='p1']` is still the
+only thing that distinguishes them.
+
+`docs/visual/baseline/heights.json` was re-minted. `decisionCount` is unchanged on
+every guarded screen and every budget still holds — battle's decision bottom at 708
+and the map's at 687.6, both under the 740 fold line — so the movement is seed
+drift in the pixels rather than a layout change.
+
+### 36.13 The gate, and the one line in it that is not a pass
+
+`npm run check` is section 33's nine-leg runner now, and on the merged tree it
+reports **8 passed, 0 failed, 1 skipped**: lint, typecheck, `test:node`,
+`test:chromium`, `trim:node`, `trim:browser`, `build` and `smoke` all green.
+Smoke still walks `SMK49-2` — the seed whose header records five predecessors
+retired by exactly this kind of bump did not need a sixth.
+
+**The skipped leg is `test:webkit`, and the runner says so rather than rounding
+up**: this container has no WebKit binary, so the summary line reads *"green, 1
+leg(s) skipped — not a full gate"*. That is section 33's own promotion rule
+working as designed — under `CI` a skip becomes a failure, so the GitHub Actions
+run is where the WebKit half is actually gated, and it is not claimed here.
+
+One earlier run of the gate reported `test:chromium` FAILED, and it is recorded
+because the diagnosis matters more than the result: the 400-seed benchmark was
+running against it at the same time, and the browser height tests are
+timing-sensitive. Run alone, all 24 browser files and 203 tests pass, and
+`trim:browser` — the same files under strict trim — passed even in the contended
+run. **Do not run the benchmark and the browser legs concurrently.**
+
+Vitest also reports `Errors 1 error` on the strict-trim leg, and it is recorded
+here rather than left for someone to rediscover. The error is
+`[vitest-worker]: Timeout calling "onTaskUpdate"` — the reporter's IPC channel
+timing out on a 12-minute run, with no assertion behind it and no test file
+marked failed. It first appeared on a diagnostic run made *concurrently* with the
+smoke browser walk, which flagged a file as failed; run alone the file count is
+136 of 136 and the error survives as a bare warning. Vitest's own message says an
+unhandled error "might cause false positive tests", so the claim being made here
+is narrow: the suite is green on two independent runs, and this line is
+infrastructure rather than product. If it starts appearing with a file attached,
+that is a different finding.
+
+The benchmark is `RETUNE`, 400 seeds, `ai-6-spent-item` pinned — 0.56 mean gyms,
+0% completion — and the row in [`balance.md`](balance.md) carries what it means
+and what it cannot see.
+
+## 37. Moves became inventory TMs, and four questions left the node
+
+The account of
+[`spec/gymrun-stage-moves-as-inventory-tms.md`](spec/gymrun-stage-moves-as-inventory-tms.md).
+Core, the simulator and the UI.
+
+### What the brief asked for, and what it withdrew
+
+The playtest report it opens with asks for a decline control on every
+learn-move screen, on the evidence of a `?` event paying a 40 BP Water Gun to a
+Lv14 party with no way to refuse it. That is not what shipped, and the reason
+is in the brief's own third message and the answer under it: a move that
+arrives is stowed as a TM, costs a bag slot against the held items from that
+moment, and is taught later or thrown away. There is no moment at a node to
+decline, so the decline is **retired rather than extended**.
+
+Two rules arrived with the teach-moment answer and neither was in the question:
+a replaced move is destroyed rather than banked, and a TM is one use. The first
+is the load-bearing one — banking the displaced move would make the backpack a
+free move buffer and the capacity squeeze would buy nothing.
+
+### The four routes, and the one list they now feed
+
+`reports/moveset-pool-validation.md` section 2 enumerated the four routes that
+hand a player a move, for a different reason — all four called `damagingInBands`,
+which is why a status move was unreachable. The same four are the ones that
+change here, and it is the same list because there is only one:
+
+| route | was | is |
+|---|---|---|
+| reward card | taught at the node, two log entries | stows a TM, no entry |
+| shop TM / tutor | taught at the node, two entries per TM in the basket | stows a TM |
+| event move grant | taught at the node, two entries | stows a TM |
+| gym clear move | taught at the node, two entries, declinable | stows a TM |
+
+### Two lists, one capacity
+
+`RunState.tms` is a separate list from `backpack`, and `items.inventoryLoad` is
+the one number they share. A single tagged array was the other option and was
+rejected: every held-item reader — `giveItem`, `spendItems`, an event's forced
+discard, the sim's berry accounting — would have carried a guard for a kind it
+can never legally see, which is the distributed version of the `isTargeted` bug
+section 31 records. What the two genuinely share is scarcity, and scarcity is a
+function rather than a container.
+
+**Items are shed before TMs when a bag overflows.** The overflow rule has always
+been "the oldest go", and the two lists have no shared clock to read that off —
+a TM banked at gym 1 and a Leftovers picked up at gym 5 have no order between
+them. Shedding items first keeps the existing rule where it can still be stated
+and leaves the thing the player deliberately carried for last.
+
+### The teach is part of the item plan
+
+`ItemPlan` grew `teaches` and `discardTms`. `teaches` is an ordered list of acts
+rather than a destination list, and it is the one exception in a structure whose
+whole design is that it is order-free: two teaches can name the same party slot,
+and the second one's `replaceSlot` indexes the moveset the first one left.
+
+`run.canTeachAt` is the single definition of where a TM may be spent — rest and
+shop — read by `playRun` when it applies a plan and by `canTeachNow` when the UI
+composes one. `applyItemPlan` throws on a teach anywhere else rather than
+dropping it: a dropped teach is a plan the player composed and the run did not
+honour, which replays as a different run.
+
+### A deliberate import cycle
+
+`core/items.ts` now imports `teachMove` and `replacementNeeded` from
+`core/party.ts`, which already imports `battleSpecFor` from `core/items.ts`. The
+cycle is taken deliberately. The alternative was to apply a plan's teaches in
+`core/party.ts` and the rest of it in `core/items.ts`, and an item plan is one decision
+recorded as one log entry — splitting its application would give that entry two
+readers, which is the shape of every replay bug this project has had. Neither
+module calls the other at module-init time, so it is a call graph and not an
+evaluation order.
+
+### Versions, and the collision the merge found
+
+`RUN_LOG_VERSION` to **`-19`**, not `-18`.
+
+This stage and section 36's band recut were built in parallel and **both bumped
+the axis to `-18`, each honestly**. Merged, the schema is neither of the two
+things `-18` named: the recut's `-18` was "a gym writes two `reward` entries",
+this one's was "four pairs of `target`/`replace` entries are gone", and the
+merged tree is both at once. One number meaning two incompatible shapes is
+precisely the failure `CLAUDE.md` names — *never silently reinterpret a seed* —
+so the merged schema takes the next number rather than either input's.
+
+Worth naming as a process finding rather than an accident: nothing in the repo
+*could* have caught this before the merge. Each branch's version test asserted
+its own literal and passed. What caught it was reading the other side's
+`RUN_LOG_VERSION` comment during conflict resolution, which is an argument for
+that comment carrying its reason in prose rather than only its number.
+
+`RANDOMIZER_VERSION` is `-19` from the band recut alone; this stage moves it not
+at all, and that is the claim worth checking — every draw is made from the same
+key in the same order, and what changed is only where the drawn move goes.
+`contentHash` likewise moves for the recut's tables and not for this.
+
+### The UI, and the gate that refused to let it wait
+
+**This was going to be checkpoint 2, and the smoke gate was right to refuse
+it.** The core landed with no teach control on the party screen, on the reading
+that `CLAUDE.md`'s "UI comes last" licensed a checkpoint where the mechanic was
+proven headless and unreachable by hand. `npm run smoke` disagreed in one line —
+*no move-recipient screen was ever shown — taught moves are unreachable* — and
+that is exactly what an absolute gate is for. A branch where a run banks TMs it
+cannot spend is not a checkpoint of this stage; it is a different game.
+
+What shipped instead: a TM section on the party screen, beside the backpack
+rather than inside it. A TM and a held item compete for one capacity, which the
+count line says in one number, but nothing the player can do to one applies to
+the other — filing them together would put a *Give to Squirtle* beside a *Teach*
+and invite the reading that a Pokemon can hold a TM. Rows render at every
+boundary, because what the run is carrying is a fact the player is entitled to;
+the **Teach** control is what is gated, and where it is unavailable the row says
+which boundary would take it rather than offering a dead button.
+
+Teach opens `item-target` and then, when the moveset is full, `move-replace` —
+the same two screens, in the same order, asking the same questions they asked
+when `playRun` drove them. What changed is who waits on the answer: `playRun`
+used to park on a pending promise, and the party screen hands in a continuation,
+because a teach is one part of a plan still being composed and backing out has
+to leave the player where they were with the plan intact. The decline control on
+the target screen is offered and now means "not this one, not now" — the TM
+stays in the bag — against a UI-local `TEACH_CANCELLED` rather than the retired
+core sentinel.
+
+### The timing bug the gate then exposed
+
+Wiring the control was not enough, and the reason is worth the space because it
+is invisible from the code.
+
+An item plan is composed on the party screen and spent at the *next* node
+boundary. That is harmless for an assignment — a Leftovers means the same thing
+at any boundary — and it is not harmless for a teach, because a teach is legal
+at exactly two node kinds. A plan composed on the map after a rest names a teach
+against the rest; it is spent at the boundary of whatever node the player walks
+next; and if that is a fight, `reconcileItemPlan` drops the teach. Correctly,
+silently, and the player watches a TM they arranged simply fail to be spent.
+
+So at a rest or a shop with a TM in hand, `chooseItemPlan` **opens the party
+screen and waits** rather than answering with the pre-composed plan. Composing
+and spending become the same moment, and `canTeachNow` is the same answer for
+both. Everywhere else the pre-composed plan still stands.
+
+Two drivers learned the control with it: `scripts/smoke.mjs` and the shared
+`scripts/visual/browser.mjs` walk. Neither is a gate being moved — the
+assertions are untouched, and a walk that always pressed the way out would have
+reached neither screen and passed by never arriving, which is the failure mode
+`smoke.mjs`'s own comment on this assertion already describes.
+
+**An empty TM shelf draws nothing.** `test/visual-pocket.test.ts` found the
+party screen 27px over the 844 it has to fit at Pocket density, and the heading
+plus the "None carried." line under it was the whole of the overage. The
+backpack keeps its heading and its `0 of N` when empty because capacity is a
+number the player is managing either way; a TM shelf with nothing on it is a
+heading and an apology. Note what this does *not* measure: the gallery's late
+state carries no TMs — `defaultItemPlan` spends them at every rest — so the
+populated shelf's height is not under that test.
+
+### The baseline teaches, and the discovery that it briefly did not
+
+`defaultItemPlan` spends every carried TM on slot 0 at a rest or a shop, using
+`defaultMoveReplacement` for the victim. That is the **pre-inventory baseline
+restated**, not a new heuristic: `scriptedRunPolicy` used to answer
+`chooseMoveRecipient` with `0` and `chooseMoveToReplace` with that same
+function, so every scripted run took every move it was paid and put it on the
+lead.
+
+The first build of this checkpoint had it never teach, on the reasoning that
+banking a TM is the decision the stage creates and a baseline should not make
+it. That was wrong in a way worth recording: it silently turned every
+seed-pinned figure in the repo into a measurement of a game where movesets never
+improve, and the drift would have read as the stage's doing rather than the
+baseline's. `test/nicknames-graveyard.test.ts` is what caught it — its
+discriminating case needs a run that lives long enough to level, and there were
+none. The simulator's own policy (`scripts/sim.ts`) spends TMs the same way, off
+`greedyMoveRecipient` and `greedyMoveToReplace`, for the same continuity reason.
+
+### Two recordings re-minted, and why that is not a presentation claim
+
+`test/fixtures/sim-report.json` and `docs/visual/baseline/` were both re-recorded.
+
+The visual baseline exists to prove that a presentation stage moved nothing in
+core, and it is deliberately not a snapshot a test may rewrite. **This stage is
+not a presentation stage** — it moves `RUN_LOG_VERSION`, deletes four pairs of
+questions and changes what `resolveNode` folds — so a baseline diff here is the
+expected outcome rather than the alarm it is meant to be. It was re-recorded
+with `scripts/visual/baseline.ts --write`, which is the one route that writes it.
+
+**The runs diverge without `RANDOMIZER_VERSION` moving, and that is the thing to
+understand before reading the diff.** Every draw is made from the same key in
+the same order. What changed is that a move arrives as a TM and is taught at the
+next rest or shop, so the party fights the intervening nodes with the moveset it
+already had — different battles, different casualties, different lengths, from
+identical draws. `test/nicknames-graveyard.test.ts` needed its seed population
+widened from A–H to A–Z for exactly this reason, and the entry there says so.
+
+### Gates
+
+All absolute gates green on `7eaf284`, the merged tree: determinism and stream
+isolation through the suite, the version guards, type check, lint, build, strict
+trim, the smoke run, and the full suite. Both the ordinary suite and the
+`GYMRUN_TRIM_STRICT=1` suite report **1805 passing across 137 files, none
+failing** — the same count, which is what says the trimmed bundle is not quietly
+skipping anything.
+
+### The smoke seed had to move, and why that is a finding
+
+`SMK49-2` was the smoke run's seed and it stopped satisfying this gate at the
+merge — not because it stopped clearing a gym or filling the party, both of
+which it still does, but because it stopped **reaching a rest while holding a
+TM**. That pairing did not exist as a requirement before: a move was taught at
+the node that paid it, so any seed that was paid a move showed the recipient
+screen. The only route to that screen now is the party screen's Teach control at
+a rest or a shop, so the seed has to be paid a move card *and then* reach a rest,
+both before the run dies. `SMK49-2` is paid its first TM one node after its last
+rest.
+
+`SMK50-128` replaces it. The search that found it ranked candidates by how early
+that pairing occurs rather than by how long the run lives, and the reason is
+worth keeping: **the browser bot dies far sooner than any headless emulation of
+it.** Four of the five best-ranked candidates cleared a gym headlessly and died
+on node 1 or 2 in the harness. A headless scan is a filter for this seed; the
+harness is the test, and the two disagree enough that trusting the first would
+have burned several rounds.
+
+The smoke run is the one worth naming, because it is the gate that decided the
+shape of this stage rather than merely confirming it — see the UI section above.
+
+**No balance number is recorded here, and that is a gap rather than a pass.** A
+TM competes with a held item for a bag slot from the moment it arrives, and
+nothing has measured what that pressure does to mean gyms cleared. `docs/balance.md`
+section 0's standing policy is to record and keep going; there is nothing to
+record yet, and the sweep that would produce it is the next thing this stage
+wants.
+
+### Tests retired rather than skipped
+
+Three groups went, each because its subject no longer exists rather than because
+it failed:
+
+- `gym-pays-twice.test.ts`'s "declining a gym move" section, all three cases.
+- `move-replacement.test.ts`'s ordering and counting of the `target`/`replace`
+  pair, and its resume-from-between-the-two-questions case. There is no longer a
+  point between two questions to save at.
+- `event-move.test.ts`'s two "lands on the member the answer names" cases,
+  rewritten to assert the move lands in the bag and the party is untouched.
+
+The ordering assertions that survived were re-pointed from `target` to `items`,
+which is a true statement of the same property: the entry that has to come after
+a capture is the item plan, composed against the party the capture produced.
+
+`rewards.recipientFor` is retired with them. It redirected a move aimed at a
+fainted or out-of-range slot to the lead, and it existed because the recipient
+was named at the node that paid the card — where the member the player wanted
+could have died in the fight that paid for it. A teach is composed at a rest
+against the party as it stands, where a fainted member is a legitimate recipient
+rather than an accident: it revives between nodes with the move still on it.
+
+## 38. The drawer showed a Pokemon the run had already been told to release
+
+> **Superseded in part, 2026-09-18, by the inventory-TM stage (section 37).**
+> The screen this defect was reported on — the TM recipient list, asked from
+> `playRun` at the node that paid for the move — no longer exists: a move is
+> stowed in the bag and taught from the party screen, between nodes, where the
+> run state is already current. The `chooseMoveRecipient` pin described in 38.2
+> is therefore **deleted** rather than kept behind a flag, and `decidedParty`
+> has one setter, the projection hook of section 39. What survives unchanged is
+> the diagnosis: `live` lags inside a node, and a read-only surface that reads
+> it contradicts the screen it sits over. Section 39 is where that is fixed
+> generally.
 
 **2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
 [`spec/gymrun-patch-party-drawer-stale-capture.md`](spec/gymrun-patch-party-drawer-stale-capture.md).
@@ -5835,7 +6422,7 @@ The recipient screen for `TM: Air Slash` listed Sobble, Spiritomb and
 take the Anorith the node offered. The `PARTY` trigger in the same header, in
 the same second, opened on Sobble, Spiritomb and **Mantyke**.
 
-### 36.1 The window, and why `core/` cannot close it from its side
+### 38.1 The window, and why `core/` cannot close it from its side
 
 Section 29 moved the capture in front of the move question, and it did so by
 building `learners` — `partyAfterAcquisition`, the run's own
@@ -5859,7 +6446,7 @@ there would be reporting a state that does not exist. The asymmetry is not a
 bug in `core/` and is not fixable there without moving the fold, which section
 29.1 spends its length explaining must not move.
 
-### 36.2 The fix is in `ui/app.ts`, and it holds the argument rather than recomputing it
+### 38.2 The fix is in `ui/app.ts`, and it holds the argument rather than recomputing it
 
 `decidedParty` is a second local beside `pendingPlan`: the party a decision has
 settled on while `live` is still behind. `chooseMoveRecipient` sets it to the
@@ -5896,7 +6483,7 @@ nothing else. `map-drawer.ts` says so in its header and gives the reason — the
 party block is one tap away in the same bar, so printing it twice would be two
 readouts to keep in agreement, which is this section.
 
-### 36.3 The item plan is the same defect one line away, and it was carried
+### 38.3 The item plan is the same defect one line away, and it was carried
 
 The report says nothing about items. It did not have to: a plan names **slots**,
 `applyAcquisition` removes the released slot and appends the newcomer, and so
@@ -5917,7 +6504,7 @@ what makes it visible rather than because it was nearby. Before it, the drawer
 drew the old party through a plan composed against the old party, which is at
 least self-consistent.
 
-### 36.4 What is asserted, and where it had to be asserted
+### 38.4 What is asserted, and where it had to be asserted
 
 `test/drawer-live-party.test.ts`. The wiring is three locals inside `mountApp`'s
 closure — `live`, the override, and the drawer's getter — and there is no seam
@@ -5940,7 +6527,7 @@ draws nothing — and all three are properties of the *trigger*. None of them is
 about what the view contains, and the view is handed in, so every one of them
 passes just as happily on a party from the wrong moment.
 
-## 37. `onState` fires once a node, and four readouts were a node behind
+## 39. `onState` fires once a node, and four readouts were a node behind
 
 **2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
 [`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
@@ -5954,7 +6541,7 @@ Section 36 fixed one readout by holding the party `core` handed the move
 question. The follow-up asked whether the mechanism behind it had other
 victims. It had four, and one of them is worse than the reported bug.
 
-### 37.1 The mechanism, stated once
+### 39.1 The mechanism, stated once
 
 `onState` is the app's only refresh signal and it fires once per node, at the
 bottom of the loop, because that is where `resolveNode` produces a state to fire
@@ -5976,7 +6563,7 @@ The sharpest single number is a Seel the fight had at **1 HP** and the drawer,
 open over that fight, reported at **25** — under a blurb that reads "Your side,
 as the fight has left it."
 
-### 37.2 What was approved, what was built, and why they differ
+### 39.2 What was approved, what was built, and why they differ
 
 The author chose, from four options, the one that moved `applyBattleState` out
 of `resolveNode` and fired `onState` early. **That is not what was built**, and
@@ -6007,7 +6594,7 @@ it produce byte-identical logs. Without that, every balance figure and every
 recorded seed in the repo would be conditional on whether a UI happened to be
 attached.
 
-### 37.3 Mid-fight there is no state to project, so the drawer reads the sim
+### 39.3 Mid-fight there is no state to project, so the drawer reads the sim
 
 The in-battle case is the one the hook cannot answer: the damage is in the
 session, not in any `RunState`. `ui/app.ts` already receives the session from
@@ -6032,21 +6619,36 @@ three members while the projection had already folded in the Pokemon the player
 had just caught — the reported defect, reintroduced by its own fix. Found by
 re-reading the diff rather than by a test, which is why there is now a test.
 
-### 37.4 The drawer shows what the surface underneath it shows
+### 39.4 The drawer shows what the surface underneath it shows
 
 Three sources, read in order of nearness to the moment the player is standing
 in: the live fight, then a decision the run has taken and not applied, then
 `live.party`. The rule is not "the drawer is as fresh as possible" — it is that
 **the drawer never contradicts the surface it is sitting over.**
 
-That is why `chooseMoveRecipient` still sets the override from its own argument
-even though the projection hook would otherwise have covered it. The move
-question is asked against `partyAfterAcquisition`, which does not fold the
-battle; without that second assignment the drawer would show live HP over a
-screen showing pre-fight HP — a fresh instance of the contradiction this whole
-patch is about, introduced by the fix for it.
+That rule is why `chooseMoveRecipient` also set the override from its own
+argument: the move question was asked against a party that did not fold the
+battle, so without it the drawer would have shown live HP over a screen showing
+pre-fight HP — the contradiction this patch is about, introduced by its own fix.
+**That second setter is gone**, with the question it existed for: section 37
+moved teaching to the party screen, which is reached between nodes where `live`
+is current. The projection is the only setter now, and the rule it served is
+unchanged.
 
-### 37.5 The repair that would have been a bug
+### 39.5 The repair that would have been a bug
+
+> **Retired, 2026-09-18, in the same merge.** `partyAfterAcquisition` and
+> `rewards.recipientFor` are both gone from the tree: with teaching moved to the
+> party screen there is no second reading of the party to disagree with, and no
+> fainted-slot fallback to disagree through. `test/move-recipient-fold.test.ts`
+> guarded a mechanism that no longer exists and is **deleted** rather than left
+> asserting against retired code.
+>
+> The measurement is kept below because it is the argument that the retirement
+> was an improvement rather than a wash, and because the near-miss is the
+> transferable part: a cosmetic complaint about a readout pointed at a repair
+> that would have changed a game rule, and the first scan run to check it
+> measured the wrong thing and said so confidently.
 
 The recipient screen's own cards show the HP the node was entered with. The
 obvious repair is to fold the battle into `partyAfterAcquisition`.
@@ -6081,14 +6683,14 @@ recipient screen draw for a member who fainted in the fight that paid the card
 and will be revived before the move lands — and it is filed in `README.md`
 section 5.
 
-### 37.6 One hypothesis killed
+### 39.6 One hypothesis killed
 
 Section 35's open `teachMove` crash (`Snover already knows Confusion`) was
 hypothesised to be this same divergence. It is not: it did not reproduce in 300
 seeds, and the divergence it would have rested on does not exist. The item
 stands, unexplained, with one more cause ruled out.
 
-### 37.7 What was checked and is not a defect
+### 39.7 What was checked and is not a defect
 
 The result screen's coins — the balance updates at the boundary, and
 `BattleReview.currencyEarned` splits "what this node paid" from "what the run

@@ -102,4 +102,4 @@ the old one would point the Leftovers at whoever shifted up.
 Presentation only. No `core/` change, no version axis moves, `contentHash`
 unmoved at `94c6c1`.
 
-[`../generation.md`](../generation.md) section 36 is the account.
+[`../generation.md`](../generation.md) section 38 is the account.

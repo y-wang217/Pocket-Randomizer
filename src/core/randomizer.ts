@@ -261,8 +261,36 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `RUN_LOG_VERSION` moves in the same patch and for unrelated reasons. Two
  * guards, two messages: that one says the questions changed, this one says the
  * answers would now mean something else.
+ *
+ * **`-19`: the band recut and the level curve.**
+ *
+ * The broadest content change since `-16`, and every part of it alone would
+ * have earned the bump.
+ *
+ * `POWER_CUTS` went from three cuts to four, so `movePools.ts` regenerated with
+ * a different `band` on most of its 397 rows and a fifth band on 45 of them.
+ * The pool is sorted by id and a moveset draws an *index* into a band-filtered
+ * slice of it, so a changed band is a changed slice is a different move — the
+ * same reason a regeneration has always been a bump.
+ *
+ * `MOVESET.stabWindow` went from 1 to 0, which narrows the list the forced STAB
+ * slot picks from. It costs no *draw* — `take()` is one `pick` whatever it is
+ * handed, which is the property that made the window safe to open and makes it
+ * safe to close — but the value drawn lands on a different move.
+ *
+ * All eight `SEGMENTS` rows moved: `playerLevel` to the stretched Emerald curve
+ * and `moveBandWeights` to shares fitted to real gen-9 learnsets. Levels feed
+ * `opponentLevel` and the stage gate, so a segment draws from a different
+ * species list as well as a different move list.
+ *
+ * And the gym's move page is three draws where it was one, so every `rewards`
+ * draw after the first gym sits two further along that stream.
+ *
+ * Not one draw changed position inside `rollMoveset`, and every seed rolls a
+ * different run anyway. `RUN_LOG_VERSION` moves with it at `-18`, because the
+ * gym's grant became a choice and that is a question where there was none.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-18';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-19';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

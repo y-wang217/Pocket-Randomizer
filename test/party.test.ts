@@ -38,7 +38,6 @@ import {
   RUN_LOG_VERSION,
   createRun,
   chooseStarter,
-  defaultMoveReplacement,
   gymsCleared,
   playRun,
   partyCapacity,
@@ -317,15 +316,26 @@ describe('targeting a reward at a party member', () => {
    * as a change: same card, same call, different destination.
    */
   it('puts an item card in the backpack rather than on a party member', () => {
-    const after = applyReward(state(), { kind: 'item', item: 'leftovers' }, 2);
+    const after = applyReward(state(), { kind: 'item', item: 'leftovers' });
     expect(after.backpack).toEqual(['leftovers']);
     expect(after.party.map((member) => member.item)).toEqual([undefined, undefined, undefined]);
   });
 
-  it('teaches the move to the slot the player named', () => {
-    const after = applyReward(state(), { kind: 'tm', move: 'Earthquake' }, 1);
-    expect(after.party[1]!.spec.moves).toContain('Earthquake');
-    expect(after.party[0]!.spec.moves).not.toContain('Earthquake');
+  /*
+   * The moves-as-inventory stage: a move card is no longer targeted either.
+   *
+   * Kept and inverted rather than deleted, exactly as the item assertion above
+   * was when 4.5.1 moved items into the backpack — same card, same call,
+   * different destination. A move card and an item card now do the same thing
+   * to the run, which is the point: both pay an object into a bag with a finite
+   * number of slots, and neither asks a question at the node.
+   */
+  it('puts a move card in the bag as a TM rather than on a party member', () => {
+    const after = applyReward(state(), { kind: 'tm', move: 'Earthquake' });
+    expect(after.tms).toEqual(['Earthquake']);
+    for (const member of after.party) {
+      expect(member.spec.moves).not.toContain('Earthquake');
+    }
   });
 
   /*
@@ -341,32 +351,40 @@ describe('targeting a reward at a party member', () => {
   it('no longer destroys a held item: an item card cannot displace anything', () => {
     const before = state();
     const holding = { ...before, party: before.party.map((m, i) => (i === 0 ? giveItem(m, 'lifeorb').member : m)) };
-    const after = applyReward(holding, { kind: 'item', item: 'leftovers' }, 0);
+    const after = applyReward(holding, { kind: 'item', item: 'leftovers' });
 
     expect(after.party[0]!.item).toBe('lifeorb');
     expect(after.backpack).toEqual(['leftovers']);
   });
 
-  it('falls back to the lead rather than crashing on a fainted target', () => {
-    // A member can faint in the fight that paid the card. A run ended by its
-    // own reward screen would be a worse failure than the move moving.
-    //
-    // Stage 4.5.1: demonstrated with a TM rather than an item, because items
-    // are no longer targeted and so can no longer name a fainted slot at all.
-    // The fallback still has to hold for the cards that *are* targeted.
+  /*
+   * **The fainted-target fallback is gone because the target is gone.**
+   *
+   * This held that a card naming a member who died in the fight that paid it
+   * fell back to the lead rather than crashing — a run ended by its own reward
+   * screen being the worse failure. No card names a member now, so there is
+   * nothing to fall back from; what is asserted instead is that a fainted party
+   * is not a special case at all, which is the stronger version of the same
+   * promise.
+   *
+   * The fallback itself still exists, in `rewards.recipientFor`, and the place
+   * a fainted recipient can still be named is a teach inside an `ItemPlan` —
+   * covered by `test/backpack.test.ts`.
+   */
+  it('pays a move card into the bag even when a party member died for it', () => {
     const before = state();
     const withDead = {
       ...before,
       party: before.party.map((m, i) => (i === 1 ? { ...m, hp: 0, fainted: true } : m)),
     };
-    const after = applyReward(withDead, { kind: 'tm', move: 'Earthquake' }, 1);
-    expect(after.party[0]!.spec.moves).toContain('Earthquake');
-    expect(after.party[1]!.spec.moves).not.toContain('Earthquake');
+    const after = applyReward(withDead, { kind: 'tm', move: 'Earthquake' });
+    expect(after.tms).toEqual(['Earthquake']);
+    expect(after.party[1]!.fainted).toBe(true);
   });
 
   it('leaves untargeted rewards party-wide', () => {
     const before = { ...state(), currency: 0 };
-    expect(applyReward(before, { kind: 'currency', amount: 40 }, 2).currency).toBe(40);
+    expect(applyReward(before, { kind: 'currency', amount: 40 }).currency).toBe(40);
   });
 });
 
@@ -403,10 +421,6 @@ function collector(): RunPolicy & { readonly taken: number; readonly released: n
       const wild = options.findIndex((option) => option.kind === 'wild');
       return wild === -1 ? 0 : wild;
     },
-    // The last slot, so a target that was ignored shows up as slot 0 holding
-    // everything.
-    chooseMoveRecipient: async (_offer, party) => party.length - 1,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     /*
      * Stage 4.8: the capacity the run hands in, not the width it started at.
      * Against the opening width this policy asks to release from a party that
@@ -439,7 +453,7 @@ describe('a whole run that acquires', () => {
      */
     let peak = 0;
     let overCapacity = 0;
-    const run = await playRun('PARTY-D2', collector(), DEFAULT_TUNING, {
+    const run = await playRun('PARTY-D0', collector(), DEFAULT_TUNING, {
       onState: (state) => {
         peak = Math.max(peak, state.party.length);
         if (state.party.length > partyCapacity(state)) overCapacity++;
@@ -452,7 +466,7 @@ describe('a whole run that acquires', () => {
   });
 
   it('records the target and the acquisition as decisions of their own', async () => {
-    const run = await playRun('PARTY-D2', collector());
+    const run = await playRun('PARTY-D0', collector());
     const kinds = run.log.decisions.map((decision) => decision.kind);
 
     expect(kinds).toContain('acquisition');
@@ -460,12 +474,11 @@ describe('a whole run that acquires', () => {
       if (decision.kind === 'acquisition') {
         expect(['decline', 'accept', 'release']).toContain(decision.decision.kind);
       }
-      if (decision.kind === 'target') expect(typeof decision.index).toBe('number');
     }
   });
 
   it('replays a run that acquired, released and targeted to the same party', async () => {
-    const original = await playRun('PARTY-D2', collector());
+    const original = await playRun('PARTY-D0', collector());
     const replayed = await replayRun(original.log);
 
     expect(replayed.outcome).toBe(original.outcome);
@@ -764,8 +777,6 @@ describe('a full eight-gym run, headless', () => {
         const wild = options.findIndex((option) => option.kind === 'wild');
         return wild === -1 ? 0 : wild;
       },
-      chooseMoveRecipient: async (_offer, party) => party.length - 1,
-      chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       // Stage 4.8: live capacity, or a run that unlocks a slot starts refusing
       // this policy's answers partway through.
       chooseAcquisition: async (_offer, party, capacity) =>
@@ -820,7 +831,7 @@ describe('a full eight-gym run, headless', () => {
   };
 
   const victoryRun = (): Promise<RunResult> =>
-    playRun('WIN-MECHANISM', everything(), VICTORY_TUNING, { opponent: pacifist });
+    playRun('WIN-MECH-0', everything(), VICTORY_TUNING, { opponent: pacifist });
 
   it('reaches the last gym, levelling and healing all the way, acquiring and releasing', async () => {
     expect(typeof globalThis.document).toBe('undefined');

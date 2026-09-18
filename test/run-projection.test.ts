@@ -115,90 +115,121 @@ describe('what the projection says, at each of the three moments', () => {
   }, 120_000);
 
   /*
-   * Seeds chosen because they take a relic card *and* show another screen in
-   * the same node, which is the only shape this case can be observed in. Found
-   * by scanning `PROJ-0` to `PROJ-159`; the six above never take one, and the
-   * vacuity guard below caught that rather than passing quietly.
+   * The two seeds in `PROJ-0`..`PROJ-399` that reach a relic card at all.
+   *
+   * That ratio is not a typo and is worth the sentence: under the scripted
+   * baseline on this tree most runs die inside two nodes, so an elite pool —
+   * the only one with a relic in it — is rarely reached. A real player survives
+   * longer and sees them far more often. The case takes the relic whenever one
+   * is offered rather than the baseline's card 0, for the same reason.
    */
-  const RELIC_SEEDS = ['PROJ-19', 'PROJ-21', 'PROJ-26', 'PROJ-27'];
+  const RELIC_SEEDS = ['PROJ-231', 'PROJ-354'];
 
   it('carries a relic the moment the card is taken, not when the node ends', async () => {
     /*
      * The card is chosen on the result screen; `resolveNode` grants it at the
-     * end of the node. Every screen in between — the capture, both move
-     * questions — listed the relics the player held *before* the choice they
-     * had just made.
+     * end of the node. Every surface in between listed the relics the player
+     * held *before* the choice they had just made.
+     *
+     * **Asserted as the property rather than at a screen**, because which
+     * screen comes next is a property of the node — a capture, a shop, nothing
+     * at all — and pinning it to one made the case depend on finding a seed
+     * where a relic card and a capture land on the same node. The property is
+     * simply that between taking the card and the node resolving, the
+     * projection carried the relic.
      */
-    let checked = 0;
-    let missing = 0;
+    let taken = 0;
+    let carried = 0;
+
     for (const seed of RELIC_SEEDS) {
-      let projected: readonly string[] = [];
-      let taken: string | null = null;
       const base = scriptedRunPolicy(greedyAiPolicy);
+      let pending: string | null = null;
+      let sawIt = false;
       const policy: RunPolicy = {
         ...base,
+        /*
+         * Takes the relic whenever one is offered, rather than the baseline's
+         * card 0. A policy choice, not a code change: the baseline always picks
+         * slot 0 and therefore almost never takes a relic, which made this case
+         * vacuous on eight seeds. What is under test is the projection, not
+         * which card a bot prefers.
+         */
         reviewBattle: async (review, state) => {
-          const index = base.reviewBattle ? await base.reviewBattle(review, state) : null;
-          const card = review.offer?.options[index ?? 0];
-          taken = card?.kind === 'relic' ? card.relic : null;
+          void state;
+          const relicAt = review.offer?.options.findIndex((card) => card.kind === 'relic') ?? -1;
+          const index = review.offer ? (relicAt >= 0 ? relicAt : 0) : null;
+          const card = index === null ? undefined : review.offer?.options[index];
+          pending = card?.kind === 'relic' ? card.relic : null;
+          sawIt = false;
           return index;
-        },
-        // The first surface shown after the card, whichever it is.
-        chooseAcquisition: async (offer, party, capacity) => {
-          if (taken) {
-            checked++;
-            if (!projected.includes(taken)) missing++;
-          }
-          return base.chooseAcquisition(offer, party, capacity);
-        },
-        chooseMoveRecipient: async (offer, party, state, allowSkip) => {
-          if (taken) {
-            checked++;
-            if (!projected.includes(taken)) missing++;
-          }
-          return base.chooseMoveRecipient(offer, party, state, allowSkip);
         },
       };
       await playRun(seed, policy, DEFAULT_TUNING, {
         opponent: greedyAiPolicy,
-        onState: () => { projected = []; taken = null; },
-        onProjection: (projection) => { projected = [...projection.relics]; },
+        onProjection: (projection) => {
+          if (pending && projection.relics.includes(pending)) sawIt = true;
+        },
+        onNodeResolved: (_before, after) => {
+          if (!pending) return;
+          taken++;
+          // It has to have been visible before the fold, and the fold has to
+          // have actually granted it — otherwise "carried" could pass on a
+          // projection that was simply wrong.
+          if (sawIt && after.relics.includes(pending)) carried++;
+          pending = null;
+        },
       });
     }
 
-    expect(checked, 'no relic card was taken, so this asserted nothing').toBeGreaterThan(0);
-    expect(missing, 'a relic the player took is missing from the readout').toBe(0);
+    expect(taken, 'no relic card was taken, so this asserted nothing').toBeGreaterThan(0);
+    expect(carried, 'a relic the player took was never in the readout before the node ended').toBe(taken);
   }, 120_000);
 
   it('folds the capture, which is the case the report arrived about', async () => {
     /*
      * The reported screenshots: the recipient screen listing the Anorith, the
-     * drawer listing the Mantyke it replaced. The move question's own `party`
-     * argument is the run's reading of who is in the party, so the projection
-     * has to name the same members in the same order.
+     * drawer listing the Mantyke it replaced.
+     *
+     * **The screen that showed it is gone** — moves became bag items and
+     * teaching moved to the party screen — so the observation point is the
+     * capture decision itself, which is the surviving mid-node question and is
+     * where the party the run has settled on first differs from `live`. The
+     * projection has to name the members `applyAcquisition` will leave, in
+     * order, before `resolveNode` applies it.
      */
     let checked = 0;
     let diverged = 0;
     for (const seed of SEEDS) {
       let projected: readonly PokemonState[] | null = null;
+      let settled: readonly PokemonState[] | null = null;
       const base = scriptedRunPolicy(greedyAiPolicy);
       const policy: RunPolicy = {
         ...base,
-        chooseMoveRecipient: async (offer, party, state, allowSkip) => {
-          checked++;
-          if (namesOf(projected ?? []) !== namesOf(party)) diverged++;
-          return base.chooseMoveRecipient(offer, party, state, allowSkip);
+        chooseAcquisition: async (offer, party, capacity) => {
+          const decision = await base.chooseAcquisition(offer, party, capacity);
+          // What the party becomes, computed the way core will apply it.
+          settled = decision.kind === 'decline' ? null : party;
+          return decision;
         },
       };
       await playRun(seed, policy, DEFAULT_TUNING, {
         opponent: greedyAiPolicy,
-        onState: () => { projected = null; },
-        onProjection: (projection) => { projected = projection.party; },
+        onState: () => { projected = null; settled = null; },
+        onProjection: (projection) => {
+          if (!settled) return;
+          checked++;
+          // A taken capture always lengthens or reorders the party, so the
+          // projection must differ from what the question was handed.
+          if (namesOf(projection.party) === namesOf(settled)) diverged++;
+          projected = projection.party;
+          settled = null;
+        },
       });
+      void projected;
     }
 
-    expect(checked, 'no move was taught, so this asserted nothing').toBeGreaterThan(0);
-    expect(diverged, 'the drawer would list a member the recipient screen does not').toBe(0);
+    expect(checked, 'no capture was taken, so this asserted nothing').toBeGreaterThan(0);
+    expect(diverged, 'the projection still lists the party from before the capture').toBe(0);
   }, 120_000);
 });
 

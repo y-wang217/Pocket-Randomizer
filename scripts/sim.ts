@@ -78,7 +78,9 @@ import {
   type CauseOfDeath,
   type RunPolicy,
   type RunState,
+  canTeachNow,
 } from '../src/core/run';
+import { replacementNeeded, teachMove } from '../src/core/party';
 import {
   describeMove,
   describeSpecCard,
@@ -110,6 +112,7 @@ import type { CapabilityBand } from '../src/core/capabilities';
 import { RELIC_IDS, relicById } from '../src/data/relics';
 import { DAMAGING_MOVES } from '../src/data/movePools';
 import { expectedPartySize, opponentTeamSize, MOVESET, SEGMENTS } from '../src/data/scaling';
+import { MAX_MOVE_BAND } from '../src/data/moveOverrides';
 import { MAX_PARTY_CAPACITY, SLOT_UNLOCK_SCHEDULE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
@@ -130,8 +133,19 @@ const BERRY_IDS = new Set(BERRIES.map((entry) => entry.id));
  * tuning table.
  */
 function bandOfPower(basePower: number): number {
-  return basePower <= 55 ? 1 : basePower <= 75 ? 2 : basePower <= 95 ? 3 : 4;
+  return basePower <= 60 ? 1 : basePower <= 75 ? 2 : basePower <= 90 ? 3 : basePower <= 110 ? 4 : 5;
 }
+
+/**
+ * The bands the ramp report has columns for.
+ *
+ * Derived from `MAX_MOVE_BAND` rather than written out, because the last two
+ * times the cuts moved, the literal `[1, 2, 3, 4]` beside them did not — and a
+ * share array one element short drops the top band out of the report silently
+ * rather than failing. The header row is built from this list too, so the
+ * columns and the numbers under them cannot disagree.
+ */
+const RAMP_BANDS = Array.from({ length: MAX_MOVE_BAND }, (_, index) => index + 1);
 
 // ---------------------------------------------------------------------------
 // Arguments
@@ -1321,7 +1335,7 @@ function valueOfItemFor(itemId: string, member: PokemonState): number {
  * It is not clever. It needs to be deterministic and written down, because a
  * heuristic that changes between reports makes two reports incomparable.
  */
-function greedyItemPlan(state: RunState): ItemPlan {
+function greedyItemPlan(state: RunState, canTeach: boolean): ItemPlan {
   const pool = [...state.backpack, ...state.party.flatMap((member) => (member.item ? [member.item] : []))];
   const openSlots = state.party.map((_, slot) => slot);
   const assignments: ItemAssignment[] = [];
@@ -1351,9 +1365,48 @@ function greedyItemPlan(state: RunState): ItemPlan {
     if (state.party[slot]?.item !== undefined) assignments.push({ slot, item: null });
   }
 
+  /*
+   * **The teaches, and this is the floor on TM play rather than a strategy.**
+   *
+   * At a rest or a shop the bot spends every TM it is carrying, in the order
+   * they arrived, on the recipient `greedyMoveRecipient` names and over the
+   * slot `greedyMoveToReplace` names — the same two heuristics that answered
+   * these questions when `playRun` asked them at the node, so the baseline is
+   * continuous across the stage that moved them.
+   *
+   * Spending everything is deliberately the dumbest defensible policy. Banking
+   * a TM for a later member is the decision the stage exists to create, and a
+   * bot that tried to make it would put its own guess in the middle of every
+   * number the report prints. What this measures is the cost of the *carry* —
+   * a bag slot held between the node that paid the TM and the next rest — which
+   * is the part of the mechanic that is not a judgement call.
+   *
+   * Walked against a party the earlier teaches have already changed, because
+   * `applyItemPlan` reads them in this order and a `replaceSlot` chosen against
+   * a stale moveset is exactly what it throws on.
+   */
+  const teaches: ItemPlan['teaches'] = [];
+  const keptTms = [...state.tms];
+  if (canTeach) {
+    const learners = [...state.party];
+    for (const move of state.tms) {
+      const offer: MoveReward = { kind: 'tm', move };
+      const slot = greedyMoveRecipient(offer, learners);
+      const learner = learners[slot];
+      if (!learner) continue;
+      const need = replacementNeeded(learner, move);
+      const incoming = describeMove(move);
+      if (need === 'choose' && !incoming) continue;
+      const replaceSlot = need === 'choose' ? greedyMoveToReplace(learner, incoming!) : null;
+      teaches.push({ move, slot, replaceSlot });
+      learners[slot] = teachMove(learner, move, replaceSlot);
+      keptTms.splice(keptTms.indexOf(move), 1);
+    }
+  }
+
   const capacity = backpackCapacity(partyCapacity(state), state.tuning);
-  const overflow = Math.max(0, remaining.length - capacity);
-  if (overflow === 0) return { assignments, discards: [] };
+  const overflow = Math.max(0, remaining.length + keptTms.length - capacity);
+  if (overflow === 0) return { assignments, discards: [], teaches, discardTms: [] };
 
   const ranked = remaining
     .map((item, index) => ({
@@ -1363,7 +1416,11 @@ function greedyItemPlan(state: RunState): ItemPlan {
     }))
     .sort((a, b) => a.score - b.score || a.index - b.index);
 
-  return { assignments, discards: ranked.slice(0, overflow).map((entry) => entry.item) };
+  // Items first, TMs only if shedding every item still leaves the bag over —
+  // the same order `reconcileItemPlan` sheds in, and for the same reason.
+  const discards = ranked.slice(0, Math.min(overflow, ranked.length)).map((entry) => entry.item);
+  const discardTms = overflow > discards.length ? keptTms.slice(0, overflow - discards.length) : [];
+  return { assignments, discards, teaches, discardTms };
 }
 
 /**
@@ -1686,10 +1743,7 @@ function buildPolicy(
      * measurement wants — a targeting rule that only works when played
      * perfectly is a rule the report cannot generalise from.
      */
-    chooseMoveRecipient: async (offer, party) => greedyMoveRecipient(offer, party),
-    chooseMoveToReplace: async (member, incoming) => greedyMoveToReplace(member, incoming),
-
-    chooseItemPlan: async (state) => greedyItemPlan(state),
+    chooseItemPlan: async (state) => greedyItemPlan(state, canTeachNow(state)),
 
     /*
      * Take a Pokemon while there is room; once full, take it only if it beats
@@ -2952,7 +3006,7 @@ function summarizeRamp(records: RunRecord[]): Sample['ramp'] {
     const gym = index + 1;
     const rows = records.flatMap((record) => record.gymParties.filter((entry) => entry.gym === gym));
     const bands = rows.flatMap((row) => row.moveBands);
-    const shares = [1, 2, 3, 4].map((band) =>
+    const shares = RAMP_BANDS.map((band) =>
       bands.length === 0 ? 0 : bands.filter((held) => held === band).length / bands.length,
     );
     return {
@@ -3462,7 +3516,7 @@ function render(sample: Sample): string {
   out.push('', "The ramp — what the player's moves are banded at, entering each gym");
   out.push(
     table(
-      ['gym', 'parties', 'band 1', 'band 2', 'band 3', 'band 4', 'mean', 'reads as'],
+      ['gym', 'parties', ...RAMP_BANDS.map((band) => `band ${band}`), 'mean', 'reads as'],
       ramp.bandsAtGym
         .filter((row) => row.parties > 0)
         .map((row) => [
@@ -4191,15 +4245,31 @@ function verdicts(sample: Sample): string[] {
      *     dropped by segment 6; a party still carrying them into gym 6 is a
      *     party the reward pools never offered anything better.
      */
+    /*
+     * **Both of these were minted against a four-band table and now measure a
+     * five-band one.** Neither literal has been moved, deliberately: `balance.md`
+     * §0 forbids moving a target to make a miss disappear, and the first
+     * benchmark after the recut is the only thing that can say honestly what
+     * they should be.
+     *
+     * Read them knowing what shifted underneath them. Band 1 went from 82 moves
+     * to 117 when the first cut moved 55 to 60, so the band-1 share rises for
+     * free without the ramp having got any flatter. And a mean over five bands
+     * is not a mean over four: 2.0 was two-thirds of the way up the old table
+     * and is halfway up this one, so the same number is a weaker claim than it
+     * was. If the first RETUNE row clears both comfortably, that is the
+     * arithmetic and not the ramp, and these two lines want re-deriving from
+     * that row rather than congratulating.
+     */
     const atFive = sample.ramp.bandsAtGym.find((row) => row.gym === 5);
     if (atFive && atFive.parties > 0) {
       lines.push(
-        check(atFive.mean >= 2, `move band entering gym 5 is ${atFive.mean.toFixed(2)} (target >= 2.0)`),
+        check(atFive.mean >= 2, `move band entering gym 5 is ${atFive.mean.toFixed(2)} (target >= 2.0, minted on the 4-band table)`),
       );
       lines.push(
         check(
           (atFive.shares[0] ?? 0) <= 0.55,
-          `${pct(atFive.shares[0] ?? 0)} of moves still band 1 at gym 5 (target <= 55%)`,
+          `${pct(atFive.shares[0] ?? 0)} of moves still band 1 at gym 5 (target <= 55%, minted when band 1 held 82 moves not 117)`,
         ),
       );
     }

@@ -44,9 +44,10 @@ import {
   leadRefusal,
   levelParty,
   setLead,
-  replacementNeeded,
   recoverParty,
+  replacementNeeded,
   restParty,
+  teachMove,
 } from './party';
 import {
   applyAcquisition,
@@ -64,8 +65,6 @@ import {
   applyPurchases,
   resolveStock,
   nodePayout,
-  purchasedRewards,
-  type MovePurchaseChoice,
   type ShopStock,
 } from './economy';
 import {
@@ -84,11 +83,7 @@ import { describeMove } from './battle/driver';
 import { applyItemPlan, backpackCapacity, needsItemPlan, spendItems, stowAll } from './items';
 import {
   applyReward,
-  DECLINED_MOVE,
-  isTargeted,
-  recipientFor,
   resolveOffer,
-  type MoveReward,
   type Reward,
   type RewardOffer,
 } from './rewards';
@@ -100,6 +95,7 @@ import type {
   ItemAssignment,
   ItemId,
   ItemPlan,
+  TmTeach,
   MoveSpec,
   PokemonSpec,
   PokemonState,
@@ -111,7 +107,7 @@ import { SEGMENT_COUNT, playerLevel } from '../data/scaling';
 import { evolveParty, pendingEvolutionQuestion, type EvolutionQuestion } from './evolution';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import type { LocaleId } from '../data/locales';
-import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
+import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
 
 /**
  * Bumped whenever a recorded decision sequence would replay differently.
@@ -327,7 +323,77 @@ import { DEFAULT_TUNING, type Tuning } from '../data/tuning';
  * pair. Two guards, two messages: that one says the answers would mean
  * something else, this one says the questions changed.
  */
-export const RUN_LOG_VERSION = `gymrun-run-17/${ENGINE_VERSION}`;
+/*
+ * ## `-18`: the gym's guaranteed move became a choice
+ *
+ * A gym used to hand over one move at the segment's band +3 and then ask who
+ * should learn it. It offers three moves at +1 now and asks which one first, so
+ * a gym node records **two** `reward` entries where it recorded one: the move
+ * page, then the relic-or-gold page. No decision *kind* was added — the replay
+ * cursor is positional and kind-checked, so two `reward` entries in one node
+ * need only a fixed order, which `playRun` gives them — but the sequence a gym
+ * writes is one entry longer.
+ *
+ * ## `-19`: moves became inventory TMs and four questions left the node
+ *
+ * **Two branches both reached `-18`, for different reasons, and this number is
+ * what that costs.** The band recut above and the moves-as-inventory stage were
+ * built in parallel and each bumped the axis to `-18` honestly; merged, the
+ * schema is neither of the two things `-18` named. A single number meaning two
+ * incompatible shapes is the one failure this axis exists to prevent, so the
+ * merged schema takes the next one rather than either input's.
+ *
+ * What `-19` is: the `target` and `replace` entries that every reward card,
+ * shop TM, event grant and gym clear used to write are gone from those four
+ * places entirely. A move is stowed as a TM on arrival and taught, if ever, out
+ * of an `ItemPlan` at a rest or a shop, so `ItemPlan` grew `teaches` and
+ * `discardTms` and the `items` entry that carries it is reshaped. The gym's two
+ * `reward` entries from `-18` both survive — the move page is still a choice
+ * among three, and what changed is only that the chosen move goes into the bag.
+ *
+ * `RANDOMIZER_VERSION` moves to `-19` in the same merge, for the band recut and
+ * the level curve. Two guards, two messages: that one says the answers would
+ * mean something else, this one says the questions changed. The
+ * moves-as-inventory half moves it not at all — every draw is made from the
+ * same key in the same order, and only the destination of the drawn move
+ * changed.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-19/${ENGINE_VERSION}`;
+
+/**
+ * The node kinds at which a carried TM may be spent. **Rest and shop only.**
+ *
+ * The one definition, read by `playRun` when it applies a plan and by the UI
+ * when it decides whether to offer the teach control, for the reason
+ * `hasBattlePair` is one definition: a gate the generator and the floor state
+ * separately is a gate that drifts.
+ *
+ * Why these two and not every boundary: a TM you can spend anywhere is a move
+ * you already have, and the carry costs nothing. Rest and shop are where a run
+ * already stops to spend things, so binding the teach to them makes banking a
+ * top-band TM through three fights a real commitment rather than a formality.
+ * `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 5 is the ruling.
+ */
+export function canTeachAt(kind: NodeKind): boolean {
+  return kind === 'rest' || kind === 'shop';
+}
+
+/**
+ * Whether the boundary this state is sitting at allows a teach.
+ *
+ * The same question as `canTeachAt`, asked by whoever is *composing* a plan
+ * rather than applying one — the UI's `chooseItemPlan`, and the reconcile it
+ * runs first. It reads the node off the last history entry because an item plan
+ * is asked after `resolveNode`, so the node just walked is the last thing in
+ * there, and that is the node `playRun` will pass to `applyItemPlan`.
+ *
+ * False on an empty history, which is a run that has not walked a node yet and
+ * therefore cannot be holding a TM to spend.
+ */
+export function canTeachNow(state: { history: readonly NodeVisit[] }): boolean {
+  const last = state.history[state.history.length - 1];
+  return last ? canTeachAt(last.node.kind) : false;
+}
 
 export type RunOutcome = 'victory' | 'defeat';
 
@@ -407,6 +473,23 @@ export interface RunState {
    */
   backpack: ItemId[];
   /**
+   * The TMs this run is carrying, by move name, in the order they arrived.
+   *
+   * **Every move the run is paid lands here first and nowhere else.** A reward
+   * card, a shop purchase, an event grant and a gym clear all stow rather than
+   * teach — see `rewards.applyReward` — so the question "who learns this" is
+   * never asked at the node that paid for it.
+   *
+   * A separate list from `backpack` and a *shared* capacity with it, which is
+   * the whole mechanic: see `items.inventoryLoad` for why the scarcity is one
+   * number over two lists rather than one list of two kinds.
+   *
+   * Move *names*, matching what a `Reward` carries, not move ids. Order is
+   * preserved for the reason the backpack's is — "discard the third one" has to
+   * mean the same thing on a replay as it did live.
+   */
+  tms: string[];
+  /**
    * The relics this run holds, in the order they were taken.
    *
    * Run-scoped and permanent: nothing removes an id from this list. It is not
@@ -468,6 +551,7 @@ export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunSta
     party: [],
     currency: 0,
     backpack: [],
+    tms: [],
     relics: [],
     starterOptions,
     starterIndex: null,
@@ -719,57 +803,14 @@ export interface NodeResult {
    */
   shopStock?: ShopStock;
   /**
-   * Which party slot a targeted reward lands on.
+   * The move a gym clear hands over. **Stage 4.8, item 2 Part A.**
    *
-   * Resolved by `playRun` before this is handed over, like `reward` itself —
-   * the log stores the index and the state change needs the slot, and keeping
-   * the resolution in one place is what makes a replayed answer and a clicked
-   * one the same value before anything downstream can tell them apart.
-   */
-  rewardTarget?: number;
-  /**
-   * Which of the recipient's move slots a taught move displaces, 0-based.
-   *
-   * Absent when nothing was displaced — a free move slot, or a move the
-   * recipient already knew — which is `party.replacementNeeded` answering, and
-   * is exactly when `playRun` did not ask. `teachMove` throws on a slot passed
-   * in either of those cases rather than ignoring it, so an absent value here
-   * and an absent question there cannot drift apart silently.
-   */
-  rewardReplaceSlot?: number;
-  /**
-   * The move a gym clear hands over, and where it landed.
-   *
-   * **Stage 4.8, item 2 Part A.** Present only on a gym the player won. It is the
-   * same shape as `reward`/`rewardTarget`/`rewardReplaceSlot` beside it and for the
-   * same reason: `playRun` resolves the questions and `resolveNode` applies the
-   * answers, so a replayed answer and a clicked one are the same value before
-   * anything downstream can tell them apart.
-   *
-   * Separate fields rather than reusing the reward ones, because a gym now pays
-   * *both* and they land on possibly different members. Sharing them would make
-   * the guaranteed move and the chosen card fight over one slot.
+   * Present only on a gym the player won, and it is a *TM* from this stage on:
+   * `resolveNode` stows it, nobody is named, and the three fields that used to
+   * ride beside it — the recipient, the displaced slot and the decline flag —
+   * are gone with the question they answered.
    */
   gymMove?: Reward;
-  /** Which party slot the gym's guaranteed move lands on. */
-  gymMoveTarget?: number;
-  /** Which of that member's move slots it displaces, 0-based, or absent. */
-  gymMoveReplaceSlot?: number;
-  /**
-   * The player handed the gym's move back. **Item 3.**
-   *
-   * A flag rather than the absence of `gymMoveTarget`, because absence already
-   * means something else here: every one of these fields is optional, and a
-   * node that was not a gym, or a gym that was not won, also has no target. The
-   * result screen has to tell "no move was offered" from "a move was offered
-   * and refused" — the first says nothing, the second says what was turned
-   * down — and `resolveNode` has to teach nobody in the second case rather than
-   * fall through to its `?? 0` default and hand the move to slot 0.
-   *
-   * `gymMove` stays set when this is true. What was offered is still a fact
-   * about the node.
-   */
-  gymMoveDeclined?: boolean;
   /**
    * The branch answers for the evolutions this gym clear applies. **Stage 4.9.**
    *
@@ -787,24 +828,11 @@ export interface NodeResult {
    * band the run stands at. Both are functions of state a replay reconstructs
    * exactly, which is what lets the question be conditional at all.
    *
-   * Its own trio rather than the gym's or the card's, for the reason theirs are
-   * separate from each other: a node can pay more than one move and sharing the
-   * fields would make two grants fight over one slot. An event pays one, but
-   * the shape does not depend on that staying true.
+   * Its own field rather than the gym's or the card's, for the reason theirs
+   * are separate from each other: a node can pay more than one move, and one
+   * field would make two grants fight over it.
    */
   eventMove?: Reward;
-  /** Which party slot the event's move lands on. */
-  eventMoveTarget?: number;
-  /** Which of that member's move slots it displaces, 0-based, or absent. */
-  eventMoveReplaceSlot?: number;
-  /**
-   * Recipients and displaced slots for any taught moves in the shop basket, in
-   * shelf order.
-   *
-   * Parallel to the move rewards in `economy.purchasedRewards`, not to
-   * `purchases` — most baskets contain no TM at all and this is empty.
-   */
-  purchaseMoveChoices?: MovePurchaseChoice[];
   /**
    * What the player did with a Pokemon this node offered.
    *
@@ -1027,14 +1055,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
        * because that is the one function a card, a shop TM and a gym clear all
        * go through, and a second teaching path is how two of them would drift.
        */
-      if (result.eventMove) {
-        base = applyReward(
-          base,
-          result.eventMove,
-          result.eventMoveTarget ?? 0,
-          result.eventMoveReplaceSlot ?? null,
-        );
-      }
+      if (result.eventMove) base = applyReward(base, result.eventMove);
       party = base.party;
       currency = base.currency;
       backpack = base.backpack;
@@ -1186,22 +1207,8 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
      * be a flag and not an absent target: a missing index would fall through to
      * slot 0 and hand the lead a move the player refused.
      */
-    if (result.gymMove && !result.gymMoveDeclined) {
-      cleared = applyReward(
-        cleared,
-        result.gymMove,
-        result.gymMoveTarget ?? 0,
-        result.gymMoveReplaceSlot ?? null,
-      );
-    }
-    if (result.reward) {
-      cleared = applyReward(
-        cleared,
-        result.reward,
-        result.rewardTarget ?? 0,
-        result.rewardReplaceSlot ?? null,
-      );
-    }
+    if (result.gymMove) cleared = applyReward(cleared, result.gymMove);
+    if (result.reward) cleared = applyReward(cleared, result.reward);
     return cleared;
   }
 
@@ -1222,7 +1229,6 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       advanced,
       result.shopStock ?? result.node.shop,
       result.purchases,
-      result.purchaseMoveChoices ?? [],
     );
   }
 
@@ -1284,14 +1290,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * would bypass the seam, and the symptom would be a replay that reconstructs
    * a different run from the same log.
    */
-  if (result.reward) {
-    advanced = applyReward(
-      advanced,
-      result.reward,
-      result.rewardTarget ?? 0,
-      result.rewardReplaceSlot ?? null,
-    );
-  }
+  if (result.reward) advanced = applyReward(advanced, result.reward);
   return advanced;
 }
 
@@ -1384,67 +1383,21 @@ export interface RunPolicy {
   chooseShopPurchases: (stock: ShopStock, state: RunState) => Promise<number[]>;
   /** Which event option to take. The outcome was drawn when the map was built. */
   chooseEventOption: (event: EventInstance, state: RunState) => Promise<EventArchetype>;
-  /**
-   * Which party member learns a taught move. A party slot.
+  /*
+   * `chooseMoveRecipient` and `chooseMoveToReplace` were here and are retired,
+   * not deprecated.
    *
-   * **Stage 4's question, renamed in Stage 4.5.1 because the old name stopped
-   * being true.** It was `chooseItemTarget`, and it answered for items, TMs and
-   * tutors alike. Items no longer reach it — they go to the backpack — so what
-   * is left is only ever a move, and a method called "item target" that is
-   * never asked about an item is a comment that lies.
+   * They were the two questions a taught move asked at the node that paid for
+   * it, and no move is taught at a node any more. Both questions still get
+   * asked — a TM has to reach somebody eventually — but they are asked while a
+   * player composes an `ItemPlan`, which is one decision recorded as one entry,
+   * so they are internal to whoever is answering `chooseItemPlan` rather than
+   * being policy methods with their own log entries.
    *
-   * Asked *first*, before `chooseMoveToReplace`, because the second question
-   * cannot be posed until there is a member to pose it about: which four moves
-   * are on the table depends entirely on who is learning.
-   *
-   * Takes the whole party rather than a list of legal targets, because "who
-   * should learn Earthquake" is not a legality question — every member is legal
-   * — it is a question about typing and about what they would have to give up.
+   * Leaving them on the interface would have left two seams nothing calls, and
+   * the next reader would have to discover by grep that answering them changes
+   * nothing. `RunDecision` loses `target` and `replace` for the same reason.
    */
-  chooseMoveRecipient: (
-    offer: MoveReward,
-    party: readonly PokemonState[],
-    state: RunState,
-    /**
-     * Whether `rewards.DECLINED_MOVE` is an answer this question will take.
-     *
-     * True at exactly one payout — the gym's guaranteed move, the only taught
-     * move the player never picked over alternatives. A UI shows a decline
-     * control when it is set and must not when it is not; a scripted policy may
-     * ignore it entirely, and the reference ones do, because a baseline that
-     * sometimes refuses a free move measures a different game from one that
-     * never does.
-     *
-     * Optional so that the dozen scripted policies in `test/` and `scripts/`
-     * that answer a slot and nothing else keep compiling. A policy that does
-     * not read it can never return the sentinel, which is the safe direction.
-     */
-    allowSkip?: boolean,
-  ) => Promise<number>;
-  /**
-   * Which of the recipient's four moves the incoming one displaces. A 0-based
-   * move slot.
-   *
-   * **There is no decline, and the return type says so** — a slot, not a
-   * slot-or-nothing. The place to skip a move reward is the reward screen,
-   * where it was already chosen over two alternatives; a second escape hatch
-   * here would make that pick meaningless.
-   *
-   * Asked only when a replacement is actually needed. A member with a free move
-   * slot takes the move into it, and one that already knows the move refills its
-   * PP instead — both are `party.replacementNeeded` answering, and it is the
-   * single definition shared by this question and by the replay of it.
-   *
-   * Takes `member` rather than a slot index because the recipient has already
-   * been resolved by `rewards.recipientFor` — including the fainted-member
-   * fallback — and re-resolving it here is how the answer would end up applied
-   * to a different Pokemon's move list.
-   */
-  chooseMoveToReplace: (
-    member: PokemonState,
-    incoming: MoveSpec,
-    state: RunState,
-  ) => Promise<number>;
   /**
    * Whether to take a Pokemon on offer, and who to release for it.
    *
@@ -1745,18 +1698,16 @@ export async function playRun(
        * out of step from that point on. Folding the same `applyReward` calls
        * keeps the two readings identical.
        */
-      const moveChoices: MovePurchaseChoice[] = [];
-      let scratch = state;
-      for (const reward of purchasedRewards(stock, indexes)) {
-        if (!isTargeted(reward)) {
-          scratch = applyReward(scratch, reward);
-          continue;
-        }
-        const answers = await askMoveQuestions(reward, state, scratch.party, policy, record);
-        moveChoices.push(answers);
-        scratch = applyReward(scratch, reward, answers.target, answers.replaceSlot);
-      }
-      result.purchaseMoveChoices = moveChoices;
+      /*
+       * **The two questions a bought TM used to ask are gone with the teach.**
+       *
+       * A purchased move goes into the bag like everything else, so a basket
+       * holding two TMs asks nothing at all here and the running-party dance
+       * above it is no longer needed: nothing a purchase does can change what
+       * the next purchase in the same basket is allowed to do. `applyPurchases`
+       * folds them in the same shelf order and the two readings stay identical
+       * because there is now only one thing to read.
+       */
     }
 
     if (result.node.event) {
@@ -1782,33 +1733,26 @@ export async function playRun(
       result.eventChoice = archetype;
 
       /*
-       * **A `T2` or `T3` move is two more questions, asked here.**
+       * **The two questions this used to ask are gone, and that absence is the
+       * playtest report that opened the stage.**
        *
-       * `chosenEventOutcome` is the single definition of which of the sixteen
-       * drawn outcomes this button pays, and it is read here rather than
-       * re-derived so that the move asked about and the move folded in are the
-       * same one. The pair of entries is `askMoveQuestions`, unchanged, which
-       * is what makes an event move, a gym move, a reward card and a shop TM
-       * one shape in the log.
+       * An event's move grant was the one route that never let the player say
+       * no. It was not chosen over two alternatives the way a card was, and it
+       * carried no decline the way a gym's did, so a 40 BP Water Gun could land
+       * on a Lv14 Deino and take a slot for it. It is a TM now: the grant still
+       * resolves here — `chosenEventOutcome` is still the single definition of
+       * which of the sixteen drawn outcomes this button pays, read rather than
+       * re-derived — and what changed is only that the move it names goes into
+       * the bag instead of onto a Pokemon.
        *
-       * Conditional on the outcome, and that is legal for the same reason the
-       * gym's Part A is: the condition is a function of state the replay
-       * rebuilds, never of anything the player says here.
-       *
-       * **This is what moved `RUN_LOG_VERSION` to 14.** The two entries are the
-       * existing `target` and `replace` shapes, asked in a place no earlier log
-       * has an answer for, and the guard's own rule is that a new question in a
-       * new place is a changed sequence even when every entry in it is old.
+       * `RUN_LOG_VERSION` moved to 14 when these two entries arrived here and
+       * moves to 18 now they are gone, for the same reason both times: a
+       * question in a place the previous log has no answer for is a changed
+       * sequence, and so is its absence.
        */
       const paid = chosenEventOutcome(result, state);
       const move = paid ? grantedMove(paid) : null;
-      if (move) {
-        const granted: Reward = { kind: 'tm', move };
-        result.eventMove = granted;
-        const answers = await askMoveQuestions(granted, state, state.party, policy, record);
-        result.eventMoveTarget = answers.target;
-        result.eventMoveReplaceSlot = answers.replaceSlot ?? undefined;
-      }
+      if (move) result.eventMove = { kind: 'tm', move };
     }
 
     /*
@@ -1841,6 +1785,22 @@ export async function playRun(
     const offer = drawn ? resolveOffer(drawn, state.relics) : null;
     let reviewedIndex: number | null = null;
 
+    /*
+     * **A gym's cards are not shown on the review screen, and that is the
+     * two-page order.**
+     *
+     * Every other node answers its one offer on the result screen, in the same
+     * beat as the battle outcome — that is what `reviewedIndex` is for. A gym
+     * has two offers now, three moves and then three relics-or-gold, and the
+     * moves come first. Handing the review screen the *card* offer would answer
+     * page 2 before page 1 had been asked, so the gym passes it nothing and both
+     * of its pages go through `chooseReward` below, in order.
+     *
+     * `offer` itself is untouched — the card block still reads it. Only what the
+     * review is shown, and therefore what it may answer, changes.
+     */
+    const reviewOffer = result.node.kind === 'gym' ? null : offer;
+
     if (result.battle && policy.reviewBattle) {
       const picked = await policy.reviewBattle(
         {
@@ -1850,13 +1810,13 @@ export async function playRun(
           party: result.battle.party,
           contribution: result.battle.contribution,
           currencyEarned: won ? nodePayout(result.node, state.currentSegment, applyRelicPassives(state.relics)) : 0,
-          offer,
+          offer: reviewOffer,
         },
         state,
       );
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
-      if (offer) reviewedIndex = picked ?? 0;
+      if (reviewOffer) reviewedIndex = picked ?? 0;
 
       /*
        * **The card is taken, so a relic is the player's.** Second projection
@@ -1867,9 +1827,13 @@ export async function playRun(
        * read off the offer rather than off the result. A drawer opened on the
        * capture screen that came next listed the relics the player had *before*
        * the card they had just chosen.
+       *
+       * `reviewOffer` rather than `offer`, matching the line above: a gym's
+       * cards are not shown on this screen, so nothing was taken here to
+       * project. The gym's own pair is asked further down.
        */
-      if (offer && reviewedIndex !== null) {
-        options.onProjection?.(projectionOf(state, result, offer.options[reviewedIndex] ?? null));
+      if (reviewOffer && reviewedIndex !== null) {
+        options.onProjection?.(projectionOf(state, result, reviewOffer.options[reviewedIndex] ?? null));
       }
     }
 
@@ -1978,84 +1942,82 @@ export async function playRun(
      * list, and the player had already spent the card by the time they could
      * have wanted it there.
      *
-     * So the capture resolves first and the questions are asked against
-     * `learners` — `state.party` with the decision folded in. The recipient
-     * list contains the Pokemon that just joined, and declining still leaves
-     * exactly the party the node started with.
-     *
-     * **Part A before Part B**, as Stage 4.8 item 2 set it: the gym's
-     * guaranteed move is asked before the card's, because it is the
-     * unconditional half. That ordering is unchanged; both simply moved down
-     * past the capture together.
-     *
-     * `resolveNode` folds them in this same order, and folds the acquisition
-     * ahead of both — it has to, or a target index resolved against a party of
-     * five here would land on a party of four there.
+     * **That ordering problem is gone with the questions, and the ordering is
+     * kept anyway.** Nothing at this node names a party member any more — a
+     * move goes to the bag — so no index here has to agree with a party
+     * somewhere else. What survives is the plainer reason for the same order:
+     * a capture is the biggest thing a node can hand over, and the item plan
+     * asked at the end of the node has to be composed against the party that
+     * actually came out of it.
      */
-    const learners = partyAfterAcquisition(state, result);
 
-    if (result.node.kind === 'gym' && result.node.gymMove && result.battle?.result.winner === 'p1') {
-      const granted = result.node.gymMove;
-      result.gymMove = granted;
-      if (isTargeted(granted)) {
-        /*
-         * **The one move in the game that may be handed back.** Item 3.
-         *
-         * A gym pays this move unconditionally — there is no card, no pair of
-         * alternatives, nothing the player weighed it against. Every other
-         * taught move reached its recipient question *because* it was chosen,
-         * and `chooseMoveToReplace` says why a decline there would be wrong:
-         * "the place to skip a move reward is the reward screen, where it was
-         * already chosen over two alternatives". This one has no such screen
-         * behind it, so refusing it is not a second escape hatch; it is the
-         * first and only one.
-         *
-         * It matters because the move is not free. A party whose four slots are
-         * all doing work pays for a gym move in whichever of them it displaces,
-         * and until now the only way to decline was to aim it at the member it
-         * would hurt least — a decision made by picking a victim.
-         *
-         * Declining still records a `target` entry (`DECLINED_MOVE`) and asks
-         * no `replace` after it, so the log keeps a fixed shape and the cursor
-         * stays in step.
-         */
-        const answers = await askMoveQuestions(granted, state, learners, policy, record, true);
-        if (answers) {
-          result.gymMoveTarget = answers.target;
-          result.gymMoveReplaceSlot = answers.replaceSlot ?? undefined;
-        } else {
-          // Declined. `resolveNode` reads `gymMoveDeclined` and teaches nobody;
-          // `result.gymMove` stays set because the result screen still says
-          // what was offered.
-          result.gymMoveDeclined = true;
-        }
+    if (result.node.kind === 'gym' && result.node.gymMoveOffer && result.battle?.result.winner === 'p1') {
+      /*
+       * **Page 1 of the gym's two, and it is a choice now rather than a grant.**
+       *
+       * The `reward` entry recorded here is the first of two a gym node writes;
+       * the card page below writes the second. The replay cursor is positional
+       * and kind-checked, so the pair needs no new decision kind — only this
+       * fixed order, which is also the order the player meets the pages in.
+       */
+      const moveOffer = result.node.gymMoveOffer;
+      const moveIndex = await policy.chooseReward(moveOffer, state);
+      record({ kind: 'reward', index: moveIndex });
+      const granted = moveOffer.options[moveIndex];
+      if (!granted) {
+        throw new RangeError(
+          `Gym move choice ${moveIndex} out of range (${moveOffer.options.length} offered)`,
+        );
       }
+      /*
+       * **The decline that lived here is gone, and its argument went with it
+       * rather than being overruled.**
+       *
+       * The band-recut patch had just rewritten that argument: a gym move page
+       * offers three moves and nothing else — the relics and the gold are on
+       * the next page and already guaranteed — so a player whose four slots are
+       * all doing work had no "take the other thing" answer available on the
+       * page where the question is asked, and the decline was that answer.
+       *
+       * It was true while the chosen move was taught the moment it was chosen.
+       * Nothing is taught at a node now: the move goes into the bag as a TM, so
+       * the page costs a bag slot rather than a move slot, and "take the other
+       * thing" is answered by the bag itself — carry it, spend it at a rest, or
+       * throw it away. The four slots the old argument was protecting are not
+       * touched by this page at all.
+       *
+       * So `DECLINED_MOVE` and the `allowSkip` overload are retired rather than
+       * extended to the other three routes — which is what the playtest report
+       * that opened the stage asked for, and the opposite of what the design it
+       * arrived with needs.
+       * `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 6.
+       */
+      result.gymMove = granted;
     }
 
     /*
-     * Which member gets the card, asked only for the cards that land on one.
+     * The card, and nothing after it.
      *
-     * **The condition has to be a property of the card and not of the
-     * player**, or replay runs out of step. `isTargeted` is the single
-     * definition of "this card needs a target", shared by the question here
-     * and the application in `applyReward`; asking for a heal, or skipping
-     * the question at a party of one, would put an entry in the log exactly
-     * when the replaying run does not expect one.
-     *
-     * No decline here, and the rule is the card itself: this move was taken
-     * over two others a moment ago.
+     * **`isTargeted` and the pair of questions behind it are gone from this
+     * seam.** A move card now pays a TM into the bag exactly as an item card
+     * pays an item, so there is no longer a class of card that needs a party
+     * member named at the moment it is taken — which was the last thing making
+     * a move card a different kind of object from every other reward.
      */
     if (offer) {
       /*
        * **The card is recorded here, after Part A, exactly where it was.**
        *
-       * The answer itself was taken at the top, on the result screen, and it
-       * has been sitting in `reviewedIndex` ever since — that is unchanged and
-       * predates this patch. What the log fixes is the *order the entries go
-       * in*, and this pair is the one Stage 4.8 item 2 pinned: the gym's
-       * unconditional move before the card chosen over two others. Moving the
-       * `reward` entry above it would have been a second reordering with
-       * nothing asking for it.
+       * At an ordinary node the answer was taken at the top, on the result
+       * screen, and has been sitting in `reviewedIndex` ever since — unchanged
+       * and older than this patch. At a **gym** `reviewedIndex` is always null
+       * by construction (see `reviewOffer`), so this is a real question asked
+       * here: page 2 of two, after the move page above it.
+       *
+       * Either way the log order is the one Stage 4.8 item 2 pinned and the band
+       * recut kept: the gym's move before its card. Both are `reward` entries
+       * now, which the replay cursor handles because it is positional and
+       * kind-checked — it steps through them in the order this code asks.
        */
       const index = reviewedIndex ?? (await policy.chooseReward(offer, state));
       reviewedIndex = null;
@@ -2063,14 +2025,6 @@ export async function playRun(
       const choice = offer.options[index];
       if (!choice) throw new RangeError(`Reward choice ${index} out of range (${offer.options.length} offered)`);
       result.reward = choice;
-
-      if (isTargeted(choice)) {
-        // Who learns it, then what it costs them. Both questions, both log
-        // entries, in `askMoveQuestions` so the shop path asks them the same way.
-        const answers = await askMoveQuestions(choice, state, learners, policy, record);
-        result.rewardTarget = answers.target;
-        result.rewardReplaceSlot = answers.replaceSlot ?? undefined;
-      }
     }
 
     const beforeNode = state;
@@ -2103,6 +2057,7 @@ export async function playRun(
         state,
         plan,
         backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+        canTeachAt(result.node.kind),
       );
     }
 
@@ -2189,6 +2144,8 @@ function clonePlan(plan: ItemPlan): ItemPlan {
   return {
     assignments: plan.assignments.map((assignment) => ({ ...assignment })),
     discards: [...plan.discards],
+    teaches: plan.teaches.map((teach) => ({ ...teach })),
+    discardTms: [...plan.discardTms],
   };
 }
 
@@ -2302,85 +2259,6 @@ async function playNode(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Scripted policies
-// ---------------------------------------------------------------------------
-
-/**
- * Ask both move questions for one taught move, record both, return the answers.
- *
- * **One definition, two callers**, because a move bought from a shop and a move
- * taken from a reward card are the same act and must produce the same pair of
- * log entries in the same order. Two copies of this would be two places for the
- * `replacementNeeded` gate to be written slightly differently, and the symptom
- * would be a replay that runs out of step at the first shop that stocked a TM.
- *
- * The recipient is resolved through `rewards.recipientFor` before the second
- * question is asked, so the four moves on the table belong to the member that
- * will actually receive the move — see that function for the fainted-member
- * case this protects against.
- */
-/**
- * The party a move question is asked against: this node's, with the capture in.
- *
- * **Pure, and computed from the answer rather than from the run.** It runs the
- * same `applyAcquisition` `resolveNode` runs, on the same decision, so the
- * member at index *n* here is the member at index *n* there. Two different
- * readings of "who is in the party now" is precisely how a recorded target
- * index ends up teaching the wrong Pokemon.
- *
- * The join level it computes can differ from the applied one by a segment: a
- * gym clear levels the party and advances the segment before folding a capture
- * in. That is display only and it is unreachable — a gym node carries no
- * acquisition and no event — but it is worth naming, because what this function
- * is actually relied on for is the party's *length and order*, and those are
- * identical either way. `accept` appends; `release` removes a slot and appends.
- *
- * Returns `state.party` untouched when there was no capture, including when the
- * player declined one, which is the common case.
- *
- * ## Do not fold the battle into this. **Measured, 2026-09-18.**
- *
- * It is the obvious next step and it is a bug. The cards this party draws show
- * the HP the node was *entered* with, which looks wrong beside the result
- * screen the player just left — so the tempting fix is to run
- * `applyBattleState` here too and have the recipient list carry the fight's own
- * numbers.
- *
- * That would change who gets the move. `rewards.recipientFor` returns the
- * **lead** when the named slot is fainted, and the two readings agree today
- * only because *neither* has a fainted member in it: this one is pre-battle,
- * and the apply site in `resolveNode` runs after `betweenNodes`, which revives.
- * Fold the battle in here and only the first of those stops being true — the
- * replace question would be posed about the lead's four moves while the move
- * itself still landed on the slot's member.
- *
- * The numbers, on the scripted baseline. Across 300 seeds the move landed on
- * the Pokemon the question named in **466 of 466** resolved cases and elsewhere
- * in none. Across 200 seeds and 316 move questions, today's reading agrees with
- * the apply site **316 out of 316**, and a battle-folded version of this
- * function would disagree with it **70 times** — 22%.
- *
- * `test/move-recipient-fold.test.ts` holds the rule. The cosmetic complaint
- * that started this is real and unfixed: it is a question about what the
- * recipient *screen* should draw, not about what this function should return,
- * and it is filed in `docs/README.md` section 5.
- */
-
-function partyAfterAcquisition(state: RunState, result: NodeResult): readonly PokemonState[] {
-  if (!result.acquisition) return state.party;
-  const { party } = applyAcquisition(
-    state.party,
-    result.acquisition.offer,
-    result.acquisition.decision,
-    state.currentSegment,
-    // The capacity the decision was asked under, matching `resolveNode`'s own
-    // reading. See the long note there.
-    partyCapacity(state),
-  );
-  return party;
-}
-
 /**
  * The run as a **read-only surface** should show it right now, mid-node.
  *
@@ -2420,13 +2298,22 @@ function partyAfterAcquisition(state: RunState, result: NodeResult): readonly Po
  *
  * ## What it deliberately does not do
  *
- * It does not touch `partyAfterAcquisition`, which is what the move *questions*
- * are asked against. That party is a decision input — a recorded target index
- * resolves against it — so changing it changes runs rather than readouts, and
- * it is left exactly as it was. The two therefore disagree about HP for the
- * length of a node, on purpose and with a filed defect behind it: see
- * `docs/spec/gymrun-patch-move-recipient-divergence.md`, which measures what
- * that disagreement costs and is where the two converge.
+ * ## What it is not a second reading of
+ *
+ * Written against a tree in which `playRun` also asked the move questions
+ * mid-node, against a *different* party (`partyAfterAcquisition`, which folded
+ * the capture but not the battle) — so this deliberately did not touch that
+ * one, because a recorded target index resolved against it and changing it
+ * would have changed runs rather than readouts.
+ *
+ * **Both are gone as of the inventory-TM stage**, which retired the node-time
+ * move questions, `partyAfterAcquisition` and `recipientFor` together: a move
+ * is stowed in the bag and taught from the party screen, between nodes, where
+ * the run state is already current. So this is now the only mid-node reading of
+ * the party there is, which is the shape it wanted in the first place.
+ * `docs/generation.md` section 39.5 keeps the measurement that made the old
+ * arrangement worth documenting, because it is the reason the retirement was an
+ * improvement rather than a wash.
  */
 export interface RunProjection {
   /** The party as of now: battle folded, items the fight ate spent, capture in. */
@@ -2444,9 +2331,9 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
     party = spendItems({ party, backpack: state.backpack }, result.battle.consumed).party;
   }
   if (result.acquisition) {
-    // The capacity the decision was asked under, matching `resolveNode` and
-    // `partyAfterAcquisition`. A battle fold changes no slot, so a decision
-    // legal against `state.party` is legal against this one.
+    // The capacity the decision was asked under, matching `resolveNode`'s own
+    // reading. A battle fold changes no slot, so a decision legal against
+    // `state.party` is legal against this one.
     party = applyAcquisition(
       party,
       result.acquisition.offer,
@@ -2468,65 +2355,12 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
   return { party, relics };
 }
 
-async function askMoveQuestions(
-  offer: MoveReward,
-  state: RunState,
-  party: readonly PokemonState[],
-  policy: RunPolicy,
-  record: (decision: RunDecision) => void,
-): Promise<MovePurchaseChoice>;
-async function askMoveQuestions(
-  offer: MoveReward,
-  state: RunState,
-  party: readonly PokemonState[],
-  policy: RunPolicy,
-  record: (decision: RunDecision) => void,
-  allowSkip: true,
-): Promise<MovePurchaseChoice | null>;
-async function askMoveQuestions(
-  offer: MoveReward,
-  state: RunState,
-  party: readonly PokemonState[],
-  policy: RunPolicy,
-  record: (decision: RunDecision) => void,
-  allowSkip = false,
-): Promise<MovePurchaseChoice | null> {
-  const target = await policy.chooseMoveRecipient(offer, party, state, allowSkip);
-  record({ kind: 'target', index: target });
-  /*
-   * The decline, checked before the range check and **only where it was
-   * offered**.
-   *
-   * A policy that answers `DECLINED_MOVE` to a question that had no decline in
-   * it is not skipping a move, it is out of step — a replayed log reading an
-   * old entry against a new question, or a bot answering the wrong one. It
-   * falls through to the range check below and fails there by name, which is
-   * what the two overloads above make impossible to do by accident at a call
-   * site and this makes impossible to do at all.
-   */
-  if (allowSkip && target === DECLINED_MOVE) return null;
-  if (!party[target]) {
-    throw new RangeError(`Move recipient ${target} out of range (party has ${party.length})`);
-  }
-
-  const recipient = recipientFor(party, target);
-  if (!recipient || replacementNeeded(recipient, offer.move) !== 'choose') {
-    return { target, replaceSlot: null };
-  }
-
-  const incoming = describeMove(offer.move);
-  if (!incoming) throw new RangeError(`A reward offers a move the dex does not have: ${offer.move}`);
-  const slot = await policy.chooseMoveToReplace(recipient, incoming, state);
-  record({ kind: 'replace', slot });
-  if (!Number.isInteger(slot) || slot < 0 || slot >= recipient.spec.moves.length) {
-    throw new RangeError(
-      `Move slot ${slot} out of range (${recipient.spec.species} knows ${recipient.spec.moves.length})`,
-    );
-  }
-  return { target, replaceSlot: slot };
-}
+// ---------------------------------------------------------------------------
+// Scripted policies
+// ---------------------------------------------------------------------------
 
 /**
+
  * The reference move replacement: drop the weakest damaging move, else the last
  * status move.
  *
@@ -2596,7 +2430,7 @@ export function defaultMoveReplacement(member: PokemonState, incoming: MoveSpec)
  * capacity is refused, and a run whose bag filled up would end on a thrown
  * `RangeError` rather than on a decision.
  */
-export function defaultItemPlan(state: RunState): ItemPlan {
+export function defaultItemPlan(state: RunState, canTeach = false): ItemPlan {
   const capacity = backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics));
   const assignments: ItemAssignment[] = [];
 
@@ -2609,8 +2443,53 @@ export function defaultItemPlan(state: RunState): ItemPlan {
     taken++;
   });
 
+  /*
+   * **Rule 3: at a rest or a shop, teach every TM to slot 0, displacing what
+   * `defaultMoveReplacement` names.**
+   *
+   * This is the old baseline restated, not a new judgement. Before moves became
+   * inventory, `scriptedRunPolicy` answered `chooseMoveRecipient` with `0` and
+   * `chooseMoveToReplace` with `defaultMoveReplacement`, so every scripted run
+   * took every move it was paid and put it on the lead. A baseline that stopped
+   * teaching would make every seed-pinned figure in this repo a measurement of
+   * a game where movesets never improve, and the drift would look like the
+   * stage's doing rather than the baseline's.
+   *
+   * Walked against the party the earlier teaches have already changed, because
+   * `applyItemPlan` reads them in order and a `replaceSlot` chosen against a
+   * stale moveset is what it throws on.
+   */
+  const teaches: TmTeach[] = [];
+  const kept = [...state.tms];
+  if (canTeach) {
+    let lead = state.party[0];
+    for (const move of state.tms) {
+      if (!lead) break;
+      const need = replacementNeeded(lead, move);
+      const incoming = describeMove(move);
+      if (need === 'choose' && !incoming) continue;
+      const replaceSlot = need === 'choose' ? defaultMoveReplacement(lead, incoming!) : null;
+      teaches.push({ move, slot: 0, replaceSlot });
+      lead = teachMove(lead, move, replaceSlot);
+      kept.splice(kept.indexOf(move), 1);
+    }
+  }
+
+  /*
+   * Over the line, the oldest items go, then the oldest TMs — the same order
+   * `reconcileItemPlan` sheds in, and the reason is the same: the two lists
+   * have no shared clock, so "the oldest" can only be stated within one of
+   * them.
+   */
   const left = state.backpack.slice(taken);
-  return { assignments, discards: left.slice(0, Math.max(0, left.length - capacity)) };
+  const over = left.length + kept.length - Math.max(0, capacity);
+  const fromItems = Math.max(0, Math.min(over, left.length));
+  return {
+    assignments,
+    discards: left.slice(0, fromItems),
+    teaches,
+    discardTms: over > fromItems ? kept.slice(0, over - fromItems) : [],
+  };
 }
 
 /**
@@ -2662,8 +2541,6 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      * is a player's judgement about a party this policy does not have opinions
      * about. `scripts/sim.ts` is where a bot that weighs it belongs.
      */
-    chooseMoveRecipient: async () => 0,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     /*
      * Fills the party, then declines.
      *
@@ -2675,7 +2552,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
      */
     chooseAcquisition: async (_offer, party, capacity) =>
       hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
     battle,
   };
 }
@@ -2833,18 +2710,6 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
      * asking different questions, which is the failure the guard above refuses
      * the log for rather than something to reconcile here.
      */
-    chooseMoveRecipient: async (offer, party, state, allowSkip) => {
-      const decision = next('target');
-      if (!decision) {
-        return live ? live.chooseMoveRecipient(offer, party, state, allowSkip) : exhausted('target');
-      }
-      return decision.kind === 'target' ? decision.index : exhausted('target');
-    },
-    chooseMoveToReplace: async (member, incoming, state) => {
-      const decision = next('replace');
-      if (!decision) return live ? live.chooseMoveToReplace(member, incoming, state) : exhausted('replace');
-      return decision.kind === 'replace' ? decision.slot : exhausted('replace');
-    },
     chooseAcquisition: async (offer, party, capacity) => {
       const decision = next('acquisition');
       if (!decision) return live ? live.chooseAcquisition(offer, party, capacity) : exhausted('acquisition');

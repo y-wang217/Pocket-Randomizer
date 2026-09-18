@@ -54,7 +54,7 @@ function started(seed = 'BACKPACK'): RunState {
   return { ...chooseStarter(createRun(seed), 0), party: partyOf(3) };
 }
 
-const plan = (over: Partial<ItemPlan> = {}): ItemPlan => ({ assignments: [], discards: [], ...over });
+const plan = (over: Partial<ItemPlan> = {}): ItemPlan => ({ assignments: [], discards: [], teaches: [], discardTms: [], ...over });
 
 // ---------------------------------------------------------------------------
 // Attrition: what persists, and what a faint costs
@@ -181,7 +181,7 @@ describe('backpack capacity', () => {
       backpack: ['leftovers', 'lifeorb', 'focussash'],
     };
     // Loud, because a silently trimmed backpack replays as a different run.
-    expect(() => applyItemPlan(state, plan(), capOf(state))).toThrow(/over-capacity is resolved by discarding/i);
+    expect(() => applyItemPlan(state, plan(), capOf(state), true)).toThrow(/over-capacity is resolved by discarding/i);
   });
 
   it('accepts the same plan once the player has discarded down to the cap', () => {
@@ -190,7 +190,7 @@ describe('backpack capacity', () => {
       tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash'],
     };
-    const after = applyItemPlan(state, plan({ discards: ['lifeorb'] }), capOf(state));
+    const after = applyItemPlan(state, plan({ discards: ['lifeorb'], teaches: [], discardTms: [] }), capOf(state), true);
     expect(after.backpack).toEqual(['leftovers', 'focussash']);
   });
 
@@ -201,7 +201,7 @@ describe('backpack capacity', () => {
       tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash'],
     };
-    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state));
+    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state), true);
     expect(after.party[0]!.item).toBe('leftovers');
     expect(after.backpack).toEqual(['lifeorb', 'focussash']);
   });
@@ -219,7 +219,7 @@ describe('no item is ever silently destroyed', () => {
       party: base.party.map((member, index) => (index === 0 ? { ...member, item: 'lifeorb' } : member)),
       backpack: ['leftovers'],
     };
-    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state));
+    const after = applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state), true);
 
     expect(after.party[0]!.item).toBe('leftovers');
     // The Stage 3 rule said this one was gone. It is in the bag.
@@ -233,7 +233,7 @@ describe('no item is ever silently destroyed', () => {
       party: base.party.map((member, index) => (index === 1 ? { ...member, item: 'lifeorb' } : member)),
       backpack: [],
     };
-    const after = applyItemPlan(state, plan({ assignments: [{ slot: 1, item: null }] }), capOf(state));
+    const after = applyItemPlan(state, plan({ assignments: [{ slot: 1, item: null }] }), capOf(state), true);
     expect(after.party[1]!.item).toBeUndefined();
     expect(after.backpack).toEqual(['lifeorb']);
   });
@@ -261,6 +261,7 @@ describe('no item is ever silently destroyed', () => {
         ],
       }),
       capOf(state),
+      true,
     );
     expect(after.party[0]!.item).toBe('lifeorb');
     expect(after.party[1]!.item).toBe('leftovers');
@@ -285,6 +286,7 @@ describe('no item is ever silently destroyed', () => {
         ],
       }),
       capOf(state),
+      true,
     );
     const owned = [...after.backpack, ...after.party.flatMap((m) => (m.item ? [m.item] : []))].sort();
     expect(owned).toEqual(before);
@@ -292,18 +294,18 @@ describe('no item is ever silently destroyed', () => {
 
   it('destroys an item only on an explicit discard', () => {
     const state = { ...started(), backpack: ['leftovers', 'lifeorb'] };
-    const after = applyItemPlan(state, plan({ discards: ['leftovers'] }), capOf(state));
+    const after = applyItemPlan(state, plan({ discards: ['leftovers'], teaches: [], discardTms: [] }), capOf(state), true);
     expect(after.backpack).toEqual(['lifeorb']);
   });
 
   it('refuses to discard something the run does not hold', () => {
     const state = { ...started(), backpack: ['leftovers'] };
-    expect(() => applyItemPlan(state, plan({ discards: ['masterball'] }), capOf(state))).toThrow(/not in the backpack/);
+    expect(() => applyItemPlan(state, plan({ discards: ['masterball'], teaches: [], discardTms: [] }), capOf(state), true)).toThrow(/not in the backpack/);
   });
 
   it('refuses to assign an item the run does not hold', () => {
     const state = { ...started(), backpack: [] };
-    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state))).toThrow(
+    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 0, item: 'leftovers' }] }), capOf(state), true)).toThrow(
       /which the run does not hold/,
     );
   });
@@ -320,13 +322,14 @@ describe('no item is ever silently destroyed', () => {
           ],
         }),
         capOf(state),
-      ),
+      true,
+    ),
     ).toThrow(/assigns slot 0 twice/);
   });
 
   it('refuses a plan naming a slot the party does not have', () => {
     const state = { ...started(), backpack: ['leftovers'] };
-    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 9, item: 'leftovers' }] }), capOf(state))).toThrow(
+    expect(() => applyItemPlan(state, plan({ assignments: [{ slot: 9, item: 'leftovers' }] }), capOf(state), true)).toThrow(
       /names slot 9/,
     );
   });
@@ -362,18 +365,18 @@ describe('every acquisition route lands in the backpack', () => {
 
 describe('needsItemPlan', () => {
   it('is false for a run that owns nothing, so no entry reaches the log', () => {
-    expect(needsItemPlan({ backpack: [], party: partyOf(3) })).toBe(false);
+    expect(needsItemPlan({ backpack: [], tms: [], party: partyOf(3) })).toBe(false);
   });
 
   it('is true once anything is in the bag', () => {
-    expect(needsItemPlan({ backpack: ['leftovers'], party: partyOf(3) })).toBe(true);
+    expect(needsItemPlan({ backpack: ['leftovers'], tms: [], party: partyOf(3) })).toBe(true);
   });
 
   it('is true once anything is held, so an item can always be taken back off', () => {
     const holding = partyOf(3).map((member, index) =>
       index === 1 ? { ...member, item: 'leftovers' } : member,
     );
-    expect(needsItemPlan({ backpack: [], party: holding })).toBe(true);
+    expect(needsItemPlan({ backpack: [], tms: [], party: holding })).toBe(true);
   });
 });
 
@@ -385,7 +388,7 @@ describe('defaultItemPlan', () => {
         { slot: 0, item: 'leftovers' },
         { slot: 1, item: 'lifeorb' },
       ],
-      discards: [],
+      discards: [], teaches: [], discardTms: [],
     });
   });
 
@@ -423,7 +426,7 @@ describe('defaultItemPlan', () => {
       tuning: bagOf(2),
       backpack: ['leftovers', 'lifeorb', 'focussash', 'assaultvest', 'rockyhelmet', 'expertbelt'],
     };
-    const after = applyItemPlan(state, defaultItemPlan(state), capOf(state));
+    const after = applyItemPlan(state, defaultItemPlan(state), capOf(state), true);
     expect(after.backpack.length).toBeLessThanOrEqual(2);
   });
 });
@@ -495,7 +498,23 @@ function shuffling(): RunPolicy {
       const assignments = state.party.map((_, slot) => ({ slot, item: rotated[slot] ?? null }));
       const left = rotated.slice(state.party.length);
       const capacity = backpackCapacity(partyCapacityAfter(0), state.tuning);
-      return { assignments, discards: left.slice(0, Math.max(0, left.length - capacity)) };
+      /*
+       * TMs count against the same capacity, so this fixture has to shed them
+       * too or `applyItemPlan` refuses the plan it composes. Items first, then
+       * TMs — the same order `reconcileItemPlan` and `defaultItemPlan` use.
+       *
+       * It still never teaches. What this file is testing is that a shuffled
+       * bag replays identically, and a fixture that also spent TMs would be
+       * testing the teach as well and reporting one failure for either.
+       */
+      const over = Math.max(0, left.length + state.tms.length - capacity);
+      const fromItems = Math.min(over, left.length);
+      return {
+        assignments,
+        discards: left.slice(0, fromItems),
+        teaches: [],
+        discardTms: over > fromItems ? state.tms.slice(0, over - fromItems) : [],
+      };
     },
   };
 }

@@ -83,8 +83,23 @@ await new Promise((resolve) => server.listen(0, resolve));
  * move, rest when hurt, first node, last locale, first card, every capture)
  * over the seed space and confirming the hit here: it clears a gym, fills
  * the party, is taught a move, and dies with a cause line for the summary.
+ *
+ * **SMK50-128 replaces it at the moves-as-inventory merge, and the reason it
+ * had to is the interesting part.** SMK49-2 still clears a gym and still fills
+ * the party on this tree; what it stopped doing is *reach a rest while holding
+ * a TM*. A move is no longer taught at the node that pays it, so the only route
+ * to the recipient screen is the party screen's Teach control at a rest or a
+ * shop — which means this seed now has to satisfy an ordering it never used to:
+ * a move card first, a rest second, both before the run dies. SMK49-2 is paid
+ * its first TM one node *after* its last rest.
+ *
+ * The search that found the replacement therefore ranked seeds by how early
+ * that pairing occurs rather than by how long the run lives, because the
+ * browser bot dies much sooner than any headless emulation of it — four of the
+ * five best-ranked candidates died on node 1 or 2 here despite reaching a gym
+ * headlessly. Candidates are a filter; this harness is the test.
  */
-const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMK49-2';
+const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMK50-128';
 const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
@@ -205,7 +220,8 @@ async function playRun(label) {
   // advanced would be a progression indicator that does not indicate progress.
   let railHigh = 0;
 
-  // 900 from Stage 4.9: a run that starts at level 7 with a base form and a
+  // 900 from Stage 4.9: a run that starts with a base form (level 7 then, 15
+  // from the band recut) and a
   // roster that grows to six is a longer run than 400 iterations covered, and
   // SMOKE24 now plays into the sixth segment. Still bounded, still a stall
   // report if it runs out.
@@ -464,6 +480,27 @@ async function playRun(label) {
     if (await page.locator(visible('party')).count()) {
       if (partyVisits === 0) await page.screenshot({ path: `stats/${label}-party.png`, fullPage: true });
       partyVisits++;
+
+      /*
+       * Spend a TM if one is offered here, and this is the branch that keeps
+       * the move-recipient screen reachable at all.
+       *
+       * A move is not taught at the node that pays it any more — it goes into
+       * the bag as a TM, and the only way to a recipient question is this
+       * control, at a rest or a shop. A smoke run that walked past it would
+       * never show the target or the replacement screen, and the two assertions
+       * about them below would be the kind that cannot fail.
+       *
+       * The first row, not a chosen one: which TM to spend is a real decision
+       * and the simulator's question. This is proving the control routes.
+       */
+      const teach = page.locator(`${visible('party')} .tms__item .button--small`).first();
+      if ((await teach.count()) && (await teach.textContent()) === 'Teach') {
+        await teach.click();
+        await page.waitForTimeout(25);
+        continue;
+      }
+
       await page.locator(`${visible('party')} .primary-action`).click();
       await page.waitForTimeout(25);
       continue;

@@ -29,6 +29,7 @@ import {
   type RunProjection,
   type RunResult,
   type RunState,
+  canTeachNow,
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
@@ -51,8 +52,10 @@ import { createSeedBar } from './seed-bar';
 import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 
-import { createItemTargetScreen } from './screens/item-target';
+import { TEACH_CANCELLED, createItemTargetScreen } from './screens/item-target';
 import { createMoveReplaceScreen } from './screens/move-replace';
+import { describeMove } from '../core/battle/driver';
+import { replacementNeeded } from '../core/party';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
@@ -448,6 +451,7 @@ export function mountApp(root: HTMLElement): void {
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
     const rewardPick = createPending<number | null>();
+    const itemPlanPick = createPending<ItemPlan>();
     const targetPick = createPending<number>();
     const replacePick = createPending<number>();
     const acquirePick = createPending<AcquisitionDecision>();
@@ -492,6 +496,7 @@ export function mountApp(root: HTMLElement): void {
       nodePick.cancel();
       movePick.cancel();
       rewardPick.cancel();
+      itemPlanPick.cancel();
       targetPick.cancel();
       replacePick.cancel();
       acquirePick.cancel();
@@ -689,9 +694,38 @@ export function mountApp(root: HTMLElement): void {
        * the slots would mean something else.
        */
       chooseItemPlan: async (state) => {
+        /*
+         * **At a rest or a shop the player is asked, rather than answered for.**
+         *
+         * This is the boundary that may spend a TM — `run.canTeachAt` — and it
+         * is the *only* one, which makes the timing load-bearing in a way the
+         * item half never was. A plan composed on the map names a teach against
+         * the node the run has just walked; it is spent at the boundary of the
+         * node the player walks *next*, and if that one is a fight the teach is
+         * not legal there. `reconcileItemPlan` would drop it, correctly and
+         * silently, and the player would watch a TM they had arranged simply
+         * fail to be spent.
+         *
+         * So the screen opens here, where composing and spending are the same
+         * moment and `canTeachNow` is the same answer for both. Everywhere else
+         * the pre-composed plan still stands, because an item assignment means
+         * the same thing at any boundary.
+         */
+        if (canTeachNow(state) && state.tms.length > 0) {
+          live = state;
+          showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
+          const composed = await itemPlanPick.wait();
+          pendingPlan = null;
+          return reconcileItemPlan(
+            state,
+            composed,
+            backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+            true,
+          );
+        }
         const plan = pendingPlan;
         pendingPlan = null;
-        if (!plan) return defaultItemPlan(state);
+        if (!plan) return defaultItemPlan(state, canTeachNow(state));
         /*
          * **Brought forward before it is answered with, and this is the fix
          * for the Carry on soft lock.**
@@ -714,6 +748,7 @@ export function mountApp(root: HTMLElement): void {
           state,
           plan,
           backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+          canTeachNow(state),
         );
       },
       chooseShopPurchases: (stock, state) => {
@@ -728,45 +763,16 @@ export function mountApp(root: HTMLElement): void {
         showScreen('event');
         return eventPick.wait();
       },
-      chooseMoveRecipient: (offer, party, state, allowSkip) => {
-        /*
-         * **The party this question is asked against is the party the drawer
-         * must show**, and this is the only place the run hands it over.
-         *
-         * It is `partyAfterAcquisition` — `state.party` with the node's capture
-         * folded in — and it stays set through `chooseMoveToReplace`, which is
-         * asked immediately after this one about a member drawn from this same
-         * list. See the declaration of `decidedParty`.
-         */
-        decidedParty = party;
-        // The run's tuning, for the move card's face-tag cap (4.8.0.2), and
-        // whether this move may be handed back. `core/run.ts` sets the second
-        // at the gym's guaranteed move and nowhere else; the screen shows a
-        // decline control only where it is set.
-        targetScreen.render(offer, party, (slot) => targetPick.submit(slot), state.tuning, allowSkip);
-        showScreen('target');
-        return targetPick.wait();
-      },
       /*
-       * The second half of a move reward, and the one the app used to answer
-       * for the player.
+       * `chooseMoveRecipient` and `chooseMoveToReplace` were wired here and are
+       * gone with the policy methods themselves.
        *
-       * It was wired to `defaultMoveReplacement` — the reference heuristic the
-       * scripted baseline uses — on the note that the screen would land in a
-       * later display pass. That pass did not land, so the reward screen's
-       * "you choose what it replaces next" was a promise the app broke every
-       * time, silently, by dropping the weakest attack. `core/run.ts` was
-       * asking the question and the run log was recording the answer the whole
-       * time; only this line was not asking anybody.
-       *
-       * The heuristic stays where it belongs: `scripts/sim.ts` and the replay
-       * baseline still answer with it, which is why it is still exported.
+       * The two screens they drove are not gone — `targetScreen` and
+       * `replaceScreen` still exist and still ask exactly what they asked — but
+       * they are reached from the party screen while a plan is being composed
+       * now, not from `playRun` at the node that paid for the move. A teach is
+       * part of one `ItemPlan` rather than two log entries of its own.
        */
-      chooseMoveToReplace: (member, incoming, state) => {
-        replaceScreen.render(member, incoming, (slot) => replacePick.submit(slot), state.tuning);
-        showScreen('replace');
-        return replacePick.wait();
-      },
       /*
        * The capture, rendered back onto the result screen the fight ended on.
        *
@@ -851,17 +857,15 @@ export function mountApp(root: HTMLElement): void {
        *      deliberate — `applyBattleState` keeps the member's own counters
        *      when a delta is missing, and a fight's contribution is not final
        *      until it ends.
-       *   2. `decidedParty` — a decision the run has taken and not applied.
-       *      Set by the projection hook, and again by `chooseMoveRecipient`
-       *      from its own argument, which is what pins the drawer to exactly
-       *      the party the target screen is listing. That second assignment is
-       *      load-bearing rather than redundant: the question is asked against
-       *      `partyAfterAcquisition`, which does not fold the battle, so
-       *      without it the drawer would show live HP over a screen showing
-       *      pre-fight HP — a fresh instance of the contradiction this whole
-       *      patch is about. `docs/spec/gymrun-patch-move-recipient-divergence.md`
-       *      is where those two readings converge; until they do, the drawer
-       *      follows the screen rather than getting ahead of it.
+       *   2. `decidedParty` — a decision the run has taken and not applied,
+       *      from the projection hook. **It used to have a second setter** and
+       *      does not any more: the move questions were asked from `playRun`
+       *      against a party that did not fold the battle, so the drawer had to
+       *      be pinned to that reading or it would have shown live HP over a
+       *      screen showing pre-fight HP. Moves became bag items and teaching
+       *      moved to the party screen, which is reached between nodes where
+       *      `live` is already current — so the second reading, and the pin it
+       *      needed, are both gone. The projection is the only setter now.
        *   3. `live.party` — between nodes, which is every other screen.
        */
       /*
@@ -928,11 +932,10 @@ export function mountApp(root: HTMLElement): void {
      * failure `ui/party-layout.ts` names and the drawer exists to remove.
      *
      * `core/run.ts` cannot close it from its side: nothing has happened to run
-     * state yet, so there is no `onState` for it to fire. What it does hand
-     * over is the party it is asking against, which is the applied result of
-     * `applyAcquisition` rather than a second guess at it — so this holds that
-     * array rather than recomputing one, and `ui/` stays out of deciding what a
-     * capture means.
+     * state yet, so there is no `onState` for it to fire. What it hands over
+     * instead is a projection — the applied result of the same folds
+     * `resolveNode` will perform, computed in `core/` — so `ui/` stays out of
+     * deciding what a capture means.
      *
      * Read-only surfaces only. The party screen is a *write* path — a reorder
      * or a release mutates the array it was handed — and pointing that at a
@@ -1032,6 +1035,8 @@ export function mountApp(root: HTMLElement): void {
         {
           party: state.party,
           backpack: state.backpack,
+          tms: state.tms,
+          canTeach: canTeachNow(state),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
@@ -1068,11 +1073,96 @@ export function mountApp(root: HTMLElement): void {
             pendingPlan = plan;
           },
           /*
+           * Spending a TM: the same two screens, reached from here instead of
+           * from `playRun`.
+           *
+           * **Neither screen changed and neither is a copy.** `targetScreen`
+           * asks who learns it against the whole party, and `replaceScreen`
+           * asks what it costs that member — the identical pair a move card
+           * asked at the node it was taken at, in the identical order, for the
+           * identical reason: the four moves on the table depend entirely on
+           * who is learning.
+           *
+           * What changed is who is waiting on the answer. `playRun` used to
+           * park on a pending promise; here the party screen hands in a
+           * continuation, because a teach is one part of a plan the player is
+           * still composing and backing out has to leave them on the party
+           * screen with the plan intact.
+           *
+           * The decline control on the target screen is offered, and it means
+           * "not this one, not now" rather than the retired "nobody ever" —
+           * the TM stays in the bag.
+           */
+          onTeach: (move, done) => {
+            const reward = { kind: 'tm' as const, move };
+            const back = (): void => {
+              showParty(partyReturn);
+            };
+            targetScreen.render(
+              reward,
+              state.party,
+              (slot) => {
+                if (slot === TEACH_CANCELLED) {
+                  done(null);
+                  back();
+                  return;
+                }
+                const learner = state.party[slot];
+                if (!learner) {
+                  done(null);
+                  back();
+                  return;
+                }
+                if (replacementNeeded(learner, move) !== 'choose') {
+                  done({ move, slot, replaceSlot: null });
+                  back();
+                  return;
+                }
+                const incoming = describeMove(move);
+                if (!incoming) {
+                  done(null);
+                  back();
+                  return;
+                }
+                replaceScreen.render(
+                  learner,
+                  incoming,
+                  (replaceSlot) => {
+                    done({ move, slot, replaceSlot });
+                    back();
+                  },
+                  state.tuning,
+                );
+                showScreen('replace');
+              },
+              state.tuning,
+              true,
+            );
+            showScreen('target');
+          },
+          /*
            * Back to whichever screen sent us, and redraw it first when that
            * screen is the pre-gym one. See `renderPreGym` for why the redraw is
            * load-bearing rather than tidy.
            */
           onDone: () => {
+            /*
+             * The way out is also the commit, and only when the boundary is
+             * waiting on one.
+             *
+             * `itemPlanPick.submit` answers false when nothing is armed, which
+             * is every ordinary visit to this screen from the map — there the
+             * plan is held in `pendingPlan` and spent at the next boundary, as
+             * it always was. When a rest or a shop opened the screen to ask,
+             * this is the answer, and the run continues from here.
+             */
+            const plan = pendingPlan ?? {
+              assignments: state.party.map((member, slot) => ({ slot, item: member.item ?? null })),
+              discards: [],
+              teaches: [],
+              discardTms: [],
+            };
+            if (itemPlanPick.submit(plan)) return;
             if (partyReturn === 'pre-gym') renderPreGym();
             showScreen(partyReturn);
           },

@@ -152,20 +152,6 @@ describe('the drawer reads the party the run has been told about', () => {
     ).not.toContain('state.party');
   });
 
-  it('takes that party from the question core is asking, not from a second guess', () => {
-    /*
-     * `core/run.ts` hands `chooseMoveRecipient` the applied result of
-     * `applyAcquisition`. Recomputing it here would put a second reading of
-     * "who is in the party now" in `ui/`, which `partyAfterAcquisition`'s own
-     * header names as precisely how a recorded target index ends up teaching
-     * the wrong Pokemon. So the override is fed the argument.
-     */
-    expect(
-      policyEntry('chooseMoveRecipient'),
-      'the move question no longer tells the drawer what party it is asking about',
-    ).toContain('decidedParty = party');
-  });
-
   it('gives the override back the moment the run catches up', () => {
     /*
      * `onState` is that moment and the only one: it is where `live` is
@@ -225,7 +211,7 @@ describe('what an unspent plan would have done to the shortened party', () => {
      * notice, which is why `chooseAcquisition` drops it.
      */
     const party = partyOf();
-    const plan: ItemPlan = { assignments: [{ slot: 2, item: 'leftovers' }], discards: [] };
+    const plan: ItemPlan = { assignments: [{ slot: 2, item: 'leftovers' }], discards: [], teaches: [], discardTms: [] };
     const after = applyAcquisition(party, OFFER, { kind: 'release', slot: 2 }, 1, party.length).party;
 
     expect(after.map((member) => member.spec.species)).toEqual(['Sobble', 'Spiritomb', 'Anorith']);

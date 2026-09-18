@@ -119,4 +119,4 @@ Presentation and observation only. One new optional hook and one new pure
 projection in `core/run.ts`; no transition moved, no hook argument changed, no
 decision touched, no version axis moved, `contentHash` unmoved at `94c6c1`.
 
-[`../generation.md`](../generation.md) section 37 is the account.
+[`../generation.md`](../generation.md) section 39 is the account.

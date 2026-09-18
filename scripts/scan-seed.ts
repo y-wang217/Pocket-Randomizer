@@ -34,7 +34,6 @@
  * reports, loudly, as the assertion it already carries.
  */
 import { greedyAiPolicy } from '../src/core/battle/ai';
-import { isTargeted } from '../src/core/rewards';
 
 import { defaultItemPlan, playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 /** test/move-replacement.test.ts: the census of every Stage 4.5.1 decision. */
@@ -42,7 +41,12 @@ function census(seen: Set<string>): RunPolicy {
   return {
     ...scriptedRunPolicy(greedyAiPolicy),
     chooseReward: async (offer) => {
-      const move = offer.options.findIndex((option) => isTargeted(option));
+      // Prefer a move card, which is now a TM paid into the bag rather than a
+      // taught move. `isTargeted` was the old test for one and is retired with
+      // the question it gated, so the three move kinds are named directly.
+      const move = offer.options.findIndex(
+        (option) => option.kind === 'tm' || option.kind === 'tutor' || option.kind === 'technique',
+      );
       return move === -1 ? 0 : move;
     },
     chooseShopPurchases: async (stock, state) => {
@@ -58,14 +62,6 @@ function census(seen: Set<string>): RunPolicy {
       }
       if (basket.length > 0) seen.add('shop');
       return basket;
-    },
-    chooseMoveRecipient: async (_offer, party) => {
-      seen.add('move-recipient');
-      return party.length - 1;
-    },
-    chooseMoveToReplace: async (member) => {
-      seen.add('move-replace');
-      return member.spec.moves.length - 1;
     },
     chooseAcquisition: async (_offer, party, capacity) => {
       seen.add('acquisition');
@@ -119,7 +115,14 @@ const mode = process.argv[2] ?? 'census';
 const attempts = Number(process.argv[3] ?? 200);
 
 if (mode === 'census') {
-  const wanted = ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign'];
+  /*
+   * `move-recipient` and `move-replace` left this list with the questions
+   * themselves — a move is stowed as a TM now and taught out of an item plan —
+   * and the test this feeds dropped them in the same change. They are named
+   * here only because a scanner still asking for a decision the game cannot
+   * produce searches every seed and reports none, which is what it did.
+   */
+  const wanted = ['acquisition', 'release', 'shop', 'item-assign'];
   for (let i = 0; i < attempts; i++) {
     const seed = i === 0 ? 'ALL-DECISIONS' : `ALL-DECISIONS-${i}`;
     const seen = new Set<string>();
@@ -163,7 +166,7 @@ if (mode === 'census') {
     // The test asserts where the entry lands: after that gym's last battle
     // decision and before its cards.
     if (first.log.decisions[at - 1]?.kind !== 'battle') continue;
-    if (after !== 'reward' && after !== 'target') continue;
+    if (after !== 'reward' && after !== 'items') continue;
 
     const second = await playRun(seed, fork(1));
     const zero = first.state.party.map((member) => member.spec.species);

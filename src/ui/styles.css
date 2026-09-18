@@ -612,6 +612,21 @@ body {
 .flags .chip {
   flex: 0 0 auto;
   white-space: nowrap;
+  /* Full cream rather than the dim default, and this is a **legibility floor
+     fix, not a weight change**.
+
+     The flags strip is the one place a chip sits on the locale-tinted battle
+     stage rather than on a panel, and the dim recipe measured 4.36:1 against
+     the darkest tint — under `displayTuning.minChipContrastRatio`. The defect
+     predates the band recut and was exposed by it: the seed the contrast sweep
+     walks reaches a green-tinted locale now and did not before, so the pairing
+     had never been sampled. `test/visual-chips.test.ts` is where it surfaced.
+
+     Every flag moves together, so the Release C rule this strip is holding is
+     untouched: a kind is still identical to every other kind within a side, and
+     `[data-side='p1']` below is still the only thing that distinguishes them. A
+     side is not a verdict and neither is this. */
+  --chip: var(--cream);
 }
 
 /* The tap that opens the history. Last in the row and never shrinks: a
@@ -1474,6 +1489,61 @@ body {
 
 .backpack__empty,
 .backpack__discarded {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-md);
+  color: var(--text-faint);
+}
+
+/* The TM shelf. Its own section beside the backpack, on the same rules: a TM
+   and a held item compete for one capacity, and nothing here ranks one TM
+   against another — acquisition order, no markers, no emphasis. */
+.tms {
+  margin-top: calc(var(--space-4h) * var(--density-gap));
+  padding-top: calc(var(--space-3h) * var(--density-gap));
+  border-top: var(--hairline) solid var(--border);
+}
+
+.tms__title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-base);
+  letter-spacing: 0.04em;
+}
+
+.tms__note {
+  margin: 0 0 var(--space-2h);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+}
+
+.tms__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-2) * var(--density-gap));
+}
+
+.tms__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-2h) * var(--density-pad));
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+
+.tms__acts {
+  display: flex;
+  gap: var(--space-1h);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.tms__spent,
+.tms__empty {
   margin: var(--space-2) 0 0;
   font-size: var(--fs-md);
   color: var(--text-faint);
@@ -2508,16 +2578,19 @@ body {
   border: var(--hairline) solid transparent;
 }
 
-/* Stage V0: the four bands render identically. The opacity ramp that used to
+/* Stage V0: the five bands render identically. The opacity ramp that used to
    distinguish them was an ordering, and an ordering is a verdict. Patch
    4.8.0.3 keeps that: the pips differ in *count*, which is the band, and in
-   nothing else — one hue, one weight, filled or not. */
+   nothing else — one hue, one weight, filled or not. The band recut added the
+   fifth; there is deliberately no fifth colour, because there was never a
+   first one. */
 .band--1,
 .band--2,
 .band--3,
-.band--4 { opacity: 1; }
+.band--4,
+.band--5 { opacity: 1; }
 
-/* The band pips. Patch 4.8.0.3, item 3: `BAND 3` became three of four filled.
+/* The band pips. Patch 4.8.0.3, item 3: `BAND 3` became three of five filled.
 
    Sized off the chip's own font so they scale with every density and font
    setting the rest of the badge does, rather than being pinned in px and
