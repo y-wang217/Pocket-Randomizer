@@ -279,13 +279,15 @@ describe('every decision surface', () => {
           {
             party: partyOf(state),
             backpack: [],
+            tms: [],
+            canTeach: true,
             relics: [],
             tuning: state.tuning,
             slots: partyCapacityAfter(0),
             backTo: 'Back to the map',
             plan: null,
           },
-          { onReorder: bump, onRelease: bump, onPlan: bump, onDone: bump },
+          { onReorder: bump, onRelease: bump, onPlan: bump, onTeach: bump, onDone: bump },
         );
         return { root: screen.root, submissions: () => submitted };
       },

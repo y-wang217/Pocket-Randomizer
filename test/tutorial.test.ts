@@ -167,13 +167,15 @@ function mount(screen: TutorialScreen): Mounted {
         {
           party: state.party,
           backpack: [],
+          tms: [],
+          canTeach: true,
           relics: [RELIC_IDS[0]!],
           tuning: state.tuning,
           slots: 3,
           backTo: 'map',
           plan: null,
         },
-        { onReorder: fire, onRelease: fire, onPlan: fire, onDone: fire },
+        { onReorder: fire, onRelease: fire, onPlan: fire, onTeach: fire, onDone: fire },
       );
       root = party.root;
       break;

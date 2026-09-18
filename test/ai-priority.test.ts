@@ -304,8 +304,15 @@ describe('the version axes', () => {
      * The victory-order patch's schema bump: a node offers its Pokemon before
      * it asks who learns its move, so the questions come in a different order,
      * and a gym's guaranteed move may be handed back.
+     *
+     * `-18` is the band recut's gym move page. `-19` is the moves-as-inventory
+     * stage, which deletes both of those questions from all four routes that
+     * paid a move: `-17` recorded that the questions were reordered, `-19` that
+     * they are not asked. The stage's own branch bumped to `-18` before the
+     * recut reached `main` with the same number, and the merge took the next
+     * one rather than let one string name two schemas.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-18/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-19/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.

@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { describeMove } from '../src/core/battle/driver';
 import { createPartyMember, replacementNeeded, teachMove } from '../src/core/party';
-import { applyReward, recipientFor } from '../src/core/rewards';
+import { applyReward } from '../src/core/rewards';
 import {
   chooseStarter,
   createRun,
@@ -32,12 +32,13 @@ import {
   defaultMoveReplacement,
   playRun,
   replayRun,
-  resumeRun,
   scriptedRunPolicy,
   type RunPolicy,
   type RunState,
+  canTeachNow,
 } from '../src/core/run';
-import type { PokemonSpec, PokemonState, RunLog } from '../src/core/types';
+import { applyItemPlan } from '../src/core/items';
+import type { PokemonSpec, PokemonState } from '../src/core/types';
 
 const snorlax = (moves: string[]): PokemonState =>
   createPartyMember({ species: 'Snorlax', ability: 'Thick Fat', moves, level: 50 } as PokemonSpec);
@@ -127,20 +128,20 @@ describe('the recipient is resolved once', () => {
     snorlax(['Tackle', 'Growl']),
   ];
 
-  it('redirects a fainted target to the lead, rather than crashing', () => {
-    // A member can faint in the fight that paid the card. One roster, because
-    // `toBe` is identity and `party()` builds fresh objects on every call.
-    const roster = party();
-    expect(recipientFor(roster, 1)).toBe(roster[0]);
-  });
-
-  it('redirects an out-of-range target to the lead', () => {
-    const roster = party();
-    expect(recipientFor(roster, 9)).toBe(roster[0]);
-  });
+  /*
+   * **Two redirection cases were here and are gone with `recipientFor`.**
+   *
+   * They held that a move aimed at a fainted slot, or at a slot past the end of
+   * the party, landed on the lead instead of crashing the run on its own reward
+   * screen. Neither can happen now: a teach is composed at a rest or a shop
+   * against the party as it stands, so a fainted slot is a deliberate choice
+   * and an out-of-range one is a broken plan. The first is honoured below; the
+   * second is the loud `RangeError` `applyItemPlan` raises, which
+   * `test/backpack.test.ts` holds.
+   */
 
   /*
-   * The bug the shared resolution exists to prevent.
+   * The bug the shared resolution existed to prevent, restated for the plan.
    *
    * The replacement slot is chosen against a *particular* Pokemon's four moves.
    * If `playRun` asked about the fainted member at slot 1 and `applyReward`
@@ -151,17 +152,40 @@ describe('the recipient is resolved once', () => {
    * Both sides go through `recipientFor`, so the member asked about and the
    * member taught are the same object.
    */
-  it('asks and applies against the same member when the target has fainted', () => {
+  /*
+   * **A fainted member is a legitimate recipient now, not a case to redirect.**
+   *
+   * This used to assert the `recipientFor` fallback: a move aimed at a fainted
+   * slot landed on the lead instead, because the recipient was named at the
+   * node that paid the card and the member the player wanted could have died in
+   * the fight that paid for it. A teach is composed at a rest or a shop now,
+   * against the party as it stands — and a fainted member revives between
+   * nodes with the move still on it, so honouring the slot named is both
+   * simpler and what the player meant.
+   */
+  it('teaches the slot the plan names, fainted or not, with no redirection', () => {
     const roster = party();
-    const asked = recipientFor(roster, 1)!;
-    expect(replacementNeeded(asked, 'Arm Thrust')).toBe('choose');
+    expect(roster[1]!.fainted).toBe(true);
+    // One move, so nothing is displaced — the point here is the recipient, not
+    // the victim, and a free slot keeps the case to the one thing it asserts.
+    expect(replacementNeeded(roster[1]!, 'Arm Thrust')).toBe('free');
 
-    const state = { ...startedRun(), party: roster };
-    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' }, 1, 1);
+    const state = { ...startedRun(), party: roster, tms: ['Arm Thrust'] };
+    const after = applyItemPlan(
+      state,
+      {
+        assignments: [],
+        discards: [],
+        discardTms: [],
+        teaches: [{ move: 'Arm Thrust', slot: 1, replaceSlot: null }],
+      },
+      8,
+      true,
+    );
 
-    // Slot 0 is the lead and is what actually learned it, at the slot chosen.
-    expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Arm Thrust', 'Earthquake', 'Rest']);
-    expect(after.party[2]!.spec.moves).toEqual(['Tackle', 'Growl']);
+    expect(after.party[1]!.spec.moves).toContain('Arm Thrust');
+    expect(after.party[0]!.spec.moves).not.toContain('Arm Thrust');
+    expect(after.tms).toEqual([]);
   });
 });
 
@@ -191,54 +215,52 @@ function movePicker(): RunPolicy {
     },
     // The last member rather than the lead, so the recipient is a real answer
     // and not the value a missing implementation would return.
-    chooseMoveRecipient: async (_offer, party) => party.length - 1,
     // The last slot rather than the heuristic's, for the same reason.
-    chooseMoveToReplace: async (member) => member.spec.moves.length - 1,
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
   };
 }
 
-describe('both decisions are logged, in order', () => {
-  it('records the recipient before the replacement, always', async () => {
-    const run = await playRun('MOVE-REP-7', movePicker());
-    const kinds = run.log.decisions.map((decision) => decision.kind);
-
-    const replaces = kinds.flatMap((kind, index) => (kind === 'replace' ? [index] : []));
-    expect(replaces.length).toBeGreaterThan(0);
-    // Every replacement is immediately preceded by the recipient it belongs to.
-    for (const index of replaces) {
-      expect(kinds[index - 1], `decision ${index}`).toBe('target');
-    }
-  }, 60_000);
-
-  it('never records more replacements than recipients', async () => {
-    const run = await playRun('MOVE-GATE', movePicker());
-    const kinds = run.log.decisions.map((decision) => decision.kind);
-    const targets = kinds.filter((kind) => kind === 'target').length;
-    const replaces = kinds.filter((kind) => kind === 'replace').length;
-
-    /*
-     * At most one replacement per recipient, and often fewer.
-     *
-     * Not *strictly* fewer, and the reason is worth writing down: every starter
-     * and every generated Pokemon rolls a full four moves, so in most runs
-     * every move card does need a replacement and the two counts are equal. The
-     * gate still fires — a member that already knows the move skips it — but it
-     * fires rarely enough that asserting on it from a seed would be asserting
-     * on that seed. The scenario below tests the gate directly instead.
-     */
-    expect(replaces).toBeGreaterThan(0);
-    expect(replaces).toBeLessThanOrEqual(targets);
-  }, 60_000);
-
+/*
+ * **Three tests were here and are deleted, not skipped.**
+ *
+ * They held the ordering and the counting of the `target`/`replace` pair: a
+ * replacement always immediately preceded by its recipient, never more
+ * replacements than recipients, and a resume from a save taken *between* the
+ * two questions asking the second one and no other. All three were true, and
+ * the band recut had just re-pinned the first of them to a fresh seed — which
+ * is worth noting, because it means they were live and passing right up to this
+ * merge rather than quietly rotting.
+ *
+ * None of them describes this game. No move is taught at a node, so neither
+ * entry is ever written and the mid-pair save point does not exist.
+ * `teachMove`'s own rules are unchanged and are exercised below and through
+ * `applyItemPlan`.
+ *
+ * `docs/spec/gymrun-stage-moves-as-inventory-tms.md`.
+ */
+describe('what teaching a move still costs', () => {
   it('asks no replacement when the recipient has a free slot', async () => {
     // The gate, tested against a party built for it rather than hunted for in a
     // seed. A two-move member is offered a move and must not be asked.
     const state = { ...startedRun('MOVE-FREE'), party: [snorlax(['Body Slam', 'Crunch'])] };
 
     expect(replacementNeeded(state.party[0]!, 'Arm Thrust')).toBe('free');
-    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' }, 0, null);
-    expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch', 'Arm Thrust']);
+
+    // The card pays a TM into the bag and teaches nobody. The free-slot gate is
+    // still the thing that decides whether a teach needs a victim named, and it
+    // is read by `applyItemPlan` when the TM is actually spent.
+    const after = applyReward(state, { kind: 'tm', move: 'Arm Thrust' });
+    expect(after.tms).toEqual(['Arm Thrust']);
+    expect(after.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch']);
+
+    const taught = applyItemPlan(
+      after,
+      { assignments: [], discards: [], discardTms: [], teaches: [{ move: 'Arm Thrust', slot: 0, replaceSlot: null }] },
+      8,
+      true,
+    );
+    expect(taught.party[0]!.spec.moves).toEqual(['Body Slam', 'Crunch', 'Arm Thrust']);
+    expect(taught.tms).toEqual([]);
   });
 
   it('replays to an identical party from the same log', async () => {
@@ -252,52 +274,12 @@ describe('both decisions are logged, in order', () => {
     expect(JSON.stringify(replayed.log)).toBe(JSON.stringify(original.log));
   }, 60_000);
 
-  it('resumes identically from a save taken between the two questions', async () => {
-    // The interesting save point: the recipient is recorded and the replacement
-    // is not, so a resume has to ask the second question and no other.
-    const saves: RunLog[] = [];
-    const original = await playRun('MOVE-MIDSAVE', movePicker(), undefined, {
-      onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
-    });
-
-    const between = saves.filter((log) => log.decisions.at(-1)?.kind === 'target');
-    expect(between.length).toBeGreaterThan(0);
-
-    for (const save of between) {
-      const resumed = await resumeRun(save, movePicker());
-      expect(
-        resumed.state.party.map((member) => member.spec.moves),
-        `resuming after ${save.decisions.length} decisions`,
-      ).toEqual(original.state.party.map((member) => member.spec.moves));
-    }
-  }, 120_000);
-});
-
-// ---------------------------------------------------------------------------
-// Determinism
-// ---------------------------------------------------------------------------
-
-describe('neither decision consumes RNG', () => {
-  it('produces the same map from the same seed whoever learns what', async () => {
-    /*
-     * Two runs, one seed, opposite answers to both move questions.
-     *
-     * If either decision drew from a stream, the maps would diverge from the
-     * first move card onward and the node ids would stop matching. They are
-     * player decisions, so the map is identical and only the party differs.
-     */
-    const lastSlot = await playRun('S49M-1', movePicker());
-    const firstSlot = await playRun('S49M-1', {
-      ...movePicker(),
-      chooseMoveRecipient: async () => 0,
-      chooseMoveToReplace: async () => 0,
-    });
-
-    const nodeIds = (result: typeof lastSlot): string[] =>
-      result.state.history.map((visit) => visit.node.id);
-
-    expect(nodeIds(firstSlot).slice(0, 6)).toEqual(nodeIds(lastSlot).slice(0, 6));
-  }, 60_000);
+  /*
+   * **"resumes identically from a save taken between the two questions" was
+   * here.** There is no longer a point between two questions to save at: the
+   * recipient and the victim are answered inside one `ItemPlan` and recorded as
+   * one entry, so a save either has the teach or does not.
+   */
 
   it('is a pure function of member and slot, so the same call twice agrees', () => {
     const member = snorlax(FOUR);
@@ -370,14 +352,6 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
         if (basket.length > 0) seen.add('shop');
         return basket;
       },
-      chooseMoveRecipient: async (_offer, party) => {
-        seen.add('move-recipient');
-        return party.length - 1;
-      },
-      chooseMoveToReplace: async (member) => {
-        seen.add('move-replace');
-        return member.spec.moves.length - 1;
-      },
       // Take everything: accept while there is room, release slot 0 once full,
       // so a party swap really happens.
       chooseAcquisition: async (_offer, party, capacity) => {
@@ -388,7 +362,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
         return { kind: 'release', slot: 0 };
       },
       chooseItemPlan: async (state) => {
-        const plan = defaultItemPlan(state);
+        const plan = defaultItemPlan(state, canTeachNow(state));
         if (plan.assignments.length > 0) seen.add('item-assign');
         if (plan.discards.length > 0) seen.add('item-discard');
         return plan;
@@ -402,15 +376,26 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * this policy to hit every branch.
      *
      * It was `ALL-DECISIONS` until Stage 4.6a rekeyed the RNG streams and then
-     * added locales. Nothing about the census changed; every seed simply rolls
-     * a different run, which is what a `RANDOMIZER_VERSION` bump means.
-     * `npx vite-node scripts/scan-seed.ts census` is how the replacement was
-     * found.
+     * added locales, and `ALL-DECISIONS-6` until the band recut and the
+     * moves-as-inventory stage were merged. Nothing about the census changed
+     * either time; every seed simply rolls a different run, which is what a
+     * `RANDOMIZER_VERSION` bump means — and this time the *census itself* also
+     * got shorter, because two of the six decisions it counted no longer exist.
+     * `npx vite-node scripts/scan-seed.ts census` is how each replacement was
+     * found, and its own wanted-list had to lose the same two entries first:
+     * a scanner asking for a decision the game cannot produce searches every
+     * seed and reports none.
      */
-    const run = await playRun('ALL-DECISIONS-6', policy);
+    const run = await playRun('ALL-DECISIONS-1', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
-    for (const decision of ['move-recipient', 'move-replace', 'acquisition', 'release', 'shop', 'item-assign']) {
+    /*
+     * `move-recipient` and `move-replace` left this census with the questions
+     * themselves. What replaced them is not a third entry here but the bag: a
+     * run that takes a move card is carrying a TM from that node on, which is
+     * what `item-assign` now fires on at every boundary after it.
+     */
+    for (const decision of ['acquisition', 'release', 'shop', 'item-assign']) {
       expect(seen.has(decision), `the run never exercised ${decision}`).toBe(true);
     }
 

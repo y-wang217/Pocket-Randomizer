@@ -170,8 +170,8 @@ describe('the party surfaces', () => {
     const screen = createPartyScreen();
     document.body.replaceChildren(screen.root);
     screen.render(
-      { party: party(), backpack: ['oranberry'], relics: [], tuning: DEFAULT_TUNING, slots: partyCapacityAfter(0), backTo: 'Back', plan: null },
-      { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onDone: () => undefined },
+      { party: party(), backpack: ['oranberry'], tms: [], canTeach: true, relics: [], tuning: DEFAULT_TUNING, slots: partyCapacityAfter(0), backTo: 'Back', plan: null },
+      { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onTeach: () => undefined, onDone: () => undefined },
     );
     expect(texts(screen.root, '.panel__name')).toEqual(['Snorlax', 'Gengar']);
     expect(texts(screen.root, '.slot__label').slice(0, 2)).toEqual(['Snorlax', 'Gengar']);

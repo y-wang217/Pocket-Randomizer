@@ -23,7 +23,7 @@ function member(species: string, item?: string): PokemonState {
   return item ? { ...state, item } : state;
 }
 
-const handlers = { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onDone: () => undefined };
+const handlers = { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onTeach: () => undefined, onDone: () => undefined };
 
 function labels(root: ParentNode, selector: string): string[] {
   return [...root.querySelectorAll(`${selector} .slot`)].map((slot) => slot.querySelector('.slot__label')?.textContent ?? '');
@@ -54,6 +54,8 @@ describe('the party screen', () => {
     const view = {
       party,
       backpack: ['oranberry', 'charcoal'],
+      tms: [],
+      canTeach: true,
       relics: [],
       tuning: DEFAULT_TUNING,
       // Three members need at least three slots; the opening width is two

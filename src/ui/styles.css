@@ -1494,6 +1494,61 @@ body {
   color: var(--text-faint);
 }
 
+/* The TM shelf. Its own section beside the backpack, on the same rules: a TM
+   and a held item compete for one capacity, and nothing here ranks one TM
+   against another — acquisition order, no markers, no emphasis. */
+.tms {
+  margin-top: calc(var(--space-4h) * var(--density-gap));
+  padding-top: calc(var(--space-3h) * var(--density-gap));
+  border-top: var(--hairline) solid var(--border);
+}
+
+.tms__title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-base);
+  letter-spacing: 0.04em;
+}
+
+.tms__note {
+  margin: 0 0 var(--space-2h);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+}
+
+.tms__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-2) * var(--density-gap));
+}
+
+.tms__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-2h) * var(--density-pad));
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+
+.tms__acts {
+  display: flex;
+  gap: var(--space-1h);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.tms__spent,
+.tms__empty {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-md);
+  color: var(--text-faint);
+}
+
 /* The held-item row on a party card: the item, what it does, and the way off. */
 .party__item {
   display: flex;

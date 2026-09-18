@@ -67,9 +67,20 @@ describe('the versions block', () => {
      * failed to happen. `-13` was the versions block; `-14` the event rejig,
      * where the event decision stopped being an index and became its option's
      * archetype; `-15` the event move, where a `T2` or `T3` outcome that pays
-     * a move asks who learns it and what it displaces.
+     * a move asks who learns it and what it displaces; `-18` the band recut,
+     * where a gym node writes two `reward` entries instead of one; `-19` the
+     * moves-as-inventory stage, where all four routes that paid a move stop
+     * asking who learns it — the move is stowed as a TM and taught out of an
+     * `ItemPlan`, which grew `teaches` and `discardTms` to carry the answers.
+     *
+     * **`-19` rather than `-18` for that last one, and the reason is the whole
+     * point of pinning a literal here.** Two branches reached `-18`
+     * independently, each correctly for its own change, and the merged schema
+     * is neither of them. A computed check would have been satisfied by either
+     * number; only a literal that a human has to move on purpose catches a
+     * collision between two honest bumps.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-18/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-19/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });

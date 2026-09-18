@@ -1,7 +1,7 @@
 {
   "seed": "SMOKE24",
   "versions": {
-    "runLog": "gymrun-run-18/gymrun-0.3.0",
+    "runLog": "gymrun-run-19/gymrun-0.3.0",
     "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
     "randomizer": "gymrun-randomizer-19",
     "ai": "gymrun-ai-6-spent-item",
@@ -27,8 +27,8 @@
       "level": 15,
       "ability": "Rocky Payload",
       "moves": [
-        "Sand Tomb 24/24",
-        "Razor Leaf 39/40",
+        "Sand Tomb 23/24",
+        "Mud-Slap 16/16",
         "Bulldoze 28/32",
         "Mud Shot 24/24"
       ],
@@ -130,7 +130,7 @@
   "log": {
     "seed": "SMOKE24",
     "versions": {
-      "runLog": "gymrun-run-18/gymrun-0.3.0",
+      "runLog": "gymrun-run-19/gymrun-0.3.0",
       "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-19"
@@ -195,7 +195,9 @@
               "item": "passhoberry"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -206,7 +208,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -246,18 +250,12 @@
         "index": 0
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 1
-      },
-      {
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -277,7 +275,9 @@
               "item": "silkscarf"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -288,14 +288,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       },
       {

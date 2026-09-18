@@ -20,7 +20,6 @@ import {
   atGym,
   chooseStarter,
   defaultItemPlan,
-  defaultMoveReplacement,
   createRun,
   gymsCleared,
   nodeOptions,
@@ -34,6 +33,7 @@ import {
   stepsOf,
   chooseLocale,
   gymClearLevel,
+  canTeachNow,
 } from '../src/core/run';
 import { pendingEvolutionQuestion } from '../src/core/evolution';
 import { playerLevel } from '../src/data/scaling';
@@ -67,10 +67,8 @@ function preferring(kind: NodeSpec['kind'], battle: Policy = greedyAiPolicy): Ru
     chooseReward: async () => 0,
     chooseShopPurchases: async () => [],
     chooseEventOption: async () => 'safe' as const,
-    chooseMoveRecipient: async () => 0,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     chooseAcquisition: async () => ({ kind: 'decline' }),
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
     battle,
   };
 }
@@ -116,10 +114,8 @@ describe('headless run', () => {
       chooseReward: async () => 0,
       chooseShopPurchases: async () => [],
       chooseEventOption: async () => 'safe' as const,
-      chooseMoveRecipient: async () => 0,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
       chooseAcquisition: async () => ({ kind: 'decline' }),
-      chooseItemPlan: async (state) => defaultItemPlan(state),
+      chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
       battle: greedyAiPolicy,
     };
 

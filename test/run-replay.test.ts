@@ -17,7 +17,6 @@ import {
   RUN_LOG_VERSION,
   assertReplayable,
   defaultItemPlan,
-  defaultMoveReplacement,
   isReplayable,
   playRun,
   replayRun,
@@ -28,6 +27,7 @@ import {
   type RunResult,
   type RunState,
   currentVersions,
+  canTeachNow,
 } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
 
@@ -68,15 +68,13 @@ function wobbling(): RunPolicy {
     // The last member, for the same reason as the last card: a policy that
     // always answered 0 would agree with the scripted default and prove
     // nothing about whether the target is really replayed.
-    chooseMoveRecipient: async (_offer, party) => party.length - 1,
-    chooseMoveToReplace: async (member, incoming) => defaultMoveReplacement(member, incoming),
     // Takes everything, releasing the lead once full. The most destructive
     // legal answer, so a replay that reproduces it has reproduced the party
     // churning rather than a party that only ever grew.
     chooseAcquisition: async (_offer, party, capacity) =>
       // Stage 4.8: live capacity, handed in by `playRun`.
       party.length < capacity ? { kind: 'accept' } : { kind: 'release', slot: 0 },
-    chooseItemPlan: async (state) => defaultItemPlan(state),
+    chooseItemPlan: async (state) => defaultItemPlan(state, canTeachNow(state)),
     battle: async (view) => {
       const moves = view.moves.filter((move) => move.usable);
       const pick = moves[view.turn % Math.max(1, moves.length)];
@@ -291,21 +289,13 @@ describe('save mid-run, reload, continue', () => {
         liveCalls++;
         return 'safe' as const;
       },
-      chooseMoveRecipient: async () => {
-        liveCalls++;
-        return 0;
-      },
-      chooseMoveToReplace: async (member, incoming) => {
-        liveCalls++;
-        return defaultMoveReplacement(member, incoming);
-      },
       chooseAcquisition: async () => {
         liveCalls++;
         return { kind: 'decline' as const };
       },
       chooseItemPlan: async (state) => {
         liveCalls++;
-        return defaultItemPlan(state);
+        return defaultItemPlan(state, canTeachNow(state));
       },
       battle: async (view) => {
         liveCalls++;

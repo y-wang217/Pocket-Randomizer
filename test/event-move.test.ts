@@ -112,23 +112,25 @@ describe('the move an event pays', () => {
   it('lands in a free slot on the member the answer names', () => {
     const after = resolveWith(runWithParty(), movePaid('Earthquake'), {
       eventMove: { kind: 'tm', move: 'Earthquake' },
-      eventMoveTarget: 0,
     });
 
-    expect(after.party[0]?.spec.moves).toEqual(['Tackle', 'Earthquake']);
-    // And nowhere else. A move taught to the whole party would be a fold that
-    // ignored the target, which reads as working on a party of one.
+    // Into the bag, and onto nobody. The member with the free slot is exactly
+    // the one a teach-on-arrival fold would have picked, so the party being
+    // untouched is the evidence that no such fold is left.
+    expect(after.tms).toEqual(['Earthquake']);
+    expect(after.party[0]?.spec.moves).toEqual(['Tackle']);
     expect(after.party[1]?.spec.moves).not.toContain('Earthquake');
   });
 
   it('displaces the slot the answer names when the recipient is full', () => {
     const after = resolveWith(runWithParty(), movePaid('Earthquake'), {
       eventMove: { kind: 'tm', move: 'Earthquake' },
-      eventMoveTarget: 1,
-      eventMoveReplaceSlot: 2,
     });
 
-    expect(after.party[1]?.spec.moves).toEqual(['Tackle', 'Gust', 'Earthquake', 'Sand Attack']);
+    // A full moveset is no longer a reason to ask anything here. The TM waits,
+    // and what it displaces is decided at the rest or shop that spends it.
+    expect(after.tms).toEqual(['Earthquake']);
+    expect(after.party[1]?.spec.moves).toEqual(['Tackle', 'Gust', 'Quick Attack', 'Sand Attack']);
   });
 
   it('is read off the outcome by one function, so the question and the fold agree', () => {
@@ -190,7 +192,7 @@ describe('a played run that walks into a paying question mark', () => {
        * move — hence a count across seeds rather than a per-seed assertion.
        */
       paying += decisions.filter(
-        (decision, at) => decision.kind === 'event' && decisions[at + 1]?.kind === 'target',
+        (decision, at) => decision.kind === 'event' && decisions[at + 1]?.kind === 'items',
       ).length;
 
       const again = await replayRun(live.log, DEFAULT_TUNING);

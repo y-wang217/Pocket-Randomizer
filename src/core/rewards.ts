@@ -36,10 +36,10 @@
  */
 import { damagingInBands, statusByImpact } from './randomizer';
 import { stow } from './items';
-import { leadOf, recoverParty, teachMove } from './party';
+import { recoverParty } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
-import type { PokemonState, Tier } from './types';
+import type { Tier } from './types';
 import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import { itemById } from '../data/items';
 import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
@@ -519,79 +519,6 @@ export type MoveReward = Extract<
 export type TargetedReward = MoveReward;
 
 /**
- * The recipient index that means "nobody — hand the move back".
- *
- * ## Why a sentinel and not a separate decision kind
- *
- * A declined move has to leave *something* in the run log, because the question
- * was asked and a replay walks the log in the order the questions come. An
- * absent entry would be a cursor that slips at the first gym a player declined
- * at, and every answer after it read against the wrong question. So the entry is
- * the same `{ kind: 'target' }` it always was, carrying a value that is not a
- * party slot.
- *
- * ## Why -1 rather than the party length
- *
- * Because it must not be a number the party could grow into. A "one past the
- * end" sentinel is the same integer as a legal slot in a party one member
- * larger, and the run *does* grow a party mid-node now — the acquisition is
- * resolved before this question is asked. A negative index can never be a slot.
- *
- * ## Where it is legal
- *
- * Exactly one payout: the gym's guaranteed move. Everything else that teaches a
- * move — a reward card, a shop TM, an event's grant — was chosen by the player
- * over alternatives, and `chooseMoveToReplace`'s own rule applies: "the place to
- * skip a move reward is the reward screen, where it was already chosen over two
- * alternatives; a second escape hatch here would make that pick meaningless."
- * The gym's move is the one that was never picked over anything, so it is the
- * one that can be handed back. `askMoveQuestions` refuses the sentinel anywhere
- * else rather than trusting its callers.
- */
-export const DECLINED_MOVE = -1;
-
-/**
- * Whether this card needs the player to pick who gets it.
- *
- * Currency and heals are party-wide. A species offer is not targeted either —
- * it is a different question entirely (`chooseAcquisition`), because the member
- * it affects is one that does not exist yet.
- *
- * **`item` left this set in Stage 4.5.1, and the removal is the backpack.** An
- * item reward no longer lands on a Pokemon at all; it lands in the backpack,
- * and who holds it is a separate, reversible, free decision made on the party
- * screen (see `core/items.ts`). Asking "who gets this Leftovers" at the reward
- * screen would be asking a question whose answer the player can change for free
- * ten seconds later — which is not a decision, it is a prompt.
- *
- * What is left is the three cards that teach a move, and those are targeted in
- * the strong sense: the choice is irreversible and it costs a move slot.
- *
- * **Written as an exhaustive switch rather than a chain of `||`, and that is a
- * correctness change rather than a style one.** `docs/README.md` open item 15
- * is the standing risk that a widened union is not walked through its readers,
- * and this function is exactly such a reader: it shipped as
- * `kind === 'tm' || kind === 'tutor'`, which stays perfectly valid TypeScript
- * the day a third move kind arrives and quietly answers `false` for it. It did:
- * the `technique` card reached `teachMove` with no slot and threw at the first
- * party member holding four moves, because `playRun` never asked the question.
- * A switch with no `default` makes the next one a compile error here.
- */
-export function isTargeted(reward: Reward): reward is TargetedReward {
-  switch (reward.kind) {
-    case 'tm':
-    case 'tutor':
-    case 'technique':
-      return true;
-    case 'item':
-    case 'currency':
-    case 'heal':
-    case 'relic':
-      return false;
-  }
-}
-
-/**
  * Fold a chosen reward into the run. **The only path by which a reward changes
  * anything.**
  *
@@ -613,12 +540,7 @@ export function isTargeted(reward: Reward): reward is TargetedReward {
  *
  * Returns new state, like every other transition.
  */
-export function applyReward(
-  state: RunState,
-  choice: Reward,
-  target = 0,
-  replaceSlot: number | null = null,
-): RunState {
+export function applyReward(state: RunState, choice: Reward): RunState {
   switch (choice.kind) {
     case 'currency':
       return { ...state, currency: state.currency + Math.max(0, choice.amount) };
@@ -627,14 +549,28 @@ export function applyReward(
       return { ...state, party: recoverParty(state.party, choice.fraction) };
 
     case 'item':
-      // Into the backpack, never onto a Pokemon. See `isTargeted` above for why
-      // the target question moved off this card entirely.
+      // Into the backpack, never onto a Pokemon. An item card has asked no
+      // question since Stage 4.5.1, and from this stage a move card asks none
+      // either — both pay an object into a bag with a finite number of slots.
       return { ...state, backpack: stow(state.backpack, choice.item) };
 
     case 'tm':
     case 'tutor':
     case 'technique':
-      return withTarget(state, target, (member) => teachMove(member, choice.move, replaceSlot));
+      /*
+       * Into the bag as a TM, never onto a Pokemon here.
+       *
+       * **This is the whole of the moves-as-inventory stage at this seam.** The
+       * three move kinds used to teach on arrival, which made "who learns it"
+       * a question asked at the node that paid the card and answered before the
+       * player knew what the rest of the segment held. A TM defers that: it
+       * costs a bag slot from the moment it arrives, competes with every held
+       * item for it, and is spent at a rest or a shop or never.
+       *
+       * `target` and `replaceSlot` are no longer read by these three kinds and
+       * the parameters are gone with them — the teach lives in `ItemPlan`.
+       */
+      return { ...state, tms: [...state.tms, choice.move] };
 
     case 'relic':
       return grantRelic(state, choice.relic);
@@ -680,38 +616,21 @@ export function grantRelic(state: RunState, relic: RelicId): RunState {
  * reward silently resurrecting a finished run is the failure worth being
  * unreachable twice over.
  */
-/**
- * The member a targeted card actually lands on. **The single definition.**
+/*
+ * `recipientFor` was here and is retired.
  *
- * An out-of-range or fainted slot falls back to the lead rather than throwing.
- * That is not leniency about bad input — `playRun` validates the index when it
- * records the decision — it is about a member that *fainted in the fight that
- * paid the card*: a run that crashed rather than handing the TM elsewhere would
- * be a worse failure than the move moving.
+ * It redirected a move aimed at a fainted or out-of-range party slot to the
+ * lead, and it existed because the recipient was named at the node that paid
+ * the card — where the member the player wanted could have died in the fight
+ * that paid for it, and where a `RangeError` would have ended the run on its
+ * own reward screen.
  *
- * **Exported in Stage 4.5.1, and the export is the fix for a bug the fallback
- * would otherwise have caused.** The replacement slot is chosen for a
- * particular Pokemon's four moves. If `playRun` asked "which of *this* member's
- * moves goes" and then `applyReward` quietly redirected the card to the lead,
- * the answer would be applied to a different Pokemon's move list — displacing
- * whatever happened to sit at that index. So both sides resolve the recipient
- * through this function, once, and the question is asked about the member that
- * will actually receive it.
+ * A teach is composed at a rest or a shop now, against the party as it stands,
+ * and a fainted member is a legitimate recipient there rather than an accident:
+ * it revives between nodes and the move is still on it when it does. So the
+ * slot a plan names is the slot that learns, with no redirection, and an
+ * out-of-range one is the loud `RangeError` `applyItemPlan` raises.
  */
-export function recipientFor(party: readonly PokemonState[], slot: number): PokemonState | null {
-  const chosen = party[slot];
-  return chosen && !chosen.fainted ? chosen : leadOf(party);
-}
-
-function withTarget(
-  state: RunState,
-  slot: number,
-  change: (member: PokemonState) => PokemonState,
-): RunState {
-  const target = recipientFor(state.party, slot);
-  if (!target) return state;
-  return { ...state, party: state.party.map((member) => (member === target ? change(member) : member)) };
-}
 
 // ---------------------------------------------------------------------------
 // Reading one

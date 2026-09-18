@@ -299,13 +299,18 @@ async function main(): Promise<void> {
         {
           party: state.party,
           backpack: state.backpack,
+          tms: state.tms,
+          // The gallery draws a screen, not a boundary, so the Teach control is
+          // shown: a contact sheet with the row's primary act missing would be
+          // a picture of a state the game only reaches away from a rest.
+          canTeach: true,
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
           backTo: 'Back to the map',
           plan: null,
         },
-        { onReorder: noop, onRelease: noop, onPlan: noop, onDone: noop },
+        { onReorder: noop, onRelease: noop, onPlan: noop, onTeach: noop, onDone: noop },
       );
       applyLocale(localeOf(state));
       stamp(state);

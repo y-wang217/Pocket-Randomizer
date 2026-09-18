@@ -186,6 +186,17 @@ exactly the argument `chooseMoveToReplace` already makes from the other side for
 why every *other* move has no decline. `DECLINED_MOVE` is refused where it was
 not offered rather than trusted.
 
+> **Superseded, 2026-09-17, by the moves-as-inventory-TMs stage.** No move is
+> taught at the node that pays it any more — every one of the four routes stows
+> a TM into the bag, and a TM is spent at a rest or a shop out of an `ItemPlan`
+> or thrown away. So there is no moment at any node to decline, `DECLINED_MOVE`
+> and the `allowSkip` overloads are retired rather than extended to the other
+> three routes, and `chooseMoveRecipient` and `chooseMoveToReplace` have left
+> `RunPolicy` with the `target` and `replace` log entries. The decision the
+> decline stood in for is now asked by the capacity rule, of every move, for as
+> long as the player carries it.
+> [`spec/gymrun-stage-moves-as-inventory-tms.md`](spec/gymrun-stage-moves-as-inventory-tms.md).
+
 **The animation report was right about the symptom and wrong about the cause,
 and that is the most useful thing in the patch.** "A Snubbull went before my
 Sizzlipede and the animation for my attack went first" is not the lunges — those

@@ -1,7 +1,7 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-18/gymrun-0.3.0",
+    "runLog": "gymrun-run-19/gymrun-0.3.0",
     "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
     "randomizer": "gymrun-randomizer-19",
     "ai": "gymrun-ai-6-spent-item",
@@ -28,8 +28,8 @@
       "ability": "Shed Skin",
       "moves": [
         "Bug Bite 32/32",
-        "Snarl 21/24",
-        "Incinerate 22/24",
+        "Snarl 19/24",
+        "Clear Smog 24/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -140,7 +140,7 @@
   "log": {
     "seed": "SEED-B",
     "versions": {
-      "runLog": "gymrun-run-18/gymrun-0.3.0",
+      "runLog": "gymrun-run-19/gymrun-0.3.0",
       "contentHash": "a036d6652c214aa9f7444295d35fc4fafcec5b6e3422e1f729dee746eb832f69",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-19"
@@ -195,7 +195,9 @@
               "item": "silkscarf"
             }
           ],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -210,7 +212,9 @@
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -249,18 +253,12 @@
         "index": 0
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 2
-      },
-      {
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -306,18 +304,12 @@
         "index": 0
       },
       {
-        "kind": "target",
-        "index": 0
-      },
-      {
-        "kind": "replace",
-        "slot": 2
-      },
-      {
         "kind": "items",
         "plan": {
           "assignments": [],
-          "discards": []
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
         }
       },
       {
@@ -328,14 +320,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 2
         }
       },
       {

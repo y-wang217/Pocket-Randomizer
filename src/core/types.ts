@@ -657,6 +657,47 @@ export interface ItemAssignment {
 export interface ItemPlan {
   assignments: ItemAssignment[];
   discards: ItemId[];
+  /**
+   * The TMs spent at this boundary, in the order they are spent.
+   *
+   * **Legal only where `run.canTeachAt` says so — rest and shop nodes — and
+   * `items.applyItemPlan` throws on a teach anywhere else.** The gate is a rule
+   * about the node rather than about the plan, so it is passed in for the same
+   * reason `capacity` is: the node kind lives a layer up from this file.
+   *
+   * Ordered, unlike `assignments`, because two teaches can name the same slot
+   * and the second reads the moveset the first left behind. That is the one
+   * place in an item plan where "what happened before this" matters, and it is
+   * why this is a list of acts where the rest of the plan is a destination.
+   */
+  teaches: TmTeach[];
+  /**
+   * TMs thrown away rather than taught, by move name.
+   *
+   * Separate from `discards` because the two draw from different pools and a
+   * single list would make "discard a Water Gun" ambiguous the day an item is
+   * named after a move. Same irreversibility, same reason it is a field of its
+   * own rather than an absence: a TM left out of a plan is still carried.
+   */
+  discardTms: string[];
+}
+
+/**
+ * One TM spent: which move, who learns it, and what it costs them.
+ *
+ * `replaceSlot` is null when the recipient has a free move slot, and a slot
+ * index when it does not. **The replaced move is destroyed, never banked** —
+ * see `docs/spec/gymrun-stage-moves-as-inventory-tms.md` section 5. Handing it
+ * back as a TM would turn the backpack into a free move buffer and the capacity
+ * rule this whole system rests on would buy nothing.
+ */
+export interface TmTeach {
+  /** The move name, as it sits in `RunState.tms`. */
+  move: string;
+  /** The party slot that learns it. */
+  slot: number;
+  /** The move slot it replaces, or null for a free one. */
+  replaceSlot: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -674,6 +715,14 @@ export interface ItemPlan {
  * the engine's output rather than the player's input.
  */
 export type RunDecision =
+  /*
+   * **`target` and `replace` were here and are gone.** They were the recipient
+   * and the displaced slot for a taught move, written at four different places
+   * in a node — a reward card, a shop TM, an event grant and a gym clear. A
+   * move goes into the bag now and is taught out of an `ItemPlan`, so both
+   * answers ride inside the single `items` entry instead of being four pairs of
+   * entries whose positions a replay had to keep in step.
+   */
   | { kind: 'starter'; index: number }
   /**
    * Which locale the segment is walked through, as an index into its offer.
@@ -742,24 +791,6 @@ export type RunDecision =
    */
   | { kind: 'event'; archetype: 'safe' | 'gamble' | 'toll' | 'attune' }
   /**
-   * Which party member a targeted reward landed on, as a party slot.
-   *
-   * Recorded only when the card was actually targeted — an item, a TM or a
-   * tutor. A heal is party-wide and a currency card lands nowhere, so asking
-   * about those would put an entry in the log for a question nobody was asked,
-   * and replay would run out of step at the first one.
-   *
-   * **`DECLINED_MOVE` is a legal index, and only for a move nobody chose.**
-   * The gym's guaranteed move is the one payout in the game the player never
-   * picked over alternatives, so it is the one they may hand back; every other
-   * taught move reaches this question because it was already chosen, and
-   * `askMoveQuestions` refuses to offer a decline for those. A declined move
-   * records this index and asks no `replace` after it, exactly as a member with
-   * a free slot does — the entry is present either way, which is what keeps the
-   * cursor in step.
-   */
-  | { kind: 'target'; index: number }
-  /**
    * What the player did with a Pokemon on offer.
    *
    * **The one decision stored as a value rather than an index, and the
@@ -792,23 +823,6 @@ export type RunDecision =
    * question and the replay, for the same reason `rewards.isTargeted` is.
    */
   | { kind: 'items'; plan: ItemPlan }
-  /**
-   * Which move slot a taught move displaced, 0-based.
-   *
-   * **Stage 4.5.1's logic change, and the reason it is a separate entry from
-   * `target`.** The two questions are asked in sequence — who learns it, then
-   * what it costs them — and they are different questions with different
-   * answers, so folding them into one entry would mean a log that could not
-   * express "the player picked slot 2, then changed their mind about which move
-   * to drop".
-   *
-   * Recorded only when a replacement was actually chosen. A member with a free
-   * move slot is never asked, and neither is one that already knows the move —
-   * both conditions are derived from the member and the move, which a replay
-   * reconstructs exactly. See `party.replacementNeeded`, which is the single
-   * definition shared by the question and the replay.
-   */
-  | { kind: 'replace'; slot: number }
   /**
    * Who leads the gym battle, as a party slot. **Stage 4.7, Part 2.**
    *

@@ -452,11 +452,14 @@ describe('a node offers its Pokemon before it asks who learns its move', () => {
        * Walked as a sequence rather than by node, because the log has no node
        * markers in it — which is the whole reason order is the contract. A
        * `target` that follows an `acquisition` with no `node` between them is
-       * the pair this patch created; the assertion is that the reverse pair,
-       * a `target` then an `acquisition` inside one node, never occurs.
+       * the pair this patch created. **The pair is `acquisition` then `items`
+       * now**, not `acquisition` then `target`: no move question is asked at a
+       * node any more, and the entry that has to come after a capture is the
+       * item plan, which is composed against the party the capture produced.
+       * The assertion is that the reverse pair never occurs.
        */
       for (let i = 0; i < decisions.length; i++) {
-        if (decisions[i]?.kind !== 'target') continue;
+        if (decisions[i]?.kind !== 'items') continue;
         for (let j = i + 1; j < decisions.length; j++) {
           const kind = decisions[j]?.kind;
           // A `node`, `locale` or `lead` closes the node this target belongs to.
@@ -471,7 +474,7 @@ describe('a node offers its Pokemon before it asks who learns its move', () => {
         for (let j = i + 1; j < decisions.length; j++) {
           const kind = decisions[j]?.kind;
           if (kind === 'node' || kind === 'locale' || kind === 'lead') break;
-          if (kind === 'target') {
+          if (kind === 'items') {
             nodesWithBoth++;
             break;
           }
@@ -499,7 +502,6 @@ describe('a node offers its Pokemon before it asks who learns its move', () => {
     const base = scriptedRunPolicy(greedyAiPolicy);
     const lastSlot: RunPolicy = {
       ...base,
-      chooseMoveRecipient: async (_offer, party) => party.length - 1,
       chooseAcquisition: async (_offer, party, capacity) =>
         hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
     };
