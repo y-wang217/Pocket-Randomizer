@@ -373,12 +373,20 @@ describe('the version axes', () => {
      * `contentHash` field and in no other field of any of the six records.
      * `docs/generation.md` section 41 is the account.
      *
-     * The literal below is all six together. The display split remains the
+     * The same patch moved it a seventh time, from `eba446`, for one line of
+     * `data/shop.ts`: the `technique` shelf price, 60 to 150 in band 1 and 95
+     * to 190 in band 2. **Two bumps rather than one for a patch that expected
+     * one**, because the gym ladder landed first and this is a separate
+     * decision that happens to ride the same branch — folding them would have
+     * made one hash stand for two rulings and neither attributable. No axis
+     * beside it: a price is read at resolution and draws nothing.
+     *
+     * The literal below is all seven together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('eba446d43290e86084bf7fa1ea7163d10ac77ec9858d2f9ccf074d3a766b8aed');
+    expect(CONTENT_HASH).toBe('a7b5f07b38581b67b9145948da1552597b9af3892985b175ae45ecdf064b154e');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

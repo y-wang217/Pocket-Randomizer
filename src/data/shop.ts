@@ -148,15 +148,48 @@ const SHOP_STOCK: readonly ShopBand[] = [
     slots: [
       { category: 'move', entries: [{ kind: 'tm', weight: 1, price: 70, bandOffset: 0 }] },
       /*
-       * Priced just under the battle move beside it, and the argument is that
-       * a technique changes a kit permanently without raising its ceiling.
+       * **Priced at two band steps above the battle move beside it. The R19
+       * rulings; it was 60, just under the TM.**
        *
-       * A TM moves the number the player hits with. A Swords Dance moves how
+       * The superseded argument, because it was wrong in a way worth keeping:
+       * *"A TM moves the number the player hits with. A Swords Dance moves how
        * they get to use it, and costs a turn to do it. Cheaper, therefore, but
-       * not much cheaper: both are permanent and both displace a move slot,
-       * which is the cost neither price says out loud.
+       * not much cheaper."* That reasoning was sound and untested — status
+       * moves were **structurally unreachable** until `generation.md` section
+       * 31, because all four routes that hand a player a move called
+       * `damagingInBands`, so this shelf row is the first place their price has
+       * ever been visible. The first playtest to see one said it was wrong.
+       *
+       * ## Where 150 comes from
+       *
+       * The ask was a range rather than a number — *"around the same value as a
+       * +2 band move or a relic, maybe less than a relic"* — and **the shop
+       * sells no +2 band move at any price**, so there is no row to copy. The
+       * only move-against-move comparison this table contains is its own two
+       * TMs: `bandOffset: 0` at 70 here, `bandOffset: 1` at 110 in the band
+       * below. That is the shop's own price for one band, **+40**, and two of
+       * them is 150.
+       *
+       * So the number is read off the table rather than invented, it is
+       * "around a +2 band move" by the table's own arithmetic, and it is under
+       * the relic's 260, which is the range as stated.
+       *
+       * ## Two things this costs, named rather than buried
+       *
+       * At segment 0 this is 150 flat against a `NODE_PAYOUT` of 8 for a wild
+       * fight and 40 for a gym, and at segment 2 it is 203 against the 190 the
+       * reporting playtester was carrying — just out of reach. And the
+       * technique slot is **guaranteed**, not drawn: `shopSlotsFor` returns
+       * every slot in the band, so an unaffordable row is a permanently dead
+       * row rather than an occasionally expensive one.
+       *
+       * Both are accepted deliberately. The ruling holds the number loose —
+       * *"We can tune this number later"* — and by `CLAUDE.md` balance is not a
+       * gate: the number is recorded and the pass keeps going. The cheaper
+       * answers, if a later report wants one, are a one-band step (110 here,
+       * 150 below) or moving the technique behind a weight rather than a slot.
        */
-      { category: 'technique', entries: [{ kind: 'technique', weight: 1, price: 60 }] },
+      { category: 'technique', entries: [{ kind: 'technique', weight: 1, price: 150 }] },
       /*
        * Berries, at the bottom of the price list, which is where 4.6b put them
        * in the reward pools and where they have never been purchasable.
@@ -188,7 +221,12 @@ const SHOP_STOCK: readonly ShopBand[] = [
     throughSegment: 7,
     slots: [
       { category: 'move', entries: [{ kind: 'tm', weight: 1, price: 110, bandOffset: 1 }] },
-      { category: 'technique', entries: [{ kind: 'technique', weight: 1, price: 95 }] },
+      /*
+       * The same two band steps above this band's own TM: 110 + 80. Under the
+       * relic on the shelf beside it (260), which is the half of the ask that
+       * only this band can satisfy — band 1 stocks no relic to be under.
+       */
+      { category: 'technique', entries: [{ kind: 'technique', weight: 1, price: 190 }] },
       { category: 'berry', entries: [{ kind: 'item', weight: 1, price: 35, items: ids(BERRIES) }] },
       {
         category: 'heal',

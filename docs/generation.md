@@ -6851,7 +6851,7 @@ Two proofs, because the claim is the whole justification for the axis:
   team by one field fails it and owes `RANDOMIZER_VERSION` a bump.
 - `docs/visual/baseline/runs/` was re-recorded and moved in the `contentHash`
   field and **in no other field of any of the six records**. Decision logs,
-  outcomes, visits, casualties and `battles/GYMRUN01.json` are byte identical.
+  outcomes, visits, casualties and `docs/visual/baseline/battles/GYMRUN01.json` are byte identical.
   `test/fixtures/sim-report.json` likewise, and one of its three runs clears a
   gym — which is a weak witness rather than a strong one, because gym 1 draws
   from the weakest band at the lowest rate, and it is reported as weak here
@@ -6903,3 +6903,73 @@ rather than a branch in a function.
   question and is not answered here.
 - **No benchmark row.** `CLAUDE.md`: balance is not a gate. The rates are a
   first cut, recorded, and the pass keeps going.
+
+## 42. The first price a status move has ever had to justify
+
+**The R19 rulings, item 3**, same branch and same patch as section 41. Moves
+`contentHash` from `eba446` to `a7b5f0` and no other axis. One line of
+`data/shop.ts` in each of two bands.
+
+`technique` goes 60 -> 150 in shop band 1 and 95 -> 190 in band 2.
+
+### Why the old number was not a mistake
+
+The superseded argument is kept in place at the band-1 entry, because it was
+sound and simply never tested: *"A TM moves the number the player hits with. A
+Swords Dance moves how they get to use it, and costs a turn to do it. Cheaper,
+therefore, but not much cheaper."*
+
+Status moves were **structurally unreachable** until section 31 — all four
+routes that hand a player a move called `damagingInBands` — so the shop shelf is
+the first surface in the game's history on which a technique's price has been
+visible to anyone. The first playtest that saw one said it was underpriced. That
+is the system working, not a regression.
+
+### Where the number comes from
+
+The ask is a range: *"around the same value as a +2 band move or a relic, maybe
+less than a relic"*. **The shop sells no +2 band move at any price**, so there is
+no row to copy and the number has to be derived or invented.
+
+Derived. The only move-against-move comparison the price table contains is its
+own two TMs — `bandOffset: 0` at 70 in band 1, `bandOffset: 1` at 110 in band 2.
+That is this table's own price for one band step, **+40**. Two steps:
+
+| | band 1 | band 2 |
+|---|---|---|
+| TM, at its shelf's own offset | 70 | 110 |
+| **technique (+2 band steps)** | **150** | **190** |
+| relic | not stocked | 260 |
+
+"Around a +2 band move" by the table's own arithmetic, and under the relic,
+which is the range as stated. Band 1 stocks no relic, so only band 2 can satisfy
+the second half of the ask at all.
+
+### The two costs, named rather than buried
+
+1. **It is out of reach early.** 150 flat at segment 0, against a `NODE_PAYOUT`
+   of 8 for a wild fight, 14 for a trainer and 40 for a gym. At segment 2 it is
+   `priceAt(150, 2) = 203`, against the 190 the reporting playtester was
+   carrying in the screenshot — just short.
+2. **The technique slot is guaranteed, not drawn.** `shopSlotsFor` returns every
+   slot in the band, so `TECHNIQUE` is on every shelf. An unaffordable
+   guaranteed row is a permanently dead row rather than an occasionally
+   expensive one.
+
+Both accepted. The ruling holds the number loose — *"We can tune this number
+later. Currently ok w your plan"* — and `CLAUDE.md` says balance is not a gate:
+record the number and keep going. The cheaper answers a later report might want
+are a one-band step (110 / 150) or moving the technique behind a weight instead
+of a slot; both are edits to the same two lines.
+
+### Two bumps, not one
+
+The patch plan expected steps 2 and 3 to share a `contentHash` bump. They did
+not, because the gym ladder landed first and this is a separate decision that
+happens to ride the same branch. Folding them would have made one hash stand for
+two rulings and left neither attributable — which is the thing the axis exists
+to prevent. `a036d6` -> `eba446` is the gym ladder; `eba446` -> `a7b5f0` is this.
+
+The six visual baseline records and `test/fixtures/sim-report.json` moved in the
+`contentHash` field and in no other field, as expected: a price is read at
+resolution and draws nothing, so no seed's composition can move with it.
