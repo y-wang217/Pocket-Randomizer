@@ -6848,8 +6848,8 @@ One rule, one copy, and the preview reads it:
 - `party.partyAfterTeaches` folds a plan's teaches in plan order against a
   running party, skipping the ones `teachApplies` refuses. Pure, no TM spent, no
   run state touched — a projection, in section 39's sense, not a transition.
-- `ui/party-layout.partyWithPlan` is the plan-shaped wrapper, beside
-  `itemLayoutOf` and for the same reason.
+- `partyWithPlan`, in [`../src/ui/party-layout.ts`](../src/ui/party-layout.ts),
+  is the plan-shaped wrapper, beside `itemLayoutOf` and for the same reason.
 
 Four call sites, which is every surface between the click and the boundary: the
 party screen's own cards (from its working copy, so they redraw on the commit
