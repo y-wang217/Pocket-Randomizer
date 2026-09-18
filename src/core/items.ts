@@ -40,8 +40,8 @@
  * run state held a copy of `data/items.ts` that a pool edit could not reach.
  */
 /*
- * `./party` is imported for `teachMove` and `replacementNeeded`, and that makes
- * this file and `party.ts` mutually importing — `party.ts` takes
+ * `./party` is imported for `teachMove`, `replacementNeeded` and `teachApplies`,
+ * and that makes this file and `party.ts` mutually importing — `party.ts` takes
  * `battleSpecFor` from here.
  *
  * Taken deliberately rather than worked around. The alternative was to apply a
@@ -51,7 +51,7 @@
  * in this project has had. Neither module calls the other at module-init time,
  * so the cycle is a call graph rather than an evaluation order.
  */
-import { replacementNeeded, teachMove } from './party';
+import { replacementNeeded, teachApplies, teachMove } from './party';
 import type { ItemId, ItemPlan, PokemonSpec, PokemonState, TmTeach } from './types';
 import { itemById, type ItemEntry } from '../data/items';
 import type { Tuning } from '../data/tuning';
@@ -500,18 +500,19 @@ export function reconcileItemPlan(
       if (held === -1) continue;
       const learner = taught[teach.slot];
       if (!learner) continue;
-      // Re-read against the moveset this plan's earlier teaches produced, not
-      // the one the player composed against: a first teach can turn a free slot
-      // into a full one, and `applyItemPlan` would then refuse the second.
-      const need = replacementNeeded(learner, teach.move);
-      if (need === 'choose' && teach.replaceSlot === null) continue;
-      if (need !== 'choose' && teach.replaceSlot !== null) continue;
-      if (
-        need === 'choose' &&
-        (teach.replaceSlot === null || !learner.spec.moves[teach.replaceSlot])
-      ) {
-        continue;
-      }
+      /*
+       * Re-read against the moveset this plan's earlier teaches produced, not
+       * the one the player composed against: a first teach can turn a free slot
+       * into a full one, and `applyItemPlan` would then refuse the second.
+       *
+       * **The three conditions moved to `party.teachApplies` and did not
+       * change.** They are read here and by `party.partyAfterTeaches`, which is
+       * what the teach screens preview from — and a preview that disagreed with
+       * this loop about which teaches survive would show the player a moveset
+       * the boundary then refuses to produce. The learn-move refresh patch;
+       * see `docs/generation.md` section 41.
+       */
+      if (!teachApplies(learner, teach)) continue;
       taught[teach.slot] = teachMove(learner, teach.move, teach.replaceSlot);
       tms.splice(held, 1);
       teaches.push(teach);

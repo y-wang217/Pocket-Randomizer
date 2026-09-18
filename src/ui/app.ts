@@ -74,7 +74,7 @@ import type { RelicId } from '../data/relics';
 import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { gymForSegment } from '../data/gyms';
-import { itemLayoutOf } from './party-layout';
+import { itemLayoutOf, partyWithPlan } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
 import { applyDensity } from './theme/density';
@@ -842,6 +842,12 @@ export function mountApp(root: HTMLElement): void {
      * sees where the item is *going*, not where the run still records it. A
      * readout that contradicted a decision the player already made is the exact
      * failure the drawer exists to remove.
+     *
+     * **`partyWithPlan` folds the other half of the same plan**, added by the
+     * learn-move refresh patch: a teach composed on the party screen is spent
+     * at the same boundary the item half is, and until it was folded here the
+     * drawer went on listing the move the player had just replaced. Same
+     * argument, same plan, one field further down it.
      */
     readDrawer = () => {
       const state = live;
@@ -882,9 +888,16 @@ export function mountApp(root: HTMLElement): void {
        * which is the reported defect wearing this patch's clothes.
        */
       const fight = router.current() === 'battle' ? liveBattle : null;
+      /*
+       * The plan is folded onto the between-nodes reading only, and that is
+       * not an omission: `run.canTeachAt` allows a teach at a rest or a shop
+       * and nowhere else, so a plan holding one cannot coexist with a fight on
+       * screen. Folding it into the battle reading would be previewing a teach
+       * that could not have been composed.
+       */
       const party = fight
         ? applyBattleState(fight.sent, fight.session.partyState('p1'), [])
-        : (decidedParty ?? state.party);
+        : partyWithPlan(decidedParty ?? state.party, pendingPlan);
       return {
         party,
         holding: itemLayoutOf(party, pendingPlan),
@@ -988,7 +1001,14 @@ export function mountApp(root: HTMLElement): void {
         {
           gym: pendingGym,
           segment: state.currentSegment,
-          party: state.party,
+          /*
+           * Both halves of the plan, for the reason `readDrawer` gives: the
+           * player walked here from the party screen and the cards must show
+           * what they arranged there. Slot order is untouched by either fold,
+           * so `defaultLeadSlot` and the slot `onLead` submits still name the
+           * same member in run state.
+           */
+          party: partyWithPlan(state.party, pendingPlan),
           holding: itemLayoutOf(state.party, pendingPlan),
           tuning: state.tuning,
         },
@@ -1134,16 +1154,36 @@ export function mountApp(root: HTMLElement): void {
             const back = (): void => {
               showParty(partyReturn);
             };
+            /*
+             * **Asked against the party this plan has already taught, not the
+             * one the run still holds.** The learn-move refresh patch, and the
+             * half of it that is not cosmetic.
+             *
+             * `pendingPlan` is current here: the party screen commits on every
+             * change, so a teach arranged a moment ago is already in it. Both
+             * questions below read `replacementNeeded`, and reading it against
+             * run state answers for a member that has not learned the earlier
+             * teach — which is the same divergence `reconcileItemPlan`'s own
+             * comment warns about, arriving one screen earlier. A member with
+             * three moves and two TMs pointed at it was asked "free slot?"
+             * twice, said yes twice, and the boundary then dropped the second
+             * teach with the TM silently back in the bag.
+             *
+             * The recipient list is drawn from the same reading, so the four
+             * moves the replace screen offers are the four the member will
+             * actually have when this teach lands.
+             */
+            const shown = partyWithPlan(state.party, pendingPlan);
             targetScreen.render(
               reward,
-              state.party,
+              shown,
               (slot) => {
                 if (slot === TEACH_CANCELLED) {
                   done(null);
                   back();
                   return;
                 }
-                const learner = state.party[slot];
+                const learner = shown[slot];
                 if (!learner) {
                   done(null);
                   back();
