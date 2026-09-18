@@ -66,6 +66,70 @@ function policyEntry(key: string): string {
 }
 
 describe('the drawer reads the party the run has been told about', () => {
+  it('prefers the fight in progress over any fold of run state', () => {
+    /*
+     * Mid-fight there is no run state to fold — the damage is in the sim — so
+     * the drawer reads the session `onBattle` handed over, folded onto the
+     * party that fight was *sent* with. Anything else on that screen is the
+     * party as the node was entered with, which is what the drawer's own
+     * "as the fight has left it" was contradicting on 137 of 217 turns.
+     */
+    const getter = /readDrawer = \(\) => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
+    expect(getter, 'could not find readDrawer in app.ts').not.toEqual('');
+    expect(getter, 'the in-battle drawer is not reading the live fight').toContain('liveBattle');
+    expect(getter, 'the live fight is not folded onto the party it was sent with').toMatch(
+      /liveBattle[\s\S]*applyBattleState\(fight\.sent/,
+    );
+  });
+
+  it('stops reading the fight once its screen is gone', () => {
+    /*
+     * The session outlives its screen — `releaseBattle` runs when the *next*
+     * fight starts — so between the outro and the end of the node the ended
+     * session is still in hand. Reading it on the result or capture screen
+     * would answer with the battle's members while the projection had already
+     * folded in the Pokemon the player caught: the reported defect, reintroduced
+     * by the fix for it. The gate is the screen, not whether a session exists.
+     */
+    const getter = /readDrawer = \(\) => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
+    expect(getter, 'could not find readDrawer in app.ts').not.toEqual('');
+    expect(getter, 'the ended fight is still a drawer source off the battle screen').toMatch(
+      /router\.current\(\) === 'battle' \? liveBattle : null/,
+    );
+  });
+
+  it('hands the session back when the fight is released', () => {
+    /*
+     * Or the next screen would draw the previous fight. `releaseBattle` already
+     * detaches the screen and cancels the outro for the same reason.
+     */
+    const release = /const releaseBattle = \(\): void => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
+    expect(release, 'could not find releaseBattle in app.ts').not.toEqual('');
+    expect(release, 'a released fight stays readable by the drawer').toContain('liveBattle = null');
+  });
+
+  it('takes the mid-node truth from the projection hook, not from its own fold', () => {
+    /*
+     * `core/run.ts` computes it. Folding battle state in `ui/` would be a
+     * second reading of what a node did, and the first divergence between the
+     * two would be invisible — the same argument `partyAfterAcquisition` makes
+     * about a capture.
+     */
+    const handler = /const onProjection = \(projection: RunProjection\): void => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
+    expect(handler, 'app.ts no longer listens for the projection').not.toEqual('');
+    expect(handler).toContain('decidedParty = projection.party');
+    expect(handler).toContain('decidedRelics = projection.relics');
+    // And it must be handed to playRun, or the handler is decoration.
+    expect(APP, 'the projection handler is never registered').toMatch(/onState,\s*onBattle,\s*onProjection/);
+  });
+
+  it('shows the relics the player has taken, not the ones the run has folded', () => {
+    const getter = /readDrawer = \(\) => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
+    expect(getter, 'a relic taken this node is still missing from the drawer').toContain(
+      'decidedRelics ?? state.relics',
+    );
+  });
+
   it('does not draw its party straight off the lagging run state', () => {
     /*
      * The defect in one line. `readDrawer` used to be `party: state.party`,
@@ -114,6 +178,7 @@ describe('the drawer reads the party the run has been told about', () => {
     expect(onState, 'the override is never cleared, so it can outlive its node').toContain(
       'decidedParty = null',
     );
+    expect(onState, 'the relic override outlives its node').toContain('decidedRelics = null');
   });
 
   it('drops a pending item plan when a capture releases a member', () => {

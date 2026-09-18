@@ -15,7 +15,7 @@ import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
-import { releaseMember, reorderParty } from '../core/party';
+import { applyBattleState, releaseMember, reorderParty } from '../core/party';
 import {
   defaultItemPlan,
   gymClearLevel,
@@ -26,6 +26,7 @@ import {
   resumeRun,
   type BattleReview,
   type RunPolicy,
+  type RunProjection,
   type RunResult,
   type RunState,
 } from '../core/run';
@@ -66,6 +67,7 @@ import { createSummary } from './screens/summary';
 import { createStamps } from './stamps';
 import { createPreGymScreen } from './screens/pre-gym';
 import type { GymDefinition } from '../data/gyms';
+import type { RelicId } from '../data/relics';
 import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { gymForSegment } from '../data/gyms';
@@ -454,9 +456,27 @@ export function mountApp(root: HTMLElement): void {
     const leadPick = createPending<number>();
     const evolvePick = createPending<number>();
     let detachBattle: (() => void) | null = null;
+    /*
+     * The fight in progress, and the party it was sent with.
+     *
+     * **This is the only source for what the drawer shows mid-fight**, and the
+     * drawer's own blurb is why it has to exist: it says "Your side, as the
+     * fight has left it", and until this was wired it showed the HP the node
+     * was *entered* with. `applyBattleState` folds the sim's read-back by
+     * `sendOrder` computed from the pre-battle party, so that exact party is
+     * kept here rather than re-read from `live` — a release or reorder cannot
+     * happen mid-fight, but keeping the array the send was computed from is
+     * what makes the mapping correct by construction rather than by luck.
+     *
+     * Measured before the wiring: 137 of 217 turns across twelve seeds
+     * disagreed with the field, the worst of them a Seel the fight had at
+     * 1 HP and the drawer at 25.
+     */
+    let liveBattle: { session: BattleSession; sent: readonly PokemonState[] } | null = null;
     const releaseBattle = (): void => {
       detachBattle?.();
       detachBattle = null;
+      liveBattle = null;
       /*
        * And end any parked outro. A run abandoned while the stage is playing
        * the end of a fight would otherwise leave `reviewBattle` waiting on a
@@ -818,14 +838,51 @@ export function mountApp(root: HTMLElement): void {
     readDrawer = () => {
       const state = live;
       if (!state) return null;
-      // `decidedParty` where the run has been told about a capture it has not
-      // applied yet; `live.party` everywhere else, which is every screen
-      // outside a node's move questions. See the declaration.
-      const party = decidedParty ?? state.party;
+      /*
+       * **The drawer shows what the surface underneath it shows, and that is
+       * the whole rule.**
+       *
+       * Three sources, read in order of how close each is to the moment the
+       * player is standing in:
+       *
+       *   1. `liveBattle` — a fight in progress. The only source that is not a
+       *      fold of run state at all, because mid-fight there is no run state
+       *      to fold: the damage is in the sim. An empty contribution list is
+       *      deliberate — `applyBattleState` keeps the member's own counters
+       *      when a delta is missing, and a fight's contribution is not final
+       *      until it ends.
+       *   2. `decidedParty` — a decision the run has taken and not applied.
+       *      Set by the projection hook, and again by `chooseMoveRecipient`
+       *      from its own argument, which is what pins the drawer to exactly
+       *      the party the target screen is listing. That second assignment is
+       *      load-bearing rather than redundant: the question is asked against
+       *      `partyAfterAcquisition`, which does not fold the battle, so
+       *      without it the drawer would show live HP over a screen showing
+       *      pre-fight HP — a fresh instance of the contradiction this whole
+       *      patch is about. `docs/spec/gymrun-patch-move-recipient-divergence.md`
+       *      is where those two readings converge; until they do, the drawer
+       *      follows the screen rather than getting ahead of it.
+       *   3. `live.party` — between nodes, which is every other screen.
+       */
+      /*
+       * **The fight is only a source while its screen is up**, and the gate is
+       * the same condition the blurb uses rather than `liveBattle` being set.
+       *
+       * The session outlives its screen: `releaseBattle` runs when the *next*
+       * fight starts, so between the outro and the end of the node the ended
+       * session is still in hand. Reading it there is not merely redundant —
+       * `partyState` would keep answering with the battle's three members while
+       * the projection had already folded in the Pokemon the player caught,
+       * which is the reported defect wearing this patch's clothes.
+       */
+      const fight = router.current() === 'battle' ? liveBattle : null;
+      const party = fight
+        ? applyBattleState(fight.sent, fight.session.partyState('p1'), [])
+        : (decidedParty ?? state.party);
       return {
         party,
         holding: itemLayoutOf(party, pendingPlan),
-        relics: state.relics,
+        relics: decidedRelics ?? state.relics,
         tuning: state.tuning,
       };
     };
@@ -886,6 +943,18 @@ export function mountApp(root: HTMLElement): void {
      * Cleared in `onState`, which is exactly the moment `live` catches up.
      */
     let decidedParty: readonly PokemonState[] | null = null;
+
+    /*
+     * The relics held, when a card taken this node has not been folded yet.
+     *
+     * The same lag as `decidedParty` and the same lifetime: the player takes a
+     * relic on the result screen, `resolveNode` grants it at the end of the
+     * node, and the capture screen in between listed the relics they held
+     * before the choice they had just made. `core/run.ts` projects it, because
+     * reading a reward card's kind here would be `ui/` deciding what a card
+     * pays.
+     */
+    let decidedRelics: readonly RelicId[] | null = null;
 
     /**
      * The gym the pre-gym screen is asking about, while it is asking.
@@ -1017,9 +1086,10 @@ export function mountApp(root: HTMLElement): void {
       // what makes a rest node visible: it resolves without a decision, so the
       // only evidence it happened is the party panel refilling.
       live = state;
-      // And the override goes with it: `live` is now the party the run holds,
-      // so a stand-in for it is a second answer to a question with one.
+      // And the overrides go with it: `live` is now what the run holds, so a
+      // stand-in for it is a second answer to a question with one.
       decidedParty = null;
+      decidedRelics = null;
       /*
        * The world's palette, from the same projection the map names the
        * region with. Stage V1. Set here rather than on the locale screen's
@@ -1036,8 +1106,31 @@ export function mountApp(root: HTMLElement): void {
       mapScreen.render(state, (index) => nodePick.submit(index), () => showParty('map'));
     };
 
+    /*
+     * What the run has been told and not yet applied. **Stage: this patch.**
+     *
+     * The one wire for every mid-node readout: a finished fight, a taken relic
+     * and a capture all arrive here the moment they become true, rather than at
+     * the node boundary where `onState` would have reported them. `core/run.ts`
+     * computes it — folding battle state in `ui/` would be a second reading of
+     * what a node did, and the first divergence between the two would be
+     * invisible.
+     *
+     * It does not touch `live`. A projection is not a run state and the app
+     * must not start treating it as one: nothing decides against this, nothing
+     * is saved from it, and the map is not redrawn on it.
+     */
+    const onProjection = (projection: RunProjection): void => {
+      decidedParty = projection.party;
+      decidedRelics = projection.relics;
+    };
+
     const onBattle = (session: BattleSession, node: NodeSpec, state: RunState): void => {
       releaseBattle();
+      // The fight and the party it was sent with, for the drawer. `releaseBattle`
+      // above has just cleared the previous one, so this is never the fight
+      // before's session.
+      liveBattle = { session, sent: state.party };
       /*
        * The reveal policy comes off the run's own tuning, not off the module
        * default, so a run started with a swept tuning shows what that run was
@@ -1075,7 +1168,7 @@ export function mountApp(root: HTMLElement): void {
     };
 
     try {
-      const options = { onState, onBattle, onDecision: saveRunLog, opponent: greedyAiPolicy };
+      const options = { onState, onBattle, onProjection, onDecision: saveRunLog, opponent: greedyAiPolicy };
       const result: RunResult = resume
         ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
         : await playRun(seed, policy, DEFAULT_TUNING, options);

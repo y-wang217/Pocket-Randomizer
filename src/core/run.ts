@@ -1556,6 +1556,24 @@ export interface PlayRunOptions {
    */
   onNodeResolved?: (before: RunState, after: RunState, result: NodeResult) => void;
   /**
+   * Fired mid-node whenever what a read-only surface should show has changed.
+   *
+   * **Observation only, like `onNodeResolved`, and it hands out no `RunState`.**
+   * `onState` is the transition hook and still fires exactly where it did; this
+   * one exists because a node contains three moments at which the run has been
+   * *told* something it has not yet *applied* — the fight ended, a card was
+   * taken, a Pokemon was caught — and between each of them and `resolveNode`
+   * every readout in the app was a node behind. See `RunProjection`.
+   *
+   * It changes nothing about the run. A caller that ignores it, which is every
+   * headless one, produces a byte-identical log.
+   *
+   * Fired after the fight, after the card is picked, and after the capture
+   * decision — three points, all inside one node, each the moment the thing it
+   * reports became true.
+   */
+  onProjection?: (projection: RunProjection) => void;
+  /**
    * One opponent for every fight in the run.
    *
    * **Kept, and no longer the default.** The simulator's controlled
@@ -1671,6 +1689,16 @@ export async function playRun(
     }
 
     const result = await playNode(state, node, policy, record, opponentFor, options);
+
+    /*
+     * **The fight is over, so say so.** First of the three projection points.
+     *
+     * `result.battle` carries the party as the sim left it from this line
+     * onward, and every screen between here and `resolveNode` — the result, the
+     * evolution fork, the capture, both move questions — is shown while
+     * `state.party` still holds the HP the node was entered with.
+     */
+    options.onProjection?.(projectionOf(state, result, null));
 
     /*
      * The reward, asked for after the fight and only on a win.
@@ -1829,6 +1857,20 @@ export async function playRun(
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
       if (offer) reviewedIndex = picked ?? 0;
+
+      /*
+       * **The card is taken, so a relic is the player's.** Second projection
+       * point.
+       *
+       * The index is answered here, on the result screen, but `result.reward`
+       * is not set until the fold block much further down — so the relic is
+       * read off the offer rather than off the result. A drawer opened on the
+       * capture screen that came next listed the relics the player had *before*
+       * the card they had just chosen.
+       */
+      if (offer && reviewedIndex !== null) {
+        options.onProjection?.(projectionOf(state, result, offer.options[reviewedIndex] ?? null));
+      }
     }
 
     /*
@@ -1915,6 +1957,14 @@ export async function playRun(
       const refusal = decisionRefusal(state.party, decision, partyCapacity(state));
       if (refusal) throw new RangeError(`Acquisition decision is not legal: ${refusal}`);
       result.acquisition = { offer: offered, decision };
+
+      /*
+       * **The party is a member longer, or shorter and longer.** Third
+       * projection point, and the one the reported defect was about: the move
+       * questions that follow are asked against the new party, and the drawer
+       * listed the member the player had just released.
+       */
+      options.onProjection?.(projectionOf(state, result, reviewedIndex !== null ? (offer?.options[reviewedIndex] ?? null) : null));
     }
 
     /*
@@ -2288,7 +2338,35 @@ async function playNode(
  *
  * Returns `state.party` untouched when there was no capture, including when the
  * player declined one, which is the common case.
+ *
+ * ## Do not fold the battle into this. **Measured, 2026-09-18.**
+ *
+ * It is the obvious next step and it is a bug. The cards this party draws show
+ * the HP the node was *entered* with, which looks wrong beside the result
+ * screen the player just left — so the tempting fix is to run
+ * `applyBattleState` here too and have the recipient list carry the fight's own
+ * numbers.
+ *
+ * That would change who gets the move. `rewards.recipientFor` returns the
+ * **lead** when the named slot is fainted, and the two readings agree today
+ * only because *neither* has a fainted member in it: this one is pre-battle,
+ * and the apply site in `resolveNode` runs after `betweenNodes`, which revives.
+ * Fold the battle in here and only the first of those stops being true — the
+ * replace question would be posed about the lead's four moves while the move
+ * itself still landed on the slot's member.
+ *
+ * The numbers, on the scripted baseline. Across 300 seeds the move landed on
+ * the Pokemon the question named in **466 of 466** resolved cases and elsewhere
+ * in none. Across 200 seeds and 316 move questions, today's reading agrees with
+ * the apply site **316 out of 316**, and a battle-folded version of this
+ * function would disagree with it **70 times** — 22%.
+ *
+ * `test/move-recipient-fold.test.ts` holds the rule. The cosmetic complaint
+ * that started this is real and unfixed: it is a question about what the
+ * recipient *screen* should draw, not about what this function should return,
+ * and it is filed in `docs/README.md` section 5.
  */
+
 function partyAfterAcquisition(state: RunState, result: NodeResult): readonly PokemonState[] {
   if (!result.acquisition) return state.party;
   const { party } = applyAcquisition(
@@ -2301,6 +2379,93 @@ function partyAfterAcquisition(state: RunState, result: NodeResult): readonly Po
     partyCapacity(state),
   );
   return party;
+}
+
+/**
+ * The run as a **read-only surface** should show it right now, mid-node.
+ *
+ * ## Why this exists at all
+ *
+ * `onState` fires once per node, at the bottom of the loop, because that is
+ * where `resolveNode` produces a state to fire it with. Nothing is wrong with
+ * that — until you notice how much of a node happens *after* the thing a
+ * readout is about. A fight ends and its damage is real, a card is taken and
+ * the relic is the player's, a Pokemon is caught and the party is a member
+ * longer. All three sit in `NodeResult` for the rest of the node, and none of
+ * them is in `RunState` until `resolveNode` folds them.
+ *
+ * So a drawer reading the last `onState` shows the party as the node *started*:
+ * a fight that just took someone to 1 HP reads as full, and a Pokemon released
+ * to make room for the one on screen is still in the list. Measured on this
+ * tree before the fix: the party the result screen drew and the party the
+ * drawer drew disagreed at **165 of 182** battle reviews.
+ *
+ * ## Why it is a projection and not a state
+ *
+ * **It is not a `RunState` and must never become one.** Nothing here is a
+ * transition: `resolveNode` still owns every fold, still runs in the same order,
+ * and is not reached any earlier. This recomputes a *view* of three of its steps
+ * so that a surface can be honest before the boundary, and it is deliberately
+ * shaped so it cannot be mistaken for run state — no `position`, no `outcome`,
+ * no currency, nothing a decision is taken against.
+ *
+ * ## The order is `resolveNode`'s order, and that is the whole correctness claim
+ *
+ * Battle state, then the items the battle ate, then the capture — the same
+ * three steps in the same sequence `resolveNode` applies them in. The battle
+ * fold has to come first: `applyBattleState` maps the sim's read-back by
+ * `sendOrder`, which is computed from the *pre-battle* party, so folding a
+ * capture in ahead of it would shift the order the read-back is matched
+ * against and write damage onto the wrong Pokemon.
+ *
+ * ## What it deliberately does not do
+ *
+ * It does not touch `partyAfterAcquisition`, which is what the move *questions*
+ * are asked against. That party is a decision input — a recorded target index
+ * resolves against it — so changing it changes runs rather than readouts, and
+ * it is left exactly as it was. The two therefore disagree about HP for the
+ * length of a node, on purpose and with a filed defect behind it: see
+ * `docs/spec/gymrun-patch-move-recipient-divergence.md`, which measures what
+ * that disagreement costs and is where the two converge.
+ */
+export interface RunProjection {
+  /** The party as of now: battle folded, items the fight ate spent, capture in. */
+  party: readonly PokemonState[];
+  /** The relics held, including one taken from a card this node and not yet folded. */
+  relics: readonly RelicId[];
+}
+
+function projectionOf(state: RunState, result: NodeResult, taken: Reward | null): RunProjection {
+  let party = state.party;
+  if (result.battle) {
+    party = applyBattleState(party, result.battle.party, result.battle.contribution);
+  }
+  if (result.battle?.consumed?.length) {
+    party = spendItems({ party, backpack: state.backpack }, result.battle.consumed).party;
+  }
+  if (result.acquisition) {
+    // The capacity the decision was asked under, matching `resolveNode` and
+    // `partyAfterAcquisition`. A battle fold changes no slot, so a decision
+    // legal against `state.party` is legal against this one.
+    party = applyAcquisition(
+      party,
+      result.acquisition.offer,
+      result.acquisition.decision,
+      state.currentSegment,
+      partyCapacity(state),
+    ).party;
+  }
+
+  // A relic is the one reward kind a readout carries before the fold: the
+  // player took the card, and the drawer lists relics. Everything else a card
+  // pays either lands on the party (already above) or in the backpack, which no
+  // read-only surface shows before the boundary.
+  const relics =
+    taken?.kind === 'relic' && !state.relics.includes(taken.relic)
+      ? [...state.relics, taken.relic]
+      : state.relics;
+
+  return { party, relics };
 }
 
 async function askMoveQuestions(
