@@ -6006,6 +6006,27 @@ already had — different battles, different casualties, different lengths, from
 identical draws. `test/nicknames-graveyard.test.ts` needed its seed population
 widened from A–H to A–Z for exactly this reason, and the entry there says so.
 
+### Gates
+
+Green on `b3f70c0`: determinism and stream isolation through the suite, the
+version guards, type check, lint, build, the smoke run, and the full suite at
+**1805 passing across 137 files, none failing**.
+
+**Strict trim was still running when this was written and its result is not
+recorded here.** It is an absolute gate, so that is an open item rather than a
+pass: the next session confirms `GYMRUN_TRIM_STRICT=1` before treating this
+stage as gated, and records the number in this section.
+
+The smoke run is the one worth naming, because it is the gate that decided the
+shape of this stage rather than merely confirming it — see the UI section above.
+
+**No balance number is recorded here, and that is a gap rather than a pass.** A
+TM competes with a held item for a bag slot from the moment it arrives, and
+nothing has measured what that pressure does to mean gyms cleared. `docs/balance.md`
+section 0's standing policy is to record and keep going; there is nothing to
+record yet, and the sweep that would produce it is the next thing this stage
+wants.
+
 ### Tests retired rather than skipped
 
 Three groups went, each because its subject no longer exists rather than because
