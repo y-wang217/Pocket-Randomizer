@@ -6337,9 +6337,12 @@ widened from A–H to A–Z for exactly this reason, and the entry there says so
 
 ### Gates
 
-Green on `b3f70c0`: determinism and stream isolation through the suite, the
-version guards, type check, lint, build, the smoke run, and the full suite at
-**1805 passing across 137 files, none failing**.
+All absolute gates green on `7eaf284`, the merged tree: determinism and stream
+isolation through the suite, the version guards, type check, lint, build, strict
+trim, the smoke run, and the full suite. Both the ordinary suite and the
+`GYMRUN_TRIM_STRICT=1` suite report **1805 passing across 137 files, none
+failing** — the same count, which is what says the trimmed bundle is not quietly
+skipping anything.
 
 ### The smoke seed had to move, and why that is a finding
 
