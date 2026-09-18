@@ -85,7 +85,6 @@ took it to 22.3%, because the damage formula's level term doubles between 7 and
 15 while median HP grows 1.69x. The curve is justified on evolution pacing and
 nothing else. Section 33.7 has the arithmetic and the ruling.
 
-**Merged before it: the bench carryover and the gym level column.** Branch
 **Also in flight, on its own branch: the learn-move refresh.** Prompt
 [`spec/gymrun-patch-learn-move-refresh.md`](spec/gymrun-patch-learn-move-refresh.md),
 record [`generation.md`](generation.md) section 41. The audit below answered the
@@ -160,6 +159,8 @@ capture is the second of the two paths that shorten a party, and it was carrying
 an unspent `ItemPlan` across the slots it shifted — `showParty`'s `onRelease`
 has dropped the plan for that reason since 4.7, and `chooseAcquisition` does now
 too.
+
+**Merged before it: the bench carryover and the gym level column.** Branch
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest
