@@ -5939,3 +5939,159 @@ three properties per surface — opening it advances nothing, submits nothing an
 draws nothing — and all three are properties of the *trigger*. None of them is
 about what the view contains, and the view is handed in, so every one of them
 passes just as happily on a party from the wrong moment.
+
+## 37. `onState` fires once a node, and four readouts were a node behind
+
+**2026-09-18**, on `claude/party-check-mantyke-anorith-xttrxm`. Prompt
+[`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
+which follows section 36's on the same branch.
+
+Presentation and observation only: no transition moved, no hook argument
+changed, no decision touched, no version axis moved, `contentHash` unmoved at
+`94c6c1`.
+
+Section 36 fixed one readout by holding the party `core` handed the move
+question. The follow-up asked whether the mechanism behind it had other
+victims. It had four, and one of them is worse than the reported bug.
+
+### 37.1 The mechanism, stated once
+
+`onState` is the app's only refresh signal and it fires once per node, at the
+bottom of the loop, because that is where `resolveNode` produces a state to fire
+it with. A node contains at least four moments at which something a readout is
+about changes: every turn of the fight, the end of the fight, each reward or
+capture decision, and `resolveNode` itself. Everything the app drew between the
+first three and the fourth was the run as the node *started*.
+
+Measured on this tree, scripted baseline, before any fix:
+
+| surface | measurement |
+|---|---|
+| the drawer, mid-fight | **137 of 217 turns** across 12 seeds disagreed with the field |
+| the drawer, after a fight | **165 of 182** reviews disagreed with the result screen beside it |
+| the drawer's relic list | a taken relic missing until the node ended |
+| the drawer's contribution rows | folded with HP, so they lagged with it |
+
+The sharpest single number is a Seel the fight had at **1 HP** and the drawer,
+open over that fight, reported at **25** — under a blurb that reads "Your side,
+as the fight has left it."
+
+### 37.2 What was approved, what was built, and why they differ
+
+The author chose, from four options, the one that moved `applyBattleState` out
+of `resolveNode` and fired `onState` early. **That is not what was built**, and
+the reason is a finding rather than a convenience.
+
+`resolveNode` is called directly by twelve test files, several of which exist to
+assert exactly what it folds. Moving the battle fold out would change what the
+function means for every caller and would break the invariant its own header
+states. It was also unnecessary: nothing about the *run* needs to happen
+earlier. What needed to happen earlier was the **reporting**.
+
+So `core/run.ts` gains `RunProjection` and an optional `onProjection` hook, in
+the style of `onNodeResolved`: observation only, no `RunState` handed out, no
+transition reached any earlier. `projectionOf` recomputes three of
+`resolveNode`'s folds **in `resolveNode`'s own order** — battle state, then the
+items the fight ate, then the capture — and the order is the whole correctness
+claim, because `applyBattleState` maps the sim's read-back by `sendOrder`
+computed from the pre-battle party. Folding a capture ahead of it would write
+damage onto the wrong Pokemon.
+
+It fires three times inside a node: when the fight ends, when the card is taken
+and when the capture is decided. Each is the moment the thing it reports became
+true.
+
+**The property that makes it safe is asserted first**, in
+`test/run-projection.test.ts`: a run played with the hook and one played without
+it produce byte-identical logs. Without that, every balance figure and every
+recorded seed in the repo would be conditional on whether a UI happened to be
+attached.
+
+### 37.3 Mid-fight there is no state to project, so the drawer reads the sim
+
+The in-battle case is the one the hook cannot answer: the damage is in the
+session, not in any `RunState`. `ui/app.ts` already receives the session from
+`onBattle`, so it now keeps it together with **the party the fight was sent
+with**, and the drawer folds `session.partyState('p1')` onto that party.
+
+Two details are load-bearing. The party kept is the one the send was computed
+from, so `applyBattleState`'s `sendOrder` mapping is right by construction
+rather than by luck. And the contribution list passed is **empty**, deliberately:
+`applyBattleState` keeps a member's own counters when a delta is missing, and a
+fight's contribution is not final until it ends.
+
+`releaseBattle` clears it, beside the `detachBattle` and `battleScreen.cancel()`
+already there, or the next screen would draw the previous fight.
+
+**And it is read only while its own screen is up**, which is a second gate and
+not a redundant one. The session outlives its screen: `releaseBattle` runs when
+the *next* fight starts, so between the outro and the end of the node the ended
+session is still in hand. The first version of this patch keyed on "is there a
+session" and would therefore have answered the capture screen with the battle's
+three members while the projection had already folded in the Pokemon the player
+had just caught — the reported defect, reintroduced by its own fix. Found by
+re-reading the diff rather than by a test, which is why there is now a test.
+
+### 37.4 The drawer shows what the surface underneath it shows
+
+Three sources, read in order of nearness to the moment the player is standing
+in: the live fight, then a decision the run has taken and not applied, then
+`live.party`. The rule is not "the drawer is as fresh as possible" — it is that
+**the drawer never contradicts the surface it is sitting over.**
+
+That is why `chooseMoveRecipient` still sets the override from its own argument
+even though the projection hook would otherwise have covered it. The move
+question is asked against `partyAfterAcquisition`, which does not fold the
+battle; without that second assignment the drawer would show live HP over a
+screen showing pre-fight HP — a fresh instance of the contradiction this whole
+patch is about, introduced by the fix for it.
+
+### 37.5 The repair that would have been a bug
+
+The recipient screen's own cards show the HP the node was entered with. The
+obvious repair is to fold the battle into `partyAfterAcquisition`.
+
+**It would change who gets the move.** `rewards.recipientFor` returns the lead
+when the named slot is fainted. The question's reading and the apply site's
+reading agree today only because *neither* has a fainted member in it: the
+question is posed pre-battle, and `resolveNode` applies the reward after
+`betweenNodes`, which revives. Folding the battle in breaks that symmetry from
+one side only — the replace question would be posed about the lead's four moves
+while the move still landed on the slot's member.
+
+**This was nearly filed as a defect**, on a scan that compared the question
+against a battle-folded party *without* the node boundary: 123 of 605 move
+questions appeared to diverge. That scan was wrong, and it is recorded here
+because the wrong version is the plausible one. Against what `resolveNode`
+actually resolves against:
+
+- the move landed on the Pokemon the question named in **466 of 466** resolved
+  cases across 300 seeds, elsewhere in none;
+- today's reading agrees with the apply site **316 of 316** across 200 seeds;
+- a battle-folded reading would disagree **70 times** in those same 316 — 22%.
+
+`test/move-recipient-fold.test.ts` holds both halves: that the move lands where
+the question said, and that the folded reading is *not* equivalent. The second
+case fails if they ever converge, which is the signal that the cosmetic fix has
+become safe. The rule is also written into `partyAfterAcquisition`'s header,
+where the next person will be standing when they think of it.
+
+What is left is a design question rather than a patch — what should the
+recipient screen draw for a member who fainted in the fight that paid the card
+and will be revived before the move lands — and it is filed in `README.md`
+section 5.
+
+### 37.6 One hypothesis killed
+
+Section 35's open `teachMove` crash (`Snover already knows Confusion`) was
+hypothesised to be this same divergence. It is not: it did not reproduce in 300
+seeds, and the divergence it would have rested on does not exist. The item
+stands, unexplained, with one more cause ruled out.
+
+### 37.7 What was checked and is not a defect
+
+The result screen's coins — the balance updates at the boundary, and
+`BattleReview.currencyEarned` splits "what this node paid" from "what the run
+holds" deliberately, which its own comment states. The map overlay's position —
+the node has not resolved, so showing it unresolved is correct. The evolution
+fork's pre-level party — the fork has not been answered yet.

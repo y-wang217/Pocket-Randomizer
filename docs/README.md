@@ -58,7 +58,33 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the party drawer showed a released Pokemon.** Branch
+**In flight: the update sequence audit.** Same branch, prompt
+[`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
+record [`generation.md`](generation.md) section 37. `onState` is the app's only
+refresh signal and it fires once per node, so four readouts were drawing the run
+as the node started: the drawer mid-fight (**137 of 217 turns** disagreed with
+the field, worst case 1 HP on the field and 25 in the drawer), the drawer after
+a fight (**165 of 182** reviews disagreed with the result screen beside it), a
+taken relic, and the contribution rows. `core/run.ts` gains `RunProjection` and
+an optional `onProjection` hook — observation only, in the style of
+`onNodeResolved`, asserted to produce a byte-identical log — and the in-battle
+drawer reads the live session, which is the one case no projection of run state
+can answer. No transition moved; `contentHash` unmoved at `94c6c1`.
+
+**The repair that would have been a bug, and is not made.** The recipient
+screen's own cards still show the HP the node was entered with. Folding the
+battle into `partyAfterAcquisition` to fix that would change *who gets the
+move*: `recipientFor` returns the lead for a fainted slot, and the question's
+reading and the apply site's agree today only because neither has a fainted
+member in it — the question is pre-battle, and `resolveNode` applies the reward
+after `betweenNodes`, which revives. Measured: the move lands where the question
+said in **466 of 466** resolved cases, today's reading agrees with the apply
+site **316 of 316**, and a battle-folded reading would disagree **70 times**.
+A first scan claimed the opposite and was wrong; both halves are now pinned by
+`test/move-recipient-fold.test.ts`. What is left is a design question, in
+section 5.
+
+**Merged into the same branch: the party drawer showed a released Pokemon.** Branch
 `claude/party-check-mantyke-anorith-xttrxm`, prompt
 [`spec/gymrun-patch-party-drawer-stale-capture.md`](spec/gymrun-patch-party-drawer-stale-capture.md),
 record [`generation.md`](generation.md) section 36. Presentation only: no
@@ -724,8 +750,20 @@ One line each. The analysis lives where the pointer goes, not here.
    own investigation. `balance.md`, and open question 1 in the root README.
    Stage 4.9 moved it the other way at the start — 3.7 turns in segment 1 at
    level 7 — and the stage's benchmark row is where the next reading is.
+0. **What should the recipient screen draw for a member who fainted in the
+   fight that paid the card?** Its cards show the HP the node was entered with,
+   which reads wrong beside the result screen the player just left — but the
+   party behind them is a *decision* input, and folding the battle into it
+   changes who receives the move (`recipientFor` returns the lead for a fainted
+   slot; measured at 70 of 316). The member will be revived by `betweenNodes`
+   before the move lands, so "show them fainted" is not obviously right either.
+   A display-only party for that screen is the likely shape. Pinned both ways by
+   `test/move-recipient-fold.test.ts`, whose second case fails if the two
+   readings ever converge. `generation.md` section 37.5.
 0. **A move reward can be applied to a member that already knows the move, and
-   it throws.** `RangeError: Snover already knows Confusion; nothing is
+   it throws.** *(One cause ruled out 2026-09-18: it is **not** the recipient
+   divergence — that divergence does not exist, and the crash did not reproduce
+   in 300 seeds. `generation.md` section 37.6.)* `RangeError: Snover already knows Confusion; nothing is
    displaced`, from `party.teachMove` via `rewards.applyReward`. The slot is
    chosen against one reading of the party and applied against another, which
    is the stale-decision family of `generation.md` sections 19 and 29 rather
