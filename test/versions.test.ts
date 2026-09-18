@@ -79,8 +79,19 @@ describe('the versions block', () => {
      * is neither of them. A computed check would have been satisfied by either
      * number; only a literal that a human has to move on purpose catches a
      * collision between two honest bumps.
+     *
+     * `-20` the teach-now patch, and it is the first bump on this axis that
+     * added, removed, reordered and reshaped **nothing**. The `items` entry is
+     * the same shape in the same place; what changed is which plans are *legal*
+     * at a boundary, because a move may now be taught at the node that paid it.
+     * A `-19` reader handed a `-20` log applies item plans with
+     * `canTeachAt(node.kind)` and would drop a teach the player made, silently.
+     * That is the divergence this axis exists to refuse, so it moves — which is
+     * worth the literal, because the four-word rule in `CLAUDE.md` does not
+     * obviously cover it and the next reader will wonder.
+     * `docs/generation.md` section 48.3.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-19/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-20/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });

@@ -1,5 +1,5 @@
 {
-  "version": "gymrun-run-19/gymrun-0.3.0",
+  "version": "gymrun-run-20/gymrun-0.3.0",
   "randomizerVersion": "gymrun-randomizer-20",
   "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
   "aiVersion": "gymrun-ai-6-spent-item",
@@ -288,7 +288,13 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [],
+            "teaches": [
+              {
+                "move": "Rapid Spin",
+                "slot": 0,
+                "replaceSlot": 1
+              }
+            ],
             "discardTms": []
           }
         },
@@ -365,13 +371,7 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [
-              {
-                "move": "Rapid Spin",
-                "slot": 0,
-                "replaceSlot": 1
-              }
-            ],
+            "teaches": [],
             "discardTms": []
           }
         },
@@ -452,8 +452,8 @@
           "moves": [
             "Force Palm",
             "Circle Throw",
-            "Double Kick",
-            "Acrobatics"
+            "Sludge",
+            "Fury Attack"
           ],
           "item": "blackbelt",
           "hp": 0,
@@ -461,18 +461,18 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 517,
-            "damageTaken": 200,
-            "kos": 9,
-            "faints": 5,
-            "turnsOnField": 28
+            "damageDealt": 485,
+            "damageTaken": 125,
+            "kos": 11,
+            "faints": 2,
+            "turnsOnField": 25
           },
           "status": null,
           "pp": [
+            9,
             16,
-            16,
-            45,
-            16
+            32,
+            32
           ]
         },
         {
@@ -492,16 +492,16 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 88,
+            "damageDealt": 45,
             "damageTaken": 56,
-            "kos": 5,
+            "kos": 2,
             "faints": 1,
-            "turnsOnField": 6
+            "turnsOnField": 3
           },
           "status": null,
           "pp": [
-            14,
-            22,
+            15,
+            24,
             32,
             16
           ]
@@ -523,16 +523,16 @@
           "fainted": true,
           "joinedSegment": 1,
           "contribution": {
-            "damageDealt": 9,
-            "damageTaken": 56,
-            "kos": 0,
-            "faints": 1,
-            "turnsOnField": 2
+            "damageDealt": 57,
+            "damageTaken": 84,
+            "kos": 1,
+            "faints": 2,
+            "turnsOnField": 4
           },
           "status": null,
           "pp": [
             15,
-            24,
+            23,
             48,
             16
           ]
@@ -613,7 +613,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 90,
+          "hpAfter": 108,
           "casualties": []
         },
         {
@@ -622,16 +622,9 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 5,
-          "hpAfter": 112,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Onyx",
-              "bySpecies": "Omanyte",
-              "byMove": "Rising Voltage"
-            }
-          ]
+          "turns": 4,
+          "hpAfter": 151,
+          "casualties": []
         },
         {
           "id": "s1-shore-2-0",
@@ -640,7 +633,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 138,
+          "hpAfter": 151,
           "casualties": []
         },
         {
@@ -650,11 +643,11 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 6,
-          "hpAfter": 94,
+          "hpAfter": 83,
           "casualties": [
             {
               "side": "p1",
-              "name": "Onyx",
+              "name": "Nettle",
               "bySpecies": "Sobble",
               "byMove": "Aqua Jet"
             }
@@ -666,16 +659,9 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 4,
-          "hpAfter": 81,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Onyx",
-              "bySpecies": "Wiglett",
-              "byMove": "Razor Shell"
-            }
-          ]
+          "turns": 3,
+          "hpAfter": 87,
+          "casualties": []
         },
         {
           "id": "s1-gym",
@@ -683,14 +669,14 @@
           "kind": "gym",
           "tier": null,
           "winner": "p2",
-          "turns": 5,
+          "turns": 3,
           "hpAfter": 0,
           "casualties": [
             {
               "side": "p1",
               "name": "Onyx",
               "bySpecies": "Finneon",
-              "byMove": "Aqua Jet"
+              "byMove": "Bubble Beam"
             },
             {
               "side": "p1",
@@ -702,7 +688,7 @@
               "side": "p1",
               "name": "Nettle",
               "bySpecies": "Finneon",
-              "byMove": "Aqua Jet"
+              "byMove": "Bubble Beam"
             }
           ]
         }
@@ -764,7 +750,13 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [],
+            "teaches": [
+              {
+                "move": "Draining Kiss",
+                "slot": 0,
+                "replaceSlot": 2
+              }
+            ],
             "discardTms": []
           }
         },
@@ -776,7 +768,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
@@ -888,7 +880,13 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [],
+            "teaches": [
+              {
+                "move": "Payback",
+                "slot": 0,
+                "replaceSlot": 2
+              }
+            ],
             "discardTms": []
           }
         },
@@ -900,28 +898,28 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
@@ -942,7 +940,13 @@
               }
             ],
             "discards": [],
-            "teaches": [],
+            "teaches": [
+              {
+                "move": "Sludge",
+                "slot": 0,
+                "replaceSlot": 2
+              }
+            ],
             "discardTms": []
           }
         },
@@ -958,14 +962,14 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
@@ -983,7 +987,13 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [],
+            "teaches": [
+              {
+                "move": "Mega Drain",
+                "slot": 0,
+                "replaceSlot": 3
+              }
+            ],
             "discardTms": []
           }
         },
@@ -995,7 +1005,21 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
           }
         },
         {
@@ -1003,34 +1027,6 @@
           "choice": {
             "kind": "move",
             "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
           }
         },
         {
@@ -1048,7 +1044,13 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [],
+            "teaches": [
+              {
+                "move": "Fury Attack",
+                "slot": 0,
+                "replaceSlot": 3
+              }
+            ],
             "discardTms": []
           }
         },
@@ -1082,42 +1084,42 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "switch",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
             "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 3
           }
         },
         {
@@ -1148,27 +1150,13 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
+            "slot": 1
           }
         },
         {
           "kind": "battle",
           "choice": {
             "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
             "slot": 2
           }
         },
@@ -1194,10 +1182,14 @@
           "plan": {
             "assignments": [],
             "discards": [],
-            "teaches": [],
-            "discardTms": [
-              "Draining Kiss"
-            ]
+            "teaches": [
+              {
+                "move": "Fury Attack",
+                "slot": 0,
+                "replaceSlot": null
+              }
+            ],
+            "discardTms": []
           }
         },
         {
@@ -1208,14 +1200,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
+            "slot": 1
           }
         },
         {
@@ -1237,13 +1222,6 @@
           "choice": {
             "kind": "switch",
             "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
           }
         },
         {

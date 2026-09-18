@@ -311,8 +311,12 @@ describe('the version axes', () => {
      * they are not asked. The stage's own branch bumped to `-18` before the
      * recut reached `main` with the same number, and the merge took the next
      * one rather than let one string name two schemas.
+     *
+     * `-20` is the teach-now patch: a move may be taught at the node that paid
+     * it, so a plan that was illegal at that boundary is legal there now and a
+     * `-19` reader would drop it. `docs/generation.md` section 48.3.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-19/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-20/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.

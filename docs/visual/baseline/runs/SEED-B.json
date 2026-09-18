@@ -1,7 +1,7 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-19/gymrun-0.3.0",
+    "runLog": "gymrun-run-20/gymrun-0.3.0",
     "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
     "randomizer": "gymrun-randomizer-20",
     "ai": "gymrun-ai-6-spent-item",
@@ -28,8 +28,8 @@
       "ability": "Shed Skin",
       "moves": [
         "Bug Bite 32/32",
-        "Snarl 19/24",
-        "Clear Smog 24/24",
+        "Snarl 21/24",
+        "Incinerate 22/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -140,7 +140,7 @@
   "log": {
     "seed": "SEED-B",
     "versions": {
-      "runLog": "gymrun-run-19/gymrun-0.3.0",
+      "runLog": "gymrun-run-20/gymrun-0.3.0",
       "contentHash": "b8b4193db430cf24215e872b5bfe7f91d02d5a74c39c5a58625d5e086b525f68",
       "aiVersion": "gymrun-ai-6-spent-item",
       "randomizerVersion": "gymrun-randomizer-20"
@@ -257,7 +257,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Rock Smash",
+              "slot": 0,
+              "replaceSlot": 2
+            }
+          ],
           "discardTms": []
         }
       },
@@ -308,7 +314,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Incinerate",
+              "slot": 0,
+              "replaceSlot": 2
+            }
+          ],
           "discardTms": []
         }
       },
@@ -320,14 +332,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {

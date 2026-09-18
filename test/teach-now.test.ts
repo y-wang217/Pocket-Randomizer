@@ -87,7 +87,7 @@ describe('teachableAt', () => {
 describe('applyItemPlan honours the boundary', () => {
   const started = () => {
     const run = createRun('TEACHNOW-fixture', DEFAULT_TUNING);
-    const party = createParty([run.starterOptions[0]!], DEFAULT_TUNING);
+    const party = createParty([run.starterOptions[0]!]);
     return { ...run, party, tms: ['Surf', 'Ember'] };
   };
   const plan = (over: Partial<ItemPlan> = {}): ItemPlan => ({
