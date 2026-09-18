@@ -14,10 +14,15 @@ only.
 ## The build these are against, and why it matters
 
 Every screenshot is stamped **`a036d6` · R19**. The session that received them
-is working on a clone whose `contentHash` is `94c6c1` and whose
-`RANDOMIZER_VERSION` is R18, and whose `origin/main` is `379c154`. **The
-reported build is ahead of this clone**, and repeated `git fetch origin main`
-attempts timed out.
+was working on a clone whose `contentHash` was `94c6c1` and whose
+`RANDOMIZER_VERSION` was R18, and whose `origin/main` was `379c154` — **behind
+the reported build**, with `git fetch` failing on a connection reset for the
+first few attempts.
+
+**That is resolved**: `origin/main` was fetched at `32dad08` and merged, and the
+merged tree's `contentHash` is `a036d6` — the build the screenshots are stamped
+with. Item 4's diagnosis below is read against that tree; items 1 to 3 were
+first read against R18 and are marked where that still shows.
 
 That is recorded here rather than worked around, because it changes what can
 honestly be said about each item. Item 4 in particular describes a TM sitting in
@@ -130,13 +135,36 @@ their price has ever been visible.
 > Alsk bug report: teaching tms doesnt work. When i click out of the teach
 > screen, the tms return to inventory. Check on that
 
-**Not diagnosable on this clone.** In R18 a shop TM is taught at the moment of
-purchase — `askMoveQuestions` runs inside the shop branch of `playRun` and the
-move is folded by `applyPurchases`. There is no TM item, no inventory slot for
-one and no teach screen with a way out of it. The described flow is R19's.
+**Read on the merged tree, and it does not resolve to one cause.** Two
+candidates survive reading, and they call for different fixes, so neither was
+acted on.
 
-Named here with everything the report gives, so the session that has the newer
-tree starts from the report rather than from a summary of it.
+**Candidate A — it is behaving as designed and the copy is wrong.** The teach
+path renders `targetScreen` with `allowSkip: true`, and that screen's only exit
+is the decline control, whose copy is `TARGET_COPY.decline` — **"Don't learn
+it"**. That string was written for a different question: the gym's guaranteed
+move, the one payout that may be handed back. On this path it means "not this
+one, not now" and `app.ts` says so in a comment — the TM stays in the bag, by
+design. So a player who reaches the screen, changes their mind about *which*
+Pokemon, and presses the only control that leaves gets exactly the reported
+sentence, and nothing is broken except that the only way back is spelled as a
+refusal.
+
+**Candidate B — a teach that was completed is not sticking.** Traced and not
+found: `onTeach`'s `done` pushes onto `teaches` and calls `commit`, which is
+`handlers.onPlan`, which sets `pendingPlan`; `back()` re-renders through
+`showParty`, which passes `plan: pendingPlan`, and the re-render recomputes
+`carried` as `remaining(view.tms, teaches ∪ discardTms)` — so the TM should
+leave the bag panel and stay gone. `canTeachNow` gates the button, not the
+commit, so a teach composed where it is illegal cannot be silently dropped
+either.
+
+**What would settle it in one message**: a screenshot of the teach screen
+itself, or the answer to "did you pick a Pokemon before the TM came back, or
+did you leave without picking one?" If the answer is "left without picking",
+this is Candidate A and the fix is copy plus a separate Back control. If it is
+"picked one and it still came back", it is Candidate B and the trace above is
+wrong somewhere worth finding.
 
 ## Scope, for whoever picks this up
 

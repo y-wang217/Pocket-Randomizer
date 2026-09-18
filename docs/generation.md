@@ -6640,9 +6640,9 @@ unchanged.
 > **Retired, 2026-09-18, in the same merge.** `partyAfterAcquisition` and
 > `rewards.recipientFor` are both gone from the tree: with teaching moved to the
 > party screen there is no second reading of the party to disagree with, and no
-> fainted-slot fallback to disagree through. `test/move-recipient-fold.test.ts`
-> guarded a mechanism that no longer exists and is **deleted** rather than left
-> asserting against retired code.
+> fainted-slot fallback to disagree through. The test written to guard it
+> (`move-recipient-fold`) is **deleted** rather than left asserting against
+> retired code, which is why no path to it is named here.
 >
 > The measurement is kept below because it is the argument that the retirement
 > was an improvement rather than a wash, and because the near-miss is the
@@ -6672,10 +6672,10 @@ actually resolves against:
 - today's reading agrees with the apply site **316 of 316** across 200 seeds;
 - a battle-folded reading would disagree **70 times** in those same 316 — 22%.
 
-`test/move-recipient-fold.test.ts` holds both halves: that the move lands where
-the question said, and that the folded reading is *not* equivalent. The second
-case fails if they ever converge, which is the signal that the cosmetic fix has
-become safe. The rule is also written into `partyAfterAcquisition`'s header,
+The test written for this held both halves — that the move lands where the
+question said, and that the folded reading is *not* equivalent, the second
+failing if they ever converged. It is deleted with the mechanism; the numbers
+above are what it asserted. The rule is also written into `partyAfterAcquisition`'s header,
 where the next person will be standing when they think of it.
 
 What is left is a design question rather than a patch — what should the

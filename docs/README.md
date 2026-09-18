@@ -109,8 +109,8 @@ after `betweenNodes`, which revives. Measured: the move lands where the question
 said in **466 of 466** resolved cases, today's reading agrees with the apply
 site **316 of 316**, and a battle-folded reading would disagree **70 times**.
 A first scan claimed the opposite and was wrong; both halves are now pinned by
-`test/move-recipient-fold.test.ts`. What is left is a design question, in
-section 5.
+a test written for it and deleted in the same merge that retired the mechanism
+— section 39.5 has the account. What is left is a design question, in section 5.
 
 **Merged into the same branch: the party drawer showed a released Pokemon.** Branch
 `claude/party-check-mantyke-anorith-xttrxm`, prompt
@@ -800,8 +800,8 @@ One line each. The analysis lives where the pointer goes, not here.
    slot; measured at 70 of 316). The member will be revived by `betweenNodes`
    before the move lands, so "show them fainted" is not obviously right either.
    A display-only party for that screen is the likely shape. Pinned both ways by
-   `test/move-recipient-fold.test.ts`, whose second case fails if the two
-   readings ever converge. `generation.md` section 39.5.
+   a test whose second case would have failed if the two readings ever
+   converged; it is deleted with the mechanism. `generation.md` section 39.5.
 0. **A move reward can be applied to a member that already knows the move, and
    it throws.** *(One cause ruled out 2026-09-18: it is **not** the recipient
    divergence — that divergence does not exist, and the crash did not reproduce
