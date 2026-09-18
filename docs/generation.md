@@ -6780,7 +6780,104 @@ than being dropped, or paying TMs nearer to rests are all answers. All three are
 balance decisions, so this is filed in `README.md` section 5 rather than
 guessed at.
 
-## 41. A gym leader was already drawing an item and throwing it away
+## 41. A taught move did not show until the player walked back to the map
+
+**2026-09-18**, on `claude/learn-move-refresh`. Prompt
+[`spec/gymrun-patch-learn-move-refresh.md`](spec/gymrun-patch-learn-move-refresh.md).
+Presentation only: two pure functions in `core/party.ts`, one in
+`ui/party-layout.ts`, four call sites. No transition moves, no decision changes
+shape, no version axis moves, `contentHash` unmoved.
+
+> "Double checking the learn move order. Once a move is learned, we need to
+> refresh the visual, because we dont give any indication to the player that a
+> move has been replaced - learn move pages should reflect at the moment the
+> player clicks the move to replace. Currently, once the player returns to the
+> map, the visuals reflect."
+
+### 41.1 The lag, and why it is exactly one boundary
+
+Section 37 made moves inventory TMs and moved teaching onto the party screen,
+where it became part of an `ItemPlan`. A plan is *composed* there and *applied*
+at the next node boundary by `applyItemPlan`, and `onState` redraws from the
+result — which is the map the player returns to. So the whole interval between
+the click and the boundary was drawing a party that had not learned anything.
+
+This is the lag Stage 4.7 already found and fixed for the item half.
+`ui/party-layout.ts`'s `itemLayoutOf` folds the unspent plan's assignments so a
+player who moved their Leftovers sees where the item is *going*; its header
+states the rule in as many words — "a readout contradicting a decision the
+player has already made". Teaches arrived in the plan three stages later and
+nothing folded them. The file's one function had become half a file.
+
+What makes it worse for moves than for items is that **there is no other
+signal.** An item move is confirmed by the item appearing on the other member's
+row. A teach has no confirmation, no toast and no before-and-after: the moveset
+is the entire readout, and a moveset still listing the displaced move is the
+only answer the player gets to "did that work".
+
+### 41.2 The order, which is the half that is not cosmetic
+
+The report says "the learn move order", and it is right in a way it could not
+have seen from the outside. Both teach questions — `targetScreen`, who learns
+it, and `replaceScreen`, what it costs — were rendered from `state.party` and
+gated on `replacementNeeded(state.party[slot], move)`. That is the run's party,
+not the party the plan has already taught.
+
+`reconcileItemPlan` reads the *running* party, correctly, and has since section
+37; its own comment says why — "a first teach can turn a free slot into a full
+one". So the two readings disagreed exactly when a member received two teaches
+in one plan, and the disagreement is silent by construction:
+
+| | composed against run state | what the boundary does |
+|---|---|---|
+| member with a free slot, two TMs | both asked `'free'`, neither names a victim | first applies; **second is dropped**, TM back in the bag, nothing said |
+| member with four moves, two TMs | second replace screen lists the move the first one just displaced | applies against a moveset the player never saw |
+
+Reproduced directly: `reconcileItemPlan` keeps **1 of 2** teaches for a
+three-move member handed two TMs. `reconcileItemPlan` is not at fault in either
+row — it is the only reading that was right.
+
+### 41.3 The fix
+
+One rule, one copy, and the preview reads it:
+
+- `party.teachApplies` is the three-condition check `reconcileItemPlan` had
+  inline. It moved rather than being duplicated, precisely so a preview cannot
+  drift from the loop that decides what survives. Drawing a teach the boundary
+  is about to drop is this patch's own defect wearing the other face.
+- `party.partyAfterTeaches` folds a plan's teaches in plan order against a
+  running party, skipping the ones `teachApplies` refuses. Pure, no TM spent, no
+  run state touched — a projection, in section 39's sense, not a transition.
+- `partyWithPlan`, in [`../src/ui/party-layout.ts`](../src/ui/party-layout.ts),
+  is the plan-shaped wrapper, beside `itemLayoutOf` and for the same reason.
+
+Four call sites, which is every surface between the click and the boundary: the
+party screen's own cards (from its working copy, so they redraw on the commit
+rather than on the next `render`), the drawer, the pre-gym screen, and the teach
+flow's two questions.
+
+The party screen's threat readout moved from `render` into `draw` with them.
+Its comment had argued it belonged in `render` because "an item changes nothing
+about which types hit the party" — true then, and no longer: `partyThreats`
+reads `offensiveCoverage`, which reads movesets, so a teach composed on that
+screen changes its answer.
+
+### 41.4 What was deliberately not folded
+
+**The drawer's mid-fight reading.** `run.canTeachAt` allows a teach at a rest or
+a shop and nowhere else, so a plan holding one cannot coexist with a fight on
+screen; folding it there would preview a teach that could not have been
+composed.
+
+**The party screen's write path.** `onReorder` and `onRelease` still name
+`view.party` slots, and both drop the plan when they fire. The fold changes what
+is drawn and what the questions are asked against — never what a write lands on.
+
+`test/learn-move-refresh.test.ts` pins both halves: the card redraw as DOM, the
+agreement with `reconcileItemPlan` as a `core/` property, and the app wiring by
+source in the manner of `test/teach-boundary.test.ts`, because which party a
+question reads is not something a rendering assertion can see.
+## 42. A gym leader was already drawing an item and throwing it away
 
 **The R19 rulings, item 5**, built on `claude/blissful-brown-5tv8fv` from
 [`spec/gymrun-patch-r19-rulings.md`](spec/gymrun-patch-r19-rulings.md). Moves
@@ -6904,7 +7001,7 @@ rather than a branch in a function.
 - **No benchmark row.** `CLAUDE.md`: balance is not a gate. The rates are a
   first cut, recorded, and the pass keeps going.
 
-## 42. The first price a status move has ever had to justify
+## 43. The first price a status move has ever had to justify
 
 **The R19 rulings, item 3**, same branch and same patch as section 41. Moves
 `contentHash` from `eba446` to `a7b5f0` and no other axis. One line of
@@ -6974,7 +7071,7 @@ The six visual baseline records and `test/fixtures/sim-report.json` moved in the
 `contentHash` field and in no other field, as expected: a price is read at
 resolution and draws nothing, so no seed's composition can move with it.
 
-## 43. Three cards, three decisions — and the diagnosis that had to be redone first
+## 44. Three cards, three decisions — and the diagnosis that had to be redone first
 
 **The R19 rulings, item 1a**, same branch as sections 41 and 42. Moves
 `RANDOMIZER_VERSION` from `gymrun-randomizer-19` to `-20` and `contentHash` from
@@ -7102,10 +7199,10 @@ in a recorded run rather than in an aggregate.
 Types, lint, build, smoke, strict trim, the full node suite (1,641) and the
 browser suite (203) all green.
 
-## 44. The gym page stops calling itself an elite node
+## 45. The gym page stops calling itself an elite node
 
-**The R19 close-out**, same branch as sections 41 to 43, and the one item
-section 43 filed rather than fixed. No version axis moves: `contentHash` is
+**The R19 close-out**, same branch as sections 42 to 44, and the one item
+section 44 filed rather than fixed. No version axis moves: `contentHash` is
 unchanged at `b8b419`, nothing under `src/data/**` is touched, and
 `RewardOffer` is not serialised into a run log — a reward decision records an
 index.
@@ -7126,7 +7223,7 @@ What it ruled out was one wrong answer. What it did not do is notice that the
 badge is the only tier label a reader gets, so **a gym page and an elite node
 are the same screenshot.** Item 1a of the R19 playtest was root-caused against
 the elite pool on exactly that evidence — a wrong diagnosis and 18,000
-measurements of the wrong thing, corrected in section 43. This is that cost
+measurements of the wrong thing, corrected in section 44. This is that cost
 being paid off.
 
 ### `OfferBadge`, and why the field is renamed rather than widened

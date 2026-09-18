@@ -29,6 +29,7 @@ import type {
   PokemonSpec,
   PokemonState,
   TeamSpec,
+  TmTeach,
 } from './types';
 import { MOVESET } from '../data/scaling';
 import { MAX_PARTY_CAPACITY } from '../data/partyTuning';
@@ -482,6 +483,68 @@ export function teachMove(
       pp: Math.min(fresh.maxPp, carried.get(fresh.id) ?? fresh.maxPp),
     })),
   };
+}
+
+/**
+ * Whether a composed teach still means what it meant when it was composed.
+ *
+ * **One rule, one copy.** `items.reconcileItemPlan` walks a plan's teaches
+ * against a running party and drops the ones that have gone stale, and every
+ * surface that wants to *show* the same plan has to agree with it exactly — a
+ * readout that drew a teach the boundary is about to drop is the defect it was
+ * added to prevent, wearing the other face. So the three conditions live here
+ * and both callers read them.
+ *
+ * They are three ways of saying one thing: `teachMove` throws unless the slot
+ * and the need agree, and this answers the same question without throwing,
+ * because a composing caller has somewhere better to put the answer than a
+ * stack trace.
+ */
+export function teachApplies(member: PokemonState, teach: TmTeach): boolean {
+  const need = replacementNeeded(member, teach.move);
+  if (need === 'choose') {
+    return teach.replaceSlot !== null && member.spec.moves[teach.replaceSlot] !== undefined;
+  }
+  return teach.replaceSlot === null;
+}
+
+/**
+ * The party a plan's teaches produce, folded in plan order.
+ *
+ * **Pure, and it is a projection rather than a transition** — nothing is spent,
+ * no TM leaves the bag, and the run's own state is untouched. It exists because
+ * the player composes teaches on the party screen and the run applies them a
+ * boundary later, and between those two moments every screen in the teach flow
+ * was drawing a party that had learned nothing. See `ui/party-layout.ts` for
+ * the item half of the same lag, which has been previewed since Stage 4.7.
+ *
+ * **Plan order, against a running party**, which is the order and the reading
+ * `items.reconcileItemPlan` uses — a first teach can turn a free slot into a
+ * full one, and a preview that read every teach against the party the node
+ * started with would answer `'free'` twice for a member that has room for one.
+ * That disagreement is not cosmetic: it is what the screens ask
+ * `replacementNeeded` for, so it decides whether the second teach names a
+ * victim at all, and a teach that names the wrong thing is dropped at the
+ * boundary with the TM silently back in the bag.
+ *
+ * A teach that no longer applies is skipped rather than repaired, which is
+ * `reconcileItemPlan`'s rule and for its reason: a teach is an irreversible act
+ * naming a specific move, member and victim, and there is no weaker version of
+ * it to fall back to.
+ */
+export function partyAfterTeaches(
+  party: readonly PokemonState[],
+  teaches: readonly TmTeach[],
+): readonly PokemonState[] {
+  if (teaches.length === 0) return party;
+  const taught = [...party];
+  for (const teach of teaches) {
+    const learner = taught[teach.slot];
+    if (!learner) continue;
+    if (!teachApplies(learner, teach)) continue;
+    taught[teach.slot] = teachMove(learner, teach.move, teach.replaceSlot);
+  }
+  return taught;
 }
 
 /*

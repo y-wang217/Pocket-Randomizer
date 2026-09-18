@@ -276,7 +276,7 @@ describe('opponents holding berries', () => {
    * rulings reversed it.** The rule it pinned — `heldItemRate('gym', n) === 0`
    * and no gym member holding anything — was the current behaviour written
    * down, not an invariant, and it is superseded rather than deleted: see
-   * `docs/generation.md` section 41.
+   * `docs/generation.md` section 42.
    *
    * What survives here is the half of it that is still this file's business. A
    * gym leader holds items now, and **none of them is a berry except the one

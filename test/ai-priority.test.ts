@@ -371,7 +371,7 @@ describe('the version axes', () => {
      * of 4,800 trainer and wild teams recorded against the tree *before* the
      * ladder existed, and `docs/visual/baseline/runs/` moved in the
      * `contentHash` field and in no other field of any of the six records.
-     * `docs/generation.md` section 41 is the account.
+     * `docs/generation.md` section 42 is the account.
      *
      * The same patch moved it a seventh time, from `eba446`, for one line of
      * `data/shop.ts`: the `technique` shelf price, 60 to 150 in band 1 and 95
@@ -387,7 +387,7 @@ describe('the version axes', () => {
      * of two kinds dealt three times had nowhere else to go. **This is the one
      * `contentHash` move in the patch that does arrive beside another axis** —
      * `gymrun-randomizer-20`, because a new pool entry changes which entry a
-     * roll selects. `docs/generation.md` section 43 is the account.
+     * roll selects. `docs/generation.md` section 44 is the account.
      *
      * The literal below is all eight together. The display split remains the
      * **last** time this number moves for a display edit —

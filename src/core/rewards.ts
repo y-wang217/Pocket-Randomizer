@@ -122,7 +122,7 @@ export type Reward =
  * indistinguishable in a screenshot when both say `ELITE`, and the R19 playtest
  * duplicate-card report was root-caused against the elite pool on exactly that
  * evidence — a wrong diagnosis and 18,000 measurements of the wrong thing,
- * corrected in `docs/generation.md` section 43.
+ * corrected in `docs/generation.md` section 44.
  *
  * `'gym'` is not a tier and this type does not claim it is. `NodeSpec.tier` is
  * nullable precisely because a gym has no tier — there is one gym per segment

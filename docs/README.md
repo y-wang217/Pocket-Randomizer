@@ -63,7 +63,7 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 [`spec/gymrun-patch-r19-rulings.md`](spec/gymrun-patch-r19-rulings.md) with the
 diagnosis it answers at
 [`spec/gymrun-patch-r19-overnight-playtest.md`](spec/gymrun-patch-r19-overnight-playtest.md),
-records [`generation.md`](generation.md) sections 41, 42 and 43.
+records [`generation.md`](generation.md) sections 42, 43 and 44.
 `RANDOMIZER_VERSION` to `-20`, `contentHash` to `b8b419`; **`RUN_LOG_VERSION`
 and `AI_VERSION` both hold.**
 
@@ -75,15 +75,15 @@ Four items built in the order the report proposed:
 2. **Gym leaders hold items**, off the item ladder the reward pools already
    grade themselves with. Gym 8 fields six and every one holds. `contentHash`
    only — the draws were already being spent and discarded, by design, since
-   4.6b. Section 41.
+   4.6b. Section 42.
 3. **The technique shelf price** to 150 / 190, derived from the table's own +40
-   band step. Held loose by the ruling. Section 42.
+   band step. Held loose by the ruling. Section 43.
 4. **Every offer is three distinct options again.** Three defects — fungible
    kinds, duplicate relics, and a relic fallback with no knowledge of the
-   table — all measured to zero at every relic count. Section 43.
+   table — all measured to zero at every relic count. Section 44.
 5. **A gym reward page badges `GYM`**, not `ELITE`. The close-out of the one
-   item section 43 filed rather than fixed, and the thing that made item 1a's
-   first diagnosis wrong. No axis. Section 44.
+   item section 44 filed rather than fixed, and the thing that made item 1a's
+   first diagnosis wrong. No axis. Section 45.
 
 **Item 2 of the playtest, wild encounters swapping optimally, is deferred to a
 reproduction rather than to a later patch**: the wild tier holds neither
@@ -117,7 +117,27 @@ took it to 22.3%, because the damage formula's level term doubles between 7 and
 15 while median HP grows 1.69x. The curve is justified on evolution pacing and
 nothing else. Section 33.7 has the arithmetic and the ruling.
 
-**Merged before it: the bench carryover and the gym level column.** Branch
+**Merged into `main` and into this branch: the learn-move refresh.** Prompt
+[`spec/gymrun-patch-learn-move-refresh.md`](spec/gymrun-patch-learn-move-refresh.md),
+record [`generation.md`](generation.md) section 41. The audit below answered the
+lag on the *run's* clock; this is the same lag on the *player's*. Teaching
+became part of an `ItemPlan` at section 37 and a plan applies at the next node
+boundary, so a move the player had just taught was not drawn until they walked
+back to the map — and a moveset is the only confirmation a teach has.
+`ui/party-layout.ts` had folded the plan's items into every readout since Stage
+4.7 and its teaches into none. `core/party.ts` gains `teachApplies` — the three
+conditions `reconcileItemPlan` had inline, moved rather than copied — and
+`partyAfterTeaches`, a pure projection the party screen, the drawer, the pre-gym
+screen and both teach questions now read.
+
+**The order was the half that was not cosmetic.** Both teach questions were
+gated on `replacementNeeded(state.party[slot], move)`, and `reconcileItemPlan`
+reads the *running* party. A member handed two TMs in one plan was therefore
+asked "free slot?" twice, answered yes twice, and the boundary dropped the
+second teach with the TM silently back in the bag — **1 of 2 kept**, measured.
+Presentation only: no transition moved, no decision reshaped, no version axis
+moves, `contentHash` unmoved.
+
 **Also in flight, on its own branch: the update sequence audit.** Prompt
 [`spec/gymrun-patch-update-sequence-audit.md`](spec/gymrun-patch-update-sequence-audit.md),
 record [`generation.md`](generation.md) section 39. `onState` is the app's only
@@ -171,6 +191,8 @@ capture is the second of the two paths that shorten a party, and it was carrying
 an unspent `ItemPlan` across the slots it shifted — `showParty`'s `onRelease`
 has dropped the plan for that reason since 4.7, and `chooseAcquisition` does now
 too.
+
+**Merged before it: the bench carryover and the gym level column.** Branch
 `claude/amazing-edison-1koyiy`, prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest
@@ -822,7 +844,7 @@ One line each. The analysis lives where the pointer goes, not here.
    is the same lie one level down — `NodeSpec.tier` is nullable precisely
    because a gym has no tier, and that reasoning is untouched. No axis moves and
    no CSS was needed: Stage V0's ban on colour per tier means every tier chip is
-   already the same chip. `generation.md` section 44.
+   already the same chip. `generation.md` section 45.
 
 0. **A gym's difficulty now moves on two dials.** The gym's move band bonus and
    its held-item ladder both scale with segment, and the rule deleted in section
@@ -831,7 +853,7 @@ One line each. The analysis lives where the pointer goes, not here.
 
 0. **Eviolite can be a dead gym item.** It is a `GOOD_ITEMS` entry and does
    nothing on a fully evolved holder, which a late gym leader usually is. The
-   cost of "at random for now". `generation.md` section 41.
+   cost of "at random for now". `generation.md` section 42.
 
 0. **A TM is spendable in 13% of runs.** 43.5% of runs earn one; only 13.3%
    ever reach a rest or a shop while still holding it, which is the only

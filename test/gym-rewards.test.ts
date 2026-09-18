@@ -115,7 +115,7 @@ describe('the offer a gym clear produces', () => {
      * The item is not padding. It is `PREMIUM_ITEM_IDS`, the list this pool's
      * own header already named ("the premium items only, never the modest or
      * type ones"), plus the Choice items from segment 3 on the same gate
-     * `ELITE` applies. `docs/generation.md` section 43 is the account.
+     * `ELITE` applies. `docs/generation.md` section 44 is the account.
      */
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
