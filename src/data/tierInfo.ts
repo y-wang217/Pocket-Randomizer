@@ -36,6 +36,23 @@
  * all stated against a `normal` node in the same map position, which is what
  * they actually are. (Stage 4.9 made the level modifier a share of the
  * player's level and took elite's level discount away; the lines say so.)
+ *
+ * ## Why the subject is spelled out
+ *
+ * `normal` and `hard` opened `The segment's,` for three releases — a possessive
+ * with its noun elided, on a card two lines wide. Read on a phone it does not
+ * parse as ellipsis, it parses as a **string that got cut off**, which is the
+ * form the playtest report it came back in took: "the copy in the card says
+ * this segment's and is cut off". Nothing was truncated; the sentence simply
+ * had no subject, and the reader supplied the likeliest explanation for a
+ * sentence that stops.
+ *
+ * So all three name what is being described. "What the segment fields" is the
+ * same fact the ellipsis was pointing at — the encounter drawn from the
+ * segment's own distribution — and `data/bandInfo.ts` already uses *fields* in
+ * that sense, so the word is not new vocabulary. The numbers, the ordering and
+ * the parallel two-sentence shape are all unchanged; `test/tiers.test.ts`
+ * holds the shape, and holds a line against opening on an elided noun again.
  */
 import type { Tier } from '../core/types';
 
@@ -50,9 +67,9 @@ import type { Tier } from '../core/types';
  * game.
  */
 export const TIER_INFO: Readonly<Record<Tier, string>> = {
-  normal: 'The segment\'s, at its own level and band. Pays a move in its own band.',
-  hard: 'The segment\'s, a little above its level, +1 species band. Pays a move one band up.',
-  elite: 'One Pokemon more, at the segment\'s level, +1 species band and +1 move band. Pays a move two bands up.',
+  normal: 'What the segment fields, at its own level and band. Pays a move in its own band.',
+  hard: 'What the segment fields, a little above its level, +1 species band. Pays a move one band up.',
+  elite: 'One Pokemon more than the segment fields, at its level, +1 species band and +1 move band. Pays a move two bands up.',
 };
 
 /**
@@ -60,7 +77,7 @@ export const TIER_INFO: Readonly<Record<Tier, string>> = {
  * patch: the short form sits beside the long one in the table it lives in.
  */
 export const TIER_INFO_SHORT: Readonly<Record<Tier, string>> = {
-  normal: 'The segment\'s own. Pays its own band.',
+  normal: 'At the segment\'s level and band. Pays its band.',
   hard: 'A touch higher, +1 band. Pays one band up.',
   elite: 'One more, +1 band, +1 move band. Pays two bands up.',
 };

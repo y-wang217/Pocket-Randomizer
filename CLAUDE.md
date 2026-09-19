@@ -128,5 +128,6 @@ section 0.
 | the design lineage and the prompt register | [`docs/spec/README.md`](docs/spec/README.md) |
 | what is drawn where and when | [`docs/generation.md`](docs/generation.md) |
 | balance history and every number | [`docs/balance.md`](docs/balance.md) |
+| every string a player reads, and where it is written | [`docs/copy.md`](docs/copy.md) |
 | layers, seams and run logs | [`docs/architecture.md`](docs/architecture.md) |
 | `@pkmn/sim` findings and the bundle | [`docs/engine-notes.md`](docs/engine-notes.md) |

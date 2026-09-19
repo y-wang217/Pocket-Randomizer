@@ -51,6 +51,7 @@
  */
 
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
+import { INTRO_VERSION } from '../data/intro';
 
 export type Density = 'detailed' | 'simple' | 'pocket';
 
@@ -150,11 +151,25 @@ export interface TutorialFlags {
   seen: TutorialScreen[];
 }
 
+/**
+ * Whether the intro panel has been dismissed, and at which content version.
+ *
+ * A version rather than a boolean, for the reason `data/intro.ts` gives: a
+ * rewrite that changes what the intro says should show itself once to a player
+ * who dismissed the old wording, and a boolean cannot express that. `0` is
+ * "never seen", which is what a fresh store and an unreadable one both read
+ * as.
+ */
+export interface IntroFlags {
+  seenVersion: number;
+}
+
 export interface Settings {
   density: Density;
   moveBar: MoveBar;
   battleSpeed: BattleSpeed;
   tutorial: TutorialFlags;
+  intro: IntroFlags;
 }
 
 /**
@@ -179,6 +194,7 @@ export const DEFAULT_SETTINGS: Settings = {
   moveBar: 'grid',
   battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
+  intro: { seenVersion: 0 },
 };
 
 function isDensity(value: unknown): value is Density {
@@ -234,6 +250,7 @@ export function readSettings(value: unknown): Partial<Settings> {
     battleSpeed?: unknown;
     verbosity?: unknown;
     tutorial?: unknown;
+    intro?: unknown;
   };
   const read: Partial<Settings> = {};
   if (isDensity(candidate.density)) read.density = candidate.density;
@@ -270,6 +287,17 @@ export function readSettings(value: unknown): Partial<Settings> {
         ? tutorial.seen.filter((entry): entry is TutorialScreen => TUTORIAL_SCREENS.includes(entry as TutorialScreen))
         : [],
     };
+  }
+  /*
+   * A store written before the intro existed has no `intro` key, which reads
+   * as `seenVersion: 0` and shows the panel once. That is the intended
+   * migration rather than an accident of the default: the intro is new to
+   * a returning player too, and a player who has already played is exactly
+   * who the one-line version is shortest for.
+   */
+  const intro = candidate.intro as { seenVersion?: unknown } | undefined;
+  if (typeof intro === 'object' && intro !== null && typeof intro.seenVersion === 'number') {
+    read.intro = { seenVersion: intro.seenVersion };
   }
   return read;
 }
@@ -362,6 +390,42 @@ export function resetTutorial(): void {
 
 export function tutorialFlags(): TutorialFlags {
   return { skipped: current.tutorial.skipped, seen: [...current.tutorial.seen] };
+}
+
+// ---------------------------------------------------------------------------
+// The intro flag
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the intro is due: never dismissed, or dismissed at an older version.
+ *
+ * Deliberately **not** gated on `tutorial.skipped`. The two are separate
+ * surfaces answering separate questions, and a player who skipped the coach
+ * marks on a previous build has said nothing about a panel that did not exist
+ * then. Skipping the marks from inside the tutorial still skips only the
+ * marks.
+ */
+export function introDue(): boolean {
+  return current.intro.seenVersion < INTRO_VERSION;
+}
+
+/** The intro was shown and closed. It does not show again until its version moves. */
+export function markIntroSeen(): void {
+  if (current.intro.seenVersion >= INTRO_VERSION) return;
+  current = { ...current, intro: { seenVersion: INTRO_VERSION } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+/** "Show the intro and the tutorial again": the intro half of it. */
+export function resetIntro(): void {
+  current = { ...current, intro: { seenVersion: 0 } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+export function introFlags(): IntroFlags {
+  return { seenVersion: current.intro.seenVersion };
 }
 
 /**

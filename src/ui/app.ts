@@ -39,8 +39,9 @@ import { DEFAULT_TUNING } from '../data/tuning';
 import { SEED_COPY } from '../data/seedCopy';
 import type { EventArchetype } from '../data/eventPools';
 import { createPending, isRunAbandoned } from './pending';
-import { initSettings, onSettingsChange, resetTutorial } from './settings';
+import { initSettings, onSettingsChange, resetIntro, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
+import { createIntro } from './intro';
 import { createDensityGuard } from './density-guard';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
@@ -353,7 +354,16 @@ export function mountApp(root: HTMLElement): void {
   // "Show tutorial again": the flags go back to a first launch and the screen
   // on view gets its marks now rather than on its next visit.
   replayTutorial.addEventListener('click', () => {
+    resetIntro();
     resetTutorial();
+    /*
+     * The greeting first, and the marks from its `onClose` — the same order a
+     * first launch has. The drawer's marks are the one thing that cannot wait
+     * for the close, because the drawer may not be open by then; they are
+     * asked for here as before, and the panel over them is the player's own
+     * doing.
+     */
+    intro.open(replayTutorial);
     const name = router.current();
     if (name) showTutorialFor(name);
     if (drawer.isOpen()) marks.showFor('drawer', drawer.root);
@@ -413,6 +423,16 @@ export function mountApp(root: HTMLElement): void {
    */
   const tutorial = createTutorial(shell);
   /*
+   * The intro, mounted beside the coach marks and sequenced ahead of them.
+   *
+   * Two overlays on one screen is neither, and on a first launch both are due
+   * on the starter screen. `showTutorialFor` holds while the panel is open and
+   * `onClose` asks again for whatever the router is showing, so the order is
+   * always intro, then marks. Presentation only, like the layer it sits next
+   * to: `ui/intro.ts`.
+   */
+  const intro = createIntro(shell);
+  /*
    * Ruling 6 on the density modes patch: Detailed on the root while a
    * screen's unseen marks are up, applied before the marks resolve their
    * anchors, the stored mode back when they finish or Skip fires. Every
@@ -422,12 +442,24 @@ export function mountApp(root: HTMLElement): void {
   const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
   const showTutorialFor = (name: ScreenName): void => {
     if (!isTutorialScreen(name)) return;
+    // Held, not dropped: the marks are asked for again from `intro.onClose`,
+    // against whatever the router is showing then. A screen reached while the
+    // greeting is up still gets its first visit.
+    if (intro.isOpen()) return;
     const screen = router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`);
     if (!screen) return;
     queueMicrotask(() => {
       if (router.current() === name) marks.showFor(name, screen);
     });
   };
+
+  intro.onClose(() => {
+    const name = router.current();
+    if (name) showTutorialFor(name);
+  });
+  // The greeting goes up before the first screen is reached, so the shell is
+  // the thing behind it rather than a decision the player is part way into.
+  intro.openIfDue();
 
   /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;
