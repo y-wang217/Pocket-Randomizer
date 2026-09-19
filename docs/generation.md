@@ -7963,3 +7963,236 @@ silently, and the guard fired on the other axis. It is recorded rather than
 retro-bumped. The wording in `types.ts` is what misled and is worth reconciling
 to `CLAUDE.md`'s — the axis is *did which value a draw resolves to change*, and
 "code" is where that usually happens rather than what it means.
+
+## 51. The card that was not truncated, a chart of every string, and a greeting
+
+**2026-09-19.** Branch `claude/game-copy-audit-intro-rar7gf`, prompt
+[`spec/gymrun-patch-copy-audit-and-intro.md`](spec/gymrun-patch-copy-audit-and-intro.md).
+
+**No version axis moves.** `contentHash` holds at `d4e080`, `RUN_LOG_VERSION`,
+`RANDOMIZER_VERSION` and `AI_VERSION` all hold. One existing string changes and
+it is in `data/tierInfo.ts`; one new table is added and it is `data/intro.ts`.
+Both are on the `contentHash` exclusion list in `build-config/content-hash.ts`,
+`data/intro.ts` by an entry added here with its reason, and
+`test/content-hash.test.ts` walks the import graph to hold it: nothing under
+`core/` reaches either file.
+
+### 51.1 The prompt landed after the work did
+
+Protocol 5 asks for the prompt in `docs/spec/` before any code. It was not. The
+brief arrived as one message with a screenshot and the session started on it
+directly; the file was written afterwards, carries the brief verbatim, and says
+so in its own second paragraph. Second instance, after
+`gymrun-patch-main-check-red-legs.md`. Recorded rather than smoothed over,
+which is what protocol 4 asks for.
+
+### 51.2 "Says this segment's and is cut off"
+
+The report is quoted exactly because the exact words are the finding.
+`TIER_INFO.normal` and `TIER_INFO.hard` read:
+
+> The segment's, at its own level and band. Pays a move in its own band.
+> The segment's, a little above its level, +1 species band. Pays a move one band up.
+
+A possessive with its noun elided. It is grammatical, and on a two-line card at
+390pt it does not parse as ellipsis — it parses as a **string that got cut
+off**, and the reader supplies the likeliest explanation for a sentence that
+stops. Nothing was truncated. The sentence had no subject.
+
+All three lines now name what is described. "What the segment fields" is the
+same fact the ellipsis pointed at — the encounter drawn from the segment's own
+distribution — and `data/bandInfo.ts` already uses *fields* in that sense, so it
+is not new vocabulary. Every number, the ordering, and the parallel two-sentence
+shape are unchanged. `TIER_INFO_SHORT.normal` had the same defect in miniature
+("The segment's own.") and is repaired the same way; `hard` and `elite`'s short
+forms were already fine and are untouched.
+
+**The shape check in `test/tiers.test.ts` was written around the defect.** It
+required `/^(The segment's|One Pokemon more),/` — the comma straight after the
+possessive — so the one test in the suite looking at these three lines was
+pinning the bug in place. It is updated to the new opening, and a second case is
+added beside it that is about punctuation rather than wording: no line, long or
+short, may open on `Word Word's,`. That guard would have caught the original.
+
+### 51.3 `docs/copy.md`, and why it is generated
+
+The brief asks for every string in the game in one chart, to be rewritten.
+`scripts/copy-audit.ts` builds it by **importing the tables** and `npm run
+copy-audit` regenerates it; `docs/copy.md` is output and says so at the top.
+
+A hand-typed audit is a snapshot of the day it was typed, and a stale audit is
+worse than none — it reads as authority while stating something the game no
+longer says. Generated, the chart cannot disagree with the tables, and the
+rewrite loop is: fill the **Rewrite** column, move the wording into the source
+file named under the heading, rerun.
+
+450 strings across 33 surfaces. Two things it cannot reach, both stated in the
+file:
+
+- **A string still written inline in a component.** Those come from a grep over
+  `src/ui` for `textContent`, `title`, `label`, `placeholder` and `ariaLabel`
+  assignments, and land in a final section with file and line. 46 of them. That
+  section shrinking to nothing is the point of it: it is the worklist for the
+  pass that moves a literal into a table.
+- **Anything composed at runtime from a template** — `boostPhrase`,
+  `flagWord`, `threatDetail`. The chart carries the template and a worked
+  example rather than the cross product, which is thousands of rows of which
+  none is a sentence anyone writes.
+
+**It also found something the brief did not ask about, and does not fix it.**
+Two tables carry an `advice` field, and an `advice` field is a verdict by
+construction: `data/statusInfo.ts` has 22 ("usually better than rolling the
+dice", "worth the switch almost every time", "the harshest status in the game")
+and `data/categoryInfo.ts` has 3. `data/statInfo.ts`'s own header says the line
+those walk "is deliberately not walked here" — the file next door already knows.
+Whether they teach the interface (defensible) or hand the player the decision
+(not) is a design call and not a bug fix, so the chart states the case both ways
+under a heading and changes nothing. The verdict lint in
+`test/boundaries.test.ts` does not see them because it reads `src/ui` only.
+
+### 51.4 The intro, and what it is for that the tutorial is not
+
+`data/intro.ts`, `ui/intro.ts`, one flag in `ui/settings.ts`, one CSS block.
+
+The tutorial explains the **vocabulary** — seed, PP, tier, relic — to a bar of
+"a player who has never seen a Pokemon game can read every screen and understand
+what it is asking". It is good at that and it is the wrong tool for the question
+a new player opens with, which is *what kind of thing is this*. Twenty-eight
+coach marks answer that eventually, in pieces, across eight screens.
+
+The intro answers it in one line before the first decision. A player who knows
+the genre now has the whole shape — one run, escalating fights, a reward after
+each, no take-backs — and every screen after reads as an instance of a pattern
+they hold. A player who does not has lost nothing, and the second sentence says
+so rather than explaining the genre at them.
+
+Three decisions in it worth recording:
+
+- **Built on `ui/overlay.ts`**, so it owns no geometry, no scrim, no Escape
+  handler and no focus restoration. `intro` is added to the `BLOCKS` list in
+  `test/overlay.test.ts`, which is that file's stated reason for existing —
+  whichever block somebody forgets to add is the one that drifts.
+- **Every route out records it.** The first cut listened for events on the
+  layer root, and the shell's own click-stop on the sheet — the rule that keeps
+  a tap inside the window from reading as a tap outside it — swallowed the
+  header Close button's click. The panel closed and the flag was never written,
+  so the greeting returned next launch for exactly one of four routes. The
+  interception moved to `overlay.close` itself, which every one of the four
+  paths calls through the returned object. `test/intro.test.ts` runs all four.
+- **A version, not a boolean.** `INTRO_VERSION` is stored beside the seen flag,
+  so a rewrite of the greeting can show itself once to a player who dismissed
+  the old wording. A boolean cannot express that.
+
+**It does not compete with the coach marks.** Both are due on the starter screen
+on a first launch, and two overlays on one screen is neither. `ui/app.ts` holds
+`showTutorialFor` while the panel is open and asks again from `intro.onClose`,
+against whatever the router is showing then — so the order is always intro, then
+marks, then the cards, and a screen reached while the greeting is up still gets
+its first visit. The header's one control resets both and its label now names
+both; its face stays `Tutorial`.
+
+**On the copy rule.** "Slay the Spire" is a comparison that conveys a genre to
+the people who would recognise it, on a panel where the player is choosing
+nothing. `CLAUDE.md`'s rule governs the screens where an option is being
+weighed, and the nearest existing thing is `data/locales.ts`'s blurbs — a line
+that sets a register rather than stating a number. The forbidden-word lint
+covers `TUTORIAL` marks and event copy, and the verdict lint covers string
+literals under `src/ui`; the greeting is in `data/` and trips neither, which is
+a fact about their scope and is stated here rather than relied on quietly.
+
+### 51.5 The panel that failed five of the nine legs, and the seed that was in two places
+
+The intro shipped its first commit correct on its own terms and **red across
+the project**: `test:node`, `test:chromium`, `trim:node`, `trim:browser` and
+`smoke` all failed, none of them on anything they were testing. Every failure
+read the same way —
+
+> `<p class="intro__tutorial">…</p>` from `<div … class="overlay intro">` subtree
+> intercepts pointer events
+
+A modal with a scrim is the one first-run surface a driven browser cannot
+ignore. The coach marks never caused this: a mark is a panel beside its anchor
+with nothing over the rest of the screen, so a suite that clicks by selector
+walks straight past it.
+
+**The cause was not the panel. It was that "this context is not a first launch"
+was written down twice.** `scripts/smoke.mjs` and `scripts/visual/browser.mjs`
+each hand-rolled `{ density, tutorial: { skipped: true, seen: [] } }`, and
+`test/visual-motion.test.ts` hand-rolled a third copy. A new surface had to be
+remembered in three places to be suppressed in any, and it was remembered in
+none.
+
+It is one file now, `scripts/first-launch.mjs`, and all three read from it.
+Plain ESM for `moveFactCeiling.mjs`'s reason — the smoke run is Node against a
+built bundle and cannot import TypeScript — with a `.d.mts` beside it so the
+two test files that import it typecheck. It seeds the intro as
+`Number.MAX_SAFE_INTEGER` rather than as `INTRO_VERSION`: restating the
+constant would mean editing the harness on every reword and silently failing to
+suppress the panel on the release somebody forgot, where a ceiling says the
+permanently true thing — a driven browser has seen every greeting there will
+ever be.
+
+Two tests hold it, and deliberately at two altitudes. `test/intro.test.ts`
+asserts in jsdom, in a second, that the shared seed suppresses the greeting;
+`test/tutorial-browser.test.ts` asserts in a browser that on a real first
+launch the panel is up **and the marks are not**, that dismissing it brings
+them, and that "Show tutorial again" replays both in that order. The first is
+the one that will actually catch the next instance, because the browser leg
+that found this one takes twelve minutes to say so.
+
+### 51.6 The generated chart named 46 paths, and none of them resolved
+
+`test/boundaries.test.ts` resolves every backticked path in every live document
+against the tree, and the chart's inline-literals section printed the file and
+the line as one token — summary.ts with a colon and a line number welded on,
+which is not a path. 46 rows, 46 unresolvable tokens, `test:node` and
+`trim:node` red.
+
+(That sentence is unbackticked on purpose. The first draft of this note quoted
+the broken form **inside backticks**, and the check failed on this file for the
+same reason it had failed on the chart: it does not read prose, it reads
+tokens, and a token that is an example of a bad path is still a bad path. The
+check is right and the note is the one that has to give.)
+
+The path is inside the backticks and the line number outside them now
+(`` `src/ui/screens/summary.ts` line 117``), which reads the same and costs
+nothing. **It also means the generated chart is checked from here on:** a row
+naming a file that has since moved fails the suite rather than sending a reader
+nowhere, and `npm run copy-audit` is the fix. A generated document that nothing
+verifies is a document that goes stale silently, which is the failure this
+whole chart is built against.
+
+### 51.7 The standing voice brief, and a count that was mostly this file's own punctuation
+
+**The brief, recorded verbatim:** *"concise, aloof, assumes the player is
+already not really paying attention, so gets straight to the point. no fluff.
+no em dashes."*
+
+It lives in `scripts/copy-audit.ts` and renders into `docs/copy.md`, because
+that is the document a rewrite is done from. **No copy is rewritten under it
+here.** The author is doing that pass; this records the brief and makes the
+chart fit to do it from.
+
+Two things the brief immediately broke.
+
+**The chart was fabricating em dashes.** It joined a name to its blurb as
+`Leftovers — Restores 1/16 max HP`, and that dash was the chart's, not the
+game's. A count over the rendered rows said 249 of 496 strings carried an em or
+en dash; the real figure, measured over the fields themselves, is **51 of 714**
+— seven percent, and 29 of those are in `data/tutorial.ts`. The first number
+would have sent someone rewriting half the game to fix punctuation that was
+never in it.
+
+So a row is one field now. Two fields means two rows and two rewrite boxes,
+keyed `<id> · name` and `<id> · blurb`. The row count goes from 496 to 714 and
+every box maps to exactly one string in exactly one place, which is what the
+chart is for. `data/items.ts`'s names are marked `(fixed)`: they are the dex's
+and the engine keys on them.
+
+**The brief collides with one existing rule, and the rule wins.** Several
+strings are long because they carry something the player cannot be allowed to
+miss — "permanent", "no undo", "nothing is bought until you leave". The density
+short forms already state that such a part may never be dropped; a warning that
+survives only in Detailed is a warning the mode removed. The chart says so
+under the brief rather than leaving the next pass to discover it: short and
+complete, not short.

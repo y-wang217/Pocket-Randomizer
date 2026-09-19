@@ -13,6 +13,8 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
+import { notFirstLaunch } from '../first-launch.mjs';
+
 const TYPES = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -458,10 +460,17 @@ export async function skipTutorialIn(context, density = 'detailed', moveBar = 'g
       try {
         if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
       } catch {
-        // Storage unavailable: the app falls back to defaults and the marks show.
+        // Storage unavailable: the app falls back to defaults and both
+        // first-run surfaces show.
       }
     },
-    JSON.stringify({ density, moveBar, tutorial: { skipped: true, seen: [] } }),
+    /*
+     * The store comes from `scripts/first-launch.mjs`, which `scripts/smoke.mjs`
+     * seeds from too. It covers the coach marks **and** the intro panel — the
+     * name here is older than the panel and is kept because every caller in the
+     * suite uses it.
+     */
+    notFirstLaunch({ density, moveBar }),
   );
 }
 

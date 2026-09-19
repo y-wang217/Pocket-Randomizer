@@ -19,6 +19,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { MAX_MOVE_FACTS } from '../src/data/moveFactCeiling.mjs';
+import { notFirstLaunch } from './first-launch.mjs';
 
 const DIST = join(process.cwd(), 'dist');
 mkdirSync(join(process.cwd(), 'stats'), { recursive: true });
@@ -109,22 +110,23 @@ const PINNED = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-b
 const executablePath = PINNED.find((candidate) => existsSync(candidate));
 const browser = await chromium.launch(executablePath ? { executablePath } : {});
 /*
- * The tutorial's coach marks show on a first launch, which a fresh browser is.
- * They are tappable panels over the screen and this script clicks by selector,
- * so the store is seeded with the tutorial skipped, the same way the visual
- * harness seeds its contexts. The tutorial has its own browser test.
+ * Both first-run surfaces show on a first launch, which a fresh browser is:
+ * the intro panel is a modal with a scrim and the coach marks are tappable
+ * panels over the screen, and this script clicks by selector. So the store is
+ * seeded as a returning player's, from the one file the visual harness seeds
+ * from too — `scripts/first-launch.mjs` says why that is one file. Each
+ * surface has its own test.
  */
-const TUTORIAL_SKIPPED = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
-const skipTutorial = (target) =>
+const skipFirstRun = (target) =>
   target.addInitScript((settings) => {
     try {
       if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
     } catch {
       // Storage unavailable: defaults apply.
     }
-  }, TUTORIAL_SKIPPED);
+  }, notFirstLaunch());
 const page = await browser.newPage();
-await skipTutorial(page);
+await skipFirstRun(page);
 const problems = [];
 page.on('console', (msg) => {
   if (msg.type() !== 'error') return;
@@ -879,7 +881,7 @@ const phone = await browser.newPage({
   isMobile: true,
   hasTouch: true,
 });
-await skipTutorial(phone);
+await skipFirstRun(phone);
 await phone.goto(url, { waitUntil: 'load' });
 await phone.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
 
