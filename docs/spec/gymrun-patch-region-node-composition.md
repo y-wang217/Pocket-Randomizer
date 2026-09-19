@@ -223,3 +223,62 @@ sentence says 1. Three ways out, and this is a design call:
    alone with D filed for its own prompt and its own benchmark?
 
 Nothing is built until these are answered. **This is the hard stop.**
+
+---
+
+# The answers. 2026-09-19, verbatim.
+
+Four questions were put after the report. Answers as given:
+
+1. **The rest floor collision (§6)** — *Cap 2, floor 1.* Drop the density floor
+   to the guarantee, add a ceiling of 2. A double rest becomes possible but
+   never mandatory; a single rest stays guaranteed.
+2. **"Region"** — *one route.* The road the player walks. Routes are capped
+   independently of one another.
+3. **Shops** — *max 2 per region.*
+4. **Trivial paths**, answered in the author's own words rather than from the
+   options:
+
+> the bad state is that a player can choose not to interact, but they will be punished by being weak compared to the gym.
+> that's the trade off in sts. more risk means you scale and can beat the later opponents. but we reward completing a gym hard. so reaching and completing the gyms is the whole point. so we'll want to limit the other options. like with the matrix of possible paths offered, there should be at least some wild/trainer or wild/wild nodes. and we should make some events more punishing, so player don't auto-select the question mark. the worst case (pick event without even the type) should be some forced punishment. sts has curses, lowered max hp, and fights in ? event spaces. we can implement the same
+
+## What that answer settles, and what it adds
+
+It settles the framing: **skipping is meant to be self-punishing**, through the
+gym, and the generator's job is not to force fights but to stop the map
+offering a road with nothing on it. So the forced-fight floor is in scope, as
+"at least some wild/trainer or wild/wild nodes" per route — a generalisation of
+`placeBattlePair`, which is this rule already, hardcoded to segment 7.
+
+And it adds a second front the report did not cover: **the question mark is
+auto-selected because its floor is too soft.** A Gamble at `none` should be a
+real risk, and today's `T0` pool cannot produce one that bites. Named
+precedents: curses, lowered max HP, and a fight inside the event node.
+
+## Two lineage rules the second front reverses
+
+Recorded here rather than discovered mid-build:
+
+1. **"An event is a node with no battle in it."** `core/events.ts`'s
+   `damageParty` header states it and `eventDamageFloor` enforces it: an event
+   can never end a run. A fight inside an event node reverses that.
+2. **"An event Pokemon never costs a fight at any tier"** — the event rejig's
+   ruling, `docs/generation.md` section 14.
+
+Both are the author's to reverse and both are reversed by the answer above.
+They are deleted from the lineage with a dated note rather than left behind a
+flag, per `CLAUDE.md` Process.
+
+## Build order
+
+Two checkpoints, because they move difficulty on different axes and a single
+benchmark row could not attribute a change in mean gyms to either.
+
+- **Checkpoint 1 — the map.** Per-route caps (rest 2, shop 2), rest floor to
+  the guarantee, and a per-route floor of battle-only steps. Moves
+  `RANDOMIZER_VERSION` and `contentHash`.
+- **Checkpoint 2 — the question mark.** A `T0` that bites: the curse class,
+  max-HP loss, and the event fight. Moves `contentHash`, and
+  `RANDOMIZER_VERSION` again if the pools change draw composition.
+
+Benchmark between them.
