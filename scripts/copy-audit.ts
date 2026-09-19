@@ -26,6 +26,20 @@
  * template and an example rather than the cross product, because the cross
  * product is thousands of rows and none of them is a sentence anyone writes.
  *
+ * ## One row is one field, and the chart adds no punctuation of its own
+ *
+ * An earlier cut joined a name to its blurb with an em dash — `Leftovers —
+ * Restores 1/16 max HP` — and that dash was the **chart's**, not the game's.
+ * It cost nothing until the standing brief said no em dashes, at which point
+ * half the rows appeared to break a rule none of them broke: a count over the
+ * rendered chart said 249 of 496 strings carried one, and most of those were
+ * this file's own joiner.
+ *
+ * So a row is exactly one field now. Two fields means two rows and two rewrite
+ * boxes, keyed `<id> · name` and `<id> · blurb`, because the person filling in
+ * a box is writing one string into one place in one file and the chart must
+ * not put words between them.
+ *
  * Run: `npm run copy-audit`.
  */
 import { writeFileSync } from 'node:fs';
@@ -179,17 +193,21 @@ section({
   title: 'Regions',
   where: 'The name and one line under each region on the locale screen.',
   source: 'src/data/locales.ts',
-  rows: LOCALES.map((locale) => ({ key: locale.id, text: `${locale.name} — ${locale.blurb}` })),
+  rows: LOCALES.flatMap((locale) => [
+    { key: `${locale.id} · name`, text: locale.name },
+    { key: `${locale.id} · blurb`, text: locale.blurb },
+  ]),
 });
 
 section({
   title: 'Gym leaders',
   where: 'The gym rail in the header, the pre-gym screen, and the locale screen.',
   source: 'src/data/gyms.ts',
-  rows: GYMS.map((gym) => ({
-    key: gym.id,
-    text: `${gym.leader} (${gym.type}, gym ${gym.segment + 1}) — ${gym.blurb}`,
-  })),
+  note: 'The type and the gym number are facts the screen computes, not copy. The leader\u2019s name and the one line under it are.',
+  rows: GYMS.flatMap((gym) => [
+    { key: `${gym.id} · leader`, text: gym.leader },
+    { key: `${gym.id} · blurb`, text: gym.blurb },
+  ]),
 });
 
 section({
@@ -219,10 +237,10 @@ section({
     + 'archetypes; `attune` appears only when the run holds the relic the event requires.',
   rows: EVENTS.flatMap((event) => [
     { key: `${event.id} · hook`, text: event.hook },
-    ...EVENT_ARCHETYPES.map((archetype) => ({
-      key: `${event.id} · ${archetype}`,
-      text: `${event.labels[archetype]} — ${event.hints[archetype]}`,
-    })),
+    ...EVENT_ARCHETYPES.flatMap((archetype) => [
+      { key: `${event.id} · ${archetype} · label`, text: event.labels[archetype] },
+      { key: `${event.id} · ${archetype} · hint`, text: event.hints[archetype] },
+    ]),
   ]),
 });
 
@@ -246,11 +264,9 @@ section({
     const entry = STAT_INFO[stat];
     if (!entry) return [];
     return [
-      {
-        key: stat,
-        text: `${entry.abbreviation} — ${entry.label}. ${entry.mechanics}`
-          + (entry.pairsWith ? ` (Pairs with ${entry.pairsWith}.)` : ''),
-      },
+      { key: `${stat} · abbreviation`, text: entry.abbreviation },
+      { key: `${stat} · label`, text: entry.label },
+      { key: `${stat} · mechanics`, text: entry.mechanics },
     ];
   }),
 });
@@ -303,21 +319,20 @@ section({
   title: 'Battle — move tags',
   where: 'On a move button and its detail panel.',
   source: 'src/data/moveTags.ts',
-  rows: MOVE_TAGS.map((tag) => ({
-    key: tag.id,
-    text: `${tag.long} — ${tag.blurb}`,
-    short: tag.short,
-  })),
+  rows: MOVE_TAGS.flatMap((tag) => [
+    { key: `${tag.id} · name`, text: tag.long, short: tag.short },
+    { key: `${tag.id} · blurb`, text: tag.blurb },
+  ]),
 });
 
 section({
   title: 'Battle — the move fact strip',
   where: 'The icon row on a move button, and the panel each icon raises.',
   source: 'src/data/moveFactInfo.ts',
-  rows: Object.entries(MOVE_FACT_INFO).map(([key, entry]) => ({
-    key: `${key} (${entry.icon})`,
-    text: `${entry.label} — ${entry.blurb}`,
-  })),
+  rows: Object.entries(MOVE_FACT_INFO).flatMap(([key, entry]) => [
+    { key: `${key} (${entry.icon}) · label`, text: entry.label },
+    { key: `${key} (${entry.icon}) · blurb`, text: entry.blurb },
+  ]),
 });
 
 section({
@@ -325,10 +340,11 @@ section({
   where: 'Tapping the BAND badge on a reward card or a move.',
   source: 'src/data/bandInfo.ts',
   note: `Shown under a multi-hit move: "${BAND_MULTIHIT_NOTE}"`,
-  rows: Object.entries(BAND_INFO).map(([key, entry]) => ({
-    key: `band ${key}`,
-    text: `${entry.label} (${entry.range}). ${entry.text}`,
-  })),
+  rows: Object.entries(BAND_INFO).flatMap(([key, entry]) => [
+    { key: `band ${key} · label`, text: entry.label },
+    { key: `band ${key} · range`, text: entry.range },
+    { key: `band ${key} · text`, text: entry.text },
+  ]),
 });
 
 section({
@@ -336,11 +352,10 @@ section({
   where: 'The archetype chip on a stat block, and its panel.',
   source: 'src/data/archetypes.ts',
   note: `Intro: "${ARCHETYPE_INTRO}" — Caveat: "${ARCHETYPE_CAVEAT}"`,
-  rows: Object.entries(ARCHETYPE_DISPLAY).map(([key, entry]) => ({
-    key,
-    text: `${entry.long} — ${entry.blurb}`,
-    short: entry.short,
-  })),
+  rows: Object.entries(ARCHETYPE_DISPLAY).flatMap(([key, entry]) => [
+    { key: `${key} · name`, text: entry.long, short: entry.short },
+    { key: `${key} · blurb`, text: entry.blurb },
+  ]),
 });
 
 section({
@@ -454,14 +469,21 @@ section({
   title: 'Held items and berries',
   where: 'The reward card, the shop shelf, and the item slot on the party screen.',
   source: 'src/data/items.ts',
-  rows: ITEMS.map((item) => ({ key: item.id, text: `${item.name} — ${item.blurb}` })),
+  note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the blurb is rewritable. Both are listed; the name is here to read the blurb against.',
+  rows: ITEMS.flatMap((item) => [
+    { key: `${item.id} · name (fixed)`, text: item.name },
+    { key: `${item.id} · blurb`, text: item.blurb },
+  ]),
 });
 
 section({
   title: 'Relics',
   where: 'The relic card, the party screen’s relic list, and the drawer.',
   source: 'src/data/relics.ts',
-  rows: RELICS.map((relic) => ({ key: relic.id, text: `${relic.name} — ${relic.playerDescription}` })),
+  rows: RELICS.flatMap((relic) => [
+    { key: `${relic.id} · name`, text: relic.name },
+    { key: `${relic.id} · description`, text: relic.playerDescription },
+  ]),
 });
 
 section({
@@ -470,20 +492,20 @@ section({
   source: 'src/ui/copy/screens.ts',
   rows: [
     { key: `heading · ${DENSITY_HEADING}`, text: DENSITY_HEADING },
-    ...Object.entries(DENSITY_COPY).map(([key, value]) => ({
-      key: `density.${key}`,
-      text: `${value.name} — ${value.description}`,
-    })),
+    ...Object.entries(DENSITY_COPY).flatMap(([key, value]) => [
+      { key: `density.${key} · name`, text: value.name },
+      { key: `density.${key} · description`, text: value.description },
+    ]),
     { key: `heading · ${MOVE_BAR_HEADING}`, text: MOVE_BAR_HEADING },
-    ...Object.entries(MOVE_BAR_COPY).map(([key, value]) => ({
-      key: `moveBar.${key}`,
-      text: `${value.name} — ${value.description}`,
-    })),
+    ...Object.entries(MOVE_BAR_COPY).flatMap(([key, value]) => [
+      { key: `moveBar.${key} · name`, text: value.name },
+      { key: `moveBar.${key} · description`, text: value.description },
+    ]),
     { key: `heading · ${BATTLE_SPEED_HEADING}`, text: BATTLE_SPEED_HEADING },
-    ...Object.entries(BATTLE_SPEED_COPY).map(([key, value]) => ({
-      key: `battleSpeed.${key}`,
-      text: `${value.name} — ${value.description}`,
-    })),
+    ...Object.entries(BATTLE_SPEED_COPY).flatMap(([key, value]) => [
+      { key: `battleSpeed.${key} · name`, text: value.name },
+      { key: `battleSpeed.${key} · description`, text: value.description },
+    ]),
   ],
 });
 
@@ -635,6 +657,27 @@ function render(): string {
     + 'short one. The short form must say the same fact in fewer words, and must never drop the part '
     + 'that is the rule — "permanent", "no undo", "nothing is bought until you leave". A warning that '
     + 'survives only in Detailed is a warning the density mode removed.',
+  );
+  lines.push('');
+  lines.push('## The voice');
+  lines.push('');
+  lines.push(
+    '> Concise, aloof, assumes the player is already not really paying attention, so gets straight to '
+    + 'the point. No fluff. No em dashes.',
+  );
+  lines.push('');
+  lines.push(
+    'The author\u2019s standing brief, recorded here because this is the document a rewrite is done '
+    + 'from. It is not yet what the game sounds like: the live copy is discursive, fond of a '
+    + 'subordinate clause, and leans on the em dash as its main joint. Every row below is a string '
+    + 'written before the brief existed.',
+  );
+  lines.push('');
+  lines.push(
+    'Note the one place the brief and the mechanics pull against each other. Several strings are '
+    + 'long because they carry a rule the player cannot be allowed to miss \u2014 "permanent", "no '
+    + 'undo", "nothing is bought until you leave". Cutting those to length drops the warning, which '
+    + 'is the one edit the density-mode rule already forbids. Short and complete, not short.',
   );
   lines.push('');
   lines.push('## The rule every one of these is written under');

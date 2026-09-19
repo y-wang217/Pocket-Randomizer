@@ -8154,3 +8154,38 @@ naming a file that has since moved fails the suite rather than sending a reader
 nowhere, and `npm run copy-audit` is the fix. A generated document that nothing
 verifies is a document that goes stale silently, which is the failure this
 whole chart is built against.
+
+### 51.7 The standing voice brief, and a count that was mostly this file's own punctuation
+
+**The brief, recorded verbatim:** *"concise, aloof, assumes the player is
+already not really paying attention, so gets straight to the point. no fluff.
+no em dashes."*
+
+It lives in `scripts/copy-audit.ts` and renders into `docs/copy.md`, because
+that is the document a rewrite is done from. **No copy is rewritten under it
+here.** The author is doing that pass; this records the brief and makes the
+chart fit to do it from.
+
+Two things the brief immediately broke.
+
+**The chart was fabricating em dashes.** It joined a name to its blurb as
+`Leftovers — Restores 1/16 max HP`, and that dash was the chart's, not the
+game's. A count over the rendered rows said 249 of 496 strings carried an em or
+en dash; the real figure, measured over the fields themselves, is **51 of 714**
+— seven percent, and 29 of those are in `data/tutorial.ts`. The first number
+would have sent someone rewriting half the game to fix punctuation that was
+never in it.
+
+So a row is one field now. Two fields means two rows and two rewrite boxes,
+keyed `<id> · name` and `<id> · blurb`. The row count goes from 496 to 714 and
+every box maps to exactly one string in exactly one place, which is what the
+chart is for. `data/items.ts`'s names are marked `(fixed)`: they are the dex's
+and the engine keys on them.
+
+**The brief collides with one existing rule, and the rule wins.** Several
+strings are long because they carry something the player cannot be allowed to
+miss — "permanent", "no undo", "nothing is bought until you leave". The density
+short forms already state that such a part may never be dropped; a warning that
+survives only in Detailed is a warning the mode removed. The chart says so
+under the brief rather than leaving the next pass to discover it: short and
+complete, not short.
