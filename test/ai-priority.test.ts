@@ -412,7 +412,18 @@ describe('the version axes', () => {
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44');
+    /*
+     * And a tenth time, from `d4e080`, for the user-locked move cut: three
+     * entries leave `data/movePools.ts` because the engine refuses to run them
+     * for anything but Morpeko, Hoopa-Unbound or an Electric type. **The third
+     * `contentHash` move that arrives beside another axis** —
+     * `gymrun-randomizer-22`, because a pool three entries shorter is a
+     * different entry under the same pick. `docs/generation.md` section 51 is
+     * the account.
+     *
+     * The literal below is all ten together.
+     */
+    expect(CONTENT_HASH).toBe('622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

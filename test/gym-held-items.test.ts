@@ -160,6 +160,20 @@ describe('the gym held-item ladder', () => {
    * moves a trainer or a wild team by so much as one field, this fails and the
    * change owes `RANDOMIZER_VERSION` a bump — which is the whole point of
    * writing the digest down rather than asserting a property of it.
+   *
+   * **Re-recorded once, and the bump it demanded was paid.** The user-locked
+   * move cut took Aura Wheel, Hyperspace Fury and Double Shock out of
+   * `data/movePools.ts`, so a pick that used to land on one of them lands
+   * elsewhere and the teams here moved from `68f5b8e9ec48a07f`.
+   * `gymrun-randomizer-22` and a `contentHash` move arrive in the same commit,
+   * which is this assertion working rather than being worked around.
+   *
+   * Two recordings that did **not** move are worth naming beside it, because
+   * together they say where the cut reaches: `test/fixtures/sim-report.json`
+   * and all six records in `docs/visual/baseline/runs/` are byte identical but
+   * for their stamps. Those play early segments, which draw bands 1 to 3; all
+   * three cut moves are band 4 and 5, and this digest is the thing that sweeps
+   * every segment and every tier.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -180,7 +194,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('68f5b8e9ec48a07f');
+    expect(digest).toBe('515570045bb4d9af');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {

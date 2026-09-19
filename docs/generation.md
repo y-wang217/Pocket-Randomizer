@@ -7963,3 +7963,81 @@ silently, and the guard fired on the other axis. It is recorded rather than
 retro-bumped. The wording in `types.ts` is what misled and is worth reconciling
 to `CLAUDE.md`'s — the axis is *did which value a draw resolves to change*, and
 "code" is where that usually happens rather than what it means.
+
+## 51. A move slot nothing could spend
+
+**2026-09-19**, on `claude/wild-mon-restricted-move-bug-hifsw6`. Prompt
+[`spec/gymrun-patch-user-locked-moves.md`](spec/gymrun-patch-user-locked-moves.md).
+Moves `RANDOMIZER_VERSION` to `-22` and `contentHash` from `d4e080` to `622777`;
+`RUN_LOG_VERSION` holds at `-20` and `AI_VERSION` holds.
+
+> "Bug report the wild mon can learn a species restricted move"
+
+A wild Kilowattrel on segment 3 of `GYMRUN-04e080-c0087325` used Aura Wheel and
+was told, by `@pkmn/sim`, that only a Morpeko may.
+
+### 51.1 What the pool rule missed
+
+`scripts/gen-pools.ts` has five exclusion sets and each one names a way the
+engine or the calc cannot deal with a move honestly. None of them asked the
+question this move fails: **what must the user be?** Every other rule in the
+file is about what the move does.
+
+So the cut is a sixth set, `USER_LOCKED`, and it removes three entries:
+
+| move | the engine's condition | what the pool used to think it was |
+|---|---|---|
+| Aura Wheel | user's base species is Morpeko | band 4 Electric, 110 BP |
+| Hyperspace Fury | user's forme is Hoopa-Unbound | band 4 Dark, 100 BP, never misses |
+| Double Shock | user is an Electric type | band 5 Electric, 120 BP |
+
+Dark Void and Burn Up are named in the same set and removed nothing: Dark Void
+is a status move and the status pool is hand-picked, and Burn Up is
+`Unobtainable` in gen 9 and was already cut by the `isNonstandard` rule. They
+are named because the set is a statement about the class, and one that leaned on
+two unrelated rules holding would be wrong the day either moved.
+
+**Nothing here is a learnset check.** Swablu keeps Slash. The test is the one
+the file already applies everywhere else: can the engine play it at all.
+
+### 51.2 The refusal is total, which is why no number saw it
+
+Aura Wheel does not lose power off a Kilowattrel or re-target — `onTry` returns
+null, the move never runs, and the turn is spent on a `-fail` and a hint. The
+sweep counted a band 4 move in that Pokemon's kit, the AI scored it as damage
+and picked it, and the fight was played four-on-three the whole way. A balance
+figure cannot see that: it reads the pool, not the protocol.
+
+The three are rare enough that no benchmark row is expected to move outside
+noise, and **balance is not a gate**, so none was retuned against.
+
+### 51.3 The detector, and why it does not decide the pool
+
+`USER_LOCKED` is a list of five ids, and a reader can see it. The audit beside
+it — `auditUserLocked`, run at generation — is a regex over the compiled
+`onTry`/`onTryMove` source in `@pkmn/sim`, looking for the shape all five share:
+a `'-fail'` guarded on the source Pokemon's species, forme or type.
+
+Keeping those apart is deliberate. If the regex decided the pool, a `@pkmn/sim`
+release that recompiled a handler differently would silently change what the
+randomizer draws, and every recorded seed with it. As an audit it can only throw,
+and it throws **in both directions**: a move the dex locks and the list does not
+is the next Aura Wheel, and a move the list names that the dex no longer appears
+to lock means the tell stopped matching and the detector has gone blind.
+
+`test/data-tables.test.ts` runs the same tell against the live dex and pins the
+set of five, so the gate fails rather than the generator being the only thing
+that would have noticed.
+
+### 51.4 Two neighbours found and not touched
+
+Both were seen while reading the dex for this and are recorded rather than
+folded in, because neither is what was reported and both change composition
+again:
+
+- **Thunderclap and Upper Hand** are Sucker Punch clones — they fail unless the
+  target is attacking this turn — and Sucker Punch is in `UNSCOREABLE` while
+  both of them are in the pool. That is the existing rule having missed the gen
+  9 additions, not a new rule.
+- **Burn Up** would be drawable the day upstream stops calling it
+  `Unobtainable`, and is already named in `USER_LOCKED` for exactly that day.

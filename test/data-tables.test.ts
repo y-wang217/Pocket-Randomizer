@@ -19,6 +19,7 @@
  * `rollMoveset` and by every gym.
  */
 import { Dex } from '@pkmn/sim';
+import type { Move } from '@pkmn/sim';
 import { describe, expect, it } from 'vitest';
 
 import { bandOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../src/data/moveOverrides';
@@ -170,6 +171,41 @@ describe('move pools', () => {
       'hyperbeam', 'gigaimpact', 'mindblown', 'steelbeam', 'struggle'];
     const present = DAMAGING_MOVES.map((move) => move.id);
     for (const id of banned) expect(present, id).not.toContain(id);
+  });
+
+  it('draws no move whose user has to be a particular species, forme or type', () => {
+    /*
+     * The Aura Wheel case, asserted against the live dex rather than against a
+     * list, because the list is the thing that goes stale. A wild Kilowattrel
+     * shipped with Aura Wheel and spent a turn being told only a Morpeko may
+     * use it: the slot was dead for the whole fight, and no balance number
+     * could see a band 4 move that never resolved.
+     *
+     * The tell is the one `scripts/gen-pools.ts` reads — a `-fail` in a try
+     * handler, guarded on what the *source* is rather than on anything it can
+     * do — and it is read here too so that the two cannot drift apart silently.
+     * A conditional move is not this: Counter wants to have been hit, Belch
+     * wants a berry eaten, and both are battle state a user can reach.
+     *
+     * If upstream rewrites one of these handlers so the tell stops matching,
+     * `locked` comes back empty and the second assertion fails rather than the
+     * suite quietly passing on a detector that detects nothing.
+     */
+    const tell = (move: Move): boolean => {
+      const handlers = [move.onTry, move.onTryMove].filter(Boolean).map(String).join('\n');
+      if (!handlers.includes("'-fail'")) return false;
+      return /\b(?:source|pokemon|attacker)\.species\.(?:name|baseSpecies)\b/.test(handlers) ||
+        /\b(?:source|pokemon|attacker)\.hasType\(/.test(handlers);
+    };
+
+    const locked = new Set(dex.moves.all().filter(tell).map((move) => String(move.id)));
+    expect([...locked].sort()).toEqual(
+      ['aurawheel', 'burnup', 'darkvoid', 'doubleshock', 'hyperspacefury'],
+    );
+
+    for (const move of [...DAMAGING_MOVES, ...STATUS_MOVES]) {
+      expect(locked.has(move.id), `${move.name} is user-locked`).toBe(false);
+    }
   });
 });
 

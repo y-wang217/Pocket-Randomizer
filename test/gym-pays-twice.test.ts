@@ -78,9 +78,11 @@ describe('the run log version', () => {
      *
      * And to `-21` by the gym level spread, which moved `contentHash` with it
      * and left `RUN_LOG_VERSION` alone — the same separation again, from the
-     * data-table side this time.
+     * data-table side this time. `-22` is the same shape once more: three
+     * user-locked moves out of `data/movePools.ts`, `contentHash` with them,
+     * and a moveset is still not a logged decision.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

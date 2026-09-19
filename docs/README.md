@@ -58,6 +58,21 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: three moves nothing could use leave the pool.** Branch
+`claude/wild-mon-restricted-move-bug-hifsw6`, prompt
+[`spec/gymrun-patch-user-locked-moves.md`](spec/gymrun-patch-user-locked-moves.md),
+record [`generation.md`](generation.md) section 51. `RANDOMIZER_VERSION` to
+`-22` and `contentHash` to `622777`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+A wild Kilowattrel rolled Aura Wheel and spent a turn being told only a Morpeko
+may use it. `scripts/gen-pools.ts` had five exclusion rules and all five asked
+what a move *does*; none asked what its **user must be**, so Aura Wheel,
+Hyperspace Fury and Double Shock were drawable and dead in any kit that held
+them. `USER_LOCKED` is the sixth rule, and `auditUserLocked` beside it throws at
+generation in both directions — a move the dex locks and the list does not, and
+a move the list names that no longer reads as locked, which means the detector
+has gone blind. Not a learnset check: Swablu keeps Slash.
+
 **In flight: teaching a move at the node that paid it, and a level spread for
 gyms.** Branch `claude/great-curie-99l9fm`, prompt
 [`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),

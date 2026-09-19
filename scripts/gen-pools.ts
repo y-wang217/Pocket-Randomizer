@@ -347,6 +347,84 @@ const UNSCOREABLE = new Set([
   'flail', 'reversal', 'endeavor', 'painsplit',
 ]);
 
+/**
+ * Moves whose **user** must be a particular species, forme or type.
+ *
+ * Aura Wheel is Morpeko's, Hyperspace Fury is Hoopa-Unbound's, and Double Shock
+ * asks the user to be Electric. Handed to anything else, `@pkmn/sim` does not
+ * weaken the move or re-target it — it refuses to run it at all, prints the
+ * hint naming the form that may, and the turn is spent. A wild Kilowattrel
+ * shipped with Aura Wheel therefore had three move slots, not four, for the
+ * whole fight, on every turn, against every opponent.
+ *
+ * This is not a learnset rule creeping in. Nothing here asks whether a species
+ * *may* learn a move — Swablu keeps Slash and Kilowattrel keeps Brick Break,
+ * because that is the randomizer and not a bug. It is the same mechanical test
+ * as every other set in this file: the engine cannot play these, so the balance
+ * sweep cannot measure them.
+ *
+ * Dark Void (Darkrai) and Burn Up (Fire user) are named too although neither
+ * reaches the pool today — Dark Void is a status move and Burn Up is
+ * `Unobtainable` in gen 9 — because this set is a statement about the class,
+ * and a set that silently depended on two other rules holding would be wrong
+ * the day either moved.
+ *
+ * `auditUserLocked` below is what keeps the list honest against a `@pkmn/sim`
+ * upgrade, in both directions.
+ */
+const USER_LOCKED = new Set([
+  'aurawheel', 'hyperspacefury', 'doubleshock', 'darkvoid', 'burnup',
+]);
+
+/**
+ * The tell a user-locked move leaves in the dex, read off the engine rather
+ * than remembered.
+ *
+ * All five refuse in the same shape: a `-fail` in `onTry` or `onTryMove`,
+ * guarded by a test on the *source* Pokemon's species, forme or type. A
+ * conditional move reads differently — Counter wants to have been hit, Belch
+ * wants a berry eaten — and is gated by battle state the user can reach, not by
+ * what the user is.
+ *
+ * Deliberately not the thing that decides the pool: `USER_LOCKED` decides, so
+ * regenerating is a function of a list a reader can see, not of a regex over
+ * compiled upstream source. This is the audit that makes the list loud when it
+ * goes stale.
+ */
+function userLocked(move: Move): boolean {
+  const handlers = [move.onTry, move.onTryMove].filter(Boolean).map(String).join('\n');
+  if (!handlers.includes("'-fail'")) return false;
+  return /\b(?:source|pokemon|attacker)\.species\.(?:name|baseSpecies)\b/.test(handlers) ||
+    /\b(?:source|pokemon|attacker)\.hasType\(/.test(handlers);
+}
+
+/**
+ * Fails the generation if the dex and `USER_LOCKED` have drifted apart.
+ *
+ * Both directions matter and they fail for different reasons. A move the dex
+ * locks and the list does not is the defect this set exists for, arriving in a
+ * new generation. A move the list names and the dex no longer locks is worse in
+ * a quieter way: it means the tell above stopped matching — upstream rewrote
+ * the handler, or compiled it differently — and a silent detector would let the
+ * next Aura Wheel through while the list still looked maintained.
+ */
+function auditUserLocked(): void {
+  const found = new Set(dex.moves.all().filter(userLocked).map((move) => String(move.id)));
+  const missing = [...found].filter((id) => !USER_LOCKED.has(id));
+  const stale = [...USER_LOCKED].filter((id) => !found.has(id));
+  if (missing.length > 0 || stale.length > 0) {
+    throw new Error(
+      `USER_LOCKED is out of date with the gen ${GEN} dex. ` +
+      `Locked by the dex and not by the list: ${missing.join(', ') || 'none'}. ` +
+      `Named by the list and no longer locked by the dex: ${stale.join(', ') || 'none'}. ` +
+      'Read the handler in @pkmn/sim before editing either — a move that stopped ' +
+      'failing is a real change, and a tell that stopped matching is not.',
+    );
+  }
+}
+
+auditUserLocked();
+
 function moveAllowed(move: Move): boolean {
   if (!move.exists || move.isNonstandard !== null) return false;
   if (move.isZ || move.isMax) return false;
@@ -361,7 +439,7 @@ function moveAllowed(move: Move): boolean {
   if (move.accuracy !== true && move.accuracy < 70) return false;
   const id = move.id;
   return !SELF_KO.has(id) && !SWITCH_MOVES.has(id) && !OHKO_ADJACENT.has(id) &&
-    !SELF_HALVING.has(id) && !UNSCOREABLE.has(id);
+    !SELF_HALVING.has(id) && !UNSCOREABLE.has(id) && !USER_LOCKED.has(id);
 }
 
 /**

@@ -337,7 +337,29 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * practical harm was nil — `contentHash` moved, so no seed replayed silently —
  * but the axis was the wrong one. `docs/generation.md` section 50.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-21';
+/*
+ * ## `-22`: three moves nothing could use leave the pool
+ *
+ * Aura Wheel, Hyperspace Fury and Double Shock are gone from
+ * `data/movePools.ts`, and no draw was added, removed or moved to do it.
+ * `rollMoveset` spends the same picks off the same keys; the list those picks
+ * index into is three entries shorter, so a pick that used to land on Aura
+ * Wheel lands on something else and every pick after it in the same band shifts
+ * with it. That is composition, which is this axis, and `contentHash` moves
+ * beside it for the table.
+ *
+ * The three are `USER_LOCKED` in `scripts/gen-pools.ts`: `@pkmn/sim` refuses to
+ * run them at all unless the user is Morpeko, Hoopa-Unbound or an Electric
+ * type. A wild Kilowattrel shipped with Aura Wheel had three usable move slots
+ * and four printed ones, which is the reported defect, and no balance figure
+ * could see it — the sweep counted a band 4 move the engine never resolved.
+ *
+ * `RUN_LOG_VERSION` holds at `-20`: a moveset is not a logged decision, and a
+ * `-20` reader replays a `-20` log unchanged. `AI_VERSION` holds too, for the
+ * happier reason that the policy never wanted this move — it scored it as
+ * damage, took the turn, and got the refusal like everyone else.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

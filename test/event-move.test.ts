@@ -158,9 +158,10 @@ describe('the version axes this patch moved', () => {
      * duplicate-card fix, which narrows a pool's candidates before every
      * weighted pick; `-21` is the gym level spread, where the same float off
      * the same key lands a gym member somewhere in a range instead of on one
-     * number.
+     * number; `-22` is the user-locked move cut, where three entries the engine
+     * refuses to run leave the pool and every pick behind them lands elsewhere.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
   });
 });
 
