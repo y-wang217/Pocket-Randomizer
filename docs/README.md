@@ -58,8 +58,39 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: teaching a move at the node that paid it, and a level spread for
-gyms.** Branch `claude/great-curie-99l9fm`, prompt
+**In flight: a Toll that charged nothing.** Branch
+`claude/t2-berry-inventory-gating-7gvcye`, prompt
+[`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md),
+record [`generation.md`](generation.md) section 51. A playtest report: a Toll
+priced in berries, pressed by a bag with none, took nothing and paid its
+guaranteed `T2` in full. Three of the five `TollPrice` kinds had the same hole
+— a coin price clamps at zero and an HP price floors at
+`tuning.eventDamageFloor` — so the gate is defined over `TollPrice` rather than
+over berries.
+
+**No version axis moves.** No draw is added, moved or removed;
+`data/eventCopy.ts` is outside `contentHash`, which stays at `d4e080`. The set
+of *answers* `playRun` accepts for an `event` decision narrows, in the shape
+the `attune` refusal already had, so `RUN_LOG_VERSION` holds — and a pre-patch
+log naming an unpayable Toll now fails loudly rather than replaying a free
+`T2`.
+
+- **A price is charged, or the option is not purchasable.** `pricePayable`
+  answers by *charging* the price against a throwaway state, so the gate cannot
+  drift from the fold — a predicate written beside it is a second opinion, and
+  the first disagreement is this bug rebuilt by its own fix.
+- **Dimmed, not withdrawn.** The Toll stays on the menu with a `Cannot pay`
+  chip beside the price it is short of, because a player who can see the price
+  can go and get the berry. `presentedOptions` is untouched.
+- **The price names its victim.** `Costs Sitrus Berry`, not `Costs A berry`,
+  off the same walk the fold takes; the reveal restates it the same way. A
+  price that cannot be planned against is a surprise with a label.
+- **A drawn cost is not a price and is not gated**, because refusing a button
+  on what it would pay reveals the draw before the press.
+- The rule is in [`../CLAUDE.md`](../CLAUDE.md) under **Prices**.
+
+**Merged before it: teaching a move at the node that paid it, and a level
+spread for gyms.** Branch `claude/great-curie-99l9fm`, prompt
 [`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
 records [`generation.md`](generation.md) sections 49 and 50, measurements
 [`balance.md`](balance.md) section 0. Two patches on one branch with a benchmark

@@ -7963,3 +7963,139 @@ silently, and the guard fired on the other axis. It is recorded rather than
 retro-bumped. The wording in `types.ts` is what misled and is worth reconciling
 to `CLAUDE.md`'s — the axis is *did which value a draw resolves to change*, and
 "code" is where that usually happens rather than what it means.
+
+## 51. A price that charged nothing, and the rule that outlives it
+
+**2026-09-19**, on `claude/t2-berry-inventory-gating-7gvcye`. Prompt:
+[`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md).
+
+### 51.1 The report
+
+> New bug i can pick the t2 result even when i didnt have a berry in inventory.
+
+The screenshot is a `cave`-family event at `neither`, its Toll labelled
+`Costs A berry` `Reward: T2`, taken by a run whose bag held no berry. The
+reveal printed `Paid: A berry` in red and `Quick Attack` in green. Nothing was
+taken and the `T2` was paid in full.
+
+### 51.2 What was actually broken, which is not the berry
+
+`applyEffect`'s `loseItem` branch ended `if (index < 0) return state`, which is
+correct — of a **drawn** cost. A `T0` consolation that takes a berry from a bag
+with none is a setback that no-ops, and `core/events.ts` has carried the note
+saying so, and the reason, since the rejig.
+
+A Toll is not a drawn cost. It is a price the player read on the button and
+agreed to by pressing, and it buys a **guaranteed** `T2`. The no-op turns that
+into a free `T2` with a cost written on it — which is worse than a bug in the
+economy, because the label is a promise the game then does not keep.
+
+Three of the five `TollPrice` kinds had the same hole, and only one of them was
+screenshotted:
+
+| kind | against | charged |
+|---|---|---|
+| `berry` | a bag with no berry | nothing |
+| `gold`, `goldFixed` | an empty purse | nothing, by the `max(0, …)` clamp |
+| `hp` | a party at `tuning.eventDamageFloor` (0.05) | nothing, by the floor |
+| `discard` | an empty bag | nothing |
+
+So the patch is defined over `TollPrice` and not over berries. A rule that said
+a price must be charged, and then exempted the kinds that had not yet been
+reported, would be a rule already being violated on the day it was written.
+
+### 51.3 The gate is the fold
+
+`pricePayable(state, toll)` answers *would charging this take anything* by
+**charging it** — `applyToll` against a throwaway state, then a comparison of
+the three things a price can move: coins, bag length, standing HP.
+
+Writing a predicate instead was the obvious shape and is the one that fails.
+A predicate is a second opinion about what a price does, and the first time the
+two disagree the screen offers a button that charges nothing — which is this
+bug, rebuilt by the fix for it. Since `applyEffect` takes no stream, a price
+cannot draw, so asking and then charging is free of consequence. **A gate that
+had to draw to answer could not exist in this codebase at all**, and that is
+the property that makes this shape available.
+
+`forfeits(effect, backpack)` is the same argument one layer down: the screen
+has to name the berry it is about to take, and a second walk written beside the
+fold is a second walk that can disagree with it. So there is one walk, and
+`applyEffect` and `describePrice` both read it.
+
+### 51.4 Dimmed, not withdrawn
+
+The Attune gate removes an option, because Attune is a thing the run does not
+have. A Toll is a thing the run cannot afford **yet**, so it stays on the menu,
+disabled, with a `Cannot pay` chip beside the price it is short of. A player
+who can see the price can go and get the berry; a player shown three buttons
+where there were four learns nothing at all.
+
+`presentedOptions` is untouched, so the list is still three long without the
+relic and four with, and `test/event-bands.test.ts` reads the same as it did.
+
+### 51.5 The price names its victim
+
+`describeToll` says `A berry`, because a `TollPrice` genuinely does not know
+which one. `describePrice` says `Sitrus Berry`, because the bag is standing
+right there and the walk that will take it is the one it reads. Both the button
+and the reveal use it; the reveal reads the bag as it stood when the screen
+opened, which is the bag the charge came out of.
+
+The precedent is `concreteEffect`, and the argument is the same: name a fact
+the run can answer, leave generic a fact it cannot. The generic wording now
+only ever appears on a price that cannot be paid — which is a button that is
+dimmed anyway.
+
+It is not a Part 4 violation and it is the same carve-out the price chip has
+always sat on: it states what the button costs, which is an attribute of the
+button, against a bag that does not move while the screen is open. It ranks
+nothing and forecasts nothing.
+
+### 51.6 Two layers, because a log is not a screen
+
+The screen dims the button. `playRun` refuses the archetype, in the shape the
+`attune` refusal already had, because a decision log can reach a button a
+screen cannot — and a decision the run would not present is not a decision the
+run may replay.
+
+### 51.7 No axis moves, and what follows from that
+
+- `RANDOMIZER_VERSION` — no draw is added, removed or relocated, and no drawn
+  value changes. Every option is still built for every run, Attune included.
+- `contentHash` — `data/eventCopy.ts` is on the exclusion list and nothing else
+  under `data/` changed. Unmoved at `d4e080`.
+- `AI_VERSION` — untouched.
+- `RUN_LOG_VERSION` — **held, deliberately.** No logged decision is added,
+  removed, reordered or reshaped. What narrowed is which *answers* `playRun`
+  accepts for an entry whose shape is unchanged, which is exactly what the
+  `attune` refusal did and has never carried an axis.
+
+The consequence is recorded rather than versioned: **a pre-patch log that names
+an unpayable Toll now fails loudly on replay instead of replaying a free `T2`.**
+That is the correct end state under "never silently reinterpret a seed" — the
+old reading was the bug, and reproducing it faithfully would mean keeping it.
+
+### 51.8 What the simulator's numbers now mean
+
+`scripts/sim.ts` scores over the payable options rather than the presented
+ones, so the scored policy no longer counts a free `T2` among its candidates.
+`event-gambler` and `event-safe` never name a Toll, so they are unaffected.
+The event columns of a report run after this patch are not comparable across
+it. **Balance is not a gate**: the number is recorded and the work continues.
+
+### 51.9 One fixture was a run no player can be in
+
+`test/event-screen.test.ts` built its state with no party below `latent`, an
+empty bag and no coins, and clicked every button on it. That was harmless
+while nothing read the bag and became a silent pass the moment a button could
+be dimmed — a dimmed button opens nothing, and every assertion after the click
+would have been made against a screen that never revealed anything.
+
+So the fixture is a solvent run at every band (a member, a berry, a bag item,
+200 coins), the member below `latent` being one whose type says nothing about
+the capability, which keeps both the claimed band and the holders row true.
+The empty run is the *subject* of `test/event-price-gate.test.ts` now, rather
+than the backdrop of a screen test. The two played-run policies that answered
+a bare `'toll'` fall back to Safe where the price cannot be paid, which is what
+a player faces.

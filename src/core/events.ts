@@ -580,6 +580,109 @@ export function tollEffect(toll: TollPrice): ResolvedEffect {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Prices
+// ---------------------------------------------------------------------------
+
+/**
+ * The backpack indices a bag effect takes, **in the order the fold takes
+ * them**. The single walk, read by `applyEffect` and by the event screen.
+ *
+ * Two kinds answer: `loseItem` takes the first entry its pool names, `discard`
+ * takes from the end. Everything else takes nothing out of the bag and returns
+ * an empty list rather than a special case.
+ *
+ * It exists because the screen has to name the berry it is about to take, and
+ * a second walk written beside the fold is a second walk that can disagree
+ * with it. Pure and RNG-free: a bag is state, and reading it is arithmetic.
+ */
+export function forfeits(effect: ResolvedEffect, backpack: readonly string[]): readonly number[] {
+  switch (effect.kind) {
+    case 'loseItem': {
+      const index = backpack.findIndex((item) => effect.pool.includes(item));
+      return index < 0 ? [] : [index];
+    }
+    case 'discard': {
+      const keep = Math.max(0, backpack.length - Math.max(0, effect.count));
+      return backpack.map((_, at) => at).slice(keep);
+    }
+    default:
+      return [];
+  }
+}
+
+/** A bag without those indices. Order preserved, which the discard rule needs. */
+function without(backpack: readonly string[], taken: readonly number[]): string[] {
+  return backpack.filter((_, at) => !taken.includes(at));
+}
+
+/**
+ * Whether this run can pay this price at all. **The gate, and the only place
+ * it lives.**
+ *
+ * It is defined as *charging it changes the run*, and it is implemented by
+ * charging it: `applyToll` on a throwaway state, then a comparison of the
+ * three things a price can take. That is deliberate and it is the whole
+ * reliability argument — a predicate written beside the fold is a second
+ * opinion about what a price does, and the first time the two disagree the
+ * screen offers a button that charges nothing, which is the bug this function
+ * exists to answer. This cannot drift from the fold, because it *is* the fold.
+ *
+ * Consumes no RNG. `applyEffect` takes no stream, so a price cannot draw, and
+ * calling it twice — once to ask, once to charge — is free of consequence. A
+ * gate that had to draw to answer could not exist in this codebase at all.
+ *
+ * **Stated prices only.** A drawn `T0` cost is not passed here and must not be:
+ * it is the result of a Gamble, revealed after the press, and refusing a button
+ * on it would show the player the outcome before they chose it.
+ */
+export function pricePayable(state: RunState, toll: TollPrice): boolean {
+  const after = applyToll(state, toll, state.tuning);
+  return (
+    after.currency !== state.currency ||
+    after.backpack.length !== state.backpack.length ||
+    standingHp(after.party) !== standingHp(state.party)
+  );
+}
+
+/** Whether this button can be pressed. Free options always can. */
+export function optionPayable(state: RunState, option: EventOption): boolean {
+  return option.toll === null || pricePayable(state, option.toll);
+}
+
+/** HP across the party, as the one number a price can move. */
+function standingHp(party: RunState['party']): number {
+  return party.reduce((total, member) => total + member.hp, 0);
+}
+
+/**
+ * The price, naming what it will actually take. **The line the player plans
+ * against.**
+ *
+ * `describeToll` says "A berry" because that is all a `TollPrice` knows;
+ * this says "Oran Berry" because the bag is standing right there. The
+ * precedent is `concreteEffect` and the argument is the same one: a fact the
+ * run can answer is named, and a fact it cannot is left generic. A player
+ * cannot plan around a price that will not say which of their six berries it
+ * is coming for, and the whole point of putting a price on the button is that
+ * it can be planned around.
+ *
+ * Not a forecast and not a verdict. It reads the same walk the fold will take,
+ * off state that does not move while the screen is open, so it is a statement
+ * about the bag rather than a guess about the outcome — the Part 4 line the
+ * price chip already sits on.
+ *
+ * Falls back to the generic wording when nothing concrete can be named, which
+ * is exactly the case `pricePayable` refuses: an unpayable price has no victim
+ * to name, so the button reads "Costs A berry" and cannot be pressed.
+ */
+export function describePrice(toll: TollPrice, backpack: readonly string[]): string {
+  const taken = forfeits(tollEffect(toll), backpack).map(
+    (at) => itemById(backpack[at] ?? '')?.name ?? backpack[at] ?? '',
+  );
+  return taken.length > 0 ? taken.join(' + ') : describeToll(toll);
+}
+
 function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): RunState {
   switch (effect.kind) {
     case 'nothing':
@@ -682,11 +785,11 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
     case 'move':
       return state;
 
-    case 'loseItem': {
-      const index = state.backpack.findIndex((item) => effect.pool.includes(item));
-      if (index < 0) return state;
-      return { ...state, backpack: state.backpack.filter((_, at) => at !== index) };
-    }
+    case 'loseItem':
+      // Through `forfeits`, which is also what the screen reads to name the
+      // berry it is about to take. One walk, so the item named and the item
+      // removed cannot be different items.
+      return { ...state, backpack: without(state.backpack, forfeits(effect, state.backpack)) };
 
     case 'discard': {
       /*
@@ -702,13 +805,18 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
        * over: it would consume RNG at resolution, and it would make the cost
        * unpredictable in a way no amount of copy could explain.
        *
-       * An empty backpack makes this a no-op. That is deliberate and it is why
-       * `data/eventPools.ts` keeps the discard out of the opening band, where a
-       * bag is most often empty: a cost that no-ops on half the runs that draw
-       * it is a cost nobody learns to fear.
+       * An empty backpack makes this a no-op. That is deliberate **of a drawn
+       * cost** and it is why `data/eventPools.ts` keeps the discard out of the
+       * opening band, where a bag is most often empty: a cost that no-ops on
+       * half the runs that draw it is a cost nobody learns to fear.
+       *
+       * It is **not** true of a discard charged as a Toll's price. A price the
+       * player read and agreed to must be charged, so an unpayable one takes
+       * the button off the menu rather than reaching here — `pricePayable`
+       * below, and the Prices rule in `CLAUDE.md`. The no-op survives for the
+       * drawn case and is unreachable for the priced one.
        */
-      const keep = Math.max(0, state.backpack.length - Math.max(0, effect.count));
-      return { ...state, backpack: state.backpack.slice(0, keep) };
+      return { ...state, backpack: without(state.backpack, forfeits(effect, state.backpack)) };
     }
   }
 }

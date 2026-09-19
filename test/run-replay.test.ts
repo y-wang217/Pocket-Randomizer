@@ -8,6 +8,8 @@
  * HP value trusted instead of recomputed, a Map iteration order — the resumed
  * run stops matching the original and this fails.
  */
+import { optionPayable, presentedOptions } from '../src/core/events';
+import { resolveCapability } from '../src/core/capabilities';
 import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
@@ -64,7 +66,19 @@ function wobbling(): RunPolicy {
       }
       return affordable;
     },
-    chooseEventOption: async () => 'toll' as const,
+    /*
+     * The priced button wherever the run can pay for it, and Safe where it
+     * cannot. **Not a bare `'toll'` any more**: a price the run cannot pay is
+     * refused by `playRun` since the price gate, so a policy that always
+     * answered `toll` would end a replay on a `RangeError` rather than on a
+     * disagreement about what was replayed. Safe is on every event at every
+     * band, so the fallback is always a legal answer.
+     */
+    chooseEventOption: async (event, state) => {
+      const band = resolveCapability(state, event.requires);
+      const toll = presentedOptions(event, band).find((option) => option.archetype === 'toll');
+      return toll && optionPayable(state, toll) ? 'toll' : 'safe';
+    },
     // The last member, for the same reason as the last card: a policy that
     // always answered 0 would agree with the scripted default and prove
     // nothing about whether the target is really replayed.

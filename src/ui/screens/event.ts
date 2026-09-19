@@ -25,12 +25,30 @@
  * authored one is wrong for it, and the reveal opens with a sentence naming
  * what the standing bought before the label says what it paid. All of it from
  * `data/eventCopy.ts`, which `core/` never reads.
+ *
+ * ## A price is charged or it is not offered. 2026-09-19.
+ *
+ * A Toll states its price on the button. Until this patch the screen offered
+ * that button whatever the run held, and a price the run could not pay was
+ * charged against nothing: a berry toll pressed by a bag with no berry took
+ * nothing and paid its guaranteed `T2` in full, which is a free `T2` on a
+ * button labelled with a cost.
+ *
+ * Two changes, and they are the same change read forwards and backwards. The
+ * button is dimmed and says so when `optionPayable` is false, so the price is
+ * never charged against nothing; and the price names the item it will take
+ * rather than its kind, so a player holding four berries knows which one is
+ * leaving before they press. Both read `core/events.ts` — the gate *is* the
+ * fold, and the named item is the fold's own walk — so neither can drift into
+ * describing a charge that does not happen. `CLAUDE.md`'s Prices section is
+ * the rule; `docs/generation.md` section 51 is the account.
  */
 import {
   concreteOutcome,
   describeCost,
   describeOutcome,
-  describeToll,
+  describePrice,
+  optionPayable,
   outcomeFor,
   presentedOptions,
   type EventInstance,
@@ -40,7 +58,7 @@ import {
 import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
 import { capabilityHolders, resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
-import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, PRICE_UNPAYABLE, TOLL_PAID_PREFIX } from '../../data/eventCopy';
 import { capabilityBandChip, capabilityChip } from '../chip';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
@@ -133,9 +151,33 @@ export function createEventScreen(): EventScreen {
          * requirement the gate chip already carries.
          */
         const attributes = el('span', 'event__choice-attributes');
-        const cost = costOf(choice);
+        const cost = costOf(choice, state);
         if (cost) attributes.append(capabilityChip(cost));
         attributes.append(capabilityBandChip(rewardOf(choice, event.rarity)));
+
+        /*
+         * **The price gate.** A button whose stated price this run cannot pay
+         * is dimmed, says so, and cannot be pressed.
+         *
+         * It stays on the menu rather than leaving it, which is the difference
+         * between this and the Attune gate above: Attune is an option the run
+         * does not have, and a Toll is an option the run cannot afford *yet*.
+         * A player who can see the price they are short of can go and get the
+         * berry; a player who is shown three buttons where there were four
+         * learns nothing at all. `presentedOptions` is untouched, so the list
+         * is still three long without the relic and four with.
+         *
+         * `optionPayable` is the only definition of "can pay", and it answers
+         * by charging the price against a throwaway state — so a button is
+         * enabled exactly when pressing it would take something. The bug this
+         * answers is the inverse: a berry price against an empty bag charged
+         * nothing and paid its guaranteed `T2` in full.
+         */
+        if (!optionPayable(state, choice)) {
+          button.disabled = true;
+          button.classList.add('event__choice--unpayable');
+          attributes.append(capabilityChip(PRICE_UNPAYABLE));
+        }
 
         button.append(label, hint, attributes);
         button.addEventListener('click', () => reveal(index));
@@ -205,7 +247,16 @@ export function createEventScreen(): EventScreen {
         const price = choice.toll
           ? el('p', 'event__outcome event__outcome--bad')
           : null;
-        if (price && choice.toll) price.textContent = `${TOLL_PAID_PREFIX}: ${describeToll(choice.toll)}`;
+        /*
+         * The **named** price, off the bag as it stood when this screen opened
+         * — which is the bag the charge was taken from, because `state` does
+         * not move while the screen is held open. Past tense over a concrete
+         * item: "Paid: Oran Berry" is what happened, where "Paid: A berry"
+         * left the player counting their bag to find out which.
+         */
+        if (price && choice.toll) {
+          price.textContent = `${TOLL_PAID_PREFIX}: ${describePrice(choice.toll, state.backpack)}`;
+        }
 
         const carry = document.createElement('button');
         carry.type = 'button';
@@ -234,9 +285,15 @@ export function createEventScreen(): EventScreen {
  *
  * Only a Toll has a price. Safe, Gamble and Attune are free, and saying "free"
  * on three of four buttons is noise rather than information.
+ *
+ * **Named against the bag**, through `describePrice`: "Costs Oran Berry" where
+ * the run holds one, "Costs A berry" where it holds none — and where it holds
+ * none the button is dimmed anyway, so the generic wording only ever appears
+ * on a price that cannot be paid. A price the player can plan around is the
+ * reason a price is on the button at all.
  */
-function costOf(option: EventOption): string | null {
-  return option.toll ? `Costs ${describeToll(option.toll)}` : null;
+function costOf(option: EventOption, state: RunState): string | null {
+  return option.toll ? `Costs ${describePrice(option.toll, state.backpack)}` : null;
 }
 
 /**

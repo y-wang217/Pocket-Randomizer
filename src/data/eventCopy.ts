@@ -83,6 +83,22 @@ export const BAND_LABELS: Readonly<Record<CapabilityBand, string>> = {
  */
 export const TOLL_PAID_PREFIX = 'Paid';
 
+/**
+ * What the button says when the run cannot pay the price on it.
+ *
+ * **An attribute, not a verdict.** It states a fact about the bag standing
+ * beside a price standing on the button — the player can read both and see
+ * the arithmetic — and it says nothing about whether taking the option would
+ * have been a good idea. The chip beside it still names the price, so the
+ * sentence the player assembles is "costs a berry, cannot pay", which is what
+ * tells them to go and find a berry.
+ *
+ * Present tense, and about the run rather than about the option: the option is
+ * not broken and is not locked, the bag is empty. A Toll the run cannot afford
+ * today is one it can afford after the next node.
+ */
+export const PRICE_UNPAYABLE = 'Cannot pay';
+
 /*
  * **The per-event band copy table was deleted by the event rejig, not flagged
  * off.**

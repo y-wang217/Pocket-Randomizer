@@ -71,8 +71,10 @@ import {
 import {
   applyEventOutcome,
   applyToll,
+  describeToll,
   grantedMove,
   optionOf,
+  optionPayable,
   outcomeFor,
   presentedOptions,
   type EventInstance,
@@ -1848,6 +1850,29 @@ export async function playRun(
           `Event option ${archetype} was not offered at band ${band} (${presentedOptions(event, band)
             .map((option) => option.archetype)
             .join(', ')})`,
+        );
+      }
+      /*
+       * **And it has to be one the run can pay**, refused here on the same
+       * ground and in the same shape as the band refusal above it.
+       *
+       * The defect it answers is the one the playtest reported: a Toll priced
+       * in berries, pressed by a run whose bag held none, charged nothing and
+       * paid its guaranteed `T2` in full. The screen is what stops a player
+       * reaching it — `optionPayable` greys the button — and this is what stops
+       * a *log* reaching it, which the screen cannot. A decision the run would
+       * not present is not a decision the run may replay.
+       *
+       * Against `state`, which is the run as the screen was rendered from: the
+       * node has no battle, so nothing has moved between the question and here,
+       * and asserting against what the player was looking at is the version
+       * that stays honest if one day something does.
+       */
+      if (!optionPayable(state, chosen)) {
+        throw new RangeError(
+          `Event option ${archetype} on ${event.eventId} charges ${
+            chosen.toll ? describeToll(chosen.toll) : 'nothing'
+          }, which this run cannot pay`,
         );
       }
       result.eventChoice = archetype;

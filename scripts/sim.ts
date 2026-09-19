@@ -51,7 +51,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { outcomeFor, presentedOptions, tollEffect, type ResolvedEffect } from '../src/core/events';
+import { optionPayable, outcomeFor, presentedOptions, tollEffect, type ResolvedEffect } from '../src/core/events';
 import {
   EVENT_ARCHETYPES,
   EVENT_RARITIES,
@@ -1636,7 +1636,15 @@ function buildPolicy(
        * built list, because that is what the run records. Attune is absent from
        * the first list without the relic and present in the second either way.
        */
-      const offered = presentedOptions(event, band);
+      /*
+       * **And payable**, on the same footing as presented: a Toll whose price
+       * this run cannot pay is dimmed on the screen and refused by `playRun`,
+       * so a bot that scored it would be scoring a button no player can press
+       * — and, before the gate existed, would have been scoring a free `T2`.
+       * `event-gambler` and `event-safe` never name a Toll, so this narrows
+       * only the scored policy and the report's event numbers with it.
+       */
+      const offered = presentedOptions(event, band).filter((option) => optionPayable(state, option));
       const attuneAvailable = offered.some((option) => option.archetype === 'attune');
 
       /*

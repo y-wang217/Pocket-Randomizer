@@ -14,7 +14,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resolveCapability, type CapabilityBand } from '../src/core/capabilities';
-import { generateEvent, concreteOutcome, describeOutcome, describeToll, outcomeFor,
+import { generateEvent, concreteOutcome, describeOutcome, describePrice, optionPayable, outcomeFor,
   presentedOptions,
   EventPicker, type EventInstance } from '../src/core/events';
 import { createPartyMember } from '../src/core/party';
@@ -39,15 +39,39 @@ function latentSpecies(capability: Capability): string {
   return entry.species;
 }
 
+/** The first pool species whose type says nothing about `capability`. */
+function inertSpecies(capability: Capability): string {
+  const types = capabilityTypes(capability);
+  const entry = SPECIES_POOL.find((row) => !row.types.some((type) => types.includes(type)));
+  if (!entry) throw new Error(`every pool species answers ${capability}`);
+  return entry.species;
+}
+
+/**
+ * A run standing at `band` — **and one that can pay what the screen prices.**
+ *
+ * The party, the bag and the purse are all fixture rather than subject, and
+ * until the price gate they were all empty: no members below `latent`, no
+ * items, no coins. That was a run no player can be in, and the moment a
+ * price had to be payable to be offered it started mattering. So every band
+ * gets a member, a berry, a bag item and coins; the member below `latent` is
+ * one whose type says nothing about the capability, which is what keeps the
+ * band the fixture claims and the holders row both true.
+ *
+ * `test/event-price-gate.test.ts` is where the empty run lives now, as the
+ * subject rather than as the backdrop.
+ */
 function stateAt(band: CapabilityBand, capability: Capability): RunState {
   const base = createRun('EVT-SCREEN', DEFAULT_TUNING);
+  const solvent = { ...base, currency: 200, backpack: ['oranberry', 'leftovers'] };
   const member = createPartyMember({ species: latentSpecies(capability), ability: 'Levitate', moves: ['Tackle'], level: 30 });
+  const inert = createPartyMember({ species: inertSpecies(capability), ability: 'Levitate', moves: ['Tackle'], level: 30 });
   const state: RunState =
     band === 'known'
-      ? { ...base, party: [], relics: [relicsGranting(capability)[0]!.id] }
+      ? { ...solvent, party: [inert], relics: [relicsGranting(capability)[0]!.id] }
       : band === 'latent'
-        ? { ...base, party: [member], relics: [] }
-        : { ...base, party: [], relics: [] };
+        ? { ...solvent, party: [member], relics: [] }
+        : { ...solvent, party: [inert], relics: [] };
   // The fixture cannot drift from the band it claims.
   expect(resolveCapability(state, capability)).toBe(band);
   return state;
@@ -114,6 +138,14 @@ describe('the event screen', () => {
           const result = screen.root.querySelector<HTMLElement>('.event__result');
           expect(result?.hidden).toBe(true);
           const buttons = [...screen.root.querySelectorAll<HTMLButtonElement>('.event__choice')];
+          /*
+           * **Live before it is clicked.** A price this run cannot pay dims
+           * its button, and a dimmed button opens nothing — so a fixture that
+           * drifted back to an empty bag would make every assertion below it
+           * pass against a screen that never revealed anything.
+           */
+          expect(optionPayable(state, choice), `${event.eventId} ${band} ${choice.archetype}`).toBe(true);
+          expect(buttons[index]?.disabled, `${event.eventId} ${band} ${index}`).toBe(false);
           buttons[index]?.click();
 
           expect(done, 'the pick alone must not resolve the choice').toEqual([]);
@@ -144,8 +176,14 @@ describe('the event screen', () => {
             1 + (choice.toll ? 1 : 0) + (paid.cost.length > 0 ? 1 : 0),
           );
           if (choice.toll) {
+            /*
+             * The price **as it was charged**: a concrete berry where the bag
+             * held one, off `describePrice` and not off the toll's own kind.
+             * The reveal reads the bag as it stood when the screen opened,
+             * which is the bag the charge came out of.
+             */
             expect(outcomes[0], `${event.eventId} ${band} ${index} price`).toBe(
-              `${TOLL_PAID_PREFIX}: ${describeToll(choice.toll)}`,
+              `${TOLL_PAID_PREFIX}: ${describePrice(choice.toll, state.backpack)}`,
             );
           }
 

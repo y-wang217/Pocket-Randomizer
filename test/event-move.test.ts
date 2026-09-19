@@ -40,7 +40,8 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { grantedMove, type EventInstance, type EventOption, type EventOutcome } from '../src/core/events';
+import { grantedMove, optionPayable, presentedOptions, type EventInstance, type EventOption, type EventOutcome } from '../src/core/events';
+import { resolveCapability } from '../src/core/capabilities';
 import type { EventArchetype } from '../src/data/eventPools';
 import type { RunDecision } from '../src/core/types';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -171,7 +172,17 @@ describe('the version axes this patch moved', () => {
 describe('a played run that walks into a paying question mark', () => {
   /** Always the priced option, which buys a guaranteed `T2`. */
   function tollPolicy(): RunPolicy {
-    return { ...scriptedRunPolicy(greedyAiPolicy), chooseEventOption: async () => 'toll' };
+    return {
+      ...scriptedRunPolicy(greedyAiPolicy),
+      // The priced button where the run can pay for it, and Safe where it
+      // cannot — `playRun` refuses an unpayable price since the price gate,
+      // and a `T2` move can be bought either way.
+      chooseEventOption: async (event, state) => {
+        const band = resolveCapability(state, event.requires);
+        const toll = presentedOptions(event, band).find((option) => option.archetype === 'toll');
+        return toll && optionPayable(state, toll) ? 'toll' : 'safe';
+      },
+    };
   }
 
   it('records a target for the move, and replays to the same movesets', async () => {

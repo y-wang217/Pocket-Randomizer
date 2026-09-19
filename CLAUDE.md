@@ -85,6 +85,28 @@ Four axes, each with its own meaning:
 - Every node completion routes through the single result screen. There is never
   a second path by which a node completes.
 
+## Prices
+
+A price is a cost the player reads *before* pressing and agrees to by pressing.
+Only a Toll has one. A drawn cost is not a price.
+
+- **A stated price is charged, or the option is not purchasable.** An option the
+  run cannot pay stays on the menu, disabled, saying so. It is never removed,
+  and it is never quietly resolved for free.
+- Payable means *charging it would take something*. It is answered by charging
+  it against a throwaway state, never by a second opinion written beside the
+  fold.
+- Where a price names a thing the run already holds, the button and the reveal
+  both name the exact thing — the item, not its kind. A price that cannot be
+  planned against is not a price, it is a surprise with a label.
+- **A gate may read only what the player can already see.** Nothing is ever
+  gated on a drawn outcome: refusing a button on what it would pay tells the
+  player what they drew before they chose it.
+- A refusal is loud at every layer. The screen dims the button, and the run
+  throws rather than charging a price it cannot take.
+
+Argument: [`docs/generation.md`](docs/generation.md) section 51.
+
 ## Process
 
 - UI comes last in every stage. If a mechanic cannot be shown to work headless,
