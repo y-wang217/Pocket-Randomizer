@@ -8099,3 +8099,43 @@ that sets a register rather than stating a number. The forbidden-word lint
 covers `TUTORIAL` marks and event copy, and the verdict lint covers string
 literals under `src/ui`; the greeting is in `data/` and trips neither, which is
 a fact about their scope and is stated here rather than relied on quietly.
+
+### 51.5 The panel that failed five of the nine legs, and the seed that was in two places
+
+The intro shipped its first commit correct on its own terms and **red across
+the project**: `test:node`, `test:chromium`, `trim:node`, `trim:browser` and
+`smoke` all failed, none of them on anything they were testing. Every failure
+read the same way —
+
+> `<p class="intro__tutorial">…</p>` from `<div … class="overlay intro">` subtree
+> intercepts pointer events
+
+A modal with a scrim is the one first-run surface a driven browser cannot
+ignore. The coach marks never caused this: a mark is a panel beside its anchor
+with nothing over the rest of the screen, so a suite that clicks by selector
+walks straight past it.
+
+**The cause was not the panel. It was that "this context is not a first launch"
+was written down twice.** `scripts/smoke.mjs` and `scripts/visual/browser.mjs`
+each hand-rolled `{ density, tutorial: { skipped: true, seen: [] } }`, and
+`test/visual-motion.test.ts` hand-rolled a third copy. A new surface had to be
+remembered in three places to be suppressed in any, and it was remembered in
+none.
+
+It is one file now, `scripts/first-launch.mjs`, and all three read from it.
+Plain ESM for `moveFactCeiling.mjs`'s reason — the smoke run is Node against a
+built bundle and cannot import TypeScript — with a `.d.mts` beside it so the
+two test files that import it typecheck. It seeds the intro as
+`Number.MAX_SAFE_INTEGER` rather than as `INTRO_VERSION`: restating the
+constant would mean editing the harness on every reword and silently failing to
+suppress the panel on the release somebody forgot, where a ceiling says the
+permanently true thing — a driven browser has seen every greeting there will
+ever be.
+
+Two tests hold it, and deliberately at two altitudes. `test/intro.test.ts`
+asserts in jsdom, in a second, that the shared seed suppresses the greeting;
+`test/tutorial-browser.test.ts` asserts in a browser that on a real first
+launch the panel is up **and the marks are not**, that dismissing it brings
+them, and that "Show tutorial again" replays both in that order. The first is
+the one that will actually catch the next instance, because the browser leg
+that found this one takes twelve minutes to say so.

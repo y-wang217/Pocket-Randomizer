@@ -84,6 +84,20 @@ describe('the tutorial at 390x844', () => {
     const { page, context, problems } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { tutorial: true });
     const all: Shown[] = [];
 
+    /*
+     * **The greeting comes first, and the marks wait for it.**
+     *
+     * Both are due on a first launch, and two overlays on one screen is
+     * neither — `ui/app.ts` holds `showTutorialFor` while the panel is open
+     * and asks again from `intro.onClose`. That sequencing is only observable
+     * in a browser, so it is asserted here: the panel is up and the marks are
+     * not, and dismissing it brings them.
+     */
+    await page.waitForSelector('.intro:not([hidden])');
+    expect(await page.evaluate(() => (globalThis.document.querySelector('.coach') as HTMLElement).hidden)).toBe(true);
+    await page.locator('[data-intro-dismiss]').click();
+    await page.waitForSelector('.intro', { state: 'hidden' });
+
     // Starter: the marks are up before anything is tapped.
     await page.waitForSelector('.coach:not([hidden])');
     const starterBefore = await savedDecisions(page);
@@ -138,8 +152,11 @@ describe('the tutorial at 390x844', () => {
     // A returning visit shows nothing: the battle's marks are spent.
     expect(await page.evaluate(() => (globalThis.document.querySelector('.coach') as HTMLElement).hidden)).toBe(true);
 
-    // "Show tutorial again" brings the current screen's marks back at once.
+    // "Show tutorial again" replays the whole first launch: the greeting, and
+    // the current screen's marks the moment it is dismissed.
     await page.locator('[data-tutorial-replay]').click();
+    await page.waitForSelector('.intro:not([hidden])');
+    await page.locator('[data-intro-dismiss]').click();
     await page.waitForSelector('.coach:not([hidden])');
     const again = await readAndTap(page);
     expect(again?.screen).toBe('battle');
@@ -149,10 +166,17 @@ describe('the tutorial at 390x844', () => {
     await context.close();
   }, 300_000);
 
-  it('never shows on a returning store', async () => {
+  it('never shows on a returning store, and neither does the greeting', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await page.waitForTimeout(300);
     expect(await page.evaluate(() => (globalThis.document.querySelector('.coach') as HTMLElement).hidden)).toBe(true);
+    /*
+     * The seed `openApp` uses is `scripts/first-launch.mjs`'s, and it covers
+     * both surfaces. It is asserted here because the cost of it covering only
+     * one was measured: the intro landed seeded in neither harness and five of
+     * the nine legs of `npm run check` failed on a modal nothing was testing.
+     */
+    expect(await page.evaluate(() => (globalThis.document.querySelector('.intro') as HTMLElement).hidden)).toBe(true);
     await context.close();
   }, 120_000);
 });

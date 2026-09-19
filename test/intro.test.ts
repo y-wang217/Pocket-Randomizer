@@ -21,6 +21,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { INTRO_COPY, INTRO_VERSION } from '../src/data/intro';
 import { createIntro } from '../src/ui/intro';
 import { initSettings, introDue, introFlags, resetIntro } from '../src/ui/settings';
+import { notFirstLaunch } from '../scripts/first-launch.mjs';
 
 function mount(): ReturnType<typeof createIntro> {
   const host = document.createElement('div');
@@ -131,6 +132,22 @@ describe('the intro panel', () => {
    * skipped the marks on a build where the intro did not exist has not
    * declined a panel they were never shown.
    */
+  /*
+   * The regression this file exists downstream of.
+   *
+   * The panel is a modal with a scrim, and a driven browser clicks by
+   * selector. It shipped seeded in neither harness and five of the nine legs
+   * of `npm run check` failed on "subtree intercepts pointer events", none of
+   * them about the thing they were testing. The seed both harnesses now use is
+   * one file, and this asserts it covers the greeting — in jsdom, in a
+   * second, rather than in a browser leg that takes twelve minutes to say so.
+   */
+  it('is suppressed by the store the test harnesses seed', () => {
+    globalThis.localStorage.setItem('gymrun.settings', notFirstLaunch());
+    initSettings();
+    expect(introDue()).toBe(false);
+  });
+
   it('is still due for a player who had already skipped the tutorial', () => {
     globalThis.localStorage.setItem(
       'gymrun.settings',
