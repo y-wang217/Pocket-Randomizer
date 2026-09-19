@@ -8008,8 +8008,13 @@ sweep counted a band 4 move in that Pokemon's kit, the AI scored it as damage
 and picked it, and the fight was played four-on-three the whole way. A balance
 figure cannot see that: it reads the pool, not the protocol.
 
-The three are rare enough that no benchmark row is expected to move outside
-noise, and **balance is not a gate**, so none was retuned against.
+**Measured**: 400 seeds, prefix `RETUNE`, `--ai pinned`, against the same
+population one commit earlier — **1.055 mean gyms against 1.085, completion
+unmoved at 1.0%**. Gyms 1 and 2 reproduce to the digit on identical party
+counts, which is the part worth reading: the cut is band 4 and 5 only, segments
+0 to 2 draw bands 1 to 3, and the first two columns therefore cannot move.
+`docs/balance.md` section 0 carries the row. **Recorded, not chased** — balance
+is not a gate and nothing was retuned against it.
 
 ### 51.3 The detector, and why it does not decide the pool
 

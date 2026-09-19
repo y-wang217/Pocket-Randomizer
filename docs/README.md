@@ -61,8 +61,11 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 **In flight: three moves nothing could use leave the pool.** Branch
 `claude/wild-mon-restricted-move-bug-hifsw6`, prompt
 [`spec/gymrun-patch-user-locked-moves.md`](spec/gymrun-patch-user-locked-moves.md),
-record [`generation.md`](generation.md) section 51. `RANDOMIZER_VERSION` to
-`-22` and `contentHash` to `622777`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+record [`generation.md`](generation.md) section 51, measurement
+[`balance.md`](balance.md) section 0. `RANDOMIZER_VERSION` to `-22` and
+`contentHash` to `622777`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+**1.085 to 1.055 mean gyms**, with gyms 1 and 2 reproducing to the digit
+because the cut is band 4 and 5 and the early segments never draw those.
 
 A wild Kilowattrel rolled Aura Wheel and spent a turn being told only a Morpeko
 may use it. `scripts/gen-pools.ts` had five exclusion rules and all five asked
