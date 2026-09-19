@@ -8143,9 +8143,16 @@ that found this one takes twelve minutes to say so.
 ### 51.6 The generated chart named 46 paths, and none of them resolved
 
 `test/boundaries.test.ts` resolves every backticked path in every live document
-against the tree, and the chart's inline-literals section printed
-`src/ui/screens/summary.ts:117` — a path with a line number welded on, which is
-not a path. 46 rows, 46 unresolvable tokens, `test:node` and `trim:node` red.
+against the tree, and the chart's inline-literals section printed the file and
+the line as one token — summary.ts with a colon and a line number welded on,
+which is not a path. 46 rows, 46 unresolvable tokens, `test:node` and
+`trim:node` red.
+
+(That sentence is unbackticked on purpose. The first draft of this note quoted
+the broken form **inside backticks**, and the check failed on this file for the
+same reason it had failed on the chart: it does not read prose, it reads
+tokens, and a token that is an example of a bad path is still a bad path. The
+check is right and the note is the one that has to give.)
 
 The path is inside the backticks and the line number outside them now
 (`` `src/ui/screens/summary.ts` line 117``), which reads the same and costs
