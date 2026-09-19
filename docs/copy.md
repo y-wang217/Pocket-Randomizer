@@ -788,56 +788,56 @@ Source: `src/data/tutorial.ts` · 6 strings
 
 ### 34. Still inline in a component
 
-Found by grep, not by import: a string assigned straight to `textContent`, `title`, `label`, `placeholder` or `ariaLabel` in `src/ui`. These are headings and button faces that never made it into a copy table, so they have no short form and no density mode. **This section shrinking to nothing is the point of it.**
+Found by grep, not by import: a string assigned straight to `textContent`, `title`, `label`, `placeholder` or `ariaLabel` under `src/ui`. These are headings and button faces that never made it into a copy table, so they have no short form and no density mode. **This section shrinking to nothing is the point of it.**
 
 46 strings.
 
 | Where | Text | Rewrite |
 |---|---|---|
-| `src/ui/map-drawer.ts:129` | Map |  |
-| `src/ui/stamps.ts:59` | Copy the seed |  |
-| `src/ui/move-explanation.ts:190` | Explain |  |
-| `src/ui/flag-strip.ts:92` | History |  |
-| `src/ui/seed-bar.ts:89` | Seed |  |
-| `src/ui/seed-bar.ts:102` | Start run |  |
-| `src/ui/seed-bar.ts:112` | New seed |  |
-| `src/ui/seed-bar.ts:117` | Resume saved run |  |
-| `src/ui/scene.ts:959` | Moves first at this Speed |  |
-| `src/ui/drawer.ts:301` | Party |  |
-| `src/ui/drawer.ts:329` | Relics |  |
-| `src/ui/header.ts:22` | GYMRUN |  |
-| `src/ui/overlay.ts:102` | Close |  |
-| `src/ui/screens/shop.ts:37` | Shop |  |
-| `src/ui/screens/party.ts:162` | Your party |  |
-| `src/ui/screens/party.ts:431` | TMs |  |
-| `src/ui/screens/party.ts:454` | Teach |  |
-| `src/ui/screens/party.ts:462` | Discard |  |
-| `src/ui/screens/party.ts:538` | To bag |  |
-| `src/ui/screens/party.ts:548` | Lead |  |
-| `src/ui/screens/party.ts:557` | Release |  |
-| `src/ui/screens/party.ts:646` | Backpack |  |
-| `src/ui/screens/party.ts:718` | Discard |  |
-| `src/ui/screens/run-map.ts:559` | Coins |  |
-| `src/ui/screens/run-map.ts:585` | Manage |  |
-| `src/ui/screens/acquisition.ts:135` | Take it |  |
-| `src/ui/screens/result.ts:126` | Your party |  |
-| `src/ui/screens/locale-select.ts:100` | This segment ends at |  |
-| `src/ui/screens/move-replace.ts:66` | Learning |  |
-| `src/ui/screens/pre-gym.ts:97` | Who leads? |  |
-| `src/ui/screens/pre-gym.ts:119` | Party screen (items) |  |
-| `src/ui/screens/pre-gym.ts:174` | Fainted |  |
-| `src/ui/screens/event.ts:57` | Something happens |  |
-| `src/ui/screens/event.ts:213` | Carry on |  |
-| `src/ui/screens/summary.ts:88` | Rematch this seed |  |
-| `src/ui/screens/summary.ts:92` | Copy seed |  |
-| `src/ui/screens/summary.ts:96` | Copy result |  |
-| `src/ui/screens/summary.ts:100` | New seed |  |
-| `src/ui/screens/summary.ts:117` | Score |  |
-| `src/ui/screens/summary.ts:140` | Fell in battle |  |
-| `src/ui/screens/summary.ts:144` | Final party |  |
-| `src/ui/screens/summary.ts:147` | Coverage |  |
-| `src/ui/screens/summary.ts:150` | The run |  |
-| `src/ui/screens/summary.ts:189` | Copy seed |  |
-| `src/ui/screens/summary.ts:220` | Copy result |  |
-| `src/ui/screens/starter-select.ts:34` | Choose your starter |  |
+| `src/ui/map-drawer.ts` line 129 | Map |  |
+| `src/ui/stamps.ts` line 59 | Copy the seed |  |
+| `src/ui/move-explanation.ts` line 190 | Explain |  |
+| `src/ui/flag-strip.ts` line 92 | History |  |
+| `src/ui/seed-bar.ts` line 89 | Seed |  |
+| `src/ui/seed-bar.ts` line 102 | Start run |  |
+| `src/ui/seed-bar.ts` line 112 | New seed |  |
+| `src/ui/seed-bar.ts` line 117 | Resume saved run |  |
+| `src/ui/scene.ts` line 959 | Moves first at this Speed |  |
+| `src/ui/drawer.ts` line 301 | Party |  |
+| `src/ui/drawer.ts` line 329 | Relics |  |
+| `src/ui/header.ts` line 22 | GYMRUN |  |
+| `src/ui/overlay.ts` line 102 | Close |  |
+| `src/ui/screens/shop.ts` line 37 | Shop |  |
+| `src/ui/screens/party.ts` line 162 | Your party |  |
+| `src/ui/screens/party.ts` line 431 | TMs |  |
+| `src/ui/screens/party.ts` line 454 | Teach |  |
+| `src/ui/screens/party.ts` line 462 | Discard |  |
+| `src/ui/screens/party.ts` line 538 | To bag |  |
+| `src/ui/screens/party.ts` line 548 | Lead |  |
+| `src/ui/screens/party.ts` line 557 | Release |  |
+| `src/ui/screens/party.ts` line 646 | Backpack |  |
+| `src/ui/screens/party.ts` line 718 | Discard |  |
+| `src/ui/screens/run-map.ts` line 559 | Coins |  |
+| `src/ui/screens/run-map.ts` line 585 | Manage |  |
+| `src/ui/screens/acquisition.ts` line 135 | Take it |  |
+| `src/ui/screens/result.ts` line 126 | Your party |  |
+| `src/ui/screens/locale-select.ts` line 100 | This segment ends at |  |
+| `src/ui/screens/move-replace.ts` line 66 | Learning |  |
+| `src/ui/screens/pre-gym.ts` line 97 | Who leads? |  |
+| `src/ui/screens/pre-gym.ts` line 119 | Party screen (items) |  |
+| `src/ui/screens/pre-gym.ts` line 174 | Fainted |  |
+| `src/ui/screens/event.ts` line 57 | Something happens |  |
+| `src/ui/screens/event.ts` line 213 | Carry on |  |
+| `src/ui/screens/summary.ts` line 88 | Rematch this seed |  |
+| `src/ui/screens/summary.ts` line 92 | Copy seed |  |
+| `src/ui/screens/summary.ts` line 96 | Copy result |  |
+| `src/ui/screens/summary.ts` line 100 | New seed |  |
+| `src/ui/screens/summary.ts` line 117 | Score |  |
+| `src/ui/screens/summary.ts` line 140 | Fell in battle |  |
+| `src/ui/screens/summary.ts` line 144 | Final party |  |
+| `src/ui/screens/summary.ts` line 147 | Coverage |  |
+| `src/ui/screens/summary.ts` line 150 | The run |  |
+| `src/ui/screens/summary.ts` line 189 | Copy seed |  |
+| `src/ui/screens/summary.ts` line 220 | Copy result |  |
+| `src/ui/screens/starter-select.ts` line 34 | Choose your starter |  |
 

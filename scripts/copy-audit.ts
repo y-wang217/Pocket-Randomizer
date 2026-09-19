@@ -681,17 +681,27 @@ function render(): string {
   lines.push('');
   lines.push(
     'Found by grep, not by import: a string assigned straight to `textContent`, `title`, `label`, '
-    + '`placeholder` or `ariaLabel` in `src/ui`. These are headings and button faces that never made it '
+    + '`placeholder` or `ariaLabel` under `src/ui`. These are headings and button faces that never made it '
     + 'into a copy table, so they have no short form and no density mode. **This section shrinking to '
     + 'nothing is the point of it.**',
   );
   lines.push('');
   lines.push(`${count(inline.length)}.`);
   lines.push('');
+  /*
+   * The path inside the backticks and the line number outside them.
+   *
+   * `test/boundaries.test.ts` resolves every backticked path in every live
+   * document against the tree, and `file.ts:117` is not a path — it caught
+   * this chart naming 46 of them. Split, each one resolves, which means the
+   * generated chart is now **checked**: a row naming a file that has since
+   * moved fails the suite rather than sending a reader nowhere, and
+   * `npm run copy-audit` is the fix.
+   */
   lines.push('| Where | Text | Rewrite |');
   lines.push('|---|---|---|');
   for (const row of inline) {
-    lines.push(`| \`${row.file}:${row.line}\` | ${cell(row.text)} |  |`);
+    lines.push(`| \`${row.file}\` line ${row.line} | ${cell(row.text)} |  |`);
   }
   lines.push('');
 

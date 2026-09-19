@@ -8139,3 +8139,18 @@ launch the panel is up **and the marks are not**, that dismissing it brings
 them, and that "Show tutorial again" replays both in that order. The first is
 the one that will actually catch the next instance, because the browser leg
 that found this one takes twelve minutes to say so.
+
+### 51.6 The generated chart named 46 paths, and none of them resolved
+
+`test/boundaries.test.ts` resolves every backticked path in every live document
+against the tree, and the chart's inline-literals section printed
+`src/ui/screens/summary.ts:117` — a path with a line number welded on, which is
+not a path. 46 rows, 46 unresolvable tokens, `test:node` and `trim:node` red.
+
+The path is inside the backticks and the line number outside them now
+(`` `src/ui/screens/summary.ts` line 117``), which reads the same and costs
+nothing. **It also means the generated chart is checked from here on:** a row
+naming a file that has since moved fails the suite rather than sending a reader
+nowhere, and `npm run copy-audit` is the fix. A generated document that nothing
+verifies is a document that goes stale silently, which is the failure this
+whole chart is built against.
