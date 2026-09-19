@@ -92,6 +92,7 @@ import {
 import { starterLevel } from '../data/scaling';
 import {
   hasBattlePair,
+  battleStepFloorFor,
   restFloorForRoute,
   stepsRangeFor,
   tierWeightsFor,
@@ -443,13 +444,43 @@ function buildRoute(segment: number, locale: LocaleId, rng: Rng, tuning: Tuning)
   const stepCount = drawRange(shapeStream, stepsRangeFor(tuning, segment));
   const shape: ChoosableKind[][] = [];
 
+  /*
+   * **The per-route allowance, spent as the route is drawn. 2026-09-19.**
+   *
+   * A kind that has reached `tuning.kindCapPerRoute` is dropped from the
+   * allowed list for every later step, so the cap holds *by construction*
+   * rather than by a fix-up afterwards. That is the whole reason it is here
+   * and not in `enforceComposition`: the draw count is unchanged — one value
+   * per pick, exactly as before — so a ceiling costs nothing in draws. A
+   * conversion pass would have cost one draw per surplus, which makes the
+   * number of draws depend on what was drawn.
+   *
+   * It runs down the route in step order, which makes it order-dependent in
+   * one legible direction: an early step may spend the last rest, and a later
+   * one then cannot offer it. That is the correct direction — a player reads a
+   * route forwards.
+   */
+  const spent = new Map<ChoosableKind, number>();
+  const underCap = (kind: ChoosableKind): boolean => {
+    const cap = tuning.kindCapPerRoute[kind];
+    return cap === undefined || (spent.get(kind) ?? 0) < cap;
+  };
+
   for (let step = 0; step < stepCount; step++) {
-    const allowed = CHOOSABLE_KINDS.filter((kind) => kind !== 'rest' || step >= tuning.restEarliestStep);
+    const allowed = CHOOSABLE_KINDS.filter(
+      (kind) => (kind !== 'rest' || step >= tuning.restEarliestStep) && underCap(kind),
+    );
     const wanted = drawRange(shapeStream, tuning.nodeChoiceCount);
     const count = tuning.distinctKindsPerStep ? Math.min(wanted, allowed.length) : wanted;
-    shape.push(
-      sampleWeighted(shapeStream, allowed, (kind) => tuning.nodeWeights[kind], count, tuning.distinctKindsPerStep),
+    const kinds = sampleWeighted(
+      shapeStream,
+      allowed,
+      (kind) => tuning.nodeWeights[kind],
+      count,
+      tuning.distinctKindsPerStep,
     );
+    for (const kind of kinds) spent.set(kind, (spent.get(kind) ?? 0) + 1);
+    shape.push(kinds);
   }
 
   enforceComposition(shape, shapeStream, tuning, segment);
@@ -748,6 +779,26 @@ function enforceComposition(
     claimed.add(step);
   }
 
+  /*
+   * **Steps that are a fight and nothing else. 2026-09-19.**
+   *
+   * Third, after the pair and the wild step and before the variety floors, and
+   * the position is the argument. Both of those already produce battle-only
+   * steps and both are claimed by now, so they count towards this floor for
+   * free and it converts only what they left short. Running it after the event
+   * and rest floors would have it competing with two guarantees for the same
+   * steps; running it before them is safe because `battleStepFloorFor` reserves
+   * their room out of the count.
+   *
+   * What it removes is the road with nothing on it. Before it, a 5.5-step route
+   * asked for a mean of 1.4 fights and offered a non-fight option at 4.1 of its
+   * steps — a player could walk a whole region interacting with none of it. What
+   * it does *not* remove is the choice: a battle-only step is still wild versus
+   * trainer with two different tier badges on it, which is the same shape
+   * `placeBattlePair` has always produced.
+   */
+  ensureBattleSteps(shape, stream, tuning, claimed);
+
   ensureKind(shape, 'event', tuning.minEventSteps, stream, claimed, 0);
   /*
    * **The rest floor is a function of the segment's length. Stage 4.8, item 3.**
@@ -863,6 +914,85 @@ function placeBattlePair(
     const kinds = flipped ? [...BATTLE_KINDS].reverse() : [...BATTLE_KINDS];
     shape[step] = kinds;
     claimed.add(step);
+  }
+}
+
+/**
+ * Guarantee that at least `battleStepFloorFor` steps are a fight and nothing
+ * else, and claim them.
+ *
+ * ## It counts what is already there before it converts anything
+ *
+ * The wild step and the battle pair are both battle-only steps and both run
+ * first, so a route that already satisfies the floor converts nothing and
+ * draws nothing. A step the *draw* happened to fill with two fights counts
+ * too — it is the same step by every reading a player has of it — which is
+ * what keeps this a floor on the outcome rather than a quota on the fix-up.
+ *
+ * ## Draws
+ *
+ * Two per conversion: one for which eligible step, one for which way round the
+ * two kinds sit. The number of conversions depends on what the step draw
+ * produced, which is the same shape `ensureKind` has had since Stage 3 — a
+ * floor cannot know in advance how far short the draw fell. It does **not**
+ * depend on the party, the bag or anything the player did, which is the
+ * property `CLAUDE.md` actually requires.
+ *
+ * ## What it overwrites
+ *
+ * The whole step, like the wild step and unlike `ensureKind`, because the rule
+ * is about what the step *offers in total*. Converting one option would leave
+ * the rest beside it and guarantee nothing. Overwriting can therefore destroy
+ * a rest or a shop the draw placed — which only ever moves a route further
+ * under its cap, never over it.
+ */
+function ensureBattleSteps(
+  shape: ChoosableKind[][],
+  stream: RngStream,
+  tuning: Tuning,
+  claimed: Set<number>,
+): void {
+  const minimum = battleStepFloorFor(tuning, shape.length);
+  const isBattleOnly = (kinds: readonly ChoosableKind[]): boolean =>
+    kinds.length > 0 && kinds.every((kind) => BATTLE_KINDS.includes(kind));
+
+  /*
+   * **What counts is a battle-only step that is also *claimed*.**
+   *
+   * Two mistakes are possible here and both were made before this comment
+   * existed, in opposite directions:
+   *
+   *   1. Claiming every battle-only step the draw produced starved the event
+   *      and rest floors of anywhere to go, and 4% of opening routes shipped
+   *      with **no rest at all** — the one guarantee `minRestSteps` exists to
+   *      make unbreakable.
+   *   2. Not counting the steps the pair and the wild step already claimed
+   *      converted a second set on top of them, and segment 7 came out with
+   *      six battle-only steps of six.
+   *
+   * So: a claimed battle-only step counts and costs nothing, an unclaimed one
+   * is claimed only while the floor is short, and a surplus stays unclaimed so
+   * a later floor may convert an option of it. That cannot drop the route
+   * under the floor, because the steps holding it up are claimed.
+   */
+  let have = shape.filter((kinds, step) => claimed.has(step) && isBattleOnly(kinds)).length;
+  shape.forEach((kinds, step) => {
+    if (have >= minimum || claimed.has(step) || !isBattleOnly(kinds)) return;
+    claimed.add(step);
+    have++;
+  });
+
+  while (have < minimum) {
+    const eligible = shape.map((_, step) => step).filter((step) => !claimed.has(step));
+    if (eligible.length === 0) return;
+    const step = eligible[stream.nextInt(eligible.length)];
+    if (step === undefined) return;
+    // One draw per conversion for the orientation, always, so a converted step
+    // costs the same two values wherever it lands.
+    const flipped = stream.nextInt(2) === 1;
+    shape[step] = flipped ? [...BATTLE_KINDS].reverse() : [...BATTLE_KINDS];
+    claimed.add(step);
+    have++;
   }
 }
 

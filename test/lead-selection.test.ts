@@ -33,6 +33,7 @@ import {
   currentVersions,
 } from '../src/core/run';
 import type { PokemonState, RunLog } from '../src/core/types';
+import { firstRunWhere, seedRange } from './seed-search';
 import { GYMS } from '../src/data/gyms';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
@@ -125,7 +126,18 @@ describe('a whole run', () => {
   }, 120_000);
 
   it('records the lead immediately before the gym it belongs to', async () => {
-    const run = await playRun('S49B-1', contrarian(), DEFAULT_TUNING);
+    /*
+     * **Searched rather than pinned**, the same rule this file's first test
+     * already followed at the `-18` bump and `test/seed-search.ts` now states
+     * once: the seed only has to reach a gym, and `S49B-1` stopped doing so
+     * at `-22`.
+     */
+    const { run } = await firstRunWhere(
+      seedRange('S49B-', 20),
+      (seed) => playRun(seed, contrarian(), DEFAULT_TUNING),
+      (played) => played.log.decisions.some((decision) => decision.kind === 'lead'),
+      'reached a gym',
+    );
     const decisions = run.log.decisions;
 
     const leadPositions = decisions.flatMap((decision, index) => (decision.kind === 'lead' ? [index] : []));
@@ -245,8 +257,22 @@ describe('a whole run', () => {
   }, 120_000);
 
   it('replays identically, lead picks included', async () => {
-    const picks: number[] = [];
-    const original = await playRun('S49B-1', contrarian(picks), DEFAULT_TUNING);
+    /*
+     * **Searched rather than pinned**, the same rule this file's first test
+     * already followed at the `-18` bump and `test/seed-search.ts` now states
+     * once: the seed only has to reach a gym, and `S49B-1` stopped doing so
+     * at `-22`.
+     */
+    let picks: number[] = [];
+    const { run: original } = await firstRunWhere(
+      seedRange('S49B-', 20),
+      (seed) => {
+        picks = [];
+        return playRun(seed, contrarian(picks), DEFAULT_TUNING);
+      },
+      () => picks.length > 0,
+      'reached a gym',
+    );
     const replayed = await replayRun(JSON.parse(JSON.stringify(original.log)) as RunLog);
 
     expect(replayed.outcome).toBe(original.outcome);
@@ -307,17 +333,31 @@ describe('the version guard', () => {
 
 describe('the gym the question is asked about', () => {
   it('is the one guarding the segment the run is in', async () => {
-    const seen: { segment: number; leader: string }[] = [];
-    await playRun(
-      'S49B-1',
-      {
-        ...scriptedRunPolicy(greedyAiPolicy),
-        chooseLead: async (_party, gym, state) => {
-          seen.push({ segment: state.currentSegment, leader: gym.leader });
-          return 0;
-        },
+    /*
+     * **Searched rather than pinned**, the same rule this file's first test
+     * already followed at the `-18` bump and `test/seed-search.ts` now states
+     * once: the seed only has to reach a gym, and `S49B-1` stopped doing so
+     * at `-22`.
+     */
+    let seen: { segment: number; leader: string }[] = [];
+    await firstRunWhere(
+      seedRange('S49B-', 20),
+      (seed) => {
+        seen = [];
+        return playRun(
+          seed,
+          {
+            ...scriptedRunPolicy(greedyAiPolicy),
+            chooseLead: async (_party, gym, state) => {
+              seen.push({ segment: state.currentSegment, leader: gym.leader });
+              return 0;
+            },
+          },
+          DEFAULT_TUNING,
+        );
       },
-      DEFAULT_TUNING,
+      () => seen.length > 0,
+      'reached a gym',
     );
 
     expect(seen.length).toBeGreaterThan(0);

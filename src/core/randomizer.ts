@@ -336,8 +336,28 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * feed the stage gate, so a segment draws from a different species list. The
  * practical harm was nil — `contentHash` moved, so no seed replayed silently —
  * but the axis was the wrong one. `docs/generation.md` section 50.
+ *
+ * ## `-22`: the route's ceiling, and the floor under its fights
+ *
+ * **2026-09-19.** Three changes to how a route's shape is drawn, all in
+ * `encounters.buildRoute` and `enforceComposition`:
+ *
+ *   1. A kind that has spent its `kindCapPerRoute` allowance leaves the
+ *      allowed list for every later step, so the *same* draw off the *same*
+ *      key now picks from a different pool.
+ *   2. `ensureBattleSteps` converts steps to a straight wild-versus-trainer
+ *      choice until the route meets `battleStepFloorFor`, drawing two values
+ *      per conversion.
+ *   3. `restStepsPerGuarantee` is deleted, so `ensureKind`'s rest pass has a
+ *      smaller floor to meet and converts fewer steps, drawing less.
+ *
+ * All three change which values the shape stream hands back **and** how many
+ * it hands out, so every recorded map moves — the routes and the tiers on
+ * them, and through the tiers the contents. `contentHash` moves beside it for
+ * the table. `RUN_LOG_VERSION` holds: a step is still a step and a node is
+ * still picked by index. `docs/generation.md` section 52.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-21';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

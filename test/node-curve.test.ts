@@ -127,24 +127,30 @@ describe('the step curve', () => {
 // ---------------------------------------------------------------------------
 
 describe('the rest floor', () => {
-  it('is the larger of the count floor and the density floor', () => {
+  /*
+   * **The density half of this floor is deleted, 2026-09-19.**
+   *
+   * `restStepsPerGuarantee` guaranteed a second rest on any six-step route,
+   * which is 100% of segments 5 and 6 — precisely the double rest
+   * `kindCapPerRoute` now exists to make rare. A floor that mandates what a
+   * ceiling forbids is not a tuning disagreement, so the density went and the
+   * guarantee stayed. The two tests that pinned the density are replaced by
+   * the one below that pins its absence; `generation.md` section 52.
+   */
+  it('is the guarantee, at every length, and nothing more', () => {
     for (let steps = 1; steps <= 12; steps++) {
-      const floor = restFloorFor(DEFAULT_TUNING, steps);
-      expect(floor).toBeGreaterThanOrEqual(DEFAULT_TUNING.minRestSteps);
-      expect(floor).toBeGreaterThanOrEqual(
-        Math.floor(steps / DEFAULT_TUNING.restStepsPerGuarantee),
-      );
+      expect(restFloorFor(DEFAULT_TUNING, steps), `${steps} steps`).toBe(DEFAULT_TUNING.minRestSteps);
     }
   });
 
-  it('gives a long late segment more recovery than a short early one', () => {
-    // The sentence item 3 is written around: one rest across seven steps is not
-    // the same amount of recovery as one rest across four.
-    const early = stepsRangeFor(DEFAULT_TUNING, 0);
-    const late = stepsRangeFor(DEFAULT_TUNING, SEGMENTS_PER_RUN - 1);
-    expect(restFloorFor(DEFAULT_TUNING, late.max)).toBeGreaterThan(
-      restFloorFor(DEFAULT_TUNING, early.min),
-    );
+  it('never mandates what the cap forbids', () => {
+    const cap = DEFAULT_TUNING.kindCapPerRoute.rest ?? Infinity;
+    for (const steps of CURVE_LENGTHS) {
+      expect(restFloorFor(DEFAULT_TUNING, steps), `${steps} steps`).toBeLessThanOrEqual(cap);
+      // And strictly below it, which is what makes the second rest a thing the
+      // route may offer rather than a thing it must.
+      expect(restFloorFor(DEFAULT_TUNING, steps), `${steps} steps`).toBeLessThan(cap);
+    }
   });
 
   it('never asks for more rests than the segment has steps', () => {

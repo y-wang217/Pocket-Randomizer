@@ -10,6 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { firstRunWhere, seedRange } from './seed-search';
 import type { Policy } from '../src/core/battle/policy';
 import { moveChoice, switchChoice } from '../src/core/types';
 
@@ -451,14 +452,29 @@ describe('a whole run that acquires', () => {
      * which is also the only form that catches a capture flow reading a stale
      * capacity.
      */
+    /*
+     * **Searched rather than pinned.** How far a seed gets, and whether it
+     * captures or is forced to switch, is a property of the draw that every
+     * `RANDOMIZER_VERSION` bump reshuffles — this file's pinned seeds stopped
+     * qualifying at `-22`. `test/seed-search.ts` carries the argument.
+     */
     let peak = 0;
     let overCapacity = 0;
-    const run = await playRun('PARTY-D0', collector(), DEFAULT_TUNING, {
-      onState: (state) => {
-        peak = Math.max(peak, state.party.length);
-        if (state.party.length > partyCapacity(state)) overCapacity++;
+    const { run } = await firstRunWhere(
+      seedRange('PARTY-D', 20),
+      (seed) => {
+        peak = 0;
+        overCapacity = 0;
+        return playRun(seed, collector(), DEFAULT_TUNING, {
+          onState: (state) => {
+            peak = Math.max(peak, state.party.length);
+            if (state.party.length > partyCapacity(state)) overCapacity++;
+          },
+        });
       },
-    });
+      () => peak > 1,
+      'grew its party past one member',
+    );
 
     expect(peak).toBeGreaterThan(1);
     expect(overCapacity, 'a party was over the slots it had').toBe(0);
@@ -466,7 +482,18 @@ describe('a whole run that acquires', () => {
   });
 
   it('records the target and the acquisition as decisions of their own', async () => {
-    const run = await playRun('PARTY-D0', collector());
+    /*
+     * **Searched rather than pinned.** How far a seed gets, and whether it
+     * captures or is forced to switch, is a property of the draw that every
+     * `RANDOMIZER_VERSION` bump reshuffles — this file's pinned seeds stopped
+     * qualifying at `-22`. `test/seed-search.ts` carries the argument.
+     */
+    const { run } = await firstRunWhere(
+      seedRange('PARTY-D', 20),
+      (seed) => playRun(seed, collector()),
+      (played) => played.log.decisions.some((decision) => decision.kind === 'acquisition'),
+      'was offered a capture',
+    );
     const kinds = run.log.decisions.map((decision) => decision.kind);
 
     expect(kinds).toContain('acquisition');
@@ -700,17 +727,34 @@ describe('save during a forced switch', () => {
    * exactly that point — not at the start of the turn, and not after it.
    */
   it('resumes from the save taken at every forced switch to an identical run', async () => {
-    const saves: RunLog[] = [];
-    const original = await playRun('FORCED-4', collector(), DEFAULT_TUNING, {
-      onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
-    });
-
+    /*
+     * **Searched rather than pinned.** How far a seed gets, and whether it
+     * captures or is forced to switch, is a property of the draw that every
+     * `RANDOMIZER_VERSION` bump reshuffles — this file's pinned seeds stopped
+     * qualifying at `-22`. `test/seed-search.ts` carries the argument.
+     */
     // The saves whose last decision is a switch: those are the ones taken
     // during a forced switch or immediately after a voluntary one.
-    const atSwitch = saves.filter((save) => {
-      const last = save.decisions.at(-1);
-      return last?.kind === 'battle' && last.choice.kind === 'switch';
-    });
+    const switchSaves = (saves: readonly RunLog[]): RunLog[] =>
+      saves.filter((save) => {
+        const last = save.decisions.at(-1);
+        return last?.kind === 'battle' && last.choice.kind === 'switch';
+      });
+
+    let saves: RunLog[] = [];
+    const { run: original } = await firstRunWhere(
+      seedRange('FORCED-', 20),
+      (seed) => {
+        saves = [];
+        return playRun(seed, collector(), DEFAULT_TUNING, {
+          onDecision: (log) => saves.push(JSON.parse(JSON.stringify(log)) as RunLog),
+        });
+      },
+      () => switchSaves(saves).length > 0,
+      'switched mid-battle',
+    );
+
+    const atSwitch = switchSaves(saves);
     expect(atSwitch.length, 'this seed never switched, so it proves nothing').toBeGreaterThan(0);
 
     for (const [index, save] of atSwitch.entries()) {
@@ -738,12 +782,24 @@ describe('save during a forced switch', () => {
   }, 240_000);
 
   it('replays the whole run to the same state, switches and all', async () => {
-    const original = await playRun('FORCED-4', collector());
+    /*
+     * **Searched rather than pinned.** How far a seed gets, and whether it
+     * captures or is forced to switch, is a property of the draw that every
+     * `RANDOMIZER_VERSION` bump reshuffles — this file's pinned seeds stopped
+     * qualifying at `-22`. `test/seed-search.ts` carries the argument.
+     */
+    const switchesIn = (log: RunLog) =>
+      log.decisions.filter((decision) => decision.kind === 'battle' && decision.choice.kind === 'switch');
+
+    const { run: original } = await firstRunWhere(
+      seedRange('FORCED-', 20),
+      (seed) => playRun(seed, collector()),
+      (played) => switchesIn(played.log).length > 0,
+      'switched mid-battle',
+    );
     const replayed = await replayRun(original.log);
 
-    const switches = original.log.decisions.filter(
-      (decision) => decision.kind === 'battle' && decision.choice.kind === 'switch',
-    );
+    const switches = switchesIn(original.log);
     expect(switches.length).toBeGreaterThan(0);
     expect(replayed.state.party).toEqual(original.state.party);
     expect(replayed.state.history.map((visit) => visit.hpAfter)).toEqual(

@@ -397,8 +397,24 @@ const TUTORIAL_SURFACE: Readonly<Partial<Record<GallerySurface, TutorialScreen>>
 };
 
 /**
- * The result screen's two decision points, from a real run of the seed: the
- * first review that carries three cards, and the first capture offer.
+ * The result screen's two decision points, from a real run: the first review
+ * that carries three cards, and the first capture offer.
+ *
+ * **It walks on to a derived seed when a run does not reach both**, and the
+ * `-22` region composition patch is why: a shorter run reaches fewer rewards,
+ * and `S49B-1` — the seed the gallery's own documented URL uses — stopped
+ * reaching a three-card review at all, so the page rendered an empty result
+ * screen and two visual guards failed against nothing.
+ *
+ * The walk is `seed`, then `seed/2`, `seed/3`, and so on, so the requested
+ * seed is still what is rendered whenever it can be, and a seed that cannot
+ * is replaced deterministically rather than by a pinned substitute somebody
+ * has to find again after the next bump. It stops as soon as both are held,
+ * and returns whatever it has if none of the tries reaches them — an empty
+ * gallery surface is a better failure than a hang.
+ *
+ * The last state is the last *attempted* run's, because that is the one whose
+ * offers are being shown.
  */
 async function harvestOffers(seed: string): Promise<{
   offer?: { review: BattleReview; offer: RewardOffer; state: RunState };
@@ -410,24 +426,41 @@ async function harvestOffers(seed: string): Promise<{
     capture?: { offer: AcquisitionOffer; party: readonly PokemonState[] };
   } = {};
   const policy = scriptedRunPolicy(greedyAiPolicy);
-  const played = await playRun(
-    seed,
-    {
-      ...policy,
-      reviewBattle: async (review, state) => {
-        if (!held.offer && review.offer && review.offer.options.length === 3) held.offer = { review, offer: review.offer, state };
-        return review.offer ? 0 : null;
+  let last: RunState | null = null;
+
+  for (let attempt = 1; attempt <= HARVEST_ATTEMPTS; attempt++) {
+    const played = await playRun(
+      attempt === 1 ? seed : `${seed}/${attempt}`,
+      {
+        ...policy,
+        reviewBattle: async (review, state) => {
+          if (!held.offer && review.offer && review.offer.options.length === 3) held.offer = { review, offer: review.offer, state };
+          return review.offer ? 0 : null;
+        },
+        chooseAcquisition: async (offer, party, capacity) => {
+          if (!held.capture) held.capture = { offer, party };
+          return policy.chooseAcquisition(offer, party, capacity);
+        },
       },
-      chooseAcquisition: async (offer, party, capacity) => {
-        if (!held.capture) held.capture = { offer, party };
-        return policy.chooseAcquisition(offer, party, capacity);
-      },
-    },
-    DEFAULT_TUNING,
-    { opponent: greedyAiPolicy },
-  );
-  return { ...held, last: played.state };
+      DEFAULT_TUNING,
+      { opponent: greedyAiPolicy },
+    );
+    last = played.state;
+    if (held.offer && held.capture) break;
+  }
+
+  return { ...held, last: last ?? openingState(seed) };
 }
+
+/**
+ * How many seeds the harvest will walk before giving up.
+ *
+ * Twelve, which at the `-22` difficulty finds both offers within the first
+ * two or three. It is a bound rather than a target: the gallery is a page
+ * somebody opens, and a page that plays runs until it finds what it wants is
+ * a page that can hang.
+ */
+const HARVEST_ATTEMPTS = 12;
 
 /**
  * A battle with both panels carrying everything they can carry, and a full

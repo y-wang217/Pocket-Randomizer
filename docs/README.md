@@ -58,7 +58,40 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: a Toll that charged nothing.** Branch
+**In flight: a ceiling on a region, and a floor under its fights.** Same
+branch, prompt
+[`spec/gymrun-patch-region-node-composition.md`](spec/gymrun-patch-region-node-composition.md),
+record [`generation.md`](generation.md) section 52, measurement
+[`balance.md`](balance.md) section 0. **Checkpoint 1 of two**; checkpoint 2 is
+the question mark that does not bite.
+
+The brief asked for a cap on rests and shops per region and, before any code,
+for the current limit. There was no ceiling anywhere in the generator — only
+floors — and the double rest was not a bad roll: `restStepsPerGuarantee`
+*guaranteed* two rests on any six-step route, so **100% of segment 5 and 6
+routes offered one**. The brief's first sentence contradicted an existing rule
+rather than adding to it, and the author resolved it: cap 2, floor 1.
+
+- **A per-route ceiling, spent during the draw.** A kind that has spent its
+  `kindCapPerRoute` allowance leaves the allowed list for later steps, so the
+  cap holds by construction and **the draw count does not move**. Routes
+  offering three or more rests or shops: up to 26% → **zero**.
+- **A floor of battle-only steps**, `floor(steps / 2)` clamped so the event and
+  rest floors still fit. `placeBattlePair` generalised — it was this rule
+  hardcoded to segment 7. Forced fights per route 1.43 → 2.54 in the middle
+  segments; a greedy non-fight walk through a run drops from **33.6 of 46 steps
+  to 25.2 of 45**.
+- **`restStepsPerGuarantee` is deleted**, not flagged. A floor that mandates
+  what a ceiling forbids is two rules that cannot both be true.
+- `RANDOMIZER_VERSION` → `-22`, `contentHash` → `637670`, `RUN_LOG_VERSION`
+  held.
+- **0.92 mean gyms against the pinned 1.085.** Recorded, not chased;
+  `battleStepsPerGuarantee` is the dial. **And one consequence is louder than
+  the mean**: no seed in 400 reaches an evolution fork any more, so Stage 4.9's
+  headline mechanic is close to unreachable at this difficulty. That is an open
+  question for the author, filed below.
+
+**Merged before it: a Toll that charged nothing.** Branch
 `claude/t2-berry-inventory-gating-7gvcye`, prompt
 [`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md),
 record [`generation.md`](generation.md) section 51. A playtest report: a Toll
@@ -947,6 +980,20 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+00. **An evolution fork is now close to unreachable, and nothing is pinned to
+    say so.** A fork needs a branching species in the party at a gym clear.
+    After the region composition patch, **no seed in 400 reached one** — Stage
+    4.9's headline mechanic is gated behind most of a run's difficulty, and at
+    0.92 mean gyms most runs never get there. `test/evolution-run.test.ts` was
+    rewritten to search rather than pin, and to assert on the fork rather than
+    on Hitmonlee, which makes it hold for every branching species in the pool;
+    what it cannot do is make the fork happen. Three ways out and the choice is
+    the author's: move `battleStepsPerGuarantee` 2 → 3 and give the difficulty
+    back, lower the evolution thresholds so a fork lands before the first gym,
+    or move the fork off the gym clear entirely. **Filed, not fixed** — it is a
+    difficulty decision and the standing policy forbids retuning between
+    checkpoints. `generation.md` section 52.8.
 
 0. **The baseline may be making itself worse with every move it takes.**
    `greedyMoveToReplace` (`scripts/sim.ts`) and `defaultMoveReplacement`

@@ -79,8 +79,13 @@ describe('the run log version', () => {
      * And to `-21` by the gym level spread, which moved `contentHash` with it
      * and left `RUN_LOG_VERSION` alone — the same separation again, from the
      * data-table side this time.
+     *
+     * And to `-22` by the region composition patch: a per-route ceiling on
+     * rests and shops, and a floor of battle-only steps. Both change the
+     * shape stream's values *and* how many it hands out, and neither adds,
+     * removes or reshapes a logged decision — the separation once more.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

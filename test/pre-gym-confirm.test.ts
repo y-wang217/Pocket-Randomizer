@@ -15,6 +15,7 @@
  * way plays a solo party through five gyms. If the two ever disagree, a run
  * driven by the screen and a run driven by a policy stop being the same run.
  */
+import { firstRunWhere, seedRange } from './seed-search';
 import { describe, expect, it, beforeEach } from 'vitest';
 
 import { createPreGymScreen, defaultLeadSlot } from '../src/ui/screens/pre-gym';
@@ -159,18 +160,32 @@ describe('a solo party, headless', () => {
      * the shape the screen could not leave. Answering `chooseLead` the way the
      * confirm answers it walks that run through its gyms.
      */
-    const sizes: number[] = [];
-    const run = await playRun(
-      'S49R-3',
-      {
-        ...scriptedRunPolicy(greedyAiPolicy),
-        chooseAcquisition: async () => ({ kind: 'decline' }),
-        chooseLead: async (party) => {
-          sizes.push(party.length);
-          return defaultLeadSlot(party);
-        },
+    /*
+     * **Searched rather than pinned**: the seed only has to reach a gym, and
+     * how far one gets is a property of the draw that every
+     * `RANDOMIZER_VERSION` bump reshuffles — `S49R-3` stopped reaching one at
+     * `-22`. `test/seed-search.ts` carries the argument.
+     */
+    let sizes: number[] = [];
+    const { run } = await firstRunWhere(
+      seedRange('S49R-', 20),
+      (seed) => {
+        sizes = [];
+        return playRun(
+          seed,
+          {
+            ...scriptedRunPolicy(greedyAiPolicy),
+            chooseAcquisition: async () => ({ kind: 'decline' }),
+            chooseLead: async (party) => {
+              sizes.push(party.length);
+              return defaultLeadSlot(party);
+            },
+          },
+          DEFAULT_TUNING,
+        );
       },
-      DEFAULT_TUNING,
+      (played) => played.state.history.some((visit) => visit.node.kind === 'gym'),
+      'reached a gym on a solo party',
     );
 
     expect(sizes.length, 'this seed never reached a gym').toBeGreaterThan(0);

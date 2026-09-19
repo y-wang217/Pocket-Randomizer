@@ -407,12 +407,20 @@ describe('the version axes', () => {
      * a gym member somewhere in a range instead of on one number.
      * `docs/generation.md` section 50 is the account.
      *
-     * The literal below is all nine together. The display split remains the
+     * And a tenth time, for the region composition patch: `data/tuning.ts`
+     * loses `restStepsPerGuarantee` and gains `kindCapPerRoute`,
+     * `minBattleStepsPerRoute` and `battleStepsPerGuarantee`. **The third
+     * `contentHash` move that arrives beside another axis** —
+     * `gymrun-randomizer-22`, because a capped kind leaves the allowed list
+     * and the battle-step floor converts steps the old table left alone.
+     * `docs/generation.md` section 52 is the account.
+     *
+     * The literal below is all ten together. The display split remains the
      * **last** time this number moves for a display edit —
      * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
      * `docs/generation.md` section 22 is the account.
      */
-    expect(CONTENT_HASH).toBe('d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44');
+    expect(CONTENT_HASH).toBe('637670ddd4c4652bb869297daac07f12bd7c150d2cf6f2692ee6d83e2cee7c5c');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

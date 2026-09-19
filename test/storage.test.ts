@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { currentVersions, isReplayable, playRun, scriptedRunPolicy } from '../src/core/run';
 import type { RunLog } from '../src/core/types';
+import { firstRunWhere, seedRange } from './seed-search';
 import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
 
 beforeEach(() => {
@@ -23,14 +24,34 @@ beforeEach(() => {
 
 describe('the run log round trip', () => {
   it('loads every log a real run saves, whatever kinds it holds', async () => {
+    /*
+     * **Searched rather than pinned.** The seed here only has to be one whose
+     * run reaches a reward, and how far a seed gets is a property of the draw
+     * that every `RANDOMIZER_VERSION` bump reshuffles — this file's pinned
+     * `S49B-1` stopped reaching one at `-22`. `test/seed-search.ts` carries
+     * the argument.
+     */
     const logs: RunLog[] = [];
-    await playRun('S49B-1', scriptedRunPolicy(greedyAiPolicy), undefined, {
-      opponent: greedyAiPolicy,
-      onDecision: (log) => logs.push(structuredClone(log)),
-    });
+    const wanted = ['starter', 'locale', 'node', 'battle', 'reward'];
+    await firstRunWhere(
+      seedRange('S49B-', 20),
+      async (seed) => {
+        logs.length = 0;
+        await playRun(seed, scriptedRunPolicy(greedyAiPolicy), undefined, {
+          opponent: greedyAiPolicy,
+          onDecision: (log) => logs.push(structuredClone(log)),
+        });
+        return logs;
+      },
+      (captured) => {
+        const kinds = new Set(captured[captured.length - 1]?.decisions.map((decision) => decision.kind));
+        return wanted.every((kind) => kinds.has(kind as never));
+      },
+      'reached a reward',
+    );
     const kinds = new Set(logs[logs.length - 1]?.decisions.map((decision) => decision.kind));
     // The run has to exercise more than the three kinds the old check knew.
-    expect([...kinds]).toEqual(expect.arrayContaining(['starter', 'locale', 'node', 'battle', 'reward']));
+    expect([...kinds]).toEqual(expect.arrayContaining(wanted));
 
     for (const log of logs) {
       saveRunLog(log);

@@ -81,15 +81,45 @@ export function stepsRangeFor(tuning: Tuning, segment: number): Range {
 }
 
 /**
- * How many rests a segment of `steps` steps must offer.
+ * How many rests a route of `steps` steps must offer.
  *
- * The larger of the count floor and the density floor, which is what makes the
- * 4.6a guarantee hold at every length in the curve rather than only at the length
- * it was written against. See `restStepsPerGuarantee`.
+ * **`tuning.minRestSteps`, and nothing else.** `restStepsPerGuarantee` — one
+ * rest per three steps, so a floor of two on any six-step route — is deleted
+ * from the lineage on 2026-09-19 rather than left behind a flag.
+ *
+ * It was a density target written when a rest was scarce, and the cap that
+ * arrived beside it made the two contradict each other outright: a floor of 2
+ * on the segments that draw six steps meant **100% of segment 5 and 6 routes
+ * offered a double rest**, which is precisely the shape the cap exists to make
+ * rare. A floor that mandates the thing a ceiling forbids is not a tuning
+ * disagreement, it is two rules that cannot both be true.
+ *
+ * The guarantee survives untouched, and it is the half that was ever
+ * load-bearing: every route still offers somewhere to heal. What is gone is
+ * the promise of a *second* one. `docs/generation.md` section 52.
  */
 export function restFloorFor(tuning: Tuning, steps: number): number {
-  const byDensity = Math.floor(steps / Math.max(1, tuning.restStepsPerGuarantee));
-  return Math.max(tuning.minRestSteps, byDensity);
+  void steps;
+  return tuning.minRestSteps;
+}
+
+/**
+ * How many steps of a route must be a fight and nothing else.
+ *
+ * The larger of the count and the density, **clamped so the route's other
+ * floors still fit**: the event floor, the rest floor, and one step left over
+ * for the draw to say something of its own. That clamp is the same argument
+ * `hasBattlePair` makes — a guarantee that eats the whole route leaves every
+ * route of that length identical, which is a different failure from the one
+ * being fixed.
+ *
+ * At the shipped curve: 4 steps → 1, 5 → 2, 6 → 3, 7 → 3.
+ */
+export function battleStepFloorFor(tuning: Tuning, steps: number): number {
+  const byDensity = Math.floor(steps / Math.max(1, tuning.battleStepsPerGuarantee));
+  const wanted = Math.max(tuning.minBattleStepsPerRoute, byDensity);
+  const room = steps - tuning.minEventSteps - tuning.minRestSteps - 1;
+  return Math.max(0, Math.min(wanted, room));
 }
 
 /**
@@ -118,18 +148,20 @@ export function hasBattlePair(tuning: Tuning, segment: number, steps: number): b
 /**
  * The rest floor a route actually gets. **What generation enforces.**
  *
- * `restFloorFor` is the density rule and this is the rule as applied: a route
- * carrying the battle pair drops to `minRestSteps`, the guarantee, because the
- * pair has claimed two of its steps and the density target and the pair are
- * otherwise competing for the same ones.
+ * **It is now `minRestSteps` at every length and every segment**, and this
+ * function survives the collapse on purpose: it is the single reader
+ * `encounters.ts` calls, and a caller that had to know whether a density rule
+ * applied would be a second place holding the answer.
  *
- * The trade is one-directional and worth being exact about. The *guarantee*
- * never moves — every route in the game still offers somewhere to heal, which
- * is the thing `minRestSteps` was written for. What moves is the density
- * target, on the one segment that is meant to be the hardest, and only there.
+ * It used to drop a paired route from the density target back to the
+ * guarantee, which was a real trade while the density existed. With
+ * `restStepsPerGuarantee` deleted there is nothing left to trade: every route
+ * offers one rest, the cap allows a second, and the battle pair no longer
+ * costs anything it was not already costing.
  */
 export function restFloorForRoute(tuning: Tuning, segment: number, steps: number): number {
-  return hasBattlePair(tuning, segment, steps) ? tuning.minRestSteps : restFloorFor(tuning, steps);
+  void segment;
+  return restFloorFor(tuning, steps);
 }
 
 export interface Tuning {
@@ -280,18 +312,56 @@ export interface Tuning {
    */
   minRestSteps: number;
   /**
-   * One rest guaranteed per this many steps. **Stage 4.8, item 3.**
+   * The most steps of one route that may offer a given kind. **2026-09-19.**
    *
-   * `minRestSteps` is a floor on the *count* and this is a floor on the
-   * *density*, and a segment gets whichever is larger. Before item 3 they were
-   * the same thing because every segment was the same length; with a curve they
-   * are not, and one rest across a seven-step segment is a different amount of
-   * recovery from one rest across a four-step one.
+   * A **ceiling**, and the first one this table has ever carried — every other
+   * composition knob here is a floor. It exists because a route offering three
+   * rests or five shops is not a road, it is a corridor with amenities, and
+   * the player reads two of the same service in one region as the map having
+   * nothing to say.
    *
-   * Three, so a 4 or 5 step segment still guarantees exactly one — the opening
-   * is unchanged, deliberately — and a 6 or 7 step segment guarantees two.
+   * Per **route**, not per segment: a segment offers two or three roads and
+   * the player walks one, so the road is the thing they experience. Two routes
+   * of the same segment are capped independently and neither starves the other.
+   *
+   * A kind absent from this table is uncapped, which is deliberate for `wild`,
+   * `trainer` and `event`: the first two are the pressure the run is made of,
+   * and an event repeating is three different events. Only the two *services*
+   * are capped.
+   *
+   * **Two, not one**, and the difference matters: a second rest is a thing a
+   * route may offer, not a thing it must. The floor underneath is
+   * `minRestSteps`, which is 1, so "possible but never mandatory" is the whole
+   * of the rule. See `docs/generation.md` section 52.
    */
-  restStepsPerGuarantee: number;
+  kindCapPerRoute: Partial<Record<ChoosableKind, number>>;
+
+  /**
+   * Minimum steps of a route where **every** option is a fight.
+   *
+   * A floor on pressure rather than on variety, and the generalisation of
+   * `battlePairFromSegment`, which is this rule hardcoded to one segment and
+   * to two adjacent steps. The guaranteed wild step counts towards it, so a
+   * route already satisfies 1 for free.
+   *
+   * The count is `max(this, floor(steps / battleStepsPerGuarantee))`, clamped
+   * so the other floors still fit — see `battleStepFloorFor`.
+   *
+   * ## Why a floor on fights at all, when skipping already punishes itself
+   *
+   * It does punish itself: a player who takes every non-fight option arrives
+   * at the gym under-levelled with an unspent bag, and the gym is the wall
+   * that reads them the bill. That is the trade the run is built on and this
+   * number does not change it.
+   *
+   * What it changes is the *map*. A road where every step can be walked past
+   * is not offering a decision, it is offering an opt-out printed five times,
+   * and the measured route before this knob existed asked for 1.4 fights in
+   * 5.5 steps. The floor says a region is a place something happens in.
+   */
+  minBattleStepsPerRoute: number;
+  /** One battle-only step guaranteed per this many steps. See above. */
+  battleStepsPerGuarantee: number;
 
   // --- difficulty tiers ----------------------------------------------------
 
@@ -632,7 +702,23 @@ export const DEFAULT_TUNING: Tuning = {
    */
   battlePairFromSegment: 7,
   minRestSteps: 1,
-  restStepsPerGuarantee: 3,
+  /*
+   * Two services per road, and neither kind may crowd the other out on its
+   * own. The measured route before this cap offered up to five shops and, in
+   * segments 5 and 6, a guaranteed double rest.
+   */
+  kindCapPerRoute: { rest: 2, shop: 2 },
+  /*
+   * One battle-only step for free (the guaranteed wild step) and one per two
+   * steps beyond that, clamped by `battleStepFloorFor` so the event and rest
+   * floors still fit. 4 steps → 1, 5 → 2, 6 → 3, 7 → 3.
+   *
+   * Two rather than three because three leaves the opening segments exactly
+   * where they already were, and the opening is where a road with nothing on
+   * it teaches the player that the map does not matter.
+   */
+  minBattleStepsPerRoute: 1,
+  battleStepsPerGuarantee: 2,
 
   /*
    * Elite is locked out of segments 0-1 and the weight climbs from there.
