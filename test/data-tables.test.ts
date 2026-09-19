@@ -25,6 +25,7 @@ import { describe, expect, it } from 'vitest';
 import { bandOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../src/data/moveOverrides';
 
 import { ABILITY_POOL } from '../src/data/abilities';
+import { gymrunFormat } from '../src/core/battle/format';
 import { GYMS } from '../src/data/gyms';
 import { COMPUTED_MAX_MOVE_BAND, DAMAGING_MOVES, STATUS_MOVES } from '../src/data/movePools';
 import { SEGMENTS, speciesBandsFor } from '../src/data/scaling';
@@ -194,14 +195,22 @@ describe('move pools', () => {
     const tell = (move: Move): boolean => {
       const handlers = [move.onTry, move.onTryMove].filter(Boolean).map(String).join('\n');
       if (!handlers.includes("'-fail'")) return false;
-      return /\b(?:source|pokemon|attacker)\.species\.(?:name|baseSpecies)\b/.test(handlers) ||
-        /\b(?:source|pokemon|attacker)\.hasType\(/.test(handlers);
+      return /\b(?:source|pokemon|attacker)\.species\.(?:name|baseSpecies)\b/.test(handlers);
     };
 
     const locked = new Set(dex.moves.all().filter(tell).map((move) => String(move.id)));
-    expect([...locked].sort()).toEqual(
-      ['aurawheel', 'burnup', 'darkvoid', 'doubleshock', 'hyperspacefury'],
-    );
+    expect([...locked].sort()).toEqual(['aurawheel', 'darkvoid', 'hyperspacefury']);
+
+    /*
+     * **A type gate is not this, by ruling.** Double Shock asks its user to be
+     * Electric and fails otherwise, and it was cut at `-22` alongside these.
+     * The author's ruling at `-23` is that a type gate leaves a valid battle
+     * move — one holder in eighteen can use it, more on a STAB slot — where a
+     * species gate leaves nothing. It is asserted present rather than left
+     * unmentioned so that re-cutting it is a deliberate act with a test to
+     * change.
+     */
+    expect(DAMAGING_MOVES.map((move) => move.id)).toContain('doubleshock');
 
     for (const move of [...DAMAGING_MOVES, ...STATUS_MOVES]) {
       expect(locked.has(move.id), `${move.name} is user-locked`).toBe(false);
@@ -211,9 +220,9 @@ describe('move pools', () => {
 
 describe('ability pool', () => {
   it('is the full pool, not a species-legal subset', () => {
-    // Three hundred abilities is the whole gen 9 list. If this ever shrinks to
-    // the dozens, someone has quietly turned the randomizer back into a
-    // shuffler.
+    // Three hundred abilities is the whole gen 9 list, less the inert ones cut
+    // below. If this ever shrinks to the dozens, someone has quietly turned the
+    // randomizer back into a shuffler.
     expect(ABILITY_POOL.length).toBeGreaterThan(250);
     for (const name of ABILITY_POOL) {
       const ability = dex.abilities.get(name);
@@ -221,6 +230,68 @@ describe('ability pool', () => {
       expect(ability.name, name).toBe(name);
     }
     expect(ABILITY_POOL).not.toContain('No Ability');
+  });
+
+  it('draws no ability that does nothing on a Pokemon this game can roll', () => {
+    /*
+     * `No Ability` was already excluded for being a blank roll. These are the
+     * blank rolls that do not say so in their name: an ability whose every
+     * handler is gated on the holder being one species, one that carries no
+     * handlers at all because its effect is a species and its plate, and one
+     * that only ever acts on a partner.
+     *
+     * Asserted by id against the live dex rather than by name against a list,
+     * so a rename upstream cannot make this pass by missing.
+     */
+    const cut = [
+      // Gated on the holder's base species.
+      'battlebond', 'commander', 'disguise', 'flowergift', 'forecast', 'gulpmissile',
+      'hungerswitch', 'iceface', 'powerconstruct', 'schooling', 'shieldsdown',
+      'stancechange', 'terashift', 'zenmode', 'zerotohero',
+      // No in-battle effect at all.
+      'multitype', 'rkssystem', 'ballfetch', 'honeygather', 'runaway',
+      // Only ever acts on an ally.
+      'battery', 'powerspot', 'friendguard', 'telepathy', 'healer', 'costar',
+      'curiousmedicine', 'hospitality', 'plus', 'minus', 'receiver',
+      'powerofalchemy', 'symbiosis',
+    ];
+    const pool = new Set(ABILITY_POOL.map((name) => dex.abilities.get(name).id as string));
+    for (const id of cut) {
+      expect(dex.abilities.get(id).exists, `${id} is not a gen 9 ability`).toBe(true);
+      expect(pool.has(id), `${id} is drawable`).toBe(false);
+    }
+  });
+
+  it('keeps the ones that only look like they need an ally', () => {
+    /*
+     * The other half of the cut above, and the half worth a test: in `@pkmn/sim`
+     * an `onAlly*` event fires for the holder too, so "mentions an ally" is not
+     * "needs an ally". Steely Spirit boosts its own Steel moves, Aroma Veil
+     * blocks Taunt on itself, Victory Star's `isAlly` is true of the holder.
+     * Cutting these would be cutting working abilities, and this is what says so.
+     */
+    const kept = ['steelyspirit', 'aromaveil', 'sweetveil', 'flowerveil', 'victorystar',
+      'armortail', 'dazzling', 'queenlymajesty', 'competitive', 'defiant', 'mummy',
+      'lingeringaroma', 'toxicdebris',
+      // Named a species, but only to defer to a primal orb, or through one
+      // delegating handler the species tell cannot read past.
+      'drizzle', 'drought', 'klutz', 'neutralizinggas',
+      // Handlerless in the data and hardcoded in the engine. Levitate is the
+      // reason the inert list is named rather than derived.
+      'levitate', 'battlearmor', 'shellarmor', 'corrosion', 'dancer', 'earlybird',
+      'stall', 'terashell'];
+    const pool = new Set(ABILITY_POOL.map((name) => dex.abilities.get(name).id as string));
+    for (const id of kept) expect(pool.has(id), `${id} was cut`).toBe(true);
+  });
+
+  it('is cut against a format that really is one Pokemon a side', () => {
+    /*
+     * The ally-only cut rests on this and nothing else. If GYMRUN ever ran
+     * doubles, thirteen of those abilities would start working and the cut
+     * would be wrong rather than merely stale — so the ground is asserted
+     * rather than remembered.
+     */
+    expect(gymrunFormat().gameType).toBe('singles');
   });
 });
 

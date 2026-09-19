@@ -359,7 +359,36 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * happier reason that the policy never wanted this move — it scored it as
  * damage, took the turn, and got the refusal like everyone else.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
+/*
+ * ## `-23`: a move comes back, and thirty-three abilities go
+ *
+ * Two edits to `data/`, one axis, and no draw added, removed or moved.
+ *
+ * **Double Shock is back.** `-22` cut it beside Aura Wheel on the ground that a
+ * non-Electric holder's copy fails on every turn; the ruling is that a gate on
+ * the user's *type* leaves a valid battle move that is merely unusual, where a
+ * gate on the user's *species* leaves nothing at all. So `USER_LOCKED` is two
+ * moves and a status move now, and the pool is one entry longer than it was a
+ * commit ago.
+ *
+ * **`data/abilities.ts` is 310 entries down to 277.** Thirty-three abilities do
+ * nothing whatever on a Pokemon this game can draw: fifteen are gated on the
+ * holder's base species, five have no in-battle effect at all — Multitype and
+ * RKS System because the type change is the species and its plate, Ball Fetch,
+ * Honey Gather and Run Away because they happen outside a battle — and thirteen
+ * act only on an ally that a singles format never has. An ability slot that
+ * cannot be told apart from having no ability is the same defect as a move slot
+ * that cannot be spent.
+ *
+ * Both edits move which entry a pick selects without moving the pick, which is
+ * composition, which is this axis. `contentHash` moves beside it for the two
+ * tables. `RUN_LOG_VERSION` holds at `-20`: neither a moveset nor an ability is
+ * a logged decision. `AI_VERSION` holds, and it is worth saying why it may — the
+ * opponent policy reads abilities through the same engine everyone else does,
+ * so a pool with fewer inert entries is a different draw rather than a different
+ * bot.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

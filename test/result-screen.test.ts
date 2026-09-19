@@ -213,7 +213,13 @@ describe('the hook is a presentation, not a second path', () => {
   it('falls back to chooseReward when no review hook is given', async () => {
     let asked = 0;
     const base = baseline();
-    const run = await playRun('RESULT-FALLBACK', {
+    /*
+     * `RESULT-FALLBACK-1` rather than `RESULT-FALLBACK` from `-23`: the seed
+     * only has to reach one reward for the assertion below to mean anything,
+     * and after the inert-ability cut the original died before its first one.
+     * A seed that asserts nothing passes, which is why the count is asserted.
+     */
+    const run = await playRun('RESULT-FALLBACK-1', {
       ...base,
       chooseReward: async (offer, state) => {
         asked++;

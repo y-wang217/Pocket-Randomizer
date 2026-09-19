@@ -385,8 +385,12 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * found, and its own wanted-list had to lose the same two entries first:
      * a scanner asking for a decision the game cannot produce searches every
      * seed and reports none.
+     *
+     * `ALL-DECISIONS-2` from `-23`, the inert-ability cut. Nothing about the
+     * census changed that time either; an ability is drawn for every Pokemon in
+     * every segment, so cutting thirty-three of them moves every seed's run.
      */
-    const run = await playRun('ALL-DECISIONS-1', policy);
+    const run = await playRun('ALL-DECISIONS-2', policy);
 
     expect(['victory', 'defeat']).toContain(run.outcome);
     /*

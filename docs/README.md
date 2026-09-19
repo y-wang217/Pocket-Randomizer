@@ -58,14 +58,36 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: three moves nothing could use leave the pool.** Branch
+**In flight: the slots that could not be spent.** Branch
 `claude/wild-mon-restricted-move-bug-hifsw6`, prompt
 [`spec/gymrun-patch-user-locked-moves.md`](spec/gymrun-patch-user-locked-moves.md),
-record [`generation.md`](generation.md) section 51, measurement
-[`balance.md`](balance.md) section 0. `RANDOMIZER_VERSION` to `-22` and
-`contentHash` to `622777`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
-**1.085 to 1.055 mean gyms**, with gyms 1 and 2 reproducing to the digit
-because the cut is band 4 and 5 and the early segments never draw those.
+records [`generation.md`](generation.md) sections 51 and 52, measurements
+[`balance.md`](balance.md) section 0. Two axis moves on one branch:
+`RANDOMIZER_VERSION` to `-22` with `contentHash` to `622777` for the moves, then
+to `-23` with `431cfa` for the abilities and one ruling. `RUN_LOG_VERSION` and
+`AI_VERSION` hold throughout.
+
+- **A move whose user must be a species or forme is gone.** Aura Wheel and
+  Hyperspace Fury: `@pkmn/sim` refuses to run them for anything else, so a wild
+  Kilowattrel that rolled Aura Wheel fought with three usable slots and four
+  printed ones. **1.085 to 1.055 mean gyms**, with gyms 1 and 2 reproducing to
+  the digit because the cut is band 4 and 5 and the early segments never draw
+  those.
+- **A move whose user must be a *type* stays.** Double Shock was cut at `-22`
+  and re-admitted at `-23` on the author's ruling: a type gate leaves a valid
+  battle move that is merely unusual. Recorded rather than tidied away, because
+  `-22` shipped before the ruling arrived.
+- **`data/abilities.ts` is 310 entries down to 277.** Fifteen are gated on the
+  holder's base species, five have no in-battle effect at all — Multitype and
+  RKS System because an Arceus plate is the species and the item together — and
+  thirteen act only on an ally a singles format never has. **0.995 mean gyms,
+  and that row is a re-roll rather than an A/B**: every Pokemon draws an
+  ability, so every seed moved from its first node.
+- **The tells never decide the pool.** Three named lists do, and the audits
+  beside them throw in both directions at generation. `FIRES_WITHOUT_AN_ALLY`
+  and `SPECIES_NAMED_ANYWAY` are the record of what was checked and kept:
+  Levitate has no handler either, and Steely Spirit's `onAlly` hook fires for
+  its own holder.
 
 A wild Kilowattrel rolled Aura Wheel and spent a turn being told only a Morpeko
 may use it. `scripts/gen-pools.ts` had five exclusion rules and all five asked

@@ -1,11 +1,11 @@
 /**
  * Rescan the seeds the test suite pins.
  *
- * Three tests need a seed that does something a *typical* seed does not: one
- * that reaches every decision kind, one that pays a card before it dies, and
- * one that reaches a branching evolution. Each is chosen rather than assumed,
- * and each stops being the right seed the moment a stage changes what a seed
- * rolls.
+ * Four tests need a seed that does something a *typical* seed does not: one
+ * that reaches every decision kind, one that pays a card before it dies, one
+ * that reaches a branching evolution, and one that is offered a relic. Each is
+ * chosen rather than assumed, and each stops being the right seed the moment a
+ * stage changes what a seed rolls.
  *
  * **Any version axis moving is the signal to rescan, not only
  * `RANDOMIZER_VERSION`.** This said otherwise until the bench-carryover and
@@ -179,6 +179,39 @@ if (mode === 'census') {
     console.log(`fork: ${seed}  branch 0 -> ${onlyZero[0]}  branch 1 -> ${onlyOne[0]}  (followed by ${after})`);
     break;
   }
+} else if (mode === 'relic') {
+  /*
+   * **test/run-projection.test.ts: a seed that is offered a relic card.**
+   *
+   * Added at `-23`, when the inert-ability cut emptied the range the test's two
+   * pinned seeds came from. A relic sits in the elite pool alone, and under the
+   * scripted baseline most runs die inside two nodes, so reaching one is rarer
+   * than the fork above is common — `PROJ-0`..`PROJ-399` held two before that
+   * patch and none after it. The default attempt count is therefore high, and
+   * the seed prefix is the test's own.
+   *
+   * The policy takes the relic whenever one is offered, which is the test's
+   * too: it is asking whether the projection carries a relic between the card
+   * and the node resolving, so a run that declines proves nothing.
+   */
+  const wanted = 3;
+  const found: string[] = [];
+  for (let i = 0; i < attempts && found.length < wanted; i++) {
+    const seed = `PROJ-${i}`;
+    let taken = 0;
+    const base = scriptedRunPolicy(greedyAiPolicy);
+    await playRun(seed, {
+      ...base,
+      reviewBattle: async (review) => {
+        const at = review.offer?.options.findIndex((option) => option.kind === 'relic') ?? -1;
+        const index = review.offer ? (at >= 0 ? at : 0) : null;
+        if (index !== null && review.offer?.options[index]?.kind === 'relic') taken++;
+        return index;
+      },
+    });
+    if (taken > 0) found.push(seed);
+  }
+  console.log(`relic: ${found.join(', ') || 'none in the range'}`);
 } else {
-  console.log('modes: census | spender | fork');
+  console.log('modes: census | spender | fork | relic');
 }

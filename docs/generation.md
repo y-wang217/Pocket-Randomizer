@@ -8046,3 +8046,122 @@ again:
   9 additions, not a new rule.
 - **Burn Up** would be drawable the day upstream stops calling it
   `Unobtainable`, and is already named in `USER_LOCKED` for exactly that day.
+
+## 52. The ability that is not there
+
+**2026-09-19**, on `claude/wild-mon-restricted-move-bug-hifsw6`. Prompt
+[`spec/gymrun-patch-user-locked-moves.md`](spec/gymrun-patch-user-locked-moves.md),
+the follow-up section and its two rulings. Moves `RANDOMIZER_VERSION` to `-23`
+and `contentHash` from `622777` to `431cfa`; `RUN_LOG_VERSION` holds at `-20`
+and `AI_VERSION` holds.
+
+> "one more thing to add to this patch is to prevent useless abilities in the
+> same way? like i dont want the arceus plates or hoopa's ability if the mon
+> can't use it"
+
+### 52.1 Double Shock comes back, and the move rule narrows
+
+Section 51 cut three moves. One of them, Double Shock, is gated on the user's
+*type* rather than its species, and the author's ruling is that a type gate
+leaves a valid battle move that is merely unusual — one holder in eighteen can
+use it, and a STAB slot makes that likelier than the draw suggests. Burn Up is
+the same shape and is already out on `isNonstandard`.
+
+So `USER_LOCKED` is Aura Wheel, Hyperspace Fury and Dark Void, the tell drops
+its `hasType` branch, and the pool is one entry longer than at `-22`.
+
+**Recorded rather than tidied away.** `-22` shipped, was benchmarked, and was
+pushed before the ruling arrived; a lineage that showed only the final rule
+would be hiding a decision that was made.
+
+### 52.2 The three groups, and why they are three
+
+`data/abilities.ts` goes from 310 entries to 277.
+
+| group | count | what makes it inert |
+|---|---|---|
+| species-locked | 15 | every handler is gated on the holder's base species |
+| no in-battle effect | 5 | no handlers at all, and nothing hardcoded either |
+| ally-only | 13 | acts only on a partner, and the format has none |
+
+They are kept apart because they go stale differently. A species lock is a fact
+about a handler and changes when upstream rewrites it. A handlerless ability
+changes when upstream gives it a handler. An ally-only ability stops being inert
+the day GYMRUN runs doubles, which is why `test/data-tables.test.ts` asserts
+`gymrunFormat().gameType === 'singles'` — the ground under group 3, stated
+rather than remembered.
+
+Group 2 is the one the brief names. **Multitype and RKS System carry no
+handlers**, because an Arceus plate is a type change made of the species and the
+item together, and neither species is drawable. Ball Fetch, Honey Gather and Run
+Away carry none either, for the different reason that what they do happens
+outside a battle.
+
+### 52.3 Why group 2 is named and never derived
+
+Because `data/abilityEffects.ts` already wrote the trap down: **Levitate has no
+handler either.** Its Ground immunity is a branch in `Pokemon#isGrounded`, and
+Battle Armor, Shell Armor, Corrosion, Dancer, Early Bird, Stall and Tera Shell
+are the same shape. A rule that cut every handlerless ability would cut the one
+ability every player knows by name.
+
+So `ENGINE_HARDCODED` names those eight, `NO_BATTLE_EFFECT_ABILITIES` names the
+five, and the audit throws if the handlerless set is anything other than the
+union of the two.
+
+### 52.4 The ally tell over-reaches, and the allowlist is the record
+
+In `@pkmn/sim` an `onAlly*` event fires for the holder as well as for a partner,
+and `isAlly` is true of a Pokemon and itself. So "mentions an ally" is not
+"needs an ally", and thirteen abilities the tell flags do their whole job alone:
+
+- **Steely Spirit** boosts its own Steel moves — `onAllyBasePower` with no
+  self-exclusion, where **Battery** and **Power Spot** carry
+  `attacker !== this.effectState.target` and are therefore dead here.
+- **Aroma Veil**, **Sweet Veil** and **Flower Veil** block Taunt, sleep and stat
+  drops on their own holder.
+- **Victory Star**'s `source.isAlly(holder)` is true of the holder.
+- **Armor Tail**, **Dazzling** and **Queenly Majesty** block the *opponent's*
+  priority move; the ally test only tells them which side is which.
+- **Competitive** and **Defiant** use the ally test as an exclusion, and fire on
+  a foe's drop.
+- **Mummy**, **Lingering Aroma** and **Toxic Debris** answer whoever hit them.
+
+`FIRES_WITHOUT_AN_ALLY` names all thirteen with the reason, and the audit fails
+on an ally-shaped ability that is in neither list. The same shape covers the
+species tell: **Drizzle and Drought name Kyogre and Groudon only to defer to the
+primal orbs**, and Klutz and Neutralizing Gas each have one delegating handler
+the tell cannot read past, so `SPECIES_NAMED_ANYWAY` names those four.
+
+### 52.5 What moved, and the contrast that says how far
+
+Four recordings were re-taken at `-22` and the split between them was the
+evidence for that cut's reach: the sim fixture and all six baseline runs held
+still, because the three cut moves were band 4 and 5 and those seeds play early
+segments.
+
+**At `-23` all of them moved**, and that is the clearest statement of the
+difference between the two patches. An ability is drawn for every Pokemon in
+every segment, so there is no early-game corner the cut does not reach.
+
+Four pinned seeds had to be re-searched for the same reason — the census seed,
+the evolution fork, the reward fallback and the relic pair — under the rule
+`scripts/scan-seed.ts` already states: any version axis moving is the signal to
+rescan. The relic pair needed the search range widened from 400 seeds to 2000,
+and a `relic` mode was added to that script so the next axis move does not
+repeat the search by hand.
+
+### 52.6 The measurement, and why it is not a controlled delta
+
+400 seeds, prefix `RETUNE`, `--ai pinned`: **0.995 mean gyms against 1.055, and
+completion 0.75% against 1.0%** — three runs in four hundred rather than four.
+
+**This row is a re-roll rather than an A/B, and reading it as a difficulty
+change would be reading it wrong.** Every Pokemon in the game draws an ability,
+so every seed's population changed; the same 400 seeds now play different runs
+from the first node. The mechanism argues in both directions at once — every
+opponent now has an ability that does something, and so does every party member
+— and at this sample neither is separable from the other or from the re-roll.
+
+**Recorded, not chased.** Balance is not a gate, and nothing was tuned against
+this number. `docs/balance.md` section 0 carries the row.

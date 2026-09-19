@@ -134,6 +134,7 @@ export const DAMAGING_MOVES: readonly MoveEntry[] = [
   { id: 'doubleedge', name: 'Double-Edge', type: 'Normal', category: 'Physical', basePower: 120, accuracy: 100, band: 5, impact: null },
   { id: 'doublehit', name: 'Double Hit', type: 'Normal', category: 'Physical', basePower: 35, accuracy: 90, band: 2, impact: null },
   { id: 'doublekick', name: 'Double Kick', type: 'Fighting', category: 'Physical', basePower: 30, accuracy: 100, band: 1, impact: null },
+  { id: 'doubleshock', name: 'Double Shock', type: 'Electric', category: 'Physical', basePower: 120, accuracy: 100, band: 5, impact: null },
   { id: 'dracometeor', name: 'Draco Meteor', type: 'Dragon', category: 'Special', basePower: 130, accuracy: 90, band: 5, impact: null },
   { id: 'dragonascent', name: 'Dragon Ascent', type: 'Flying', category: 'Physical', basePower: 120, accuracy: 100, band: 5, impact: null },
   { id: 'dragonbreath', name: 'Dragon Breath', type: 'Dragon', category: 'Special', basePower: 60, accuracy: 100, band: 1, impact: null },

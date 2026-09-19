@@ -2,46 +2,44 @@
   "seed": "SEED-A",
   "versions": {
     "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
-    "randomizer": "gymrun-randomizer-22",
+    "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
+    "randomizer": "gymrun-randomizer-23",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
-  "gymsCleared": 1,
+  "gymsCleared": 0,
   "causeOfDeath": {
-    "segment": 1,
-    "leader": "Marina",
+    "segment": 0,
+    "leader": "Garnet",
     "kind": "wild",
     "species": "Brook",
-    "bySpecies": "Kabuto",
-    "byMove": "Water Gun",
+    "bySpecies": "Mantyke",
+    "byMove": "Acrobatics",
     "indirect": null
   },
-  "currency": 105,
+  "currency": 52,
   "backpack": [],
-  "relics": [
-    "woodsmans-hatchet"
-  ],
+  "relics": [],
   "party": [
     {
       "species": "Mankey",
-      "level": 20,
+      "level": 15,
       "ability": "Supreme Overlord",
       "moves": [
         "Flame Wheel 40/40",
-        "Ancient Power 4/8",
-        "Crush Claw 14/16",
-        "Mystical Fire 16/16"
+        "Ancient Power 6/8",
+        "Force Palm 14/16",
+        "Water Pulse 32/32"
       ],
       "item": "blackbelt",
-      "hp": "0/52",
+      "hp": "0/41",
       "fainted": true
     },
     {
       "species": "Skwovet",
-      "level": 20,
-      "ability": "Pure Power",
+      "level": 15,
+      "ability": "Quark Drive",
       "moves": [
         "Pay Day 31/32",
         "Fairy Wind 48/48",
@@ -49,7 +47,7 @@
         "Acid Armor 32/32"
       ],
       "item": null,
-      "hp": "0/64",
+      "hp": "0/50",
       "fainted": true
     }
   ],
@@ -71,7 +69,7 @@
       "label": "Trainer battle",
       "tier": "hard",
       "opponent": "Trainer's Falinks",
-      "turns": 3,
+      "turns": 4,
       "winner": "p1",
       "hpAfter": 15,
       "casualties": []
@@ -105,8 +103,8 @@
       "tier": "hard",
       "opponent": "Wild Mantyke",
       "turns": 5,
-      "winner": "p1",
-      "hpAfter": 11,
+      "winner": "p2",
+      "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
@@ -116,46 +114,14 @@
           "bySpecies": "Mantyke",
           "byMove": "Brine",
           "indirect": null
-        }
-      ]
-    },
-    {
-      "segment": 0,
-      "kind": "gym",
-      "label": "Garnet's Gym",
-      "tier": null,
-      "opponent": "Garnet (Rock)",
-      "turns": 3,
-      "winner": "p1",
-      "hpAfter": 27,
-      "casualties": []
-    },
-    {
-      "segment": 1,
-      "kind": "wild",
-      "label": "Wild encounter",
-      "tier": "hard",
-      "opponent": "Wild Kabuto",
-      "turns": 9,
-      "winner": "p2",
-      "hpAfter": 0,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Ivy",
-          "level": 20,
-          "species": "Skwovet",
-          "bySpecies": "Wartortle",
-          "byMove": "Brine",
-          "indirect": null
         },
         {
           "side": "p1",
           "name": "Brook",
-          "level": 20,
+          "level": 15,
           "species": "Mankey",
-          "bySpecies": "Kabuto",
-          "byMove": "Water Gun",
+          "bySpecies": "Mantyke",
+          "byMove": "Acrobatics",
           "indirect": null
         }
       ]
@@ -165,9 +131,9 @@
     "seed": "SEED-A",
     "versions": {
       "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
+      "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-22"
+      "randomizerVersion": "gymrun-randomizer-23"
     },
     "decisions": [
       {
@@ -232,6 +198,13 @@
       {
         "kind": "node",
         "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
       },
       {
         "kind": "battle",
@@ -336,138 +309,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "move",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "decline"
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Mystical Fire",
-              "slot": 0,
-              "replaceSlot": 3
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "lead",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Crush Claw",
-              "slot": 0,
-              "replaceSlot": 2
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "locale",
-        "index": 0
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
         }
       },
       {
@@ -495,27 +338,6 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 2
         }
       },

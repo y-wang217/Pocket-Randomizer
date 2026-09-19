@@ -2,8 +2,8 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
-    "randomizer": "gymrun-randomizer-22",
+    "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
+    "randomizer": "gymrun-randomizer-23",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -25,7 +25,7 @@
     {
       "species": "Snubbull",
       "level": 15,
-      "ability": "Mimicry",
+      "ability": "Mind's Eye",
       "moves": [
         "Draining Kiss 15/16",
         "Disarming Voice 24/24",
@@ -39,7 +39,7 @@
     {
       "species": "Nosepass",
       "level": 15,
-      "ability": "Healer",
+      "ability": "Heavy Metal",
       "moves": [
         "Rock Throw 22/24",
         "Frost Breath 16/16",
@@ -119,9 +119,9 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
+      "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-22"
+      "randomizerVersion": "gymrun-randomizer-23"
     },
     "decisions": [
       {

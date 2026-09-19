@@ -40,7 +40,14 @@ import { DEFAULT_TUNING } from '../src/data/tuning';
 import type { RunLog } from '../src/core/types';
 import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
 
-const SEED = 'S49B-840';
+/*
+ * Found by `npx vite-node scripts/scan-seed.ts fork 6000`, and re-found by it
+ * whenever a version axis moves — the rule that script's own header states.
+ * `S49B-840` was the `-21` seed; the inert-ability cut at `-23` changes what
+ * every Pokemon in every segment rolls, so the fork it used to reach is not
+ * there any more.
+ */
+const SEED = 'S49B-567';
 
 function capturePolicy(branch = 0): RunPolicy {
   return {

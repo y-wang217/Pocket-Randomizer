@@ -1,44 +1,44 @@
 {
   "version": "gymrun-run-20/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-22",
-  "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
+  "randomizerVersion": "gymrun-randomizer-23",
+  "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
   "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
   "runs": [
     {
       "seed": "FIXTURE-ALPHA",
       "outcome": "defeat",
       "gymsCleared": 0,
-      "currency": 0,
+      "currency": 14,
       "backpack": [],
       "party": [
         {
           "species": "Vulpix",
           "level": 15,
-          "ability": "No Guard",
+          "ability": "Normalize",
           "gender": "F",
           "moves": [
             "Fire Spin",
-            "Water Shuriken",
+            "Breaking Swipe",
             "Avalanche",
             "Infernal Parade"
           ],
-          "item": null,
+          "item": "sharpbeak",
           "hp": 0,
           "maxHp": 41,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 19,
+            "damageDealt": 59,
             "damageTaken": 41,
-            "kos": 0,
+            "kos": 1,
             "faints": 1,
-            "turnsOnField": 2
+            "turnsOnField": 5
           },
-          "status": "tox",
+          "status": null,
           "pp": [
             24,
-            30,
-            16,
+            21,
+            14,
             24
           ]
         }
@@ -49,15 +49,35 @@
           "segment": 0,
           "kind": "trainer",
           "tier": "normal",
-          "winner": "p2",
+          "winner": "p1",
           "turns": 2,
+          "hpAfter": 22,
+          "casualties": []
+        },
+        {
+          "id": "s0-badlands-1-0",
+          "segment": 0,
+          "kind": "event",
+          "tier": null,
+          "winner": null,
+          "turns": null,
+          "hpAfter": 22,
+          "casualties": []
+        },
+        {
+          "id": "s0-badlands-2-0",
+          "segment": 0,
+          "kind": "trainer",
+          "tier": "normal",
+          "winner": "p2",
+          "turns": 3,
           "hpAfter": 0,
           "casualties": [
             {
               "side": "p1",
               "name": "Clover",
-              "bySpecies": "Buneary",
-              "byMove": "Poison Fang"
+              "bySpecies": "Amaura",
+              "byMove": "Smack Down"
             }
           ]
         }
@@ -74,6 +94,72 @@
         {
           "kind": "node",
           "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": [],
+            "teaches": [
+              {
+                "move": "Breaking Swipe",
+                "slot": 0,
+                "replaceSlot": 1
+              }
+            ],
+            "discardTms": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "event",
+          "archetype": "safe"
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [
+              {
+                "slot": 0,
+                "item": "sharpbeak"
+              }
+            ],
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
         },
         {
           "kind": "battle",
@@ -104,7 +190,7 @@
         {
           "species": "Thwackey",
           "level": 20,
-          "ability": "Magnet Pull",
+          "ability": "Marvel Scale",
           "gender": "M",
           "moves": [
             "Upper Hand",
@@ -118,11 +204,11 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 136,
-            "damageTaken": 136,
-            "kos": 3,
-            "faints": 2,
-            "turnsOnField": 17
+            "damageDealt": 148,
+            "damageTaken": 119,
+            "kos": 4,
+            "faints": 1,
+            "turnsOnField": 16
           },
           "status": null,
           "pp": [
@@ -135,7 +221,7 @@
         {
           "species": "Finneon",
           "level": 20,
-          "ability": "Simple",
+          "ability": "Slow Start",
           "gender": "F",
           "moves": [
             "Jet Punch",
@@ -149,13 +235,13 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 48,
-            "damageTaken": 60,
-            "kos": 1,
+            "damageDealt": 32,
+            "damageTaken": 55,
+            "kos": 0,
             "faints": 1,
-            "turnsOnField": 5
+            "turnsOnField": 4
           },
-          "status": "par",
+          "status": null,
           "pp": [
             23,
             30,
@@ -221,16 +307,9 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 8,
-          "hpAfter": 39,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Sorrel",
-              "bySpecies": "Rolycoly",
-              "byMove": "Accelerock"
-            }
-          ]
+          "turns": 6,
+          "hpAfter": 61,
+          "casualties": []
         },
         {
           "id": "s1-summit-0-0",
@@ -422,13 +501,6 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
             "slot": 4
           }
         },
@@ -443,21 +515,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
+            "slot": 4
           }
         },
         {
@@ -580,7 +638,7 @@
         {
           "species": "Riolu",
           "level": 20,
-          "ability": "Scrappy",
+          "ability": "Serene Grace",
           "gender": "M",
           "moves": [
             "Force Palm",
@@ -594,15 +652,15 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 508,
-            "damageTaken": 123,
-            "kos": 11,
+            "damageDealt": 476,
+            "damageTaken": 124,
+            "kos": 9,
             "faints": 2,
             "turnsOnField": 25
           },
           "status": null,
           "pp": [
-            8,
+            9,
             16,
             32,
             32
@@ -611,7 +669,7 @@
         {
           "species": "Dwebble",
           "level": 20,
-          "ability": "Healer",
+          "ability": "Heatproof",
           "gender": "F",
           "moves": [
             "Rock Slide",
@@ -625,16 +683,16 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 69,
+            "damageDealt": 53,
             "damageTaken": 56,
-            "kos": 2,
+            "kos": 3,
             "faints": 1,
-            "turnsOnField": 4
+            "turnsOnField": 5
           },
           "status": null,
           "pp": [
             14,
-            24,
+            23,
             32,
             16
           ]
@@ -642,7 +700,7 @@
         {
           "species": "Swinub",
           "level": 20,
-          "ability": "Stalwart",
+          "ability": "Stamina",
           "gender": "F",
           "moves": [
             "Triple Axel",
@@ -656,15 +714,15 @@
           "fainted": true,
           "joinedSegment": 1,
           "contribution": {
-            "damageDealt": 57,
-            "damageTaken": 84,
-            "kos": 1,
-            "faints": 2,
+            "damageDealt": 79,
+            "damageTaken": 56,
+            "kos": 2,
+            "faints": 1,
             "turnsOnField": 4
           },
           "status": null,
           "pp": [
-            15,
+            14,
             23,
             48,
             16
@@ -709,15 +767,8 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 44,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Onyx",
-              "bySpecies": "Mantyke",
-              "byMove": "Circle Throw"
-            }
-          ]
+          "hpAfter": 54,
+          "casualties": []
         },
         {
           "id": "s0-summit-4-0",
@@ -726,7 +777,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 62,
+          "hpAfter": 63,
           "casualties": []
         },
         {
@@ -736,7 +787,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 56,
+          "hpAfter": 58,
           "casualties": []
         },
         {
@@ -756,7 +807,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 4,
-          "hpAfter": 151,
+          "hpAfter": 149,
           "casualties": []
         },
         {
@@ -766,7 +817,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 151,
+          "hpAfter": 149,
           "casualties": []
         },
         {
@@ -775,16 +826,9 @@
           "kind": "trainer",
           "tier": "normal",
           "winner": "p1",
-          "turns": 6,
-          "hpAfter": 83,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Nettle",
-              "bySpecies": "Sobble",
-              "byMove": "Aqua Jet"
-            }
-          ]
+          "turns": 5,
+          "hpAfter": 88,
+          "casualties": []
         },
         {
           "id": "s1-shore-4-0",
@@ -792,9 +836,16 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 3,
-          "hpAfter": 87,
-          "casualties": []
+          "turns": 5,
+          "hpAfter": 41,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Onyx",
+              "bySpecies": "Wiglett",
+              "byMove": "Razor Shell"
+            }
+          ]
         },
         {
           "id": "s1-gym",
@@ -809,19 +860,19 @@
               "side": "p1",
               "name": "Onyx",
               "bySpecies": "Finneon",
-              "byMove": "Bubble Beam"
+              "byMove": "Aqua Jet"
             },
             {
               "side": "p1",
               "name": "Fennel",
               "bySpecies": "Finneon",
-              "byMove": "Aqua Jet"
+              "byMove": "Bubble Beam"
             },
             {
               "side": "p1",
               "name": "Nettle",
               "bySpecies": "Finneon",
-              "byMove": "Bubble Beam"
+              "byMove": "Aqua Jet"
             }
           ]
         }
@@ -945,13 +996,6 @@
           "choice": {
             "kind": "move",
             "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
           }
         },
         {
@@ -1249,20 +1293,6 @@
           }
         },
         {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
           "kind": "reward",
           "index": 0
         },
@@ -1289,8 +1319,29 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "switch",
             "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
           }
         },
         {
@@ -1339,6 +1390,13 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "switch",
             "slot": 2
           }
@@ -1353,13 +1411,6 @@
         {
           "kind": "battle",
           "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
             "kind": "switch",
             "slot": 3
           }
@@ -1368,7 +1419,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 2
+            "slot": 1
           }
         }
       ]

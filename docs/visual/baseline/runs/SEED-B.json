@@ -2,8 +2,8 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
-    "randomizer": "gymrun-randomizer-22",
+    "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
+    "randomizer": "gymrun-randomizer-23",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -12,24 +12,26 @@
   "causeOfDeath": {
     "segment": 0,
     "leader": "Garnet",
-    "kind": "wild",
+    "kind": "gym",
     "species": "Fennel",
-    "bySpecies": "Gulpin",
-    "byMove": "Cross Poison",
+    "bySpecies": "Nacli",
+    "byMove": "Infestation",
     "indirect": null
   },
-  "currency": 69,
-  "backpack": [],
+  "currency": 77,
+  "backpack": [
+    "mysticwater"
+  ],
   "relics": [],
   "party": [
     {
       "species": "Cutiefly",
       "level": 15,
-      "ability": "Shed Skin",
+      "ability": "Shield Dust",
       "moves": [
-        "Bug Bite 32/32",
+        "Bug Bite 29/32",
         "Snarl 21/24",
-        "Incinerate 22/24",
+        "Incinerate 23/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -39,11 +41,11 @@
     {
       "species": "Rattata",
       "level": 15,
-      "ability": "Mind's Eye",
+      "ability": "Mirror Armor",
       "moves": [
         "Swift 30/32",
         "Pounce 32/32",
-        "Brutal Swing 30/32",
+        "Brutal Swing 28/32",
         "Spore 24/24"
       ],
       "item": "silkscarf",
@@ -80,9 +82,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Venipede",
-      "turns": 3,
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 60,
+      "hpAfter": 54,
       "casualties": []
     },
     {
@@ -93,7 +95,7 @@
       "opponent": "Wild Salandit",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 19,
+      "hpAfter": 23,
       "casualties": [
         {
           "side": "p1",
@@ -113,8 +115,8 @@
       "tier": "normal",
       "opponent": "Wild Gulpin",
       "turns": 4,
-      "winner": "p2",
-      "hpAfter": 0,
+      "winner": "p1",
+      "hpAfter": 1,
       "casualties": [
         {
           "side": "p1",
@@ -124,14 +126,35 @@
           "bySpecies": "Gulpin",
           "byMove": "Cross Poison",
           "indirect": null
+        }
+      ]
+    },
+    {
+      "segment": 0,
+      "kind": "gym",
+      "label": "Garnet's Gym",
+      "tier": null,
+      "opponent": "Garnet (Rock)",
+      "turns": 3,
+      "winner": "p2",
+      "hpAfter": 0,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Umber",
+          "level": 15,
+          "species": "Cutiefly",
+          "bySpecies": "Nacli",
+          "byMove": "Infestation",
+          "indirect": null
         },
         {
           "side": "p1",
           "name": "Fennel",
           "level": 15,
           "species": "Rattata",
-          "bySpecies": "Gulpin",
-          "byMove": "Cross Poison",
+          "bySpecies": "Nacli",
+          "byMove": "Infestation",
           "indirect": null
         }
       ]
@@ -141,9 +164,9 @@
     "seed": "SEED-B",
     "versions": {
       "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
+      "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-22"
+      "randomizerVersion": "gymrun-randomizer-23"
     },
     "decisions": [
       {
@@ -233,6 +256,13 @@
         "choice": {
           "kind": "move",
           "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -338,13 +368,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -354,6 +377,64 @@
         "choice": {
           "kind": "move",
           "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "lead",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
         }
       },
       {

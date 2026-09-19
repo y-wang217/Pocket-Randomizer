@@ -1,0 +1,2568 @@
+{
+  "generatedAt": "2026-09-19T10:25:09.688Z",
+  "randomizerVersion": "gymrun-randomizer-23",
+  "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
+  "runLogVersion": "gymrun-run-20/gymrun-0.3.0",
+  "engineVersion": "gymrun-0.3.0",
+  "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
+  "ai": {
+    "mode": "pinned",
+    "add": [],
+    "drop": [],
+    "noise": null
+  },
+  "partySize": 6,
+  "slotUnlockSchedule": [
+    2,
+    3,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6
+  ],
+  "segments": 8,
+  "seedPrefix": "RETUNE",
+  "seeds": 400,
+  "tuning": {
+    "stepsPerSegment": [
+      {
+        "min": 4,
+        "max": 5
+      },
+      {
+        "min": 4,
+        "max": 5
+      },
+      {
+        "min": 5,
+        "max": 6
+      },
+      {
+        "min": 5,
+        "max": 6
+      },
+      {
+        "min": 5,
+        "max": 6
+      },
+      {
+        "min": 6,
+        "max": 7
+      },
+      {
+        "min": 6,
+        "max": 7
+      },
+      {
+        "min": 6,
+        "max": 7
+      }
+    ],
+    "nodeChoiceCount": {
+      "min": 2,
+      "max": 3
+    },
+    "nodeWeights": {
+      "wild": 5,
+      "trainer": 3,
+      "rest": 1,
+      "shop": 1.5,
+      "event": 2.5
+    },
+    "restEarliestStep": 1,
+    "distinctKindsPerStep": true,
+    "localeOfferCount": {
+      "min": 2,
+      "max": 3
+    },
+    "wildStepsPerSegment": 1,
+    "wildStepOptionCount": 2,
+    "minEventSteps": 1,
+    "battlePairFromSegment": 7,
+    "minRestSteps": 1,
+    "restStepsPerGuarantee": 3,
+    "tierBands": [
+      {
+        "throughSegment": 1,
+        "weights": {
+          "normal": 7,
+          "hard": 3,
+          "elite": 0
+        }
+      },
+      {
+        "throughSegment": 4,
+        "weights": {
+          "normal": 5,
+          "hard": 5,
+          "elite": 1
+        }
+      },
+      {
+        "throughSegment": 7,
+        "weights": {
+          "normal": 4,
+          "hard": 5,
+          "elite": 2
+        }
+      }
+    ],
+    "distinctTiersPerStep": true,
+    "shopExtraSlots": {
+      "min": 0,
+      "max": 1
+    },
+    "eventDamageFloor": 0.05,
+    "allowEncounterAcquisitions": true,
+    "restHpFraction": 1,
+    "restPpFraction": 1,
+    "gymClearHealFraction": 1,
+    "restClearsStatus": true,
+    "clearStatusBetweenNodes": true,
+    "reviveFaintedBetweenNodes": true,
+    "reviveHpPercent": 0.5,
+    "backpackSlack": 2,
+    "starterOptionCount": 3,
+    "revealOpponentAbility": true,
+    "revealOpponentItem": true,
+    "maxMoveTagsOnFace": 3
+  },
+  "scaling": [
+    {
+      "segment": 0,
+      "playerLevel": 15,
+      "levelOffset": {
+        "wild": {
+          "min": -3,
+          "max": -2
+        },
+        "trainer": {
+          "min": -2,
+          "max": -1
+        },
+        "gym": {
+          "min": -3,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "0": 5,
+        "1": 1
+      },
+      "moveBandWeights": {
+        "1": 4,
+        "2": 1
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 1,
+      "playerLevel": 20,
+      "levelOffset": {
+        "wild": {
+          "min": -5,
+          "max": -3
+        },
+        "trainer": {
+          "min": -4,
+          "max": -2
+        },
+        "gym": {
+          "min": -4,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "0": 4,
+        "1": 2
+      },
+      "moveBandWeights": {
+        "1": 3,
+        "2": 2
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 2,
+      "playerLevel": 26,
+      "levelOffset": {
+        "wild": {
+          "min": -7,
+          "max": -5
+        },
+        "trainer": {
+          "min": -5,
+          "max": -3
+        },
+        "gym": {
+          "min": -5,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "0": 2,
+        "1": 3,
+        "2": 2
+      },
+      "moveBandWeights": {
+        "1": 2,
+        "2": 3,
+        "3": 2
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 3,
+      "playerLevel": 32,
+      "levelOffset": {
+        "wild": {
+          "min": -9,
+          "max": -6
+        },
+        "trainer": {
+          "min": -7,
+          "max": -4
+        },
+        "gym": {
+          "min": -6,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "0": 1,
+        "1": 3,
+        "2": 3
+      },
+      "moveBandWeights": {
+        "1": 1,
+        "2": 3,
+        "3": 4
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 4,
+      "playerLevel": 38,
+      "levelOffset": {
+        "wild": {
+          "min": -11,
+          "max": -8
+        },
+        "trainer": {
+          "min": -8,
+          "max": -5
+        },
+        "gym": {
+          "min": -7,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "1": 2,
+        "2": 3,
+        "3": 2
+      },
+      "moveBandWeights": {
+        "2": 2,
+        "3": 5,
+        "4": 1
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 5,
+      "playerLevel": 44,
+      "levelOffset": {
+        "wild": {
+          "min": -13,
+          "max": -9
+        },
+        "trainer": {
+          "min": -10,
+          "max": -6
+        },
+        "gym": {
+          "min": -8,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "1": 1,
+        "2": 3,
+        "3": 3
+      },
+      "moveBandWeights": {
+        "2": 2,
+        "3": 5,
+        "4": 1,
+        "5": 1
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 6,
+      "playerLevel": 50,
+      "levelOffset": {
+        "wild": {
+          "min": -15,
+          "max": -11
+        },
+        "trainer": {
+          "min": -11,
+          "max": -7
+        },
+        "gym": {
+          "min": -9,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "2": 2,
+        "3": 3,
+        "4": 1
+      },
+      "moveBandWeights": {
+        "3": 4,
+        "4": 2,
+        "5": 2
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    },
+    {
+      "segment": 7,
+      "playerLevel": 58,
+      "levelOffset": {
+        "wild": {
+          "min": -17,
+          "max": -12
+        },
+        "trainer": {
+          "min": -13,
+          "max": -8
+        },
+        "gym": {
+          "min": -10,
+          "max": 0
+        }
+      },
+      "speciesBandWeights": {
+        "2": 1,
+        "3": 3,
+        "4": 2
+      },
+      "moveBandWeights": {
+        "3": 3,
+        "4": 2,
+        "5": 4
+      },
+      "teamAdvantage": {
+        "wild": 0,
+        "trainer": 0
+      }
+    }
+  ],
+  "samples": [
+    {
+      "policy": "greedy",
+      "nodes": "rest",
+      "runs": 400,
+      "completionRate": 0.0075,
+      "rewards": {
+        "taken": [
+          {
+            "label": "item",
+            "count": 651,
+            "share": 0.28169623539593247
+          },
+          {
+            "label": "tutor",
+            "count": 486,
+            "share": 0.21029857204673302
+          },
+          {
+            "label": "relic",
+            "count": 359,
+            "share": 0.15534400692340977
+          },
+          {
+            "label": "currency",
+            "count": 349,
+            "share": 0.15101687581133708
+          },
+          {
+            "label": "tm",
+            "count": 248,
+            "share": 0.10731285157940286
+          },
+          {
+            "label": "heal",
+            "count": 218,
+            "share": 0.09433145824318477
+          }
+        ],
+        "gym": [
+          {
+            "label": "tutor",
+            "count": 398,
+            "share": 0.5
+          },
+          {
+            "label": "relic",
+            "count": 332,
+            "share": 0.41708542713567837
+          },
+          {
+            "label": "currency",
+            "count": 36,
+            "share": 0.04522613065326633
+          },
+          {
+            "label": "item",
+            "count": 30,
+            "share": 0.03768844221105527
+          }
+        ],
+        "gymOffers": 796,
+        "conditional": [
+          {
+            "kind": "currency",
+            "runs": 151,
+            "completion": 0.019867549668874173
+          },
+          {
+            "kind": "heal",
+            "runs": 129,
+            "completion": 0.023255813953488372
+          },
+          {
+            "kind": "item",
+            "runs": 267,
+            "completion": 0.011235955056179775
+          },
+          {
+            "kind": "relic",
+            "runs": 171,
+            "completion": 0.017543859649122806
+          },
+          {
+            "kind": "tm",
+            "runs": 147,
+            "completion": 0.02040816326530612
+          },
+          {
+            "kind": "tutor",
+            "runs": 183,
+            "completion": 0.01639344262295082
+          }
+        ]
+      },
+      "currency": {
+        "bySegment": [
+          {
+            "segment": 0,
+            "visits": 98,
+            "medianBalance": 0,
+            "medianSpent": 0
+          },
+          {
+            "segment": 1,
+            "visits": 51,
+            "medianBalance": 98,
+            "medianSpent": 75
+          },
+          {
+            "segment": 2,
+            "visits": 34,
+            "medianBalance": 200.5,
+            "medianSpent": 155.5
+          },
+          {
+            "segment": 3,
+            "visits": 20,
+            "medianBalance": 202,
+            "medianSpent": 159
+          },
+          {
+            "segment": 4,
+            "visits": 11,
+            "medianBalance": 271,
+            "medianSpent": 261
+          },
+          {
+            "segment": 5,
+            "visits": 6,
+            "medianBalance": 482.5,
+            "medianSpent": 437
+          },
+          {
+            "segment": 6,
+            "visits": 4,
+            "medianBalance": 842.5,
+            "medianSpent": 798
+          },
+          {
+            "segment": 7,
+            "visits": 0,
+            "medianBalance": 0,
+            "medianSpent": 0
+          }
+        ],
+        "medianAtEnd": 36,
+        "brokeShare": 0.45982142857142855,
+        "flushShare": 0.0625
+      },
+      "items": [
+        {
+          "item": "Mystic Water",
+          "withRuns": 53,
+          "withCompletion": 0.018867924528301886,
+          "withoutRuns": 347,
+          "withoutCompletion": 0.005763688760806916,
+          "readable": true
+        },
+        {
+          "item": "Miracle Seed",
+          "withRuns": 50,
+          "withCompletion": 0,
+          "withoutRuns": 350,
+          "withoutCompletion": 0.008571428571428572,
+          "readable": true
+        },
+        {
+          "item": "Expert Belt",
+          "withRuns": 42,
+          "withCompletion": 0.023809523809523808,
+          "withoutRuns": 358,
+          "withoutCompletion": 0.00558659217877095,
+          "readable": false
+        },
+        {
+          "item": "Black Belt",
+          "withRuns": 41,
+          "withCompletion": 0.024390243902439025,
+          "withoutRuns": 359,
+          "withoutCompletion": 0.005571030640668524,
+          "readable": false
+        },
+        {
+          "item": "Magnet",
+          "withRuns": 38,
+          "withCompletion": 0.02631578947368421,
+          "withoutRuns": 362,
+          "withoutCompletion": 0.0055248618784530384,
+          "readable": false
+        },
+        {
+          "item": "Silk Scarf",
+          "withRuns": 35,
+          "withCompletion": 0.02857142857142857,
+          "withoutRuns": 365,
+          "withoutCompletion": 0.005479452054794521,
+          "readable": false
+        },
+        {
+          "item": "Lum Berry",
+          "withRuns": 35,
+          "withCompletion": 0.02857142857142857,
+          "withoutRuns": 365,
+          "withoutCompletion": 0.005479452054794521,
+          "readable": false
+        },
+        {
+          "item": "Charcoal",
+          "withRuns": 33,
+          "withCompletion": 0.030303030303030304,
+          "withoutRuns": 367,
+          "withoutCompletion": 0.005449591280653951,
+          "readable": false
+        },
+        {
+          "item": "Sharp Beak",
+          "withRuns": 32,
+          "withCompletion": 0.03125,
+          "withoutRuns": 368,
+          "withoutCompletion": 0.005434782608695652,
+          "readable": false
+        },
+        {
+          "item": "Twisted Spoon",
+          "withRuns": 31,
+          "withCompletion": 0.03225806451612903,
+          "withoutRuns": 369,
+          "withoutCompletion": 0.005420054200542005,
+          "readable": false
+        },
+        {
+          "item": "Shell Bell",
+          "withRuns": 28,
+          "withCompletion": 0.03571428571428571,
+          "withoutRuns": 372,
+          "withoutCompletion": 0.005376344086021506,
+          "readable": false
+        },
+        {
+          "item": "Eviolite",
+          "withRuns": 25,
+          "withCompletion": 0.04,
+          "withoutRuns": 375,
+          "withoutCompletion": 0.005333333333333333,
+          "readable": false
+        },
+        {
+          "item": "Oran Berry",
+          "withRuns": 25,
+          "withCompletion": 0,
+          "withoutRuns": 375,
+          "withoutCompletion": 0.008,
+          "readable": false
+        },
+        {
+          "item": "Yache Berry",
+          "withRuns": 25,
+          "withCompletion": 0,
+          "withoutRuns": 375,
+          "withoutCompletion": 0.008,
+          "readable": false
+        },
+        {
+          "item": "Sitrus Berry",
+          "withRuns": 24,
+          "withCompletion": 0,
+          "withoutRuns": 376,
+          "withoutCompletion": 0.007978723404255319,
+          "readable": false
+        },
+        {
+          "item": "Chesto Berry",
+          "withRuns": 23,
+          "withCompletion": 0,
+          "withoutRuns": 377,
+          "withoutCompletion": 0.007957559681697613,
+          "readable": false
+        },
+        {
+          "item": "Persim Berry",
+          "withRuns": 23,
+          "withCompletion": 0.043478260869565216,
+          "withoutRuns": 377,
+          "withoutCompletion": 0.005305039787798408,
+          "readable": false
+        },
+        {
+          "item": "Leppa Berry",
+          "withRuns": 23,
+          "withCompletion": 0,
+          "withoutRuns": 377,
+          "withoutCompletion": 0.007957559681697613,
+          "readable": false
+        },
+        {
+          "item": "Wacan Berry",
+          "withRuns": 23,
+          "withCompletion": 0,
+          "withoutRuns": 377,
+          "withoutCompletion": 0.007957559681697613,
+          "readable": false
+        },
+        {
+          "item": "Leftovers",
+          "withRuns": 22,
+          "withCompletion": 0.09090909090909091,
+          "withoutRuns": 378,
+          "withoutCompletion": 0.0026455026455026454,
+          "readable": false
+        },
+        {
+          "item": "Rocky Helmet",
+          "withRuns": 22,
+          "withCompletion": 0,
+          "withoutRuns": 378,
+          "withoutCompletion": 0.007936507936507936,
+          "readable": false
+        },
+        {
+          "item": "Passho Berry",
+          "withRuns": 21,
+          "withCompletion": 0,
+          "withoutRuns": 379,
+          "withoutCompletion": 0.0079155672823219,
+          "readable": false
+        },
+        {
+          "item": "Chople Berry",
+          "withRuns": 21,
+          "withCompletion": 0,
+          "withoutRuns": 379,
+          "withoutCompletion": 0.0079155672823219,
+          "readable": false
+        },
+        {
+          "item": "Payapa Berry",
+          "withRuns": 21,
+          "withCompletion": 0,
+          "withoutRuns": 379,
+          "withoutCompletion": 0.0079155672823219,
+          "readable": false
+        },
+        {
+          "item": "Haban Berry",
+          "withRuns": 20,
+          "withCompletion": 0.1,
+          "withoutRuns": 380,
+          "withoutCompletion": 0.002631578947368421,
+          "readable": false
+        },
+        {
+          "item": "Punching Glove",
+          "withRuns": 18,
+          "withCompletion": 0,
+          "withoutRuns": 382,
+          "withoutCompletion": 0.007853403141361256,
+          "readable": false
+        },
+        {
+          "item": "Occa Berry",
+          "withRuns": 17,
+          "withCompletion": 0.058823529411764705,
+          "withoutRuns": 383,
+          "withoutCompletion": 0.005221932114882507,
+          "readable": false
+        },
+        {
+          "item": "Life Orb",
+          "withRuns": 16,
+          "withCompletion": 0.0625,
+          "withoutRuns": 384,
+          "withoutCompletion": 0.005208333333333333,
+          "readable": false
+        },
+        {
+          "item": "Muscle Band",
+          "withRuns": 16,
+          "withCompletion": 0,
+          "withoutRuns": 384,
+          "withoutCompletion": 0.0078125,
+          "readable": false
+        },
+        {
+          "item": "Colbur Berry",
+          "withRuns": 16,
+          "withCompletion": 0,
+          "withoutRuns": 384,
+          "withoutCompletion": 0.0078125,
+          "readable": false
+        },
+        {
+          "item": "Wise Glasses",
+          "withRuns": 15,
+          "withCompletion": 0,
+          "withoutRuns": 385,
+          "withoutCompletion": 0.007792207792207792,
+          "readable": false
+        },
+        {
+          "item": "Rindo Berry",
+          "withRuns": 15,
+          "withCompletion": 0,
+          "withoutRuns": 385,
+          "withoutCompletion": 0.007792207792207792,
+          "readable": false
+        },
+        {
+          "item": "Weakness Policy",
+          "withRuns": 14,
+          "withCompletion": 0,
+          "withoutRuns": 386,
+          "withoutCompletion": 0.007772020725388601,
+          "readable": false
+        },
+        {
+          "item": "Focus Sash",
+          "withRuns": 6,
+          "withCompletion": 0.16666666666666666,
+          "withoutRuns": 394,
+          "withoutCompletion": 0.005076142131979695,
+          "readable": false
+        },
+        {
+          "item": "Assault Vest",
+          "withRuns": 2,
+          "withCompletion": 0,
+          "withoutRuns": 398,
+          "withoutCompletion": 0.007537688442211055,
+          "readable": false
+        },
+        {
+          "item": "Choice Band",
+          "withRuns": 0,
+          "withCompletion": 0,
+          "withoutRuns": 400,
+          "withoutCompletion": 0.0075,
+          "readable": false
+        },
+        {
+          "item": "Choice Specs",
+          "withRuns": 0,
+          "withCompletion": 0,
+          "withoutRuns": 400,
+          "withoutCompletion": 0.0075,
+          "readable": false
+        },
+        {
+          "item": "Choice Scarf",
+          "withRuns": 0,
+          "withCompletion": 0,
+          "withoutRuns": 400,
+          "withoutCompletion": 0.0075,
+          "readable": false
+        }
+      ],
+      "meanGymsCleared": 0.995,
+      "gymsPerRun": [
+        1,
+        1,
+        1,
+        2,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1,
+        2,
+        3,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        1,
+        0,
+        8,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        4,
+        0,
+        1,
+        0,
+        0,
+        0,
+        6,
+        1,
+        3,
+        1,
+        2,
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        7,
+        1,
+        1,
+        0,
+        1,
+        1,
+        3,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        2,
+        1,
+        0,
+        2,
+        0,
+        0,
+        1,
+        1,
+        7,
+        1,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        2,
+        0,
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        0,
+        1,
+        3,
+        0,
+        5,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        4,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        5,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        1,
+        0,
+        3,
+        0,
+        2,
+        8,
+        1,
+        2,
+        3,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0,
+        2,
+        1,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        3,
+        0,
+        0,
+        0,
+        2,
+        7,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        5,
+        0,
+        0,
+        5,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        5,
+        3,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        1,
+        6,
+        3,
+        1,
+        0,
+        2,
+        2,
+        0,
+        0,
+        7,
+        0,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        4,
+        1,
+        0,
+        0,
+        2,
+        1,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        0,
+        1,
+        2,
+        1,
+        0,
+        1,
+        0,
+        2,
+        0,
+        3,
+        2,
+        4,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        1,
+        0,
+        0,
+        0,
+        5,
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0,
+        0,
+        3,
+        1,
+        0,
+        0,
+        3,
+        0,
+        1,
+        1,
+        1,
+        1,
+        2,
+        0,
+        1,
+        0,
+        1,
+        1,
+        2,
+        1,
+        8,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        2,
+        2,
+        1,
+        3,
+        1,
+        2,
+        0,
+        1,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        6,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        1,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0,
+        2,
+        4,
+        1,
+        0,
+        2,
+        1,
+        4,
+        0,
+        4,
+        0,
+        0
+      ],
+      "meanScore": 144.575,
+      "medianScore": 15,
+      "perGym": [
+        {
+          "gym": 1,
+          "leader": "Garnet",
+          "type": "Rock",
+          "teamSize": 2,
+          "reached": 239,
+          "cleared": 183,
+          "clearRate": 0.7656903765690377,
+          "dropFromPrevious": 0
+        },
+        {
+          "gym": 2,
+          "leader": "Marina",
+          "type": "Water",
+          "teamSize": 3,
+          "reached": 133,
+          "cleared": 94,
+          "clearRate": 0.706766917293233,
+          "dropFromPrevious": 5.892345927580466
+        },
+        {
+          "gym": 3,
+          "leader": "Volta",
+          "type": "Electric",
+          "teamSize": 3,
+          "reached": 70,
+          "cleared": 49,
+          "clearRate": 0.7,
+          "dropFromPrevious": 0.6766917293233088
+        },
+        {
+          "gym": 4,
+          "leader": "Fern",
+          "type": "Grass",
+          "teamSize": 4,
+          "reached": 39,
+          "cleared": 30,
+          "clearRate": 0.7692307692307693,
+          "dropFromPrevious": -6.923076923076932
+        },
+        {
+          "gym": 5,
+          "leader": "Cinder",
+          "type": "Fire",
+          "teamSize": 4,
+          "reached": 28,
+          "cleared": 21,
+          "clearRate": 0.75,
+          "dropFromPrevious": 1.9230769230769273
+        },
+        {
+          "gym": 6,
+          "leader": "Solene",
+          "type": "Psychic",
+          "teamSize": 5,
+          "reached": 16,
+          "cleared": 11,
+          "clearRate": 0.6875,
+          "dropFromPrevious": 6.25
+        },
+        {
+          "gym": 7,
+          "leader": "Vesper",
+          "type": "Ghost",
+          "teamSize": 5,
+          "reached": 8,
+          "cleared": 7,
+          "clearRate": 0.875,
+          "dropFromPrevious": -18.75
+        },
+        {
+          "gym": 8,
+          "leader": "Draven",
+          "type": "Dragon",
+          "teamSize": 6,
+          "reached": 6,
+          "cleared": 3,
+          "clearRate": 0.5,
+          "dropFromPrevious": 37.5
+        }
+      ],
+      "priority": {
+        "turns": 29989,
+        "fireRate": 0.04411617593117476,
+        "escapeRate": 0.030811297475741104,
+        "killRate": 0.013304878455433659,
+        "differedRate": 0.037380372803361234
+      },
+      "turnsBySegment": [
+        {
+          "segment": 0,
+          "battles": 1022,
+          "meanTurns": 3.449119373776908
+        },
+        {
+          "segment": 1,
+          "battles": 531,
+          "meanTurns": 6.165725047080979
+        },
+        {
+          "segment": 2,
+          "battles": 326,
+          "meanTurns": 6.631901840490798
+        },
+        {
+          "segment": 3,
+          "battles": 165,
+          "meanTurns": 8.715151515151515
+        },
+        {
+          "segment": 4,
+          "battles": 111,
+          "meanTurns": 9.531531531531531
+        },
+        {
+          "segment": 5,
+          "battles": 76,
+          "meanTurns": 10.618421052631579
+        },
+        {
+          "segment": 6,
+          "battles": 40,
+          "meanTurns": 12.925
+        },
+        {
+          "segment": 7,
+          "battles": 38,
+          "meanTurns": 10.947368421052632
+        }
+      ],
+      "deaths": {
+        "byGym": [
+          {
+            "label": "gym 1 (Garnet)",
+            "count": 217,
+            "share": 0.5465994962216625
+          },
+          {
+            "label": "gym 2 (Marina)",
+            "count": 89,
+            "share": 0.22418136020151133
+          },
+          {
+            "label": "gym 3 (Volta)",
+            "count": 46,
+            "share": 0.11586901763224182
+          },
+          {
+            "label": "gym 4 (Fern)",
+            "count": 18,
+            "share": 0.04534005037783375
+          },
+          {
+            "label": "gym 6 (Solene)",
+            "count": 10,
+            "share": 0.02518891687657431
+          },
+          {
+            "label": "gym 5 (Cinder)",
+            "count": 9,
+            "share": 0.022670025188916875
+          },
+          {
+            "label": "gym 7 (Vesper)",
+            "count": 4,
+            "share": 0.010075566750629723
+          },
+          {
+            "label": "gym 8 (Draven)",
+            "count": 4,
+            "share": 0.010075566750629723
+          }
+        ],
+        "bySpecies": [
+          {
+            "label": "Aron",
+            "count": 11,
+            "share": 0.027707808564231738
+          },
+          {
+            "label": "Nacli",
+            "count": 8,
+            "share": 0.020151133501259445
+          },
+          {
+            "label": "Binacle",
+            "count": 6,
+            "share": 0.015113350125944584
+          },
+          {
+            "label": "Corsola",
+            "count": 6,
+            "share": 0.015113350125944584
+          },
+          {
+            "label": "Omanyte",
+            "count": 6,
+            "share": 0.015113350125944584
+          },
+          {
+            "label": "Plusle",
+            "count": 6,
+            "share": 0.015113350125944584
+          },
+          {
+            "label": "Wailmer",
+            "count": 6,
+            "share": 0.015113350125944584
+          },
+          {
+            "label": "(indirect)",
+            "count": 5,
+            "share": 0.012594458438287154
+          },
+          {
+            "label": "Geodude",
+            "count": 5,
+            "share": 0.012594458438287154
+          },
+          {
+            "label": "Larvitar",
+            "count": 5,
+            "share": 0.012594458438287154
+          }
+        ],
+        "byMove": [
+          {
+            "label": "Accelerock",
+            "count": 19,
+            "share": 0.04785894206549118
+          },
+          {
+            "label": "Jet Punch",
+            "count": 14,
+            "share": 0.03526448362720403
+          },
+          {
+            "label": "Brine",
+            "count": 12,
+            "share": 0.030226700251889168
+          },
+          {
+            "label": "Surging Strikes",
+            "count": 11,
+            "share": 0.027707808564231738
+          },
+          {
+            "label": "Aqua Jet",
+            "count": 10,
+            "share": 0.02518891687657431
+          },
+          {
+            "label": "Salt Cure",
+            "count": 10,
+            "share": 0.02518891687657431
+          },
+          {
+            "label": "Water Shuriken",
+            "count": 10,
+            "share": 0.02518891687657431
+          },
+          {
+            "label": "Aqua Cutter",
+            "count": 7,
+            "share": 0.017632241813602016
+          },
+          {
+            "label": "Acrobatics",
+            "count": 6,
+            "share": 0.015113350125944584
+          },
+          {
+            "label": "Aerial Ace",
+            "count": 6,
+            "share": 0.015113350125944584
+          }
+        ],
+        "indirect": [
+          {
+            "label": "Stealth Rock",
+            "count": 2,
+            "share": 0.4
+          },
+          {
+            "label": "item: Life Orb",
+            "count": 1,
+            "share": 0.2
+          },
+          {
+            "label": "item: Rocky Helmet",
+            "count": 1,
+            "share": 0.2
+          },
+          {
+            "label": "move: Whirlpool",
+            "count": 1,
+            "share": 0.2
+          }
+        ]
+      },
+      "outliers": {
+        "fastestWin": {
+          "seed": "RETUNE-322",
+          "turns": 253,
+          "nodes": 51
+        },
+        "earliestLoss": {
+          "seed": "RETUNE-12",
+          "gymsCleared": 0,
+          "nodes": 1,
+          "death": {
+            "segment": 0,
+            "leader": "Garnet",
+            "kind": "wild",
+            "species": "Inkcap",
+            "bySpecies": "Wattrel",
+            "byMove": "Charge Beam",
+            "indirect": null
+          }
+        }
+      },
+      "diversity": {
+        "encounters": 4939,
+        "distinctSpecies": 735,
+        "topSpecies": [
+          {
+            "label": "Binacle",
+            "count": 57,
+            "share": 0.011540797732334481
+          },
+          {
+            "label": "Geodude",
+            "count": 53,
+            "share": 0.010730917189714518
+          },
+          {
+            "label": "Roggenrola",
+            "count": 51,
+            "share": 0.010325976918404535
+          },
+          {
+            "label": "Nacli",
+            "count": 49,
+            "share": 0.009921036647094554
+          },
+          {
+            "label": "Rolycoly",
+            "count": 49,
+            "share": 0.009921036647094554
+          },
+          {
+            "label": "Aron",
+            "count": 42,
+            "share": 0.008503745697509618
+          },
+          {
+            "label": "Rockruff",
+            "count": 42,
+            "share": 0.008503745697509618
+          },
+          {
+            "label": "Bonsly",
+            "count": 40,
+            "share": 0.008098805426199635
+          },
+          {
+            "label": "Larvitar",
+            "count": 36,
+            "share": 0.007288924883579672
+          },
+          {
+            "label": "Dhelmise",
+            "count": 33,
+            "share": 0.0066815144766146995
+          }
+        ],
+        "distinctAbilities": 277,
+        "topAbilities": [
+          {
+            "label": "Forewarn",
+            "count": 30,
+            "share": 0.006074104069649726
+          },
+          {
+            "label": "Overcoat",
+            "count": 28,
+            "share": 0.005669163798339745
+          },
+          {
+            "label": "Bad Dreams",
+            "count": 27,
+            "share": 0.005466693662684754
+          },
+          {
+            "label": "Flame Body",
+            "count": 27,
+            "share": 0.005466693662684754
+          },
+          {
+            "label": "Neuroforce",
+            "count": 27,
+            "share": 0.005466693662684754
+          },
+          {
+            "label": "Rock Head",
+            "count": 27,
+            "share": 0.005466693662684754
+          },
+          {
+            "label": "Anger Point",
+            "count": 26,
+            "share": 0.005264223527029763
+          },
+          {
+            "label": "Quick Draw",
+            "count": 26,
+            "share": 0.005264223527029763
+          },
+          {
+            "label": "Tablets of Ruin",
+            "count": 26,
+            "share": 0.005264223527029763
+          },
+          {
+            "label": "Air Lock",
+            "count": 25,
+            "share": 0.005061753391374772
+          }
+        ],
+        "topSpeciesRunShare": 0.1375,
+        "topAbilityRunShare": 0.07,
+        "distinctStarters": 215
+      },
+      "party": {
+        "playerSwitchesPerBattle": 0.5335643135556518,
+        "aiSwitchesPerBattle": 0.3581637072325682,
+        "medianPlayerSwitchesPerBattle": 0,
+        "battlesWithASwitch": 0.3689909051537462,
+        "offersPerRun": 3.205,
+        "takenPerRun": 1.8675,
+        "releasesPerRun": 0.645,
+        "takeRate": 0.5826833073322933,
+        "everFilled": 0.68,
+        "completionWhenFilled": 0.011029411764705883,
+        "completionWhenNotFilled": 0,
+        "meanPartyAtEnd": 2.2225,
+        "meanAliveAtLastBattle": 2.2225,
+        "aliveAtDeath": [
+          {
+            "label": "1 alive",
+            "count": 128,
+            "share": 0.3224181360201511
+          },
+          {
+            "label": "2 alive",
+            "count": 124,
+            "share": 0.3123425692695214
+          },
+          {
+            "label": "3 alive",
+            "count": 104,
+            "share": 0.2619647355163728
+          },
+          {
+            "label": "4 alive",
+            "count": 25,
+            "share": 0.06297229219143577
+          },
+          {
+            "label": "5 alive",
+            "count": 13,
+            "share": 0.0327455919395466
+          },
+          {
+            "label": "6 alive",
+            "count": 3,
+            "share": 0.007556675062972292
+          }
+        ],
+        "sizeBySegment": [
+          {
+            "segment": 0,
+            "battles": 1022,
+            "meanSize": 1.5851272015655578,
+            "assumed": 1
+          },
+          {
+            "segment": 1,
+            "battles": 531,
+            "meanSize": 2.621468926553672,
+            "assumed": 2
+          },
+          {
+            "segment": 2,
+            "battles": 326,
+            "meanSize": 3,
+            "assumed": 2
+          },
+          {
+            "segment": 3,
+            "battles": 165,
+            "meanSize": 3.690909090909091,
+            "assumed": 3
+          },
+          {
+            "segment": 4,
+            "battles": 111,
+            "meanSize": 4,
+            "assumed": 4
+          },
+          {
+            "segment": 5,
+            "battles": 76,
+            "meanSize": 4.7368421052631575,
+            "assumed": 4
+          },
+          {
+            "segment": 6,
+            "battles": 40,
+            "meanSize": 5,
+            "assumed": 5
+          },
+          {
+            "segment": 7,
+            "battles": 38,
+            "meanSize": 5.7368421052631575,
+            "assumed": 5
+          }
+        ],
+        "meanTypeCoverage": 3.02,
+        "completionByCoverage": [
+          {
+            "coverage": "1 types",
+            "runs": 90,
+            "completion": 0
+          },
+          {
+            "coverage": "2 types",
+            "runs": 89,
+            "completion": 0
+          },
+          {
+            "coverage": "3 types",
+            "runs": 72,
+            "completion": 0
+          },
+          {
+            "coverage": "4 types",
+            "runs": 74,
+            "completion": 0
+          },
+          {
+            "coverage": "5 types",
+            "runs": 43,
+            "completion": 0
+          },
+          {
+            "coverage": "6 types",
+            "runs": 20,
+            "completion": 0.15
+          },
+          {
+            "coverage": "7 types",
+            "runs": 5,
+            "completion": 0
+          },
+          {
+            "coverage": "8 types",
+            "runs": 5,
+            "completion": 0
+          },
+          {
+            "coverage": "9 types",
+            "runs": 2,
+            "completion": 0
+          }
+        ]
+      },
+      "ramp": {
+        "bandsAtGym": [
+          {
+            "gym": 1,
+            "parties": 239,
+            "shares": [
+              0.8261659600242277,
+              0.17383403997577226,
+              0,
+              0,
+              0
+            ],
+            "mean": 1.1738340399757723
+          },
+          {
+            "gym": 2,
+            "parties": 133,
+            "shares": [
+              0.6285300506879073,
+              0.3714699493120927,
+              0,
+              0,
+              0
+            ],
+            "mean": 1.3714699493120928
+          },
+          {
+            "gym": 3,
+            "parties": 70,
+            "shares": [
+              0.3592233009708738,
+              0.46879334257975036,
+              0.14285714285714285,
+              0.02912621359223301,
+              0
+            ],
+            "mean": 1.8418862690707352
+          },
+          {
+            "gym": 4,
+            "parties": 39,
+            "shares": [
+              0.16326530612244897,
+              0.37105751391465674,
+              0.34137291280148424,
+              0.11873840445269017,
+              0.0055658627087198514
+            ],
+            "mean": 2.4322820037105752
+          },
+          {
+            "gym": 5,
+            "parties": 28,
+            "shares": [
+              0.08785529715762273,
+              0.30749354005167956,
+              0.3281653746770026,
+              0.2739018087855297,
+              0.002583979328165375
+            ],
+            "mean": 2.795865633074935
+          },
+          {
+            "gym": 6,
+            "parties": 16,
+            "shares": [
+              0.040145985401459854,
+              0.21532846715328466,
+              0.3284671532846715,
+              0.3613138686131387,
+              0.05474452554744526
+            ],
+            "mean": 3.1751824817518246
+          },
+          {
+            "gym": 7,
+            "parties": 8,
+            "shares": [
+              0.036231884057971016,
+              0.16666666666666666,
+              0.2391304347826087,
+              0.4057971014492754,
+              0.15217391304347827
+            ],
+            "mean": 3.471014492753623
+          },
+          {
+            "gym": 8,
+            "parties": 6,
+            "shares": [
+              0.016129032258064516,
+              0.04838709677419355,
+              0.1532258064516129,
+              0.3790322580645161,
+              0.4032258064516129
+            ],
+            "mean": 4.104838709677419
+          }
+        ],
+        "berriesPerSegment": [
+          {
+            "segment": 0,
+            "eaten": 59,
+            "perRun": 0.1475
+          },
+          {
+            "segment": 1,
+            "eaten": 51,
+            "perRun": 0.1275
+          },
+          {
+            "segment": 2,
+            "eaten": 29,
+            "perRun": 0.0725
+          },
+          {
+            "segment": 3,
+            "eaten": 7,
+            "perRun": 0.0175
+          },
+          {
+            "segment": 4,
+            "eaten": 5,
+            "perRun": 0.0125
+          },
+          {
+            "segment": 5,
+            "eaten": 8,
+            "perRun": 0.02
+          },
+          {
+            "segment": 6,
+            "eaten": 4,
+            "perRun": 0.01
+          },
+          {
+            "segment": 7,
+            "eaten": 0,
+            "perRun": 0
+          }
+        ],
+        "arrivalAtGym": [
+          {
+            "gym": 1,
+            "parties": 239,
+            "hpFraction": 0.8888308318131116,
+            "meanLevel": 15,
+            "meanOpponentLevel": 13.476987447698745,
+            "levelDelta": 1.523012552301255
+          },
+          {
+            "gym": 2,
+            "parties": 133,
+            "hpFraction": 0.864031505206399,
+            "meanLevel": 20,
+            "meanOpponentLevel": 17.994987468671678,
+            "levelDelta": 2.0050125313283225
+          },
+          {
+            "gym": 3,
+            "parties": 70,
+            "hpFraction": 0.8789311982129017,
+            "meanLevel": 26,
+            "meanOpponentLevel": 23.84285714285714,
+            "levelDelta": 2.1571428571428584
+          },
+          {
+            "gym": 4,
+            "parties": 39,
+            "hpFraction": 0.8703539074940011,
+            "meanLevel": 32,
+            "meanOpponentLevel": 29.237179487179485,
+            "levelDelta": 2.7628205128205146
+          },
+          {
+            "gym": 5,
+            "parties": 28,
+            "hpFraction": 0.9074977846959141,
+            "meanLevel": 38,
+            "meanOpponentLevel": 35.080357142857146,
+            "levelDelta": 2.919642857142854
+          },
+          {
+            "gym": 6,
+            "parties": 16,
+            "hpFraction": 0.9439331876907189,
+            "meanLevel": 44,
+            "meanOpponentLevel": 40.0375,
+            "levelDelta": 3.9624999999999986
+          },
+          {
+            "gym": 7,
+            "parties": 8,
+            "hpFraction": 0.9874242424242424,
+            "meanLevel": 50,
+            "meanOpponentLevel": 45.325,
+            "levelDelta": 4.674999999999997
+          },
+          {
+            "gym": 8,
+            "parties": 6,
+            "hpFraction": 0.8823223594526771,
+            "meanLevel": 58,
+            "meanOpponentLevel": 53.111111111111114,
+            "levelDelta": 4.888888888888886
+          }
+        ],
+        "lateBerries": {
+          "parties": 30,
+          "meanCarried": 3.2333333333333334,
+          "shareOfRuns": 0.9666666666666667
+        }
+      },
+      "locales": {
+        "picked": [
+          {
+            "label": "Summit",
+            "count": 116,
+            "share": 0.14609571788413098
+          },
+          {
+            "label": "Badlands",
+            "count": 108,
+            "share": 0.13602015113350127
+          },
+          {
+            "label": "Marsh",
+            "count": 103,
+            "share": 0.1297229219143577
+          },
+          {
+            "label": "Shore",
+            "count": 101,
+            "share": 0.12720403022670027
+          },
+          {
+            "label": "Ruins",
+            "count": 97,
+            "share": 0.12216624685138538
+          },
+          {
+            "label": "Forest",
+            "count": 95,
+            "share": 0.11964735516372796
+          },
+          {
+            "label": "Cave",
+            "count": 91,
+            "share": 0.11460957178841309
+          },
+          {
+            "label": "City",
+            "count": 83,
+            "share": 0.10453400503778337
+          }
+        ],
+        "offered": [
+          {
+            "label": "Summit",
+            "count": 259,
+            "share": 0.13015075376884422
+          },
+          {
+            "label": "Cave",
+            "count": 255,
+            "share": 0.12814070351758794
+          },
+          {
+            "label": "Marsh",
+            "count": 255,
+            "share": 0.12814070351758794
+          },
+          {
+            "label": "Forest",
+            "count": 251,
+            "share": 0.12613065326633166
+          },
+          {
+            "label": "City",
+            "count": 250,
+            "share": 0.12562814070351758
+          },
+          {
+            "label": "Shore",
+            "count": 245,
+            "share": 0.12311557788944724
+          },
+          {
+            "label": "Ruins",
+            "count": 239,
+            "share": 0.12010050251256281
+          },
+          {
+            "label": "Badlands",
+            "count": 236,
+            "share": 0.1185929648241206
+          }
+        ],
+        "neverPicked": [],
+        "neverOffered": [],
+        "meanDistinctPerRun": 1.845
+      },
+      "contribution": {
+        "runs": 393,
+        "meanTopShare": 0.7501566389349537,
+        "topShareDeciles": [
+          {
+            "label": "90-100%",
+            "count": 146,
+            "share": 0.37150127226463103
+          },
+          {
+            "label": "50-60%",
+            "count": 70,
+            "share": 0.178117048346056
+          },
+          {
+            "label": "60-70%",
+            "count": 56,
+            "share": 0.14249363867684478
+          },
+          {
+            "label": "70-80%",
+            "count": 39,
+            "share": 0.09923664122137404
+          },
+          {
+            "label": "80-90%",
+            "count": 29,
+            "share": 0.0737913486005089
+          },
+          {
+            "label": "30-40%",
+            "count": 27,
+            "share": 0.06870229007633588
+          },
+          {
+            "label": "40-50%",
+            "count": 24,
+            "share": 0.061068702290076333
+          },
+          {
+            "label": "20-30%",
+            "count": 2,
+            "share": 0.005089058524173028
+          }
+        ],
+        "carriedRuns": 0.6844783715012722,
+        "meanContributors": 1.9134860050890585
+      },
+      "capture": {
+        "offered": 1188,
+        "taken": 690,
+        "takeRate": 0.5808080808080808,
+        "offersPerRun": 2.97,
+        "partyAtGym": [
+          {
+            "gym": 1,
+            "reached": 239,
+            "meanSize": 2,
+            "assumed": 1
+          },
+          {
+            "gym": 2,
+            "reached": 133,
+            "meanSize": 3,
+            "assumed": 2
+          },
+          {
+            "gym": 3,
+            "reached": 70,
+            "meanSize": 3,
+            "assumed": 2
+          },
+          {
+            "gym": 4,
+            "reached": 39,
+            "meanSize": 4,
+            "assumed": 3
+          },
+          {
+            "gym": 5,
+            "reached": 28,
+            "meanSize": 4,
+            "assumed": 4
+          },
+          {
+            "gym": 6,
+            "reached": 16,
+            "meanSize": 5,
+            "assumed": 4
+          },
+          {
+            "gym": 7,
+            "reached": 8,
+            "meanSize": 5,
+            "assumed": 5
+          },
+          {
+            "gym": 8,
+            "reached": 6,
+            "meanSize": 6,
+            "assumed": 5
+          }
+        ],
+        "gym8": {
+          "parties": 6,
+          "meanTypes": 7.166666666666667,
+          "distinctSpecies": 28,
+          "topSpecies": [
+            {
+              "label": "Archeops",
+              "count": 5,
+              "share": 0.1388888888888889
+            },
+            {
+              "label": "Slaking",
+              "count": 3,
+              "share": 0.08333333333333333
+            },
+            {
+              "label": "Lapras",
+              "count": 2,
+              "share": 0.05555555555555555
+            },
+            {
+              "label": "Throh",
+              "count": 2,
+              "share": 0.05555555555555555
+            },
+            {
+              "label": "Alomomola",
+              "count": 1,
+              "share": 0.027777777777777776
+            },
+            {
+              "label": "Ampharos",
+              "count": 1,
+              "share": 0.027777777777777776
+            }
+          ],
+          "topTypes": [
+            {
+              "label": "Water",
+              "count": 5,
+              "share": 0.11627906976744186
+            },
+            {
+              "label": "Flying",
+              "count": 4,
+              "share": 0.09302325581395349
+            },
+            {
+              "label": "Ice",
+              "count": 4,
+              "share": 0.09302325581395349
+            },
+            {
+              "label": "Rock",
+              "count": 4,
+              "share": 0.09302325581395349
+            },
+            {
+              "label": "Electric",
+              "count": 3,
+              "share": 0.06976744186046512
+            },
+            {
+              "label": "Fighting",
+              "count": 3,
+              "share": 0.06976744186046512
+            }
+          ]
+        },
+        "churn": {
+          "meanNonStarters": 5.166666666666667,
+          "starterOnly": 0,
+          "starterSurvives": 0.6666666666666666,
+          "segmentsSinceAcquisition": [
+            {
+              "label": "0 segments",
+              "count": 10,
+              "share": 0.2777777777777778
+            },
+            {
+              "label": "2 segments",
+              "count": 6,
+              "share": 0.16666666666666666
+            },
+            {
+              "label": "1 segments",
+              "count": 5,
+              "share": 0.1388888888888889
+            },
+            {
+              "label": "4 segments",
+              "count": 5,
+              "share": 0.1388888888888889
+            },
+            {
+              "label": "7 segments",
+              "count": 5,
+              "share": 0.1388888888888889
+            },
+            {
+              "label": "5 segments",
+              "count": 3,
+              "share": 0.08333333333333333
+            },
+            {
+              "label": "3 segments",
+              "count": 1,
+              "share": 0.027777777777777776
+            },
+            {
+              "label": "6 segments",
+              "count": 1,
+              "share": 0.027777777777777776
+            }
+          ]
+        }
+      },
+      "relics": {
+        "offered": 359,
+        "taken": 359,
+        "offersPerRun": 0.8975,
+        "heldDistribution": [
+          {
+            "held": 0,
+            "runs": 221
+          },
+          {
+            "held": 1,
+            "runs": 92
+          },
+          {
+            "held": 2,
+            "runs": 29
+          },
+          {
+            "held": 3,
+            "runs": 21
+          },
+          {
+            "held": 4,
+            "runs": 10
+          },
+          {
+            "held": 5,
+            "runs": 5
+          },
+          {
+            "held": 6,
+            "runs": 8
+          },
+          {
+            "held": 7,
+            "runs": 4
+          },
+          {
+            "held": 8,
+            "runs": 3
+          },
+          {
+            "held": 9,
+            "runs": 4
+          },
+          {
+            "held": 10,
+            "runs": 3
+          }
+        ],
+        "meanHeld": 1.11,
+        "byCapability": [
+          {
+            "capability": "cut",
+            "events": 35,
+            "none": 11,
+            "latent": 11,
+            "known": 13
+          },
+          {
+            "capability": "surf",
+            "events": 28,
+            "none": 11,
+            "latent": 12,
+            "known": 5
+          },
+          {
+            "capability": "strength",
+            "events": 58,
+            "none": 28,
+            "latent": 24,
+            "known": 6
+          },
+          {
+            "capability": "rockSmash",
+            "events": 56,
+            "none": 29,
+            "latent": 19,
+            "known": 8
+          },
+          {
+            "capability": "fly",
+            "events": 49,
+            "none": 29,
+            "latent": 8,
+            "known": 12
+          },
+          {
+            "capability": "waterfall",
+            "events": 41,
+            "none": 23,
+            "latent": 16,
+            "known": 2
+          },
+          {
+            "capability": "dive",
+            "events": 46,
+            "none": 24,
+            "latent": 17,
+            "known": 5
+          },
+          {
+            "capability": "flash",
+            "events": 36,
+            "none": 26,
+            "latent": 8,
+            "known": 2
+          }
+        ],
+        "knownRate": 0.1518624641833811,
+        "latentRate": 0.32951289398280803,
+        "holders": {
+          "runs": 179,
+          "meanGyms": 2.1620111731843576
+        },
+        "nonHolders": {
+          "runs": 221,
+          "meanGyms": 0.049773755656108594
+        },
+        "totalRuns": 400,
+        "neverOffered": []
+      },
+      "events": {
+        "t0GivenGamble": 0.046153846153846156,
+        "gambles": 65,
+        "realHpPerRun": 6.3525,
+        "realGoldPerRun": 5.14,
+        "realBerriesPerRun": 0.015,
+        "realBagPerRun": 0.025,
+        "claimed": {
+          "hp": 85,
+          "gold": 52,
+          "bag": 35
+        },
+        "missing": {
+          "hp": 0,
+          "gold": 13,
+          "bag": 25
+        },
+        "unexplained": {
+          "hp": 0,
+          "gold": 0,
+          "bag": 10,
+          "discard": 0,
+          "berry": 0
+        },
+        "events": 349,
+        "eventsPerRun": 0.8725,
+        "byArchetype": [
+          {
+            "archetype": "safe",
+            "taken": 90,
+            "share": 0.25787965616045844,
+            "ofOffered": 0.25787965616045844
+          },
+          {
+            "archetype": "gamble",
+            "taken": 65,
+            "share": 0.18624641833810887,
+            "ofOffered": 0.18624641833810887
+          },
+          {
+            "archetype": "toll",
+            "taken": 169,
+            "share": 0.48424068767908307,
+            "ofOffered": 0.48424068767908307
+          },
+          {
+            "archetype": "attune",
+            "taken": 25,
+            "share": 0.07163323782234957,
+            "ofOffered": 0.4716981132075472
+          }
+        ],
+        "byRarity": [
+          {
+            "rarity": "common",
+            "events": 203,
+            "T0": 0.014778325123152709,
+            "T1": 0.33497536945812806,
+            "T2": 0.6108374384236454,
+            "T3": 0.03940886699507389
+          },
+          {
+            "rarity": "uncommon",
+            "events": 92,
+            "T0": 0,
+            "T1": 0.34782608695652173,
+            "T2": 0.6086956521739131,
+            "T3": 0.043478260869565216
+          },
+          {
+            "rarity": "rare",
+            "events": 54,
+            "T0": 0,
+            "T1": 0.3333333333333333,
+            "T2": 0.6296296296296297,
+            "T3": 0.037037037037037035
+          }
+        ],
+        "attuneAvailability": 0.1518624641833811,
+        "t3WithoutRelic": 0,
+        "withRelic": {
+          "events": 53,
+          "T2": 0.660377358490566,
+          "T3": 0.2641509433962264
+        },
+        "withoutRelic": {
+          "events": 296,
+          "T0": 0.010135135135135136
+        },
+        "t0Rate": 0.008595988538681949,
+        "hpLostPerRun": 6.8775,
+        "goldLostPerRun": 5.14
+      },
+      "durationMs": 61848
+    }
+  ]
+}

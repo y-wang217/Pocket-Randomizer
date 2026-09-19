@@ -174,6 +174,14 @@ describe('the gym held-item ladder', () => {
    * for their stamps. Those play early segments, which draw bands 1 to 3; all
    * three cut moves are band 4 and 5, and this digest is the thing that sweeps
    * every segment and every tier.
+   *
+   * **Re-recorded a second time at `gymrun-randomizer-23`, from
+   * `515570045bb4d9af`, and this one moved everything.** The ability cut takes
+   * thirty-three entries out of `data/abilities.ts`, and unlike a band 4 move
+   * an ability is drawn for every Pokemon in every segment — so the two
+   * recordings that held still for the move cut moved here too, and the
+   * contrast between the two bumps is the clearest statement of what each
+   * touched.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -194,7 +202,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('515570045bb4d9af');
+    expect(digest).toBe('6c53c849ceca427e');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {

@@ -29,7 +29,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Dex } from '@pkmn/sim';
-import type { Move, Species } from '@pkmn/sim';
+import type { Ability, Move, Species } from '@pkmn/sim';
 import { SYNTHETIC_BY_METHOD, syntheticThreshold, type EvoMethod } from '../src/data/evolutionThresholds';
 
 const GEN = 9;
@@ -348,14 +348,14 @@ const UNSCOREABLE = new Set([
 ]);
 
 /**
- * Moves whose **user** must be a particular species, forme or type.
+ * Moves whose **user** must be a particular species or forme.
  *
- * Aura Wheel is Morpeko's, Hyperspace Fury is Hoopa-Unbound's, and Double Shock
- * asks the user to be Electric. Handed to anything else, `@pkmn/sim` does not
- * weaken the move or re-target it — it refuses to run it at all, prints the
- * hint naming the form that may, and the turn is spent. A wild Kilowattrel
- * shipped with Aura Wheel therefore had three move slots, not four, for the
- * whole fight, on every turn, against every opponent.
+ * Aura Wheel is Morpeko's and Hyperspace Fury is Hoopa-Unbound's. Handed to
+ * anything else, `@pkmn/sim` does not weaken the move or re-target it — it
+ * refuses to run it at all, prints the hint naming the form that may, and the
+ * turn is spent. A wild Kilowattrel shipped with Aura Wheel therefore had three
+ * move slots, not four, for the whole fight, on every turn, against every
+ * opponent.
  *
  * This is not a learnset rule creeping in. Nothing here asks whether a species
  * *may* learn a move — Swablu keeps Slash and Kilowattrel keeps Brick Break,
@@ -363,28 +363,37 @@ const UNSCOREABLE = new Set([
  * as every other set in this file: the engine cannot play these, so the balance
  * sweep cannot measure them.
  *
- * Dark Void (Darkrai) and Burn Up (Fire user) are named too although neither
- * reaches the pool today — Dark Void is a status move and Burn Up is
- * `Unobtainable` in gen 9 — because this set is a statement about the class,
- * and a set that silently depended on two other rules holding would be wrong
- * the day either moved.
+ * **A move gated on the user's *type* is not one of these, and that is a ruling
+ * rather than an oversight.** `-22` cut Double Shock beside these two, on the
+ * argument that a non-Electric holder's copy fails on every turn of every
+ * fight. The author's ruling at `-23` is that a type gate leaves a valid battle
+ * move that is merely unusual: one holder in eighteen can use it, and a STAB
+ * slot makes that likelier than the draw suggests. So Double Shock is back in
+ * the pool and Burn Up would be too if gen 9 did not already call it
+ * `Unobtainable`. `docs/generation.md` section 52 is the account.
+ *
+ * Dark Void is named although it reaches nothing: it is a status move, and the
+ * status pool is hand-picked below rather than filtered. The set is a statement
+ * about the class, and one that leaned on another rule holding would be wrong
+ * the day that rule moved.
  *
  * `auditUserLocked` below is what keeps the list honest against a `@pkmn/sim`
  * upgrade, in both directions.
  */
-const USER_LOCKED = new Set([
-  'aurawheel', 'hyperspacefury', 'doubleshock', 'darkvoid', 'burnup',
-]);
+const USER_LOCKED = new Set(['aurawheel', 'hyperspacefury', 'darkvoid']);
 
 /**
- * The tell a user-locked move leaves in the dex, read off the engine rather
+ * The tell a species-locked move leaves in the dex, read off the engine rather
  * than remembered.
  *
- * All five refuse in the same shape: a `-fail` in `onTry` or `onTryMove`,
- * guarded by a test on the *source* Pokemon's species, forme or type. A
- * conditional move reads differently — Counter wants to have been hit, Belch
- * wants a berry eaten — and is gated by battle state the user can reach, not by
- * what the user is.
+ * All three refuse in the same shape: a `-fail` in `onTry` or `onTryMove`,
+ * guarded by a test on the *source* Pokemon's species or forme. A conditional
+ * move reads differently — Counter wants to have been hit, Belch wants a berry
+ * eaten — and is gated by battle state the user can reach, not by what the user
+ * is.
+ *
+ * A type gate (`pokemon.hasType('Electric')`) is deliberately not this tell any
+ * more; see the ruling above.
  *
  * Deliberately not the thing that decides the pool: `USER_LOCKED` decides, so
  * regenerating is a function of a list a reader can see, not of a regex over
@@ -394,8 +403,7 @@ const USER_LOCKED = new Set([
 function userLocked(move: Move): boolean {
   const handlers = [move.onTry, move.onTryMove].filter(Boolean).map(String).join('\n');
   if (!handlers.includes("'-fail'")) return false;
-  return /\b(?:source|pokemon|attacker)\.species\.(?:name|baseSpecies)\b/.test(handlers) ||
-    /\b(?:source|pokemon|attacker)\.hasType\(/.test(handlers);
+  return /\b(?:source|pokemon|attacker)\.species\.(?:name|baseSpecies)\b/.test(handlers);
 }
 
 /**
@@ -555,9 +563,216 @@ const statusRows: MoveRow[] = [...new Set(STATUS_MOVES)]
  * `No Ability` goes because it is the dex's placeholder for "none" rather than
  * an ability, and rolling it would be rolling a blank 1% of the time.
  */
-const abilityRows: string[] = dex.abilities
+/**
+ * Abilities that do nothing at all on a Pokemon this game can draw.
+ *
+ * The same test as the move sets above, one layer along: not "is it weak" but
+ * "can the engine run it here". An ability the randomizer rolls onto a Magikarp
+ * is the loudest thing about a run, and that stays — Wonder Guard on a Rhydon
+ * is the feature. What goes is the ability that is a **blank slot**: it prints
+ * nothing, modifies nothing, and cannot be told apart from having no ability at
+ * all, which is the one roll `No Ability` was excluded for being.
+ *
+ * Three groups, three different reasons, kept apart because they go stale
+ * differently.
+ *
+ * **1. The holder has to be one species.** Every handler is gated on the
+ * holder's base species, so on anything else the ability is inert. Commander is
+ * in here for two reasons at once — Tatsugiri or Dondozo, *and* doubles — and
+ * is listed once.
+ *
+ * **2. No in-battle effect whatever.** Multitype and RKS System are the Arceus
+ * and Silvally case: they carry no event handlers, because the type change is
+ * the species and the plate or memory together, and neither species is
+ * drawable. Ball Fetch, Honey Gather and Run Away carry none either, for the
+ * different reason that what they do happens outside a battle — and GYMRUN's
+ * wild encounters are fought, never fled.
+ *
+ * **Being handlerless is not by itself a reason, and the file that proves it is
+ * `data/abilityEffects.ts`:** Levitate has no handler either, and its Ground
+ * immunity is a hardcoded branch in `Pokemon#isGrounded`. Battle Armor, Shell
+ * Armor, Corrosion, Dancer, Early Bird, Stall and Tera Shell are the same shape.
+ * So this group is named, never derived, and `auditInertAbilities` fails if the
+ * handlerless set changes at all.
+ *
+ * **3. It only ever acts on an ally.** GYMRUN is `gen9customgame`, a singles
+ * format with one Pokemon a side, so no ally is ever on the field. In
+ * `@pkmn/sim` an `onAlly*` event fires for the holder too, which is why Steely
+ * Spirit, Aroma Veil, Sweet Veil, Flower Veil and Victory Star are **not** here
+ * — they act on themselves and are left alone. The ones below opt out of that,
+ * either with an explicit `!== this.effectState.target`, or by iterating
+ * `allies()` and `adjacentAllies()`, which exclude the holder.
+ */
+const SPECIES_LOCKED_ABILITIES = [
+  'battlebond', 'commander', 'disguise', 'flowergift', 'forecast', 'gulpmissile',
+  'hungerswitch', 'iceface', 'powerconstruct', 'schooling', 'shieldsdown',
+  'stancechange', 'terashift', 'zenmode', 'zerotohero',
+];
+
+const NO_BATTLE_EFFECT_ABILITIES = [
+  // The plate and the memory: the type change is species plus item, and the
+  // two species that have it are not drawable.
+  'multitype', 'rkssystem',
+  // Out-of-battle abilities. The sim implements no part of them.
+  'ballfetch', 'honeygather', 'runaway',
+];
+
+const ALLY_ONLY_ABILITIES = [
+  // Explicitly not the holder: `attacker !== this.effectState.target`, or the
+  // same test spelled on the target.
+  'battery', 'powerspot', 'friendguard', 'telepathy',
+  // Iterate `allies()` or `adjacentAllies()`, both of which exclude the holder.
+  'healer', 'costar', 'curiousmedicine', 'hospitality', 'plus', 'minus',
+  // Wait for an ally to faint, or for one to use an item.
+  'receiver', 'powerofalchemy', 'symbiosis',
+];
+
+const INERT_ABILITIES = new Set([
+  ...SPECIES_LOCKED_ABILITIES,
+  ...NO_BATTLE_EFFECT_ABILITIES,
+  ...ALLY_ONLY_ABILITIES,
+]);
+
+/**
+ * Abilities a tell below flags that **do their whole job anyway**.
+ *
+ * Named rather than quietly excluded from the tells, because each is a claim
+ * that could be wrong and a reader deserves to see which ones were checked
+ * rather than assumed. Every one was read out of the gen 9 dex.
+ *
+ * The ally tell over-reaches for one structural reason: in `@pkmn/sim` an
+ * `onAlly*` event fires for the holder too, and `isAlly` is true of a Pokemon
+ * and itself. So an ability that *mentions* an ally is usually one that acts on
+ * the holder as well, and the ones that genuinely need a partner are the ones
+ * that opt the holder out.
+ */
+const FIRES_WITHOUT_AN_ALLY = new Set([
+  'steelyspirit',   // onAllyBasePower with no self-exclusion: boosts its own Steel moves.
+  'aromaveil',      // blocks Taunt, Encore and Disable on itself.
+  'sweetveil',      // blocks sleep and Yawn on itself.
+  'flowerveil',     // a Grass holder keeps its own stats and status.
+  'victorystar',    // `source.isAlly(holder)` is true of the holder itself.
+  'armortail',      // onFoeTryMove: blocks the opponent's priority move.
+  'dazzling',       // the same, under a different name.
+  'queenlymajesty', // and again.
+  'competitive',    // the ally test is an *exclusion*: it fires on a foe's drop.
+  'defiant',        // the same.
+  'mummy',          // onDamagingHit against whoever touched it.
+  'lingeringaroma', // the same.
+  'toxicdebris',    // sets hazards when hit; the ally test only picks the side.
+]);
+
+/**
+ * Abilities the species tell flags that are **not** species-locked.
+ *
+ * Drizzle and Drought name a species to *defer* to the primal orbs rather than
+ * to gate themselves; on anything else they set the weather as always. Klutz
+ * and Neutralizing Gas have one delegating handler apiece, which the tell
+ * cannot tell apart from a gate — Klutz's effect is a flag the item code reads,
+ * and Neutralizing Gas sweeps `getAllActive()`.
+ */
+const SPECIES_NAMED_ANYWAY = new Set(['drizzle', 'drought', 'klutz', 'neutralizinggas']);
+
+/** Every event handler the dex hangs on an ability, with its hook name. */
+function abilityHandlers(ability: Ability): [string, string][] {
+  return Object.entries(ability)
+    .filter(([key, value]) => key.startsWith('on') && typeof value === 'function')
+    .map(([key, value]) => [key, String(value)] as [string, string]);
+}
+
+/**
+ * Every handler is gated on the holder's species, or delegates to one that is.
+ *
+ * The delegation clause is load-bearing: Forecast's `onStart` is one call to
+ * `singleEvent('WeatherChange')` and carries no gate of its own, while the
+ * handler it forwards to bails on anything that is not a Castform.
+ */
+function speciesLockedAbility(ability: Ability): boolean {
+  const handlers = abilityHandlers(ability);
+  if (handlers.length === 0) return false;
+  return handlers.every(([, body]) =>
+    /\bspecies\.(?:name|id|baseSpecies)\b|\bbaseSpecies\.baseSpecies\b/.test(body) ||
+    /singleEvent\(|this\.effect\.on/.test(body));
+}
+
+/** Every handler is about an ally: the hook says so, or the body names one. */
+function allyShapedAbility(ability: Ability): boolean {
+  const handlers = abilityHandlers(ability);
+  if (handlers.length === 0) return false;
+  return handlers.every(([key, body]) =>
+    key.startsWith('onAlly') || /\bisAlly\(|\b(?:allies|adjacentAllies)\(\)/.test(body));
+}
+
+/**
+ * Fails the generation when the dex and the lists above disagree.
+ *
+ * Every direction is a different failure and each one is worth the throw:
+ *
+ *   - A species-locked ability the lists miss is the next Stance Change on a
+ *     Pidgey, arriving with a new generation.
+ *   - A named one the tell no longer finds means upstream rewrote the handler.
+ *     The ability may now do something, or the detector may have gone blind,
+ *     and those two want a human to tell them apart.
+ *   - A handlerless ability that is neither named inert nor named hardcoded is
+ *     the Levitate trap: it looks empty and is not.
+ *   - An ally-shaped ability that is in no list is one nobody has decided about.
+ *
+ * Nothing here decides the pool. `INERT_ABILITIES` decides, so regenerating is
+ * a function of three lists a reader can see rather than of a regex over
+ * compiled upstream source.
+ */
+const ENGINE_HARDCODED = new Set([
+  // Handlerless in the data and implemented inside the engine: `Pokemon#isGrounded`
+  // for Levitate, the crit and status branches for the rest. This set is the
+  // reason group 2 is named rather than derived.
+  'levitate', 'battlearmor', 'shellarmor', 'corrosion', 'dancer', 'earlybird',
+  'stall', 'terashell',
+]);
+
+function auditInertAbilities(abilities: readonly Ability[]): void {
+  const problems: string[] = [];
+  const ids = abilities.map((ability) => String(ability.id));
+
+  const lockedByDex = abilities.filter(speciesLockedAbility).map((ability) => String(ability.id));
+  const missedLocks = lockedByDex.filter((id) => !INERT_ABILITIES.has(id) && !SPECIES_NAMED_ANYWAY.has(id));
+  const staleLocks = SPECIES_LOCKED_ABILITIES.filter((id) => !lockedByDex.includes(id));
+  if (missedLocks.length > 0) problems.push(`species-locked in the dex, in no list: ${missedLocks.join(', ')}`);
+  if (staleLocks.length > 0) problems.push(`listed as species-locked, no longer reads that way: ${staleLocks.join(', ')}`);
+
+  const handlerless = abilities.filter((ability) => abilityHandlers(ability).length === 0).map((a) => String(a.id));
+  const unclassified = handlerless.filter((id) => !INERT_ABILITIES.has(id) && !ENGINE_HARDCODED.has(id));
+  const grewHandlers = [...ENGINE_HARDCODED, ...NO_BATTLE_EFFECT_ABILITIES]
+    .filter((id) => ids.includes(id) && !handlerless.includes(id));
+  if (unclassified.length > 0) problems.push(`handlerless and unclassified: ${unclassified.join(', ')}`);
+  if (grewHandlers.length > 0) problems.push(`listed as handlerless, now carries handlers: ${grewHandlers.join(', ')}`);
+
+  const allyShaped = abilities.filter(allyShapedAbility).map((ability) => String(ability.id));
+  const undecided = allyShaped.filter((id) => !INERT_ABILITIES.has(id) && !FIRES_WITHOUT_AN_ALLY.has(id));
+  const staleAlly = ALLY_ONLY_ABILITIES.filter((id) => !allyShaped.includes(id));
+  if (undecided.length > 0) problems.push(`ally-shaped and undecided: ${undecided.join(', ')}`);
+  if (staleAlly.length > 0) problems.push(`listed as ally-only, no longer reads that way: ${staleAlly.join(', ')}`);
+
+  const unknown = [...INERT_ABILITIES].filter((id) => !ids.includes(id));
+  if (unknown.length > 0) problems.push(`cut by name but not a standard gen ${GEN} ability: ${unknown.join(', ')}`);
+
+  if (problems.length > 0) {
+    throw new Error(
+      `The inert-ability lists are out of date with the gen ${GEN} dex.\n  ` +
+      problems.join('\n  ') +
+      '\nRead the handler in @pkmn/sim before editing a list. An ability that ' +
+      'started doing something is a real change; a tell that stopped matching is not.',
+    );
+  }
+}
+
+const standardAbilities: Ability[] = dex.abilities
   .all()
-  .filter((ability) => ability.exists && ability.isNonstandard === null && ability.id !== 'noability')
+  .filter((ability) => ability.exists && ability.isNonstandard === null && ability.id !== 'noability');
+
+auditInertAbilities(standardAbilities);
+
+const abilityRows: string[] = standardAbilities
+  .filter((ability) => !INERT_ABILITIES.has(String(ability.id)))
   .map((ability) => ability.name)
   .sort((a, b) => a.localeCompare(b));
 

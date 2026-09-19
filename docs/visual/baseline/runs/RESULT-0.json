@@ -2,8 +2,8 @@
   "seed": "RESULT-0",
   "versions": {
     "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
-    "randomizer": "gymrun-randomizer-22",
+    "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
+    "randomizer": "gymrun-randomizer-23",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -25,7 +25,7 @@
     {
       "species": "Shelmet",
       "level": 15,
-      "ability": "Power Construct",
+      "ability": "Prankster",
       "moves": [
         "Fury Cutter 32/32",
         "Ice Shard 46/48",
@@ -64,9 +64,9 @@
     "seed": "RESULT-0",
     "versions": {
       "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
+      "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-22"
+      "randomizerVersion": "gymrun-randomizer-23"
     },
     "decisions": [
       {

@@ -115,15 +115,21 @@ describe('what the projection says, at each of the three moments', () => {
   }, 120_000);
 
   /*
-   * The two seeds in `PROJ-0`..`PROJ-399` that reach a relic card at all.
+   * Two seeds that reach a relic card at all, searched over `PROJ-0`..`PROJ-2000`.
    *
    * That ratio is not a typo and is worth the sentence: under the scripted
    * baseline on this tree most runs die inside two nodes, so an elite pool —
    * the only one with a relic in it — is rarely reached. A real player survives
    * longer and sees them far more often. The case takes the relic whenever one
    * is offered rather than the baseline's card 0, for the same reason.
+   *
+   * **Re-searched at `-23`, and the range had to widen to find any.** The two
+   * that served before were `PROJ-231` and `PROJ-354`; after the inert-ability
+   * cut moved every roll, the first four hundred seeds contain none at all.
+   * `npx vite-node scripts/scan-seed.ts relic` is the scanner, added with this
+   * patch so the next axis move does not repeat the search by hand.
    */
-  const RELIC_SEEDS = ['PROJ-231', 'PROJ-354'];
+  const RELIC_SEEDS = ['PROJ-518', 'PROJ-530'];
 
   it('carries a relic the moment the card is taken, not when the node ends', async () => {
     /*

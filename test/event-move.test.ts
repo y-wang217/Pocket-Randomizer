@@ -159,9 +159,10 @@ describe('the version axes this patch moved', () => {
      * weighted pick; `-21` is the gym level spread, where the same float off
      * the same key lands a gym member somewhere in a range instead of on one
      * number; `-22` is the user-locked move cut, where three entries the engine
-     * refuses to run leave the pool and every pick behind them lands elsewhere.
+     * refuses to run leave the pool and every pick behind them lands elsewhere;
+     * `-23` puts Double Shock back and takes thirty-three inert abilities out.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
   });
 });
 

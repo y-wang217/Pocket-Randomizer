@@ -421,9 +421,17 @@ describe('the version axes', () => {
      * different entry under the same pick. `docs/generation.md` section 51 is
      * the account.
      *
-     * The literal below is all ten together.
+     * And an eleventh time, from `622777`, for the ability half of the same
+     * patch plus the ruling that re-admitted Double Shock: `data/abilities.ts`
+     * loses thirty-three entries that do nothing on any Pokemon this game can
+     * draw, and `data/movePools.ts` gains one back. **The fourth `contentHash`
+     * move that arrives beside another axis** — `gymrun-randomizer-23`, for the
+     * same reason as the tenth: a shorter pool is a different entry under the
+     * same pick. `docs/generation.md` section 52 is the account.
+     *
+     * The literal below is all eleven together.
      */
-    expect(CONTENT_HASH).toBe('622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070');
+    expect(CONTENT_HASH).toBe('431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

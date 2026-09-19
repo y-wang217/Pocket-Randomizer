@@ -2,8 +2,8 @@
   "seed": "SMOKE24",
   "versions": {
     "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
-    "randomizer": "gymrun-randomizer-22",
+    "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
+    "randomizer": "gymrun-randomizer-23",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -25,7 +25,7 @@
     {
       "species": "Hippopotas",
       "level": 15,
-      "ability": "Rocky Payload",
+      "ability": "Sand Force",
       "moves": [
         "Sand Tomb 24/24",
         "Razor Leaf 39/40",
@@ -39,11 +39,11 @@
     {
       "species": "Karrablast",
       "level": 15,
-      "ability": "Suction Cups",
+      "ability": "Super Luck",
       "moves": [
         "Fell Stinger 40/40",
         "Skitter Smack 16/16",
-        "Breaking Swipe 22/24",
+        "Breaking Swipe 21/24",
         "Shore Up 8/8"
       ],
       "item": "silkscarf",
@@ -60,7 +60,7 @@
       "opponent": "Wild Karrablast",
       "turns": 4,
       "winner": "p1",
-      "hpAfter": 9,
+      "hpAfter": 2,
       "casualties": []
     },
     {
@@ -80,10 +80,20 @@
       "label": "Trainer battle",
       "tier": "normal",
       "opponent": "Trainer's Bagon",
-      "turns": 4,
+      "turns": 6,
       "winner": "p1",
-      "hpAfter": 58,
-      "casualties": []
+      "hpAfter": 44,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Mire",
+          "level": 15,
+          "species": "Hippopotas",
+          "bySpecies": "Bagon",
+          "byMove": "Mega Drain",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 0,
@@ -93,7 +103,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 58,
+      "hpAfter": 69,
       "casualties": []
     },
     {
@@ -131,9 +141,9 @@
     "seed": "SMOKE24",
     "versions": {
       "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "622777c8fe1de4dd746be8c0964cf2a7ddd59a5b26f88a7394fa8b4233964070",
+      "contentHash": "431cfadfe661a4c4cc29d68b09efb642e983adb35c06e19f9f68b27c7d8ad115",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-22"
+      "randomizerVersion": "gymrun-randomizer-23"
     },
     "decisions": [
       {
@@ -236,6 +246,27 @@
         "choice": {
           "kind": "move",
           "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
         }
       },
       {

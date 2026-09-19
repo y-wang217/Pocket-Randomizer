@@ -80,9 +80,12 @@ describe('the run log version', () => {
      * and left `RUN_LOG_VERSION` alone — the same separation again, from the
      * data-table side this time. `-22` is the same shape once more: three
      * user-locked moves out of `data/movePools.ts`, `contentHash` with them,
-     * and a moveset is still not a logged decision.
+     * and a moveset is still not a logged decision. `-23` is the ruling that
+     * put one of the three back, plus thirty-three inert abilities out of
+     * `data/abilities.ts` — same shape again, same axis, same silence on the
+     * log.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
