@@ -25,6 +25,7 @@
     "copy-audit": "vite-node scripts/copy-audit.ts",
     "census": "vite-node scripts/visual/census.ts --write",
     "hedge": "vite-node scripts/hedge-lint.ts",
+    "glyphs": "vite-node scripts/visual/glyph-sheet.ts --write",
     "measure": "npm run build && node scripts/measure-bundle.mjs",
     "smoke": "node scripts/smoke.mjs",
     "pool-report": "vite-node scripts/pool-report.ts"

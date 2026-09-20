@@ -87,11 +87,20 @@ those two so nothing can join them, and the decision is **D14**.
 | M0.2 Glyph and mechanism inventory | **done** | — ([`inventory.md`](inventory.md), `visual/4.10-m0.2`) |
 | M0.3 Close the verdict-copy violations | **done** | — (D3 ruled six; it was **nine**. `npm run hedge`, `visual/4.10-m0.3`) |
 
+**M1.1 is shipped, and its kills-it condition fired once.** 42 glyphs, nine
+families, sixteen newly drawn; the eighteen type glyphs are referenced from
+`typeIcons.ts` rather than restated. The band pips came in at **0.063** against
+a floor of 0.12, because the shipped `.band__pip` distinguishes filled from
+empty by fill tone and nothing else — as shapes they are one mark twice. Redrawn
+filled-against-outlined: **0.262**. No bible amendment was needed; section 2 says
+what a filled pip means and nothing about how an empty one is drawn. Nothing is
+mounted on any screen, and a test walks `src/ui/` to prove it.
+
 ### Tier 1: foundations
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M1.1 Glyph sheet | open | — |
+| M1.1 Glyph sheet | **done** | — (42 glyphs, `npm run glyphs`, [report](../visual/reports/m1.1-glyph-sheet.md), `visual/4.10-m1.1`) |
 | M1.2 One inspect layer | open | — (D4 ruled: 17 mount points) |
 | M1.3 Exposure store | open | — |
 
