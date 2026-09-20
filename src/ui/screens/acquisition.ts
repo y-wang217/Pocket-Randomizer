@@ -108,6 +108,24 @@ export function renderCaptureOffer(
   const coverage = el('p', 'acquire__coverage');
   coverage.dataset['tutorial'] = 'coverage';
   coverage.textContent = captureCoverageLine(offer, party, capacity);
+  /*
+   * **Section 3's coverage row, given its inspect entry by M1.2.**
+   *
+   * Its entry is "the full before and after sets", and the line above is a
+   * summary of them: it names what moved and never the sets themselves. The
+   * sets ride on the trigger because they are a fact about this capture, the
+   * same shape a threat count and a stat-stage set already use.
+   *
+   * The line itself is still prose. **M5.4 is what replaces it with the two
+   * rows of type chips section 3 specifies**, and this trigger moves onto the
+   * rows when it does; mounting inspect here first is what lets that item
+   * delete the sentence without taking a fact with it, which is C2.
+   */
+  const detail = captureCoverageDetail(offer, party, capacity);
+  if (detail) {
+    coverage.dataset['tip'] = 'coverage:capture';
+    coverage.dataset['detail'] = detail;
+  }
 
   const compare = el('h4', 'acquire__heading');
   compare.textContent = full
@@ -167,6 +185,29 @@ function captureCoverageLine(
   const body = parts.length > 0 ? parts.join('. ') : 'unchanged';
   const scope = full ? ' if it replaces your first member' : '';
   return `Coverage${scope}: ${body}.`;
+}
+
+/**
+ * The same two sets the line summarises, for the inspect panel.
+ *
+ * Two lines, `+` then `-`, each a tab-separated type list, and an empty set
+ * contributes no line at all — section 3's "empty row renders nothing".
+ * Derived from the same `coverageDelta` call the line uses, so the two can
+ * never disagree about what moved.
+ */
+function captureCoverageDetail(
+  offer: AcquisitionOffer,
+  party: readonly PokemonState[],
+  capacity: number,
+): string {
+  if (party.length === 0) return '';
+  const incoming = createPartyMember(offer.spec);
+  const full = party.length >= capacity;
+  const delta = coverageDelta(offensiveCoverage(party), coverageAfterSwap(party, incoming, full ? 0 : -1));
+  const lines: string[] = [];
+  if (delta.added.length > 0) lines.push(`+${delta.added.join('\t')}`);
+  if (delta.lost.length > 0) lines.push(`-${delta.lost.join('\t')}`);
+  return lines.join('\n');
 }
 
 /** The offered Pokemon, in the same card shape the party uses. */
