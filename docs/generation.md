@@ -8236,3 +8236,79 @@ once and render on all sixteen surfaces, so charging their words to each surface
 would have put a constant seven on every row of a table whose smallest budget is
 zero. M0.1 does not ask for the split; section 4 budgets surfaces rather than the
 chrome around them, which is the argument for it.
+
+## 53. The walk counted waiting as progress, and stepped off screens nobody had looked at
+
+**Milestone M2.0, which is not on the record.** The presentation milestone list
+has twenty-four items and this is none of them. It is here because Tier 2's
+first item is validated by `test/visual-move-cards.test.ts`, which is one of the
+two files the Tiers 0-1 handoff recorded as failing under full-suite load and
+passing in isolation — so the tier would have been built against a suite that
+reports reds it does not mean.
+
+The handoff's diagnosis was the fixed `await page.waitForTimeout(25)` between
+steps: *"the waits are wall-clock rather than state, so on a saturated machine a
+step that has not finished rendering is counted as a step taken."* That is the
+right symptom and the wrong mechanism, and the difference changes the fix.
+
+### What it actually is
+
+Two defects in `scripts/visual/browser.mjs`, both older than the timeouts.
+
+**One: the screen is read twice, and the app can move in between.** A caller
+reads the screen, decides whether it is the one it wants, and calls `stepOnce`,
+which reads the screen *again* and acts on whatever it finds. `router.show` is
+synchronous and the battle outro resolves on a `setTimeout`, so a transition
+lands whole inside that gap. The caller then decides about one screen and steps
+off another — and the screen it was waiting for is spent without its predicate
+ever having been asked about it. `playUntil(p, s => s === 'result')` walking
+past a result screen is this, and it is unrecoverable: taking the reward leaves
+the screen.
+
+It is load-sensitive because the gap is two CDP round trips wide while the timer
+runs on wall-clock. A saturated box stretches the former and leaves the latter
+alone.
+
+**Two: `stepOnce` did not keep its own contract.** Its doc comment has said
+since it was written that it "returns the name of the screen it acted on, or
+null when nothing was clickable (a transition in flight)". Every branch returned
+the screen name whether or not it had clicked anything. So a caller counting
+steps counted the waiting as progress, and `playUntil`'s `maxSteps` — documented
+as "decisions" — was counting laps. A walk could exhaust its budget without
+having made a single decision, which is exactly the false red, and the comment
+was right about the design the whole time.
+
+### What was built
+
+`stepOnce(page, expected)` takes the screen the caller already decided about and
+acts on nothing if the app has moved since. `playUntil` passes it, counts only
+laps that acted, and is bounded by a wall-clock deadline rather than by a
+per-step sleep — so a fast machine never waits and a slow one gets as many
+frames as it needs. The branches that wait now return null, as documented. The
+two hand-rolled walks in `test/visual-v0.test.ts` and
+`test/visual-move-cards.test.ts` pass their screen too; v0 passes its *second*
+read, because the branches above it click and its own comment already said that
+first read was stale by then.
+
+### On the reproduction, honestly
+
+**The original overnight failure was not reproduced.** CPU-throttling the page
+through CDP at 6x does not reproduce it and cannot: that slows the app and
+*narrows* the gap the race needs. The condition is a saturated host, which is
+not something a test can ask for.
+
+So the race is reproduced directly instead. `test/visual-walk.test.ts` drives
+`playUntil` and `stepOnce` against a fake page that moves the app between the
+two reads, every time, deterministically — no browser, five tests, ~130ms. Four
+of the five fail against the unfixed driver and all five pass against this one,
+which is the evidence this note rests on. What remains unproven is that these
+two defects are the *whole* of the overnight failures; they are a sufficient
+cause for the reported shape, and the fixed suite is the next observation.
+
+`scripts/browser-tests.mjs` sorts that file into the browser half, because it
+imports `visual/browser` and the splitter keys on imports rather than names. It
+needs no browser. The classification is conservative by design there and is left
+alone rather than given an exception.
+
+Nothing under `src/` changed. `contentHash` does not move, no version axis
+moves, and no recorded seed or visual baseline is touched.

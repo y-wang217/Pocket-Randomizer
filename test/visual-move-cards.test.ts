@@ -180,8 +180,9 @@ describe('the move explanation, across every surface it reaches', () => {
       }
 
       if (screen === 'summary') break;
-      await stepOnce(page);
-      await page.waitForTimeout(25);
+      // The screen this lap decided about, so a transition landing mid-lap
+      // costs a retry rather than a surface. See `stepOnceUnparked`.
+      if (!(await stepOnce(page, screen))) await page.waitForTimeout(16);
     }
 
     await context.close();
