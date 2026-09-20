@@ -66,8 +66,17 @@ Four axes, each with its own meaning:
   list with a reason per entry, and the test holds the rule. See
   [`docs/generation.md`](docs/generation.md) section 9.
 
-## Player-facing copy
+## Presentation and player-facing copy
 
+The authority on how anything is shown to a player is the design bible,
+[`docs/design/design-bible.md`](docs/design/design-bible.md). It is permanent.
+Stage prompts and patch prompts are disposable.
+
+- **Where a prompt and the bible disagree on how an attribute is shown, the
+  bible wins.** A prompt does not override it by saying it does; the prompt is
+  wrong until the bible is amended. Where they disagree on *what* an attribute
+  is, the prompt and `data/` win: the bible governs presentation only, never
+  generation, balance or the run log.
 - The UI presents attributes, never verdicts. No recommendations, no "best"
   markers, no scores or ratings, no highlighting that distinguishes a superior
   option, no ordering that implies ranking, no effectiveness against content the
@@ -75,9 +84,24 @@ Four axes, each with its own meaning:
 - **One exception:** live type effectiveness against the Pokemon currently on the
   field. That is a fact about the present board, not a hint about a future
   decision.
+- **No fact that changes a decision is removed. It is re-encoded.** A redesign
+  that drops a decision-relevant fact has failed even if it hits every text
+  budget. No density mode removes a fact.
 - Post-resolution flag words are truths read off the protocol. Pre-selection
   markers are forecasts. They are different systems and neither derives from the
   other.
+- A rule of the bible changes only through the bible's own amendment process:
+  the disconfirmer observed in a playtest, recorded in
+  [`docs/design/playtest-log.md`](docs/design/playtest-log.md), then a PR to the
+  bible. Never by a patch quietly doing something else.
+
+The attributes-never-verdicts bullet and the re-encoding bullet are the bible's
+C1 and C2, the two constraints that outrank everything else in it. They are
+restated here because they are invariants. Everything else the bible specifies
+(the twelve rules, the nine glyph families, the encoding table, the text
+budgets, the component canon, the battle turn grammar) is equally binding on any
+work that touches a surface, but each of those rules carries a named
+disconfirmer, so it lives there and not here.
 
 ## Rewards
 
@@ -97,6 +121,11 @@ Four axes, each with its own meaning:
 - Where built work deviates from its prompt, do not edit the prompt. Record the
   deviation in `docs/generation.md` with a dated note. A prompt is a record of
   what was asked, not a description of what exists.
+- **A stage or patch that touches a player-facing surface reads the design bible
+  before it writes code, and its report says which of the bible's rules it
+  touched.** Work that finds it needs a sentence at rest, a second explanation
+  mechanism, a tenth glyph family or a third move-card call site **stops and
+  files an amendment before building**.
 - Blacklist and override table entries start near empty, are populated only from
   simulator evidence, and each carries a comment saying why. "It feels strong"
   is not a reason.
@@ -128,6 +157,8 @@ section 0.
 | the design lineage and the prompt register | [`docs/spec/README.md`](docs/spec/README.md) |
 | what is drawn where and when | [`docs/generation.md`](docs/generation.md) |
 | balance history and every number | [`docs/balance.md`](docs/balance.md) |
+| how any attribute is presented: rules, glyphs, encoding, text budgets | [`docs/design/design-bible.md`](docs/design/design-bible.md) |
+| the playtest observations that can amend the bible | [`docs/design/playtest-log.md`](docs/design/playtest-log.md) |
 | every string a player reads, and where it is written | [`docs/copy.md`](docs/copy.md) |
 | layers, seams and run logs | [`docs/architecture.md`](docs/architecture.md) |
 | `@pkmn/sim` findings and the bundle | [`docs/engine-notes.md`](docs/engine-notes.md) |

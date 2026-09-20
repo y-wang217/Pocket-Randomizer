@@ -13,6 +13,31 @@ summarise what any of them say.
 - Current state, open items, and the design lineage in prose:
   [`../README.md`](../README.md).
 
+## The design bible outranks every prompt in this directory
+
+**2026-09-19.** [`../design/design-bible.md`](../design/design-bible.md) is a
+permanent document, not a prompt, and it is deliberately not in the register
+below: nothing here supersedes it and it never flips to `merged`. Its own
+section 10 states the relationship, and it is repeated here because this is the
+file a session reads before it starts building.
+
+**On how an attribute is shown, the bible wins over every prompt archived here,
+including one written after it.** A prompt that says otherwise is wrong until
+the bible is amended. On what an attribute *is* - what is generated, what it is
+worth, what the log records - the prompt and `data/` win, and the bible does not
+speak.
+
+A prompt is still committed here verbatim before work begins on it. That
+protocol is unchanged. What changed is that the prompt is no longer the last
+word on presentation, so a prompt whose presentation instructions conflict with
+the bible is implemented to the bible, and the conflict is recorded in
+[`../generation.md`](../generation.md) as a deviation like any other.
+
+Amending the bible is its section 10 and does not happen here: a disconfirmer
+observed in a playtest, recorded in
+[`../design/playtest-log.md`](../design/playtest-log.md), then a PR to the
+bible.
+
 ## The register supersedes an archived instruction
 
 **2026-09-10.** Several prompts here contain an instruction to *decide* an open
