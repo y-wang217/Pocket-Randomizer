@@ -52,26 +52,22 @@
  * secondary channels on top, exactly as section 2 says.
  */
 import { BAND_PIPS } from '../../data/bandInfo';
+import type { GlyphFamily } from '../../data/glyphFamilies';
 
 import { TYPE_ICON_NAMES, TYPE_ICON_VIEWBOX, typeIconPath } from './typeIcons';
 
 /** Every glyph is drawn in this box, the one `typeIcons.ts` already uses. */
 export const GLYPH_VIEWBOX = TYPE_ICON_VIEWBOX;
 
-/** The nine families of design bible section 2. Adding a tenth is an amendment. */
-export const GLYPH_FAMILIES = [
-  'type',
-  'category',
-  'band',
-  'pp',
-  'accuracy',
-  'priority',
-  'effectiveness',
-  'status',
-  'stat',
-] as const;
-
-export type GlyphFamily = (typeof GLYPH_FAMILIES)[number];
+/**
+ * The nine families of design bible section 2. Adding a tenth is an amendment.
+ *
+ * **The roster lives in `data/glyphFamilies.ts` since M1.3** and is re-exported
+ * here, so the sheet stays the one place to ask what a family *looks* like
+ * while the exposure counter can ask what the families *are* without importing
+ * a single path string.
+ */
+export { GLYPH_FAMILIES, type GlyphFamily } from '../../data/glyphFamilies';
 
 /**
  * A glyph is inner SVG markup, or it is lettering.
