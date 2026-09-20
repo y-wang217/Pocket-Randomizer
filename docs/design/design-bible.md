@@ -1,6 +1,18 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 1, Sept 19, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 2, Sept 19, 2026.
+
+**Rev 2** carries seven amendments, all of them rulings on
+[`bible-discrepancies.md`](bible-discrepancies.md), which filed the places this
+document and the 4.10 presentation milestones disagreed. Each is marked inline
+with its date and its row: D1 (section 4, budgets are ceilings), D3 (section 8,
+six violations not four), D5 (sections 3 and 9, coverage carries permanent
+signs and no label), D6 (section 5, the priority chevron joins the Pokemon
+panel), D7 (section 4, the flag strip gets a budget row), D10 (section 7, coach
+marks re-anchor before the Pocket default), D11 (R6 and section 11, a validation
+cycle is two rounds). None of the twelve rules changed; six of the seven correct
+a table or an ordering that disagreed with a rule, and the seventh (D11) defines
+a term R6 already used.
 
 This document is permanent. Stage prompts and patch prompts are disposable. Where a prompt and this document disagree on how an attribute is shown, this document wins. Where they disagree on what an attribute is, the prompt and `data/` win: this document governs presentation only, never generation, balance, or the run log.
 
@@ -48,6 +60,7 @@ Enforce: a test asserts one tooltip mechanism exists; a test asserts opening ins
 **R6. The default face is the compact face.** What a card shows at rest is the compact encoding in section 3. The full version is what inspect opens, not what a setting enables.
 Forbids: shipping two card faces; a setting that adds words to a card at rest.
 Ruling on density modes (Detailed, Simple, Pocket): the card face this document specifies is the Pocket face. Pocket becomes the default. Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire. Density modes may change spacing, stacking and whether a secondary fact sits behind a tap. They never change the encoding of a fact.
+Amended 2026-09-19 (D11). **A validation cycle is two rounds of the section 10 playtest protocol**, three testers each, at least one with no Pokemon knowledge. It is the same two rounds milestone M7.1 runs, and the glossary carries the term.
 
 **R7. The first exposure carries the label, the tenth does not.** The first time a glyph family appears for this player, a small label renders beside it for that screen. The label returns once more on the third exposure, then never. Exposure count persists across runs in the settings store, beside the tutorial flags.
 Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
@@ -115,7 +128,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Held item | Item sprite in a fixed slot | Empty slot renders nothing | Name, one effect line |
 | Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
 | Relic | Relic sprite in the relic row | None | Name, capability it satisfies |
-| Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only | Empty row renders nothing | The full before and after sets |
+| Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
@@ -137,6 +150,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Recipient / teach target card | 0 | Species name |
 | Party row and party drawer | 0 | Species name, nickname |
 | Pokemon battle panel | 0 | Name, nickname |
+| Flag strip (battle) | 1 per hit | The one flag word R9 allows |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 40 | Prompt under 30, choices under 6 each, outcome one line |
@@ -150,6 +164,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
 
+**Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one word per hit, and the battle screen's own budget excludes it.
+
 ---
 
 ## 5. Component canon
@@ -161,7 +177,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (six card surfaces) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
 | Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
-| Pokemon panel | Name, level, gender, HP bar and number, status chips, stat stage ladder, item sprite | Battle |
+| Pokemon panel | Name, level, gender, HP bar and number, status chips, stat stage ladder, item sprite, priority chevron (2026-09-19, D6) | Battle |
 | Party row | Species, level, HP, status chips, item sprite, four move chips | Drawer, teach target |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
@@ -198,7 +214,7 @@ Three mechanisms, each with one job. A fourth is an amendment.
 
 Starter select is the classroom: it has no clock, three full cards, and every glyph family present. On a first run every glyph on that screen carries its label. A player who reads three starter cards has seen category, type, band, PP and the six stats with words once.
 
-All three persist in the settings store. Coach marks force Detailed per screen today; once R6's Pocket default lands, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted.
+All three persist in the settings store. Coach marks force Detailed per screen today. Amended 2026-09-19 (D10): **before Pocket becomes the default**, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted, so the flip lands on marks that are already anchored to the face they will be read against.
 
 Rejected: a no-label first session (category is not guessable by a non-player); a legend button (a mechanism the player must know exists).
 
@@ -209,7 +225,8 @@ Rejected: a no-label first session (category is not guessable by a non-player); 
 - State outcomes, not advice. "Forfeit this reward?" not "Are you sure? This is usually a bad idea."
 - Item effect line: under eight words, no "Effect:" prefix, no second clause. "Heals 1/16 max HP each turn." not "Restores a small amount of HP at the end of every turn, useful for bulky Pokemon."
 - Event prompt: under 30 words, two lines on 390px. Choices under six words. Outcome under one line.
-- Never a hedge word (risky, safe, strong, weak, good, bad) on any surface. Four live violations are filed against `categoryInfo.ts:48`, `statusInfo.ts:125`, `statusInfo.ts:242`, `bandInfo.ts:68`. They are milestone M0.3.
+- Never a hedge word (risky, safe, strong, weak, good, bad, worth) on any surface. Amended 2026-09-19 (D3), **closed 2026-09-20 (M0.3) at nine violations, not four and not six.** Six were found by reading: `categoryInfo.ts:48`, `statusInfo.ts:125`, `:139`, `:171`, `:242`, and `bandInfo.ts:75` (the line the original four-item list gave as `bandInfo.ts:68`, which is now a band label). Three more appeared only once **worth** was on the word list, which this sentence had asked for and the shipped lint had not carried: `statusInfo.ts:72`, `:202`, `:231`. The rule found them; the enforcement had not been built yet. The lint carries no allowlist: `statusInfo.ts:88`'s label was renamed to "Toxic", matching the TOX chip in section 2, rather than exempted. All nine are rewritten; the lint is `scripts/hedge-lint.ts`, the words are `src/data/forbiddenWords.ts`, and `test/hedge-lint.test.ts` holds it.
+- **The lint reads string literals, never comments.** A comment is not a surface, and a rule whose enforcement outlawed the prose documenting it would be a rule that could not be explained in its own repo.
 - No em-dashes in any player-facing string.
 
 ---
@@ -225,7 +242,7 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | R4, never-miss glyph is distinct from absent | Testers cannot say which of two moves cannot miss | Never-miss becomes a number-slot word "sure" |
 | R9, one flag per hit | Testers cannot say why a hit did what it did, and the missing fact is one precedence dropped | Precedence gains a second slot for the dropped kind |
 | Band pips and base power do not read as two ratings | A tester says "a 4 and a 90" as independent scores, or asks which matters | Pips move behind inspect; band rests as a single small numeral |
-| Coverage rows read as gain and loss | A tester cannot say which row is added after the label fades | Keep plus and minus signs, add the two words |
+| Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
 | R6, Pocket default and retiring Simple/Detailed loses nothing | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
 | Event screen holds at 40 words | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
@@ -257,3 +274,4 @@ The "three exposures" figure is a design guess with no study behind it. Everythi
 - **Chip**: a small fixed-shape element carrying one fact (type chip, status chip, move chip).
 - **Pip**: one filled or empty dot in a strip (band, tier).
 - **Census**: the measured word count at rest per surface (section 4).
+- **Validation cycle**: two rounds of the section 10 playtest protocol, three testers each, at least one with no Pokemon knowledge. What R6 waits for before Simple and Detailed are retired, and what milestone M7.1 runs.

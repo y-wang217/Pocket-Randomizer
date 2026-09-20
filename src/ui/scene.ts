@@ -1534,6 +1534,9 @@ function renderMove(
    * the projection found a readout to put in its place.
    */
   power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
+  // Section 3 gives base power an inspect entry. M1.2 mounts it, here and on
+  // the card below, so the largest number on the face answers when held.
+  power.dataset['tip'] = `power:${move.name}`;
   meta.append(type, category);
   if (move.effect) meta.append(moveEffectLine(move.effect));
   else meta.append(power);
@@ -1573,6 +1576,16 @@ function renderMove(
   if (label && move.band) {
     const badge = effectChip(label, move.band);
     badge.setAttribute('aria-label', `${move.name}: ${EFFECTIVENESS_LABELS[move.band]}`);
+    /*
+     * **Section 3's effectiveness row opens the type panel, not a new one.**
+     *
+     * Its inspect entry is "full type interaction", and that is exactly what
+     * the type panel already renders — what this type is strong and weak
+     * against, off the dex chart. A second renderer saying the same thing in
+     * its own words would be the second mechanism R5 exists to prevent, so the
+     * forecast points at the panel that already answers the question.
+     */
+    badge.dataset['tip'] = `type:${move.type}`;
     if (move.abilityAffected && cause) {
       /*
        * A 0x with no reason attached reads as a bug.
@@ -1598,29 +1611,33 @@ function renderMove(
   const pp = el('span', 'move__pp');
   pp.dataset['tutorial'] = 'pp';
   pp.textContent = `PP ${move.pp}/${move.maxPp}`;
+  // Both halves ride on the trigger: this is the one surface that knows them.
+  pp.dataset['tip'] = 'pp:counter';
+  pp.dataset['value'] = `${move.pp}/${move.maxPp}`;
   if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
 
   /*
-   * The battle bar's own explain affordance. **Density modes patch, and open
-   * item 9 (R8) closed by it.**
+   * **The button is its own insertion point. Milestone M1.2, R8 and R5.**
    *
-   * A move card outside a fight carries 4.7.2's expander; the four buttons in
-   * one could not, because a tap on a button spends a turn. Pocket puts the
-   * category, the base power, the effect line and the tags one tap away, so
-   * the button needs a tap that is not the move: a chip on the PP line, a
-   * `data-tip` trigger like every badge on the board, which the tooltip layer
-   * opens and stops — the same rule that keeps a tap on a type chip from
-   * submitting the turn. On the PP line rather than the name, so it costs the
-   * button no height and the name stays the whole width of the tap that
-   * chooses. Present in every mode: the same panel `move:` opens on a card's
-   * expander, and a move looks identical everywhere the player meets it.
+   * What stood here was a `?` chip on the PP line, put there by the density
+   * patch for a good reason that has since been retired: a tap on a button
+   * spends a turn, so the explanation needed a tap that was not the move, and
+   * a badge was the one tap the board already stopped.
+   *
+   * M1.2 made inspect a long press, which gives the button two gestures of its
+   * own — tap to choose, hold to explain — so the second tap has nothing left
+   * to do. The chip goes, and with it a glyph the player had to know was a
+   * control, which section 7 rejects in as many words: *"a legend button (a
+   * mechanism the player must know exists)"*. Twenty-four of them render on the
+   * summary screen alone; the census counted them.
+   *
+   * The panel is the same one `move:` has always opened, so a move still looks
+   * identical everywhere the player meets it — that part of the density
+   * patch's argument is untouched and is now cheaper.
    */
+  button.dataset['tip'] = `move:${move.id}`;
   const footer = el('span', 'move__footer');
-  const ask = neutralChip('?', 'ask', { tip: `move:${move.id}` });
-  ask.tabIndex = 0;
-  ask.setAttribute('role', 'button');
-  ask.setAttribute('aria-label', `${move.name}: explain`);
-  footer.append(pp, ask);
+  footer.append(pp);
 
   // Call site one of two: the battle button, off the projection's own
   // `facts`. `scene.ts` may not reach `describeMove`, so the list arrives
@@ -1861,6 +1878,7 @@ export function moveFacts(move: {
 
   const power = el('span', 'move__power');
   power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
+  power.dataset['tip'] = `power:${move.name}`;
   meta.append(type, category);
   // The status readout takes the region base power would have occupied. A card
   // with neither — a status move nothing could be said about — falls back to
@@ -1876,6 +1894,10 @@ export function moveFacts(move: {
 
   const pp = el('span', 'move__pp');
   pp.textContent = `PP ${move.maxPp}`;
+  // A move nobody knows yet has no remaining PP, so both halves are the max.
+  // Section 3's "max and remaining" is still honest: they are the same number.
+  pp.dataset['tip'] = 'pp:counter';
+  pp.dataset['value'] = `${move.maxPp}/${move.maxPp}`;
 
   // Call site two of two: every card outside a battle, off `MoveCardData`.
   return { name, meta, pp, strip: moveFactStrip(move.facts ?? [], { band }) };

@@ -51,6 +51,7 @@
  */
 
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
+import { GLYPH_FAMILIES, isGlyphFamily, type GlyphFamily } from '../data/glyphFamilies';
 import { INTRO_VERSION } from '../data/intro';
 
 export type Density = 'detailed' | 'simple' | 'pocket';
@@ -164,12 +165,37 @@ export interface IntroFlags {
   seenVersion: number;
 }
 
+/**
+ * How many screens have shown each glyph family to this player.
+ *
+ * **Milestone M1.3**, for design bible R7: *"The first time a glyph family
+ * appears for this player, a small label renders beside it for that screen.
+ * The label returns once more on the third exposure, then never."*
+ *
+ * A count per family, persisted, beside the tutorial flags — which is where R7
+ * says to keep it, and for the same reason the tutorial flags are there: it is
+ * a fact about the player, never about a seed, and a run must not be able to
+ * change it.
+ *
+ * **M1.3 renders no label.** The counter exists and nothing reads it yet;
+ * M6.1 is what renders. Splitting them is what lets the count be wrong in a
+ * test rather than on a screen.
+ *
+ * Absent families read as zero. A family added to the roster therefore starts
+ * every existing player at "never seen", which is the honest answer for a
+ * symbol that did not exist when they last played.
+ */
+export interface ExposureFlags {
+  counts: Partial<Record<GlyphFamily, number>>;
+}
+
 export interface Settings {
   density: Density;
   moveBar: MoveBar;
   battleSpeed: BattleSpeed;
   tutorial: TutorialFlags;
   intro: IntroFlags;
+  exposure: ExposureFlags;
 }
 
 /**
@@ -195,6 +221,7 @@ export const DEFAULT_SETTINGS: Settings = {
   battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
   intro: { seenVersion: 0 },
+  exposure: { counts: {} },
 };
 
 function isDensity(value: unknown): value is Density {
@@ -251,6 +278,7 @@ export function readSettings(value: unknown): Partial<Settings> {
     verbosity?: unknown;
     tutorial?: unknown;
     intro?: unknown;
+    exposure?: unknown;
   };
   const read: Partial<Settings> = {};
   if (isDensity(candidate.density)) read.density = candidate.density;
@@ -298,6 +326,30 @@ export function readSettings(value: unknown): Partial<Settings> {
   const intro = candidate.intro as { seenVersion?: unknown } | undefined;
   if (typeof intro === 'object' && intro !== null && typeof intro.seenVersion === 'number') {
     read.intro = { seenVersion: intro.seenVersion };
+  }
+  /*
+   * The exposure counter. **M1.3.**
+   *
+   * Filtered rather than trusted, on both halves: a key that is not one of the
+   * nine families is dropped, and a value that is not a non-negative integer is
+   * dropped with it. The store is `localStorage` and a player can edit it, so
+   * the question is not whether it can be wrong but whether a wrong value can
+   * reach `Math.min` in M6.1's label decision. It cannot.
+   *
+   * A store written before this field has no `exposure` key and falls through
+   * to `{}`, which reads as zero for every family — a returning player has
+   * never been *labelled*, whatever they have seen, and R7's first exposure is
+   * the right thing to give them.
+   */
+  const exposure = candidate.exposure as { counts?: unknown } | undefined;
+  if (typeof exposure === 'object' && exposure !== null && typeof exposure.counts === 'object' && exposure.counts !== null) {
+    const counts: Partial<Record<GlyphFamily, number>> = {};
+    for (const [key, value] of Object.entries(exposure.counts as Record<string, unknown>)) {
+      if (!isGlyphFamily(key)) continue;
+      if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) continue;
+      counts[key] = value;
+    }
+    read.exposure = { counts };
   }
   return read;
 }
@@ -381,15 +433,91 @@ export function skipTutorial(): void {
   for (const listener of listeners) listener(current);
 }
 
-/** "Show tutorial again": back to a first launch, for the tutorial alone. */
+/**
+ * "Show tutorial again": back to a first launch, for onboarding as a whole.
+ *
+ * **M1.3 widened this to clear the exposure counts too**, which is the item's
+ * own done-when: *"resets with the tutorial reset control"*. Section 7 names
+ * coach marks, exposure labels and inspect as three mechanisms with one job
+ * each, and a control that reset one third of onboarding would be a control
+ * that lies about what it does. A player asking to see the tutorial again is
+ * asking to be taught again, and the labels are half the teaching.
+ */
 export function resetTutorial(): void {
-  current = { ...current, tutorial: { skipped: false, seen: [] } };
+  current = { ...current, tutorial: { skipped: false, seen: [] }, exposure: { counts: {} } };
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }
 
 export function tutorialFlags(): TutorialFlags {
   return { skipped: current.tutorial.skipped, seen: [...current.tutorial.seen] };
+}
+
+// ---------------------------------------------------------------------------
+// The exposure counter. **Milestone M1.3, for design bible R7.**
+// ---------------------------------------------------------------------------
+
+/**
+ * Which families this screen has already counted, since it was entered.
+ *
+ * **Not persisted, and that is the whole of "per screen, not per render".** A
+ * screen draws a type chip six times and re-draws itself every turn of a
+ * battle; counting either of those would put a player past R7's third exposure
+ * before they had read anything. So the count moves once when a family first
+ * appears on a screen, and again only when the player has been somewhere else
+ * and come back.
+ *
+ * It lives in the module rather than the store because a reload is a new
+ * arrival at whatever screen it lands on, and a set that survived one would
+ * silently swallow that screen's exposure.
+ */
+let exposureScreen: string | null = null;
+let countedOnScreen = new Set<GlyphFamily>();
+
+/**
+ * Note that a family was drawn on a screen, and count it if it is the first
+ * time on this visit.
+ *
+ * Returns the family's count *after* any increment, so a caller that is about
+ * to decide whether to render a label does not need a second read. M1.3 has no
+ * such caller: nothing renders a label until M6.1.
+ */
+export function noteExposure(family: GlyphFamily, screen: string): number {
+  if (screen !== exposureScreen) {
+    exposureScreen = screen;
+    countedOnScreen = new Set();
+  }
+  if (countedOnScreen.has(family)) return current.exposure.counts[family] ?? 0;
+  countedOnScreen.add(family);
+
+  const next = (current.exposure.counts[family] ?? 0) + 1;
+  current = { ...current, exposure: { counts: { ...current.exposure.counts, [family]: next } } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+  return next;
+}
+
+/** How many screens have shown this family. Zero for one never drawn. */
+export function exposureCount(family: GlyphFamily): number {
+  return current.exposure.counts[family] ?? 0;
+}
+
+/** The whole counter, every family, zeros included. */
+export function exposureFlags(): Record<GlyphFamily, number> {
+  const out = {} as Record<GlyphFamily, number>;
+  for (const family of GLYPH_FAMILIES) out[family] = current.exposure.counts[family] ?? 0;
+  return out;
+}
+
+/**
+ * Forget which families this screen has counted.
+ *
+ * For a test, and for a caller that tears the shell down and rebuilds it
+ * without a navigation in between. Never called during a run.
+ */
+export function resetExposureScreen(): void {
+  exposureScreen = null;
+  countedOnScreen = new Set();
 }
 
 // ---------------------------------------------------------------------------

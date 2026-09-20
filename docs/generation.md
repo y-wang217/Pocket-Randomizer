@@ -8196,3 +8196,43 @@ short forms already state that such a part may never be dropped; a warning that
 survives only in Detailed is a warning the mode removed. The chart says so
 under the brief rather than leaving the next pass to discover it: short and
 complete, not short.
+
+---
+
+## 52. The census counts sixteen fixtures, where M0.1 asked for fourteen
+
+**Recorded 2026-09-20. Deviation note, per `CLAUDE.md`: the prompt is not
+edited to match what was built.**
+
+[`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md)
+M0.1 asks for a census over *"all 14 surfaces (12 router screens plus drawer
+and log sheet)"*. `scripts/visual/census.ts` measures **sixteen**, which is
+`GALLERY_SURFACES` in `src/ui/gallery-surfaces.ts`.
+
+The four-way difference is two fixtures the item's arithmetic leaves out and
+two it does not name:
+
+- **`result` and `result-capture` are two fixtures of one screen.** The gallery
+  has rendered them separately since the density patch, for the reason its own
+  comment gives: the result screen has two shapes the app shows, the cards and
+  the capture offer that arrives on a second render with the cards gone, and
+  both are gated. Section 4 budgets them separately too — result screen 6,
+  capture card 0 — so a census that merged them could not check either.
+- **`map-drawer` and `summary`** are surfaces the item's list omits. Both are in
+  `GALLERY_SURFACES`, both render text at rest, and `summary` is the largest
+  text surface in the game at 397 words in Pocket. Leaving them out would have
+  made the biggest number in the census invisible.
+
+Measuring more than the item asks is the safe direction against a ceiling, and
+M7.2 reruns this same script, so the "before" and "after" columns agree by
+construction. **The item's figure of fourteen is stale rather than wrong**: the
+twelve router screens are still twelve, `ROUTER_SCREEN_COUNT` still says so, and
+`test/density.test.ts` still holds it.
+
+One further deviation inside the same item. The census reports an **`app shell`**
+component — the header, drawer bar, seed bar and stamps — and subtracts it in
+the per-surface column the budgets are read against. Those elements are mounted
+once and render on all sixteen surfaces, so charging their words to each surface
+would have put a constant seven on every row of a table whose smallest budget is
+zero. M0.1 does not ask for the split; section 4 budgets surfaces rather than the
+chrome around them, which is the argument for it.

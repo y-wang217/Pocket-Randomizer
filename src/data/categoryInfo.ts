@@ -45,7 +45,7 @@ export const CATEGORY_INFO: Readonly<Record<string, CategoryEntry>> = {
     mechanics:
       'Deals no damage at all. These inflict conditions, change stat stages, heal, or set something up.',
     advice:
-      'Spending a turn to gain an advantage. Worth it when you can survive the reply — check the Speed row before committing.',
+      'Costs the turn it is used and deals no damage. What it sets up applies from the next turn, so the reply lands first unless this moves first.',
   },
 };
 

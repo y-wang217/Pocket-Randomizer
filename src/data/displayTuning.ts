@@ -159,6 +159,28 @@ export interface DisplayTuning {
    * already samples that way for the V1 text rule and this reuses it.
    */
   minChipContrastRatio: number;
+
+  /**
+   * How long a press has to be held before inspect opens. **Milestone M1.2.**
+   *
+   * Design bible R5 makes one long press the only way to open an explanation,
+   * and the number that separates a press from a tap is the whole of whether
+   * that rule is usable. Too short and a player selecting a move gets a panel
+   * they did not ask for; too long and the gesture feels broken and is never
+   * found.
+   *
+   * **450ms**, which is the platform convention rather than a finding: iOS and
+   * Android both fire their own long-press at roughly half a second, and a
+   * gesture that disagreed with the one a player already has in their hands
+   * would be the wrong kind of novel. It is parked here, off the
+   * `contentHash` glob, so the first playtest that says "I keep opening it by
+   * accident" can move it without refusing a single shared seed.
+   *
+   * R5's disconfirmer is the one to watch: *any* accidental submission during
+   * inspect in playtest sends the gesture to two-finger tap, and no amount of
+   * raising this number is the fix for that.
+   */
+  inspectHoldMs: number;
 }
 
 /**
@@ -228,4 +250,5 @@ export const DEFAULT_DISPLAY_TUNING: DisplayTuning = {
 
   minChipFontSizePx: 11,
   minChipContrastRatio: 4.5,
+  inspectHoldMs: 450,
 };
