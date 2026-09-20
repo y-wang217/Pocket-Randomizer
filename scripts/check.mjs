@@ -148,6 +148,26 @@ const LEGS = [
     needs: 'build',
     browser: true,
   },
+  /*
+   * The text census. **Milestone M0.1, and it cannot fail this run.**
+   *
+   * M0.1's own "kills it" line is "nothing. Measurement cannot fail the
+   * bible", so the leg is non-blocking — and it is non-blocking by
+   * construction rather than by a flag here: `census.ts --check` prints the
+   * per-surface delta and exits zero whether or not a number moved. The only
+   * way it reports FAILED is if the script itself throws, which is a broken
+   * instrument and should stop the run.
+   *
+   * `browser: true` so a box with no Playwright binary skips it with the
+   * others instead of failing on a missing engine.
+   */
+  {
+    name: 'census',
+    what: 'words at rest, delta against docs/design/text-census.md',
+    command: NPX,
+    args: ['vite-node', 'scripts/visual/census.ts', '--check'],
+    browser: true,
+  },
 ];
 
 /**

@@ -23,6 +23,7 @@
     "gen:pools": "vite-node scripts/gen-pools.ts",
     "content-hash": "vite-node scripts/content-hash.ts",
     "copy-audit": "vite-node scripts/copy-audit.ts",
+    "census": "vite-node scripts/visual/census.ts --write",
     "measure": "npm run build && node scripts/measure-bundle.mjs",
     "smoke": "node scripts/smoke.mjs",
     "pool-report": "vite-node scripts/pool-report.ts"
