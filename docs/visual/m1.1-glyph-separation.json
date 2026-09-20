@@ -1,0 +1,5852 @@
+{
+ "floor": 0.12,
+ "worst": [
+  {
+   "family": "priority",
+   "a": "priority-up",
+   "b": "priority-down",
+   "simulation": "none",
+   "score": 0.203125
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.22265625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-psn",
+   "simulation": "none",
+   "score": 0.22265625
+  },
+  {
+   "family": "band",
+   "a": "band-pip-on",
+   "b": "band-pip-off",
+   "simulation": "none",
+   "score": 0.26171875
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spd",
+   "simulation": "none",
+   "score": 0.265625
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-status",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "accuracy",
+   "a": "accuracy-target",
+   "b": "accuracy-never-miss",
+   "simulation": "none",
+   "score": 0.59765625
+  }
+ ],
+ "all": [
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fighting",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-flying",
+   "simulation": "none",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-poison",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ground",
+   "simulation": "none",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-rock",
+   "simulation": "none",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-bug",
+   "simulation": "none",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.23828125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-flying",
+   "simulation": "none",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-poison",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ground",
+   "simulation": "none",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-rock",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-bug",
+   "simulation": "none",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-poison",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ground",
+   "simulation": "none",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-rock",
+   "simulation": "none",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-bug",
+   "simulation": "none",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.390625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.28515625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.55078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ground",
+   "simulation": "none",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-rock",
+   "simulation": "none",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-bug",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-rock",
+   "simulation": "none",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-bug",
+   "simulation": "none",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.56640625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.51953125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.5
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-bug",
+   "simulation": "none",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.46875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.37109375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ghost",
+   "simulation": "none",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.46484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.44921875
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-steel",
+   "simulation": "none",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fire",
+   "simulation": "none",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.53125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.48828125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-water",
+   "simulation": "none",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-grass",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-electric",
+   "simulation": "none",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.59375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-psychic",
+   "simulation": "none",
+   "score": 0.5234375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.22265625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-ice",
+   "simulation": "none",
+   "score": 0.58203125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.515625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dragon",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-dark",
+   "simulation": "none",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-fairy",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-fairy",
+   "b": "type-stellar",
+   "simulation": "none",
+   "score": 0.29296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fighting",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-flying",
+   "simulation": "protanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-poison",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ground",
+   "simulation": "protanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-rock",
+   "simulation": "protanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-bug",
+   "simulation": "protanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.23828125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-flying",
+   "simulation": "protanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-poison",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ground",
+   "simulation": "protanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-rock",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-bug",
+   "simulation": "protanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-poison",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ground",
+   "simulation": "protanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-rock",
+   "simulation": "protanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-bug",
+   "simulation": "protanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.390625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.28515625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.55078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ground",
+   "simulation": "protanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-rock",
+   "simulation": "protanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-bug",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-rock",
+   "simulation": "protanopia",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-bug",
+   "simulation": "protanopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.56640625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.5
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-bug",
+   "simulation": "protanopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.46875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.37109375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ghost",
+   "simulation": "protanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.46484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.44921875
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-steel",
+   "simulation": "protanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fire",
+   "simulation": "protanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.48828125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-water",
+   "simulation": "protanopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-grass",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-electric",
+   "simulation": "protanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.59375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-psychic",
+   "simulation": "protanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.22265625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-ice",
+   "simulation": "protanopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.515625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dragon",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-dark",
+   "simulation": "protanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-fairy",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-fairy",
+   "b": "type-stellar",
+   "simulation": "protanopia",
+   "score": 0.29296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fighting",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-flying",
+   "simulation": "deuteranopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-poison",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ground",
+   "simulation": "deuteranopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-rock",
+   "simulation": "deuteranopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-bug",
+   "simulation": "deuteranopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.23828125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-flying",
+   "simulation": "deuteranopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-poison",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ground",
+   "simulation": "deuteranopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-rock",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-bug",
+   "simulation": "deuteranopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-poison",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ground",
+   "simulation": "deuteranopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-rock",
+   "simulation": "deuteranopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-bug",
+   "simulation": "deuteranopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.390625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.28515625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.55078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ground",
+   "simulation": "deuteranopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-rock",
+   "simulation": "deuteranopia",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-bug",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-rock",
+   "simulation": "deuteranopia",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-bug",
+   "simulation": "deuteranopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.56640625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.5
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-bug",
+   "simulation": "deuteranopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.46875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.37109375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ghost",
+   "simulation": "deuteranopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.46484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.44921875
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-steel",
+   "simulation": "deuteranopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fire",
+   "simulation": "deuteranopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.53125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.48828125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-water",
+   "simulation": "deuteranopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-grass",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-electric",
+   "simulation": "deuteranopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.59375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.22265625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-ice",
+   "simulation": "deuteranopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.515625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dragon",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-dark",
+   "simulation": "deuteranopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-fairy",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-fairy",
+   "b": "type-stellar",
+   "simulation": "deuteranopia",
+   "score": 0.29296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fighting",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-flying",
+   "simulation": "tritanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-poison",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ground",
+   "simulation": "tritanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-rock",
+   "simulation": "tritanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-bug",
+   "simulation": "tritanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.23828125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-normal",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-flying",
+   "simulation": "tritanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-poison",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ground",
+   "simulation": "tritanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-rock",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-bug",
+   "simulation": "tritanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-fighting",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-poison",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ground",
+   "simulation": "tritanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-rock",
+   "simulation": "tritanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-bug",
+   "simulation": "tritanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.390625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.28515625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.55078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-flying",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ground",
+   "simulation": "tritanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-rock",
+   "simulation": "tritanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-bug",
+   "simulation": "tritanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.40234375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-poison",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-rock",
+   "simulation": "tritanopia",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-bug",
+   "simulation": "tritanopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.56640625
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.5
+  },
+  {
+   "family": "type",
+   "a": "type-ground",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-bug",
+   "simulation": "tritanopia",
+   "score": 0.3984375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.46875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-rock",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.37109375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ghost",
+   "simulation": "tritanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.46484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.44921875
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.484375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.453125
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-bug",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-steel",
+   "simulation": "tritanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.49609375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-ghost",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.39453125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fire",
+   "simulation": "tritanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.48828125
+  },
+  {
+   "family": "type",
+   "a": "type-steel",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-water",
+   "simulation": "tritanopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.4140625
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-fire",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-grass",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "type",
+   "a": "type-water",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-electric",
+   "simulation": "tritanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.59375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "type",
+   "a": "type-grass",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-psychic",
+   "simulation": "tritanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.41796875
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.22265625
+  },
+  {
+   "family": "type",
+   "a": "type-electric",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.30078125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-ice",
+   "simulation": "tritanopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.5390625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.515625
+  },
+  {
+   "family": "type",
+   "a": "type-psychic",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dragon",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "type",
+   "a": "type-ice",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-dark",
+   "simulation": "tritanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "type",
+   "a": "type-dragon",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-fairy",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "type",
+   "a": "type-dark",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "type",
+   "a": "type-fairy",
+   "b": "type-stellar",
+   "simulation": "tritanopia",
+   "score": 0.29296875
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-special",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-status",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "category",
+   "a": "category-special",
+   "b": "category-status",
+   "simulation": "none",
+   "score": 0.53125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-special",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-status",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "category",
+   "a": "category-special",
+   "b": "category-status",
+   "simulation": "protanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-special",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-status",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "category",
+   "a": "category-special",
+   "b": "category-status",
+   "simulation": "deuteranopia",
+   "score": 0.53125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-special",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "category",
+   "a": "category-physical",
+   "b": "category-status",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "category",
+   "a": "category-special",
+   "b": "category-status",
+   "simulation": "tritanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "band",
+   "a": "band-pip-on",
+   "b": "band-pip-off",
+   "simulation": "none",
+   "score": 0.26171875
+  },
+  {
+   "family": "band",
+   "a": "band-pip-on",
+   "b": "band-pip-off",
+   "simulation": "protanopia",
+   "score": 0.26171875
+  },
+  {
+   "family": "band",
+   "a": "band-pip-on",
+   "b": "band-pip-off",
+   "simulation": "deuteranopia",
+   "score": 0.26171875
+  },
+  {
+   "family": "band",
+   "a": "band-pip-on",
+   "b": "band-pip-off",
+   "simulation": "tritanopia",
+   "score": 0.26171875
+  },
+  {
+   "family": "accuracy",
+   "a": "accuracy-target",
+   "b": "accuracy-never-miss",
+   "simulation": "none",
+   "score": 0.59765625
+  },
+  {
+   "family": "accuracy",
+   "a": "accuracy-target",
+   "b": "accuracy-never-miss",
+   "simulation": "protanopia",
+   "score": 0.59765625
+  },
+  {
+   "family": "accuracy",
+   "a": "accuracy-target",
+   "b": "accuracy-never-miss",
+   "simulation": "deuteranopia",
+   "score": 0.59765625
+  },
+  {
+   "family": "accuracy",
+   "a": "accuracy-target",
+   "b": "accuracy-never-miss",
+   "simulation": "tritanopia",
+   "score": 0.59765625
+  },
+  {
+   "family": "priority",
+   "a": "priority-up",
+   "b": "priority-down",
+   "simulation": "none",
+   "score": 0.203125
+  },
+  {
+   "family": "priority",
+   "a": "priority-up",
+   "b": "priority-down",
+   "simulation": "protanopia",
+   "score": 0.203125
+  },
+  {
+   "family": "priority",
+   "a": "priority-up",
+   "b": "priority-down",
+   "simulation": "deuteranopia",
+   "score": 0.203125
+  },
+  {
+   "family": "priority",
+   "a": "priority-up",
+   "b": "priority-down",
+   "simulation": "tritanopia",
+   "score": 0.203125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-par",
+   "simulation": "none",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-psn",
+   "simulation": "none",
+   "score": 0.22265625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-tox",
+   "simulation": "none",
+   "score": 0.36328125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-slp",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-frz",
+   "simulation": "none",
+   "score": 0.24609375
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-psn",
+   "simulation": "none",
+   "score": 0.2265625
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-tox",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-slp",
+   "simulation": "none",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-frz",
+   "simulation": "none",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-tox",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-slp",
+   "simulation": "none",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-frz",
+   "simulation": "none",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-slp",
+   "simulation": "none",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-frz",
+   "simulation": "none",
+   "score": 0.30859375
+  },
+  {
+   "family": "status",
+   "a": "status-slp",
+   "b": "status-frz",
+   "simulation": "none",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-par",
+   "simulation": "protanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-psn",
+   "simulation": "protanopia",
+   "score": 0.22265625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-tox",
+   "simulation": "protanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-slp",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-frz",
+   "simulation": "protanopia",
+   "score": 0.24609375
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-psn",
+   "simulation": "protanopia",
+   "score": 0.2265625
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-tox",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-slp",
+   "simulation": "protanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-frz",
+   "simulation": "protanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-tox",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-slp",
+   "simulation": "protanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-frz",
+   "simulation": "protanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-slp",
+   "simulation": "protanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-frz",
+   "simulation": "protanopia",
+   "score": 0.30859375
+  },
+  {
+   "family": "status",
+   "a": "status-slp",
+   "b": "status-frz",
+   "simulation": "protanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-par",
+   "simulation": "deuteranopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-psn",
+   "simulation": "deuteranopia",
+   "score": 0.22265625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-tox",
+   "simulation": "deuteranopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-slp",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-frz",
+   "simulation": "deuteranopia",
+   "score": 0.24609375
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-psn",
+   "simulation": "deuteranopia",
+   "score": 0.2265625
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-tox",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-slp",
+   "simulation": "deuteranopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-frz",
+   "simulation": "deuteranopia",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-tox",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-slp",
+   "simulation": "deuteranopia",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-frz",
+   "simulation": "deuteranopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-slp",
+   "simulation": "deuteranopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-frz",
+   "simulation": "deuteranopia",
+   "score": 0.30859375
+  },
+  {
+   "family": "status",
+   "a": "status-slp",
+   "b": "status-frz",
+   "simulation": "deuteranopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-par",
+   "simulation": "tritanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-psn",
+   "simulation": "tritanopia",
+   "score": 0.22265625
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-tox",
+   "simulation": "tritanopia",
+   "score": 0.36328125
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-slp",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "status",
+   "a": "status-brn",
+   "b": "status-frz",
+   "simulation": "tritanopia",
+   "score": 0.24609375
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-psn",
+   "simulation": "tritanopia",
+   "score": 0.2265625
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-tox",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-slp",
+   "simulation": "tritanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-par",
+   "b": "status-frz",
+   "simulation": "tritanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-tox",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-slp",
+   "simulation": "tritanopia",
+   "score": 0.328125
+  },
+  {
+   "family": "status",
+   "a": "status-psn",
+   "b": "status-frz",
+   "simulation": "tritanopia",
+   "score": 0.33203125
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-slp",
+   "simulation": "tritanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "status",
+   "a": "status-tox",
+   "b": "status-frz",
+   "simulation": "tritanopia",
+   "score": 0.30859375
+  },
+  {
+   "family": "status",
+   "a": "status-slp",
+   "b": "status-frz",
+   "simulation": "tritanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-atk",
+   "simulation": "none",
+   "score": 0.37109375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-def",
+   "simulation": "none",
+   "score": 0.43359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spa",
+   "simulation": "none",
+   "score": 0.4765625
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spd",
+   "simulation": "none",
+   "score": 0.546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spe",
+   "simulation": "none",
+   "score": 0.359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-def",
+   "simulation": "none",
+   "score": 0.31640625
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spa",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spd",
+   "simulation": "none",
+   "score": 0.5
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spe",
+   "simulation": "none",
+   "score": 0.33984375
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spa",
+   "simulation": "none",
+   "score": 0.35546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spd",
+   "simulation": "none",
+   "score": 0.265625
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spe",
+   "simulation": "none",
+   "score": 0.48828125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spd",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spe",
+   "simulation": "none",
+   "score": 0.5078125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spd",
+   "b": "stat-spe",
+   "simulation": "none",
+   "score": 0.52734375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-atk",
+   "simulation": "protanopia",
+   "score": 0.37109375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-def",
+   "simulation": "protanopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spa",
+   "simulation": "protanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spd",
+   "simulation": "protanopia",
+   "score": 0.546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spe",
+   "simulation": "protanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-def",
+   "simulation": "protanopia",
+   "score": 0.31640625
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spa",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spd",
+   "simulation": "protanopia",
+   "score": 0.5
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spe",
+   "simulation": "protanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spa",
+   "simulation": "protanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spd",
+   "simulation": "protanopia",
+   "score": 0.265625
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spe",
+   "simulation": "protanopia",
+   "score": 0.48828125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spd",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spe",
+   "simulation": "protanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spd",
+   "b": "stat-spe",
+   "simulation": "protanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-atk",
+   "simulation": "deuteranopia",
+   "score": 0.37109375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-def",
+   "simulation": "deuteranopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spa",
+   "simulation": "deuteranopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spd",
+   "simulation": "deuteranopia",
+   "score": 0.546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spe",
+   "simulation": "deuteranopia",
+   "score": 0.359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-def",
+   "simulation": "deuteranopia",
+   "score": 0.31640625
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spa",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spd",
+   "simulation": "deuteranopia",
+   "score": 0.5
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spe",
+   "simulation": "deuteranopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spa",
+   "simulation": "deuteranopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spd",
+   "simulation": "deuteranopia",
+   "score": 0.265625
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spe",
+   "simulation": "deuteranopia",
+   "score": 0.48828125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spd",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spe",
+   "simulation": "deuteranopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spd",
+   "b": "stat-spe",
+   "simulation": "deuteranopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-atk",
+   "simulation": "tritanopia",
+   "score": 0.37109375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-def",
+   "simulation": "tritanopia",
+   "score": 0.43359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spa",
+   "simulation": "tritanopia",
+   "score": 0.4765625
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spd",
+   "simulation": "tritanopia",
+   "score": 0.546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-hp",
+   "b": "stat-spe",
+   "simulation": "tritanopia",
+   "score": 0.359375
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-def",
+   "simulation": "tritanopia",
+   "score": 0.31640625
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spa",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spd",
+   "simulation": "tritanopia",
+   "score": 0.5
+  },
+  {
+   "family": "stat",
+   "a": "stat-atk",
+   "b": "stat-spe",
+   "simulation": "tritanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spa",
+   "simulation": "tritanopia",
+   "score": 0.35546875
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spd",
+   "simulation": "tritanopia",
+   "score": 0.265625
+  },
+  {
+   "family": "stat",
+   "a": "stat-def",
+   "b": "stat-spe",
+   "simulation": "tritanopia",
+   "score": 0.48828125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spd",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "stat",
+   "a": "stat-spa",
+   "b": "stat-spe",
+   "simulation": "tritanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "stat",
+   "a": "stat-spd",
+   "b": "stat-spe",
+   "simulation": "tritanopia",
+   "score": 0.52734375
+  }
+ ]
+}
