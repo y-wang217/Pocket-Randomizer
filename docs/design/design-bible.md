@@ -1,0 +1,259 @@
+# GYMRUN Design Bible: Card and Battle Presentation
+
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 1, Sept 19, 2026.
+
+This document is permanent. Stage prompts and patch prompts are disposable. Where a prompt and this document disagree on how an attribute is shown, this document wins. Where they disagree on what an attribute is, the prompt and `data/` win: this document governs presentation only, never generation, balance, or the run log.
+
+Every rule below is a hypothesis with a named disconfirmer in section 9. A rule changes only through the amendment process in section 10, never by a patch quietly doing something else.
+
+---
+
+## 0. The two constraints that outrank everything
+
+**C1. The UI presents attributes, never verdicts.** No recommendation, no score, no "best" marker, no conditional emphasis, no sort that implies rank, no effectiveness against content not yet reached. One exception: live type effectiveness against the Pokemon currently on the field. (Inherited from Stage 4.5.1 Part 4. Unchanged.)
+
+**C2. No fact that changes a decision is removed. It is re-encoded.** A redesign that drops a decision-relevant fact has failed even if it hits every text budget. The density-modes rule "no mode removes a fact" is a special case of this.
+
+Engineering constraints that this document assumes and does not restate: `core/` never imports `ui/`, no `Math.random`, every tunable number lives in `data/`, and every milestone under this document ships with seeded output byte identical and no version axis moved unless the milestone says otherwise.
+
+---
+
+## 1. Twelve rules
+
+Each rule: the rule, what it forbids, how it is enforced. Rules are numbered by priority. When two conflict, the lower number wins.
+
+**R1. Position encodes identity.** Every attribute has one fixed slot on every surface where it appears. Base power is in the same corner of a battle button, a reward card, a TM card, a party row chip and a confirm overlay.
+Forbids: moving an attribute between surfaces; a "compact variant" that reorders slots.
+Enforce: one shared component per attribute cluster (section 5). A surface that positions an attribute itself instead of mounting the component is a defect.
+
+**R2. Numbers stay. Labels go. Sentences go.** "90" is not text load. "BP 90" is. "Physical" beside a fist glyph is.
+Forbids: field labels at rest ("Type", "BP", "PP", "BAND", "HP", "Acc"); any sentence on a card at rest; type names and category words at rest.
+Enforce: the text census (section 4) counts words at rest, excluding proper nouns and bare numbers. Budget breaches fail the milestone.
+
+**R3. One fact, one channel, per surface.** Never render the same attribute twice on one surface at rest.
+Forbids: type glyph plus type name; category glyph plus category word; band pips plus a band number; a stat as both bar and label where the label is a word.
+Permits: glyph plus number (a fist and a 90 are two facts, category and power).
+Enforce: the redundancy audit in the glyph inventory (milestone M0.2) lists every double render; each one is a bug.
+
+**R4. Exception-based display.** Show a value only when it departs from the default.
+Defaults that render nothing: accuracy 100, priority 0, stat stage 0, no status, no item, neutral effectiveness.
+Forbids: "Acc 100", "Priority 0", empty status slots, a neutral effectiveness marker.
+Enforce: the encoding table (section 3) names the default per attribute; a test asserts the default renders no node.
+Ruling on never-miss moves: absence means "100 and applies". A move that cannot miss (Swift, Aerial Ace, Shock Wave) shows a distinct never-miss glyph, because evasion stages are visible and a 100-accuracy move can miss against them while a never-miss move cannot. This closes the carried "always-hits marker" item.
+
+**R5. One inspect gesture, one layer.** Long press on any card, chip, glyph, badge or pip opens its full explanation. Release closes. Tap still selects. There is exactly one mechanism, and it is fed by `describeMove`, `bandInfo`, `statusInfo`, `categoryInfo` and the type chart, never by copy written into a screen.
+Forbids: a type wheel, a band tooltip, a move popup, a legend screen, a help button, or a verbosity mode as a way to see an explanation. Opening inspect during battle must never submit a move.
+Enforce: a test asserts one tooltip mechanism exists; a test asserts opening inspect on a move button does not advance the turn.
+
+**R6. The default face is the compact face.** What a card shows at rest is the compact encoding in section 3. The full version is what inspect opens, not what a setting enables.
+Forbids: shipping two card faces; a setting that adds words to a card at rest.
+Ruling on density modes (Detailed, Simple, Pocket): the card face this document specifies is the Pocket face. Pocket becomes the default. Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire. Density modes may change spacing, stacking and whether a secondary fact sits behind a tap. They never change the encoding of a fact.
+
+**R7. The first exposure carries the label, the tenth does not.** The first time a glyph family appears for this player, a small label renders beside it for that screen. The label returns once more on the third exposure, then never. Exposure count persists across runs in the settings store, beside the tutorial flags.
+Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
+Enforce: nine glyph families are tracked (type, category, band, PP, accuracy, priority, effectiveness, status, stat). A test asserts each family's label renders on exposure 1 and 3 and not on exposure 4.
+
+**R8. Forecast on the button, feedback on the target, same vocabulary, never the same place.** Pre-selection effectiveness sits on the move button (the C1 exception). Post-resolution outcomes appear on the Pokemon that was hit, in resolution order.
+Forbids: rendering post-resolution flags on move buttons; rendering the forecast on the opponent panel; deriving one from the other.
+Enforce: the forecast comes from the core effectiveness helper; feedback comes from the protocol-to-flags mapper. They share a colour family and a glyph family and nothing else.
+
+**R9. One flag per hit.** After resolution, at most one flag appears on a target, by fixed precedence: no effect, miss, super effective or not very effective, critical, status inflicted, berry fired, stat stage changed. STAB and contact are causes, not outcomes, and never get a flag.
+Forbids: stacking flags on one hit; a flag for a cause.
+Enforce: the mapper returns a list; the renderer takes the first by precedence. Precedence order lives in `data/tuning.ts`. Note: recoil, drain and multi-hit fired zero times over 699 measured battles and are not in the vocabulary. Add a flag kind only from measurement.
+
+**R10. Bars compare members, never options.** Six stats as glyph, bar and number across party members is an attribute readout. Emphasising the stat that matches the current decision is a verdict.
+Forbids: highlighting Atk because the incoming move is Physical; sorting recipients by fit; projected damage on a recipient card.
+Enforce: the recipient and teach screens mount the party stat component unchanged, in party order.
+
+**R11. The log is never rendered at rest.** The battle log lives in the log sheet, reachable by a pull, kept for bug reports and determinism. The battle screen shows the turn header, the panels, the flags and nothing written.
+Forbids: a scrolling log on the battle screen; a text line for turn order.
+
+**R12. If a concept cannot be encoded without a sentence, restructure the concept.** Applies to the coverage line, the decline copy, the item effect line, and any future readout.
+Forbids: adding a sentence to a card because the concept was hard to draw.
+Enforce: the amendment process. A proposed sentence at rest is an amendment, not a patch.
+
+---
+
+## 2. Canonical vocabulary
+
+Nine glyph families. Adding a tenth is an amendment.
+
+| Family | Glyphs | Colour |
+|---|---|---|
+| Type | 18 glyphs inside a coloured chip | Genre-standard type colours, colour-blind checked; glyph is primary, colour secondary |
+| Category | Fist (Physical), ring (Special), wave (Status). Same glyph on the Atk and SpA stat rows | Neutral |
+| Band | One pip per band, filled to band. Pip count is read from `bandInfo`, never hardcoded (five today) | Neutral. No glow, no colour shift by band |
+| PP | Small PP glyph, remaining number, max dimmed | Neutral |
+| Accuracy | Target glyph plus number, under 100 only. Never-miss glyph for moves that cannot miss | Neutral |
+| Priority | Up or down chevron beside the move name, nonzero only. Same chevron on the panel when a bracket decided the turn | Neutral |
+| Effectiveness | Coloured left edge on the button plus the multiplier as a fraction or numeral (¼, ½, 2, 4). Neutral shows nothing. The same colour on the feedback flag | Red/green family, colour-blind checked |
+| Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each | Genre-standard |
+| Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
+
+Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
+
+---
+
+## 3. Encoding table
+
+The single source of truth for how each attribute renders at rest. Inspect shows everything in the last column.
+
+| Attribute | At rest | Default (renders nothing) | On inspect |
+|---|---|---|---|
+| Type | Type chip | None | Type name, matchups |
+| Category | Category glyph | None | Category word, what it means for Atk vs SpA |
+| Base power | Bare number, largest text on the card, fixed slot | None | Same, plus per-hit power for multi-hit moves |
+| PP | Number beside PP glyph, max dimmed. Reward, TM and recipient cards show max only | None | Max and remaining |
+| Band | Pip strip | None | Band definition line from `bandInfo` |
+| Accuracy | Number beside target glyph | 100 | Accuracy, evasion interaction |
+| Priority | Chevron | 0 | Bracket value |
+| Effectiveness (forecast) | Edge colour plus multiplier on the button | Neutral | Full type interaction |
+| Effectiveness (feedback) | One word on the target, edge colour family | Neutral | Log sheet entry |
+| Status | Three-letter chip | None | Full name, effect |
+| Stat stages | Multiplier plus ladder, nonzero only | 0 | Stage count, source |
+| Six stats | Glyph, bar, number. Always all six. Party order | Never hidden | Stat definition |
+| Held item | Item sprite in a fixed slot | Empty slot renders nothing | Name, one effect line |
+| Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
+| Relic | Relic sprite in the relic row | None | Name, capability it satisfies |
+| Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only | Empty row renders nothing | The full before and after sets |
+| Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
+| Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
+| Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
+
+Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
+
+---
+
+## 4. Surface text budgets
+
+Words at rest, excluding proper nouns and bare numbers. The census (milestone M0.1) records the current count; the budget is the ceiling after the milestone that touches the surface. A surface over budget is not done.
+
+| Surface | Budget | Words that survive |
+|---|---|---|
+| Battle move button | 0 | Name |
+| Move card (reward, TM shelf, recipient, replacement, confirm) | 0 | Name |
+| Move chip (compact list form) | 0 | Name |
+| Item, berry or relic reward card | 8 | One effect line |
+| Recipient / teach target card | 0 | Species name |
+| Party row and party drawer | 0 | Species name, nickname |
+| Pokemon battle panel | 0 | Name, nickname |
+| Result screen | 6 | Outcome word, "+N", continue |
+| Capture card | 0 | Follows the recipient card |
+| Event screen | 40 | Prompt under 30, choices under 6 each, outcome one line |
+| Locale card | 0 | Locale name plus four type chips |
+| Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
+| Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
+| Confirm overlay (decline) | 4 | "Forfeit this reward?" |
+| Map node card | 0 | Nothing |
+| Shop stock card | 8 | Follows the reward card, plus price number |
+| Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
+
+The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
+
+---
+
+## 5. Component canon
+
+One component per attribute cluster. A screen mounts components; it never draws an attribute itself.
+
+| Component | Owns | Call sites today |
+|---|---|---|
+| Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (six card surfaces) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
+| Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
+| Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
+| Pokemon panel | Name, level, gender, HP bar and number, status chips, stat stage ladder, item sprite | Battle |
+| Party row | Species, level, HP, status chips, item sprite, four move chips | Drawer, teach target |
+| Type chip | Glyph in colour | Everywhere a type appears |
+| Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
+| Flag strip | One word per hit, precedence applied | Battle |
+| Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store |
+
+A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.
+
+---
+
+## 6. Battle turn grammar
+
+In resolution order, on a 390x844 phone. Timings are the numbers already in `data/tuning.ts` and the Swift/Even/Patient setting; this section adds no time.
+
+1. Turn header replaces itself in place. "Turn 4". No scroll.
+2. First actor jiggles. If a bracket decided the order, the priority chevron flashes on that panel. Same-bracket turns are unmarked, matching the log rule.
+3. Hit lands. HP drops as a chunk with the fading shadow. A damage number rises. One flag by R9 precedence.
+4. Status chip appears on the panel the moment it is inflicted. Nothing written.
+5. Berry fires: sprite pops, flag names it, sprite disappears.
+6. Second actor. Steps 2 to 5.
+7. Stat stage change: ladder moves with a short pulse. No words.
+
+The log sheet records all of it for the player who pulls it down and for bug reports.
+
+---
+
+## 7. Onboarding
+
+Three mechanisms, each with one job. A fourth is an amendment.
+
+- **Coach marks** (shipped, 29 marks over 8 screens) explain screens: what this screen is for and where the decision is.
+- **Exposure labels** (R7) explain glyphs: what this symbol means, the first and third time you see it.
+- **Inspect** (R5) explains things: what this move, item, status or band does, on demand, forever.
+
+Starter select is the classroom: it has no clock, three full cards, and every glyph family present. On a first run every glyph on that screen carries its label. A player who reads three starter cards has seen category, type, band, PP and the six stats with words once.
+
+All three persist in the settings store. Coach marks force Detailed per screen today; once R6's Pocket default lands, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted.
+
+Rejected: a no-label first session (category is not guessable by a non-player); a legend button (a mechanism the player must know exists).
+
+---
+
+## 8. Copy rules for the words that remain
+
+- State outcomes, not advice. "Forfeit this reward?" not "Are you sure? This is usually a bad idea."
+- Item effect line: under eight words, no "Effect:" prefix, no second clause. "Heals 1/16 max HP each turn." not "Restores a small amount of HP at the end of every turn, useful for bulky Pokemon."
+- Event prompt: under 30 words, two lines on 390px. Choices under six words. Outcome under one line.
+- Never a hedge word (risky, safe, strong, weak, good, bad) on any surface. Four live violations are filed against `categoryInfo.ts:48`, `statusInfo.ts:125`, `statusInfo.ts:242`, `bandInfo.ts:68`. They are milestone M0.3.
+- No em-dashes in any player-facing string.
+
+---
+
+## 9. Hypothesis register
+
+Every rule is a bet. The observation that loses it is written here, and section 10 says what happens then.
+
+| Rule | Disconfirmed if | Then |
+|---|---|---|
+| R2, category glyph learnable in three exposures | Testers open inspect on category more than twice in run two, or Special-move-on-high-Atk picks do not fall between run one and run three | Category word returns permanently; budget rises by one on every move surface |
+| R4, hidden accuracy reads as 100 | A tester asks "does this always hit?" after the exposure label has fired | Accuracy renders always, as a number |
+| R4, never-miss glyph is distinct from absent | Testers cannot say which of two moves cannot miss | Never-miss becomes a number-slot word "sure" |
+| R9, one flag per hit | Testers cannot say why a hit did what it did, and the missing fact is one precedence dropped | Precedence gains a second slot for the dropped kind |
+| Band pips and base power do not read as two ratings | A tester says "a 4 and a 90" as independent scores, or asks which matters | Pips move behind inspect; band rests as a single small numeral |
+| Coverage rows read as gain and loss | A tester cannot say which row is added after the label fades | Keep plus and minus signs, add the two words |
+| R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
+| R6, Pocket default and retiring Simple/Detailed loses nothing | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
+| Event screen holds at 40 words | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
+| Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
+| Nine glyph families is the right size | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
+
+The "three exposures" figure is a design guess with no study behind it. Everything else in this table has a precedent or a finding named in the research brief.
+
+---
+
+## 10. Amendment process
+
+1. A rule changes only when its disconfirmer in section 9 has been observed in a playtest and recorded in `docs/design/playtest-log.md` with the date, the tester count and the observation.
+2. The amendment is a PR to this file, with the register row updated and the rule's revision date added.
+3. A milestone that finds it needs a sentence at rest, a second mechanism, a tenth glyph family or a third move-card call site stops and files an amendment before building.
+4. A patch prompt never overrides this document by saying so. If a prompt and this document conflict on presentation, the prompt is wrong until amended here.
+
+---
+
+## 11. Glossary
+
+- **At rest**: what a surface shows with nothing pressed, hovered or expanded.
+- **Inspect**: the single long-press layer (R5).
+- **Exposure label**: the first-encounter word beside a glyph (R7).
+- **Forecast**: effectiveness shown before the choice, on the button.
+- **Feedback**: what the protocol says happened, on the target.
+- **Flag**: one word of feedback (R9).
+- **Chip**: a small fixed-shape element carrying one fact (type chip, status chip, move chip).
+- **Pip**: one filled or empty dot in a strip (band, tier).
+- **Census**: the measured word count at rest per surface (section 4).

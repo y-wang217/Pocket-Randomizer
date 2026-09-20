@@ -26,6 +26,11 @@ A session starting cold, in order:
 
 Stop there unless you need a specific answer. The rest of the map is below.
 
+If what you are about to touch is something a player looks at, add
+[`design/design-bible.md`](design/design-bible.md) to that list, before the
+prompt you are working from. It is permanent, it governs presentation, and on
+presentation it outranks the prompt.
+
 ## 3. The document map
 
 One row per document. If a fact changes, exactly one of these files should need
@@ -41,6 +46,8 @@ editing.
 | [`keyed-streams.md`](keyed-streams.md) | What the 4.6a stream refactor actually shipped, and the four requirements of its design that were not built | Working on RNG, seeds or replay |
 | [`engine-notes.md`](engine-notes.md) | `@pkmn/sim` findings: browser viability, the Gen 3 lock, bundle and trim analysis | Touching the sim adapter or the bundle |
 | [`copy.md`](copy.md) | **Generated.** Every player-facing string in the game, by surface, with the file a rewrite edits and a blank column to write the replacement in | Rewording anything a player reads. Rebuild it with `npm run copy-audit`; never edit it |
+| [`design/design-bible.md`](design/design-bible.md) | **Permanent.** How every attribute is presented: the twelve rules, the nine glyph families, the encoding table, the surface text budgets, the component canon, the battle turn grammar. Outranks any prompt on presentation | Before changing anything a player looks at |
+| [`design/playtest-log.md`](design/playtest-log.md) | The observations that are allowed to amend the bible. One row per observation, dated, with a tester count | Proposing an amendment, or checking whether one is earned |
 | [`spec/`](spec/) | The prompts and design documents themselves, verbatim | Its README says which are live |
 
 ### Where two files touch the same fact
@@ -917,6 +924,23 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+0. **The design bible is live and nothing has been built against it yet.**
+   [`design/design-bible.md`](design/design-bible.md) landed 2026-09-19 as a
+   permanent document and `../CLAUDE.md` now defers to it on presentation. **It
+   is a document-only change: no source file moved, no version axis moved, no
+   surface changed.** So the tree does not yet satisfy it, and the gap is the
+   bible's own milestone M0: **M0.1** the text census, which measures words at
+   rest per surface against the budgets in its section 4; **M0.2** the glyph
+   inventory and the redundancy audit, which lists every attribute rendered
+   twice on one surface; **M0.3** the four hedge-word strings, which are the
+   same four the invariant register below has carried since 2026-09-14 and are
+   now named in the bible's section 8. Two further known gaps, neither of them
+   defects until a milestone claims them: density modes still default to
+   something other than Pocket (R6), and coach marks still force Detailed per
+   screen, a rule R6 deletes when Pocket lands. **Nothing here is retuned or
+   rewritten on the bible's arrival.** Each closes in its own prompt, committed
+   to `spec/` first like any other.
 
 0. **The baseline may be making itself worse with every move it takes.**
    `greedyMoveToReplace` (`scripts/sim.ts`) and `defaultMoveReplacement`
