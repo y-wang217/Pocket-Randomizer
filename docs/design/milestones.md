@@ -42,11 +42,31 @@ status need no glyph, type has a drawn set already, category has none), M2.1 has
 two R3 collisions to resolve before it mounts anything, and M4.1 has a
 vocabulary collision that would cost four facts if it is walked into.
 
+**M0.1 is shipped**, and [`text-census.md`](text-census.md) is the before column
+every later item is measured against. Rebuild it with `npm run census`; the
+`census` leg of `npm run check` prints the delta and cannot fail the run. Four
+readings worth carrying forward:
+
+- **Every decision surface is over budget, most of them by an order of
+  magnitude.** Pocket, less the app shell: event 89 against a budget of 40, shop
+  64 against 8 per card, result 48 against 6, pre-gym 41 against 4, and the map
+  node cards carry prose against a budget of nothing at all.
+- **The largest single source is the field label R2 already forbids.** `PP`,
+  `BP`, `HP`, `Lv` and `STAGES` repeat per move and per member, so one fix in
+  M2.1 and M3.1 takes tens of words off six surfaces at once.
+- **`Explain` renders 24 times on the summary**, once per move. Section 7
+  rejects a legend button as "a mechanism the player must know exists"; 24 of
+  them is the same objection at scale, and M1.2 is where it goes.
+- **Density does nothing for the worst surface.** The event screen censuses 95
+  in all three modes. It is the surface furthest over budget and the one mode
+  switching cannot help, which is M5.6's problem and, under D8, a Tier 7 input
+  rather than a licence to move the requirement.
+
 ### Tier 0: measure before touching anything
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M0.1 Text census | ready | — (D2 ruled: count screens and components both) |
+| M0.1 Text census | **done** | — ([`text-census.md`](text-census.md), `npm run census`, `visual/4.10-m0.1`) |
 | M0.2 Glyph and mechanism inventory | **done** | — ([`inventory.md`](inventory.md), `visual/4.10-m0.2`) |
 | M0.3 Close the verdict-copy violations | ready | — (D3 ruled: six lines, no allowlist) |
 
