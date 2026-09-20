@@ -129,6 +129,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the first-run coach mark copy, keyed by screen and mark; read by ui/tutorial.ts and ui/settings.ts only, and a reworded mark must not move the hash',
   },
   {
+    path: 'src/data/glyphFamilies.ts',
+    why: 'the nine glyph-family names of design bible section 2; read by ui/theme/glyphs.ts and ui/settings.ts only, and which symbols a player has been shown cannot change what a seed generates',
+  },
+  {
     path: 'src/data/forbiddenWords.ts',
     why: 'the hedge words no explanation may contain; read by scripts/hedge-lint.ts and its test only, and a word added to a lint cannot change what a seed generates',
   },

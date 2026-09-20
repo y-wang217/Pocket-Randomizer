@@ -116,13 +116,28 @@ not a tooltip, so the item's done-when is met without touching it — but it is 
 help button on any ordinary reading of R5, and the census counts 24 of them on
 the summary. Recommended to fold into M2.1, which rebuilds that card anyway.
 
+**M1.3 is shipped, and Tier 1 is closed.** A count per family beside the
+tutorial flags, incremented once per screen rather than once per render — a
+battle screen draws a type chip four times and re-draws itself every turn, and
+counting either would put a player past R7's third exposure before they had
+read anything. The set of families already counted on this screen is not
+persisted, so a reload is a fresh arrival at whatever screen it lands on. The
+tutorial reset control clears the counts too, because section 7 gives coach
+marks, exposure labels and inspect one job each and a control that reset a
+third of onboarding would be a control that lies about what it does.
+
+Nothing renders a label: that is M6.1. The nine family names moved to
+`data/glyphFamilies.ts` so the store could read the roster without importing
+the drawings, which M1.1's own test forbids — and it is where M6.1's labels
+will be keyed from.
+
 ### Tier 1: foundations
 
 | Item | Status | Blocked by |
 |---|---|---|
 | M1.1 Glyph sheet | **done** | — (42 glyphs, `npm run glyphs`, [report](../visual/reports/m1.1-glyph-sheet.md), `visual/4.10-m1.1`) |
 | M1.2 One inspect layer | **done** | — (D4 ruled; 18 mount points, archetype excepted. `visual/4.10-m1.2`) |
-| M1.3 Exposure store | open | — |
+| M1.3 Exposure store | **done** | — (`visual/4.10-m1.3`) |
 
 ### Tier 2: the move card
 

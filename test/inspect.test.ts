@@ -33,10 +33,18 @@ function release(element: HTMLElement): void {
   element.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
 }
 
-function mount(): { host: HTMLElement; layer: ReturnType<typeof createTooltips>; done: () => void } {
+/**
+ * A layer with a hold of zero, so a press resolves on the next macrotask
+ * instead of making the suite wait out a real 450ms.
+ *
+ * The two jank cases pass a real threshold instead, because they are *about*
+ * the threshold: with a hold of zero every click is a held one by definition,
+ * and the discrimination under test would be vacuous.
+ */
+function mount(holdMs = 0): { host: HTMLElement; layer: ReturnType<typeof createTooltips>; done: () => void } {
   const host = document.createElement('div');
   document.body.append(host);
-  const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
+  const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: holdMs });
   return {
     host,
     layer,
@@ -172,6 +180,73 @@ describe('R5 enforcement: a long press on a move button spends no turn', () => {
     button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(submitted, 'a long press submitted the move').toBe(0);
+    done();
+  });
+
+  /**
+   * The jank case, and it is the one that costs a turn.
+   *
+   * The hold timer runs on the main thread, so a stall long enough to delay a
+   * `pointerup` lets it fire for a press the browser generated milliseconds
+   * apart. Eating *that* click would lose the move the player chose, silently,
+   * on exactly the frame where they are least likely to forgive it.
+   *
+   * `timeStamp` is set when the browser makes an event, not when JS receives
+   * it, so the press can be measured even though the dispatch was late. Here
+   * the timer is allowed to fire and the click still reports a five-millisecond
+   * press: it goes through, and the panel that opened is closed again.
+   */
+  it('lets a fast tap through even when the hold timer beat it to the thread', async () => {
+    const { host, layer, done } = mount(50);
+
+    const button = document.createElement('button');
+    button.dataset['tip'] = 'move:flamethrower';
+    let submitted = 0;
+    button.addEventListener('click', () => {
+      submitted += 1;
+    });
+    host.append(button);
+
+    // A press the browser made at t=1000, released at t=1005 — but dispatched
+    // so late that the hold fired first.
+    const down = new MouseEvent('pointerdown', { bubbles: true });
+    Object.defineProperty(down, 'timeStamp', { value: 1000 });
+    button.dispatchEvent(down);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(layer.root.hidden, 'the hold should have fired').toBe(false);
+
+    const click = new MouseEvent('click', { bubbles: true });
+    Object.defineProperty(click, 'timeStamp', { value: 1005 });
+    button.dispatchEvent(click);
+
+    expect(submitted, 'a five-millisecond tap lost the turn').toBe(1);
+    expect(layer.root.hidden, 'the panel should have closed behind the tap').toBe(true);
+    done();
+  });
+
+  it('still eats the click after a real hold', async () => {
+    const { host, layer, done } = mount(50);
+
+    const button = document.createElement('button');
+    button.dataset['tip'] = 'move:flamethrower';
+    let submitted = 0;
+    button.addEventListener('click', () => {
+      submitted += 1;
+    });
+    host.append(button);
+
+    const down = new MouseEvent('pointerdown', { bubbles: true });
+    Object.defineProperty(down, 'timeStamp', { value: 1000 });
+    button.dispatchEvent(down);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(layer.root.hidden).toBe(false);
+
+    // Released two seconds later: a hold by anyone's clock.
+    const click = new MouseEvent('click', { bubbles: true });
+    Object.defineProperty(click, 'timeStamp', { value: 3000 });
+    button.dispatchEvent(click);
+
+    expect(submitted, 'a two-second hold spent the turn').toBe(0);
     done();
   });
 

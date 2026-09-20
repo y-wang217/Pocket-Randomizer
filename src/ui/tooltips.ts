@@ -316,6 +316,16 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   let holdTimer: ReturnType<typeof setTimeout> | null = null;
   /** Where the finger went down, so a scroll can cancel the hold. */
   let holdFrom: { x: number; y: number } | null = null;
+  /**
+   * When the press began, by the *event's* clock rather than the timer's.
+   *
+   * A blocked main thread delays dispatch but not generation: a tap the
+   * browser made 5ms apart still reports 5ms apart in `timeStamp`, however
+   * late JS gets to see it. That is what tells a real hold from a fast tap
+   * that arrived after a long stall, and it is the difference between
+   * inspecting and losing the player's turn. See `onClick`.
+   */
+  let holdDownAt = 0;
   /** True once a hold has opened a panel, so the release knows to close it. */
   let openedByHold = false;
   /**
@@ -341,6 +351,7 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     const trigger = triggerFor(event.target);
     if (!trigger) return;
     holdFrom = { x: event.clientX, y: event.clientY };
+    holdDownAt = event.timeStamp;
     holdTimer = setTimeout(() => {
       holdTimer = null;
       openedByHold = true;
@@ -384,8 +395,26 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   const onClick = (event: MouseEvent): void => {
     if (suppressClick) {
       suppressClick = false;
-      event.preventDefault();
-      event.stopPropagation();
+      /*
+       * **Only eat a click the player actually held for.**
+       *
+       * The timer fires on the main thread, so a stall long enough to delay a
+       * `pointerup` lets it fire for a press the browser generated in five
+       * milliseconds — and eating *that* click costs the player the turn they
+       * chose, silently, on exactly the slow frame where they are least likely
+       * to forgive it. `timeStamp` is set when the browser makes the event,
+       * not when JS receives it, so this measures the press and not the jank.
+       *
+       * Under the threshold the panel that just opened is closed again and the
+       * click goes through: the player tapped, and a tap selects.
+       */
+      if (event.timeStamp - holdDownAt >= tuning.inspectHoldMs) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      openedByHold = false;
+      close();
       return;
     }
     // A tap elsewhere dismisses a panel the keyboard opened. Clicks inside the
