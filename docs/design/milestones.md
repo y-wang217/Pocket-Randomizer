@@ -96,12 +96,32 @@ filled-against-outlined: **0.262**. No bible amendment was needed; section 2 say
 what a filled pip means and nothing about how an empty one is drawn. Nothing is
 mounted on any screen, and a test walks `src/ui/` to prove it.
 
+**M1.2 is shipped, and it found a dead trigger.** Inspect is a long press per
+R5: hold opens, release closes, tap selects. The battle move button is its own
+trigger now and the `?` chip on its PP line is gone, which is one fewer
+mechanism a player has to know exists. Eighteen of section 3's nineteen inspect
+rows open — archetype is excepted by the table itself and by D4 — and five of
+them had no panel at all before this item: base power, PP, coverage, capability
+and tier.
+
+**`flag` was missing from the tooltip layer's allowlist.** Release C gave every
+post-resolution flag a `data-tip` and wrote its renderer, and never added the
+kind to `KINDS`, which `render` checks before it reaches the switch. So every
+flag word on the battle screen has been a focusable trigger that opened nothing
+since Release C shipped. Fixed, and the union, the switch and the allowlist are
+now reconciled by a compile-time guard rather than by three places agreeing.
+
+**One thing it did not do: D15.** The `Explain` expander is an inline collapse,
+not a tooltip, so the item's done-when is met without touching it — but it is a
+help button on any ordinary reading of R5, and the census counts 24 of them on
+the summary. Recommended to fold into M2.1, which rebuilds that card anyway.
+
 ### Tier 1: foundations
 
 | Item | Status | Blocked by |
 |---|---|---|
 | M1.1 Glyph sheet | **done** | — (42 glyphs, `npm run glyphs`, [report](../visual/reports/m1.1-glyph-sheet.md), `visual/4.10-m1.1`) |
-| M1.2 One inspect layer | open | — (D4 ruled: 17 mount points) |
+| M1.2 One inspect layer | **done** | — (D4 ruled; 18 mount points, archetype excepted. `visual/4.10-m1.2`) |
 | M1.3 Exposure store | open | — |
 
 ### Tier 2: the move card

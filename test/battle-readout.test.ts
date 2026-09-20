@@ -31,6 +31,7 @@ import {
   stageMultiplier,
 } from '../src/data/statStages';
 import { MOVE_FACT_COLUMN, MOVE_FACT_INFO } from '../src/data/moveFactInfo';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { BAND_INFO, BAND_PIPS } from '../src/data/bandInfo';
 import { bandChip, stageChip } from '../src/ui/chip';
 import { moveFactStrip } from '../src/ui/scene';
@@ -317,17 +318,26 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
    * showing the marker would pass every DOM assertion here and lose the facts
    * on the one mode that needs them most.
    */
-  it('opens the whole stage set from the collapsed marker in one tap', () => {
+  /*
+   * **The gesture changed under this test, and the substance did not.**
+   * M1.2 made inspect a long press, per design bible R5, so the tap this test
+   * used to perform now selects rather than opens. What it asserts — that every
+   * fact the inline chips carried is in the panel — is unchanged.
+   */
+  it('opens the whole stage set from the collapsed marker on a long press', async () => {
     const host = document.createElement('div');
     document.body.append(host);
-    const layer = createTooltips(host);
+    // Hold of zero, so the press resolves on the next macrotask instead of
+    // making the suite wait out a real 450ms.
+    const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
 
     const marker = document.createElement('span');
     marker.dataset['tip'] = 'stages:active';
     marker.dataset['detail'] = ['Atk\t2.0x\t+2', 'Spe\t0.7x\t-1', 'Eva\t1.3x\t+1'].join('\n');
     host.append(marker);
 
-    marker.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    marker.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const text = layer.root.textContent ?? '';
     // Every fact the inline chips would have carried, in the panel one tap
     // away: the stat, the multiplier and the stage.

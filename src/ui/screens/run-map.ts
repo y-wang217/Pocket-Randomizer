@@ -448,6 +448,8 @@ function renderNode(
    */
   if (node.tier) {
     const badge = tierChip(node.tier);
+    // Section 3's tier row: the definition, from `data/tierInfo.ts`. M1.2.
+    badge.dataset['tip'] = `tier:${node.tier}`;
     if (phase === 'current') badge.dataset['tutorial'] = 'tier';
     label.append(document.createTextNode(' '), badge);
   }
@@ -541,8 +543,18 @@ function renderNode(
      * node draws on; it does not say the node is worth the detour, and the
      * screen still never orders two nodes against each other.
      */
+    /*
+     * **Section 3's capability row, mounted by M1.2.** The chip said what the
+     * gate asks for and nothing said what satisfies it, so a player who did
+     * not already know which types carry Surf had no way to find out from the
+     * screen that was gating them on it. The panel is two lookups — the name
+     * from `data/eventCopy.ts`, the types from `data/capabilities.ts` — and it
+     * writes nothing of its own.
+     */
+    const requirement = capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`);
+    requirement.dataset['tip'] = `capability:${node.event.requires}`;
     gate.append(
-      capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`),
+      requirement,
       capabilityBandChip(BAND_LABELS[band]),
       neutralChip(RARITY_LABELS[node.event.rarity], 'rarity'),
     );

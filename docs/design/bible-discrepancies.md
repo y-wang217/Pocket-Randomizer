@@ -30,6 +30,7 @@ which blocks everything.
 | D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
 | D13 | process | "One item, one PR" against the single 4.10 pull request | **2026-09-19** |
 | D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
+| D15 | M1.2 (closed around it) | The `Explain` expander is a second explanation mechanism, and no item removes it | **open** |
 
 ## Rulings, 2026-09-19
 
@@ -643,3 +644,56 @@ in `test/event-copy.test.ts` as `KNOWN_UNFIXED` and asserted to be *exactly*
 those two, so a third violation fails the test rather than joining them, and a
 fix fails it too until the list is emptied. The bible was not amended: section 8
 is right and the tree is wrong, which is the correct way round.
+
+
+---
+
+## D15. The `Explain` expander is a second explanation mechanism
+
+**Opened 2026-09-20 by M1.2. M1.2 shipped around it; nothing is blocked.**
+
+R5: *"There is exactly one mechanism."* Its forbids list names *"a type wheel, a
+band tooltip, a move popup, a legend screen, a help button, or a verbosity mode
+as a way to see an explanation."*
+
+M1.2 folded the first two and gave the battle move button its own long press, so
+the tooltip layer is now the only *tooltip* mechanism and the item's done-when
+is satisfied as written. But the tree holds a third thing R5's list reaches:
+
+> **`ui/move-explanation.ts`** renders a button reading `Explain` and an inline
+> panel under every move card outside a battle. One call site,
+> `moveCard` in `ui/scene.ts`, so it appears on all six card surfaces.
+
+It is not a tooltip — it is an inline collapse — which is why M1.2's done-when
+can be met without removing it. It is, on any ordinary reading, a help button.
+
+**What the census says it costs.** `Explain` renders **24 times on the summary
+screen** and four times on every party card. Section 7 rejects a legend button
+as *"a mechanism the player must know exists"*, and twenty-four of them is that
+objection at scale rather than a different one.
+
+**Why M1.2 did not simply delete it.** Two reasons, and the second is the real
+one:
+
+1. The item names the type wheel and the band tooltip. It does not name this,
+   and an item that quietly widened its own scope to a third mechanism would be
+   the thing the standing rules forbid.
+2. **The expander is the keyboard path.** It is a real `<button>` with
+   `aria-controls`; long press is not a keyboard gesture. The tooltip layer does
+   answer Enter and Space on a focusable trigger, so the replacement exists —
+   but a move *card* outside a battle is not focusable today, and making every
+   card a focusable `role="button"` on the way past is an accessibility change
+   that deserves its own item rather than a paragraph in this one.
+
+**Options.**
+
+1. **A Tier 2 item, beside M2.1.** M2.1 rebuilds the move card face anyway, and
+   the card is exactly where the focusability question has to be answered.
+   Delete the expander there, make the card the trigger, and take the 24 words
+   off the summary in the same pass that takes off the labels.
+2. **Its own item now**, before Tier 2, since it is a live R5 violation.
+3. **Amend R5** to permit an inline expander beside the one tooltip layer. The
+   honest version of "we are keeping it", and it needs a disconfirmer.
+
+**Recommendation: 1.** It is the same file, the same surfaces and the same
+census delta as M2.1, and splitting them means measuring the move card twice.
