@@ -62,13 +62,30 @@ readings worth carrying forward:
   switching cannot help, which is M5.6's problem and, under D8, a Tier 7 input
   rather than a licence to move the requirement.
 
+**M0.3 is shipped, and Tier 0 is closed.** The count was nine, not six: three
+more lines turned up the moment **worth** joined the word list, which section 8
+had always named and the shipped twelve-word list had never carried. The rule
+did not change; its enforcement caught up. `scripts/hedge-lint.ts` holds it,
+`npm run hedge` runs it, `test/hedge-lint.test.ts` proves it can fail, and it
+reads string literals rather than comments — the first cut read whole files,
+returned 31 hits of which 3 were real, and flagged the comment M0.3 had just
+written explaining the rule. `contentHash` holds at `d4e080`.
+
+**Two more it did not fix, and one open row.** Widening the list also made an
+existing test see two event sentences in violation. They live in
+`data/events.ts`, which is inside `contentHash`, so two words of flavour text
+would refuse every recorded seed and force the visual baseline to be
+re-recorded — the trade D12 was ruled against four hours earlier. They are
+listed in `test/event-copy.test.ts` as `KNOWN_UNFIXED`, asserted to be exactly
+those two so nothing can join them, and the decision is **D14**.
+
 ### Tier 0: measure before touching anything
 
 | Item | Status | Blocked by |
 |---|---|---|
 | M0.1 Text census | **done** | — ([`text-census.md`](text-census.md), `npm run census`, `visual/4.10-m0.1`) |
 | M0.2 Glyph and mechanism inventory | **done** | — ([`inventory.md`](inventory.md), `visual/4.10-m0.2`) |
-| M0.3 Close the verdict-copy violations | ready | — (D3 ruled: six lines, no allowlist) |
+| M0.3 Close the verdict-copy violations | **done** | — (D3 ruled six; it was **nine**. `npm run hedge`, `visual/4.10-m0.3`) |
 
 ### Tier 1: foundations
 

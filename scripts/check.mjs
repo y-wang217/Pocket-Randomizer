@@ -91,6 +91,21 @@ const LEGS = [
     command: NPX,
     args: ['eslint', '.'],
   },
+  /*
+   * The hedge-word lint. **Milestone M0.3**, holding design bible section 8.
+   *
+   * Its own leg rather than a line in the suite, so a violation prints the
+   * file, the line and the word instead of arriving inside a vitest summary.
+   * `test/hedge-lint.test.ts` asks the same question under `npm test`, because
+   * a rule only a separate command holds is held only when somebody remembers
+   * the separate command.
+   */
+  {
+    name: 'hedge',
+    what: 'no hedge word in the explanation tables',
+    command: NPX,
+    args: ['vite-node', 'scripts/hedge-lint.ts'],
+  },
   {
     name: 'typecheck',
     what: 'tsc --noEmit',

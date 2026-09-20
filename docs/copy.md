@@ -439,7 +439,7 @@ Source: `src/data/categoryInfo.ts` · 6 strings
 | `special · mechanics` | Damage is calculated from your Sp. Atk against the defender’s Sp. Def. Both are on the stat panels above. |  |
 | `special · advice` | Compare your SpA with their SpD. A burn does not weaken these, which is often the reason to reach for one. |  |
 | `status · mechanics` | Deals no damage at all. These inflict conditions, change stat stages, heal, or set something up. |  |
-| `status · advice` | Spending a turn to gain an advantage. Worth it when you can survive the reply — check the Speed row before committing. |  |
+| `status · advice` | Costs the turn it is used and deals no damage. What it sets up applies from the next turn, so the reply lands first unless this moves first. |  |
 
 ### 12. Battle — statuses
 
@@ -452,12 +452,12 @@ Source: `src/data/statusInfo.ts` · 12 strings
 | Key | Text | Rewrite |
 |---|---|---|
 | `brn · mechanics` | Burn. Loses 1/16 of max HP at the end of every turn, and its physical moves deal half damage. Special moves are unaffected. |  |
-| `brn · advice` | Attack specially if you can — a burn barely touches a special attacker. Burning an opposing physical attacker is often worth more than the chip damage. |  |
+| `brn · advice` | Special moves keep their full damage, so a special attacker loses only the 1/16 each turn. On a physical attacker the halved damage lasts as long as the burn does. |  |
 | `par · mechanics` | Paralysis. Speed is halved, applied after every other Speed change, and there is a 1-in-4 chance each turn of being unable to move at all. |  |
 | `par · advice` | Check the Speed row: halving often flips who moves first, which is the real cost. Do not count on a turn going through. |  |
 | `psn · mechanics` | Poison. Loses 1/8 of max HP at the end of every turn. The rate never changes. |  |
 | `psn · advice` | A clock, not a crisis. Eight turns from full is fatal, so count how many turns you actually need and stop worrying about the rest. |  |
-| `tox · mechanics` | Bad poison. Loses 1/16 of max HP the first turn, 2/16 the next, 3/16 the next, climbing every turn. The counter resets if it switches out. |  |
+| `tox · mechanics` | Toxic. Loses 1/16 of max HP the first turn, 2/16 the next, 3/16 the next, climbing every turn. The counter resets if it switches out. |  |
 | `tox · advice` | The opposite of ordinary poison: harmless now and lethal in five turns. Win quickly or switch, and switching is what resets the counter. |  |
 | `slp · mechanics` | Sleep. Cannot move for 1 to 3 turns, decided when it falls asleep. There is no way to see how many are left. |  |
 | `slp · advice` | A free turn or three, and you do not know which. Set up if you are ahead; do not spend your last PP on a guess. |  |
@@ -473,11 +473,11 @@ Source: `src/data/statusInfo.ts` · 36 strings
 | Key | Text | Rewrite |
 |---|---|---|
 | `confusion · mechanics` | Confusion. Lasts 1 to 4 turns. Each turn there is a 33% chance of hitting itself instead — a 40-power physical hit that ignores type entirely. |  |
-| `confusion · advice` | Two thirds of your turns still land. Switching clears it outright, which is usually better than rolling the dice three times. |  |
+| `confusion · advice` | Two thirds of turns still land. Switching out clears it outright; staying in rolls the 33% again every turn until it ends. |  |
 | `substitute · mechanics` | Substitute. A decoy with 1/4 of the user’s max HP, taken out of its own HP. It absorbs damage and status until it breaks. Sound moves go straight through it. |  |
 | `substitute · advice` | Break it or ignore it — chipping at it wastes turns. A sound move such as Boomburst or Hyper Voice bypasses it completely. |  |
 | `leechseed · mechanics` | Leech Seed. Loses 1/8 of max HP at the end of every turn, and the Pokemon that seeded it heals by the same amount. |  |
-| `leechseed · advice` | Costs you twice over, so it is worse than poison at the same rate. Switching removes it; Grass types cannot be seeded at all. |  |
+| `leechseed · advice` | Drains at ordinary poison’s rate and heals the seeder by the same amount, so the gap closes twice as fast. Switching out removes it, and Grass types cannot be seeded at all. |  |
 | `flinch · mechanics` | Flinch. Loses this turn entirely. It only happens when the flincher moves first, and it never lasts more than one turn. |  |
 | `flinch · advice` | Nothing to do about it once it lands. It is the hidden cost of being slower — check the Speed row. |  |
 | `trapped · mechanics` | Trapped. Cannot switch out. Moves are still available. |  |
@@ -487,11 +487,11 @@ Source: `src/data/statusInfo.ts` · 36 strings
 | `taunt · mechanics` | Taunt. Cannot select status moves for 3 turns. Damaging moves are unaffected. |  |
 | `taunt · advice` | Your setup and healing are gone for three turns. Attack, or switch out — leaving the field clears it. |  |
 | `encore · mechanics` | Encore. Forced to repeat its last move for 3 turns, or until that move runs out of PP. |  |
-| `encore · advice` | Brutal if it catches a status move. Switching clears it, and is usually the answer if the locked move does nothing useful. |  |
+| `encore · advice` | The locked move repeats whatever it does, a status move that has already resolved included. Switching out clears it. |  |
 | `disable · mechanics` | Disable. One move — the last one used — cannot be selected for 4 turns. |  |
 | `disable · advice` | Always takes the last move used, never one of the other three. Switching clears it. |  |
 | `attract · mechanics` | Infatuation. A 50% chance of being unable to move each turn. Only works between opposite genders. |  |
-| `attract · advice` | Half your turns, gone. Switching clears it, and it is worth the switch almost every time. |  |
+| `attract · advice` | Half the turns spent on the field are lost to it. Switching out clears it, and it cannot be reapplied by a Pokemon of the same gender. |  |
 | `curse · mechanics` | Cursed. Loses 1/4 of max HP at the end of every turn. Only a Ghost type can apply it, and it costs the user half its own HP. |  |
 | `curse · advice` | The fastest clock in the game — four turns from full. Switch out; it does not follow you. |  |
 | `nightmare · mechanics` | Nightmare. Loses 1/4 of max HP at the end of every turn, but only while asleep. |  |
@@ -501,13 +501,13 @@ Source: `src/data/statusInfo.ts` · 36 strings
 | `perishsong · mechanics` | Perish Song. Faints in 3 turns. Every Pokemon on the field that heard it is on the same clock. |  |
 | `perishsong · advice` | Switching is the only escape, and it resets the count. If you have no bench, you have three turns to win. |  |
 | `torment · mechanics` | Torment. Cannot select the same move twice in a row. |  |
-| `torment · advice` | You need a second move worth using. Switching clears it and resets what counts as your last move. |  |
+| `torment · advice` | Every second turn is spent on a different move than the one before it. Switching out clears it and resets what counts as the last move used. |  |
 | `aquaring · mechanics` | Aqua Ring. Recovers 1/16 of max HP at the end of every turn. Lasts until it leaves the field. |  |
 | `aquaring · advice` | Free healing, and it stacks with anything else. Nothing to do but let it run. |  |
 | `ingrain · mechanics` | Ingrain. Recovers 1/16 of max HP at the end of every turn — but cannot switch out, and becomes hittable by Ground moves. |  |
 | `ingrain · advice` | A trade: healing for mobility. Fine against something you can outlast, dangerous against anything that can switch in on you. |  |
 | `focusenergy · mechanics` | Focused. Critical-hit ratio raised by two stages, which is roughly a 50% crit rate. |  |
-| `focusenergy · advice` | Attack. Crits ignore the target’s defensive boosts, so it is strongest into a wall. |  |
+| `focusenergy · advice` | A critical hit ignores the target’s defensive stat stages, so a raised Defense or Special Defense does not reduce it. |  |
 
 ### 14. Battle — what just happened
 
@@ -620,7 +620,7 @@ Source: `src/data/bandInfo.ts` · 15 strings
 | `band 3 · text` | The middle of the table, and the widest part of it. Most of what the middle segments field. |  |
 | `band 4 · label` | Band 4 |  |
 | `band 4 · range` | 91 to 110 base power |  |
-| `band 4 · text` | The back half of the run. A risky node reaches here before the segments do. |  |
+| `band 4 · text` | The back half of the run. A hard node reaches here before the segments do. |  |
 | `band 5 · label` | Band 5 |  |
 | `band 5 · range` | 111 base power and over |  |
 | `band 5 · text` | The top of the table. Mostly moves that cost something to use. The last segments field these, and the last gym pays one. |  |
@@ -967,7 +967,7 @@ First run, one screen at a time. Replayed from the header.
 
 Source: `src/data/tutorial.ts` · 29 strings
 
-> Linted against a forbidden-word list in `test/tutorial.test.ts`: `best`, `should`, `try`, `recommend`, `recommended`, `good`, `bad`, `better`, `worse`, `strong`, `weak`, `usually`.
+> Linted against a forbidden-word list in `test/tutorial.test.ts`: `best`, `should`, `try`, `recommend`, `recommended`, `good`, `bad`, `better`, `worse`, `strong`, `weak`, `usually`, `risky`, `safe`, `worth`.
 
 | Key | Text | Rewrite |
 |---|---|---|

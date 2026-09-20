@@ -18,7 +18,7 @@ which blocks everything.
 |---|---|---|---|
 | D1 | M0.1, then M3.3, M5.3, M5.4, M5.5 | The budget numbers do not reconcile with the counting rule | **2026-09-19** |
 | D2 | M0.1 | The census counts screens; the budgets are written per component | **2026-09-20** |
-| D3 | M0.3 | There are six verdict-copy violations, not four, and one false positive | **2026-09-19** |
+| D3 | M0.3 | There are six verdict-copy violations, not four, and one false positive | **2026-09-19**; built 09-20, and it was **nine** |
 | D4 | M1.2 | The inspect acceptance test is narrower than R5 | **2026-09-19** |
 | D5 | M5.4, M6.1 | The coverage rows need a tenth glyph family | **2026-09-19** |
 | D6 | M3.1 | The component canon omits the priority chevron that R9 and section 6 require | **2026-09-19** |
@@ -29,6 +29,7 @@ which blocks everything.
 | D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal | **2026-09-19** |
 | D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
 | D13 | process | "One item, one PR" against the single 4.10 pull request | **2026-09-19** |
+| D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
 
 ## Rulings, 2026-09-19
 
@@ -41,7 +42,7 @@ bible amendments they produced are Rev 2, marked inline in
 | Row | Ruling | Where it landed |
 |---|---|---|
 | D1 | Budgets are ceilings; the four milestone equalities become "at or under". Counting rule stands. | Bible section 4, new paragraph. Milestone M3.3, M5.3, M5.4, M5.5 done-when |
-| D3 | Fix all six. Rename `statusInfo.ts:88` to "Toxic" so the lint needs no allowlist. Widen the word list with risky, safe, worth, drop its tutorial scope, point it at `src/data/*Info.ts`. | Bible section 8. Milestone M0.3 |
+| D3 | Fix all six. Rename `statusInfo.ts:88` to "Toxic" so the lint needs no allowlist. Widen the word list with risky, safe, worth, drop its tutorial scope, point it at `src/data/*Info.ts`. **Building it found three more: the count is nine.** | Bible section 8. Milestone M0.3 |
 | D4 | The acceptance test enumerates all 17 inspect rows of section 3, archetype excepted. | Milestone M1.2 done-when |
 | D5 | No tenth family. The plus and minus signs are permanent from day one. Section 9 loses "after the label fades"; the fallback is "add the two words". | Bible sections 3 and 9. Milestone M5.4 loses its label line |
 | D6 | Add the chevron to the Pokemon panel. | Bible section 5 |
@@ -182,6 +183,36 @@ adding the lint leaves the lint failing on three more.
    Touches a player-facing name for a lint's convenience.
 
 **Recommendation: 1.**
+
+### What building it found: nine, not six
+
+**2026-09-20, M0.3.** The ruling was carried out and the count moved again. The
+six above are right, and three more exist that neither the bible nor this row
+had counted:
+
+| Line | Text | Why it was missed |
+|---|---|---|
+| `statusInfo.ts:72` | "Burning an opposing physical attacker is often **worth** more than the chip damage." | `worth` |
+| `statusInfo.ts:202` | "it is **worth** the switch almost every time" | `worth` |
+| `statusInfo.ts:231` | "You need a second move **worth** using." | `worth` |
+
+All three turn on one word. Section 8 names **worth** in its own hedge list, and
+the twelve-word list shipped in `data/tutorial.ts` did not carry it — so the
+rule had always forbidden these three lines and the only thing enforcing the
+rule had never been able to see them. D3's instruction to widen the list is
+what surfaced them. The rule did not change; its enforcement caught up.
+
+Recorded here rather than treated as scope creep: the ruling said fix the
+violations, and these are violations of the sentence the ruling was
+interpreting.
+
+**One decision taken while building, and it is in the bible now.** The first
+lint read whole files and returned 31 hits, of which 3 were real. The other 28
+were doc comments explaining why hedge words are banned — including the comment
+M0.3 had just written above the Toxic rename. A comment is not a surface, and a
+lint that cannot tell the difference makes the prose documenting a rule illegal
+under it. The lint reads string literals, via TypeScript's own parser, and
+section 8 says so.
 
 **Already in the tree, and M0.3 should extend rather than invent it:**
 `src/data/tutorial.ts:335` exports `TUTORIAL_FORBIDDEN_WORDS`, a twelve-word list
@@ -549,3 +580,66 @@ reachable from a battle move card and nowhere else — a gym leader's type, a
 locale's types, a threat's type and an item's boosted type are inert. So M1.2's
 step one is complete and what remains is deleting the wheel as a separate
 mechanism. No ruling needed; the item's text is stale, not wrong.
+
+
+---
+
+## D14. Two event sentences break section 8, and fixing them moves `contentHash`
+
+**Opened 2026-09-20 by M0.3. M0.3 shipped around it; nothing else is blocked.**
+
+Widening the forbidden-word list with **worth** — which section 8 names and the
+shipped twelve-word list had never carried — made an existing test,
+`test/event-copy.test.ts`, see two sentences that have been in violation since
+they were written:
+
+| Where | Sentence |
+|---|---|
+| `forest-thornwall`, safe hint | "The detour is slow and passes a grove **worth** passing." |
+| `marsh-leech-bed`, hook | "A leech bed lying over something **worth** having." |
+
+Both are player-facing event copy. Section 8 forbids the word on any surface,
+so both should be rewritten, and the rewrite is two minutes of work.
+
+**The cost is not the rewrite.** They live in `src/data/events.ts`, which is
+inside `contentHash`: `src/core/events.ts:72` imports it, so the mechanical
+exclusion rule in `build-config/content-hash.ts` cannot exclude it. Two words of
+flavour text therefore move the hash from `d4e080`, and that:
+
+- **refuses every seed recorded before it.** That is the hash working as
+  designed, loudly, and it is the whole reason it exists.
+- **forces the visual baseline to be re-recorded.** All six run files under
+  `docs/visual/baseline/` carry the hash, as does `data-digest.txt`. The
+  overnight protocol says the baseline is never regenerated.
+- **contradicts the pin's own comment.** `test/ai-priority.test.ts:415` states
+  that the display split was "the **last** time this number moves for a display
+  edit".
+- **cuts against D12**, which was ruled four hours earlier, on this exact
+  trade, in the other direction: split the file, do not move the hash.
+
+**Options.**
+
+1. **Rewrite and accept one hash move.** Update the pin, re-record the baseline,
+   record it in `generation.md`. Verifiable: the only lines that may change in
+   the baseline are the embedded hash strings, and a diff proves it. Costs every
+   shared seed and one claim in a comment.
+2. **Split, per D12's precedent.** Move event hooks and hints out of
+   `data/events.ts` into `data/eventCopy.ts`, which already exists, is already
+   excluded, and is already described as "the per-band hints and conclusions on
+   the event screen". Then this rewrite and every future one is free. It is a
+   real refactor — `core/events.ts` reads the table — and it moves the hash once
+   on the way through, so it buys the future at the same one-time price as
+   option 1.
+3. **Leave them.** Two known violations ship. The test records them exactly, so
+   nothing hides, but section 8 says never.
+
+**Recommendation: 2**, timed to whenever something else moves the hash anyway,
+or taken on its own as a Tier 5 item beside M5.6 — which is the other item that
+has to touch event copy. Option 1 spends the same price and buys nothing
+permanent.
+
+**What M0.3 did about it.** Nothing, deliberately. The two sentences are listed
+in `test/event-copy.test.ts` as `KNOWN_UNFIXED` and asserted to be *exactly*
+those two, so a third violation fails the test rather than joining them, and a
+fix fails it too until the list is emptied. The bible was not amended: section 8
+is right and the tree is wrong, which is the correct way round.
