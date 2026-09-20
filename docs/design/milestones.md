@@ -37,12 +37,18 @@ went to Rev 2. **D2 and D8 are open**, and they are the only things blocking
 anything: D2 holds M0.1, and with it the whole list, because no tier closes
 without a census. D8 holds M5.6 alone.
 
+**M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
+findings the items downstream depend on: M1.1 is smaller than it reads (band and
+status need no glyph, type has a drawn set already, category has none), M2.1 has
+two R3 collisions to resolve before it mounts anything, and M4.1 has a
+vocabulary collision that would cost four facts if it is walked into.
+
 ### Tier 0: measure before touching anything
 
 | Item | Status | Blocked by |
 |---|---|---|
 | M0.1 Text census | blocked | D2 (census unit) |
-| M0.2 Glyph and mechanism inventory | **in progress** | — |
+| M0.2 Glyph and mechanism inventory | **done** | — ([`inventory.md`](inventory.md), `visual/4.10-m0.2`) |
 | M0.3 Close the verdict-copy violations | ready | — (D3 ruled: six lines, no allowlist) |
 
 ### Tier 1: foundations
