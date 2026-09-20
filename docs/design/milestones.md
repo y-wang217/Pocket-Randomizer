@@ -32,10 +32,9 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Eleven of the thirteen discrepancy rows were ruled 2026-09-19** and the bible
-went to Rev 2. **D2 and D8 are open**, and they are the only things blocking
-anything: D2 holds M0.1, and with it the whole list, because no tier closes
-without a census. D8 holds M5.6 alone.
+**All thirteen discrepancy rows are ruled** — eleven on 2026-09-19, which took
+the bible to Rev 2, and D2 and D8 on 2026-09-20. **Nothing on this list is
+blocked.** Every remaining `open` is waiting on its tier, not on a decision.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -47,7 +46,7 @@ vocabulary collision that would cost four facts if it is walked into.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M0.1 Text census | blocked | D2 (census unit) |
+| M0.1 Text census | ready | — (D2 ruled: count screens and components both) |
 | M0.2 Glyph and mechanism inventory | **done** | — ([`inventory.md`](inventory.md), `visual/4.10-m0.2`) |
 | M0.3 Close the verdict-copy violations | ready | — (D3 ruled: six lines, no allowlist) |
 
@@ -92,7 +91,7 @@ vocabulary collision that would cost four facts if it is walked into.
 | M5.3 Locale card and pre-gym screen | open | — (D1 ruled) |
 | M5.4 Result screen and capture card | open | — (D1, D5 ruled: no label line) |
 | M5.5 Confirm overlays | open | — (D1 ruled) |
-| M5.6 Event screen | **blocked** | D8 (a remedy reserved for amendment) |
+| M5.6 Event screen | open | — (D8 ruled: hold at 40, report, wait for M7.1) |
 
 ### Tier 6: onboarding and density
 

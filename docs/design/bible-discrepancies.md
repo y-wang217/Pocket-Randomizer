@@ -17,13 +17,13 @@ which blocks everything.
 | ID | Blocks | One line | Ruled |
 |---|---|---|---|
 | D1 | M0.1, then M3.3, M5.3, M5.4, M5.5 | The budget numbers do not reconcile with the counting rule | **2026-09-19** |
-| D2 | M0.1 | The census counts screens; the budgets are written per component | open |
+| D2 | M0.1 | The census counts screens; the budgets are written per component | **2026-09-20** |
 | D3 | M0.3 | There are six verdict-copy violations, not four, and one false positive | **2026-09-19** |
 | D4 | M1.2 | The inspect acceptance test is narrower than R5 | **2026-09-19** |
 | D5 | M5.4, M6.1 | The coverage rows need a tenth glyph family | **2026-09-19** |
 | D6 | M3.1 | The component canon omits the priority chevron that R9 and section 6 require | **2026-09-19** |
 | D7 | M4.3 | The flag strip's one word has no budget row | **2026-09-19** |
-| D8 | M5.6 | The item pre-authorises a remedy the bible reserves for amendment | open |
+| D8 | M5.6 | The item pre-authorises a remedy the bible reserves for amendment | **2026-09-20** |
 | D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces | **2026-09-19** |
 | D10 | M6.2, M6.3 | The items are ordered against section 7 | **2026-09-19** |
 | D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal | **2026-09-19** |
@@ -32,8 +32,9 @@ which blocks everything.
 
 ## Rulings, 2026-09-19
 
-Eleven of thirteen closed by the lead designer. **D2 and D8 are open**, so M0.1
-and M5.6 are not built. Each ruling is restated under its own row below; the
+Eleven of thirteen closed 2026-09-19; **D2 and D8 closed 2026-09-20, so all
+thirteen are ruled and no item is blocked.** Each ruling is restated under its
+own row below; the
 bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
@@ -49,6 +50,8 @@ bible amendments they produced are Rev 2, marked inline in
 | D10 | Re-anchor before the default flips. | Bible section 7. Milestone order M6.2 then M6.3 |
 | D11 | A validation cycle is two rounds of the M7.1 protocol, three testers each, one without Pokemon knowledge. | Bible R6 and section 11 |
 | D12 | Split all three per the `displayTuning.ts` precedent, copy into `EXCLUDED`, generation-bearing fields stay. No hash move. | Milestone M4.1, M5.1, M6.1 gates |
+| D2 | **Count both.** Per screen for the 14 screens, per component instance for the six components, one table with a column naming which. (2026-09-20) | Milestone M0.1 done-when |
+| D8 | **Wait for the playtest.** M5.6 holds every event at 40 words; one that cannot fit is reported, not moved, and the remedy waits for M7.1 to observe it. (2026-09-20) | Milestone M5.6 done-when |
 | D13 | Branch shape accepted. | Nothing to rule |
 
 **One note on process, recorded rather than raised.** Section 10.1 says a rule
