@@ -32,20 +32,25 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
+**Eleven of the thirteen discrepancy rows were ruled 2026-09-19** and the bible
+went to Rev 2. **D2 and D8 are open**, and they are the only things blocking
+anything: D2 holds M0.1, and with it the whole list, because no tier closes
+without a census. D8 holds M5.6 alone.
+
 ### Tier 0: measure before touching anything
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M0.1 Text census | blocked | D1 (budgets vs counting rule), D2 (census unit) |
-| M0.2 Glyph and mechanism inventory | ready | — |
-| M0.3 Close the verdict-copy violations | blocked | D3 (six, not four) |
+| M0.1 Text census | blocked | D2 (census unit) |
+| M0.2 Glyph and mechanism inventory | **in progress** | — |
+| M0.3 Close the verdict-copy violations | ready | — (D3 ruled: six lines, no allowlist) |
 
 ### Tier 1: foundations
 
 | Item | Status | Blocked by |
 |---|---|---|
 | M1.1 Glyph sheet | open | — |
-| M1.2 One inspect layer | blocked | D4 (acceptance narrower than R5) |
+| M1.2 One inspect layer | open | — (D4 ruled: 17 mount points) |
 | M1.3 Exposure store | open | — |
 
 ### Tier 2: the move card
@@ -53,44 +58,47 @@ is in its way. `open` means it is ready but its tier is not.
 | Item | Status | Blocked by |
 |---|---|---|
 | M2.1 Move card face | open | — |
-| M2.2 Battle move button | blocked | D9 (two move-button faces vs R6) |
+| M2.2 Battle move button | open | — (D9 ruled: build 2x2, re-measure, rule with the number) |
 | M2.3 Move chip | open | — |
 
 ### Tier 3: panels and party
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M3.1 Pokemon battle panel | blocked | D6 (chevron missing from the canon) |
+| M3.1 Pokemon battle panel | open | — (D6 ruled) |
 | M3.2 Stat block and party row | open | — |
-| M3.3 Teach target screen | blocked | D1 (the decline overlay's figure) |
+| M3.3 Teach target screen | open | — (D1 ruled: at or under 4) |
 
 ### Tier 4: battle feedback
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M4.1 Flag precedence | blocked | D12 (`contentHash`) |
+| M4.1 Flag precedence | open | — (D12 ruled: per-file split) |
 | M4.2 Forecast and feedback vocabulary | open | — |
-| M4.3 Log at rest | blocked | D7 (the flag strip has no budget row) |
+| M4.3 Log at rest | open | — (D7 ruled: the strip has its own row) |
 
 ### Tier 5: remaining surfaces
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M5.1 Reward, shop and TM shelf cards | blocked | D12 (`contentHash`) |
+| M5.1 Reward, shop and TM shelf cards | open | — (D12 ruled) |
 | M5.2 Map node card | open | — |
-| M5.3 Locale card and pre-gym screen | blocked | D1 |
-| M5.4 Result screen and capture card | blocked | D1, D5 (a tenth glyph family) |
-| M5.5 Confirm overlays | blocked | D1 |
-| M5.6 Event screen | blocked | D8 (a remedy reserved for amendment) |
+| M5.3 Locale card and pre-gym screen | open | — (D1 ruled) |
+| M5.4 Result screen and capture card | open | — (D1, D5 ruled: no label line) |
+| M5.5 Confirm overlays | open | — (D1 ruled) |
+| M5.6 Event screen | **blocked** | D8 (a remedy reserved for amendment) |
 
 ### Tier 6: onboarding and density
 
+Order confirmed by D10: M6.2 re-anchors the coach marks **before** M6.3 flips the
+default, and section 7 was amended to say so.
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M6.1 Exposure labels | blocked | D5, D12 |
-| M6.2 Coach marks re-anchored | blocked | D10 (ordered against section 7) |
+| M6.1 Exposure labels | open | — (D5, D12 ruled) |
+| M6.2 Coach marks re-anchored | open | — |
 | M6.3 Pocket default | open | — |
-| M6.4 Retire Simple and Detailed | blocked | D11 (one cycle or two rounds) |
+| M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
 
 ### Tier 7: validation
 
@@ -102,6 +110,8 @@ is in its way. `open` means it is ready but its tier is not.
 ## What the record says that this file does not repeat
 
 The item text, the done-when and the kills-it for every row above. Read them
-from the record before building. Where this file and the record disagree on what
-an item asks for, the record is right; where they disagree on whether it is
-built, this file is.
+from the record before building, and read the ruling in
+[`bible-discrepancies.md`](bible-discrepancies.md) beside it: eight items have a
+done-when the rulings changed, and the record is not edited to match. Where this
+file and the record disagree on what an item asks for, the record plus its
+ruling is right; where they disagree on whether it is built, this file is.

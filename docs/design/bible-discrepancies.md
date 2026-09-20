@@ -14,21 +14,51 @@ the item it blocks is not built.
 Rows are ordered by what they block, not by severity. D1 to D3 block Tier 0,
 which blocks everything.
 
-| ID | Blocks | One line |
+| ID | Blocks | One line | Ruled |
+|---|---|---|---|
+| D1 | M0.1, then M3.3, M5.3, M5.4, M5.5 | The budget numbers do not reconcile with the counting rule | **2026-09-19** |
+| D2 | M0.1 | The census counts screens; the budgets are written per component | open |
+| D3 | M0.3 | There are six verdict-copy violations, not four, and one false positive | **2026-09-19** |
+| D4 | M1.2 | The inspect acceptance test is narrower than R5 | **2026-09-19** |
+| D5 | M5.4, M6.1 | The coverage rows need a tenth glyph family | **2026-09-19** |
+| D6 | M3.1 | The component canon omits the priority chevron that R9 and section 6 require | **2026-09-19** |
+| D7 | M4.3 | The flag strip's one word has no budget row | **2026-09-19** |
+| D8 | M5.6 | The item pre-authorises a remedy the bible reserves for amendment | open |
+| D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces | **2026-09-19** |
+| D10 | M6.2, M6.3 | The items are ordered against section 7 | **2026-09-19** |
+| D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal | **2026-09-19** |
+| D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
+| D13 | process | "One item, one PR" against the single 4.10 pull request | **2026-09-19** |
+
+## Rulings, 2026-09-19
+
+Eleven of thirteen closed by the lead designer. **D2 and D8 are open**, so M0.1
+and M5.6 are not built. Each ruling is restated under its own row below; the
+bible amendments they produced are Rev 2, marked inline in
+[`design-bible.md`](design-bible.md) with the row that produced them.
+
+| Row | Ruling | Where it landed |
 |---|---|---|
-| D1 | M0.1, then M3.3, M5.3, M5.4, M5.5 | The budget numbers do not reconcile with the counting rule |
-| D2 | M0.1 | The census counts screens; the budgets are written per component |
-| D3 | M0.3 | There are six verdict-copy violations, not four, and one false positive |
-| D4 | M1.2 | The inspect acceptance test is narrower than R5 |
-| D5 | M5.4, M6.1 | The coverage rows need a tenth glyph family |
-| D6 | M3.1 | The component canon omits the priority chevron that R9 and section 6 require |
-| D7 | M4.3 | The flag strip's one word has no budget row |
-| D8 | M5.6 | The item pre-authorises a remedy the bible reserves for amendment |
-| D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces |
-| D10 | M6.2, M6.3 | The items are ordered against section 7 |
-| D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal |
-| D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid |
-| D13 | process | "One item, one PR" against the single 4.10 pull request |
+| D1 | Budgets are ceilings; the four milestone equalities become "at or under". Counting rule stands. | Bible section 4, new paragraph. Milestone M3.3, M5.3, M5.4, M5.5 done-when |
+| D3 | Fix all six. Rename `statusInfo.ts:88` to "Toxic" so the lint needs no allowlist. Widen the word list with risky, safe, worth, drop its tutorial scope, point it at `src/data/*Info.ts`. | Bible section 8. Milestone M0.3 |
+| D4 | The acceptance test enumerates all 17 inspect rows of section 3, archetype excepted. | Milestone M1.2 done-when |
+| D5 | No tenth family. The plus and minus signs are permanent from day one. Section 9 loses "after the label fades"; the fallback is "add the two words". | Bible sections 3 and 9. Milestone M5.4 loses its label line |
+| D6 | Add the chevron to the Pokemon panel. | Bible section 5 |
+| D7 | Add a flag strip row, 1 word per hit. Battle screen budget excludes it. | Bible section 4 |
+| D9 | Build the compact 2x2 first, re-measure column mode against it in the same PR, rule with the number. Both branches in the done-when. | Milestone M2.2 |
+| D10 | Re-anchor before the default flips. | Bible section 7. Milestone order M6.2 then M6.3 |
+| D11 | A validation cycle is two rounds of the M7.1 protocol, three testers each, one without Pokemon knowledge. | Bible R6 and section 11 |
+| D12 | Split all three per the `displayTuning.ts` precedent, copy into `EXCLUDED`, generation-bearing fields stay. No hash move. | Milestone M4.1, M5.1, M6.1 gates |
+| D13 | Branch shape accepted. | Nothing to rule |
+
+**One note on process, recorded rather than raised.** Section 10.1 says a rule
+changes only once its disconfirmer has been observed in a playtest. Six of the
+seven Rev 2 amendments change a table, an ordering or a glossary entry that
+disagreed with a rule, and the seventh defines a term a rule already used, so
+none of the twelve rules moved and no disconfirmer was needed. D5 is the closest
+call: it edits a section 9 row, but it edits the row's *premise* (a label that no
+family exists to produce), not the bet it records. The bet is unchanged and still
+falsifiable.
 
 ---
 
