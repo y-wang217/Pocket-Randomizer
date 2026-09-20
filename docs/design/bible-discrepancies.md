@@ -30,13 +30,15 @@ which blocks everything.
 | D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
 | D13 | process | "One item, one PR" against the single 4.10 pull request | **2026-09-19** |
 | D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
-| D15 | M1.2 (closed around it) | The `Explain` expander is a second explanation mechanism, and no item removes it | **open** |
+| D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
+| D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
 
 ## Rulings, 2026-09-19
 
-Eleven of thirteen closed 2026-09-19; **D2 and D8 closed 2026-09-20, so all
-thirteen are ruled and no item is blocked.** Each ruling is restated under its
-own row below; the
+Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. **D15 and
+D16 closed 2026-09-20 opening Tier 2, so fifteen of sixteen rows are ruled and
+nothing on the list is blocked. D14 is the one open row and blocks nothing; it
+is timed with M5.6.** Each ruling is restated under its own row below; the
 bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
@@ -64,6 +66,31 @@ none of the twelve rules moved and no disconfirmer was needed. D5 is the closest
 call: it edits a section 9 row, but it edits the row's *premise* (a label that no
 family exists to produce), not the bet it records. The bet is unchanged and still
 falsifiable.
+
+## Rulings, 2026-09-20, opening Tier 2
+
+D15 and D16 are ruled together because they are one change: the expander is the
+only surviving route to the facts Pocket hides, so removing it and unhiding them
+cannot be two items. D14 stays open and is still nobody's blocker.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D15 | **Fold into M2.1.** The expander goes; the card itself becomes the inspect trigger, in every density mode, which is also the keyboard path it was carrying. | Milestone M2.1 scope |
+| D16 | **Pocket only.** M2.1's "0 words at rest" binds the Pocket face. Detailed and Simple keep their labelled face until M6.4 rules on them with M7.1's evidence. | Milestone M2.1 done-when |
+
+**What D16's ruling closes and what it leaves.** It closes C2. Pocket stops
+hiding base power, the category glyph, the status readout and the fact strip,
+because section 3's face *renders* all four — so building the face is what
+deletes the `display: none` block, not a separate decision. Detailed and Simple
+were never hiding a fact; they label it. Once M2.1 lands, no mode removes a
+fact.
+
+What it leaves is R6's "forbids: shipping two card faces", knowingly and for a
+bounded time. R6's own density ruling is the authority for that: Simple and
+Detailed "stay for one validation cycle and are retired if the disconfirmer in
+section 9 does not fire", and M6.4 is that retirement. **The bible is not
+amended and no rule moved.** M2.1 is scoped to the face R6 already calls the
+one this document specifies.
 
 ---
 
@@ -697,3 +724,76 @@ one:
 
 **Recommendation: 1.** It is the same file, the same surfaces and the same
 census delta as M2.1, and splitting them means measuring the move card twice.
+
+**Ruled 2026-09-20: option 1.** Folded into M2.1, and D16 below is why it could
+not have gone anywhere else.
+
+---
+
+## D16. Pocket reaches its word count by hiding facts, and M2.1 does not say which modes its zero binds
+
+**Opened 2026-09-20 by M2.1, before any code. Ruled the same day.**
+
+Two things, and the second is only visible once the first is.
+
+### The census's 61 is not a compact encoding
+
+`src/ui/styles.css:1088`:
+
+```css
+:root[data-density="pocket"] .move .badge--category,
+:root[data-density="pocket"] .move .move__power,
+:root[data-density="pocket"] .move .move__effect,
+:root[data-density="pocket"] .move .move__facts { display: none; }
+```
+
+The per-component census reads the move card at **477 words in Detailed and 61
+in Pocket**. That gap is not a verbose face against a terse one. Pocket hides
+**base power** — which section 3 makes "the largest text on the card" — along
+with the category glyph, the status readout and the whole fact strip.
+
+That is removal, not re-encoding. **C2**: *"No fact that changes a decision is
+removed. It is re-encoded."* And **R6**: *"Density modes may change spacing,
+stacking and whether a secondary fact sits behind a tap. They never change the
+encoding of a fact."* Hiding is the limit case of changing it.
+
+R6 permits "behind a tap", so the question is whether the tap exists.
+
+### On a card in Pocket, it does not
+
+- The `power:` inspect trigger M1.2 added is set on `.move__power` itself
+  (`scene.ts:1539`, `:1881`) — the element the rule above hides. A hidden
+  element cannot be long-pressed.
+- `moveCard` sets no `dataset.tip` of its own. The card is not an inspect
+  trigger.
+- The battle **button** is fine: it carries `move:${move.id}`
+  (`scene.ts:1638`) and `renderMoveRows` prints every row.
+
+So on a move card in Pocket, the only surviving route to base power is the
+`Explain` expander — **the exact thing D15 proposes to delete**. The CSS
+comment still names the other route, the `?` chip on the battle button, which
+M1.2 removed.
+
+**This is why D15 and D16 are one ruling.** Delete the expander on its own and
+four decision-relevant facts leave the game on six surfaces.
+
+### The second thing: the item does not say which modes it binds
+
+M2.1's done-when is *"census on all six card surfaces reads 0 words at rest"*.
+Simple and Detailed render 477. Nothing in the item says whether its zero is
+the Pocket face or all three, and the two readings are different items — one
+rebuilds a face, the other retires two density modes four tiers before M6.4,
+which R6 gates on playtest evidence that does not exist yet.
+
+**Options.**
+
+1. **Unify the encoding, keep the modes.** One encoding everywhere; density
+   keeps only spacing, stacking and behind-a-tap. Largest M2.1, and it fixes
+   R6's encoding clause across the board.
+2. **Pocket only.** M2.1's zero binds the Pocket face. Detailed and Simple keep
+   their labelled face until M6.4.
+3. **Collapse to one mode now.** Honest zero everywhere, but it decides M6.4
+   without the evidence R6 demands.
+
+**Ruled: option 2.** See the rulings table above for what it closes and what it
+knowingly leaves.

@@ -12,12 +12,17 @@ Same relationship `docs/visual/OVERNIGHT.md` has with its spec copy.
 
 ## How 4.10 is built
 
-`claude/visual-revamp-jb20na` is the 4.10 trunk, cut from `main` at `e16decd`.
-One sub-branch per item, `visual/4.10-<item>`, merged back with a merge commit
-and no squash, so any single item is reverted by reverting its merge. One pull
-request at the end. See D13 in
+One sub-branch per item, `visual/4.10-<item>`, merged back into a tier trunk
+with a merge commit and no squash, so any single item is reverted by reverting
+its merge. One pull request per trunk. See D13 in
 [`bible-discrepancies.md`](bible-discrepancies.md) for why that is compatible
 with the record's "one item, one PR" rule.
+
+**The trunk is per tier group, not per release.** `claude/visual-revamp-jb20na`
+carried Tiers 0 and 1 and shipped as
+[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), merged
+2026-09-20; `main` is `7e0c46d`. Tier 2 is cut fresh from there. A merged pull
+request is finished and does not grow a second tier.
 
 ## The bible wins, and blocked items wait
 
@@ -32,9 +37,11 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**All thirteen discrepancy rows are ruled** — eleven on 2026-09-19, which took
-the bible to Rev 2, and D2 and D8 on 2026-09-20. **Nothing on this list is
-blocked.** Every remaining `open` is waiting on its tier, not on a decision.
+**Fifteen of sixteen discrepancy rows are ruled** — eleven on 2026-09-19, which
+took the bible to Rev 2, then D2 and D8, then D15 and D16 opening Tier 2, all on
+2026-09-20. **Nothing on this list is blocked.** D14 is the one open row, it
+blocks nothing, and it is timed with M5.6. Every remaining `open` is waiting on
+its tier, not on a decision.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -141,9 +148,30 @@ will be keyed from.
 
 ### Tier 2: the move card
 
+**D16 was opened reading into M2.1 and it changed the item.** Pocket's 61 words
+against Detailed's 477 is not a compact encoding: `styles.css:1088` hides base
+power, the category glyph, the status readout and the fact strip outright,
+which is C2 rather than a density choice. The `power:` inspect trigger sits on
+the element that rule hides and `moveCard` is not a trigger itself, so on a card
+in Pocket the only route to base power is the `Explain` expander — the thing
+D15 deletes. **That is why the two are one ruling**, and why M2.1 removes the
+expander and the `display: none` block in the same pass.
+
+Ruled **Pocket only**: M2.1's zero binds the Pocket face, Detailed and Simple
+keep their labelled face until M6.4 rules on them with M7.1's evidence. No rule
+moved; R6 already sanctions the two modes for one validation cycle.
+
+**M2.0 is not on the record and is a prerequisite, not a milestone.** The
+browser suite walks the app on fixed `waitForTimeout(25)` with a step budget, so
+a saturated machine counts an un-rendered step as taken —
+`test/visual-move-cards.test.ts` is one of the two files that false-reds under
+load, and it is the file that validates M2.1. It touches no player-facing
+surface, so it reads no bible rule and carries no census delta.
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M2.1 Move card face | open | — |
+| M2.0 Browser harness waits on state | open | — (not on the record; prerequisite to the tier) |
+| M2.1 Move card face | open | — (D15, D16 ruled: expander folds in, zero binds Pocket) |
 | M2.2 Battle move button | open | — (D9 ruled: build 2x2, re-measure, rule with the number) |
 | M2.3 Move chip | open | — |
 
