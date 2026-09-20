@@ -40,6 +40,7 @@ editing.
 | [`balance.md`](balance.md) | Every simulator figure, the standing policy that balance is not a gate, and the benchmark table | Reading or quoting any number |
 | [`keyed-streams.md`](keyed-streams.md) | What the 4.6a stream refactor actually shipped, and the four requirements of its design that were not built | Working on RNG, seeds or replay |
 | [`engine-notes.md`](engine-notes.md) | `@pkmn/sim` findings: browser viability, the Gen 3 lock, bundle and trim analysis | Touching the sim adapter or the bundle |
+| [`copy.md`](copy.md) | **Generated.** Every player-facing string in the game, by surface, with the file a rewrite edits and a blank column to write the replacement in | Rewording anything a player reads. Rebuild it with `npm run copy-audit`; never edit it |
 | [`spec/`](spec/) | The prompts and design documents themselves, verbatim | Its README says which are live |
 
 ### Where two files touch the same fact

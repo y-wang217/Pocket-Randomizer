@@ -5402,6 +5402,41 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   gap: calc(var(--space-2h) * var(--density-gap));
 }
 
+/* ---------- the intro ----------
+   The one-time greeting, before the first decision. Geometry is the overlay's;
+   what is here is the two things this surface is on its own — the greeting
+   reads at a size the rest of the app reserves for a heading, because it is
+   two sentences and they are the first two the player reads, and the pointer
+   at the coach marks sits under the button in the register a footnote does.
+
+   No `--overlay-width` override. It is prose, and the reading width the other
+   two prose surfaces use is the one this wants. */
+.intro__body {
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.intro__actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Full width on a phone, where it is the only control on the panel and a
+   narrow button in a wide sheet is a target the thumb has to aim at. */
+@media (max-width: 480px) {
+  .intro__actions { justify-content: stretch; }
+  .intro__dismiss { flex: 1; }
+}
+
+.intro__tutorial {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
 /* ---------- the history sheet ----------
    V5.2. The battle log, behind a tap on the event strip. Geometry above; what
    is left here is the one thing that is its own — the log panel must be able

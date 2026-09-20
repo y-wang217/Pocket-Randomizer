@@ -44,6 +44,7 @@ import type { BrowserContext, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { contextFor, openApp, playUntil, PHONE, visible } from '../scripts/visual/browser.mjs';
+import { notFirstLaunch } from '../scripts/first-launch.mjs';
 import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { engine, openHarness, type Harness } from './visual/harness';
 
@@ -420,10 +421,12 @@ describe(`reduced motion keeps the outcome on ${engine}`, () => {
         try {
           globalThis.localStorage.setItem('gymrun.settings', settings as string);
         } catch {
-          // Storage unavailable: defaults, and the coach marks show.
+          // Storage unavailable: defaults, and both first-run surfaces show.
         }
       },
-      JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } }),
+      // The one store that says "not a first launch", shared with the smoke
+      // run and the visual harness: `scripts/first-launch.mjs`.
+      notFirstLaunch(),
     );
     const page = await context.newPage();
     await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });

@@ -121,6 +121,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the paste-time refusal wording for a foreign seed string; read by ui/seed-bar.ts only, and must not move the hash it names',
   },
   {
+    path: 'src/data/intro.ts',
+    why: 'the one-time greeting shown before the first decision; read by ui/intro.ts, ui/header.ts and ui/settings.ts only, and rewording a greeting must not move the hash',
+  },
+  {
     path: 'src/data/tutorial.ts',
     why: 'the first-run coach mark copy, keyed by screen and mark; read by ui/tutorial.ts and ui/settings.ts only, and a reworded mark must not move the hash',
   },
