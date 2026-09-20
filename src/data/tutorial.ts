@@ -330,23 +330,17 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
 };
 
 /**
- * Words no mark may contain. A lint over Part 4, kept as data so it can grow.
- * Matched as whole words, case-insensitively, in `test/tutorial.test.ts`.
+ * Words no mark may contain. **Moved to `data/forbiddenWords.ts` by M0.3.**
+ *
+ * It stopped being a tutorial rule. The bible's section 8 states it for every
+ * surface, and M0.3 widened the lint from the twenty-nine coach marks to the
+ * explanation tables as well, so the list moved to a file that is not named
+ * after one of its readers. Three words joined it there.
+ *
+ * Re-exported under its old name so nothing that read it has to care, and so
+ * this file still declares that the rule applies to the marks below.
  */
-export const TUTORIAL_FORBIDDEN_WORDS: readonly string[] = [
-  'best',
-  'should',
-  'try',
-  'recommend',
-  'recommended',
-  'good',
-  'bad',
-  'better',
-  'worse',
-  'strong',
-  'weak',
-  'usually',
-];
+export { FORBIDDEN_WORDS as TUTORIAL_FORBIDDEN_WORDS } from './forbiddenWords';
 
 /** The controls' labels. */
 export const TUTORIAL_COPY = {

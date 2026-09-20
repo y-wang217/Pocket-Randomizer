@@ -129,6 +129,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the first-run coach mark copy, keyed by screen and mark; read by ui/tutorial.ts and ui/settings.ts only, and a reworded mark must not move the hash',
   },
   {
+    path: 'src/data/forbiddenWords.ts',
+    why: 'the hedge words no explanation may contain; read by scripts/hedge-lint.ts and its test only, and a word added to a lint cannot change what a seed generates',
+  },
+  {
     path: 'src/data/eventCopy.ts',
     why: 'the per-band hints and conclusions on the event screen, and the capability and band labels the map and the event screen print; read by ui/screens/event.ts, ui/screens/run-map.ts and ui/screens/party.ts only, and a reworded sentence must not move the hash',
   },

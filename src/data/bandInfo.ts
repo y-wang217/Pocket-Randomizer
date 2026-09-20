@@ -72,7 +72,7 @@ export const BAND_INFO: Readonly<Record<number, BandEntry>> = {
   4: {
     label: 'Band 4',
     range: '91 to 110 base power',
-    text: 'The back half of the run. A risky node reaches here before the segments do.',
+    text: 'The back half of the run. A hard node reaches here before the segments do.',
   },
   5: {
     label: 'Band 5',

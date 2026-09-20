@@ -73,12 +73,43 @@ describe('the copy every event supplies', () => {
     }
   });
 
+  /**
+   * Two sentences are known to break this and are **not** exempted quietly.
+   *
+   * **M0.3, 2026-09-20.** The forbidden-word list gained `worth`, which design
+   * bible section 8 had always named and the twelve-word list shipped in
+   * `data/tutorial.ts` had never carried. Widening it made this test see two
+   * event sentences that were in violation the whole time:
+   *
+   *   `forest-thornwall` safe hint — "passes a grove worth passing"
+   *   `marsh-leech-bed`  hook      — "lying over something worth having"
+   *
+   * They are not rewritten here because they live in `data/events.ts`, which is
+   * **inside `contentHash`** (`src/core/events.ts` imports it), so two words of
+   * flavour text would move the hash, refuse every seed recorded before it, and
+   * force the visual baseline to be re-recorded. Discrepancy D12 was ruled the
+   * other way — split rather than move — and the pin in `test/ai-priority.test.ts`
+   * states in its own comment that the display split was the last time this
+   * number moves for a display edit.
+   *
+   * So the decision is the lead designer's and it is row **D14** in
+   * `docs/design/bible-discrepancies.md`. This list is the record of what is
+   * owed, it is asserted to be exactly these two, and it shrinks to nothing the
+   * moment D14 is ruled. A new violation cannot hide behind it.
+   */
+  const KNOWN_UNFIXED = [
+    'forest-thornwall safe hint: The detour is slow and passes a grove worth passing.',
+    'marsh-leech-bed hook: A leech bed lying over something worth having.',
+  ];
+
   it('contains no forbidden word, as whole words', () => {
     const pattern = new RegExp(`\\b(${TUTORIAL_FORBIDDEN_WORDS.join('|')})\\b`, 'i');
     const offenders = sentences()
       .filter(({ text }) => pattern.test(text))
       .map(({ where, text }) => `${where}: ${text}`);
-    expect(offenders).toEqual([]);
+    // Exactly the two, neither more nor fewer: a fixed line drops off this
+    // list and fails here, which is what makes D14 impossible to forget.
+    expect(offenders).toEqual(KNOWN_UNFIXED);
   });
 
   it('prints no empty sentence anywhere a player can reach', () => {
