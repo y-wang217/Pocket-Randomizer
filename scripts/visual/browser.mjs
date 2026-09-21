@@ -390,12 +390,18 @@ async function stepOnceUnparked(page, expected) {
      * The name line is the right target because it is the one part of either
      * card guaranteed to be present, non-empty and never a trigger. The click
      * bubbles to the button exactly as a tap on it would.
+     *
+     * **The teach target is the exception since M3.3.** Its card is the party
+     * row now and is not a control at all: the row carries a fold toggle, six
+     * stat labels and four inspect triggers, and nesting those in a `<button>`
+     * would be invalid, so the control is a sibling. A click on the card lands
+     * on a card and the walk stalls — which is exactly what it did, for 900
+     * steps, until this was changed to press what a player presses.
      */
     case 'target': {
-      const card = page.locator(`${visible('target')} .party__member--target`).first();
-      if (!(await card.count())) return null;
-      const name = card.locator('.panel__name').first();
-      await ((await name.count()) ? name : card).click();
+      const choose = page.locator(`${visible('target')} .target__choose`).first();
+      if (!(await choose.count())) return null;
+      await choose.click();
       return screen;
     }
     case 'replace': {

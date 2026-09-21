@@ -444,7 +444,13 @@ async function playRun(label) {
       // Take the first member. Which one is a real decision, but a smoke test
       // is proving the screen routes and a click reaches the policy — the
       // *quality* of the target is the simulator's question, not this one.
-      const card = page.locator(`${visible('target')} .party__member--target`).first();
+      /*
+       * The control beside the card, not the card. **M3.3**: the card is the
+       * party row now and is not a `<button>`, because the row is full of
+       * focusable things a button may not contain. A player presses
+       * `.target__choose`, so this does.
+       */
+      const card = page.locator(`${visible('target')} .target__choose`).first();
       if (await card.count()) {
         if (targets === 0) await page.screenshot({ path: `stats/${label}-target.png`, fullPage: true });
         await card.click();
@@ -911,8 +917,15 @@ const phoneCheck = (label, ok, detail) => {
  * ever needs the same countdown, it is eleven lines and it is in this file's history.
  */
 
-// Starter cards carry base stats, so a pick is not a coin flip.
-const starterStats = await phone.locator('.starter .statline__stat').count();
+/*
+ * Starter cards carry base stats, so a pick is not a coin flip.
+ *
+ * `.stats .stat` since M3.2, where `.statline` was deleted: it was the second
+ * of three components drawing a six-stat readout, which is the defect section
+ * 5 of the design bible closes with. One component draws them all now, so this
+ * counts the rows it draws.
+ */
+const starterStats = await phone.locator('.starter .stats .stat').count();
 phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
 
 await phone.locator('.starter').first().click();
