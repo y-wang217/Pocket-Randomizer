@@ -33,15 +33,16 @@ which blocks everything.
 | D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
 | D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
 | D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
-| D18 | M3.1, then M3.2 | The archetype chip has no row in the canon, and deleting it takes the opponent's build off the battle screen | **open** |
-| D19 | nothing; timed with M3.2 | The ability and the volatile chips have no row anywhere in the bible | **open** |
+| D18 | M3.1, then M3.2 | The archetype chip has no row in the canon, and deleting it takes the opponent's build off the battle screen | **2026-09-21** |
+| D19 | nothing; timed with M3.2 | The ability and the volatile chips have no row anywhere in the bible | **deferred to M3.2** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
-D17 closed 2026-09-20 across Tier 2. **Sixteen of nineteen rows are ruled.**
-D14 is timed with M5.6 and D19 with M3.2, and neither blocks anything; **D18,
-opened 2026-09-21, blocks M3.1** and is the only row in anybody's way. Each
+D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
+**Eighteen of nineteen rows are ruled**; D14 is timed with M5.6 and D19 with
+M3.2, and neither blocks anything. D18 was opened and ruled on 2026-09-21,
+inside M3.1. Each
 ruling is restated under its own row below; the bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
@@ -962,22 +963,31 @@ what exists.
 
 ---
 
-## Rulings pending, 2026-09-21, opening Tier 3
+## Rulings, 2026-09-21, opening Tier 3
 
-Two rows opened reading into M3.1. **D18 blocks it**; D19 blocks nothing and is
-timed with M3.2, which meets the same gap on the party row.
+Two rows opened reading into M3.1. **D18 blocked it and is ruled below**; D19
+blocks nothing and is deferred to M3.2, which meets the same gap on the party
+row.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D18 | **Option 2.** The archetype chip goes, and the six stats it was derived from are re-encoded behind the panel's long press. No amendment: `stat` is already an inspect kind, the stat block is already a canon component, and R6 sanctions a secondary fact behind a tap. | Milestone M3.1 scope |
+| D19 | **Defer to M3.2**, which meets the ability and the volatile chips again on the party row, so one ruling covers both surfaces. M3.1 leaves both alone. | Milestone M3.2 scope |
 
 Both come from one measurement. The panel censuses **20 words in Pocket**, ten
 per surface across `battle` and `log-sheet`, and every one of them is in five
 places:
 
 | Element | Words, per surface | Section 5 lists it |
-|---|---|---|
-| `.panel__roster-label` — `3/4 left` | 1 (`left`) | no |
-| `.panel__name` — `Opposing Golem` | 1 (`Opposing`) | name, yes |
-| `.panel__level` — `Lv100` | 1 | level, yes |
-| `.badge--archetype` — `Phys. Attacker` | 2, both panels | **no** |
-| `.badge--stages` — `STAGES 2` | 1, both panels | stat stage ladder, yes |
+|---|---:|---|
+| `.panel__roster-label` — `3/4 left` | 1 | no |
+| `.panel__name` — `Opposing Golem` | 1 | name, yes |
+| `.panel__level` — `Lv100` | 2 | level, yes |
+| `.badge--archetype` — `Phys. Attacker` | 4 | **no** |
+| `.badge--stages` — `STAGES 2` | 2 | stat stage ladder, yes |
+
+Ten per surface, twice over: the roster row is the foe's alone and the name's
+prefix with it, and everything below them renders on both panels.
 
 Four of the five are re-encodings with no rule in their way: the side is already
 drawn by which panel it is, `Lv` and `left` are the field labels R2 forbids, and
@@ -1113,3 +1123,69 @@ volatiles would be a tenth family and then some.
 panel and the party row together. **M3.1 is built on option 3 in the meantime**:
 it touches neither chip except to replace the item's name with its sprite, which
 the item asks for by name.
+
+
+---
+
+## D18, closed with the build
+
+**Ruled 2026-09-21. Option 2: the chip goes and the six numbers take its
+place, one long press away.**
+
+The panel went from **20 words in Pocket to 0**, and 4 of those 20 were this
+row. What it cost, and what it turned out to need, is worth recording because
+the ruling's own condition was the expensive half:
+
+> D17A is the precedent and it is worth reading before ruling. M2.1 moved the
+> status readout behind the long press, and that was ruled re-encoding rather
+> than removal *because the card became a trigger in the same pass*. The same
+> condition applies here and is the same cost: the panel is not a trigger
+> today, and option 2 is only honest if it becomes one.
+
+It became one. `.panel` carries `data-tip="stats:<species>"` and a
+`data-detail` of six `stat\tvalue` rows, serialized on the trigger for the
+reason `stageMarker`'s set is: which numbers a body has is a property of this
+render, not a table entry. `renderMonStats` draws them as section 3's Six stats
+row specifies — glyph, bar, number, all six, in display order, no sort and no
+emphasis, which is R10 — and the bar is measured against the party card's own
+`STAT_BAR_CEILING`, now exported for that reason, so one number is one length
+wherever it is drawn.
+
+**Three things the ruling did not anticipate, found by building it.**
+
+1. **The value is `base`, not `effective`.** The projection carries both. Using
+   the post-boost number would have put the stat stages on the chip row and the
+   stat panel behind the press in disagreement on turn one and in agreement on
+   turn zero, which is one fact in two channels on one surface — R3 — and the
+   more confusing half of it is that the two would have *looked* independent.
+2. **HP is not in `stats`.** `StatView` is the five that boost; the projection
+   keeps max HP on `hp`. So the six rows are written HP-first by hand rather
+   than mapped off a list, and the comment says why.
+3. **The panel had a fourth word source the census could not see, and it was
+   the same family this row is about.** `\u25b2 FIRST`, the Speed marker on the
+   chip row, spends a word — and its triangle is the mark section 2 gives to
+   the **Priority** family, on a fact that is not a bracket. It was not in the
+   census because the fixture has no faster side. It is the Stat family's Speed
+   glyph now, which is the family Speed actually lives in, and the panel's new
+   chevron slot is free to mean what section 6 says it means.
+
+**What was not built, and is not owed.** Nothing was added to `core/`. The
+reveal policy is untouched: base stats have never been gated — that is exactly
+why the archetype label was not gated either — so re-encoding them changes what
+is drawn and not what is known.
+
+---
+
+## D19, deferred
+
+**Deferred to M3.2 on 2026-09-21.** M3.1 touches neither chip, except to
+replace the held item's *name* with its sprite, which the item asks for by
+name and section 3's Held item row specifies. The ability chip and the volatile
+chips render exactly as they did.
+
+One thing M3.1 found that the row should carry into M3.2: the held item's name
+was the third member of that set, and it is now gone from the face without an
+amendment — because section 3 **does** have a Held item row, and it says
+"Item sprite in a fixed slot" at rest and "Name, one effect line" on inspect.
+That is the shape of the fix D19's option 1 proposes for the other two. The
+ability and the volatiles have no such row, which is the whole of the row.

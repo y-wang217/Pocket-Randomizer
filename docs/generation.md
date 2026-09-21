@@ -8598,3 +8598,139 @@ moves. Every existing caller is untouched.
    Detailed once the chips stopped being charged to it.
 
 Census, Pocket: **move chip 0** against a budget of 0, on its first appearance.
+
+## 57. The battle panel, and the label that was the last channel
+
+**Milestone M3.1**, 2026-09-21. Presentation only. No version axis moves,
+`contentHash` holds at `d4e080`, nothing under `core/` changed, and the
+projection is read exactly as it was.
+
+The record is
+[`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md);
+the rulings that changed the item are D6, D18 and D19 in
+[`design/bible-discrepancies.md`](design/bible-discrepancies.md).
+
+### The measurement first, because it decided the scope
+
+The panel censused **20 words in Pocket** — ten per surface, counted twice
+because `battle` and `log-sheet` are two fixtures of one screen — and a probe
+put every one of them in five elements:
+
+| Element | Words, per surface | In section 5's Owns column |
+|---|---:|---|
+| `.panel__roster-label`, `3/4 left` | 1 | no |
+| `.panel__name`, `Opposing Golem` | 1 | name, yes |
+| `.panel__level`, `Lv100` | 2 | level, yes |
+| `.badge--archetype`, `Phys. Attacker` | 4 | **no** |
+| `.badge--stages`, `STAGES 2` | 2 | ladder, yes |
+
+Ten per surface. The roster row and the name's prefix are the foe's alone;
+everything under them renders on both panels, which is why the archetype chip
+and the stage marker cost double what the table's left column reads like.
+
+Four are field labels R2 already forbids, or a word for a fact the layout
+draws. `Opposing` is the census script's own worked example of the rule: the
+side a panel is on is drawn by which panel it is, and the prefix was a word
+spent restating it. `Lv`, `left` and `STAGES` are labels welded to numbers.
+None of those four needed a ruling; all four moved to `aria-label`, which is
+where the one reader the layout does not reach was already being served.
+
+The fifth was D18 and it is section 3 below.
+
+### A fourth word source no census could have charged
+
+`▲ FIRST`, the Speed marker on the chip row, spends a word — and the mark
+beside the word is the triangle section 2 gives to the **Priority** family, on
+a fact that is not a bracket. The census never saw it because the fixture has
+no faster side; reading the panel element by element is what found it.
+
+It is the Stat family's Speed glyph now, which is the family Speed lives in,
+and its sentence is on `aria-label` where it always was. That matters beyond
+the word: D6 gave this panel a priority chevron slot, and a panel already
+wearing a triangle for a Speed comparison would have had two marks from one
+family meaning two different things the first time M4.2 flashed one.
+
+### D18: the archetype label, and why deleting it was not housekeeping
+
+Section 5 never listed the archetype chip and section 3 bars the label —
+*"Not on inspect either; it is a derived label and can lie under
+randomization"* — so the item and the bible agreed and only the tree
+disagreed. What made it a ruling rather than a delete is `ui/scene.ts`'s own
+note from V5:
+
+> Base stats leave the battle panel with the block. They are not gone from the
+> run — the party drawer is reachable in a battle and carries the player's six
+> for every member — but the opponent's are now read off the archetype label
+> rather than as numbers.
+
+So the chip was not one channel of two. It was the only channel for what the
+thing opposite is built to do, on the screen where that changes the next
+decision, and C2 says a decision-relevant fact is re-encoded rather than
+removed.
+
+**Ruled option 2: the label goes and the six numbers it was derived from come
+back, one long press away.** `.panel` carries `data-tip="stats:<species>"` and
+a `data-detail` of six `stat\tvalue` rows; `renderMonStats` draws them as
+section 3's Six stats row specifies — glyph, bar, number, all six, in display
+order, no sort and no conditional emphasis, which is R10. The bar is measured
+against `STAT_BAR_CEILING`, which moved out of `ui/member-card.ts` and into
+`data/statInfo.ts` for this — one number is one length wherever it is drawn,
+and `CLAUDE.md` puts every number a tuning pass touches in `data/`.
+`statInfo.ts` is already outside `contentHash` and legitimately so, being a
+display table nothing under `core/` reads, so the digest does not move.
+
+No amendment was needed and none was made. `stat` was already an inspect kind,
+the stat block was already a canon component, R6 sanctions a secondary fact
+behind a tap, and D17A is the precedent — with its condition, which the row
+stated before it was ruled: *option 2 is only honest if the panel becomes a
+trigger in the same pass.* It did.
+
+### Three things building it found that the ruling had not
+
+1. **The value is `base`, not `effective`.** The projection carries both. The
+   post-boost number would have disagreed with the stage chips on the chip row
+   from turn one and agreed with them on turn zero — one fact in two channels
+   on one surface, R3, and the confusing half is that the two would have looked
+   independent.
+2. **HP is not in `stats`.** `StatView` is the five that boost; the projection
+   keeps max HP on `hp`. The six rows are written HP-first by hand rather than
+   mapped off a list.
+3. **The stage marker's count had to go with its word.** `STAGES 2` became one
+   mark per folded stage — the stat glyph for the five that have one, the
+   accuracy family's target for accuracy and evasion, which are not among
+   section 2's six stat glyphs. The numeral was not moved anywhere, because the
+   marks *are* the count and a numeral beside them is R3 again.
+
+### What M3.1 did not do
+
+**The held item's name went; the ability's did not, and neither did the
+volatile chips'.** That is D19, deferred to M3.2, which meets both again on the
+party row so one ruling covers two surfaces. The distinction is not
+convenience: section 3 **has** a Held item row and it specifies exactly what
+shipped here — sprite in a fixed slot at rest, name and one effect line on
+inspect. There is no ability row and no volatile row anywhere in the bible, and
+inventing one inside this item would be a patch quietly amending the document.
+
+The record's *"remove ... any status word"* is therefore partly outstanding by
+that reading, and this note is where it is recorded rather than in the prompt.
+The status chip itself was already three letters (`BRN`, `PAR`) and the census
+already exempts it as the glyph section 2 makes it.
+
+### Census
+
+Pokemon battle panel, per component, both fixtures summed:
+
+| | before | after |
+|---|---:|---:|
+| Pocket | 20 | **0** |
+| Detailed | 20 | 4 |
+| Simple | 20 | 4 |
+
+Surfaces: `battle` 25 → **15** and `log-sheet` 136 → **126**, Pocket less
+shell. The remainder on both is screen chrome and the flag strip, which are
+M4.3's and M4.1's.
+
+**The 4 in Detailed and Simple is D16, not a miss.** It is the type chips' word
+forms, which the stylesheet hides in Pocket and which D16 ruled survive in the
+other two modes until M6.4 rules on them with M7.1's evidence — the same
+residue, for the same reason, that M2.1 left on the move card.

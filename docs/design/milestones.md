@@ -21,7 +21,9 @@ with the record's "one item, one PR" rule.
 **The trunk is per tier group, not per release.** `claude/visual-revamp-jb20na`
 carried Tiers 0 and 1 and shipped as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), merged
-2026-09-20; `main` is `7e0c46d`. Tier 2 is cut fresh from there. A merged pull
+2026-09-20; `main` is `7e0c46d`. Tier 2 was cut fresh from there and shipped as
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63), merged
+2026-09-20; `main` is `8869623`. Tier 3 is cut fresh from *that*. A merged pull
 request is finished and does not grow a second tier.
 
 ## The bible wins, and blocked items wait
@@ -37,11 +39,12 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Sixteen of nineteen discrepancy rows are ruled** — eleven on 2026-09-19,
+**Eighteen of nineteen discrepancy rows are ruled** — eleven on 2026-09-19,
 which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
-Tier 2, all on 2026-09-20. **Three are open.** D14 blocks nothing and is timed
-with M5.6; D19 blocks nothing and is timed with M3.2; **D18 blocks M3.1** and
-is the only row in anybody's way.
+Tier 2, all on 2026-09-20, then D18 on 2026-09-21 opening Tier 3. **D14 is the
+one open row**, it blocks nothing, and it is timed with M5.6. **D19 is deferred
+rather than open**: it is ruled with M3.2, which meets the same two chips on
+the party row.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -209,26 +212,47 @@ four-core box. That these two defects are the whole of it is not proven — see
 
 ### Tier 3: panels and party
 
-**Two rows were opened reading into M3.1, and one of them blocks it.** The panel
-censuses **20 words in Pocket**, ten per surface across `battle` and
-`log-sheet`, and they sit in five elements: the roster label's `left`, the
-name's `Opposing`, `Lv` welded to the level, the archetype chip, and the Pocket
-stage marker's `STAGES`. Four are re-encodings with no rule in their way. The
-fifth is **D18**: section 5 does not list the archetype chip, section 3 bars the
-label outright, and V5's own note says the chip is the only remaining channel
-for what the thing opposite is built to do — so deleting it is a C2 ruling, not
-a tidy-up.
+**M3.1 is shipped, and it opened two rows before it closed one.** The panel
+censused **20 words in Pocket**, ten per surface across `battle` and
+`log-sheet`, sitting in five elements: the roster label's `left`, the name's
+`Opposing`, `Lv` welded to the level, the archetype chip, and the Pocket stage
+marker's `STAGES`. Four were re-encodings with no rule in their way. The fifth
+was **D18** — section 5 does not list the archetype chip, section 3 bars the
+label outright, and V5's own note (`scene.ts:910`) says the chip is the only
+remaining channel for what the thing opposite is built to do, so deleting it
+was a C2 ruling rather than a tidy-up. **Census in Pocket: 20 → 0.**
+
+**D18 ruled option 2, and its own condition was the expensive half.** The chip
+goes and the six stats it was derived from come back behind the panel's long
+press, drawn as section 3's Six stats row specifies: glyph, bar, number, all
+six, display order, no sort. That is only re-encoding rather than removal if
+the panel becomes a trigger in the same pass — D17A's precedent, stated in the
+row before it was ruled — so it did. The value is `base` and not `effective`,
+because the stages already on the chip row are the boosts and printing the
+post-boost number would be one fact in two channels (R3).
+
+**A fourth word source the census could not see, and it was the same family.**
+`▲ FIRST`, the Speed marker, spends a word *and* borrows the triangle section 2
+gives to the Priority family for a fact that is not a bracket. The fixture has
+no faster side, so no census ever charged it. It is the Stat family's Speed
+glyph now, and the panel's new chevron slot — D6, and empty until M4.2 fills it
+— is free to mean what section 6 says it means.
+
+**Detailed and Simple read 4, and that is D16 rather than a miss.** The
+residue is the type chips' word forms, which the stylesheet hides in Pocket;
+D16 ruled that the labelled face survives in the other two modes until M6.4
+decides with M7.1's evidence, exactly as it did for the move card in M2.1.
 
 **D19** is the gap behind the census rather than in front of it: the ability
 chip and the nineteen volatile chips have no row in section 3, no family in
 section 2 and no budget line in section 4, and they read near zero only because
 `properNouns()` happens to carry `Levitate` and `Leech Seed` and not `Confused`.
-It blocks nothing and is timed with M3.2, which meets both on the party row.
+M3.1 touched neither, and it is ruled with M3.2.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M3.1 Pokemon battle panel | **blocked** | D18 (D6 ruled) |
-| M3.2 Stat block and party row | open | — (D18 and D19 land here too) |
+| M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
+| M3.2 Stat block and party row | ready | — (D19 is ruled here; the party row carries the same archetype chip D18 just settled) |
 | M3.3 Teach target screen | open | — (D1 ruled: at or under 4) |
 
 ### Tier 4: battle feedback

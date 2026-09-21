@@ -365,6 +365,67 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
     host.remove();
   });
 
+  /**
+   * The panel's own long press, and the six numbers behind it. **M3.1, D18.**
+   *
+   * The ruling was that the archetype label goes and the stats it was derived
+   * from come back one press away, drawn as section 3's Six stats row
+   * specifies. So this asserts the three parts of that row — a glyph, a bar
+   * and a number, for all six, in order — rather than that a panel opened.
+   */
+  it('opens all six stats from the panel on a long press, as glyph, bar and number', async () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
+
+    const panel = document.createElement('div');
+    panel.dataset['tip'] = 'stats:Golem';
+    panel.dataset['detail'] = [
+      'hp\t160',
+      'atk\t130',
+      'def\t190',
+      'spa\t75',
+      'spd\t85',
+      'spe\t65',
+    ].join('\n');
+    host.append(panel);
+
+    panel.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const rows = [...layer.root.querySelectorAll('.tip__row--stat')];
+    // Always all six, never hidden, no sort: R10 and section 3's own wording.
+    expect(rows).toHaveLength(6);
+    expect(rows.map((row) => row.querySelector('.glyph')?.getAttribute('data-glyph'))).toEqual([
+      'stat-hp',
+      'stat-atk',
+      'stat-def',
+      'stat-spa',
+      'stat-spd',
+      'stat-spe',
+    ]);
+    expect(rows.map((row) => row.querySelector('.tip__row-value')?.textContent)).toEqual([
+      '160',
+      '130',
+      '190',
+      '75',
+      '85',
+      '65',
+    ]);
+    // The bar is measured against the party card's ceiling, so a Speed bar
+    // here and a Speed bar in the drawer are the same length for one number.
+    const def = rows[2]?.querySelector('.tip__row-bar-fill') as HTMLElement;
+    expect(def.style.width).toBe(`${(190 / 200) * 100}%`);
+    // Every bar the same fill. A hue per stat would be the screen ranking them.
+    const fills = rows.map((row) => (row.querySelector('.tip__row-bar-fill') as HTMLElement).className);
+    expect(new Set(fills).size).toBe(1);
+    // The species names whose numbers these are, so two panels never blur.
+    expect(layer.root.textContent).toContain('Golem');
+
+    layer.destroy();
+    host.remove();
+  });
+
   it('swaps the chips for the marker in Pocket rather than hiding both', () => {
     const css = readFileSync(join(process.cwd(), 'src/ui/styles.css'), 'utf8');
     expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stage { display: none; }');
