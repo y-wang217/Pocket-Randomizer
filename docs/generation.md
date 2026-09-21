@@ -8733,6 +8733,23 @@ that reading, and this note is where it is recorded rather than in the prompt.
 The status chip itself was already three letters (`BRN`, `PAR`) and the census
 already exempts it as the glyph section 2 makes it.
 
+### One check whose premise the item changed
+
+`scripts/smoke.mjs` has asserted *"both Pokemon carry an archetype label"*
+since Stage 4.7 Part 7, and it is the one thing in the gate D18 could not
+leave standing. It was rewritten rather than deleted, and rewritten to follow
+the **fact** rather than the element: both panels carry all six stats behind
+their long press, and neither carries the label. A panel that regained the
+label, or that lost the stats, fails there the way the old check meant to —
+which is the whole of what Part 7's check was protecting, since V5 is what
+made the label the stats' only channel in the first place.
+
+Same shape as the two unit tests the item touched: `test/species-label.ts`'s
+`Opposing Golem` became `Golem` plus the side on the panel's `aria-label`, and
+`test/battle-stage.ts`'s `FIRST` became the Speed glyph. None of the three is
+an assertion weakened; each is an assertion re-aimed at the fact it existed
+for.
+
 ### Census
 
 Pokemon battle panel, per component, both fixtures summed:

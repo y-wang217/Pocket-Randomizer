@@ -1125,8 +1125,27 @@ if (await phone.locator(visible('battle')).count()) {
       ),
       statusMoves: globalThis.document.querySelectorAll('.moves .move[data-category="status"]').length,
       statusReadouts: globalThis.document.querySelectorAll('.moves .move__effect').length,
-      // Part 7: the label beside the level, on both panels.
+      /*
+       * **Not the archetype label any more. M3.1, discrepancy D18.**
+       *
+       * Part 7 put a label beside the level on both panels and this check
+       * held it there for five stages. Section 3 bars the label — *"a derived
+       * label [that] can lie under randomization"* — section 5 never listed
+       * it, and section 4 budgets this panel at zero words, so D18 deleted
+       * it. What the check was really protecting is the fact underneath: V5
+       * took the six base stats off this panel on the argument that the label
+       * replaced them, which is what made deleting it a C2 question rather
+       * than a tidy-up.
+       *
+       * So the assertion follows the fact rather than the element. Both
+       * panels carry all six stats behind their long press, and neither
+       * carries the label. A panel that regained the label, or lost the
+       * stats, fails here the way the old check meant to.
+       */
       archetypes: globalThis.document.querySelectorAll('.panel .badge--archetype').length,
+      statPanels: [...globalThis.document.querySelectorAll('.panel[data-tip^="stats:"]')].filter(
+        (panel) => (panel.dataset.detail ?? '').split('\n').filter(Boolean).length === 6,
+      ).length,
       // Part 1: the drawer trigger, in the same place on every surface.
       drawerTrigger: globalThis.document.querySelectorAll('[data-drawer-trigger]').length,
       scrollWidth: globalThis.document.documentElement.scrollWidth,
@@ -1166,7 +1185,11 @@ if (await phone.locator(visible('battle')).count()) {
     battle.statusReadouts >= battle.statusMoves,
     `${battle.statusReadouts} readouts for ${battle.statusMoves} status moves`,
   );
-  phoneCheck('both Pokemon carry an archetype label', battle.archetypes === 2, `${battle.archetypes} labels`);
+  phoneCheck(
+    'both Pokemon carry their six stats, and neither carries the archetype label',
+    battle.statPanels === 2 && battle.archetypes === 0,
+    `${battle.statPanels} stat panels, ${battle.archetypes} labels`,
+  );
   phoneCheck('the party drawer is reachable in a battle', battle.drawerTrigger === 1,
     `${battle.drawerTrigger} triggers`);
 
