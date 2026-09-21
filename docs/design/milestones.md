@@ -205,7 +205,7 @@ four-core box. That these two defects are the whole of it is not proven — see
 | M2.0 Browser harness waits on state | **done** | — (not on the record; [`generation.md` §53](../generation.md), `test/visual-walk.test.ts`) |
 | M2.1 Move card face | **done** | — (D15, D16, D17 ruled. Census 0 and 0 in Pocket, from 61 and 16) |
 | M2.2 Battle move button | **done** | — (D9 closed with the number: column mode deleted. §2 forecast, 44px floor) |
-| M2.3 Move chip | open | — |
+| M2.3 Move chip | **done** | — (census 0 in Pocket; pinned card 262 and chip row 526 against an 844 fold) |
 
 ### Tier 3: panels and party
 

@@ -3187,11 +3187,65 @@ body {
    Beam should be reaching for it in the position they already know it by. */
 .replace__incoming { display: block; }
 
+/*
+ * **The four current moves, one row of chips. Milestone M2.3.**
+ *
+ * Two columns of full cards is what this was, and five full faces do not fit a
+ * 390x844 phone — so the player scrolled to see the options they were choosing
+ * between, which is not a comparison. One row, four chips, and the full pair
+ * arrives in the confirm.
+ *
+ * `1fr` each rather than content width: the four are equals and a chip sized to
+ * its own name would make the longest move look like the biggest choice, which
+ * is the verdict Part 4 forbids as surely as a sort would be.
+ */
 .replace__moves {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(var(--space-2) * var(--density-gap));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(var(--space-1) * var(--density-gap));
   margin-top: calc(var(--space-2) * var(--density-gap));
+}
+
+/*
+ * The chip: the compact form of the same face. **M2.3, section 5.**
+ *
+ * Stacked rather than inline, because at a quarter of the screen the name and
+ * the meta line cannot share a row. Everything else — the type chip, the
+ * category glyph, the base power slot — is the component's, unchanged, so a
+ * move looks like itself here too.
+ */
+.move--chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-h);
+  min-height: 44px;
+  overflow: hidden;
+}
+
+.move--chip .move__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-h);
+}
+
+/*
+ * **Both full cards in the confirm, side by side. M2.3.**
+ *
+ * The chip gave up PP and the band; this is where they come back, on the two
+ * faces the decision is actually made against. Side by side rather than
+ * stacked, because the whole point is reading one against the other.
+ */
+.confirm-band__content {
+  margin-top: var(--space-2);
+}
+
+.replace__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  align-items: start;
 }
 
 /*

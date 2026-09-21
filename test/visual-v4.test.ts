@@ -46,6 +46,32 @@ describe('the result screen', () => {
     await close();
   }, 180_000);
 
+  /**
+   * **Milestone M2.3's done-when, and the reason the item exists.**
+   *
+   * The replacement screen drew five full move faces — the incoming one and
+   * the four it could displace — and they do not fit. The player scrolled
+   * between the options they were choosing between, which is not a comparison
+   * however even-handedly the cards are laid out.
+   *
+   * One card and four chips fit with room to spare. The item asks for "the
+   * pinned card plus at least one full target row above the fold"; this
+   * asserts the whole row, because at four across there is only one.
+   */
+  it('keeps the pinned card and the whole chip row above the fold at 390x844', async () => {
+    const { page, close } = await openGallery('S49B-1', 'replace');
+    expect(await page.locator('.replace__moves .move--chip').count(), 'four chips').toBe(4);
+    expect(await page.locator('.replace__moves .move--card').count(), 'no full card in the row').toBe(0);
+
+    const pinned = await bottomOf(page, '.replace__incoming');
+    const row = await bottomOf(page, '.replace__moves');
+    expect(pinned).not.toBeNull();
+    expect(row).not.toBeNull();
+    expect(pinned ?? Infinity).toBeLessThanOrEqual(844);
+    expect(row ?? Infinity).toBeLessThanOrEqual(844);
+    await close();
+  }, 180_000);
+
   it('keeps the capture offer, its decision buttons included, above the fold at 390x844', async () => {
     const { page, close } = await openGallery('S49B-1', 'result-capture');
     expect(await page.locator('.reward').count()).toBe(0);

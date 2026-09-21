@@ -118,8 +118,15 @@ export const CENSUS_SEED = 'SMOKE24';
 export const COMPONENTS: readonly { id: string; selector: string; why: string }[] = [
   {
     id: 'battle move button',
-    selector: 'button.move',
-    why: 'Section 4 budgets it at 0. A button, where the card below is not.',
+    /*
+     * **`:not(.move--chip)` is M2.3's correction, and without it this row
+     * over-counts.** The chip is a `<button>` carrying `.move`, because every
+     * site that draws one is asking the player to pick it — so a bare
+     * `button.move` swept the replacement screen's four chips into the battle
+     * bar's budget, a surface they never appear on.
+     */
+    selector: 'button.move:not(.move--chip)',
+    why: 'Section 4 budgets it at 0. A button, where the card is not and the chip is excluded by class.',
   },
   {
     id: 'move card',
@@ -128,7 +135,15 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string }[
   },
   {
     id: 'move chip',
-    selector: '.move-chip',
+    /*
+     * `.move--chip`, not `.move-chip`. This selector was written at M0.1 as a
+     * guess at what M2.3 would call the class, and the tree's convention for a
+     * variant of the move component is the double dash — `.move--card`,
+     * `.move--victim`. The instrument was corrected to the code rather than
+     * the other way round, because the name is a codebase convention and the
+     * census has no stake in it.
+     */
+    selector: '.move--chip',
     why: 'Section 4 budgets it at 0. M2.3 builds it; absent until then.',
   },
   {
