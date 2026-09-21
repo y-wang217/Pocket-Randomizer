@@ -329,6 +329,15 @@ stat labels and four inspect triggers and nesting those in a `<button>` is
 invalid. `ui/screens/pre-gym.ts` had the shape: a slot wrapper, the component,
 a control beside it.
 
+**The gate, on `89fabd8`.** lint, hedge, typecheck, chromium (207), strict
+trim (browser), build, smoke and census all PASS; `test:node` and `trim:node`
+ERRORED on vitest's reporter RPC with all 1766 tests passed, which
+`scripts/check.mjs` documents as its own status and not a failure. **`webkit`
+SKIPPED — no browser binary in this container**, so nothing in Tier 3 has been
+verified on the second engine; CI promotes that skip to a failure, which is
+where it will be checked. `contentHash` holds at `d4e080` across all three
+items and no version axis moved.
+
 **The one figure Tier 3 misses.** Section 4 budgets the decline overlay at 4
 words and it measures **5** — `Forfeit this reward?` is 3 under the counting
 rule and a confirm cannot have fewer than two controls. D1's own table reads
