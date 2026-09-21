@@ -67,17 +67,29 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 ## 4. Current state
 
 **In flight: the 4.10 presentation milestones.** Branch
-`claude/visual-revamp-jb20na`, pull request
-[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), list
+`claude/4-10-tier-2-plan-299kqy`, pull request
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63), list
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoff
-[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md). **Tiers 0 and 1 are
-closed, six items of twenty-four.** No version axis moves: `contentHash` holds at
-`d4e080` and nothing under `core/` changed.
+[`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md). **Tiers 0, 1 and 2 are
+closed, ten items of twenty-four.** No version axis moves: `contentHash` holds at
+`d4e080` and nothing under `core/` changed — the whole of Tier 2 touched no file
+under `src/core/`.
+
+Tiers 0 and 1 shipped as
+[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), merged
+2026-09-20; its handoff is
+[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md). **The trunk is per
+tier group**, so Tier 3 cuts fresh from `main` once #63 merges.
+
+The census, which is what these items are measured by, reads **0 in Pocket on
+the move card, the battle move button and the move chip**, from 61, 16 and
+absent.
 
 The design bible is at **Rev 2**. Every place the list and the bible disagreed is
 a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md) rather
-than something built around; fifteen rows, thirteen ruled, **D14 and D15 open**.
+than something built around; seventeen rows, sixteen ruled, **D14 open** and
+blocking nothing.
 
 Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and
