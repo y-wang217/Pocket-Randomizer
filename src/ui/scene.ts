@@ -2094,6 +2094,9 @@ export function moveCard(move: {
    */
   if (move.explanation) {
     card.dataset['tip'] = `move:${move.explanation.id}`;
+    // Hover opens the panel for a chip; for a whole card it opens whenever the
+    // cursor passes over one, and then covers it. See `ui/tooltips.ts`.
+    card.dataset['tipHover'] = 'off';
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
   }
