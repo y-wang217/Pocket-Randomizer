@@ -22,7 +22,7 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { describeMove } from '../src/core/battle/driver';
-import { moveFactsOf, MOVE_FACT_IDS, type MoveFactId } from '../src/core/moveFacts';
+import { moveFactsOf, MOVE_FACT_IDS, type MoveFact, type MoveFactId } from '../src/core/moveFacts';
 import { BOOST_TABLE, MAX_STAGE, applyStage } from '../src/core/battle/stats';
 import {
   ACCURACY_STAGE_TABLE,
@@ -30,7 +30,7 @@ import {
   formatStageMultiplier,
   stageMultiplier,
 } from '../src/data/statStages';
-import { MOVE_FACT_COLUMN, MOVE_FACT_INFO } from '../src/data/moveFactInfo';
+import { MOVE_FACT_COLUMN, MOVE_FACT_INFO, type StripFactId } from '../src/data/moveFactInfo';
 import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { BAND_INFO, BAND_PIPS } from '../src/data/bandInfo';
 import { bandChip, stageChip } from '../src/ui/chip';
@@ -156,15 +156,32 @@ describe('the move fact strip', () => {
     'Swords Dance', // pure status: no accuracy, no contact, nothing
   ];
 
-  it('renders exactly the fields describeMove returns, and nothing for the rest', () => {
+  /**
+   * **Two ids left this strip at M2.1, and they left for R3.**
+   *
+   * Section 3 gives accuracy and priority their own slot on the card face — a
+   * number beside the target glyph, a chevron beside the name — and both were
+   * also in `MOVE_FACT_IDS`. Drawing them here *and* there renders one fact
+   * twice on one surface, which R3 forbids in as many words. M0.2's inventory
+   * found the collision before anything was built and the bible left exactly
+   * one option: the strip gives them up.
+   *
+   * They are still facts, still in `MOVE_FACT_IDS`, still printed by the
+   * explanation and still keyed by `movefact:` on inspect. What changed is
+   * which component draws them, which is re-encoding and not removal — C2.
+   */
+  const OWN_SLOT = new Set(['accuracy', 'priority']);
+
+  it('renders exactly the fields describeMove returns, less the two with their own slot', () => {
     for (const name of SWEEP) {
       const move = describeMove(name);
       expect(move, name).not.toBeNull();
       const facts = moveFactsOf(move!);
+      const striped = facts.filter((fact): fact is MoveFact & { id: StripFactId } => !OWN_SLOT.has(fact.id));
       const strip = moveFactStrip(facts);
 
-      if (facts.length === 0) {
-        expect(strip, `${name}: no facts must mean no strip`).toBeNull();
+      if (striped.length === 0) {
+        expect(strip, `${name}: no strip-borne facts must mean no strip`).toBeNull();
         continue;
       }
 
@@ -174,21 +191,20 @@ describe('the move fact strip', () => {
        * the playtest patch: a field's column is its identity, so the DOM order
        * is the column order rather than `MOVE_FACT_IDS` order — contact sits in
        * column 2 and is therefore drawn second, not last. The set is what this
-       * assertion is about, and it is unchanged: nothing is dropped and nothing
-       * is invented.
+       * assertion is about: nothing is dropped and nothing is invented.
        */
       expect([...drawn.map((chip) => chip.dataset['fact'])].sort(), name).toEqual(
-        facts.map((fact) => fact.id).sort(),
+        striped.map((fact) => fact.id).sort(),
       );
       expect(drawn.map((chip) => chip.dataset['fact']), `${name}: column order`).toEqual(
-        [...facts].sort((a, b) => MOVE_FACT_COLUMN[a.id] - MOVE_FACT_COLUMN[b.id]).map((fact) => fact.id),
+        [...striped].sort((a, b) => MOVE_FACT_COLUMN[a.id] - MOVE_FACT_COLUMN[b.id]).map((fact) => fact.id),
       );
-      // Each chip in the cell its column names, so the accuracy on one button
-      // is directly above the accuracy on the next.
+      // Each chip in the cell its column names, so the secondary chance on one
+      // button is directly above the secondary chance on the next.
       for (const chip of drawn) {
         const column = chip.parentElement?.dataset['column'];
         expect(column, `${name}: ${chip.dataset['fact']} is in a fact cell`).toBe(
-          String(MOVE_FACT_COLUMN[chip.dataset['fact'] as MoveFactId]),
+          String(MOVE_FACT_COLUMN[chip.dataset['fact'] as StripFactId]),
         );
       }
 

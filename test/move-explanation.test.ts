@@ -21,7 +21,7 @@ import { describe, expect, it } from 'vitest';
 import { describeMove } from '../src/core/battle/driver';
 import { moveTags } from '../src/core/moveTags';
 import { DEFAULT_TUNING } from '../src/data/tuning';
-import { moveExplanation, moveExplanationRows } from '../src/ui/move-explanation';
+import { moveExplanationRows } from '../src/ui/move-explanation';
 import { moveCardData } from '../src/ui/move-detail';
 import { moveCard } from '../src/ui/scene';
 
@@ -175,30 +175,43 @@ describe('describeMove is pure', () => {
   });
 });
 
-describe('the explanation panel', () => {
-  it('starts collapsed and opens on tap', () => {
-    const move = explain('Flamethrower');
-    const { trigger, panel } = moveExplanation(move, moveTags(move), 'probe');
-    expect(panel.hidden).toBe(true);
-    expect(trigger.getAttribute('aria-expanded')).toBe('false');
-    expect(trigger.getAttribute('aria-controls')).toBe('probe');
-
-    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(panel.hidden).toBe(false);
-    expect(trigger.getAttribute('aria-expanded')).toBe('true');
-
-    trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(panel.hidden).toBe(true);
+/**
+ * **What replaced the expander, and why these assertions inverted. M2.1, D15.**
+ *
+ * `moveExplanation` built a button reading `Explain` under every move card —
+ * one call site, so all six card surfaces, and the census counted 24 of them
+ * on the summary alone. R5 allows one explanation mechanism and its forbids
+ * list names "a help button"; the expander was one on any ordinary reading,
+ * and D15 ruled it into this item.
+ *
+ * The card itself is the trigger now, which inverts the case below. The
+ * expander had to **stop** a tap, because a reward card submits on click and
+ * explaining a move must not spend it. The card must **let the tap through**,
+ * because R5 is explicit that tap still selects and the explanation is the
+ * long press. Same surface, same hazard, opposite assertion — so the test is
+ * rewritten rather than dropped.
+ */
+describe('the card as its own inspect trigger', () => {
+  it('opens the move panel the battle button already opened', () => {
+    const facts = explain('Flamethrower');
+    const card = moveCard(moveCardData({ ...facts, maxPp: facts.maxPp }, DEFAULT_TUNING));
+    // `move:` and not a key of its own: `renderMoveRows` prints the same rows
+    // the expander printed, so a move reads the same everywhere it is met.
+    expect(card.dataset['tip']).toBe(`move:${facts.id}`);
   });
 
-  /**
-   * **Test 10, in the form that can be asserted without a browser.**
-   *
-   * A move card is drawn inside an element that submits on click — the reward
-   * card is the case — so the trigger must stop the event. This builds exactly
-   * that arrangement and asserts the outer handler never fires.
-   */
-  it('never lets the tap reach a control the card sits inside', () => {
+  it('is reachable without a pointer, which is what the expander was for', () => {
+    const facts = explain('Flamethrower');
+    const card = moveCard(moveCardData({ ...facts, maxPp: facts.maxPp }, DEFAULT_TUNING));
+    // Long press is not a keyboard gesture. The tooltip layer answers Enter and
+    // Space on a focusable trigger, so the card has to be one — this is the
+    // accessibility half of D15 and the reason M1.2 would not delete the
+    // expander on its own.
+    expect(card.tabIndex).toBe(0);
+    expect(card.getAttribute('role')).toBe('button');
+  });
+
+  it('never swallows a tap from the control it sits inside', () => {
     const outer = document.createElement('button');
     let submitted = 0;
     outer.addEventListener('click', () => {
@@ -209,33 +222,26 @@ describe('the explanation panel', () => {
     outer.append(moveCard(moveCardData({ ...facts, maxPp: facts.maxPp }, DEFAULT_TUNING)));
     document.body.append(outer);
 
-    const trigger = outer.querySelector('.move__explain-toggle');
-    expect(trigger, 'the card must carry an expander').not.toBeNull();
-    trigger?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const card = outer.querySelector<HTMLElement>('.move--card');
+    expect(card, 'the reward card draws a move card').not.toBeNull();
+    card?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(submitted, 'a tap on the card must still choose the reward it sits in').toBe(1);
 
-    expect(outer.querySelector('.move__explain')?.hasAttribute('hidden')).toBe(false);
-    expect(submitted, 'opening an explanation submitted the card it sits in').toBe(0);
-
-    // And the card itself still works as a control when tapped anywhere else.
-    outer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(submitted).toBe(1);
     document.body.replaceChildren();
   });
 
-  it('gives each card on a screen its own panel id', () => {
-    const a = moveCard(moveCardData({ ...explain('Tackle'), maxPp: 56 }, DEFAULT_TUNING));
-    const b = moveCard(moveCardData({ ...explain('Tackle'), maxPp: 56 }, DEFAULT_TUNING));
-    const idA = a.querySelector('.move__explain')?.id;
-    const idB = b.querySelector('.move__explain')?.id;
-    expect(idA).toBeTruthy();
-    expect(idA).not.toBe(idB);
-    expect(a.querySelector('.move__explain-toggle')?.getAttribute('aria-controls')).toBe(idA);
+  it('advertises nothing when there is nothing to explain', () => {
+    // A card built without `moveCardData` carries no explanation, so it is not
+    // made focusable and offers no panel — the same rule the expander followed.
+    const bare = moveCard({ name: 'Nothing', type: 'Normal', category: 'Physical', basePower: 0, maxPp: 0 });
+    expect(bare.dataset['tip']).toBeUndefined();
+    expect(bare.getAttribute('role')).toBeNull();
   });
 
-  it('carries no expander when there is nothing to explain', () => {
-    // A card built without going through `moveCardData` has no explanation, and
-    // gets no expander rather than an empty one.
-    const bare = moveCard({ name: 'Nothing', type: 'Normal', category: 'Physical', basePower: 0, maxPp: 0 });
-    expect(bare.querySelector('.move__explain-toggle')).toBeNull();
+  it('carries no expander anywhere, because there is no expander', () => {
+    const facts = explain('Tackle');
+    const card = moveCard(moveCardData({ ...facts, maxPp: facts.maxPp }, DEFAULT_TUNING));
+    expect(card.querySelector('.move__explain-toggle')).toBeNull();
+    expect(card.querySelector('.move__explain')).toBeNull();
   });
 });
