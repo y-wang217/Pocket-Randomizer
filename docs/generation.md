@@ -8701,6 +8701,23 @@ trigger in the same pass.* It did.
    section 2's six stat glyphs. The numeral was not moved anywhere, because the
    marks *are* the count and a numeral beside them is R3 again.
 
+### The 24px claim, and where it rests
+
+The item's done-when asks that the item sprite be *"legible at 24px against
+Showdown's icon sheet"*. Nothing was re-measured for it and nothing needed to
+be: the element is `ui/slots.ts`'s `itemIcon`, wearing `.slot__icon`, which is
+24px square with `image-rendering: pixelated` and has drawn every held item on
+the party slots and the summary since Stage V2. The panel mounts that
+component; it does not draw a second one at a second size, which is R1 and
+section 5's whole premise.
+
+What is *not* proven is the panel at 390 with an item on it, because no gallery
+fixture gives the battle panel a held item — the census could never charge the
+item's name either, for the same reason. `test/battle-stage.test.ts` builds one
+directly and asserts the sprite, its sheet position, its accessible name and
+that the slot spends no text. A fixture would be the stronger check and is a
+sensible thing for M3.2 to add while it is in the party row.
+
 ### What M3.1 did not do
 
 **The held item's name went; the ability's did not, and neither did the
