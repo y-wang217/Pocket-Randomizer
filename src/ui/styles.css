@@ -947,6 +947,13 @@ body {
   padding: calc(var(--space-2) * var(--density-pad)) 0 0;
 }
 
+/* Matched to `.statline__stat`, which this replaced and which was measured
+   into the capture card's fold budget: `display: flex`, a column, a hairline
+   gap, and **nothing else**. `.stat`'s own `font-size` and `line-height` are
+   reset rather than overridden with new numbers, because the cell's height
+   there came from its children's line boxes and a strut on the row put the
+   capture offer's decision buttons 1.4px past the 844 fold
+   (`test/visual-v4.test.ts`). */
 .stats--row .stat {
   flex-direction: column;
   align-items: stretch;
@@ -954,13 +961,26 @@ body {
   line-height: 1.2;
 }
 
+/* Six across takes the abbreviation in every mode that shows a word, which is
+   what `.statline` did and the reason it gave: *"six full names do not fit a
+   card at 390 wide"* (Item F, and the density patch recorded it). The unified
+   component rendered `Hit Points` here on its first pass and the label wrapped
+   to two lines, which put the capture offer's decision buttons past the 844px
+   fold — `test/visual-v4.test.ts` is what caught it. The grid layout keeps the
+   full name, because a two-column card has room for one. */
 .stats--row .stat__label { min-width: 0; font-size: var(--fs-xs); }
+.stats--row .stat__label-long { display: none; }
+:root:not([data-density="pocket"]) .stats--row .stat__label-short { display: inline; }
 .stats--row .stat__value { min-width: 0; text-align: left; font-size: var(--fs-md); color: var(--text); }
 .stats--row .stat__bar { min-width: 0; flex: none; }
 
 /* The stat mark, from M1.1's sheet. **M3.2.** Section 3: glyph, bar, number.
    Which of the mark and the words is shown is decided with the rest of the
-   density rules, below, so one place decides it. */
+   density rules, below, beside the type chip's and the category badge's — the
+   mark in Pocket, the word in the two modes D16 keeps a labelled face for, and
+   never both, which is R3. Rendering both was how M3.2 first shipped it, and
+   it cost 17px a card on the capture offer: `test/visual-v4.test.ts` caught
+   the decision buttons falling past the 844px fold. */
 .stat__label > .glyph { vertical-align: middle; }
 
 .stat {
@@ -1230,6 +1250,7 @@ body {
  */
 :root:not([data-density="pocket"]) .chip--type > .glyph,
 :root:not([data-density="pocket"]) .badge--category > .glyph,
+:root:not([data-density="pocket"]) .stat__label > .glyph,
 :root:not([data-density="pocket"]) .move__pp > .glyph { display: none; }
 
 /* Folding rows (`ui/collapse.ts`): the member card's body, a backpack row's
