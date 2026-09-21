@@ -8512,7 +8512,7 @@ re-encoding rather than removal. The lead designer ruled for deletion: R6 and
 R1 hold without interpretation, and the comparison-across-buttons goal that
 justified the mode is better served by the grid at double the width.
 
-**Deleted:** `ui/theme/move-bar.ts`, the `moveBar` setting and its accessors,
+**Deleted:** the `move-bar` theme module, the `moveBar` setting and its accessors,
 the drawer's picker and its copy, the `notFirstLaunch` and `openApp` options,
 179 lines of stylesheet, and five patterns from `test/density.test.ts`'s
 forbidden list. Those patterns guarded `core/` against seeing a presentation

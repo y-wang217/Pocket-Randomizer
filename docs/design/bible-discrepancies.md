@@ -948,7 +948,7 @@ holding without interpretation, and the comparison-across-buttons goal that
 justified the mode being better served by the grid — every field in a fixed
 slot at double the width.
 
-**What went.** `ui/theme/move-bar.ts`, the `moveBar` setting and its accessors,
+**What went.** the `move-bar` theme module, the `moveBar` setting and its accessors,
 the drawer's picker and its copy, the harness option, 179 lines of stylesheet,
 and five patterns from `test/density.test.ts`'s forbidden list that could no
 longer match. The patch that introduced it,

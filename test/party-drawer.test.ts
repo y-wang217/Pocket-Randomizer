@@ -160,7 +160,13 @@ describe('the drawer itself', () => {
     // each writes a display setting, which is not party state, and the
     // comparison below holds that.
     /*
-     * `Explain` left this list at M2.1, and the drawer got quieter for it.
+     * **`Columns` and `Grid` left at M2.2, `Explain` at M2.1, and the drawer
+     * got quieter for both.**
+     *
+     * The two layout names were the move-bar picker. D9 ruled the four-column
+     * bar deleted — R6 forbids two card faces, and the measurement said the
+     * compact face fits the 2x2 and cannot fit 85px — so the setting, the
+     * picker and its copy went with it.
      *
      * It was a button under every move card — four per member — opening an
      * inline panel. D15 ruled it a second explanation mechanism under R5, and
@@ -169,7 +175,7 @@ describe('the drawer itself', () => {
      * not appear here.
      */
     expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual([
-      '+', 'Close', 'Columns', 'Detailed', 'Even', 'Grid', 'Patient', 'Pocket', 'Simple', 'Swift',
+      '+', 'Close', 'Detailed', 'Even', 'Patient', 'Pocket', 'Simple', 'Swift',
     ]);
 
     /*
