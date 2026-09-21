@@ -251,11 +251,6 @@ section 2 and no budget line in section 4, and they read near zero only because
 `properNouns()` happens to carry `Levitate` and `Leech Seed` and not `Confused`.
 M3.1 touched neither, and it is ruled with M3.2.
 
-| Item | Status | Blocked by |
-|---|---|---|
-| M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
-| M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled. Party row 121 → 60 in Pocket, **0 on every surface the component builds**; stat block 0, now covering four call sites) |
-
 **M3.2 is shipped, and it was three rows rather than one item.**
 
 **D20: the tree had three six-stat components and the census could see one.**
@@ -294,6 +289,8 @@ nothing.
 
 | Item | Status | Blocked by |
 |---|---|---|
+| M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
+| M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled. Party row 121 → 60 in Pocket, **0 on every surface the component builds**; stat block 0, now covering four call sites) |
 | M3.3 Teach target screen | ready | — (D1 ruled: at or under 4. It takes 42 of the party row's remaining 60) |
 
 ### Tier 4: battle feedback
