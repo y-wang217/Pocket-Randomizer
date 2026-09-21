@@ -35,6 +35,7 @@ which blocks everything.
 | D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
 | D18 | M3.1, then M3.2 | The archetype chip has no row in the canon, and deleting it takes the opponent's build off the battle screen | **2026-09-21** |
 | D19 | nothing; timed with M3.2 | The ability and the volatile chips have no row anywhere in the bible | **deferred to M3.2** |
+| D20 | M3.2 | There are two six-stat components in the tree, and M3.1 made it three | **open** |
 
 ## Rulings, 2026-09-19
 
@@ -1189,3 +1190,75 @@ amendment — because section 3 **does** have a Held item row, and it says
 "Item sprite in a fixed slot" at rest and "Name, one effect line" on inspect.
 That is the shape of the fix D19's option 1 proposes for the other two. The
 ability and the volatiles have no such row, which is the whole of the row.
+
+
+---
+
+## D20. There are two six-stat components in the tree, and M3.1 made it three
+
+**Blocks M3.2.** Found measuring for it, not while building it.
+
+Section 5 canonises **one**: *"Stat block | Six rows of glyph, bar, number |
+Party drawer, recipient, capture, pre-gym."* It closes with the sentence this
+row is an instance of: *"A component that exists twice, or a screen that draws
+a stat without the stat block, is the defect this document exists to prevent."*
+
+The tree has three.
+
+| # | Builder | Class | Shape | Call sites |
+|---|---|---|---|---|
+| 1 | `statBlock`, `ui/member-card.ts` | `.stats stats--party` | two-column grid, label, number, bar | the party card, so the drawer, the party screen, pre-gym, the capture list |
+| 2 | `statLine`, `ui/screens/starter-select.ts` | `.statline` | one horizontal row of six cells | `screens/starter-select.ts`, `screens/acquisition.ts`, `screens/evolution.ts` |
+| 3 | `renderMonStats`, `ui/tooltips.ts` | `.tip__rows--stats` | three-column rows, glyph, bar, number | the battle panel's long press, **added by M3.1** |
+
+**The census cannot see the second one**, and that is the part worth filing
+rather than just fixing. Its `stat block` row selects `.stats`, so `.statline`
+is charged to whatever component happens to contain it — the party row on the
+capture card, screen chrome on starter select — and the component table reads
+`stat block | 90 | 108 | 0` while six stat labels are spent on `starter` and
+six more on `result-capture` in Pocket. A budget that measures one of two
+copies is the D2 failure again, one layer down.
+
+**The third one is M3.1's and it is named here rather than quietly kept.** The
+panel's inspect layer draws glyph, bar and number itself instead of mounting
+`statBlock`, because `statBlock` takes a `SpecCard` and a `PokemonState` and
+the inspect layer has a serialized `data-detail` string and no access to
+either. That is an explanation, not a defence: it is a third rendering of one
+attribute cluster and section 5's sentence covers it.
+
+**What makes this more than a refactor** is that the three disagree about the
+encoding, not only about the markup. Section 3's Six stats row is *"Glyph, bar,
+number. Always all six."* Only the one M3.1 built has a glyph. `statBlock`
+prints `HP`, `Atk` and `SpA` as text through `.stat__label-long` and
+`.stat__label-short`, and `statLine` prints the same six words in a different
+element. So "unify the component" and "mount M1.1's stat glyphs" are the same
+job, and doing either alone does the work twice.
+
+**Options.**
+
+1. **One component, in its own module, with the glyph.** `statBlock` moves out
+   of `ui/member-card.ts` to `ui/stat-block.ts`, takes six numbers rather than
+   a `SpecCard` and a `PokemonState`, renders glyph, bar and number per section
+   3, and all six call sites mount it — `statLine` is deleted and the inspect
+   layer stops drawing its own. The census gains a selector that catches it
+   everywhere. Largest diff, and the only option that leaves section 5 true.
+2. **Unify the two screen components and leave the inspect layer's third.**
+   Smaller, and it keeps the one rendering nobody sees at rest. Section 5 does
+   not carve out the inspect layer, so this is an amendment rather than a
+   choice.
+3. **Amend section 5 to canonise two**: a block for a card and a line for a
+   picker. Honest about the two shapes, and it gives up the property the rule
+   exists for, which is that one attribute is drawn by one thing.
+
+**Recommendation: 1.** Option 3's premise is real — a wide card and a narrow
+picker genuinely want different layouts — but it is a *stylesheet* difference
+rather than a component one: `.stats` is already a two-column grid that
+collapses, and one component with a modifier class covers both without two
+builders to keep in step. Option 2 leaves the sentence in section 5 false and
+would have to say so in the bible.
+
+**A note on order.** M3.2's own done-when is *"census reads 0 on drawer and
+party row"*, and the drawer surface censuses 83 in Pocket less shell — most of
+it map node cards (M5.2) and the density picker (settings chrome), neither of
+which is M3.2's. That is a separate question from this row, and it is measured
+before M3.2 claims its number.

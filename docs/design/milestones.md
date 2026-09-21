@@ -39,12 +39,14 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Eighteen of nineteen discrepancy rows are ruled** — eleven on 2026-09-19,
+**Eighteen of twenty discrepancy rows are ruled** — eleven on 2026-09-19,
 which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
 Tier 2, all on 2026-09-20, then D18 on 2026-09-21 opening Tier 3. **D14 is the
 one open row**, it blocks nothing, and it is timed with M5.6. **D19 is deferred
 rather than open**: it is ruled with M3.2, which meets the same two chips on
-the party row.
+the party row. **D20 is open and blocks M3.2**: there are two six-stat
+components in the tree and M3.1 made it three, which section 5's closing
+sentence names as the defect it exists to prevent.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -252,7 +254,7 @@ M3.1 touched neither, and it is ruled with M3.2.
 | Item | Status | Blocked by |
 |---|---|---|
 | M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
-| M3.2 Stat block and party row | ready | — (D19 is ruled here; the party row carries the same archetype chip D18 just settled) |
+| M3.2 Stat block and party row | **blocked** | D20 (D19 is also ruled here; the party row carries the same archetype chip D18 just settled) |
 | M3.3 Teach target screen | open | — (D1 ruled: at or under 4) |
 
 ### Tier 4: battle feedback
