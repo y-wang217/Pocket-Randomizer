@@ -354,7 +354,7 @@ component reads `absent`.
 | M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled; D21a re-ruled to cards. Party row 121 → **63** in Pocket, 0 on party and pre-gym; stat block 0, now covering four call sites) |
 | M3.3 Teach target screen | **done** | — (target card 42 → **0**; the decline overlay measures 5 against a budget of 4, see below) |
 
-### Tier 4: battle feedback
+### Tier 4: battle feedback, closed 2026-09-21
 
 **Five rows were filed against this tier before it opened**, from a reading done
 while Tier 3 was closing: [`../handoff/4.10-tier-4-prep.md`](../handoff/4.10-tier-4-prep.md)
@@ -387,7 +387,7 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 |---|---|---|
 | M4.1 Flag precedence | **done** | — (D12, D23, D24 ruled. `data/flagPrecedence.ts`, `visual/4.10-m4.1`, [`generation.md` §61](../generation.md)) |
 | M4.2 Forecast and feedback vocabulary | **done** | — (D6 filled, D27 ruled. `visual/4.10-m4.2`, [`generation.md` §62](../generation.md); the visual diff is a token assertion, recorded as a deviation) |
-| M4.3 Log at rest | open | — (D7, D24, D25, D26, D28 all ruled) |
+| M4.3 Log at rest | **done** | — (D7, D24, D25, D26, D28 ruled. Battle screen 10 → **7**, all of it budgeted; `visual/4.10-m4.3`, [`generation.md` §63](../generation.md)) |
 
 ### Tier 5: remaining surfaces
 

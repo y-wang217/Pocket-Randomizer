@@ -686,14 +686,73 @@ body {
    made the band 2.5px taller would be V5 spending budget on furniture. The
    horizontal padding and every other button property are untouched, so it is
    still visibly the same control as the drawer trigger above it. */
+/* The handle that opens the history sheet. **M4.3, row D26.**
+
+   It was a `.button--small` reading `History` until M4.3. The word is gone —
+   section 4 budgets this screen at zero outside the strip's flags and the
+   header, and a control label is neither — and what is left is the shape of
+   the thing it opens: a grab handle, where the sheet comes up from.
+
+   Not a glyph. Section 2's nine families are attributes of a Pokemon or a
+   move, and a control is neither, so a `history` glyph would be a tenth family
+   for furniture. This is drawn here, in two rules, and nothing in the sheet
+   knows the drawing exists. */
 .flags__history {
   flex: 0 0 auto;
   margin-left: auto;
-  padding-top: 0;
-  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hairline);
+  /* **The band's height, not a 44px floor**, and that is a deliberate refusal.
+
+     V5 budgets this strip at one 24px band and `test/visual-v5.test.ts`
+     asserts it; the `History` button it replaces was `--space-6` tall for the
+     same reason. A 44px control here would take 20px off the board on the one
+     screen whose budget is the whole stage — and `.flags` has `overflow:
+     hidden`, so the usual trick of an oversized pseudo-element hit area would
+     be clipped rather than honoured.
+
+     The width is the part that can grow, so it does: 44px across, which is the
+     axis a thumb reaching for a handle at the edge of a row misses in. */
   height: var(--space-6);
-  font-size: var(--fs-2xs);
+  min-width: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  /* The browser's own vertical-drag default is a scroll, and the pull is a
+     vertical drag. Without this the board scrolls under the gesture on a
+     phone; `onPullUp`'s `preventDefault` cannot help on a passive listener. */
+  touch-action: none;
 }
+
+/* Two bars rather than one, so it reads as a handle rather than as a divider
+   or a dash. `::after` is the second; both are the strip's own dim ink, which
+   is the same neutral every other piece of furniture on this row wears. */
+.flags__grip,
+.flags__grip::after {
+  display: block;
+  width: var(--space-5);
+  height: calc(var(--hairline) * 2);
+  border-radius: var(--radius-chip);
+  background: var(--text-dim);
+}
+
+.flags__grip::after {
+  content: '';
+  margin-top: var(--space-1);
+  /* Narrower, so the pair has a direction: the short bar is the one nearer the
+     edge the sheet arrives from. */
+  width: var(--space-4);
+}
+
+.flags__history:hover .flags__grip,
+.flags__history:hover .flags__grip::after,
+.flags__history:focus-visible .flags__grip,
+.flags__history:focus-visible .flags__grip::after { background: var(--text); }
 
 /* Whose flag it is, in the log's own vocabulary — `.log-entry__order` marks
    the player's side with `--emphasis` and leaves the opponent's neutral, and

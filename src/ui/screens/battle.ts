@@ -24,7 +24,7 @@ import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
-import { createLogSheet, type LogSheet } from '../log-sheet';
+import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
 import { abnormalityMarks } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 
@@ -119,6 +119,16 @@ export function createBattleScreen(): BattleScreen {
   // The control is handed over as the opener, so closing the sheet puts focus
   // back on it rather than at the top of the document. `ui/overlay.ts` says why.
   flags.history.addEventListener('click', () => sheet.open(flags.history));
+  /*
+   * And the pull. **M4.3, row D26.**
+   *
+   * Wired here beside the click for the reason the strip exposes its control
+   * rather than wiring it: the sheet never opens on its own, and this file is
+   * the one place a gesture becomes an open. Two routes to one sheet, both
+   * ending in the same call, with the same opener handed over so focus returns
+   * to the handle either way.
+   */
+  onPullUp(flags.history, () => sheet.open(flags.history));
 
   root.append(header, board, sheet.root);
 

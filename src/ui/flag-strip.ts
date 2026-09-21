@@ -93,14 +93,30 @@ export function createFlagStrip(): FlagStrip {
   const event = el('span', 'flags__event');
   const words = el('span', 'flags__words');
 
+  /*
+   * The handle that opens the sheet. **M4.3, row D26.**
+   *
+   * It read `History` until M4.3, and a word here is word load on a screen
+   * section 4 budgets at zero outside the strip's flags and the header. It is
+   * drawn as a grab handle instead — two stacked bars, in the stylesheet, no
+   * text node at all — and it keeps its accessible name, which is not rendered
+   * and is not what the census counts.
+   *
+   * **A handle rather than a glyph on purpose.** Section 2's nine families are
+   * attributes of a Pokemon or a move, and a control is neither, so a `history`
+   * glyph would be a tenth family for a piece of furniture. What this draws is
+   * the shape of the thing it opens: the sheet comes up from the bottom of the
+   * screen, and a grab handle is where it comes from.
+   */
   const history = document.createElement('button');
   history.type = 'button';
-  history.className = 'button button--small flags__history';
-  history.textContent = 'History';
+  history.className = 'flags__history';
+  history.setAttribute('aria-label', 'Battle history');
+  history.append(el('span', 'flags__grip'));
   /*
    * Out of the live region. The control is furniture, not an event, and a
-   * `polite` region that announced "History" after every turn would be reading
-   * the button out loud once a turn for the whole battle.
+   * `polite` region that announced it after every turn would be reading the
+   * button out loud once a turn for the whole battle.
    */
   history.setAttribute('aria-live', 'off');
 

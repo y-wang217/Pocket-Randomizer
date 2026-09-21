@@ -128,7 +128,9 @@ describe('the battle screen', () => {
   it('says who acted by species on the strip and in the history sheet', () => {
     const { screen } = mount('LABEL04');
     const event = screen.root.querySelector('.flags__event')?.textContent ?? '';
-    expect(event).toMatch(/^(Snorlax|Opposing Golem) used /);
+    // M4.3 took the verb and the `Opposing` off this line (row D25); the
+    // species is still what names the actor, which is what this file is about.
+    expect(event).toMatch(/^(Snorlax|Golem) \u00b7 /);
     const log = texts(screen.root, '.log-entry');
     expect(log.length).toBeGreaterThan(0);
     expect(log.some((line) => line.includes('Snorlax'))).toBe(true);
