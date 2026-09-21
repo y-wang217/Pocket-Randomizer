@@ -79,10 +79,8 @@ export const DENSITIES: readonly Density[] = ['detailed', 'simple', 'pocket'];
  * The two are measured against each other rather than ranked here;
  * `docs/generation.md` section 16 has both height tables.
  */
-export type MoveBar = 'grid' | 'columns';
 
 /** Both layouts, in the order the picker lists them. */
-export const MOVE_BARS: readonly MoveBar[] = ['grid', 'columns'];
 
 /**
  * How long a battle turn's feedback takes to play. **The battle animation run.**
@@ -191,7 +189,6 @@ export interface ExposureFlags {
 
 export interface Settings {
   density: Density;
-  moveBar: MoveBar;
   battleSpeed: BattleSpeed;
   tutorial: TutorialFlags;
   intro: IntroFlags;
@@ -217,7 +214,6 @@ export interface Settings {
  */
 export const DEFAULT_SETTINGS: Settings = {
   density: 'detailed',
-  moveBar: 'grid',
   battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
   intro: { seenVersion: 0 },
@@ -228,9 +224,6 @@ function isDensity(value: unknown): value is Density {
   return (DENSITIES as readonly unknown[]).includes(value);
 }
 
-function isMoveBar(value: unknown): value is MoveBar {
-  return (MOVE_BARS as readonly unknown[]).includes(value);
-}
 
 function isBattleSpeed(value: unknown): value is BattleSpeed {
   return (BATTLE_SPEEDS as readonly unknown[]).includes(value);
@@ -273,7 +266,6 @@ export function readSettings(value: unknown): Partial<Settings> {
   if (typeof value !== 'object' || value === null) return {};
   const candidate = value as {
     density?: unknown;
-    moveBar?: unknown;
     battleSpeed?: unknown;
     verbosity?: unknown;
     tutorial?: unknown;
@@ -298,7 +290,6 @@ export function readSettings(value: unknown): Partial<Settings> {
    * falls through to the default, which is the layout that store was already
    * being shown.
    */
-  if (isMoveBar(candidate.moveBar)) read.moveBar = candidate.moveBar;
   /*
    * The speed, read like the move bar and outside the density chain for the
    * same reason: a branch placed inside that `else` severs it, which is the
@@ -382,17 +373,6 @@ export function getDensity(): Density {
 export function setDensity(density: Density): void {
   if (current.density === density) return;
   current = { ...current, density };
-  saveSettings(current);
-  for (const listener of listeners) listener(current);
-}
-
-export function getMoveBar(): MoveBar {
-  return current.moveBar;
-}
-
-export function setMoveBar(moveBar: MoveBar): void {
-  if (current.moveBar === moveBar) return;
-  current = { ...current, moveBar };
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }

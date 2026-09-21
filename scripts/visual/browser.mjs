@@ -522,7 +522,7 @@ export const MOVE_BARS = ['grid', 'columns'];
  * so the bot measures exactly what a stored preference renders: the app reads
  * it at startup and writes the root attribute itself.
  */
-export async function skipTutorialIn(context, density = 'detailed', moveBar = 'grid') {
+export async function skipTutorialIn(context, density = 'detailed') {
   await context.addInitScript(
     (settings) => {
       try {
@@ -538,12 +538,12 @@ export async function skipTutorialIn(context, density = 'detailed', moveBar = 'g
      * name here is older than the panel and is kept because every caller in the
      * suite uses it.
      */
-    notFirstLaunch({ density, moveBar }),
+    notFirstLaunch({ density }),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
+  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -551,7 +551,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
-  if (!tutorial) await skipTutorialIn(context, density, moveBar);
+  if (!tutorial) await skipTutorialIn(context, density);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -641,8 +641,8 @@ export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density, moveBar = 'grid') {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density, moveBar });
+async function measureGuardedScreensIn(url, browser, seed, density) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

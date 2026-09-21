@@ -24,7 +24,7 @@ which blocks everything.
 | D6 | M3.1 | The component canon omits the priority chevron that R9 and section 6 require | **2026-09-19** |
 | D7 | M4.3 | The flag strip's one word has no budget row | **2026-09-19** |
 | D8 | M5.6 | The item pre-authorises a remedy the bible reserves for amendment | **2026-09-20** |
-| D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces | **2026-09-19** |
+| D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces | **2026-09-19**, closed **2026-09-20**: column mode deleted |
 | D10 | M6.2, M6.3 | The items are ordered against section 7 | **2026-09-19** |
 | D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal | **2026-09-19** |
 | D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
@@ -50,7 +50,7 @@ ruling is restated under its own row below; the bible amendments they produced a
 | D5 | No tenth family. The plus and minus signs are permanent from day one. Section 9 loses "after the label fades"; the fallback is "add the two words". | Bible sections 3 and 9. Milestone M5.4 loses its label line |
 | D6 | Add the chevron to the Pokemon panel. | Bible section 5 |
 | D7 | Add a flag strip row, 1 word per hit. Battle screen budget excludes it. | Bible section 4 |
-| D9 | Build the compact 2x2 first, re-measure column mode against it in the same PR, rule with the number. Both branches in the done-when. | Milestone M2.2 |
+| D9 | Build the compact 2x2 first, re-measure column mode against it in the same PR, rule with the number. Both branches in the done-when. **Closed 2026-09-20 with the number: option 1, column mode deleted.** | Milestone M2.2 |
 | D10 | Re-anchor before the default flips. | Bible section 7. Milestone order M6.2 then M6.3 |
 | D11 | A validation cycle is two rounds of the M7.1 protocol, three testers each, one without Pokemon knowledge. | Bible R6 and section 11 |
 | D12 | Split all three per the `displayTuning.ts` precedent, copy into `EXCLUDED`, generation-bearing fields stay. No hash move. | Milestone M4.1, M5.1, M6.1 gates |
@@ -910,3 +910,48 @@ census lying about a surface to flatter a milestone, which is the exact failure
 this row was filed to avoid. So `GLYPH_SLOTS` gains one selector,
 `.move__fact-icon`, with its reason beside it, and the app shell still censuses
 109.
+
+
+---
+
+## D9, closed with the measurement
+
+**Ruled 2026-09-19 to defer; closed 2026-09-20 on the number. Option 1:
+column mode is deleted and M2.2 ships the 2x2 only.**
+
+The deferral was the right call and the measurement did not say what it was
+expected to. At 390x844, with the M2.1 face:
+
+| | width | height | anything cut |
+|---|---|---|---|
+| 2x2 grid | 176px | 112px | nothing, both densities |
+| columns | 85px | 149px | nothing — **and only because it hid four of five fact columns** |
+
+The compact face fits the wide button with room to spare, which is what the
+row hoped: the 85px measurement that justified column mode was taken against
+the labelled face M2.1 deleted. What it did not anticipate is that the compact
+face does not fit 85px either. Showing every fact cell puts a 47px
+secondary-chance chip in a 31px cell; one cell per row grows the button and
+still cuts it; letting the track fill hands the row to the band strip.
+
+So column mode could only ever exist by dropping facts, which is the
+`display: none` this item removed along with the mode.
+
+**A third route was available and was not taken.** R6 permits "whether a
+secondary fact sits behind a tap", and since M2.1 the battle button is an
+inspect trigger whose panel prints every strip fact — accuracy, priority,
+multi-hit, recoil, drain, charge and recharge as their own rows, contact as a
+Behaviour row. On D17A's precedent the hiding would therefore have been
+re-encoding rather than removal, and column mode could have stayed. The lead
+designer ruled for deletion anyway, and the reasons on the table were R6 and R1
+holding without interpretation, and the comparison-across-buttons goal that
+justified the mode being better served by the grid — every field in a fixed
+slot at double the width.
+
+**What went.** `ui/theme/move-bar.ts`, the `moveBar` setting and its accessors,
+the drawer's picker and its copy, the harness option, 179 lines of stylesheet,
+and five patterns from `test/density.test.ts`'s forbidden list that could no
+longer match. The patch that introduced it,
+[`../spec/gymrun-patch-four-column-move-bar.md`](../spec/gymrun-patch-four-column-move-bar.md),
+stays where it is: a prompt is a record of what was asked, not a description of
+what exists.
