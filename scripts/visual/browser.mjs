@@ -180,6 +180,12 @@ async function chooseNode(page) {
  * Returns the name of the screen it acted on, or null when nothing was
  * clickable (a transition in flight). The caller decides when to stop; this
  * only knows how to answer whichever screen is up.
+ *
+ * **That null is the contract, and until M2.0 the code did not keep it.**
+ * Every branch returned the screen whether or not it had clicked anything, so
+ * a caller counting steps counted the waiting as progress and a walk could
+ * exhaust its budget without having made a single decision. The branches that
+ * wait now return null, as this comment always said they did.
  */
 /**
  * Close an open tooltip before acting. **Added at patch 4.7.2.**
@@ -233,22 +239,47 @@ async function dismissTooltip(page) {
  * `visual-v0`, `visual-v2` and `contrast.mjs` already make before they measure,
  * each with a comment saying why.
  */
-export async function stepOnce(page) {
-  const screen = await stepOnceUnparked(page);
+export async function stepOnce(page, expected) {
+  const screen = await stepOnceUnparked(page, expected);
   await page.mouse.move(0, 0);
   return screen;
 }
 
-async function stepOnceUnparked(page) {
+async function stepOnceUnparked(page, expected) {
   await dismissTooltip(page);
   const screen = await openScreen(page);
+  /*
+   * **Act on the screen the caller decided about, never on whatever replaced
+   * it.** M2.0.
+   *
+   * A caller reads the screen, decides whether it is the one it wanted, and
+   * then calls this — which reads the screen *again*. Between those two reads
+   * the app can move on its own: the battle outro resolves on a `setTimeout`,
+   * and `router.show` is synchronous, so the switch lands whole inside the
+   * gap. The caller then decides about one screen and this steps off another,
+   * and the screen it was waiting for is consumed without its predicate ever
+   * having been asked about it.
+   *
+   * That is the walk's one real race, and it is load-sensitive for a reason
+   * that is not the app's fault: the gap is two CDP round trips wide, the
+   * timer fires on wall-clock, and a saturated box stretches the former while
+   * leaving the latter alone. It is also why throttling the *page* does not
+   * reproduce it — that slows the app and narrows the gap.
+   *
+   * `expected` closes it. A caller that has already decided passes what it
+   * decided about; if the app has moved since, this acts on nothing and says
+   * so, and the caller re-reads and decides again. A caller with no opinion
+   * omits it and gets the old behaviour exactly.
+   */
+  if (expected !== undefined && screen !== expected) return null;
   switch (screen) {
     case 'starter':
       await (await bulkiestStarter(page)).click();
       return screen;
     case 'locale': {
       const card = page.locator(`${visible('locale')} .locale`).last();
-      if (await card.count()) await card.click();
+      if (!(await card.count())) return null;
+      await card.click();
       return screen;
     }
     case 'battle': {
@@ -269,8 +300,13 @@ async function stepOnceUnparked(page) {
        * always present and never a trigger, and the click bubbles to the
        * button exactly as a tap on it would.
        */
-      if (move) await move.locator('.move__name').first().click();
-      else await page.waitForTimeout(40);
+      if (!move) {
+        // Mid-turn: the buttons are disabled while the beats run. Nothing was
+        // spent, so this is not a step.
+        await page.waitForTimeout(40);
+        return null;
+      }
+      await move.locator('.move__name').first().click();
       return screen;
     }
     case 'result': {
@@ -309,7 +345,8 @@ async function stepOnceUnparked(page) {
         return screen;
       }
       const carry = page.locator(`${visible('result')} .result__actions .button`).first();
-      if (await carry.count()) await carry.click();
+      if (!(await carry.count())) return null;
+      await carry.click();
       return screen;
     }
     case 'shop': {
@@ -356,16 +393,34 @@ async function stepOnceUnparked(page) {
      */
     case 'target': {
       const card = page.locator(`${visible('target')} .party__member--target`).first();
-      if (!(await card.count())) return screen;
+      if (!(await card.count())) return null;
       const name = card.locator('.panel__name').first();
       await ((await name.count()) ? name : card).click();
       return screen;
     }
     case 'replace': {
       const victim = page.locator(`${visible('replace')} .move--victim`).last();
-      if (!(await victim.count())) return screen;
+      if (!(await victim.count())) return null;
       const name = victim.locator('.move__name').first();
       await ((await name.count()) ? name : victim).click();
+      /*
+       * **And then answer the confirm, because M2.3 put one here.**
+       *
+       * Tapping a victim used to commit the replacement. It opens the shared
+       * band now — two full cards, the question, and a primary that commits —
+       * which is the item's whole point: the chip gave up PP and the band, and
+       * the confirm is where they come back.
+       *
+       * A walker that clicked the chip and moved on would leave a modal up,
+       * and the band is `aria-modal` with a scrim, so *every* later click is
+       * intercepted by it. That is not a slow walk, it is a stuck one: the
+       * smoke run spent its timeout retrying a click the dialog was eating.
+       *
+       * The same shape the `result` branch already handles for a full-party
+       * release, and the selector is the same one.
+       */
+      const commit = page.locator('.confirm-band .primary-action');
+      if (await commit.count()) await commit.first().click();
       return screen;
     }
     case 'party': {
@@ -394,32 +449,63 @@ async function stepOnceUnparked(page) {
       // slot, because slot 0's own button is disabled ("Leading") — which on a
       // party of one left no enabled control at all.
       const confirm = page.locator(`${visible('pre-gym')} .pre-gym__confirm:not(:disabled)`);
-      if (await confirm.count()) await confirm.first().click();
-      else await page.waitForTimeout(40);
+      if (!(await confirm.count())) {
+        await page.waitForTimeout(40);
+        return null;
+      }
+      await confirm.first().click();
       return screen;
     }
     case 'map': {
       const node = await chooseNode(page);
-      if (node) await node.click();
-      else await page.waitForTimeout(40);
+      if (!node) {
+        await page.waitForTimeout(40);
+        return null;
+      }
+      await node.click();
       return screen;
     }
     default:
       await page.waitForTimeout(40);
-      return screen;
+      return null;
   }
 }
 
 /**
  * Play until `predicate(screen, page)` is true, or `maxSteps` decisions pass.
  * Checked *before* each step, so the run stops on the screen asked for.
+ *
+ * **`maxSteps` counts decisions, not laps. M2.0.** It always said decisions;
+ * the loop counted laps, and the two differ exactly when the app is busy —
+ * which is when the budget matters. A lap that found nothing to click spent
+ * nothing, so it is not a step, and a walk no longer gives up because the
+ * machine was slow enough that waiting looked like progress.
+ *
+ * The wall-clock cap is what stops a genuinely stuck run now. It is a
+ * *deadline*, not a per-step sleep: a fast machine never touches it, and a slow
+ * one gets as many frames as it needs rather than a fixed 25ms that was only
+ * ever a guess at how long a render takes.
+ *
+ * It scales with the budget rather than being flat, because a caller that asks
+ * for five steps is asking a short question and should get a short answer when
+ * the walk is stuck — `scripts/visual/stamps.mjs` asks exactly that and
+ * swallows the rejection. 300ms a decision, floored at 30s, which lands the
+ * default 600 on the three minutes a full walk to the summary can take under
+ * load.
  */
-export async function playUntil(page, predicate, maxSteps = 600) {
-  for (let step = 0; step < maxSteps; step++) {
+export async function playUntil(page, predicate, maxSteps = 600, { timeoutMs = Math.max(30_000, maxSteps * 300) } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let steps = 0;
+  while (steps < maxSteps) {
     const screen = await openScreen(page);
     if (screen && (await predicate(screen, page))) return screen;
-    await stepOnce(page);
-    await page.waitForTimeout(25);
+    if (Date.now() > deadline) {
+      throw new Error(`playUntil: ${timeoutMs}ms elapsed after ${steps} steps, on ${screen}`);
+    }
+    // `screen` and not a fresh read: this is the half of the race that lives
+    // here. See `stepOnceUnparked`.
+    if (await stepOnce(page, screen)) steps += 1;
+    else await page.waitForTimeout(16);
   }
   throw new Error(`playUntil: gave up after ${maxSteps} steps on ${await openScreen(page)}`);
 }
@@ -454,7 +540,7 @@ export const MOVE_BARS = ['grid', 'columns'];
  * so the bot measures exactly what a stored preference renders: the app reads
  * it at startup and writes the root attribute itself.
  */
-export async function skipTutorialIn(context, density = 'detailed', moveBar = 'grid') {
+export async function skipTutorialIn(context, density = 'detailed') {
   await context.addInitScript(
     (settings) => {
       try {
@@ -470,12 +556,12 @@ export async function skipTutorialIn(context, density = 'detailed', moveBar = 'g
      * name here is older than the panel and is kept because every caller in the
      * suite uses it.
      */
-    notFirstLaunch({ density, moveBar }),
+    notFirstLaunch({ density }),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
+  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -483,7 +569,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
-  if (!tutorial) await skipTutorialIn(context, density, moveBar);
+  if (!tutorial) await skipTutorialIn(context, density);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -573,8 +659,8 @@ export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density, moveBar = 'grid') {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density, moveBar });
+async function measureGuardedScreensIn(url, browser, seed, density) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

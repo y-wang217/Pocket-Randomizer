@@ -1,31 +1,41 @@
 /**
- * Tap a move, get an explanation — on every surface that draws a move card, and
- * on no surface that submits one. **Patch 4.7.2, step 5.**
+ * Hold a move, get an explanation — on every surface that draws a move card,
+ * and on no surface that submits one. **Patch 4.7.2 step 5, rebuilt at M2.1.**
  *
  * The content of an explanation is asserted without a browser, in
- * `test/move-explanation.test.ts`. What needs a real run is the *reach*: which
- * surfaces the one insertion point actually got to, and that opening a panel on
- * each of them spends nothing.
+ * `test/move-explanation.test.ts`, and the long press itself in
+ * `test/inspect.test.ts`. What needs a real run is the *reach*: which surfaces
+ * the one insertion point actually got to, and that reaching it spends nothing.
  *
- * ## The seven, and why the count is asserted rather than described
+ * ## What M2.1 changed here, and what it did not
+ *
+ * Until M2.1 the mechanism was an `Explain` button under every card, and this
+ * file counted those. D15 ruled it out: R5 allows exactly one explanation
+ * mechanism and its forbids list names "a help button", and the census counted
+ * 24 of them on the summary screen alone. The card itself is the trigger now.
+ *
+ * **The question is unchanged and so is the shape of the answer.** A claim
+ * about which surfaces mount the shared card is a claim about the call graph,
+ * and a claim about a call graph goes stale the first time a screen is added —
+ * so the run still walks until it has seen the insertion point on each of the
+ * seven, and the assertion is still the set. What moved is the thing counted.
+ *
+ * ## The seven
  *
  * `scene.moveCard` is the single insertion point, and the surfaces that call it
  * are the party screen, the party drawer, pre-gym, the move-replace incoming
  * card, the move reward card, the run summary and — from patch 4.8.0.2 — the
  * recipient screen, where the gym's granted move had been arriving with no
- * card at all. That list is a claim about the call graph, and a claim about a
- * call graph goes stale the first time a screen is added. So the run walks
- * until it has seen an expander on each, and the assertion is the set — a
- * surface that stops carrying one fails here rather than being quietly
- * dropped.
+ * card at all.
  *
- * ## The battle bar is asserted to have none
+ * ## The battle bar is asserted to draw none
  *
  * `renderMove` builds its buttons from `moveFacts`, not from `moveCard`, so the
- * battle bar is structurally out of reach of this feature — a tap on a move
- * button spends a turn, and that it *cannot* grow an expander by accident is
- * worth an assertion rather than a comment. Open item 9 records that R8 will
- * need its own insertion point.
+ * battle bar is structurally out of reach of this component — and it has a
+ * trigger of its own, which M1.2 put on the button. A `.move--card` appearing
+ * there would be a second trigger on a control where a stray tap spends a turn,
+ * so its absence is worth an assertion rather than a comment. That is R8's
+ * insertion point, and open item 9 is closed by M1.2 having given it one.
  */
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -58,38 +68,47 @@ afterAll(async () => {
 const SURFACES = ['party', 'drawer', 'pre-gym', 'replace', 'result', 'target', 'summary'] as const;
 
 /**
- * Expanders on the open screen, whether any panel is showing, and the face tags.
+ * The move cards on the open screen, how many are inspect triggers, and the
+ * face facts. **Rewritten at M2.1; it used to count expanders.**
  *
- * **The tag count is here because the expander count could not have caught
- * #24's bug.** A surface whose `moveCardData` call got something other than a
- * `Tuning` still renders an expander — that comes off `explanation` — while
- * `tagsForFace` silently returns nothing, because the cap arrives as `undefined`
- * and `slice(0, NaN)` is empty. So this sweep proved the insertion point was
- * reached and not that real data came through it. `faceMax` is what separates
- * the two. See `docs/generation.md` section 12g.
+ * `ui/move-explanation.ts` rendered an `Explain` button under every card and
+ * this counted those. D15 ruled it out — R5 allows one explanation mechanism
+ * and calls a help button one — and M2.1 made the card itself the trigger. So
+ * the question this file exists for is unchanged (*which surfaces does the one
+ * insertion point actually reach?*) and only the thing counted moved.
+ *
+ * **The tag count stays, because the trigger count could not have caught #24's
+ * bug.** A surface whose `moveCardData` call got something other than a
+ * `Tuning` still produced a trigger — that comes off `explanation` — while
+ * `tagsForFace` silently returned nothing, because the cap arrived as
+ * `undefined` and `slice(0, NaN)` is empty. So a reach sweep proves the
+ * insertion point was reached and not that real data came through it.
+ * `faceMax` is what separates the two. See `docs/generation.md` section 12g.
+ *
+ * `expanders` is counted so it can be asserted to be zero everywhere. A single
+ * surviving one is a second mechanism, which is the thing R5 forbids.
  */
-async function expanders(page: Page, scope: string): Promise<{ triggers: number; open: number; faceMax: number }> {
+async function cardFaces(
+  page: Page,
+  scope: string,
+): Promise<{ cards: number; triggers: number; focusable: number; expanders: number; faceMax: number }> {
   return page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
-    if (!root) return { triggers: 0, open: 0, faceMax: 0 };
-    const triggers = [...root.querySelectorAll('.move__explain-toggle')];
-    const panels = [...root.querySelectorAll('.move__explain')];
-    // Per face, not per screen, for the reason the tag cap was measured per
-    // face: what is being separated is "the insertion point was reached" from
-    // "real data came through it", and only a per-card number does that.
-    // Patch 4.8.0.3: the face row is `.move__facts` now. `faceMax` still
-    // answers the same question — did any face get anything at all.
+    if (!root) return { cards: 0, triggers: 0, focusable: 0, expanders: 0, faceMax: 0 };
+    const cards = [...root.querySelectorAll('.move--card')] as HTMLElement[];
     const faces = [...root.querySelectorAll('.move')].map(
       (face) => face.querySelectorAll('.move__facts .badge--fact').length,
     );
     return {
+      cards: cards.length,
+      // `move:` and nothing else: the panel the battle button has opened since
+      // M1.2, so a move reads the same everywhere the player meets it.
+      triggers: cards.filter((card) => (card.dataset['tip'] ?? '').startsWith('move:')).length,
+      // Long press is not a keyboard gesture. This is the half of D15 that had
+      // to be replaced rather than deleted.
+      focusable: cards.filter((card) => card.tabIndex === 0 && card.getAttribute('role') === 'button').length,
+      expanders: root.querySelectorAll('.move__explain-toggle, .move__explain').length,
       faceMax: faces.length === 0 ? 0 : Math.max(...faces),
-      triggers: triggers.length,
-      // **Painted, not `.hidden`.** The property said closed while the panel
-      // laid out at full height, because `.move__explain` sets `display: grid`
-      // and that beats the UA's `[hidden]` rule — the trap `styles.css` has
-      // now been bitten by three times. Measuring the box is what notices.
-      open: panels.filter((panel) => (panel as HTMLElement).getBoundingClientRect().height > 0).length,
     };
   }, scope);
 }
@@ -121,27 +140,42 @@ describe('the move explanation, across every surface it reaches', () => {
     let openedDrawer = false;
     battleTriggers = -1;
 
-    /** Open one expander on the given scope and assert nothing else moved. */
+    /**
+     * Record this surface's cards, and check the keyboard path costs nothing.
+     *
+     * It used to open an expander and assert the run had not moved. There is
+     * no expander to open now, and a *tap* on a card is supposed to select —
+     * R5 is explicit that tap still selects and the explanation is the long
+     * press — so tapping to probe would spend the very thing this guards.
+     *
+     * Focus is the tap's replacement and is the better probe anyway: it is the
+     * path D15 had to preserve when the expander went, it is the one a
+     * keyboard actually takes, and it must move nothing. The long press itself
+     * is asserted in jsdom by `test/inspect.test.ts`, which is where a
+     * duration belongs; this file answers reach.
+     */
     const probe = async (label: string, scope: string): Promise<void> => {
-      const before = await expanders(page, scope);
-      if (before.triggers === 0) return;
-      found[label] = Math.max(found[label] ?? 0, before.triggers);
-      tags[label] = Math.max(tags[label] ?? 0, before.faceMax);
+      const seenHere = await cardFaces(page, scope);
+      if (seenHere.cards === 0) return;
+      found[label] = Math.max(found[label] ?? 0, seenHere.triggers);
+      tags[label] = Math.max(tags[label] ?? 0, seenHere.faceMax);
+
+      if (seenHere.expanders !== 0) {
+        violations.push(`${label}: ${seenHere.expanders} expander(s) survive, which is a second mechanism (R5)`);
+      }
+      if (seenHere.triggers !== seenHere.cards) {
+        violations.push(`${label}: ${seenHere.cards - seenHere.triggers} of ${seenHere.cards} cards open nothing`);
+      }
+      if (seenHere.focusable !== seenHere.cards) {
+        violations.push(`${label}: ${seenHere.cards - seenHere.focusable} of ${seenHere.cards} cards cannot be reached by keyboard`);
+      }
 
       const stateBefore = await runState(page);
-      await page.locator(`${scope} .move__explain-toggle`).first().click();
-      await page.waitForTimeout(150);
-
-      const after = await expanders(page, scope);
-      if (before.open !== 0) violations.push(`${label}: a panel was already laid out before the tap`);
-      if (after.open === 0) violations.push(`${label}: the tap opened nothing`);
+      await page.locator(`${scope} .move--card`).first().focus();
       const stateAfter = await runState(page);
       if (stateAfter !== stateBefore) {
-        violations.push(`${label}: opening an explanation changed the run\n  ${stateBefore}\n  ${stateAfter}`);
+        violations.push(`${label}: focusing a move card changed the run\n  ${stateBefore}\n  ${stateAfter}`);
       }
-      // Closed again, so the next screen is measured from a clean state.
-      await page.locator(`${scope} .move__explain-toggle`).first().click();
-      await page.waitForTimeout(100);
     };
 
     for (let step = 0; step < 900; step++) {
@@ -170,7 +204,7 @@ describe('the move explanation, across every surface it reaches', () => {
       }
 
       if (screen === 'battle' && battleTriggers < 0) {
-        battleTriggers = (await expanders(page, visible('battle'))).triggers;
+        battleTriggers = (await cardFaces(page, visible('battle'))).cards;
       }
 
       if ((SURFACES as readonly string[]).includes(screen) && found[screen] === undefined) {
@@ -180,8 +214,9 @@ describe('the move explanation, across every surface it reaches', () => {
       }
 
       if (screen === 'summary') break;
-      await stepOnce(page);
-      await page.waitForTimeout(25);
+      // The screen this lap decided about, so a transition landing mid-lap
+      // costs a retry rather than a surface. See `stepOnceUnparked`.
+      if (!(await stepOnce(page, screen))) await page.waitForTimeout(16);
     }
 
     await context.close();
@@ -194,7 +229,7 @@ describe('the move explanation, across every surface it reaches', () => {
     expect(Object.keys(seen).sort()).toEqual([...SURFACES].sort());
   });
 
-  it('puts an expander on every move card those surfaces draw', () => {
+  it('makes every move card those surfaces draw an inspect trigger', () => {
     const empty = Object.entries(seen).filter(([, count]) => count === 0).map(([label]) => label);
     expect(empty).toEqual([]);
     // A party member has four moves, so the surfaces that draw one carry four.
@@ -246,8 +281,16 @@ describe('the move explanation, across every surface it reaches', () => {
     expect(spent).toEqual([]);
   });
 
-  /** And the one surface it must not reach, because a tap there costs a turn. */
-  it('puts no expander on a battle move button', () => {
+  /**
+   * And the one surface it must not reach, because a tap there costs a turn.
+   *
+   * `renderMove` builds its buttons from `moveFacts` rather than `moveCard`, so
+   * the battle bar is structurally out of reach of the card trigger — it has
+   * its own, which M1.2 gave it, on the button itself. What this asserts is
+   * that no `.move--card` is ever drawn inside the battle screen: a card there
+   * would be a second trigger on a control where a stray tap spends a turn.
+   */
+  it('draws no move card on the battle screen, which has its own trigger', () => {
     expect(battleTriggers, 'the battle screen was never reached').toBeGreaterThanOrEqual(0);
     expect(battleTriggers).toBe(0);
   });

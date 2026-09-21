@@ -78,7 +78,6 @@ import { itemLayoutOf, partyWithPlan } from './party-layout';
 import { clearRunLog, loadRunLog, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
 import { applyDensity } from './theme/density';
-import { applyMoveBar } from './theme/move-bar';
 
 /**
  * How this fight should end on the stage. **The battle animation run.**
@@ -142,8 +141,6 @@ export function mountApp(root: HTMLElement): void {
    * and both attributes are on the same elements in both layouts, so there is
    * nothing for a layout to fold away and nothing for a guard to protect.
    */
-  applyMoveBar(settings.moveBar);
-  onSettingsChange((next) => applyMoveBar(next.moveBar));
   // The subscription itself is the tutorial's guard, created with the layer
   // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
   // screen's marks are up.

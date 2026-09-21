@@ -12,4 +12,4 @@
 export declare const SEEN_EVERY_INTRO: number;
 
 /** The stored settings a returning player has, as a JSON string. */
-export declare function notFirstLaunch(options?: { density?: string; moveBar?: string }): string;
+export declare function notFirstLaunch(options?: { density?: string; }): string;

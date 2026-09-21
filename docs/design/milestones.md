@@ -12,12 +12,17 @@ Same relationship `docs/visual/OVERNIGHT.md` has with its spec copy.
 
 ## How 4.10 is built
 
-`claude/visual-revamp-jb20na` is the 4.10 trunk, cut from `main` at `e16decd`.
-One sub-branch per item, `visual/4.10-<item>`, merged back with a merge commit
-and no squash, so any single item is reverted by reverting its merge. One pull
-request at the end. See D13 in
+One sub-branch per item, `visual/4.10-<item>`, merged back into a tier trunk
+with a merge commit and no squash, so any single item is reverted by reverting
+its merge. One pull request per trunk. See D13 in
 [`bible-discrepancies.md`](bible-discrepancies.md) for why that is compatible
 with the record's "one item, one PR" rule.
+
+**The trunk is per tier group, not per release.** `claude/visual-revamp-jb20na`
+carried Tiers 0 and 1 and shipped as
+[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), merged
+2026-09-20; `main` is `7e0c46d`. Tier 2 is cut fresh from there. A merged pull
+request is finished and does not grow a second tier.
 
 ## The bible wins, and blocked items wait
 
@@ -32,9 +37,11 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**All thirteen discrepancy rows are ruled** — eleven on 2026-09-19, which took
-the bible to Rev 2, and D2 and D8 on 2026-09-20. **Nothing on this list is
-blocked.** Every remaining `open` is waiting on its tier, not on a decision.
+**Sixteen of seventeen discrepancy rows are ruled** — eleven on 2026-09-19,
+which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
+Tier 2, all on 2026-09-20. **D14 is the one open row**, it blocks nothing, and
+it is timed with M5.6. Every remaining `open` is waiting on its tier, not on a
+decision.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -141,11 +148,64 @@ will be keyed from.
 
 ### Tier 2: the move card
 
+**D16 was opened reading into M2.1 and it changed the item.** Pocket's 61 words
+against Detailed's 477 is not a compact encoding: `styles.css:1088` hides base
+power, the category glyph, the status readout and the fact strip outright,
+which is C2 rather than a density choice. The `power:` inspect trigger sits on
+the element that rule hides and `moveCard` is not a trigger itself, so on a card
+in Pocket the only route to base power is the `Explain` expander — the thing
+D15 deletes. **That is why the two are one ruling**, and why M2.1 removes the
+expander and the `display: none` block in the same pass.
+
+Ruled **Pocket only**: M2.1's zero binds the Pocket face, Detailed and Simple
+keep their labelled face until M6.4 rules on them with M7.1's evidence. No rule
+moved; R6 already sanctions the two modes for one validation cycle.
+
+**M2.1 is shipped, and it opened one row before it closed.** The face is
+section 3's on both call sites, and it mounts M1.1's glyph sheet for the first
+time. Census in Pocket: **move card 61 → 0, battle move button 16 → 0.**
+
+It did not reach 0 on the first pass, and **D17** is the row it filed rather
+than closing around — 15 and 14, from two unrelated causes. The button's
+fourteen were the status readout, a sentence the item *restores* because hiding
+it was the C2 violation D16 was filed against; the card's fifteen were the fact
+strip's icon characters and a PP max that section 3 requires be dimmed, which
+splits one number into two tokens. Ruled: the readout sits behind the long
+press, which is safe only because M2.1 made the card a trigger and
+`moveExplanationRows` builds its rows from the same phrase functions the
+readout joins; and the counting rule gains a leading separator and one glyph
+slot.
+
+**The census fix was narrowed after being measured.** The first cut exempted
+all `aria-hidden` text and silently stopped counting the corner stamp's seed
+string — a census flattering a milestone, which is what the row existed to
+prevent. One selector instead, and the app shell still reads 109.
+
+**M2.0 is not on the record and is a prerequisite, not a milestone.** It touches
+no player-facing surface, so it reads no bible rule and carries no census delta.
+
+**It shipped, and the handoff's diagnosis was the symptom rather than the
+cause.** The fixed `waitForTimeout(25)` was not what broke the walk. Two older
+defects were: the screen is read twice per lap and the app can move between the
+reads, so a walk steps off a screen its own predicate never saw; and `stepOnce`
+returned a screen name from every branch including the ones that only waited, so
+`maxSteps` — documented as decisions — counted laps and a walk could spend its
+budget without making a decision. Both are fixed, `test/visual-walk.test.ts`
+pins them without a browser, and four of its five cases fail against the old
+driver.
+
+**The original overnight failure was never reproduced** and probably cannot be:
+throttling the page slows the app and narrows the gap the race needs. What is
+observed is that both formerly-flaky files passed under full-suite load on a
+four-core box. That these two defects are the whole of it is not proven — see
+[`generation.md` §53](../generation.md).
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M2.1 Move card face | open | — |
-| M2.2 Battle move button | open | — (D9 ruled: build 2x2, re-measure, rule with the number) |
-| M2.3 Move chip | open | — |
+| M2.0 Browser harness waits on state | **done** | — (not on the record; [`generation.md` §53](../generation.md), `test/visual-walk.test.ts`) |
+| M2.1 Move card face | **done** | — (D15, D16, D17 ruled. Census 0 and 0 in Pocket, from 61 and 16) |
+| M2.2 Battle move button | **done** | — (D9 closed with the number: column mode deleted. §2 forecast, 44px floor) |
+| M2.3 Move chip | **done** | — (census 0 in Pocket; pinned card 262 and chip row 526 against an 844 fold) |
 
 ### Tier 3: panels and party
 

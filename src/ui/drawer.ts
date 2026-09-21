@@ -59,20 +59,15 @@ import {
   DENSITY_COPY,
   DENSITY_HEADING,
   DRAWER_COPY,
-  MOVE_BAR_COPY,
-  MOVE_BAR_HEADING,
 } from './copy/screens';
 import {
   BATTLE_SPEEDS,
   DENSITIES,
   getBattleSpeed,
   getDensity,
-  getMoveBar,
-  MOVE_BARS,
   onSettingsChange,
   setBattleSpeed,
   setDensity,
-  setMoveBar,
 } from './settings';
 import { memberCardContents } from './member-card';
 
@@ -139,28 +134,6 @@ function createDensityPicker(): HTMLElement {
   });
 }
 
-/**
- * The move bar picker. **The four-column patch, on the same shape.**
- *
- * Under the density picker rather than beside it, because it is the narrower
- * question: density is how much space every fact on every screen costs, and
- * this is the shape of one bar on one screen. A player reads the general
- * setting first.
- *
- * Writes the setting and nothing else, like its neighbour, and the root
- * attribute is written by the shell's own subscription rather than here —
- * `ui/theme/move-bar.ts` says why that seam exists.
- */
-function createMoveBarPicker(): HTMLElement {
-  return createPicker({
-    heading: MOVE_BAR_HEADING,
-    block: 'move-bar',
-    attribute: 'moveBar',
-    options: MOVE_BARS.map((layout) => ({ value: layout, ...MOVE_BAR_COPY[layout] })),
-    read: getMoveBar,
-    write: setMoveBar,
-  });
-}
 
 /**
  * The battle speed picker. **The battle animation run, Branch 1.**
@@ -279,7 +252,6 @@ export function createDrawer(): Drawer {
     relics,
     note,
     createDensityPicker(),
-    createMoveBarPicker(),
     createBattleSpeedPicker(),
   );
 

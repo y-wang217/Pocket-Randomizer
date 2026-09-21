@@ -1081,17 +1081,74 @@ body {
 :root[data-density="pocket"] .statline__value { display: none; }
 :root[data-density="pocket"] .statline__bar { display: block; }
 
-/* Move cards and buttons in Pocket: the name, the type, the band, the PP and
-   the live effectiveness marker stay; the category, the base power, the
-   status readout and the tag row are one tap away — the card's expander, or
-   the `?` on a battle button (`scene.ts`, `renderMove`). All four together. */
-:root[data-density="pocket"] .move .badge--category,
-:root[data-density="pocket"] .move .move__power,
-:root[data-density="pocket"] .move .move__effect,
-:root[data-density="pocket"] .move .move__facts { display: none; }
+/*
+ * **Move cards and buttons in Pocket: the words go, the facts stay. M2.1.**
+ *
+ * What stood here hid the category chip, the base power, the status readout
+ * and the whole fact strip whenever the mode was Pocket. That is how the
+ * census read 61 words against Detailed's 477, and it was never a compact
+ * encoding — section 3 makes base power *"the largest text on the card"*, and
+ * this rule deleted it. C2: a decision-relevant fact is re-encoded, never
+ * removed. R6 permits a fact to sit behind a tap, but the `power:` trigger was
+ * set on the very element this hid, and `moveCard` was not a trigger at all,
+ * so on a card in Pocket no tap reached it — only the `Explain` expander,
+ * which M2.1 removes. Filed as D16 and ruled before this was built.
+ *
+ * Now every fact renders in every mode and the mode chooses the *encoding*:
+ * Pocket shows the glyph and hides the word, the other two show the word.
+ * D16's ruling is Pocket-only, so Detailed and Simple keep their labelled face
+ * until M6.4 decides whether they survive at all — which is R6's own density
+ * ruling rather than an exception to it.
+ */
+:root[data-density="pocket"] .move__label,
+:root[data-density="pocket"] .chip__word { display: none; }
 
-/* The battle button's explain chip, on the PP line so it costs no height. */
-.badge--ask { padding: 0 var(--space-1); line-height: 1.2; cursor: help; }
+/*
+ * **The status readout sits behind the press in Pocket. D17A, ruled 2026-09-20.**
+ *
+ * This looks like the rule D16 deleted and is the opposite of it. The old one
+ * hid `.move__effect` *and* base power *and* the fact strip, with no gesture
+ * that reached any of them: the `power:` trigger was on a hidden element and
+ * the card was not a trigger at all. That is C2 — a decision-relevant fact
+ * removed rather than re-encoded.
+ *
+ * What changed is that the tap now exists. M2.1 made the card and the button
+ * inspect triggers, and `moveExplanationRows` builds its Stat change, Status,
+ * Effect, Field, Healing and Priority rows from the *same* phrase functions
+ * `statusReadout` joins into this line — `boostPhrase`, `statusPhrase`,
+ * `effectPhrase`. Word for word, the readout is one press away.
+ *
+ * So R6 governs rather than C2: "density modes may change ... whether a
+ * secondary fact sits behind a tap". The readout is prose, the move face is
+ * budgeted at zero words, and R12 says a concept that needs a sentence gets
+ * restructured rather than written out. Restructuring it as glyphs is a real
+ * item and not this one; putting it behind the gesture that already answers is
+ * the move available inside the bible today.
+ *
+ * Detailed and Simple keep it on the face, per D16.
+ */
+:root[data-density="pocket"] .move .move__effect { display: none; }
+
+/*
+ * And the reverse: the glyph is Pocket's encoding of a fact the other two modes
+ * still spell out, so it does not render beside the word it replaces.
+ *
+ * **Scoped to the chip, not to `.move`, and that scoping was a bug once.**
+ * The first cut wrote `.move .chip--type > .glyph`, on the reasoning that M2.1
+ * owns the move card and should not reach past it. But section 5 makes the
+ * type chip *one* component — "glyph in colour, everywhere a type appears" —
+ * and a rule that only reached inside a move card left every type chip on
+ * every other surface rendering the glyph *and* the word. That is R3, twice
+ * over, on the Pokemon panel and the coverage rows and the locale card; it
+ * cost the capture offer 2.72px and pushed its decision buttons past the fold.
+ *
+ * Scoping by component rather than by surface is also the only version that
+ * can be true: a screen does not get to decide how a type is encoded, which is
+ * the whole of R1.
+ */
+:root:not([data-density="pocket"]) .chip--type > .glyph,
+:root:not([data-density="pocket"]) .badge--category > .glyph,
+:root:not([data-density="pocket"]) .move__pp > .glyph { display: none; }
 
 /* Folding rows (`ui/collapse.ts`): the member card's body, a backpack row's
    controls, a relic's description. The toggle exists only in Pocket, and a
@@ -1722,7 +1779,43 @@ body {
   gap: var(--space-h);
   padding-top: calc(var(--space-1h) * var(--density-pad));
   padding-bottom: calc(var(--space-1h) * var(--density-pad));
+  /* M2.2: the touch floor, stated rather than arrived at. A button that the
+     content happens to make tall enough is a button one copy change shortens. */
+  min-height: 44px;
 }
+
+/*
+ * **The forecast edge. Section 2, milestone M2.2.**
+ *
+ * `data-effect` is set by `renderMove` only when the band is neither neutral
+ * nor absent, so the attribute's absence is R4's default and three of four
+ * buttons usually carry no edge at all. The one that does is read because the
+ * others are not.
+ *
+ * **Red and green, and the numeral beside it is what makes that safe.**
+ * Section 2 asks for the red/green family and for it to be colour-blind
+ * checked, and the check is structural rather than a palette tweak: the
+ * fraction carries the same fact in a channel colour vision cannot touch, the
+ * way a type chip's glyph carries the type and its hue only repeats it. The
+ * edge is never the only carrier.
+ *
+ * Tokens rather than new hues: `--stage-up` and `--stage-down` are the green
+ * and red this UI already uses for a number moving in the player's favour and
+ * against it, and effectiveness is the same question asked of a matchup.
+ */
+.moves .move[data-effect] {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.moves .move[data-effect='super'] { border-left-color: var(--stage-up); }
+.moves .move[data-effect='resisted'] { border-left-color: var(--stage-down); }
+/*
+ * No effect is the strongest reading on the bar and it is still the red
+ * family, not a third hue. A fourth colour would be a fourth thing to learn;
+ * the fraction says `0` and the edge says which family it is in.
+ */
+.moves .move[data-effect='none'] { border-left-color: var(--stage-down); }
 
 .moves .move__meta {
   gap: var(--space-1);
@@ -1772,43 +1865,7 @@ body {
  * without touching this rule, and `test/type-icons.test.ts` asserts the ceiling
  * rather than trusting this sentence.
  */
-/* Opacity, and the glyph's edge. The gutter below is derived from the size
-   rather than restated, the way `--figure-size` works for a sprite: the two
-   numbers are one fact and a patch that changes one must not be able to leave
-   the other behind. */
-:root { --move-watermark: 0.3; --move-watermark-size: 32px; }
 
-.moves .move { position: relative; }
-
-.moves .move__watermark {
-  position: absolute;
-  top: var(--space-1);
-  right: var(--space-1h);
-  width: var(--move-watermark-size);
-  height: var(--move-watermark-size);
-  color: var(--chip);
-  opacity: var(--move-watermark);
-  pointer-events: none;
-}
-
-/*
- * The name yields the corner rather than running under the glyph.
- *
- * The first placement put the mark at the card's vertical centre, which is
- * where the fact chips are — so the chips painted over its left half and the
- * result read as a clipped icon rather than as a background. The corner beside
- * the name is the one region of this card that is reliably empty, and it is
- * only reliably empty if the name is told to stop short of it.
- */
-.moves .move__name { padding-right: calc(var(--move-watermark-size) + var(--space-h)); }
-
-.moves .move__watermark svg { display: block; width: 100%; height: 100%; }
-
-/* A disabled button already drops to 0.42; the watermark dropping with it would
-   put the glyph under a tenth of an alpha, which is a smudge rather than a
-   mark. It comes off entirely instead — the button is not a choice this turn,
-   so it has nothing to be scanned for. */
-.moves .move:disabled .move__watermark { display: none; }
 
 /*
  * In the four-column bar the button is 85px wide and the glyph would sit on top
@@ -1826,21 +1883,11 @@ body {
  * brief actually asked for ("show types in certain colors"). The silhouette is
  * the bonus that the 2x2 has room for.
  */
-[data-move-bar='columns'] .moves .move__name { padding-right: 0; }
 
-[data-move-bar='columns'] .moves .move__watermark {
-  --move-watermark-size: 54px;
-  top: 50%;
-  right: 50%;
-  transform: translate(50%, -50%);
-  opacity: calc(var(--move-watermark) * 0.6);
-}
+
 
 /* Reduced motion is not the axis here, but reduced *transparency* is: a reader
    who has asked for more contrast should not have a tinted shape behind text. */
-@media (prefers-contrast: more) {
-  .moves .move__watermark { display: none; }
-}
 
 .move__name { font-weight: 600; }
 
@@ -1891,156 +1938,98 @@ body {
   font-size: var(--fs-sm);
 }
 
+/* The value and its label are two spans since M2.1, so that Pocket can drop
+   the label without touching the number. Baseline, not centre: the number is
+   much larger than the label in Pocket and they must still sit on one line. */
+.move__power {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-h);
+}
+
+/*
+ * **Base power is the largest text on the card. Section 3, and M2.1.**
+ *
+ * It was `--fs-sm` and dimmed, one of three fields sharing the identity line
+ * and the smallest thing on it. Section 3 gives it "bare number, largest text
+ * on the card, fixed slot", which is a claim about what a player reads first
+ * on a surface whose whole job is comparing four moves.
+ *
+ * Pocket only, because D16 ruled M2.1's zero binds the Pocket face alone and
+ * the other two keep the face they had.
+ */
+:root[data-density="pocket"] .move__power {
+  color: var(--text);
+  font-family: var(--font-numeral);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+/*
+ * A glyph from the sheet. **M2.1, the first mounting of M1.1's nine families.**
+ *
+ * `--glyph-size` is set per node by `theme/glyph.ts` at one of the two sizes
+ * M1.1 measured, so a mark is never sized by whichever slot it lands in. That
+ * is R1 at the level of a single drawing, and it is what stops one glyph
+ * reading differently on a button and on a card.
+ */
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--glyph-size, 16px);
+  height: var(--glyph-size, 16px);
+  flex: none;
+  vertical-align: -0.15em;
+}
+
+.glyph > svg { display: block; width: 100%; height: 100%; }
+
+/* The status family is lettering by section 2's specification: BRN *is* the
+   glyph, not a label beside one. So it sizes as text rather than as a box. */
+.glyph--lettering {
+  width: auto;
+  height: auto;
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+}
+
+/* Accuracy: the target glyph and its number, opening the fact line, and only
+   when accuracy departs from 100 (R4). */
+.move__accuracy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-h);
+  color: var(--text-dim);
+  font-family: var(--font-numeral);
+  font-size: var(--fs-xs);
+}
+
+/* The chevron rides the name (section 2), so it must not move the baseline. */
+.move__priority {
+  margin-left: var(--space-h);
+  color: var(--text-dim);
+}
+
 /* PP splits out of the row above at 4.7.2. Category and base power are facts
    about the move and never change; PP is the one of the three that counts
    down under the reader, so it is the one that reads --font-numeral. */
 .move__pp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-h);
   color: var(--text-dim);
   font-family: var(--font-numeral);
   font-size: var(--fs-sm);
 }
 
+/* Section 3: "Number beside PP glyph, max dimmed." Dimmed rather than dropped,
+   because "12" on its own is a number the player cannot size. */
+.move__pp-max { color: var(--text-faint); }
+
 .move__pp--low { color: var(--hp-low); }
-
-/* ---------- the move bar layouts ---------- */
-
-/*
- * **The four-column move bar.** `data-move-bar="columns"` on the root; the
- * absence of it, or `"grid"`, is the 2x2 the game has always had and every
- * rule above describes.
- *
- * ## Why this is a stack and not a re-flow
- *
- * Measured at 390 before a line of it was written: `.moves` is 358px wide, so
- * four columns give 85px buttons against 176px in the grid. The identity line
- * needs 138.6px, the fact line about 155px and the footer 78.1px, and
- * `--fs-sm` is already the legibility floor `test/visual-chips.test.ts`
- * holds — so nothing about the current face fits, at any type size this
- * project is allowed to use.
- *
- * So column mode is a different face: one field family per line, the same
- * line on every button, which is the property that makes a field readable
- * *across* the four rather than within one. That is what the report asked
- * for — "to compare".
- *
- * ## What leaves the face here, and where it goes
- *
- * Accuracy stays, because it is the field the whole explanation layer was
- * built for. Effectiveness stays, because it is the one live fact about the
- * board and the single exception `CLAUDE.md` carves out of the no-verdicts
- * rule. The rest of the fact strip — contact, secondary chance, priority,
- * multi-hit, recoil, drain — is hidden on the face and is one tap away in the
- * `?` panel, which prints every one of them and always has.
- *
- * **Nothing is removed from the game and nothing is removed from the grid
- * layout.** This is the rule Pocket density already runs under: a secondary
- * fact may cost a tap, a primary fact stays on screen.
- */
-[data-move-bar='columns'] .moves {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-/*
- * The side padding comes in because it is 24px of an 85px button — a seventh
- * of the width spent on air. The vertical padding is untouched, because that
- * is what holds the 44px touch target.
- */
-[data-move-bar='columns'] .moves .move {
-  padding-inline: calc(var(--space-1) * var(--density-pad));
-  gap: var(--space-h);
-}
-
-/*
- * Two lines of the name at most, and the box is the same height whether the
- * name takes one or two — otherwise a one-word move and a two-word move start
- * their type chips on different lines and the whole comparison is lost.
- */
-[data-move-bar='columns'] .moves .move__name {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  min-height: calc(2 * 1.2em);
-  font-size: var(--fs-sm);
-  line-height: 1.2;
-}
-
-/*
- * Identity: the type alone, then category and power under it. The type takes
- * the whole width because it is the widest chip on the button — `Fighting` is
- * eight characters — and nothing shares a line with it at 85px.
- */
-[data-move-bar='columns'] .moves .move__meta {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, auto);
-  justify-content: start;
-  gap: var(--space-h) var(--space-1);
-}
-
-[data-move-bar='columns'] .moves .move__meta > :first-child {
-  grid-column: 1 / -1;
-}
-
-/* The status readout keeps the whole width it has in the grid. */
-[data-move-bar='columns'] .moves .move__effect {
-  grid-column: 1 / -1;
-  margin-inline: 0;
-}
-
-/*
- * The fact line becomes two fixed slots: the band and the accuracy, then the
- * effectiveness marker under them. The four reserved fact columns collapse to
- * one — accuracy's — because at this width a reserved column that is usually
- * empty is spending the button's whole content width on nothing.
- */
-[data-move-bar='columns'] .moves .move__facts {
-  grid-template-columns: minmax(0, auto) minmax(0, auto);
-  justify-content: start;
-  row-gap: var(--space-h);
-}
-
-/*
- * Two slots wide, so the three fields that stay on the face take two rows:
- * the band beside the accuracy, the marker under them. Explicit placement
- * rather than inherited, because the grid is two columns here and the wide
- * layout's `3 / -1` would land the marker on top of the accuracy.
- */
-[data-move-bar='columns'] .moves .move__facts-band {
-  grid-row: 1;
-  grid-column: 1;
-}
-
-[data-move-bar='columns'] .moves .move__fact-cell[data-column='1'] {
-  grid-row: 1;
-  grid-column: 2;
-}
-
-[data-move-bar='columns'] .moves .move__facts-effect {
-  grid-row: 2;
-  grid-column: 1 / -1;
-  justify-self: start;
-}
-
-/* Contact, the odds and the turn cost: one tap away, in the `?` panel. */
-[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
-  display: none;
-}
-
-/*
- * PP and the explain control stay one row, and PP loses its label — the
- * number is the thing that counts down, `PP` is four characters of constant.
- * The word is still on the control's own panel.
- */
-[data-move-bar='columns'] .moves .move__footer {
-  gap: var(--space-1);
-}
-
-[data-move-bar='columns'] .moves .move__pp {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.move__pp--low .move__pp-max { color: inherit; opacity: 0.7; }
 
 /* ---------- log ---------- */
 
@@ -2452,21 +2441,23 @@ body {
 .result__party[hidden],
 .result__capture[hidden],
 /*
- * And a third time, at 4.7.2. `.move__explain` sets `display: grid`, so the
- * panel laid out at full height while `hidden` was set on it — three reward
- * cards ran 70px past the 844 fold and the V2 band lost its clearance, with
- * the DOM insisting the panels were closed.
+ * **And a third time, at 4.7.2, for a rule that is no longer here.**
  *
- * **The three below it are older and were found by the test written for the
- * third.** `test/visual-inline-box.test.ts` now sweeps every `[hidden]`
- * element on every screen and fails any that still lays out, which is how a
- * note that had been written twice became a rule that holds. `.event__result`
- * was drawing a 30px empty box on the event screen; the two battle panel rows
- * were 0px only because they happened to be empty, which is a latent version
- * of the same thing — the first row of chips to arrive while one was hidden
- * would have shown.
+ * `.move__explain` — the move card's expander — set `display: grid`, so the
+ * panel laid out at full height while `hidden` was set on it: three reward
+ * cards ran 70px past the 844 fold and the V2 band lost its clearance, with
+ * the DOM insisting the panels were closed. M2.1 removed that mechanism
+ * entirely (D15), so its entry in this list went with it.
+ *
+ * **The three below are older and were found by the test written for it.**
+ * `test/visual-inline-box.test.ts` sweeps every `[hidden]` element on every
+ * screen and fails any that still lays out, which is how a note written twice
+ * became a rule that holds. `.event__result` was drawing a 30px empty box on
+ * the event screen; the two battle panel rows were 0px only because they
+ * happened to be empty, which is a latent version of the same thing — the
+ * first row of chips to arrive while one was hidden would have shown. The
+ * sweep outlived the defect that prompted it, which is the point of it.
  */
-.move__explain[hidden],
 .event__result[hidden],
 .panel__volatiles[hidden],
 .panel__stages[hidden],
@@ -3196,11 +3187,65 @@ body {
    Beam should be reaching for it in the position they already know it by. */
 .replace__incoming { display: block; }
 
+/*
+ * **The four current moves, one row of chips. Milestone M2.3.**
+ *
+ * Two columns of full cards is what this was, and five full faces do not fit a
+ * 390x844 phone — so the player scrolled to see the options they were choosing
+ * between, which is not a comparison. One row, four chips, and the full pair
+ * arrives in the confirm.
+ *
+ * `1fr` each rather than content width: the four are equals and a chip sized to
+ * its own name would make the longest move look like the biggest choice, which
+ * is the verdict Part 4 forbids as surely as a sort would be.
+ */
 .replace__moves {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(var(--space-2) * var(--density-gap));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(var(--space-1) * var(--density-gap));
   margin-top: calc(var(--space-2) * var(--density-gap));
+}
+
+/*
+ * The chip: the compact form of the same face. **M2.3, section 5.**
+ *
+ * Stacked rather than inline, because at a quarter of the screen the name and
+ * the meta line cannot share a row. Everything else — the type chip, the
+ * category glyph, the base power slot — is the component's, unchanged, so a
+ * move looks like itself here too.
+ */
+.move--chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-h);
+  min-height: 44px;
+  overflow: hidden;
+}
+
+.move--chip .move__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-h);
+}
+
+/*
+ * **Both full cards in the confirm, side by side. M2.3.**
+ *
+ * The chip gave up PP and the band; this is where they come back, on the two
+ * faces the decision is actually made against. Side by side rather than
+ * stacked, because the whole point is reading one against the other.
+ */
+.confirm-band__content {
+  margin-top: var(--space-2);
+}
+
+.replace__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  align-items: start;
 }
 
 /*
@@ -5596,7 +5641,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
    * painted across the next one — the accuracy chip took the contact chip's
    * hit target, and the contrast sampler read one chip through another.
    */
-  grid-template-columns: auto repeat(4, minmax(min-content, 1fr)) auto;
+  /* Band, accuracy, three fact columns, effectiveness. Accuracy took a slot of
+     its own at M2.1 (R3) and the fact columns dropped from four to three with
+     it — see `data/moveFactInfo.ts` for the re-measured distribution. */
+  grid-template-columns: auto auto repeat(3, minmax(min-content, 1fr)) auto;
   align-items: center;
   /*
    * The gap is on the items, not on the grid. A reserved column is 0 wide when
@@ -5614,12 +5662,13 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 /*
  * **Row 1: the band, the accuracy, the marker. Row 2: everything else.**
  *
- * Accuracy is on row 1 and that placement is measured rather than tidy. It is
- * on 405 of the 458 pool moves, so putting it on row 2 meant row 2 existed on
- * almost every button — and the second row cost V5's loaded-board budget,
+ * Accuracy is on row 1 and that placement was measured rather than tidy. It
+ * was on 405 of the 458 pool moves, so putting it on row 2 meant row 2 existed
+ * on almost every button — and the second row cost V5's loaded-board budget,
  * which is 600 and which the first draft of this split missed at 610. Row 1
  * has the room: band 38 + a three-character marker 38 + accuracy 40 is 124 of
- * 150 with its margins.
+ * 150 with its margins. **Since M2.1 it renders only under 100 (R4)**, so the
+ * slot is usually empty and row 1 usually holds two things.
  *
  * So row 2 now carries contact, the odds and the turn cost, and **collapses to
  * nothing on a move that has none of them** — which is most of them. The
@@ -5635,10 +5684,10 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * narrow for them.
  */
 .move__facts-band { grid-column: 1; }
-.move__fact-cell[data-column='1'] { grid-column: 2; }
-.move__fact-cell[data-column='2'] { grid-column: 3; }
-.move__fact-cell[data-column='3'] { grid-column: 4; }
-.move__fact-cell[data-column='4'] { grid-column: 5; }
+.move__facts-accuracy { grid-column: 2; }
+.move__fact-cell[data-column='1'] { grid-column: 3; }
+.move__fact-cell[data-column='2'] { grid-column: 4; }
+.move__fact-cell[data-column='3'] { grid-column: 5; }
 .move__facts-effect { grid-column: 6; justify-self: end; margin-right: 0; }
 
 /*
@@ -5648,17 +5697,21 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * so on one line the last of them is clipped — see the note on `.move__facts`.
  * Four columns over two rows: what the move hits for, then how it behaves.
  *
- * Accuracy joins row 1 because it is on 405 of the 458 pool moves, so leaving
- * it on row 2 meant row 2 existed on almost every button and cost V5's loaded
- * board its 600px budget. Row 1 has the room at 124 of 150.
+ * Accuracy stays on row 1, and **M2.1 made that placement cheaper rather than
+ * changing it.** The original argument was that accuracy is on 405 of the 458
+ * pool moves, so putting it on row 2 meant row 2 existed on almost every
+ * button and cost V5's loaded board its 600px budget. R4 now renders accuracy
+ * only when it departs from 100, so the slot is empty on most buttons — row 1
+ * is usually just the band and the marker, and row 2 collapses more often than
+ * it did. The placement is unchanged; what it costs went down.
  */
-.moves .move__facts { grid-template-columns: repeat(4, minmax(min-content, 1fr)); }
+.moves .move__facts { grid-template-columns: repeat(3, minmax(min-content, 1fr)); }
 .moves .move__facts-band { grid-row: 1; grid-column: 1; }
-.moves .move__fact-cell[data-column='1'] { grid-row: 1; grid-column: 2; }
+.moves .move__facts-accuracy { grid-row: 1; grid-column: 2; }
 .moves .move__facts-effect { grid-row: 1; grid-column: 3 / -1; justify-self: start; }
-.moves .move__fact-cell[data-column='2'] { grid-row: 2; grid-column: 1; }
-.moves .move__fact-cell[data-column='3'] { grid-row: 2; grid-column: 2; }
-.moves .move__fact-cell[data-column='4'] { grid-row: 2; grid-column: 3 / -1; }
+.moves .move__fact-cell[data-column='1'] { grid-row: 2; grid-column: 1; }
+.moves .move__fact-cell[data-column='2'] { grid-row: 2; grid-column: 2; }
+.moves .move__fact-cell[data-column='3'] { grid-row: 2; grid-column: 3 / -1; }
 
 /* Each column holds its place when empty, and clips inside itself if a value
    ever outgrows it rather than painting over the column beside it. */
@@ -5705,68 +5758,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * without aiming is what keeps "explain this" and "take this" from being the
  * same gesture at slightly different coordinates.
  */
-/*
- * The PP line and the trigger, one row.
- *
- * `space-between` puts PP at the left where it has always been and the control
- * at the right, so nothing about the card's existing readout moves.
- */
-.move__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.move__explain-toggle {
-  flex: 0 0 auto;
-  padding: var(--space-h) var(--space-1h);
-  border: var(--hairline) solid var(--border);
-  border-radius: var(--radius-chip);
-  background: transparent;
-  color: var(--text-faint);
-  font-family: var(--font-display);
-  font-size: var(--fs-sm);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.move__explain-toggle[aria-expanded='true'] {
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-
-.move__explain {
-  display: grid;
-  /* The label column sizes to the longest label and the value takes the rest,
-     so every row's fact starts at the same x and the panel reads as a table
-     rather than as a paragraph with bold words in it. */
-  grid-template-columns: auto 1fr;
-  gap: var(--space-h) var(--space-2);
-  margin-top: var(--space-1);
-  padding-top: var(--space-1h);
-  border-top: var(--hairline) solid var(--border);
-}
-
-.move__explain-row {
-  display: contents;
-}
-
-.move__explain-label {
-  color: var(--text-faint);
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.move__explain-value {
-  color: var(--text-dim);
-  font-size: var(--fs-sm);
-  line-height: 1.4;
-}
 
 /* 4.7 gave the accuracy tag its own colour so it would not be quiet. The
  * visual stages allow one neutral chip recipe and one coloured chip (the

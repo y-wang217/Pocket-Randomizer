@@ -87,8 +87,6 @@ import {
   TARGET_EFFECT,
   DENSITY_HEADING,
   DENSITY_COPY,
-  MOVE_BAR_HEADING,
-  MOVE_BAR_COPY,
   BATTLE_SPEED_HEADING,
   BATTLE_SPEED_COPY,
   DRAWER_COPY,
@@ -495,11 +493,6 @@ section({
     ...Object.entries(DENSITY_COPY).flatMap(([key, value]) => [
       { key: `density.${key} · name`, text: value.name },
       { key: `density.${key} · description`, text: value.description },
-    ]),
-    { key: `heading · ${MOVE_BAR_HEADING}`, text: MOVE_BAR_HEADING },
-    ...Object.entries(MOVE_BAR_COPY).flatMap(([key, value]) => [
-      { key: `moveBar.${key} · name`, text: value.name },
-      { key: `moveBar.${key} · description`, text: value.description },
     ]),
     { key: `heading · ${BATTLE_SPEED_HEADING}`, text: BATTLE_SPEED_HEADING },
     ...Object.entries(BATTLE_SPEED_COPY).flatMap(([key, value]) => [

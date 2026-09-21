@@ -159,17 +159,44 @@ describe('the drawer itself', () => {
     // density picker (step 7), and the three speeds the battle speed picker:
     // each writes a display setting, which is not party state, and the
     // comparison below holds that.
+    /*
+     * **`Columns` and `Grid` left at M2.2, `Explain` at M2.1, and the drawer
+     * got quieter for both.**
+     *
+     * The two layout names were the move-bar picker. D9 ruled the four-column
+     * bar deleted — R6 forbids two card faces, and the measurement said the
+     * compact face fits the 2x2 and cannot fit 85px — so the setting, the
+     * picker and its copy went with it.
+     *
+     * It was a button under every move card — four per member — opening an
+     * inline panel. D15 ruled it a second explanation mechanism under R5, and
+     * section 7 rejects a control the player must know exists. The move card
+     * itself is the inspect trigger now, which is not a `<button>` and so does
+     * not appear here.
+     */
     expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual([
-      '+', 'Close', 'Columns', 'Detailed', 'Even', 'Explain', 'Grid', 'Patient', 'Pocket', 'Simple', 'Swift',
+      '+', 'Close', 'Detailed', 'Even', 'Patient', 'Pocket', 'Simple', 'Swift',
     ]);
+
+    /*
+     * **The card is not a `<button>`, so the sweep above cannot see it, and
+     * that is exactly why it is swept separately.**
+     *
+     * M2.1 made every move card a focusable `role="button"`. It writes nothing
+     * — it opens an explanation — but "it writes nothing" is the claim this
+     * whole case exists to check, and a control the query misses is a control
+     * nobody is checking. So the press loop below takes both sets.
+     */
+    const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move--card[role="button"]')];
+    expect(cards.length, 'the drawer draws move cards, so this must not be vacuous').toBeGreaterThan(0);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —
     // an item moved, a slot reordered, a member released — shows up here.
     const before = JSON.stringify(view.party);
-    for (const button of buttons) {
-      if (button.textContent === 'Close') continue;
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    for (const control of [...buttons, ...cards]) {
+      if (control.textContent === 'Close') continue;
+      control.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
     expect(JSON.stringify(view.party), 'a drawer control wrote party state').toBe(before);
     expect(drawer.isOpen(), 'a drawer control closed the drawer').toBe(true);

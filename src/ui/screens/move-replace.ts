@@ -36,7 +36,7 @@
  */
 import { describeSpecCard } from '../../core/battle/driver';
 import type { MoveSpec, MoveView, PokemonState } from '../../core/types';
-import { el, genderMark, moveCard, moveFacts } from '../scene';
+import { el, genderMark, moveCard, moveChip } from '../scene';
 import { moveCardData } from '../move-detail';
 import { setProse } from '../dom';
 import { REPLACE_COPY } from '../copy/screens';
@@ -44,6 +44,7 @@ import type { Tuning } from '../../data/tuning';
 import { abilityChip, monTypeChip } from '../chip';
 import { archetypeChip } from '../archetype-chip';
 import { spriteFigure } from '../sprites';
+import { openBand } from '../band';
 
 export interface MoveReplaceScreen {
   root: HTMLElement;
@@ -132,7 +133,7 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
        */
       current.replaceChildren(
         ...detail.moves.map((move, slot) =>
-          renderVictim(move, member.moves[slot]?.pp ?? move.maxPp, slot, onReplace, tuning, detail.types),
+          renderVictim(move, member.moves[slot]?.pp ?? move.maxPp, slot, onReplace, tuning, detail.types, incoming),
         ),
       );
     },
@@ -140,14 +141,27 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
 }
 
 /**
- * One move the incoming one could displace.
+ * One move the incoming one could displace, as a chip. **Milestone M2.3.**
  *
- * Built from `moveFacts` rather than from `moveCard` for one reason: this is
- * the one place off the battle screen where *remaining* PP is a real fact
- * about the thing being given up. `moveCard` deliberately shows `maxPp` alone,
- * because a move nobody knows yet has no remaining PP — but these four are
- * known, they have been spent, and a move at 2/15 is a different loss from the
- * same move at 15/15.
+ * **Five full cards became one card and four chips**, which is the item in a
+ * sentence. The screen drew the incoming move and all four of its possible
+ * victims in the same full face — a shape chosen deliberately, because Part
+ * 4's rule is that the comparison is the player's to make and five identical
+ * cards is the least opinionated way to lay one out.
+ *
+ * What that missed is the fold. Five full cards do not fit a 390x844 phone, so
+ * the player scrolled to see the options they were choosing between — and a
+ * comparison you cannot see at once is not a comparison. The chip carries the
+ * four fields that differ between a member's own moves (name, type, category,
+ * base power) and the confirm carries the full pair.
+ *
+ * **Nothing is ranked, sorted or coloured**, exactly as before. Slot order,
+ * which is also the order the battle grid uses, so the move about to be given
+ * up sits where the player already knows it.
+ *
+ * A tap opens the confirm rather than committing. That is new, and it is what
+ * makes the chip honest: the decision is still made against two full faces,
+ * one of which the chip has just shrunk.
  */
 function renderVictim(
   move: MoveView,
@@ -156,20 +170,36 @@ function renderVictim(
   onReplace: (slot: number) => void,
   tuning: Tuning,
   holderTypes: readonly string[],
+  incoming: MoveSpec,
 ): HTMLElement {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = `move move--victim move--${move.type.toLowerCase()}`;
-  button.dataset['category'] = move.category.toLowerCase();
-
-  // The holder is known here — these are the member's own four moves — so STAB
-  // renders, unlike on the reward card one screen back.
-  const facts = moveFacts(moveCardData(move, tuning, { types: holderTypes }));
-  facts.pp.textContent = `PP ${pp}/${move.maxPp}`;
-  if (move.maxPp > 0 && pp / move.maxPp <= 0.25) facts.pp.classList.add('move__pp--low');
-
-  button.append(facts.name, facts.meta, ...(facts.strip ? [facts.strip] : []), facts.pp);
-  button.setAttribute('aria-label', `Replace ${move.name}`);
-  button.addEventListener('click', () => onReplace(slot));
-  return button;
+  const chip = moveChip(move);
+  chip.classList.add('move--victim');
+  chip.setAttribute('aria-label', `Replace ${move.name}`);
+  chip.addEventListener('click', () => {
+    /*
+     * **Both full cards, side by side, in the shared band.**
+     *
+     * `openBand`'s content slot is M2.3's addition and `test/band.test.ts`
+     * holds the rule it exists for: no screen builds its own confirm. The
+     * cards are the same `moveCard` every other surface mounts, so the face
+     * the player confirms against is the face they have been reading all run.
+     *
+     * The victim carries its *remaining* PP, which is the one fact a chip
+     * cannot show and the one the full card is here for: a move at 2/15 is a
+     * different loss from the same move at 15/15.
+     */
+    const pair = el('div', 'replace__pair');
+    pair.append(
+      moveCard(moveCardData(incoming, tuning, { types: holderTypes })),
+      moveCard({ ...moveCardData(move, tuning, { types: holderTypes }), pp }),
+    );
+    openBand({
+      title: `Replace ${move.name} with ${incoming.name}?`,
+      confirm: 'Replace',
+      cancel: 'Keep',
+      content: pair,
+      onConfirm: () => onReplace(slot),
+    });
+  });
+  return chip;
 }

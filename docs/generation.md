@@ -8236,3 +8236,365 @@ once and render on all sixteen surfaces, so charging their words to each surface
 would have put a constant seven on every row of a table whose smallest budget is
 zero. M0.1 does not ask for the split; section 4 budgets surfaces rather than the
 chrome around them, which is the argument for it.
+
+## 53. The walk counted waiting as progress, and stepped off screens nobody had looked at
+
+**Milestone M2.0, which is not on the record.** The presentation milestone list
+has twenty-four items and this is none of them. It is here because Tier 2's
+first item is validated by `test/visual-move-cards.test.ts`, which is one of the
+two files the Tiers 0-1 handoff recorded as failing under full-suite load and
+passing in isolation — so the tier would have been built against a suite that
+reports reds it does not mean.
+
+The handoff's diagnosis was the fixed `await page.waitForTimeout(25)` between
+steps: *"the waits are wall-clock rather than state, so on a saturated machine a
+step that has not finished rendering is counted as a step taken."* That is the
+right symptom and the wrong mechanism, and the difference changes the fix.
+
+### What it actually is
+
+Two defects in `scripts/visual/browser.mjs`, both older than the timeouts.
+
+**One: the screen is read twice, and the app can move in between.** A caller
+reads the screen, decides whether it is the one it wants, and calls `stepOnce`,
+which reads the screen *again* and acts on whatever it finds. `router.show` is
+synchronous and the battle outro resolves on a `setTimeout`, so a transition
+lands whole inside that gap. The caller then decides about one screen and steps
+off another — and the screen it was waiting for is spent without its predicate
+ever having been asked about it. `playUntil(p, s => s === 'result')` walking
+past a result screen is this, and it is unrecoverable: taking the reward leaves
+the screen.
+
+It is load-sensitive because the gap is two CDP round trips wide while the timer
+runs on wall-clock. A saturated box stretches the former and leaves the latter
+alone.
+
+**Two: `stepOnce` did not keep its own contract.** Its doc comment has said
+since it was written that it "returns the name of the screen it acted on, or
+null when nothing was clickable (a transition in flight)". Every branch returned
+the screen name whether or not it had clicked anything. So a caller counting
+steps counted the waiting as progress, and `playUntil`'s `maxSteps` — documented
+as "decisions" — was counting laps. A walk could exhaust its budget without
+having made a single decision, which is exactly the false red, and the comment
+was right about the design the whole time.
+
+### What was built
+
+`stepOnce(page, expected)` takes the screen the caller already decided about and
+acts on nothing if the app has moved since. `playUntil` passes it, counts only
+laps that acted, and is bounded by a wall-clock deadline rather than by a
+per-step sleep — so a fast machine never waits and a slow one gets as many
+frames as it needs. The branches that wait now return null, as documented. The
+two hand-rolled walks in `test/visual-v0.test.ts` and
+`test/visual-move-cards.test.ts` pass their screen too; v0 passes its *second*
+read, because the branches above it click and its own comment already said that
+first read was stale by then.
+
+### On the reproduction, honestly
+
+**The original overnight failure was not reproduced.** CPU-throttling the page
+through CDP at 6x does not reproduce it and cannot: that slows the app and
+*narrows* the gap the race needs. The condition is a saturated host, which is
+not something a test can ask for.
+
+So the race is reproduced directly instead. `test/visual-walk.test.ts` drives
+`playUntil` and `stepOnce` against a fake page that moves the app between the
+two reads, every time, deterministically — no browser, five tests, ~130ms. Four
+of the five fail against the unfixed driver and all five pass against this one,
+which is the evidence this note rests on. What remains unproven is that these
+two defects are the *whole* of the overnight failures; they are a sufficient
+cause for the reported shape, and the fixed suite is the next observation.
+
+`scripts/browser-tests.mjs` sorts that file into the browser half, because it
+imports `visual/browser` and the splitter keys on imports rather than names. It
+needs no browser. The classification is conservative by design there and is left
+alone rather than given an exception.
+
+Nothing under `src/` changed. `contentHash` does not move, no version axis
+moves, and no recorded seed or visual baseline is touched.
+
+## 54. The move card face, and the two things that could not be separated
+
+**Milestone M2.1.** The shared move card rebuilt to design bible section 3, on
+both call sites, mounting M1.1's glyph sheet for the first time.
+
+### Which of the bible's rules this touched
+
+The standing rule is that an item touching a player-facing surface says so.
+This one touches more than any item so far:
+
+| | |
+|---|---|
+| **C2** | The Pocket rule that hid four facts is deleted. Nothing is removed now; the mode chooses the encoding. |
+| **R1** | Every attribute has one slot, built once in `scene.ts` and mounted by both `moveFacts` and `renderMove`. |
+| **R2** | Field labels, the type name and the category word leave the Pocket face. The numbers stay. |
+| **R3** | The type watermark is deleted, and accuracy and priority leave the fact strip. |
+| **R4** | Accuracy renders under 100 only, priority when nonzero only, and a never-miss move gets its own mark. |
+| **R5** | The `Explain` expander is gone and the card is the one inspect trigger. |
+| **R6** | The compact face is the Pocket face. D16 ruled the other two keep their labels until M6.4. |
+| **§2** | First mounting of the type, category, PP, accuracy and priority families. The chevron sits beside the name, as the table says. |
+| **§3** | The encoding table is the face. |
+| **§5** | The move card stays one component with two call sites. |
+
+No rule changed and the bible is not amended.
+
+### D15 and D16 are one change, and that is the finding
+
+They were filed separately and ruled together, because reading into this item
+turned up what neither row knew on its own.
+
+`styles.css` hid base power, the category glyph, the status readout and the
+whole fact strip whenever the mode was Pocket. That is where the census's 61
+words against Detailed's 477 came from: not a compact encoding, a deletion.
+Section 3 makes base power *"the largest text on the card"*.
+
+R6 permits a fact to sit behind a tap, so the question was whether the tap
+existed. It did not. The `power:` inspect trigger M1.2 added is set on
+`.move__power` — the element that rule hid — and a hidden element cannot be
+long-pressed. `moveCard` set no `dataset.tip` of its own, so the card was not a
+trigger either. **The only surviving route to base power on a card in Pocket
+was the `Explain` expander, which is exactly what D15 proposed to delete.**
+
+So deleting the expander on its own would have taken four decision-relevant
+facts off six surfaces — C2, by an item whose purpose is the opposite. The two
+rows had to be ruled together and built together, and they were.
+
+### What the density split actually is
+
+Density has never been a re-render in this tree: `data-density` is written on
+`<html>` and the stylesheet is its only reader. D16's "Pocket only" therefore
+cannot mean two DOM structures. It means **one face, with every word in a span
+the stylesheet drops** — `.move__label` for a field label, `.chip__word` for a
+type name or a category word. Pocket hides those and shows the glyph; the other
+two do the reverse. R1's one-slot-per-attribute survives because there is only
+ever one structure.
+
+### Three things re-measured rather than assumed
+
+1. **The strip is three columns, not four.** Accuracy and priority left it for
+   R3, and **accuracy had held column 1 alone** — four columns would have
+   reserved a dead one on the tightest surface in the game. Re-derived over the
+   same pools, counting only what the strip still draws: 158 moves with none,
+   216 with one, 82 with two, 2 with three. The ceiling is reached, which is
+   the evidence four originally rested on.
+
+2. **`StripFactId` is `Exclude<MoveFactId, 'accuracy' | 'priority'>`.** The
+   column map is typed by it, so an entry for a field the face has taken over
+   is a compile error rather than a dead column nobody notices. It caught four
+   call sites while this was being built.
+
+3. **The split spans announce as before.** `90 BP` became two spans and
+   therefore `90BP` in `textContent` — which is what a screen reader reads and
+   what `scripts/smoke.mjs` and the visual harness parse to pick the hardest
+   move. The space lives in the label span, and the stylesheet carries a gap as
+   well, because the rendering must not depend on whitespace surviving a flex
+   container.
+
+### Tests whose premise the design changed
+
+Four, all updated rather than weakened:
+
+- **`test/glyphs.test.ts`** asserted the sheet had no importers at all, which
+  was M1.1's *"do not mount any glyph yet"*. M2.1 is the item that mounts them,
+  so it now asserts **exactly one** importer, `ui/theme/glyph.ts`. The rule
+  worth holding was never "nobody imports it" but "one renderer", which is R1
+  and section 5.
+- **`test/move-explanation.test.ts`** tested the expander. Its sharpest case
+  held that the trigger must *stop* a tap, because a reward card submits on
+  click. The card must now *let the tap through*, because R5 is explicit that
+  tap still selects. Same surface, same hazard, inverted assertion.
+- **`test/visual-move-cards.test.ts`** counted expanders across seven surfaces.
+  It counts inspect triggers and keyboard-reachable cards instead; the reach
+  question it exists for is unchanged. Its probe no longer taps — a tap now
+  spends the thing it was guarding — and focuses instead, which is the path
+  D15 had to preserve.
+- **`test/battle-readout.test.ts`** asserted the strip draws exactly what
+  `describeMove` returns. It now asserts the strip draws exactly that *less the
+  two with a slot of their own*, which is the C2 statement: re-encoded, not
+  dropped.
+
+### Not done here
+
+`src/core/` is untouched, so `contentHash` does not move and no recorded seed
+is refused. `MOVE_FACT_IDS` still carries accuracy and priority — they are
+still facts, still printed by the explanation, still keyed by `movefact:` on
+inspect. What changed is which component draws them.
+
+### D17, ruled after this item shipped
+
+M2.1 filed D17 rather than reaching its own done-when, and both halves were
+ruled the same day. The census now reads **0 on the move card and 0 on the
+battle move button** in Pocket, from 61 and 16.
+
+**Part A: the status readout sits behind the long press in Pocket.** This is
+the rule D16 deleted, put back, and the difference is the whole of it — the old
+one hid the readout *with no gesture that reached it*, because the `power:`
+trigger was on a hidden element and the card was not a trigger. M2.1 made both
+into triggers, and `moveExplanationRows` builds its Stat change, Status,
+Effect, Healing and Priority rows from the same phrase functions
+`statusReadout` joins into the line. Word for word, one press away. So R6's
+"whether a secondary fact sits behind a tap" governs instead of C2's removal.
+Restructuring the readout as glyphs, which R12 would prefer, is a real item and
+is not this one.
+
+**Part B: the counting rule, narrowed after it was measured.** Two changes were
+recommended and one was wrong. `isBareNumber` now accepts a leading separator,
+because section 3 requires PP's max be dimmed, dimming needs its own span, and
+`24/24` was therefore arriving as `24` and `/24` — one number counted as a
+number and a word. That half is unarguable.
+
+The other half was to exempt all `aria-hidden` text, on the reasoning that a
+mark hidden from a screen reader carries no text load. **Building it and
+measuring what it excluded showed that is too broad.** The only thing it newly
+dropped was `.stamps`, the decorative corner stamp, which is `aria-hidden` and
+carries a seed string and a version a sighted player reads. An exemption that
+quietly stopped counting those would have been the census flattering a
+milestone, which is the failure D17 was filed to avoid. So `GLYPH_SLOTS` gains
+one selector — `.move__fact-icon`, the strip's drawings-that-are-characters —
+with its reason beside it, and the app shell still censuses 109.
+
+## 55. The battle move button, and the face that was deleted rather than kept
+
+**Milestone M2.2.** The forecast rebuilt to design bible section 2, and D9
+closed by deleting the four-column move bar.
+
+### Rules touched
+
+**§2** (the effectiveness family: coloured left edge plus the multiplier as a
+fraction), **R4** (neutral renders nothing, so three of four buttons carry no
+edge), **C1** (the one exception it names — live effectiveness against the
+Pokemon on the field — is the only verdict-shaped colour in the game), **R6**
+and **R1** (D9: one face, and no compact variant that reorders slots).
+
+No rule changed and the bible is not amended.
+
+### The forecast
+
+`0.25x` and `0.5x` became `¼` and `½`: the same numbers in one glyph instead
+of four, on the surface with the least room in the game. **The number still
+comes from `core/` untouched** — `move.effectiveness` is `result.multiplier`
+off the projection — and only its spelling moved to `ui/`, because `core/` may
+not know that ¼ is how a quarter is drawn.
+
+The edge is red and green, and **the fraction beside it is what makes that
+safe**: it carries the same fact in a channel colour vision cannot touch, the
+way a type chip's glyph carries the type and its hue only repeats it. Section 2
+asks for the family to be colour-blind checked, and the check is structural
+rather than a palette tweak — the edge is never the only carrier.
+
+`--stage-up` and `--stage-down` rather than new hues: they are already this
+UI's green and red for a number moving in the player's favour and against it,
+and effectiveness is that question asked of a matchup.
+
+Also: a 44px minimum on the buttons, stated rather than arrived at, because a
+button the content happens to make tall enough is a button one copy change
+shortens.
+
+### D9, and what the measurement actually said
+
+D9 deferred to a measurement. At 390x844 with the M2.1 face:
+
+| | width | height | cut |
+|---|---|---|---|
+| 2x2 grid | 176px | 112px | nothing |
+| columns | 85px | 149px | nothing, **and only by hiding four of five fact columns** |
+
+The row expected the 85px justification not to survive M2.1 deleting the
+labels, and it did not. What it did not anticipate is that **the compact face
+does not fit 85px either**: showing every fact cell puts a 47px
+secondary-chance chip in a 31px cell, one per row grows the button and still
+cuts it, and letting the track fill hands the row to the band strip.
+
+A third route existed and was declined. R6 permits "whether a secondary fact
+sits behind a tap", and since M2.1 the button is an inspect trigger whose panel
+prints every strip fact — so on D17A's precedent the hiding would have been
+re-encoding rather than removal. The lead designer ruled for deletion: R6 and
+R1 hold without interpretation, and the comparison-across-buttons goal that
+justified the mode is better served by the grid at double the width.
+
+**Deleted:** the `move-bar` theme module, the `moveBar` setting and its accessors,
+the drawer's picker and its copy, the `notFirstLaunch` and `openApp` options,
+179 lines of stylesheet, and five patterns from `test/density.test.ts`'s
+forbidden list. Those patterns guarded `core/` against seeing a presentation
+axis; the axis no longer exists, so a pattern for it could never match, and a
+guard that cannot fail is not a guard. The rule it enforced is unchanged for
+the axes that remain.
+
+`docs/spec/gymrun-patch-four-column-move-bar.md` stays where it is. A prompt is
+a record of what was asked, not a description of what exists.
+
+### One thing M2.1 broke here without noticing
+
+Column mode showed "column 1 and nothing else", and column 1 held `accuracy`
+until M2.1 re-derived the fact grid — after which it held `contact`. So the
+re-derivation silently changed which fact survived in that mode. It is moot now
+that the mode is gone, and it is recorded because the failure shape is not: a
+rule that names a *position* rather than a *field* will follow the position
+when the table under it moves.
+
+### Not done here
+
+`formatEffectiveness` stays exported from `core/battle/view.ts` with no caller
+in `src/`. M2.2 is presentation-only — "if an item touches `core/` beyond the
+pure flag mapper, it is the wrong item" — so removing it is not this item's to
+do. `test/battle-view.test.ts` still covers it and it is still correct. M4.1 is
+the next item with reason to edit that layer.
+
+## 56. The move chip, and five faces becoming one plus four
+
+**Milestone M2.3**, the last item in Tier 2. Section 5's component canon has
+listed a move chip beside the move card since the bible was written; the Tier 0
+census recorded it `absent`. This builds it.
+
+### Rules touched
+
+**§5** (the component canon's second move component), **R1** (the chip is the
+same component's compact form — same type chip, same category chip, same base
+power slot — so the fields keep their identity when they shrink), **R5** (the
+chip is an inspect trigger like the card, so the full face is one press away),
+and Part 4's no-verdict rule, which the item preserves rather than touches.
+
+No rule changed and the bible is not amended.
+
+### What it trades, and what pays for it
+
+The replacement screen drew five full faces: the incoming move and the four it
+could displace. **That shape was deliberate.** Part 4's rule is that the
+comparison belongs to the player, and five identical cards is the least
+opinionated way to lay one out — the screen's own header says so.
+
+What it missed is the fold. Measured at 390x844 before this item, the player
+scrolled to see the options they were choosing between, which is not a
+comparison however even-handedly the cards are drawn. After: **the pinned card
+ends at 262 and the whole chip row at 526**, both far above 844.
+
+The chip carries name, type, category and base power — the four fields that
+differ between a member's own four moves. It gives up PP and the band, and the
+confirm brings both back on two full faces. The milestone's disconfirmer is
+behavioural and no test can hold it: *"testers expand every chip before
+choosing. Then chips gain PP at rest."*
+
+### The confirm is the shared band, extended rather than duplicated
+
+`test/band.test.ts` holds a rule this item had to work inside: no screen builds
+its own confirm. The band was text-only — a question and a line — because the
+three confirms it replaced were. It takes an optional `content` element now, so
+the caller mounts the two move cards and `ui/band.ts` still knows nothing about
+moves. Every existing caller is untouched.
+
+### Two things the census had wrong, both corrected here
+
+1. **`.move-chip` was a guess.** The selector was written at M0.1 against a
+   class that did not exist yet, and the tree's convention for a variant of the
+   move component is the double dash — `.move--card`, `.move--victim`. The
+   instrument was corrected to the code rather than the reverse: the name is a
+   codebase convention and the census has no stake in it.
+
+2. **`button.move` swept the chips into the battle bar's budget.** The chip is
+   a `<button>` carrying `.move`, because every site that draws one is asking
+   the player to pick it — so the battle move button row was counting four
+   chips from a screen the battle bar never appears on. It reads
+   `button.move:not(.move--chip)` now, and the row fell from 46 to 38 in
+   Detailed once the chips stopped being charged to it.
+
+Census, Pocket: **move chip 0** against a budget of 0, on its first appearance.

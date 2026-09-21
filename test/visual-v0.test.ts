@@ -181,8 +181,14 @@ describe('one accent', () => {
         seen.set(at, Math.max(seen.get(at) ?? 0, primaries));
         expect(primaries, `${at} shows ${primaries} primary actions`).toBeLessThanOrEqual(1);
       }
-      await stepOnce(page);
-      await page.waitForTimeout(25);
+      /*
+       * `at`, not `screen`, for the reason the comment above gives: the
+       * branches between the two reads click, so `screen` is knowingly stale
+       * by here and `at` is this lap's decision. Passing it means a transition
+       * landing mid-lap costs a retry rather than a surface — see
+       * `stepOnceUnparked`.
+       */
+      if (!(await stepOnce(page, at))) await page.waitForTimeout(16);
     }
     seen.set('summary', await count());
     await context.close();

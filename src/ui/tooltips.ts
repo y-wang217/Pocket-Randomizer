@@ -451,6 +451,29 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   const onOver = (event: MouseEvent): void => {
     const trigger = triggerFor(event.target);
     if (!trigger || (openFor && !transient)) return;
+    /*
+     * **Hover is for small targets, and a card is not one. M2.1.**
+     *
+     * Hover has always been a desktop enhancement over the tap interaction,
+     * and every trigger it was designed for is a chip, a badge, a pip or a
+     * glyph — something a cursor crosses deliberately. M2.1 made the whole
+     * move card a trigger, per R5's "long press on any card", and a
+     * card-sized hover target behaves differently in kind: the panel opens
+     * whenever the cursor passes over a card on its way somewhere, and then
+     * covers the card the player was reaching for.
+     *
+     * It is not a theoretical objection. The smoke bot drives a real mouse
+     * and rests it wherever the last click left it, which on the reward and
+     * party screens is inside a move card — so the panel opened unasked and
+     * its own dialog intercepted the next click. A player moving a cursor
+     * across three reward cards would have met the same thing.
+     *
+     * So a trigger may decline hover while keeping every other gesture. Tap
+     * still selects, the long press still opens, Enter and Space still open —
+     * which is the keyboard path D15 required — and nothing opens merely
+     * because the pointer went past.
+     */
+    if (trigger.dataset['tipHover'] === 'off') return;
     open(trigger, true);
   };
 
