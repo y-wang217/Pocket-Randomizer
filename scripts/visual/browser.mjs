@@ -403,6 +403,24 @@ async function stepOnceUnparked(page, expected) {
       if (!(await victim.count())) return null;
       const name = victim.locator('.move__name').first();
       await ((await name.count()) ? name : victim).click();
+      /*
+       * **And then answer the confirm, because M2.3 put one here.**
+       *
+       * Tapping a victim used to commit the replacement. It opens the shared
+       * band now — two full cards, the question, and a primary that commits —
+       * which is the item's whole point: the chip gave up PP and the band, and
+       * the confirm is where they come back.
+       *
+       * A walker that clicked the chip and moved on would leave a modal up,
+       * and the band is `aria-modal` with a scrim, so *every* later click is
+       * intercepted by it. That is not a slow walk, it is a stuck one: the
+       * smoke run spent its timeout retrying a click the dialog was eating.
+       *
+       * The same shape the `result` branch already handles for a full-party
+       * release, and the selector is the same one.
+       */
+      const commit = page.locator('.confirm-band .primary-action');
+      if (await commit.count()) await commit.first().click();
       return screen;
     }
     case 'party': {

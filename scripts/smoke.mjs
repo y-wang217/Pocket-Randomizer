@@ -473,6 +473,11 @@ async function playRun(label) {
       if (await victim.count()) {
         if (replacements === 0) await page.screenshot({ path: `stats/${label}-replace.png`, fullPage: true });
         await victim.click();
+        // M2.3 put a confirm between the tap and the commit: the chip opens a
+        // band with both full cards on it. Leaving it up would intercept every
+        // later click, because it is `aria-modal` with a scrim.
+        const commit = page.locator('.confirm-band .primary-action');
+        if (await commit.count()) await commit.first().click();
         replacements++;
         await page.waitForTimeout(25);
         continue;
