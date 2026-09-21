@@ -123,6 +123,81 @@ export async function openScreen(page) {
   });
 }
 
+/*
+ * **The walk waits on state, not on the clock.** The browser suite CI patch,
+ * `docs/spec/gymrun-patch-browser-suite-ci.md`.
+ *
+ * Every step below used to end in `waitForTimeout(25)` or `(40)`, and a run
+ * was bounded by a step budget. Those two facts together were a defect that
+ * only showed under load: a wait is wall-clock, a budget is counted in steps,
+ * and on a saturated runner a step that had not finished rendering was
+ * counted as a step taken. `visual-move-cards` walked 900 of them on Actions
+ * without ever seeing the result screen, then passed in isolation in
+ * seconds — the same class of wall-clock assertion
+ * `docs/visual/reports/patch-battle-animation.md` retired elsewhere in this
+ * tree.
+ *
+ * The app exposes no busy flag, so "finished reacting" is read off the DOM
+ * itself: a `MutationObserver` on the document stamps the time of the last
+ * mutation, and `settle` resolves once a screen is visible and nothing has
+ * mutated for `quietMs`. Beats and transitions in this UI are CSS; what the
+ * observer sees is the app writing attributes and text at their boundaries,
+ * which is exactly the moment a player could act again. `waitForMutation` is
+ * the other half, for a step that found nothing to click: wait for the app to
+ * do *anything*, rather than for 40ms to pass.
+ *
+ * Both are bounded, and a bound expiring is not an error here: the walk goes
+ * on and the caller's step budget or test timeout is the stall guard, exactly
+ * as before. What changed is that a slow machine now costs time and not steps.
+ */
+const QUIET_MS = 60;
+const SETTLE_TIMEOUT_MS = 8_000;
+const MUTATION_TIMEOUT_MS = 5_000;
+
+/** Install the observer once per page; Playwright serialises this to run there. */
+function observe() {
+  const w = globalThis;
+  if (!w.__gymrunWalk) {
+    const state = { last: globalThis.performance.now() };
+    new globalThis.MutationObserver(() => {
+      state.last = globalThis.performance.now();
+    }).observe(globalThis.document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+    w.__gymrunWalk = state;
+  }
+  return w.__gymrunWalk.last;
+}
+
+async function boundedWait(page, fn, arg, timeout) {
+  try {
+    await page.waitForFunction(fn, arg, { timeout, polling: 16 });
+    return true;
+  } catch (error) {
+    if (!/timeout/i.test(String(error?.message))) throw error;
+    return false;
+  }
+}
+
+/** Resolve once a screen is visible and the DOM has been quiet for `quietMs`. */
+export async function settle(page, { quietMs = QUIET_MS, timeout = SETTLE_TIMEOUT_MS } = {}) {
+  await page.evaluate(observe);
+  return boundedWait(
+    page,
+    (quiet) => {
+      const screen = [...globalThis.document.querySelectorAll('.screen')].find((el) => !el.hidden);
+      if (!screen) return false;
+      return globalThis.performance.now() - globalThis.__gymrunWalk.last >= quiet;
+    },
+    quietMs,
+    timeout,
+  );
+}
+
+/** Resolve once anything in the document mutates, or `timeout` passes. */
+async function waitForMutation(page, timeout = MUTATION_TIMEOUT_MS) {
+  const mark = await page.evaluate(observe);
+  return boundedWait(page, (since) => globalThis.__gymrunWalk.last > since, mark, timeout);
+}
+
 /** The starter with the most HP, ties to the leftmost card. Same as smoke. */
 async function bulkiestStarter(page) {
   const cards = page.locator('.starter');
@@ -210,7 +285,15 @@ async function dismissTooltip(page) {
   });
   if (!open) return;
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(30);
+  await boundedWait(
+    page,
+    () => {
+      const tip = globalThis.document.querySelector('.tip');
+      return !tip || tip.hidden;
+    },
+    undefined,
+    2_000,
+  );
 }
 
 /**
@@ -234,28 +317,42 @@ async function dismissTooltip(page) {
  * each with a comment saying why.
  */
 export async function stepOnce(page) {
-  const screen = await stepOnceUnparked(page);
-  await page.mouse.move(0, 0);
+  const { screen } = await act(page);
   return screen;
 }
 
-async function stepOnceUnparked(page) {
+/**
+ * One step, with its outcome: the screen it looked at, and whether it found
+ * anything to click there. `stepOnce` is the public shape every test uses;
+ * `playUntil` reads `acted` so that a transition in flight costs the budget
+ * nothing.
+ */
+async function act(page) {
   await dismissTooltip(page);
   const screen = await openScreen(page);
+  const acted = await actOn(page, screen);
+  if (!acted) await waitForMutation(page);
+  await settle(page);
+  await page.mouse.move(0, 0);
+  return { screen, acted };
+}
+
+async function actOn(page, screen) {
   switch (screen) {
     case 'starter':
       await (await bulkiestStarter(page)).click();
-      return screen;
+      return true;
     case 'locale': {
       const card = page.locator(`${visible('locale')} .locale`).last();
-      if (await card.count()) await card.click();
-      return screen;
+      if (!(await card.count())) return false;
+      await card.click();
+      return true;
     }
     case 'battle': {
       const forced = page.locator(`${visible('battle')} .bench[data-forced="true"] .bench__member:not(:disabled)`);
       if (await forced.count()) {
         await forced.first().click();
-        return screen;
+        return true;
       }
       const move = await hardestMove(page);
       /*
@@ -269,9 +366,9 @@ async function stepOnceUnparked(page) {
        * always present and never a trigger, and the click bubbles to the
        * button exactly as a tap on it would.
        */
-      if (move) await move.locator('.move__name').first().click();
-      else await page.waitForTimeout(40);
-      return screen;
+      if (!move) return false;
+      await move.locator('.move__name').first().click();
+      return true;
     }
     case 'result': {
       const card = page.locator(`${visible('result')} .reward`).first();
@@ -292,7 +389,7 @@ async function stepOnceUnparked(page) {
         // of them — an empty span is not clickable, which is a second way to
         // stall on the same screen.
         await card.click({ position: { x: 8, y: 8 } });
-        return screen;
+        return true;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);
       if ((await capture.count()) && !(await capture.first().isHidden())) {
@@ -306,11 +403,12 @@ async function stepOnceUnparked(page) {
             await page.locator('.confirm-band .primary-action').click();
           } else await capture.locator('.acquire__actions .button').last().click();
         }
-        return screen;
+        return true;
       }
       const carry = page.locator(`${visible('result')} .result__actions .button`).first();
-      if (await carry.count()) await carry.click();
-      return screen;
+      if (!(await carry.count())) return false;
+      await carry.click();
+      return true;
     }
     case 'shop': {
       for (let pick = 0; pick < 6; pick++) {
@@ -318,21 +416,21 @@ async function stepOnceUnparked(page) {
         if (!(await add.count())) break;
         if ((await add.textContent()) !== 'Add') break;
         await add.click();
-        await page.waitForTimeout(15);
+        await settle(page);
       }
       await page.locator(`${visible('shop')} .shop__footer .button`).click();
-      return screen;
+      return true;
     }
     case 'event': {
       const choice = page.locator(`${visible('event')} .event__choice:not([disabled])`).first();
       if (await choice.count()) {
         await choice.click();
-        await page.waitForTimeout(25);
+        await settle(page);
       }
       const carry = page.locator(`${visible('event')} .event__result .button`);
       await carry.waitFor({ timeout: 5_000 });
       await carry.click();
-      return screen;
+      return true;
     }
     /*
      * **Both of these click the card's *name*, not the card. Patch 4.7.2.**
@@ -356,17 +454,17 @@ async function stepOnceUnparked(page) {
      */
     case 'target': {
       const card = page.locator(`${visible('target')} .party__member--target`).first();
-      if (!(await card.count())) return screen;
+      if (!(await card.count())) return false;
       const name = card.locator('.panel__name').first();
       await ((await name.count()) ? name : card).click();
-      return screen;
+      return true;
     }
     case 'replace': {
       const victim = page.locator(`${visible('replace')} .move--victim`).last();
-      if (!(await victim.count())) return screen;
+      if (!(await victim.count())) return false;
       const name = victim.locator('.move__name').first();
       await ((await name.count()) ? name : victim).click();
-      return screen;
+      return true;
     }
     case 'party': {
       /*
@@ -381,10 +479,10 @@ async function stepOnceUnparked(page) {
       const teach = page.locator(`${visible('party')} .tms__item .button--small`).first();
       if ((await teach.count()) && (await teach.textContent()) === 'Teach') {
         await teach.click();
-        return screen;
+        return true;
       }
       await page.locator(`${visible('party')} .primary-action, ${visible('party')} .button--primary`).first().click();
-      return screen;
+      return true;
     }
     case 'pre-gym': {
       // 4.7's lead pick, answered the way the headless runs answer `chooseLead`:
@@ -394,34 +492,50 @@ async function stepOnceUnparked(page) {
       // slot, because slot 0's own button is disabled ("Leading") — which on a
       // party of one left no enabled control at all.
       const confirm = page.locator(`${visible('pre-gym')} .pre-gym__confirm:not(:disabled)`);
-      if (await confirm.count()) await confirm.first().click();
-      else await page.waitForTimeout(40);
-      return screen;
+      if (!(await confirm.count())) return false;
+      await confirm.first().click();
+      return true;
     }
     case 'map': {
       const node = await chooseNode(page);
-      if (node) await node.click();
-      else await page.waitForTimeout(40);
-      return screen;
+      if (!node) return false;
+      await node.click();
+      return true;
     }
     default:
-      await page.waitForTimeout(40);
-      return screen;
+      return false;
   }
 }
 
 /**
  * Play until `predicate(screen, page)` is true, or `maxSteps` decisions pass.
  * Checked *before* each step, so the run stops on the screen asked for.
+ *
+ * A decision is a step that clicked something. A step that found nothing to
+ * click waited for the app instead, and is not counted: that is the whole of
+ * what makes the budget a count of decisions and not of how fast the machine
+ * was on the day.
  */
-export async function playUntil(page, predicate, maxSteps = 600) {
-  for (let step = 0; step < maxSteps; step++) {
+export async function playUntil(page, predicate, maxSteps = 600, idleMs = 30_000) {
+  let decisions = 0;
+  let idleSince = null;
+  while (decisions < maxSteps) {
     const screen = await openScreen(page);
     if (screen && (await predicate(screen, page))) return screen;
-    await stepOnce(page);
-    await page.waitForTimeout(25);
+    const { acted } = await act(page);
+    if (acted) {
+      decisions += 1;
+      idleSince = null;
+      continue;
+    }
+    // Nothing clickable: a transition or a beat. It costs the budget nothing,
+    // and the wall clock is the guard against a screen that never comes back.
+    idleSince ??= Date.now();
+    if (Date.now() - idleSince > idleMs) {
+      throw new Error(`playUntil: nothing to act on for ${idleMs}ms, on ${await openScreen(page)}`);
+    }
   }
-  throw new Error(`playUntil: gave up after ${maxSteps} steps on ${await openScreen(page)}`);
+  throw new Error(`playUntil: gave up after ${maxSteps} decisions on ${await openScreen(page)}`);
 }
 
 /** Open the app on a seed, at the phone viewport, and wait for the starters. */

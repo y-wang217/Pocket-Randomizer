@@ -8236,3 +8236,130 @@ once and render on all sixteen surfaces, so charging their words to each surface
 would have put a constant seven on every row of a table whose smallest budget is
 zero. M0.1 does not ask for the split; section 4 budgets surfaces rather than the
 chrome around them, which is the argument for it.
+
+## 53. The browser suite was red for a chip nobody was meant to read
+
+**Recorded 2026-09-21.** Prompt:
+[`spec/gymrun-patch-browser-suite-ci.md`](spec/gymrun-patch-browser-suite-ci.md).
+Branch `claude/epic-knuth-7w4g6f`. Presentation tooling only: nothing under
+`src/` changes, no version axis moves, `contentHash` holds at `d4e080`.
+
+### 53.1 What the logs said, against what the handoff said
+
+The 4.10 handoff named one item nobody owned: the walk in
+`scripts/visual/browser.mjs` was wall-clock, and would produce false reds under
+load. That was true and it was not why `main` was red.
+
+Every `check` run from 2026-09-18 to the merge of PR #61 failed the same
+assertion in both chromium legs, deterministically:
+
+```
+test/visual-chips.test.ts > the chip legibility floor
+  > renders the type chip at or above the contrast floor on every surface
+  battle "Ghost" 3.81:1 rgb(165,144,175) on rgb(54,62,50)
+  party (gallery, loaded) "Ghost" 4.43:1 rgb(165,144,175) on rgb(46,50,54)
+```
+
+The walker miss the handoff predicted (`visual-move-cards` reaching six of its
+seven surfaces in 900 steps) appeared once, on the last run, in strict trim
+only, underneath the chip failure. The Node trim leg's reporter timeout is
+classified `ERRORED` by `check.mjs` and did not fail the run.
+
+### 53.2 The engine was not the variable
+
+Section 34.3 measured Chromium 1243 against 1194 inside this container and
+found them identical, then wrote that up as "the container is safe", which
+section 34.8 disproved for heights. The same question for the chip floor,
+measured the same way: `visual-chips` on 1243 (Chrome 153, the Playwright
+1.63 image's revision) in this container, **21 of 21, Ghost at 5.13:1 on the
+battle screen**. Same tree, same test, same reading as 1194.
+
+So the pin in `browser.mjs` is left as it was. It falls through to the
+registry's 1243 on Actions, and that has now been measured harmless twice.
+
+### 53.3 The variable was the font set, and what it changed was *when*
+
+Section 34.8 established that `tokens.css` sets the UI in a system monospace
+stack with no font shipped, so the Playwright image lays the page out in
+whatever monospace it has, which is not DejaVu Sans Mono. Rejecting DejaVu
+here through `FONTCONFIG_FILE` and preferring Liberation Mono reproduced the
+CI number exactly, on both Chromium revisions:
+
+```
+battle Ghost {"x":211,"y":623,"width":44.8125} [165,144,175] on [54,62,50] 3.81
+```
+
+The chip is 44.8px wide in Liberation Mono against 50.4 in DejaVu. That is
+not what moved the number. What moved it is that the sweep samples a screen
+when a chip *variant* it has not yet seen appears, and which chips are on
+screen at a given step depends on layout, so the font decided which battle
+state the sweep happened to photograph. In DejaVu it never photographs the
+forced-switch board. In Liberation Mono it does, and the screenshot says what
+is there: the lead has fainted, all four move buttons carry `disabled`, the
+grid is at `.move:disabled`'s 0.42 opacity, and the marsh locale's green
+backdrop shows through it under the Ghost chip.
+
+**The floor was being asserted against a chip inside a control the app had
+dimmed on purpose.** `.move:disabled` is 0.42, `.party__member--fainted` 0.55,
+`.button:disabled` 0.35. Each is the app saying this is not for reading now.
+The sampler already skipped `visibility: hidden`, `opacity: 0` and empty text;
+it now walks the chip's ancestors and skips any that is `:disabled` or has a
+computed opacity under 1. Walked, because opacity does not inherit as a
+computed value: the chip reads `1` inside a button at 0.42. With that, the
+Liberation Mono run passes 21 of 21.
+
+### 53.4 The gallery reading is not reproduced, and the next red will carry its picture
+
+`party (gallery, loaded) "Ghost" 4.43:1` did not reproduce here under DejaVu,
+under Liberation Mono, or with every DejaVu and FreeFont face rejected so the
+gender and pip glyphs fall back too: 5.13:1 every time, on both revisions. The
+loaded fixture has no fainted member (`gallery-fixtures.ts` floors HP at 40%),
+so the dimmed-ancestor rule may or may not cover it, and nothing in the log
+line says what was under the chip on that runner.
+
+So the sweep now keeps the screenshot each surface was sampled from, and on a
+floor failure writes the ones named to `.visual-failures/chips/` with the path
+in the assertion message. Both browser jobs upload that directory on failure,
+seven days' retention. If the gallery row comes back, it comes back with the
+pixels.
+
+### 53.5 The walk waits on state
+
+The handoff's item, built as described. `settle` installs one
+`MutationObserver` per page and resolves once a screen is visible and nothing
+has mutated for 60ms; `waitForMutation` is the other half, for a step that
+found nothing to click. `stepOnce` acts, then settles, then parks the pointer.
+`playUntil` counts only steps that clicked something, and a 30s wall-clock
+guard replaces the step budget as the stall detector for a screen that never
+comes back. Every fixed `waitForTimeout` in the step function is gone; the
+three that remain in the file are measurement pauses for CSS transitions
+before a box is read, which are not walk waits.
+
+Both bounds expiring is not an error. A slow machine now costs time and not
+steps, which is the whole change.
+
+The two files the handoff named, `visual-move-cards` and `visual-v0`, on the
+new walk: 10 of 10 in 46s, with the heights still identical to the pixel.
+
+### 53.6 The browser half gets the fork cap
+
+`vitest-split.mjs` capped the Node half at two forks in CI and said the
+browser halves would get their own measurement if they started carrying the
+timeout. They did, so they get the same cap: two forks, each a Node process
+plus a browser, on the runner's four cores. WebKit inherits it through the
+same command.
+
+The whole chromium half on the new walk, through `check.mjs` with `CI=1` so
+the cap applies, in this container: **24 files, green, 837.7s**, against the
+503s to 517s section 34.3 recorded at three forks on the old walk. Some of
+that is the cap and some is a walk that now waits for a beat to end instead
+of stepping past it; neither is a cost worth measuring apart while the
+alternative is a red nobody can read.
+
+### 53.7 What this did not do
+
+- **Ship a webfont.** Still the real fix for every font-dependent reading in
+  this tree, still a `src/` change and a typography decision, still open from
+  section 34.8.
+- **Change the Ghost token.** The chip that failed was one the app had dimmed;
+  the token reads 5.13:1 on every surface a player is meant to read it on.
