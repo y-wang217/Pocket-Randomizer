@@ -8336,6 +8336,27 @@ still 5.13:1 under DejaVu and under Liberation Mono. So the chip's box does
 not reach the sprite in either of those fonts, and what it reaches in the
 container's is what the next artifact will show.
 
+**The artifact arrived, and the chip was fine.** PR #62's second run uploaded
+`party-gallery-loaded-.png`. Histogrammed the way the sampler does, the box
+where the Ghost chip is *painted* on that runner, x=213 on the header's second
+row, reads the purple fill at (34,38,58), which is 5.13:1. The box where the
+*narrower* layout puts that chip, x=87 on the same row — the layout every box
+here produces under Liberation Mono — reads (46,50,54) at 57.5%, the neutral
+chip fill, which is the log line to the digit. So the sampler took its
+rectangles from one layout and its picture from another. Between the two the
+page reflowed: in the picture the header holds only name, level and the
+gender glyph, and the archetype chip has wrapped to the row below, where it
+pushes the Ghost chip from 87 to 213. The glyph is the tell. The stack ships
+no font for `♀`; on that image it resolves through the colour-emoji fallback,
+which arrives after first layout and is wider than the placeholder, and no
+`fonts.ready` covers a fallback glyph. Neither font set here does that, which
+is why no font set here reproduced it.
+
+The fix is in the instrument, not in a wait: `chipsOn` reads the boxes,
+takes the picture, reads the boxes again, and keeps only a picture whose boxes
+did not move, up to five tries. It measures the layout it photographed or it
+measures again.
+
 ### 53.5 The walk waits on state
 
 The handoff's item, built as described. `settle` installs one

@@ -261,7 +261,7 @@ function keepFailureShots(under: string[]): string {
 /** Every rendered chip on the screen currently open, measured. */
 async function chipsOn(page: Page, scratch: Page, screen: string, label = screen): Promise<ChipSample[]> {
   await imagesSettled(page);
-  const found = await page.evaluate((sel) => {
+  const measure = () => page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
     if (!root) return [];
     return [...root.querySelectorAll('.chip')].flatMap((node) => {
@@ -337,8 +337,33 @@ async function chipsOn(page: Page, scratch: Page, screen: string, label = screen
     });
   }, visible(screen));
 
+  /*
+   * **Read the boxes, take the picture, read the boxes again, and keep only a
+   * picture whose boxes did not move.** The browser suite CI patch, and the
+   * gallery row it could not reproduce.
+   *
+   * The `4.43:1` the Playwright container reported for the loaded party's
+   * Ghost chip was real and the chip was fine. Its artifact showed the chip
+   * painted at x=213 on the panel, reading 5.13:1 there; the box the sampler
+   * had used was x=87, and at x=87 the picture holds the archetype chip's
+   * neutral fill, which is the grey in the log to the digit. Between the
+   * `getBoundingClientRect` and the screenshot the page had reflowed: the
+   * header's gender glyph resolves through that image's colour-emoji fallback
+   * after first layout, the header widens, the archetype chip wraps down a
+   * row, and every chip on that row moves right. No box in this repo waits on
+   * a system font, and `document.fonts.ready` does not cover a fallback
+   * glyph, so the fix is not a wait but an agreement: the instrument measures
+   * the layout it photographed, or it measures again.
+   */
+  let found = await measure();
   if (found.length === 0) return [];
-  const png = await page.screenshot({ fullPage: true });
+  let png = await page.screenshot({ fullPage: true });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const again = await measure();
+    if (JSON.stringify(again.map((chip) => chip.box)) === JSON.stringify(found.map((chip) => chip.box))) break;
+    found = again;
+    png = await page.screenshot({ fullPage: true });
+  }
   shots.set(label, png);
   // Device pixels per CSS pixel, asked of the page rather than assumed. 1 on
   // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
