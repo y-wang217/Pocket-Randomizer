@@ -46,7 +46,8 @@ import { FLAG_BLURBS, flagWord } from '../data/flagWords';
 import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
-import { statInfo } from '../data/statInfo';
+import { statInfo, STAT_BAR_CEILING } from '../data/statInfo';
+import { glyphNode } from './theme/glyph';
 import { stageRowValue } from '../data/statStages';
 import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
 import { MOVE_FACT_INFO } from '../data/moveFactInfo';
@@ -99,6 +100,23 @@ type TipKind =
    * what that one means. `archetype:all` is the trigger every chip carries.
    */
   | 'archetype'
+  /**
+   * One Pokemon's six stats, from the battle panel it is standing on.
+   * **Milestone M3.1, discrepancy D18, ruled 2026-09-21.**
+   *
+   * The panel drew an archetype label — `Phys. Attacker` — which section 3
+   * bars as a derived label that can lie under randomization, section 5 never
+   * listed, and section 4's budget of zero words has no room for. It was also
+   * the *only* channel left for what the thing opposite is built to do, since
+   * V5 took the six numbers off the panel on the argument that the label
+   * replaced them. So the label goes and the numbers come back here, which is
+   * C2's re-encode rather than a removal.
+   *
+   * Keyed by species, so the panel says whose numbers these are; the numbers
+   * themselves ride on `data-detail`, because which numbers a body has is a
+   * property of this render and not a table entry. Same argument as `stages`.
+   */
+  | 'stats'
   /**
    * A move, explained, from a battle button. **Density modes patch; open item
    * 9 (R8) closed.** The same rows `ui/move-explanation.ts` builds for a card's
@@ -215,6 +233,7 @@ const KINDS = [
    */
   'flag',
   'archetype',
+  'stats',
   'move',
   'gym',
   'threat',
@@ -555,6 +574,8 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderFlag(id);
     case 'archetype':
       return renderArchetypes();
+    case 'stats':
+      return renderMonStats(id, trigger?.dataset['detail']);
     case 'move':
       return renderMoveRows(id);
     case 'gym':
@@ -719,6 +740,54 @@ function renderStages(detail?: string): HTMLElement | null {
     const value = el('span', 'tip__row-value');
     value.textContent = stageRowValue(multiplier, stage);
     line.append(label, value);
+    list.append(line);
+  }
+  body.append(list);
+  return body;
+}
+
+/**
+ * One Pokemon's six stats, as the stat block draws them.
+ * **Milestone M3.1, discrepancy D18.**
+ *
+ * Section 3's Six stats row is specific and this obeys it literally: *"Glyph,
+ * bar, number. Always all six."* All six, in display order, with no sort and
+ * no emphasis on any of them — R10 forbids both, and forbids them here for the
+ * same reason it forbids them on a recipient card: a row drawn heavier because
+ * it matches what the player is about to do is a verdict wearing an
+ * attribute's clothes.
+ *
+ * The bar is measured against `data/statInfo.ts`'s `STAT_BAR_CEILING`, which the
+ * party card's own bars use, so a Speed bar here and a Speed bar in the drawer
+ * are the same length for the same number.
+ *
+ * Nothing here is written copy. The abbreviations are `data/statInfo.ts`'s, the
+ * marks are M1.1's sheet, and the numbers arrive on the trigger.
+ */
+function renderMonStats(species: string, detail?: string): HTMLElement | null {
+  const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
+  if (rows.length === 0) return null;
+  const body = panel(species, 'tip__body--rows');
+  const list = el('div', 'tip__rows tip__rows--stats');
+  for (const entry of rows) {
+    const [stat = '', value = ''] = entry.split('\t');
+    const info = statInfo(stat);
+    const line = el('div', 'tip__row tip__row--stat');
+
+    const label = el('span', 'tip__row-label');
+    const mark = glyphNode(`stat-${stat}`, { label: info?.label ?? stat.toUpperCase() });
+    if (mark) label.append(mark);
+    else label.textContent = info?.abbreviation ?? stat.toUpperCase();
+    line.append(label);
+
+    const bar = el('span', 'tip__row-bar');
+    const fill = el('span', 'tip__row-bar-fill');
+    fill.style.width = `${Math.min(100, (Number(value) / STAT_BAR_CEILING) * 100)}%`;
+    bar.append(fill);
+
+    const number = el('span', 'tip__row-value');
+    number.textContent = value;
+    line.append(bar, number);
     list.append(line);
   }
   body.append(list);

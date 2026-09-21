@@ -1,6 +1,6 @@
 # Bible discrepancies: the 4.10 presentation milestones
 
-Rev 1, Sept 20, 2026. Opened against
+Rev 2, Sept 21, 2026. Opened against
 [`../spec/gymrun-presentation-milestones.md`](../spec/gymrun-presentation-milestones.md)
 Rev 1 and [`design-bible.md`](design-bible.md) Rev 1.
 
@@ -33,12 +33,16 @@ which blocks everything.
 | D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
 | D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
 | D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
+| D18 | M3.1, then M3.2 | The archetype chip has no row in the canon, and deleting it takes the opponent's build off the battle screen | **2026-09-21** |
+| D19 | nothing; timed with M3.2 | The ability and the volatile chips have no row anywhere in the bible | **deferred to M3.2** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
-D17 closed 2026-09-20 across Tier 2. **Sixteen of seventeen rows are ruled, and
-D14 is the one still open — it blocks nothing and is timed with M5.6.** Each
+D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
+**Eighteen of nineteen rows are ruled**; D14 is timed with M5.6 and D19 with
+M3.2, and neither blocks anything. D18 was opened and ruled on 2026-09-21,
+inside M3.1. Each
 ruling is restated under its own row below; the bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
@@ -955,3 +959,233 @@ longer match. The patch that introduced it,
 [`../spec/gymrun-patch-four-column-move-bar.md`](../spec/gymrun-patch-four-column-move-bar.md),
 stays where it is: a prompt is a record of what was asked, not a description of
 what exists.
+
+
+---
+
+## Rulings, 2026-09-21, opening Tier 3
+
+Two rows opened reading into M3.1. **D18 blocked it and is ruled below**; D19
+blocks nothing and is deferred to M3.2, which meets the same gap on the party
+row.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D18 | **Option 2.** The archetype chip goes, and the six stats it was derived from are re-encoded behind the panel's long press. No amendment: `stat` is already an inspect kind, the stat block is already a canon component, and R6 sanctions a secondary fact behind a tap. | Milestone M3.1 scope |
+| D19 | **Defer to M3.2**, which meets the ability and the volatile chips again on the party row, so one ruling covers both surfaces. M3.1 leaves both alone. | Milestone M3.2 scope |
+
+Both come from one measurement. The panel censuses **20 words in Pocket**, ten
+per surface across `battle` and `log-sheet`, and every one of them is in five
+places:
+
+| Element | Words, per surface | Section 5 lists it |
+|---|---:|---|
+| `.panel__roster-label` — `3/4 left` | 1 | no |
+| `.panel__name` — `Opposing Golem` | 1 | name, yes |
+| `.panel__level` — `Lv100` | 2 | level, yes |
+| `.badge--archetype` — `Phys. Attacker` | 4 | **no** |
+| `.badge--stages` — `STAGES 2` | 2 | stat stage ladder, yes |
+
+Ten per surface, twice over: the roster row is the foe's alone and the name's
+prefix with it, and everything below them renders on both panels.
+
+Four of the five are re-encodings with no rule in their way: the side is already
+drawn by which panel it is, `Lv` and `left` are the field labels R2 forbids, and
+the Pocket stage marker can carry the stat glyph M1.1 drew instead of the word.
+The fifth is D18.
+
+**What the table does not show is what the census cannot see.** The panel also
+renders the ability name, the held item name and a volatile chip per condition,
+and they census near zero by an accident of the counting rule rather than by
+being encoded: `properNouns()` is built from `ABILITY_POOL` and both move pools,
+so `Levitate`, `Leech Seed` and `Perish Song` are excluded and `Confused`,
+`Flinched` and `Drowsy` are not. That is D19.
+
+---
+
+## D18. The archetype chip has no row in the canon, and deleting it takes the opponent's build off the battle screen
+
+**Blocks M3.1.** Then M3.2, which meets the same chip on the party row.
+
+M3.1 enumerates the panel — *"Name, level, gender, HP bar and number, status as
+three-letter chips, stat stage ladder nonzero only (shipped), item sprite in a
+fixed slot"* — and section 5's Owns column is that list plus D6's chevron.
+Neither carries the archetype. Section 4 budgets the panel at 0 with *"Name,
+nickname"* as the words that survive, and the chip (`ui/scene.ts:642`, filled at
+`:829`) spends four of the panel's twenty: `Phys. Attacker` opposite and
+`Spec. Tank` below. **Census 0 requires deleting it.**
+
+Section 3's archetype row agrees: *"Not rendered where the stat bars already draw
+it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie
+under randomization."* Read whole, that is a bar on rendering archetype and the
+parenthetical is a citation rather than a carve-out. The bible and the item
+agree with each other. The tree is what disagrees.
+
+**What makes it more than housekeeping is what V5 did.** `ui/scene.ts:910`
+records it in as many words: *"Base stats leave the battle panel with the block.
+They are not gone from the run — the party drawer is reachable in a battle and
+carries the player's six for every member — but the opponent's are now read off
+the archetype label rather than as numbers. That is the plan's budget, and the
+V5 report records it as the one thing this stage takes away."*
+
+So the chip is not one channel of two. It is the **only** channel for what the
+thing opposite is built to do, on the one screen where that changes the next
+decision. Deleting it does not move the fact, it ends it, and C2 says a
+decision-relevant fact is re-encoded rather than removed.
+
+**Options.**
+
+1. **Delete the chip and leave it at that.** Cheapest, and it has the bible's own
+   words behind it: what is removed is *"a derived label [that] can lie under
+   randomization"*, and C1 calls a derived summary of six numbers closer to a
+   verdict than to an attribute. On that reading no fact is lost, only a label,
+   and C2 is not engaged.
+2. **Delete the chip and re-encode the opponent's six stats behind the panel's
+   long press.** The label goes — the thing section 3 bars, for lying — and the
+   six numbers it was derived from take its place, which is what section 3's Six
+   stats row specifies anyway: *"Glyph, bar, number. Always all six."* Zero words
+   at rest. No amendment: `stat` is already an inspect kind
+   (`ui/tooltips.ts:192`), the stat block is already a canon component, and
+   `ActiveUiView.stats[...].base` already carries both sides' numbers, so
+   nothing in `core/` moves and the reveal policy is untouched — the projection
+   has never gated base stats, which is exactly why the archetype label was not
+   gated either.
+3. **Keep the chip and amend sections 3, 4 and 5.** Archetype gets a canon slot,
+   an encoding row and a panel budget of 2. Three tables amended to keep a label
+   the bible calls unreliable.
+
+**Recommendation: 2.** It is the only option that satisfies C1 and C2 at once:
+the derived label goes, and the attributes it was derived from keep a channel.
+It needs no amendment, because R6 sanctions a secondary fact sitting behind a
+tap and R5's layer already renders stats.
+
+**D17A is the precedent and it is worth reading before ruling.** M2.1 moved the
+status readout behind the long press, and that was ruled re-encoding rather than
+removal *because the card became a trigger in the same pass*. The same condition
+applies here and is the same cost: the panel is not a trigger today, and option 2
+is only honest if it becomes one.
+
+**What option 1 gives up, stated plainly so the ruling is made on it.** A player
+would have no way, at any gesture, to tell a physical wall from a special one
+before it moves. The bible does not require them to have one — nothing in it
+says the opponent's stats are visible — and this row does not claim otherwise.
+It claims only that the fact is live today and that removing it is a decision
+rather than a tidy-up.
+
+---
+
+## D19. The ability and the volatile chips have no row anywhere in the bible
+
+**Blocks nothing.** Timed with M3.2, which meets both on the party row.
+
+`renderTraits` (`ui/scene.ts:1016`) puts two chips on the panel and
+`panel__volatiles` puts up to nineteen more. M3.1 rules on exactly one of them —
+*"item sprite in a fixed slot... Remove item name text"* — and section 5's Owns
+column lists the item sprite and nothing else of the three.
+
+There is **no ability row and no volatile row in section 3**, no glyph family for
+either in section 2, and no budget line for either in section 4. The panel is
+budgeted at 0 with "Name, nickname" surviving, so on the tables as written both
+are words the panel may not spend.
+
+**They census near zero anyway, and that is the part worth filing.**
+`properNouns()` is built from `ABILITY_POOL`, `DAMAGING_MOVES` and
+`STATUS_MOVES`, so the counting rule excludes `Levitate`, `Leech Seed`,
+`Substitute`, `Nightmare`, `Perish Song`, `Taunt`, `Encore`, `Disable`,
+`Ingrain` and `Torment` — and counts `Confused`, `Flinched`, `Bound`, `Trapped`,
+`Cursed`, `Drowsy`, `Infatuated` and `Focused`, because `VOLATILE_LABELS`
+(`core/battle/view.ts:511`) renames those to a past participle. **Which of two
+identically shaped chips costs a word depends on whether its condition happens
+to share a name with a move in the pool.** The instrument is doing what D1 ruled
+it should; it is the tables it measures against that have no row here.
+
+Neither is droppable. The player's own ability is always revealed, and Levitate,
+Flash Fire and Wonder Guard each decide which move is worth using this turn; the
+opponent's is gated by `revealOpponentAbility`, the one flag the reveal policy
+exists to open. A volatile is the reason a turn did not go as expected. Nor is
+either encodable as a glyph: abilities are a pool, not a family, and nineteen
+volatiles would be a tenth family and then some.
+
+**Options.**
+
+1. **Amend section 3 with an Ability row and a Volatile row, and section 4 with a
+   panel allowance for them.** The honest fix: the tables describe what the
+   panel renders, and M7.2 has something to measure. Ability at rest is the
+   name; volatiles at rest are the chips, with `statusInfo` behind the press.
+2. **Re-cut the volatile labels so every one of them is the move or condition
+   name** (`Leech Seed` not `Cursed`), and let the proper-noun rule carry them.
+   Cheap in words, dishonest in encoding, and it would rename `Confused` to
+   something no protocol line says.
+3. **Leave both, record the gap, and let M7.2 raise it if a surface goes over.**
+   What M0.3 did with D14, and for the same reason: no item is blocked.
+
+**Recommendation: 1**, timed with M3.2 rather than M3.1, so one ruling covers the
+panel and the party row together. **M3.1 is built on option 3 in the meantime**:
+it touches neither chip except to replace the item's name with its sprite, which
+the item asks for by name.
+
+
+---
+
+## D18, closed with the build
+
+**Ruled 2026-09-21. Option 2: the chip goes and the six numbers take its
+place, one long press away.**
+
+The panel went from **20 words in Pocket to 0**, and 4 of those 20 were this
+row. What it cost, and what it turned out to need, is worth recording because
+the ruling's own condition was the expensive half:
+
+> D17A is the precedent and it is worth reading before ruling. M2.1 moved the
+> status readout behind the long press, and that was ruled re-encoding rather
+> than removal *because the card became a trigger in the same pass*. The same
+> condition applies here and is the same cost: the panel is not a trigger
+> today, and option 2 is only honest if it becomes one.
+
+It became one. `.panel` carries `data-tip="stats:<species>"` and a
+`data-detail` of six `stat\tvalue` rows, serialized on the trigger for the
+reason `stageMarker`'s set is: which numbers a body has is a property of this
+render, not a table entry. `renderMonStats` draws them as section 3's Six stats
+row specifies — glyph, bar, number, all six, in display order, no sort and no
+emphasis, which is R10 — and the bar is measured against the party card's own
+`STAT_BAR_CEILING`, now exported for that reason, so one number is one length
+wherever it is drawn.
+
+**Three things the ruling did not anticipate, found by building it.**
+
+1. **The value is `base`, not `effective`.** The projection carries both. Using
+   the post-boost number would have put the stat stages on the chip row and the
+   stat panel behind the press in disagreement on turn one and in agreement on
+   turn zero, which is one fact in two channels on one surface — R3 — and the
+   more confusing half of it is that the two would have *looked* independent.
+2. **HP is not in `stats`.** `StatView` is the five that boost; the projection
+   keeps max HP on `hp`. So the six rows are written HP-first by hand rather
+   than mapped off a list, and the comment says why.
+3. **The panel had a fourth word source the census could not see, and it was
+   the same family this row is about.** `\u25b2 FIRST`, the Speed marker on the
+   chip row, spends a word — and its triangle is the mark section 2 gives to
+   the **Priority** family, on a fact that is not a bracket. It was not in the
+   census because the fixture has no faster side. It is the Stat family's Speed
+   glyph now, which is the family Speed actually lives in, and the panel's new
+   chevron slot is free to mean what section 6 says it means.
+
+**What was not built, and is not owed.** Nothing was added to `core/`. The
+reveal policy is untouched: base stats have never been gated — that is exactly
+why the archetype label was not gated either — so re-encoding them changes what
+is drawn and not what is known.
+
+---
+
+## D19, deferred
+
+**Deferred to M3.2 on 2026-09-21.** M3.1 touches neither chip, except to
+replace the held item's *name* with its sprite, which the item asks for by
+name and section 3's Held item row specifies. The ability chip and the volatile
+chips render exactly as they did.
+
+One thing M3.1 found that the row should carry into M3.2: the held item's name
+was the third member of that set, and it is now gone from the face without an
+amendment — because section 3 **does** have a Held item row, and it says
+"Item sprite in a fixed slot" at rest and "Name, one effect line" on inspect.
+That is the shape of the fix D19's option 1 proposes for the other two. The
+ability and the volatiles have no such row, which is the whole of the row.

@@ -22,7 +22,7 @@ import { FAINTED, hpState, ppState } from '../core/hpCopy';
 import { hpFraction, ppTotals } from '../core/party';
 import type { ItemId, PokemonState } from '../core/types';
 import { itemById } from '../data/items';
-import { statInfo, STAT_ORDER } from '../data/statInfo';
+import { statInfo, STAT_BAR_CEILING, STAT_ORDER } from '../data/statInfo';
 import type { Tuning } from '../data/tuning';
 import { createBar } from './bar';
 import { collapsible } from './collapse';
@@ -269,8 +269,7 @@ function statBlock(spec: ReturnType<typeof describeSpecCard>, member: PokemonSta
   return root;
 }
 
-/** The same ceiling the battle panel's bars use, so the two read alike. */
-const STAT_BAR_CEILING = 200;
+
 
 /**
  * Four move cards, with their tags. **Part 6, on the party surfaces.**

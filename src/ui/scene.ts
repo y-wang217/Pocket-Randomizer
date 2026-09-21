@@ -59,9 +59,8 @@ import {
 } from './chip';
 import { el } from './dom';
 import { spriteFigure, spriteImg, spriteUrl } from './sprites';
-import { pokeballSprite } from './slots';
+import { itemIcon, pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
-import { ARCHETYPE_DISPLAY } from '../data/archetypes';
 import { glyphNode } from './theme/glyph';
 import type { MoveTag } from '../data/moveTags';
 import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, MOVE_FACT_OWN_SLOT, moveFactAriaLabel, type StripFactId } from '../data/moveFactInfo';
@@ -146,8 +145,20 @@ interface SidePanel {
    * the count can live.
    */
   roster: HTMLElement;
-  /** The Part 7 label, beside the level on both sides of the field. */
-  archetype: HTMLElement;
+  /**
+   * The turn-order chevron, beside the level. **M3.1, discrepancy D6.**
+   *
+   * Empty on every ordinary turn, which is R4: section 6 step 2 marks the
+   * panel only when a *bracket* decided the order, and a same-bracket turn is
+   * unmarked. It is built here and flashed by M4.2, so the slot exists before
+   * the beat that uses it and `panel__priority` is one place rather than two.
+   *
+   * **Not the same mark as the Speed marker on the chip row**, and the two
+   * must not be allowed to become one: a bracket is a property of the move
+   * chosen and Speed is a property of the board, and section 2 gives the
+   * chevron to the Priority family alone.
+   */
+  priority: HTMLElement;
   types: HTMLElement;
   /** The bar, with the chunk the last hit took. `ui/bar.ts` owns both. */
   hp: Bar;
@@ -155,6 +166,16 @@ interface SidePanel {
   status: HTMLElement;
   volatiles: HTMLElement;
   traits: HTMLElement;
+  /**
+   * The held item, as a sprite in a fixed slot. **M3.1.**
+   *
+   * A slot rather than a chip appended to `traits`, because section 3 says
+   * "item sprite in a fixed slot" and R1 says a fixed slot is what makes an
+   * attribute findable without reading. The element is always in the DOM so
+   * the position never moves; an empty slot renders nothing, which is the
+   * item's own done-when and R4's default.
+   */
+  item: HTMLElement;
   /**
    * The stat stages, as V2 chips. **V5.3.**
    *
@@ -629,19 +650,25 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const name = el('span', 'panel__name');
   const level = el('span', 'panel__level');
   /*
-   * The archetype chip, next to the level. **Stage 4.7, Part 7.**
+   * The turn-order chevron slot. **M3.1, discrepancy D6.**
    *
-   * On *both* panels, which is half the point of the feature: a player who can
-   * tell at a glance that the thing opposite is built around Special Attack is
-   * making a read rather than a guess. It arrives on the projection — the scene
-   * computes no labels — and it is not gated by the reveal policy, because it
-   * restates base stats the stat block beside it has printed since Stage 4.5.
+   * Section 5's Owns column gained it on 2026-09-19 because section 2 and
+   * section 6 both already required it and the canon did not list it, which is
+   * the shape of gap that ends with a screen drawing an attribute itself.
+   * Empty here and empty on every ordinary turn: `data-bracket` on the panel
+   * is what fills it, and M4.2 is what sets that.
    */
-  // The archetype label, through the one chip component (V2), neutral like
-  // every label that is not a type.
-  const archetype = neutralChip('', 'archetype', { tip: 'archetype:all' });
-  archetype.tabIndex = 0;
-  archetype.setAttribute('role', 'button');
+  const priority = el('span', 'panel__priority');
+  /*
+   * Both chevrons, and the stylesheet picks. The same shape every two-form
+   * element on a screen takes here — the type chip's word, the stage chips
+   * against their marker — so a turn that fills the slot does it by setting
+   * one attribute rather than by re-rendering a panel mid-beat.
+   */
+  for (const bracket of ['up', 'down'] as const) {
+    const mark = glyphNode(`priority-${bracket}`, { label: `Moved ${bracket === 'up' ? 'first' : 'last'} on priority` });
+    if (mark) priority.append(mark);
+  }
   const types = el('span', 'panel__types');
   /*
    * The header is the name and the level, and nothing else. **V5.3/V5.4.**
@@ -658,7 +685,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    * Pokemon wears — what it is, what it is built for, what it is carrying — on
    * one row in that order.
    */
-  header.append(name, level);
+  header.append(name, level, priority);
 
   // The one bar with a shadow: this is the only surface where a drop is a hit
   // the player is watching land. `ui/bar.ts` says why the shadow paints first.
@@ -701,15 +728,51 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const traits = el('div', 'panel__traits');
   const volatiles = el('div', 'panel__volatiles');
   /*
+   * The held item's fixed slot. **M3.1.**
+   *
+   * It sits in the chip row where the item chip sat, so the reading order the
+   * comment below describes is unchanged: what it is, what it is carrying,
+   * what is happening to it. What changed is that it is a picture rather than
+   * a name, and that it is always here — an item that appears mid-fight now
+   * fills a slot the player has already learned the position of rather than
+   * pushing the row along.
+   */
+  const item = el('span', 'panel__item');
+  /*
    * Reading order: what it is, what it is built for, what it is carrying, what
    * is happening to it, and what the board has done to it. Fixed properties
    * first and the turn's own facts last, so a row that grows during a fight
    * grows at the end rather than pushing the identity along.
    */
-  chips.append(types, archetype, traits, volatiles, stages);
+  chips.append(types, traits, item, volatiles, stages);
+
+  /*
+   * The panel is an inspect trigger. **M3.1, discrepancy D18, ruled 2026-09-21.**
+   *
+   * The archetype chip used to sit on this row and it is gone: section 3 bars
+   * the label — *"a derived label [that] can lie under randomization"* —
+   * section 5 never listed it, and section 4 budgets this surface at zero.
+   * But V5 took the six base stats off this panel *on the argument that the
+   * archetype label replaced them*, so deleting the label with nothing behind
+   * it would have ended the only channel for what the thing opposite is built
+   * to do. C2 says a decision-relevant fact is re-encoded, not removed.
+   *
+   * So the label goes and the six numbers it was derived from come back, one
+   * long press away, drawn the way section 3's Six stats row specifies:
+   * glyph, bar, number, always all six. No rule moved — R5's layer already
+   * renders stats, R6 sanctions a secondary fact behind a tap, and D17A is
+   * the precedent, where M2.1 moved the status readout behind the press *and
+   * made the card a trigger in the same pass*. This is that same pass.
+   *
+   * The set rides on `data-detail` rather than being looked up, for the same
+   * reason `stageMarker`'s does: which numbers this body has right now is not
+   * a table entry, it is this render.
+   */
+  root.tabIndex = 0;
+  root.setAttribute('role', 'button');
 
   root.append(roster, header, hp.root, meta, chips);
-  return { root, name, level, roster, archetype, types, hp, hpText, status, volatiles, traits, stages };
+  return { root, name, level, roster, priority, types, hp, hpText, status, volatiles, traits, item, stages };
 }
 
 /**
@@ -777,7 +840,17 @@ function renderRoster(row: HTMLElement, left: { standing: number; total: number 
   }
 
   const label = el('span', 'panel__roster-label');
-  label.textContent = `${standing}/${total ?? '?'} left`;
+  /*
+   * `3/4`, not `3/4 left`. **M3.1.**
+   *
+   * R2: numbers stay, labels go. "left" is the field label on a fraction that
+   * sits above a row of marks already showing which of the four are standing,
+   * and section 4 budgets this surface at zero words. The sentence it used to
+   * print is not lost — the row's `aria-label` below is the same sentence it
+   * has carried since this readout shipped, and it is the form a screen reader
+   * was always given instead of the marks.
+   */
+  label.textContent = `${standing}/${total ?? '?'}`;
   row.setAttribute('aria-label', `Opponent: ${standing} of ${total ?? 'an unknown number'} left`);
   row.replaceChildren(marks, label);
 }
@@ -818,15 +891,57 @@ function updateSidePanel(
   const swapped = previous !== undefined && previous !== active.species;
   panel.root.dataset['species'] = active.species;
 
-  // Species, never the battle name. **4.8.0.1: species stays the label.** The
-  // projection carries both; the nickname is state the panel does not show.
-  panel.name.textContent = isFoe ? `Opposing ${active.species}` : active.species;
-  // Gender sits with the level because it is the same kind of fact: a fixed
-  // property of this Pokemon, not a thing the fight is doing to it. Genderless
-  // renders nothing at all rather than a dash or an "N" — a placeholder for
-  // "no gender" is a symbol the player has to learn in order to ignore.
-  panel.level.textContent = `Lv${active.level}${genderMark(active.gender)}`;
-  panel.archetype.textContent = ARCHETYPE_DISPLAY[active.archetype].short;
+  /*
+   * Species, never the battle name. **4.8.0.1: species stays the label.** The
+   * projection carries both; the nickname is state the panel does not show.
+   *
+   * **The `Opposing` prefix is gone. M3.1.** Section 4 budgets this panel at
+   * zero words with "Name, nickname" surviving, and the census script's own
+   * docstring names this as the case the counting rule is built to catch:
+   * *"'Opposing Golem' renders in `.panel__name`, a slot that holds a name,
+   * and 'Opposing' is a word the panel spends against a budget of zero."*
+   *
+   * It is a word rather than a fact, because which side a panel is on is
+   * already drawn: `panel--foe` sits at the top of the stage behind the body
+   * facing away, `panel--me` at the bottom behind the body facing the player,
+   * and the bench row under the moves is the player's. The one reader the
+   * position does not reach gets it from the panel's `aria-label` below, in a
+   * fuller form than the prefix ever gave.
+   */
+  panel.name.textContent = active.species;
+  /*
+   * Gender sits with the level because it is the same kind of fact: a fixed
+   * property of this Pokemon, not a thing the fight is doing to it. Genderless
+   * renders nothing at all rather than a dash or an "N" — a placeholder for
+   * "no gender" is a symbol the player has to learn in order to ignore.
+   *
+   * **`Lv` went with `Opposing`, and for the same rule.** R2 forbids the field
+   * label and the census counts `Lv100` as one word for exactly that reason —
+   * a label welded to a number is still a label. The number beside a species
+   * name is the level in every document a player of this genre has ever read.
+   */
+  panel.level.textContent = `${active.level}${genderMark(active.gender)}`;
+
+  /*
+   * The panel's accessible name, and the six stats behind its long press.
+   * **M3.1, D18.**
+   *
+   * One `aria-label` carries everything the face stopped spelling out: which
+   * side this is, the species, the level and the gender. It is the trigger's
+   * name as well as the panel's, so a reader who opens the stats has already
+   * been told whose they are.
+   *
+   * `data-detail` is the six rows, tab separated, in the same serialized form
+   * `stageMarker` uses and for the same reason: there is nothing to look up.
+   * HP comes off `hp.max` rather than `stats`, because the projection keeps it
+   * there — `StatView` is for the five that boost.
+   */
+  panel.root.setAttribute(
+    'aria-label',
+    `${isFoe ? 'Opposing ' : ''}${active.species}, level ${active.level}${genderWord(active.gender)}`,
+  );
+  panel.root.dataset['tip'] = `stats:${active.species}`;
+  panel.root.dataset['detail'] = statDetail(active);
 
   panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
@@ -883,6 +998,7 @@ function updateSidePanel(
   }
 
   renderTraits(panel.traits, active);
+  renderItem(panel.item, active);
 
   panel.volatiles.replaceChildren(
     ...active.volatiles.map((volatile) => neutralChip(volatile.label, 'volatile', { tip: `volatile:${volatile.id}` })),
@@ -961,7 +1077,23 @@ function updateSidePanel(
    * name. So it moves onto the chip row rather than leaving with the rows.
    */
   if (isFaster) {
-    const marker = neutralChip('\u25b2 FIRST', 'first');
+    /*
+     * **The word went and the Speed glyph took its place. M3.1.**
+     *
+     * `\u25b2 FIRST` was a word on a surface budgeted at zero, and the mark
+     * beside it was a triangle that section 2 gives to the Priority family —
+     * so the marker was spending a word *and* borrowing a vocabulary that
+     * means something else. A bracket is a property of the move chosen and
+     * this is a property of the board, and the panel now has a real chevron
+     * slot for the first of those.
+     *
+     * The Stat family's Speed glyph says it without either problem: the fact
+     * is "this one is faster", the family is the one Speed lives in, and the
+     * sentence survives on `aria-label` where it always was.
+     */
+    const marker = neutralChip('', 'first');
+    const mark = glyphNode('stat-spe', { label: STAT_LABELS.spe });
+    if (mark) marker.append(mark);
     marker.title = 'Moves first at this Speed';
     marker.setAttribute('aria-label', marker.title);
     stages.push(marker);
@@ -970,6 +1102,30 @@ function updateSidePanel(
   panel.stages.replaceChildren(...stages);
   panel.stages.hidden = stages.length === 0;
   return hit;
+}
+
+/**
+ * The six stats, serialized for the panel's inspect layer. **M3.1, D18.**
+ *
+ * `stat\tvalue` per row, HP first and then `BOOSTABLE_STATS` — the display order
+ * every other stat readout in the game uses. HP is written out rather than
+ * taken from a list because it is not in `stats` at all: the projection keeps
+ * it on `hp`, since it is the one of the six that does not boost. R10 forbids
+ * a sort, and a fixed order is what makes two panels' six numbers comparable.
+ *
+ * **The value is `base`, not `effective`.** `base` is the stat before boosts,
+ * which is the thing the archetype label was a summary of and the thing that
+ * does not change during a fight; the boosts are already on the chip row as
+ * stages, and printing the post-boost number here would render one fact in two
+ * channels on one surface, which is R3.
+ *
+ * Serialized rather than looked up: which numbers this body has is a property
+ * of this render, not a table entry. Same argument as `stageMarker`'s.
+ */
+function statDetail(active: ActiveUiView): string {
+  const rows = [['hp', active.hp.max].join('\t')];
+  for (const stat of BOOSTABLE_STATS) rows.push([stat, active.stats[stat].base].join('\t'));
+  return rows.join('\n');
 }
 
 /**
@@ -998,8 +1154,38 @@ function stageMarker(count: number, active: ActiveUiView): HTMLElement {
       );
     }
   }
-  const marker = neutralChip(stageMarkerLabel(count), 'stages', { tip: 'stages:active' });
+  /*
+   * The marker's face is glyphs, not the word `STAGES`. **M3.1.**
+   *
+   * R2 forbids the field label and section 4 budgets this panel at zero, so
+   * `STAGES 2` was four of the panel's twenty words — one per panel, counted on
+   * two fixtures of one screen — for a fold that is a
+   * *layout* decision — the chips are wider than the row in Pocket — rather
+   * than a decision about the encoding. So the fold keeps its job and loses
+   * its label: one mark per folded stage, from the family that stage belongs
+   * to. The five boostable stats take their own stat glyph, and accuracy and
+   * evasion take the accuracy family's target, because section 2 gives the
+   * Stat family exactly six glyphs and neither of those two is one of them.
+   *
+   * **The count is gone rather than moved, and that is R3.** The marks are the
+   * count: three glyphs is three stages, and a numeral beside them would be
+   * the same fact in a second channel on one surface. `stageMarkerLabel` still
+   * writes the sentence, on `aria-label`, where a reader who cannot count
+   * marks gets the number instead of them.
+   */
+  const marker = neutralChip('', 'stages', { tip: 'stages:active' });
+  for (const stat of BOOSTABLE_STATS) {
+    if (active.stats[stat].stage === 0) continue;
+    const mark = glyphNode(`stat-${stat}`, { label: STAT_LABELS[stat] });
+    if (mark) marker.append(mark);
+  }
+  for (const name of ACCURACY_STAGE_NAMES) {
+    if (active.accuracyStages[name] === 0) continue;
+    const mark = glyphNode('accuracy-target', { label: ACCURACY_STAGE_LABELS[name] });
+    if (mark) marker.append(mark);
+  }
   marker.dataset['detail'] = rows.join('\n');
+  marker.setAttribute('aria-label', stageMarkerLabel(count));
   marker.tabIndex = 0;
   marker.setAttribute('role', 'button');
   return marker;
@@ -1033,16 +1219,57 @@ function renderTraits(container: HTMLElement, active: ActiveUiView): void {
     chips.push(chip);
   }
 
-  if (active.item) {
-    const chip = active.item.revealed
-      ? neutralChip(active.item.name, 'item', { tip: `item:${active.item.id}` })
-      : neutralChip('Item ?', 'item');
-    if (!active.item.revealed) chip.dataset['hidden'] = 'true';
-    chips.push(chip);
-  }
-
   container.replaceChildren(...chips);
   container.hidden = chips.length === 0;
+}
+
+/**
+ * The held item, as a sprite in a fixed slot. **M3.1.**
+ *
+ * Section 3: *"Held item | Item sprite in a fixed slot | Empty slot renders
+ * nothing | Name, one effect line."* All three clauses are here. The sprite is
+ * `ui/slots.ts`'s `itemIcon`, the same cell of the same Showdown sheet the
+ * party slots and the summary draw from, so an item looks the same wherever it
+ * is held. The name and the effect line are what the long press opens, through
+ * the `item:` tip this slot keeps from the chip it replaces — nothing about
+ * what the item *does* moved behind anything, only what it is called.
+ *
+ * **Empty renders nothing, and unrevealed renders a `?`.** They are different
+ * facts: no item at all, against an item you have not been told about. The
+ * chip this replaces made that distinction and it survives, now as a mark
+ * rather than as the words `Item ?`. At the shipped tuning the second branch
+ * is unreachable — `revealOpponentItem` is `true` — and it is kept because the
+ * flag is a flag.
+ */
+function renderItem(slot: HTMLElement, active: ActiveUiView): void {
+  slot.replaceChildren();
+  delete slot.dataset['tip'];
+  delete slot.dataset['hidden'];
+  slot.removeAttribute('tabindex');
+  slot.removeAttribute('role');
+  slot.removeAttribute('aria-label');
+  slot.hidden = active.item === null;
+  if (!active.item) return;
+
+  if (active.item.revealed) {
+    slot.append(itemIcon(active.item.id));
+    slot.dataset['tip'] = `item:${active.item.id}`;
+    slot.tabIndex = 0;
+    slot.setAttribute('role', 'button');
+    return;
+  }
+  /*
+   * No tooltip and no focus on the unrevealed branch, for the reason the
+   * ability placeholder beside it gives: a focusable control that opens
+   * nothing is a keyboard trap for a reader who cannot see that it is a
+   * placeholder.
+   */
+  slot.dataset['hidden'] = 'true';
+  slot.setAttribute('aria-label', 'Holding an unknown item');
+  const mark = el('span', 'panel__item-unknown');
+  mark.textContent = '?';
+  mark.setAttribute('aria-hidden', 'true');
+  slot.append(mark);
 }
 
 /**
@@ -2261,6 +2488,22 @@ export function moveCard(move: {
 export function genderMark(gender: Gender): string {
   if (gender === 'M') return ' \u2642';
   if (gender === 'F') return ' \u2640';
+  return '';
+}
+
+/**
+ * The same fact as `genderMark`, in words, for the one reader the mark misses.
+ *
+ * **M3.1.** The panel spends no words on gender and never did — the mark is
+ * two characters and the census strips them as punctuation — but the panel's
+ * `aria-label` is a sentence, and `\u2642` inside a sentence is read aloud as
+ * "male sign" at best and skipped at worst. Genderless returns nothing here
+ * too, for the reason `genderMark` gives: a placeholder for "no gender" is a
+ * thing to learn in order to ignore, in either channel.
+ */
+export function genderWord(gender: Gender): string {
+  if (gender === 'M') return ', male';
+  if (gender === 'F') return ', female';
   return '';
 }
 

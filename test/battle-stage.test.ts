@@ -29,12 +29,17 @@ const PLAYER: TeamSpec = [
 ];
 const FOE: TeamSpec = [{ species: 'Golem', ability: 'Sturdy', moves: ['Tackle'], level: 50 }];
 
+/** The same two sides, with the foe holding something. M3.1's item slot. */
+const FOE_HOLDING: TeamSpec = [
+  { species: 'Golem', ability: 'Sturdy', moves: ['Tackle'], level: 50, item: 'Leftovers' },
+];
+
 beforeEach(() => {
   resetSettings();
 });
 
-function sceneFor(seed = 'STAGE01'): { scene: Scene; view: BattleUiView } {
-  const session = createBattle({ teams: { p1: PLAYER, p2: FOE }, seed });
+function sceneFor(seed = 'STAGE01', foe: TeamSpec = FOE): { scene: Scene; view: BattleUiView } {
+  const session = createBattle({ teams: { p1: PLAYER, p2: foe }, seed });
   const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
   const scene = createScene();
   scene.update(view, () => {});
@@ -168,7 +173,15 @@ describe('the floating panel', () => {
     // the live effectiveness marker, and the one exception the copy rule names.
     const markers = [...scene.root.querySelectorAll('.panel__stages .badge--first')];
     expect(markers).toHaveLength(1);
-    expect(markers[0]?.textContent).toContain('FIRST');
+    /*
+     * **M3.1 took the word off it and left the fact.** `▲ FIRST` spent a word
+     * on a surface budgeted at zero, and its triangle borrowed the Priority
+     * family for something that is not a bracket. The Stat family's Speed
+     * glyph is the mark now; the sentence is where it always was.
+     */
+    expect(markers[0]?.textContent).toBe('');
+    expect(markers[0]?.querySelector('.glyph')?.getAttribute('data-glyph')).toBe('stat-spe');
+    expect(markers[0]?.getAttribute('aria-label')).toBe('Moves first at this Speed');
   });
 
   it('leaves Release C’s HP elements exactly where they were', () => {
@@ -369,5 +382,147 @@ describe('the species swap', () => {
     // beats patch, for the same reason. The panel is a scrim; it does not move.
     // `test/battle-feedback.test.ts` holds where the lunge went instead.
     expect(scene.root.querySelectorAll('.panel[data-jiggle]')).toHaveLength(0);
+  });
+});
+
+
+/**
+ * The panel at rest. **Milestone M3.1.**
+ *
+ * Section 4 budgets this surface at zero words with "Name, nickname"
+ * surviving, section 5 says what it owns, and D18 ruled what happens to the
+ * one thing it owned that the canon never listed. Each test below is one of
+ * those, and each names the word it is there to keep off the panel — because
+ * the census measures a total and a total cannot say which element regained a
+ * word three patches from now.
+ */
+describe('the panel at rest', () => {
+  it('names the foe by species and puts the side on the panel, not in the slot', () => {
+    const { scene } = sceneFor();
+    expect(panelOf(scene, 'foe').querySelector('.panel__name')?.textContent).toBe('Golem');
+    expect(panelOf(scene, 'foe').getAttribute('aria-label')).toContain('Opposing Golem');
+    expect(panelOf(scene, 'me').querySelector('.panel__name')?.textContent).toBe('Snorlax');
+  });
+
+  it('prints the level as a number, with no field label welded to it', () => {
+    const { scene } = sceneFor();
+    for (const kind of ['me', 'foe'] as const) {
+      const level = panelOf(scene, kind).querySelector('.panel__level')?.textContent ?? '';
+      expect(level).not.toContain('Lv');
+      // The number, and the gender mark, and nothing else. Genderless renders
+      // no mark at all, which is why the tail is optional.
+      expect(level).toMatch(/^50( [\u2640\u2642])?$/);
+    }
+  });
+
+  it('carries the level and the gender on the panel’s accessible name', () => {
+    const { scene } = sceneFor();
+    expect(panelOf(scene, 'me').getAttribute('aria-label')).toMatch(/^Snorlax, level 50(, (male|female))?$/);
+  });
+
+  it('draws no archetype label, on either side', () => {
+    const { scene } = sceneFor();
+    // D18, ruled 2026-09-21. Section 3 bars the label; the numbers it was
+    // derived from are behind the long press, which the next test holds.
+    expect(scene.root.querySelectorAll('.panel .badge--archetype')).toHaveLength(0);
+    for (const kind of ['me', 'foe'] as const) {
+      expect(panelOf(scene, kind).textContent).not.toContain('Attacker');
+    }
+  });
+
+  it('is an inspect trigger carrying all six stats, in display order', () => {
+    const { scene, view } = sceneFor();
+    for (const kind of ['me', 'foe'] as const) {
+      const panel = panelOf(scene, kind);
+      expect(panel.dataset['tip']).toBe(`stats:${kind === 'me' ? 'Snorlax' : 'Golem'}`);
+      expect(panel.getAttribute('role')).toBe('button');
+      const rows = (panel.dataset['detail'] ?? '').split('\n').map((row) => row.split('\t')[0]);
+      expect(rows).toEqual(['hp', 'atk', 'def', 'spa', 'spd', 'spe']);
+    }
+    // The numbers are the projection's, pre-boost, and the panel derives none
+    // of them: `base`, not `effective`, so the stages on the chip row are not
+    // the same fact in a second channel.
+    const detail = panelOf(scene, 'me').dataset['detail'] ?? '';
+    expect(detail).toContain(`atk\t${view.player.stats.atk.base}`);
+    expect(detail).toContain(`hp\t${view.player.hp.max}`);
+  });
+
+  it('spends no word on the roster count', () => {
+    const { scene } = sceneFor();
+    const label = panelOf(scene, 'foe').querySelector('.panel__roster-label');
+    // A fraction and a row of marks. "left" was the field label on it.
+    expect(label?.textContent).toMatch(/^\d+\/(\d+|\?)$/);
+    expect(panelOf(scene, 'foe').querySelector('.panel__roster')?.getAttribute('aria-label')).toContain('left');
+  });
+
+  it('keeps the priority chevron slot empty until a bracket fills it', () => {
+    const { scene } = sceneFor();
+    for (const kind of ['me', 'foe'] as const) {
+      const panel = panelOf(scene, kind);
+      // The slot exists, which is D6: a slot missing from the canon is a slot
+      // a screen draws itself. It renders nothing, which is R4 — `data-bracket`
+      // is what fills it and M4.2 is what sets that.
+      const slot = panel.querySelector('.panel__priority');
+      expect(slot, 'the slot is built').not.toBeNull();
+      expect(panel.dataset['bracket']).toBeUndefined();
+      // Both marks, so filling the slot is one attribute rather than a
+      // re-render in the middle of a beat.
+      expect([...(slot?.querySelectorAll('.glyph') ?? [])].map((g) => g.getAttribute('data-glyph'))).toEqual([
+        'priority-up',
+        'priority-down',
+      ]);
+    }
+  });
+
+  it('folds the stage chips into marks rather than into the word STAGES', () => {
+    const { scene, view } = sceneFor();
+    /*
+     * The stages are set on the projection rather than played out over a real
+     * turn, because what is under test is the *marker's face* and not how a
+     * boost is applied — `test/battle-readout.test.ts` holds the second
+     * against the engine's own table. One Attack boost and one evasion drop,
+     * so both halves of the marker are exercised: the five that have a stat
+     * glyph, and the two that do not and take the accuracy family's target.
+     */
+    view.player.stats.atk.stage = 2;
+    view.player.accuracyStages.evasion = -1;
+    scene.update(view, () => {});
+
+    const marker = panelOf(scene, 'me').querySelector('.badge--stages') as HTMLElement;
+    expect(marker, 'the Pocket fold is still built in every mode').not.toBeNull();
+    // No word, and no count either: the marks are the count, and a numeral
+    // beside them would be the same fact in a second channel (R3).
+    expect(marker.textContent).toBe('');
+    expect([...marker.querySelectorAll('.glyph')].map((g) => g.getAttribute('data-glyph'))).toEqual([
+      'stat-atk',
+      'accuracy-target',
+    ]);
+    // The sentence is where a reader who cannot count marks still finds it.
+    expect(marker.getAttribute('aria-label')).toBe('STAGES 2');
+    // And the set itself is unchanged behind the press.
+    expect(marker.dataset['detail']).toContain('Atk');
+    expect(marker.dataset['detail']).toContain('Eva');
+  });
+
+  it('draws the held item as a sprite in a fixed slot, and nothing when there is none', () => {
+    const empty = sceneFor('STAGE-ITEM0').scene;
+    const emptySlot = panelOf(empty, 'foe').querySelector('.panel__item') as HTMLElement;
+    expect(emptySlot, 'the slot is always built, so its position never moves').not.toBeNull();
+    expect(emptySlot.hidden).toBe(true);
+    expect(emptySlot.childElementCount).toBe(0);
+
+    const held = sceneFor('STAGE-ITEM1', FOE_HOLDING).scene;
+    const slot = panelOf(held, 'foe').querySelector('.panel__item') as HTMLElement;
+    expect(slot.hidden).toBe(false);
+    // Showdown's own icon sheet, through `ui/slots.ts` — the same cell the
+    // party slots and the summary draw, so an item looks the same everywhere.
+    const icon = slot.querySelector('.slot__icon') as HTMLElement;
+    expect(icon, 'the sprite, not the name').not.toBeNull();
+    expect(icon.style.backgroundImage).toContain('url(');
+    expect(slot.textContent).toBe('');
+    // The name and the effect line did not go anywhere: they are what the
+    // long press opens, per section 3's Held item row.
+    expect(slot.dataset['tip']).toBe('item:leftovers');
+    expect(icon.getAttribute('aria-label')).toBe('Leftovers');
   });
 });
