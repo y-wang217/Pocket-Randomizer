@@ -8744,9 +8744,9 @@ label, or that lost the stats, fails there the way the old check meant to —
 which is the whole of what Part 7's check was protecting, since V5 is what
 made the label the stats' only channel in the first place.
 
-Same shape as the two unit tests the item touched: `test/species-label.ts`'s
+Same shape as the two unit tests the item touched: `test/species-label.test.ts`'s
 `Opposing Golem` became `Golem` plus the side on the panel's `aria-label`, and
-`test/battle-stage.ts`'s `FIRST` became the Speed glyph. None of the three is
+`test/battle-stage.test.ts`'s `FIRST` became the Speed glyph. None of the three is
 an assertion weakened; each is an assertion re-aimed at the fact it existed
 for.
 
