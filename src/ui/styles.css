@@ -1779,7 +1779,43 @@ body {
   gap: var(--space-h);
   padding-top: calc(var(--space-1h) * var(--density-pad));
   padding-bottom: calc(var(--space-1h) * var(--density-pad));
+  /* M2.2: the touch floor, stated rather than arrived at. A button that the
+     content happens to make tall enough is a button one copy change shortens. */
+  min-height: 44px;
 }
+
+/*
+ * **The forecast edge. Section 2, milestone M2.2.**
+ *
+ * `data-effect` is set by `renderMove` only when the band is neither neutral
+ * nor absent, so the attribute's absence is R4's default and three of four
+ * buttons usually carry no edge at all. The one that does is read because the
+ * others are not.
+ *
+ * **Red and green, and the numeral beside it is what makes that safe.**
+ * Section 2 asks for the red/green family and for it to be colour-blind
+ * checked, and the check is structural rather than a palette tweak: the
+ * fraction carries the same fact in a channel colour vision cannot touch, the
+ * way a type chip's glyph carries the type and its hue only repeats it. The
+ * edge is never the only carrier.
+ *
+ * Tokens rather than new hues: `--stage-up` and `--stage-down` are the green
+ * and red this UI already uses for a number moving in the player's favour and
+ * against it, and effectiveness is the same question asked of a matchup.
+ */
+.moves .move[data-effect] {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.moves .move[data-effect='super'] { border-left-color: var(--stage-up); }
+.moves .move[data-effect='resisted'] { border-left-color: var(--stage-down); }
+/*
+ * No effect is the strongest reading on the bar and it is still the red
+ * family, not a third hue. A fourth colour would be a fourth thing to learn;
+ * the fraction says `0` and the edge says which family it is in.
+ */
+.moves .move[data-effect='none'] { border-left-color: var(--stage-down); }
 
 .moves .move__meta {
   gap: var(--space-1);
@@ -1847,7 +1883,6 @@ body {
  * brief actually asked for ("show types in certain colors"). The silhouette is
  * the bonus that the 2x2 has room for.
  */
-[data-move-bar='columns'] .moves .move__name { padding-right: 0; }
 
 
 
@@ -1995,144 +2030,6 @@ body {
 
 .move__pp--low { color: var(--hp-low); }
 .move__pp--low .move__pp-max { color: inherit; opacity: 0.7; }
-
-/* ---------- the move bar layouts ---------- */
-
-/*
- * **The four-column move bar.** `data-move-bar="columns"` on the root; the
- * absence of it, or `"grid"`, is the 2x2 the game has always had and every
- * rule above describes.
- *
- * ## Why this is a stack and not a re-flow
- *
- * Measured at 390 before a line of it was written: `.moves` is 358px wide, so
- * four columns give 85px buttons against 176px in the grid. The identity line
- * needs 138.6px, the fact line about 155px and the footer 78.1px, and
- * `--fs-sm` is already the legibility floor `test/visual-chips.test.ts`
- * holds — so nothing about the current face fits, at any type size this
- * project is allowed to use.
- *
- * So column mode is a different face: one field family per line, the same
- * line on every button, which is the property that makes a field readable
- * *across* the four rather than within one. That is what the report asked
- * for — "to compare".
- *
- * ## What leaves the face here, and where it goes
- *
- * Accuracy stays, because it is the field the whole explanation layer was
- * built for. Effectiveness stays, because it is the one live fact about the
- * board and the single exception `CLAUDE.md` carves out of the no-verdicts
- * rule. The rest of the fact strip — contact, secondary chance, priority,
- * multi-hit, recoil, drain — is hidden on the face and is one tap away in the
- * `?` panel, which prints every one of them and always has.
- *
- * **Nothing is removed from the game and nothing is removed from the grid
- * layout.** This is the rule Pocket density already runs under: a secondary
- * fact may cost a tap, a primary fact stays on screen.
- */
-[data-move-bar='columns'] .moves {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-/*
- * The side padding comes in because it is 24px of an 85px button — a seventh
- * of the width spent on air. The vertical padding is untouched, because that
- * is what holds the 44px touch target.
- */
-[data-move-bar='columns'] .moves .move {
-  padding-inline: calc(var(--space-1) * var(--density-pad));
-  gap: var(--space-h);
-}
-
-/*
- * Two lines of the name at most, and the box is the same height whether the
- * name takes one or two — otherwise a one-word move and a two-word move start
- * their type chips on different lines and the whole comparison is lost.
- */
-[data-move-bar='columns'] .moves .move__name {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  min-height: calc(2 * 1.2em);
-  font-size: var(--fs-sm);
-  line-height: 1.2;
-}
-
-/*
- * Identity: the type alone, then category and power under it. The type takes
- * the whole width because it is the widest chip on the button — `Fighting` is
- * eight characters — and nothing shares a line with it at 85px.
- */
-[data-move-bar='columns'] .moves .move__meta {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, auto);
-  justify-content: start;
-  gap: var(--space-h) var(--space-1);
-}
-
-[data-move-bar='columns'] .moves .move__meta > :first-child {
-  grid-column: 1 / -1;
-}
-
-/* The status readout keeps the whole width it has in the grid. */
-[data-move-bar='columns'] .moves .move__effect {
-  grid-column: 1 / -1;
-  margin-inline: 0;
-}
-
-/*
- * The fact line becomes two fixed slots: the band and the accuracy, then the
- * effectiveness marker under them. The four reserved fact columns collapse to
- * one — accuracy's — because at this width a reserved column that is usually
- * empty is spending the button's whole content width on nothing.
- */
-[data-move-bar='columns'] .moves .move__facts {
-  grid-template-columns: minmax(0, auto) minmax(0, auto);
-  justify-content: start;
-  row-gap: var(--space-h);
-}
-
-/*
- * Two slots wide, so the three fields that stay on the face take two rows:
- * the band beside the accuracy, the marker under them. Explicit placement
- * rather than inherited, because the grid is two columns here and the wide
- * layout's `3 / -1` would land the marker on top of the accuracy.
- */
-[data-move-bar='columns'] .moves .move__facts-band {
-  grid-row: 1;
-  grid-column: 1;
-}
-
-[data-move-bar='columns'] .moves .move__fact-cell[data-column='1'] {
-  grid-row: 1;
-  grid-column: 2;
-}
-
-[data-move-bar='columns'] .moves .move__facts-effect {
-  grid-row: 2;
-  grid-column: 1 / -1;
-  justify-self: start;
-}
-
-/* Contact, the odds and the turn cost: one tap away, in the `?` panel. */
-[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
-  display: none;
-}
-
-/*
- * PP loses its label — the number is the thing that counts down, `PP` is four
- * characters of constant. The word is still on the panel a long press opens.
- *
- * The row it used to share with the explain control is gone with the control
- * (M1.2, then D15 at M2.1), so PP is the whole of this line now.
- */
-[data-move-bar='columns'] .moves .move__pp {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* ---------- log ---------- */
 

@@ -41,15 +41,14 @@ export const SEEN_EVERY_INTRO = Number.MAX_SAFE_INTEGER;
 /**
  * The store, as the string `localStorage.setItem` takes.
  *
- * `density` and `moveBar` are the caller's, because a visual context sets
+ * `density` is the caller's, because a visual context sets
  * the mode it is measuring; the two first-run surfaces are not optional and
  * take no argument — a caller that wanted the marks would not be calling
  * this.
  */
-export function notFirstLaunch({ density = 'detailed', moveBar = 'grid' } = {}) {
+export function notFirstLaunch({ density = 'detailed' } = {}) {
   return JSON.stringify({
     density,
-    moveBar,
     tutorial: { skipped: true, seen: [] },
     intro: { seenVersion: SEEN_EVERY_INTRO },
   });

@@ -8452,3 +8452,90 @@ quietly stopped counting those would have been the census flattering a
 milestone, which is the failure D17 was filed to avoid. So `GLYPH_SLOTS` gains
 one selector — `.move__fact-icon`, the strip's drawings-that-are-characters —
 with its reason beside it, and the app shell still censuses 109.
+
+## 55. The battle move button, and the face that was deleted rather than kept
+
+**Milestone M2.2.** The forecast rebuilt to design bible section 2, and D9
+closed by deleting the four-column move bar.
+
+### Rules touched
+
+**§2** (the effectiveness family: coloured left edge plus the multiplier as a
+fraction), **R4** (neutral renders nothing, so three of four buttons carry no
+edge), **C1** (the one exception it names — live effectiveness against the
+Pokemon on the field — is the only verdict-shaped colour in the game), **R6**
+and **R1** (D9: one face, and no compact variant that reorders slots).
+
+No rule changed and the bible is not amended.
+
+### The forecast
+
+`0.25x` and `0.5x` became `¼` and `½`: the same numbers in one glyph instead
+of four, on the surface with the least room in the game. **The number still
+comes from `core/` untouched** — `move.effectiveness` is `result.multiplier`
+off the projection — and only its spelling moved to `ui/`, because `core/` may
+not know that ¼ is how a quarter is drawn.
+
+The edge is red and green, and **the fraction beside it is what makes that
+safe**: it carries the same fact in a channel colour vision cannot touch, the
+way a type chip's glyph carries the type and its hue only repeats it. Section 2
+asks for the family to be colour-blind checked, and the check is structural
+rather than a palette tweak — the edge is never the only carrier.
+
+`--stage-up` and `--stage-down` rather than new hues: they are already this
+UI's green and red for a number moving in the player's favour and against it,
+and effectiveness is that question asked of a matchup.
+
+Also: a 44px minimum on the buttons, stated rather than arrived at, because a
+button the content happens to make tall enough is a button one copy change
+shortens.
+
+### D9, and what the measurement actually said
+
+D9 deferred to a measurement. At 390x844 with the M2.1 face:
+
+| | width | height | cut |
+|---|---|---|---|
+| 2x2 grid | 176px | 112px | nothing |
+| columns | 85px | 149px | nothing, **and only by hiding four of five fact columns** |
+
+The row expected the 85px justification not to survive M2.1 deleting the
+labels, and it did not. What it did not anticipate is that **the compact face
+does not fit 85px either**: showing every fact cell puts a 47px
+secondary-chance chip in a 31px cell, one per row grows the button and still
+cuts it, and letting the track fill hands the row to the band strip.
+
+A third route existed and was declined. R6 permits "whether a secondary fact
+sits behind a tap", and since M2.1 the button is an inspect trigger whose panel
+prints every strip fact — so on D17A's precedent the hiding would have been
+re-encoding rather than removal. The lead designer ruled for deletion: R6 and
+R1 hold without interpretation, and the comparison-across-buttons goal that
+justified the mode is better served by the grid at double the width.
+
+**Deleted:** `ui/theme/move-bar.ts`, the `moveBar` setting and its accessors,
+the drawer's picker and its copy, the `notFirstLaunch` and `openApp` options,
+179 lines of stylesheet, and five patterns from `test/density.test.ts`'s
+forbidden list. Those patterns guarded `core/` against seeing a presentation
+axis; the axis no longer exists, so a pattern for it could never match, and a
+guard that cannot fail is not a guard. The rule it enforced is unchanged for
+the axes that remain.
+
+`docs/spec/gymrun-patch-four-column-move-bar.md` stays where it is. A prompt is
+a record of what was asked, not a description of what exists.
+
+### One thing M2.1 broke here without noticing
+
+Column mode showed "column 1 and nothing else", and column 1 held `accuracy`
+until M2.1 re-derived the fact grid — after which it held `contact`. So the
+re-derivation silently changed which fact survived in that mode. It is moot now
+that the mode is gone, and it is recorded because the failure shape is not: a
+rule that names a *position* rather than a *field* will follow the position
+when the table under it moves.
+
+### Not done here
+
+`formatEffectiveness` stays exported from `core/battle/view.ts` with no caller
+in `src/`. M2.2 is presentation-only — "if an item touches `core/` beyond the
+pure flag mapper, it is the wrong item" — so removing it is not this item's to
+do. `test/battle-view.test.ts` still covers it and it is still correct. M4.1 is
+the next item with reason to edit that layer.
