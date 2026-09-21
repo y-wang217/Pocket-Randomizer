@@ -14,8 +14,8 @@
  * than threading it properly — which is the same seam `core/battle/view.ts`
  * exists to keep shut, one level up.
  */
-import { moveIdentity, movePriority, speciesTypes, type BattleSession } from '../../core/battle/driver';
-import { createFlagReader, type FlagDeps, type FlaggedTurn } from '../../core/battle/flags';
+import { movePriority, type BattleSession } from '../../core/battle/driver';
+import { readFlags, type FlagDeps, type FlaggedTurn } from '../../core/battle/flags';
 import { buildBattleUiView, type RevealPolicy } from '../../core/battle/view';
 import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
@@ -29,14 +29,14 @@ import { abnormalityMarks } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 
 /**
- * The dex lookups the flag reader cannot have, supplied once by the adapter.
+ * The one lookup the flag reader cannot have, supplied by the adapter.
  *
- * `core/` never imports `@pkmn/sim`, so the three facts the protocol does not
- * carry — a move's type, its category and its contact flag, and a species'
- * types — arrive here. Same shape as `movePriority`, which the turn reader has
- * taken this way since the round 2 patch.
+ * `core/` never imports `@pkmn/sim`, so a move's priority bracket arrives here,
+ * the way the turn reader has taken it since the round 2 patch. It used to
+ * carry a move-identity and a species-types lookup beside it, for the STAB and
+ * contact flags R9 removed in M4.1.
  */
-const FLAGS: FlagDeps = { priorityOf: movePriority, moveIdentityOf: moveIdentity, typesOf: speciesTypes };
+const FLAGS: FlagDeps = { priorityOf: movePriority };
 
 export interface BattleScreen {
   root: HTMLElement;
@@ -189,16 +189,13 @@ export function createBattleScreen(): BattleScreen {
        * agree by construction rather than by two implementations matching.
        */
       /*
-       * One reader for the whole battle, made here beside `log.clear()`.
+       * The species table, one per battle, made here beside `log.clear()`.
+       * **4.8.0.1.**
        *
-       * It has to outlive a single batch: STAB needs the species that acted,
-       * the protocol names a species only on the `|switch|` that brought it
-       * in, and most turns carry no switch at all. Same lifetime and same
-       * reason as the log's HP tracker.
-       */
-      const reader = createFlagReader(FLAGS);
-      /*
-       * And one species table, same lifetime, for the same reason. **4.8.0.1.**
+       * A flag reader used to be made alongside it and outlive the batch for
+       * the same class of reason — STAB needed a species the protocol names
+       * only on a switch. M4.1 deleted that flag, and the reading is a pure
+       * function of the batch again.
        *
        * The protocol names a Pokemon by its battle name, which is the nickname.
        * Every label on the board is the species now, so the lines are relabelled
@@ -214,7 +211,7 @@ export function createBattleScreen(): BattleScreen {
           names.observe(line);
           return names.relabel(line);
         });
-        const turns = reader.read(protocol);
+        const turns = readFlags(protocol, FLAGS);
         log.append(protocol, turns);
         // The strip reports the turn that just resolved, so it is silent on
         // the opening replay for the same reason the jiggle is: nothing has

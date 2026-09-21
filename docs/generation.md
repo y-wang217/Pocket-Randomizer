@@ -9216,3 +9216,136 @@ no gallery fixture opens a confirm and the census reads that component
 band's own copy and not its content: the card inside carries its own section 4
 row, and jsdom applies no stylesheet, so counting the subtree would measure the
 card twice and in the wrong mode.
+
+---
+
+## 61. One flag per hit, and the state that went with STAB
+
+**Milestone M4.1**, 2026-09-21. Rules R9 and C2; rows D12, D23 and D24. The one
+item on this list that is permitted to touch `core/`, and it touched it by
+deleting. `contentHash` holds at `d4e080` and no version axis moves.
+
+### What the item asked for, and what it ran into
+
+> Add precedence order to `data/tuning.ts` per R9 and have the flag strip render
+> only the first. Remove STAB and contact from the vocabulary. Keep the seven
+> measured kinds.
+
+Two of those three sentences were already ruled against by the time the item
+started, and the third was ambiguous in a way that mattered.
+
+**`data/tuning.ts` was closed by D12**, four days before the item, because
+`core/` reads that file and a precedence reorder would therefore move
+`contentHash` and refuse every recorded seed. The per-file split is the third
+way `build-config/content-hash.ts` documents; `src/data/flagPrecedence.ts` is
+the new file, `ui/` is its only importer, and `test/content-hash.test.ts` walks
+the import graph and holds that.
+
+**"Render only the first" is ambiguous about how many "first"s there are**, and
+D23 is the row that closed it. R9 ranks eight kinds and the mapper emits
+fifteen; the six it never ranked — `priority`, `prevented`, `failed`,
+`ability`, `volatile`, `field` — are not outcomes on a target at all. Ranked
+against `crit` they would lose every time, and `prevented` would lose on the
+one turn it exists for: a flinched turn draws no damage, so no chunk and no
+beat, and the word is the only trace it leaves. So the strip draws one hit flag
+per side by R9's precedence **and** one non-hit kind per side in protocol order.
+Section 4 and section 5 carry it, bible Rev 5.
+
+**"Remove STAB and contact from the vocabulary" understates what it removes.**
+`inventory.md` §4 had already warned that the sentence names `data/flagWords.ts`
+and not `core/moveFacts.ts`, where `contact` is a *card fact* and deleting it
+would cost four decision-relevant facts and trip C2. That warning held and
+`moveFacts.ts` was not touched. What the sentence did reach was larger than the
+two table rows it names — see below.
+
+### The strip is where the cut goes, and the mapper is not
+
+R9's enforcement clause is *"the mapper returns a list; the renderer takes the
+first by precedence"*, and there is a second reader that makes this load-bearing
+rather than stylistic. `ui/abnormality.ts` takes one animation mark per side off
+the same list, and its comment said *"first in protocol order wins, and the
+strip carries the rest."* A precedence filter applied in the mapper, or anywhere
+upstream of `flag-strip.ts`, would have silently changed which beats play — a
+turn whose `volatile` was outranked would have lost its animation as well as its
+word, and nothing in the item's done-when would have caught it.
+
+So `shown()` lives at the bottom of `ui/flag-strip.ts`, the mapper returns
+everything it ever did, and the comment in `abnormality.ts` is corrected rather
+than left half true: the rest is in the log sheet now, one tap away.
+
+### Deleting two flags deleted a third of the reader
+
+`stab` and `contact` were the only reason `core/battle/flags.ts` took a dex
+lookup, and the dependency chain behind them was longer than the two `add()`
+calls that used it:
+
+| Deleted | Why it existed |
+|---|---|
+| `MoveIdentityOf`, `TypesOf`, two thirds of `FlagDeps` | a move's type, category and contact flag, and a species' types |
+| The `standing` species map | STAB needs the body that used the move; the protocol names it once, on the `|switch|` |
+| The `typeOverride` map and the `TYPECHANGE` branch | Soak and Protean, so STAB agreed with the damage the player watched |
+| `settle()` | retracting both words from a move that missed, hit an immunity or failed |
+| `createFlagReader` | the state above had to survive a batch, and a battle arrives one turn at a time |
+
+**The reader is a pure function of its batch again**, so the stateful form is
+deleted rather than kept as a wrapper: a reader holding no state is a claim
+about this file that stopped being true. `ui/screens/battle.ts` calls
+`readFlags` once per update, and `test/boundaries.test.ts` counts that call the
+way it used to count `createFlagReader` — one reading per batch, handed to both
+the log and the strip, which is the property that stops the two disagreeing
+about a turn.
+
+One behaviour changed rather than disappeared. A `|-start| … |typechange|` line
+used to be read and consumed by its own branch; it now falls through to the
+volatile branch, where `DISPLAYED_VOLATILES` does not list `typechange` and it
+is dropped. Same outcome, by the filter that was already there, and
+`test/flags.test.ts` pins it so a future reader cannot start printing
+`Condition: typechange` on every Protean turn.
+
+### Six tests whose premise the item changed
+
+None was weakened; each was rewritten to assert what is true now, and two were
+deleted because their subject no longer exists.
+
+- **"reads a miss"** asserted that `settle` retracted CONTACT and STAB from a
+  Dynamic Punch that missed. It now asserts `['miss']` by equality, which is the
+  stronger form of the same claim: it fails if anything at all joins the miss.
+- **"reads STAB, contact and super effective"** loses two of its three. There is
+  no assertion that the two are absent, because the compiler refuses the
+  strings; *"no kind outside the vocabulary"* is asserted over a whole played
+  battle in the reader's shape block, where it holds for every kind rather than
+  for two.
+- **"gives a status move no STAB"** and the two type-change cases are deleted,
+  with a note in the file saying what stood there. A test for the absence of
+  something that cannot be named passes by construction.
+- **"still knows what is standing on a turn that carried no switch"** becomes
+  *"reads a batch that carried no switch, the same as one that did"*. The
+  original was the regression for the bug that produced `createFlagReader`; what
+  survives it is the property underneath — a batch is read on its own terms.
+- **"names what the turn did, in the protocol's order"** asserted three chips on
+  one turn. One now, and `test/flag-precedence.test.ts` owns which.
+- **"marks whose flag it is, by side and never by kind"** needed one word
+  printed twice on two sides, and used two same-type moves to get it. Two
+  critical hits now, with a confusion on each side so the per-side recipe check
+  still has more than one chip to compare.
+
+### What the player loses, and where it went
+
+The strip showed every flag of the group and now shows at most two per side. C2
+says a decision-relevant fact is re-encoded rather than removed, so the item
+names the channel for each thing that left:
+
+| What leaves the strip | Where it is |
+|---|---|
+| The other outcomes of a hit | The log sheet, one tap, every line |
+| A status that lost to a miss | The panel's three-letter chip, until it is cured |
+| A stat stage that lost to a berry | The panel's multiplier and ladder, while it lasts |
+| A berry that lost to a crit | The item slot on the panel, now empty |
+| STAB and contact | The move card: the type chip against the panel's types, and the fact strip |
+
+The one that is genuinely gone from the board is the second outcome of a single
+hit — a crit that was also super effective says only the second. That is R9's
+own bet, and section 9 already carries its disconfirmer: *if testers cannot say
+why a hit did what it did and the missing fact is one precedence dropped,
+precedence gains a second slot for that kind.* M7.1 observes it; this item does
+not pre-empt it.

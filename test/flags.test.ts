@@ -23,13 +23,18 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { createBattle, moveIdentity, movePriority, speciesTypes, type BattleSession } from '../src/core/battle/driver';
-import { createFlagReader, readFlags, type FlagDeps, type FlagKind, type FlaggedTurn } from '../src/core/battle/flags';
+import { createBattle, movePriority, type BattleSession } from '../src/core/battle/driver';
+import { readFlags, type FlagDeps, type FlagKind, type FlaggedTurn } from '../src/core/battle/flags';
 import { flagWord } from '../src/data/flagWords';
 import { moveChoice, type TeamSpec } from '../src/core/types';
 
-/** The real lookups. `core/` never imports the dex; the adapter hands it over. */
-const DEPS: FlagDeps = { priorityOf: movePriority, moveIdentityOf: moveIdentity, typesOf: speciesTypes };
+/**
+ * The real lookup. `core/` never imports the dex; the adapter hands it over.
+ *
+ * It was three until M4.1: a move-identity and a species-types lookup sat
+ * beside this one, for the STAB and contact flags R9 removed.
+ */
+const DEPS: FlagDeps = { priorityOf: movePriority };
 
 /**
  * Play both sides into their first move slot for a fixed number of turns.
@@ -102,14 +107,18 @@ describe('the five recorded cases Release C names', () => {
 
     const [turn] = readFlags(protocol, DEPS).filter((group) => group.turn === 1);
     const punch = turn?.actions.find((each) => each.action.kind === 'move' && each.action.move === 'Dynamic Punch');
-    expect(punch?.flags.map((flag) => flag.kind)).toEqual(['miss']);
     /*
-     * The whole of `settle`. Dynamic Punch is a Fighting move on a Fighting
-     * type and it is a contact move, so both words are true of the *move* and
-     * neither is true of this turn — it did nothing at all.
+     * Exactly one flag, and it is the miss.
+     *
+     * This case used to prove `settle`: Dynamic Punch is a Fighting move on a
+     * Fighting type and it makes contact, so STAB and CONTACT were stated when
+     * the move was named and retracted here, because both are true of the
+     * *move* and neither is true of a turn that did nothing. M4.1 deleted both
+     * kinds, so there is nothing to retract — and the equality below is the
+     * stronger form of the same assertion, since it fails if anything at all
+     * joins the miss.
      */
-    expect(punch?.flags.some((flag) => flag.kind === 'contact')).toBe(false);
-    expect(punch?.flags.some((flag) => flag.kind === 'stab')).toBe(false);
+    expect(punch?.flags.map((flag) => flag.kind)).toEqual(['miss']);
   });
 
   it('reads a hit that had no effect', () => {
@@ -174,11 +183,18 @@ describe('the effectiveness pair, and the two facts the protocol does not carry'
     const [turn] = readFlags(protocol, DEPS).filter((group) => group.turn === 1);
     const hammer = turn?.actions.find((each) => each.action.kind === 'move' && each.action.move === 'Crabhammer');
     const read = hammer?.flags.map((flag) => flag.kind) ?? [];
-    expect(read).toContain('stab');
-    expect(read).toContain('contact');
     expect(read).toContain('super');
-    // The STAB flag says which type earned it.
-    expect(hammer?.flags.find((flag) => flag.kind === 'stab')?.detail).toBe('Water');
+    /*
+     * And nothing about the move itself. Crabhammer is a Water move on a Water
+     * type and it makes contact; both were flags on this exact case until
+     * M4.1, and R9's reason for taking them is that a cause is not an outcome.
+     * The card says them before the player commits.
+     *
+     * There is no assertion here that they are absent, because the kinds no
+     * longer exist to name — the compiler refuses the string. "No kind outside
+     * the vocabulary" is asserted over a whole battle in the reader's shape
+     * block below, which is where it holds for every kind rather than two.
+     */
   });
 
   it('reads not very effective', () => {
@@ -189,31 +205,15 @@ describe('the effectiveness pair, and the two facts the protocol does not carry'
     );
     const flags = all(readFlags(protocol, DEPS));
     expect(flags.map((flag) => flag.kind)).toContain('resisted');
-    // Flamethrower is not a contact move, and saying otherwise is the kind of
-    // wrong that teaches a player a false rule about Rough Skin.
-    expect(flags.some((flag) => flag.kind === 'contact')).toBe(false);
   });
 
-  it('gives a status move no STAB, however its types line up', () => {
-    // Thunder Wave is Electric; Gengar is Ghost/Poison, so this would pass for
-    // the wrong reason on a type match alone. Raichu makes it a real test.
-    const protocol = play(
-      [{ species: 'Raichu', ability: 'Static', moves: ['Thunder Wave'], level: 50 }],
-      [{ species: 'Snorlax', ability: 'Thick Fat', moves: ['Tackle'], level: 50 }],
-      1,
-    );
-    const [turn] = readFlags(protocol, DEPS).filter((group) => group.turn === 1);
-    const wave = turn?.actions.find((each) => each.action.kind === 'move' && each.action.move === 'Thunder Wave');
-    expect(wave, 'Thunder Wave resolved this turn').toBeDefined();
-    expect(wave?.flags.some((flag) => flag.kind === 'stab')).toBe(false);
-    /*
-     * Scoped to the one action on purpose. Snorlax answers with a Normal
-     * Tackle on the same turn and earns STAB honestly, so a stream-wide
-     * assertion here would pass or fail for the wrong reason either way.
-     */
-    const tackle = turn?.actions.find((each) => each.action.kind === 'move' && each.action.move === 'Tackle');
-    expect(tackle?.flags.some((flag) => flag.kind === 'stab')).toBe(true);
-  });
+  /*
+   * A case was deleted here rather than rewritten: *"gives a status move no
+   * STAB, however its types line up"*, which drove Thunder Wave off Raichu so
+   * that a type match alone could not pass it. M4.1 deleted the kind, and a
+   * test for the absence of something that cannot be named is a test that
+   * passes by construction.
+   */
 });
 
 describe('priority comes from the log’s reading and not a second one', () => {
@@ -276,10 +276,11 @@ describe('the reader’s shape', () => {
      * Hand-written rather than derived from the union, and that is the point:
      * widening `FlagKind` does not fail this list, so a kind that reaches the
      * strip with no word behind it fails *here*, at runtime, on a real battle.
-     * Branch 2 added the seven abnormalities.
+     * Branch 2 added the seven abnormalities; M4.1 removed `stab` and
+     * `contact`, leaving fifteen.
      */
     const KNOWN: FlagKind[] = [
-      'stab', 'super', 'resisted', 'immune', 'crit', 'miss', 'contact', 'priority', 'status', 'berry',
+      'super', 'resisted', 'immune', 'crit', 'miss', 'priority', 'status', 'berry',
       'prevented', 'failed', 'boost', 'unboost', 'ability', 'volatile', 'field',
     ];
     for (const kind of kinds(readFlags(protocol, DEPS))) expect(KNOWN).toContain(kind);
@@ -295,16 +296,17 @@ describe('the reader’s shape', () => {
   });
 });
 
-describe('the injected lookups, driven past what a shipped move reaches', () => {
-  /** A stub dex, so these cases do not depend on a species that happens to exist. */
-  const STUB: FlagDeps = {
-    priorityOf: () => 0,
-    moveIdentityOf: (name) =>
-      name === 'Water Gun'
-        ? { type: 'Water', category: 'Special', contact: false }
-        : { type: 'Normal', category: 'Physical', contact: true },
-    typesOf: (species) => (species === 'Snorlax' ? ['Normal'] : ['Fire']),
-  };
+describe('hand-written protocol, driven past what a shipped move reaches', () => {
+  /**
+   * The deps, now one function.
+   *
+   * This block was called "the injected lookups" and existed because a stub dex
+   * could drive a type change and a contact flag through cases no shipped move
+   * reaches. M4.1 deleted those kinds; the hand-written protocol stayed,
+   * because the line shapes below are still shapes a played battle rarely
+   * produces.
+   */
+  const STUB: FlagDeps = { priorityOf: () => 0 };
 
   /*
    * ---------------------------------------------------------------------
@@ -399,12 +401,7 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
     expect(flags.find((flag) => flag.kind === 'ability')?.detail).toBe('Intimidate');
   });
 
-  /*
-   * A move that failed did nothing, so it made no contact and got no same-type
-   * bonus — the same retraction `settle` already applies to a miss. Printing
-   * CONTACT under Failed teaches a player to stop trusting the row.
-   */
-  it('retracts contact and STAB from a move that failed', () => {
+  it('flags a move that failed, and says nothing else about it', () => {
     const protocol = [
       '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
       '|turn|1',
@@ -412,9 +409,17 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
       '|-fail|p1a: Snorlax',
     ];
     const kindsHere = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags.map((f) => f.kind)));
-    expect(kindsHere).toContain('failed');
-    expect(kindsHere).not.toContain('contact');
-    expect(kindsHere).not.toContain('stab');
+    /*
+     * One flag, and it is the failure.
+     *
+     * The premise changed rather than the case. It used to assert that CONTACT
+     * and STAB were *retracted* here — a move that failed did nothing, so it
+     * made no contact and earned no same-type bonus, and printing CONTACT under
+     * Failed teaches a player to stop trusting the row. M4.1 deleted both kinds
+     * and the retraction with them, so the equality is the assertion now: it
+     * fails if anything at all joins `failed`.
+     */
+    expect(kindsHere).toEqual(['failed']);
   });
 
   it('leaves an ordinary damage turn carrying no abnormality at all', () => {
@@ -429,7 +434,7 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
     expect(kindsHere.filter((kind) => ABNORMAL.includes(kind))).toEqual([]);
   });
 
-  it('honours a type change the protocol reported, over the species’ own types', () => {
+  it('reads no flag off a type change, which used to be the one line STAB needed', () => {
     const protocol = [
       '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
       '|switch|p2a: Golem|Golem, L50, F|155/155',
@@ -439,26 +444,19 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
       '|-damage|p2a: Golem|100/155',
       '|upkeep',
     ];
-    const flags = all(readFlags(protocol, STUB));
-    const stab = flags.find((flag) => flag.kind === 'stab');
-    // Snorlax is Normal. It was Water when it fired a Water move, and the
-    // damage the player watched had the bonus in it.
-    expect(stab?.detail).toBe('Water');
-  });
-
-  it('drops an acquired type when the body leaves', () => {
-    const protocol = [
-      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
-      '|turn|1',
-      '|-start|p1a: Snorlax|typechange|Water',
-      '|upkeep',
-      '|turn|2',
-      '|switch|p1a: Charizard|Charizard, L50, M|153/153',
-      '|move|p1a: Charizard|Water Gun|p2a: Golem',
-      '|upkeep',
-    ];
-    const flags = all(readFlags(protocol, STUB));
-    expect(flags.some((flag) => flag.kind === 'stab')).toBe(false);
+    /*
+     * Two cases stood here, and both were about STAB surviving Soak and
+     * Protean: a body that changed type earned the bonus on the type it *now*
+     * had, and dropped the acquired type when it left the field. M4.1 deleted
+     * the kind, so the branch that read this line went with it.
+     *
+     * The line is still in the protocol, so this asserts where it lands now:
+     * it falls through to the volatile branch, `DISPLAYED_VOLATILES` does not
+     * list `typechange`, and it is dropped. A reader that started emitting
+     * `Condition: typechange` on every Protean turn would fail here rather
+     * than on the strip.
+     */
+    expect(all(readFlags(protocol, STUB)).map((flag) => flag.kind)).toEqual([]);
   });
 
   it('puts an end-of-turn berry on the turn rather than on the last move', () => {
@@ -502,26 +500,32 @@ describe('the injected lookups, driven past what a shipped move reaches', () => 
 
 describe('reading a battle one update at a time', () => {
   /**
-   * The case that broke the first cut, kept as a regression.
+   * What this block was, and why it is one case now.
    *
-   * A battle's updates arrive one turn at a time, and the protocol names a
-   * species exactly once — on the `|switch|` that brought it in. A turn where
-   * nobody switched carries no `|switch|` line at all, so a reader that
-   * started fresh on every batch knew the species only on switch turns and
-   * printed STAB on those and nowhere else. An intermittent flag is worse than
-   * a missing one: it teaches the player that STAB is intermittent.
+   * It held the case that broke the first cut of the reader: a battle's
+   * updates arrive one turn at a time, the protocol names a species exactly
+   * once — on the `|switch|` that brought it in — and a turn where nobody
+   * switched carries no `|switch|` line at all. A reader that started fresh on
+   * every batch therefore knew the species only on switch turns and printed
+   * STAB on those and nowhere else, which is worse than never printing it.
+   * `createFlagReader` existed to carry that state across batches.
+   *
+   * M4.1 deleted STAB, which deleted the state, which deleted the reader. What
+   * survives is the property that mattered underneath it: **a batch is read on
+   * its own terms**, and a turn that carried no switch still reports what it
+   * did. That is asserted here against a real streamed battle rather than
+   * assumed from the function being pure.
    */
   const SNORLAX: TeamSpec = [{ species: 'Snorlax', ability: 'Immunity', moves: ['Body Slam'], level: 50 }];
   const MILOTIC: TeamSpec = [{ species: 'Milotic', ability: 'Marvel Scale', moves: ['Scald'], level: 50 }];
 
-  it('still knows what is standing on a turn that carried no switch', () => {
+  it('reads a batch that carried no switch, the same as one that did', () => {
     const session = createBattle({ teams: { p1: SNORLAX, p2: MILOTIC }, seed: 'STREAM01' });
-    const reader = createFlagReader(DEPS);
 
     // The opening batch: switch-ins and `|turn|1`, and no move.
     const opening = session.protocolFor('p1').filter((line) => !line.startsWith('|t:|'));
     expect(opening.some((line) => line.startsWith('|switch|'))).toBe(true);
-    reader.read(opening);
+    expect(readFlags(opening, DEPS).length, 'the opening reads as a group').toBeGreaterThan(0);
 
     // Two turns of moves, each in its own batch, neither carrying a `|switch|`.
     for (let turn = 0; turn < 2; turn++) {
@@ -532,15 +536,23 @@ describe('reading a battle one update at a time', () => {
       const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
       expect(batch.some((line) => line.startsWith('|switch|')), 'batch carries no switch').toBe(false);
 
-      const slam = all(reader.read(batch)).filter((flag) => flag.kind === 'stab');
-      // Body Slam is Normal on a Normal Snorlax, every turn, not just the
-      // turn it walked in on.
-      expect(slam.length, `turn ${turn + 1} STAB`).toBeGreaterThan(0);
+      const read = readFlags(batch, DEPS);
+      // Body Slam against Scald: both sides act every turn, and the reader
+      // places both actions without having seen either body arrive.
+      const actions = read.flatMap((group) => group.actions);
+      expect(actions.length, `turn ${turn + 1} actions`).toBeGreaterThan(0);
+      expect(actions.every((each) => each.action.order > 0)).toBe(true);
     }
   });
 
-  it('the one-shot form is the reader over one batch, and nothing else', () => {
+  it('reads one batch the same whether it follows another or not', () => {
     const protocol = play(SNORLAX, MILOTIC, 2, 'STREAM01');
-    expect(kinds(readFlags(protocol, DEPS))).toEqual(kinds(createFlagReader(DEPS).read(protocol)));
+    /*
+     * The one-shot form used to be asserted equal to the stateful reader over
+     * the same lines. With the reader gone the equivalent claim is that the
+     * function carries nothing between calls, which is what the screen now
+     * relies on: it calls `readFlags` once per update, forever.
+     */
+    expect(kinds(readFlags(protocol, DEPS))).toEqual(kinds(readFlags(protocol, DEPS)));
   });
 });

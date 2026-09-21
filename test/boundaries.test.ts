@@ -291,8 +291,8 @@ describe('the battle UI boundary', () => {
      * declarations of one structure, free to drift, with the scene's copy
      * quietly becoming the authority on what a turn looks like.
      *
-     * If a future change has the scene call `readFlags` or `createFlagReader`,
-     * that is a widening and this comment does not cover it.
+     * If a future change has the scene call `readFlags`, that is a widening
+     * and this comment does not cover it.
      */
     /*
      * `core/moveFacts` joined at patch 4.8.0.3, and it is the `core/battle/flags`
@@ -342,13 +342,20 @@ describe('the battle UI boundary', () => {
       // above gives: the scene may name a `MoveFact`, and the moment it
       // derives one it has become the second source of truth about a move.
       expect(
-        /\breadFlags\s*\(|\bcreateFlagReader\s*\(|\breadTurns\s*\(|\bmoveFactsOf\s*\(/.test(source),
+        /\breadFlags\s*\(|\breadTurns\s*\(|\bmoveFactsOf\s*\(/.test(source),
         file,
       ).toBe(false);
     }
-    // `screens/battle.ts` is the one caller, and it makes exactly one reader.
+    /*
+     * `screens/battle.ts` is the one caller, and it reads exactly once.
+     *
+     * This counted `createFlagReader` until M4.1, when the stateful reader was
+     * deleted with the STAB flag that needed it. The property is the same one:
+     * one reading per batch, handed to the log and the strip, so the two cannot
+     * disagree about a turn. A second call here would be a second reading.
+     */
     const screen = stripComments(sourceOf('src/ui/screens/battle.ts'));
-    expect([...screen.matchAll(/\bcreateFlagReader\s*\(/g)]).toHaveLength(1);
+    expect([...screen.matchAll(/\breadFlags\s*\(/g)]).toHaveLength(1);
   });
 
   /**
