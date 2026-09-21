@@ -41,16 +41,18 @@ which blocks everything.
 | D23 | M4.1 | R9's precedence ranks seven outcomes; the vocabulary it ranks has fifteen kinds | **2026-09-21** |
 | D24 | M4.1's strip, then M4.3's done-when | The flag strip's budget is one *word* per hit, and nine flag words are two or three | **2026-09-21** |
 | D25 | M4.3 | The event line is a sentence at rest on the screen R11 says carries nothing written | **2026-09-21** |
-| D26 | M4.3 | The log sheet opens by a labelled button where the item says pull, and the label is a word over budget | **open** |
+| D26 | M4.3 | The log sheet opens by a labelled button where the item says pull, and the label is a word over budget | **2026-09-21** |
 | D27 | M4.2 | The strip's shipped rule says every chip is the same chip; section 2 gives the feedback flag the forecast's colour | **2026-09-21** |
+| D28 | M4.3's done-when, then M7.2 | The battle screen's header carries three facts, section 4 budgets none of them, and the census cannot see one of them | **2026-09-21** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Twenty-five of twenty-seven rows are ruled**; D14 is timed with M5.6 and D26
-with M4.3, and neither blocks anything else. Tier 4's five were filed and four
-ruled on 2026-09-21, before the tier opened. D18 was opened and ruled on 2026-09-21,
+**Twenty-seven of twenty-eight rows are ruled**, and D14 — timed with M5.6 — is
+the only one left. Tier 4 filed six: five before the tier opened, four of them
+ruled the same day, then D26 and D28 ruled together once M4.1 and M4.2 had
+shipped and M4.3 was the item in front of them. D18 was opened and ruled on 2026-09-21,
 inside M3.1. Each
 ruling is restated under its own row below; the bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
@@ -1713,12 +1715,15 @@ section 7's concern and R7's answer.
 3. **Keep both the tap and the word**, and amend section 4 to allow one word of
    furniture on the battle screen.
 
+**Ruled 2026-09-21: option 1.** Build the pull, keep a glyph handle as the
+visible affordance, and let R7's exposure label carry the first encounter.
+
 **Recommendation: 1.** It is the only option that meets the item as written, and
 the exposure store M1.3 built is exactly the mechanism for a new gesture's first
 encounter.
 
-**It can wait.** M4.3 is the last of the three items, and M4.1 and M4.2 do not
-touch the control.
+**It waited, and that was the right order.** M4.1 and M4.2 do not touch the
+control, so the row blocked nothing until M4.3 was the item in front of it.
 
 ---
 
@@ -1763,3 +1768,79 @@ colour family are drawn identically apart from which end of it they name.
 which is section 7's objection at scale. Sharing the glyph family alone leaves
 the button and the flag looking unrelated, which is the thing R8 exists to
 prevent.
+
+
+---
+
+## D28. The battle screen's header carries three facts, and section 4 budgets none of them
+
+**Open. Blocks M4.3's done-when. Opened 2026-09-21, reading into M4.3.**
+
+M4.3's done-when: *"census on the battle screen reads 0 outside the flag
+strip."* The strip is D24's business and the event line is D25's. What is left
+on that screen once both are done is the **header**, and nothing in the bible
+has ever said what it may carry.
+
+`ui/screens/battle.ts:130` sets two lines:
+
+| Line | Real values | Words, counting rule applied |
+|---|---|---|
+| `title` — `node.label` | `Wild encounter`, `Trainer battle`, `<Leader>'s Gym` | 2, 2, 1 |
+| `detail` — opponent, then AI tier | `Wild Pidgey · Rookie`, `Trainer's Pidgey · Ace`, `Trainer (3) · Seasoned` | 2, 2, 2 |
+
+Section 4 has no battle-screen row and no header row. Section 5's canon has no
+header component. So the done-when asks a surface to reach zero without ever
+saying what that surface is allowed to show, which is the same shape of gap D7
+filed for the flag strip and D19 for the ability chip.
+
+**And the census cannot see one of the three.** `ui/gallery.ts:479` calls
+`battle.attach(session, node, reveal, onChoose)` with **no segment**, and the
+tier line is built as `segment === undefined || !node.encounter ? null : …`. The
+app passes `state.currentSegment` (`ui/app.ts:1360`); the fixture never has. So
+`Rookie`, `Seasoned` and `Ace` have never been counted on any surface, and the
+battle screen's measured 10 is lower than the screen a player sees. The
+instrument understates the surface the item is about to be judged on, which is
+D17B's rule pointing the other way for once.
+
+**The three facts are not furniture.** The AI tier was put on this header by the
+tiers patch *deliberately*, and its comment says why: *"The same word the node
+card showed before the click, so the card's claim and the fight agree — a
+readout that changed between the two would be worse than no readout."* It is an
+attribute, it names how the opponent plays, and C2 forbids dropping it. The
+opponent line is the one place a wild fight says what it is against a trainer
+fight. The node label is what the player clicked.
+
+**Options.**
+
+1. **Budget the header, explicitly.** A section 4 row — *"Battle screen header |
+   4 | node kind, opponent, AI tier"* — and a section 5 canon row naming it.
+   M4.3's done-when becomes "0 outside the flag strip and the header". Nothing
+   moves, nothing is dropped, and the bible stops being silent about a surface
+   that has been on screen since Stage 1.
+2. **Re-encode the header to zero.** The node kind has a glyph family already
+   (the map node card's), and the opponent's species is a proper noun and free.
+   **The AI tier has no glyph and cannot borrow one**: section 2's nine families
+   are type, category, band, PP, accuracy, priority, effectiveness, status and
+   stat, and a tier mark is none of them. This option therefore requires a tenth
+   family, which section 2 makes an amendment and section 10.1 makes a
+   disconfirmer observed in a playtest. None is recorded.
+3. **Scope M4.3 to the board.** Rule that "the battle screen" in the done-when
+   means the panels, the moves and the strip, and that the header is a separate
+   surface budgeted by a later item. Cheapest, and it leaves M7.2 measuring a
+   surface no row covers — which is how this row came to exist.
+
+**Ruled 2026-09-21: option 1.** Section 4 gains a *Battle screen header* row at
+**4** — node kind, opponent, AI tier — and section 5's canon names the header as
+a component. M4.3's done-when reads "0 outside the flag strip and the header".
+Bible Rev 6. No rule moved: a surface that had no row has one.
+
+**Recommendation: 1.** The tier is a fact two surfaces deliberately agree on, C2
+forbids removing it, and the only encoding that would take it to zero needs a
+tenth glyph family the bible reserves for an amendment with evidence behind it.
+A budget row is the honest admission that this screen has a header.
+
+**Independent of the ruling: the fixture is wrong and M4.3 fixes it.** The
+gallery must pass a segment so the census counts the tier word. That will
+*raise* the battle screen's measured number before any item lowers it, which is
+the right direction — D17B's rule is that an instrument which flatters the item
+making the change is worse than an honest number.

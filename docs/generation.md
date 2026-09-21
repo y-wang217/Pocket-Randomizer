@@ -9368,3 +9368,108 @@ own bet, and section 9 already carries its disconfirmer: *if testers cannot say
 why a hit did what it did and the missing fact is one precedence dropped,
 precedence gains a second slot for that kind.* M7.1 observes it; this item does
 not pre-empt it.
+
+---
+
+## 62. The chevron that was left empty, and the colour the strip did not have
+
+**Milestone M4.2**, 2026-09-21. Rules R8, R5 and C1; rows D6 and D27. Section 2's
+Effectiveness row, section 5's canon and section 6 step 2. Presentation only;
+`contentHash` holds at `d4e080` and nothing under `core/` changed.
+
+### Three clauses, and two of them were already half built
+
+> The feedback flag uses the same colour family and glyph family as the
+> forecast edge on the button. The priority chevron on the panel is the same
+> chevron as on the card. Verify the jiggle order still reads off the log's
+> ordered data, not a second computation.
+
+**The chevron slot existed and nothing filled it.** M3.1 built
+`.panel__priority` under D6, mounted both marks from M1.1's sheet, wrote the
+stylesheet rules that pick one by `data-bracket`, and said so in the comment:
+*"`data-bracket` on the panel is what fills it, and M4.2 is what sets that."*
+This item sets it.
+
+**The jiggle clause was a verification and it verified.** `scene.ts` never calls
+a reader — `test/boundaries.test.ts` has forbidden that since Release C — and
+`actingOrder` walks the actions it is handed. Nothing needed changing, so
+nothing was.
+
+### Where the bracket comes from, and why it is not the flag
+
+`bracketMark` reads `action.priority` and `action.bracket` off the `TurnAction`
+the screen already handed the scene. That is the **log's** answer: `readTurns`
+sets `priority` only on the earlier action of a pair whose brackets differ, and
+never on a same-bracket turn even when both moves have a non-zero bracket. The
+chevron therefore marks exactly what section 6 says it marks and cannot
+disagree with the log's ordinals sitting a few hundred pixels away.
+
+It reads the action rather than the mapper's `priority` **flag**, and that is
+the boundary rather than a preference: `boundaries.test.ts` forbids `scene.ts`
+from touching `.flags` at all, because a beat that can see a flag is one step
+from a beat that grows with a multiplier. Both the chevron and the strip's chip
+descend from the same bracket the log marked, which is one source of truth with
+two consumers — the shape this screen has used since Release C.
+
+The flash borrows `--motion-beat`, the lunge's own duration, so a priority turn
+costs exactly what an ordinary one costs: section 6 adds no time, and a number
+typed here would be the hardcoded duration `test/visual-tokens.test.ts` counts.
+It needs no slot rule, because the marked panel is by construction the one that
+acted first. Reduced motion cancels it with a matched selector, and the chevron
+is then simply *there* rather than arriving — the outcome survives, which is
+that block's rule.
+
+**One thing the item did not ask for and R5 required.** The mark was a glyph
+with no explanation behind it, which is precisely the live defect M1.2 found on
+every flag word on this screen: a focusable trigger that opens nothing. It
+carries `data-tip="flag:priority"` now — the strip's own `Priority` chip's
+explanation, because the panel chevron and that chip are the same fact about the
+same turn. One explanation, mounted twice.
+
+### D27, and the rule that was written narrower than it was meant
+
+Three places in the tree said the strip has no per-kind hue: the stylesheet, the
+`flagWords.ts` header, and a named test. Section 2 says the opposite in one
+line — *"The same colour on the feedback flag"* — and section 3 spells the
+feedback encoding as *"One word on the target, edge colour family"*.
+
+They are not the same claim. What the tree forbids is a **weight axis**: one
+kind drawn louder than another, which is C1. What the bible asks for is an
+**encoding axis**: one colour family across the forecast and the feedback, so
+the pairing is learned once. `super`, `resisted` and `immune` now carry the
+button's own 3px left edge and its own two tokens; every other kind is untouched.
+
+All three places were rewritten to say what the rule always meant rather than
+being weakened or deleted. The test asserts the stronger thing now: three kinds
+carry an edge, no fourth `.chip--flag[data-flag=…]` rule exists at all, the chip
+element carries no class or inline style that varies by kind, and a coloured
+kind and a neutral one have identical recipes.
+
+### A deviation, recorded rather than worked around
+
+The done-when asks for *"a visual diff shows the same colour tokens on button
+edge and flag"*. What shipped asserts the **tokens**, by reading the stylesheet:
+`test/forecast-feedback.test.ts` pulls the `border-left-color` off both rules
+and requires them to be the same `var(--stage-…)`.
+
+A screenshot comparison was rejected for two reasons, and the first is the one
+that matters. **A visual diff passes just as well on a hardcoded hex**, which is
+the failure `visual-tokens.test.ts` exists one file over to catch, so the diff
+would confirm the appearance while missing the defect. The second: no gallery
+fixture produces a super-effective or resisted flag, so there is nothing for a
+diff to photograph — the same fixture gap §61 recorded for the census.
+
+The stylesheet is parsed with a brace walk rather than one regex, because this
+file has `@media` and `@keyframes` blocks in it and a regex that treats `{` as
+an opener pairs the wrong braces and then answers confidently about a rule that
+does not exist. That cost two rounds of red before it was written properly.
+
+### What the census says, and why it says nothing
+
+Unchanged again, and for the reason §61 gives: the loaded fixture's turn is
+decided by Speed rather than by a bracket, so the chevron never fires on it, and
+its flags are statuses rather than effectiveness, so no edge is drawn on it
+either. **Both halves of this item are invisible to the instrument.** They are
+asserted directly instead — the chevron against a played Quick Attack turn, the
+edge against the stylesheet — and the fixture gap is now two items old and worth
+an item of its own before M7.2 measures anything.
