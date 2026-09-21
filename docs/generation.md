@@ -9329,6 +9329,25 @@ deleted because their subject no longer exists.
   critical hits now, with a confusion on each side so the per-side recipe check
   still has more than one chip to compare.
 
+### The census did not move, and that is the honest number
+
+`npm run census` reads **unchanged**: battle 16 and 10 less shell, flag strip 11
+in every mode, exactly as before the item. That is not a measurement failure and
+it is not a reason to claim a reduction.
+
+The gallery's loaded fixture produces `Paralysed` on one side and `Badly
+poisoned` on the other, and the log-sheet fixture adds a `rose` and a `Fully
+paralysed` that are likewise one per side and one per channel. **The fixture has
+never produced a collision**, so there was nothing on it for a precedence rule to
+cut. The item's effect is on turns where several things are true of one hit, and
+those are asserted directly in `test/flag-precedence.test.ts` against
+hand-written protocol rather than inferred from a number that cannot see them.
+
+Worth carrying to M4.3 and M7.2: **a fixture that cannot produce the condition an
+item exists for cannot measure that item.** The strip's census number is a
+ceiling on a turn the fixture happens to draw, not on the turn the rule was
+written for.
+
 ### What the player loses, and where it went
 
 The strip showed every flag of the group and now shows at most two per side. C2
