@@ -83,6 +83,18 @@ Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and
 `npm run glyphs` (the contact sheet and the 16px separation check).
 
+**The browser suite's CI red is closed, on `claude/epic-knuth-7w4g6f`.** It was
+never the walk: every Actions run since 2026-09-18 failed one chip-contrast
+assertion against a Ghost chip inside a disabled move button, which the
+Playwright image's font set made the sweep photograph and a developer box's
+did not. Prompt
+[`spec/gymrun-patch-browser-suite-ci.md`](spec/gymrun-patch-browser-suite-ci.md),
+record [`generation.md`](generation.md) section 57. The second reading, the
+gallery party's 4.43:1, was the sampler measuring one layout and photographing
+another, diagnosed from the screenshot a floor failure now uploads. The walk
+in `scripts/visual/browser.mjs` waits on DOM state, layered at the merge on
+M2.0's contract (section 53), which landed first on the Tier 2 branch.
+
 
 **In flight: teaching a move at the node that paid it, and a level spread for
 gyms.** Branch `claude/great-curie-99l9fm`, prompt
