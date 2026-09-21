@@ -128,16 +128,32 @@ describe('the final party cards are built against the run\'s tuning', () => {
     expect(members.length).toBeGreaterThan(0);
 
     let expectedTotal = 0;
+    /*
+     * **The two that left the strip at M2.1 are counted separately, not
+     * dropped from the expectation.**
+     *
+     * Section 3 gives accuracy and priority a slot of their own on the card
+     * face, and R3 forbids drawing them in the strip as well. Lowering the
+     * expected number to match would have made this test agree with a card
+     * that had simply lost two facts — which is C2, and the exact failure this
+     * file exists to catch. So the strip is checked against the strip-borne
+     * facts, and the two are checked against the slots they moved to.
+     */
+    let expectedOwnSlot = 0;
     for (const member of result.state.party) {
       const detail = describeSpecCard(member.spec);
       for (const move of member.moves) {
         const facts = describeMove(move.name);
         if (!facts) continue;
-        expectedTotal += moveCardData(
-          { ...facts, maxPp: move.maxPp },
-          result.state.tuning,
-          { types: detail.types },
-        ).facts.length;
+        const card = moveCardData({ ...facts, maxPp: move.maxPp }, result.state.tuning, { types: detail.types });
+        expectedTotal += card.facts.filter((fact) => fact.id !== 'accuracy' && fact.id !== 'priority').length;
+
+        const accuracy = card.facts.find((fact) => fact.id === 'accuracy');
+        // Absent means never-miss, which R4 gives its own mark; present and
+        // under 100 renders the target glyph; exactly 100 is the default and
+        // renders nothing.
+        if (!accuracy || Number(accuracy.value) < 100) expectedOwnSlot += 1;
+        if (card.facts.some((fact) => fact.id === 'priority')) expectedOwnSlot += 1;
       }
     }
 
@@ -157,7 +173,14 @@ describe('the final party cards are built against the run\'s tuning', () => {
      * full one tap away in the explanation.
      */
     const drawn = summary.root.querySelectorAll('.summary__member-moves .move__facts .badge--fact');
-    expect(drawn.length).toBe(expectedTotal);
+    expect(drawn.length, 'the fact strip lost or invented a field').toBe(expectedTotal);
+
+    // And the two that moved, in the slots they moved to. Together with the
+    // count above this says the face carries every fact it ever did.
+    const ownSlot = summary.root.querySelectorAll(
+      '.summary__member-moves .move__accuracy, .summary__member-moves .move__priority',
+    );
+    expect(ownSlot.length, 'accuracy or priority went missing rather than moving').toBe(expectedOwnSlot);
   }, 60_000);
 });
 
