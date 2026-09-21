@@ -66,18 +66,20 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the 4.10 presentation milestones.** Branch
-`claude/visual-revamp-jb20na`, pull request
-[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), list
+**In flight: the 4.10 presentation milestones, Tier 3.** List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoff
-[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md). **Tiers 0 and 1 are
-closed, six items of twenty-four.** No version axis moves: `contentHash` holds at
-`d4e080` and nothing under `core/` changed.
+[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md). **Tiers 0, 1 and 2 are
+closed, ten items of twenty-four**, as
+[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61) and
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63); `main` is
+`8869623`. One trunk per tier, one sub-branch per item. No version axis moves in
+any of it: `contentHash` holds at `d4e080` and nothing under `core/` changed.
 
 The design bible is at **Rev 2**. Every place the list and the bible disagreed is
 a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md) rather
-than something built around; fifteen rows, thirteen ruled, **D14 and D15 open**.
+than something built around; nineteen rows, eighteen ruled, **D14 open** and D19
+deferred to M3.2.
 
 Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and
@@ -94,6 +96,16 @@ gallery party's 4.43:1, was the sampler measuring one layout and photographing
 another, diagnosed from the screenshot a floor failure now uploads. The walk
 in `scripts/visual/browser.mjs` waits on DOM state, layered at the merge on
 M2.0's contract (section 53), which landed first on the Tier 2 branch.
+
+**Tier 3 is closed**, thirteen items of twenty-four. The battle panel, the
+party row and the teach target card all census **0 words at rest in Pocket**,
+and one component draws the six stats everywhere they appear.
+[`generation.md`](generation.md) sections 58, 59 and 60 record the three items;
+the rulings worth reading before touching any of those surfaces again are D18
+(the archetype label is gone and the stats it summarised are behind the panel's
+long press), D20 (one stat block, in its own module, with the glyph) and D21a,
+which was ruled one way, built, and re-ruled back when three invariant tests
+caught three fact families leaving with the move card's face.
 
 
 **In flight: teaching a move at the node that paid it, and a level spread for

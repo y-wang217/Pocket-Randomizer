@@ -98,10 +98,19 @@ describe('the battle screen', () => {
     return { session, screen };
   }
 
+  /*
+   * **M3.1 changed what the foe's slot holds, not what it names.** The slot
+   * held `Opposing Golem`; section 4 budgets the panel at zero words with the
+   * name surviving, and `Opposing` is a word rather than a name. The side did
+   * not go anywhere — the panel's `aria-label` carries it, in a fuller form —
+   * so this test still asserts both halves, in the two places they now live.
+   */
   it('1. names both panels by species, the nicknamed member and the plain foe alike', () => {
     const { screen } = mount('LABEL01');
     expect(screen.root.querySelector('.panel--me .panel__name')?.textContent).toBe('Snorlax');
-    expect(screen.root.querySelector('.panel--foe .panel__name')?.textContent).toBe('Opposing Golem');
+    expect(screen.root.querySelector('.panel--foe .panel__name')?.textContent).toBe('Golem');
+    expect(screen.root.querySelector('.panel--foe')?.getAttribute('aria-label')).toContain('Opposing Golem');
+    expect(screen.root.querySelector('.panel--me')?.getAttribute('aria-label')).not.toContain('Opposing');
   });
 
   it('2. renders no nickname on the opponent panel even when the sim was handed one', () => {

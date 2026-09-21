@@ -98,3 +98,19 @@ export function statInfo(stat: string): StatEntry | null {
 
 /** Every stat this file describes, in panel order. */
 export const STAT_ORDER: readonly string[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+/**
+ * The length a stat bar is measured against. **Moved here at M3.1.**
+ *
+ * It was a private constant on `ui/member-card.ts` whose comment already said
+ * what it was — *"the same ceiling the battle panel's bars use, so the two
+ * read alike"* — and M3.1 gave it a third reader: the six stats behind the
+ * battle panel's long press. Two bars of one stat drawn against two ceilings
+ * are two different claims about the same number, so it is one number in
+ * `data/`, which is where `CLAUDE.md` puts every number a tuning pass touches.
+ *
+ * Outside `contentHash` with the rest of this file, and legitimately: it is a
+ * display number that nothing under `core/` reads. It decides how long a bar
+ * is drawn and never what a stat is.
+ */
+export const STAT_BAR_CEILING = 200;

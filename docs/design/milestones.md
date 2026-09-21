@@ -21,7 +21,9 @@ with the record's "one item, one PR" rule.
 **The trunk is per tier group, not per release.** `claude/visual-revamp-jb20na`
 carried Tiers 0 and 1 and shipped as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61), merged
-2026-09-20; `main` is `7e0c46d`. Tier 2 is cut fresh from there. A merged pull
+2026-09-20; `main` is `7e0c46d`. Tier 2 was cut fresh from there and shipped as
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63), merged
+2026-09-20; `main` is `8869623`. Tier 3 is cut fresh from *that*. A merged pull
 request is finished and does not grow a second tier.
 
 ## The bible wins, and blocked items wait
@@ -37,11 +39,14 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Sixteen of seventeen discrepancy rows are ruled** — eleven on 2026-09-19,
+**Twenty-one of twenty-two discrepancy rows are ruled** — eleven on 2026-09-19,
 which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
-Tier 2, all on 2026-09-20. **D14 is the one open row**, it blocks nothing, and
-it is timed with M5.6. Every remaining `open` is waiting on its tier, not on a
-decision.
+Tier 2, all on 2026-09-20, then D18 on 2026-09-21 opening Tier 3. **D14 is the
+one open row**, it blocks nothing, and it is timed with M5.6. **D19 is deferred
+rather than open**: it is ruled with M3.2, which meets the same two chips on
+the party row and was ruled with it, taking the bible to **Rev 3**. D20 and D21
+were ruled inside M3.2 on the same day. **D14 is the one open row**, it blocks
+nothing, and it is timed with M5.6.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -209,11 +214,145 @@ four-core box. That these two defects are the whole of it is not proven — see
 
 ### Tier 3: panels and party
 
+**M3.1 is shipped, and it opened two rows before it closed one.** The panel
+censused **20 words in Pocket**, ten per surface across `battle` and
+`log-sheet`, sitting in five elements: the roster label's `left`, the name's
+`Opposing`, `Lv` welded to the level, the archetype chip, and the Pocket stage
+marker's `STAGES`. Four were re-encodings with no rule in their way. The fifth
+was **D18** — section 5 does not list the archetype chip, section 3 bars the
+label outright, and V5's own note (`scene.ts:910`) says the chip is the only
+remaining channel for what the thing opposite is built to do, so deleting it
+was a C2 ruling rather than a tidy-up. **Census in Pocket: 20 → 0.**
+
+**D18 ruled option 2, and its own condition was the expensive half.** The chip
+goes and the six stats it was derived from come back behind the panel's long
+press, drawn as section 3's Six stats row specifies: glyph, bar, number, all
+six, display order, no sort. That is only re-encoding rather than removal if
+the panel becomes a trigger in the same pass — D17A's precedent, stated in the
+row before it was ruled — so it did. The value is `base` and not `effective`,
+because the stages already on the chip row are the boosts and printing the
+post-boost number would be one fact in two channels (R3).
+
+**A fourth word source the census could not see, and it was the same family.**
+`▲ FIRST`, the Speed marker, spends a word *and* borrows the triangle section 2
+gives to the Priority family for a fact that is not a bracket. The fixture has
+no faster side, so no census ever charged it. It is the Stat family's Speed
+glyph now, and the panel's new chevron slot — D6, and empty until M4.2 fills it
+— is free to mean what section 6 says it means.
+
+**Detailed and Simple read 4, and that is D16 rather than a miss.** The
+residue is the type chips' word forms, which the stylesheet hides in Pocket;
+D16 ruled that the labelled face survives in the other two modes until M6.4
+decides with M7.1's evidence, exactly as it did for the move card in M2.1.
+
+**D19** is the gap behind the census rather than in front of it: the ability
+chip and the nineteen volatile chips have no row in section 3, no family in
+section 2 and no budget line in section 4, and they read near zero only because
+`properNouns()` happens to carry `Levitate` and `Leech Seed` and not `Confused`.
+M3.1 touched neither, and it is ruled with M3.2.
+
+**M3.2 is shipped, and it was three rows rather than one item.**
+
+**D20: the tree had three six-stat components and the census could see one.**
+`statBlock` was private to the member card, `statLine` was exported from
+starter select to two more screens, and M3.1 added a third in the inspect
+layer. The `stat block` row read `90 | 108 | 0` against `.stats` while
+`.statline` spent six words on `starter` and six more on `result-capture` —
+D2's failure one layer down. `ui/stat-block.ts` takes six numbers and a layout,
+which is what let all four kinds of caller mount it, and the two "layouts" were
+never two components: Pocket already drew `.stats` as the same six-across row.
+**Mounting it made the number briefly worse** — 24 in Pocket, because an older
+density rule re-showed the label the new one had hidden — and that is the
+census becoming honest rather than a regression. Final: **0**, over four call
+sites instead of one.
+
+**D19 took the bible to Rev 3.** The ability and the volatile chips had no row
+anywhere. The Status family absorbs the volatiles rather than a tenth family
+being opened; the ability gets a row saying it is the one attribute with no
+glyph, and a budget that names it. None of the twelve rules moved.
+
+**D21a was ruled one way, built, and re-ruled back by three invariant tests.**
+The chip came to the party row with PP, which section 9's own disconfirmer for
+M2.3 names. Then `test/band-badge.test.ts` went red on four cases — the badge
+exists so a band 3 offer can be compared against the four moves a member
+knows, and the drawer carries no second copy of it — and then
+`test/visual-move-cards.test.ts` caught the fact strip going the same way, on
+`party`, `drawer` and `pre-gym`. Restoring all three would have made the chip a
+card with a different class name. **So the row is wrong**, and it is the row
+that changed: the bible's Party row reads "four move cards" now, corrected from
+"four move chips", which was written before M2.3 decided what a chip leaves
+out. Nothing is spent at rest either way — the move card censuses 0 in Pocket
+and the body folds there.
+
+**Two layout regressions, both a rule the tree already had.** The stat label
+drew its glyph *and* its word outside Pocket, which is R3 and which
+`.chip--type`, `.badge--category` and `.move__pp` were already handled for; and
+the six-across layout drew `Hit Points` where `statLine` drew `HP`, deleting
+the comment that said why — *"six full names do not fit a card at 390 wide"*.
+Together they put the capture offer's decision buttons 17px past the 844 fold.
+Two rounds of CSS arithmetic moved the number 861 → 845 → 855 and explained
+none of it; probing the card printed a 24px label at a 12px line-height, which
+is a wrapped line. **Measure before reasoning.**
+
+**The map rail keeps its `Lead` chip.** Taking it off a party card is R3
+because the card draws a slot number; the rail draws none, so the chip is its
+only channel. Giving it the number instead wrapped its header to a third line
+and moved the map's `decisionTop` 23.5px down, failing the height baseline in
+every guarded mode.
+
+**What M3.2 did not close.** The done-when also asks for 0 on the drawer. The
+census has a `party drawer` component now (D21b) and it reads **13** in Pocket:
+four section headings, two blurbs and four picker labels — the settings surface
+the drawer also happens to be, and no item on the list owns any of it.
+Recommended to M6.3, which touches the density picker anyway. It blocks
+nothing.
+
+**M3.3 is shipped, and Tier 3 is closed.** The item's plan was to delete the
+36-word pairing line and let the mounted party row say the same thing — four
+move cards means a replacement is coming, three means a free slot. Measured at
+390x844 it does not survive the viewport: **a party card folds to 92.9px in
+Pocket and opens to 514.0px**, of which the four move cards are 376.2px. Six
+unfolded in the two-column grid is about 1542px against 844, and the first card
+plus the pinned move already passes the fold. The moves cannot be at rest here,
+so deleting the line would have put the screen's only question behind a tap.
+
+**Mounting the component resolved it structurally.** The line is a fact about
+this member *and this reward together*, not about the member — so it moves out
+of the card and sits beside it. The card is the party row at **0**, which is
+what the done-when asks for. Mounting also deleted the screen's hand-rolled
+header, level, archetype chip and HP line — three weeks of drift M3.2 had
+already fixed in the component — and two stylesheet carve-outs written because
+the old card was a `<button>`, worth `HP` and `PP` twelve times.
+
+**The card cannot be a button now**, because the row carries a fold toggle, six
+stat labels and four inspect triggers and nesting those in a `<button>` is
+invalid. `ui/screens/pre-gym.ts` had the shape: a slot wrapper, the component,
+a control beside it.
+
+**The gate, on `89fabd8`.** lint, hedge, typecheck, chromium (207), strict
+trim (browser), build, smoke and census all PASS; `test:node` and `trim:node`
+ERRORED on vitest's reporter RPC with all 1766 tests passed, which
+`scripts/check.mjs` documents as its own status and not a failure. **`webkit`
+SKIPPED — no browser binary in this container**, so nothing in Tier 3 has been
+verified on the second engine; CI promotes that skip to a failure, which is
+where it will be checked. `contentHash` holds at `d4e080` across all three
+items and no version axis moved.
+
+**The one figure Tier 3 missed is now D22, ruled.** The decline overlay
+measures 5 against a budget of 4 — the question is 3 under the counting rule
+and a confirm cannot have fewer than two controls. D1's own table reads that
+row as *"Counting the rule as written: 3"*, so the figure was derived from the
+question alone, before `ui/band.ts` existed. **Ruled: 6**, matching the replace
+overlay, which is the same component. Bible **Rev 4**, and section 9 carries
+the bet — a ceiling raised to fit what shipped is watched, not trusted. Pinned
+by a test rather than the census, because no fixture opens a confirm and that
+component reads `absent`.
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M3.1 Pokemon battle panel | open | — (D6 ruled) |
-| M3.2 Stat block and party row | open | — |
-| M3.3 Teach target screen | open | — (D1 ruled: at or under 4) |
+| M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
+| M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled; D21a re-ruled to cards. Party row 121 → **63** in Pocket, 0 on party and pre-gym; stat block 0, now covering four call sites) |
+| M3.3 Teach target screen | **done** | — (target card 42 → **0**; the decline overlay measures 5 against a budget of 4, see below) |
 
 ### Tier 4: battle feedback
 

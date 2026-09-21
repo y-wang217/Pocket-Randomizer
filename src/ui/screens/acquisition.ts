@@ -47,12 +47,12 @@ import { heldItem } from '../../core/items';
 import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
-import { el, movePower } from '../scene';
+import { el, levelAria, levelText, movePower } from '../scene';
 import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
 import { slotNumber } from '../slots';
-import { statLine } from './starter-select';
+import { statBlock } from '../stat-block';
 import { abilityChip, monTypeChip } from '../chip';
 import { openBand } from '../band';
 import { neutralChip, statusChip } from '../chip';
@@ -219,10 +219,15 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   const name = el('span', 'panel__name');
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${detail.level}`;
-  // The archetype chip is back beside the bars. Chip-audit patch, question 1:
-  // the label is a vocabulary, and a vocabulary with holes in it is not one.
-  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
+  level.textContent = levelText(detail.level);
+  level.setAttribute('aria-label', levelAria(detail.level));
+  /*
+   * **No archetype chip. M3.2.** Section 3: the label is not rendered where
+   * the stat bars already draw it, and this card carries the block. The
+   * chip-audit patch's objection — that a label on some surfaces and not
+   * others is not a vocabulary — is answered by it going from all of them.
+   */
+  header.append(name, level, ...detail.types.map(monTypeChip));
 
   const ability = abilityChip(detail.ability, detail.abilityId, 'party__ability');
   /*
@@ -280,7 +285,14 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   // The same six-stat row a starter card and a species reward card carry, so a
   // Pokemon looks identical everywhere the player is asked to judge one.
   // The body, in the card's corner. Idle-sprites patch.
-  card.append(spriteFigure(detail.species), header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
+  card.append(
+    spriteFigure(detail.species),
+    header,
+    meta,
+    // The shared stat block, six across, as the starter card draws it. M3.2, D20.
+    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row' }),
+    moves,
+  );
   return card;
 }
 
@@ -298,7 +310,8 @@ function renderExisting(
   const name = el('span', 'panel__name');
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${detail.level}`;
+  level.textContent = levelText(detail.level);
+  level.setAttribute('aria-label', levelAria(detail.level));
   // The slot number first, as on the party screen's cards: this list stands
   // in for the result screen's slot row in Pocket, where that row is off
   // screen, and a slot is the one fact the row had that the card did not.

@@ -12,11 +12,8 @@
  * the pairing, not about the card, and the reward screen structurally cannot
  * show them because it does not know who is getting it yet.
  */
-import { describeMove, describeSpecCard } from '../../core/battle/driver';
-import { archetypeChip } from '../archetype-chip';
-import { createBar } from '../bar';
-import { FAINTED_REVIVES, hpState } from '../../core/hpCopy';
-import { hpFraction, replacementNeeded } from '../../core/party';
+import { describeMove } from '../../core/battle/driver';
+import { replacementNeeded } from '../../core/party';
 import type { TargetedReward } from '../../core/rewards';
 import { describeReward } from '../../core/rewards';
 
@@ -35,12 +32,12 @@ import { describeReward } from '../../core/rewards';
 export const TEACH_CANCELLED = -1;
 import type { PokemonState } from '../../core/types';
 import type { Tuning } from '../../data/tuning';
+import { openBand } from '../band';
+import { memberCardContents } from '../member-card';
 import { moveCardData } from '../move-detail';
 import { el, moveCard } from '../scene';
 import { setProse, type Prose } from '../dom';
 import { TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
-import { abilityChip, monTypeChip } from '../chip';
-import { spriteFigure } from '../sprites';
 
 export interface ItemTargetScreen {
   root: HTMLElement;
@@ -102,7 +99,7 @@ export function createItemTargetScreen(): ItemTargetScreen {
       const facts = describeMove(reward.move);
       offer.replaceChildren(...(facts ? [moveCard(moveCardData(facts, tuning))] : []));
 
-      list.replaceChildren(...party.map((member, index) => renderTarget(reward, member, index, onTarget)));
+      list.replaceChildren(...party.map((member, index) => renderTarget(reward, member, index, tuning, onTarget)));
 
       /*
        * The decline, **after** the members and never among them.
@@ -123,62 +120,116 @@ export function createItemTargetScreen(): ItemTargetScreen {
         button.className = 'target__decline';
         const label = el('span', 'target__decline-label');
         setProse(label, TARGET_COPY.decline);
-        const note = el('span', 'target__decline-note');
-        setProse(note, TARGET_COPY.declineNote);
-        button.append(label, note);
-        button.addEventListener('click', () => onTarget(TEACH_CANCELLED));
+        button.append(label);
+        /*
+         * The confirm, through the one band. **Milestone M3.3.**
+         *
+         * The note under this control used to spell out what declining costs —
+         * *"Nobody learns this move. It is not offered again."* — at rest, on
+         * every render, for a control most runs never press. The record moves
+         * that to a confirm: *"Decline copy: 'Forfeit this reward?' with the
+         * two cards."*
+         *
+         * `ui/band.ts` is that component and M2.3 gave it the `content` slot
+         * this uses, so the card being forfeited is in front of the player
+         * when the question is asked rather than remembered from the screen
+         * behind it. One card, not two: a replace trades a move for a move
+         * and a decline gives one up for nothing, and drawing a second card
+         * would be inventing a thing on the other side of the trade.
+         *
+         * `onCancel` does nothing on purpose. Backing out of a confirm returns
+         * to the screen, and the screen is unchanged — `openBand` closes
+         * itself and nothing here has committed.
+         */
+        button.addEventListener('click', () => {
+          const forfeited = describeMove(reward.move);
+          openBand({
+            title: TARGET_COPY.forfeitTitle.short,
+            confirm: TARGET_COPY.forfeitConfirm.short,
+            cancel: TARGET_COPY.forfeitCancel.short,
+            ...(forfeited ? { content: moveCard(moveCardData(forfeited, tuning)) } : {}),
+            onConfirm: () => onTarget(TEACH_CANCELLED),
+          });
+        });
         decline.append(button);
       }
     },
   };
 }
 
+/**
+ * One recipient, as the party row plus the control that picks it.
+ * **Milestone M3.3.**
+ *
+ * The record asks for the party row *unchanged* — section 5 canonises it and
+ * lists the teach target among its call sites — and this screen had been
+ * hand-rolling its own card since Stage 4.5.1: its own header, its own level,
+ * its own archetype chip, its own HP line. That is the defect section 5 closes
+ * with, and mounting the component takes `Lv`, the label and the archetype off
+ * this surface for free, because M3.2 already took them off the component.
+ *
+ * **A wrapper and a sibling button, not a card inside a `<button>`.** The card
+ * was a `<button>` and the party row is full of focusable things — the fold
+ * toggle, six stat labels with `role="button"`, four move cards that are
+ * inspect triggers since M2.1 — and nesting those inside a button is invalid
+ * and takes the keyboard path to every one of them. `screens/pre-gym.ts` had
+ * the shape already: a slot wrapper, the component, and a control beside it.
+ * That is what this uses, so the two screens that ask "which member" ask it
+ * the same way.
+ */
 function renderTarget(
   reward: TargetedReward,
   member: PokemonState,
   index: number,
+  tuning: Tuning,
   onTarget: (slot: number) => void,
 ): HTMLElement {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'party__member party__member--target';
-  // A fainted member is a legal target — it revives at the next node and keeps
-  // whatever it was given — so this is never disabled. The label says so
-  // instead, because a button that looks broken teaches worse than one that
-  // explains itself.
-  const detail = describeSpecCard(member.spec);
+  const wrapper = el('div', 'target__slot');
 
-  const header = el('div', 'panel__header');
-  const name = el('span', 'panel__name');
-  // The species. 4.8.0.1: the recipient is picked by what it is, and the
-  // nickname is state this screen does not show.
-  name.textContent = detail.species;
-  const level = el('span', 'panel__level');
-  level.textContent = `Lv${detail.level}`;
-  header.append(
-    name,
-    level,
-    archetypeChip(detail.baseStats),
-    ...detail.types.map(monTypeChip),
-    abilityChip(detail.ability, detail.abilityId),
-  );
+  const card = memberCardContents(member, {
+    holding: member.item ?? null,
+    tuning,
+    index,
+  });
+  card.classList.add('party__member--target');
 
-  const bar = createBar();
-  bar.set(hpFraction(member));
-  const track = bar.root;
-
-  const meta = el('div', 'panel__meta');
-  const hp = el('span', 'panel__hp-text');
-  hp.textContent = member.fainted ? FAINTED_REVIVES : hpState(member.hp, member.maxHp);
-  meta.append(hp);
-
+  /*
+   * The pairing line, **beside the card rather than inside it**, and that is
+   * what let M3.3 keep it.
+   *
+   * The done-when asks for 0 words on the *target card*. This line is not a
+   * fact about the member — it is a fact about this member **and this reward
+   * together**, which is why the screen exists at all and why a hand-rolled
+   * card was carrying it. Mounting the component puts it where it belongs: the
+   * card is the party row at 0, and the pairing is the screen's.
+   *
+   * **It could not have been dropped.** The plan was to delete it and let the
+   * four move cards say the same thing — four means "you will choose a
+   * replacement", three means "free slot". Measured at 390x844: a party card
+   * folds to 92.9px in Pocket and opens to 514.0px, of which the four move
+   * cards are 376.2px. Six of them unfolded is about 1542px against an 844
+   * viewport, and the first card plus the pinned move already passes the fold.
+   * So the moves cannot be at rest here, the fact would have gone behind a tap
+   * on the screen whose only question it answers, and that is C2.
+   */
   const effect = el('span', 'target__effect');
   setProse(effect, effectOn(reward, member));
 
-  // The body, in the button's corner. Idle-sprites patch.
-  button.append(spriteFigure(detail.species, { phase: index }), header, track, meta, effect);
-  button.addEventListener('click', () => onTarget(index));
-  return button;
+  const choose = document.createElement('button');
+  choose.type = 'button';
+  choose.className = 'button button--small target__choose';
+  /*
+   * A fainted member is a legal target — it revives at the next node and keeps
+   * whatever it was given — so this is never disabled, and the card's own HP
+   * line is where "fainted" is said. A button that looks broken teaches worse
+   * than one that explains itself, and a second word for it here would be the
+   * same fact twice on one card.
+   */
+  setProse(choose, TARGET_COPY.choose);
+  choose.addEventListener('click', () => onTarget(index));
+
+  wrapper.append(card, effect, choose);
+  return wrapper;
 }
 
 /**

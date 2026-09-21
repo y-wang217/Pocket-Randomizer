@@ -47,6 +47,7 @@ import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { statInfo } from '../data/statInfo';
+import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
 import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
 import { MOVE_FACT_INFO } from '../data/moveFactInfo';
@@ -99,6 +100,23 @@ type TipKind =
    * what that one means. `archetype:all` is the trigger every chip carries.
    */
   | 'archetype'
+  /**
+   * One Pokemon's six stats, from the battle panel it is standing on.
+   * **Milestone M3.1, discrepancy D18, ruled 2026-09-21.**
+   *
+   * The panel drew an archetype label — `Phys. Attacker` — which section 3
+   * bars as a derived label that can lie under randomization, section 5 never
+   * listed, and section 4's budget of zero words has no room for. It was also
+   * the *only* channel left for what the thing opposite is built to do, since
+   * V5 took the six numbers off the panel on the argument that the label
+   * replaced them. So the label goes and the numbers come back here, which is
+   * C2's re-encode rather than a removal.
+   *
+   * Keyed by species, so the panel says whose numbers these are; the numbers
+   * themselves ride on `data-detail`, because which numbers a body has is a
+   * property of this render and not a table entry. Same argument as `stages`.
+   */
+  | 'stats'
   /**
    * A move, explained, from a battle button. **Density modes patch; open item
    * 9 (R8) closed.** The same rows `ui/move-explanation.ts` builds for a card's
@@ -215,6 +233,7 @@ const KINDS = [
    */
   'flag',
   'archetype',
+  'stats',
   'move',
   'gym',
   'threat',
@@ -555,6 +574,8 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderFlag(id);
     case 'archetype':
       return renderArchetypes();
+    case 'stats':
+      return renderMonStats(id, trigger?.dataset['detail']);
     case 'move':
       return renderMoveRows(id);
     case 'gym':
@@ -722,6 +743,33 @@ function renderStages(detail?: string): HTMLElement | null {
     list.append(line);
   }
   body.append(list);
+  return body;
+}
+
+/**
+ * One Pokemon's six stats, from the battle panel it is standing on.
+ * **Milestone M3.1, discrepancy D18; mounting the shared component is D20.**
+ *
+ * It drew its own glyph, bar and number rows when M3.1 shipped, because
+ * `statBlock` was private to `ui/member-card.ts` and took a `SpecCard` and a
+ * `PokemonState` that this layer has no way to reach. D20 is the row that
+ * named that as a third rendering of one attribute cluster; `ui/stat-block.ts`
+ * takes six numbers now, which a serialized `data-detail` string can supply,
+ * so this mounts the component instead of resembling it.
+ *
+ * Nothing here is written copy: the marks are M1.1's sheet, the words are
+ * `data/statInfo.ts`'s, and the numbers arrive on the trigger.
+ */
+function renderMonStats(species: string, detail?: string): HTMLElement | null {
+  const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
+  if (rows.length === 0) return null;
+  const values: Record<string, number> = {};
+  for (const entry of rows) {
+    const [stat = '', value = ''] = entry.split('\t');
+    values[stat] = Number(value);
+  }
+  const body = panel(species, 'tip__body--rows');
+  body.append(statBlock(values));
   return body;
 }
 
