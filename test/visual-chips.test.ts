@@ -239,15 +239,15 @@ async function imagesSettled(page: Page): Promise<void> {
  * 5.13:1 on every box and font set tried here. A ratio names two colours and
  * says nothing about what was under the chip, and the container is not a
  * machine anyone can open. So on a failure the screenshots of the surfaces
- * named go to `.visual-failures/chips/`, which the workflow uploads, and the
+ * named go to `visual-failures/chips/`, which the workflow uploads, and the
  * assertion message says so. An instrument that answers should also show its
  * work.
  */
 const shots = new Map<string, Buffer>();
-const FAILURE_DIR = join('.visual-failures', 'chips');
+const FAILURE_DIR = join('visual-failures', 'chips');
 
 function keepFailureShots(under: string[]): string {
-  const named = [...shots.keys()].filter((screen) => under.some((line) => line.startsWith(`${screen} `)));
+  const named = [...shots.keys()].filter((screen) => under.some((line) => line.startsWith(`${screen} "`)));
   if (named.length === 0) return '';
   mkdirSync(FAILURE_DIR, { recursive: true });
   const files = named.map((screen) => {

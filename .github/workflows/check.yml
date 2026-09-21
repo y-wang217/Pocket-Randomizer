@@ -126,14 +126,16 @@ jobs:
       # re-recorded, and none needs to be.
       - run: node scripts/check.mjs --only=test:${{ matrix.engine }}
       # A chip that fails its contrast floor leaves the screenshot it was read
-      # from under .visual-failures/ (test/visual-chips.test.ts). The number
+      # from under visual-failures/ (test/visual-chips.test.ts). The number
       # alone could not say what was under the chip on this runner; the picture
-      # can. Uploaded only on failure, kept a week.
+      # can. Uploaded only on failure, kept a week. Not a dot-directory: v4
+      # skips hidden files unless told otherwise, and the first run of this
+      # step found "no files" over a screenshot that was there.
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: visual-failures-${{ matrix.engine }}
-          path: .visual-failures/
+          path: visual-failures/
           if-no-files-found: ignore
           retention-days: 7
 
@@ -161,7 +163,7 @@ jobs:
         if: failure()
         with:
           name: visual-failures-strict-trim
-          path: .visual-failures/
+          path: visual-failures/
           if-no-files-found: ignore
           retention-days: 7
 

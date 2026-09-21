@@ -8318,10 +8318,23 @@ so the dimmed-ancestor rule may or may not cover it, and nothing in the log
 line says what was under the chip on that runner.
 
 So the sweep now keeps the screenshot each surface was sampled from, and on a
-floor failure writes the ones named to `.visual-failures/chips/` with the path
+floor failure writes the ones named to `visual-failures/chips/` with the path
 in the assertion message. Both browser jobs upload that directory on failure,
 seven days' retention. If the gallery row comes back, it comes back with the
 pixels.
+
+**It came back, and the pixels did not.** PR #62's first run: the battle row
+is gone, the gallery row is the only failure, and the assertion message names
+the screenshot it wrote — which `upload-artifact@v4` then reported as "no
+files", because the directory was `.visual-failures/` and v4 skips hidden
+files unless told otherwise. Renamed to `visual-failures/`. Meanwhile the one
+environmental difference left, sprites loading on Actions and 404ing here,
+was closed by pointing the browser at the box's egress proxy
+(`GYMRUN_PROXY`): with the lead's Brambleghast sprite drawn 48px wide at the
+right edge of the header row the Ghost chip sits in, the reading here is
+still 5.13:1 under DejaVu and under Liberation Mono. So the chip's box does
+not reach the sprite in either of those fonts, and what it reaches in the
+container's is what the next artifact will show.
 
 ### 53.5 The walk waits on state
 

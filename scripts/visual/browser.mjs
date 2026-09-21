@@ -110,7 +110,20 @@ const ENGINE_API = { chromium, webkit };
 
 export async function launch(options = {}, engine = ENGINE) {
   const executablePath = (PINNED[engine] ?? []).find((candidate) => existsSync(candidate));
-  return ENGINE_API[engine].launch({ ...(executablePath ? { executablePath } : {}), ...options });
+  /*
+   * `GYMRUN_PROXY` routes the browser through an egress proxy, with the local
+   * harness bypassed. **The browser suite CI patch.** A sandboxed box has no
+   * direct route to Showdown's sprite CDN, so every sprite on it is
+   * `data-missing` and a panel that has a sprite behind a chip on Actions has
+   * none here; `visual-chips` samples exactly that. With the box's proxy named
+   * the sprites load and the two environments measure the same pixels.
+   * Certificate errors are ignored only under this flag, because a proxy that
+   * re-signs TLS is the whole point of it.
+   */
+  const proxy = process.env.GYMRUN_PROXY
+    ? { proxy: { server: process.env.GYMRUN_PROXY, bypass: '127.0.0.1,localhost' }, args: ['--ignore-certificate-errors'] }
+    : {};
+  return ENGINE_API[engine].launch({ ...(executablePath ? { executablePath } : {}), ...proxy, ...options });
 }
 
 export const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
