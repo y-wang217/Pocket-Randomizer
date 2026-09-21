@@ -20,11 +20,20 @@ export function serve(dir?: string): Promise<{ url: string; close: () => void }>
 export function launch(options?: LaunchOptions, engine?: Engine): Promise<Browser>;
 export function visible(name: string): string;
 export function openScreen(page: Page): Promise<string | null>;
-export function stepOnce(page: Page): Promise<string | null>;
+/**
+ * One decision. Resolves to the screen it acted on, or **null when it clicked
+ * nothing** — a transition in flight, or `expected` no longer being what is up.
+ *
+ * `expected` is the screen the caller already decided about. Passing it is what
+ * stops a walk stepping off a screen its own predicate never saw; omitting it
+ * is the old, opinion-free behaviour. See `browser.mjs`.
+ */
+export function stepOnce(page: Page, expected?: string | null): Promise<string | null>;
 export function playUntil(
   page: Page,
   predicate: (screen: string, page: Page) => boolean | Promise<boolean>,
   maxSteps?: number,
+  options?: { timeoutMs?: number },
 ): Promise<string>;
 /** A fresh store with the tutorial skipped, as JSON. See browser.mjs. */
 export const TUTORIAL_SKIPPED_SETTINGS: string;

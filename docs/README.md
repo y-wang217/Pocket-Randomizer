@@ -89,10 +89,11 @@ assertion against a Ghost chip inside a disabled move button, which the
 Playwright image's font set made the sweep photograph and a developer box's
 did not. Prompt
 [`spec/gymrun-patch-browser-suite-ci.md`](spec/gymrun-patch-browser-suite-ci.md),
-record [`generation.md`](generation.md) section 53. The walk in
-`scripts/visual/browser.mjs` waits on DOM state now. One reading, the gallery
-party's 4.43:1, is not reproduced; a floor failure uploads its screenshot so
-the next one can be.
+record [`generation.md`](generation.md) section 57. The second reading, the
+gallery party's 4.43:1, was the sampler measuring one layout and photographing
+another, diagnosed from the screenshot a floor failure now uploads. The walk
+in `scripts/visual/browser.mjs` waits on DOM state, layered at the merge on
+M2.0's contract (section 53), which landed first on the Tier 2 branch.
 
 
 **In flight: teaching a move at the node that paid it, and a level spread for

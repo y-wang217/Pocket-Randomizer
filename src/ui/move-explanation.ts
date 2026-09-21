@@ -45,7 +45,6 @@ import {
 } from '../data/moveCopy';
 import { MOVE_TAG_BY_ID, multiHitLine, type MoveTag } from '../data/moveTags';
 import { targetWords } from '../data/moveTargets';
-import { el } from './dom';
 
 /** One labelled row. The label is a category, the value is the fact. */
 interface Row {
@@ -151,63 +150,4 @@ export function moveExplanationRows(move: MoveExplanation, tags: readonly MoveTa
 
   add('Dex', move.shortDesc);
   return rows;
-}
-
-/**
- * The explanation as a panel, collapsed until it is asked for.
- *
- * Returns the trigger and the panel together because they are one control: the
- * trigger owns `aria-expanded` and `aria-controls`, and a caller that mounted
- * one without the other would produce an accessible name pointing at nothing.
- *
- * **Tap, not hover.** The same rule `ui/tooltips.ts` states in its header and
- * for the same reason: hover does not exist on a phone. This is deliberately
- * *not* routed through that layer — the ruling forbids adding a third mechanism
- * to it, and this is a region inside the card rather than a floating panel over
- * the board, so it needs no positioning, no dismissal and no delegation.
- */
-export function moveExplanation(
-  move: MoveExplanation,
-  tags: readonly MoveTag[],
-  id: string,
-): { trigger: HTMLElement; panel: HTMLElement } {
-  const panel = el('div', 'move__explain');
-  panel.id = id;
-  panel.hidden = true;
-  for (const row of moveExplanationRows(move, tags)) {
-    const line = el('div', 'move__explain-row');
-    const label = el('span', 'move__explain-label');
-    label.textContent = row.label;
-    const value = el('span', 'move__explain-value');
-    value.textContent = row.value;
-    line.append(label, value);
-    panel.append(line);
-  }
-
-  const trigger = document.createElement('button');
-  trigger.type = 'button';
-  trigger.className = 'move__explain-toggle';
-  trigger.textContent = 'Explain';
-  trigger.setAttribute('aria-expanded', 'false');
-  trigger.setAttribute('aria-controls', id);
-
-  trigger.addEventListener('click', (event) => {
-    /*
-     * **The click stops here, and this is the whole of test 10.**
-     *
-     * A move card is drawn on six surfaces and on one of them — the reward
-     * screen — it sits inside an element that submits a choice on click. A
-     * trigger that let the event through would pick a reward on the way to
-     * explaining a move, which is the same shape of defect as a chip swallowing
-     * a card's tap. `preventDefault` as well, so a card that is ever placed
-     * inside a form cannot submit it either.
-     */
-    event.preventDefault();
-    event.stopPropagation();
-    const open = panel.hidden;
-    panel.hidden = !open;
-    trigger.setAttribute('aria-expanded', String(open));
-  });
-
-  return { trigger, panel };
 }

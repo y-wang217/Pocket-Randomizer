@@ -33,7 +33,7 @@
  * this patch is the same seed after it.
  */
 import { MOVE_TAG_BY_ID, type MoveTagId } from './moveTags';
-import type { MoveFactId } from '../core/moveFacts';
+import { MOVE_FACT_IDS, type MoveFactId } from '../core/moveFacts';
 
 export interface MoveFactDefinition {
   /**
@@ -79,17 +79,52 @@ export const MOVE_FACT_INFO: Record<MoveFactId, MoveFactDefinition> = {
 };
 
 /**
- * How many columns the strip reserves. **Four, and the number is measured.**
+ * The two fields the card face draws itself, and the strip therefore does not.
+ * **M2.1, R3.**
  *
- * No move in `data/movePools.ts` carries more than four face facts — the
- * distribution across the 458 pool moves is 46 with none, 113 with one, 202
- * with two, 93 with three and 4 with four — so four columns hold every move the
- * game can draw without dropping a field.
+ * Section 3 gives accuracy a number beside the target glyph and priority a
+ * chevron beside the move name. Both are also `MoveFactId`s, and drawing them
+ * in the strip as well renders one fact twice on one surface — which R3
+ * forbids and M0.2's inventory found before any of this was built.
  *
- * It is also the answer to the playtest complaint the column map below exists
- * for: "if there's this many fields, we can try a 4-column view to compare".
+ * They stay facts. `MOVE_FACT_IDS` still carries them, the explanation still
+ * prints them, `movefact:accuracy` is still the tip the new slot opens. This
+ * list says only which component draws them, which is why the strip filters on
+ * it rather than `core/` dropping the ids.
  */
-export const MOVE_FACT_COLUMNS = 4;
+export const MOVE_FACT_OWN_SLOT = ['accuracy', 'priority'] as const satisfies readonly MoveFactId[];
+
+export type OwnSlotFactId = (typeof MOVE_FACT_OWN_SLOT)[number];
+
+/**
+ * The fields the strip still draws: everything without a slot of its own.
+ *
+ * Derived with `Exclude` rather than typed as a second list, so the column map
+ * below cannot keep an entry for a field the face has taken over — that is a
+ * compile error rather than a dead column nobody notices.
+ */
+export type StripFactId = Exclude<MoveFactId, OwnSlotFactId>;
+
+export const STRIP_FACT_IDS: readonly StripFactId[] = MOVE_FACT_IDS.filter(
+  (id): id is StripFactId => !(MOVE_FACT_OWN_SLOT as readonly string[]).includes(id),
+);
+
+/**
+ * How many columns the strip reserves. **Three, and the number is re-measured.**
+ *
+ * It was four, and four was measured too — across the 458 pool moves the
+ * distribution was 46 with none, 113 with one, 202 with two, 93 with three and
+ * 4 with four. M2.1 took accuracy and priority out of the strip and that
+ * arithmetic no longer describes anything: **accuracy was the sole occupant of
+ * column 1**, so keeping four would have reserved a dead column on every card
+ * on the tightest surface in the game.
+ *
+ * Re-measured over the same pools, counting only the fields the strip now
+ * draws: 158 moves with none, 216 with one, 82 with two, **2 with three**. So
+ * three columns hold every move without dropping a field, and the ceiling is
+ * reached rather than merely safe — which is the same evidence four rested on.
+ */
+export const MOVE_FACT_COLUMNS = 3;
 
 /**
  * Which column each field occupies. **A field's position is its identity.**
@@ -108,26 +143,31 @@ export const MOVE_FACT_COLUMNS = 4;
  * Two fields may share a column only if no move in the pools has both, and
  * that was measured across all 458 rather than reasoned about:
  *
- *   - `accuracy` (405 moves) and `contact` (185) are each promiscuous — they
- *     pair with nearly everything — so each takes a column alone.
+ *   - `contact` (185 moves) is promiscuous — it pairs with everything the
+ *     strip still draws — so it takes a column alone.
  *   - `secondary` (160) and `multiHit` (22) never co-occur, so they share.
- *   - `priority` (21), `recoil` (9), `drain` (10), `charge` and `recharge`
- *     pair with none of each other, so they share the last.
+ *   - `recoil` (9), `drain` (10), `charge` and `recharge` pair with none of
+ *     each other, so they share the last.
+ *
+ * **Re-derived at M2.1**, when accuracy and priority left the strip. Accuracy
+ * had held column 1 alone, so the columns shifted down rather than leaving a
+ * gap where it used to be. The pairs that survive are unchanged and still
+ * measured: contact+secondary 59, contact+multiHit 12, contact+recoil 9,
+ * contact+drain 5, recoil+secondary 2, drain+secondary 1 — and the two
+ * groupings above appear nowhere in that list, which is the whole condition.
  *
  * `test/move-fact-columns.test.ts` re-derives that over the live pools, so a
  * move added to `data/movePools.ts` that breaks a pairing fails there rather
  * than silently hiding a field on one card.
  */
-export const MOVE_FACT_COLUMN: Readonly<Record<MoveFactId, number>> = {
-  accuracy: 1,
-  contact: 2,
-  secondary: 3,
-  multiHit: 3,
-  priority: 4,
-  recoil: 4,
-  drain: 4,
-  charge: 4,
-  recharge: 4,
+export const MOVE_FACT_COLUMN: Readonly<Record<StripFactId, number>> = {
+  contact: 1,
+  secondary: 2,
+  multiHit: 2,
+  recoil: 3,
+  drain: 3,
+  charge: 3,
+  recharge: 3,
 };
 
 /**

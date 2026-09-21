@@ -20,6 +20,7 @@
  * hand any more; `test/chip.test.ts` scans for that.
  */
 import { el } from './dom';
+import { categoryGlyphId, glyphNode, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
 import {
   MAX_STAGE,
@@ -55,9 +56,42 @@ function build(variant: ChipVariant, legacy: string, text: string, options: Chip
   return node;
 }
 
+/**
+ * The word form of a chip whose glyph now carries the fact. **M2.1.**
+ *
+ * Section 2 makes the type chip *"18 glyphs inside a coloured chip"* and the
+ * category chip a fist, a ring or a wave. R2 forbids the type name and the
+ * category word at rest, and R3 forbids rendering either fact twice. So the
+ * glyph is the encoding and the word is a second form of the same fact, kept
+ * only because D16 ruled Detailed and Simple keep their labelled face until
+ * M6.4 decides whether they survive at all.
+ *
+ * The stylesheet is what chooses: Pocket renders the glyph alone, the other
+ * two render the word. Density has always been a stylesheet change here rather
+ * than a re-render, and this keeps it one — the DOM carries both forms and no
+ * screen re-renders when the mode changes.
+ */
+function wordForm(text: string): HTMLElement {
+  const word = el('span', 'chip__word');
+  word.textContent = text;
+  return word;
+}
+
 /** A type. The one coloured chip; `type--<name>` carries the hue. */
 export function typeChip(type: string, options: ChipOptions = {}): HTMLElement {
-  return build('type', `type type--${type.toLowerCase()}`, type, options);
+  const node = build('type', `type type--${type.toLowerCase()}`, '', options);
+  /*
+   * The glyph carries the accessible name, not the chip and not the word.
+   *
+   * Once Pocket hides the word the mark is the only thing naming the type, so
+   * it is the one glyph on the card that is not `aria-hidden`. Labelling the
+   * chip instead would announce the type twice in the modes that still render
+   * the word.
+   */
+  const mark = glyphNode(typeGlyphId(type), { label: type });
+  if (mark) node.append(mark);
+  node.append(wordForm(type));
+  return node;
 }
 
 /**
@@ -245,7 +279,10 @@ export function capabilityBandChip(text: string): HTMLElement {
 
 /** A move category, `PHYS`, `SPEC`, `STAT`. */
 export function categoryChip(category: string, label: string, options: ChipOptions = {}): HTMLElement {
-  const node = build('category', `badge badge--category badge--cat-${category.toLowerCase()}`, label, options);
+  const node = build('category', `badge badge--category badge--cat-${category.toLowerCase()}`, '', options);
+  const mark = glyphNode(categoryGlyphId(category), { label: category });
+  if (mark) node.append(mark);
+  node.append(wordForm(label));
   node.tabIndex = 0;
   node.setAttribute('role', 'button');
   return node;

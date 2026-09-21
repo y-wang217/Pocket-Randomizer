@@ -93,21 +93,19 @@ describe('the density setting is unreachable from core/', () => {
       /\bsetVerbosity\b/,
       /\bverbosity\b/i,
       /*
-       * The move bar layout, on the same list and for the same reason. **The
-       * four-column patch.** It is a second presentation axis, so the moment
-       * `core/` could see it a run would play differently depending on how the
-       * four buttons were arranged — which is the property this whole file
-       * exists to make impossible, stated once per axis rather than once.
+       * **The move bar's five patterns were here and are gone with it.**
        *
-       * `moveBar` rather than the bare word "bar": `core/` has no other use
-       * for the spelling, and the compound can only mean this setting.
+       * The four-column layout was a second presentation axis and sat on this
+       * list for the same reason density does: the moment `core/` could see
+       * it, a run would play differently depending on how the four buttons
+       * were arranged. D9 ruled the layout deleted at M2.2 — R6 forbids two
+       * card faces and the measurement said the compact face fits the 2x2 and
+       * cannot fit 85px — so the names no longer exist anywhere and a pattern
+       * for them could never match. A guard that cannot fail is not a guard.
+       *
+       * The rule it enforced is unchanged and still enforced, for the axes
+       * that still exist. `docs/generation.md` section 55 carries the removal.
        */
-      /\bgetMoveBar\b/,
-      /\bsetMoveBar\b/,
-      /\bMoveBar\b/,
-      /\bMOVE_BARS\b/,
-      /\bmoveBar\b/,
-      /data-move-bar/,
     ];
     for (const path of coreFiles) {
       const source = readFileSync(path, 'utf8');

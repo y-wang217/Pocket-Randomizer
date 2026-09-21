@@ -138,17 +138,16 @@ export async function openScreen(page) {
 
 /*
  * **The walk waits on state, not on the clock.** The browser suite CI patch,
- * `docs/spec/gymrun-patch-browser-suite-ci.md`.
+ * `docs/spec/gymrun-patch-browser-suite-ci.md`, on top of M2.0.
  *
- * Every step below used to end in `waitForTimeout(25)` or `(40)`, and a run
- * was bounded by a step budget. Those two facts together were a defect that
- * only showed under load: a wait is wall-clock, a budget is counted in steps,
- * and on a saturated runner a step that had not finished rendering was
- * counted as a step taken. `visual-move-cards` walked 900 of them on Actions
- * without ever seeing the result screen, then passed in isolation in
- * seconds — the same class of wall-clock assertion
- * `docs/visual/reports/patch-battle-animation.md` retired elsewhere in this
- * tree.
+ * M2.0 (`docs/generation.md` section 53) fixed the two defects that made the
+ * budget count laps as decisions: `stepOnce` now acts only on the screen its
+ * caller decided about and returns null when it clicked nothing, and
+ * `playUntil` counts only laps that acted, under a wall-clock deadline. What
+ * it left in place was the sleeps: `waitForTimeout(40)` in the branches that
+ * found nothing to click, 16ms between laps, 15ms and 25ms inside the shop and
+ * event branches. Each is a guess at how long the app takes, and on a
+ * saturated runner the guess is wrong in the one direction that costs time.
  *
  * The app exposes no busy flag, so "finished reacting" is read off the DOM
  * itself: a `MutationObserver` on the document stamps the time of the last
@@ -160,8 +159,10 @@ export async function openScreen(page) {
  * do *anything*, rather than for 40ms to pass.
  *
  * Both are bounded, and a bound expiring is not an error here: the walk goes
- * on and the caller's step budget or test timeout is the stall guard, exactly
- * as before. What changed is that a slow machine now costs time and not steps.
+ * on and `playUntil`'s deadline or the test's timeout is the stall guard,
+ * exactly as before. A driver with no `waitForFunction` is not a browser
+ * (`test/visual-walk.test.ts` drives these with a fake page) and has nothing
+ * to settle, so both return at once there.
  */
 const QUIET_MS = 60;
 const SETTLE_TIMEOUT_MS = 8_000;
@@ -180,7 +181,10 @@ function observe() {
   return w.__gymrunWalk.last;
 }
 
+const isBrowser = (page) => typeof page.waitForFunction === 'function';
+
 async function boundedWait(page, fn, arg, timeout) {
+  if (!isBrowser(page)) return false;
   try {
     await page.waitForFunction(fn, arg, { timeout, polling: 16 });
     return true;
@@ -192,6 +196,7 @@ async function boundedWait(page, fn, arg, timeout) {
 
 /** Resolve once a screen is visible and the DOM has been quiet for `quietMs`. */
 export async function settle(page, { quietMs = QUIET_MS, timeout = SETTLE_TIMEOUT_MS } = {}) {
+  if (!isBrowser(page)) return false;
   await page.evaluate(observe);
   return boundedWait(
     page,
@@ -207,6 +212,7 @@ export async function settle(page, { quietMs = QUIET_MS, timeout = SETTLE_TIMEOU
 
 /** Resolve once anything in the document mutates, or `timeout` passes. */
 async function waitForMutation(page, timeout = MUTATION_TIMEOUT_MS) {
+  if (!isBrowser(page)) return false;
   const mark = await page.evaluate(observe);
   return boundedWait(page, (since) => globalThis.__gymrunWalk.last > since, mark, timeout);
 }
@@ -268,6 +274,12 @@ async function chooseNode(page) {
  * Returns the name of the screen it acted on, or null when nothing was
  * clickable (a transition in flight). The caller decides when to stop; this
  * only knows how to answer whichever screen is up.
+ *
+ * **That null is the contract, and until M2.0 the code did not keep it.**
+ * Every branch returned the screen whether or not it had clicked anything, so
+ * a caller counting steps counted the waiting as progress and a walk could
+ * exhaust its budget without having made a single decision. The branches that
+ * wait now return null, as this comment always said they did.
  */
 /**
  * Close an open tooltip before acting. **Added at patch 4.7.2.**
@@ -329,43 +341,58 @@ async function dismissTooltip(page) {
  * `visual-v0`, `visual-v2` and `contrast.mjs` already make before they measure,
  * each with a comment saying why.
  */
-export async function stepOnce(page) {
-  const { screen } = await act(page);
+export async function stepOnce(page, expected) {
+  const screen = await stepOnceUnparked(page, expected);
+  // Nothing clickable: wait for the app to do something. Then, either way,
+  // wait for it to finish doing it before anyone reads the screen.
+  if (screen === null) await waitForMutation(page);
+  await settle(page);
+  await page.mouse.move(0, 0);
   return screen;
 }
 
-/**
- * One step, with its outcome: the screen it looked at, and whether it found
- * anything to click there. `stepOnce` is the public shape every test uses;
- * `playUntil` reads `acted` so that a transition in flight costs the budget
- * nothing.
- */
-async function act(page) {
+async function stepOnceUnparked(page, expected) {
   await dismissTooltip(page);
   const screen = await openScreen(page);
-  const acted = await actOn(page, screen);
-  if (!acted) await waitForMutation(page);
-  await settle(page);
-  await page.mouse.move(0, 0);
-  return { screen, acted };
-}
-
-async function actOn(page, screen) {
+  /*
+   * **Act on the screen the caller decided about, never on whatever replaced
+   * it.** M2.0.
+   *
+   * A caller reads the screen, decides whether it is the one it wanted, and
+   * then calls this — which reads the screen *again*. Between those two reads
+   * the app can move on its own: the battle outro resolves on a `setTimeout`,
+   * and `router.show` is synchronous, so the switch lands whole inside the
+   * gap. The caller then decides about one screen and this steps off another,
+   * and the screen it was waiting for is consumed without its predicate ever
+   * having been asked about it.
+   *
+   * That is the walk's one real race, and it is load-sensitive for a reason
+   * that is not the app's fault: the gap is two CDP round trips wide, the
+   * timer fires on wall-clock, and a saturated box stretches the former while
+   * leaving the latter alone. It is also why throttling the *page* does not
+   * reproduce it — that slows the app and narrows the gap.
+   *
+   * `expected` closes it. A caller that has already decided passes what it
+   * decided about; if the app has moved since, this acts on nothing and says
+   * so, and the caller re-reads and decides again. A caller with no opinion
+   * omits it and gets the old behaviour exactly.
+   */
+  if (expected !== undefined && screen !== expected) return null;
   switch (screen) {
     case 'starter':
       await (await bulkiestStarter(page)).click();
-      return true;
+      return screen;
     case 'locale': {
       const card = page.locator(`${visible('locale')} .locale`).last();
-      if (!(await card.count())) return false;
+      if (!(await card.count())) return null;
       await card.click();
-      return true;
+      return screen;
     }
     case 'battle': {
       const forced = page.locator(`${visible('battle')} .bench[data-forced="true"] .bench__member:not(:disabled)`);
       if (await forced.count()) {
         await forced.first().click();
-        return true;
+        return screen;
       }
       const move = await hardestMove(page);
       /*
@@ -379,9 +406,11 @@ async function actOn(page, screen) {
        * always present and never a trigger, and the click bubbles to the
        * button exactly as a tap on it would.
        */
-      if (!move) return false;
+      // Mid-turn: the buttons are disabled while the beats run. Nothing was
+      // spent, so this is not a step; `stepOnce` waits for the beat to move.
+      if (!move) return null;
       await move.locator('.move__name').first().click();
-      return true;
+      return screen;
     }
     case 'result': {
       const card = page.locator(`${visible('result')} .reward`).first();
@@ -402,7 +431,7 @@ async function actOn(page, screen) {
         // of them — an empty span is not clickable, which is a second way to
         // stall on the same screen.
         await card.click({ position: { x: 8, y: 8 } });
-        return true;
+        return screen;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);
       if ((await capture.count()) && !(await capture.first().isHidden())) {
@@ -416,12 +445,12 @@ async function actOn(page, screen) {
             await page.locator('.confirm-band .primary-action').click();
           } else await capture.locator('.acquire__actions .button').last().click();
         }
-        return true;
+        return screen;
       }
       const carry = page.locator(`${visible('result')} .result__actions .button`).first();
-      if (!(await carry.count())) return false;
+      if (!(await carry.count())) return null;
       await carry.click();
-      return true;
+      return screen;
     }
     case 'shop': {
       for (let pick = 0; pick < 6; pick++) {
@@ -432,7 +461,7 @@ async function actOn(page, screen) {
         await settle(page);
       }
       await page.locator(`${visible('shop')} .shop__footer .button`).click();
-      return true;
+      return screen;
     }
     case 'event': {
       const choice = page.locator(`${visible('event')} .event__choice:not([disabled])`).first();
@@ -443,7 +472,7 @@ async function actOn(page, screen) {
       const carry = page.locator(`${visible('event')} .event__result .button`);
       await carry.waitFor({ timeout: 5_000 });
       await carry.click();
-      return true;
+      return screen;
     }
     /*
      * **Both of these click the card's *name*, not the card. Patch 4.7.2.**
@@ -467,17 +496,35 @@ async function actOn(page, screen) {
      */
     case 'target': {
       const card = page.locator(`${visible('target')} .party__member--target`).first();
-      if (!(await card.count())) return false;
+      if (!(await card.count())) return null;
       const name = card.locator('.panel__name').first();
       await ((await name.count()) ? name : card).click();
-      return true;
+      return screen;
     }
     case 'replace': {
       const victim = page.locator(`${visible('replace')} .move--victim`).last();
-      if (!(await victim.count())) return false;
+      if (!(await victim.count())) return null;
       const name = victim.locator('.move__name').first();
       await ((await name.count()) ? name : victim).click();
-      return true;
+      /*
+       * **And then answer the confirm, because M2.3 put one here.**
+       *
+       * Tapping a victim used to commit the replacement. It opens the shared
+       * band now — two full cards, the question, and a primary that commits —
+       * which is the item's whole point: the chip gave up PP and the band, and
+       * the confirm is where they come back.
+       *
+       * A walker that clicked the chip and moved on would leave a modal up,
+       * and the band is `aria-modal` with a scrim, so *every* later click is
+       * intercepted by it. That is not a slow walk, it is a stuck one: the
+       * smoke run spent its timeout retrying a click the dialog was eating.
+       *
+       * The same shape the `result` branch already handles for a full-party
+       * release, and the selector is the same one.
+       */
+      const commit = page.locator('.confirm-band .primary-action');
+      if (await commit.count()) await commit.first().click();
+      return screen;
     }
     case 'party': {
       /*
@@ -492,10 +539,10 @@ async function actOn(page, screen) {
       const teach = page.locator(`${visible('party')} .tms__item .button--small`).first();
       if ((await teach.count()) && (await teach.textContent()) === 'Teach') {
         await teach.click();
-        return true;
+        return screen;
       }
       await page.locator(`${visible('party')} .primary-action, ${visible('party')} .button--primary`).first().click();
-      return true;
+      return screen;
     }
     case 'pre-gym': {
       // 4.7's lead pick, answered the way the headless runs answer `chooseLead`:
@@ -505,18 +552,18 @@ async function actOn(page, screen) {
       // slot, because slot 0's own button is disabled ("Leading") — which on a
       // party of one left no enabled control at all.
       const confirm = page.locator(`${visible('pre-gym')} .pre-gym__confirm:not(:disabled)`);
-      if (!(await confirm.count())) return false;
+      if (!(await confirm.count())) return null;
       await confirm.first().click();
-      return true;
+      return screen;
     }
     case 'map': {
       const node = await chooseNode(page);
-      if (!node) return false;
+      if (!node) return null;
       await node.click();
-      return true;
+      return screen;
     }
     default:
-      return false;
+      return null;
   }
 }
 
@@ -524,31 +571,40 @@ async function actOn(page, screen) {
  * Play until `predicate(screen, page)` is true, or `maxSteps` decisions pass.
  * Checked *before* each step, so the run stops on the screen asked for.
  *
- * A decision is a step that clicked something. A step that found nothing to
- * click waited for the app instead, and is not counted: that is the whole of
- * what makes the budget a count of decisions and not of how fast the machine
- * was on the day.
+ * **`maxSteps` counts decisions, not laps. M2.0.** It always said decisions;
+ * the loop counted laps, and the two differ exactly when the app is busy —
+ * which is when the budget matters. A lap that found nothing to click spent
+ * nothing, so it is not a step, and a walk no longer gives up because the
+ * machine was slow enough that waiting looked like progress.
+ *
+ * The wall-clock cap is what stops a genuinely stuck run now. It is a
+ * *deadline*, not a per-step sleep: a fast machine never touches it, and a slow
+ * one gets as many frames as it needs rather than a fixed 25ms that was only
+ * ever a guess at how long a render takes.
+ *
+ * It scales with the budget rather than being flat, because a caller that asks
+ * for five steps is asking a short question and should get a short answer when
+ * the walk is stuck — `scripts/visual/stamps.mjs` asks exactly that and
+ * swallows the rejection. 300ms a decision, floored at 30s, which lands the
+ * default 600 on the three minutes a full walk to the summary can take under
+ * load.
  */
-export async function playUntil(page, predicate, maxSteps = 600, idleMs = 30_000) {
-  let decisions = 0;
-  let idleSince = null;
-  while (decisions < maxSteps) {
+export async function playUntil(page, predicate, maxSteps = 600, { timeoutMs = Math.max(30_000, maxSteps * 300) } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let steps = 0;
+  while (steps < maxSteps) {
     const screen = await openScreen(page);
     if (screen && (await predicate(screen, page))) return screen;
-    const { acted } = await act(page);
-    if (acted) {
-      decisions += 1;
-      idleSince = null;
-      continue;
+    if (Date.now() > deadline) {
+      throw new Error(`playUntil: ${timeoutMs}ms elapsed after ${steps} steps, on ${screen}`);
     }
-    // Nothing clickable: a transition or a beat. It costs the budget nothing,
-    // and the wall clock is the guard against a screen that never comes back.
-    idleSince ??= Date.now();
-    if (Date.now() - idleSince > idleMs) {
-      throw new Error(`playUntil: nothing to act on for ${idleMs}ms, on ${await openScreen(page)}`);
-    }
+    // `screen` and not a fresh read: this is the half of the race that lives
+    // here. See `stepOnceUnparked`.
+    // A lap that acted counts. One that did not has already waited, inside
+    // `stepOnce`, for the app to move.
+    if (await stepOnce(page, screen)) steps += 1;
   }
-  throw new Error(`playUntil: gave up after ${maxSteps} decisions on ${await openScreen(page)}`);
+  throw new Error(`playUntil: gave up after ${maxSteps} steps on ${await openScreen(page)}`);
 }
 
 /** Open the app on a seed, at the phone viewport, and wait for the starters. */
@@ -581,7 +637,7 @@ export const MOVE_BARS = ['grid', 'columns'];
  * so the bot measures exactly what a stored preference renders: the app reads
  * it at startup and writes the root attribute itself.
  */
-export async function skipTutorialIn(context, density = 'detailed', moveBar = 'grid') {
+export async function skipTutorialIn(context, density = 'detailed') {
   await context.addInitScript(
     (settings) => {
       try {
@@ -597,12 +653,12 @@ export async function skipTutorialIn(context, density = 'detailed', moveBar = 'g
      * name here is older than the panel and is kept because every caller in the
      * suite uses it.
      */
-    notFirstLaunch({ density, moveBar }),
+    notFirstLaunch({ density }),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
+  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -610,7 +666,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
-  if (!tutorial) await skipTutorialIn(context, density, moveBar);
+  if (!tutorial) await skipTutorialIn(context, density);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -700,8 +756,8 @@ export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density, moveBar = 'grid') {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density, moveBar });
+async function measureGuardedScreensIn(url, browser, seed, density) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

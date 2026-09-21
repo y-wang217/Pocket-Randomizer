@@ -24,20 +24,22 @@ which blocks everything.
 | D6 | M3.1 | The component canon omits the priority chevron that R9 and section 6 require | **2026-09-19** |
 | D7 | M4.3 | The flag strip's one word has no budget row | **2026-09-19** |
 | D8 | M5.6 | The item pre-authorises a remedy the bible reserves for amendment | **2026-09-20** |
-| D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces | **2026-09-19** |
+| D9 | M2.2 | The tree ships two move-button faces; R6 forbids two faces | **2026-09-19**, closed **2026-09-20**: column mode deleted |
 | D10 | M6.2, M6.3 | The items are ordered against section 7 | **2026-09-19** |
 | D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal | **2026-09-19** |
 | D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
 | D13 | process | "One item, one PR" against the single 4.10 pull request | **2026-09-19** |
 | D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
-| D15 | M1.2 (closed around it) | The `Explain` expander is a second explanation mechanism, and no item removes it | **open** |
+| D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
+| D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
+| D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
 
 ## Rulings, 2026-09-19
 
-Eleven of thirteen closed 2026-09-19; **D2 and D8 closed 2026-09-20, so all
-thirteen are ruled and no item is blocked.** Each ruling is restated under its
-own row below; the
-bible amendments they produced are Rev 2, marked inline in
+Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
+D17 closed 2026-09-20 across Tier 2. **Sixteen of seventeen rows are ruled, and
+D14 is the one still open — it blocks nothing and is timed with M5.6.** Each
+ruling is restated under its own row below; the bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
 | Row | Ruling | Where it landed |
@@ -48,7 +50,7 @@ bible amendments they produced are Rev 2, marked inline in
 | D5 | No tenth family. The plus and minus signs are permanent from day one. Section 9 loses "after the label fades"; the fallback is "add the two words". | Bible sections 3 and 9. Milestone M5.4 loses its label line |
 | D6 | Add the chevron to the Pokemon panel. | Bible section 5 |
 | D7 | Add a flag strip row, 1 word per hit. Battle screen budget excludes it. | Bible section 4 |
-| D9 | Build the compact 2x2 first, re-measure column mode against it in the same PR, rule with the number. Both branches in the done-when. | Milestone M2.2 |
+| D9 | Build the compact 2x2 first, re-measure column mode against it in the same PR, rule with the number. Both branches in the done-when. **Closed 2026-09-20 with the number: option 1, column mode deleted.** | Milestone M2.2 |
 | D10 | Re-anchor before the default flips. | Bible section 7. Milestone order M6.2 then M6.3 |
 | D11 | A validation cycle is two rounds of the M7.1 protocol, three testers each, one without Pokemon knowledge. | Bible R6 and section 11 |
 | D12 | Split all three per the `displayTuning.ts` precedent, copy into `EXCLUDED`, generation-bearing fields stay. No hash move. | Milestone M4.1, M5.1, M6.1 gates |
@@ -64,6 +66,34 @@ none of the twelve rules moved and no disconfirmer was needed. D5 is the closest
 call: it edits a section 9 row, but it edits the row's *premise* (a label that no
 family exists to produce), not the bet it records. The bet is unchanged and still
 falsifiable.
+
+## Rulings, 2026-09-20, opening Tier 2
+
+D15 and D16 are ruled together because they are one change: the expander is the
+only surviving route to the facts Pocket hides, so removing it and unhiding them
+cannot be two items. D14 stays open and is still nobody's blocker.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D15 | **Fold into M2.1.** The expander goes; the card itself becomes the inspect trigger, in every density mode, which is also the keyboard path it was carrying. | Milestone M2.1 scope |
+| D16 | **Pocket only.** M2.1's "0 words at rest" binds the Pocket face. Detailed and Simple keep their labelled face until M6.4 rules on them with M7.1's evidence. | Milestone M2.1 done-when |
+
+**What D16's ruling closes and what it leaves.** It closes C2. Pocket stops
+hiding base power, the category glyph, the status readout and the fact strip,
+because section 3's face *renders* all four — so building the face is what
+deletes the `display: none` block, not a separate decision. (**D17A later put
+the status readout back behind the long press**, which is not a reversal: the
+gesture that reaches it did not exist when this was ruled, and M2.1 is what
+created it.) Detailed and Simple
+were never hiding a fact; they label it. Once M2.1 lands, no mode removes a
+fact.
+
+What it leaves is R6's "forbids: shipping two card faces", knowingly and for a
+bounded time. R6's own density ruling is the authority for that: Simple and
+Detailed "stay for one validation cycle and are retired if the disconfirmer in
+section 9 does not fire", and M6.4 is that retirement. **The bible is not
+amended and no rule moved.** M2.1 is scoped to the face R6 already calls the
+one this document specifies.
 
 ---
 
@@ -697,3 +727,231 @@ one:
 
 **Recommendation: 1.** It is the same file, the same surfaces and the same
 census delta as M2.1, and splitting them means measuring the move card twice.
+
+**Ruled 2026-09-20: option 1.** Folded into M2.1, and D16 below is why it could
+not have gone anywhere else.
+
+---
+
+## D16. Pocket reaches its word count by hiding facts, and M2.1 does not say which modes its zero binds
+
+**Opened 2026-09-20 by M2.1, before any code. Ruled the same day.**
+
+Two things, and the second is only visible once the first is.
+
+### The census's 61 is not a compact encoding
+
+`src/ui/styles.css:1088`:
+
+```css
+:root[data-density="pocket"] .move .badge--category,
+:root[data-density="pocket"] .move .move__power,
+:root[data-density="pocket"] .move .move__effect,
+:root[data-density="pocket"] .move .move__facts { display: none; }
+```
+
+The per-component census reads the move card at **477 words in Detailed and 61
+in Pocket**. That gap is not a verbose face against a terse one. Pocket hides
+**base power** — which section 3 makes "the largest text on the card" — along
+with the category glyph, the status readout and the whole fact strip.
+
+That is removal, not re-encoding. **C2**: *"No fact that changes a decision is
+removed. It is re-encoded."* And **R6**: *"Density modes may change spacing,
+stacking and whether a secondary fact sits behind a tap. They never change the
+encoding of a fact."* Hiding is the limit case of changing it.
+
+R6 permits "behind a tap", so the question is whether the tap exists.
+
+### On a card in Pocket, it does not
+
+- The `power:` inspect trigger M1.2 added is set on `.move__power` itself
+  (`scene.ts:1539`, `:1881`) — the element the rule above hides. A hidden
+  element cannot be long-pressed.
+- `moveCard` sets no `dataset.tip` of its own. The card is not an inspect
+  trigger.
+- The battle **button** is fine: it carries `move:${move.id}`
+  (`scene.ts:1638`) and `renderMoveRows` prints every row.
+
+So on a move card in Pocket, the only surviving route to base power is the
+`Explain` expander — **the exact thing D15 proposes to delete**. The CSS
+comment still names the other route, the `?` chip on the battle button, which
+M1.2 removed.
+
+**This is why D15 and D16 are one ruling.** Delete the expander on its own and
+four decision-relevant facts leave the game on six surfaces.
+
+### The second thing: the item does not say which modes it binds
+
+M2.1's done-when is *"census on all six card surfaces reads 0 words at rest"*.
+Simple and Detailed render 477. Nothing in the item says whether its zero is
+the Pocket face or all three, and the two readings are different items — one
+rebuilds a face, the other retires two density modes four tiers before M6.4,
+which R6 gates on playtest evidence that does not exist yet.
+
+**Options.**
+
+1. **Unify the encoding, keep the modes.** One encoding everywhere; density
+   keeps only spacing, stacking and behind-a-tap. Largest M2.1, and it fixes
+   R6's encoding clause across the board.
+2. **Pocket only.** M2.1's zero binds the Pocket face. Detailed and Simple keep
+   their labelled face until M6.4.
+3. **Collapse to one mode now.** Honest zero everywhere, but it decides M6.4
+   without the evidence R6 demands.
+
+**Ruled: option 2.** See the rulings table above for what it closes and what it
+knowingly leaves.
+
+
+---
+
+## D17. "Census reads 0" is unreachable for two unrelated reasons
+
+**Opened 2026-09-20 by M2.1, after building it. The face is built and the gate
+is green; this is about the number, not the code.**
+
+M2.1's done-when is *"census on all six card surfaces reads 0 words at rest"*.
+After the rebuild the census reads **15 for the move card and 14 for the battle
+move button**, in Pocket. Both were 61 and 16 before.
+
+The residue is two different things and they want different answers.
+
+### Part A: the battle button's 14 are real words, and the item keeps them
+
+Every one of them is the status readout, `.move__effect` — the line that takes
+the base-power region on a status move. The census's Pocket word list for the
+battle surface is `Raises` `by` `stages` `Badly` `poisons` `the` `target`:
+seven words, two status moves on that board, fourteen.
+
+**They are on screen because M2.1 put them back.** The old Pocket rule hid
+`.move__effect` along with base power and the fact strip, which is the C2
+violation D16 was filed against. Un-hiding it restores a decision-relevant fact
+— and that fact is a *sentence*, on a surface section 4 budgets at 0.
+
+So the item contains a contradiction it cannot resolve inside itself: C2 says
+the readout cannot be dropped, R2 says a sentence cannot sit on the face, and
+R12 says the answer to that is to restructure the concept rather than write the
+sentence. **Restructuring the status readout is not in M2.1's item text**, which
+says only "remove every field label, the type name, the category word, and the
+BAND numeral".
+
+**Options.** (1) A new item, before M2.2, that re-encodes the readout as glyphs
+— it is already a structured `MoveEffectFields`, not free prose, so this is
+plausible. (2) Let it sit behind the long press in Pocket, which R6 permits
+explicitly ("whether a secondary fact sits behind a tap") and which is now safe
+because the card *is* a trigger. (3) Amend section 4 to budget the readout the
+way D7 budgeted the flag strip.
+
+**Recommendation: 2.** It is inside R6 as written, it costs no new item, and it
+is the one option that keeps the fact reachable without a sentence at rest. The
+tap that reaches it did not exist when the old rule hid this; it does now.
+
+### Part B: the move card's 15 are not words at all
+
+Two measurement artifacts, neither of which is text a player reads.
+
+| What | Why it counts | On screen |
+|---|---|---|
+| `/24` | `bareNumber` is `/^[+\-−]?[\d]+(?:[.,:/][\d]+)*(?:%\|x\|×)?$/`, which needs a leading digit. The token has none. | `24/24`, one number |
+| `✥` `↩` | The strip's icons are text characters in `.move__fact-icon`, `aria-hidden`, and `GLYPH_SLOTS` names only `.chip--status` and `.chip--stage`. | a glyph |
+
+The `/24` is mine: section 3 says "max dimmed", dimming needs its own span, and
+splitting `24/24` across two spans splits one number into two tokens. What the
+player sees is unchanged.
+
+The icons are older. The census's own header says **"Glyphs are not words"**,
+and the strip's icons are glyphs by that sentence — they are `aria-hidden` and
+the chip carries the real label for a screen reader. `GLYPH_SLOTS` simply
+predates the strip. M2.1's item text says "Keep the describeMove icon strip",
+so the item cannot reach 0 while the rule counts them.
+
+**Options.** (1) Fix the counting rule: let `bareNumber` accept a leading
+separator, and exempt `aria-hidden` text, which is mechanical rather than a
+list somebody maintains. (2) Add `.move__fact-icon` to `GLYPH_SLOTS` and leave
+the number. (3) Change the markup so the max is not its own token.
+
+**Recommendation: 1.** Both halves follow from sentences the bible and the
+census already carry — section 4 excludes bare numbers, the census excludes
+glyphs — so this is an implementation catching up with a stated rule, not a
+target being moved. It is filed rather than done for exactly that reason: the
+change improves the number of the item that would make it, and that is a thing
+to have ruled rather than to do quietly. **No bible amendment is involved
+either way.**
+
+### What M2.1 did about it, and what the ruling changed
+
+M2.1 filed it and shipped the honest number: **61 → 15 and 16 → 14**, committed
+as it read rather than as the item hoped.
+
+**Ruled 2026-09-20. Part A: option 2, behind the long press. Part B: fix the
+counting rule.** Both are now built and the census reads **0 on the move card
+and 0 on the battle move button** in Pocket.
+
+**A is safe because the tap exists now, and that is the whole difference from
+the rule D16 deleted.** `statusReadout` joins `boostPhrase`, `statusPhrase`,
+`effectPhrase`, `healPhrase` and `priorityPhrase`; `moveExplanationRows` builds
+its Stat change, Status, Effect, Healing and Priority rows from the *same*
+functions. The readout is word for word one press away, so hiding it in Pocket
+is R6's "whether a secondary fact sits behind a tap" and not C2's removal. The
+old rule hid it with no gesture that reached it, which is why that one was a
+violation and this one is not.
+
+**B was narrowed after it was measured, and the narrowing is the interesting
+part.** The recommendation above was to accept the leading separator *and*
+exempt all `aria-hidden` text, on the reasoning that a mark hidden from a
+screen reader carries no text load. The separator half is unarguable: section 4
+excludes bare numbers, and `24/24` arriving as `24` and `/24` is an artifact of
+section 3 requiring the max be dimmed, which needs its own span.
+
+The `aria-hidden` half was too broad, and building it showed why. The only
+thing it newly excluded was `.stamps` — the decorative corner stamp, which is
+`aria-hidden` and carries a seed string and a version a sighted player can
+read. An exemption that quietly stopped counting those would have been the
+census lying about a surface to flatter a milestone, which is the exact failure
+this row was filed to avoid. So `GLYPH_SLOTS` gains one selector,
+`.move__fact-icon`, with its reason beside it, and the app shell still censuses
+109.
+
+
+---
+
+## D9, closed with the measurement
+
+**Ruled 2026-09-19 to defer; closed 2026-09-20 on the number. Option 1:
+column mode is deleted and M2.2 ships the 2x2 only.**
+
+The deferral was the right call and the measurement did not say what it was
+expected to. At 390x844, with the M2.1 face:
+
+| | width | height | anything cut |
+|---|---|---|---|
+| 2x2 grid | 176px | 112px | nothing, both densities |
+| columns | 85px | 149px | nothing — **and only because it hid four of five fact columns** |
+
+The compact face fits the wide button with room to spare, which is what the
+row hoped: the 85px measurement that justified column mode was taken against
+the labelled face M2.1 deleted. What it did not anticipate is that the compact
+face does not fit 85px either. Showing every fact cell puts a 47px
+secondary-chance chip in a 31px cell; one cell per row grows the button and
+still cuts it; letting the track fill hands the row to the band strip.
+
+So column mode could only ever exist by dropping facts, which is the
+`display: none` this item removed along with the mode.
+
+**A third route was available and was not taken.** R6 permits "whether a
+secondary fact sits behind a tap", and since M2.1 the battle button is an
+inspect trigger whose panel prints every strip fact — accuracy, priority,
+multi-hit, recoil, drain, charge and recharge as their own rows, contact as a
+Behaviour row. On D17A's precedent the hiding would therefore have been
+re-encoding rather than removal, and column mode could have stayed. The lead
+designer ruled for deletion anyway, and the reasons on the table were R6 and R1
+holding without interpretation, and the comparison-across-buttons goal that
+justified the mode being better served by the grid — every field in a fixed
+slot at double the width.
+
+**What went.** the `move-bar` theme module, the `moveBar` setting and its accessors,
+the drawer's picker and its copy, the harness option, 179 lines of stylesheet,
+and five patterns from `test/density.test.ts`'s forbidden list that could no
+longer match. The patch that introduced it,
+[`../spec/gymrun-patch-four-column-move-bar.md`](../spec/gymrun-patch-four-column-move-bar.md),
+stays where it is: a prompt is a record of what was asked, not a description of
+what exists.

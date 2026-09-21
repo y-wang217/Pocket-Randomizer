@@ -30,12 +30,19 @@ import {
   formatStageMultiplier,
   stageMarkerLabel,
 } from '../data/statStages';
-import {
-  formatEffectiveness,
-  type ActiveUiView,
-  type BattleUiView,
-  type MoveUiView,
-} from '../core/battle/view';
+/*
+ * `formatEffectiveness` is no longer imported, and it is deliberately still
+ * exported from `core/`. **M2.2.**
+ *
+ * It printed `0.5x` and `0.25x`; section 2 wants `½` and `¼`, so the spelling
+ * moved to `effectivenessFraction` below, where presentation belongs. That
+ * leaves the core helper with no caller in `src/` — and M2.2's gate is
+ * "presentation only: if an item touches `core/` beyond the pure flag mapper,
+ * it is the wrong item", so removing it is not this item's to do.
+ * `docs/generation.md` section 55 records it for whoever next has reason to
+ * edit that file.
+ */
+import type { ActiveUiView, BattleUiView, MoveUiView } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
 import { outroHoldMs } from './theme/motion';
@@ -55,12 +62,11 @@ import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { ARCHETYPE_DISPLAY } from '../data/archetypes';
-import { TYPE_ICON_VIEWBOX, typeIconPath } from './theme/typeIcons';
+import { glyphNode } from './theme/glyph';
 import type { MoveTag } from '../data/moveTags';
-import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, moveFactAriaLabel } from '../data/moveFactInfo';
+import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, MOVE_FACT_OWN_SLOT, moveFactAriaLabel, type StripFactId } from '../data/moveFactInfo';
 import type { MoveFact } from '../core/moveFacts';
 import { statusReadoutLine, type MoveEffectFields } from '../data/moveCopy';
-import { moveExplanation } from './move-explanation';
 import {
   moveChoice,
   switchChoice,
@@ -1442,52 +1448,6 @@ function renderBenchMember(
   return button;
 }
 
-/**
- * The type watermark on a move button. **Chip-audit patch, item 3.**
- *
- * The brief: "since we have some dead space inside move cards (in battle), i'd
- * like a small QOL to show types in certain colors [...] as a visibility to
- * enforce what type each is. these icons should be 50% opacity max, and
- * shouldn't distract."
- *
- * ## It is redundant on purpose, and that is the whole design
- *
- * The type is already on the button in words, on the chip at the head of the
- * identity line. This adds nothing the card did not say — it says it again in
- * a channel that costs no reading. Four buttons scanned at a glance become four
- * silhouettes and four colours before a single word is parsed, which is what a
- * player does on the turns where they already know what the moves are and are
- * only picking between them.
- *
- * Because it is redundant, it must never be the *only* carrier of anything:
- * `aria-hidden`, no tooltip, no title, and `typeIconPath` returns `null` for a
- * type it does not know rather than drawing a mark the player would try to
- * learn.
- *
- * ## The colour comes from the chip table, not a second one
- *
- * The span wears `type--<name>`, which is where `--chip` is already defined for
- * every type in the game. It is not a chip and does not wear `.chip`, so it
- * picks up the custom property and none of the recipe. The alternative was
- * nineteen new `.move--<type>` rules restating the same nineteen colours, which
- * is a table free to drift from the one the chips use.
- *
- * ## Battle only
- *
- * `moveCard` draws the same component on the reward and replacement screens and
- * does not get one: the brief says "in battle", and those cards carry the
- * 4.7.2 expander in the corner this would occupy.
- */
-function typeWatermark(type: string): HTMLElement | null {
-  const path = typeIconPath(type);
-  if (!path) return null;
-  const mark = el('span', `move__watermark type--${type.toLowerCase()}`);
-  // Decorative, and `aria-hidden` is what keeps it that way: a screen reader
-  // that announced it would be reading the type chip's word a second time.
-  mark.setAttribute('aria-hidden', 'true');
-  mark.innerHTML = `<svg viewBox="${TYPE_ICON_VIEWBOX}" fill="currentColor" aria-hidden="true" focusable="false">${path}</svg>`;
-  return mark;
-}
 
 function renderMove(
   move: MoveUiView,
@@ -1504,6 +1464,9 @@ function renderMove(
 
   const name = el('span', 'move__name');
   name.textContent = move.name;
+  // Section 2's chevron, beside the name, on the button as on the card.
+  const priority = movePriority(move.facts);
+  if (priority) name.append(priority);
 
   const meta = el('span', 'move__meta');
   const type = typeChip(move.type, { tip: `type:${move.type}` });
@@ -1525,7 +1488,6 @@ function renderMove(
   // on the phone Stage 5 is about. Text lives in data/categoryInfo.ts.
   const category = categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` });
 
-  const power = el('span', 'move__power');
   /*
    * The em dash is gone for a status move that has something to say.
    *
@@ -1533,10 +1495,7 @@ function renderMove(
    * is not what the player needed there. `move.effect` is non-null exactly when
    * the projection found a readout to put in its place.
    */
-  power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
-  // Section 3 gives base power an inspect entry. M1.2 mounts it, here and on
-  // the card below, so the largest number on the face answers when held.
-  power.dataset['tip'] = `power:${move.name}`;
+  const power = movePower(move.category, move.basePower);
   meta.append(type, category);
   if (move.effect) meta.append(moveEffectLine(move.effect));
   else meta.append(power);
@@ -1569,7 +1528,7 @@ function renderMove(
    * stays here — but the *reason* they are suppressed is different, and the
    * projection no longer conflates them. See core/battle/effectiveness.ts.
    */
-  const label = move.band === null || move.band === 'neutral' ? null : formatEffectiveness(move.effectiveness);
+  const label = move.band === null || move.band === 'neutral' ? null : effectivenessFraction(move.effectiveness);
   // Built here, rendered by the strip: it closes the fact line rather than
   // sitting on the wrapping meta row. See `moveFactStrip`'s `extras`.
   let effectBadge: HTMLElement | null = null;
@@ -1608,13 +1567,36 @@ function renderMove(
     effectBadge = badge;
   }
 
-  const pp = el('span', 'move__pp');
+  /*
+   * **The coloured left edge. Section 2, and milestone M2.2.**
+   *
+   * Section 2 gives the effectiveness family "a coloured left edge on the
+   * button plus the multiplier as a fraction or numeral". The edge is the
+   * half that reads without being looked at: four buttons scanned at a glance
+   * show which one the board favours before a single numeral is parsed.
+   *
+   * **It is the one verdict-shaped thing in the game, and C1 names it.** The
+   * constraint's single exception is "live type effectiveness against the
+   * Pokemon currently on the field", which is a fact about the present board
+   * rather than a hint about a future decision. Nothing else on any surface
+   * gets a colour that means better or worse.
+   *
+   * **Colour is the secondary channel, which is what makes red and green
+   * safe.** The fraction carries the same fact in a channel colour vision
+   * cannot touch, exactly as the type chip's glyph carries the type and its
+   * hue only repeats it. An edge with no numeral beside it would be the
+   * version section 2's "colour-blind checked" rules out.
+   *
+   * Neutral sets nothing at all, so the attribute's absence is the default
+   * and R4 holds: three of four buttons usually carry no edge, and the one
+   * that does is read because the others do not.
+   */
+  if (move.band && move.band !== 'neutral') button.dataset['effect'] = move.band;
+
+  // Both halves: this is the one surface that knows the remaining count, and
+  // section 3 dims the max rather than dropping it.
+  const pp = movePp(move.maxPp, move.pp);
   pp.dataset['tutorial'] = 'pp';
-  pp.textContent = `PP ${move.pp}/${move.maxPp}`;
-  // Both halves ride on the trigger: this is the one surface that knows them.
-  pp.dataset['tip'] = 'pp:counter';
-  pp.dataset['value'] = `${move.pp}/${move.maxPp}`;
-  if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
 
   /*
    * **The button is its own insertion point. Milestone M1.2, R8 and R5.**
@@ -1636,18 +1618,39 @@ function renderMove(
    * patch's argument is untouched and is now cheaper.
    */
   button.dataset['tip'] = `move:${move.id}`;
-  const footer = el('span', 'move__footer');
-  footer.append(pp);
+  /*
+   * **The footer is gone with the control it existed to sit beside. M2.1.**
+   *
+   * `.move__footer` was a flex row holding PP at the left and the `?` chip at
+   * the right, so that the explanation control cost no height of its own. M1.2
+   * removed the chip and D15 removed the expander that was the card's version
+   * of it, which leaves a wrapper around a single child — and its stylesheet
+   * rule went out with the expander's block, so it was an unstyled `<span>`
+   * changing the button's layout for nothing.
+   *
+   * PP is appended directly, exactly as `moveCard` appends it. Both call sites
+   * now build the same face out of the same parts, which is what R1 asks of a
+   * component with two of them.
+   */
 
   // Call site one of two: the battle button, off the projection's own
   // `facts`. `scene.ts` may not reach `describeMove`, so the list arrives
   // derived. Mirrors `moveBandChip`, and like it the two sites stay two.
-  const strip = moveFactStrip(move.facts, { band, effect: effectBadge });
-  // The watermark first, so every other child paints over it without anything
-  // here needing a z-index. It is positioned out of flow, so its place in the
-  // child order costs the layout nothing.
-  const watermark = typeWatermark(move.type);
-  button.append(...(watermark ? [watermark] : []), name, meta, ...(strip ? [strip] : []), footer);
+  const strip = moveFactStrip(move.facts, { band, effect: effectBadge, accuracy: moveAccuracy(move.facts) });
+  /*
+   * **The type watermark is gone, and it was a live R3 violation. M2.1.**
+   *
+   * R3: never render the same attribute twice on one surface at rest, and its
+   * forbids list opens with "type glyph plus type name". The button carried
+   * both — the watermark here and the word in the chip above — which M0.2's
+   * redundancy audit found before any glyph work started.
+   *
+   * M2.1 makes the chip's *glyph* the type's one channel, so the watermark is
+   * now the same mark twice rather than a mark beside a word. It is the
+   * cheaper of the two to lose: it is decorative, it is `aria-hidden`, and
+   * nothing reads it. The chip is the one that carries the accessible name.
+   */
+  button.append(name, meta, ...(strip ? [strip] : []), pp);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }
@@ -1723,10 +1726,28 @@ export function moveFactStrip(
    * no-verdicts rule — so it is the one field whose presence must not shift
    * anything else.
    */
-  extras: { band?: HTMLElement | null; effect?: HTMLElement | null } = {},
+  extras: { band?: HTMLElement | null; effect?: HTMLElement | null; accuracy?: HTMLElement | null } = {},
 ): HTMLElement | null {
-  const { band = null, effect = null } = extras;
-  if (facts.length === 0 && !band && !effect) return null;
+  const { band = null, effect = null, accuracy = null } = extras;
+  /*
+   * **Accuracy and priority leave the strip here, and R3 is what decides it.**
+   *
+   * Section 3 gives both their own slot on the card face — accuracy a number
+   * beside the target glyph, priority a chevron beside the name — and they are
+   * also two of `MOVE_FACT_IDS`. Mounting the bible's face while keeping them
+   * in the strip renders each fact twice on one surface, which is exactly what
+   * R3 forbids. The inventory (M0.2) found this before anything was built; the
+   * only option inside the bible is that the strip gives them up.
+   *
+   * Filtered here rather than dropped from `MOVE_FACT_IDS`, because that list
+   * is `core/`'s and the ids are still real facts: the explanation prints them,
+   * the inspect panels key off them, and `movefact:accuracy` is still the tip
+   * the new slot opens. What changed is which of them the *strip* draws.
+   */
+  const stripped = facts.filter((fact): fact is MoveFact & { id: StripFactId } =>
+    !(MOVE_FACT_OWN_SLOT as readonly string[]).includes(fact.id),
+  );
+  if (stripped.length === 0 && !band && !effect && !accuracy) return null;
   const row = el('span', 'move__facts');
 
   if (band) {
@@ -1740,6 +1761,16 @@ export function moveFactStrip(
    * the whole defect: `MOVE_FACT_COLUMN`'s comment has the co-occurrence
    * evidence that lets four columns hold nine fields with nothing dropped.
    */
+  if (accuracy) {
+    // Section 3's accuracy slot opens the strip, after the band and before the
+    // columns, so it sits in the same place on every card whatever else the
+    // move carries. Appended here rather than placed by the grid alone,
+    // because reading order is the DOM's and a slot that laid out second while
+    // announcing fifth would read wrong to anything that is not a screen.
+    accuracy.classList.add('move__facts-accuracy');
+    row.append(accuracy);
+  }
+
   const cells = Array.from({ length: MOVE_FACT_COLUMNS }, (_, index) => {
     const cell = el('span', 'move__fact-cell');
     cell.dataset['column'] = String(index + 1);
@@ -1747,7 +1778,7 @@ export function moveFactStrip(
     return cell;
   });
 
-  for (const fact of facts) {
+  for (const fact of stripped) {
     const info = MOVE_FACT_INFO[fact.id];
     // A tooltip trigger like every other badge on screen — `data-tip`, one
     // delegated layer, words from `data/`. That is what keeps an icon
@@ -1831,6 +1862,163 @@ export const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
  * has no remaining PP: printing "PP 0/24" for an offer would be stating a
  * resource the player has not spent.
  */
+/**
+ * The forecast multiplier, as section 2 spells it. **Milestone M2.2.**
+ *
+ * Section 2: *"the multiplier as a fraction or numeral (¼, ½, 2, 4)"*. The
+ * tree printed `0.5x` and `0.25x`, which are the same numbers in the form a
+ * calculator would choose — three glyphs where one will do, on the surface
+ * with the least room in the game.
+ *
+ * **The number still comes from `core/`, and only its spelling is here.**
+ * M2.2's done-when is that "the forecast comes from the core effectiveness
+ * helper and nothing else", and it does: `move.effectiveness` is
+ * `result.multiplier` off the projection, unrounded and unreinterpreted. What
+ * this function does is choose a numeral, which is presentation and belongs
+ * nowhere else — `core/` may not know that ¼ is how a quarter is drawn.
+ *
+ * A multiplier the chart cannot produce falls back to the plain number rather
+ * than to a guess at a nice glyph, so an unexpected value arrives visible and
+ * odd instead of silently rendering as something it is not.
+ */
+export function effectivenessFraction(multiplier: number | null): string | null {
+  if (multiplier === null || multiplier === 1) return null;
+  const VULGAR: Record<string, string> = { '0.25': '¼', '0.5': '½' };
+  return VULGAR[String(multiplier)] ?? String(multiplier);
+}
+
+/**
+ * Base power: the bare number, and the largest text on the card. **M2.1, R2.**
+ *
+ * Section 3 gives it "bare number, largest text on the card, fixed slot", and
+ * R2 forbids the `BP` that stood beside it — *"'90' is not text load. 'BP 90'
+ * is."* The label survives as a word form the stylesheet renders in Detailed
+ * and Simple only, per D16.
+ *
+ * A status move has no base power and says so with the em dash it always did,
+ * which is an explicit "nothing here" rather than a slot that collapsed.
+ */
+export function movePower(category: MoveUiView['category'], basePower: number): HTMLElement {
+  const power = el('span', 'move__power');
+  const value = el('span', 'move__power-value');
+  value.textContent = category === 'Status' ? '—' : `${basePower}`;
+  const label = el('span', 'move__label');
+  /*
+   * The space lives in the label, not in a gap. **Both are needed and they are
+   * not the same thing.**
+   *
+   * `textContent` is what a screen reader reads and what `scripts/smoke.mjs`
+   * and the visual harness parse to find the hardest move. Splitting `90 BP`
+   * into two spans made it `90BP`, which reads as one token. The label carries
+   * the space so the announced string is what it always was, and the
+   * stylesheet carries a gap so the rendering does not depend on whitespace
+   * surviving a flex container.
+   */
+  label.textContent = ' BP';
+  power.append(value, label);
+  power.dataset['tip'] = `power:${category === 'Status' ? 'status' : basePower}`;
+  return power;
+}
+
+/**
+ * PP: the glyph, the number, and the max dimmed behind it. **M2.1, section 3.**
+ *
+ * `remaining` is null on a card for a move nobody knows yet — a reward, a TM
+ * shelf, a recipient — where section 3 says to show the max alone. Everywhere
+ * else both halves render and the max is dimmed rather than dropped, because
+ * "12" without "/35" is a number the player cannot size.
+ */
+function movePp(maxPp: number, remaining: number | null): HTMLElement {
+  const pp = el('span', 'move__pp');
+  const label = el('span', 'move__label');
+  // The trailing space for the same reason as base power's leading one: the
+  // announced and parsed string stays `PP 35`, not `PP35`.
+  label.textContent = 'PP ';
+  pp.append(label);
+  const mark = glyphNode('pp');
+  if (mark) pp.append(mark);
+
+  const value = el('span', 'move__pp-value');
+  value.textContent = `${remaining ?? maxPp}`;
+  pp.append(value);
+  if (remaining !== null) {
+    const max = el('span', 'move__pp-max');
+    max.textContent = `/${maxPp}`;
+    pp.append(max);
+  }
+
+  pp.dataset['tip'] = 'pp:counter';
+  pp.dataset['value'] = `${remaining ?? maxPp}/${maxPp}`;
+  if (maxPp > 0 && (remaining ?? maxPp) / maxPp <= 0.25) pp.classList.add('move__pp--low');
+  return pp;
+}
+
+/**
+ * Accuracy, and only when it departs from the default. **M2.1, R4.**
+ *
+ * R4's defaults render nothing, and accuracy's default is 100. The never-miss
+ * case is the ruling R4 carries in its own text: absence means "100 and
+ * applies", so a move that *cannot* miss shows a distinct mark, because an
+ * evasion stage can make a 100-accuracy move miss and cannot touch this one.
+ *
+ * `accuracy` arrives as `true` for never-miss and a number otherwise, which is
+ * `core/moveFacts.ts`'s distinction and the reason it refused to print `100`
+ * for both.
+ */
+function moveAccuracy(facts: readonly MoveFact[] | undefined): HTMLElement | null {
+  /*
+   * **No fact data is not the same as never-miss, and the difference is a
+   * whole glyph.**
+   *
+   * `moveFactsOf` emits an accuracy fact whenever `accuracy` is a number —
+   * including 100 — and emits none when it is `true`, which is the never-miss
+   * case. So *within a list it built*, an absent accuracy means never-miss and
+   * nothing else. A caller that passed no list at all has said nothing about
+   * accuracy, and gets no slot rather than a mark claiming the move cannot
+   * miss.
+   */
+  if (!facts) return null;
+  const fact = facts.find((entry) => entry.id === 'accuracy');
+  if (!fact) {
+    const slot = el('span', 'move__accuracy move__accuracy--never-miss');
+    const mark = glyphNode('accuracy-never-miss', { label: 'Never misses' });
+    if (mark) slot.append(mark);
+    slot.dataset['tip'] = 'movefact:accuracy';
+    return slot;
+  }
+  const accuracy = Number(fact.value);
+  if (!Number.isFinite(accuracy) || accuracy >= 100) return null;
+  const slot = el('span', 'move__accuracy');
+  const mark = glyphNode('accuracy-target');
+  if (mark) slot.append(mark);
+  const value = el('span', 'move__accuracy-value');
+  value.textContent = `${accuracy}`;
+  slot.append(value);
+  slot.dataset['tip'] = 'movefact:accuracy';
+  return slot;
+}
+
+/**
+ * The priority chevron, beside the name, nonzero only. **M2.1, section 2.**
+ *
+ * Section 2 puts it "beside the move name" and R4 renders nothing at zero.
+ * Up for a positive bracket, down for a negative one — the same two marks the
+ * Pokemon panel will use in M4.2 for the turn-order flash, which is why they
+ * come out of the one sheet rather than being drawn here.
+ */
+function movePriority(facts: readonly MoveFact[] | undefined): HTMLElement | null {
+  // Absent means zero here, which R4 renders as nothing — `moveFactsOf` only
+  // emits the fact for a nonzero bracket, so absence and default agree.
+  const priority = Number(facts?.find((entry) => entry.id === 'priority')?.value ?? 0);
+  if (!priority || !Number.isFinite(priority)) return null;
+  const mark = glyphNode(priority > 0 ? 'priority-up' : 'priority-down', {
+    label: priority > 0 ? 'Moves first' : 'Moves last',
+    extra: 'move__priority',
+  });
+  if (mark) mark.dataset['tip'] = 'movefact:priority';
+  return mark;
+}
+
 export function moveFacts(move: {
   name: string;
   type: string;
@@ -1868,6 +2056,22 @@ export function moveFacts(move: {
    * Absent and null render identically and both mean "no bracket applies".
    */
   band?: number | null;
+  /**
+   * PP remaining, when the surface knows it. **M2.1.**
+   *
+   * Section 3: the max alone is what a reward, a TM shelf and a recipient card
+   * show, because nobody has spent any yet; everywhere the move is *held* both
+   * halves render with the max dimmed.
+   *
+   * It is a parameter because it used to be a rewrite. `member-card.ts` and
+   * `screens/move-replace.ts` both built the card and then overwrote
+   * `facts.pp.textContent` with a string of their own — which was survivable
+   * when PP was one text node and is not now: the label, the glyph and the two
+   * numbers are separate spans, and assigning `textContent` deletes all four.
+   * A screen that reaches into a component to rewrite a slot is the defect
+   * section 5 exists to name, so the component takes the number instead.
+   */
+  pp?: number | null;
 }): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement; strip: HTMLElement | null } {
   const name = el('span', 'move__name');
   name.textContent = move.name;
@@ -1876,31 +2080,84 @@ export function moveFacts(move: {
   const type = typeChip(move.type, { tip: `type:${move.type}` });
   const category = categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` });
 
-  const power = el('span', 'move__power');
-  power.textContent = move.category === 'Status' ? '' : `${move.basePower} BP`;
-  power.dataset['tip'] = `power:${move.name}`;
+  const power = movePower(move.category, move.basePower);
   meta.append(type, category);
   // The status readout takes the region base power would have occupied. A card
   // with neither — a status move nothing could be said about — falls back to
   // the em dash, which is at least an explicit "nothing here".
   if (move.effect) meta.append(moveEffectLine(move.effect));
-  else if (move.category === 'Status') {
-    power.textContent = '—';
-    meta.append(power);
-  } else meta.append(power);
+  else meta.append(power);
   // The band, in the same place on the card as on the button: at the head of
   // the fact line. The two call sites stay two and the placement stays one.
   const band = moveBandChip(move.band);
 
-  const pp = el('span', 'move__pp');
-  pp.textContent = `PP ${move.maxPp}`;
-  // A move nobody knows yet has no remaining PP, so both halves are the max.
-  // Section 3's "max and remaining" is still honest: they are the same number.
-  pp.dataset['tip'] = 'pp:counter';
-  pp.dataset['value'] = `${move.maxPp}/${move.maxPp}`;
+  // Section 2 puts the chevron "beside the move name", so it rides the name
+  // rather than the fact line. The same mark, in the same place, on both call
+  // sites — which is R1, and is why it is built here and not per screen.
+  const priority = movePriority(move.facts);
+  if (priority) name.append(priority);
+
+  // Absent means nobody has spent any, which is section 3's "reward, TM and
+  // recipient cards show max only". A surface that knows the remaining count
+  // passes it and gets both halves with the max dimmed.
+  const pp = movePp(move.maxPp, move.pp ?? null);
 
   // Call site two of two: every card outside a battle, off `MoveCardData`.
-  return { name, meta, pp, strip: moveFactStrip(move.facts ?? [], { band }) };
+  return { name, meta, pp, strip: moveFactStrip(move.facts ?? [], { band, accuracy: moveAccuracy(move.facts) }) };
+}
+
+/**
+ * A move as a chip: name, type, category, base power. **Milestone M2.3.**
+ *
+ * Section 5's component canon lists it beside the move card — *"Move chip |
+ * Name, type chip, category glyph, BP | Replacement and teach lists"* — and
+ * the census recorded it `absent` from Tier 0 until now. It is the compact
+ * form of the same face, not a different one: the same `typeChip`, the same
+ * `categoryChip`, the same `movePower`, so a move looks like itself wherever
+ * it is met and R1's fixed slots survive the shrink.
+ *
+ * **What it deliberately leaves out is PP and the band**, and that is the
+ * item's bet rather than an oversight. The replacement screen showed five full
+ * cards and the decision it asks for — which of four to displace — is a
+ * comparison the full face makes harder rather than easier, because the fields
+ * that differ are buried among the fields that do not. Section 3's kills-it
+ * for M2.3 names the disconfirmer: if testers expand every chip before
+ * choosing, the chip is missing something they need and PP comes back.
+ *
+ * It is a `<button>` because every site that draws one is asking the player to
+ * pick it. The confirm that follows is the caller's.
+ */
+export function moveChip(move: {
+  id?: string;
+  name: string;
+  type: string;
+  category: MoveUiView['category'];
+  basePower: number;
+}): HTMLButtonElement {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = `move move--chip move--${move.type.toLowerCase()}`;
+  chip.dataset['category'] = move.category.toLowerCase();
+
+  const name = el('span', 'move__name');
+  name.textContent = move.name;
+
+  const meta = el('span', 'move__meta');
+  meta.append(
+    typeChip(move.type, { tip: `type:${move.type}` }),
+    categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` }),
+    movePower(move.category, move.basePower),
+  );
+
+  chip.append(name, meta);
+  // The same inspect trigger the card carries, for the same reason: a compact
+  // form is exactly where a player is most likely to want the full one, and
+  // R5 puts that behind the long press rather than behind a second control.
+  if (move.id) {
+    chip.dataset['tip'] = `move:${move.id}`;
+    chip.dataset['tipHover'] = 'off';
+  }
+  return chip;
 }
 
 /**
@@ -1916,6 +2173,8 @@ export function moveCard(move: {
   category: MoveUiView['category'];
   basePower: number;
   maxPp: number;
+  /** PP remaining, when the surface knows it. Passed through to `moveFacts`. */
+  pp?: number | null;
   tags?: readonly MoveTag[];
   /** The fact strip for the face. Passed straight through to `moveFacts`. 4.8.0.3. */
   facts?: readonly MoveFact[];
@@ -1946,38 +2205,46 @@ export function moveCard(move: {
   const card = el('div', `move move--card move--${move.type.toLowerCase()}`);
   card.dataset['category'] = move.category.toLowerCase();
   const facts = moveFacts(move);
-  card.append(facts.name, facts.meta, ...(facts.strip ? [facts.strip] : []));
+  card.append(facts.name, facts.meta, ...(facts.strip ? [facts.strip] : []), facts.pp);
 
+  /*
+   * **The card is the inspect trigger, and the `Explain` expander is gone.
+   * Milestone M2.1, closing D15.**
+   *
+   * `ui/move-explanation.ts` rendered a button reading `Explain` under every
+   * move card outside a battle — one call site here, so all six card surfaces,
+   * and the census counted **24 of them on the summary screen alone**. R5
+   * allows exactly one explanation mechanism and its forbids list names "a
+   * help button"; section 7 rejects a legend control in as many words, as *"a
+   * mechanism the player must know exists"*. M1.2 folded the type wheel and
+   * the band tooltip into the long press and left this because the item named
+   * only those two.
+   *
+   * **The real reason it survived was the keyboard, and that is what this
+   * replaces rather than drops.** Long press is not a keyboard gesture, and a
+   * move card outside a battle was not focusable, so the expander was the only
+   * way to reach an explanation without a pointer. The card is now a real
+   * focusable trigger: the tooltip layer already answers Enter and Space on
+   * one, so the path survives and stops being a second mechanism.
+   *
+   * `move:` and not a new key — it is the panel the battle button has opened
+   * since M1.2, and `renderMoveRows` prints every row the expander printed. A
+   * move looks the same everywhere the player meets it, which was the density
+   * patch's argument for the expander and is now free.
+   *
+   * The `id` is what the panel is keyed by, so a card with no explanation to
+   * give is not made focusable and advertises nothing.
+   */
   if (move.explanation) {
-    /*
-     * **The trigger shares the PP row rather than taking one of its own, and
-     * that is a measurement rather than a preference.**
-     *
-     * The first version gave it a full-width row. Three reward cards on the
-     * result screen then ran 951.75px deep against an 844 fold, and the V2
-     * confirm band lost its clearance over a pinned card — two guarded
-     * properties, one cause. A move card is drawn three-up on the result
-     * screen and four-up on a party card, so anything that costs a row here
-     * costs three or four rows on a phone.
-     *
-     * PP is a short string on its own line with the rest of the line empty, so
-     * the control fits beside it for nothing.
-     */
-    const footer = el('div', 'move__footer');
-    // A stable id per card instance, so `aria-controls` points at this panel
-    // and not at the first one on a screen showing four.
-    explainSeq += 1;
-    const { trigger, panel } = moveExplanation(move.explanation, move.allTags ?? [], `move-explain-${explainSeq}`);
-    footer.append(facts.pp, trigger);
-    card.append(footer, panel);
-  } else {
-    card.append(facts.pp);
+    card.dataset['tip'] = `move:${move.explanation.id}`;
+    // Hover opens the panel for a chip; for a whole card it opens whenever the
+    // cursor passes over one, and then covers it. See `ui/tooltips.ts`.
+    card.dataset['tipHover'] = 'off';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
   }
   return card;
 }
-
-/** Ids for the expander panels. Per document, never serialized, never logged. */
-let explainSeq = 0;
 
 
 /**
