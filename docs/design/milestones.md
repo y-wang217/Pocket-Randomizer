@@ -39,7 +39,7 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Twenty of twenty-one discrepancy rows are ruled** — eleven on 2026-09-19,
+**Twenty-one of twenty-two discrepancy rows are ruled** — eleven on 2026-09-19,
 which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
 Tier 2, all on 2026-09-20, then D18 on 2026-09-21 opening Tier 3. **D14 is the
 one open row**, it blocks nothing, and it is timed with M5.6. **D19 is deferred
@@ -338,13 +338,15 @@ verified on the second engine; CI promotes that skip to a failure, which is
 where it will be checked. `contentHash` holds at `d4e080` across all three
 items and no version axis moved.
 
-**The one figure Tier 3 misses.** Section 4 budgets the decline overlay at 4
-words and it measures **5** — `Forfeit this reward?` is 3 under the counting
-rule and a confirm cannot have fewer than two controls. D1's own table reads
-that row as *"Counting the rule as written: 3"*, so the figure was derived from
-the question alone, before `ui/band.ts` existed. Pinned by a test rather than
-the census, because no fixture opens a confirm and that component reads
-`absent`.
+**The one figure Tier 3 missed is now D22, ruled.** The decline overlay
+measures 5 against a budget of 4 — the question is 3 under the counting rule
+and a confirm cannot have fewer than two controls. D1's own table reads that
+row as *"Counting the rule as written: 3"*, so the figure was derived from the
+question alone, before `ui/band.ts` existed. **Ruled: 6**, matching the replace
+overlay, which is the same component. Bible **Rev 4**, and section 9 carries
+the bet — a ceiling raised to fit what shipped is watched, not trusted. Pinned
+by a test rather than the census, because no fixture opens a confirm and that
+component reads `absent`.
 
 | Item | Status | Blocked by |
 |---|---|---|

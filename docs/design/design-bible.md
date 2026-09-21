@@ -1,6 +1,14 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 3, Sept 21, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 4, Sept 21, 2026.
+
+**Rev 4** carries one amendment, ruled 2026-09-21 on row D22: the decline
+overlay's budget rises from 4 to 6, matching the replace overlay, because both
+are `ui/band.ts` and a confirm cannot have fewer than two controls. No rule
+moved — a figure that was derived before the component existed was corrected to
+the component. Section 9 carries the bet it makes, because a ceiling raised to
+fit what shipped is exactly the kind of change that should be watched rather
+than trusted.
 
 **Rev 3** carries one amendment, ruled 2026-09-21 on row D19 of
 [`bible-discrepancies.md`](bible-discrepancies.md). The ability and the
@@ -175,7 +183,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Locale card | 0 | Locale name plus four type chips |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
-| Confirm overlay (decline) | 4 | "Forfeit this reward?" |
+| Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
 | Map node card | 0 | Nothing |
 | Shop stock card | 8 | Follows the reward card, plus price number |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
@@ -190,6 +198,14 @@ has nothing to trade the word for, and the budget says so rather than
 pretending the word is not there. Volatile conditions are not budgeted
 separately: they are three-letter chips in the Status family, and the counting
 rule already treats a three-letter chip as the glyph rather than as a word.
+
+**The decline overlay's 4 became 6** (ruled 2026-09-21, D22), which is the
+replace overlay's figure, because the two are the same component doing the same
+job. D1's audit had already read that row as *"Counting the rule as written:
+3"* — the 4 was derived from the question alone, and `ui/band.ts` did not exist
+when it was written. A confirm cannot have fewer than two controls, so the
+question plus `Forfeit` and `Keep` is 5 against a ceiling of 4, and the number
+was wrong rather than the overlay. Section 9 carries the bet this makes.
 
 **Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one word per hit, and the battle screen's own budget excludes it.
 
@@ -276,6 +292,7 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
 | Nine glyph families is the right size | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
+| A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |
 
 The "three exposures" figure is a design guess with no study behind it. Everything else in this table has a precedent or a finding named in the research brief.
 

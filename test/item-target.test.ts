@@ -189,15 +189,19 @@ describe('the decline', () => {
   });
 
   /**
-   * Section 4 budgets the decline overlay at 4 words, and it measures **5**.
+   * Section 4 budgets the decline overlay at 6 words, and it measures **5**.
    *
    * The question is the record's, verbatim, and it counts 3 under the rule in
    * section 4's header — `Forfeit`, `this`, `reward`. The other two are the
-   * band's own controls, and a confirm cannot have fewer than two. D1 ruled
-   * that these figures are ceilings and that the counting rule stands, and its
-   * own table reads this row as *"Counting the rule as written: 3"* — the
-   * figure was derived from the question alone, before the band this overlay
-   * is built from existed.
+   * band's own controls, and a confirm cannot have fewer than two.
+   *
+   * **The budget was 4 and D22 raised it to 6**, matching the replace overlay,
+   * because both are `ui/band.ts` and only one of the two rows had been
+   * written against it: D1's audit already read this one as *"Counting the
+   * rule as written: 3"*, derived from the question alone before the component
+   * existed. Section 9 carries the bet that raise makes, so this assertion is
+   * the instrument for it — if the overlay ever reaches 6, that is the
+   * register's row firing, not a passing test.
    *
    * Asserted rather than left to the census because no gallery fixture opens a
    * confirm: the component reads `absent` on that table, and a budget nothing
@@ -209,7 +213,7 @@ describe('the decline', () => {
    * face hides is in `textContent` here. Counting the whole subtree would be
    * measuring the card twice and measuring it in the wrong mode.
    */
-  it('spends five words, which is one over a budget written for the question alone', () => {
+  it('spends five words, one under the ceiling D22 corrected', () => {
     const { screen } = render({ kind: 'tutor', move: 'Ice Beam' }, true);
     screen.root.querySelector<HTMLButtonElement>('.target__decline')?.click();
     const band = openBandOf();

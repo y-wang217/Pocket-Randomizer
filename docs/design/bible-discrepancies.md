@@ -37,6 +37,7 @@ which blocks everything.
 | D19 | nothing; timed with M3.2 | The ability and the volatile chips have no row anywhere in the bible | **deferred to M3.2** |
 | D20 | M3.2 | There are two six-stat components in the tree, and M3.1 made it three | **2026-09-21** |
 | D21 | M3.2's last line | The party row's "four move chips", and two done-when numbers other items own | **2026-09-21**; the drawer's own 13 words are recommended to M6.3 |
+| D22 | M3.3's done-when, then M7.2 | The decline overlay's budget was derived before the component it budgets existed | **2026-09-21** |
 
 ## Rulings, 2026-09-19
 
@@ -1474,3 +1475,51 @@ the density picker. It blocks nothing: M3.2 closed the party row, which is the
 half of section 4's row it owns. **Recommended for M6.3**, which is the item
 that touches the density default and will be reading that picker anyway, either
 as a budget line for the drawer's controls or by moving them off it.
+
+
+---
+
+## D22. The decline overlay's budget was derived before the component it budgets existed
+
+**Ruled 2026-09-21. The figure rises from 4 to 6, matching the replace
+overlay.** Filed and ruled the same day, inside M3.3, because the item that
+built the overlay is the item that measured it.
+
+M3.3 built the decline as `ui/band.ts`, the one confirm component, per the
+record: *"Decline copy: 'Forfeit this reward?' with the two cards."* It
+measures **5** words — `Forfeit`, `this`, `reward`, and the band's `Forfeit`
+and `Keep` — against section 4's ceiling of 4.
+
+**The overlay is not over-written; the number was wrong.** D1 audited this
+exact row on 2026-09-19 and recorded *"Counting the rule as written: 3"*. The 4
+was derived from the question alone, with one word of headroom, at a time when
+every confirm in the tree was three hand-rolled dialogs and `ui/band.ts` did
+not exist. A confirm cannot have fewer than two controls, so no copy satisfies
+4 except by shortening a question both the record and section 4 give verbatim.
+
+The replace overlay carries 6 and absorbs its two controls without comment,
+which is the tell: one of the two rows was written against the component and
+one was not.
+
+**What was rejected, and why.**
+
+- **5, exact.** Brittle in the way D1 refused for four other rows: any future
+  copy change on the overlay becomes an amendment rather than a budget check.
+- **Shorten the question to fit 4.** `Forfeit reward?` fits. It edits
+  player-facing copy that the record and the bible both give verbatim, in order
+  to satisfy an arithmetic error.
+- **Rule control labels out of the count.** Conceptually the cleanest — a
+  confirm's buttons are its mechanism — but it changes the counting rule D1
+  deliberately left standing, and it silently lowers several other surfaces'
+  measured numbers. Far more blast radius than the defect.
+
+**The bet, and it is being watched.** Raising a ceiling to fit what shipped is
+the change most likely to be wrong, so it is a row in section 9's register
+rather than a quiet edit: *if a confirm reaches 6 with copy that reads as
+padded, or a third control is ever needed on one, the controls come out of the
+count and every confirm budget drops by two* — rather than the ceiling rising
+a second time.
+
+`test/item-target.test.ts` pins the measured 5 either way, because no gallery
+fixture opens a confirm and the census reads that component `absent`. A budget
+nothing measures is a budget nothing holds.

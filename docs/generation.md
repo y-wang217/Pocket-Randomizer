@@ -9185,17 +9185,30 @@ same six controls under M5.3.
 The party row's remaining 21 is 18 on the capture list's controls (M5.4) and 3
 on the map rail's `Lead` chips (M5.2). Nothing of it is the component.
 
-### The one figure this item misses
+### The one figure this item missed, and the row it became
 
-Section 4 budgets the decline overlay at **4** words and it measures **5**:
+Section 4 budgeted the decline overlay at **4** words and it measures **5**:
 `Forfeit this reward?` is 3 under the counting rule, and the band's two
 controls are the other two. A confirm cannot have fewer than two controls.
 
-D1's own table reads that row as *"Counting the rule as written: 3"* — the
-figure was derived from the question alone, before `ui/band.ts` existed, and
-the question here is the record's verbatim. The cancel is `Keep`, the same word
-the replace confirm uses, so the two confirms in this game decline the same
-way.
+**Ruled 2026-09-21 as D22: the figure rises to 6**, which is the replace
+overlay's, because both are `ui/band.ts` doing the same job and only one of the
+two rows had been written against it. D1's own table reads this one as
+*"Counting the rule as written: 3"* — derived from the question alone, before
+the component existed. The overlay was not over-written; the number was wrong.
+Bible **Rev 4**.
+
+Shortening the question to fit 4 was rejected: it edits copy the record and
+section 4 both give verbatim in order to satisfy an arithmetic error. Ruling
+the controls out of the count was rejected for blast radius — it changes the
+counting rule D1 left standing and silently lowers several other surfaces.
+
+**The raise is watched rather than trusted.** Section 9 gains a row: if a
+confirm reaches 6 with copy that reads as padded, or a third control is ever
+needed on one, the controls come out of the count and every confirm budget
+drops by two, rather than the ceiling rising a second time. The cancel is
+`Keep`, the same word the replace confirm uses, so the two confirms decline the
+same way.
 
 Asserted in `test/item-target.test.ts` rather than left to the census, because
 no gallery fixture opens a confirm and the census reads that component
