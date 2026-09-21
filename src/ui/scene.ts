@@ -468,6 +468,26 @@ export function createScene(): Scene {
       root.dataset['faster'] = view.fasterSide;
       renderMoves(moves, view, onChoose);
       renderBench(bench, view, onChoose);
+      /*
+       * The chevron, on the panel a bracket put first. **M4.2, section 6 step
+       * 2, discrepancy D6.**
+       *
+       * M3.1 built the slot and left it empty; this is what fills it. Cleared
+       * on both panels first, because the attribute is the whole of the state
+       * — a turn that was not bracket-driven must leave no chevron behind, and
+       * R4 says the default renders nothing at all.
+       *
+       * The reflow between the clear and the set is the same trick the beats
+       * use one line down and for the same reason: re-setting an attribute an
+       * element already carries does not replay a CSS animation, so two
+       * priority turns running would flash once without it.
+       */
+      const mark = bracketMark(turns);
+      for (const panel of [me, foe]) delete panel.root.dataset['bracket'];
+      if (mark) {
+        void me.root.offsetWidth;
+        (mark.side === 'p1' ? me : foe).root.dataset['bracket'] = mark.way;
+      }
       beats({ me: meActor, foe: foeActor }, hit, order, marks ?? []);
     },
   };
@@ -667,6 +687,18 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    */
   for (const bracket of ['up', 'down'] as const) {
     const mark = glyphNode(`priority-${bracket}`, { label: `Moved ${bracket === 'up' ? 'first' : 'last'} on priority` });
+    /*
+     * And it opens the explanation the strip's own `Priority` chip opens.
+     * **M4.2, R5.**
+     *
+     * A glyph that opens nothing is the defect M1.2 found on every flag word
+     * on this screen: a focusable trigger with no panel behind it. `flag:`
+     * rather than `movefact:` because the two say different things — the card's
+     * chevron is a property of a move being offered, this one is a fact about
+     * the turn that just resolved, and `flag:priority` is already written for
+     * exactly that. One explanation, mounted twice, is R5's whole shape.
+     */
+    if (mark) mark.dataset['tip'] = 'flag:priority';
     if (mark) priority.append(mark);
   }
   const types = el('span', 'panel__types');
@@ -1434,6 +1466,39 @@ function actingOrder(turns: readonly FlaggedTurn[] | undefined): ('p1' | 'p2')[]
     if (!seen.includes(action.side)) seen.push(action.side);
   }
   return seen;
+}
+
+/**
+ * Which side a priority bracket put first this turn, and which way. **M4.2.**
+ *
+ * Section 6 step 2: *"First actor jiggles. If a bracket decided the order, the
+ * priority chevron flashes on that panel. Same-bracket turns are unmarked,
+ * matching the log rule."*
+ *
+ * **It is the log's rule because it is the log's reading.** `readTurns` sets
+ * `priority` on the earlier action of a pair whose brackets differ and never
+ * on a same-bracket turn, even one where both sides used a priority move; that
+ * answer arrives here on the `TurnAction` and is not recomputed. There is no
+ * Speed comparison in this file and no second call to a reader — the same
+ * reason `actingOrder` above takes the order it is handed.
+ *
+ * It reads `action`, never `flags`. `test/boundaries.test.ts` forbids this file
+ * from touching a flag at all, and the mapper's own `priority` flag is the
+ * strip's copy of this fact rather than its source: both read the bracket the
+ * log already marked, which is what stops the chevron and the strip disagreeing
+ * about a turn they are describing a few hundred pixels apart.
+ */
+function bracketMark(turns: readonly FlaggedTurn[] | undefined): { side: 'p1' | 'p2'; way: 'up' | 'down' } | null {
+  const latest = turns ? [...turns].reverse().find((turn) => turn.actions.length > 0) : undefined;
+  for (const { action } of latest?.actions ?? []) {
+    if (action.kind !== 'move' || !action.priority) continue;
+    // A bracket that put a move first is positive by construction — it beat the
+    // other side's — but the sign is read rather than assumed, because a
+    // negative bracket going first would mean the other move was lower still
+    // and the chevron would be claiming the wrong thing.
+    return { side: action.side, way: action.bracket > 0 ? 'up' : 'down' };
+  }
+  return null;
 }
 
 /**
