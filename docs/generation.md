@@ -9473,3 +9473,125 @@ either. **Both halves of this item are invisible to the instrument.** They are
 asserted directly instead — the chevron against a played Quick Attack turn, the
 edge against the stylesheet — and the fixture gap is now two items old and worth
 an item of its own before M7.2 measures anything.
+
+---
+
+## 63. The log at rest, and the instrument that was reading the wrong screen
+
+**Milestone M4.3**, 2026-09-21. Rules R11, R5 and C2; rows D24, D25, D26 and
+D28. Tier 4 closes. Presentation only; `contentHash` holds at `d4e080`.
+
+### The item was three words long and reached four rows
+
+> Verify the battle screen renders no log text at rest and the log sheet is
+> reachable by pull. If any turn-order text line survives on the battle screen,
+> remove it. Done when: census on the battle screen reads 0 outside the flag
+> strip.
+
+Neither "verify" held. The sheet was reachable by a **tap** on a button reading
+`History` and `ui/log-sheet.ts` had no gesture at all (D26). The line that
+survived was not a turn-order line but V5's event line, a sentence R11 does not
+allow and the item does not name (D25). And the done-when could not be met as
+written even after both, because what is left on that screen is the header, and
+no row in the bible had ever said what a header may carry (D28).
+
+### The battle screen, before and after
+
+`npm run census`, Pocket, less the app shell:
+
+| | before | after |
+|---|---:|---:|
+| Battle screen | 10 | **7** |
+| — header | 5 | 4 |
+| — event line | 1 | 0 |
+| — history control | 1 | 0 |
+| — flag words | 3 | 3 |
+
+Seven, and every one of them is budgeted: **four for the header D28 ruled at
+four, three for the two flag words D24 counts as two flags.** Zero outside the
+flag strip and the header, which is the done-when as its rows amended it.
+
+The flag strip component fell 11 to 6 across the two surfaces that carry it.
+
+### The five words the census should never have been counting
+
+**The fixture was measuring a screen the app does not render.** `ui/gallery.ts`
+built its battle node with `label: 'A loaded board'` and `opponent: 'A
+trainer'` — harness naming, five words, charged to the battle screen on every
+run since M0.1. `core/encounters.ts` writes the real ones: `Wild encounter` or
+`Trainer battle`, and `describeOpponent` gives `Trainer's <species>`. The
+fixture says those now.
+
+**And it was not counting a word that is always there.**
+`screens/battle.ts` builds the AI tier line only when it is given a segment;
+`ui/app.ts` passes `state.currentSegment`; the gallery passed nothing. So
+`Rookie`, `Seasoned` and `Ace` have rendered on every real battle screen since
+the tiers patch and been counted on none. The fixture passes segment 1 now.
+
+Together those are worth −5 and +1. **The correction that raised the number is
+the important one**: D17B's rule is that an instrument which flatters the item
+making the change is worse than an honest number, and this one had been
+flattering every item that touched this screen for the whole release.
+
+### What the event line spends now
+
+`Opposing Snorlax used Body Slam` → `Snorlax · Body Slam`. Two words gone and
+neither dropped:
+
+- **`Opposing`** is the side, and `.flags__event[data-side]` has drawn the side
+  since V5 *"in the same mark the chips wear one line over"*. The word was a
+  second channel for a fact that already had one, which is R3.
+- **`used`** is the relation between the one actor and the one move on the
+  line, and there is no other relation it could be. The separator carries it,
+  as the header's does between an opponent and its tier.
+
+**One fact did leave the board**: `came in for Golem` named the body that was
+replaced, and a switch line is now the arriving body alone. The panel has
+already redrawn by the time the line is read, so the board never held the
+pairing either — it is in the sheet, with every other line this screen no
+longer writes.
+
+### The handle, and the floor it does not have
+
+The control is a grab handle: two bars in the stylesheet, no text node, the
+accessible name kept because it is not rendered and the census counts what is.
+**Not a glyph** — section 2's nine families are attributes of a Pokemon or a
+move, a control is neither, and a `history` glyph would be a tenth family for
+furniture. What it draws is the shape of the thing it opens.
+
+`onPullUp` in `ui/log-sheet.ts` is the gesture: pointer events so one
+implementation covers finger, pen and mouse; pointer capture so a pull that
+leaves a small control is still that control's pull; upward only, because the
+sheet comes up from the bottom and a downward drag points away from it. The
+threshold is `logPullPx`, **24**, in `data/displayTuning.ts` beside
+`inspectHoldMs` and off the `contentHash` glob for the same reason — the first
+playtest that says "it opens when I try to read the strip" can move it without
+refusing a seed.
+
+**The tap survives, deliberately.** A pull is not a keyboard gesture, a control
+that answered only a drag would be unreachable without a pointer, and section
+7's objection to a mechanism a player must know exists applies hardest to one
+that is invisible. Two routes, one `open`, both wired in `screens/battle.ts`
+because the sheet still never opens on its own.
+
+**And it is 24px tall, not 44.** The 44px touch floor M2.2 stated for the move
+button was refused here and the refusal is the interesting part: V5 budgets this
+strip at one 24px band, `test/visual-v5.test.ts` asserts it, and the first cut —
+which took the floor — pushed the band to 44 and failed that test. Twenty pixels
+off the board on the screen whose budget is the whole stage. `.flags` carries
+`overflow: hidden`, so the usual oversized-pseudo-element hit area would be
+clipped rather than honoured. The width grew to 44 instead, which is the axis a
+thumb reaching for a handle at the end of a row actually misses in.
+
+### What R7 was promised and did not get
+
+D26's ruling says *"let R7's exposure label carry the first encounter"*. **It
+cannot yet**: M1.3 built the exposure store and counts, and nothing renders a
+label until M6.1. The handle is visible, it is a button, and the tap is
+unchanged, so nothing is unreachable in the meantime — but a player is not told
+the pull exists.
+
+Recorded as an input to **M6.2**, which re-anchors the coach marks, rather than
+by inventing a second labelling mechanism here. Section 7 gives coach marks,
+exposure labels and inspect one job each, and a gesture affordance is the coach
+marks' job rather than a glyph family's.

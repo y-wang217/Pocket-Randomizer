@@ -16,8 +16,23 @@
  *
  * The plan's word, and it is the property that makes the sheet safe rather than
  * merely small: a panel that appeared over the move grid because something
- * happened would cover the decision on the turn it most mattered. `open` has
- * exactly one caller, the strip's history control, and it is a click handler.
+ * happened would cover the decision on the turn it most mattered. `open` is
+ * called only by the strip's handle — by a click, or since M4.3 by a pull — and
+ * `screens/battle.ts` is the one place either becomes an open.
+ *
+ * ## Two gestures, one control
+ *
+ * **M4.3, row D26.** The item asks for the sheet to be *"reachable by pull"*,
+ * and it was reachable only by tapping a button that read `History` — a word
+ * at rest on a screen budgeted at zero outside the strip's flags and the
+ * header. `onPullUp` below is the gesture; the handle it is attached to is
+ * drawn as a grab handle and carries no text node at all.
+ *
+ * The tap survives, and that is deliberate rather than incidental: a pull is
+ * not a keyboard gesture, a control that only answered a drag would be
+ * unreachable without a pointer, and section 7's objection to a mechanism a
+ * player must know exists applies hardest to one that is invisible. The pull
+ * is the addition; the click is still the route that was always there.
  *
  * ## The three properties it borrows from the drawer
  *
@@ -37,6 +52,7 @@
  * `display` rule beats it, so an overlay toggled with `hidden` and styled with
  * `display: flex` is an invisible scrim eating every tap on the screen below.
  */
+import { DEFAULT_DISPLAY_TUNING, type DisplayTuning } from '../data/displayTuning';
 import { el } from './dom';
 import { createOverlay } from './overlay';
 
@@ -86,5 +102,70 @@ export function createLogSheet(): LogSheet {
     },
     close: () => overlay.close(),
     isOpen: () => overlay.isOpen(),
+  };
+}
+
+
+/**
+ * Open on a pull upward, without taking the tap away. **M4.3, row D26.**
+ *
+ * ## Why this is not a `touchmove` handler
+ *
+ * Pointer events, so one implementation covers finger, pen and mouse, and so
+ * the browser's own capture keeps delivering moves after the pointer leaves the
+ * handle — a pull that travelled off a 24px control and stopped being tracked
+ * would be a gesture that works only if you pull slowly and straight.
+ *
+ * ## Why it does not cancel the click
+ *
+ * It does not have to. A pointer that never travels `logPullPx` is a tap and
+ * the click fires as it always did; one that does travel it opens the sheet
+ * here, and the click that follows finds the sheet already open, which `open`
+ * treats as a no-op through the overlay. The two routes cannot double-open.
+ *
+ * `preventDefault` on the move that crosses the threshold, because the default
+ * for a vertical drag on a phone is a scroll, and a strip that scrolled the
+ * board while opening a sheet over it would be two things happening at once.
+ *
+ * Returns a detach, for the same reason the screen's other listeners are
+ * detachable: a battle screen outlives one battle.
+ */
+export function onPullUp(
+  target: HTMLElement,
+  open: () => void,
+  tuning: DisplayTuning = DEFAULT_DISPLAY_TUNING,
+): () => void {
+  let from: { id: number; y: number } | null = null;
+
+  const down = (event: PointerEvent): void => {
+    from = { id: event.pointerId, y: event.clientY };
+    // Capture, so a pull that leaves the handle is still this handle's pull.
+    if (typeof target.setPointerCapture === 'function') target.setPointerCapture(event.pointerId);
+  };
+
+  const move = (event: PointerEvent): void => {
+    if (!from || event.pointerId !== from.id) return;
+    // Upward only: the sheet comes up from the bottom, so a pull down is a
+    // gesture pointing away from the thing it would open.
+    if (from.y - event.clientY < tuning.logPullPx) return;
+    from = null;
+    event.preventDefault();
+    open();
+  };
+
+  const end = (event: PointerEvent): void => {
+    if (from?.id === event.pointerId) from = null;
+  };
+
+  target.addEventListener('pointerdown', down);
+  target.addEventListener('pointermove', move);
+  target.addEventListener('pointerup', end);
+  target.addEventListener('pointercancel', end);
+
+  return () => {
+    target.removeEventListener('pointerdown', down);
+    target.removeEventListener('pointermove', move);
+    target.removeEventListener('pointerup', end);
+    target.removeEventListener('pointercancel', end);
   };
 }
