@@ -1104,6 +1104,32 @@ body {
 :root[data-density="pocket"] .chip__word { display: none; }
 
 /*
+ * **The status readout sits behind the press in Pocket. D17A, ruled 2026-09-20.**
+ *
+ * This looks like the rule D16 deleted and is the opposite of it. The old one
+ * hid `.move__effect` *and* base power *and* the fact strip, with no gesture
+ * that reached any of them: the `power:` trigger was on a hidden element and
+ * the card was not a trigger at all. That is C2 — a decision-relevant fact
+ * removed rather than re-encoded.
+ *
+ * What changed is that the tap now exists. M2.1 made the card and the button
+ * inspect triggers, and `moveExplanationRows` builds its Stat change, Status,
+ * Effect, Field, Healing and Priority rows from the *same* phrase functions
+ * `statusReadout` joins into this line — `boostPhrase`, `statusPhrase`,
+ * `effectPhrase`. Word for word, the readout is one press away.
+ *
+ * So R6 governs rather than C2: "density modes may change ... whether a
+ * secondary fact sits behind a tap". The readout is prose, the move face is
+ * budgeted at zero words, and R12 says a concept that needs a sentence gets
+ * restructured rather than written out. Restructuring it as glyphs is a real
+ * item and not this one; putting it behind the gesture that already answers is
+ * the move available inside the bible today.
+ *
+ * Detailed and Simple keep it on the face, per D16.
+ */
+:root[data-density="pocket"] .move .move__effect { display: none; }
+
+/*
  * And the reverse: the glyph is Pocket's encoding of a fact the other two modes
  * still spell out, so it does not render beside the word it replaces.
  *

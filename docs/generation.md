@@ -8419,3 +8419,36 @@ Four, all updated rather than weakened:
 is refused. `MOVE_FACT_IDS` still carries accuracy and priority — they are
 still facts, still printed by the explanation, still keyed by `movefact:` on
 inspect. What changed is which component draws them.
+
+### D17, ruled after this item shipped
+
+M2.1 filed D17 rather than reaching its own done-when, and both halves were
+ruled the same day. The census now reads **0 on the move card and 0 on the
+battle move button** in Pocket, from 61 and 16.
+
+**Part A: the status readout sits behind the long press in Pocket.** This is
+the rule D16 deleted, put back, and the difference is the whole of it — the old
+one hid the readout *with no gesture that reached it*, because the `power:`
+trigger was on a hidden element and the card was not a trigger. M2.1 made both
+into triggers, and `moveExplanationRows` builds its Stat change, Status,
+Effect, Healing and Priority rows from the same phrase functions
+`statusReadout` joins into the line. Word for word, one press away. So R6's
+"whether a secondary fact sits behind a tap" governs instead of C2's removal.
+Restructuring the readout as glyphs, which R12 would prefer, is a real item and
+is not this one.
+
+**Part B: the counting rule, narrowed after it was measured.** Two changes were
+recommended and one was wrong. `isBareNumber` now accepts a leading separator,
+because section 3 requires PP's max be dimmed, dimming needs its own span, and
+`24/24` was therefore arriving as `24` and `/24` — one number counted as a
+number and a word. That half is unarguable.
+
+The other half was to exempt all `aria-hidden` text, on the reasoning that a
+mark hidden from a screen reader carries no text load. **Building it and
+measuring what it excluded showed that is too broad.** The only thing it newly
+dropped was `.stamps`, the decorative corner stamp, which is `aria-hidden` and
+carries a seed string and a version a sighted player reads. An exemption that
+quietly stopped counting those would have been the census flattering a
+milestone, which is the failure D17 was filed to avoid. So `GLYPH_SLOTS` gains
+one selector — `.move__fact-icon`, the strip's drawings-that-are-characters —
+with its reason beside it, and the app shell still censuses 109.

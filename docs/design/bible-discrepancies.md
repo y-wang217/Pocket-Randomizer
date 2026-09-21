@@ -32,18 +32,14 @@ which blocks everything.
 | D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
 | D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
 | D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
-| D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **open** |
+| D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
 
 ## Rulings, 2026-09-19
 
-Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15 and D16
-closed 2026-09-20 opening Tier 2. **Fifteen of seventeen rows are ruled. Two
-are open: D14, timed with M5.6, and D17, which M2.1 opened after building
-itself — the face is green and its census delta is honest, and what is unruled
-is whether "reads 0" was ever reachable while the item keeps the icon strip and
-restores the status readout.** Each ruling is restated under its own row below;
-the
-bible amendments they produced are Rev 2, marked inline in
+Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
+D17 closed 2026-09-20 across Tier 2. **Sixteen of seventeen rows are ruled, and
+D14 is the one still open — it blocks nothing and is timed with M5.6.** Each
+ruling is restated under its own row below; the bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
 | Row | Ruling | Where it landed |
@@ -85,7 +81,10 @@ cannot be two items. D14 stays open and is still nobody's blocker.
 **What D16's ruling closes and what it leaves.** It closes C2. Pocket stops
 hiding base power, the category glyph, the status readout and the fact strip,
 because section 3's face *renders* all four — so building the face is what
-deletes the `display: none` block, not a separate decision. Detailed and Simple
+deletes the `display: none` block, not a separate decision. (**D17A later put
+the status readout back behind the long press**, which is not a reversal: the
+gesture that reaches it did not exist when this was ruled, and M2.1 is what
+created it.) Detailed and Simple
 were never hiding a fact; they label it. Once M2.1 lands, no mode removes a
 fact.
 
@@ -878,10 +877,36 @@ change improves the number of the item that would make it, and that is a thing
 to have ruled rather than to do quietly. **No bible amendment is involved
 either way.**
 
-### What M2.1 did about it
+### What M2.1 did about it, and what the ruling changed
 
-Nothing, deliberately, which is the same shape as D14. The face is built, the
-gate is green, and the census delta is committed as it actually reads —
-**61 → 15 and 16 → 14** — rather than as the item hoped. A number that had been
-massaged into 0 by the pass that produced it would be worth less than a number
-that is honest and explained.
+M2.1 filed it and shipped the honest number: **61 → 15 and 16 → 14**, committed
+as it read rather than as the item hoped.
+
+**Ruled 2026-09-20. Part A: option 2, behind the long press. Part B: fix the
+counting rule.** Both are now built and the census reads **0 on the move card
+and 0 on the battle move button** in Pocket.
+
+**A is safe because the tap exists now, and that is the whole difference from
+the rule D16 deleted.** `statusReadout` joins `boostPhrase`, `statusPhrase`,
+`effectPhrase`, `healPhrase` and `priorityPhrase`; `moveExplanationRows` builds
+its Stat change, Status, Effect, Healing and Priority rows from the *same*
+functions. The readout is word for word one press away, so hiding it in Pocket
+is R6's "whether a secondary fact sits behind a tap" and not C2's removal. The
+old rule hid it with no gesture that reached it, which is why that one was a
+violation and this one is not.
+
+**B was narrowed after it was measured, and the narrowing is the interesting
+part.** The recommendation above was to accept the leading separator *and*
+exempt all `aria-hidden` text, on the reasoning that a mark hidden from a
+screen reader carries no text load. The separator half is unarguable: section 4
+excludes bare numbers, and `24/24` arriving as `24` and `/24` is an artifact of
+section 3 requiring the max be dimmed, which needs its own span.
+
+The `aria-hidden` half was too broad, and building it showed why. The only
+thing it newly excluded was `.stamps` — the decorative corner stamp, which is
+`aria-hidden` and carries a seed string and a version a sighted player can
+read. An exemption that quietly stopped counting those would have been the
+census lying about a surface to flatter a milestone, which is the exact failure
+this row was filed to avoid. So `GLYPH_SLOTS` gains one selector,
+`.move__fact-icon`, with its reason beside it, and the app shell still censuses
+109.

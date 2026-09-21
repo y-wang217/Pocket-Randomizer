@@ -54,9 +54,19 @@
  *
  * ## Glyphs are not words
  *
- * `GLYPH_SLOTS` names the elements section 2 canonises as glyphs whose text is
- * the glyph: the three-letter status chip and the stat-stage multiplier. Their
- * text is not counted, because section 2 specifies it as the glyph's form.
+ * `GLYPH_SLOTS` names the elements whose text *is* the glyph: the three-letter
+ * status chip and the stat-stage multiplier, which section 2 canonises, and
+ * since D17B the move fact strip's icons, which it does not.
+ *
+ * **The strip's icons are the one entry section 2 does not name, and the
+ * narrow list is the point.** They are `✥`, `↩`, `◎` — drawings that happen to
+ * be characters, `aria-hidden`, with the decodable label on the chip that
+ * holds each one. The first cut of D17B exempted *all* `aria-hidden` text on
+ * the reasoning that a mark hidden from a screen reader carries no text load.
+ * Measuring it showed that is too broad: the corner stamp is `aria-hidden` and
+ * decorative, and it carries a seed string and a version a sighted player can
+ * read. An exemption that quietly stopped counting those would be the census
+ * lying about a surface to flatter a milestone. One selector, one reason.
  *
  * **Type and category chips are not on that list and their text is counted.**
  * Section 2 wants an 18-glyph type set and a fist/ring/wave category glyph;
@@ -168,6 +178,10 @@ export const GLYPH_SLOTS: readonly { selector: string; why: string }[] = [
     selector: '.chip--stage',
     why: 'Section 2: stage as multiplier plus ladder. The multiplier is the glyph.',
   },
+  {
+    selector: '.move__fact-icon',
+    why: "D17B: the fact strip's icons are drawings that happen to be characters. The chip around each one carries the decodable label.",
+  },
 ];
 
 /** Every capitalised name this repo knows, lowercased. */
@@ -204,9 +218,17 @@ export function tokenise(text: string): string[] {
  *
  * `283`, `1/1`, `94%`, `2.0x`, `+2`, `-1`, `¼`, `½`, `·`. Not `Lv100`, which
  * is a field label welded to a number and is exactly the load R2 forbids.
+ *
+ * **The leading separator is D17B, ruled 2026-09-20.** A number split across
+ * two elements arrives here as two tokens, and the second one starts with the
+ * separator: section 3 requires PP's max be *dimmed*, dimming needs its own
+ * span, and `24/24` therefore reaches this function as `24` and `/24`. The
+ * first was a bare number and the second was a word, for a number the player
+ * reads as one. Section 4 excludes bare numbers and this is one; the markup it
+ * arrives in is not the counting rule's business.
  */
 export function isBareNumber(token: string): boolean {
-  return /^[+\-−]?[\d]+(?:[.,:/][\d]+)*(?:%|x|×)?$/i.test(token) || /^[¼½¾·—–-]+$/.test(token);
+  return /^[+\-−]?[.,:/]?[\d]+(?:[.,:/][\d]+)*(?:%|x|×)?$/i.test(token) || /^[¼½¾·—–-]+$/.test(token);
 }
 
 export interface Record_ {
