@@ -37,11 +37,11 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Sixteen of seventeen discrepancy rows are ruled** — eleven on 2026-09-19,
+**Sixteen of nineteen discrepancy rows are ruled** — eleven on 2026-09-19,
 which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
-Tier 2, all on 2026-09-20. **D14 is the one open row**, it blocks nothing, and
-it is timed with M5.6. Every remaining `open` is waiting on its tier, not on a
-decision.
+Tier 2, all on 2026-09-20. **Three are open.** D14 blocks nothing and is timed
+with M5.6; D19 blocks nothing and is timed with M3.2; **D18 blocks M3.1** and
+is the only row in anybody's way.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -209,10 +209,26 @@ four-core box. That these two defects are the whole of it is not proven — see
 
 ### Tier 3: panels and party
 
+**Two rows were opened reading into M3.1, and one of them blocks it.** The panel
+censuses **20 words in Pocket**, ten per surface across `battle` and
+`log-sheet`, and they sit in five elements: the roster label's `left`, the
+name's `Opposing`, `Lv` welded to the level, the archetype chip, and the Pocket
+stage marker's `STAGES`. Four are re-encodings with no rule in their way. The
+fifth is **D18**: section 5 does not list the archetype chip, section 3 bars the
+label outright, and V5's own note says the chip is the only remaining channel
+for what the thing opposite is built to do — so deleting it is a C2 ruling, not
+a tidy-up.
+
+**D19** is the gap behind the census rather than in front of it: the ability
+chip and the nineteen volatile chips have no row in section 3, no family in
+section 2 and no budget line in section 4, and they read near zero only because
+`properNouns()` happens to carry `Levitate` and `Leech Seed` and not `Confused`.
+It blocks nothing and is timed with M3.2, which meets both on the party row.
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M3.1 Pokemon battle panel | open | — (D6 ruled) |
-| M3.2 Stat block and party row | open | — |
+| M3.1 Pokemon battle panel | **blocked** | D18 (D6 ruled) |
+| M3.2 Stat block and party row | open | — (D18 and D19 land here too) |
 | M3.3 Teach target screen | open | — (D1 ruled: at or under 4) |
 
 ### Tier 4: battle feedback
