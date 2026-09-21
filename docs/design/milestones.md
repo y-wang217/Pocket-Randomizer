@@ -161,16 +161,28 @@ Ruled **Pocket only**: M2.1's zero binds the Pocket face, Detailed and Simple
 keep their labelled face until M6.4 rules on them with M7.1's evidence. No rule
 moved; R6 already sanctions the two modes for one validation cycle.
 
-**M2.0 is not on the record and is a prerequisite, not a milestone.** The
-browser suite walks the app on fixed `waitForTimeout(25)` with a step budget, so
-a saturated machine counts an un-rendered step as taken —
-`test/visual-move-cards.test.ts` is one of the two files that false-reds under
-load, and it is the file that validates M2.1. It touches no player-facing
-surface, so it reads no bible rule and carries no census delta.
+**M2.0 is not on the record and is a prerequisite, not a milestone.** It touches
+no player-facing surface, so it reads no bible rule and carries no census delta.
+
+**It shipped, and the handoff's diagnosis was the symptom rather than the
+cause.** The fixed `waitForTimeout(25)` was not what broke the walk. Two older
+defects were: the screen is read twice per lap and the app can move between the
+reads, so a walk steps off a screen its own predicate never saw; and `stepOnce`
+returned a screen name from every branch including the ones that only waited, so
+`maxSteps` — documented as decisions — counted laps and a walk could spend its
+budget without making a decision. Both are fixed, `test/visual-walk.test.ts`
+pins them without a browser, and four of its five cases fail against the old
+driver.
+
+**The original overnight failure was never reproduced** and probably cannot be:
+throttling the page slows the app and narrows the gap the race needs. What is
+observed is that both formerly-flaky files passed under full-suite load on a
+four-core box. That these two defects are the whole of it is not proven — see
+[`generation.md` §53](../generation.md).
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M2.0 Browser harness waits on state | open | — (not on the record; prerequisite to the tier) |
+| M2.0 Browser harness waits on state | **done** | — (not on the record; [`generation.md` §53](../generation.md), `test/visual-walk.test.ts`) |
 | M2.1 Move card face | open | — (D15, D16 ruled: expander folds in, zero binds Pocket) |
 | M2.2 Battle move button | open | — (D9 ruled: build 2x2, re-measure, rule with the number) |
 | M2.3 Move chip | open | — |
