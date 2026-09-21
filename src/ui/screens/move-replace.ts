@@ -164,9 +164,16 @@ function renderVictim(
 
   // The holder is known here — these are the member's own four moves — so STAB
   // renders, unlike on the reward card one screen back.
-  const facts = moveFacts(moveCardData(move, tuning, { types: holderTypes }));
-  facts.pp.textContent = `PP ${pp}/${move.maxPp}`;
-  if (move.maxPp > 0 && pp / move.maxPp <= 0.25) facts.pp.classList.add('move__pp--low');
+  /*
+   * The remaining count goes in, rather than over the top. **M2.1.**
+   *
+   * This overwrote `facts.pp.textContent` after the component had built it,
+   * which worked while PP was a single text node. It is four spans now — the
+   * label, the glyph, the remaining count and the dimmed max — and an
+   * assignment deletes all four, taking the Pocket encoding with them. The
+   * low-PP class comes from the component too, off the same number.
+   */
+  const facts = moveFacts({ ...moveCardData(move, tuning, { types: holderTypes }), pp });
 
   button.append(facts.name, facts.meta, ...(facts.strip ? [facts.strip] : []), facts.pp);
   button.setAttribute('aria-label', `Replace ${move.name}`);

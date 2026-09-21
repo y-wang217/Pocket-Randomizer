@@ -1840,7 +1840,7 @@ export const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
  * A status move has no base power and says so with the em dash it always did,
  * which is an explicit "nothing here" rather than a slot that collapsed.
  */
-function movePower(category: MoveUiView['category'], basePower: number): HTMLElement {
+export function movePower(category: MoveUiView['category'], basePower: number): HTMLElement {
   const power = el('span', 'move__power');
   const value = el('span', 'move__power-value');
   value.textContent = category === 'Status' ? '—' : `${basePower}`;
@@ -1998,6 +1998,22 @@ export function moveFacts(move: {
    * Absent and null render identically and both mean "no bracket applies".
    */
   band?: number | null;
+  /**
+   * PP remaining, when the surface knows it. **M2.1.**
+   *
+   * Section 3: the max alone is what a reward, a TM shelf and a recipient card
+   * show, because nobody has spent any yet; everywhere the move is *held* both
+   * halves render with the max dimmed.
+   *
+   * It is a parameter because it used to be a rewrite. `member-card.ts` and
+   * `screens/move-replace.ts` both built the card and then overwrote
+   * `facts.pp.textContent` with a string of their own — which was survivable
+   * when PP was one text node and is not now: the label, the glyph and the two
+   * numbers are separate spans, and assigning `textContent` deletes all four.
+   * A screen that reaches into a component to rewrite a slot is the defect
+   * section 5 exists to name, so the component takes the number instead.
+   */
+  pp?: number | null;
 }): { name: HTMLElement; meta: HTMLElement; pp: HTMLElement; strip: HTMLElement | null } {
   const name = el('span', 'move__name');
   name.textContent = move.name;
@@ -2023,9 +2039,10 @@ export function moveFacts(move: {
   const priority = movePriority(move.facts);
   if (priority) name.append(priority);
 
-  // A move nobody knows yet has no remaining PP, so section 3's "reward, TM and
-  // recipient cards show max only" is what these six surfaces get.
-  const pp = movePp(move.maxPp, null);
+  // Absent means nobody has spent any, which is section 3's "reward, TM and
+  // recipient cards show max only". A surface that knows the remaining count
+  // passes it and gets both halves with the max dimmed.
+  const pp = movePp(move.maxPp, move.pp ?? null);
 
   // Call site two of two: every card outside a battle, off `MoveCardData`.
   return { name, meta, pp, strip: moveFactStrip(move.facts ?? [], { band, accuracy: moveAccuracy(move.facts) }) };
@@ -2044,6 +2061,8 @@ export function moveCard(move: {
   category: MoveUiView['category'];
   basePower: number;
   maxPp: number;
+  /** PP remaining, when the surface knows it. Passed through to `moveFacts`. */
+  pp?: number | null;
   tags?: readonly MoveTag[];
   /** The fact strip for the face. Passed straight through to `moveFacts`. 4.8.0.3. */
   facts?: readonly MoveFact[];

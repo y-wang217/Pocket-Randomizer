@@ -161,6 +161,16 @@ Ruled **Pocket only**: M2.1's zero binds the Pocket face, Detailed and Simple
 keep their labelled face until M6.4 rules on them with M7.1's evidence. No rule
 moved; R6 already sanctions the two modes for one validation cycle.
 
+**M2.1 is built and the gate is green, and its done-when is not met.** The
+census reads **15 on the move card and 14 on the battle move button** in
+Pocket, against 61 and 16 before, and against a target of 0. The residue is two
+unrelated things and neither is a slip in the build: the button's fourteen are
+the status readout, a sentence the item *restores* because hiding it was the C2
+violation D16 was filed against; the card's fifteen are the strip's `aria-hidden`
+icon characters and a PP max that section 3 requires be dimmed and so splits one
+number into two tokens. **D17** carries both with the evidence. The delta is
+committed as it reads rather than as the item hoped.
+
 **M2.0 is not on the record and is a prerequisite, not a milestone.** It touches
 no player-facing surface, so it reads no bible rule and carries no census delta.
 
@@ -183,7 +193,7 @@ four-core box. That these two defects are the whole of it is not proven — see
 | Item | Status | Blocked by |
 |---|---|---|
 | M2.0 Browser harness waits on state | **done** | — (not on the record; [`generation.md` §53](../generation.md), `test/visual-walk.test.ts`) |
-| M2.1 Move card face | open | — (D15, D16 ruled: expander folds in, zero binds Pocket) |
+| M2.1 Move card face | **built, gate green; done-when open** | D17 (D15, D16 ruled: expander folds in, zero binds Pocket) |
 | M2.2 Battle move button | open | — (D9 ruled: build 2x2, re-measure, rule with the number) |
 | M2.3 Move chip | open | — |
 
