@@ -1,6 +1,19 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 2, Sept 19, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 3, Sept 21, 2026.
+
+**Rev 3** carries one amendment, ruled 2026-09-21 on row D19 of
+[`bible-discrepancies.md`](bible-discrepancies.md). The ability and the
+volatile conditions had no row in section 3, no family in section 2 and no
+budget line in section 4, and both render on the battle panel and the party
+row. Neither is droppable — an ability decides which move is worth using and a
+volatile is the reason a turn did not go as expected — and neither needs a new
+family: section 2's Status family absorbs the volatiles, because a volatile is
+a thing happening to a Pokemon right now and that is what the family already
+means, and the ability gets a row saying it is the one attribute with no glyph,
+plus a budget that names it. Section 5's Pokemon panel and Party row rows are
+corrected to list what those components draw. **None of the twelve rules
+moved.**
 
 **Rev 2** carries seven amendments, all of them rulings on
 [`bible-discrepancies.md`](bible-discrepancies.md), which filed the places this
@@ -100,7 +113,7 @@ Nine glyph families. Adding a tenth is an amendment.
 | Accuracy | Target glyph plus number, under 100 only. Never-miss glyph for moves that cannot miss | Neutral |
 | Priority | Up or down chevron beside the move name, nonzero only. Same chevron on the panel when a bracket decided the turn | Neutral |
 | Effectiveness | Coloured left edge on the button plus the multiplier as a fraction or numeral (¼, ½, 2, 4). Neutral shows nothing. The same colour on the feedback flag | Red/green family, colour-blind checked |
-| Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each | Genre-standard |
+| Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
@@ -123,6 +136,8 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Effectiveness (forecast) | Edge colour plus multiplier on the button | Neutral | Full type interaction |
 | Effectiveness (feedback) | One word on the target, edge colour family | Neutral | Log sheet entry |
 | Status | Three-letter chip | None | Full name, effect |
+| Volatile condition | Three-letter chip, same family and same slot rule as Status, one per condition | None | Full name, effect, from `statusInfo` (2026-09-21, D19) |
+| Ability | Name, in a fixed slot. The one attribute with no glyph and no shorthand: abilities are a pool, not a family | Absent. An unrevealed opponent's renders a `?` in the slot rather than nothing, because held-and-unknown is not the same fact as none | Full text, from `abilityOverrides` (2026-09-21, D19) |
 | Stat stages | Multiplier plus ladder, nonzero only | 0 | Stage count, source |
 | Six stats | Glyph, bar, number. Always all six. Party order | Never hidden | Stat definition |
 | Held item | Item sprite in a fixed slot | Empty slot renders nothing | Name, one effect line |
@@ -148,8 +163,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Move chip (compact list form) | 0 | Name |
 | Item, berry or relic reward card | 8 | One effect line |
 | Recipient / teach target card | 0 | Species name |
-| Party row and party drawer | 0 | Species name, nickname |
-| Pokemon battle panel | 0 | Name, nickname |
+| Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
+| Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
 | Flag strip (battle) | 1 per hit | The one flag word R9 allows |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
@@ -164,6 +179,15 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
 
+**The ability is the one attribute budgeted by name rather than by count**
+(ruled 2026-09-21, D19). It has no glyph and cannot be given one — `Levitate`,
+`Flash Fire` and `Wonder Guard` each change which move is worth using this
+turn, and there are as many of them as there are abilities in the pool — so R2
+has nothing to trade the word for, and the budget says so rather than
+pretending the word is not there. Volatile conditions are not budgeted
+separately: they are three-letter chips in the Status family, and the counting
+rule already treats a three-letter chip as the glyph rather than as a word.
+
 **Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one word per hit, and the battle screen's own budget excludes it.
 
 ---
@@ -177,8 +201,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (six card surfaces) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
 | Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
-| Pokemon panel | Name, level, gender, HP bar and number, status chips, stat stage ladder, item sprite, priority chevron (2026-09-19, D6) | Battle |
-| Party row | Species, level, HP, status chips, item sprite, four move chips | Drawer, teach target |
+| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
+| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move chips | Drawer, party screen, pre-gym, map rail, teach target (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One word per hit, precedence applied | Battle |

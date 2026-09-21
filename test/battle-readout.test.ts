@@ -393,7 +393,14 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
     panel.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const rows = [...layer.root.querySelectorAll('.tip__row--stat')];
+    /*
+     * **The shared component, mounted rather than resembled. M3.2, D20.**
+     * The layer drew its own rows when M3.1 shipped because `statBlock` was
+     * private to the member card and took a `SpecCard`; it takes six numbers
+     * now, so this is the same element the party card and the pick cards
+     * draw, and a change to any of them is a change to all of them.
+     */
+    const rows = [...layer.root.querySelectorAll('.stats .stat')];
     // Always all six, never hidden, no sort: R10 and section 3's own wording.
     expect(rows).toHaveLength(6);
     expect(rows.map((row) => row.querySelector('.glyph')?.getAttribute('data-glyph'))).toEqual([
@@ -404,7 +411,7 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
       'stat-spd',
       'stat-spe',
     ]);
-    expect(rows.map((row) => row.querySelector('.tip__row-value')?.textContent)).toEqual([
+    expect(rows.map((row) => row.querySelector('.stat__value')?.textContent)).toEqual([
       '160',
       '130',
       '190',
@@ -412,12 +419,12 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
       '85',
       '65',
     ]);
-    // The bar is measured against the party card's ceiling, so a Speed bar
-    // here and a Speed bar in the drawer are the same length for one number.
-    const def = rows[2]?.querySelector('.tip__row-bar-fill') as HTMLElement;
+    // The bar is measured against the one ceiling in `data/statInfo.ts`, so a
+    // Speed bar here and a Speed bar in the drawer are the same length.
+    const def = rows[2]?.querySelector('.stat__bar-fill') as HTMLElement;
     expect(def.style.width).toBe(`${(190 / 200) * 100}%`);
     // Every bar the same fill. A hue per stat would be the screen ranking them.
-    const fills = rows.map((row) => (row.querySelector('.tip__row-bar-fill') as HTMLElement).className);
+    const fills = rows.map((row) => (row.querySelector('.stat__bar-fill') as HTMLElement).className);
     expect(new Set(fills).size).toBe(1);
     // The species names whose numbers these are, so two panels never blur.
     expect(layer.root.textContent).toContain('Golem');

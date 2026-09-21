@@ -39,14 +39,14 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Eighteen of twenty discrepancy rows are ruled** — eleven on 2026-09-19,
+**Twenty of twenty-one discrepancy rows are ruled** — eleven on 2026-09-19,
 which took the bible to Rev 2, then D2 and D8, then D15, D16 and D17 across
 Tier 2, all on 2026-09-20, then D18 on 2026-09-21 opening Tier 3. **D14 is the
 one open row**, it blocks nothing, and it is timed with M5.6. **D19 is deferred
 rather than open**: it is ruled with M3.2, which meets the same two chips on
-the party row. **D20 is open and blocks M3.2**: there are two six-stat
-components in the tree and M3.1 made it three, which section 5's closing
-sentence names as the defect it exists to prevent.
+the party row and was ruled with it, taking the bible to **Rev 3**. D20 and D21
+were ruled inside M3.2 on the same day. **D14 is the one open row**, it blocks
+nothing, and it is timed with M5.6.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -254,8 +254,47 @@ M3.1 touched neither, and it is ruled with M3.2.
 | Item | Status | Blocked by |
 |---|---|---|
 | M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
-| M3.2 Stat block and party row | **blocked** | D20 (D19 is also ruled here; the party row carries the same archetype chip D18 just settled) |
-| M3.3 Teach target screen | open | — (D1 ruled: at or under 4) |
+| M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled. Party row 121 → 60 in Pocket, **0 on every surface the component builds**; stat block 0, now covering four call sites) |
+
+**M3.2 is shipped, and it was three rows rather than one item.**
+
+**D20: the tree had three six-stat components and the census could see one.**
+`statBlock` was private to the member card, `statLine` was exported from
+starter select to two more screens, and M3.1 added a third in the inspect
+layer. The `stat block` row read `90 | 108 | 0` against `.stats` while
+`.statline` spent six words on `starter` and six more on `result-capture` —
+D2's failure one layer down. `ui/stat-block.ts` takes six numbers and a layout,
+which is what let all four kinds of caller mount it, and the two "layouts" were
+never two components: Pocket already drew `.stats` as the same six-across row.
+**Mounting it made the number briefly worse** — 24 in Pocket, because an older
+density rule re-showed the label the new one had hidden — and that is the
+census becoming honest rather than a regression. Final: **0**, over four call
+sites instead of one.
+
+**D19 took the bible to Rev 3.** The ability and the volatile chips had no row
+anywhere. The Status family absorbs the volatiles rather than a tenth family
+being opened; the ability gets a row saying it is the one attribute with no
+glyph, and a budget that names it. None of the twelve rules moved.
+
+**D21a was ruled one way and the suite corrected half of it.** The chip comes
+to the party row and PP comes with it, which section 9's own disconfirmer for
+M2.3 already names. The band was ruled off — and `test/band-badge.test.ts` went
+red on four cases, because the badge exists so a band 3 offer can be compared
+against the four moves a member knows, and the party card is one half of that
+comparison. M2.3 could drop it from the replacement chips because that screen
+keeps it twice over; the drawer keeps it nowhere. **A readout surface takes the
+readout fields**, so both travel together.
+
+**What M3.2 did not close.** The done-when also asks for 0 on the drawer. The
+census has a `party drawer` component now (D21b) and it reads **13** in Pocket:
+four section headings, two blurbs and four picker labels — the settings surface
+the drawer also happens to be, and no item on the list owns any of it.
+Recommended to M6.3, which touches the density picker anyway. It blocks
+nothing.
+
+| Item | Status | Blocked by |
+|---|---|---|
+| M3.3 Teach target screen | ready | — (D1 ruled: at or under 4. It takes 42 of the party row's remaining 60) |
 
 ### Tier 4: battle feedback
 

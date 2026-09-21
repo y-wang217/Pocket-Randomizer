@@ -110,16 +110,23 @@ describe('the drawer itself', () => {
     expect(card).not.toBeNull();
 
     expect(card!.querySelectorAll('.stat')).toHaveLength(6);
-    expect(card!.querySelectorAll('.move--card').length).toBeGreaterThan(0);
+    // Four move chips since M3.2 (D21a), carrying PP and the band — the two
+    // facts this surface is opened to read. They were full cards before.
+    expect(card!.querySelectorAll('.move--chip').length).toBeGreaterThan(0);
+    expect(card!.querySelectorAll('.move--chip .move__pp').length).toBeGreaterThan(0);
     /*
-     * **The chip and the bars, both.** Chip-audit patch, 2026-09-17: this
-     * asserted the chip was absent, which was Patch 4.8.0.3 item 3 — the bars
-     * replace the label — superseded by the author's answer to question 1.
-     * `docs/generation.md` section 30a. A label carried on four surfaces out of
-     * ten is not a vocabulary, and the failure mode 4.8.0.3 named is answered
-     * by `ARCHETYPE_CAVEAT` inside the panel the chip opens.
+     * **The bars, and no label. M3.2, and the third time this line has moved.**
+     *
+     * 4.8.0.3 item 3 removed the chip where the bars draw it; the chip-audit
+     * patch put it back, on the argument that a label carried on four surfaces
+     * out of ten is not a vocabulary. That argument is right and M3.2 answers
+     * it the other way: section 3 does not render the label where the bars
+     * are, so it goes from every surface that draws them at once rather than
+     * from the four that happened to have somewhere else to look. The six
+     * bars asserted two lines up are what it was a summary of, and they are
+     * on this card.
      */
-    expect(card!.querySelector('.badge--archetype'), 'the drawer carries the label too').not.toBeNull();
+    expect(card!.querySelector('.badge--archetype'), 'the bars draw it; the label does not').toBeNull();
     expect(card!.querySelector('.party__item')).not.toBeNull();
     expect(card!.querySelector('.panel__hp-text')?.textContent ?? '').not.toBe('');
   });
@@ -186,9 +193,19 @@ describe('the drawer itself', () => {
      * — it opens an explanation — but "it writes nothing" is the claim this
      * whole case exists to check, and a control the query misses is a control
      * nobody is checking. So the press loop below takes both sets.
+     *
+     * **M3.2 made them chips, and the chip keeps the pair.** A readout chip is
+     * a `<span>` rather than a `<button>` because nothing here is pickable,
+     * and it still carries `role="button"` and a tab stop so the inspect layer
+     * is reachable by keyboard. That is the same claim, on a different tag,
+     * and it stays inside this sweep.
      */
-    const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move--card[role="button"]')];
-    expect(cards.length, 'the drawer draws move cards, so this must not be vacuous').toBeGreaterThan(0);
+    const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move[role="button"]')];
+    expect(cards.length, 'the drawer draws move chips, so this must not be vacuous').toBeGreaterThan(0);
+    expect(
+      cards.every((card) => card.tagName === 'SPAN'),
+      'a readout chip is not a button: there is nothing on this surface to pick',
+    ).toBe(true);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —

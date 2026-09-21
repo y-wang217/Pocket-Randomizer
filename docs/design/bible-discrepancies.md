@@ -35,7 +35,8 @@ which blocks everything.
 | D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
 | D18 | M3.1, then M3.2 | The archetype chip has no row in the canon, and deleting it takes the opponent's build off the battle screen | **2026-09-21** |
 | D19 | nothing; timed with M3.2 | The ability and the volatile chips have no row anywhere in the bible | **deferred to M3.2** |
-| D20 | M3.2 | There are two six-stat components in the tree, and M3.1 made it three | **open** |
+| D20 | M3.2 | There are two six-stat components in the tree, and M3.1 made it three | **2026-09-21** |
+| D21 | M3.2's last line | The party row's "four move chips", and two done-when numbers other items own | **2026-09-21**; the drawer's own 13 words are recommended to M6.3 |
 
 ## Rulings, 2026-09-19
 
@@ -1262,3 +1263,214 @@ party row"*, and the drawer surface censuses 83 in Pocket less shell — most of
 it map node cards (M5.2) and the density picker (settings chrome), neither of
 which is M3.2's. That is a separate question from this row, and it is measured
 before M3.2 claims its number.
+
+
+---
+
+## D21. The party row's "four move chips", and two done-when numbers other items own
+
+**Blocks the last line of M3.2.** Everything else in the item is built.
+
+### A. The chip drops PP and the band, and the party card is where those are read
+
+Section 5's Party row owns *"four move chips"*, and M3.2 asks for them by name.
+The card draws four full move cards today.
+
+M2.3 built the chip and its docstring is explicit about what it leaves out and
+why: *"What it deliberately leaves out is PP and the band, and that is the
+item's bet rather than an oversight. The replacement screen showed five full
+cards and the decision it asks for — which of four to displace — is a
+comparison the full face makes harder rather than easier."*
+
+That argument is about the **replacement** decision. The party drawer is a
+different question, and the two facts the chip drops are the two the drawer is
+opened to answer. *Which member is out of PP* is the reason a player opens it
+mid-segment; the band is how a move's power reads at a glance across four of
+them. Neither has another channel on that surface — the drawer is read-only,
+and a card whose moves are chips would put both behind a press on a surface
+whose entire job is the readout.
+
+So the chip on the party row is a C2 question, the same shape as D18: a
+decision-relevant fact with one channel, and an item that would remove it.
+
+**It is also a control where there is nothing to pick.** `moveChip` returns a
+`<button>` because, in M2.3's words, *"every site that draws one is asking the
+player to pick it"*. The party row is not: the drawer is read-only by design
+and `test/party-drawer.test.ts` holds that there is one write path for party
+state. A `<button>` there is a control that does nothing, which is the keyboard
+trap `renderTraits` already refuses to build for an unrevealed ability.
+
+**Options.**
+
+1. **Leave the four full cards, and correct section 5's Party row to say so.**
+   The card is behind a fold in Pocket already, so it costs nothing at rest and
+   the census reads 0 either way. The bible's row is the thing that is wrong:
+   it was written before M2.3 decided what a chip leaves out.
+2. **Mount the chip, and give it PP on this surface.** Section 9's own
+   disconfirmer for M2.3 is *"testers expand every chip before choosing. Then
+   chips gain PP at rest"* — so PP returning to the chip is already the
+   sanctioned remedy, just fired by a different observation. The band still
+   goes, and `moveChip` needs a non-interactive form.
+3. **Mount the chip as it is.** Smallest diff, and it drops PP and the band
+   from the one surface that exists to show them. C2 says no.
+
+**Recommendation: 1.** Option 2 is defensible and it builds a second chip face
+to serve one call site, which is the thing section 5 exists to prevent; option
+3 trades a fact for a shape. The full card is already the compact face
+everywhere else since M2.1, and a fold is not a removal.
+
+### B. Two of M3.2's numbers are surface totals that other items own
+
+M3.2's done-when is *"census reads 0 on drawer and party row"*. Both are now
+measured precisely, and neither is M3.2's to close alone.
+
+**The party row is at 60 in Pocket, from 121, and every one of the 60 is drawn
+by a screen rather than by the component:**
+
+| What | Words | Whose |
+|---|---:|---|
+| `Four moves. You choose what replaces.`, ×6 | 36 | the teach target card, **M3.3** |
+| `HP` on the target card's own HP line, ×6 | 6 | the teach target card, **M3.3** |
+| `to bag` and `Release`, ×6 each | 18 | the capture list's controls, **M5.4** |
+
+Those come from `screens/item-target.ts` and `screens/acquisition.ts`, which
+hand-roll their own card inside `.party__member` rather than mounting the
+component. M3.3 mounts the party row as the target card, which takes 42 of the
+60; M5.4 mounts it as the capture card, which takes the rest. On every surface
+the component itself builds — the drawer, the party screen, pre-gym and the map
+rail — it reads **0** today.
+
+**The drawer is at 69 in Pocket less shell, and 68 of it is not the drawer.**
+The gallery's `drawer` fixture renders the map screen behind the open drawer,
+so the number is mostly map node cards — `Gym of`, `Pokemon steps before the
+gym`, the tier chips, the capability chips — which is **M5.2**, plus the
+drawer's own settings pickers (`Density`, `Detailed`, `Pocket`, `speed`,
+`Even`, `Patient`) and its section headings. The party rows inside it census 0.
+
+Section 4 budgets *"Party row and party drawer"* as one row, and the census has
+a `party row` component and no `party drawer` one, so there is nothing that
+measures the drawer's own contents.
+
+**Options.**
+
+1. **Add a `party drawer` component to the census, and read M3.2's done-when
+   against the component numbers rather than the surface totals.** The
+   instrument gains one selector, the same way M2.3 corrected `.move--chip` and
+   the battle-button selector; the surface totals stay on the table for M7.2,
+   where the number has to be 0 with every item shipped. M3.2 then claims what
+   it closed and names what it did not.
+2. **Hold M3.2 open until M3.3 and M5.4 ship.** Accurate to the letter of the
+   done-when, and it makes one item's completion depend on two later ones,
+   which the list's own "one item, one session" rule is built against.
+3. **Read the done-when as already satisfied**, since the component reads 0 on
+   every surface it builds. Fastest, and it leaves 60 words charged to a
+   component nobody is tracking.
+
+**Recommendation: 1.** It is D2's ruling applied one layer down — the reason
+the census counts per component at all is that a surface total cannot check a
+component's budget, and this is the same failure with the roles reversed.
+
+
+---
+
+## D20, closed with the build
+
+**Ruled 2026-09-21. Option 1: one component, in its own module, with the
+glyph.**
+
+`ui/stat-block.ts` takes six numbers and a layout and nothing else, which is
+what let all four kinds of caller mount it — the party card, the three pick
+screens, and the battle panel's inspect layer, which has a serialized string
+and no `PokemonState` to hand anything. `statLine` is deleted, its `.statline`
+rules are folded into `.stats--row`, and the third copy of the bar ceiling went
+with them: `STAT_BAR_CEILING` lives in `data/statInfo.ts`, which M3.1 moved it
+to and which is outside `contentHash`.
+
+**The row's own claim was right and worth recording: the census could not see
+the second component.** Its `stat block` row read `90 | 108 | 0` against
+`.stats` while `.statline` spent six words on `starter` and six more on
+`result-capture` in Pocket. Mounting the one component made the instrument
+honest and the number move the other way for a moment — `stat block` read
+**24** in Pocket on the first pass, because the pick cards' six labels were now
+inside a selector that could see them and the Pocket rule hiding the short form
+was overridden by an older rule further down the stylesheet. One place decides
+it now, with the rest of the density rules. Final: **0 in Pocket**, covering
+four call sites instead of one, and `starter` fell 78 → 51.
+
+**The glyph and the unification were one job, exactly as the row said.** Only
+M3.1's copy had a mark; `statBlock` and `statLine` both printed `HP`, `Atk`,
+`SpA` as text. Section 3's *"Glyph, bar, number"* is satisfied once, in one
+file, rather than three times in three shapes.
+
+---
+
+## D21, closed with the build
+
+**Ruled 2026-09-21. A: option 2, the chip comes and PP comes with it. B:
+option 1, the census gains a `party drawer` component.**
+
+### A, and the correction the suite forced
+
+The ruling was taken on the understanding that *"the band still goes"*, on the
+reasoning this row itself offered: the band is a grouping of the base power the
+chip already prints. That reasoning is true about the *number* and wrong about
+the *badge*, and `test/band-badge.test.ts` is where it broke — four of its
+cases went red the moment the party card drew chips.
+
+That file's header carries the argument this row did not:
+
+> Stage 4.6b put the band badge on the reward card and nowhere else, and the
+> card it was missing from was the one that mattered: a player offered a band 3
+> read `BAND 3` on the offer, then compared it against four *unlabelled* moves
+> on the replacement screen and four unlabelled buttons in the next fight. The
+> badge exists to make that comparison possible and it was absent from both
+> halves of it.
+
+**The party card is one half of that comparison.** M2.3 could drop the band
+from the replacement screen's chips because that screen keeps it twice over —
+the pinned incoming card and the two full cards in the confirm — so both halves
+stayed on screen. The drawer has no such second channel: it is read-only and
+the chip is the whole readout. Dropping the band there removes a fact with
+nowhere else to read it, which is C2, and it breaks R12 on three surfaces.
+
+So **the band travels with PP**: a readout surface takes the readout fields.
+The chip is unchanged everywhere else — `moveChip`'s new fields are
+`ppCounter` and `band`, both opt-in, and the option is deliberately not called
+`pp`, because every caller holding a `MoveView` spreads it and `MoveView.pp` is
+a bare number. A field named `pp` would have made the replacement screen start
+printing PP the day the option was added, on the one surface whose bet is that
+it should not.
+
+**One thing the chip gained that the ruling did not name.** A readout chip is a
+`<span>`, because nothing on that surface is pickable and a focusable control
+that does nothing is the keyboard trap `renderTraits` already refuses to build.
+But a `<span>` carrying `data-tip` and nothing else is a trigger a keyboard
+cannot open, so it keeps `role="button"` and a tab stop — the pair `moveCard`
+has carried since M2.1, for the same reason. `test/party-drawer.test.ts` sweeps
+it and asserts it still writes nothing.
+
+### B, and the residue it exposed
+
+The census has a `party drawer` component now, on `.drawer__sheet` rather than
+`.drawer`, because the overlay's root spans the scrim and the scrim is not the
+drawer.
+
+**The party row reads 0 on every surface the component builds** — the drawer,
+the party screen, pre-gym and the map rail — and 60 across the two that
+hand-roll a card inside `.party__member`: 42 on the teach target (M3.3) and 18
+on the capture list (M5.4).
+
+**The drawer itself reads 13 in Pocket, and no item on the list owns any of
+it.** Four section headings (`Your party`, `Relics`, `Density`, `speed`), two
+two-word blurbs (`Carrying now`, `Read only`) and four picker labels
+(`Detailed`, `Pocket`, `Even`, `Patient`). None of it is the party row; all of
+it is the settings surface the drawer also happens to be.
+
+**That is the open part of this row.** Section 4 budgets the drawer at 0 and
+does have a theory of control labels elsewhere — the result screen's 6 includes
+"continue", the pre-gym's 4 includes "Choose lead" — so the drawer's 0 is a
+figure written for a drawer that holds a party and not for one that also holds
+the density picker. It blocks nothing: M3.2 closed the party row, which is the
+half of section 4's row it owns. **Recommended for M6.3**, which is the item
+that touches the density default and will be reading that picker anyway, either
+as a budget line for the drawer's controls or by moving them off it.

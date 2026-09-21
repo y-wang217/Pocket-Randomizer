@@ -935,6 +935,34 @@ body {
   border-top: var(--hairline) solid var(--border);
 }
 
+/* The pick card's shape: six across, the column per stat `.statline` drew in
+   every mode. **M3.2, D20.** It is a modifier rather than a second component
+   because Pocket has turned `.stats` into exactly this row since the density
+   patch — the only thing the two ever disagreed about is Detailed and Simple,
+   where a wide card wants two columns and a narrow pick card wants six. */
+.stats--row {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: calc(var(--space-1) * var(--density-pad));
+  margin: calc(var(--space-2) * var(--density-pad)) 0 0;
+  padding: calc(var(--space-2) * var(--density-pad)) 0 0;
+}
+
+.stats--row .stat {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--hairline);
+  line-height: 1.2;
+}
+
+.stats--row .stat__label { min-width: 0; font-size: var(--fs-xs); }
+.stats--row .stat__value { min-width: 0; text-align: left; font-size: var(--fs-md); color: var(--text); }
+.stats--row .stat__bar { min-width: 0; flex: none; }
+
+/* The stat mark, from M1.1's sheet. **M3.2.** Section 3: glyph, bar, number.
+   Which of the mark and the words is shown is decided with the rest of the
+   density rules, below, so one place decides it. */
+.stat__label > .glyph { vertical-align: middle; }
+
 .stat {
   display: flex;
   align-items: baseline;
@@ -1106,12 +1134,16 @@ body {
 :root[data-density="simple"] .copy__short,
 :root[data-density="pocket"] .copy__short { display: inline; }
 
-/* The stat block's labels: full names in Detailed, abbreviations after. */
+/* The stat block's labels: full names in Detailed, abbreviations in Simple,
+   and **neither in Pocket, where the glyph is the label**. M3.2: section 3's
+   Six stats row is "glyph, bar, number" and R2 forbids the word at rest, so
+   the mark from M1.1's sheet is the encoding and the two word forms are the
+   labelled face D16 keeps in the other two modes until M6.4 rules on them. */
 .stat__label-short { display: none; }
 :root[data-density="simple"] .stat__label-long,
 :root[data-density="pocket"] .stat__label-long { display: none; }
-:root[data-density="simple"] .stat__label-short,
-:root[data-density="pocket"] .stat__label-short { display: inline; }
+:root[data-density="simple"] .stat__label-short { display: inline; }
+:root[data-density="pocket"] .stat__label-short { display: none; }
 
 /* The stat block's numbers, in Detailed and Simple; bars in Pocket, six in a
    row, the number one tap away on the label. All six together. */
@@ -1130,18 +1162,6 @@ body {
 :root[data-density="pocket"] .stat__label { min-width: 0; font-size: var(--fs-xs); }
 :root[data-density="pocket"] .stat__bar { min-width: 0; flex: none; }
 
-/* The compact stat row on a pick card (starter, capture): bars in Pocket, the
-   same six together, the number on the label's tip. */
-.statline__bar {
-  display: none;
-  height: 6px;
-  border-radius: var(--radius-chip);
-  background: var(--bg-sunken);
-  overflow: hidden;
-}
-.statline__bar-fill { display: block; height: 100%; background: var(--text-faint); }
-:root[data-density="pocket"] .statline__value { display: none; }
-:root[data-density="pocket"] .statline__bar { display: block; }
 
 /*
  * **Move cards and buttons in Pocket: the words go, the facts stay. M2.1.**
@@ -1220,7 +1240,15 @@ body {
 :root[data-density="pocket"] [data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
 :root[data-density="pocket"] .party__member-toggle { margin-left: auto; }
 /* The held item's effect line: the chip's own tooltip says it. */
-:root[data-density="pocket"] .party__item-effect { display: none; }
+:root[data-density="pocket"] /* The held item's fixed slot on a party card. **M3.2.** The same 24px cell the
+   battle panel's slot draws, so an item is one picture in one size wherever it
+   is held. An empty slot renders nothing — no box, no outline, no space — and
+   the row survives it because the party screen hangs its "to bag" control off
+   the row. */
+.party__item-slot { display: inline-flex; align-items: center; }
+.party__item-slot[hidden] { display: none; }
+
+.party__item-effect { display: none; }
 
 /* The party screen's two hotbars in Pocket: each is the collection beside it
    at a second size — slot, species, item — and the cards and rows below carry
@@ -1418,9 +1446,13 @@ body {
 /* The shell's foot in Pocket: the stamps are texture, and the fold is the budget. */
 :root[data-density="pocket"] .shell { padding-bottom: var(--space-4); }
 
-/* The party screen's stat block: six rows, two columns, same rows as a battle
-   panel so the two read as the same object seen in two places. */
-.stats--party {
+/* The card's stat block: six rows, two columns, same rows as a pick card's six
+   across so the two read as the same object seen in two places. **Renamed from
+   `.stats--party` at M3.2**: the component is mounted by the party card, the
+   pick cards and the battle panel's inspect layer now, and a modifier named
+   after one of its call sites is a modifier that will be wrong at the next
+   one. It names the layout, which is what it selects. */
+.stats--grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: calc(var(--space-h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
@@ -3684,26 +3716,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * flex row would put each card's Atk at a different x. Monospaced numbers for
  * the same reason.
  */
-.statline {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: calc(var(--space-1) * var(--density-pad));
-  margin: calc(var(--space-2) * var(--density-pad)) 0 0;
-  padding: calc(var(--space-2) * var(--density-pad)) 0 0;
-  list-style: none;
-  border-top: var(--hairline) solid var(--border);
-}
-
-.statline__stat { display: flex; flex-direction: column; gap: var(--hairline); }
-
-.statline__label {
-  font-size: var(--fs-xs);
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  cursor: help;
-}
-
-.statline__value { font-family: var(--font-numeral); font-size: var(--fs-md); color: var(--text); }
 
 /* ---------- the phone pass ---------- */
 
@@ -4523,7 +4535,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .shop__coin-label,
 .summary__seed-label,
 .stat__label,
-.statline__label,
 .node__label,
 .map__region-name,
 .locale__name,

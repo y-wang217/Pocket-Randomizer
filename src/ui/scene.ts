@@ -920,7 +920,7 @@ function updateSidePanel(
    * a label welded to a number is still a label. The number beside a species
    * name is the level in every document a player of this genre has ever read.
    */
-  panel.level.textContent = `${active.level}${genderMark(active.gender)}`;
+  panel.level.textContent = levelText(active.level, active.gender);
 
   /*
    * The panel's accessible name, and the six stats behind its long press.
@@ -938,7 +938,7 @@ function updateSidePanel(
    */
   panel.root.setAttribute(
     'aria-label',
-    `${isFoe ? 'Opposing ' : ''}${active.species}, level ${active.level}${genderWord(active.gender)}`,
+    `${isFoe ? 'Opposing ' : ''}${active.species}, ${levelAria(active.level, active.gender)}`,
   );
   panel.root.dataset['tip'] = `stats:${active.species}`;
   panel.root.dataset['detail'] = statDetail(active);
@@ -1626,7 +1626,7 @@ function renderBenchMember(
   const name = el('span', 'bench__name');
   name.textContent = member.species;
   const level = el('span', 'bench__level');
-  level.textContent = `Lv${member.level}${genderMark(member.gender)}`;
+  level.textContent = levelText(member.level, member.gender);
 
   /*
    * **The bench keeps inert type chips, and it is the one place the chip-audit
@@ -2343,16 +2343,41 @@ export function moveFacts(move: {
  * `categoryChip`, the same `movePower`, so a move looks like itself wherever
  * it is met and R1's fixed slots survive the shrink.
  *
- * **What it deliberately leaves out is PP and the band**, and that is the
- * item's bet rather than an oversight. The replacement screen showed five full
- * cards and the decision it asks for — which of four to displace — is a
- * comparison the full face makes harder rather than easier, because the fields
- * that differ are buried among the fields that do not. Section 3's kills-it
- * for M2.3 names the disconfirmer: if testers expand every chip before
- * choosing, the chip is missing something they need and PP comes back.
+ * **It leaves out the band, and PP only where PP is not the question.**
  *
- * It is a `<button>` because every site that draws one is asking the player to
- * pick it. The confirm that follows is the caller's.
+ * M2.3 dropped both, and that was the item's bet for the surface it built:
+ * the replacement screen showed five full cards and the decision it asks for —
+ * which of four to displace — is a comparison the full face makes harder
+ * rather than easier, because the fields that differ are buried among the
+ * fields that do not. **What made dropping the band safe there** is that the
+ * screen keeps it twice over — on the pinned incoming card and on the two full
+ * cards in the confirm — so the comparison the badge exists for still has both
+ * halves on screen. `test/band-badge.test.ts` asserts exactly that.
+ *
+ * **D21a, ruled 2026-09-21, is the other surface, and it has no such escape
+ * hatch.** The party row is opened to answer "which member is out of PP", the
+ * drawer is read-only, and a chip without PP would put that behind a press on
+ * the one surface whose whole job is the readout. Section 9's disconfirmer for
+ * M2.3 already names that remedy in as many words — *"chips gain PP at rest,
+ * still no words"* — so `ppCounter` is an option rather than a second chip
+ * face.
+ *
+ * **The band comes with it, and that is a correction to the ruling rather
+ * than a reading of it.** D21a was ruled on the understanding that the band is
+ * a grouping of the base power the chip already prints. It is, but that is not
+ * what the badge is *for*: R12 and `test/band-badge.test.ts` put `BAND n` on
+ * every move on every surface so a player offered a band 3 can compare it
+ * against the four moves a member already knows — and the party card is one of
+ * the two places that comparison happens. On the replacement screen the full
+ * cards carry it; here there is nothing else to carry it, so dropping it would
+ * remove a fact with no channel, which is C2. Both options travel together for
+ * that reason: a readout surface takes the readout fields.
+ *
+ * **It is a `<button>` where there is something to pick, and a `<span>` where
+ * there is not.** Every site M2.3 built drew a control; the party row draws a
+ * readout, and `test/party-drawer.test.ts` holds that the drawer has no write
+ * path at all. A focusable control that does nothing is the keyboard trap
+ * `renderTraits` already refuses to build for an unrevealed ability.
  */
 export function moveChip(move: {
   id?: string;
@@ -2360,9 +2385,25 @@ export function moveChip(move: {
   type: string;
   category: MoveUiView['category'];
   basePower: number;
-}): HTMLButtonElement {
-  const chip = document.createElement('button');
-  chip.type = 'button';
+  /**
+   * Remaining and max, when this surface is one PP is read on. **D21a.**
+   *
+   * `ppCounter` rather than `pp`, and the awkward name is the point: every
+   * caller that has a `MoveView` to hand spreads it, and `MoveView.pp` is a
+   * bare number. A field named `pp` here would mean the replacement screen
+   * silently started printing PP the day this option was added — which is
+   * M2.3's surface, where the item's bet is that PP is *not* on the face.
+   * Opting in has to be something a caller types.
+   */
+  ppCounter?: { remaining: number; max: number };
+  /** The band, on a readout surface, where nothing else carries it. D21a. */
+  band?: number | null;
+  /** False on a readout, where there is nothing to pick. Defaults to true. */
+  pickable?: boolean;
+}): HTMLElement {
+  const pickable = move.pickable ?? true;
+  const chip = pickable ? document.createElement('button') : el('span', '');
+  if (chip instanceof HTMLButtonElement) chip.type = 'button';
   chip.className = `move move--chip move--${move.type.toLowerCase()}`;
   chip.dataset['category'] = move.category.toLowerCase();
 
@@ -2376,6 +2417,16 @@ export function moveChip(move: {
     movePower(move.category, move.basePower),
   );
 
+  const band = moveBandChip(move.band);
+  if (band) {
+    // The same slot class the card's fact row puts on it, so the badge is one
+    // element with one recipe on every surface — which is what
+    // `test/band-badge.test.ts` asserts and R12 requires.
+    band.classList.add('move__facts-band');
+    meta.append(band);
+  }
+  if (move.ppCounter) meta.append(movePp(move.ppCounter.max, move.ppCounter.remaining));
+
   chip.append(name, meta);
   // The same inspect trigger the card carries, for the same reason: a compact
   // form is exactly where a player is most likely to want the full one, and
@@ -2383,6 +2434,18 @@ export function moveChip(move: {
   if (move.id) {
     chip.dataset['tip'] = `move:${move.id}`;
     chip.dataset['tipHover'] = 'off';
+    /*
+     * A readout chip is still focusable, and that is R5 rather than a
+     * nicety. A `<button>` is reachable by keyboard for free; a `<span>`
+     * carrying `data-tip` and nothing else is a trigger a keyboard cannot
+     * open, so the inspect layer would work on the party drawer with a
+     * pointer and not otherwise. `moveCard` has carried exactly this pair
+     * since M2.1 for the same reason.
+     */
+    if (!pickable) {
+      chip.tabIndex = 0;
+      chip.setAttribute('role', 'button');
+    }
   }
   return chip;
 }
@@ -2489,6 +2552,30 @@ export function genderMark(gender: Gender): string {
   if (gender === 'M') return ' \u2642';
   if (gender === 'F') return ' \u2640';
   return '';
+}
+
+/**
+ * A level, in the one form every surface prints it. **Milestone M3.2.**
+ *
+ * Nine screens wrote `Lv${level}` for themselves and the census counted every
+ * one of them: R2 forbids the field label, and a label welded to a number is
+ * still a label — `Lv36` is one word against a budget of zero on the party
+ * row, the battle panel, the map rail and the pick cards alike.
+ *
+ * It is a function rather than nine edits for R1's reason. The level is an
+ * attribute with a fixed slot, `.panel__level`, and nine call sites deciding
+ * its form is nine chances for one of them to keep the label or drop the
+ * gender mark. The number beside a species name is the level in every document
+ * a player of this genre has ever read; `levelAria` is what says so to the
+ * reader the convention does not reach.
+ */
+export function levelText(level: number, gender: Gender = null): string {
+  return `${level}${genderMark(gender)}`;
+}
+
+/** The same fact spelled out, for a card's or a panel's accessible name. */
+export function levelAria(level: number, gender: Gender = null): string {
+  return `level ${level}${genderWord(gender)}`;
 }
 
 /**

@@ -8768,3 +8768,132 @@ M4.3's and M4.1's.
 forms, which the stylesheet hides in Pocket and which D16 ruled survive in the
 other two modes until M6.4 rules on them with M7.1's evidence — the same
 residue, for the same reason, that M2.1 left on the move card.
+
+## 58. The party row, one stat block, and the badge that had to come back
+
+**Milestone M3.2**, 2026-09-21. Presentation only. `contentHash` holds at
+`d4e080`, no version axis moves, nothing under `core/` changed.
+
+Rulings that changed the item: D19 (the bible, to Rev 3), D20 and D21 in
+[`design/bible-discrepancies.md`](design/bible-discrepancies.md).
+
+### The measurement, and who owns what is left
+
+Party row, Pocket, per component: **121 → 60**, and **0 on every surface the
+component itself builds** — the drawer, the party screen, pre-gym and the map
+rail. The 60 is two screens that hand-roll a card inside `.party__member`:
+
+| What | Words | Whose |
+|---|---:|---|
+| `Four moves. You choose what replaces.`, ×6 | 36 | teach target, **M3.3** |
+| `HP` on the target card's own HP line, ×6 | 6 | teach target, **M3.3** |
+| `to bag` and `Release`, ×6 each | 18 | capture list, **M5.4** |
+
+Stat block, Pocket: **0**, and for the first time that number covers all four
+call sites rather than one. Surfaces: `starter` 74 → 47, `party` 24 → 17,
+`pre-gym` 39 → 32, `drawer` 83 → 69, `map` 63 → 56, `result-capture` 66 → 53,
+`target` 52 → 46, `locale` 51 → 45, `summary` 342 → 336, all Pocket less shell.
+
+### D20: three stat components, and the census could not see the second
+
+`statBlock` was private to `ui/member-card.ts`; `statLine` was exported from
+`ui/screens/starter-select.ts` to two more screens; M3.1 added a third in the
+inspect layer, because the first took a `SpecCard` and a `PokemonState` and the
+panel had neither. Each carried its own copy of the bar ceiling.
+
+`ui/stat-block.ts` takes six numbers and a layout. That is what let all four
+kinds of caller mount it, and it is the whole of why the two "layouts" were
+never two components: in Pocket the stylesheet already turned `.stats` into the
+same six-across row `.statline` drew in every mode, so the difference was
+Detailed and Simple and nothing about what a stat is.
+
+**The instrument moved the wrong way first, which is the useful part.** The
+`stat block` row read `90 | 108 | 0` against `.stats` while `.statline` spent
+six words on `starter` and six more on `result-capture` in Pocket — invisible
+to it. Mounting the one component made those visible and the Pocket number went
+to **24**, because an older density rule further down the stylesheet was
+re-showing the short label the new rule had just hidden. One place decides it
+now. A census that reads 0 because it cannot see the second copy is the D2
+failure one layer down, and it is worth saying that the fix made the number
+briefly worse.
+
+### D19: the bible goes to Rev 3
+
+The ability and the volatile chips had no row in section 3, no family in
+section 2 and no budget line in section 4, and both render on the battle panel
+and the party row. Ruled: section 2's Status family absorbs the volatiles — a
+volatile is a thing happening to a Pokemon right now, which is what that family
+already means, so it is not a tenth family — and the ability gets a row saying
+it is the one attribute with no glyph and cannot be given one, plus a budget
+that names it rather than pretending the word is not there. Section 5's Pokemon
+panel and Party row rows are corrected to list what those components draw.
+**None of the twelve rules moved.**
+
+### D21a: the chip, PP, and the badge the suite would not let go
+
+Section 5 gives the party row four move chips. M2.3's chip drops PP and the
+band, and the party drawer is the surface opened to answer *which member is out
+of PP* — read-only, so no second channel. Ruled: the chip comes and PP comes
+with it, which is the remedy section 9's own disconfirmer for M2.3 names
+(*"chips gain PP at rest, still no words"*), fired by a different observation
+than the register was waiting for.
+
+**The band was ruled off and had to come back.** The ruling took the band for a
+grouping of the base power the chip prints. It is — and that is not what the
+badge is for. `test/band-badge.test.ts` went red on four cases and its header
+carries the argument the row did not: the badge exists so a player offered a
+band 3 can compare it against four moves a member already knows, and the party
+card is one half of that comparison. M2.3 could drop it from the replacement
+screen's chips because that screen keeps it on the pinned card and on the two
+full cards in the confirm; the drawer keeps it nowhere. So both options travel
+together: **a readout surface takes the readout fields.**
+
+Two details the ruling did not reach and the build decided:
+
+1. **The option is `ppCounter`, not `pp`.** Every caller with a `MoveView`
+   spreads it, and `MoveView.pp` is a bare number — a field named `pp` would
+   have made the replacement screen start printing PP the day the option
+   landed, on the one surface whose bet is that it should not. Opting in has to
+   be something a caller types.
+2. **A readout chip is a `<span>` that keeps `role="button"`.** Nothing on that
+   surface is pickable, and a focusable control that does nothing is the
+   keyboard trap `renderTraits` refuses to build for an unrevealed ability —
+   but a `<span>` carrying only `data-tip` is a trigger a keyboard cannot open,
+   which would have left inspect working on the drawer with a pointer and not
+   otherwise. `moveCard` has carried the same pair since M2.1.
+
+### The archetype label, on the eight surfaces that draw bars
+
+Section 3: *"Not rendered where the stat bars already draw it."* The chip-audit
+patch had put it back everywhere on the argument that a label on four surfaces
+out of ten is not a vocabulary. That argument is right, and M3.2 answers it the
+other way: the label goes from every surface that draws the bars, in one pass —
+the party card, the starter card, the capture offer, the evolution compare.
+The five that draw no bars keep it until the item that reaches them: M3.3 the
+recipient, M5.3 the locale card, M5.4 the capture list, M5.5 the replacement,
+and the summary is unbudgeted.
+
+### Three field labels, and one fact that was said twice
+
+- **`Lv` went from nine screens through one helper.** `levelText` and
+  `levelAria` in `ui/scene.ts`: the level is an attribute with a fixed slot and
+  nine call sites deciding its form is nine chances to keep the label or drop
+  the gender mark, which is R1 before it is R2.
+- **The `Lead` chip was the slot number said twice.** `isLead` is `index === 0`
+  at every call site and the options table says so — *"Slot 0, and nothing
+  else"* — so chip and marker were one fact in two channels, which is R3. The
+  map rail had its own copy with no slot number at all; it draws the number now,
+  like every other party surface.
+- **`No item` became nothing, and the item became a sprite.** Section 3's Held
+  item row, the same one M3.1 built the battle panel's slot against. The name
+  and the effect line are what the press opens.
+
+### What is not closed
+
+M3.2's done-when asks for 0 on the drawer as well as the party row. The census
+has a `party drawer` component now (D21b) and it reads **13** in Pocket: four
+section headings, two blurbs and four picker labels. None of it is the party
+row; all of it is the settings surface the drawer also happens to be. Section 4
+budgets the drawer at 0, and that figure was written for a drawer that holds a
+party. Recommended to M6.3, which touches the density default and will be
+reading that picker anyway. It blocks nothing.

@@ -46,8 +46,8 @@ import { FLAG_BLURBS, flagWord } from '../data/flagWords';
 import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
-import { statInfo, STAT_BAR_CEILING } from '../data/statInfo';
-import { glyphNode } from './theme/glyph';
+import { statInfo } from '../data/statInfo';
+import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
 import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
 import { MOVE_FACT_INFO } from '../data/moveFactInfo';
@@ -747,50 +747,29 @@ function renderStages(detail?: string): HTMLElement | null {
 }
 
 /**
- * One Pokemon's six stats, as the stat block draws them.
- * **Milestone M3.1, discrepancy D18.**
+ * One Pokemon's six stats, from the battle panel it is standing on.
+ * **Milestone M3.1, discrepancy D18; mounting the shared component is D20.**
  *
- * Section 3's Six stats row is specific and this obeys it literally: *"Glyph,
- * bar, number. Always all six."* All six, in display order, with no sort and
- * no emphasis on any of them — R10 forbids both, and forbids them here for the
- * same reason it forbids them on a recipient card: a row drawn heavier because
- * it matches what the player is about to do is a verdict wearing an
- * attribute's clothes.
+ * It drew its own glyph, bar and number rows when M3.1 shipped, because
+ * `statBlock` was private to `ui/member-card.ts` and took a `SpecCard` and a
+ * `PokemonState` that this layer has no way to reach. D20 is the row that
+ * named that as a third rendering of one attribute cluster; `ui/stat-block.ts`
+ * takes six numbers now, which a serialized `data-detail` string can supply,
+ * so this mounts the component instead of resembling it.
  *
- * The bar is measured against `data/statInfo.ts`'s `STAT_BAR_CEILING`, which the
- * party card's own bars use, so a Speed bar here and a Speed bar in the drawer
- * are the same length for the same number.
- *
- * Nothing here is written copy. The abbreviations are `data/statInfo.ts`'s, the
- * marks are M1.1's sheet, and the numbers arrive on the trigger.
+ * Nothing here is written copy: the marks are M1.1's sheet, the words are
+ * `data/statInfo.ts`'s, and the numbers arrive on the trigger.
  */
 function renderMonStats(species: string, detail?: string): HTMLElement | null {
   const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
   if (rows.length === 0) return null;
-  const body = panel(species, 'tip__body--rows');
-  const list = el('div', 'tip__rows tip__rows--stats');
+  const values: Record<string, number> = {};
   for (const entry of rows) {
     const [stat = '', value = ''] = entry.split('\t');
-    const info = statInfo(stat);
-    const line = el('div', 'tip__row tip__row--stat');
-
-    const label = el('span', 'tip__row-label');
-    const mark = glyphNode(`stat-${stat}`, { label: info?.label ?? stat.toUpperCase() });
-    if (mark) label.append(mark);
-    else label.textContent = info?.abbreviation ?? stat.toUpperCase();
-    line.append(label);
-
-    const bar = el('span', 'tip__row-bar');
-    const fill = el('span', 'tip__row-bar-fill');
-    fill.style.width = `${Math.min(100, (Number(value) / STAT_BAR_CEILING) * 100)}%`;
-    bar.append(fill);
-
-    const number = el('span', 'tip__row-value');
-    number.textContent = value;
-    line.append(bar, number);
-    list.append(line);
+    values[stat] = Number(value);
   }
-  body.append(list);
+  const body = panel(species, 'tip__body--rows');
+  body.append(statBlock(values));
   return body;
 }
 

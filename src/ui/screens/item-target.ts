@@ -36,7 +36,7 @@ export const TEACH_CANCELLED = -1;
 import type { PokemonState } from '../../core/types';
 import type { Tuning } from '../../data/tuning';
 import { moveCardData } from '../move-detail';
-import { el, moveCard } from '../scene';
+import { el, levelAria, levelText, moveCard } from '../scene';
 import { setProse, type Prose } from '../dom';
 import { TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
 import { abilityChip, monTypeChip } from '../chip';
@@ -154,7 +154,8 @@ function renderTarget(
   // nickname is state this screen does not show.
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${detail.level}`;
+  level.textContent = levelText(detail.level);
+  level.setAttribute('aria-label', levelAria(detail.level));
   header.append(
     name,
     level,

@@ -58,7 +58,7 @@ import { describeSpecCard } from '../../core/battle/driver';
 import type { PokemonState } from '../../core/types';
 import type { GymDefinition } from '../../data/gyms';
 import { localeById, type LocaleId } from '../../data/locales';
-import { el } from '../scene';
+import { el, levelAria, levelText } from '../scene';
 import { setProse } from '../dom';
 import { LOCALE_COPY } from '../copy/screens';
 import { typeChip } from './starter-select';
@@ -145,7 +145,8 @@ function renderStripMember(member: PokemonState): HTMLElement {
   const name = el('span', 'locale__party-name');
   name.textContent = card.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${card.level}`;
+  level.textContent = levelText(card.level);
+  level.setAttribute('aria-label', levelAria(card.level));
 
   /*
    * **Through `archetypeChip`, not by hand. Chip-audit patch, question 1.**

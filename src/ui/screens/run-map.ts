@@ -58,8 +58,9 @@ import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip, tierChip } from '../chip';
+import { slotNumber } from '../slots';
 import { hpTip } from '../member-card';
-import { el } from '../scene';
+import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
 
 const KIND_LABELS: Record<NodeSpec['kind'], string> = {
@@ -632,14 +633,19 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   const name = el('span', 'panel__name');
   name.textContent = member.spec.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${member.spec.level}`;
-  header.append(name, level);
-
-  // The ability is on the party panel and not only on the starter screen. In a
-  // randomizer it is not flavour — it is half of what the Pokemon *is*, it was
-  // rolled rather than chosen, and it is the thing a player forgets between the
-  // starter select and segment 6.
-  if (index === 0) header.append(neutralChip('Lead', 'lead'));
+  level.textContent = levelText(member.spec.level);
+  level.setAttribute('aria-label', levelAria(member.spec.level));
+  /*
+   * The slot number, as the party card and the drawer draw it. **M3.2.**
+   *
+   * This rail carried a `Lead` chip on the first card instead, which was the
+   * same fact the number states — the run's lead is slot 1 — in a second
+   * channel and a word, on a surface budgeted at zero. The number is the
+   * marker the hotbar and every other party surface already wear, so the rail
+   * now reads like them rather than like a place with its own vocabulary.
+   */
+  header.append(slotNumber(index), name, level);
+  if (index === 0) card.setAttribute('aria-label', `${member.spec.species}, leading`);
 
 
   const bar = createBar();
