@@ -1585,8 +1585,20 @@ function renderMove(
    * patch's argument is untouched and is now cheaper.
    */
   button.dataset['tip'] = `move:${move.id}`;
-  const footer = el('span', 'move__footer');
-  footer.append(pp);
+  /*
+   * **The footer is gone with the control it existed to sit beside. M2.1.**
+   *
+   * `.move__footer` was a flex row holding PP at the left and the `?` chip at
+   * the right, so that the explanation control cost no height of its own. M1.2
+   * removed the chip and D15 removed the expander that was the card's version
+   * of it, which leaves a wrapper around a single child — and its stylesheet
+   * rule went out with the expander's block, so it was an unstyled `<span>`
+   * changing the button's layout for nothing.
+   *
+   * PP is appended directly, exactly as `moveCard` appends it. Both call sites
+   * now build the same face out of the same parts, which is what R1 asks of a
+   * component with two of them.
+   */
 
   // Call site one of two: the battle button, off the projection's own
   // `facts`. `scene.ts` may not reach `describeMove`, so the list arrives
@@ -1605,7 +1617,7 @@ function renderMove(
    * cheaper of the two to lose: it is decorative, it is `aria-hidden`, and
    * nothing reads it. The chip is the one that carries the accessible name.
    */
-  button.append(name, meta, ...(strip ? [strip] : []), footer);
+  button.append(name, meta, ...(strip ? [strip] : []), pp);
   button.addEventListener('click', () => onChoose(moveChoice(move.slot)));
   return button;
 }

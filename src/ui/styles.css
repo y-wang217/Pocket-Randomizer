@@ -1100,14 +1100,29 @@ body {
  * until M6.4 decides whether they survive at all — which is R6's own density
  * ruling rather than an exception to it.
  */
-:root[data-density="pocket"] .move .move__label,
-:root[data-density="pocket"] .move .chip__word { display: none; }
+:root[data-density="pocket"] .move__label,
+:root[data-density="pocket"] .chip__word { display: none; }
 
-/* And the reverse: the glyph is Pocket's encoding of a fact the other two
-   modes still spell out, so it does not render beside the word it replaces. */
-:root:not([data-density="pocket"]) .move .chip--type > .glyph,
-:root:not([data-density="pocket"]) .move .badge--category > .glyph,
-:root:not([data-density="pocket"]) .move .move__pp > .glyph { display: none; }
+/*
+ * And the reverse: the glyph is Pocket's encoding of a fact the other two modes
+ * still spell out, so it does not render beside the word it replaces.
+ *
+ * **Scoped to the chip, not to `.move`, and that scoping was a bug once.**
+ * The first cut wrote `.move .chip--type > .glyph`, on the reasoning that M2.1
+ * owns the move card and should not reach past it. But section 5 makes the
+ * type chip *one* component — "glyph in colour, everywhere a type appears" —
+ * and a rule that only reached inside a move card left every type chip on
+ * every other surface rendering the glyph *and* the word. That is R3, twice
+ * over, on the Pokemon panel and the coverage rows and the locale card; it
+ * cost the capture offer 2.72px and pushed its decision buttons past the fold.
+ *
+ * Scoping by component rather than by surface is also the only version that
+ * can be true: a screen does not get to decide how a type is encoded, which is
+ * the whole of R1.
+ */
+:root:not([data-density="pocket"]) .chip--type > .glyph,
+:root:not([data-density="pocket"]) .badge--category > .glyph,
+:root:not([data-density="pocket"]) .move__pp > .glyph { display: none; }
 
 /* Folding rows (`ui/collapse.ts`): the member card's body, a backpack row's
    controls, a relic's description. The toggle exists only in Pocket, and a
@@ -2081,14 +2096,12 @@ body {
 }
 
 /*
- * PP and the explain control stay one row, and PP loses its label — the
- * number is the thing that counts down, `PP` is four characters of constant.
- * The word is still on the control's own panel.
+ * PP loses its label — the number is the thing that counts down, `PP` is four
+ * characters of constant. The word is still on the panel a long press opens.
+ *
+ * The row it used to share with the explain control is gone with the control
+ * (M1.2, then D15 at M2.1), so PP is the whole of this line now.
  */
-[data-move-bar='columns'] .moves .move__footer {
-  gap: var(--space-1);
-}
-
 [data-move-bar='columns'] .moves .move__pp {
   overflow: hidden;
   text-overflow: ellipsis;
