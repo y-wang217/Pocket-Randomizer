@@ -43,8 +43,11 @@ export interface AbnormalityMark {
 /**
  * Which class a kind belongs to, or `null` for one the stage already answers.
  *
- * A hit, a faint and a chunk have beats of their own; STAB, contact and
- * priority are properties of a move rather than events in a turn.
+ * A hit, a faint and a chunk have beats of their own, so the kinds that
+ * describe one — the effectiveness pair, the crit, the miss, the status and
+ * the berry — return `null` here and are animated by the stage. `priority` is
+ * the turn order, which the lunge already draws. STAB and contact were named in
+ * this list until M4.1 deleted the two kinds.
  */
 function classOf(kind: FlagKind): AbnormalityClass | null {
   switch (kind) {
@@ -106,7 +109,14 @@ export function abnormalityMarks(turns: readonly FlaggedTurn[] | undefined): Abn
     if (!seen.includes(action.side)) seen.push(action.side);
   }
 
-  /** First in protocol order wins, and the strip carries the rest. */
+  /**
+   * First in protocol order wins.
+   *
+   * This said "and the strip carries the rest" until M4.1, when R9 and D23 cut
+   * the strip to one flag per side per channel. The rest is in the log sheet
+   * now, one tap away, which is where C2's re-encoding of what leaves the board
+   * lives. The beat is unchanged: one mark per side either way.
+   */
   const marks = new Map<ActorSide, AbnormalityMark>();
   const note = (flag: Flag, slot: number): void => {
     const klass = classOf(flag.kind);

@@ -378,7 +378,7 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M4.1 Flag precedence | open | — (D12, D23, D24 ruled) |
+| M4.1 Flag precedence | **done** | — (D12, D23, D24 ruled. `data/flagPrecedence.ts`, `visual/4.10-m4.1`, [`generation.md` §61](../generation.md)) |
 | M4.2 Forecast and feedback vocabulary | open | — (D27 ruled: effectiveness kinds only) |
 | M4.3 Log at rest | open | D26 on its last clause (D7, D24, D25 ruled) |
 

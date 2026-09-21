@@ -11,6 +11,12 @@
  * same truths as a row of words at the top of the board: what landed, whether
  * it was resisted, whether a berry fired, why the slow one went first.
  *
+ * **Since M4.1 it shows one of them per side, not all of them.** R9 allows one
+ * flag on a target and D23 adds one non-outcome beside it; `shown()` at the
+ * bottom of this file is that rule and `data/flagPrecedence.ts` is its table.
+ * What no longer fits is in the log sheet, which is one tap away and holds
+ * every line.
+ *
  * **Attributes, never verdicts, and here that is a visual rule as much as a
  * copy one.** Every chip is the same chip — same size, same weight, same
  * neutral surface, no hue. `SUPER EFFECTIVE` and `NOT VERY EFFECTIVE` are the
@@ -49,7 +55,8 @@
  * nothing here is prose.
  */
 import type { Flag, FlaggedTurn } from '../core/battle/flags';
-import type { TurnAction } from '../core/battle/turnOrder';
+import type { ActorSide, TurnAction } from '../core/battle/turnOrder';
+import { FLAG_CHANNEL, hitRank } from '../data/flagPrecedence';
 import { flagWord } from '../data/flagWords';
 import { flagChip } from './chip';
 import { eventLine } from './copy/events';
@@ -108,7 +115,7 @@ export function createFlagStrip(): FlagStrip {
     if (action) event.dataset['side'] = action.side;
     else delete event.dataset['side'];
 
-    const flags = group ? flagsOf(group) : [];
+    const flags = group ? shown(flagsOf(group)) : [];
     words.replaceChildren(
       ...flags.map((flag) => {
         const chip = flagChip(flag.kind, flagWord(flag.kind, flag.detail), { tip: `flag:${flag.kind}` });
@@ -193,6 +200,58 @@ function latest(turns: readonly FlaggedTurn[]): FlaggedTurn | null {
  */
 function flagsOf(group: FlaggedTurn): Flag[] {
   return [...group.actions.flatMap((each) => [...each.flags]), ...group.residual];
+}
+
+/**
+ * The flags this turn has room for. **Milestone M4.1, rule R9, row D23.**
+ *
+ * ## One per side, per channel
+ *
+ * R9: *"After resolution, at most one flag appears on a target, by fixed
+ * precedence."* A target is a side, and in singles a side is hit once a turn,
+ * so "one per side" and the budget's "one per hit" are the same sentence said
+ * from the two ends. Reading it per side rather than per action is what makes
+ * a berry that fired at end of turn compete with the hit that provoked it
+ * rather than arriving as a third chip with nothing to compete against.
+ *
+ * The second channel is D23's: `priority`, `prevented`, `failed`, `ability`,
+ * `volatile` and `field` are not outcomes on a target, R9 never ranked them,
+ * and ranking them against `crit` would cost the flinch the only channel it
+ * has. One per side there too, taken in protocol order, because the bound is
+ * what keeps the row a budget rather than a hope.
+ *
+ * ## What it does not do
+ *
+ * It does not reorder. The survivors come back in the order `flagsOf` produced
+ * them, which is the protocol's — *"the one ordering that is a fact rather
+ * than an opinion"*. Precedence decides which flags survive; it never decides
+ * which is drawn first, larger or louder, and there is no path from a rank to
+ * a style.
+ *
+ * It also does not filter what anything else reads. `ui/abnormality.ts` takes
+ * its beat from the full list and used to say *"the strip carries the rest"*;
+ * since this item the strip carries one per side per channel, and the rest is
+ * in the log sheet one tap away. That comment is corrected there rather than
+ * here.
+ */
+function shown(flags: readonly Flag[]): Flag[] {
+  const hit = new Map<ActorSide, Flag>();
+  const second = new Map<ActorSide, Flag>();
+
+  for (const flag of flags) {
+    if (FLAG_CHANNEL[flag.kind] === 'second') {
+      // First in protocol order, so `set` only when the side is still empty.
+      if (!second.has(flag.side)) second.set(flag.side, flag);
+      continue;
+    }
+    const standing = hit.get(flag.side);
+    // Strictly better, so a tie — `super` against `resisted`, `boost` against
+    // `unboost` — is decided by the protocol rather than by this comparison.
+    if (!standing || hitRank(flag.kind) < hitRank(standing.kind)) hit.set(flag.side, flag);
+  }
+
+  const survivors = new Set<Flag>([...hit.values(), ...second.values()]);
+  return flags.filter((flag) => survivors.has(flag));
 }
 
 /**
