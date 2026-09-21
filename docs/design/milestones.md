@@ -366,9 +366,16 @@ puts the forecast's colour on the effectiveness flags alone and restates the
 shipped "same chip" rule as what it always meant, no weight axis. Bible **Rev
 5**, two amendments, both in section 4, no rule moved.
 
-**D26 is open and blocks only M4.3's last clause**: the log sheet opens by a
-button reading `History`, where the item says pull, and that word is over the
-battle screen's budget however the gesture is decided.
+**Two rows were opened against M4.3 and both are ruled.** D26: build the pull,
+keep a glyph handle as the visible affordance, and let R7's exposure label carry
+the first encounter. **D28**, opened after M4.1 and M4.2 had shipped: once the
+strip and the event line are done, what is left on that screen is the header —
+node kind, opponent and AI tier — and section 4 budgeted none of the three.
+Ruled at **4**, with a canon row beside it, bible **Rev 6**. The census had
+never counted the AI tier at all, because the gallery fixture passes no segment
+and the tier line is built only when there is one, so the measured 10 was lower
+than the screen a player sees; M4.3 fixes the fixture, which raises the number
+before anything lowers it.
 
 **One recommendation the merged bible withdrew.** The prep doc proposed taking
 the effectiveness flags wordless, on R8's reasoning that the forecast spends no
@@ -380,7 +387,7 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 |---|---|---|
 | M4.1 Flag precedence | **done** | — (D12, D23, D24 ruled. `data/flagPrecedence.ts`, `visual/4.10-m4.1`, [`generation.md` §61](../generation.md)) |
 | M4.2 Forecast and feedback vocabulary | **done** | — (D6 filled, D27 ruled. `visual/4.10-m4.2`, [`generation.md` §62](../generation.md); the visual diff is a token assertion, recorded as a deviation) |
-| M4.3 Log at rest | open | D26 on its last clause (D7, D24, D25 ruled) |
+| M4.3 Log at rest | open | — (D7, D24, D25, D26, D28 all ruled) |
 
 ### Tier 5: remaining surfaces
 
