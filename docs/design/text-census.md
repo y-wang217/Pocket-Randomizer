@@ -23,7 +23,7 @@ subtracted here.
 | battle | 39 | 39 | 16 | 10 |
 | result | 75 | 55 | 52 | 46 |
 | result-capture | 132 | 111 | 59 | 53 |
-| target | 88 | 70 | 52 | 46 |
+| target | 231 | 201 | 58 | 52 |
 | replace | 40 | 33 | 21 | 15 |
 | party | 407 | 408 | 23 | 17 |
 | pre-gym | 180 | 186 | 38 | 32 |
@@ -42,16 +42,16 @@ so rather than reading zero.
 | Component | detailed | simple | pocket |
 |---|---:|---:|---:|
 | battle move button | 38 | 38 | 0 |
-| move card | 376 | 376 | 0 |
+| move card | 465 | 465 | 0 |
 | move chip | 8 | 8 | 0 |
-| party row | 238 | 214 | 63 |
+| party row | 184 | 172 | 21 |
 | pokemon battle panel | 4 | 4 | 0 |
 | party drawer | 71 | 60 | 13 |
 | flag strip | 11 | 11 | 11 |
 | confirm overlay | absent | absent | absent |
-| stat block | 114 | 132 | 0 |
+| stat block | 144 | 168 | 0 |
 | app shell | 109 | 109 | 109 |
-| screen chrome (no component) | 1624 | 1388 | 1073 |
+| screen chrome (no component) | 1702 | 1436 | 1121 |
 
 ## Every word counted, in Pocket
 
@@ -64,7 +64,7 @@ above can be argued with rather than taken on faith.
 - **battle** (16): `GYMRUN` `Tutorial` `Map` `Party` `A` `loaded` `board` `A` `trainer` `used` `Paralysed` `Badly` `poisoned` `History` `GYMRUN-d4e080-SMOKE24` `r21`
 - **result** (52): `GYMRUN` `Tutorial` `Map` `Party` `coins` `total` `Nobody` `went` `down` `Your` `party` `after` `the` `battle` `HP` `PP` `HP` `PP` `HP` `PP` `HP` `PP` `HP` `PP` `HP` `PP` `one` `NORMAL` `Held` `item` `Halves` `one` `super-effective` `hit` `your` `backpack` `Restore` `Restore` `HP` `PP` `and` `status` `whole` `party` `TM` `You` `choose` `who` `learns` `it` `GYMRUN-d4e080-SMOKE24` `r21`
 - **result-capture** (59): `GYMRUN` `Tutorial` `Map` `Party` `coins` `total` `Nobody` `went` `down` `Lv13` `Beaten` `Yours` `to` `take` `Party` `full` `one` `goes` `Coverage` `if` `it` `replaces` `your` `first` `member` `unchanged` `Your` `party` `of` `choose` `who` `to` `release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `Keep` `my` `party` `as` `it` `is` `GYMRUN-d4e080-SMOKE24` `r21`
-- **target** (52): `GYMRUN` `Tutorial` `Map` `Party` `TM` `Who` `learns` `it` `HP` `Four` `moves` `You` `choose` `what` `replaces` `HP` `Four` `moves` `You` `choose` `what` `replaces` `HP` `Four` `moves` `You` `choose` `what` `replaces` `HP` `Four` `moves` `You` `choose` `what` `replaces` `HP` `Four` `moves` `You` `choose` `what` `replaces` `HP` `Four` `moves` `You` `choose` `what` `replaces` `GYMRUN-d4e080-SMOKE24` `r21`
+- **target** (58): `GYMRUN` `Tutorial` `Map` `Party` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `GYMRUN-d4e080-SMOKE24` `r21`
 - **replace** (21): `GYMRUN` `Tutorial` `Map` `Party` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-d4e080-SMOKE24` `r21`
 - **party** (23): `GYMRUN` `Tutorial` `Map` `Party` `Your` `party` `Slot` `leads` `Release` `is` `permanent` `Watch` `for` `Backpack` `of` `carried` `Relics` `Back` `to` `the` `map` `GYMRUN-d4e080-SMOKE24` `r21`
 - **pre-gym** (38): `GYMRUN` `Tutorial` `Map` `Party` `Draven's` `gym` `Gym` `of` `Who` `leads` `Leading` `Lead` `with` `this` `one` `Lead` `with` `this` `one` `Lead` `with` `this` `one` `Lead` `with` `this` `one` `Lead` `with` `this` `one` `Send` `in` `Party` `screen` `items` `GYMRUN-d4e080-SMOKE24` `r21`

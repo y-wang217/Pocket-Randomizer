@@ -307,11 +307,41 @@ the drawer also happens to be, and no item on the list owns any of it.
 Recommended to M6.3, which touches the density picker anyway. It blocks
 nothing.
 
+**M3.3 is shipped, and Tier 3 is closed.** The item's plan was to delete the
+36-word pairing line and let the mounted party row say the same thing — four
+move cards means a replacement is coming, three means a free slot. Measured at
+390x844 it does not survive the viewport: **a party card folds to 92.9px in
+Pocket and opens to 514.0px**, of which the four move cards are 376.2px. Six
+unfolded in the two-column grid is about 1542px against 844, and the first card
+plus the pinned move already passes the fold. The moves cannot be at rest here,
+so deleting the line would have put the screen's only question behind a tap.
+
+**Mounting the component resolved it structurally.** The line is a fact about
+this member *and this reward together*, not about the member — so it moves out
+of the card and sits beside it. The card is the party row at **0**, which is
+what the done-when asks for. Mounting also deleted the screen's hand-rolled
+header, level, archetype chip and HP line — three weeks of drift M3.2 had
+already fixed in the component — and two stylesheet carve-outs written because
+the old card was a `<button>`, worth `HP` and `PP` twelve times.
+
+**The card cannot be a button now**, because the row carries a fold toggle, six
+stat labels and four inspect triggers and nesting those in a `<button>` is
+invalid. `ui/screens/pre-gym.ts` had the shape: a slot wrapper, the component,
+a control beside it.
+
+**The one figure Tier 3 misses.** Section 4 budgets the decline overlay at 4
+words and it measures **5** — `Forfeit this reward?` is 3 under the counting
+rule and a confirm cannot have fewer than two controls. D1's own table reads
+that row as *"Counting the rule as written: 3"*, so the figure was derived from
+the question alone, before `ui/band.ts` existed. Pinned by a test rather than
+the census, because no fixture opens a confirm and that component reads
+`absent`.
+
 | Item | Status | Blocked by |
 |---|---|---|
 | M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
 | M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled; D21a re-ruled to cards. Party row 121 → **63** in Pocket, 0 on party and pre-gym; stat block 0, now covering four call sites) |
-| M3.3 Teach target screen | ready | — (D1 ruled: at or under 4. It takes 42 of the party row's remaining 60) |
+| M3.3 Teach target screen | **done** | — (target card 42 → **0**; the decline overlay measures 5 against a budget of 4, see below) |
 
 ### Tier 4: battle feedback
 

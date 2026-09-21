@@ -85,12 +85,15 @@ Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and
 `npm run glyphs` (the contact sheet and the 16px separation check).
 
-**Where Tier 3 stands.** M3.1 is shipped: the battle panel censuses **0 words
-at rest in Pocket**, down from 20. The archetype label is gone from it and the
-six stats it was a summary of are behind the panel's long press — discrepancy
-D18, which is the one ruling in the item worth reading before touching the
-panel again. [`generation.md`](generation.md) section 57 records the whole of
-it. M3.2 is next and is `ready`.
+**Tier 3 is closed**, thirteen items of twenty-four. The battle panel, the
+party row and the teach target card all census **0 words at rest in Pocket**,
+and one component draws the six stats everywhere they appear.
+[`generation.md`](generation.md) sections 57, 58 and 59 record the three items;
+the rulings worth reading before touching any of those surfaces again are D18
+(the archetype label is gone and the stats it summarised are behind the panel's
+long press), D20 (one stat block, in its own module, with the glyph) and D21a,
+which was ruled one way, built, and re-ruled back when three invariant tests
+caught three fact families leaving with the move card's face.
 
 
 **In flight: teaching a move at the node that paid it, and a level spread for

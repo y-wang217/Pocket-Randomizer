@@ -1289,10 +1289,11 @@ body {
 }
 :root[data-density="pocket"] .bench .hp--slim { display: none; }
 
-/* The target screen's buttons in Pocket: a button is one tap already, so no
-   tip lives inside it; the number stays as text and the bar goes. The capture
-   block's cards follow the member card rule below instead. */
-:root[data-density="pocket"] .party--target .hp { display: none; }
+/* **Removed at M3.3**, with the HP-text carve-out it paired with. It hid the
+   bar on this screen because the card was a `<button>` — a button is one tap
+   already, so no tip could live inside it, and the number had to stay as text.
+   The card is the party row now and is not a control, so the bar is the
+   readout here exactly as it is in the drawer. */
 :root[data-density="pocket"] .party--compare .party__actions { margin-top: 0; }
 :root[data-density="pocket"] .party--compare .hp { margin-top: var(--space-h); }
 
@@ -1347,9 +1348,15 @@ body {
    worst case: the line wrapped to two at half a phone's width and put 33px
    under every card. A fainted member keeps its word on screen. The track is
    4px, so its hit area is padded out by a pseudo-element the track's own
-   box does not clip; the fill is rounded on its own. The target screen's
-   buttons are excluded above. */
-:root[data-density="pocket"] .party__member:not(.party__member--target) .panel__hp-text:not([data-fainted]) { display: none; }
+   box does not clip; the fill is rounded on its own.
+
+   **The target screen was excluded and is not any more. M3.3.** That carve-out
+   was written for a card this screen hand-rolled, which drew its own HP line
+   and had no bar to read instead. It mounts the party row now, so it follows
+   the row's rule like every other surface — the bar is the readout, the
+   numbers are its tap — and the exception was costing `HP` and `PP` twelve
+   times on a card budgeted at zero. */
+:root[data-density="pocket"] .party__member .panel__hp-text:not([data-fainted]) { display: none; }
 :root[data-density="pocket"] .party__member .hp[data-tip] { overflow: visible; cursor: help; }
 :root[data-density="pocket"] .party__member .hp[data-tip]::after { content: ''; position: absolute; inset: calc(-1 * var(--space-2)) 0; }
 /* The item's "to bag" control folds with the body: a control on a card is

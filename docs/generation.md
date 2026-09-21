@@ -8918,3 +8918,116 @@ row; all of it is the settings surface the drawer also happens to be. Section 4
 budgets the drawer at 0, and that figure was written for a drawer that holds a
 party. Recommended to M6.3, which touches the density default and will be
 reading that picker anyway. It blocks nothing.
+
+## 59. The teach target screen, and the line that could not be dropped
+
+**Milestone M3.3**, 2026-09-21. Presentation only. `contentHash` holds at
+`d4e080`, no version axis moves, nothing under `core/` changed. Tier 3 closes.
+
+### The measurement that decided the item
+
+M3.3's plan was to mount the party row and delete the per-member pairing line —
+*"Knows four moves. You choose which one Ice Beam replaces."* — on the argument
+that the mounted row says the same thing: four move cards means a replacement
+is coming, three means a free slot, and a card listing the move by name means
+the member already knows it. That is R3 rather than a removal, and it is worth
+36 of the surface's words.
+
+It does not survive contact with the viewport. Measured at 390x844:
+
+| | folded | open |
+|---|---:|---:|
+| A party card in Pocket | 92.9px | 514.0px |
+| its body | — | 439.7px |
+| its four move cards | — | 376.2px |
+
+Six cards unfolded in the two-column grid this screen uses is about **1542px
+against an 844 viewport**, and the first card plus the pinned incoming move
+already passes the fold. The moves cannot be at rest here. Deleting the line
+would have put the only question this screen asks behind a tap, which is C2.
+
+### The resolution was structural rather than a compromise
+
+The line stays, and mounting the component is what makes that free: **it moves
+out of the card.** It is not a fact about the member — it is a fact about this
+member *and this reward together*, which is why the screen exists at all and
+why a hand-rolled card had been carrying it since Stage 4.5.1. The card is the
+party row at **0 words**; the pairing line and the `Teach it` control are the
+screen's, beside it in the slot wrapper.
+
+The done-when asks for *"census reads 0 on the target card"*, and that is now
+literally true rather than approximately true.
+
+### What mounting the component took off this screen for free
+
+`ui/screens/item-target.ts` drew its own header, its own level, its own archetype
+chip and its own HP line — the section 5 defect, and the reason this screen
+kept `Lv`, the label and the archetype three weeks after M3.2 removed them from
+the component. Mounting the row deleted all of it, along with eight imports.
+
+**A card cannot be a `<button>` any more**, and that is not a style choice: the
+party row carries the fold toggle, six stat labels with `role="button"` and
+four move cards that have been inspect triggers since M2.1, and nesting those
+inside a button is invalid and takes the keyboard path to every one of them.
+`ui/screens/pre-gym.ts` had the shape already — a slot wrapper, the component, a
+control beside it — and the two screens that ask "which member" now ask it the
+same way.
+
+**Two stylesheet carve-outs came out with the old card**, both written because
+it *was* a button:
+
+- `.party__member:not(.party__member--target) .panel__hp-text` excluded this
+  screen from the member card's "the bar is the readout, the number is its tap"
+  rule, because the old card drew its own HP line and had no bar to read.
+- `:root[data-density="pocket"] .party--target .hp { display: none; }` hid the
+  bar for the same reason — a button is one tap already, so no tip could live
+  inside it.
+
+Together they were `HP` and `PP` twelve times on a card budgeted at zero.
+
+### The decline, through the one confirm
+
+The control carried a note spelling out what declining costs — *"Nobody learns
+this move. It is not offered again."* — at rest, on every render, for a control
+most runs never press. It opens `ui/band.ts` now, with the move being forfeited
+mounted in the `content` slot M2.3 added, so the card is in front of the player
+when the question is asked rather than remembered from the screen behind it.
+
+One card, not two. A replace trades a move for a move; a decline gives one up
+for nothing, and drawing a second card would invent a thing on the other side
+of the trade.
+
+### Census
+
+| Surface or component, Pocket | before | after |
+|---|---:|---:|
+| Target card | 42 | **0** |
+| Party row component | 63 | **21** |
+| `target` surface, less shell | 46 | 52 |
+
+The surface rises because the `Teach it` control is new: six of them, twelve
+words, where the card used to be the control and spent none. The screen has no
+budget row in section 4 — the row is the *card*, at 0 — and pre-gym carries the
+same six controls under M5.3.
+
+The party row's remaining 21 is 18 on the capture list's controls (M5.4) and 3
+on the map rail's `Lead` chips (M5.2). Nothing of it is the component.
+
+### The one figure this item misses
+
+Section 4 budgets the decline overlay at **4** words and it measures **5**:
+`Forfeit this reward?` is 3 under the counting rule, and the band's two
+controls are the other two. A confirm cannot have fewer than two controls.
+
+D1's own table reads that row as *"Counting the rule as written: 3"* — the
+figure was derived from the question alone, before `ui/band.ts` existed, and
+the question here is the record's verbatim. The cancel is `Keep`, the same word
+the replace confirm uses, so the two confirms in this game decline the same
+way.
+
+Asserted in `test/item-target.test.ts` rather than left to the census, because
+no gallery fixture opens a confirm and the census reads that component
+`absent`. A budget nothing measures is a budget nothing holds. It counts the
+band's own copy and not its content: the card inside carries its own section 4
+row, and jsdom applies no stylesheet, so counting the subtree would measure the
+card twice and in the wrong mode.
