@@ -37,11 +37,13 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Fifteen of sixteen discrepancy rows are ruled** — eleven on 2026-09-19, which
-took the bible to Rev 2, then D2 and D8, then D15 and D16 opening Tier 2, all on
-2026-09-20. **Nothing on this list is blocked.** D14 is the one open row, it
-blocks nothing, and it is timed with M5.6. Every remaining `open` is waiting on
-its tier, not on a decision.
+**Fifteen of seventeen discrepancy rows are ruled** — eleven on 2026-09-19,
+which took the bible to Rev 2, then D2 and D8, then D15 and D16 opening Tier 2,
+all on 2026-09-20. **Two are open.** D14 blocks nothing and is timed with M5.6.
+**D17 is M2.1's own done-when**: the face is built and the gate is green, and
+whether "census reads 0" was ever reachable — while the item keeps the icon
+strip and restores the status readout it used to hide — is the unruled
+question. Every remaining `open` is waiting on its tier, not on a decision.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
