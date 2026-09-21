@@ -2107,6 +2107,60 @@ export function moveFacts(move: {
 }
 
 /**
+ * A move as a chip: name, type, category, base power. **Milestone M2.3.**
+ *
+ * Section 5's component canon lists it beside the move card — *"Move chip |
+ * Name, type chip, category glyph, BP | Replacement and teach lists"* — and
+ * the census recorded it `absent` from Tier 0 until now. It is the compact
+ * form of the same face, not a different one: the same `typeChip`, the same
+ * `categoryChip`, the same `movePower`, so a move looks like itself wherever
+ * it is met and R1's fixed slots survive the shrink.
+ *
+ * **What it deliberately leaves out is PP and the band**, and that is the
+ * item's bet rather than an oversight. The replacement screen showed five full
+ * cards and the decision it asks for — which of four to displace — is a
+ * comparison the full face makes harder rather than easier, because the fields
+ * that differ are buried among the fields that do not. Section 3's kills-it
+ * for M2.3 names the disconfirmer: if testers expand every chip before
+ * choosing, the chip is missing something they need and PP comes back.
+ *
+ * It is a `<button>` because every site that draws one is asking the player to
+ * pick it. The confirm that follows is the caller's.
+ */
+export function moveChip(move: {
+  id?: string;
+  name: string;
+  type: string;
+  category: MoveUiView['category'];
+  basePower: number;
+}): HTMLButtonElement {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = `move move--chip move--${move.type.toLowerCase()}`;
+  chip.dataset['category'] = move.category.toLowerCase();
+
+  const name = el('span', 'move__name');
+  name.textContent = move.name;
+
+  const meta = el('span', 'move__meta');
+  meta.append(
+    typeChip(move.type, { tip: `type:${move.type}` }),
+    categoryChip(move.category, CATEGORY_LABELS[move.category], { tip: `category:${move.category.toLowerCase()}` }),
+    movePower(move.category, move.basePower),
+  );
+
+  chip.append(name, meta);
+  // The same inspect trigger the card carries, for the same reason: a compact
+  // form is exactly where a player is most likely to want the full one, and
+  // R5 puts that behind the long press rather than behind a second control.
+  if (move.id) {
+    chip.dataset['tip'] = `move:${move.id}`;
+    chip.dataset['tipHover'] = 'off';
+  }
+  return chip;
+}
+
+/**
  * A move as a standalone card, for screens outside a battle.
  *
  * Same element classes as the battle button so the two are styled by one rule

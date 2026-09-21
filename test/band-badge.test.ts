@@ -42,6 +42,7 @@ import { createRun, playRun, scriptedRunPolicy, type RunResult } from '../src/co
 import type { PokemonState } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { gymForSegment } from '../src/data/gyms';
+import { openBandOf } from '../src/ui/band';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { bandOfMove } from '../src/data/moveOverrides';
 import { partyCapacityAfter } from '../src/data/partyTuning';
@@ -214,21 +215,42 @@ describe('the band badge renders on every surface that renders a move', () => {
     screen.render(member, incoming, () => undefined, DEFAULT_TUNING);
 
     /*
-     * The definition of done, as one assertion.
+     * **The definition of done moved at M2.3, and the comparison it protects
+     * did not.**
      *
-     * "A player comparing an incoming band 3 against four current moves sees
-     * five labelled cards, and the label looks the same on all five." Both
-     * halves are checked separately because they are built by different
-     * functions — `moveCard` for the incoming one, `moveFacts` for the four —
-     * and it was possible for either to grow the badge without the other.
+     * It read: "a player comparing an incoming band 3 against four current
+     * moves sees five labelled cards, and the label looks the same on all
+     * five." Five full cards do not fit 390x844 — the player scrolled between
+     * the options they were choosing between — so M2.3 shrank the four to
+     * chips, and section 5's chip carries name, type, category and base power
+     * and not the band.
+     *
+     * **So the comparison happens one tap later, against two full faces.** The
+     * chip opens the shared confirm with the incoming move and the one it
+     * would displace, both with their bands, which is the pairing R12 exists
+     * to make possible — and a *closer* pairing than five cards in a grid,
+     * because the two being traded are side by side.
+     *
+     * The incoming card still carries its band on the screen itself, so the
+     * player sees what they are being offered before choosing what it costs.
      */
     bandsOn(screen.root.querySelector('.replace__incoming') ?? screen.root, 'replacement, incoming');
-    bandsOn(screen.root.querySelector('.replace__moves') ?? screen.root, 'replacement, given up');
 
     // Ice Beam is a band 3 move, so this really is the case the brief names.
     expect(bandOfMove('Ice Beam')).toBe(3);
-    const shown = [...screen.root.querySelectorAll('.move')].filter((card) => card.querySelector('.band'));
-    expect(shown.length, 'five cards, minus any status move among the four').toBeGreaterThan(3);
+
+    const chips = [...screen.root.querySelectorAll<HTMLElement>('.replace__moves .move--chip')];
+    expect(chips, 'the four it could displace').toHaveLength(4);
+    for (const chip of chips) {
+      expect(chip.querySelector('.band'), 'the chip defers the band to the confirm').toBeNull();
+    }
+
+    chips[0]!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const band = openBandOf();
+    expect(band, 'the chip opens the confirm').not.toBeNull();
+    bandsOn(band!.root, 'replacement, the two being traded');
+    expect(band!.root.querySelectorAll('.move--card .band'), 'both faces carry one').toHaveLength(2);
+    band!.close();
   });
 
   /**
@@ -254,6 +276,19 @@ describe('the band badge renders on every surface that renders a move', () => {
     for (const [slot, victim] of victims.entries()) {
       expect(victim.tagName, 'a current move is a button').toBe('BUTTON');
       (victim as HTMLButtonElement).click();
+      /*
+       * **A tap opens the question; the band's primary answers it. M2.3.**
+       *
+       * This used to commit on the tap, and the case asserted exactly that.
+       * The chip gave up PP and the band, so committing straight off it would
+       * be asking the player to decide on less than the screen used to show —
+       * the confirm is where the two full faces come back, and it is the
+       * control that spends the slot.
+       */
+      expect(picked.at(-1), 'the tap alone spends nothing').not.toBe(slot);
+      const band = openBandOf();
+      expect(band, `slot ${slot} opened no confirm`).not.toBeNull();
+      band!.root.querySelector<HTMLButtonElement>('.primary-action')!.click();
       expect(picked.at(-1)).toBe(slot);
     }
     expect(picked).toEqual([0, 1, 2, 3]);
@@ -400,7 +435,13 @@ describe('every band chip carries the same weight', () => {
     const incoming = describeMove('Ice Beam')!;
     replace.render(members[0]!, incoming, () => undefined, DEFAULT_TUNING);
     surfaces.push(['replacement, incoming', replace.root.querySelector('.replace__incoming .band')!]);
-    surfaces.push(['replacement, given up', replace.root.querySelector('.replace__moves .band')!]);
+    // The four it could displace are chips since M2.3 and carry no band of
+    // their own; the one they open the confirm on does, and it is the same
+    // chip built by the same function.
+    replace.root.querySelector<HTMLElement>('.replace__moves .move--chip')!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    );
+    surfaces.push(['replacement, the confirm', openBandOf()!.root.querySelector('.move--card .band')!]);
 
     for (const [surface, badge] of surfaces) {
       expect(badge, surface).toBeTruthy();

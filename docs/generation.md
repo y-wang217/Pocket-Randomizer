@@ -8512,7 +8512,7 @@ re-encoding rather than removal. The lead designer ruled for deletion: R6 and
 R1 hold without interpretation, and the comparison-across-buttons goal that
 justified the mode is better served by the grid at double the width.
 
-**Deleted:** `ui/theme/move-bar.ts`, the `moveBar` setting and its accessors,
+**Deleted:** the `move-bar` theme module, the `moveBar` setting and its accessors,
 the drawer's picker and its copy, the `notFirstLaunch` and `openApp` options,
 179 lines of stylesheet, and five patterns from `test/density.test.ts`'s
 forbidden list. Those patterns guarded `core/` against seeing a presentation
@@ -8539,3 +8539,62 @@ in `src/`. M2.2 is presentation-only — "if an item touches `core/` beyond the
 pure flag mapper, it is the wrong item" — so removing it is not this item's to
 do. `test/battle-view.test.ts` still covers it and it is still correct. M4.1 is
 the next item with reason to edit that layer.
+
+## 56. The move chip, and five faces becoming one plus four
+
+**Milestone M2.3**, the last item in Tier 2. Section 5's component canon has
+listed a move chip beside the move card since the bible was written; the Tier 0
+census recorded it `absent`. This builds it.
+
+### Rules touched
+
+**§5** (the component canon's second move component), **R1** (the chip is the
+same component's compact form — same type chip, same category chip, same base
+power slot — so the fields keep their identity when they shrink), **R5** (the
+chip is an inspect trigger like the card, so the full face is one press away),
+and Part 4's no-verdict rule, which the item preserves rather than touches.
+
+No rule changed and the bible is not amended.
+
+### What it trades, and what pays for it
+
+The replacement screen drew five full faces: the incoming move and the four it
+could displace. **That shape was deliberate.** Part 4's rule is that the
+comparison belongs to the player, and five identical cards is the least
+opinionated way to lay one out — the screen's own header says so.
+
+What it missed is the fold. Measured at 390x844 before this item, the player
+scrolled to see the options they were choosing between, which is not a
+comparison however even-handedly the cards are drawn. After: **the pinned card
+ends at 262 and the whole chip row at 526**, both far above 844.
+
+The chip carries name, type, category and base power — the four fields that
+differ between a member's own four moves. It gives up PP and the band, and the
+confirm brings both back on two full faces. The milestone's disconfirmer is
+behavioural and no test can hold it: *"testers expand every chip before
+choosing. Then chips gain PP at rest."*
+
+### The confirm is the shared band, extended rather than duplicated
+
+`test/band.test.ts` holds a rule this item had to work inside: no screen builds
+its own confirm. The band was text-only — a question and a line — because the
+three confirms it replaced were. It takes an optional `content` element now, so
+the caller mounts the two move cards and `ui/band.ts` still knows nothing about
+moves. Every existing caller is untouched.
+
+### Two things the census had wrong, both corrected here
+
+1. **`.move-chip` was a guess.** The selector was written at M0.1 against a
+   class that did not exist yet, and the tree's convention for a variant of the
+   move component is the double dash — `.move--card`, `.move--victim`. The
+   instrument was corrected to the code rather than the reverse: the name is a
+   codebase convention and the census has no stake in it.
+
+2. **`button.move` swept the chips into the battle bar's budget.** The chip is
+   a `<button>` carrying `.move`, because every site that draws one is asking
+   the player to pick it — so the battle move button row was counting four
+   chips from a screen the battle bar never appears on. It reads
+   `button.move:not(.move--chip)` now, and the row fell from 46 to 38 in
+   Detailed once the chips stopped being charged to it.
+
+Census, Pocket: **move chip 0** against a budget of 0, on its first appearance.

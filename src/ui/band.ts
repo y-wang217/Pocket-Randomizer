@@ -31,6 +31,20 @@ export interface BandSpec {
   title: string;
   /** One line under it, optional. */
   detail?: string;
+  /**
+   * Something to show above the buttons. **Milestone M2.3.**
+   *
+   * The band was text only — a question and a line — because the three
+   * confirms it replaced were. M2.3 needs one that shows *the two move cards
+   * being traded*, because the decision it confirms is a comparison and a
+   * confirm that only named the two moves would be asking the player to
+   * remember what they look like.
+   *
+   * An element rather than more strings, so the caller mounts the shared
+   * component and this file keeps knowing nothing about moves. Optional, so
+   * every existing caller is untouched.
+   */
+  content?: HTMLElement;
   /** The label of the committing button. */
   confirm: string;
   /** The label of the way out. */
@@ -66,6 +80,12 @@ export function openBand(spec: BandSpec, host: HTMLElement = document.body): Ban
     const detail = el('p', 'confirm-band__detail');
     detail.textContent = spec.detail;
     body.append(detail);
+  }
+
+  if (spec.content) {
+    const content = el('div', 'confirm-band__content');
+    content.append(spec.content);
+    body.append(content);
   }
 
   const actions = el('div', 'confirm-band__actions');
