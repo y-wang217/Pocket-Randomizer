@@ -9523,7 +9523,7 @@ run since M0.1. `core/encounters.ts` writes the real ones: `Wild encounter` or
 fixture says those now.
 
 **And it was not counting a word that is always there.**
-`screens/battle.ts` builds the AI tier line only when it is given a segment;
+`src/ui/screens/battle.ts` builds the AI tier line only when it is given a segment;
 `ui/app.ts` passes `state.currentSegment`; the gallery passed nothing. So
 `Rookie`, `Seasoned` and `Ace` have rendered on every real battle screen since
 the tiers patch and been counted on none. The fixture passes segment 1 now.
@@ -9571,7 +9571,7 @@ refusing a seed.
 **The tap survives, deliberately.** A pull is not a keyboard gesture, a control
 that answered only a drag would be unreachable without a pointer, and section
 7's objection to a mechanism a player must know exists applies hardest to one
-that is invisible. Two routes, one `open`, both wired in `screens/battle.ts`
+that is invisible. Two routes, one `open`, both wired in `src/ui/screens/battle.ts`
 because the sheet still never opens on its own.
 
 **And it is 24px tall, not 44.** The 44px touch floor M2.2 stated for the move
