@@ -1779,7 +1779,43 @@ body {
   gap: var(--space-h);
   padding-top: calc(var(--space-1h) * var(--density-pad));
   padding-bottom: calc(var(--space-1h) * var(--density-pad));
+  /* M2.2: the touch floor, stated rather than arrived at. A button that the
+     content happens to make tall enough is a button one copy change shortens. */
+  min-height: 44px;
 }
+
+/*
+ * **The forecast edge. Section 2, milestone M2.2.**
+ *
+ * `data-effect` is set by `renderMove` only when the band is neither neutral
+ * nor absent, so the attribute's absence is R4's default and three of four
+ * buttons usually carry no edge at all. The one that does is read because the
+ * others are not.
+ *
+ * **Red and green, and the numeral beside it is what makes that safe.**
+ * Section 2 asks for the red/green family and for it to be colour-blind
+ * checked, and the check is structural rather than a palette tweak: the
+ * fraction carries the same fact in a channel colour vision cannot touch, the
+ * way a type chip's glyph carries the type and its hue only repeats it. The
+ * edge is never the only carrier.
+ *
+ * Tokens rather than new hues: `--stage-up` and `--stage-down` are the green
+ * and red this UI already uses for a number moving in the player's favour and
+ * against it, and effectiveness is the same question asked of a matchup.
+ */
+.moves .move[data-effect] {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.moves .move[data-effect='super'] { border-left-color: var(--stage-up); }
+.moves .move[data-effect='resisted'] { border-left-color: var(--stage-down); }
+/*
+ * No effect is the strongest reading on the bar and it is still the red
+ * family, not a third hue. A fourth colour would be a fourth thing to learn;
+ * the fraction says `0` and the edge says which family it is in.
+ */
+.moves .move[data-effect='none'] { border-left-color: var(--stage-down); }
 
 .moves .move__meta {
   gap: var(--space-1);
@@ -2095,31 +2131,71 @@ body {
 }
 
 /*
- * Two slots wide, so the three fields that stay on the face take two rows:
- * the band beside the accuracy, the marker under them. Explicit placement
- * rather than inherited, because the grid is two columns here and the wide
- * layout's `3 / -1` would land the marker on top of the accuracy.
+ * Two slots wide, and **every slot placed explicitly**. M2.2.
+ *
+ * Explicit rather than inherited, because the grid is two columns here and the
+ * wide layout's `3 / -1` would land one slot on top of another. It is also the
+ * only version that cannot go wrong quietly: a slot with no rule here
+ * auto-places into whatever cell is free and then overflows an 85px button,
+ * which is exactly what M2.1's new accuracy slot did until this rule named it.
+ *
+ * Three rows of two, in the wide layout's reading order: what the move is
+ * measured by, then how it behaves, then what the board makes of it.
  */
 [data-move-bar='columns'] .moves .move__facts-band {
   grid-row: 1;
   grid-column: 1;
 }
 
-[data-move-bar='columns'] .moves .move__fact-cell[data-column='1'] {
-  grid-row: 1;
-  grid-column: 2;
+/*
+ * Accuracy takes its own row rather than the slot beside the band, and that
+ * is measured. It was `fact-cell[data-column='1']` before M2.1 — an icon
+ * character and a number in one chip — and it fitted. The section 3 slot is a
+ * target glyph and a number, 30px, and the band strip leaves 16 beside it, so
+ * sharing the row cuts it. A full-width row costs one line and cuts nothing.
+ */
+[data-move-bar='columns'] .moves .move__facts-accuracy {
+  grid-row: 2;
+  grid-column: 1 / -1;
 }
 
 [data-move-bar='columns'] .moves .move__facts-effect {
-  grid-row: 2;
+  grid-row: 3;
   grid-column: 1 / -1;
   justify-self: start;
 }
 
-/* Contact, the odds and the turn cost: one tap away, in the `?` panel. */
-[data-move-bar='columns'] .moves .move__fact-cell:not([data-column='1']) {
+
+/*
+ * **The fact cells stay one tap away here, and M2.2 measured what it would
+ * cost to change that.**
+ *
+ * D9 ruled: build the compact 2x2, re-measure column mode against it, rule
+ * with the number. The numbers, at 390x844 with the M2.1 face:
+ *
+ *   - **2x2 grid: 176px wide, 112px tall, nothing cut, in both densities.**
+ *     The compact face fits the wide button with room to spare.
+ *   - **Columns: 85px wide.** Showing every fact cell cuts one — a secondary
+ *     chance at `100%` wants 47px against a 31px cell — and the band strip
+ *     alone takes most of the width before anything else is placed. One cell
+ *     per row does not fix it; the button grows and the chip is still cut.
+ *
+ * So column mode cannot carry the compact face, and the only reason it ever
+ * fit is the rule below: it drops four of five fact columns. That is C2, and
+ * it is the *pre-existing* state D9 exists to rule on rather than something
+ * M2.2 introduced — so M2.2 leaves it exactly as it found it and reports the
+ * number. `docs/generation.md` section 55 carries the finding.
+ *
+ * **One thing M2.2 did have to fix here.** Column 1 held `accuracy` until
+ * M2.1 re-derived the grid, and it holds `contact` now — so "show column 1
+ * and nothing else" had silently changed which fact survives in this mode.
+ * Accuracy has its own slot since M2.1, and placing it where it always sat,
+ * beside the band, restores this mode to exactly what it showed before.
+ */
+[data-move-bar='columns'] .moves .move__fact-cell {
   display: none;
 }
+
 
 /*
  * PP loses its label — the number is the thing that counts down, `PP` is four

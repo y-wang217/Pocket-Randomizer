@@ -30,12 +30,19 @@ import {
   formatStageMultiplier,
   stageMarkerLabel,
 } from '../data/statStages';
-import {
-  formatEffectiveness,
-  type ActiveUiView,
-  type BattleUiView,
-  type MoveUiView,
-} from '../core/battle/view';
+/*
+ * `formatEffectiveness` is no longer imported, and it is deliberately still
+ * exported from `core/`. **M2.2.**
+ *
+ * It printed `0.5x` and `0.25x`; section 2 wants `½` and `¼`, so the spelling
+ * moved to `effectivenessFraction` below, where presentation belongs. That
+ * leaves the core helper with no caller in `src/` — and M2.2's gate is
+ * "presentation only: if an item touches `core/` beyond the pure flag mapper,
+ * it is the wrong item", so removing it is not this item's to do.
+ * `docs/generation.md` section 55 records it for whoever next has reason to
+ * edit that file.
+ */
+import type { ActiveUiView, BattleUiView, MoveUiView } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
 import { outroHoldMs } from './theme/motion';
@@ -1521,7 +1528,7 @@ function renderMove(
    * stays here — but the *reason* they are suppressed is different, and the
    * projection no longer conflates them. See core/battle/effectiveness.ts.
    */
-  const label = move.band === null || move.band === 'neutral' ? null : formatEffectiveness(move.effectiveness);
+  const label = move.band === null || move.band === 'neutral' ? null : effectivenessFraction(move.effectiveness);
   // Built here, rendered by the strip: it closes the fact line rather than
   // sitting on the wrapping meta row. See `moveFactStrip`'s `extras`.
   let effectBadge: HTMLElement | null = null;
@@ -1559,6 +1566,32 @@ function renderMove(
     }
     effectBadge = badge;
   }
+
+  /*
+   * **The coloured left edge. Section 2, and milestone M2.2.**
+   *
+   * Section 2 gives the effectiveness family "a coloured left edge on the
+   * button plus the multiplier as a fraction or numeral". The edge is the
+   * half that reads without being looked at: four buttons scanned at a glance
+   * show which one the board favours before a single numeral is parsed.
+   *
+   * **It is the one verdict-shaped thing in the game, and C1 names it.** The
+   * constraint's single exception is "live type effectiveness against the
+   * Pokemon currently on the field", which is a fact about the present board
+   * rather than a hint about a future decision. Nothing else on any surface
+   * gets a colour that means better or worse.
+   *
+   * **Colour is the secondary channel, which is what makes red and green
+   * safe.** The fraction carries the same fact in a channel colour vision
+   * cannot touch, exactly as the type chip's glyph carries the type and its
+   * hue only repeats it. An edge with no numeral beside it would be the
+   * version section 2's "colour-blind checked" rules out.
+   *
+   * Neutral sets nothing at all, so the attribute's absence is the default
+   * and R4 holds: three of four buttons usually carry no edge, and the one
+   * that does is read because the others do not.
+   */
+  if (move.band && move.band !== 'neutral') button.dataset['effect'] = move.band;
 
   // Both halves: this is the one surface that knows the remaining count, and
   // section 3 dims the max rather than dropping it.
@@ -1829,6 +1862,31 @@ export const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
  * has no remaining PP: printing "PP 0/24" for an offer would be stating a
  * resource the player has not spent.
  */
+/**
+ * The forecast multiplier, as section 2 spells it. **Milestone M2.2.**
+ *
+ * Section 2: *"the multiplier as a fraction or numeral (¼, ½, 2, 4)"*. The
+ * tree printed `0.5x` and `0.25x`, which are the same numbers in the form a
+ * calculator would choose — three glyphs where one will do, on the surface
+ * with the least room in the game.
+ *
+ * **The number still comes from `core/`, and only its spelling is here.**
+ * M2.2's done-when is that "the forecast comes from the core effectiveness
+ * helper and nothing else", and it does: `move.effectiveness` is
+ * `result.multiplier` off the projection, unrounded and unreinterpreted. What
+ * this function does is choose a numeral, which is presentation and belongs
+ * nowhere else — `core/` may not know that ¼ is how a quarter is drawn.
+ *
+ * A multiplier the chart cannot produce falls back to the plain number rather
+ * than to a guess at a nice glyph, so an unexpected value arrives visible and
+ * odd instead of silently rendering as something it is not.
+ */
+export function effectivenessFraction(multiplier: number | null): string | null {
+  if (multiplier === null || multiplier === 1) return null;
+  const VULGAR: Record<string, string> = { '0.25': '¼', '0.5': '½' };
+  return VULGAR[String(multiplier)] ?? String(multiplier);
+}
+
 /**
  * Base power: the bare number, and the largest text on the card. **M2.1, R2.**
  *
