@@ -12,8 +12,11 @@ family: section 2's Status family absorbs the volatiles, because a volatile is
 a thing happening to a Pokemon right now and that is what the family already
 means, and the ability gets a row saying it is the one attribute with no glyph,
 plus a budget that names it. Section 5's Pokemon panel and Party row rows are
-corrected to list what those components draw. **None of the twelve rules
-moved.**
+corrected to list what those components draw — including **"four move cards"
+where the Party row said "four move chips"**, which is D21a: that row was
+written before M2.3 decided what a chip leaves out, and three invariant tests
+caught three different fact families going off the party surfaces with the card
+face. **None of the twelve rules moved.**
 
 **Rev 2** carries seven amendments, all of them rulings on
 [`bible-discrepancies.md`](bible-discrepancies.md), which filed the places this
@@ -202,7 +205,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
 | Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
 | Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
-| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move chips | Drawer, party screen, pre-gym, map rail, teach target (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2) |
+| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, map rail, teach target (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One word per hit, precedence applied | Battle |

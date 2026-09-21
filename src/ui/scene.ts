@@ -2343,35 +2343,24 @@ export function moveFacts(move: {
  * `categoryChip`, the same `movePower`, so a move looks like itself wherever
  * it is met and R1's fixed slots survive the shrink.
  *
- * **It leaves out the band, and PP only where PP is not the question.**
+ * **What it deliberately leaves out is PP and the band**, and that is the
+ * item's bet rather than an oversight. The replacement screen showed five full
+ * cards and the decision it asks for — which of four to displace — is a
+ * comparison the full face makes harder rather than easier, because the fields
+ * that differ are buried among the fields that do not. What makes dropping the
+ * band safe *there* is that the screen keeps it twice over — on the pinned
+ * incoming card and on the two full cards in the confirm — so the comparison
+ * the badge exists for still has both halves on screen.
  *
- * M2.3 dropped both, and that was the item's bet for the surface it built:
- * the replacement screen showed five full cards and the decision it asks for —
- * which of four to displace — is a comparison the full face makes harder
- * rather than easier, because the fields that differ are buried among the
- * fields that do not. **What made dropping the band safe there** is that the
- * screen keeps it twice over — on the pinned incoming card and on the two full
- * cards in the confirm — so the comparison the badge exists for still has both
- * halves on screen. `test/band-badge.test.ts` asserts exactly that.
- *
- * **D21a, ruled 2026-09-21, is the other surface, and it has no such escape
- * hatch.** The party row is opened to answer "which member is out of PP", the
- * drawer is read-only, and a chip without PP would put that behind a press on
- * the one surface whose whole job is the readout. Section 9's disconfirmer for
- * M2.3 already names that remedy in as many words — *"chips gain PP at rest,
- * still no words"* — so `ppCounter` is an option rather than a second chip
- * face.
- *
- * **The band comes with it, and that is a correction to the ruling rather
- * than a reading of it.** D21a was ruled on the understanding that the band is
- * a grouping of the base power the chip already prints. It is, but that is not
- * what the badge is *for*: R12 and `test/band-badge.test.ts` put `BAND n` on
- * every move on every surface so a player offered a band 3 can compare it
- * against the four moves a member already knows — and the party card is one of
- * the two places that comparison happens. On the replacement screen the full
- * cards carry it; here there is nothing else to carry it, so dropping it would
- * remove a fact with no channel, which is C2. Both options travel together for
- * that reason: a readout surface takes the readout fields.
+ * **M3.2 tried this face on the party row and took it off again.** D21a ruled
+ * the chip in with PP; the band followed, because the drawer carries no second
+ * copy; and `test/visual-move-cards.test.ts` then caught the fact strip going
+ * with them. Restoring all three would have made this a card with a different
+ * class name, so the party row keeps cards and section 5's row was corrected
+ * instead. The options below survive that reversal because they are how the
+ * chip *would* grow if a surface ever needs it, and section 9's disconfirmer
+ * for M2.3 — *"chips gain PP at rest, still no words"* — is the one that
+ * fires it.
  *
  * **It is a `<button>` where there is something to pick, and a `<span>` where
  * there is not.** Every site M2.3 built drew a control; the party row draws a

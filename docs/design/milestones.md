@@ -271,14 +271,34 @@ anywhere. The Status family absorbs the volatiles rather than a tenth family
 being opened; the ability gets a row saying it is the one attribute with no
 glyph, and a budget that names it. None of the twelve rules moved.
 
-**D21a was ruled one way and the suite corrected half of it.** The chip comes
-to the party row and PP comes with it, which section 9's own disconfirmer for
-M2.3 already names. The band was ruled off — and `test/band-badge.test.ts` went
-red on four cases, because the badge exists so a band 3 offer can be compared
-against the four moves a member knows, and the party card is one half of that
-comparison. M2.3 could drop it from the replacement chips because that screen
-keeps it twice over; the drawer keeps it nowhere. **A readout surface takes the
-readout fields**, so both travel together.
+**D21a was ruled one way, built, and re-ruled back by three invariant tests.**
+The chip came to the party row with PP, which section 9's own disconfirmer for
+M2.3 names. Then `test/band-badge.test.ts` went red on four cases — the badge
+exists so a band 3 offer can be compared against the four moves a member
+knows, and the drawer carries no second copy of it — and then
+`test/visual-move-cards.test.ts` caught the fact strip going the same way, on
+`party`, `drawer` and `pre-gym`. Restoring all three would have made the chip a
+card with a different class name. **So the row is wrong**, and it is the row
+that changed: the bible's Party row reads "four move cards" now, corrected from
+"four move chips", which was written before M2.3 decided what a chip leaves
+out. Nothing is spent at rest either way — the move card censuses 0 in Pocket
+and the body folds there.
+
+**Two layout regressions, both a rule the tree already had.** The stat label
+drew its glyph *and* its word outside Pocket, which is R3 and which
+`.chip--type`, `.badge--category` and `.move__pp` were already handled for; and
+the six-across layout drew `Hit Points` where `statLine` drew `HP`, deleting
+the comment that said why — *"six full names do not fit a card at 390 wide"*.
+Together they put the capture offer's decision buttons 17px past the 844 fold.
+Two rounds of CSS arithmetic moved the number 861 → 845 → 855 and explained
+none of it; probing the card printed a 24px label at a 12px line-height, which
+is a wrapped line. **Measure before reasoning.**
+
+**The map rail keeps its `Lead` chip.** Taking it off a party card is R3
+because the card draws a slot number; the rail draws none, so the chip is its
+only channel. Giving it the number instead wrapped its header to a third line
+and moved the map's `decisionTop` 23.5px down, failing the height baseline in
+every guarded mode.
 
 **What M3.2 did not close.** The done-when also asks for 0 on the drawer. The
 census has a `party drawer` component now (D21b) and it reads **13** in Pocket:
@@ -290,7 +310,7 @@ nothing.
 | Item | Status | Blocked by |
 |---|---|---|
 | M3.1 Pokemon battle panel | **done** | — (D6 and D18 ruled. Census 20 → 0 in Pocket; item sprite at 24px, empty slot renders nothing) |
-| M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled. Party row 121 → 60 in Pocket, **0 on every surface the component builds**; stat block 0, now covering four call sites) |
+| M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled; D21a re-ruled to cards. Party row 121 → **63** in Pocket, 0 on party and pre-gym; stat block 0, now covering four call sites) |
 | M3.3 Teach target screen | ready | — (D1 ruled: at or under 4. It takes 42 of the party row's remaining 60) |
 
 ### Tier 4: battle feedback

@@ -8779,15 +8779,17 @@ Rulings that changed the item: D19 (the bible, to Rev 3), D20 and D21 in
 
 ### The measurement, and who owns what is left
 
-Party row, Pocket, per component: **121 → 60**, and **0 on every surface the
-component itself builds** — the drawer, the party screen, pre-gym and the map
-rail. The 60 is two screens that hand-roll a card inside `.party__member`:
+Party row, Pocket, per component: **121 → 63**, and **0 on the party screen and
+pre-gym**, the two surfaces where `memberCardContents` is the only party card
+on the page. The 63 is three screens that hand-roll a card inside
+`.party__member`:
 
 | What | Words | Whose |
 |---|---:|---|
 | `Four moves. You choose what replaces.`, ×6 | 36 | teach target, **M3.3** |
 | `HP` on the target card's own HP line, ×6 | 6 | teach target, **M3.3** |
 | `to bag` and `Release`, ×6 each | 18 | capture list, **M5.4** |
+| `Lead` on the map rail's first card, ×3 surfaces | 3 | map rail, **M5.2** |
 
 Stat block, Pocket: **0**, and for the first time that number covers all four
 call sites rather than one. Surfaces: `starter` 74 → 47, `party` 24 → 17,
@@ -8829,7 +8831,7 @@ that names it rather than pretending the word is not there. Section 5's Pokemon
 panel and Party row rows are corrected to list what those components draw.
 **None of the twelve rules moved.**
 
-### D21a: the chip, PP, and the badge the suite would not let go
+### D21a: ruled, built, and re-ruled back by three invariant tests
 
 Section 5 gives the party row four move chips. M2.3's chip drops PP and the
 band, and the party drawer is the surface opened to answer *which member is out
@@ -8838,29 +8840,42 @@ with it, which is the remedy section 9's own disconfirmer for M2.3 names
 (*"chips gain PP at rest, still no words"*), fired by a different observation
 than the register was waiting for.
 
-**The band was ruled off and had to come back.** The ruling took the band for a
-grouping of the base power the chip prints. It is — and that is not what the
-badge is for. `test/band-badge.test.ts` went red on four cases and its header
-carries the argument the row did not: the badge exists so a player offered a
+**Then the chip dropped two more fact families, and the item reversed.** The
+band went first: `test/band-badge.test.ts` red on four cases, and its header
+carries the argument the row did not — the badge exists so a player offered a
 band 3 can compare it against four moves a member already knows, and the party
 card is one half of that comparison. M2.3 could drop it from the replacement
 screen's chips because that screen keeps it on the pinned card and on the two
-full cards in the confirm; the drawer keeps it nowhere. So both options travel
-together: **a readout surface takes the readout fields.**
+full cards in the confirm; the drawer keeps it nowhere. So the band came back.
 
-Two details the ruling did not reach and the build decided:
+Then `test/visual-move-cards.test.ts` caught the third: *"fills the tag row on
+every surface that draws a held moveset"*, red on `party`, `drawer` and
+`pre-gym`, because a chip has no fact strip — accuracy, priority, multi-hit,
+recoil, drain, charge, recharge and contact all left with the card face.
 
-1. **The option is `ppCounter`, not `pp`.** Every caller with a `MoveView`
-   spreads it, and `MoveView.pp` is a bare number — a field named `pp` would
-   have made the replacement screen start printing PP the day the option
-   landed, on the one surface whose bet is that it should not. Opting in has to
-   be something a caller types.
-2. **A readout chip is a `<span>` that keeps `role="button"`.** Nothing on that
-   surface is pickable, and a focusable control that does nothing is the
-   keyboard trap `renderTraits` refuses to build for an unrevealed ability —
-   but a `<span>` carrying only `data-tip` is a trigger a keyboard cannot open,
-   which would have left inspect working on the drawer with a pointer and not
-   otherwise. `moveCard` has carried the same pair since M2.1.
+Restoring that too would have given the chip every field the card has, which is
+a card with a different class name and leaves section 5 worse off than the row
+being wrong. **So the row is wrong.** D21a was re-ruled to option 1, its
+original recommendation: the party row keeps four move cards, and the bible's
+Party row is corrected from "four move chips" to "four move cards" — a row
+written before M2.3 decided what a chip leaves out. Nothing is spent at rest
+for it: the move card censuses 0 in Pocket, and the card's body folds there.
+
+**What the reversal left standing is the chip's growth path.** `moveChip` keeps
+`ppCounter`, `band` and `pickable` as opt-in fields with their reasons, because
+section 9's disconfirmer for M2.3 — *"chips gain PP at rest, still no words"* —
+is still the observation that would fire them. Two details worth keeping from
+the build: the option is `ppCounter` and not `pp`, because every caller with a
+`MoveView` spreads it and `MoveView.pp` is a bare number, so a field of that
+name would have started printing PP on the one surface whose bet is that it
+should not; and a readout chip is a `<span>` that keeps `role="button"`,
+because a `<span>` carrying only `data-tip` is a trigger a keyboard cannot
+open.
+
+**Three fact families, three separate invariant tests, one item.** That is the
+finding worth carrying forward: the chip is a four-field face and the party
+card is a nine-field readout, and no amount of opting in closes that gap
+without deleting the distinction.
 
 ### The archetype label, on the eight surfaces that draw bars
 
@@ -8879,11 +8894,17 @@ and the summary is unbudgeted.
   `levelAria` in `ui/scene.ts`: the level is an attribute with a fixed slot and
   nine call sites deciding its form is nine chances to keep the label or drop
   the gender mark, which is R1 before it is R2.
-- **The `Lead` chip was the slot number said twice.** `isLead` is `index === 0`
-  at every call site and the options table says so — *"Slot 0, and nothing
-  else"* — so chip and marker were one fact in two channels, which is R3. The
-  map rail had its own copy with no slot number at all; it draws the number now,
-  like every other party surface.
+- **The `Lead` chip was the slot number said twice, on the cards that draw a
+  slot number.** `isLead` is `index === 0` at every `memberCardContents` call
+  site and the options table says so — *"Slot 0, and nothing else"* — so chip
+  and marker were one fact in two channels, which is R3, and the chip goes.
+  **The map rail is not one of those cards and the chip stays there.** It is a
+  sixth hand-rolled party row and draws no slot number, so the chip is its only
+  channel; giving it the number instead wrapped its header from two lines to
+  three at 390 wide and moved the map's `decisionTop` 23.5px down the screen,
+  failing the height baseline in every guarded mode. A decision point pushed
+  down the phone is a worse trade than one word on one card. Folding the rail
+  into the component would give it the number for free, which is M5.2's.
 - **`No item` became nothing, and the item became a sprite.** Section 3's Held
   item row, the same one M3.1 built the battle panel's slot against. The name
   and the effect line are what the press opens.

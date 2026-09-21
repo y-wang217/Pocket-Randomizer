@@ -27,7 +27,7 @@ import { createBar } from './bar';
 import { moveCardData } from './move-detail';
 import { statBlock } from './stat-block';
 import { collapsible } from './collapse';
-import { el, levelText, moveChip } from './scene';
+import { el, levelText, moveCard } from './scene';
 import { abilityChip, monTypeChip, statusChip } from './chip';
 import { itemIcon, slotNumber } from './slots';
 import { spriteFigure } from './sprites';
@@ -249,35 +249,29 @@ function itemRow(holding: ItemId | null): HTMLElement {
 }
 
 /**
- * The member's four moves, as chips. **Milestone M3.2, discrepancy D21a.**
+ * Four move cards, with their tags. **Part 6, on the party surfaces.**
  *
- * Section 5's Party row owns *"four move chips"* and the card drew four full
- * cards until this item. What made it a ruling rather than a swap is that
- * M2.3's chip drops PP and the band, and the party drawer is the surface
- * opened to answer *which member is out of PP* — read-only, so there is no
- * second channel on it.
+ * The full card rather than a chip, and **D21a was ruled the other way first.**
+ * Section 5's Party row says "four move chips" and M3.2 built them; three
+ * separate invariant tests then caught three different fact families going
+ * off this surface with the card face:
  *
- * **Ruled: the chip comes, and PP comes with it.** Section 9's disconfirmer
- * for M2.3 names that remedy itself — *"chips gain PP at rest, still no
- * words"* — so this is the sanctioned shape rather than a new one, fired by a
- * different observation than the one the register was waiting for.
+ *   - the band, by `test/band-badge.test.ts`, which puts `BAND n` on every
+ *     move everywhere so an offer can be compared against what a member knows;
+ *   - PP, which the ruling itself restored, because "which member is out of
+ *     PP" is what this surface is opened for;
+ *   - the whole fact strip — accuracy, priority, multi-hit, recoil, drain,
+ *     charge, recharge, contact — by `test/visual-move-cards.test.ts`, which
+ *     asserts a filled tag row on every surface drawing a held moveset.
  *
- * **The band comes too, and that corrects the ruling rather than reads it.**
- * D21a was ruled on the understanding that the band is a grouping of the base
- * power the chip already prints. It is — but the badge exists so a player
- * offered a band 3 can compare it against the four moves a member knows, and
- * this card is one of the two places that comparison happens. R12 and
- * `test/band-badge.test.ts` put it on every move on every surface for that
- * reason. The replacement screen could drop it from its chips because the
- * pinned card and the confirm still carry it; here nothing else does, so
- * dropping it would remove a fact with no channel. That is C2.
+ * Restoring all three would have made the chip a card with a different class
+ * name, which is worse for section 5 than the row being wrong. So the row is
+ * wrong: it was written before M2.3 decided what a chip leaves out, and the
+ * chip's own docstring is where that decision lives. The bible's Party row is
+ * corrected to "four move cards" rather than this surface being bent to it.
  *
- * **Remaining PP, not the max**, for the reason the full card gave: on a party
- * member the resource has been spent, and the max alone is a number about a
- * different Pokemon.
- *
- * `pickable: false`, because the drawer has no write path and the party
- * screen's write path is its own buttons. A chip here is a readout.
+ * Nothing is spent at rest for it. The move card censuses 0 in Pocket since
+ * M2.1, and the card's body folds there anyway.
  */
 function moveList(
   member: PokemonState,
@@ -287,35 +281,33 @@ function moveList(
   const list = el('div', 'party__moves');
   for (const [index, move] of member.moves.entries()) {
     const facts = spec.moves[index];
-    /*
-     * The band comes through `moveCardData`, as it did when these were full
-     * cards. `SpecCard.moves` is `MoveView[]` and carries no band — the card
-     * never read one off it either — and `bandOfMove` is the one lookup, so
-     * asking the same function keeps the chip and the card from ever
-     * disagreeing about a move's band.
-     */
-    const card = moveCardData(
-      {
-        name: move.name,
-        type: facts?.type ?? 'Normal',
-        category: facts?.category ?? 'Physical',
-        basePower: facts?.basePower ?? 0,
-        maxPp: move.maxPp,
-      },
-      tuning,
-    );
-    list.append(
-      moveChip({
-        id: facts?.id,
-        name: move.name,
-        type: facts?.type ?? 'Normal',
-        category: facts?.category ?? 'Physical',
-        basePower: facts?.basePower ?? 0,
-        band: card.band,
-        ppCounter: { remaining: move.pp, max: move.maxPp },
-        pickable: false,
-      }),
-    );
+    const card = moveCard({
+      ...moveCardData(
+        {
+          name: move.name,
+          type: facts?.type ?? 'Normal',
+          category: facts?.category ?? 'Physical',
+          basePower: facts?.basePower ?? 0,
+          maxPp: move.maxPp,
+        },
+        tuning,
+        { types: spec.types },
+      ),
+      /*
+       * Remaining PP rather than the max, because on a party member the
+       * resource has been spent and the max alone would be a number about a
+       * different Pokemon.
+       *
+       * **Handed to the component rather than written over its output.** This
+       * used to reach into the finished card and assign `.move__pp`'s
+       * `textContent`, which was survivable while PP was one text node. Since
+       * M2.1 it is a label, a glyph and two numbers in four spans, and an
+       * assignment deletes all four — so the count goes in the way every other
+       * field does.
+       */
+      pp: move.pp,
+    });
+    list.append(card);
   }
   return list;
 }

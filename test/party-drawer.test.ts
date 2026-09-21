@@ -110,10 +110,7 @@ describe('the drawer itself', () => {
     expect(card).not.toBeNull();
 
     expect(card!.querySelectorAll('.stat')).toHaveLength(6);
-    // Four move chips since M3.2 (D21a), carrying PP and the band — the two
-    // facts this surface is opened to read. They were full cards before.
-    expect(card!.querySelectorAll('.move--chip').length).toBeGreaterThan(0);
-    expect(card!.querySelectorAll('.move--chip .move__pp').length).toBeGreaterThan(0);
+    expect(card!.querySelectorAll('.move--card').length).toBeGreaterThan(0);
     /*
      * **The bars, and no label. M3.2, and the third time this line has moved.**
      *
@@ -194,18 +191,12 @@ describe('the drawer itself', () => {
      * whole case exists to check, and a control the query misses is a control
      * nobody is checking. So the press loop below takes both sets.
      *
-     * **M3.2 made them chips, and the chip keeps the pair.** A readout chip is
-     * a `<span>` rather than a `<button>` because nothing here is pickable,
-     * and it still carries `role="button"` and a tab stop so the inspect layer
-     * is reachable by keyboard. That is the same claim, on a different tag,
-     * and it stays inside this sweep.
+     * **M3.2 built chips here and D21a was re-ruled back to cards**, so the
+     * selector is the card's again. `.move[role="button"]` would have caught
+     * either; it is spelled `.move--card` because that is the claim.
      */
-    const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move[role="button"]')];
-    expect(cards.length, 'the drawer draws move chips, so this must not be vacuous').toBeGreaterThan(0);
-    expect(
-      cards.every((card) => card.tagName === 'SPAN'),
-      'a readout chip is not a button: there is nothing on this surface to pick',
-    ).toBe(true);
+    const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move--card[role="button"]')];
+    expect(cards.length, 'the drawer draws move cards, so this must not be vacuous').toBeGreaterThan(0);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —

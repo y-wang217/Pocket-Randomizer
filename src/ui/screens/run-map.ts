@@ -58,7 +58,6 @@ import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip, tierChip } from '../chip';
-import { slotNumber } from '../slots';
 import { hpTip } from '../member-card';
 import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
@@ -635,17 +634,27 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   const level = el('span', 'panel__level');
   level.textContent = levelText(member.spec.level);
   level.setAttribute('aria-label', levelAria(member.spec.level));
+  header.append(name, level);
+
   /*
-   * The slot number, as the party card and the drawer draw it. **M3.2.**
+   * The `Lead` chip stays on this rail, and M3.2 took it off and put it back.
    *
-   * This rail carried a `Lead` chip on the first card instead, which was the
-   * same fact the number states — the run's lead is slot 1 — in a second
-   * channel and a word, on a surface budgeted at zero. The number is the
-   * marker the hotbar and every other party surface already wear, so the rail
-   * now reads like them rather than like a place with its own vocabulary.
+   * On a party card the chip is the slot number said twice — `isLead` is
+   * `index === 0` and the card draws `slotNumber` — so R3 deletes it there.
+   * **This rail draws no slot number**, so the chip is the only channel and
+   * deleting it needs a replacement rather than nothing.
+   *
+   * Adding the number was that replacement and it cost a line: the rail's
+   * header wrapped from two to three at 390 wide, which moved the map's
+   * `decisionTop` 23.5px down the screen and failed the height baseline on
+   * every guarded mode. A decision point pushed down the phone is a worse
+   * trade than one word on one card, so the word stays.
+   *
+   * The rail is a sixth hand-rolled party row, which is the section 5 defect
+   * D20 is about; folding it into the component would give it the slot number
+   * for free. That is M5.2's, which owns this screen.
    */
-  header.append(slotNumber(index), name, level);
-  if (index === 0) card.setAttribute('aria-label', `${member.spec.species}, leading`);
+  if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
 
   const bar = createBar();
