@@ -291,8 +291,8 @@ function moveList(
   const list = el('div', 'party__moves');
   for (const [index, move] of member.moves.entries()) {
     const facts = spec.moves[index];
-    const card = moveCard(
-      moveCardData(
+    const card = moveCard({
+      ...moveCardData(
         {
           name: move.name,
           type: facts?.type ?? 'Normal',
@@ -303,15 +303,20 @@ function moveList(
         tuning,
         { types: spec.types },
       ),
-    );
-    // Remaining PP rather than the max, because on a party member the resource
-    // has been spent and the max alone would be a number about a different
-    // Pokemon.
-    const pp = card.querySelector('.move__pp');
-    if (pp instanceof HTMLElement) {
-      pp.textContent = `PP ${move.pp}/${move.maxPp}`;
-      if (move.maxPp > 0 && move.pp / move.maxPp <= 0.25) pp.classList.add('move__pp--low');
-    }
+      /*
+       * Remaining PP rather than the max, because on a party member the
+       * resource has been spent and the max alone would be a number about a
+       * different Pokemon.
+       *
+       * **Handed to the component rather than written over its output.** This
+       * used to reach into the finished card and assign `.move__pp`'s
+       * `textContent`, which was survivable while PP was one text node. Since
+       * M2.1 it is a label, a glyph and two numbers in four spans, and an
+       * assignment deletes all four — so the count goes in the way every other
+       * field does.
+       */
+      pp: move.pp,
+    });
     list.append(card);
   }
   return list;

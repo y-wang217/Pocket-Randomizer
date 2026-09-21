@@ -32,13 +32,17 @@ which blocks everything.
 | D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
 | D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
 | D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
+| D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **open** |
 
 ## Rulings, 2026-09-19
 
-Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. **D15 and
-D16 closed 2026-09-20 opening Tier 2, so fifteen of sixteen rows are ruled and
-nothing on the list is blocked. D14 is the one open row and blocks nothing; it
-is timed with M5.6.** Each ruling is restated under its own row below; the
+Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15 and D16
+closed 2026-09-20 opening Tier 2. **Fifteen of seventeen rows are ruled. Two
+are open: D14, timed with M5.6, and D17, which M2.1 opened after building
+itself — the face is green and its census delta is honest, and what is unruled
+is whether "reads 0" was ever reachable while the item keeps the icon strip and
+restores the status readout.** Each ruling is restated under its own row below;
+the
 bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
 
@@ -797,3 +801,87 @@ which R6 gates on playtest evidence that does not exist yet.
 
 **Ruled: option 2.** See the rulings table above for what it closes and what it
 knowingly leaves.
+
+
+---
+
+## D17. "Census reads 0" is unreachable for two unrelated reasons
+
+**Opened 2026-09-20 by M2.1, after building it. The face is built and the gate
+is green; this is about the number, not the code.**
+
+M2.1's done-when is *"census on all six card surfaces reads 0 words at rest"*.
+After the rebuild the census reads **15 for the move card and 14 for the battle
+move button**, in Pocket. Both were 61 and 16 before.
+
+The residue is two different things and they want different answers.
+
+### Part A: the battle button's 14 are real words, and the item keeps them
+
+Every one of them is the status readout, `.move__effect` — the line that takes
+the base-power region on a status move. The census's Pocket word list for the
+battle surface is `Raises` `by` `stages` `Badly` `poisons` `the` `target`:
+seven words, two status moves on that board, fourteen.
+
+**They are on screen because M2.1 put them back.** The old Pocket rule hid
+`.move__effect` along with base power and the fact strip, which is the C2
+violation D16 was filed against. Un-hiding it restores a decision-relevant fact
+— and that fact is a *sentence*, on a surface section 4 budgets at 0.
+
+So the item contains a contradiction it cannot resolve inside itself: C2 says
+the readout cannot be dropped, R2 says a sentence cannot sit on the face, and
+R12 says the answer to that is to restructure the concept rather than write the
+sentence. **Restructuring the status readout is not in M2.1's item text**, which
+says only "remove every field label, the type name, the category word, and the
+BAND numeral".
+
+**Options.** (1) A new item, before M2.2, that re-encodes the readout as glyphs
+— it is already a structured `MoveEffectFields`, not free prose, so this is
+plausible. (2) Let it sit behind the long press in Pocket, which R6 permits
+explicitly ("whether a secondary fact sits behind a tap") and which is now safe
+because the card *is* a trigger. (3) Amend section 4 to budget the readout the
+way D7 budgeted the flag strip.
+
+**Recommendation: 2.** It is inside R6 as written, it costs no new item, and it
+is the one option that keeps the fact reachable without a sentence at rest. The
+tap that reaches it did not exist when the old rule hid this; it does now.
+
+### Part B: the move card's 15 are not words at all
+
+Two measurement artifacts, neither of which is text a player reads.
+
+| What | Why it counts | On screen |
+|---|---|---|
+| `/24` | `bareNumber` is `/^[+\-−]?[\d]+(?:[.,:/][\d]+)*(?:%\|x\|×)?$/`, which needs a leading digit. The token has none. | `24/24`, one number |
+| `✥` `↩` | The strip's icons are text characters in `.move__fact-icon`, `aria-hidden`, and `GLYPH_SLOTS` names only `.chip--status` and `.chip--stage`. | a glyph |
+
+The `/24` is mine: section 3 says "max dimmed", dimming needs its own span, and
+splitting `24/24` across two spans splits one number into two tokens. What the
+player sees is unchanged.
+
+The icons are older. The census's own header says **"Glyphs are not words"**,
+and the strip's icons are glyphs by that sentence — they are `aria-hidden` and
+the chip carries the real label for a screen reader. `GLYPH_SLOTS` simply
+predates the strip. M2.1's item text says "Keep the describeMove icon strip",
+so the item cannot reach 0 while the rule counts them.
+
+**Options.** (1) Fix the counting rule: let `bareNumber` accept a leading
+separator, and exempt `aria-hidden` text, which is mechanical rather than a
+list somebody maintains. (2) Add `.move__fact-icon` to `GLYPH_SLOTS` and leave
+the number. (3) Change the markup so the max is not its own token.
+
+**Recommendation: 1.** Both halves follow from sentences the bible and the
+census already carry — section 4 excludes bare numbers, the census excludes
+glyphs — so this is an implementation catching up with a stated rule, not a
+target being moved. It is filed rather than done for exactly that reason: the
+change improves the number of the item that would make it, and that is a thing
+to have ruled rather than to do quietly. **No bible amendment is involved
+either way.**
+
+### What M2.1 did about it
+
+Nothing, deliberately, which is the same shape as D14. The face is built, the
+gate is green, and the census delta is committed as it actually reads —
+**61 → 15 and 16 → 14** — rather than as the item hoped. A number that had been
+massaged into 0 by the pass that produced it would be worth less than a number
+that is honest and explained.

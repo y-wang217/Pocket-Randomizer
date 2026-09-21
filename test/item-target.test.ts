@@ -69,19 +69,36 @@ describe('the recipient screen', () => {
     expect(screen.root.querySelector('.target__move .move__name')?.textContent).toBe('Thunderbolt');
   });
 
-  it('opens Explain without picking a member, and the members still pick', () => {
+  /**
+   * **This asserted an `Explain` control, and M2.1 removed it (D15).**
+   *
+   * The card carried a button that opened an inline panel, and the point of
+   * the case was that using it did not pick a member — a real hazard, because
+   * this screen picks on tap. R5 allows one explanation mechanism and names a
+   * help button among the things it forbids, so the card itself is the inspect
+   * trigger now.
+   *
+   * The hazard is unchanged and the guard keeps its shape, but the two halves
+   * invert. Reaching the explanation must still cost no pick — it is a long
+   * press, and the layer eats the click it leaves behind — while a *tap* on the
+   * card must still reach the member under it, because R5 is explicit that tap
+   * still selects. Both are asserted: either one failing alone is a live defect
+   * on this screen.
+   */
+  it('is an inspect trigger that costs no pick, and does not swallow the tap', () => {
     const { screen, picked } = render({ kind: 'tutor', move: 'Ice Beam' });
-    const toggle = screen.root.querySelector<HTMLButtonElement>('.target__move .move__explain-toggle');
-    const panel = screen.root.querySelector<HTMLElement>('.target__move .move__explain');
-    expect(toggle, 'no Explain control on the card').not.toBeNull();
-    expect(panel?.hidden).toBe(true);
-
-    toggle?.click();
-    expect(panel?.hidden).toBe(false);
-    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
-    // The panel carries the category row a player reads the stat off.
-    expect(panel?.textContent).toContain('Category');
-    expect(picked, 'opening an explanation picked a member').toEqual([]);
+    const card = screen.root.querySelector<HTMLElement>('.target__move .move--card');
+    expect(card, 'the card is not an inspect trigger').not.toBeNull();
+    expect(card?.dataset['tip']).toMatch(/^move:/);
+    // Focusable, because a long press is not a keyboard gesture. This is the
+    // half of D15 that had to be replaced rather than deleted.
+    expect(card?.tabIndex).toBe(0);
+    expect(card?.getAttribute('role')).toBe('button');
+    // And it declines hover: a card-sized hover target opens a panel over the
+    // very thing the player is reaching for. See `ui/tooltips.ts`.
+    expect(card?.dataset['tipHover']).toBe('off');
+    expect(screen.root.querySelector('.move__explain-toggle'), 'the expander survived').toBeNull();
+    expect(picked, 'merely drawing the card picked a member').toEqual([]);
 
     const members = [...screen.root.querySelectorAll<HTMLButtonElement>('.party__member--target')];
     expect(members.length).toBe(ROSTER.length);

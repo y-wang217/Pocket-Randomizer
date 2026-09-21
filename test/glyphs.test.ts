@@ -108,9 +108,24 @@ describe('the glyph sheet', () => {
     expect(GLYPH_VIEWBOX).toBe('0 0 24 24');
   });
 
-  it('mounts nothing on any screen yet', async () => {
-    // M1.1: "Do not mount any glyph on any screen yet." The sheet is imported
-    // by its own instrument and its own test, and by nothing that renders.
+  /**
+   * **This assertion changed shape at M2.1, and did not weaken.**
+   *
+   * M1.1 said *"Do not mount any glyph on any screen yet"*, and this walked
+   * `src/ui/` asserting the sheet had no importers at all. M2.1 is the item
+   * that mounts the first ones, so "nobody imports it" is no longer the thing
+   * worth holding — but the reason behind it is. A glyph each screen drew for
+   * itself would render at a different size on a battle button than on a
+   * reward card, which is precisely the defect R1 and section 5 exist to
+   * prevent.
+   *
+   * So the rule is now **one renderer**: `theme/glyph.ts` is the only module in
+   * the rendering tree that reads the sheet, and every mark in the game comes
+   * out of its `glyphNode`. A screen that reached for `GLYPHS` directly to draw
+   * its own would fail here, which is the same protection stated against the
+   * thing that actually goes wrong.
+   */
+  it('is read by exactly one renderer, so every mark comes out of one place', async () => {
     const { readdirSync } = await import('node:fs');
     const roots = ['src/ui', 'src/ui/screens', 'src/ui/theme'];
     const importers: string[] = [];
@@ -121,7 +136,7 @@ describe('the glyph sheet', () => {
         if (/from '\.{1,2}\/(theme\/)?glyphs'/.test(source)) importers.push(`${root}/${entry}`);
       }
     }
-    expect(importers).toEqual([]);
+    expect(importers).toEqual(['src/ui/theme/glyph.ts']);
   });
 });
 

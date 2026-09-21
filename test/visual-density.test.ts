@@ -145,12 +145,23 @@ describe('the density modes', () => {
   }, 600_000);
 
   /**
-   * The same rule on the battle buttons: in Pocket all four drop the category,
-   * the base power and the effect line together; in Detailed all four keep
-   * them. Asserted against the count of buttons, so a screen with three moves
-   * holds the rule for three.
+   * **Pocket stopped dropping these regions at M2.1, and that was the bug.**
+   *
+   * This asserted that in Pocket all four buttons drop the category chip, the
+   * base power and the effect line together, and that Detailed keeps them. The
+   * "together" half was a real rule and still is — a mode that dropped a region
+   * from one button and not the next would be unreadable. The dropping half was
+   * a C2 violation: section 3 makes base power *"the largest text on the card"*
+   * and Pocket was deleting it, along with the category glyph and the whole
+   * fact strip, with no tap that reached any of them. Filed as D16.
+   *
+   * So the rule inverts. **Every button carries every region in every mode**,
+   * and the mode chooses the encoding rather than the presence: Pocket renders
+   * the category as its glyph and hides the word, Detailed and Simple do the
+   * reverse. Still asserted against the count of buttons, so a screen with
+   * three moves holds it for three, and still all-or-none.
    */
-  it('Pocket drops the same regions from every move button together', async () => {
+  it('keeps every region on every move button, and swaps glyph for word by mode', async () => {
     for (const density of ['detailed', 'pocket'] as const) {
       const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density });
       let reached = false;
@@ -168,8 +179,19 @@ describe('the density modes', () => {
       expect(buttons).toBeGreaterThan(0);
       const categories = await paintedCount(page, `${visible('battle')} .moves .move .badge--category`);
       const names = await paintedCount(page, `${visible('battle')} .moves .move .move__name`);
+      const powers = await paintedCount(page, `${visible('battle')} .moves .move .move__power`);
+      // The two encodings of one fact: the word in Detailed, the glyph in
+      // Pocket, never both and never neither.
+      const words = await paintedCount(page, `${visible('battle')} .moves .move .badge--category .chip__word`);
+      const glyphs = await paintedCount(page, `${visible('battle')} .moves .move .badge--category .glyph`);
+
       expect(names, `${density}: every button keeps its name`).toBe(buttons);
-      expect(categories, `${density}: the category goes from all or from none`).toBe(density === 'pocket' ? 0 : buttons);
+      expect(categories, `${density}: the category chip is on every button`).toBe(buttons);
+      expect(words, `${density}: the category word goes from all or from none`).toBe(density === 'pocket' ? 0 : buttons);
+      expect(glyphs, `${density}: the category glyph goes from all or from none`).toBe(density === 'pocket' ? buttons : 0);
+      // C2, the rule D16 was filed against: base power is never dropped. A
+      // status move renders an em dash rather than a number, but it renders.
+      expect(powers, `${density}: base power is on every button`).toBeGreaterThan(0);
       await context.close();
     }
   }, 900_000);

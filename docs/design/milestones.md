@@ -37,11 +37,13 @@ quietly doing something else.
 `blocked` means a discrepancy row is waiting on a ruling. `ready` means nothing
 is in its way. `open` means it is ready but its tier is not.
 
-**Fifteen of sixteen discrepancy rows are ruled** — eleven on 2026-09-19, which
-took the bible to Rev 2, then D2 and D8, then D15 and D16 opening Tier 2, all on
-2026-09-20. **Nothing on this list is blocked.** D14 is the one open row, it
-blocks nothing, and it is timed with M5.6. Every remaining `open` is waiting on
-its tier, not on a decision.
+**Fifteen of seventeen discrepancy rows are ruled** — eleven on 2026-09-19,
+which took the bible to Rev 2, then D2 and D8, then D15 and D16 opening Tier 2,
+all on 2026-09-20. **Two are open.** D14 blocks nothing and is timed with M5.6.
+**D17 is M2.1's own done-when**: the face is built and the gate is green, and
+whether "census reads 0" was ever reachable — while the item keeps the icon
+strip and restores the status readout it used to hide — is the unruled
+question. Every remaining `open` is waiting on its tier, not on a decision.
 
 **M0.2 is shipped**, and [`inventory.md`](inventory.md) section 4 carries four
 findings the items downstream depend on: M1.1 is smaller than it reads (band and
@@ -161,6 +163,16 @@ Ruled **Pocket only**: M2.1's zero binds the Pocket face, Detailed and Simple
 keep their labelled face until M6.4 rules on them with M7.1's evidence. No rule
 moved; R6 already sanctions the two modes for one validation cycle.
 
+**M2.1 is built and the gate is green, and its done-when is not met.** The
+census reads **15 on the move card and 14 on the battle move button** in
+Pocket, against 61 and 16 before, and against a target of 0. The residue is two
+unrelated things and neither is a slip in the build: the button's fourteen are
+the status readout, a sentence the item *restores* because hiding it was the C2
+violation D16 was filed against; the card's fifteen are the strip's `aria-hidden`
+icon characters and a PP max that section 3 requires be dimmed and so splits one
+number into two tokens. **D17** carries both with the evidence. The delta is
+committed as it reads rather than as the item hoped.
+
 **M2.0 is not on the record and is a prerequisite, not a milestone.** It touches
 no player-facing surface, so it reads no bible rule and carries no census delta.
 
@@ -183,7 +195,7 @@ four-core box. That these two defects are the whole of it is not proven — see
 | Item | Status | Blocked by |
 |---|---|---|
 | M2.0 Browser harness waits on state | **done** | — (not on the record; [`generation.md` §53](../generation.md), `test/visual-walk.test.ts`) |
-| M2.1 Move card face | open | — (D15, D16 ruled: expander folds in, zero binds Pocket) |
+| M2.1 Move card face | **built, gate green; done-when open** | D17 (D15, D16 ruled: expander folds in, zero binds Pocket) |
 | M2.2 Battle move button | open | — (D9 ruled: build 2x2, re-measure, rule with the number) |
 | M2.3 Move chip | open | — |
 

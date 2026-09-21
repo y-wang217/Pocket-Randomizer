@@ -47,7 +47,7 @@ import { heldItem } from '../../core/items';
 import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
-import { el } from '../scene';
+import { el, movePower } from '../scene';
 import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
@@ -259,9 +259,20 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
       const row = el('li', 'party__move');
       const label = el('span', '');
       label.textContent = move.name;
-      const power = el('span', 'move__pp');
-      power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
-      row.append(label, power);
+      /*
+       * **The shared base-power slot, not a string built here. M2.1.**
+       *
+       * This drew `${move.basePower} BP` into a span it labelled `.move__pp`,
+       * which was wrong twice: the class named a different attribute, and R2
+       * forbids the `BP` at rest — the capture card censused three of them in
+       * Pocket because this text never went through the component that drops
+       * the label.
+       *
+       * Mounting `movePower` is the section 5 answer: a screen mounts the slot
+       * and does not position the attribute itself. The full move chip this
+       * row wants is M2.3's item; this is the one field it was getting wrong.
+       */
+      row.append(label, movePower(move.category, move.basePower));
       return row;
     }),
   );

@@ -8312,3 +8312,110 @@ alone rather than given an exception.
 
 Nothing under `src/` changed. `contentHash` does not move, no version axis
 moves, and no recorded seed or visual baseline is touched.
+
+## 54. The move card face, and the two things that could not be separated
+
+**Milestone M2.1.** The shared move card rebuilt to design bible section 3, on
+both call sites, mounting M1.1's glyph sheet for the first time.
+
+### Which of the bible's rules this touched
+
+The standing rule is that an item touching a player-facing surface says so.
+This one touches more than any item so far:
+
+| | |
+|---|---|
+| **C2** | The Pocket rule that hid four facts is deleted. Nothing is removed now; the mode chooses the encoding. |
+| **R1** | Every attribute has one slot, built once in `scene.ts` and mounted by both `moveFacts` and `renderMove`. |
+| **R2** | Field labels, the type name and the category word leave the Pocket face. The numbers stay. |
+| **R3** | The type watermark is deleted, and accuracy and priority leave the fact strip. |
+| **R4** | Accuracy renders under 100 only, priority when nonzero only, and a never-miss move gets its own mark. |
+| **R5** | The `Explain` expander is gone and the card is the one inspect trigger. |
+| **R6** | The compact face is the Pocket face. D16 ruled the other two keep their labels until M6.4. |
+| **§2** | First mounting of the type, category, PP, accuracy and priority families. The chevron sits beside the name, as the table says. |
+| **§3** | The encoding table is the face. |
+| **§5** | The move card stays one component with two call sites. |
+
+No rule changed and the bible is not amended.
+
+### D15 and D16 are one change, and that is the finding
+
+They were filed separately and ruled together, because reading into this item
+turned up what neither row knew on its own.
+
+`styles.css` hid base power, the category glyph, the status readout and the
+whole fact strip whenever the mode was Pocket. That is where the census's 61
+words against Detailed's 477 came from: not a compact encoding, a deletion.
+Section 3 makes base power *"the largest text on the card"*.
+
+R6 permits a fact to sit behind a tap, so the question was whether the tap
+existed. It did not. The `power:` inspect trigger M1.2 added is set on
+`.move__power` — the element that rule hid — and a hidden element cannot be
+long-pressed. `moveCard` set no `dataset.tip` of its own, so the card was not a
+trigger either. **The only surviving route to base power on a card in Pocket
+was the `Explain` expander, which is exactly what D15 proposed to delete.**
+
+So deleting the expander on its own would have taken four decision-relevant
+facts off six surfaces — C2, by an item whose purpose is the opposite. The two
+rows had to be ruled together and built together, and they were.
+
+### What the density split actually is
+
+Density has never been a re-render in this tree: `data-density` is written on
+`<html>` and the stylesheet is its only reader. D16's "Pocket only" therefore
+cannot mean two DOM structures. It means **one face, with every word in a span
+the stylesheet drops** — `.move__label` for a field label, `.chip__word` for a
+type name or a category word. Pocket hides those and shows the glyph; the other
+two do the reverse. R1's one-slot-per-attribute survives because there is only
+ever one structure.
+
+### Three things re-measured rather than assumed
+
+1. **The strip is three columns, not four.** Accuracy and priority left it for
+   R3, and **accuracy had held column 1 alone** — four columns would have
+   reserved a dead one on the tightest surface in the game. Re-derived over the
+   same pools, counting only what the strip still draws: 158 moves with none,
+   216 with one, 82 with two, 2 with three. The ceiling is reached, which is
+   the evidence four originally rested on.
+
+2. **`StripFactId` is `Exclude<MoveFactId, 'accuracy' | 'priority'>`.** The
+   column map is typed by it, so an entry for a field the face has taken over
+   is a compile error rather than a dead column nobody notices. It caught four
+   call sites while this was being built.
+
+3. **The split spans announce as before.** `90 BP` became two spans and
+   therefore `90BP` in `textContent` — which is what a screen reader reads and
+   what `scripts/smoke.mjs` and the visual harness parse to pick the hardest
+   move. The space lives in the label span, and the stylesheet carries a gap as
+   well, because the rendering must not depend on whitespace surviving a flex
+   container.
+
+### Tests whose premise the design changed
+
+Four, all updated rather than weakened:
+
+- **`test/glyphs.test.ts`** asserted the sheet had no importers at all, which
+  was M1.1's *"do not mount any glyph yet"*. M2.1 is the item that mounts them,
+  so it now asserts **exactly one** importer, `ui/theme/glyph.ts`. The rule
+  worth holding was never "nobody imports it" but "one renderer", which is R1
+  and section 5.
+- **`test/move-explanation.test.ts`** tested the expander. Its sharpest case
+  held that the trigger must *stop* a tap, because a reward card submits on
+  click. The card must now *let the tap through*, because R5 is explicit that
+  tap still selects. Same surface, same hazard, inverted assertion.
+- **`test/visual-move-cards.test.ts`** counted expanders across seven surfaces.
+  It counts inspect triggers and keyboard-reachable cards instead; the reach
+  question it exists for is unchanged. Its probe no longer taps — a tap now
+  spends the thing it was guarding — and focuses instead, which is the path
+  D15 had to preserve.
+- **`test/battle-readout.test.ts`** asserted the strip draws exactly what
+  `describeMove` returns. It now asserts the strip draws exactly that *less the
+  two with a slot of their own*, which is the C2 statement: re-encoded, not
+  dropped.
+
+### Not done here
+
+`src/core/` is untouched, so `contentHash` does not move and no recorded seed
+is refused. `MOVE_FACT_IDS` still carries accuracy and priority — they are
+still facts, still printed by the explanation, still keyed by `movefact:` on
+inspect. What changed is which component draws them.
