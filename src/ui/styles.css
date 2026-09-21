@@ -1260,16 +1260,6 @@ body {
 :root[data-density="pocket"] .collapse__toggle { display: inline-flex; }
 :root[data-density="pocket"] [data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
 :root[data-density="pocket"] .party__member-toggle { margin-left: auto; }
-/* The held item's effect line: the chip's own tooltip says it. */
-:root[data-density="pocket"] /* The held item's fixed slot on a party card. **M3.2.** The same 24px cell the
-   battle panel's slot draws, so an item is one picture in one size wherever it
-   is held. An empty slot renders nothing — no box, no outline, no space — and
-   the row survives it because the party screen hangs its "to bag" control off
-   the row. */
-.party__item-slot { display: inline-flex; align-items: center; }
-.party__item-slot[hidden] { display: none; }
-
-.party__item-effect { display: none; }
 
 /* The party screen's two hotbars in Pocket: each is the collection beside it
    at a second size — slot, species, item — and the cards and rows below carry
@@ -1730,12 +1720,19 @@ body {
   margin: calc(var(--space-2) * var(--density-pad)) 0;
 }
 
-.party__item-effect {
-  flex: 1;
-  min-width: 160px;
-  font-size: var(--fs-md);
-  color: var(--text-dim);
-}
+/* The held item's fixed slot on a party card. **M3.2.** The same 24px cell the
+   battle panel's slot draws, so an item is one picture in one size wherever it
+   is held. An empty slot renders nothing — no box, no outline, no space — and
+   the row survives it because the party screen hangs its "to bag" control off
+   the row.
+
+   **In every mode**, which it was not on its first pass: the rule was written
+   into the middle of the Pocket density block and the comment split a selector
+   from its class, so it applied only in Pocket and the rule it interrupted
+   lost its density scope. Nothing catches that — a stylesheet has no
+   typechecker and both halves stayed valid CSS. */
+.party__item-slot { display: inline-flex; align-items: center; }
+.party__item-slot[hidden] { display: none; }
 
 /* "returns to your bag", beside the chip on the capture block's cards. */
 .party__item-note { font-size: var(--fs-sm); color: var(--text-dim); }
