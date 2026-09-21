@@ -59,7 +59,7 @@ import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChip, capabilityChip, neutralChip, statusChip, tierChip } from '../chip';
 import { hpTip } from '../member-card';
-import { el } from '../scene';
+import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
 
 const KIND_LABELS: Record<NodeSpec['kind'], string> = {
@@ -632,13 +632,28 @@ function renderMember(member: PokemonState, index: number): HTMLElement {
   const name = el('span', 'panel__name');
   name.textContent = member.spec.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${member.spec.level}`;
+  level.textContent = levelText(member.spec.level);
+  level.setAttribute('aria-label', levelAria(member.spec.level));
   header.append(name, level);
 
-  // The ability is on the party panel and not only on the starter screen. In a
-  // randomizer it is not flavour — it is half of what the Pokemon *is*, it was
-  // rolled rather than chosen, and it is the thing a player forgets between the
-  // starter select and segment 6.
+  /*
+   * The `Lead` chip stays on this rail, and M3.2 took it off and put it back.
+   *
+   * On a party card the chip is the slot number said twice — `isLead` is
+   * `index === 0` and the card draws `slotNumber` — so R3 deletes it there.
+   * **This rail draws no slot number**, so the chip is the only channel and
+   * deleting it needs a replacement rather than nothing.
+   *
+   * Adding the number was that replacement and it cost a line: the rail's
+   * header wrapped from two to three at 390 wide, which moved the map's
+   * `decisionTop` 23.5px down the screen and failed the height baseline on
+   * every guarded mode. A decision point pushed down the phone is a worse
+   * trade than one word on one card, so the word stays.
+   *
+   * The rail is a sixth hand-rolled party row, which is the section 5 defect
+   * D20 is about; folding it into the component would give it the slot number
+   * for free. That is M5.2's, which owns this screen.
+   */
   if (index === 0) header.append(neutralChip('Lead', 'lead'));
 
 

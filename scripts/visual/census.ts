@@ -157,6 +157,25 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string }[
     why: 'Section 4 budgets it at 0.',
   },
   {
+    id: 'party drawer',
+    /*
+     * **D21b, ruled 2026-09-21, and it is D2's ruling one layer down.**
+     *
+     * Section 4 budgets "Party row and party drawer" as one row and this list
+     * carried the row and not the drawer, so there was nothing measuring the
+     * drawer's own contents. The `drawer` *surface* is not that number: the
+     * gallery fixture renders the map screen behind the open drawer, so its
+     * total is mostly map node cards — M5.2's — plus the density and battle
+     * speed pickers, which belong to no item on the list. A surface total
+     * cannot check a component's budget, which is why the census counts both.
+     *
+     * `.drawer__sheet` rather than `.drawer`, because the overlay's root
+     * spans the scrim and the scrim is not the drawer.
+     */
+    selector: '.drawer__sheet',
+    why: 'Section 4 budgets the party row and the party drawer together at 0. D21b.',
+  },
+  {
     id: 'flag strip',
     selector: '.flags',
     why: 'Section 4, Rev 2: one word per hit, added by discrepancy D7.',

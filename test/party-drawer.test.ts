@@ -112,14 +112,18 @@ describe('the drawer itself', () => {
     expect(card!.querySelectorAll('.stat')).toHaveLength(6);
     expect(card!.querySelectorAll('.move--card').length).toBeGreaterThan(0);
     /*
-     * **The chip and the bars, both.** Chip-audit patch, 2026-09-17: this
-     * asserted the chip was absent, which was Patch 4.8.0.3 item 3 — the bars
-     * replace the label — superseded by the author's answer to question 1.
-     * `docs/generation.md` section 30a. A label carried on four surfaces out of
-     * ten is not a vocabulary, and the failure mode 4.8.0.3 named is answered
-     * by `ARCHETYPE_CAVEAT` inside the panel the chip opens.
+     * **The bars, and no label. M3.2, and the third time this line has moved.**
+     *
+     * 4.8.0.3 item 3 removed the chip where the bars draw it; the chip-audit
+     * patch put it back, on the argument that a label carried on four surfaces
+     * out of ten is not a vocabulary. That argument is right and M3.2 answers
+     * it the other way: section 3 does not render the label where the bars
+     * are, so it goes from every surface that draws them at once rather than
+     * from the four that happened to have somewhere else to look. The six
+     * bars asserted two lines up are what it was a summary of, and they are
+     * on this card.
      */
-    expect(card!.querySelector('.badge--archetype'), 'the drawer carries the label too').not.toBeNull();
+    expect(card!.querySelector('.badge--archetype'), 'the bars draw it; the label does not').toBeNull();
     expect(card!.querySelector('.party__item')).not.toBeNull();
     expect(card!.querySelector('.panel__hp-text')?.textContent ?? '').not.toBe('');
   });
@@ -186,6 +190,10 @@ describe('the drawer itself', () => {
      * — it opens an explanation — but "it writes nothing" is the claim this
      * whole case exists to check, and a control the query misses is a control
      * nobody is checking. So the press loop below takes both sets.
+     *
+     * **M3.2 built chips here and D21a was re-ruled back to cards**, so the
+     * selector is the card's again. `.move[role="button"]` would have caught
+     * either; it is spelled `.move--card` because that is the claim.
      */
     const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move--card[role="button"]')];
     expect(cards.length, 'the drawer draws move cards, so this must not be vacuous').toBeGreaterThan(0);

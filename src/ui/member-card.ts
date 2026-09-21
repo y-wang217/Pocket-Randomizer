@@ -22,15 +22,14 @@ import { FAINTED, hpState, ppState } from '../core/hpCopy';
 import { hpFraction, ppTotals } from '../core/party';
 import type { ItemId, PokemonState } from '../core/types';
 import { itemById } from '../data/items';
-import { statInfo, STAT_ORDER } from '../data/statInfo';
 import type { Tuning } from '../data/tuning';
 import { createBar } from './bar';
-import { collapsible } from './collapse';
-import { el, genderMark, moveCard } from './scene';
 import { moveCardData } from './move-detail';
-import { abilityChip, monTypeChip, neutralChip, statusChip } from './chip';
-import { archetypeChip } from './archetype-chip';
-import { slotNumber } from './slots';
+import { statBlock } from './stat-block';
+import { collapsible } from './collapse';
+import { el, levelText, moveCard } from './scene';
+import { abilityChip, monTypeChip, statusChip } from './chip';
+import { itemIcon, slotNumber } from './slots';
 import { spriteFigure } from './sprites';
 
 export interface MemberCardOptions {
@@ -81,45 +80,56 @@ export function memberCardContents(
   name.textContent = spec.species;
 
   const level = el('span', 'panel__level');
-  // Gender next to the level, exactly as the battle panel prints it and via the
-  // same function — a Pokemon that read "Lv30 ♀" in a fight and "Lv30" here
-  // would look like two Pokemon.
-  level.textContent = `Lv${spec.level}${genderMark(spec.gender)}`;
-
   /*
-   * The archetype chip. **Part 7, and the same chip the battle panels carry.**
+   * The level, through the one helper. **M3.2.**
    *
-   * Computed here rather than handed in, because outside a battle there is no
-   * projection to carry it and `archetypeOf` is a pure function of base stats
-   * the adapter already returned. This file is not the battle UI, so it is not
-   * under the rule that keeps `scene.ts` on the projection.
+   * Gender next to it because it is the same kind of fact, and via the same
+   * function as the battle panel — a Pokemon that read "36 ♀" in a fight and
+   * "Lv36" here would look like two Pokemon, which is why nine screens each
+   * writing their own level was an R1 problem before it was an R2 one.
    */
+  level.textContent = levelText(spec.level, spec.gender);
+
   // The slot number first, when the card stands for a slot (V2): a position,
   // the same marker the hotbar above it wears.
   if (options.index !== undefined) header.append(slotNumber(options.index));
   /*
-   * **The archetype chip is back. Chip-audit patch, 2026-09-17, question 1,
-   * which supersedes Patch 4.8.0.3 item 3.**
+   * **The archetype chip is gone. Milestone M3.2, and section 3 decides it.**
    *
-   * 4.8.0.3 took it off every surface that draws the six stat bars, on the
-   * argument that the bars show the same shape without the label's known
-   * failure mode — `archetypeOf` reads base stats only, so a fully randomized
-   * move set can leave a `pTank` attacking specially.
+   * The encoding table's Archetype row reads *"Not rendered where the stat
+   * bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a
+   * derived label and can lie under randomization."* This card draws the bars,
+   * in the body below, so the first clause names this card exactly. The
+   * milestone asks for the same thing in the same words: *"Remove the
+   * archetype label wherever the bars now draw it."*
    *
-   * That argument was about *this card* and it was answered by what it left
-   * behind: a label that appears on four surfaces and not the other six is not
-   * a shorthand a player learns, it is a thing that turns up sometimes. The
-   * chip's value is that one word means the same thing everywhere a Pokemon is
-   * drawn, and a chip removed wherever there was room to justify removing it
-   * is a chip with no vocabulary left.
+   * **The chip-audit patch put it back on 2026-09-17 and its argument is
+   * answered rather than ignored.** That argument was that a label appearing
+   * on four surfaces and not the other six is not a shorthand a player learns.
+   * It is right, and M3.2 is the other half of it: the label goes from every
+   * surface that draws the bars, in one pass, rather than from the four that
+   * happened to have somewhere else to look. What it was a summary of is two
+   * lines down, as six numbers. The five surfaces that draw no bars keep it
+   * until the item that reaches them — M3.3 the recipient, M5.3 the locale
+   * card, M5.4 the capture list, M5.5 the replacement — and the summary is
+   * unbudgeted.
    *
-   * The failure mode is real and is unchanged. It is answered where it was
-   * always answered — `ARCHETYPE_CAVEAT`, in the panel every one of these
-   * chips opens — rather than by removing the label from the surfaces that
-   * happen to have somewhere else to look.
+   * D18 ruled the harder half of this on the battle panel, where the bars are
+   * *not* on the card and deleting the label would have ended the only channel
+   * for the fact. Here there is no such question. The bars are right there.
    */
-  header.append(name, level, archetypeChip(spec.baseStats), ...spec.types.map(monTypeChip));
-  if (options.isLead) header.append(neutralChip('Lead', 'lead'));
+  header.append(name, level, ...spec.types.map(monTypeChip));
+  /*
+   * **The lead is the slot number, not a chip. M3.2.**
+   *
+   * `isLead` is `index === 0` at all three call sites and the options table
+   * above says so in as many words — *"Slot 0, and nothing else"* — so the
+   * chip and the slot marker were one fact in two channels on one surface,
+   * which is R3. The marker stays, `party__member--lead` stays for the
+   * stylesheet, and the card says which one leads on its accessible name
+   * rather than spending a word on every card to mark one of them.
+   */
+  if (options.isLead) card.setAttribute('aria-label', `${spec.species}, leading`);
 
   // `.party__ability` keeps its class: the stylesheet positions it and hides it
   // on a collapsed Pocket card, and neither rule is this patch's to move.
@@ -156,7 +166,10 @@ export function memberCardContents(
    * types, its HP, its status and what it holds. `ui/collapse.ts` says why
    * this is an expander rather than a tooltip.
    */
-  const body: HTMLElement[] = [statBlock(spec, member), moveList(member, spec, options.tuning)];
+  const body: HTMLElement[] = [
+    statBlock({ ...spec.baseStatsAtLevel, hp: member.maxHp }),
+    moveList(member, spec, options.tuning),
+  ];
   if (options.contribution) body.push(contributionRow(member));
   const fold = collapsible(card, body, spec.species);
   fold.toggle.classList.add('party__member-toggle');
@@ -187,101 +200,78 @@ export function hpTip(track: HTMLElement, text: string): void {
   track.setAttribute('aria-label', text);
 }
 
-/** The held item and its effect line, read-only. */
+/**
+ * The held item, as a sprite in a fixed slot. **Milestone M3.2.**
+ *
+ * Section 3's Held item row, the same one M3.1 built the battle panel's slot
+ * against: *"Item sprite in a fixed slot | Empty slot renders nothing | Name,
+ * one effect line."* All three clauses are here, and the sprite is
+ * `ui/slots.ts`'s `itemIcon` — the same cell of the same Showdown sheet the
+ * party slots, the summary and the battle panel draw, so an item looks the
+ * same wherever it is held.
+ *
+ * **The name and the effect line are not gone; they are what the press
+ * opens.** They were a chip reading `Leftovers` and a line reading "Heals
+ * 1/16 max HP each turn", which is a name and a sentence at rest on a surface
+ * budgeted at zero. The `item:` tip that carried the name to the tooltip
+ * before now carries both, through the same layer, from the same
+ * `data/items.ts` entry.
+ *
+ * **The row stays in the DOM when the slot is empty**, because the party
+ * screen appends its "to bag" control to it (`screens/party.ts`) and a row
+ * that vanished would take the control with it. The *slot* renders nothing,
+ * which is what section 3 asks and what R4 means by a default.
+ */
 function itemRow(holding: ItemId | null): HTMLElement {
   const row = el('div', 'party__item');
   row.dataset['tutorial'] = 'items';
   const entry = holding ? itemById(holding) : null;
-  const chip = entry ? neutralChip(entry.name, 'item', { tip: `item:${entry.id}` }) : neutralChip('No item', 'item', { extra: 'badge--muted' });
-  row.append(chip);
 
+  const slot = el('span', 'party__item-slot');
   if (entry) {
-    // The plain-language effect line, from `data/items.ts` rather than written
-    // here — the same string the reward card shows, so an item reads the same
-    // wherever it appears.
-    const effect = el('span', 'party__item-effect');
-    effect.textContent = entry.blurb;
-    row.append(effect);
+    slot.append(itemIcon(entry.id));
+    slot.dataset['tip'] = `item:${entry.id}`;
+    slot.tabIndex = 0;
+    slot.setAttribute('role', 'button');
+  } else {
+    /*
+     * Empty renders nothing at all — no chip, no outline, no `No item`. The
+     * absence *is* the encoding, and a card that said so in words would spend
+     * two of them on every member holding nothing, which is most of them.
+     * The card's own `aria-label` is where a reader who cannot see an empty
+     * slot is told, because "nothing" read aloud as nothing is not a readout.
+     */
+    slot.hidden = true;
+    row.dataset['empty'] = 'true';
   }
+  row.append(slot);
   return row;
 }
 
 /**
- * The six-stat block, with the same labels and tooltips as the battle panel.
- *
- * A copy of the party screen's block rather than a call into it, because that
- * one is a module-private function on a screen; this file is now the shared
- * component and the party screen calls *here*. See that screen's own note on
- * why it reuses the battle screen's vocabulary rather than its component.
- */
-function statBlock(spec: ReturnType<typeof describeSpecCard>, member: PokemonState): HTMLElement {
-  const root = el('div', 'stats stats--party');
-  const values: Record<string, number> = { ...spec.baseStatsAtLevel, hp: member.maxHp };
-
-  for (const stat of STAT_ORDER) {
-    const row = el('div', 'stat');
-    // `data-row`, not `data-stat`: the stylesheet spans `.stat[data-stat="hp"]`
-    // across the battle panel's grid, and this block pairs its rows.
-    row.dataset['row'] = stat;
-    /*
-     * The label, in both of its forms. **Density modes patch, Part 4.**
-     * Detailed prints the full name and Simple the abbreviation; both are
-     * rendered and the stylesheet shows one, the same way every two-form
-     * string on a screen is drawn (`ui/dom.ts`, `prose`). In Pocket the row
-     * is a bar and the number is one tap away: the label carries the value
-     * so the stat tooltip can say it.
-     */
-    const info = statInfo(stat);
-    const label = el('span', 'stat__label');
-    const long = el('span', 'stat__label-long');
-    long.textContent = info?.label ?? stat.toUpperCase();
-    const short = el('span', 'stat__label-short');
-    short.textContent = info?.abbreviation ?? stat.toUpperCase();
-    label.append(long, short);
-    label.dataset['tip'] = `stat:${stat}`;
-    label.dataset['value'] = String(values[stat] ?? 0);
-    label.tabIndex = 0;
-    label.setAttribute('role', 'button');
-
-    /*
-     * **Both, always, in every mode. Patch 4.7.2, ruling 3; three modes since
-     * the density patch.**
-     *
-     * This used to swap them by `hidden` off `showsNumbers()`, which made
-     * the modes mutually exclusive in the component. It renders the whole
-     * readout — the number and the bar — and `[data-density]` on the root
-     * decides what is shown: the number in Detailed and Simple, the bar in
-     * Pocket. That is what lets a mode change reach a card that is already
-     * on screen without anything re-rendering it. See `ui/theme/density.ts`.
-     */
-    const value = el('span', 'stat__value');
-    value.textContent = String(values[stat] ?? 0);
-
-    const bar = el('span', 'stat__bar');
-    const barFill = el('span', 'stat__bar-fill');
-    const magnitude = values[stat] ?? 0;
-    barFill.style.width = `${Math.min(100, (magnitude / STAT_BAR_CEILING) * 100)}%`;
-    bar.append(barFill);
-
-    row.append(label, value, bar);
-    root.append(row);
-  }
-  return root;
-}
-
-/** The same ceiling the battle panel's bars use, so the two read alike. */
-const STAT_BAR_CEILING = 200;
-
-/**
  * Four move cards, with their tags. **Part 6, on the party surfaces.**
  *
- * The full card rather than the name-and-PP line the party screen used to
- * print, because the brief's list of contents says "the four move cards with
- * their tags" and a member's moveset is most of what a decision about that
- * member is made on.
+ * The full card rather than a chip, and **D21a was ruled the other way first.**
+ * Section 5's Party row says "four move chips" and M3.2 built them; three
+ * separate invariant tests then caught three different fact families going
+ * off this surface with the card face:
  *
- * The holder is passed, so STAB renders here: these cards *are* attached to a
- * specific Pokemon, which is the condition Part 6b puts on the tag.
+ *   - the band, by `test/band-badge.test.ts`, which puts `BAND n` on every
+ *     move everywhere so an offer can be compared against what a member knows;
+ *   - PP, which the ruling itself restored, because "which member is out of
+ *     PP" is what this surface is opened for;
+ *   - the whole fact strip — accuracy, priority, multi-hit, recoil, drain,
+ *     charge, recharge, contact — by `test/visual-move-cards.test.ts`, which
+ *     asserts a filled tag row on every surface drawing a held moveset.
+ *
+ * Restoring all three would have made the chip a card with a different class
+ * name, which is worse for section 5 than the row being wrong. So the row is
+ * wrong: it was written before M2.3 decided what a chip leaves out, and the
+ * chip's own docstring is where that decision lives. The bible's Party row is
+ * corrected to "four move cards" rather than this surface being bent to it.
+ *
+ * Nothing is spent at rest for it. The move card censuses 0 in Pocket since
+ * M2.1, and the card's body folds there anyway.
  */
 function moveList(
   member: PokemonState,

@@ -92,18 +92,18 @@ describe('the density modes', () => {
   it('Detailed: full stat labels and numbers, no bars', async () => {
     const { page, close } = await partyIn('detailed');
     expect(await mode(page)).toBe('detailed');
-    expect(await paintedCount(page, '.stats--party .stat__value')).toBeGreaterThanOrEqual(6);
-    expect(await paintedCount(page, '.stats--party .stat__bar-fill')).toBe(0);
-    expect(await visibleText(page, '.stats--party .stat__label')).toBe('Hit Points');
+    expect(await paintedCount(page, '.stats--grid .stat__value')).toBeGreaterThanOrEqual(6);
+    expect(await paintedCount(page, '.stats--grid .stat__bar-fill')).toBe(0);
+    expect(await visibleText(page, '.stats--grid .stat__label')).toBe('Hit Points');
     await close();
   }, 600_000);
 
   it('Simple: abbreviated stat labels and numbers, no bars', async () => {
     const { page, close } = await partyIn('simple');
     expect(await mode(page)).toBe('simple');
-    expect(await paintedCount(page, '.stats--party .stat__value')).toBeGreaterThanOrEqual(6);
-    expect(await paintedCount(page, '.stats--party .stat__bar-fill')).toBe(0);
-    expect(await visibleText(page, '.stats--party .stat__label')).toBe('HP');
+    expect(await paintedCount(page, '.stats--grid .stat__value')).toBeGreaterThanOrEqual(6);
+    expect(await paintedCount(page, '.stats--grid .stat__bar-fill')).toBe(0);
+    expect(await visibleText(page, '.stats--grid .stat__label')).toBe('HP');
     await close();
   }, 600_000);
 
@@ -115,9 +115,17 @@ describe('the density modes', () => {
     // The body folds in Pocket; open the first card to reach its stat block.
     await page.locator(`${visible('party')} .party__member-toggle`).first().click();
     await page.waitForTimeout(150);
-    expect(await paintedCount(page, '.stats--party .stat__value')).toBe(0);
-    expect(await paintedCount(page, '.stats--party .stat__bar-fill'), 'the opened card shows all six bars').toBe(6);
-    expect(await visibleText(page, '.stats--party .stat__label')).toBe('HP');
+    expect(await paintedCount(page, '.stats--grid .stat__value')).toBe(0);
+    expect(await paintedCount(page, '.stats--grid .stat__bar-fill'), 'the opened card shows all six bars').toBe(6);
+    /*
+     * **The label is the glyph in Pocket. M3.2.** Section 3's Six stats row is
+     * "glyph, bar, number" and R2 forbids the word at rest, so the mark from
+     * M1.1's sheet carries the stat and the two word forms are hidden — the
+     * same shape D16 ruled for the type chip's word, and reversed by the same
+     * item that reverses that one, M6.4.
+     */
+    expect(await visibleText(page, '.stats--grid .stat__label')).toBe('');
+    expect(await paintedCount(page, '.stats--grid .stat__label .glyph')).toBe(6);
     await close();
   }, 600_000);
 

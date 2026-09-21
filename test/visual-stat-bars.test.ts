@@ -57,7 +57,7 @@ interface Row {
 /** The stat rows of the first member card on the open screen. */
 async function statRows(page: Page, screen: string): Promise<Row[]> {
   return page.evaluate((sel) => {
-    const block = globalThis.document.querySelector(`${sel} .stats--party`);
+    const block = globalThis.document.querySelector(`${sel} .stats--grid`);
     if (!block) return [];
     return [...block.querySelectorAll('.stat')].map((row) => {
       const value = row.querySelector('.stat__value');

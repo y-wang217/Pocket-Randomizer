@@ -20,9 +20,8 @@ import { EVOLUTION_CHOICE, EVOLUTION_HEADING, EVOLUTION_LINE } from '../copy/scr
 import { prose } from '../dom';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
-import { statLine } from './starter-select';
+import { statBlock } from '../stat-block';
 import { abilityChip, monTypeChip } from '../chip';
-import { archetypeChip } from '../archetype-chip';
 
 export interface EvolutionPrompt {
   /** What the clear has already decided, in walk order. */
@@ -94,14 +93,23 @@ function renderOption(option: SpeciesEntry, question: EvolutionQuestion, index: 
    * numbers moved; the chip says whether the thing it is becoming is a
    * different kind of thing.
    */
-  header.append(
-    name,
-    archetypeChip(detail.baseStats),
-    ...detail.types.map(monTypeChip),
-    abilityChip(detail.ability, detail.abilityId),
-  );
+  /*
+   * **No archetype chip. M3.2.** The comment above argued this screen is where
+   * the label works hardest, because the player is comparing two different
+   * species rather than reading one. That is the strongest case for it and it
+   * still loses to section 3: the label is not rendered where the bars are,
+   * and the block below draws them for both species side by side — which
+   * answers "is this a different kind of thing" with six numbers instead of
+   * one word that can lie under randomization.
+   */
+  header.append(name, ...detail.types.map(monTypeChip), abilityChip(detail.ability, detail.abilityId));
 
-  card.append(spriteFigure(option.species, { phase: index }), header, statLine(detail.baseStatsAtLevel, detail.maxHp));
+  card.append(
+    spriteFigure(option.species, { phase: index }),
+    header,
+    // The shared stat block, six across. M3.2, D20.
+    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row' }),
+  );
   card.addEventListener('click', onChoose);
   return card;
 }

@@ -36,7 +36,7 @@
  */
 import { describeSpecCard } from '../../core/battle/driver';
 import type { MoveSpec, MoveView, PokemonState } from '../../core/types';
-import { el, genderMark, moveCard, moveChip } from '../scene';
+import { el, levelAria, levelText, moveCard, moveChip } from '../scene';
 import { moveCardData } from '../move-detail';
 import { setProse } from '../dom';
 import { REPLACE_COPY } from '../copy/screens';
@@ -97,7 +97,8 @@ export function createMoveReplaceScreen(): MoveReplaceScreen {
       const name = el('span', 'panel__name');
       name.textContent = detail.species;
       const level = el('span', 'panel__level');
-      level.textContent = `Lv${detail.level}${genderMark(detail.gender)}`;
+      level.textContent = levelText(detail.level, detail.gender);
+      level.setAttribute('aria-label', levelAria(detail.level, detail.gender));
       // And its body, at the line's right. Idle-sprites patch.
       /*
        * **The archetype chip and the ability, added by the chip-audit patch.**

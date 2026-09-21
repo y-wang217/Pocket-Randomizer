@@ -88,11 +88,39 @@ export const TARGET_COPY = {
    * (recommended if your moves are good)" would be the UI ranking the option
    * against the party, which the copy rule bars.
    */
+  /**
+   * The control that picks a recipient. **Milestone M3.3.**
+   *
+   * New copy, because the card used to *be* the button and now it is the party
+   * row with a control beside it — `screens/pre-gym.ts`'s shape, which asks the
+   * same "which member" question. Flat, like every label here: "Teach it"
+   * states the action where a "best fit" would rank the six against each
+   * other, which Part 4 bars.
+   */
+  choose: { long: 'Teach it to this one', short: 'Teach it' },
   decline: { long: "Don't learn it", short: "Don't learn it" },
-  declineNote: {
-    long: 'Nobody learns this move. It is not offered again.',
-    short: 'Nobody learns it. Not offered again.',
-  },
+  /**
+   * The confirm behind the decline. **Milestone M3.3.**
+   *
+   * `declineNote` stood under the control and said the same thing at rest, on
+   * every render, for a control most runs never press. Section 4 budgets this
+   * overlay at 4 words and the record gives the wording: "Forfeit this reward?"
+   *
+   * Both halves the same, which is the convention `decline` above already
+   * follows: a confirm has one form, because the band is the compact surface
+   * and a long variant of a four-word question would be a second reading of
+   * the same sentence. They stay in this table rather than beside the caller
+   * so `npm run copy-audit` still finds every string a player reads.
+   */
+  forfeitTitle: { long: 'Forfeit this reward?', short: 'Forfeit this reward?' },
+  forfeitConfirm: { long: 'Forfeit', short: 'Forfeit' },
+  /*
+   * `Keep`, the same word the replace confirm's way out uses. R1 is about
+   * slots and this is the same idea one level up: the two confirms in this
+   * game ask the player to give something up, and the control that declines
+   * should not be a different word on each.
+   */
+  forfeitCancel: { long: 'Keep', short: 'Keep' },
 } as const satisfies Record<string, Prose>;
 
 /** What a move would do to one member, in one line. Facts about the pairing only. */

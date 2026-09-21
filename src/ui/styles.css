@@ -435,6 +435,15 @@ body {
    every render, so changing density is a stylesheet change and not a
    re-render. The density ruling: no mode removes a fact. */
 .panel__stages .badge--stages { display: none; cursor: pointer; }
+/* Both markers carry glyphs rather than words since M3.1 — one stat mark per
+   folded stage on `--stages`, the Speed mark on `--first` — so they lay their
+   children out rather than setting type. */
+.panel__stages .badge--stages,
+.panel__stages .badge--first {
+  align-items: center;
+  gap: var(--space-h);
+}
+.panel__stages .badge--first { display: inline-flex; }
 :root[data-density="pocket"] .panel__stages .badge--stage { display: none; }
 :root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }
 
@@ -857,6 +866,59 @@ body {
   margin-top: var(--space-1h);
 }
 
+/* The held item's fixed slot. Milestone M3.1.
+
+   A slot rather than a chip: section 3 asks for "item sprite in a fixed slot"
+   and R1 makes the fixed part the point — an attribute that moves between
+   surfaces, or between two renders of one surface, is an attribute the player
+   has to find rather than read. 24px is `.slot__icon`'s own size, which is the
+   size the party slots and the summary already draw the same cell at.
+
+   `[hidden]` needs the explicit rule because the display above would otherwise
+   win it. An empty slot renders nothing: no box, no outline, no space. That is
+   R4's default and it is the item's own done-when. */
+.panel__item {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-1h);
+}
+
+.panel__item[hidden] { display: none; }
+
+/* An item held and not yet revealed. The same distinction the chip it replaces
+   drew, as a mark rather than as the words "Item ?": no item at all and an
+   item you have not been told about are different facts. */
+.panel__item-unknown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-chip);
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+}
+
+/* The turn-order chevron slot. Milestone M3.1, discrepancy D6.
+
+   Empty on every ordinary turn, and empty is `display: none` rather than a
+   reserved gap: section 6 marks the panel only when a *bracket* decided the
+   order, R4 says a default renders no node, and a permanently reserved
+   chevron-shaped hole on a floating panel is a node. `data-bracket` on the
+   panel is what fills it, and M4.2 is what sets that. */
+.panel__priority { display: none; }
+.panel[data-bracket="up"] .panel__priority,
+.panel[data-bracket="down"] .panel__priority { display: inline-flex; align-items: center; }
+/* Both marks are in the DOM on every render and the attribute picks one, the
+   way the type chip's word and the stage chips' marker are both drawn and one
+   shown. A turn that fills this slot sets an attribute; it does not re-render
+   a panel in the middle of a beat. */
+.panel__priority > .glyph { display: none; }
+.panel[data-bracket="up"] .panel__priority > [data-glyph="priority-up"],
+.panel[data-bracket="down"] .panel__priority > [data-glyph="priority-down"] { display: inline-flex; }
+
 /* ---------- the six-stat panel ---------- */
 
 /*
@@ -872,6 +934,54 @@ body {
   padding-top: calc(var(--space-2) * var(--density-pad));
   border-top: var(--hairline) solid var(--border);
 }
+
+/* The pick card's shape: six across, the column per stat `.statline` drew in
+   every mode. **M3.2, D20.** It is a modifier rather than a second component
+   because Pocket has turned `.stats` into exactly this row since the density
+   patch — the only thing the two ever disagreed about is Detailed and Simple,
+   where a wide card wants two columns and a narrow pick card wants six. */
+.stats--row {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: calc(var(--space-1) * var(--density-pad));
+  margin: calc(var(--space-2) * var(--density-pad)) 0 0;
+  padding: calc(var(--space-2) * var(--density-pad)) 0 0;
+}
+
+/* Matched to `.statline__stat`, which this replaced and which was measured
+   into the capture card's fold budget: `display: flex`, a column, a hairline
+   gap, and **nothing else**. `.stat`'s own `font-size` and `line-height` are
+   reset rather than overridden with new numbers, because the cell's height
+   there came from its children's line boxes and a strut on the row put the
+   capture offer's decision buttons 1.4px past the 844 fold
+   (`test/visual-v4.test.ts`). */
+.stats--row .stat {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--hairline);
+  line-height: 1.2;
+}
+
+/* Six across takes the abbreviation in every mode that shows a word, which is
+   what `.statline` did and the reason it gave: *"six full names do not fit a
+   card at 390 wide"* (Item F, and the density patch recorded it). The unified
+   component rendered `Hit Points` here on its first pass and the label wrapped
+   to two lines, which put the capture offer's decision buttons past the 844px
+   fold — `test/visual-v4.test.ts` is what caught it. The grid layout keeps the
+   full name, because a two-column card has room for one. */
+.stats--row .stat__label { min-width: 0; font-size: var(--fs-xs); }
+.stats--row .stat__label-long { display: none; }
+:root:not([data-density="pocket"]) .stats--row .stat__label-short { display: inline; }
+.stats--row .stat__value { min-width: 0; text-align: left; font-size: var(--fs-md); color: var(--text); }
+.stats--row .stat__bar { min-width: 0; flex: none; }
+
+/* The stat mark, from M1.1's sheet. **M3.2.** Section 3: glyph, bar, number.
+   Which of the mark and the words is shown is decided with the rest of the
+   density rules, below, beside the type chip's and the category badge's — the
+   mark in Pocket, the word in the two modes D16 keeps a labelled face for, and
+   never both, which is R3. Rendering both was how M3.2 first shipped it, and
+   it cost 17px a card on the capture offer: `test/visual-v4.test.ts` caught
+   the decision buttons falling past the 844px fold. */
+.stat__label > .glyph { vertical-align: middle; }
 
 .stat {
   display: flex;
@@ -1044,12 +1154,16 @@ body {
 :root[data-density="simple"] .copy__short,
 :root[data-density="pocket"] .copy__short { display: inline; }
 
-/* The stat block's labels: full names in Detailed, abbreviations after. */
+/* The stat block's labels: full names in Detailed, abbreviations in Simple,
+   and **neither in Pocket, where the glyph is the label**. M3.2: section 3's
+   Six stats row is "glyph, bar, number" and R2 forbids the word at rest, so
+   the mark from M1.1's sheet is the encoding and the two word forms are the
+   labelled face D16 keeps in the other two modes until M6.4 rules on them. */
 .stat__label-short { display: none; }
 :root[data-density="simple"] .stat__label-long,
 :root[data-density="pocket"] .stat__label-long { display: none; }
-:root[data-density="simple"] .stat__label-short,
-:root[data-density="pocket"] .stat__label-short { display: inline; }
+:root[data-density="simple"] .stat__label-short { display: inline; }
+:root[data-density="pocket"] .stat__label-short { display: none; }
 
 /* The stat block's numbers, in Detailed and Simple; bars in Pocket, six in a
    row, the number one tap away on the label. All six together. */
@@ -1068,18 +1182,6 @@ body {
 :root[data-density="pocket"] .stat__label { min-width: 0; font-size: var(--fs-xs); }
 :root[data-density="pocket"] .stat__bar { min-width: 0; flex: none; }
 
-/* The compact stat row on a pick card (starter, capture): bars in Pocket, the
-   same six together, the number on the label's tip. */
-.statline__bar {
-  display: none;
-  height: 6px;
-  border-radius: var(--radius-chip);
-  background: var(--bg-sunken);
-  overflow: hidden;
-}
-.statline__bar-fill { display: block; height: 100%; background: var(--text-faint); }
-:root[data-density="pocket"] .statline__value { display: none; }
-:root[data-density="pocket"] .statline__bar { display: block; }
 
 /*
  * **Move cards and buttons in Pocket: the words go, the facts stay. M2.1.**
@@ -1148,6 +1250,7 @@ body {
  */
 :root:not([data-density="pocket"]) .chip--type > .glyph,
 :root:not([data-density="pocket"]) .badge--category > .glyph,
+:root:not([data-density="pocket"]) .stat__label > .glyph,
 :root:not([data-density="pocket"]) .move__pp > .glyph { display: none; }
 
 /* Folding rows (`ui/collapse.ts`): the member card's body, a backpack row's
@@ -1157,8 +1260,6 @@ body {
 :root[data-density="pocket"] .collapse__toggle { display: inline-flex; }
 :root[data-density="pocket"] [data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
 :root[data-density="pocket"] .party__member-toggle { margin-left: auto; }
-/* The held item's effect line: the chip's own tooltip says it. */
-:root[data-density="pocket"] .party__item-effect { display: none; }
 
 /* The party screen's two hotbars in Pocket: each is the collection beside it
    at a second size — slot, species, item — and the cards and rows below carry
@@ -1188,10 +1289,11 @@ body {
 }
 :root[data-density="pocket"] .bench .hp--slim { display: none; }
 
-/* The target screen's buttons in Pocket: a button is one tap already, so no
-   tip lives inside it; the number stays as text and the bar goes. The capture
-   block's cards follow the member card rule below instead. */
-:root[data-density="pocket"] .party--target .hp { display: none; }
+/* **Removed at M3.3**, with the HP-text carve-out it paired with. It hid the
+   bar on this screen because the card was a `<button>` — a button is one tap
+   already, so no tip could live inside it, and the number had to stay as text.
+   The card is the party row now and is not a control, so the bar is the
+   readout here exactly as it is in the drawer. */
 :root[data-density="pocket"] .party--compare .party__actions { margin-top: 0; }
 :root[data-density="pocket"] .party--compare .hp { margin-top: var(--space-h); }
 
@@ -1246,9 +1348,15 @@ body {
    worst case: the line wrapped to two at half a phone's width and put 33px
    under every card. A fainted member keeps its word on screen. The track is
    4px, so its hit area is padded out by a pseudo-element the track's own
-   box does not clip; the fill is rounded on its own. The target screen's
-   buttons are excluded above. */
-:root[data-density="pocket"] .party__member:not(.party__member--target) .panel__hp-text:not([data-fainted]) { display: none; }
+   box does not clip; the fill is rounded on its own.
+
+   **The target screen was excluded and is not any more. M3.3.** That carve-out
+   was written for a card this screen hand-rolled, which drew its own HP line
+   and had no bar to read instead. It mounts the party row now, so it follows
+   the row's rule like every other surface — the bar is the readout, the
+   numbers are its tap — and the exception was costing `HP` and `PP` twelve
+   times on a card budgeted at zero. */
+:root[data-density="pocket"] .party__member .panel__hp-text:not([data-fainted]) { display: none; }
 :root[data-density="pocket"] .party__member .hp[data-tip] { overflow: visible; cursor: help; }
 :root[data-density="pocket"] .party__member .hp[data-tip]::after { content: ''; position: absolute; inset: calc(-1 * var(--space-2)) 0; }
 /* The item's "to bag" control folds with the body: a control on a card is
@@ -1356,9 +1464,13 @@ body {
 /* The shell's foot in Pocket: the stamps are texture, and the fold is the budget. */
 :root[data-density="pocket"] .shell { padding-bottom: var(--space-4); }
 
-/* The party screen's stat block: six rows, two columns, same rows as a battle
-   panel so the two read as the same object seen in two places. */
-.stats--party {
+/* The card's stat block: six rows, two columns, same rows as a pick card's six
+   across so the two read as the same object seen in two places. **Renamed from
+   `.stats--party` at M3.2**: the component is mounted by the party card, the
+   pick cards and the battle panel's inspect layer now, and a modifier named
+   after one of its call sites is a modifier that will be wrong at the next
+   one. It names the layout, which is what it selects. */
+.stats--grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: calc(var(--space-h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
@@ -1615,12 +1727,19 @@ body {
   margin: calc(var(--space-2) * var(--density-pad)) 0;
 }
 
-.party__item-effect {
-  flex: 1;
-  min-width: 160px;
-  font-size: var(--fs-md);
-  color: var(--text-dim);
-}
+/* The held item's fixed slot on a party card. **M3.2.** The same 24px cell the
+   battle panel's slot draws, so an item is one picture in one size wherever it
+   is held. An empty slot renders nothing — no box, no outline, no space — and
+   the row survives it because the party screen hangs its "to bag" control off
+   the row.
+
+   **In every mode**, which it was not on its first pass: the rule was written
+   into the middle of the Pocket density block and the comment split a selector
+   from its class, so it applied only in Pocket and the rule it interrupted
+   lost its density scope. Nothing catches that — a stylesheet has no
+   typechecker and both halves stayed valid CSS. */
+.party__item-slot { display: inline-flex; align-items: center; }
+.party__item-slot[hidden] { display: none; }
 
 /* "returns to your bag", beside the chip on the capture block's cards. */
 .party__item-note { font-size: var(--fs-sm); color: var(--text-dim); }
@@ -3622,26 +3741,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * flex row would put each card's Atk at a different x. Monospaced numbers for
  * the same reason.
  */
-.statline {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: calc(var(--space-1) * var(--density-pad));
-  margin: calc(var(--space-2) * var(--density-pad)) 0 0;
-  padding: calc(var(--space-2) * var(--density-pad)) 0 0;
-  list-style: none;
-  border-top: var(--hairline) solid var(--border);
-}
-
-.statline__stat { display: flex; flex-direction: column; gap: var(--hairline); }
-
-.statline__label {
-  font-size: var(--fs-xs);
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  cursor: help;
-}
-
-.statline__value { font-family: var(--font-numeral); font-size: var(--fs-md); color: var(--text); }
 
 /* ---------- the phone pass ---------- */
 
@@ -4222,6 +4321,38 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   line-height: 1.4;
 }
 
+/* The six stats, as the battle panel's long press draws them. Milestone M3.1.
+
+   Three columns rather than the two above, because section 3's Six stats row
+   is "glyph, bar, number" and the bar is a column of its own. The bar column
+   takes the slack so six bars share one baseline and can be read against each
+   other — which is R10's whole point and also its limit: they compare the six
+   stats of one Pokemon, and nothing here sorts them or marks one. */
+.tip__rows--stats { grid-template-columns: auto minmax(0, 1fr) auto; }
+
+.tip__rows--stats .tip__row-label { text-transform: none; }
+
+.tip__row-bar {
+  display: block;
+  align-self: center;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-chip);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+/* One fill colour for all six. A bar per stat in its own hue would be the
+   screen ranking them, and `--text-faint` is the same neutral the party
+   card's stat bars use. */
+.tip__row-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--text-faint);
+}
+
+.tip__rows--stats .tip__row-value { font-family: var(--font-numeral); }
+
 /* Anything that opens a tooltip should look like it does. */
 [data-tip] { cursor: help; }
 [data-tip]:focus-visible {
@@ -4429,7 +4560,6 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 .shop__coin-label,
 .summary__seed-label,
 .stat__label,
-.statline__label,
 .node__label,
 .map__region-name,
 .locale__name,

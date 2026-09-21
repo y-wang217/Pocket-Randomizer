@@ -444,7 +444,13 @@ async function playRun(label) {
       // Take the first member. Which one is a real decision, but a smoke test
       // is proving the screen routes and a click reaches the policy — the
       // *quality* of the target is the simulator's question, not this one.
-      const card = page.locator(`${visible('target')} .party__member--target`).first();
+      /*
+       * The control beside the card, not the card. **M3.3**: the card is the
+       * party row now and is not a `<button>`, because the row is full of
+       * focusable things a button may not contain. A player presses
+       * `.target__choose`, so this does.
+       */
+      const card = page.locator(`${visible('target')} .target__choose`).first();
       if (await card.count()) {
         if (targets === 0) await page.screenshot({ path: `stats/${label}-target.png`, fullPage: true });
         await card.click();
@@ -911,8 +917,15 @@ const phoneCheck = (label, ok, detail) => {
  * ever needs the same countdown, it is eleven lines and it is in this file's history.
  */
 
-// Starter cards carry base stats, so a pick is not a coin flip.
-const starterStats = await phone.locator('.starter .statline__stat').count();
+/*
+ * Starter cards carry base stats, so a pick is not a coin flip.
+ *
+ * `.stats .stat` since M3.2, where `.statline` was deleted: it was the second
+ * of three components drawing a six-stat readout, which is the defect section
+ * 5 of the design bible closes with. One component draws them all now, so this
+ * counts the rows it draws.
+ */
+const starterStats = await phone.locator('.starter .stats .stat').count();
 phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
 
 await phone.locator('.starter').first().click();
@@ -1125,8 +1138,27 @@ if (await phone.locator(visible('battle')).count()) {
       ),
       statusMoves: globalThis.document.querySelectorAll('.moves .move[data-category="status"]').length,
       statusReadouts: globalThis.document.querySelectorAll('.moves .move__effect').length,
-      // Part 7: the label beside the level, on both panels.
+      /*
+       * **Not the archetype label any more. M3.1, discrepancy D18.**
+       *
+       * Part 7 put a label beside the level on both panels and this check
+       * held it there for five stages. Section 3 bars the label — *"a derived
+       * label [that] can lie under randomization"* — section 5 never listed
+       * it, and section 4 budgets this panel at zero words, so D18 deleted
+       * it. What the check was really protecting is the fact underneath: V5
+       * took the six base stats off this panel on the argument that the label
+       * replaced them, which is what made deleting it a C2 question rather
+       * than a tidy-up.
+       *
+       * So the assertion follows the fact rather than the element. Both
+       * panels carry all six stats behind their long press, and neither
+       * carries the label. A panel that regained the label, or lost the
+       * stats, fails here the way the old check meant to.
+       */
       archetypes: globalThis.document.querySelectorAll('.panel .badge--archetype').length,
+      statPanels: [...globalThis.document.querySelectorAll('.panel[data-tip^="stats:"]')].filter(
+        (panel) => (panel.dataset.detail ?? '').split('\n').filter(Boolean).length === 6,
+      ).length,
       // Part 1: the drawer trigger, in the same place on every surface.
       drawerTrigger: globalThis.document.querySelectorAll('[data-drawer-trigger]').length,
       scrollWidth: globalThis.document.documentElement.scrollWidth,
@@ -1166,7 +1198,11 @@ if (await phone.locator(visible('battle')).count()) {
     battle.statusReadouts >= battle.statusMoves,
     `${battle.statusReadouts} readouts for ${battle.statusMoves} status moves`,
   );
-  phoneCheck('both Pokemon carry an archetype label', battle.archetypes === 2, `${battle.archetypes} labels`);
+  phoneCheck(
+    'both Pokemon carry their six stats, and neither carries the archetype label',
+    battle.statPanels === 2 && battle.archetypes === 0,
+    `${battle.statPanels} stat panels, ${battle.archetypes} labels`,
+  );
   phoneCheck('the party drawer is reachable in a battle', battle.drawerTrigger === 1,
     `${battle.drawerTrigger} triggers`);
 
