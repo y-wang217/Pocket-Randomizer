@@ -356,11 +356,31 @@ component reads `absent`.
 
 ### Tier 4: battle feedback
 
+**Five rows were filed against this tier before it opened**, from a reading done
+while Tier 3 was closing: [`../handoff/4.10-tier-4-prep.md`](../handoff/4.10-tier-4-prep.md)
+carries the options, the register carries the rulings. Four are ruled. D23 keeps
+R9 binding hits and puts the six kinds that are not outcomes on a target into a
+bounded second channel; D24 corrects the strip's budget to one *flag* per hit,
+which is what D7 filed it to say; D25 re-encodes the event line wordless; D27
+puts the forecast's colour on the effectiveness flags alone and restates the
+shipped "same chip" rule as what it always meant, no weight axis. Bible **Rev
+5**, two amendments, both in section 4, no rule moved.
+
+**D26 is open and blocks only M4.3's last clause**: the log sheet opens by a
+button reading `History`, where the item says pull, and that word is over the
+battle screen's budget however the gesture is decided.
+
+**One recommendation the merged bible withdrew.** The prep doc proposed taking
+the effectiveness flags wordless, on R8's reasoning that the forecast spends no
+words. Section 3 says *"Effectiveness (feedback) | One word on the target, edge
+colour family"*, so the word stays and D24 is what makes the budget reachable.
+The bible outranks a recommendation exactly as it outranks a prompt.
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M4.1 Flag precedence | open | — (D12 ruled: per-file split) |
-| M4.2 Forecast and feedback vocabulary | open | — |
-| M4.3 Log at rest | open | — (D7 ruled: the strip has its own row) |
+| M4.1 Flag precedence | open | — (D12, D23, D24 ruled) |
+| M4.2 Forecast and feedback vocabulary | open | — (D27 ruled: effectiveness kinds only) |
+| M4.3 Log at rest | open | D26 on its last clause (D7, D24, D25 ruled) |
 
 ### Tier 5: remaining surfaces
 
