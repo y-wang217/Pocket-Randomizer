@@ -1,6 +1,26 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 4, Sept 21, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 6, Sept 21, 2026.
+
+**Rev 6** carries one amendment, ruled 2026-09-21 on row D28: the battle
+screen's **header** gets a budget row and a place in the component canon. It has
+carried three facts since Stage 1 — the node kind, the opponent, and, since the
+AI tiers patch, how that opponent plays — and no row in this document has ever
+said so, which left M4.3 asking a surface to reach zero that was never given a
+ceiling. The tier is not droppable: the node card shows the same word before the
+click, and a readout that changed between the card and the fight would be worse
+than no readout. **No rule moved.** A surface that had no row has one.
+
+**Rev 5** carries two amendments, both ruled 2026-09-21 on rows opened against
+Tier 4 and both in section 4. **D23**: R9 binds a hit on a target, so the kinds
+that are not outcomes on a target — a priority bracket, a weather change, a turn
+a condition prevented — are a second channel beside the one hit flag rather than
+competitors inside its precedence, bounded at one per side in protocol order.
+**D24**: the flag strip's row means one *flag* per hit, not one word; nine of
+the shipped flag words are two or three words, and the row was written to give
+R9's one flag a budget at all. **Neither rule moved.** R9 is unchanged and is
+the reason D23 reads the way it does: it says *on a target*, and the six kinds
+that are not about a target were written a release after it.
 
 **Rev 4** carries one amendment, ruled 2026-09-21 on row D22: the decline
 overlay's budget rises from 4 to 6, matching the replace overlay, because both
@@ -176,7 +196,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Recipient / teach target card | 0 | Species name |
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
-| Flag strip (battle) | 1 per hit | The one flag word R9 allows |
+| Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
+| Battle screen header | 4 | Node kind, opponent, AI tier (2026-09-21, D28) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 40 | Prompt under 30, choices under 6 each, outcome one line |
@@ -207,7 +228,26 @@ when it was written. A confirm cannot have fewer than two controls, so the
 question plus `Forfeit` and `Keep` is 5 against a ceiling of 4, and the number
 was wrong rather than the overlay. Section 9 carries the bet this makes.
 
-**Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one word per hit, and the battle screen's own budget excludes it.
+**The flag strip is budgeted in flags, not in words** (ruled 2026-09-21, D24).
+`Super effective` and `Not very effective` are one flag each; the row was added
+by D7 because R9 puts a flag on every hit and no surface budgeted it, and it
+counts R9's flag rather than counting to one word. **The second channel is the
+other half of the same row** (ruled 2026-09-21, D23): a priority bracket, a
+weather change, an ability firing and a turn a condition prevented are not
+outcomes on a target, so R9's precedence does not rank them and they render
+beside the hit flag — at most one per side, in the protocol's own order. The
+bound is what keeps the row a budget: without it the second channel is the
+unbounded strip R9 was written against.
+
+**The battle screen's header is budgeted at 4** (ruled 2026-09-21, D28), for the
+three facts it has carried since Stage 1: which node this is, who is in it, and
+how that opponent plays. The third has no glyph and cannot be given one — the
+nine families are attributes of a Pokemon or a move, and a tier is neither — so
+R2 has nothing to trade the words for, exactly as it has nothing to trade the
+ability name for one row above. The alternative was a tenth family, which
+section 10.1 reserves for an amendment with an observation behind it.
+
+**Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one flag per hit, and the battle screen's own budget excludes it.
 
 ---
 
@@ -224,7 +264,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, map rail, teach target (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
-| Flag strip | One word per hit, precedence applied | Battle |
+| Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
+| Battle screen header | Node kind, opponent, AI tier (2026-09-21, D28) | Battle |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store |
 
 A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.

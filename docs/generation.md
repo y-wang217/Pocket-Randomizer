@@ -9216,3 +9216,382 @@ no gallery fixture opens a confirm and the census reads that component
 band's own copy and not its content: the card inside carries its own section 4
 row, and jsdom applies no stylesheet, so counting the subtree would measure the
 card twice and in the wrong mode.
+
+---
+
+## 61. One flag per hit, and the state that went with STAB
+
+**Milestone M4.1**, 2026-09-21. Rules R9 and C2; rows D12, D23 and D24. The one
+item on this list that is permitted to touch `core/`, and it touched it by
+deleting. `contentHash` holds at `d4e080` and no version axis moves.
+
+### What the item asked for, and what it ran into
+
+> Add precedence order to `data/tuning.ts` per R9 and have the flag strip render
+> only the first. Remove STAB and contact from the vocabulary. Keep the seven
+> measured kinds.
+
+Two of those three sentences were already ruled against by the time the item
+started, and the third was ambiguous in a way that mattered.
+
+**`data/tuning.ts` was closed by D12**, four days before the item, because
+`core/` reads that file and a precedence reorder would therefore move
+`contentHash` and refuse every recorded seed. The per-file split is the third
+way `build-config/content-hash.ts` documents; `src/data/flagPrecedence.ts` is
+the new file, `ui/` is its only importer, and `test/content-hash.test.ts` walks
+the import graph and holds that.
+
+**"Render only the first" is ambiguous about how many "first"s there are**, and
+D23 is the row that closed it. R9 ranks eight kinds and the mapper emits
+fifteen; the six it never ranked — `priority`, `prevented`, `failed`,
+`ability`, `volatile`, `field` — are not outcomes on a target at all. Ranked
+against `crit` they would lose every time, and `prevented` would lose on the
+one turn it exists for: a flinched turn draws no damage, so no chunk and no
+beat, and the word is the only trace it leaves. So the strip draws one hit flag
+per side by R9's precedence **and** one non-hit kind per side in protocol order.
+Section 4 and section 5 carry it, bible Rev 5.
+
+**"Remove STAB and contact from the vocabulary" understates what it removes.**
+`inventory.md` §4 had already warned that the sentence names `data/flagWords.ts`
+and not `core/moveFacts.ts`, where `contact` is a *card fact* and deleting it
+would cost four decision-relevant facts and trip C2. That warning held and
+`moveFacts.ts` was not touched. What the sentence did reach was larger than the
+two table rows it names — see below.
+
+### The strip is where the cut goes, and the mapper is not
+
+R9's enforcement clause is *"the mapper returns a list; the renderer takes the
+first by precedence"*, and there is a second reader that makes this load-bearing
+rather than stylistic. `ui/abnormality.ts` takes one animation mark per side off
+the same list, and its comment said *"first in protocol order wins, and the
+strip carries the rest."* A precedence filter applied in the mapper, or anywhere
+upstream of `flag-strip.ts`, would have silently changed which beats play — a
+turn whose `volatile` was outranked would have lost its animation as well as its
+word, and nothing in the item's done-when would have caught it.
+
+So `shown()` lives at the bottom of `ui/flag-strip.ts`, the mapper returns
+everything it ever did, and the comment in `abnormality.ts` is corrected rather
+than left half true: the rest is in the log sheet now, one tap away.
+
+### Deleting two flags deleted a third of the reader
+
+`stab` and `contact` were the only reason `core/battle/flags.ts` took a dex
+lookup, and the dependency chain behind them was longer than the two `add()`
+calls that used it:
+
+| Deleted | Why it existed |
+|---|---|
+| `MoveIdentityOf`, `TypesOf`, two thirds of `FlagDeps` | a move's type, category and contact flag, and a species' types |
+| The `standing` species map | STAB needs the body that used the move; the protocol names it once, on the `|switch|` |
+| The `typeOverride` map and the `TYPECHANGE` branch | Soak and Protean, so STAB agreed with the damage the player watched |
+| `settle()` | retracting both words from a move that missed, hit an immunity or failed |
+| `createFlagReader` | the state above had to survive a batch, and a battle arrives one turn at a time |
+
+**The reader is a pure function of its batch again**, so the stateful form is
+deleted rather than kept as a wrapper: a reader holding no state is a claim
+about this file that stopped being true. `ui/screens/battle.ts` calls
+`readFlags` once per update, and `test/boundaries.test.ts` counts that call the
+way it used to count `createFlagReader` — one reading per batch, handed to both
+the log and the strip, which is the property that stops the two disagreeing
+about a turn.
+
+One behaviour changed rather than disappeared. A `|-start| … |typechange|` line
+used to be read and consumed by its own branch; it now falls through to the
+volatile branch, where `DISPLAYED_VOLATILES` does not list `typechange` and it
+is dropped. Same outcome, by the filter that was already there, and
+`test/flags.test.ts` pins it so a future reader cannot start printing
+`Condition: typechange` on every Protean turn.
+
+### Six tests whose premise the item changed
+
+None was weakened; each was rewritten to assert what is true now, and two were
+deleted because their subject no longer exists.
+
+- **"reads a miss"** asserted that `settle` retracted CONTACT and STAB from a
+  Dynamic Punch that missed. It now asserts `['miss']` by equality, which is the
+  stronger form of the same claim: it fails if anything at all joins the miss.
+- **"reads STAB, contact and super effective"** loses two of its three. There is
+  no assertion that the two are absent, because the compiler refuses the
+  strings; *"no kind outside the vocabulary"* is asserted over a whole played
+  battle in the reader's shape block, where it holds for every kind rather than
+  for two.
+- **"gives a status move no STAB"** and the two type-change cases are deleted,
+  with a note in the file saying what stood there. A test for the absence of
+  something that cannot be named passes by construction.
+- **"still knows what is standing on a turn that carried no switch"** becomes
+  *"reads a batch that carried no switch, the same as one that did"*. The
+  original was the regression for the bug that produced `createFlagReader`; what
+  survives it is the property underneath — a batch is read on its own terms.
+- **"names what the turn did, in the protocol's order"** asserted three chips on
+  one turn. One now, and `test/flag-precedence.test.ts` owns which.
+- **"marks whose flag it is, by side and never by kind"** needed one word
+  printed twice on two sides, and used two same-type moves to get it. Two
+  critical hits now, with a confusion on each side so the per-side recipe check
+  still has more than one chip to compare.
+
+### The census did not move, and that is the honest number
+
+`npm run census` reads **unchanged**: battle 16 and 10 less shell, flag strip 11
+in every mode, exactly as before the item. That is not a measurement failure and
+it is not a reason to claim a reduction.
+
+The gallery's loaded fixture produces `Paralysed` on one side and `Badly
+poisoned` on the other, and the log-sheet fixture adds a `rose` and a `Fully
+paralysed` that are likewise one per side and one per channel. **The fixture has
+never produced a collision**, so there was nothing on it for a precedence rule to
+cut. The item's effect is on turns where several things are true of one hit, and
+those are asserted directly in `test/flag-precedence.test.ts` against
+hand-written protocol rather than inferred from a number that cannot see them.
+
+Worth carrying to M4.3 and M7.2: **a fixture that cannot produce the condition an
+item exists for cannot measure that item.** The strip's census number is a
+ceiling on a turn the fixture happens to draw, not on the turn the rule was
+written for.
+
+### What the player loses, and where it went
+
+The strip showed every flag of the group and now shows at most two per side. C2
+says a decision-relevant fact is re-encoded rather than removed, so the item
+names the channel for each thing that left:
+
+| What leaves the strip | Where it is |
+|---|---|
+| The other outcomes of a hit | The log sheet, one tap, every line |
+| A status that lost to a miss | The panel's three-letter chip, until it is cured |
+| A stat stage that lost to a berry | The panel's multiplier and ladder, while it lasts |
+| A berry that lost to a crit | The item slot on the panel, now empty |
+| STAB and contact | The move card: the type chip against the panel's types, and the fact strip |
+
+The one that is genuinely gone from the board is the second outcome of a single
+hit — a crit that was also super effective says only the second. That is R9's
+own bet, and section 9 already carries its disconfirmer: *if testers cannot say
+why a hit did what it did and the missing fact is one precedence dropped,
+precedence gains a second slot for that kind.* M7.1 observes it; this item does
+not pre-empt it.
+
+---
+
+## 62. The chevron that was left empty, and the colour the strip did not have
+
+**Milestone M4.2**, 2026-09-21. Rules R8, R5 and C1; rows D6 and D27. Section 2's
+Effectiveness row, section 5's canon and section 6 step 2. Presentation only;
+`contentHash` holds at `d4e080` and nothing under `core/` changed.
+
+### Three clauses, and two of them were already half built
+
+> The feedback flag uses the same colour family and glyph family as the
+> forecast edge on the button. The priority chevron on the panel is the same
+> chevron as on the card. Verify the jiggle order still reads off the log's
+> ordered data, not a second computation.
+
+**The chevron slot existed and nothing filled it.** M3.1 built
+`.panel__priority` under D6, mounted both marks from M1.1's sheet, wrote the
+stylesheet rules that pick one by `data-bracket`, and said so in the comment:
+*"`data-bracket` on the panel is what fills it, and M4.2 is what sets that."*
+This item sets it.
+
+**The jiggle clause was a verification and it verified.** `scene.ts` never calls
+a reader — `test/boundaries.test.ts` has forbidden that since Release C — and
+`actingOrder` walks the actions it is handed. Nothing needed changing, so
+nothing was.
+
+### Where the bracket comes from, and why it is not the flag
+
+`bracketMark` reads `action.priority` and `action.bracket` off the `TurnAction`
+the screen already handed the scene. That is the **log's** answer: `readTurns`
+sets `priority` only on the earlier action of a pair whose brackets differ, and
+never on a same-bracket turn even when both moves have a non-zero bracket. The
+chevron therefore marks exactly what section 6 says it marks and cannot
+disagree with the log's ordinals sitting a few hundred pixels away.
+
+It reads the action rather than the mapper's `priority` **flag**, and that is
+the boundary rather than a preference: `boundaries.test.ts` forbids `scene.ts`
+from touching `.flags` at all, because a beat that can see a flag is one step
+from a beat that grows with a multiplier. Both the chevron and the strip's chip
+descend from the same bracket the log marked, which is one source of truth with
+two consumers — the shape this screen has used since Release C.
+
+The flash borrows `--motion-beat`, the lunge's own duration, so a priority turn
+costs exactly what an ordinary one costs: section 6 adds no time, and a number
+typed here would be the hardcoded duration `test/visual-tokens.test.ts` counts.
+It needs no slot rule, because the marked panel is by construction the one that
+acted first. Reduced motion cancels it with a matched selector, and the chevron
+is then simply *there* rather than arriving — the outcome survives, which is
+that block's rule.
+
+**One thing the item did not ask for and R5 required.** The mark was a glyph
+with no explanation behind it, which is precisely the live defect M1.2 found on
+every flag word on this screen: a focusable trigger that opens nothing. It
+carries `data-tip="flag:priority"` now — the strip's own `Priority` chip's
+explanation, because the panel chevron and that chip are the same fact about the
+same turn. One explanation, mounted twice.
+
+### D27, and the rule that was written narrower than it was meant
+
+Three places in the tree said the strip has no per-kind hue: the stylesheet, the
+`flagWords.ts` header, and a named test. Section 2 says the opposite in one
+line — *"The same colour on the feedback flag"* — and section 3 spells the
+feedback encoding as *"One word on the target, edge colour family"*.
+
+They are not the same claim. What the tree forbids is a **weight axis**: one
+kind drawn louder than another, which is C1. What the bible asks for is an
+**encoding axis**: one colour family across the forecast and the feedback, so
+the pairing is learned once. `super`, `resisted` and `immune` now carry the
+button's own 3px left edge and its own two tokens; every other kind is untouched.
+
+All three places were rewritten to say what the rule always meant rather than
+being weakened or deleted. The test asserts the stronger thing now: three kinds
+carry an edge, no fourth `.chip--flag[data-flag=…]` rule exists at all, the chip
+element carries no class or inline style that varies by kind, and a coloured
+kind and a neutral one have identical recipes.
+
+### A deviation, recorded rather than worked around
+
+The done-when asks for *"a visual diff shows the same colour tokens on button
+edge and flag"*. What shipped asserts the **tokens**, by reading the stylesheet:
+`test/forecast-feedback.test.ts` pulls the `border-left-color` off both rules
+and requires them to be the same `var(--stage-…)`.
+
+A screenshot comparison was rejected for two reasons, and the first is the one
+that matters. **A visual diff passes just as well on a hardcoded hex**, which is
+the failure `visual-tokens.test.ts` exists one file over to catch, so the diff
+would confirm the appearance while missing the defect. The second: no gallery
+fixture produces a super-effective or resisted flag, so there is nothing for a
+diff to photograph — the same fixture gap §61 recorded for the census.
+
+The stylesheet is parsed with a brace walk rather than one regex, because this
+file has `@media` and `@keyframes` blocks in it and a regex that treats `{` as
+an opener pairs the wrong braces and then answers confidently about a rule that
+does not exist. That cost two rounds of red before it was written properly.
+
+### What the census says, and why it says nothing
+
+Unchanged again, and for the reason §61 gives: the loaded fixture's turn is
+decided by Speed rather than by a bracket, so the chevron never fires on it, and
+its flags are statuses rather than effectiveness, so no edge is drawn on it
+either. **Both halves of this item are invisible to the instrument.** They are
+asserted directly instead — the chevron against a played Quick Attack turn, the
+edge against the stylesheet — and the fixture gap is now two items old and worth
+an item of its own before M7.2 measures anything.
+
+---
+
+## 63. The log at rest, and the instrument that was reading the wrong screen
+
+**Milestone M4.3**, 2026-09-21. Rules R11, R5 and C2; rows D24, D25, D26 and
+D28. Tier 4 closes. Presentation only; `contentHash` holds at `d4e080`.
+
+### The item was three words long and reached four rows
+
+> Verify the battle screen renders no log text at rest and the log sheet is
+> reachable by pull. If any turn-order text line survives on the battle screen,
+> remove it. Done when: census on the battle screen reads 0 outside the flag
+> strip.
+
+Neither "verify" held. The sheet was reachable by a **tap** on a button reading
+`History` and `ui/log-sheet.ts` had no gesture at all (D26). The line that
+survived was not a turn-order line but V5's event line, a sentence R11 does not
+allow and the item does not name (D25). And the done-when could not be met as
+written even after both, because what is left on that screen is the header, and
+no row in the bible had ever said what a header may carry (D28).
+
+### The battle screen, before and after
+
+`npm run census`, Pocket, less the app shell:
+
+| | before | after |
+|---|---:|---:|
+| Battle screen | 10 | **7** |
+| — header | 5 | 4 |
+| — event line | 1 | 0 |
+| — history control | 1 | 0 |
+| — flag words | 3 | 3 |
+
+Seven, and every one of them is budgeted: **four for the header D28 ruled at
+four, three for the two flag words D24 counts as two flags.** Zero outside the
+flag strip and the header, which is the done-when as its rows amended it.
+
+The flag strip component fell 11 to 6 across the two surfaces that carry it.
+
+### The five words the census should never have been counting
+
+**The fixture was measuring a screen the app does not render.** `ui/gallery.ts`
+built its battle node with `label: 'A loaded board'` and `opponent: 'A
+trainer'` — harness naming, five words, charged to the battle screen on every
+run since M0.1. `core/encounters.ts` writes the real ones: `Wild encounter` or
+`Trainer battle`, and `describeOpponent` gives `Trainer's <species>`. The
+fixture says those now.
+
+**And it was not counting a word that is always there.**
+`src/ui/screens/battle.ts` builds the AI tier line only when it is given a segment;
+`ui/app.ts` passes `state.currentSegment`; the gallery passed nothing. So
+`Rookie`, `Seasoned` and `Ace` have rendered on every real battle screen since
+the tiers patch and been counted on none. The fixture passes segment 1 now.
+
+Together those are worth −5 and +1. **The correction that raised the number is
+the important one**: D17B's rule is that an instrument which flatters the item
+making the change is worse than an honest number, and this one had been
+flattering every item that touched this screen for the whole release.
+
+### What the event line spends now
+
+`Opposing Snorlax used Body Slam` → `Snorlax · Body Slam`. Two words gone and
+neither dropped:
+
+- **`Opposing`** is the side, and `.flags__event[data-side]` has drawn the side
+  since V5 *"in the same mark the chips wear one line over"*. The word was a
+  second channel for a fact that already had one, which is R3.
+- **`used`** is the relation between the one actor and the one move on the
+  line, and there is no other relation it could be. The separator carries it,
+  as the header's does between an opponent and its tier.
+
+**One fact did leave the board**: `came in for Golem` named the body that was
+replaced, and a switch line is now the arriving body alone. The panel has
+already redrawn by the time the line is read, so the board never held the
+pairing either — it is in the sheet, with every other line this screen no
+longer writes.
+
+### The handle, and the floor it does not have
+
+The control is a grab handle: two bars in the stylesheet, no text node, the
+accessible name kept because it is not rendered and the census counts what is.
+**Not a glyph** — section 2's nine families are attributes of a Pokemon or a
+move, a control is neither, and a `history` glyph would be a tenth family for
+furniture. What it draws is the shape of the thing it opens.
+
+`onPullUp` in `ui/log-sheet.ts` is the gesture: pointer events so one
+implementation covers finger, pen and mouse; pointer capture so a pull that
+leaves a small control is still that control's pull; upward only, because the
+sheet comes up from the bottom and a downward drag points away from it. The
+threshold is `logPullPx`, **24**, in `data/displayTuning.ts` beside
+`inspectHoldMs` and off the `contentHash` glob for the same reason — the first
+playtest that says "it opens when I try to read the strip" can move it without
+refusing a seed.
+
+**The tap survives, deliberately.** A pull is not a keyboard gesture, a control
+that answered only a drag would be unreachable without a pointer, and section
+7's objection to a mechanism a player must know exists applies hardest to one
+that is invisible. Two routes, one `open`, both wired in `src/ui/screens/battle.ts`
+because the sheet still never opens on its own.
+
+**And it is 24px tall, not 44.** The 44px touch floor M2.2 stated for the move
+button was refused here and the refusal is the interesting part: V5 budgets this
+strip at one 24px band, `test/visual-v5.test.ts` asserts it, and the first cut —
+which took the floor — pushed the band to 44 and failed that test. Twenty pixels
+off the board on the screen whose budget is the whole stage. `.flags` carries
+`overflow: hidden`, so the usual oversized-pseudo-element hit area would be
+clipped rather than honoured. The width grew to 44 instead, which is the axis a
+thumb reaching for a handle at the end of a row actually misses in.
+
+### What R7 was promised and did not get
+
+D26's ruling says *"let R7's exposure label carry the first encounter"*. **It
+cannot yet**: M1.3 built the exposure store and counts, and nothing renders a
+label until M6.1. The handle is visible, it is a button, and the tap is
+unchanged, so nothing is unreachable in the meantime — but a player is not told
+the pull exists.
+
+Recorded as an input to **M6.2**, which re-anchors the coach marks, rather than
+by inventing a second labelling mechanism here. Section 7 gives coach marks,
+exposure labels and inspect one job each, and a gesture affordance is the coach
+marks' job rather than a glyph family's.

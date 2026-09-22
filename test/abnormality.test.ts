@@ -19,11 +19,7 @@ import { describe, expect, it } from 'vitest';
 import { readFlags, type FlagDeps } from '../src/core/battle/flags';
 import { abnormalityMarks } from '../src/ui/abnormality';
 
-const STUB: FlagDeps = {
-  priorityOf: () => 0,
-  moveIdentityOf: () => ({ type: 'Normal', category: 'Physical', contact: true }),
-  typesOf: () => ['Normal'],
-};
+const STUB: FlagDeps = { priorityOf: () => 0 };
 
 const OPEN = ['|switch|p1a: Snorlax|Snorlax, L50, M|235/235', '|switch|p2a: Golem|Golem, L50, M|155/155', '|turn|1'];
 

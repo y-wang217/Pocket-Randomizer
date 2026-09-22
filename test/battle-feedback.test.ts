@@ -24,8 +24,8 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createBattle, moveIdentity, movePriority, speciesTypes } from '../src/core/battle/driver';
-import { createFlagReader, readFlags, type FlagDeps, type FlaggedTurn } from '../src/core/battle/flags';
+import { createBattle, movePriority } from '../src/core/battle/driver';
+import { readFlags, type FlagDeps, type FlaggedTurn } from '../src/core/battle/flags';
 import { buildBattleUiView, type ActiveUiView, type BattleUiView } from '../src/core/battle/view';
 import { moveChoice, type TeamSpec } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
@@ -34,8 +34,8 @@ import { createFlagStrip, type FlagStrip } from '../src/ui/flag-strip';
 import { createScene, type Scene } from '../src/ui/scene';
 import { resetSettings } from '../src/ui/settings';
 
-/** The same three adapter lookups `ui/screens/battle.ts` supplies in the app. */
-const FLAGS: FlagDeps = { priorityOf: movePriority, moveIdentityOf: moveIdentity, typesOf: speciesTypes };
+/** The same adapter lookup `ui/screens/battle.ts` supplies in the app. */
+const FLAGS: FlagDeps = { priorityOf: movePriority };
 
 beforeEach(() => {
   resetSettings();
@@ -615,13 +615,11 @@ describe('the flag strip', () => {
     const session = createBattle({ teams: { p1, p2 }, seed });
     const strip = createFlagStrip();
     /*
-     * One reader for the battle, and the opening protocol read first — exactly
-     * what `ui/screens/battle.ts` does. Both matter: the opening batch is the
-     * only place the protocol names each side's species, and an incremental
-     * batch after it carries no `|switch|` at all.
+     * One read per batch, exactly what `ui/screens/battle.ts` does. The
+     * opening protocol was read first here because the reader used to carry
+     * the species across batches for STAB; M4.1 deleted that, and what is left
+     * is the shape the app has — each update read on its own.
      */
-    const reader = createFlagReader(FLAGS);
-    reader.read(session.protocolFor('p1').filter((line) => !line.startsWith('|t:|')));
 
     for (let i = 0; i < turns && !session.ended; i++) {
       const before = session.protocolFor('p1').length;
@@ -629,7 +627,7 @@ describe('the flag strip', () => {
         if (session.viewFor(side).awaitingChoice) session.submit(side, moveChoice(slot));
       }
       const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
-      strip.show(reader.read(batch));
+      strip.show(readFlags(batch, FLAGS));
     }
     return strip;
   }
@@ -641,10 +639,17 @@ describe('the flag strip', () => {
       1,
       'STRIP01',
     );
-    const shown = words(strip);
-    expect(shown).toContain('STAB');
-    expect(shown).toContain('Contact');
-    expect(shown).toContain('Super effective');
+    /*
+     * The premise changed under M4.1 and the assertion moved with it.
+     *
+     * This turn used to put `STAB`, `Contact` and `Super effective` on the
+     * strip at once, and asserted all three. R9 deleted the first two as causes
+     * rather than outcomes, and D23 cut what is left to one flag per side, so
+     * the outcome is what survives — which is what the strip was for.
+     * `test/flag-precedence.test.ts` owns which flag wins when several are
+     * true; this owns that the turn is reported at all.
+     */
+    expect(words(strip)).toContain('Super effective');
   });
 
   it('names the berry that fired', () => {
@@ -670,6 +675,12 @@ describe('the flag strip', () => {
   });
 
   it('draws every flag on one chip recipe, with no per-kind weight or hue', () => {
+    /*
+     * Two sides, so the strip has more than one chip to compare after M4.1's
+     * cut: one hit flag per side, plus the priority bracket in the second
+     * channel. It was a single action carrying four flags until D23 ruled that
+     * only one of them fits.
+     */
     const protocol = [
       '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
       '|switch|p2a: Golem|Golem, L50, F|155/155',
@@ -679,13 +690,16 @@ describe('the flag strip', () => {
       '|-crit|p2a: Golem',
       '|-damage|p2a: Golem|100/155',
       '|-status|p2a: Golem|par',
+      '|move|p2a: Golem|Rock Slide|p1a: Snorlax',
+      '|-supereffective|p1a: Snorlax',
+      '|-damage|p1a: Snorlax|180/235',
       '|upkeep',
     ];
     const strip = createFlagStrip();
     strip.show(readFlags(protocol, FLAGS));
 
     const chips = [...strip.root.querySelectorAll('.chip')];
-    expect(chips.length).toBeGreaterThan(2);
+    expect(chips.length).toBeGreaterThan(1);
     /*
      * The visual-weight rule, as an assertion. Every chip carries the same two
      * classes and nothing else that could carry a style, so none of them can
@@ -702,32 +716,41 @@ describe('the flag strip', () => {
 
   it('marks whose flag it is, by side and never by kind', () => {
     /*
-     * Both sides use a same-type move on the same turn, which prints `STAB`
-     * twice. Without the side marker the strip says two identical words about
-     * two different Pokemon and answers nothing.
+     * Both sides land a critical hit on the same turn, which prints `Critical
+     * hit` twice. Without the side marker the strip says two identical words
+     * about two different Pokemon and answers nothing.
+     *
+     * It was two same-type moves printing `STAB` twice until M4.1 deleted that
+     * kind. The confusion on each side is the second channel, so every side
+     * still carries more than one chip and the recipe check below has
+     * something to compare.
      */
     const protocol = [
       '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
       '|switch|p2a: Persian|Persian, L50, F|155/155',
       '|turn|1',
       '|move|p1a: Snorlax|Body Slam|p2a: Persian',
+      '|-crit|p2a: Persian',
       '|-damage|p2a: Persian|100/155',
+      '|-start|p2a: Persian|confusion',
       '|move|p2a: Persian|Slash|p1a: Snorlax',
+      '|-crit|p1a: Snorlax',
       '|-damage|p1a: Snorlax|200/235',
+      '|-start|p1a: Snorlax|confusion',
       '|upkeep',
     ];
     const strip = createFlagStrip();
     strip.show(readFlags(protocol, FLAGS));
 
     const chips = [...strip.root.querySelectorAll('.chip')] as HTMLElement[];
-    const stab = chips.filter((chip) => chip.dataset['flag'] === 'stab');
-    expect(stab).toHaveLength(2);
+    const crits = chips.filter((chip) => chip.dataset['flag'] === 'crit');
+    expect(crits).toHaveLength(2);
     // Two identical words, two different sides, and the strip says so.
-    expect(stab.map((chip) => chip.textContent)).toEqual(['STAB', 'STAB']);
-    expect(stab.map((chip) => chip.dataset['side'])).toEqual(['p1', 'p2']);
+    expect(crits.map((chip) => chip.textContent)).toEqual(['Critical hit', 'Critical hit']);
+    expect(crits.map((chip) => chip.dataset['side'])).toEqual(['p2', 'p1']);
     // The screen reader gets the name rather than the side code.
-    expect(stab[0]?.getAttribute('aria-label')).toBe('Snorlax: STAB');
-    expect(stab[1]?.getAttribute('aria-label')).toBe('Persian: STAB');
+    expect(crits[0]?.getAttribute('aria-label')).toBe('Persian: Critical hit');
+    expect(crits[1]?.getAttribute('aria-label')).toBe('Snorlax: Critical hit');
 
     /*
      * The rule the marker must not break: within one side, every kind is

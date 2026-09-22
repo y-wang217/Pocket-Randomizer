@@ -66,20 +66,28 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the 4.10 presentation milestones, Tier 3.** List
+**In flight: the 4.10 presentation milestones, Tier 5.** List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
-working checklist [`design/milestones.md`](design/milestones.md), handoff
-[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md). **Tiers 0, 1 and 2 are
-closed, ten items of twenty-four**, as
-[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61) and
-[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63); `main` is
-`8869623`. One trunk per tier, one sub-branch per item. No version axis moves in
-any of it: `contentHash` holds at `d4e080` and nothing under `core/` changed.
+working checklist [`design/milestones.md`](design/milestones.md), handoffs
+[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
+[`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md) and
+[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md). **Tiers 0 to 4 are closed,
+sixteen items of twenty-four**, as
+[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63) and
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64), with Tier 4 open
+as [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65) off
+`claude/eloquent-hamilton-9ncoz8`; `main` is `ca8c3ce`. One trunk per tier, one
+sub-branch per item. No version axis moves in any of it: `contentHash` holds at
+`d4e080`, and the only change under `core/` in sixteen items is M4.1 deleting
+two flag kinds the bible's R9 forbids.
 
-The design bible is at **Rev 2**. Every place the list and the bible disagreed is
-a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md) rather
-than something built around; nineteen rows, eighteen ruled, **D14 open** and D19
-deferred to M3.2.
+The design bible is at **Rev 6**. Every place the list and the bible disagreed
+is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)
+rather than something built around; twenty-eight rows, twenty-seven ruled,
+**D14 the only one open** and timed with M5.6. None of the twelve rules has
+moved: every amendment has corrected a table, an ordering or a gap where a
+surface had no row at all.
 
 Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and
@@ -106,6 +114,19 @@ the rulings worth reading before touching any of those surfaces again are D18
 long press), D20 (one stat block, in its own module, with the glyph) and D21a,
 which was ruled one way, built, and re-ruled back when three invariant tests
 caught three fact families leaving with the move card's face.
+
+**Tier 4 is closed**, sixteen items of twenty-four, on
+`claude/eloquent-hamilton-9ncoz8` and written up in
+[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md). The battle screen censuses
+**7 in Pocket less the shell and every one of the seven is budgeted** — four for
+the header, three for two flag words. [`generation.md`](generation.md) sections
+61, 62 and 63 record the items. Two findings outlive the tier and belong to
+whoever measures anything next: **the census fixture was reading a screen the
+app does not render** — harness node naming charged to the battle surface since
+M0.1, and an AI tier word that has never been counted at all because the gallery
+attached the screen with no segment — and **a fixture that cannot produce the
+condition an item exists for cannot measure that item**, which is why M4.1 and
+M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
 
 **In flight: teaching a move at the node that paid it, and a level spread for

@@ -1,6 +1,6 @@
 # Bible discrepancies: the 4.10 presentation milestones
 
-Rev 2, Sept 21, 2026. Opened against
+Rev 3, Sept 21, 2026. Opened against
 [`../spec/gymrun-presentation-milestones.md`](../spec/gymrun-presentation-milestones.md)
 Rev 1 and [`design-bible.md`](design-bible.md) Rev 1.
 
@@ -38,13 +38,21 @@ which blocks everything.
 | D20 | M3.2 | There are two six-stat components in the tree, and M3.1 made it three | **2026-09-21** |
 | D21 | M3.2's last line | The party row's "four move chips", and two done-when numbers other items own | **2026-09-21**; the drawer's own 13 words are recommended to M6.3 |
 | D22 | M3.3's done-when, then M7.2 | The decline overlay's budget was derived before the component it budgets existed | **2026-09-21** |
+| D23 | M4.1 | R9's precedence ranks seven outcomes; the vocabulary it ranks has fifteen kinds | **2026-09-21** |
+| D24 | M4.1's strip, then M4.3's done-when | The flag strip's budget is one *word* per hit, and nine flag words are two or three | **2026-09-21** |
+| D25 | M4.3 | The event line is a sentence at rest on the screen R11 says carries nothing written | **2026-09-21** |
+| D26 | M4.3 | The log sheet opens by a labelled button where the item says pull, and the label is a word over budget | **2026-09-21** |
+| D27 | M4.2 | The strip's shipped rule says every chip is the same chip; section 2 gives the feedback flag the forecast's colour | **2026-09-21** |
+| D28 | M4.3's done-when, then M7.2 | The battle screen's header carries three facts, section 4 budgets none of them, and the census cannot see one of them | **2026-09-21** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Eighteen of nineteen rows are ruled**; D14 is timed with M5.6 and D19 with
-M3.2, and neither blocks anything. D18 was opened and ruled on 2026-09-21,
+**Twenty-seven of twenty-eight rows are ruled**, and D14 — timed with M5.6 — is
+the only one left. Tier 4 filed six: five before the tier opened, four of them
+ruled the same day, then D26 and D28 ruled together once M4.1 and M4.2 had
+shipped and M4.3 was the item in front of them. D18 was opened and ruled on 2026-09-21,
 inside M3.1. Each
 ruling is restated under its own row below; the bible amendments they produced are Rev 2, marked inline in
 [`design-bible.md`](design-bible.md) with the row that produced them.
@@ -1523,3 +1531,316 @@ a second time.
 `test/item-target.test.ts` pins the measured 5 either way, because no gallery
 fixture opens a confirm and the census reads that component `absent`. A budget
 nothing measures is a budget nothing holds.
+
+---
+
+## Rulings, 2026-09-21, opening Tier 4
+
+Five rows filed against Tier 4's three items before any of them was built,
+from a reading done while Tier 3 was still closing
+([`../handoff/4.10-tier-4-prep.md`](../handoff/4.10-tier-4-prep.md), which
+carries the options in full and the arguments beneath each ruling). **Four are
+ruled; D26 is open and blocks only M4.3's last clause.**
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D23 | **Hits only, plus a bounded second channel.** R9 binds a hit on a target and stays as written. `priority`, `field`, `prevented` and `failed` are not outcomes on a target, so they render beside the one hit flag rather than competing with it, at most one per side, in protocol order. | Bible section 4's flag row gains a clause. Milestone M4.1 scope |
+| D24 | **One *flag* per hit, not one word.** The row is corrected to what D7 filed it to say. | Bible section 4 |
+| D25 | **Re-encode the event line wordless**: the actor's side mark plus the move's name, the name being a proper noun. Deleted instead if it cannot be drawn inside section 2's nine families. | Milestone M4.3 scope |
+| D27 | **Hue on the effectiveness kinds only**, from the forecast's own tokens. The shipped rule is restated as the thing it always was: no weight axis. | `ui/styles.css`, `data/flagWords.ts` headers. Milestone M4.2 scope |
+| D26 | **Open.** Build the pull gesture, or keep the tap and record a deviation. | Milestone M4.3 |
+
+**One recommendation was withdrawn by the merged bible rather than ruled.** The
+prep doc recommended taking the effectiveness flags *wordless* — the forecast's
+edge colour and fraction on the target, no word — on the reasoning that R8 ties
+the two vocabularies and the forecast spends no words. Section 3 forecloses it:
+*"Effectiveness (feedback) | One word on the target, edge colour family"*. The
+encoding table is presentation and the bible wins over a prompt, a milestone and
+a recommendation alike, so the word stays and D24 is what makes the budget
+reachable. Recorded here because a session reading the prep doc alone would
+build the wrong thing.
+
+---
+
+## D23. R9's precedence ranks seven outcomes; the vocabulary it ranks has fifteen kinds
+
+**Ruled 2026-09-21: hits only, plus a bounded second channel. Blocks M4.1.**
+
+R9: *"at most one flag appears on a target, by fixed precedence: no effect,
+miss, super effective or not very effective, critical, status inflicted, berry
+fired, stat stage changed."* Seven entries, eight kinds.
+
+`FlagKind` carries seventeen. Take away `stab` and `contact`, which M4.1
+deletes, and fifteen remain. R9 names eight of them. It says nothing about
+`priority`, `prevented`, `failed`, `ability`, `volatile` or `field`.
+
+Those six are not an oversight in the mapper. They are the abnormality classes
+the battle-animation run measured over 699 battles
+([`../reports/battle-anim-2-protocol-census.md`](../reports/battle-anim-2-protocol-census.md)),
+and M4.1's own text says to **keep the seven measured kinds**. R9 predates them
+by a release.
+
+The scoping question is inside the same row, and it is what decided it. R9 binds
+*a hit on a target*. `field` is about neither Pokemon. `priority` is about turn
+order. `prevented` describes a turn in which no hit happened at all — it exists
+precisely because a flinched turn draws no damage, no chunk and no beat, so
+without a word it is indistinguishable from a turn that did not happen. A
+precedence that ranks those against `crit` ranks things that never compete, and
+ranking them is how the flinch loses its only channel.
+
+**The ruling.** R9 stays as written and binds hits: one flag per hit, by its
+precedence, among the kinds it names. The kinds that are not outcomes on a
+target form a second channel and render beside it, bounded at **one per side,
+in protocol order** — protocol order because `flags.ts` already argues it is
+*"the one ordering that is a fact rather than an opinion"*, and bounded because
+an unbounded second channel is the strip before this item.
+
+Section 4's flag row gains a clause saying what the second channel costs. No
+rule moved.
+
+**What it costs, and why that is re-encoding rather than removal.** The strip
+shows every flag of the group today; under this ruling most turns lose one or
+two. `ui/abnormality.ts:109` already takes one mark per side on the stated
+argument that *"the strip carries the rest"* — that comment is now half true and
+the item says so where it edits it. What leaves the strip is carried elsewhere:
+the log sheet holds every line one tap away, the panel draws status and stat
+stages independently and permanently, and an emptied item slot is the berry.
+C2 is satisfied by those channels, not by the strip's old behaviour.
+
+**The filter belongs at the strip, not in the mapper.** The mapper returns the
+list, which is R9's own enforcement clause, and two consumers read it: the strip
+and the animation. A precedence applied upstream would silently change which
+beats play.
+
+---
+
+## D24. The flag strip's budget is one *word* per hit, and nine flag words are two or three
+
+**Ruled 2026-09-21: the row means one flag. Blocks M4.1's strip and M4.3's
+done-when.**
+
+Section 4, Rev 2, the row D7 added: *"Flag strip (battle) | 1 per hit | The one
+flag word R9 allows."*
+
+`flagWord()` produces `Super effective` (2), `Not very effective` (3), `No
+effect` (2), `Critical hit` (2), `Could not move` (3), `Badly poisoned` (2),
+`Attack rose` (2), `Harsh sunlight` (2). The census reads `Paralysed` and
+`Badly poisoned` on the battle screen today and will read two or three words
+there after M4.1 cuts the strip to one flag per hit.
+
+So M4.3's *"census on the battle screen reads 0 outside the flag strip"* is
+unreachable against the shipped vocabulary even when the item has done
+everything it was asked to do. One of the two figures is wrong.
+
+**The ruling: the budget row means one flag per hit, whatever that flag's word
+count.** That is what D7 filed the row to say — the row exists because R9 puts
+one flag on every hit and section 4 budgeted no surface that contained it — and
+"the one flag word R9 allows" names R9's one flag rather than counting to one.
+
+**What was rejected.** Cutting the vocabulary to a word each (`Super`,
+`Resisted`, `Immune`, `Crit`, `Poisoned`) meets the row as literally written and
+costs real distinctions: `Badly poisoned` against `Poisoned` is two different
+statuses, and the panel's `TOX` chip carries that difference only for a reader
+who already knows the chip. Section 3 asks for *one word* on the feedback flag
+specifically for effectiveness, and that row is met by `Super effective` being
+one flag; a vocabulary cut is not what it asks for.
+
+The battle screen's own budget still excludes the strip, and everything else on
+that screen still goes to 0. This row moves the carve-out's unit, not its
+scope.
+
+---
+
+## D25. The event line is a sentence at rest on the screen R11 says carries nothing written
+
+**Ruled 2026-09-21: re-encode it wordless. Blocks M4.3.**
+
+R11: *"The battle screen shows the turn header, the panels, the flags and
+nothing written."* Forbids *"a text line for turn order."*
+
+`ui/copy/events.ts` renders `Opposing Snorlax used Body Slam` into
+`.flags__event` every turn. It is V5's, it is deliberate, and its header argues
+for it: a Splash that did nothing worth a flag still says what was used. Under
+the counting rule it costs one word — `used`, or `came in for` — and the census
+reads it on the battle screen today.
+
+M4.3 says *"if any turn-order text line survives on the battle screen, remove
+it"*, which reads as licence to delete this without naming it.
+
+**The ruling: keep the fact, spend no words on it.** The actor is already drawn
+— `.flags__event[data-side]` marks whose Pokemon acted in the log's own
+vocabulary — and the move's name is a proper noun, which the counting rule
+excludes. What costs a word is the verb between them, and a verb is what R11
+calls a sentence. The line becomes the side mark plus the name.
+
+**If that cannot be drawn inside section 2's nine families, the line is deleted
+instead** and the item's report says the fact moved to the sheet. Adding a
+family to keep it would be a tenth family for a verb, which section 2 makes an
+amendment and section 7 would object to on its own terms.
+
+**Why not simply keep it.** Keeping a sentence at rest on this screen is an
+amendment to R11, and section 10.1 makes an amendment a disconfirmer observed
+in a playtest and recorded with a date. None is recorded. M7.1 can observe one;
+this item cannot assume it.
+
+---
+
+## D26. The log sheet opens by a labelled button where the item says pull
+
+**Open. Blocks M4.3's last clause and nothing else.**
+
+M4.3: *"the log sheet is reachable by pull."* It is reachable by a click on
+`flags.history`, a `<button>` reading `History`, wired at
+`ui/screens/battle.ts:121`. `ui/log-sheet.ts` has no gesture at all.
+
+Two things follow. The item's clause is a build rather than a verification. And
+`History` is a word at rest on the battle screen: the census charges it to the
+flag strip component because it sits inside `.flags`, but section 4's carve-out
+is *"the one flag word R9 allows"*, and a control label is not a flag word. The
+screen cannot reach 0 while the button wears a word.
+
+Section 5's canon has no row for a history control. R5 forbids *"a help
+button"* as an explanation route, which the sheet is not, so R5 does not reach
+it — but a glyph-only control is a mechanism a player must discover, which is
+section 7's concern and R7's answer.
+
+**Options.**
+
+1. **Build the pull; keep a glyph handle as the visible affordance.** Both
+   routes, one word fewer, and the gesture is discoverable because the handle
+   is drawn where the sheet comes from. R7's exposure label carries the first
+   encounter.
+2. **Keep the tap, swap the word for a glyph**, and record the "pull" clause as
+   a deviation in `generation.md`. Cheapest; leaves the item's own text unmet.
+3. **Keep both the tap and the word**, and amend section 4 to allow one word of
+   furniture on the battle screen.
+
+**Ruled 2026-09-21: option 1.** Build the pull, keep a glyph handle as the
+visible affordance, and let R7's exposure label carry the first encounter.
+
+**Recommendation: 1.** It is the only option that meets the item as written, and
+the exposure store M1.3 built is exactly the mechanism for a new gesture's first
+encounter.
+
+**It waited, and that was the right order.** M4.1 and M4.2 do not touch the
+control, so the row blocked nothing until M4.3 was the item in front of it.
+
+---
+
+## D27. The strip's shipped rule says every chip is the same chip; section 2 gives the feedback flag the forecast's colour
+
+**Ruled 2026-09-21: hue on the effectiveness kinds only. Blocks M4.2.**
+
+R8: forecast and feedback *"share a colour family and a glyph family and nothing
+else."* Section 2's Effectiveness row: *"Coloured left edge on the button plus
+the multiplier as a fraction or numeral. … **The same colour on the feedback
+flag**."* Section 3: *"Effectiveness (feedback) | One word on the target, edge
+colour family."*
+
+Three places in the tree say the opposite, and all three were written before the
+bible:
+
+- `ui/styles.css:545` — *"**Every chip in here is the same chip** … no per-kind
+  hue, no size or weight modifier. A super effective flag drawn heavier than a
+  not-very-effective one would make the strip a recommendation."*
+- `data/flagWords.ts` — *"There is no size, no colour and no emphasis field …
+  a `weight` column would be the first place that rule broke."*
+- `test/battle-feedback.test.ts` — *"draws every flag on one chip recipe, with
+  no per-kind weight or hue."*
+
+**They are not the same claim, and that is the whole row.** What the tree
+forbids is a **weight axis**: one kind drawn louder than another, which turns a
+reading into a recommendation and is C1. What the bible asks for is an
+**encoding axis**: the same family on both sides of one fact, so a player who
+has learned the edge on the button reads the flag without learning it twice.
+`--stage-up` and `--stage-down` already sit on `super` and `resisted` on the
+button, at equal weight, with the fraction carrying the same fact in a channel
+colour vision cannot touch.
+
+**The ruling: `super`, `resisted` and `immune` take the forecast's own tokens
+and the effectiveness glyph. Every other kind stays exactly as it is drawn
+today.** The shipped rule is restated rather than deleted — *no weight axis* —
+and the test is rewritten to assert that, not weakened: every kind is one
+recipe, one size, one weight, and the two directions of the one fact that has a
+colour family are drawn identically apart from which end of it they name.
+
+**What was rejected.** A family per class puts nine chip treatments on one line,
+which is section 7's objection at scale. Sharing the glyph family alone leaves
+the button and the flag looking unrelated, which is the thing R8 exists to
+prevent.
+
+
+---
+
+## D28. The battle screen's header carries three facts, and section 4 budgets none of them
+
+**Open. Blocks M4.3's done-when. Opened 2026-09-21, reading into M4.3.**
+
+M4.3's done-when: *"census on the battle screen reads 0 outside the flag
+strip."* The strip is D24's business and the event line is D25's. What is left
+on that screen once both are done is the **header**, and nothing in the bible
+has ever said what it may carry.
+
+`ui/screens/battle.ts:130` sets two lines:
+
+| Line | Real values | Words, counting rule applied |
+|---|---|---|
+| `title` — `node.label` | `Wild encounter`, `Trainer battle`, `<Leader>'s Gym` | 2, 2, 1 |
+| `detail` — opponent, then AI tier | `Wild Pidgey · Rookie`, `Trainer's Pidgey · Ace`, `Trainer (3) · Seasoned` | 2, 2, 2 |
+
+Section 4 has no battle-screen row and no header row. Section 5's canon has no
+header component. So the done-when asks a surface to reach zero without ever
+saying what that surface is allowed to show, which is the same shape of gap D7
+filed for the flag strip and D19 for the ability chip.
+
+**And the census cannot see one of the three.** `ui/gallery.ts:479` calls
+`battle.attach(session, node, reveal, onChoose)` with **no segment**, and the
+tier line is built as `segment === undefined || !node.encounter ? null : …`. The
+app passes `state.currentSegment` (`ui/app.ts:1360`); the fixture never has. So
+`Rookie`, `Seasoned` and `Ace` have never been counted on any surface, and the
+battle screen's measured 10 is lower than the screen a player sees. The
+instrument understates the surface the item is about to be judged on, which is
+D17B's rule pointing the other way for once.
+
+**The three facts are not furniture.** The AI tier was put on this header by the
+tiers patch *deliberately*, and its comment says why: *"The same word the node
+card showed before the click, so the card's claim and the fight agree — a
+readout that changed between the two would be worse than no readout."* It is an
+attribute, it names how the opponent plays, and C2 forbids dropping it. The
+opponent line is the one place a wild fight says what it is against a trainer
+fight. The node label is what the player clicked.
+
+**Options.**
+
+1. **Budget the header, explicitly.** A section 4 row — *"Battle screen header |
+   4 | node kind, opponent, AI tier"* — and a section 5 canon row naming it.
+   M4.3's done-when becomes "0 outside the flag strip and the header". Nothing
+   moves, nothing is dropped, and the bible stops being silent about a surface
+   that has been on screen since Stage 1.
+2. **Re-encode the header to zero.** The node kind has a glyph family already
+   (the map node card's), and the opponent's species is a proper noun and free.
+   **The AI tier has no glyph and cannot borrow one**: section 2's nine families
+   are type, category, band, PP, accuracy, priority, effectiveness, status and
+   stat, and a tier mark is none of them. This option therefore requires a tenth
+   family, which section 2 makes an amendment and section 10.1 makes a
+   disconfirmer observed in a playtest. None is recorded.
+3. **Scope M4.3 to the board.** Rule that "the battle screen" in the done-when
+   means the panels, the moves and the strip, and that the header is a separate
+   surface budgeted by a later item. Cheapest, and it leaves M7.2 measuring a
+   surface no row covers — which is how this row came to exist.
+
+**Ruled 2026-09-21: option 1.** Section 4 gains a *Battle screen header* row at
+**4** — node kind, opponent, AI tier — and section 5's canon names the header as
+a component. M4.3's done-when reads "0 outside the flag strip and the header".
+Bible Rev 6. No rule moved: a surface that had no row has one.
+
+**Recommendation: 1.** The tier is a fact two surfaces deliberately agree on, C2
+forbids removing it, and the only encoding that would take it to zero needs a
+tenth glyph family the bible reserves for an amendment with evidence behind it.
+A budget row is the honest admission that this screen has a header.
+
+**Independent of the ruling: the fixture is wrong and M4.3 fixes it.** The
+gallery must pass a segment so the census counts the tier word. That will
+*raise* the battle screen's measured number before any item lowers it, which is
+the right direction — D17B's rule is that an instrument which flatters the item
+making the change is worse than an honest number.

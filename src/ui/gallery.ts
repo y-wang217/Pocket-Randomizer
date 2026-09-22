@@ -464,19 +464,36 @@ function mountLoadedBattle(
   const bench = party.slice(1).map((member) => member.spec);
   const session = createBattle({ teams: { p1: [...LOADED_LEAD, ...bench], p2: LOADED_P2 }, seed });
 
+  /*
+   * **The node the census measures, and it is the run's own wording now.**
+   * Milestone M4.3, row D28.
+   *
+   * It read `A loaded board` with an opponent of `A trainer` — harness naming,
+   * five words the app never renders, charged to the battle screen every time
+   * the census ran. `core/encounters.ts` builds the real ones: a battle node's
+   * label is `Wild encounter` or `Trainer battle`, and `describeOpponent`
+   * writes `Trainer's <species>`. A fixture that measures a surface must render
+   * what the surface renders.
+   */
   const node = {
     id: 's1-1-0',
     kind: 'battle',
     tier: 'normal',
-    label: 'A loaded board',
-    // A plain name. `boundaries.test.ts` reads every string literal under
-    // `src/ui/` for verdict vocabulary and does not care that this one is a
-    // harness — which is right, because the check cannot tell and should not
-    // have to.
-    encounter: { team: LOADED_P2, opponent: 'A trainer', simSeed: seed },
+    label: 'Trainer battle',
+    encounter: { team: LOADED_P2, opponent: `Trainer's ${LOADED_P2[0]?.species ?? 'Golem'}`, simSeed: seed },
     rewards: [],
   } as unknown as NodeSpec;
-  battle.attach(session, node, { ability: true, item: true, teamSize: true }, () => undefined);
+  /*
+   * **And the segment, which the census has never passed.**
+   *
+   * `screens/battle.ts` builds the AI tier line only when there is a segment,
+   * `ui/app.ts` passes `state.currentSegment`, and this fixture passed nothing
+   * — so `Rookie`, `Seasoned` and `Ace` have rendered on every real battle
+   * screen since the tiers patch and been counted on none. The number the
+   * census reported was lower than the screen a player sees, which is the one
+   * direction a measurement must never err in. Segment 1, the first.
+   */
+  battle.attach(session, node, { ability: true, item: true, teamSize: true }, () => undefined, 1);
 
   const loaded = (): boolean => {
     const facts = session.factsFor('p1');

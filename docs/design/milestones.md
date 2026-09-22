@@ -24,7 +24,9 @@ carried Tiers 0 and 1 and shipped as
 2026-09-20; `main` is `7e0c46d`. Tier 2 was cut fresh from there and shipped as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63), merged
 2026-09-20; `main` is `8869623`. Tier 3 is cut fresh from *that*. A merged pull
-request is finished and does not grow a second tier.
+request is finished and does not grow a second tier. Tier 3 shipped as
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and Tier 4 is open
+as [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65).
 
 ## The bible wins, and blocked items wait
 
@@ -354,13 +356,40 @@ component reads `absent`.
 | M3.2 Stat block and party row | **done** | — (D19, D20, D21 ruled; D21a re-ruled to cards. Party row 121 → **63** in Pocket, 0 on party and pre-gym; stat block 0, now covering four call sites) |
 | M3.3 Teach target screen | **done** | — (target card 42 → **0**; the decline overlay measures 5 against a budget of 4, see below) |
 
-### Tier 4: battle feedback
+### Tier 4: battle feedback, closed 2026-09-21
+
+**Five rows were filed against this tier before it opened**, from a reading done
+while Tier 3 was closing: [`../handoff/4.10-tier-4-prep.md`](../handoff/4.10-tier-4-prep.md)
+carries the options, the register carries the rulings. Four are ruled. D23 keeps
+R9 binding hits and puts the six kinds that are not outcomes on a target into a
+bounded second channel; D24 corrects the strip's budget to one *flag* per hit,
+which is what D7 filed it to say; D25 re-encodes the event line wordless; D27
+puts the forecast's colour on the effectiveness flags alone and restates the
+shipped "same chip" rule as what it always meant, no weight axis. Bible **Rev
+5**, two amendments, both in section 4, no rule moved.
+
+**Two rows were opened against M4.3 and both are ruled.** D26: build the pull,
+keep a glyph handle as the visible affordance, and let R7's exposure label carry
+the first encounter. **D28**, opened after M4.1 and M4.2 had shipped: once the
+strip and the event line are done, what is left on that screen is the header —
+node kind, opponent and AI tier — and section 4 budgeted none of the three.
+Ruled at **4**, with a canon row beside it, bible **Rev 6**. The census had
+never counted the AI tier at all, because the gallery fixture passes no segment
+and the tier line is built only when there is one, so the measured 10 was lower
+than the screen a player sees; M4.3 fixes the fixture, which raises the number
+before anything lowers it.
+
+**One recommendation the merged bible withdrew.** The prep doc proposed taking
+the effectiveness flags wordless, on R8's reasoning that the forecast spends no
+words. Section 3 says *"Effectiveness (feedback) | One word on the target, edge
+colour family"*, so the word stays and D24 is what makes the budget reachable.
+The bible outranks a recommendation exactly as it outranks a prompt.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M4.1 Flag precedence | open | — (D12 ruled: per-file split) |
-| M4.2 Forecast and feedback vocabulary | open | — |
-| M4.3 Log at rest | open | — (D7 ruled: the strip has its own row) |
+| M4.1 Flag precedence | **done** | — (D12, D23, D24 ruled. `data/flagPrecedence.ts`, `visual/4.10-m4.1`, [`generation.md` §61](../generation.md)) |
+| M4.2 Forecast and feedback vocabulary | **done** | — (D6 filled, D27 ruled. `visual/4.10-m4.2`, [`generation.md` §62](../generation.md); the visual diff is a token assertion, recorded as a deviation) |
+| M4.3 Log at rest | **done** | — (D7, D24, D25, D26, D28 ruled. Battle screen 10 → **7**, all of it budgeted; `visual/4.10-m4.3`, [`generation.md` §63](../generation.md)) |
 
 ### Tier 5: remaining surfaces
 

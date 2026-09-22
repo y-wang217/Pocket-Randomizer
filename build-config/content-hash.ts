@@ -101,6 +101,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the words a post-resolution flag is shown as; the truths are read in core/battle/flags.ts, which does not import this',
   },
   {
+    path: 'src/data/flagPrecedence.ts',
+    why: 'which flag the strip shows when several are true; R9 puts the order in data and D12 put it in a split file, because core/ reads the protocol and the renderer reads this',
+  },
+  {
     path: 'src/data/moveTargets.ts',
     why: 'a target keyword rendered as a sentence; read by ui/move-explanation.ts only',
   },

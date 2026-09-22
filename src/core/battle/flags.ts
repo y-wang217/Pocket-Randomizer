@@ -27,18 +27,19 @@
  * would touch lives under `data/`, and because a core reader that carried
  * strings would make the vocabulary untestable apart from the reading.
  *
- * ## Two facts the protocol does not carry
+ * ## Two facts this reader used to carry and does not any more
  *
- * STAB and contact are properties of the *move*, and `|move|p1a: Snorlax|Body
- * Slam|p2a: Milotic` carries neither — no type, no category, no flag list, and
- * no later line adds one. They arrive through `moveIdentity`, injected exactly
- * as `turnOrder.ts` injects `priorityOf` and for both of the same reasons: rule
- * 4 says only the adapter may import `@pkmn/sim`, and an injected lookup makes
- * every case here assertable from a hand-written log.
+ * STAB and contact were here, injected through `moveIdentity` because the
+ * protocol names neither. **M4.1 deleted both**, on R9: *"STAB and contact are
+ * causes, not outcomes, and never get a flag."* A cause belongs on the move
+ * card, where the type chip and the fact strip already carry it before the
+ * player commits; a flag answers what the turn did after it resolved.
  *
- * The species standing on each side is *not* injected, because the protocol
- * does carry it: `|switch|p1a: Snorlax|Snorlax, L50, M|235/235` names the body
- * in its details field. Only the species-to-types step needs the dex.
+ * Deleting them took the dex lookup with them — `moveIdentityOf` and `typesOf`
+ * existed for these two kinds and nothing else — and with it the species
+ * tracking, the type-change override and the retraction pass that took both
+ * words back when the move missed. What is left needs the protocol and one
+ * injected priority lookup.
  *
  * ## Priority is not recomputed
  *
@@ -56,35 +57,39 @@
 import { readTurns, type ActorSide, type PriorityOf, type TurnAction } from './turnOrder';
 import { DISPLAYED_VOLATILES } from './view';
 
-/** How a move's type, category and contact flag are looked up. `driver.moveIdentity` supplies it. */
-export type MoveIdentityOf = (moveNameOrId: string) => { type: string; category: string; contact: boolean } | null;
-
-/** How a species' types are looked up. `driver.speciesTypes` supplies it. */
-export type TypesOf = (species: string) => readonly string[];
-
-/** Everything the reader needs that the protocol does not say. */
+/**
+ * Everything the reader needs that the protocol does not say, which since M4.1
+ * is one thing.
+ *
+ * It stays an interface rather than collapsing to a bare parameter because
+ * `readTurns` takes the same shape, and because a named field is what made the
+ * dex lookups that used to sit beside it assertable from a hand-written log.
+ */
 export interface FlagDeps {
   priorityOf: PriorityOf;
-  moveIdentityOf: MoveIdentityOf;
-  typesOf: TypesOf;
 }
 
 /**
  * Every flag word there is.
  *
  * A closed set, deliberately. A reader that could emit an open-ended vocabulary
- * would be a formatter, and there is already a formatter — the log. These are
- * the nine truths Release C names plus `berry`, which item 4 adds off the
- * `-enditem` signal the driver has read since 4.6b.
+ * would be a formatter, and there is already a formatter — the log. These were
+ * the nine truths Release C names plus `berry`, which item 4 added off the
+ * `-enditem` signal the driver has read since 4.6b; **M4.1 removed `stab` and
+ * `contact`** per R9, leaving fifteen.
+ *
+ * `data/flagPrecedence.ts` sorts all fifteen into two channels and ranks the
+ * hit channel. That file is exhaustive over this union by type, so a kind added
+ * here fails to compile until somebody decides what the strip does with it —
+ * which is the check that keeps R9's "at most one flag" from quietly becoming
+ * "at most one of the kinds we remembered".
  */
 export type FlagKind =
-  | 'stab'
   | 'super'
   | 'resisted'
   | 'immune'
   | 'crit'
   | 'miss'
-  | 'contact'
   | 'priority'
   | 'status'
   | 'berry'
@@ -163,7 +168,6 @@ const CRIT = /^\|-crit\|(p[12])[a-c]: ([^|]+)/;
 const MISS = /^\|-miss\|(p[12])[a-c]: ([^|]+)/;
 const STATUS = /^\|-status\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
 const ENDITEM = /^\|-enditem\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
-const TYPECHANGE = /^\|-start\|(p[12])[a-c]: [^|]+\|typechange\|([^|]+)/;
 const TURN = /^\|turn\|(\d+)/;
 const UPKEEP = /^\|upkeep/;
 
@@ -202,65 +206,26 @@ const UPKEEP_TAG = /\|\[upkeep\]/;
 const OF_SIDE = /\|\[of\] (p[12])[a-c]: ([^|]+)/;
 
 /**
- * A reader that remembers what is standing on each side between calls.
+ * Read a protocol stream as turns of flagged actions.
  *
- * ## Why this is stateful when `readTurns` is not
+ * **There was a `createFlagReader` here and M4.1 deleted it.** It existed
+ * because STAB needed the species that used the move, the protocol names a
+ * species exactly once — on the `|switch|` that brought it in — and a turn
+ * where nobody switched carries no such line, so a reader starting fresh on
+ * every batch would have printed STAB on switch turns and nowhere else. That
+ * was a real problem and the state was the right answer to it.
  *
- * STAB needs the species that used the move, and the protocol names a species
- * exactly once — on the `|switch|` that brought it in. A battle's updates
- * arrive one turn at a time, and a turn in which nobody switched carries no
- * `|switch|` line at all. A reader that started fresh on every batch would
- * therefore know the species only on switch turns and print STAB on those and
- * nowhere else, which is worse than never printing it: an intermittent flag
- * teaches the player that STAB is intermittent.
- *
- * So the standing bodies persist across `read` calls, in exactly the way
- * `battle-log.ts`'s `HpTracker` persists across appends and for exactly the
- * same reason — the fact needed to describe line N arrived on a line long
- * before it. One reader per battle; `ui/screens/battle.ts` makes it in
- * `attach`, beside the log's `clear`.
- *
- * Nothing else is remembered. Turn grouping, ordering and priority are all
- * per-call, because `readTurns` derives them from the lines in front of it.
- */
-export interface FlagReader {
-  /** Read one batch — a whole battle, or one update's worth. */
-  read(protocol: readonly string[]): FlaggedTurn[];
-}
-
-export function createFlagReader(deps: FlagDeps): FlagReader {
-  /** The species standing on each side, for STAB. Tracked, never guessed. */
-  const standing: Record<ActorSide, string | null> = { p1: null, p2: null };
-  /**
-   * A type change the protocol reported, which outranks the species' own types.
-   *
-   * Soak and Protean are the reason. They are rare, and a STAB flag that
-   * disagreed with the damage the player just watched is worse than no flag —
-   * the same argument `turnOrder.ts` makes for inferring priority from brackets
-   * rather than from Speed.
-   */
-  const typeOverride: Record<ActorSide, readonly string[] | null> = { p1: null, p2: null };
-
-  return { read: (protocol) => readBatch(protocol, deps, standing, typeOverride) };
-}
-
-/**
- * Read a protocol stream as turns of flagged actions, from a clean slate.
- *
- * The one-shot form, for a whole battle and for tests. A consumer reading a
- * battle incrementally wants `createFlagReader` instead — see the note there
- * on why STAB cannot survive a fresh start on every batch.
+ * With STAB gone nothing is remembered between calls: turn grouping, ordering
+ * and priority are all derived per-call by `readTurns` from the lines in front
+ * of it. A stateful reader holding no state is a claim about this file that is
+ * no longer true, so it is deleted rather than kept as a wrapper — the tree's
+ * own rule about a superseded mechanism.
  */
 export function readFlags(protocol: readonly string[], deps: FlagDeps): FlaggedTurn[] {
-  return createFlagReader(deps).read(protocol);
+  return readBatch(protocol, deps);
 }
 
-function readBatch(
-  protocol: readonly string[],
-  deps: FlagDeps,
-  standing: Record<ActorSide, string | null>,
-  typeOverride: Record<ActorSide, readonly string[] | null>,
-): FlaggedTurn[] {
+function readBatch(protocol: readonly string[], deps: FlagDeps): FlaggedTurn[] {
   const groups = readTurns(protocol, deps.priorityOf);
 
   /*
@@ -314,19 +279,16 @@ function readBatch(
       continue;
     }
 
+    /*
+     * A switch is an action, and that is all this branch does now. It used to
+     * record the body's species for STAB as well; `SWITCH_DETAILS` still
+     * captures the details field because the regex is one expression and
+     * narrowing it would be a change to what the line means rather than to
+     * what is read off it.
+     */
     const switched = SWITCH_DETAILS.exec(line);
     if (switched?.[1] && switched[3]) {
-      const side = switched[1] as ActorSide;
-      standing[side] = switched[3].trim();
-      // A body that leaves takes its acquired types with it.
-      typeOverride[side] = null;
       action = flat[index++] ?? null;
-      continue;
-    }
-
-    const changed = TYPECHANGE.exec(line);
-    if (changed?.[1] && changed[2]) {
-      typeOverride[changed[1] as ActorSide] = changed[2].split('/').map((type) => type.trim());
       continue;
     }
 
@@ -336,27 +298,24 @@ function readBatch(
       const side = move[1] as ActorSide;
 
       /*
-       * STAB and contact are stated up front and withdrawn below.
+       * The one flag a `|move|` line produces on its own. Everything else about
+       * a move — whether it landed, what it did, what it was resisted by —
+       * arrives on later lines, which is why this branch is three statements
+       * and the ones below it are a list.
        *
-       * Both describe a hit that connected, so a move that missed or hit an
-       * immunity retracts them — see `settle`. Stating them here keeps the
-       * dex lookup on the one line that names the move.
+       * STAB and contact were stated here and retracted lower down when the
+       * move turned out to have missed. R9 took both, and the retraction pass
+       * with them: a cause is the move card's job, before the player commits.
+       *
+       * A `|-start| … |typechange|` line was read here too, to keep STAB
+       * honest through Soak and Protean. It now falls through to the volatile
+       * branch, where `DISPLAYED_VOLATILES` does not list `typechange` and it
+       * is dropped — the same outcome by the filter that was already there.
        */
       if (action?.kind === 'move' && action.priority) {
         const sign = action.bracket > 0 ? '+' : '';
         add({ kind: 'priority', side, subject: move[2], detail: `${sign}${action.bracket}` });
       }
-
-      const identity = deps.moveIdentityOf(move[3]);
-      if (!identity) continue;
-
-      const species = standing[side];
-      const types = typeOverride[side] ?? (species ? deps.typesOf(species) : []);
-      const stab =
-        identity.category !== 'Status' &&
-        types.some((type) => type.toLowerCase() === identity.type.toLowerCase());
-      if (stab) add({ kind: 'stab', side, subject: move[2], detail: identity.type });
-      if (identity.contact) add({ kind: 'contact', side, subject: move[2], detail: null });
       continue;
     }
 
@@ -521,25 +480,8 @@ function readBatch(
 
   return groups.map((current) => ({
     turn: current.turn,
-    actions: current.actions.map((each) => ({ action: each, flags: settle(attached.get(each) ?? []) })),
+    actions: current.actions.map((each) => ({ action: each, flags: attached.get(each) ?? [] })),
     residual: residual.get(current.turn) ?? [],
   }));
 }
 
-/**
- * Retract what the rest of the action disproved.
- *
- * A move that missed made no contact and got no same-type bonus, because it did
- * nothing at all; the same is true of one that hit an immunity. Both words are
- * added when the move is named, before the outcome is known, so this is where
- * the outcome takes them back. Printing `CONTACT` under `MISSED` is the kind of
- * detail that teaches a player to stop trusting the row.
- */
-function settle(flags: readonly Flag[]): Flag[] {
-  // `failed` joins the two since Branch 2, and for the reason the comment above
-  // gives rather than for symmetry: a move that failed did nothing, so it made
-  // no contact and got no same-type bonus either. `CONTACT` under `Failed` is
-  // the same lie as `CONTACT` under `MISSED`.
-  const landed = !flags.some((flag) => flag.kind === 'miss' || flag.kind === 'immune' || flag.kind === 'failed');
-  return landed ? [...flags] : flags.filter((flag) => flag.kind !== 'contact' && flag.kind !== 'stab');
-}

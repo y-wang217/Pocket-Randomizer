@@ -550,11 +550,19 @@ body {
    words between the board and the log.
 
    **Every chip in here is the same chip**, which is the rule and not an
-   accident of this rule set: no `--chip`, no per-kind hue, no size or weight
-   modifier. `.badge--flag` sets nothing the `.chip` recipe has not already
-   set, and it exists so the strip's chips can be found rather than styled. A
-   super effective flag drawn heavier than a not-very-effective one would make
-   the strip a recommendation, and the accent belongs to `.primary-action`.
+   accident of this rule set: no `--chip`, no size and no weight modifier.
+   `.badge--flag` sets nothing the `.chip` recipe has not already set, and it
+   exists so the strip's chips can be found rather than styled. A super
+   effective flag drawn heavier than a not-very-effective one would make the
+   strip a recommendation, and the accent belongs to `.primary-action`.
+
+   **The rule is "no weight axis", and it read "no per-kind hue"** until M4.2
+   (row D27). Those were the same sentence while nothing on the strip had a
+   colour, and they came apart when section 2's Effectiveness family was read
+   properly: it gives one colour to the forecast edge *and* the feedback flag,
+   so the pairing is learned once. The edge further down is that colour, on
+   three kinds, at equal weight in both directions. What is still forbidden is
+   what was always meant — one kind drawn louder than another.
 
    The strip holds its height when empty, so the board does not jump between a
    turn that had something to say and one that did not. V5 replaces this
@@ -597,6 +605,37 @@ body {
    player's side in the heavier neutral, the opponent's left dim. Not a weight
    axis between kinds — there is only one event line — and not a verdict. */
 .flags__event[data-side='p1'] { color: var(--emphasis); }
+
+/* The effectiveness flags, in the forecast's own colour. **M4.2, row D27.**
+
+   Section 2 gives the Effectiveness family one entry across both halves of
+   R8 — *"Coloured left edge on the button plus the multiplier as a fraction or
+   numeral. … The same colour on the feedback flag"* — and section 3 spells the
+   feedback half as *"One word on the target, edge colour family"*. So this is
+   the same edge, the same two tokens and the same 3px the move button carries,
+   on the three kinds that name after the hit what the edge forecast before it.
+
+   **This is not the weight axis, and the rule that forbids one still stands.**
+   What the strip may never do is draw one kind louder than another: same size,
+   same weight, same surface, one recipe. `super` and `resisted` are the two
+   directions of one multiplier and they are drawn identically apart from which
+   direction they name — which is an encoding, and it is the encoding the
+   player already learned on the button. Every other kind stays neutral; a hue
+   per kind would be nine treatments on one line and a ranking by the back door.
+
+   Colour is never the only carrier here, exactly as on the button: the word
+   says the same thing in a channel colour vision cannot touch. */
+.chip--flag[data-flag="super"],
+.chip--flag[data-flag="resisted"],
+.chip--flag[data-flag="immune"] {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+.chip--flag[data-flag="super"] { border-left-color: var(--stage-up); }
+.chip--flag[data-flag="resisted"] { border-left-color: var(--stage-down); }
+/* No effect is the strongest reading and it is still the red family, not a
+   third hue — the button's rule, restated because the two must agree. */
+.chip--flag[data-flag="immune"] { border-left-color: var(--stage-down); }
 
 /* Release C's chips, unchanged, in a row that does not wrap either. */
 .flags__words {
@@ -647,14 +686,73 @@ body {
    made the band 2.5px taller would be V5 spending budget on furniture. The
    horizontal padding and every other button property are untouched, so it is
    still visibly the same control as the drawer trigger above it. */
+/* The handle that opens the history sheet. **M4.3, row D26.**
+
+   It was a `.button--small` reading `History` until M4.3. The word is gone —
+   section 4 budgets this screen at zero outside the strip's flags and the
+   header, and a control label is neither — and what is left is the shape of
+   the thing it opens: a grab handle, where the sheet comes up from.
+
+   Not a glyph. Section 2's nine families are attributes of a Pokemon or a
+   move, and a control is neither, so a `history` glyph would be a tenth family
+   for furniture. This is drawn here, in two rules, and nothing in the sheet
+   knows the drawing exists. */
 .flags__history {
   flex: 0 0 auto;
   margin-left: auto;
-  padding-top: 0;
-  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hairline);
+  /* **The band's height, not a 44px floor**, and that is a deliberate refusal.
+
+     V5 budgets this strip at one 24px band and `test/visual-v5.test.ts`
+     asserts it; the `History` button it replaces was `--space-6` tall for the
+     same reason. A 44px control here would take 20px off the board on the one
+     screen whose budget is the whole stage — and `.flags` has `overflow:
+     hidden`, so the usual trick of an oversized pseudo-element hit area would
+     be clipped rather than honoured.
+
+     The width is the part that can grow, so it does: 44px across, which is the
+     axis a thumb reaching for a handle at the edge of a row misses in. */
   height: var(--space-6);
-  font-size: var(--fs-2xs);
+  min-width: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  /* The browser's own vertical-drag default is a scroll, and the pull is a
+     vertical drag. Without this the board scrolls under the gesture on a
+     phone; `onPullUp`'s `preventDefault` cannot help on a passive listener. */
+  touch-action: none;
 }
+
+/* Two bars rather than one, so it reads as a handle rather than as a divider
+   or a dash. `::after` is the second; both are the strip's own dim ink, which
+   is the same neutral every other piece of furniture on this row wears. */
+.flags__grip,
+.flags__grip::after {
+  display: block;
+  width: var(--space-5);
+  height: calc(var(--hairline) * 2);
+  border-radius: var(--radius-chip);
+  background: var(--text-dim);
+}
+
+.flags__grip::after {
+  content: '';
+  margin-top: var(--space-1);
+  /* Narrower, so the pair has a direction: the short bar is the one nearer the
+     edge the sheet arrives from. */
+  width: var(--space-4);
+}
+
+.flags__history:hover .flags__grip,
+.flags__history:hover .flags__grip::after,
+.flags__history:focus-visible .flags__grip,
+.flags__history:focus-visible .flags__grip::after { background: var(--text); }
 
 /* Whose flag it is, in the log's own vocabulary — `.log-entry__order` marks
    the player's side with `--emphasis` and leaves the opponent's neutral, and
@@ -918,6 +1016,35 @@ body {
 .panel__priority > .glyph { display: none; }
 .panel[data-bracket="up"] .panel__priority > [data-glyph="priority-up"],
 .panel[data-bracket="down"] .panel__priority > [data-glyph="priority-down"] { display: inline-flex; }
+
+/* The flash. **Milestone M4.2, section 6 step 2.**
+
+   Section 6 gives this beat no time of its own: the chevron flashes *while*
+   the first actor lunges, so a priority turn and an ordinary one take exactly
+   the same number of milliseconds. `--motion-beat` is that lunge's duration
+   and this borrows it rather than naming a number — the same rule the
+   abnormality marks follow, and `test/visual-tokens.test.ts` counts a
+   hardcoded duration as a failure.
+
+   No slot rule, because there is only ever one slot this can be in. A bracket
+   is marked on the *earlier* action of a pair whose brackets differ, so the
+   panel this fires on is by construction the one that acted first, and slot 1
+   is a zero delay, which is already the initial value. */
+.panel[data-bracket] .panel__priority {
+  animation-name: priority-flash;
+  animation-duration: var(--motion-beat);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+/* Opacity and scale, and no hue: section 2 puts the Priority family in the
+   neutral column, and a chevron that arrived in a colour would be a second
+   encoding of a fact the shape already carries. */
+@keyframes priority-flash {
+  0% { opacity: 0; transform: scale(1.4); }
+  45% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 /* ---------- the six-stat panel ---------- */
 
@@ -3906,6 +4033,18 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   .stage__actor[data-abnormal="volatile"] .stage__mark,
   .stage__actor[data-abnormal="field"] .stage__mark,
   .stage__actor[data-abnormal-slot="2"] .stage__mark { animation: none; }
+
+  /*
+   * The priority chevron's flash. **M4.2.**
+   *
+   * Cancelled, and nothing is withheld by cancelling it: the flash ends at
+   * full opacity and the slot is shown by `data-bracket` rather than by the
+   * animation, so a player who asked for less motion sees the chevron sitting
+   * there instead of arriving. That is the rule this block states — remove the
+   * movement, not the outcome — and it is why the keyframe holds its end state
+   * rather than fading out the way the marks above do.
+   */
+  .panel[data-bracket] .panel__priority { animation: none; }
   /* Every live rule is named, not just the bare-attribute one, **and Stage 4.9
      is why**. `[data-abnormal]` and `[data-abnormal="stage"]` have identical
      specificity, so the bare form here did cancel them — but only because this
