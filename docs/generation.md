@@ -10138,3 +10138,122 @@ with padding. The pip meter wearing the same class rendered as an empty box on
 the map. It is `tier-pips` now. The lesson is the one `test/boundaries.test.ts`
 keeps teaching in another register: a shared name is a shared contract, and the
 second caller finds out at render time.
+
+## 68. The region's line, the archetype that could lie, and the route that nearly went with them
+
+**Milestone M5.3, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 4**'s new Locale screen row (Rev 10, D32),
+**section 3**'s Archetype row, **R2** (sentences and labels go), **R3** (one
+fact, one channel), **R5** (one explanation mechanism) and **C2**. No rule
+moved. `contentHash` holds at `0b2c2c`.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| locale card, worst instance | 6 | **0** | 0 |
+| locale screen, Pocket less shell | 45 | **3** | 4 (D32) |
+| pre-gym screen, Pocket less shell | 32 | **3** | 4 |
+
+M5.3's done-when is *"census reads 0 and 4"*, which D1 already made ceilings.
+Both are under.
+
+### What left the locale screen
+
+**The card's line.** *"Canopy and something moving in it"* — six words, a
+sentence at rest on a card R2 forbids sentences on. **Nothing
+decision-bearing leaves with it**, which is why it is cut rather than
+re-encoded: what a region decides is which wild Pokemon appear, and the four
+type chips beside the name are that fact in section 2's own encoding. The line
+is atmosphere over the top of it. It is still in `data/locales.ts` and behind a
+new `locale:` tip on the name, so a player who wants it presses for it.
+
+**The archetype label, and section 3 asks for this twice.** The strip drew
+`archetypeChip` on every member — **12 words across six** on a screen now
+budgeted at 4. Its row: *"Archetype | Not rendered where the stat bars already
+draw it | Absent | **Not on inspect either; it is a derived label and can lie
+under randomization**."* The first clause is conditional and this strip has no
+stat bars, which is how the chip survived D18; the sentence after the bar is
+not conditional about what the label is worth. Nothing replaces it — the stat
+block it was a lossy guess at is one tap away in the drawer, as six bars and
+six numbers.
+
+**The explanation.** *"The region decides the wild Pokemon here and nothing
+else"* — nine words explaining a mechanism, at rest, on every visit, for the
+whole run. R5 says there is one explanation mechanism and it is the inspect
+layer; section 7 gives first-encounter teaching to the coach marks. A sentence
+on the screen is neither.
+
+**The rail's label and the segment number.** *"This segment ends at"*
+introduced a leader name and a type chip sitting directly above the region
+cards, which is the position R1 says carries the meaning. The segment number
+goes because the map rail and the shell both carry it.
+
+### What left the pre-gym screen, and the one thing that nearly did
+
+**Twenty-one words on six buttons.** *"Lead with this one"* on five members and
+*"Leading"* on the sixth: the largest single block the census found in Tier 5
+outside the event screen. Two of them were also a second channel for a fact
+already on the card — `memberCardContents` is passed `isLead`, and
+`member.fainted` already reads off the HP — so *"Leading"* and *"Fainted"* were
+**R3 violations sitting under the component that made them redundant**.
+
+The card is the control now, the way M5.1 made the shop's reward card its own
+rather than pairing it with an `Add`. The two disabled states are unchanged and
+still for different reasons, and each member's three states are on the button's
+`aria-label`, which is where "nothing" has to be read aloud as something.
+
+**`Party screen (items)` nearly went, and cutting it would have been a
+regression rather than a reduction.** The first reading was that the shell's
+drawer bar reaches the party from every surface. **It does not**:
+`drawer.trigger()` opens the *drawer*, which its own blurb calls read only.
+Items are assigned on the party screen, and the map's `Manage` is the only
+other route there — and from the pre-gym screen there is no way back to the
+map. Cutting it would have removed the last route to handing out held items
+before a gym, at the moment it matters most.
+
+C2 is about facts and this is a route, but the principle reaches it: **a
+redesign that makes a decision unreachable has failed however few words it
+spends.** It reads `Items`, one word, with the destination on its
+`aria-label`.
+
+### A hover panel does not belong on the face of a control
+
+The region's line was first moved behind a `locale:` tip on the card's name,
+which is the D36 pattern that worked for the item card. **It broke the
+tutorial**: `test/tutorial-browser.test.ts` could not click a region, because
+the panel opens on hover as well as on long press and landed over the card that
+opened it — *"`<div class="tip">` intercepts pointer events"*, sixty times in
+thirty seconds.
+
+Making the panel pointer-transparent was tried and **backed out**.
+`styles.css` documents `pointer-events: auto` on it as deliberate: the type
+wheel is read there, and a transparent panel would let the tap-outside handler
+close it under the reader. A fix that trades one surface's gesture for
+another's is not a fix.
+
+So the line is cut outright and gets no panel. Nothing is lost that was not
+already being given up — it changes no decision, which is the argument that
+allowed cutting it at all — and the alternative was a hazard on a control's own
+face.
+
+**The same shape exists on the relic reward card**, where M5.1 put a `relic:`
+tip on the card's name and the card is a button too. No test points at it and
+the panel's placement may well miss the card, but the hazard is the same one
+and it is recorded in `docs/README.md` rather than guessed at here.
+
+### The deviation, and the anchor that would have gone silently
+
+**Section 4's `words that survive` column reads *"Gym leader name, type chip,
+'Choose lead'"*, and what survives is `Send … in` and `Items`.** The budget is
+4 and D1 makes it a ceiling, so the count was never the question — which four
+was. *"Who leads?"* introduced a choice that is now made by pressing a member
+card, under a primary action naming who goes in; it was labelling an affordance
+that had become self-evident. `Items` cannot go. The record is not edited.
+
+**The prompt carried the `gym-lead` coach mark**, and deleting it would have
+left the mark resolving nothing. That is the failure M6.2 exists to find —
+*"confirm no mark is silently dropped because its anchor sits behind a tap"* —
+arriving a tier early, by deletion rather than by a gesture. The anchor is on
+the row of member cards, which is the better one: the mark says which member
+leads, and that is now the thing the player presses.

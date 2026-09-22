@@ -47,7 +47,7 @@ which blocks everything.
 | D29 | M5.1, M5.2, M5.3, M5.4 | Section 5's canon names none of the five card surfaces section 4 budgets | **2026-09-22**, amended and unified in M5.1 |
 | D30 | M5.1 to M5.4's done-whens | The census has no component row for any of the five, so four done-whens are not computable | **open**, self-closing |
 | D31 | M5.5's done-when | The census calls a built component absent, because no fixture opens a band | **2026-09-22**, closed inside M5.5 |
-| D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **open** |
+| D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **2026-09-22**, option 1, built |
 | D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **open** |
 | D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **2026-09-22**, ruled on a false premise; **moot if D36 is ruled option 1** |
 | D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **2026-09-22**; M5.1's half built, M5.2's and M5.6's open |
@@ -2735,3 +2735,27 @@ and `test/map-node-card.test.ts` asserts that against the function's own output.
 `forest` alone.
 
 Record: [`../generation.md` §67](../generation.md).
+
+
+---
+
+## D32, closed with the build
+
+**M5.3, 2026-09-22. Option 1 as recommended: a Locale screen row at 4.**
+
+Measured after the cut: **3**. The locale card reached **0**, and the pre-gym
+screen **3** against its own 4.
+
+**It is the fourth surface found carrying words against no row at all** — after
+the battle header (D28), the map node card (D37) and the two reward kinds M5.1
+named — and the pattern is worth stating once rather than four times: a budget
+table written per *component* leaves every screen's own chrome unbudgeted, and
+nothing measures what nothing budgets. M7.2 inherits whether the rest need rows.
+
+Two things this item found that the row did not anticipate. The locale strip
+was still drawing `archetypeChip`, which section 3 calls *"a derived label that
+can lie under randomization"* and puts nowhere — 12 words that survived D18
+because that row's first clause is conditional on stat bars being present. And
+`Party screen (items)` was the **last route** to item assignment before a gym,
+not a duplicate of the shell's drawer button; cutting it would have been a
+functional regression. Both are in [`../generation.md` §68](../generation.md).

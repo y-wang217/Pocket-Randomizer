@@ -1,6 +1,14 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 9, Sept 22, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 10, Sept 22, 2026.
+
+**Rev 10** carries one amendment, ruled 2026-09-22 on row D32: section 4 gains
+a **Locale screen** row at 4. It is the fourth surface found carrying words
+against no row at all — after the battle screen header (D28), the map node card
+(D37) and the two reward kinds M5.1 named — and the pattern is worth stating
+once: a budget table written per *component* leaves every screen's own chrome
+unbudgeted, and nothing measures what nothing budgets. M7.2 inherits the
+question of whether the remaining screens need rows.
 
 **Rev 9** carries two amendments, both ruled 2026-09-22 on row D37. Section 2
 gains a **tenth family, capability** — not a new claim, but the family section
@@ -230,6 +238,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 40 | Prompt under 30, choices under 6 each, outcome one line |
 | Locale card | 0 | Locale name plus four type chips |
+| Locale screen | 4 | The instruction (2026-09-22, D32) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
@@ -274,6 +283,16 @@ nine families are attributes of a Pokemon or a move, and a tier is neither — s
 R2 has nothing to trade the words for, exactly as it has nothing to trade the
 ability name for one row above. The alternative was a tenth family, which
 section 10.1 reserves for an amendment with an observation behind it.
+
+**The locale screen has a row now** (ruled 2026-09-22, D32). M5.3's done-when
+read *"census reads 0 and 4"*, taking the first number from the *Locale card*
+row and the second from the *Pre-gym screen* row — a component and a screen.
+The locale screen itself was budgeted nowhere and carried ~30 words of chrome
+above a card row budgeted at 0: a heading, an explanation of what a region
+decides, the gym rail's label, and a party strip drawing a derived archetype
+label six times. It is 4, the pre-gym screen's own figure, because it is the
+same job on the same kind of surface — name the thing you are about to walk
+into, and choose. Measured after the cut: **3**.
 
 **The map node card is budgeted at 3, where it read 0** (ruled 2026-09-22,
 D37). M5.2 assumed zero on the strength of a *node type glyph*, and there is no

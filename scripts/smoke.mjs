@@ -305,7 +305,18 @@ async function playRun(label) {
      * stop proving a choice was applied at all.
      */
     if (await page.locator(visible('pre-gym')).count()) {
-      const choose = page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not([disabled])`).last();
+      /*
+       * `.pre-gym__choose`, not `.pre-gym__slot .button`. **M5.3.**
+       *
+       * The lead control used to be a `.button` beside the card reading "Lead
+       * with this one"; it is the card itself now, and it deliberately does
+       * not take the `.button` class — that class uppercases, and with the
+       * member card inside the control it reached the stat block's labels.
+       * The old selector still matched something: the card's own `+` collapse
+       * toggle, which is not visible in every density, so the walk waited
+       * thirty seconds on an element it could never click.
+       */
+      const choose = page.locator(`${visible('pre-gym')} .pre-gym__choose:not([disabled])`).last();
       if (preGyms === 0) await page.screenshot({ path: `stats/${label}-pre-gym.png`, fullPage: true });
       if (await choose.count()) {
         await choose.click();

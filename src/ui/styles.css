@@ -1531,7 +1531,30 @@ body {
 /* The pre-gym screen's heading and its one question on one line in Pocket. */
 :root[data-density="pocket"] .pre-gym__header { display: inline-flex; margin-right: var(--space-2); }
 :root[data-density="pocket"] .pre-gym__prompt { display: inline; margin: 0; }
-:root[data-density="pocket"] .pre-gym__slot { gap: var(--space-h); }
+:root[data-density="pocket"] /*
+ * The member card as the control. **Milestone M5.3.**
+ *
+ * A bare button: no background, no border, no type scale of its own, because
+ * what it contains is a party row and the row's own typography is the one the
+ * player has learned everywhere else. The hit area is the card.
+ */
+.pre-gym__choose {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.pre-gym__choose:disabled { cursor: default; }
+.pre-gym__choose:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+
+.pre-gym__slot { gap: var(--space-h); }
 
 /* The party screen's sections in Pocket: the threat explainer is the title's
    tip, the backpack's title and count share a line. */

@@ -78,8 +78,8 @@ are closed, sixteen items of twenty-four**, as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
 [#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
-`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, nineteen items of
-twenty-four**: M5.5, M5.1 and M5.2 are closed and all thirty-seven
+`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, twenty items of
+twenty-four**: M5.5, M5.1, M5.2 and M5.3 are closed and all thirty-seven
 discrepancy rows are ruled. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
@@ -116,6 +116,27 @@ column mode was deleted (D9). Nothing caught it because the assertion that
 gates those screens reads the top-level block, which is accurate and still
 matches to the pixel. M5.2 re-recorded the `map` block only, deliberately,
 rather than launder the rest into its own diff. Open.
+
+**A hover-opening inspect panel on the face of a control is a hazard, and one
+may still be live.** M5.3 tried moving the locale card's line behind a tip on
+the card's name; the panel opens on hover as well as on long press, landed over
+the card, and the tutorial walk could not click a region. Making `.tip`
+pointer-transparent was backed out — `styles.css` documents `pointer-events:
+auto` there so the type wheel can be read — so the line was cut outright
+instead. **M5.1 put a `relic:` tip on a reward card's name and a reward card is
+a button too**; no test points at it and the panel may well miss the card, but
+it is the same shape. Open.
+
+**M5.3 found two things the row did not anticipate.** The locale strip was
+still drawing `archetypeChip` — 12 words across six members of a label section
+3 calls *"derived … and can lie under randomization"*, which survived D18
+because that row's first clause is conditional on stat bars being present. And
+`Party screen (items)` on the pre-gym screen turned out to be the **last route
+to item assignment before a gym**, not a duplicate of the shell's drawer
+button: the drawer is read only, and from the pre-gym screen there is no way
+back to the map's `Manage`. Cutting it would have been a functional regression;
+it reads `Items` now. **Locale card 6 → 0, locale screen 45 → 3 against 4,
+pre-gym 32 → 3 against 4.**
 
 **M5.2 closed on a tenth glyph family, and it was not a tenth claim.** Section
 3 has specified a *"capability glyph plus band chevron"* on its map-node row
