@@ -293,6 +293,46 @@ async function main(): Promise<void> {
       show('replace');
       break;
     }
+    /*
+     * The two confirm bands, staged open. **Milestone M5.5, discrepancy D31.**
+     *
+     * Each one renders its own screen and then **clicks the real control**,
+     * the way the event fixture reveals its outcome. The band measured here is
+     * therefore the one `ui/band.ts` builds on the player's tap, not one this
+     * file assembles — which matters because `test/band.test.ts` asserts that
+     * no screen builds its own confirm, and a fixture that built one would be
+     * measuring the thing that rule forbids.
+     */
+    case 'confirm-replace': {
+      const state = lateState(seed);
+      const member = state.party[0];
+      if (!member) throw new Error('no party');
+      replaceScreen.render(member, incomingMove(), noop, state.tuning);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('replace');
+      // The first of the four move chips: the victim carries its remaining PP,
+      // which is the fact the full card in the band exists to show.
+      replaceScreen.root.querySelector<HTMLElement>('.move--chip')?.click();
+      break;
+    }
+    case 'confirm-forfeit': {
+      const state = lateState(seed);
+      /*
+       * **`allowSkip` is true here and false on the `target` fixture**, which
+       * is why this surface exists rather than the band being staged over that
+       * one. The decline control renders only at the gym's guaranteed move, so
+       * the `target` surface has never drawn it and the census has never
+       * counted it — a smaller instance of the same gap D31 is about, left
+       * where it is so that surface's baseline does not move.
+       */
+      targetScreen.render(targetedReward(), state.party, noop, state.tuning, true);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('target');
+      targetScreen.root.querySelector<HTMLElement>('.target__decline')?.click();
+      break;
+    }
     case 'party': {
       const state = lateState(seed);
       partyScreen.render(

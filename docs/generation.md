@@ -9595,3 +9595,129 @@ Recorded as an input to **M6.2**, which re-anchors the coach marks, rather than
 by inventing a second labelling mechanism here. Section 7 gives coach marks,
 exposure labels and inspect one job each, and a gesture affordance is the coach
 marks' job rather than a glyph family's.
+
+## 64. The confirm that could not be measured, and the answer that looked like a way out
+
+**Milestone M5.5, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **R1** (position encodes identity — the two controls keep
+their slots and the rule takes weight, not position) and **section 5's canon**,
+which gains the confirm band as a component under D29's ruling. No rule moved.
+No version axis moves; `contentHash` holds at `d4e080`.
+
+### What the item asked for, and what was already built
+
+M5.5 reads: *"Replace: 'Replace Tackle with Fire Punch?' and two full cards.
+Decline: 'Forfeit this reward?' and the two cards. Overlay cancel and flow
+decline visually distinct. Done when: census reads 6 and 4."*
+
+Three quarters of that shipped before this item opened, and the record was not
+edited to say so — per CLAUDE.md the deviation is recorded here instead.
+
+- **M2.3 built the replace band**, with both full cards side by side in
+  `ui/band.ts`'s `content` slot.
+- **M3.3 built the forfeit band** — *"Forfeit this reward?"*, `Forfeit`,
+  `Keep` — with **one** card, not two, and argued it in `src/ui/screens/item-target.ts`:
+  *"a replace trades a move for a move and a decline gives one up for nothing,
+  and drawing a second card would be inventing a thing on the other side of the
+  trade."* The record's "the two cards" is wrong for the decline and stays
+  unedited.
+- **D22 moved the decline's budget from 4 to 6** on 2026-09-21. The record's
+  "census reads 6 and 4" is superseded; the pair is **6 and 6**, and D1 already
+  made both ceilings rather than equalities.
+
+So what was left was the last line, and a number nobody could read.
+
+### The number nobody could read
+
+`docs/design/text-census.md` had printed `confirm overlay | absent | absent |
+absent` since M0.1, and the script documents `absent` as *"a component with no
+call site in the tree yet"*. `ui/band.ts` has four call sites. **Nothing was
+absent but a fixture**: a band exists only after a tap, and every gallery
+fixture is a screen at rest. The instrument was making a false statement about
+the tree in the one word it reserved for a true one. That is D31, and it is
+Tier 4's second standing finding in a third place.
+
+**Two fixtures, staged by clicking the real control.** `CONFIRM_SURFACES` is a
+third category beside the decision and overlay lists, because a band is not
+built on `ui/overlay.ts` and has no `__sheet` — the overlay gate's
+`.${surface}__sheet` query would have found nothing and passed on an absence.
+Each fixture renders its screen and then clicks the chip or the decline that
+opens the band, the way the event fixture reveals its outcome, so what is
+measured is the band `ui/band.ts` builds rather than one the gallery
+assembles. A hand-built band would have been the thing `test/band.test.ts`
+exists to forbid.
+
+**The result, Pocket, against ceilings of 6 and 6:**
+
+| Band | Words at rest | Budget |
+|---|---:|---:|
+| replace | **4** — `Replace`, `with`, `Replace`, `Keep` | 6 |
+| forfeit | **5** — `Forfeit`, `this`, `reward`, `Forfeit`, `Keep` | 6 |
+
+Both under. The component reads **9 total, worst instance 5**.
+
+### The census had a second hole, and the goal was standing in it
+
+Splitting `absent` from `unrendered` exposed one more: `renderTable` decided a
+component existed by whether it had produced **text records**. A component that
+renders correctly and draws **zero words** produces none — so the table's
+reward for an item hitting a budget of 0 would have been a row claiming the
+component does not exist. Every Tier 5 budget but two is 0. The trap was laid
+directly across this tier's path and nothing had walked into it yet only
+because every component still had words in Detailed.
+
+`presentOn` answers presence separately from words, and the table now
+distinguishes three states: a number (it rendered, and zero is a number),
+`unrendered` (in the tree, no fixture reaches it), and `absent` (not built —
+a `COMPONENTS` entry carrying `built: false`, which no entry needs today and
+which exists so the next one can be honest rather than indistinguishable).
+
+### The last line, and where it actually bites
+
+*"Overlay cancel and flow decline visually distinct."* The two are on screen
+together exactly once — while the band the decline opened is up — so that is
+the only moment the distinction has to hold, and it is the moment the fixture
+now photographs.
+
+They are different kinds of answer. **A band cancel backs out and changes
+nothing. A flow decline answers the screen's question with "none" and moves the
+run on.** Before this they were two similar-weight rectangles: the decline kept
+its raised card fill behind the dim while the band's cancel sat hollow inside
+it, so the brightest thing below the band was the control that commits.
+
+**The capture screen is where wording alone cannot carry it.** At a full party
+its decline reads `Keep my party as it is` and the release band's cancel reads
+`Keep` — two live controls beginning with the same word, on screen at the same
+time, one reversible and one not. No styling of the band fixes that from
+inside the band.
+
+So a `decline` class marks the kind on both screens, and one rule under
+`body[data-band-open]` takes its weight for as long as the band owns the
+decision — the same mechanism, one block up, that already hollows the
+primaries behind a band under the "one accent per screen" rule. **It takes
+weight, not reachability**: position, hit area and tab order are untouched,
+which is what keeps R1 true.
+
+`.target__decline` deliberately does **not** take the `button` class. `.button`
+is defined after it in `styles.css` and carries its own background and border
+at equal specificity, so adding it would have silently removed this control's
+card shape by source order alone — and the card shape is what makes it read as
+one of the answers above it.
+
+**The assertion is the item's own sentence, measured**, and it was verified by
+planting a regression: with the rule's selector changed to one nothing matches,
+`test/visual-pocket.test.ts` fails on the colour comparison.
+
+### Two things left standing, both named
+
+**The `target` fixture still passes no `allowSkip`,** so the decline control
+has never rendered on that surface and the census has never counted it. The
+`confirm-forfeit` fixture passes `true` and measures it there, which covers the
+control without moving the `target` surface's baseline. Left as it is
+deliberately.
+
+**The release band is unmeasured.** The sharpest wording collision in the game
+— `Keep` against `Keep my party as it is` — is fixed by the rule above, because
+the class covers both screens, but no fixture stages that band. A third
+confirm surface would measure it. Recorded rather than built: M5.5 names two
+confirms and this is a third.

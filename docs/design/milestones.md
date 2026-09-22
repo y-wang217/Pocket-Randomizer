@@ -393,7 +393,8 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 
 ### Tier 5: remaining surfaces
 
-**Open. Six rows filed before the tier, none ruled**, from the reading in
+**Open, one item of six done. Seven rows filed before the tier; five are
+ruled**, from the reading in
 [`../handoff/4.10-tier-5-prep.md`](../handoff/4.10-tier-5-prep.md). D30 and D31
 are instrument rows that apply D2 and D21b rather than asking for a new ruling
 and close on the build; D29, D32, D33 and D34 each edit a bible table and are
@@ -402,12 +403,12 @@ every string in `data/events.ts` whichever way D33 is ruled.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M5.1 Reward, shop and TM shelf cards | open | **D29, D34, D35** (D12 ruled: split, no hash move) |
-| M5.2 Map node card | open | **D29, D35** |
-| M5.3 Locale card and pre-gym screen | open | **D29, D32** (D1 ruled) |
-| M5.4 Result screen and capture card | open | **D29** (D1, D5 ruled: no label line) |
-| M5.5 Confirm overlays | open | **D31** (D1, D22 ruled; scope corrected, see below) |
-| M5.6 Event screen | open | **D33, D14**, D35 (D8 ruled the remedy, not the budget) |
+| M5.1 Reward, shop and TM shelf cards | open | D35 (D12, **D29**, **D34** ruled) |
+| M5.2 Map node card | open | D35 (**D29** ruled) |
+| M5.3 Locale card and pre-gym screen | open | — (D1, **D29**, **D32** ruled) |
+| M5.4 Result screen and capture card | open | — (D1, D5, **D29** ruled) |
+| M5.5 Confirm overlays | **done** | — (D1, D22, D31 ruled. Replace **4**, forfeit **5**, ceilings 6 and 6; `CONFIRM_SURFACES`, the `decline` kind, [`generation.md` §64](../generation.md)) |
+| M5.6 Event screen | open | D35 (**D33** ruled: amend the row and name the hints; **D14** carried with it) |
 
 **D30 is closed**: four census component rows and a worst-instance column,
 committed with the before-numbers and before any card was touched. The column
@@ -418,8 +419,10 @@ map node card **12** against 0, locale card **6** against 0, capture card **3**
 against 0. **No relic card renders on any fixture**, so the reward card's 8 is
 not the heaviest card the game draws (D34).
 
-D31's band fixtures are **not** a pre-tier commit: they add gated surfaces and
-touch three test files, which is M5.5's own work.
+D31's band fixtures landed **inside M5.5**, not as a pre-tier commit: they add
+a third gated category and touch three test files, which is the item's own
+work. `CONFIRM_SURFACES` is separate from `OVERLAY_SURFACES` because a band has
+no `__sheet` and the overlay gate would have passed on an absence.
 
 **D35 is the fixture audit Tier 4 asked for, and it lands on three items.** The
 fixture grants every relic, so all 28 relic cards on the map collapse and all
@@ -427,13 +430,15 @@ six gated nodes read `known`; and `wordiestEvent` searches `forest` alone, which
 has the lowest ceiling of the eight locales. M5.1, M5.2 and M5.6 each build
 their own fixture rather than the shared one being re-cut under four surfaces.
 
-**M5.5 is nearly built and its item text is out of date twice over.** M2.3
-shipped the replace band with both cards; M3.3 shipped the forfeit band with
-**one**, deliberately, and D22 then moved the decline budget from 4 to 6. The
-record still reads "the two cards" and "census reads 6 and 4". The record is not
-edited: the deviation goes in [`../generation.md`](../generation.md). What is
-left of the item is its last line — overlay cancel and flow decline visually
-distinct — plus D31's fixture.
+**M5.5 was nearly built when the tier opened, and its item text was out of date
+twice over.** M2.3 shipped the replace band with both cards; M3.3 shipped the
+forfeit band with **one**, deliberately, and D22 then moved the decline budget
+from 4 to 6. The record still reads "the two cards" and "census reads 6 and 4",
+and is not edited: the deviation is
+[`../generation.md` §64](../generation.md). What the item actually built was
+its last line — overlay cancel and flow decline visually distinct, via a
+`decline` control kind and one rule under `body[data-band-open]` — plus D31's
+two fixtures and the number they made readable.
 
 ### Tier 6: onboarding and density
 

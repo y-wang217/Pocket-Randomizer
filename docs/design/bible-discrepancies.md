@@ -46,7 +46,7 @@ which blocks everything.
 | D28 | M4.3's done-when, then M7.2 | The battle screen's header carries three facts, section 4 budgets none of them, and the census cannot see one of them | **2026-09-21** |
 | D29 | M5.1, M5.2, M5.3, M5.4 | Section 5's canon names none of the five card surfaces section 4 budgets | **open** |
 | D30 | M5.1 to M5.4's done-whens | The census has no component row for any of the five, so four done-whens are not computable | **open**, self-closing |
-| D31 | M5.5's done-when | The census calls a built component absent, because no fixture opens a band | **open**; the fixture is M5.5's own work |
+| D31 | M5.5's done-when | The census calls a built component absent, because no fixture opens a band | **2026-09-22**, closed inside M5.5 |
 | D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **open** |
 | D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **open** |
 | D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **open** |
@@ -56,7 +56,7 @@ which blocks everything.
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Twenty-eight of thirty-five rows are ruled.** Tier 5 filed six on 2026-09-22
+**Thirty-three of thirty-five rows are ruled.** D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -2061,7 +2061,7 @@ relic card asserted rather than censused.
 
 ## D31. The census calls a built component absent, because no fixture opens a band
 
-**Blocks M5.5's done-when. Open; the fixture belongs to M5.5.**
+**Blocks M5.5's done-when. Closed 2026-09-22, on M5.5's build.**
 
 `docs/design/text-census.md` reads:
 
@@ -2392,3 +2392,33 @@ fixture can produce the condition it is named for. The post-census is where a
 standing check for that belongs, and it is recorded here rather than built now
 because the check needs the vocabulary D31 asks for — `absent` against
 `unrendered` — to say anything useful.
+
+
+---
+
+## D31, closed with the build
+
+**M5.5, 2026-09-22.** Option 1 and option 3 together, as recommended.
+
+`CONFIRM_SURFACES` is a third category in `gallery-surfaces.ts` beside the
+decision and overlay lists — not an `OVERLAY_SURFACES` entry, because a band is
+not built on `ui/overlay.ts` and has no `__sheet`, so the overlay gate's
+`.${surface}__sheet` query would have found nothing and the assertion would
+have passed by measuring an absence. Each fixture renders its screen and clicks
+the real control, so the band measured is the one `ui/band.ts` builds.
+
+**The two bands, Pocket, against ceilings of 6 and 6 (D22):** replace **4**,
+forfeit **5**. The component reads 9 total, worst instance 5.
+
+**Option 3 found a second hole while being built, and the goal was standing in
+it.** `renderTable` decided a component existed by whether it had produced text
+records — so a component that renders correctly and draws **zero words**
+produces none, and the table's reward for an item hitting a budget of 0 would
+have been a row claiming the component does not exist. Every Tier 5 budget but
+two is 0. `presentOn` answers presence separately from words, and the table now
+tells three states apart: a number (it rendered; zero is a number),
+`unrendered` (in the tree, no fixture reaches it), `absent` (not built, via
+`built: false` on a `COMPONENTS` entry — which no entry needs today, and which
+exists so the next one can be honest rather than indistinguishable).
+
+Record: [`../generation.md` §64](../generation.md).

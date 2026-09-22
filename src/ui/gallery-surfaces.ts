@@ -12,6 +12,10 @@
  * Fourteen surfaces from the report, as fifteen fixtures: the result screen
  * has two shapes the app shows — the cards, and the capture offer that
  * arrives on a second render with the cards gone — and both are gated.
+ *
+ * **M5.5 adds two more**, and they are the first fixtures that are not a
+ * surface at rest: the two confirm bands, each staged by clicking the control
+ * that opens it. See `CONFIRM_SURFACES`.
  */
 
 /** Decision surfaces: zero scroll at 390x844 in Pocket, a hard gate. */
@@ -41,7 +45,29 @@ export const ARCHIVE_SURFACES = ['summary', 'log-sheet'] as const;
  */
 export const OVERLAY_SURFACES = ['drawer', 'map-drawer'] as const;
 
-export const GALLERY_SURFACES = [...DECISION_SURFACES, ...OVERLAY_SURFACES, ...ARCHIVE_SURFACES] as const;
+/**
+ * The two confirm bands, staged open. **Milestone M5.5, discrepancy D31.**
+ *
+ * They are their own category rather than `OVERLAY_SURFACES` entries because
+ * they are not built on `ui/overlay.ts`: a band is a fixed strip with no
+ * `__sheet`, so the overlay gate's `.${surface}__sheet` query would find
+ * nothing and the assertion would pass by measuring an absence.
+ *
+ * **Why they exist at all.** Section 4 budgets the replace confirm at 6 and
+ * the decline confirm at 6 (D22), section 9 carries a bet about their two
+ * controls, and the census read `confirm overlay | absent | absent | absent` —
+ * because a band only exists after a tap and every other fixture is a screen
+ * at rest. `ui/band.ts` has four call sites; nothing was absent but a fixture.
+ * D31.
+ *
+ * Both are staged by **clicking the real control**, the way the event fixture
+ * reveals its outcome, so the band under measurement is the one production
+ * builds rather than one this file fabricates. A hand-built band would be a
+ * second copy of the thing `test/band.test.ts` exists to forbid.
+ */
+export const CONFIRM_SURFACES = ['confirm-replace', 'confirm-forfeit'] as const;
+
+export const GALLERY_SURFACES = [...DECISION_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES] as const;
 
 export type GallerySurface = (typeof GALLERY_SURFACES)[number];
 

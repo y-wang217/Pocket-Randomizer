@@ -138,7 +138,18 @@ export function renderCaptureOffer(
   const actions = el('div', 'acquire__actions');
   const decline = document.createElement('button');
   decline.type = 'button';
-  decline.className = 'button';
+  /*
+   * **The flow-decline kind. Milestone M5.5, and this screen is the sharp
+   * case.**
+   *
+   * At a full party this control reads `Keep my party as it is`, and the band
+   * a release opens reads `Keep`. Two controls beginning with the same word,
+   * on screen at the same time, one of which moves the run on and one of which
+   * changes nothing. The shared class is what the `body[data-band-open]` rule
+   * in `styles.css` reaches so the band's cancel is the only live "no" while
+   * the band is up.
+   */
+  decline.className = 'button decline';
   decline.textContent = full ? 'Keep my party as it is' : 'Leave it';
   decline.addEventListener('click', () => onDecide({ kind: 'decline' }));
 

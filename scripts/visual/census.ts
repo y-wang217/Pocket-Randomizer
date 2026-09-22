@@ -114,8 +114,18 @@ export const CENSUS_SEED = 'SMOKE24';
  * A component with no call site in the tree yet reports `absent` rather than
  * zero, because zero words and no component are different facts and only one
  * of them is done.
+ *
+ * **And a component in the tree that no fixture renders reports `unrendered`,
+ * which is a third fact again. D31, M5.5.** The confirm overlay read `absent`
+ * for four tiers while `ui/band.ts` had four call sites: a band only exists
+ * after a tap, and every fixture but the event's is a screen at rest.
+ * `absent` is a statement about the tree, and the tree was not what was
+ * missing. The two are told apart by the `built` flag on each entry below — a
+ * claim, written once, that the component exists — so a row reading
+ * `unrendered` names a fixture that has to be built rather than a component
+ * that has to be.
  */
-export const COMPONENTS: readonly { id: string; selector: string; why: string }[] = [
+export const COMPONENTS: readonly { id: string; selector: string; why: string; built?: false }[] = [
   {
     id: 'battle move button',
     /*
@@ -389,9 +399,31 @@ async function readSurface(page: Page, components: readonly { id: string; select
   );
 }
 
-async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
+/**
+ * Which components put an element on this page at all. **D31, M5.5.**
+ *
+ * Separate from the text walk because the two answer different questions. The
+ * walk finds words; this finds *presence*. A component that renders correctly
+ * and draws **zero words** produces no text records, and before this it fell
+ * through to `absent` — so the table's reward for an item hitting its budget
+ * of 0 would have been a row claiming the component does not exist. Every
+ * Tier 5 budget but two is 0, so that was a trap laid directly across this
+ * tier's path.
+ */
+async function presentOn(page: Page, components: readonly { id: string; selector: string }[]): Promise<string[]> {
+  return page.evaluate(
+    (list) => list.filter(({ selector }) => document.querySelector(selector) !== null).map(({ id }) => id),
+    components.map(({ id, selector }) => ({ id, selector })),
+  );
+}
+
+async function censusAll(url: string, browser: Browser): Promise<{ records: Record_[]; present: Set<string> }> {
   const lexicon = properNouns();
   const records: Record_[] = [];
+  // Which components put an element on any surface, in any density. See
+  // `presentOn`: rendering and drawing words are different facts, and a
+  // component at 0 words is the thing most of Tier 5 is trying to build.
+  const present = new Set<string>();
   const context = await browser.newContext({ viewport: PHONE });
   // The sprite host is unreachable in this sandbox and may hang rather than
   // refuse. Sprites are fixed-size boxes and carry no text, so aborting the
@@ -413,6 +445,8 @@ async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
       await page.mouse.move(0, 0);
       await page.waitForTimeout(150);
 
+      for (const id of await presentOn(page, COMPONENTS)) present.add(id);
+
       const nodes = await readSurface(page, COMPONENTS, GLYPH_SLOTS.map(({ selector }) => selector));
       for (const { component, instance, text } of nodes) {
         const words = tokenise(text).filter((token) => {
@@ -426,7 +460,7 @@ async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
   }
 
   await context.close();
-  return records;
+  return { records, present };
 }
 
 function total(records: readonly Record_[]): number {
@@ -452,7 +486,24 @@ function worstInstance(records: readonly Record_[], component: string, density: 
   return perInstance.size ? Math.max(...perInstance.values()) : 0;
 }
 
-export function renderTable(records: readonly Record_[]): string {
+/**
+ * `present` is the set of components that put an element on some surface, from
+ * `presentOn`. With `built` on each `COMPONENTS` entry it makes three states
+ * distinguishable where there used to be two, and the middle one is the one
+ * D31 was filed about:
+ *
+ *   - **a number** — it rendered. Zero is a number, and for most of Tier 5's
+ *     budgets zero is the *goal*, so this is the row an item earns.
+ *   - **`unrendered`** — it is in the tree and no fixture reaches it. The
+ *     confirm overlay sat here for four tiers reading `absent`.
+ *   - **`absent`** — it is not built yet. A `COMPONENTS` entry added ahead of
+ *     the item that builds it says `built: false` and lands here; no entry
+ *     needs it today, and the field exists so the next one can be honest
+ *     rather than indistinguishable.
+ *
+ * D31, M5.5.
+ */
+export function renderTable(records: readonly Record_[], present: ReadonlySet<string> = new Set()): string {
   const lines: string[] = [];
   lines.push('# Text census');
   lines.push('');
@@ -496,8 +547,15 @@ export function renderTable(records: readonly Record_[]): string {
   lines.push('|---|---:|---:|---:|---:|');
   for (const { id } of COMPONENTS) {
     const seen = records.some((r) => r.component === id);
+    // `absent` is "not built"; `unrendered` is "built, and no fixture shows
+    // it". D31: the two had been one word, and the wrong one. A component
+    // that renders but draws no words still reads as a number, because zero
+    // words at rest is what most of these budgets are asking for.
+    const inTree = COMPONENTS.find((entry) => entry.id === id)?.built !== false;
+    const missing = inTree ? 'unrendered' : 'absent';
+    const rendered = seen || present.has(id);
     const cells = DENSITIES.map((density) => total(records.filter((r) => r.component === id && r.density === density)));
-    lines.push(`| ${id} | ${seen ? `${cells.join(' | ')} | ${worstInstance(records, id, 'pocket')}` : 'absent | absent | absent | absent'} |`);
+    lines.push(`| ${id} | ${rendered ? `${cells.join(' | ')} | ${worstInstance(records, id, 'pocket')}` : `${missing} | ${missing} | ${missing} | ${missing}`} |`);
   }
   const chrome = DENSITIES.map((density) => total(records.filter((r) => r.component === null && r.density === density)));
   lines.push(`| screen chrome (no component) | ${chrome.join(' | ')} | — |`);
@@ -527,8 +585,8 @@ async function main(): Promise<void> {
   const server = await serve(out);
   const browser = await launch();
   try {
-    const records = await censusAll(server.url, browser);
-    const table = renderTable(records);
+    const { records, present } = await censusAll(server.url, browser);
+    const table = renderTable(records, present);
     if (write) {
       writeFileSync(CENSUS_PATH, table);
       console.log(`census: wrote ${CENSUS_PATH}`);

@@ -1,6 +1,14 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 6, Sept 21, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 7, Sept 22, 2026.
+
+**Rev 7** carries one amendment, ruled 2026-09-22 on row D29: section 5's
+canon gains the **confirm band**, which R1 already named, section 4 already
+budgeted twice and section 9 already bet on, and which had no row here. The
+same entry records that a flow decline and a band cancel are distinguished by
+weight rather than by position (milestone M5.5). No rule moved: a component
+that had no row has one, which is what D28 did for the battle screen header
+the day before.
 
 **Rev 6** carries one amendment, ruled 2026-09-21 on row D28: the battle
 screen's **header** gets a budget row and a place in the component canon. It has
@@ -266,9 +274,26 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
 | Battle screen header | Node kind, opponent, AI tier (2026-09-21, D28) | Battle |
+| Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store |
 
 A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.
+
+**The confirm band was budgeted twice, bet on once, and canonised nowhere**
+(added 2026-09-22 under D29's ruling). R1 names it — *"base power is in the
+same corner of a battle button, a reward card, a TM card, a party row chip and
+a confirm overlay"* — section 4 gives it two rows, and section 9 carries D22's
+bet about its two controls. It had no row here, which is how a component with
+four call sites came to read `absent` in the census for four tiers.
+
+**A flow decline is not a band cancel, and the two are told apart by weight,
+never by position** (2026-09-22, M5.5). A band cancel backs out of a confirm
+and changes nothing; a flow decline answers the screen's question with "none"
+and moves the run on. They are on screen together only while the band is up,
+and for that time the decline carries no live weight, so the band's own pair is
+the only live control — the same rule the primaries behind a band already
+follow. R1 holds because nothing moves: the decline keeps its slot, its hit
+area and its place in tab order.
 
 ---
 

@@ -3861,6 +3861,32 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 }
 
 /*
+ * **The flow decline recedes while a band is up. Milestone M5.5.**
+ *
+ * The item's last line: overlay cancel and flow decline visually distinct.
+ * They are on screen together exactly once — while the band the decline opened
+ * is up — so that is the moment the distinction has to hold, and the rule
+ * above is the mechanism that already exists for it.
+ *
+ * The two are different kinds of answer. A band cancel backs out and changes
+ * nothing. A flow decline answers the screen's question with "none" and moves
+ * the run on. The capture screen is where the wording alone cannot carry it:
+ * at a full party the decline reads `Keep my party as it is` and the release
+ * band's cancel reads `Keep`, both live, both on screen, one reversible and
+ * one not.
+ *
+ * So the decline stops looking like a live answer for as long as the band owns
+ * the decision. It keeps its position and its hit area — this takes its
+ * weight, not its reachability — and the band's own pair is the only live
+ * control on screen, which is the same rule the primaries follow one block up.
+ */
+body[data-band-open] .decline:not(.confirm-band .decline) {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+/*
  * The compact stat row on a pick screen. Item F, part 4.
  *
  * A grid rather than a flex row so the six cells line up across three stacked

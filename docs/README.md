@@ -78,8 +78,8 @@ are closed, sixteen items of twenty-four**, as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
 [#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
-`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh` and no code
-is written yet**: its six rows are filed and none is ruled. One trunk per tier,
+`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, seventeen items of
+twenty-four**: M5.5 is closed and D29, D32, D33 and D34 were ruled 2026-09-22. One trunk per tier,
 one sub-branch per item. No version axis moves in any of the sixteen:
 `contentHash` holds at `d4e080`, and the only change under `core/` is M4.1
 deleting two flag kinds the bible's R9 forbids.

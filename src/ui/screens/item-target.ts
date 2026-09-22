@@ -117,7 +117,26 @@ export function createItemTargetScreen(): ItemTargetScreen {
       if (allowSkip) {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'target__decline';
+        /*
+         * **`decline` is the shared kind; `target__decline` is this screen's
+         * shape. Milestone M5.5.**
+         *
+         * A *flow decline* answers the screen's question with "none" and moves
+         * the run on. A *band cancel* backs out of the confirm and changes
+         * nothing. The item's last line asks for the two to be visually
+         * distinct, and they are on screen together exactly once: while the
+         * band this control opens is up. `styles.css` carries the rule under
+         * `body[data-band-open]`; the class is what lets one rule cover both
+         * screens that have one of these rather than two rules naming two
+         * blocks.
+         *
+         * **No `button` class, deliberately.** `.button` is defined after
+         * `.target__decline` in `styles.css` and carries its own background
+         * and border at equal specificity, so adding it here would silently
+         * take this control's card shape away by source order alone. The
+         * shape is what makes it read as one of the answers above it.
+         */
+        button.className = 'decline target__decline';
         const label = el('span', 'target__decline-label');
         setProse(label, TARGET_COPY.decline);
         button.append(label);
