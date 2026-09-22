@@ -1911,6 +1911,28 @@ function renderMove(
    */
   button.dataset['tip'] = `move:${move.id}`;
   /*
+   * **The battle button declines hover for the same reason the card does, and
+   * it was missed because the two are built in different functions.** The
+   * inspect-on-touch patch, 2026-09-22.
+   *
+   * M2.1 turned hover off for `moveCard` on the argument that a card-sized
+   * hover target opens a panel whenever a cursor crosses it and then covers
+   * the thing being reached for. M1.2 had already made this button exactly
+   * that — a card-sized trigger — and the flag never followed, so on a desktop
+   * a cursor resting on the move bar opened an explanation over the move bar.
+   *
+   * It is worse here than on a reward card, because this screen re-renders on
+   * every turn: the click that opened the panel also spends the turn, and the
+   * trigger whose `mouseout` would have closed it is gone by the time the
+   * cursor leaves. The layer now closes a panel on any click outside it, so
+   * that is survivable rather than fatal — this is the other half, and it
+   * stops the panel opening unasked in the first place.
+   *
+   * Every other gesture is untouched: tap selects, the long press explains,
+   * Enter and Space explain.
+   */
+  button.dataset['tipHover'] = 'off';
+  /*
    * **The footer is gone with the control it existed to sit beside. M2.1.**
    *
    * `.move__footer` was a flex row holding PP at the left and the `?` chip at
