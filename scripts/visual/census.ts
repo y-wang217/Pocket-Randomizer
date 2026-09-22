@@ -259,6 +259,22 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
     why: 'Section 4 budgets the locale card at 0. The screen around it is unbudgeted, which is D32.',
   },
   {
+    id: 'event choice',
+    /*
+     * **Section 5's newest row, added with D33's ruling (M5.6).** The label,
+     * the hint, the reward-tier pips and the Toll's price — the one component
+     * section 4 budgets prose on. The gate above it is not inside `.event__
+     * choice` and is not counted here: it is two marks and carries no text,
+     * which is the change M5.6 made and which the surface row is what checks.
+     *
+     * Four instances at `known` and three below, so the worst-instance column
+     * is the one a per-option budget is read against. Summing them would
+     * charge one option for another's words, which is what D30 is about.
+     */
+    selector: '.event__choice',
+    why: "Section 4 budgets a label at 4 and a hint at 6, and section 5 canonises the pair as the event choice. One call site, because there is one surface that asks this question.",
+  },
+  {
     id: 'app shell',
     selector: '.header, .shell__drawer-bar, .seedbar, .stamps',
     why: 'The header, drawer bar, seed bar and stamps are mounted once and render on every surface. Section 4 budgets surfaces, not the chrome around them, so this is broken out to be subtracted rather than silently charged to all sixteen.',

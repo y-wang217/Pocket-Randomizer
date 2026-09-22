@@ -48,21 +48,28 @@ which blocks everything.
 | D30 | M5.1 to M5.4's done-whens | The census has no component row for any of the five, so four done-whens are not computable | **open**, self-closing |
 | D31 | M5.5's done-when | The census calls a built component absent, because no fixture opens a band | **2026-09-22**, closed inside M5.5 |
 | D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **2026-09-22**, option 1, built |
-| D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **open** |
+| D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **2026-09-22**, option 1, built |
 | D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **2026-09-22**, ruled on a false premise; **moot if D36 is ruled option 1** |
-| D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **2026-09-22**; M5.1's half built, M5.2's and M5.6's open |
+| D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **2026-09-22**, closed: M5.1's fixture, M5.2's unit test, M5.6's widened event draw |
 | D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **2026-09-22**, option 1, built |
 | D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
 | D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
+| D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **open** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Thirty-seven of thirty-eight rows are ruled**, and D38 blocks one clause of M5.4. D35 is ruled and half built: M5.1 carried its own relic fixture, and M5.2's bare-capability map and M5.6's widened `wordiestEvent` are still to come. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
-before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
-with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
-ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
+**Thirty-eight of thirty-nine rows are ruled**, and the one that is not — D38,
+filed inside M5.4 — blocks one clause of that item and nothing else. D39 was
+filed on M5.6's build and blocks nothing: it is a word M5.6 chose to keep and
+said why. Tier 5 opened with six rows filed on 2026-09-22 (D29 to D34) and
+closed with all six ruled and built, plus D14 from Tier 0 and D35 from Tier 4.
+**D14 stopped being nobody's blocker when D33 was filed**: M5.6 reaches every
+string in `data/events.ts` whichever way D33 is ruled, which is the condition
+D14's own recommendation had been waiting five tiers for. D35 closed across
+three items — M5.1's relic fixture, M5.2's unit test, and M5.6 widening
+`wordiestEvent` past one locale and off character-length ranking. Tier 4 filed six: five before the tier opened, four of them
 ruled the same day, then D26 and D28 ruled together once M4.1 and M4.2 had
 shipped and M4.3 was the item in front of them. D18 was opened and ruled on 2026-09-21,
 inside M3.1. Each
@@ -2227,6 +2234,39 @@ them — and that file is inside `contentHash`. See D14's option 2, which has
 been waiting for exactly this and costs the same hash move it cost at Tier 0
 while buying the whole table instead of two words.
 
+### Ruled 2026-09-22: option 1, and built the same day
+
+**Option 1: amend the row to name the hints and re-derive the number.** The
+recommendation was 2 and it was not taken — the hints stay and the number
+moves. Section 4's event row is **59** at Rev 11, and D14 was ruled with it as
+this row required (option 2, split, built with M5.1's half at §65).
+
+**The number is 59 and the ruling composed 52, and the seven words are this
+row's own defect avoided.** Hook 12 plus four labels at 4 plus four hints at 6
+is 52 exactly, with nothing left for anything else on the screen — which is
+precisely the shape of the complaint above, one revision later. So the amended
+row names every part it budgets: the copy's 52, the Toll's price chip at 5, and
+the control at 2.
+
+**Three things left the screen as marks rather than as cuts, and none of them
+is option 2.** Option 2 was *remove the hints*; what M5.6 did is re-encode
+three attributes that section 3 already specifies and that were rendering as
+words anyway — the capability requirement and its band as the glyph and chevron
+M5.2 built, the reward range as the reward-tier pips section 3 has named since
+Rev 1 with no call site in the tree. The screen's title went too, because the
+hook says what it said. Twenty-six words, none of them a hint.
+
+**What the sub-budgets are, and where they came from.** Measured over the tree
+before a word was rewritten: hooks p90 12 and max 12; labels p50 4, p90 6;
+hints p50 10, min 7. So 12 is the hooks' own ceiling and cost nothing, 4 is the
+labels' median and cost twenty-eight rewrites, and **6 is a number no hint
+reached** — all ninety-six were rewritten. Derived from the corpus, then
+written to; not guessed, then enforced.
+
+Section 9 carries two bets this makes: that a six-word hint still carries the
+shape of a risk, and that a span of pips reads as a range rather than as a
+rating. Either firing raises the row rather than dropping a fact, which is C2.
+
 ---
 
 ## D34. Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference
@@ -2825,3 +2865,51 @@ so it is not mistaken for a fact.
 `renderOffered` naming this row. **M5.4's other two clauses are built**: the
 coverage change is two rows of signs and chips, and the result screen's own
 words went 32 → 2 against a budget of 6.
+
+---
+
+## D39. `Costs` is a field label at rest, and no family encodes a price
+
+**Filed 2026-09-22, inside M5.6. Blocks nothing.**
+
+R2: *"Numbers stay. Labels go. Sentences go."* and it forbids field labels at
+rest by name — `Type`, `BP`, `PP`, `BAND`, `HP`, `Acc`. The Toll option's
+price chip reads `Costs 20% HP, party`, and `Costs` is a field label by that
+definition: the word names what the number is, and the number is the fact.
+
+It is four or five words on one of four buttons, and M5.6 kept it rather than
+cut it, for a reason that is C2 rather than convenience. **What the chip
+carries is not the price, it is the *direction*.** A player who reads
+`20% HP, party` beside a reward meter has been told a quantity and not told
+whether it is charged or paid, and which of those it is changes the decision.
+Section 2 has no family for a price, so R2 has nothing to trade the word for —
+the same position the ability is in, which section 4 resolves by budgeting it
+by name.
+
+**There is a precedent for the wordless form and it is in this document.** The
+capture card's coverage rows carry a plus row and a minus row, *"signs only"*,
+ruled on D5 on 2026-09-19 as permanent marks rather than an exposure label. A
+`−` on the price is the same move: the sign says taken, the number says how
+much, and `Costs` goes.
+
+**Two things stop M5.6 from taking it.** The chip has no `data-tip`, so there
+is no inspect answer for a player who does not read the sign — and R5 is the
+reason every other mark on that screen has one. And a sign on a price is a new
+encoding rather than a mounted one, where the other three changes M5.6 made
+were section 3's own, already specified and already built.
+
+**Options.**
+
+1. **Leave it, and budget it by name**, as section 4 does for the ability. The
+   row already carries it at 5, so this is what shipped and the cost is one
+   label surviving R2 on one surface.
+2. **`−` prefix, `Costs` deleted, and a `toll:` inspect tip added.** Saves one
+   word, follows D5's precedent, and needs a section 3 row for the price
+   attribute plus a section 9 disconfirmer for whether the sign reads.
+3. **A price glyph**, which is an eleventh family and therefore section 10.
+
+**Recommendation: 2, timed with M6.1.** The exposure-label item is already
+opening `data/glyphLabels.ts` and walking every mark on every surface, which is
+when the question *does a player know what this sign means the first time* is
+cheapest to answer. Not urgent: nothing is over budget because of it, and
+option 1 is what is shipped and is defensible on its own.

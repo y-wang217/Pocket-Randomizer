@@ -28,7 +28,7 @@ subtracted here.
 | party | 407 | 408 | 23 | 17 |
 | pre-gym | 151 | 157 | 9 | 3 |
 | shop | 56 | 40 | 31 | 25 |
-| event | 95 | 95 | 95 | 89 |
+| event | 60 | 60 | 60 | 54 |
 | result-relic | 34 | 29 | 26 | 20 |
 | shop-relic | 69 | 48 | 39 | 33 |
 | drawer | 284 | 272 | 41 | 35 |
@@ -63,8 +63,9 @@ budget is 0 or the component renders once.
 | reward card | 65 | 40 | 40 | 8 |
 | map node card | 72 | 44 | 44 | 3 |
 | locale card | 3 | 3 | 0 | 0 |
+| event choice | 40 | 40 | 40 | 13 |
 | app shell | 133 | 133 | 133 | 14 |
-| screen chrome (no component) | 1321 | 1146 | 859 | — |
+| screen chrome (no component) | 1246 | 1071 | 784 | — |
 
 ## Every word counted, in Pocket
 
@@ -82,7 +83,7 @@ above can be argued with rather than taken on faith.
 - **party** (23): `GYMRUN` `Tutorial` `Map` `Party` `Your` `party` `Slot` `leads` `Release` `is` `permanent` `Watch` `for` `Backpack` `of` `carried` `Relics` `Back` `to` `the` `map` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **pre-gym** (9): `GYMRUN` `Tutorial` `Map` `Party` `Send` `in` `Items` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **shop** (31): `GYMRUN` `Tutorial` `Map` `Party` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Restore` `restore` `HP` `PP` `and` `status` `whole` `party` `Leave` `without` `buying` `GYMRUN-0b2c2c-SMOKE24` `r21`
-- **event** (95): `GYMRUN` `Tutorial` `Map` `Party` `Something` `happens` `Requires` `you` `have` `the` `relic` `A` `fallen` `giant` `across` `a` `ravine` `with` `something` `nesting` `in` `it` `and` `keep` `going` `The` `trunk` `is` `a` `bridge` `Using` `it` `as` `one` `costs` `nothing` `Reward` `T1` `into` `the` `hollow` `Whatever` `is` `nesting` `in` `there` `is` `nesting` `in` `there` `Reward` `T0` `to` `T2` `the` `nest` `out` `Clearing` `it` `means` `everyone` `gets` `bitten` `at` `least` `once` `Costs` `HP` `party` `Reward` `T2` `Roll` `the` `trunk` `over` `The` `trunk` `turns` `and` `the` `underside` `has` `not` `been` `touched` `Reward` `T2` `to` `T3` `HP` `lead` `Carry` `on` `GYMRUN-0b2c2c-SMOKE24` `r21`
+- **event** (60): `GYMRUN` `Tutorial` `Map` `Party` `A` `sinkhole` `pool` `with` `a` `clear` `bottom` `and` `no` `shallows` `at` `all` `Fish` `from` `the` `rim` `A` `line` `brings` `something` `up` `Drop` `in` `and` `grab` `to` `the` `bottom` `and` `deep` `Drag` `it` `with` `nets` `Every` `pair` `of` `hands` `then` `cramp` `Costs` `HP` `party` `Go` `to` `the` `bottom` `there` `it` `has` `a` `floor` `Carry` `on` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **result-relic** (26): `GYMRUN` `Tutorial` `Map` `Party` `Choose` `a` `reward` `of` `the` `three` `There` `is` `no` `skip` `one` `ELITE` `Restore` `restore` `HP` `PP` `and` `status` `whole` `party` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **shop-relic** (39): `GYMRUN` `Tutorial` `Map` `Party` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Restore` `Restore` `HP` `PP` `and` `status` `whole` `party` `Restore` `restore` `HP` `PP` `and` `status` `whole` `party` `Leave` `without` `buying` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **drawer** (41): `GYMRUN` `Tutorial` `Map` `Party` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `coins` `Rookie` `Trainer` `coins` `Something` `happens` `Trainer` `Trainer` `Garnet's` `Gym` `Pokemon` `Coins` `Party` `Manage` `Lead` `Your` `party` `Carrying` `now` `Relics` `Read` `only` `Density` `Detailed` `Pocket` `speed` `Even` `Patient` `GYMRUN-0b2c2c-SMOKE24` `r21`

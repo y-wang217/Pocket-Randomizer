@@ -393,13 +393,16 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 
 ### Tier 5: remaining surfaces
 
-**Open, four items closed and M5.4 two clauses of three. Ten rows filed before
-and during the tier; D38 is the one open**, from the reading in
+**Closed, five items and M5.4 two clauses of three. Eleven rows filed before
+and during the tier; D38 is the one open** and it blocks M5.4's last clause
+alone, from the reading in
 [`../handoff/4.10-tier-5-prep.md`](../handoff/4.10-tier-5-prep.md). D30 and D31
-are instrument rows that apply D2 and D21b rather than asking for a new ruling
-and close on the build; D29, D32, D33 and D34 each edit a bible table and are
-the lead designer's. **D14 stops being nobody's blocker here**: M5.6 reaches
-every string in `data/events.ts` whichever way D33 is ruled.
+were instrument rows that applied D2 and D21b rather than asking for a new
+ruling and closed on the build; D29, D32, D33 and D34 each edited a bible table
+and were the lead designer's, and all four are ruled. **D14 stopped being
+nobody's blocker here** after five tiers, and **D35 closed across three items**.
+D39 was filed on M5.6's build and blocks nothing. The bible went Rev 6 → Rev 11
+across the tier and not one of the twelve rules moved.
 
 | Item | Status | Blocked by |
 |---|---|---|
@@ -408,7 +411,7 @@ every string in `data/events.ts` whichever way D33 is ruled.
 | M5.3 Locale card and pre-gym screen | **done** | — (D1, D29, **D32** ruled. Locale card **6 → 0**, locale screen **45 → 3** against 4, pre-gym **32 → 3** against 4; [`generation.md` §68](../generation.md)) |
 | M5.4 Result screen and capture card | **two clauses of three** | **D38** (D1, D5, D29 ruled. Result screen's own words **32 → 2** against 6; coverage as two sign rows. The card does **not** mount the party row: 655px in Detailed puts the decision buttons at 2253 against a fold gate of 844) |
 | M5.5 Confirm overlays | **done** | — (D1, D22, D31 ruled. Replace **4**, forfeit **5**, ceilings 6 and 6; `CONFIRM_SURFACES`, the `decline` kind, [`generation.md` §64](../generation.md)) |
-| M5.6 Event screen | open | D35 (**D33** ruled: amend the row and name the hints. **D14 closed**: the copy is split, so the rewrite is free) |
+| M5.6 Event screen | **done** | — (**D33** ruled option 1, **D14** and **D35** closed, D8 reread and its remedy not taken. Row 40 → **59** and it adds up; census **89 → 54**; 96 hints and 28 labels rewritten; requirement, band and reward tier re-encoded as marks; `test/event-budget.test.ts` is the per-event lint; [`generation.md` §70](../generation.md)) |
 
 **D30 is closed**: four census component rows and a worst-instance column,
 committed with the before-numbers and before any card was touched. The column
@@ -424,11 +427,14 @@ a third gated category and touch three test files, which is the item's own
 work. `CONFIRM_SURFACES` is separate from `OVERLAY_SURFACES` because a band has
 no `__sheet` and the overlay gate would have passed on an absence.
 
-**D35 is the fixture audit Tier 4 asked for, and it lands on three items.** The
-fixture grants every relic, so all 28 relic cards on the map collapse and all
-six gated nodes read `known`; and `wordiestEvent` searches `forest` alone, which
-has the lowest ceiling of the eight locales. M5.1, M5.2 and M5.6 each build
+**D35 is the fixture audit Tier 4 asked for, it landed on three items, and it
+is closed.** The fixture grants every relic, so all 28 relic cards on the map
+collapse and all six gated nodes read `known`; and `wordiestEvent` searched
+`forest` alone, which holds 3 of 24 events. M5.1, M5.2 and M5.6 each built
 their own fixture rather than the shared one being re-cut under four surfaces.
+M5.6's half found a second defect in the same function — it ranked by
+**characters**, and nothing budgets characters — so the census had been two
+words short of the worst event as well as sixteen events short of it.
 
 **M5.5 was nearly built when the tier opened, and its item text was out of date
 twice over.** M2.3 shipped the replace band with both cards; M3.3 shipped the

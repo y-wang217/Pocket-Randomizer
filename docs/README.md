@@ -78,9 +78,10 @@ are closed, sixteen items of twenty-four**, as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
 [#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
-`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, twenty items of
-twenty-four plus two clauses of M5.4**: M5.5, M5.1, M5.2 and M5.3 are closed,
-and **D38 blocks M5.4's last clause**. M5.6 is the remaining item. One trunk per tier,
+`8ecf208`. **Tier 5 is closed on `claude/version-4-10-tier-5-6nhlfh`, twenty-two
+items of twenty-four plus two clauses of M5.4**: M5.1, M5.2, M5.3, M5.5 and M5.6
+are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 6 is
+next. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
@@ -90,12 +91,45 @@ all of them hash strings, and the re-minted simulator fixture changing 2.
 `core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
 taking display strings off `EventInstance` so the copy file stays excludable.
 
-**Tier 5 filed six rows before it opened, and built one of them.** D29 (section
-5's canon names none of the five card surfaces section 4 budgets, and two of
-them are one component built twice), **D30 — closed**, D31 (the census calls
-the built confirm overlay *absent* because no fixture opens a band), D32 (the
-locale screen has no budget row), **D33** and D34. Four of the six edit a bible
-table and are unruled.
+**Tier 5 filed six rows before it opened and closed all six**, plus D14 from
+Tier 0 and D35 from Tier 4, and filed **D38** and **D39** on the way. The bible
+went Rev 6 → **Rev 11** across the tier. The one row still open is D38.
+
+**M5.6 moved a number rather than the copy, and then moved the copy too.**
+Section 4's event row said 40 and composed itself as 54; twenty-four of
+twenty-four events failed it by a median of twenty-seven words, and the four
+hints that were the whole overflow were not in the composition at all. D33
+ruled option 1: name the hints, re-derive the number. The row is **59** and it
+adds up — hook 12, four labels 4, four hints 6 (the ruling's 52), the Toll's
+price 5, the control 2. All ninety-six hints and twenty-eight labels were
+rewritten to it. Census **89 → 54**. Twenty-six of those thirty-five words left
+as marks rather than as cuts: the requirement and its band became the glyph and
+chevron M5.2 built, the reward range became the reward-tier pips section 3 has
+named since Rev 1 and nothing had ever drawn, and the screen's title went
+because the hook says what it said. [`generation.md` §70](generation.md).
+
+**D8's remedy was read and not taken.** Section 9 reserves *"requirement moves
+to the map node glyph"* for a disconfirmer observed in a playtest. The
+requirement did not move off the event screen; it stayed and changed form,
+which is R2 and section 3 doing ordinary work. The distinction is the whole of
+why M5.6 did not need D8 reopened.
+
+**A band chevron has opened nothing since M5.2, on every map.**
+`capabilityBandChevron` emits a `capability-band:` tip and `ui/tooltips.ts`
+never carried the kind, so the trigger was focusable, `aria-expanded` and
+silent — the third time this exact defect has shipped, after the flag strip in
+release C. `test/tip-kinds.test.ts` now reads every `tip:` literal under
+`src/ui/` and fails on a prefix the allowlist does not carry, which is the
+third of the three places that have to agree and the only one nothing checked.
+
+**Three counts said nine families three revisions after the tenth.** Section
+2's opening line, R7's enforce clause and section 9's register row all still
+read nine after D37. R7 forbids *"shipping a glyph family that never gets a
+label"* and M6.1 reads that enforce line for its scope, so at nine the
+capability glyph would have shipped unlabelled. Corrected in Rev 11. **The
+milestone prompt is not corrected** — a prompt records what was asked — so the
+deviation is recorded instead: **M6.1's scope is ten families**, and
+`data/glyphLabels.ts` owes the capability family a label.
 
 **D30 is closed and it moved the instrument twice.** Four card selectors went
 in, and building them found that the per-component table had been **summing**
@@ -223,25 +257,27 @@ collapse a relic already held, so of the **28 relic cards the map generates,
 `known` where the same map held bare resolves `none` and `latent`. Separately,
 `wordiestEvent` hardcodes `forest`, which holds 3 of 24 events and has the
 lowest ceiling of the eight locales — the event census of 89 is nine words
-light. M5.1, M5.2 and M5.6 each carry a fixture of their own now.
+light. M5.1, M5.2 and M5.6 each carry a fixture of their own now, and **D35 is
+closed**. M5.6's half found a second defect in the same function: it ranked
+candidates by **characters**, and nothing budgets characters. The longest
+string is a 52-word event; the most words is a 54-word one. It counts words
+now, and the census moved 52 → 54 when it did.
 
-**D33 is the one to read.** Section 4 budgets the event screen at 40 and
-composes that row as "prompt under 30, choices under 6 each" — which is 54
-before the outcome line and before a hint exists, and the row has no line for
-the four hints every event carries. Measured: **24 of 24 events are over 40,
-median 67**, while **0 of 24 hooks exceed 30 and 1 of 96 labels exceeds 6**. The
-overflow is entirely the hints and there is nothing to tighten. D8 ruled the
-remedy against an estimate; the measurement says the report D8 asks for is all
-twenty-four. **D14 comes off the shelf with it** — M5.6 reaches every string in
-`data/events.ts` either way, which is the condition D14's own recommendation
-was waiting for.
+**D33 was the one to read, and it is closed.** Section 4 budgeted the event
+screen at 40 and composed that row as "prompt under 30, choices under 6 each" —
+54 before the outcome line and before a hint exists, with no line at all for
+the four hints every event carries. Measured: **24 of 24 events over 40, median
+67**, while **0 of 24 hooks exceeded 30 and 1 of 96 labels exceeded 6**. The
+overflow was entirely the hints and there was nothing to tighten. Ruled option
+1 and built in M5.6: the row is 59 and names every part of the screen, the
+hints stayed, **D14 came off the shelf with it** after five tiers.
 
-The design bible is at **Rev 6**. Every place the list and the bible disagreed
+The design bible is at **Rev 11**. Every place the list and the bible disagreed
 is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)
-rather than something built around; twenty-eight rows, twenty-seven ruled,
-**D14 the only one open** and timed with M5.6. None of the twelve rules has
-moved: every amendment has corrected a table, an ordering or a gap where a
-surface had no row at all.
+rather than something built around; **thirty-nine rows, thirty-eight ruled,
+D38 the only one open** and it blocks one clause of M5.4. None of the twelve
+rules has moved across eleven revisions: every amendment has corrected a table,
+an ordering, a count, or a gap where a surface had no row at all.
 
 Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and

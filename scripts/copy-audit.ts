@@ -67,6 +67,7 @@ import { EVENT_ARCHETYPES } from '../src/data/eventPools';
 import {
   CAPABILITY_LABELS,
   BAND_LABELS,
+  OUTCOME_TIER_INFO,
   RARITY_LABELS,
   TOLL_PAID_PREFIX,
 } from '../src/data/eventCopy';
@@ -231,10 +232,14 @@ section({
 section({
   title: 'Events — the situation and the four buttons',
   where: 'The event screen: one hook, four labels, four hints. Three events per region.',
-  source: 'src/data/events.ts',
+  // `eventCopy.ts`, not `events.ts`: the words left the hashed table at M5.6's
+  // split (D14), and this line said otherwise for the two commits in between.
+  source: 'src/data/eventCopy.ts',
   note:
     'Every event supplies the same nine strings. `safe`, `gamble`, `toll` and `attune` are the four '
-    + 'archetypes; `attune` appears only when the run holds the relic the event requires.',
+    + 'archetypes; `attune` appears only when the run holds the relic the event requires. '
+    + 'Budgeted at a hook of 12, labels of 4 and hints of 6 by design bible section 4 (D33, M5.6), '
+    + 'and asserted per event by `test/event-budget.test.ts`.',
   rows: EVENTS.flatMap((event) => [
     { key: `${event.id} · hook`, text: eventHook(event.id) },
     ...EVENT_ARCHETYPES.flatMap((archetype) => [
@@ -246,12 +251,16 @@ section({
 
 section({
   title: 'Events — labels around the choice',
-  where: 'The requirement chip, the standing chip, the rarity chip, and the price reveal.',
+  where:
+    'The inspect panels behind the requirement glyph, the band chevron and the reward pips, the '
+    + 'rarity chip, and the price reveal. The first three stopped being words at M5.6 and are '
+    + 'what a long press opens instead.',
   source: 'src/data/eventCopy.ts',
   rows: [
     ...Object.entries(CAPABILITY_LABELS).map(([key, value]) => ({ key: `capability.${key}`, text: value })),
     ...Object.entries(BAND_LABELS).map(([key, value]) => ({ key: `band.${key}`, text: value })),
     ...Object.entries(RARITY_LABELS).map(([key, value]) => ({ key: `rarity.${key}`, text: value })),
+    ...Object.entries(OUTCOME_TIER_INFO).map(([key, value]) => ({ key: `tier.${key}`, text: value })),
     { key: 'TOLL_PAID_PREFIX', text: `${TOLL_PAID_PREFIX}: <price>` },
   ],
 });

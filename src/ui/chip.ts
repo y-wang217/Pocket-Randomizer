@@ -32,6 +32,7 @@ import {
 export type ChipVariant =
   | 'type'
   | 'tier'
+  | 'reward-tier'
   | 'band'
   | 'status'
   | 'stage'
@@ -236,6 +237,47 @@ export function tierPips(tier: string): HTMLElement {
 
 /** The tier ladder, lowest first. The order the pips count in. */
 const TIER_STEPS: readonly string[] = ['normal', 'hard', 'elite'];
+
+/**
+ * Which tiers an event option can pay, as a span of pips. **Milestone M5.6.**
+ *
+ * Section 3's Tier row has asked for *"reward-tier pips"* since Rev 1 and
+ * nothing rendered them: the event screen printed `Reward: T0 to T2`, which is
+ * a label, a ladder position and a range written out, on the one surface where
+ * every word is already spoken for. Four pips, one per outcome tier, with the
+ * ones this option draws from filled.
+ *
+ * **A span, not a fill-to-step, and that is the whole difference from
+ * `tierPips`.** A node's tier is a position on a ladder, so its meter fills
+ * from the bottom. An option's reward is a *range* — Gamble reaches from `T0`
+ * to `T2` and Attune from `T2` to `T3` — and a meter filled from the bottom
+ * would say those two overlap everywhere they do not. Where the range is one
+ * tier the span is one pip, which reads as the narrow thing it is.
+ *
+ * Not a rating, on the same footing as the tier label it replaces: it names
+ * which pool the outcome draws from, which is an attribute of the button. The
+ * carve-out is `docs/generation.md` section 14 and it is unchanged by drawing
+ * the same fact without words.
+ */
+export function rewardTierPips(low: string, high: string, label: string): HTMLElement {
+  const first = REWARD_TIER_STEPS.indexOf(low);
+  const last = REWARD_TIER_STEPS.indexOf(high);
+  const node = build('reward-tier', `reward-tier-pips reward-tier-pips--${low}-${high}`, '', {
+    tip: `reward-tier:${low}-${high}`,
+  });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  for (const [index, tier] of REWARD_TIER_STEPS.entries()) {
+    const pip = el('span', `tier-pips__pip reward-tier-pips__pip reward-tier-pips__pip--${tier}`);
+    if (index >= first && index <= last) pip.dataset['on'] = 'true';
+    pip.setAttribute('aria-hidden', 'true');
+    node.append(pip);
+  }
+  return node;
+}
+
+/** T0 to T3, lowest first. The order the reward pips are laid out in. */
+const REWARD_TIER_STEPS: readonly string[] = ['T0', 'T1', 'T2', 'T3'];
 
 /**
  * The capability a gated node asks for, as its glyph. **M5.2, D37.**

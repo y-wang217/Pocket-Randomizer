@@ -10367,3 +10367,173 @@ decline. **The capture screen has no budget row**, exactly as the battle header
 had none before D28, the map node card before D37, the locale screen before D32,
 and the coins and restore cards still do. M5.4 names the result screen and the
 capture card and neither is this. Recorded as an input to M7.2.
+
+---
+
+## 70. Fifty-two words of event copy, and the two marks that paid for them
+
+**Milestone M5.6, the last of Tier 5. Discrepancies D33 (ruled), D35 (closed)
+and D8 (reread, and its remedy not taken).**
+
+M5.6 asked for *"prompt under 30 words, choices under six, outcome one line"*
+against design bible section 4's event row of **40**, with a lint at build over
+every event in `data/events.ts`. Two of those three numbers had to move before
+anything could be written, and the reason is arithmetic rather than taste.
+
+### The row could not be met by writing better copy
+
+Thirty plus four choices at six is fifty-four, before the outcome line, before
+a single hint, and the row never mentioned the four hints at all. Measured over
+the tree before any word was touched:
+
+```
+hook   {"n":24,"min":6,"p50":9,"p75":11,"p90":12,"max":12}
+label  {"n":96,"min":2,"p50":4,"p75":5,"p90":6,"max":7}
+hint   {"n":96,"min":7,"p50":10,"p75":11,"p90":13,"max":15}
+total  {"n":24,"min":62,"p50":67,"p75":71,"p90":75,"max":75}
+```
+
+**Twenty-four of twenty-four events failed the row, by a median of
+twenty-seven words.** Hooks already fit at twelve, twenty-four out of
+twenty-four. Labels fit at four in sixty-eight of ninety-six. No hint fit at
+six and none was close. So the row's own composition exceeded the row's own
+total and the overflow was the one thing the composition did not name — which
+is discrepancy **D33**, filed before Tier 5 opened and ruled option 1 on
+2026-09-22: *name the hints and re-derive the number*.
+
+The sub-budgets were derived from that table and only then written to, rather
+than guessed at and then enforced: **hook 12, label 4, hint 6**, which are the
+p90, the p50 and a number no hint reached. All ninety-six hints and twenty-eight
+of the ninety-six labels were rewritten. The widest event now spends 51 of the
+52 the composition allows.
+
+### The number the row carries is 59, not 52, and the difference is the point
+
+D33's composition comes to 52 exactly — 12 plus four fours plus four sixes —
+with nothing left over for anything else on the screen. That is the defect the
+row was filed for, one revision later, so the amended row names every part it
+budgets: the copy's 52, the Toll's price chip at 5, and the control at 2.
+**Fifty-nine, and it adds up.** `test/event-budget.test.ts` asserts each part
+and the sum, per event, counting every token rather than the census's
+proper-noun-exempt words — a label that fits only because `Reach` happens to be
+half of an ability name is not a label that fits.
+
+Census, pocket less shell: **89 → 54**, against a ceiling of 59.
+
+### Twenty-six of those words left as marks, not as cuts
+
+The copy rewrite is thirty-five of the thirty-five. The rest is R2 and section
+3, and neither is new design:
+
+- **The gate.** `Requires Strength` and `you have the relic`, five words, for
+  the attribute section 3 has encoded as *"capability glyph plus band chevron"*
+  since Rev 1 and M5.2 built five days ago for the map node card. R1 names a
+  surface that positions an attribute itself instead of mounting the component
+  as the defect. The screen mounts it now.
+- **The reward range.** `Reward: T0 to T2`, up to four words on four buttons,
+  for an attribute section 3 has called **reward-tier pips** since Rev 1 with
+  no call site anywhere in the tree. M5.2 declined to draw them on the map node
+  card and was right to: there the reward tier is a pure function of the node
+  tier, so a second strip would be R3's double render. On the event screen it
+  is a per-option fact and nothing else draws it, so this is the first render
+  rather than a second.
+- **The title.** `Something happens` sat above a hook that says what happens.
+  The phrase is not lost; it is the map node card's label for an event node,
+  which is where a player reads it before arriving.
+
+**A span, not a fill.** `tierPips` fills a ladder from the bottom because a
+node tier is a position. A reward range is a range — Gamble reaches `T0` to
+`T2`, Attune `T2` to `T3` — and a bottom-filled meter would draw those two as
+overlapping everywhere they do not. `rewardTierPips` fills the span and
+`test/event-screen.test.ts` asserts the low pips stay dark.
+
+### D8 was reread before any of this, and its remedy was not taken
+
+D8 blocks M5.6 on the item's line *"capability requirement moves to the map
+node glyph if the prompt cannot fit"*, which is the consequence section 9
+reserves for a disconfirmer observed in a playtest. It was ruled option 1 on
+2026-09-20: an event that cannot fit is reported, not moved.
+
+Nothing here takes that remedy. **The requirement did not move to the map node
+glyph; it stayed on the event screen and changed form.** The distinction is
+load-bearing: section 9's consequence is *the fact leaving this surface*, and
+what happened is the fact staying and being drawn the way section 3 already
+says to draw it. No event needed reporting either, because the number moved
+under D33 and the copy now fits it.
+
+### The two sentences D14 was filed for, finally rewritten
+
+`forest-thornwall`'s hint passed *"a grove worth passing"* and
+`marsh-leech-bed`'s hook lay over *"something worth having"*. Both broke
+section 8's forbidden-word list from the day M0.3 widened it to carry `worth`,
+and both survived a whole release because the words lived inside `contentHash`.
+The split closed that at §65. They are gone, and `KNOWN_UNFIXED` in
+`test/event-copy.test.ts` is **empty rather than shorter** — a violation has
+nowhere left to hide.
+
+### D35's last half, and the fixture that was wrong twice
+
+`wordiestEvent` drew forty events **from `forest` alone**, so the census
+photographed the wordiest of the eight events one region can produce out of
+twenty-four: three locales' copy could go over budget without the fixture ever
+rendering one of them. That is D35's open half, and it is closed here — every
+locale now.
+
+Widening it exposed the second half. **It ranked by characters, and nothing
+budgets characters.** The longest string was `forest-fallen-giant` at 52 census
+words; the most *words* is `marsh-sinkhole-pool` at 54. The census was two
+words short of the worst case for the same reason it was sixteen events short
+of it. It counts words now, and the number moved 52 → 54 when it did.
+
+### A dead inspect trigger, shipped by M5.2 and found by mounting it twice
+
+`capabilityBandChevron` ships a `capability-band:` tip. `ui/tooltips.ts` splits
+a `data-tip` on its colon and returns null for a prefix that is not in `KINDS`,
+and `capability-band` was never added — so **every band chevron on the map has
+been focusable, `aria-expanded` and silent since M5.2**, which is exactly what
+the comment above `KINDS` records happening to the flag strip in release C.
+
+The guard added the first time checks the union against the allowlist: two of
+the three places that have to agree. The third is the call sites, and
+`test/tip-kinds.test.ts` is now that check — it reads every `tip:` literal
+under `src/ui/` and fails on a prefix the allowlist does not carry. It reads
+source rather than a rendered tree on purpose: a DOM walk only sees the
+triggers a fixture happens to mount, which is the blind spot D35 is about.
+
+Both missing kinds are answered from data: the chevron's panel is
+`BAND_LABELS`, the words the chip printed until M5.2 replaced it, and the pips'
+panel is a new `OUTCOME_TIER_INFO` in `data/eventCopy.ts` — one line per tier,
+restating the table at the top of `data/eventPools.ts` rather than adding to
+it, for the reason `tierInfo.ts` gives. Outside `contentHash`, like everything
+else in that file, and linted by `test/event-copy.test.ts` with the rest.
+
+### Two counts the bible had left behind, and one prompt that now reads short
+
+D37 added the **tenth** glyph family on 2026-09-22. Section 2's table carried
+it; section 2's opening line, R7's enforce clause and section 9's register row
+all still said **nine**. R7's own forbid is *"shipping a glyph family that
+never gets a label"*, and M6.1 reads that enforce line for its scope — so at
+nine the capability glyph would ship unlabelled by a count nobody had updated.
+All three are corrected in Rev 11.
+
+**The milestone prompt is not corrected, and that is deliberate.** M1.3 and
+M6.1 both say *"nine families"* in
+`docs/spec/gymrun-presentation-milestones.md`. A prompt is a record of what was
+asked, not a description of what exists, so the deviation is recorded here:
+**M6.1's scope is ten families, not nine**, and `data/glyphLabels.ts` owes the
+capability family a label under three words like the other nine.
+
+### What M5.6 leaves open
+
+- **`Costs` is a label, and R2 says labels go.** It survives on the Toll's
+  price chip because C2 needs the fact *this button charges you* and no family
+  in section 2 encodes a price. The capture card's `+` and `−` rows are the
+  precedent for a sign doing that job wordlessly, and the chip has no inspect
+  tip either. Filed as **D39** rather than taken here.
+- **The revealed outcome lines are unbudgeted.** The row's 59 covers the
+  control but not `describeOutcome`, `describeCost` or the Toll-paid line,
+  which are drawn from the pools and cannot be read off the tables. The census
+  covers them on one event. An input to M7.2.
+- **The reward pips have no exposure label**, because tiers are a component
+  rather than a glyph family, so R7 does not reach them. Section 9 carries the
+  bet that a span reads as a range and not as a rating.

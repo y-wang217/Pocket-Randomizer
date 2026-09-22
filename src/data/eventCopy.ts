@@ -64,6 +64,29 @@ export const RARITY_LABELS: Readonly<Record<EventRarity, string>> = {
   rare: 'Rare',
 };
 
+/**
+ * What each outcome tier pays, for the inspect layer behind the reward pips.
+ *
+ * **Milestone M5.6.** The pips replaced `Reward: T0 to T2`, and section 3's
+ * last column is where the words the meter stopped printing have to land —
+ * *"tier definition"*, the same answer `data/tierInfo.ts` gives for a node's
+ * tier. Four lines, one per tier, and a range shows the lines for the tiers it
+ * spans.
+ *
+ * Each one restates the table at the top of `data/eventPools.ts` rather than
+ * adding to it, for the reason `tierInfo.ts` gives: a sentence describing a
+ * mechanic, written where it is rendered, drifts from the mechanic.
+ *
+ * Attributes, never verdicts. None of the four says a tier is a place to route
+ * for; `T3` says what gates it, which is a fact about the tier.
+ */
+export const OUTCOME_TIER_INFO: Readonly<Record<string, string>> = {
+  T0: 'A cost, and a consolation that always comes with it.',
+  T1: 'One small thing, and nothing spent to get it.',
+  T2: 'A move at band, a Pokemon, a premium item or a relic.',
+  T3: 'Above what any other node pays, and relic-gated without exception.',
+};
+
 export const BAND_LABELS: Readonly<Record<CapabilityBand, string>> = {
   known: 'you have the relic',
   latent: 'your party has the type',
@@ -133,12 +156,26 @@ export const TOLL_PAID_PREFIX = 'Paid';
  * under `core/` reads this file, which is what keeps the exclusion honest and
  * what `test/content-hash.test.ts` walks the import graph to hold.
  *
- * ## Nothing below was rewritten by the split
+ * ## Rewritten to section 4 by M5.6, after being moved unchanged by the split
  *
- * Every string is the one that was in the table, to the character. M5.6 is the
- * item that changes them, against whatever section 4's event row says once D33
- * is applied; this commit only moves them, so the diff is one nobody has to
- * read for meaning.
+ * The split itself changed nothing: every string was the one that had been in
+ * the table, to the character, so that diff was one nobody had to read for
+ * meaning. **M5.6 is the item that changed them**, and it changed nearly all
+ * of them.
+ *
+ * Design bible section 4's event row now reads **59** against a composition
+ * that names every part of the screen — *hook 12, four labels 4, four hints 6,
+ * the Toll's price 5, the control 2* — which is D33, ruled option 1 on
+ * 2026-09-22. The old row was 40 and composed itself as 54, and all
+ * twenty-four events failed it by a median of twenty-seven words.
+ *
+ * So the shape below is deliberate and is not terseness for its own sake. A
+ * hook is one sentence and at most twelve words. A label is an imperative of
+ * at most four. **A hint is at most six words and reads as a fragment**, which
+ * is what six words buys: it names the shape of the risk and stops, and never
+ * names the drawn outcome, because the pools decide that and this file cannot
+ * see it. `test/event-budget.test.ts` holds every one of those numbers, per
+ * event, and `test/event-copy.test.ts` holds what the words may say.
  */
 export const EVENT_HOOKS: Readonly<Record<string, string>> = {
   'cave-collapsed-shaft': 'A collapsed shaft, and something metallic under the rubble.',
@@ -161,7 +198,7 @@ export const EVENT_HOOKS: Readonly<Record<string, string>> = {
   'ruins-reliquary-font': 'A reliquary font running hard, and running the wrong way.',
   'marsh-drowned-causeway': 'A causeway drowned past the markers.',
   'marsh-sinkhole-pool': 'A sinkhole pool with a clear bottom and no shallows at all.',
-  'marsh-leech-bed': 'A leech bed lying over something worth having.',
+  'marsh-leech-bed': 'A leech bed, and something under it.',
   'badlands-magma-vent': 'A magma vent with a spring running above it.',
   'badlands-shattered-mesa': 'A shattered mesa with a seam running right through it.',
   'badlands-thermal-updraft': 'A thermal updraft, and a ridge on the far side of it.',
@@ -169,30 +206,30 @@ export const EVENT_HOOKS: Readonly<Record<string, string>> = {
 
 /** The four button labels per event, in archetype order. */
 export const EVENT_LABELS: Readonly<Record<string, ArchetypeCopy>> = {
-  'cave-collapsed-shaft': { safe: 'Take what is loose', gamble: 'Shift the rubble by hand', toll: 'Put your lead under the beam', attune: 'Lift the beam clear' },
-  'cave-lightless-gallery': { safe: 'Feel along the wall', gamble: 'Walk it in the dark', toll: 'Trade for a lamp', attune: 'Light the whole gallery' },
+  'cave-collapsed-shaft': { safe: 'Take what is loose', gamble: 'Shift the rubble', toll: 'Take the weight', attune: 'Lift the beam clear' },
+  'cave-lightless-gallery': { safe: 'Feel along the wall', gamble: 'Walk it blind', toll: 'Trade for a lamp', attune: 'Light the whole gallery' },
   'cave-fossil-seam': { safe: 'Pocket the chips', gamble: 'Lever it out', toll: 'Hire the crew back', attune: 'Break the seam open' },
-  'shore-seabed-crate': { safe: 'Wait for the tide', gamble: 'Hold your breath and go', toll: 'Everyone takes a turn hauling', attune: 'Go down and open it there' },
-  'shore-riptide-channel': { safe: 'Walk the long way', gamble: 'Wade the narrows', toll: 'Send your lead across first', attune: 'Swim it' },
-  'shore-beached-trawler': { safe: 'Search the deck', gamble: 'Force the hatch', toll: 'Trade the salvager for it', attune: 'Pull the hatch off' },
-  'summit-wind-shear-ledge': { safe: 'Turn back at the gap', gamble: 'Jump it', toll: 'Rope across together', attune: 'Fly the gap' },
-  'summit-sealed-cairn': { safe: 'Leave an offering', gamble: 'Pull it apart', toll: 'Pay the keeper to open it', attune: 'Break the seal stone' },
-  'summit-ice-cache': { safe: 'Chip at the edges', gamble: 'Climb and kick it free', toll: 'Trade for the guide\'s pick', attune: 'Haul it out whole' },
-  'city-derelict-substation': { safe: 'Strip the outside boxes', gamble: 'Go in past the fence', toll: 'Earth it by hand', attune: 'Light it and read the panel' },
+  'shore-seabed-crate': { safe: 'Wait for the tide', gamble: 'Hold your breath', toll: 'Everyone hauls', attune: 'Open it down there' },
+  'shore-riptide-channel': { safe: 'Walk the long way', gamble: 'Wade the narrows', toll: 'Carry a line over', attune: 'Swim it' },
+  'shore-beached-trawler': { safe: 'Search the deck', gamble: 'Force the hatch', toll: 'Trade the salvager', attune: 'Pull the hatch off' },
+  'summit-wind-shear-ledge': { safe: 'Turn back', gamble: 'Jump it', toll: 'Rope across together', attune: 'Fly the gap' },
+  'summit-sealed-cairn': { safe: 'Leave an offering', gamble: 'Pull it apart', toll: 'Pay the keeper', attune: 'Break the seal stone' },
+  'summit-ice-cache': { safe: 'Chip at the edges', gamble: 'Kick it free', toll: 'Trade for a pick', attune: 'Haul it out whole' },
+  'city-derelict-substation': { safe: 'Strip the outside boxes', gamble: 'Go past the fence', toll: 'Earth it by hand', attune: 'Read the panel lit' },
   'city-flooded-underpass': { safe: 'Go around the block', gamble: 'Wade the underpass', toll: 'Pay for the boat', attune: 'Climb the outflow' },
-  'city-stranded-courier': { safe: 'Shout directions up', gamble: 'Climb the drainpipe', toll: 'Trade her something for it', attune: 'Bring her down' },
-  'forest-thornwall': { safe: 'Take the long detour', gamble: 'Push straight through', toll: 'Send your lead in first', attune: 'Cut the wall down' },
+  'city-stranded-courier': { safe: 'Shout directions up', gamble: 'Climb the drainpipe', toll: 'Trade her for it', attune: 'Bring her down' },
+  'forest-thornwall': { safe: 'Take the long detour', gamble: 'Push straight through', toll: 'Send your lead in', attune: 'Cut the wall down' },
   'forest-sap-still': { safe: 'Fill one jar', gamble: 'Run it dry', toll: 'Buy the tapper\'s stock', attune: 'Tap a fresh tree' },
   'forest-fallen-giant': { safe: 'Cross and keep going', gamble: 'Reach into the hollow', toll: 'Clear the nest out', attune: 'Roll the trunk over' },
-  'ruins-sealed-antechamber': { safe: 'Read the threshold carvings', gamble: 'Go in blind', toll: 'Burn what you carry for light', attune: 'Light the chamber' },
-  'ruins-root-choked-stair': { safe: 'Take the top landing', gamble: 'Force your way down', toll: 'Trade the digger for a blade', attune: 'Clear the stair' },
-  'ruins-reliquary-font': { safe: 'Fill a flask at the lip', gamble: 'Reach into the basin', toll: 'Pay the attendant to still it', attune: 'Climb the inflow' },
-  'marsh-drowned-causeway': { safe: 'Follow the markers back', gamble: 'Wade past the last marker', toll: 'Send your lead to find the edge', attune: 'Swim the span' },
-  'marsh-sinkhole-pool': { safe: 'Fish from the rim', gamble: 'Drop in and grab', toll: 'Drag the pool with a net', attune: 'Go down to the bottom' },
-  'marsh-leech-bed': { safe: 'Skim the edge', gamble: 'Wade in and feel for it', toll: 'Trade the trapper for his waders', attune: 'Go under the bed' },
-  'badlands-magma-vent': { safe: 'Work the cooled crust', gamble: 'Cross while it is quiet', toll: 'Douse the vent', attune: 'Climb the spring' },
+  'ruins-sealed-antechamber': { safe: 'Read the carvings', gamble: 'Go in blind', toll: 'Burn what you carry', attune: 'Light the chamber' },
+  'ruins-root-choked-stair': { safe: 'Take the top landing', gamble: 'Force your way down', toll: 'Trade for a blade', attune: 'Clear the stair' },
+  'ruins-reliquary-font': { safe: 'Fill a flask', gamble: 'Reach into the basin', toll: 'Pay to still it', attune: 'Climb the inflow' },
+  'marsh-drowned-causeway': { safe: 'Follow the markers back', gamble: 'Wade past the last', toll: 'Send your lead ahead', attune: 'Swim the span' },
+  'marsh-sinkhole-pool': { safe: 'Fish from the rim', gamble: 'Drop in and grab', toll: 'Drag it with nets', attune: 'Go to the bottom' },
+  'marsh-leech-bed': { safe: 'Skim the edge', gamble: 'Wade in and feel', toll: 'Trade for waders', attune: 'Go under the bed' },
+  'badlands-magma-vent': { safe: 'Work the cooled crust', gamble: 'Cross it while quiet', toll: 'Douse the vent', attune: 'Climb the spring' },
   'badlands-shattered-mesa': { safe: 'Collect from the scree', gamble: 'Climb into the seam', toll: 'Wedge it open', attune: 'Split the mesa' },
-  'badlands-thermal-updraft': { safe: 'Wait it out below', gamble: 'Ride the edge of it', toll: 'Pay the balloonist', attune: 'Take the updraft' },
+  'badlands-thermal-updraft': { safe: 'Wait it out below', gamble: 'Ride the edge', toll: 'Pay the balloonist', attune: 'Take the updraft' },
 };
 
 /**
@@ -203,30 +240,30 @@ export const EVENT_LABELS: Readonly<Record<string, ArchetypeCopy>> = {
  * saying nothing at all is a coin flip with extra steps.
  */
 export const EVENT_HINTS: Readonly<Record<string, ArchetypeCopy>> = {
-  'cave-collapsed-shaft': { safe: 'What has already fallen free is yours without moving anything.', gamble: 'The pile is holding itself up. Some of it will not stay that way.', toll: 'Someone has to take the weight while the rest of you dig.', attune: 'The beam comes up in one movement and the shaft opens.' },
-  'cave-lightless-gallery': { safe: 'The wall leads somewhere. Slowly, and not far.', gamble: 'The echoes say the floor ends. They do not say where.', toll: 'The miner at the mouth wants a berry for his spare lamp.', attune: 'Lit end to end, the gallery is a room rather than a risk.' },
-  'cave-fossil-seam': { safe: 'Chips and fragments, already loose at the foot of the seam.', gamble: 'It comes out whole or it comes out in pieces.', toll: 'The crew left because nobody paid them. That is fixable.', attune: 'The matrix splits along the grain and leaves the fossil intact.' },
-  'shore-seabed-crate': { safe: 'The tide will bring something up. Not the crate.', gamble: 'It is one breath deeper than one breath allows.', toll: 'A rope, four shoulders, and a long cold afternoon.', attune: 'No rope needed. You can work at that depth.' },
-  'shore-riptide-channel': { safe: 'Hours added, and a beachcomber met on the way.', gamble: 'The narrows are narrow because the water is fast there.', toll: 'One of you fights the current to carry a line over.', attune: 'The channel is a crossing rather than an obstacle.' },
-  'shore-beached-trawler': { safe: 'The deck has been picked over. Not completely.', gamble: 'The hatch is jammed for a reason nobody wrote down.', toll: 'The salvager wants something from your bag before he opens it.', attune: 'The hatch is a hinge and a weight. Both are answerable.' },
-  'summit-wind-shear-ledge': { safe: 'The climb down is not wasted. There is a cache on the way.', gamble: 'It is a long step. The wind decides how long.', toll: 'Everyone crosses on the line, and the line costs skin.', attune: 'The shear is lift rather than a gap.' },
-  'summit-sealed-cairn': { safe: 'You add to it instead of taking, and something is left for you.', gamble: 'A cairn comes apart easily. That is not the difficult part.', toll: 'The keeper opens it properly, for a price named in advance.', attune: 'One stone holds the rest. It is a stone.' },
-  'summit-ice-cache': { safe: 'The edges give up a little without threatening the face.', gamble: 'The ice is holding the cache and the cache is holding the ice.', toll: 'The guide lends a pick for a berry, and says nothing else.', attune: 'The whole block comes away and the contents survive.' },
-  'city-derelict-substation': { safe: 'The outside boxes are dead and still hold parts.', gamble: 'Something in there is live. The hum does not say what.', toll: 'Grounding it means touching it, and everyone feels that.', attune: 'With light on the panel the live bus is a label, not a guess.' },
-  'city-flooded-underpass': { safe: 'Longer, drier, and a shopfront open on the way.', gamble: 'The water is moving faster than its depth suggests.', toll: 'A man with a punt names a price and keeps to it.', attune: 'The outflow is a climb, and it goes the way you want.' },
-  'city-stranded-courier': { safe: 'She finds her own way eventually and leaves you a tip.', gamble: 'The drainpipe is four storeys of somebody else\'s maintenance.', toll: 'She will swap the package for something out of your bag.', attune: 'Down in one trip, package and courier both.' },
-  'forest-thornwall': { safe: 'The detour is slow and passes a grove worth passing.', gamble: 'Thorn that thick is hiding how deep it goes.', toll: 'One of you goes in and makes a gap for the rest.', attune: 'The wall comes down in a single pass.' },
-  'forest-sap-still': { safe: 'One jar, from what is already in the collector.', gamble: 'The still has been running unattended for a while.', toll: 'The tapper will sell what he has drawn, at his price.', attune: 'A clean cut on a fresh trunk runs while the old tap is still dripping.' },
-  'forest-fallen-giant': { safe: 'The trunk is a bridge. Using it as one costs nothing.', gamble: 'Whatever is nesting in there is nesting in there.', toll: 'Clearing it means everyone gets bitten at least once.', attune: 'The trunk turns, and the underside has not been touched.' },
-  'ruins-sealed-antechamber': { safe: 'The carvings are the outside of the story, and they pay.', gamble: 'The floor beyond the threshold has not been surveyed.', toll: 'A fire needs feeding, and it burns more than fuel.', attune: 'Lit, the chamber is a room with its floor visible.' },
-  'ruins-root-choked-stair': { safe: 'The top landing is reachable and has not been emptied.', gamble: 'The roots hold the stair together as well as block it.', toll: 'The digger has a blade and an appetite for berries.', attune: 'The stair opens the whole way down.' },
-  'ruins-reliquary-font': { safe: 'The lip gives up a flask of it without argument.', gamble: 'The basin is deeper than the font is wide.', toll: 'The attendant can stop the flow, and names what for.', attune: 'Water running upward is a climb like any other.' },
-  'marsh-drowned-causeway': { safe: 'The markers lead somewhere, and somebody left a cache there.', gamble: 'Past the markers the causeway either continues or does not.', toll: 'Someone walks ahead finding the drop-offs the hard way.', attune: 'The span is water, and water is crossable.' },
-  'marsh-sinkhole-pool': { safe: 'A line from the rim brings something up.', gamble: 'It is clear enough to see the bottom and deep enough to matter.', toll: 'Dragging it takes every pair of hands and gives them all cramp.', attune: 'At the bottom the pool is a room with a floor.' },
-  'marsh-leech-bed': { safe: 'The edge is shallow, thin of leeches, and thin of everything else.', gamble: 'What is under the bed is under the bed.', toll: 'The trapper lends waders for something out of your bag.', attune: 'Underneath it the bed is a ceiling rather than a field.' },
-  'badlands-magma-vent': { safe: 'The crust is cool at the edge and holds what cooled in it.', gamble: 'It has been quiet for a while. That is all anyone knows.', toll: 'Dousing it means standing close enough to douse it.', attune: 'The spring falls past the vent, and it can be climbed.' },
-  'badlands-shattered-mesa': { safe: 'The scree at the base is full of what fell out of the seam.', gamble: 'The seam is a gap between two things that are still moving.', toll: 'Holding the wedge means being where the wedge is.', attune: 'The mesa opens along the seam and stays open.' },
-  'badlands-thermal-updraft': { safe: 'Below the thermal the air is still and somebody is camped in it.', gamble: 'The edge of a thermal is where the air stops agreeing with itself.', toll: 'The balloonist crosses daily and charges by the crossing.', attune: 'The updraft is the way up and the ridge is the way across.' },
+  'cave-collapsed-shaft': { safe: 'Already fallen free. Nothing moves.', gamble: 'The pile holds itself up.', toll: 'Someone holds while the rest dig.', attune: 'One movement, and the shaft opens.' },
+  'cave-lightless-gallery': { safe: 'The wall leads somewhere. Slowly.', gamble: 'The echoes say the floor ends.', toll: 'The miner wants paying first.', attune: 'Lit end to end. A room.' },
+  'cave-fossil-seam': { safe: 'Loose fragments at the seam foot.', gamble: 'Whole, or else in pieces.', toll: 'Nobody paid them. That is fixable.', attune: 'It splits along the grain.' },
+  'shore-seabed-crate': { safe: 'The tide brings up something else.', gamble: 'One breath deeper than one allows.', toll: 'Rope, four shoulders, a cold afternoon.', attune: 'No rope. You work that depth.' },
+  'shore-riptide-channel': { safe: 'Hours added, and someone met.', gamble: 'Narrow because the water is fast.', toll: 'One of you fights the current.', attune: 'A crossing, not an obstacle.' },
+  'shore-beached-trawler': { safe: 'Picked over. Not completely.', gamble: 'Jammed for a reason nobody wrote.', toll: 'He wants something from your bag.', attune: 'A hinge and a weight.' },
+  'summit-wind-shear-ledge': { safe: 'A cache on the way down.', gamble: 'A long step. The wind decides.', toll: 'The line costs skin, everyone\'s.', attune: 'The shear is lift, not gap.' },
+  'summit-sealed-cairn': { safe: 'You add, and something is left.', gamble: 'Coming apart is the easy part.', toll: 'He opens it, price named first.', attune: 'One stone holds the rest.' },
+  'summit-ice-cache': { safe: 'The edges give. The face holds.', gamble: 'Ice holds cache, cache holds ice.', toll: 'The guide lends, and says nothing.', attune: 'The block comes away intact.' },
+  'city-derelict-substation': { safe: 'Dead boxes, parts still in them.', gamble: 'Something in there is live.', toll: 'Grounding means touching. Everyone feels it.', attune: 'Lit, the live bus is labelled.' },
+  'city-flooded-underpass': { safe: 'Longer, drier, a shopfront open.', gamble: 'Moving faster than its depth suggests.', toll: 'A punt, and a price kept.', attune: 'It goes the way you want.' },
+  'city-stranded-courier': { safe: 'She finds her own way, eventually.', gamble: 'Four storeys of somebody else\'s maintenance.', toll: 'She swaps for something you carry.', attune: 'One trip, package and courier.' },
+  'forest-thornwall': { safe: 'Slow, and it passes a grove.', gamble: 'Thorn that thick hides its depth.', toll: 'One goes in, makes a gap.', attune: 'Down in a single pass.' },
+  'forest-sap-still': { safe: 'One jar, from the collector.', gamble: 'Unattended for a while now.', toll: 'He sells what he drew.', attune: 'A clean cut runs at once.' },
+  'forest-fallen-giant': { safe: 'A bridge. Using it costs nothing.', gamble: 'Whatever nests there, nests there.', toll: 'Everyone gets bitten at least once.', attune: 'The underside has not been touched.' },
+  'ruins-sealed-antechamber': { safe: 'The outside of the story pays.', gamble: 'The floor beyond is unsurveyed.', toll: 'A fire burns more than fuel.', attune: 'Lit, a room with a floor.' },
+  'ruins-root-choked-stair': { safe: 'Reachable, and not yet emptied.', gamble: 'The roots hold the stair together.', toll: 'The digger has one, and appetite.', attune: 'Open the whole way down.' },
+  'ruins-reliquary-font': { safe: 'The lip gives a flask up.', gamble: 'Deeper than the font is wide.', toll: 'The attendant can stop the flow.', attune: 'Water running upward is a climb.' },
+  'marsh-drowned-causeway': { safe: 'They lead to somebody\'s cache.', gamble: 'Past the markers it may end.', toll: 'Someone finds the drop-offs first.', attune: 'Water, and water is crossable.' },
+  'marsh-sinkhole-pool': { safe: 'A line brings something up.', gamble: 'Clear to the bottom, and deep.', toll: 'Every pair of hands, then cramp.', attune: 'Down there it has a floor.' },
+  'marsh-leech-bed': { safe: 'Shallow, thin of leeches and everything.', gamble: 'Whatever is under stays under.', toll: 'The trapper lends, for something carried.', attune: 'From below it is a ceiling.' },
+  'badlands-magma-vent': { safe: 'Cool at the edge, and holding.', gamble: 'Quiet a while. That is all.', toll: 'Close enough to douse it.', attune: 'It falls past, and climbs.' },
+  'badlands-shattered-mesa': { safe: 'What fell out of the seam.', gamble: 'A gap between two moving things.', toll: 'Holding it means being there.', attune: 'It opens, and it stays open.' },
+  'badlands-thermal-updraft': { safe: 'Still air, and somebody camped.', gamble: 'Where air stops agreeing with itself.', toll: 'He crosses daily, charges by crossing.', attune: 'Up, then across the ridge.' },
 };
 
 /** The situation, in one line, or the empty string for an unknown id. */

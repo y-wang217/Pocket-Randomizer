@@ -31,6 +31,8 @@
  *   - the segment's shop with the whole shelf (shop).
  */
 import { describeMove } from '../core/battle/driver';
+import { LOCALES } from '../data/locales';
+import type { LocaleId } from '../data/locales';
 import { eventHook, eventLabel, eventHint } from '../data/eventCopy';
 import type { NodeSpec, Segment } from '../core/encounters';
 import type { ShopStock } from '../core/economy';
@@ -205,35 +207,68 @@ export function anyShop(state: RunState): ShopStock | null {
   return null;
 }
 
-/** The generated event with the most prose across its choices, drawn from a keyed stream. */
+/**
+ * The generated event with the most prose across its choices, drawn from a
+ * keyed stream. **Widened past one locale by M5.6, discrepancy D35.**
+ *
+ * It asked `forest` for forty draws and took the wordiest of those, so the
+ * surface it gates was the wordiest of eight events out of twenty-four —
+ * three locales' worth of copy could go over budget without this fixture ever
+ * rendering one of them. The same defect D35 named on the relic offer: a
+ * fixture that looks like a worst case and is a sample. Every locale now, and
+ * the census reads the worst event in the tree rather than the worst in one
+ * region.
+ *
+ * **And it ranked by characters, which is not what anything budgets.** Section
+ * 4 counts words; picking the longest string picked `forest-fallen-giant` at
+ * 52 census words over `marsh-sinkhole-pool` at 54, so the census was two
+ * words short of the worst case for the same reason it was sixteen events
+ * short of it. It counts words now.
+ *
+ * The per-event lint in `test/event-budget.test.ts` is the other half and is
+ * the one that covers all twenty-four *and* every band. This picks the single
+ * event the screenshot and the census are taken on.
+ */
 export function wordiestEvent(seed: string): EventInstance {
   let best: EventInstance | null = null;
   let bestLength = -1;
-  for (let index = 0; index < 40; index++) {
-    const event = generateEvent(
-      'gallery',
-      'forest',
-      2,
-      createRng(`${seed}-EVT-${index}`).rewards.at('e'),
-      DEFAULT_TUNING,
-      new EventPicker(),
-    );
-    if (!event) continue;
-    const length =
-      eventHook(event.eventId).length +
-      event.options.reduce(
-        (total, option) =>
-          total + eventLabel(event.eventId, option.archetype).length + eventHint(event.eventId, option.archetype).length,
-        0,
+  for (const locale of EVENT_LOCALES) {
+    for (let index = 0; index < 40; index++) {
+      const event = generateEvent(
+        'gallery',
+        locale,
+        2,
+        createRng(`${seed}-EVT-${locale}-${index}`).rewards.at('e'),
+        DEFAULT_TUNING,
+        new EventPicker(),
       );
-    if (length > bestLength) {
-      best = event;
-      bestLength = length;
+      if (!event) continue;
+      const length =
+        words(eventHook(event.eventId)) +
+        event.options.reduce(
+          (total, option) =>
+            total +
+            words(eventLabel(event.eventId, option.archetype)) +
+            words(eventHint(event.eventId, option.archetype)),
+          0,
+        );
+      if (length > bestLength) {
+        best = event;
+        bestLength = length;
+      }
     }
   }
   if (!best) throw new Error('no event generated');
   return best;
 }
+
+/** Words, the unit section 4 budgets in. Not characters. */
+function words(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** Every locale the event table carries entries for. */
+const EVENT_LOCALES: readonly LocaleId[] = LOCALES.map((locale) => locale.id);
 
 /**
  * A three-card offer that really holds a relic. **Milestone M5.1, D35.**

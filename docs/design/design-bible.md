@@ -1,6 +1,31 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 10, Sept 22, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 11, Sept 22, 2026.
+
+**Rev 11** carries two amendments, both ruled 2026-09-22 on row D33. Section
+4's **event screen** row goes from 40 to **59**, and for the first time names
+every part of the screen it budgets: the hook at 12, four labels at 4, four
+hints at 6 — the 52 the ruling composed — plus the Toll's price at 5 and the
+control at 2. The old row was *"prompt under 30, choices under 6 each, outcome
+one line"*, which is 54 before the outcome and never mentioned the four hints
+that were the whole of the overflow, so the row's own composition exceeded the
+row's own total and every one of the twenty-four events failed it by a median
+of twenty-seven words. The number was wrong rather than the copy — though the
+copy was rewritten to the new sub-budgets too, which is milestone M5.6.
+
+The second is section 5: the canon gains the **event choice**, the fifth
+surface D29 found budgeted and canonised nowhere. Nothing else moved. In
+particular **no rule changed and the remedy section 9 reserves was not taken**:
+the capability requirement stayed on the event screen and was re-encoded there
+as the glyph and chevron section 3 has specified since Rev 1, which is R2 and
+R1 doing their ordinary work, not D8's disconfirmer firing early.
+
+Rev 11 also corrects two counts Rev 9 left behind. R7's enforce line and
+section 2's opening still said **nine** families three revisions after D37
+added the tenth, which R7's own forbid — *"shipping a glyph family that never
+gets a label"* — makes a live omission rather than a typo: M6.1 reads that line
+for its scope, and at nine the capability glyph would ship without ever
+carrying a label. Section 9's row is corrected with them.
 
 **Rev 10** carries one amendment, ruled 2026-09-22 on row D32: section 4 gains
 a **Locale screen** row at 4. It is the fourth surface found carrying words
@@ -143,7 +168,7 @@ Amended 2026-09-19 (D11). **A validation cycle is two rounds of the section 10 p
 
 **R7. The first exposure carries the label, the tenth does not.** The first time a glyph family appears for this player, a small label renders beside it for that screen. The label returns once more on the third exposure, then never. Exposure count persists across runs in the settings store, beside the tutorial flags.
 Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
-Enforce: nine glyph families are tracked (type, category, band, PP, accuracy, priority, effectiveness, status, stat). A test asserts each family's label renders on exposure 1 and 3 and not on exposure 4.
+Enforce: ten glyph families are tracked (type, category, band, PP, accuracy, priority, effectiveness, status, stat, capability). A test asserts each family's label renders on exposure 1 and 3 and not on exposure 4. The tenth was added 2026-09-22 (D37); this line and the count below still read nine until M5.6 found them, which is why R7's own forbid — *"shipping a glyph family that never gets a label"* — is the reason they are corrected rather than left.
 
 **R8. Forecast on the button, feedback on the target, same vocabulary, never the same place.** Pre-selection effectiveness sits on the move button (the C1 exception). Post-resolution outcomes appear on the Pokemon that was hit, in resolution order.
 Forbids: rendering post-resolution flags on move buttons; rendering the forecast on the opponent panel; deriving one from the other.
@@ -168,7 +193,7 @@ Enforce: the amendment process. A proposed sentence at rest is an amendment, not
 
 ## 2. Canonical vocabulary
 
-Nine glyph families. Adding a tenth is an amendment.
+Ten glyph families (2026-09-22, D37). Adding an eleventh is an amendment.
 
 | Family | Glyphs | Colour |
 |---|---|---|
@@ -236,7 +261,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Battle screen header | 4 | Node kind, opponent, AI tier (2026-09-21, D28) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
-| Event screen | 40 | Prompt under 30, choices under 6 each, outcome one line |
+| Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
 | Locale card | 0 | Locale name plus four type chips |
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
@@ -347,6 +372,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Map node card | Node-type glyph, tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
+| Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store |
 
 A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.
@@ -436,9 +462,11 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
 | R6, Pocket default and retiring Simple/Detailed loses nothing | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
-| Event screen holds at 40 words | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
+| Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
+| Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
-| Nine glyph families is the right size | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| Ten glyph families is the right size (2026-09-22, D37) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| Reward-tier pips read as a range, not a rating (2026-09-22, D33) | A tester reads more filled pips as a recommendation, or cannot say which options can pay the same thing | The tier letters return beside the pips, and the row rises by four |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
 | A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |
 

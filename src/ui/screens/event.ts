@@ -10,21 +10,22 @@
  * until the second click.
  *
  * Each choice shows a *hint* rather than its outcome. The hints in
- * `data/events.ts` are honest about the shape of the risk without naming the
- * result — "could be anything, could be something that bites" is a decision;
- * saying nothing at all is a coin flip with extra steps.
+ * `data/eventCopy.ts` are honest about the shape of the risk without naming
+ * the result — "the pile holds itself up" is a decision; saying nothing at all
+ * is a coin flip with extra steps. Six words each since M5.6, which is the
+ * budget section 4 carries and the reason they read as fragments.
  *
  * ## The standing, on the screen it pays on. Patch 4.8.0.2.
  *
  * Every event names a capability, and the run's standing for it — `known`,
  * `latent` or `none` — selects which of three drawn outcomes each choice
- * pays. The map card has shown that pair of chips since 4.6c; this screen did
- * not, and its hints were the authored ones, written against `latent`, so at
- * `none` a hint promising coins paid a berry with no word about why. Now the
- * same two chips sit under the title, the hint is the band's own where the
- * authored one is wrong for it, and the reveal opens with a sentence naming
- * what the standing bought before the label says what it paid. All of it from
- * `data/eventCopy.ts`, which `core/` never reads.
+ * pays. The map card has shown that pair since 4.6c; this screen did not, and
+ * its hints were the authored ones, written against `latent`, so at `none` a
+ * hint promising coins paid a berry with no word about why. Now the same pair
+ * sits at the top of the screen — the glyph and the chevron the map card
+ * draws, since M5.6, rather than two chips of words — and the reveal says what
+ * the standing bought. All of it from `data/eventCopy.ts`, which `core/` never
+ * reads.
  */
 import {
   concreteOutcome,
@@ -41,7 +42,7 @@ import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eve
 import { capabilityHolders, resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
 import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX , eventHook, eventLabel, eventHint } from '../../data/eventCopy';
-import { capabilityBandChip, capabilityChip } from '../chip';
+import { capabilityBandChevron, capabilityChip, capabilityGlyph, rewardTierPips } from '../chip';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
 
@@ -53,15 +54,22 @@ export interface EventScreen {
 export function createEventScreen(): EventScreen {
   const root = el('section', 'screen screen--event');
 
-  const title = el('h2', 'screen__title');
-  title.textContent = 'Something happens';
+  /*
+   * **No title element, and the hook is why. Milestone M5.6.**
+   *
+   * `Something happens` sat above a hook that already says what happens, on
+   * the one screen section 4 budgets prose on — two words naming the same
+   * thing the next line names, which is R3 one level up from an attribute.
+   * The phrase is not lost: it is the map node card's label for an event
+   * node, which is where a player reads it before arriving here.
+   */
   const gate = el('div', 'event__gate');
   const prompt = el('p', 'event__prompt');
   const choices = el('div', 'event__choices');
   const result = el('div', 'event__result');
   result.hidden = true;
 
-  root.append(title, gate, prompt, choices, result);
+  root.append(gate, prompt, choices, result);
 
   return {
     root,
@@ -75,9 +83,21 @@ export function createEventScreen(): EventScreen {
        * while this screen is open, but reading it once says so.
        */
       const band = resolveCapability(state, event.requires);
+      /*
+       * **The map node's own pair, mounted rather than redrawn. M5.6.**
+       *
+       * Section 3 gives this attribute one encoding — *"capability glyph plus
+       * band chevron"* — and M5.2 built it; this screen went on printing
+       * `Requires Cut` and `you have the relic`, five words for a fact the
+       * map card beside it draws with two marks. R1 says one component per
+       * attribute cluster and names a surface that positions an attribute
+       * itself as the defect, so the fix is to mount what already exists.
+       * The capability name and what satisfies it are the inspect column, on
+       * the same `capability:` tip the chip carried.
+       */
       gate.replaceChildren(
-        capabilityChip(`Requires ${CAPABILITY_LABELS[event.requires]}`),
-        capabilityBandChip(BAND_LABELS[band]),
+        capabilityGlyph(event.requires, CAPABILITY_LABELS[event.requires]),
+        capabilityBandChevron(band, BAND_LABELS[band]),
       );
       /*
        * Who answers the requirement, at `latent` only. **Idle-sprites patch.**
@@ -135,7 +155,8 @@ export function createEventScreen(): EventScreen {
         const attributes = el('span', 'event__choice-attributes');
         const cost = costOf(choice);
         if (cost) attributes.append(capabilityChip(cost));
-        attributes.append(capabilityBandChip(rewardOf(choice, event.rarity)));
+        const [low, high] = rewardRangeOf(choice, event.rarity);
+        attributes.append(rewardTierPips(low, high, rewardLabelOf(low, high)));
 
         button.append(label, hint, attributes);
         button.addEventListener('click', () => reveal(index));
@@ -240,18 +261,29 @@ function costOf(option: EventOption): string | null {
 }
 
 /**
- * The tier range this button draws from: `Reward: T1`, `Reward: T0 to T2`.
+ * The tier range this button draws from, as its two ends.
  *
  * Read off the distribution rather than written beside it, so a tuning pass in
- * `data/eventPools.ts` cannot leave this label describing a table that no
- * longer exists. A single-tier range prints as one tier rather than as "T1 to
- * T1".
+ * `data/eventPools.ts` cannot leave the meter describing a table that no
+ * longer exists.
  */
-function rewardOf(option: EventOption, rarity: EventInstance['rarity']): string {
+function rewardRangeOf(option: EventOption, rarity: EventInstance['rarity']): readonly [string, string] {
   // `known` because an Attune button is only ever on screen at `known`, and
   // the other three read the same at every band bar the latent nudge.
-  const [low, high] = tierRangeOf(tierWeightsFor(option.archetype, rarity, 'known'));
-  return low === high ? `Reward: ${low}` : `Reward: ${low} to ${high}`;
+  return tierRangeOf(tierWeightsFor(option.archetype, rarity, 'known'));
+}
+
+/**
+ * What the pip span is called for a screen reader, and only for one.
+ *
+ * `Reward: T0 to T2` was the visible label until M5.6 and is now the
+ * `aria-label` on the meter that replaced it. Nothing renders it: the census
+ * counts text nodes, and this string is never one. A sighted player reads the
+ * span, and reaches the same sentence through inspect on the `reward-tier:`
+ * tip — one fact, two ways in, which is R5 rather than a second channel.
+ */
+function rewardLabelOf(low: string, high: string): string {
+  return low === high ? `Reward ${low}` : `Reward ${low} to ${high}`;
 }
 
 /**
