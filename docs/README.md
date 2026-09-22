@@ -71,16 +71,48 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
 [`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md) and
-[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md). **Tiers 0 to 4 are closed,
-sixteen items of twenty-four**, as
+[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md), prep
+[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md). **Tiers 0 to 4
+are closed, sixteen items of twenty-four**, as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
-[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63) and
-[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64), with Tier 4 open
-as [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65) off
-`claude/eloquent-hamilton-9ncoz8`; `main` is `ca8c3ce`. One trunk per tier, one
-sub-branch per item. No version axis moves in any of it: `contentHash` holds at
-`d4e080`, and the only change under `core/` in sixteen items is M4.1 deleting
-two flag kinds the bible's R9 forbids.
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
+[#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
+`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh` and no code
+is written yet**: its six rows are filed and none is ruled. One trunk per tier,
+one sub-branch per item. No version axis moves in any of the sixteen:
+`contentHash` holds at `d4e080`, and the only change under `core/` is M4.1
+deleting two flag kinds the bible's R9 forbids.
+
+**Tier 5 filed six rows before it opened, and built one of them.** D29 (section
+5's canon names none of the five card surfaces section 4 budgets, and two of
+them are one component built twice), **D30 — closed**, D31 (the census calls
+the built confirm overlay *absent* because no fixture opens a band), D32 (the
+locale screen has no budget row), **D33** and D34. Four of the six edit a bible
+table and are unruled.
+
+**D30 is closed and it moved the instrument twice.** Four card selectors went
+in, and building them found that the per-component table had been **summing**
+instances since M0.1 — the same number as the worst instance only where the
+budget is 0, which is every budget the census had been checked against until
+now. D1 makes every section 4 figure a ceiling and a ceiling binds the worst
+instance, so the table has that column. Before-numbers, Pocket, worst instance:
+reward card **8** against 8, shop stock card **11**, map node card **12**
+against 0, locale card **6** against 0, capture card **3** against 0. **No
+relic card renders on any fixture in the tree**, and a relic description is 16
+words at the median, so the reward card's 8 is not the heaviest card the game
+draws — Tier 4's second finding for the third time.
+
+**D33 is the one to read.** Section 4 budgets the event screen at 40 and
+composes that row as "prompt under 30, choices under 6 each" — which is 54
+before the outcome line and before a hint exists, and the row has no line for
+the four hints every event carries. Measured: **24 of 24 events are over 40,
+median 67**, while **0 of 24 hooks exceed 30 and 1 of 96 labels exceeds 6**. The
+overflow is entirely the hints and there is nothing to tighten. D8 ruled the
+remedy against an estimate; the measurement says the report D8 asks for is all
+twenty-four. **D14 comes off the shelf with it** — M5.6 reaches every string in
+`data/events.ts` either way, which is the condition D14's own recommendation
+was waiting for.
 
 The design bible is at **Rev 6**. Every place the list and the bible disagreed
 is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)

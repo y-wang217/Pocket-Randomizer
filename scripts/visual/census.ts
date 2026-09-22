@@ -190,6 +190,70 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string }[
     selector: '.stats',
     why: 'Section 5 canonises it. Nested inside the party row, which is why attribution is nearest-ancestor.',
   },
+  /*
+   * **The four card rows. Discrepancy D30, filed 2026-09-22 opening Tier 5.**
+   *
+   * D2 ruled that the census counts per component *so that* a per-component
+   * budget can be checked, and D21b restated it one layer down when the drawer
+   * turned out to be measured by the map screen behind it. Section 4 budgets
+   * five card surfaces and this list carried none of them, so four of Tier 5's
+   * six done-whens were written against a number nothing produced: `shop`
+   * reads 64 in Pocket less shell and that total cannot say whether any one
+   * card is over 8.
+   *
+   * These land *before* any card is touched, so the delta says which of the
+   * two moved the figure. That is D17B's rule and M4.3's.
+   *
+   * There is no capture-card row, and the absence is deliberate:
+   * `screens/acquisition.ts` already gives that card `.party__member`, so the
+   * party row row below counts it. It counts it *wrongly* — the class is there
+   * and the component's code is not (D29) — and the fix is M5.4's, not this
+   * list's. A second selector for the same element would double-count it.
+   */
+  {
+    id: 'reward card',
+    /*
+     * `.reward` is the root `<button>`, and the move card nested inside a TM
+     * card is `.move:not(button)`, which is listed above. Attribution stops at
+     * the *first* matching ancestor walking up from the text node, and the
+     * move card is the nearer one, so a TM card's move face stays charged to
+     * the move card and this row counts only what the reward card draws
+     * itself: the kind label, the name, the effect line and the note.
+     */
+    selector: '.reward',
+    why: 'Section 4 budgets an item, berry or relic reward card at 8. One call site today, screens/result.ts; D29 is whether the shop card becomes the second.',
+  },
+  {
+    id: 'shop stock card',
+    /*
+     * **A separate row because it is separate code, not because section 4
+     * wants two numbers.** Section 4 says the shop card *"Follows the reward
+     * card, plus price number"*, which is one component; `screens/shop.ts`
+     * builds `.shop__item` from scratch at lines 86 to 123 and never imports
+     * `renderRewardCard`. Two rows is what makes that visible rather than
+     * averaged, and if D29 rules the unification this row goes and `.shop__item`
+     * with it.
+     */
+    selector: '.shop__item',
+    why: 'Section 4 budgets it at 8, as the reward card plus a price. It is a second implementation of that card, which is D29.',
+  },
+  {
+    id: 'map node card',
+    selector: '.node',
+    why: 'Section 4 budgets it at 0. Two call sites, the map screen and the map drawer, which is what makes it a component by section 5\'s own test.',
+  },
+  {
+    id: 'locale card',
+    /*
+     * `.locale`, not `.screen--locale`: the screen root carries
+     * `screen screen--locale` and the card carries `locale locale--<id>`, so
+     * the two do not collide. The locale *screen*'s own chrome has no budget
+     * row at all, which is D32, and until that is ruled its words fall to
+     * `screen chrome (no component)` where they can at least be seen.
+     */
+    selector: '.locale',
+    why: 'Section 4 budgets the locale card at 0. The screen around it is unbudgeted, which is D32.',
+  },
   {
     id: 'app shell',
     selector: '.header, .shell__drawer-bar, .seedbar, .stamps',
@@ -269,14 +333,26 @@ export interface Record_ {
   surface: GallerySurface;
   density: Density;
   component: string | null;
+  /**
+   * Which *instance* of that component the words belong to, on this surface
+   * in this density. `null` for chrome that belongs to no component.
+   *
+   * **D30, filed 2026-09-22.** D2 ruled the census counts "per component
+   * instance" and this script summed instances instead, which is the same
+   * number for a budget of 0 and a different one for every other budget:
+   * three reward cards summing to 22 is 8 + 8 + 6, which passes a ceiling of
+   * 8, or 14 + 4 + 4, which does not. Section 4's figures are ceilings (D1),
+   * and a ceiling is checked against the worst instance, never the total.
+   */
+  instance: string | null;
   words: string[];
 }
 
 /** Pull every visible text node on the page, attributed to its component. */
-async function readSurface(page: Page, components: readonly { id: string; selector: string }[], glyphs: readonly string[]): Promise<{ component: string | null; text: string }[]> {
+async function readSurface(page: Page, components: readonly { id: string; selector: string }[], glyphs: readonly string[]): Promise<{ component: string | null; instance: string | null; text: string }[]> {
   return page.evaluate(
     ({ components, glyphs }) => {
-      const out: { component: string | null; text: string }[] = [];
+      const out: { component: string | null; instance: string | null; text: string }[] = [];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       let node: Node | null;
       while ((node = walker.nextNode())) {
@@ -293,11 +369,19 @@ async function readSurface(page: Page, components: readonly { id: string; select
         // Nearest ancestor, not first list entry: walk up and stop at the
         // first element any component claims.
         let owner: string | null = null;
+        let instance: string | null = null;
         for (let node: Element | null = host; node && !owner; node = node.parentElement) {
           const hit = components.find(({ selector }) => node?.matches(selector));
-          if (hit) owner = hit.id;
+          if (hit) {
+            owner = hit.id;
+            // The element's ordinal among that component's instances on this
+            // page. Ordinal rather than a generated id because the census
+            // reruns and a diff of the table should not churn on identity.
+            const all = [...document.querySelectorAll(hit.selector)];
+            instance = `${hit.id}#${all.indexOf(node as Element)}`;
+          }
         }
-        out.push({ component: owner, text });
+        out.push({ component: owner, instance, text });
       }
       return out;
     },
@@ -330,13 +414,13 @@ async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
       await page.waitForTimeout(150);
 
       const nodes = await readSurface(page, COMPONENTS, GLYPH_SLOTS.map(({ selector }) => selector));
-      for (const { component, text } of nodes) {
+      for (const { component, instance, text } of nodes) {
         const words = tokenise(text).filter((token) => {
           if (isBareNumber(token)) return false;
           const isCapitalised = /^\p{Lu}/u.test(token);
           return !(isCapitalised && lexicon.has(token.toLowerCase()));
         });
-        if (words.length) records.push({ surface, density, component, words });
+        if (words.length) records.push({ surface, density, component, instance, words });
       }
     }
   }
@@ -347,6 +431,25 @@ async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
 
 function total(records: readonly Record_[]): number {
   return records.reduce((sum, record) => sum + record.words.length, 0);
+}
+
+/**
+ * The heaviest single instance of one component, across every surface it
+ * renders on, in one density. **D30.**
+ *
+ * An instance is scoped to its surface as well as its ordinal, because the
+ * same ordinal on two surfaces is two different cards — the map screen's
+ * third node and the map drawer's third node are not the same element, and
+ * summing them would invent a card heavier than any that exists.
+ */
+function worstInstance(records: readonly Record_[], component: string, density: Density): number {
+  const perInstance = new Map<string, number>();
+  for (const record of records) {
+    if (record.component !== component || record.density !== density || !record.instance) continue;
+    const key = `${record.surface}/${record.instance}`;
+    perInstance.set(key, (perInstance.get(key) ?? 0) + record.words.length);
+  }
+  return perInstance.size ? Math.max(...perInstance.values()) : 0;
 }
 
 export function renderTable(records: readonly Record_[]): string {
@@ -383,15 +486,21 @@ export function renderTable(records: readonly Record_[]): string {
   lines.push('Every instance on every surface, summed. A component absent from the tree says');
   lines.push('so rather than reading zero.');
   lines.push('');
-  lines.push('| Component | detailed | simple | pocket |');
-  lines.push('|---|---:|---:|---:|');
+  lines.push('**The last column is the one a budget is checked against** (D30). Section 4\'s');
+  lines.push('figures are ceilings (D1), and a ceiling binds the worst instance, not the');
+  lines.push('total: three reward cards summing to 22 is 8 + 8 + 6, which passes a ceiling');
+  lines.push('of 8, or 14 + 4 + 4, which does not. The two columns are equal only where the');
+  lines.push('budget is 0 or the component renders once.');
+  lines.push('');
+  lines.push('| Component | detailed | simple | pocket | worst instance, pocket |');
+  lines.push('|---|---:|---:|---:|---:|');
   for (const { id } of COMPONENTS) {
     const seen = records.some((r) => r.component === id);
     const cells = DENSITIES.map((density) => total(records.filter((r) => r.component === id && r.density === density)));
-    lines.push(`| ${id} | ${seen ? cells.join(' | ') : 'absent | absent | absent'} |`);
+    lines.push(`| ${id} | ${seen ? `${cells.join(' | ')} | ${worstInstance(records, id, 'pocket')}` : 'absent | absent | absent | absent'} |`);
   }
   const chrome = DENSITIES.map((density) => total(records.filter((r) => r.component === null && r.density === density)));
-  lines.push(`| screen chrome (no component) | ${chrome.join(' | ')} |`);
+  lines.push(`| screen chrome (no component) | ${chrome.join(' | ')} | — |`);
   lines.push('');
 
   lines.push('## Every word counted, in Pocket');

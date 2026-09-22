@@ -39,19 +39,29 @@ subtracted here.
 Every instance on every surface, summed. A component absent from the tree says
 so rather than reading zero.
 
-| Component | detailed | simple | pocket |
-|---|---:|---:|---:|
-| battle move button | 38 | 38 | 0 |
-| move card | 465 | 465 | 0 |
-| move chip | 8 | 8 | 0 |
-| party row | 184 | 172 | 21 |
-| pokemon battle panel | 4 | 4 | 0 |
-| party drawer | 71 | 60 | 13 |
-| flag strip | 6 | 6 | 6 |
-| confirm overlay | absent | absent | absent |
-| stat block | 144 | 168 | 0 |
-| app shell | 109 | 109 | 109 |
-| screen chrome (no component) | 1700 | 1434 | 1119 |
+**The last column is the one a budget is checked against** (D30). Section 4's
+figures are ceilings (D1), and a ceiling binds the worst instance, not the
+total: three reward cards summing to 22 is 8 + 8 + 6, which passes a ceiling
+of 8, or 14 + 4 + 4, which does not. The two columns are equal only where the
+budget is 0 or the component renders once.
+
+| Component | detailed | simple | pocket | worst instance, pocket |
+|---|---:|---:|---:|---:|
+| battle move button | 38 | 38 | 0 | 0 |
+| move card | 465 | 465 | 0 | 0 |
+| move chip | 8 | 8 | 0 | 0 |
+| party row | 184 | 172 | 21 | 3 |
+| pokemon battle panel | 4 | 4 | 0 | 0 |
+| party drawer | 71 | 60 | 13 | 13 |
+| flag strip | 6 | 6 | 6 | 3 |
+| confirm overlay | absent | absent | absent | absent |
+| stat block | 144 | 168 | 0 | 0 |
+| reward card | 42 | 22 | 22 | 8 |
+| shop stock card | 58 | 47 | 47 | 11 |
+| map node card | 288 | 192 | 184 | 12 |
+| locale card | 18 | 18 | 15 | 6 |
+| app shell | 109 | 109 | 109 | 14 |
+| screen chrome (no component) | 1294 | 1155 | 851 | — |
 
 ## Every word counted, in Pocket
 
