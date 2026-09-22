@@ -596,7 +596,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'coverage':
       return renderCoverage(trigger?.dataset['detail']);
     case 'capability':
-      return renderCapability(id);
+      return renderCapability(id, trigger?.dataset['detail']);
     case 'tier':
       return renderTier(id);
   }
@@ -686,12 +686,24 @@ function renderCoverage(detail?: string): HTMLElement | null {
  * so the map card can stop carrying "Requires you have the relic" in prose,
  * which is nine of the words the census found on a surface budgeted at zero.
  */
-function renderCapability(id: string): HTMLElement | null {
+function renderCapability(id: string, rarity?: string): HTMLElement | null {
   const label = CAPABILITY_LABELS[id as Capability];
   if (!label) return null;
   const body = panel(label);
   const types = capabilityTypes(id as Capability);
   if (types.length) body.append(row('Satisfied by', types, ''));
+  /*
+   * **Rarity, moved here from the card face by M5.2 and D37's ruling.**
+   *
+   * It is a third attribute of the same gate — which distribution this node's
+   * payout draws on — and section 3 gives it no row, so it spent a word at
+   * rest on every gated node on the map. C2 is why it is *here* rather than
+   * gone: it changes which tier a Gamble or an Attune lands on, so it changes
+   * a decision, and a fact that changes a decision is re-encoded rather than
+   * dropped. The press that already opens what satisfies the gate opens this
+   * too.
+   */
+  if (rarity) body.append(row('Rarity', [], rarity));
   return body;
 }
 

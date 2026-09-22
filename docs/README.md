@@ -78,8 +78,9 @@ are closed, sixteen items of twenty-four**, as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
 [#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
-`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, eighteen items of
-twenty-four**: M5.5 and M5.1 are closed and every discrepancy row is ruled. One trunk per tier,
+`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, nineteen items of
+twenty-four**: M5.5, M5.1 and M5.2 are closed and all thirty-seven
+discrepancy rows are ruled. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
@@ -107,6 +108,30 @@ against 0, locale card **6** against 0, capture card **3** against 0. **No
 relic card renders on any fixture in the tree**, and a relic description is 16
 words at the median, so the reward card's 8 is not the heaviest card the game
 draws — Tier 4's second finding for the third time.
+
+**`heights.json` has two stale blocks, and they predate Tier 5.**
+`modes.*.battle` and `layouts.columns.*.battle` measure 566.61 against recorded
+477.89 and 412.28 on a tree with no Tier 5 work in it at all — stale since
+column mode was deleted (D9). Nothing caught it because the assertion that
+gates those screens reads the top-level block, which is accurate and still
+matches to the pixel. M5.2 re-recorded the `map` block only, deliberately,
+rather than launder the rest into its own diff. Open.
+
+**M5.2 closed on a tenth glyph family, and it was not a tenth claim.** Section
+3 has specified a *"capability glyph plus band chevron"* on its map-node row
+since Rev 1; section 2's roster of nine never carried it, and the disagreement
+survived nine revisions because nothing had to draw it — the map rendered
+`Requires Cut`, a word. That is the line between D37, granted, and D5, refused:
+D5 asked section 2 for something no other section had promised. **Worst node
+card 12 → 3**, the `map` surface 57 → 28, and the family's worst glyph pair
+separates at 0.164 against a floor of 0.12.
+
+**The node kind stayed a word, because D28 ruled it one day earlier.** M5.2
+also asked for a node type glyph; the battle header's budget of 4 covers the
+same attribute, on the reasoning that the nine families are attributes of a
+Pokemon or a move. Encoding it one way there and another here is what R1
+forbids, so section 4's map node card row went from 0 to **3** — written after
+the measurement, not before it.
 
 **M5.1 is closed, and D36 is what it built.** Section 3 — the bible's *"single
 source of truth for how each attribute renders at rest"* — puts the name, the

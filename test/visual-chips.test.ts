@@ -61,12 +61,13 @@ afterAll(async () => {
  * reader would write down, and it going stale is the point at which somebody
  * has to look.
  *
- * `capability` and `capability-band` are the node gate's two chips, which need
- * a gated node on the route; `flag` is a post-resolution word, which needs a
- * turn that produced one. Both are reachable on SMOKE24 and both are asserted
- * below, so if a tuning pass moves the route this test says so.
+ * `flag` is a post-resolution word, which needs a turn that produced one. It is
+ * reachable on SMOKE24 and asserted below, so if a tuning pass moves the route
+ * this test says so.
  *
- * **`band` is off the list, and it is the one omission.** `ui/chip.ts` builds
+ * **`band`, `capability` and `capability-band` are off the list, for one reason
+ * between them.** Each draws marks rather than words, so both floors here — a
+ * floor on text size and a floor on text contrast — have nothing to measure. `ui/chip.ts` builds
  * it, and this file cannot measure it: `bandChip` sets no text — it draws five
  * `.band__pip` spans, because Stage V0 ruled a band is a count and not a word —
  * and both floors here are floors on *text*. A font size on a box with no
@@ -74,20 +75,35 @@ afterAll(async () => {
  * not weak measurements, they are measurements of nothing, and `chipsOn` now
  * declines to take them.
  *
+ * **Two of the three came off at M5.2, and that is a coverage loss worth
+ * stating plainly.** `capability` was `Requires Cut` and is now the tenth
+ * family's glyph; `capability-band` was `Latent` and is now two chevrons
+ * filled to the run's reach. Both are the encoding the design bible asks for,
+ * and both are variants this sweep can no longer photograph — the instrument
+ * got narrower on the same day the surfaces got better, which is the honest
+ * way round to say it.
+ *
+ * **`tier` stays, and the reason is worth knowing.** M5.2 turned the *map's*
+ * tier into pips, and `tierChip` still draws `GYM` and `ELITE` as words on the
+ * reward screen through `offerBadge` — one variant name, two encodings, on two
+ * surfaces. So the sweep still reaches it, and what it measures is the reward
+ * screen's badge rather than the map's meter.
+ *
  * So the list is what this instrument can answer for rather than everything the
  * component can build, and the gap is named here rather than left for a reader
- * to infer from a variant that quietly stopped appearing. What a pip meter
- * needs is a contrast rule between a filled pip and an empty one, which is a
- * different assertion in a different file; it is filed as an open item in
- * `docs/README.md`.
+ * to infer from a variant that quietly stopped appearing. What a pip meter and
+ * a glyph mark need is a contrast rule between a filled mark and an empty one,
+ * which is a different assertion in a different file. `npm run glyphs` already
+ * measures **separation** between the marks of a family and holds the
+ * capability family at 0.164 against a floor of 0.12; what neither instrument
+ * covers is a filled-against-empty *contrast* floor, and it is filed as an
+ * open item in `docs/README.md`.
  */
 const VARIANTS = [
   'type',
   'tier',
   'status',
   'stage',
-  'capability',
-  'capability-band',
   'category',
   'effect',
   'flag',

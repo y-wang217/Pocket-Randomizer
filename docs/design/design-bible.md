@@ -1,6 +1,15 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 8, Sept 22, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 9, Sept 22, 2026.
+
+**Rev 9** carries two amendments, both ruled 2026-09-22 on row D37. Section 2
+gains a **tenth family, capability** — not a new claim, but the family section
+3's map-node row has specified since Rev 1 and this roster never carried; the
+disagreement survived nine revisions because nothing had to draw it. And
+section 4's **map node card** row goes from 0 to **3**: M5.2 assumed a node
+type glyph that no section names, and D28 had already ruled that same attribute
+a word one day earlier. No rule moved; R1 is the reason the kind is a word on
+both surfaces rather than a glyph on one.
 
 **Rev 8** carries two amendments, both ruled 2026-09-22. On **D36**: section
 4's reward-card and shop-card rows reach **zero** words, because section 3 —
@@ -164,6 +173,7 @@ Nine glyph families. Adding a tenth is an amendment.
 | Effectiveness | Coloured left edge on the button plus the multiplier as a fraction or numeral (¼, ½, 2, 4). Neutral shows nothing. The same colour on the feedback flag | Red/green family, colour-blind checked |
 | Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
+| Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -223,7 +233,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
-| Map node card | 0 | Nothing |
+| Map node card | 3 | Node kind, the payout's unit, AI tier (2026-09-22, D37) |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
@@ -264,6 +274,16 @@ nine families are attributes of a Pokemon or a move, and a tier is neither — s
 R2 has nothing to trade the words for, exactly as it has nothing to trade the
 ability name for one row above. The alternative was a tenth family, which
 section 10.1 reserves for an amendment with an observation behind it.
+
+**The map node card is budgeted at 3, where it read 0** (ruled 2026-09-22,
+D37). M5.2 assumed zero on the strength of a *node type glyph*, and there is no
+such glyph: section 2's families are attributes of a Pokemon or a move, and a
+node kind is neither — which is the reasoning D28 used one day earlier to keep
+the same attribute a **word** on the battle screen header. Encoding it one way
+here and another there is what R1 forbids, so the kind stays a word on both. The
+three that survive are the kind, the unit word on the payout, and the AI tier —
+the last budgeted by name on the header already, for the same reason. Measured
+before the number was chosen: the worst node card reads exactly 3.
 
 **The two card rows reach zero, and their 8 is headroom** (ruled 2026-09-22,
 D36). Section 3 is this document's *"single source of truth for how each

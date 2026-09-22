@@ -63,8 +63,16 @@ describe('the glyph sheet', () => {
     }
   });
 
-  it('fills all nine families of section 2, and no tenth', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(9);
+  /*
+   * **Ten since 2026-09-22, and the count is still the point.** D37 added
+   * `capability`, which section 3's map-node row had specified since Rev 1
+   * while section 2's roster never carried it — a table corrected to agree
+   * with a rule, not a new claim. The assertion is unchanged in force: an
+   * eleventh family fails here, which is what makes section 10.3's
+   * stop-and-file a gate rather than a hope.
+   */
+  it('fills all ten families of section 2, and no eleventh', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(10);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());

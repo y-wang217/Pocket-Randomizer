@@ -9971,3 +9971,170 @@ softened:
 
 One assertion was added rather than changed: the two unbudgeted kinds keep their
 words, asserted so that leaving them is a decision on the record.
+
+## 67. The tenth family, and the word the map kept
+
+**Milestone M5.2, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 2** (a tenth family, Rev 9, D37), **section 3**'s
+Capability and Tier rows (made true rather than changed), **section 4**'s map
+node card row (0 → 3, Rev 9, D37), **R1** (the node kind is a word on both
+surfaces that carry it), **R2** (labels and sentences go, counts stay), **R3**
+(one fact, one channel — which is why there is no second pip strip) and **C2**
+(rarity re-encoded to the press, not dropped). No rule moved.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| map node card, worst instance | 12 | **3** | 3 |
+| map node card, all instances | 184 | **44** | — |
+| `map` surface, Pocket less shell | 57 | **28** | — |
+
+The three that survive are the node kind, the unit word on the payout, and the
+AI tier. Section 4's row was written **after** the measurement rather than
+before it, so the number is what the surface reaches rather than a target it
+was cut to.
+
+### The tenth family was not a tenth claim
+
+**D37.** M5.2 asks for a *"capability glyph with band chevron"*. Section 3 —
+the bible's single source of truth for at-rest rendering — has specified
+exactly that on its map-node row since **Rev 1**. Section 2's roster of nine
+families never carried it, and `data/glyphFamilies.ts` repeated the nine and
+said a tenth is an amendment.
+
+So the bible had disagreed with itself for nine revisions, and nothing caught
+it because **nothing had to draw it**: the map rendered `Requires Cut`, a word
+chip, and every item until this one left it alone. That is the distinction the
+ruling turned on, and it is worth keeping for the next family that is proposed:
+**D5 was refused** because it asked section 2 for something no other section had
+promised; **D37 was granted** because it asked section 2 to carry what section 3
+had already specified.
+
+**Eight marks, one per capability**, on the type family's pattern. A single
+"this node is gated" mark would not do — *which* capability a node asks for is
+what decides whether the player can take it, so C2 makes it a fact that has to
+be encoded rather than collapsed. The separation check passes at **0.164** for
+the family's worst pair, against a floor of 0.12, and that pair is the
+deliberate filled-against-hollow chevron rather than two capabilities being
+confusable.
+
+**The band chevron is the band pips' pattern, not three more silhouettes.**
+Three states — none, latent, known — are two chevrons with none, one or both
+filled, so the reading stays a *count*: how far along this run is. Filled
+against hollow for the reason the band pips were redrawn at M1.1, when a tone
+difference alone measured half the floor.
+
+### The node kind stayed a word, and D28 is why
+
+M5.2 also asks for a **node type glyph**. Neither section 2 nor section 3 names
+one, and **D28 ruled the same attribute the other way one day earlier**: the
+battle screen header is budgeted at 4 for three facts, the first of which is
+*"which node this is"*, on the reasoning that the nine families are attributes
+of a Pokemon or a move and a node kind is neither.
+
+M5.2's *"zero words"* and D28's *"budget it at 4"* are the same attribute
+encoded two ways on two surfaces, which is precisely what **R1** exists to
+forbid. So the kind is a word on both, the map node card is budgeted at 3
+instead of 0, and the alternative — a tenth *and eleventh* family, reopening
+D28 — was named in the row and not taken.
+
+### Three things left the face
+
+**The tier sentence.** `TIER_INFO` — *"What the segment fields, at its own level
+and band. Pays a move in its own band."* — was the longest thing on the card and
+a sentence at rest, which R2 forbids. Section 3's Tier row puts the tier
+definition in the **inspect** column, and the `tier:` tip that the chip already
+carried now hangs off the pips, so the sentence is one press away where it
+always should have been.
+
+**The tier word.** `NORMAL` and `HARD` named a bracket the player has to have
+been told about. Three pips filled to the tier say the same thing as a count,
+which is the band meter's own argument one family up.
+
+**Rarity.** A third attribute of the same gate with no row in section 3, it spent
+a word at rest on every gated node. It is on the capability panel now — C2 is
+why it moved rather than went: it scales which tier a Gamble or an Attune lands
+on, so it changes a decision.
+
+### One strip, not two, and R3 is the reason
+
+Section 3's Tier row asks for *"tier pips, reward-tier pips"*. **In this tree
+the reward tier is a pure function of the node tier** — `data/tierInfo.ts` says
+normal pays its own band, hard one up, elite two up — so a second strip would
+render one attribute twice on one surface, which R3 forbids in as many words.
+What a tier pays is in the tier definition, on inspect, where section 3's own
+last column puts it. Recorded here rather than built, and the bible is not
+amended: section 3 is right about a game where the two could differ.
+
+### D35's other half did not need a fixture
+
+The row was filed because `furnish` grants every relic, so every gated node
+resolves `known` and the census could only ever photograph one of three bands.
+**After this item the chevron carries no words at all**, and the census counts
+words — so a bare-capability map fixture would census identically to the one
+that exists and prove nothing.
+
+What M5.2's done-when actually asks is that the *mark* tracks
+`resolveCapability`, which is a claim about three states of one function.
+`test/map-node-card.test.ts` asserts it directly, against the function's own
+output rather than a hardcoded string, plus that every capability in the list
+has a glyph so a ninth cannot ship unencoded.
+
+### Three instruments moved with the surface, and one was already wrong
+
+**The heights baseline, re-recorded for the map alone.** The standing gate is
+*"heights and `decisionTop` unmoved or recorded"*, and this moved them: the map
+screen is **944.5 → 705.72** and the document **1138 → 899**, because three
+words left every node card and the tier sentences left the face. Re-recorded
+through `scripts/visual/measure.mjs --out`, which is the documented path.
+
+**Only the `map` block was rewritten, and the reason is a finding.** The
+regeneration also wanted to move `modes.*.battle` and
+`layouts.columns.*.battle` — screens M5.2 does not touch. Measured against the
+tree **without** this item's changes, those entries were already wrong:
+`modes.pocket.battle` reads 566.61 against a recorded 477.89 and
+`layouts.columns.pocket.battle` reads 566.61 against 412.28. **They have been
+stale since column mode was deleted** (D9, 2026-09-20), and nothing caught it
+because the assertion that gates these screens reads the top-level block, which
+is accurate and still matches to the pixel. Re-recording them here would have
+laundered a pre-existing staleness into a line of this item's diff, so they are
+left exactly as they are and filed as an open item instead.
+
+That the top-level `battle` still matches at **595** is also what proves the
+map's move is real: `test/visual/harness.ts` warns that `heights.json` records
+one machine's font stack and that a container can differ by ~47px on the map
+alone. A font difference would have moved both screens. Only the one this item
+touched moved.
+
+**The chip sweep lost two variants, and that is a coverage loss stated
+plainly.** `test/visual-chips.test.ts` measures a floor on text size and a floor
+on text contrast; `capability` was `Requires Cut` and is a glyph now,
+`capability-band` was `Latent` and is two chevrons. Neither has text to
+measure, so both come off the variant list the way `band` did before them, with
+the reason written where the list is. **`tier` stays**, and the reason is worth
+knowing: M5.2 turned the *map's* tier into pips while `tierChip` still draws
+`GYM` and `ELITE` as words on the reward screen — one variant name, two
+encodings, two surfaces.
+
+What is left uncovered is a *contrast* floor between a filled mark and an empty
+one. `npm run glyphs` measures **separation** between the marks of a family and
+holds this one at 0.164 against a floor of 0.12; neither instrument measures
+the other thing, and it is the open item `band` already filed.
+
+**The parallax test was betting on the map's height.** `test/visual-v3.test.ts`
+scrolled to a fixed 200 and asserted `scrollY > 100` as a sanity guard that the
+page had moved. With 239px off the map, `scrollTo(0, 200)` lands at 55 and the
+guard failed on a screen that got better. It scrolls to whatever the document
+has now and asserts there is enough of it to read a ratio from — which is what
+the 100 was standing in for, and does not need re-tuning the next time a
+surface loses a line.
+
+### One trap, found the direct way
+
+`.tier` is still the reward screen's **text chip** — `offerBadge` draws `GYM`
+and `ELITE` through `tierChip` — and that rule sets `display: inline-block`
+with padding. The pip meter wearing the same class rendered as an empty box on
+the map. It is `tier-pips` now. The lesson is the one `test/boundaries.test.ts`
+keeps teaching in another register: a shared name is a shared contract, and the
+second caller finds out at render time.

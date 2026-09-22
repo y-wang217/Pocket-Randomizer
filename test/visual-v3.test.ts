@@ -106,7 +106,27 @@ describe('the world', () => {
   it('moves its layers at 0.2, 0.5 and 1 of scroll, and holds still under reduced motion with no drift', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await playUntil(page, (screen) => screen === 'map');
-    await page.evaluate(() => globalThis.scrollTo(0, 200));
+    /*
+     * **Scroll as far as the map allows, rather than to a fixed 200.**
+     *
+     * This read `scrollTo(0, 200)` and then asserted `scrollY > 100`, which
+     * was a sanity guard that the page had really moved — and it was a bet on
+     * the map being tall enough to take it. M5.2 took the map node card from
+     * 12 words to 3 and the tier sentences off the face, and the map's scroll
+     * height came down 239px with them: `scrollTo(0, 200)` now lands at 55,
+     * and the guard failed on a screen that got *better*.
+     *
+     * So the scroll is whatever the document has, and the guard is that there
+     * is enough of it for the ratios below to be a reading rather than noise.
+     * That is the thing the 100 was standing in for, and it does not have to
+     * be re-tuned the next time a surface loses a line.
+     */
+    const room = await page.evaluate(() => {
+      const max = globalThis.document.documentElement.scrollHeight - globalThis.innerHeight;
+      globalThis.scrollTo(0, max);
+      return max;
+    });
+    expect(room, 'the map no longer scrolls enough to measure a parallax ratio').toBeGreaterThan(40);
     /*
      * **Wait for the layers to have moved, not for 150ms. The iOS animations
      * patch.** The parallax is applied on a `requestAnimationFrame` throttle,
@@ -135,7 +155,7 @@ describe('the world', () => {
       y: globalThis.scrollY,
       transforms: ['far', 'mid', 'near'].map((layer) => globalThis.getComputedStyle(globalThis.document.querySelector(`.world__layer--${layer}`)!).transform),
     }));
-    expect(y).toBeGreaterThan(100);
+    expect(y).toBeGreaterThan(40);
     // Compared as numbers, not as strings (4.8.0.2): the map's scroll height
     // moved with the face, and 0.2 of the new height is `37.800000000000004`
     // in JS while the browser serialises the same matrix as `-37.8`.

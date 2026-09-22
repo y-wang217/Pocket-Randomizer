@@ -52,12 +52,13 @@ which blocks everything.
 | D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **2026-09-22**, ruled on a false premise; **moot if D36 is ruled option 1** |
 | D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **2026-09-22**; M5.1's half built, M5.2's and M5.6's open |
 | D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **2026-09-22**, option 1, built |
+| D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**All thirty-six rows are ruled.** D35 is ruled and half built: M5.1 carried its own relic fixture, and M5.2's bare-capability map and M5.6's widened `wordiestEvent` are still to come. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
+**All thirty-seven rows are ruled.** D35 is ruled and half built: M5.1 carried its own relic fixture, and M5.2's bare-capability map and M5.6's widened `wordiestEvent` are still to come. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -2625,3 +2626,112 @@ glyph would be a tenth family. The relic's name is the encoding, it is a proper
 noun, and the card still reads 0.
 
 Record: [`../generation.md` §66](../generation.md).
+
+---
+
+## D37. M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them
+
+**Blocks M5.2. Filed 2026-09-22, before any map code was written.**
+
+M5.2: *"Node type glyph, tier pips, reward-tier pips, capability glyph with band
+chevron where present. Zero words."* Measured today: the worst map node card
+reads **12 words against a budget of 0**, the largest single gap in Tier 5.
+
+Section 3 specifies two of the four and neither of the others:
+
+| M5.2 asks for | Section 3 | Section 2's nine families | In the tree |
+|---|---|---|---|
+| Tier pips, reward-tier pips | **`Tier (map node) | Tier pips, reward-tier pips | None | Tier definition`** | n/a — pips, not a family | a text chip, `NORMAL` / `HARD` |
+| Capability glyph plus band chevron | **`Capability requirement (map node) | Capability glyph plus band chevron`** | **not among the nine** | `capabilityChip('Requires Cut')`, a text chip |
+| Node type glyph | **no row** | **not among the nine** | `node__label`, the kind as a word |
+| (rarity, which the tree also draws) | no row | no | a text chip |
+
+### The part that is a disagreement inside the bible
+
+**Section 3 names a "capability glyph". Section 2 does not carry one.** Section
+2 lists nine families — type, category, band, PP, accuracy, priority,
+effectiveness, status, stat — and says *"adding a tenth is an amendment"*;
+`data/glyphFamilies.ts` carries the same nine and its header repeats it.
+
+So section 3 has promised, since Rev 1, an encoding that section 2's roster
+forbids. Nothing caught it because nothing had to draw it: the map has always
+rendered a *word chip*, and M5.2 is the first item that has to make section 3
+true. **This is not a new request for a tenth family. It is section 2 being out
+of date with section 3**, which is the same shape as every amendment this
+register has produced — a table corrected to agree with a rule, rather than a
+rule moved.
+
+### The part that is genuinely new, and D28 already ruled it the other way
+
+**The node type glyph is in neither section, and four days ago the same
+attribute was ruled to stay a word.** D28 budgeted the battle screen header at
+4 for three facts, the first of which is *"which node this is"*, on the
+reasoning that *"the nine families are attributes of a Pokemon or a move"*. A
+node kind is neither, exactly as an AI tier is neither.
+
+M5.2's *"zero words"* and D28's *"budget it at 4"* are therefore **the same
+attribute encoded two ways on two surfaces**, which R1 exists to forbid:
+*"every attribute has one fixed slot on every surface where it appears."*
+
+### Options
+
+1. **Tenth family only: `capability`.** Section 2 gains the family section 3
+   already specified, `glyphFamilies.ts` gains the tenth row, R7's per-family
+   exposure test grows a case, and the band chevron is drawn from the existing
+   `none` / `latent` / `known` values. **The node kind stays a word**, matching
+   D28 on the same attribute, and section 4 gains a *map node card* row with an
+   honest number rather than the unreachable 0 M5.2 assumes. Rarity goes to
+   inspect, where the tier row already sends the tier definition.
+2. **Tenth and eleventh: `capability` and `node kind`.** M5.2 as written, zero
+   words on the card — and D28 is reopened, because the battle header's first
+   budgeted word becomes a glyph too. Consistent with R1, and it spends the
+   "nine families is the right size" hypothesis that section 9 is still betting
+   on.
+3. **Neither. Correct section 3 instead.** Its capability row is rewritten to
+   say *chip*, which is what has shipped for five tiers, and the map node card
+   is budgeted in words. Cheapest, and it resolves the disagreement by
+   demoting the more specific of the two sections to match the tree.
+
+**Recommendation: 1.** It makes section 2 agree with section 3 rather than
+adding a claim neither carries; it keeps the node kind consistent with a ruling
+four days old on the same attribute; and it replaces an unreachable 0 with a
+number the surface can actually hit. Option 2 is the one to take if the node
+kind's *word* on the battle header is judged the real defect — but that is a
+reversal of D28, not an extension of it, and it should be ruled as one.
+
+**What is unblocked either way**: the tier chip becoming tier pips, the
+reward-tier pips, and the two tier sentences from `data/tierInfo.ts` moving to
+inspect, which is where section 3's Tier row has always put the tier
+definition. That is most of the 12 words, and none of it waits on this row.
+
+
+---
+
+## D37, closed with the build
+
+**2026-09-22, option 1 as recommended. M5.2.**
+
+Section 2 gains a **tenth family, `capability`** — eight marks, one per
+capability, plus a chevron pair for the band. Not a tenth *claim*: section 3
+had specified this exact encoding since Rev 1 and the roster never carried it,
+and the disagreement survived nine revisions because nothing had to draw it.
+**That is the line between this and D5**, which was refused: D5 asked section 2
+for something no other section had promised.
+
+**The node kind stayed a word**, and section 4's map node card row went from 0
+to **3** — measured first, then written. D28 had ruled the same attribute a
+word on the battle header one day earlier, and encoding it one way there and
+another here is what R1 forbids. The alternative, a tenth *and eleventh*
+family, would have reopened D28 rather than extended it.
+
+Worst node card **12 → 3**; the `map` surface 57 → 28 in Pocket less shell. The
+family's worst glyph pair separates at **0.164** against a floor of 0.12.
+
+**D35's map half closed with it, without a fixture.** The chevron carries no
+words now, so a bare-capability map would census identically to the one that
+exists; what the done-when asks is that the mark tracks `resolveCapability`,
+and `test/map-node-card.test.ts` asserts that against the function's own output.
+**D35's last open half is M5.6's `wordiestEvent`**, which still searches
+`forest` alone.
+
+Record: [`../generation.md` §67](../generation.md).
