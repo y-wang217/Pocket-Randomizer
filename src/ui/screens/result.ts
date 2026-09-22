@@ -48,10 +48,8 @@ import {
   currencyLine,
   FAINTED,
   faintedLine,
-  hpState,
+  hpStateBare,
   outcomeTitle,
-  PARTY_AFTER,
-  ppState,
   RUN_ENDS,
   TAKE_ONE,
 } from '../../core/hpCopy';
@@ -122,8 +120,19 @@ export function createResultScreen(): ResultScreen {
   const blurb = el('p', 'screen__blurb');
   header.append(title, blurb);
 
-  const partyHeading = el('h3', 'result__heading');
-  partyHeading.textContent = 'Your party';
+  /*
+   * **The party heading is gone, element and all. M5.4.**
+   *
+   * *"Your party"*, and after a battle *"Your party after the battle"* — two
+   * to five words labelling a row of party cards that are unmistakably the
+   * party. R2 deletes field labels, and a heading over the only thing it could
+   * be describing is one.
+   *
+   * **Removed rather than hidden**, which M5.3 learned the expensive way one
+   * item ago: `hidden` is a UA style and any author `display` rule beats it,
+   * so an element hidden that way still lays out. `test/visual-inline-box.test.ts`
+   * exists for that trap and `ui/overlay.ts` documents it three times.
+   */
   // The party as the fight left it, as the V2 slot row: one slot a member,
   // HP and PP as the slot's detail line. Stage V4.
   const party = el('div', 'result__party');
@@ -139,7 +148,7 @@ export function createResultScreen(): ResultScreen {
   capture.dataset['tutorial'] = 'capture';
   const actions = el('div', 'result__actions');
 
-  root.append(header, partyHeading, party, evolution, cardsHeading, cards, capture, actions);
+  root.append(header, party, evolution, cardsHeading, cards, capture, actions);
 
   return {
     root,
@@ -158,8 +167,6 @@ export function createResultScreen(): ResultScreen {
 
       // The party as the fight left it. Hidden on the cards-only path, where
       // there is no fight to report the cost of.
-      partyHeading.textContent = PARTY_AFTER;
-      partyHeading.hidden = !review;
       party.hidden = !review;
       party.replaceChildren(
         renderSlots(
@@ -286,18 +293,47 @@ export function createResultScreen(): ResultScreen {
  * 2 patch established, and none is inlined here.
  */
 function describeCost(review: BattleReview, state: RunState): string {
-  const parts: string[] = [
-    currencyLine(review.currencyEarned, state.currency + review.currencyEarned),
-    faintedLine(review.party.filter((member) => member.fainted).length),
-  ];
+  const fainted = review.party.filter((member) => member.fainted).length;
+  const parts: string[] = [currencyLine(review.currencyEarned, state.currency + review.currencyEarned)];
+  /*
+   * **`Nobody went down.` is gone, and R4 is the whole argument. M5.4.**
+   *
+   * R4 is exception-based display: *"show a value only when it departs from
+   * the default."* Nobody fainting is the default, and three words announcing
+   * it fired on the majority of result screens in the game. What replaces it
+   * is nothing, which is what R4 means by a default rendering nothing.
+   *
+   * **The non-zero case stays**, because that one is the exception and it
+   * carries the revive rule with it. It is also a case the census fixture
+   * cannot produce — `SMOKE24`'s reviewed battle loses nobody — so the number
+   * below is measured without it, and this comment is the record of that
+   * rather than a claim the screen is at 6 in every state.
+   */
+  if (fainted > 0) parts.push(faintedLine(fainted));
   if (!review.won) parts.push(RUN_ENDS);
   return parts.join(' · ');
 }
 
-/** HP and PP as the fight left them, for a slot's detail line. */
+/**
+ * HP and PP as the fight left them, for a slot's detail line.
+ *
+ * **Bare, since M5.4.** This read `12 / 30 HP (40%) · PP 18/24` — and `HP` and
+ * `PP` are two of the six field labels **R2 names by name** in its forbids
+ * list, drawn once per member, so six party slots spent twelve words on a
+ * screen budgeted at 6.
+ *
+ * `hpStateBare` already existed for exactly this, described in `core/hpCopy.ts`
+ * as *"the same without the unit, for a panel that already says HP in its
+ * heading"*. The heading is gone too now, and what says HP is position: R1's
+ * fixed slot, the same one on every member, in the same order every time.
+ *
+ * PP keeps its unit as the **glyph**, which is section 3's encoding — *"PP |
+ * Number beside PP glyph"* — so the one place the two numbers could be
+ * confused for each other is the one place a mark is spent.
+ */
 function memberReading(member: BattleMemberState): string {
   const pp = ppTotals(member);
   return member.fainted
-    ? `${FAINTED} · ${ppState(pp.pp, pp.maxPp)}`
-    : `${hpState(member.hp, member.maxHp)} · ${ppState(pp.pp, pp.maxPp)}`;
+    ? `${FAINTED} · ${pp.pp}/${pp.maxPp}`
+    : `${hpStateBare(member.hp, member.maxHp)} · ${pp.pp}/${pp.maxPp}`;
 }

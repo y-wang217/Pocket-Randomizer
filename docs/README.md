@@ -79,8 +79,8 @@ are closed, sixteen items of twenty-four**, as
 [#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
 `8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, twenty items of
-twenty-four**: M5.5, M5.1, M5.2 and M5.3 are closed and all thirty-seven
-discrepancy rows are ruled. One trunk per tier,
+twenty-four plus two clauses of M5.4**: M5.5, M5.1, M5.2 and M5.3 are closed,
+and **D38 blocks M5.4's last clause**. M5.6 is the remaining item. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
@@ -126,6 +126,22 @@ auto` there so the type wheel can be read — so the line was cut outright
 instead. **M5.1 put a `relic:` tip on a reward card's name and a reward card is
 a button too**; no test points at it and the panel may well miss the card, but
 it is the same shape. Open.
+
+**M5.4 found the party row's class on a card running none of its code, and
+could not fix it. D38.** `renderOffered` builds a `.party__member` by hand, so
+the census charges its words to a component that never runs there. The mount
+was built and measured: the party row draws four move *cards* since D21a, so at
+the app's default density the offered card is **655px** and the screen's
+decision buttons land at **2253** against a fold gate of **844**. Pocket passes
+at 661. Every fix reaches something ruled, so it is filed and the hand-built
+card stays — **section 5's canon is aspirational about exactly one call site**
+until D38 is ruled. The coverage
+sentence became two rows of signs and chips, and **C2 was satisfied two tiers
+ago rather than by this item**: M1.2 mounted the inspect sets and said in as
+many words that M5.4 would move the trigger onto the rows. **Twelve of the
+result screen's words were `HP` and `PP`** — two of the six field labels R2
+lists by name — and `hpStateBare` had existed for exactly that since the round
+2 patch.
 
 **M5.3 found two things the row did not anticipate.** The locale strip was
 still drawing `archetypeChip` — 12 words across six members of a label section

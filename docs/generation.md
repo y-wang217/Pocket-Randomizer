@@ -10257,3 +10257,113 @@ left the mark resolving nothing. That is the failure M6.2 exists to find —
 arriving a tier early, by deletion rather than by a gesture. The anchor is on
 the row of member cards, which is the better one: the mark says which member
 leads, and that is now the thing the player presses.
+
+## 69. The coverage sentence becomes two rows, and the capture card starts mounting what it was wearing
+
+**Milestone M5.4, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 3**'s Coverage, Held item and PP rows,
+**section 4**'s Result screen and Capture card rows, **section 5**'s party row
+call sites (D29 added capture; this is the item that makes it true), **R1**,
+**R2**, **R3**, **R4** and **C2**. No rule moved. `contentHash` holds at
+`0b2c2c`.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| result screen, own words | 32 | **2** | 6 |
+| result screen, total less shell | 38 | 10 | — |
+| capture card | hand-built | **hand-built** — D38 | 0 |
+| `result-capture` screen, less shell | 53 | 40 | none |
+
+**The result screen's remaining 8 are the heal reward card**, which M5.1 left
+alone and recorded: M5.1 names item, berry and relic cards, and section 4 has
+no row for a coins card or a restore card. The screen's own words are the
+offer badge's two.
+
+### The coverage sentence
+
+*"Coverage if it replaces your first member: adds Dragon, Steel. Loses
+Ghost."* — eight words on a card budgeted at 0, summarising sets it never
+showed. It is two rows now: a `+` and the added type chips, a `−` and the lost
+ones, signs only, per section 3's row in all four of its clauses.
+
+**C2 was satisfied two tiers ago rather than by this item, and that is why the
+sentence could go.** M1.2 mounted the `coverage:capture` tip carrying the full
+before and after sets, and the comment that mounted it said in as many words
+that *"M5.4 is what replaces it with the two rows of type chips section 3
+specifies, and this trigger moves onto the rows when it does; mounting inspect
+here first is what lets that item delete the sentence without taking a fact
+with it."* It did, and the trigger moved.
+
+**The signs are permanent** (D5). A plus beside a row of type chips is not a
+glyph in section 2's sense, the chips already carry the type family's own
+first-encounter label, and coverage never became a family. **An empty row
+renders nothing** — R4, and section 3's middle column: a plus row with no chips
+in it would be a marker for the absence of a fact.
+
+### The capture card was wearing the party row's class and running none of its code — and still is
+
+`renderOffered` builds a `.party__member` by hand: its own header, its own HP
+text, its own move list, its own stat block. So the census attributes its words
+to a component whose code never runs on this surface, and section 4's *"Capture
+card | 0 | Follows the recipient card"* describes something that is not
+happening. **That is section 5's second closing defect** — *"a screen that draws
+a stat without the stat block"* — and the class makes it invisible.
+
+**M5.4 built the mount, measured it, and put it back. D38.** The party row
+draws four move *cards* since D21a, so at the gallery's default density the
+offered card is **655px** and `test/visual-v4.test.ts` found the screen's
+decision buttons at **2253** against a gate of 844. In Pocket the same screen
+measures 661 and passes, because the row's body is one tap behind the head
+there — and the failing mode is Detailed, which is the app's default until M6.3.
+
+Every fix reaches something ruled: a per-surface collapsed default is an R6
+question, relaxing the only Detailed fold gate in the suite is the tail wagging
+the dog, and waiting for M6.3 leaves section 5 carrying a call site that is a
+promise rather than a fact. So it is filed, `renderOffered` carries a comment
+naming the row, and **section 5's canon is aspirational about exactly one call
+site** — which D38 records so it is not mistaken for a description.
+
+### Three deletions on the result screen, each with a rule behind it
+
+**`+40 coins · 240 total` → `+40 · 240`.** `coins` and `total` are field labels,
+which R2 lists first among the things it deletes, on a screen whose budget names
+*"'+N' currency"* and nothing around it. **Both numbers stay**, which is the
+half C2 binds: the brief's own reasoning is that *"a player adding two figures
+in their head is doing arithmetic instead of deciding"*, so the running total
+is a decision fact. The sign says which is the change; R1 says the rest.
+
+**`Nobody went down.` → nothing.** R4 is exception-based display, the default
+renders nothing, and nobody fainting is the default — three words that fired on
+the majority of result screens in the game. **The non-zero case stays**, because
+that one is the exception and carries the revive rule with it. It is also a case
+the census fixture cannot produce, so the number above is measured without it
+and this says so rather than claiming the screen is at 2 in every state.
+
+**`Your party after the battle` → nothing.** A heading over the only thing it
+could be describing. Removed element and all rather than hidden — M5.3 learned
+that one item ago, and `hidden` losing to an author `display` rule is a trap
+`ui/overlay.ts` documents three times.
+
+### The twelve words R2 names by name
+
+The slot detail line read `12 / 30 HP (40%) · PP 18/24`. **`HP` and `PP` are two
+of the six field labels R2 lists explicitly**, drawn once per member, so six
+party slots spent twelve words on a screen budgeted at 6.
+
+`hpStateBare` already existed for exactly this, described in `core/hpCopy.ts` as
+*"the same without the unit, for a panel that already says HP in its heading"*.
+The heading is gone too, and what says HP is position — R1's fixed slot, the
+same one on every member, in the same order every time. **PP keeps its unit as
+the glyph**, which is section 3's encoding, so the one place the two numbers
+could be read for each other is the one place a mark is spent.
+
+### What is left on the capture screen, and it is the fifth of its kind
+
+`result-capture` reads **40** less shell, and none of it is the card: the offer
+title, the full-party line, the compare heading, six release controls and the
+decline. **The capture screen has no budget row**, exactly as the battle header
+had none before D28, the map node card before D37, the locale screen before D32,
+and the coins and restore cards still do. M5.4 names the result screen and the
+capture card and neither is this. Recorded as an input to M7.2.

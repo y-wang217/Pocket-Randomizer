@@ -3380,6 +3380,29 @@ body {
 
 /* The coverage line: a readout, never a verdict — so no colour that says which
    direction is better, and no arrow. Same treatment as the species card's. */
+/*
+ * The coverage change: a plus row and a minus row, signs and chips.
+ * **Milestone M5.4, section 3's coverage row.**
+ *
+ * The sign is sized and weighted to read as a sign rather than as a character
+ * of text, and it is permanent — D5 ruled it is not an exposure label, because
+ * a plus beside a row of type chips is not a glyph in section 2's sense and
+ * the chips already carry the type family's own label on first encounter.
+ */
+.acquire__coverage-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  flex-wrap: wrap;
+}
+
+.acquire__coverage-sign {
+  font-family: var(--font-numeral);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  color: var(--text-dim);
+}
+
 .acquire__coverage {
   margin: var(--space-2h) 0 0;
   font-family: var(--font-body);

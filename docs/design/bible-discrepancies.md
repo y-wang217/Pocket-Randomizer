@@ -53,12 +53,13 @@ which blocks everything.
 | D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **2026-09-22**; M5.1's half built, M5.2's and M5.6's open |
 | D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **2026-09-22**, option 1, built |
 | D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
+| D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**All thirty-seven rows are ruled.** D35 is ruled and half built: M5.1 carried its own relic fixture, and M5.2's bare-capability map and M5.6's widened `wordiestEvent` are still to come. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
+**Thirty-seven of thirty-eight rows are ruled**, and D38 blocks one clause of M5.4. D35 is ruled and half built: M5.1 carried its own relic fixture, and M5.2's bare-capability map and M5.6's widened `wordiestEvent` are still to come. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -2759,3 +2760,68 @@ because that row's first clause is conditional on stat bars being present. And
 `Party screen (items)` was the **last route** to item assignment before a gym,
 not a duplicate of the shell's drawer button; cutting it would have been a
 functional regression. Both are in [`../generation.md` §68](../generation.md).
+
+---
+
+## D38. The capture card cannot mount the party row and stay above the fold
+
+**Blocks M5.4's second clause. Filed 2026-09-22, after building it and
+measuring.**
+
+M5.4: *"Capture card mounts the party row."* D29 added capture to section 5's
+party row call sites on 2026-09-22, and section 4 has said since Rev 1 that the
+capture card *"follows the recipient card"* — which mounts it. So three
+documents agree, and the build was straightforward.
+
+**`test/visual-v4.test.ts` refused it.** That gate: *"keeps the capture offer,
+its decision buttons included, above the fold at 390x844."* Measured with the
+row mounted:
+
+| Density | Offered card | Decision buttons land at | Gate |
+|---|---:|---:|---:|
+| Pocket | 63px | **661** | 844 |
+| Detailed (the gallery's default, and the app's) | **655px** | **2253** | 844 |
+
+The cause is not the capture screen. **The party row draws four move *cards*
+since D21a** — re-ruled 2026-09-21, cards and not chips — plus the stat block,
+and in Detailed all of it is on screen. In Pocket the same body is one tap
+behind the head of the card, which is why that column passes.
+
+**This is not hypothetical.** Detailed is the app's default until M6.3 flips it
+to Pocket, and M6.3 is two tiers away.
+
+### Why it is filed rather than worked around
+
+Every fix reaches something ruled:
+
+1. **Collapse the offered card's body by default on this surface.** The row
+   already has the expander and the player still reaches everything. But the
+   collapsed-or-not default is set by *density* today, per R6's density ruling
+   — *"density modes may change … whether a secondary fact sits behind a tap"*
+   — and this would make it vary by **surface** instead. That is either a new
+   kind of rule or an R6 amendment, and section 10.3 makes it a stop-and-file.
+2. **Relax the fold gate for this screen.** It is the only Detailed
+   above-the-fold gate in the suite, and it exists because a decision the
+   player cannot see is not offered. Relaxing it to accommodate a component is
+   the tail wagging the dog.
+3. **Leave the card hand-built**, which is what shipped, and accept that
+   section 5's canon says a thing the tree does not do — the exact condition
+   D29 was filed to end.
+4. **Wait for M6.3.** Pocket passes at 661. If Pocket is the default, the gate
+   is measured where the bible says the face is, and the conflict dissolves
+   without a rule moving. It also means M5.4's second clause is not done for
+   two tiers, and section 5 carries a call site that is a promise rather than a
+   fact until then.
+
+**Recommendation: 1, with 4 as the honest alternative.** A card being asked to
+*be judged* is a different job from a card in a list of six, and "the body is
+behind a tap on the surface where the card is the subject" is a defensible
+rule — but it is a rule, and it belongs in the bible rather than in a
+stylesheet. If that is too much for one clause of one item, 4 costs nothing
+except the canon being aspirational about one call site, which this row records
+so it is not mistaken for a fact.
+
+**What shipped meanwhile.** The hand-built card stays, with a comment at
+`renderOffered` naming this row. **M5.4's other two clauses are built**: the
+coverage change is two rows of signs and chips, and the result screen's own
+words went 32 → 2 against a budget of 6.

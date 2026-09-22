@@ -21,8 +21,8 @@ subtracted here.
 | locale | 14 | 14 | 9 | 3 |
 | map | 50 | 43 | 28 | 22 |
 | battle | 36 | 36 | 13 | 7 |
-| result | 46 | 41 | 38 | 32 |
-| result-capture | 132 | 111 | 59 | 53 |
+| result | 24 | 19 | 16 | 10 |
+| result-capture | 102 | 81 | 46 | 40 |
 | target | 231 | 201 | 58 | 52 |
 | replace | 40 | 33 | 21 | 15 |
 | party | 407 | 408 | 23 | 17 |
@@ -64,7 +64,7 @@ budget is 0 or the component renders once.
 | map node card | 72 | 44 | 44 | 3 |
 | locale card | 3 | 3 | 0 | 0 |
 | app shell | 133 | 133 | 133 | 14 |
-| screen chrome (no component) | 1373 | 1198 | 894 | — |
+| screen chrome (no component) | 1321 | 1146 | 859 | — |
 
 ## Every word counted, in Pocket
 
@@ -75,8 +75,8 @@ above can be argued with rather than taken on faith.
 - **locale** (9): `GYMRUN` `Tutorial` `Map` `Party` `Choose` `a` `region` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **map** (28): `GYMRUN` `Tutorial` `Map` `Party` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `coins` `Rookie` `Trainer` `coins` `Something` `happens` `Trainer` `Trainer` `Garnet's` `Gym` `Pokemon` `Coins` `Party` `Manage` `Lead` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **battle** (13): `GYMRUN` `Tutorial` `Map` `Party` `Trainer` `battle` `Trainer's` `Rookie` `Paralysed` `Badly` `poisoned` `GYMRUN-0b2c2c-SMOKE24` `r21`
-- **result** (38): `GYMRUN` `Tutorial` `Map` `Party` `coins` `total` `Nobody` `went` `down` `Your` `party` `after` `the` `battle` `HP` `PP` `HP` `PP` `HP` `PP` `HP` `PP` `HP` `PP` `HP` `PP` `one` `NORMAL` `Restore` `Restore` `HP` `PP` `and` `status` `whole` `party` `GYMRUN-0b2c2c-SMOKE24` `r21`
-- **result-capture** (59): `GYMRUN` `Tutorial` `Map` `Party` `coins` `total` `Nobody` `went` `down` `Lv13` `Beaten` `Yours` `to` `take` `Party` `full` `one` `goes` `Coverage` `if` `it` `replaces` `your` `first` `member` `unchanged` `Your` `party` `of` `choose` `who` `to` `release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `Keep` `my` `party` `as` `it` `is` `GYMRUN-0b2c2c-SMOKE24` `r21`
+- **result** (16): `GYMRUN` `Tutorial` `Map` `Party` `one` `NORMAL` `Restore` `Restore` `HP` `PP` `and` `status` `whole` `party` `GYMRUN-0b2c2c-SMOKE24` `r21`
+- **result-capture** (46): `GYMRUN` `Tutorial` `Map` `Party` `Lv13` `Beaten` `Yours` `to` `take` `Party` `full` `one` `goes` `Your` `party` `of` `choose` `who` `to` `release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `Keep` `my` `party` `as` `it` `is` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **target** (58): `GYMRUN` `Tutorial` `Map` `Party` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **replace** (21): `GYMRUN` `Tutorial` `Map` `Party` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **party** (23): `GYMRUN` `Tutorial` `Map` `Party` `Your` `party` `Slot` `leads` `Release` `is` `permanent` `Watch` `for` `Backpack` `of` `carried` `Relics` `Back` `to` `the` `map` `GYMRUN-0b2c2c-SMOKE24` `r21`
