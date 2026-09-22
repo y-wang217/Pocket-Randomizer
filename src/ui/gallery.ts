@@ -49,15 +49,7 @@ import { DEFAULT_TUNING } from '../data/tuning';
 import { createDensityGuard } from './density-guard';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
-import {
-  anyShop,
-  finishedResult,
-  incomingMove,
-  lateState,
-  openingState,
-  targetedReward,
-  wordiestEvent,
-} from './gallery-fixtures';
+import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
 import { createHeader } from './header';
 import { createTutorial } from './tutorial';
@@ -372,6 +364,32 @@ async function main(): Promise<void> {
       applyLocale(localeOf(state));
       stamp(state);
       show('pre-gym');
+      break;
+    }
+    /*
+     * The two relic surfaces. **Milestone M5.1, D35.**
+     *
+     * Each stages a map-generated offer or shelf that really holds a relic,
+     * against a state holding none — see `relicOffer` and `relicShop` for why
+     * the ordinary `result` and `shop` fixtures cannot. They render the same
+     * screens with the same components; only the absence is constructed.
+     */
+    case 'result-relic': {
+      const found = relicOffer(lateState(seed));
+      if (!found) throw new Error('the map generates no relic offer');
+      resultScreen.render(null, found.offer, found.state, noop);
+      applyLocale(localeOf(found.state));
+      stamp(found.state);
+      show('result');
+      break;
+    }
+    case 'shop-relic': {
+      const found = relicShop(lateState(seed));
+      if (!found) throw new Error('the map generates no relic shelf');
+      shopScreen.render(found.stock, found.state, noop);
+      applyLocale(localeOf(found.state));
+      stamp(found.state);
+      show('shop');
       break;
     }
     case 'shop': {

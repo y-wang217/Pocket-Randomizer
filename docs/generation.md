@@ -9815,3 +9815,159 @@ inside this hash.**
 Every future rewording of an item's effect line, a relic's description, an
 event hook, a label or a hint is free. That is M5.6's whole cost removed in
 advance, and it is what D14 was holding out for.
+
+## 66. The card face is the sprite, and the shelf stopped drawing its own
+
+**Milestone M5.1, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 3**'s Held item, Berry and Relic rows (the
+authority for what follows), **section 4**'s reward-card and shop-card rows
+(annotated to zero, Rev 8, D36), **section 5**'s canon (three rows added plus a
+call site, Rev 8, D29), **R1** (the sprite keeps a fixed slot), **R2** (labels
+and sentences go, numbers stay), **R3** (one fact, one channel), **R5** (the
+inspect layer is where the full explanation lives) and **C2** (nothing dropped;
+two facts re-encoded). No rule moved. `contentHash` holds at `0b2c2c` — §65
+moved it, and this item touches no `data/` file that is hashed.
+
+### The numbers
+
+| Surface | Before | After | Budget |
+|---|---:|---:|---:|
+| `shop`, Pocket less shell | 64 | **31** | — |
+| `result`, Pocket less shell | 46 | **38** | — |
+| reward card, worst instance | 8 | **8** | 8 |
+
+**The worst instance did not move, and the reason is the whole story of what
+this item is and is not.** Every item, berry and relic card now reads **0**. The
+8 is a *heal* card — `Restore`, `Restore HP PP and status whole party` — and a
+coins card is the same shape. M5.1 names *"item, berry and relic cards"* and
+*"TM cards mount the move card"*. **Section 4 has no budget row for a coins card
+or a restore card at all.** So they were left exactly as they were, asserted in
+`test/reward-card-kinds.test.ts` so the omission is visible rather than inferred
+from silence, and recorded in the bible and here as an input to M7.2. It is the
+same gap D28 found on the battle header and D32 on the locale screen, in a
+third place.
+
+### What the face is now, and why it is not what the item asked for
+
+M5.1: *"sprite in the fixed slot, one effect line under eight words … no name
+text at rest, name on inspect."* **D36 found that section 3 disagrees**, and
+section 3 opens by claiming this exact question: *"the single source of truth
+for how each attribute renders at rest."*
+
+| | At rest | On inspect |
+|---|---|---|
+| Held item | Item sprite in a fixed slot | Name, one effect line |
+| Berry | Berry sprite, same slot | Name, trigger condition |
+| Relic | Relic sprite in the relic row | Name, capability it satisfies |
+
+The item keeps the line on the face; section 3 moves both. CLAUDE.md settles
+it — *"where a prompt and the bible disagree on how an attribute is shown, the
+bible wins"* — and D1 settles what happens to the budget: 8 is larger than what
+the surviving words can reach, so it is headroom.
+
+**Four text nodes left the item card**: the kind label (`Held item`), the name,
+the effect line, and a note (`your backpack`). What replaces them is
+`itemIcon` — the same cell of the same Showdown sheet the party slots, the
+battle panel and the party row draw, all three built against this same section
+3 row by M3.1 and M3.2 — with the same `item:` tip those surfaces carry. The
+press opens the same panel from the same table. **No fact was removed; one
+channel replaced another, which is C2 working rather than being waived.**
+
+**The boosted type chip stays**, and it is the one thing besides the sprite. It
+is a type chip, section 2's first family, zero words, and it answers what a
+sprite cannot: which type the item is for. R3 holds because nothing else on the
+card draws the type.
+
+### The relic has no sprite, and that is recorded rather than absorbed
+
+Section 3 asks for a *"relic sprite in the relic row"*. **There is none in the
+tree**: relics are this game's own objects rather than Showdown's, `ui/slots.ts`
+has no cell to draw, and no asset exists to add one from. Inventing a glyph
+would be a tenth family, which section 2 and section 10.3 reserve for an
+amendment with an observed disconfirmer.
+
+So the relic's name is its encoding, and the budget is untouched by it: a relic
+name is a proper noun, section 4's counting rule excludes proper nouns, and the
+census lexicon already carries every one from `RELICS`. The card reads **0**.
+Everything section 3 routes to inspect — the name, the capability, and
+`RELIC_COPY`'s two sentences — is behind the `relic:` tip, the same panel the
+party screen's relic list and the drawer's chips open.
+
+**This also closes D34 as moot rather than implemented**, and the reason is
+worth keeping: D34 was ruled on the premise that the capability glyph is a
+section 2 family and could take the capability sentence. It is not one — section
+2 lists nine and capability is not among them, and what the map renders is
+`capabilityChip("Requires Surf")`, a chip carrying a *word*. Re-encoding onto it
+would have added a word to the card. The correction is at the foot of D34.
+
+### The shelf stopped building its own card
+
+Section 4 has said since Rev 1 that a shop card *"follows the reward card, plus
+price number"*. It did not. `renderRewardCard` was exported with **one** call
+site while `src/ui/screens/shop.ts` built `.shop__item` from scratch — its own kind
+label, name and detail line, its own `itemById`, `relicById` and `describeMove`
+reads, and its own copy of the move-card insertion point. The same reward drew
+two different faces depending on which screen you met it on, which is the defect
+section 5 closes with in as many words.
+
+D29 ruled the unification. **`src/ui/screens/shop.ts` lost 103 lines** — `describeStock`,
+`isMoveRow`, `categoryLabel`, `detailOf` and four imports all went dead the
+moment the shelf mounted the card, which is the cleanest proof available that
+they were a second copy rather than a second job.
+
+Three consequences worth naming:
+
+- **The card is the control.** It was already a `<button>`, so the separate
+  `Add` button is gone: two controls doing one job was the same defect one level
+  down, and its label was a word at rest on every row.
+- **Chosen is a class, never a word.** `shop__item--chosen` already existed and
+  already carried the state; `Add`/`Remove` beside it was a second channel for
+  one fact, which R3 forbids. `scripts/smoke.mjs` and `scripts/visual/browser.mjs`
+  both walk `.shop__item button:not([disabled])`, which is still exactly this
+  card, so neither walk needed an edit.
+- **The shelf is six cards where the reward screen is three**, and the card's own
+  padding put it 81px past the fold at 390x844. `.shop__shelf .reward` changes
+  spacing and nothing else — no encoding differs between the two call sites,
+  which is what keeps this one component rather than two.
+
+**The census lost a row with it.** `shop stock card` existed because a second
+implementation needed a second number; `.reward` is now inside `.shop__item` and
+nearest-ancestor attribution charges both call sites to one row.
+
+### The fixture that could not show a relic
+
+**D35, and M5.1 is the first item to pay it.** `gallery-fixtures.ts`'s `furnish`
+grants the run every relic — the honest worst case for the party screen and the
+drawer, and the *best* case for anything asking what the run lacks. Both
+`resolveOffer` and `resolveStock` collapse a relic already held, so of the 28
+relic cards `SMOKE24`'s map generates — 14 offers of 175, 14 shelves of 23 —
+**not one rendered anywhere**. The card whose copy is longest was the one the
+instrument was built never to show.
+
+`result-relic` and `shop-relic` stage a map-generated offer and shelf that
+really hold one, against a state holding none. **Nothing is fabricated**: the
+offer is the map's own, drawn by the seed at generation like every other, and
+the only constructed thing is the absence. Re-cutting `furnish` would have
+re-recorded four surfaces to fix two, which is why D35's option 1 puts the
+fixture in the item that needs it.
+
+### The tests were rewritten, not relaxed
+
+`test/reward-card-kinds.test.ts` exists because two kinds once shipped blank —
+its own header says the assertion is *"every member of the `Reward` union
+renders, driven off the union itself"*. Every assertion in it read the kind
+label, the name and the detail line, which is a contract the bible does not
+want. Each was re-expressed against the encoding that replaced it rather than
+softened:
+
+- **Every kind renders a face**, off the union, unchanged in force.
+- **Each kind is checked against its own row**: the item's sprite slot and its
+  tip, the relic's name and its tip, the three move kinds mounting a move card,
+  and no kind label on any of them.
+- **A technique is still told apart from a TM** — by the move card's *category
+  glyph*, read off `data-category`, where a sentence used to say "no damage".
+  The fact survives and the channel changed, which is C2 rather than a loss.
+- **The price is asserted to be a bare number**, and absent on a reward card.
+
+One assertion was added rather than changed: the two unbudgeted kinds keep their
+words, asserted so that leaving them is a decision on the record.

@@ -26,7 +26,7 @@ import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PHONE } from '../scripts/visual/browser.mjs';
-import { ARCHIVE_SURFACES, CONFIRM_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
+import { ARCHIVE_SURFACES, CONFIRM_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, RELIC_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -59,11 +59,13 @@ describe('the surfaces are all gated', () => {
     // `OVERLAY_SURFACES` rather than the literal `'drawer'` it named before the
     // map overlay: the list below is generated from the same constant, so a new
     // overlay is gated by adding it in one place instead of two.
-    expect([...DECISION_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES].sort()).toEqual([...GALLERY_SURFACES].sort());
+    expect(
+      [...DECISION_SURFACES, ...RELIC_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES].sort(),
+    ).toEqual([...GALLERY_SURFACES].sort());
   });
 });
 
-describe.each(DECISION_SURFACES)('%s in Pocket', (surface) => {
+describe.each([...DECISION_SURFACES, ...RELIC_SURFACES])('%s in Pocket', (surface) => {
   it('does not scroll at 390x844', async () => {
     const { page, close } = await open(surface);
     const height = await page.evaluate(() => globalThis.document.documentElement.scrollHeight);

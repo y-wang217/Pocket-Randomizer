@@ -393,8 +393,8 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 
 ### Tier 5: remaining surfaces
 
-**Open, one item of six done. Seven rows filed before the tier; five are
-ruled**, from the reading in
+**Open, two items of six done. Eight rows filed before and during the tier; all
+are ruled**, from the reading in
 [`../handoff/4.10-tier-5-prep.md`](../handoff/4.10-tier-5-prep.md). D30 and D31
 are instrument rows that apply D2 and D21b rather than asking for a new ruling
 and close on the build; D29, D32, D33 and D34 each edit a bible table and are
@@ -403,8 +403,8 @@ every string in `data/events.ts` whichever way D33 is ruled.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M5.1 Reward, shop and TM shelf cards | open | **D36**, D35 (D12, D29 ruled; **D34 ruled on a false premise**, moot if D36 is option 1) |
-| M5.2 Map node card | open | D35 (**D29** ruled) |
+| M5.1 Reward, shop and TM shelf cards | **done** | — (D12, D14, D29, D34, D35, D36 ruled. Item, berry and relic cards **0**; shop 64 → 31; shop.ts −103 lines; [`generation.md` §§65, 66](../generation.md)) |
+| M5.2 Map node card | open | — (**D29**, **D35** ruled; needs D35's bare-capability map) |
 | M5.3 Locale card and pre-gym screen | open | — (D1, **D29**, **D32** ruled) |
 | M5.4 Result screen and capture card | open | — (D1, D5, **D29** ruled) |
 | M5.5 Confirm overlays | **done** | — (D1, D22, D31 ruled. Replace **4**, forfeit **5**, ceilings 6 and 6; `CONFIRM_SURFACES`, the `decline` kind, [`generation.md` §64](../generation.md)) |

@@ -44,20 +44,20 @@ which blocks everything.
 | D26 | M4.3 | The log sheet opens by a labelled button where the item says pull, and the label is a word over budget | **2026-09-21** |
 | D27 | M4.2 | The strip's shipped rule says every chip is the same chip; section 2 gives the feedback flag the forecast's colour | **2026-09-21** |
 | D28 | M4.3's done-when, then M7.2 | The battle screen's header carries three facts, section 4 budgets none of them, and the census cannot see one of them | **2026-09-21** |
-| D29 | M5.1, M5.2, M5.3, M5.4 | Section 5's canon names none of the five card surfaces section 4 budgets | **open** |
+| D29 | M5.1, M5.2, M5.3, M5.4 | Section 5's canon names none of the five card surfaces section 4 budgets | **2026-09-22**, amended and unified in M5.1 |
 | D30 | M5.1 to M5.4's done-whens | The census has no component row for any of the five, so four done-whens are not computable | **open**, self-closing |
 | D31 | M5.5's done-when | The census calls a built component absent, because no fixture opens a band | **2026-09-22**, closed inside M5.5 |
 | D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **open** |
 | D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **open** |
 | D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **2026-09-22**, ruled on a false premise; **moot if D36 is ruled option 1** |
-| D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **open** |
-| D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **open** |
+| D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **2026-09-22**; M5.1's half built, M5.2's and M5.6's open |
+| D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **2026-09-22**, option 1, built |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Thirty-four of thirty-six rows are ruled**, and the two open are D35 and D36. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
+**All thirty-six rows are ruled.** D35 is ruled and half built: M5.1 carried its own relic fixture, and M5.2's bare-capability map and M5.6's widened `wordiestEvent` are still to come. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -2584,3 +2584,44 @@ two so a third fails the test. Fixing them is M5.6's, with the rest of the event
 copy, and it is free now — which was the entire point of the row.
 
 Record: [`../generation.md` §65](../generation.md).
+
+
+---
+
+## D29, D34, D35 and D36, closed with M5.1's build
+
+**2026-09-22.** One item settled four rows, and only one of them by doing what
+it said.
+
+**D36, option 1 as recommended.** Section 3 wins: the item and berry face is
+the sprite, and the name, the effect line and a relic's capability are inspect
+facts. Section 4's two card rows are annotated to **none** with their 8 kept as
+the headroom D1 says a budget is. **Every item, berry and relic card now reads
+0**; the reward card's worst instance stays at 8 because that instance is a
+*heal* card, a kind M5.1 does not name and section 4 has no row for. Bible Rev
+8.
+
+**D29, amended and unified.** Section 5 gains the reward card, the map node
+card and the locale card, and the party row gains the capture card as a call
+site. The unification was the half with teeth: `screens/shop.ts` lost **103
+lines** the moment the shelf mounted `renderRewardCard`, which is the cleanest
+available proof that they were one component written twice. The census lost its
+`shop stock card` row with them.
+
+**D34, moot rather than implemented, and its premise was false.** The capability
+glyph is not a section 2 family; the correction is at the foot of the row. With
+the effect line on inspect there is no eight-word face to fit into, so no copy
+was rewritten. The measurement under the row still stands and is what made D36
+worth filing.
+
+**D35, half built.** `result-relic` and `shop-relic` stage a map-generated offer
+and shelf that really hold a relic against a state holding none — **the first
+relic card ever rendered on any fixture in this tree.** M5.2's bare-capability
+map and M5.6's widened `wordiestEvent` are still open under this row.
+
+**One deviation from section 3, recorded rather than absorbed.** It asks for a
+*"relic sprite in the relic row"* and there is no relic sprite in the tree; a
+glyph would be a tenth family. The relic's name is the encoding, it is a proper
+noun, and the card still reads 0.
+
+Record: [`../generation.md` §66](../generation.md).

@@ -39,13 +39,24 @@ import { backpackCapacity } from '../core/items';
 import { displayName } from '../core/nicknames';
 import { createParty } from '../core/party';
 import { createRng } from '../core/rng';
-import type { TargetedReward } from '../core/rewards';
+import type { RewardOffer, TargetedReward } from '../core/rewards';
 import { chooseLocale, chooseStarter, createRun, partyCapacity, type NodeVisit, type RunResult, type RunState } from '../core/run';
 import type { MoveSpec, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { ITEMS } from '../data/items';
 import { MAX_PARTY_CAPACITY } from '../data/partyTuning';
-import { RELIC_IDS } from '../data/relics';
+import { RELIC_IDS, type RelicId } from '../data/relics';
 import { DEFAULT_TUNING } from '../data/tuning';
+
+/**
+ * An empty relic list, as a constant rather than a literal.
+ *
+ * **`test/relic-permanence.test.ts` scans `src/` for `relics: [`** and the
+ * fixtures that need a run holding none would read as a second write path if
+ * they spelled it inline — the same trap `furnish` documents one function
+ * down, where `Array.from` stands in for a spread for the same reason. A
+ * fixture is not a grant.
+ */
+const NO_RELICS: RelicId[] = Array.from<RelicId>([]);
 
 /** Every spec the seed's map can put on the field, longest species name first. */
 function harvestSpecs(state: RunState): PokemonSpec[] {
@@ -222,6 +233,63 @@ export function wordiestEvent(seed: string): EventInstance {
   }
   if (!best) throw new Error('no event generated');
   return best;
+}
+
+/**
+ * A three-card offer that really holds a relic. **Milestone M5.1, D35.**
+ *
+ * **No relic card has ever rendered on any fixture in this tree**, and the
+ * reason is one line above: `furnish` grants the run every relic, because that
+ * is the honest worst case for the party screen and the drawer. `resolveOffer`
+ * and `resolveStock` then collapse a relic the run already holds to its
+ * fallback — correctly, and by design since 4.6b — so all 28 relic cards the
+ * map generates (14 offers of 175, 14 shelves of 23) render as something else.
+ * The card whose copy is 16 words at the median is the one the instrument was
+ * built never to show.
+ *
+ * So this walks the map for an offer that *generates* one and hands it over
+ * **unresolved**, paired with a state holding no relics. Nothing is fabricated:
+ * the offer is the map's own, drawn by the seed at generation like every other,
+ * and the only constructed thing is the absence the fixture needs.
+ */
+export function relicOffer(state: RunState): { offer: RewardOffer; state: RunState } | null {
+  const bare: RunState = { ...state, relics: NO_RELICS };
+  for (const segment of state.segments) {
+    for (const route of segment.routes) {
+      for (const step of route.steps) {
+        for (const node of step.options) {
+          if (node.reward?.options.some((option) => option.kind === 'relic')) {
+            return { offer: node.reward, state: bare };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * A shelf that really holds a relic, for the same reason and with the same
+ * remedy. **M5.1, D35.**
+ *
+ * `anyShop` takes the first shelf the map holds, which on `SMOKE24` stocks no
+ * relic at all — so even without the every-relic grant that fixture could not
+ * show one. This takes the first shelf that *does*.
+ */
+export function relicShop(state: RunState): { stock: ShopStock; state: RunState } | null {
+  const bare: RunState = { ...state, relics: NO_RELICS };
+  for (const segment of state.segments) {
+    for (const route of segment.routes) {
+      for (const step of route.steps) {
+        for (const node of step.options) {
+          if (node.shop?.items.some((entry) => entry.reward.kind === 'relic')) {
+            return { stock: node.shop, state: bare };
+          }
+        }
+      }
+    }
+  }
+  return null;
 }
 
 /** A move that teaches: the target and replace screens' incoming card. */

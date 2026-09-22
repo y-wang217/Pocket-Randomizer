@@ -214,6 +214,14 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
    * These land *before* any card is touched, so the delta says which of the
    * two moved the figure. That is D17B's rule and M4.3's.
    *
+   * **There is no shop stock card row either, and that is D29 landing.** It
+   * had one, because `screens/shop.ts` built `.shop__item` from scratch and a
+   * second implementation needed a second number. M5.1 mounted
+   * `renderRewardCard` on the shelf, so `.reward` is now inside `.shop__item`
+   * and nearest-ancestor attribution charges the shop's cards to the row
+   * above — one component, one row, both call sites, which is what section 4
+   * meant by "follows the reward card".
+   *
    * There is no capture-card row, and the absence is deliberate:
    * `screens/acquisition.ts` already gives that card `.party__member`, so the
    * party row row below counts it. It counts it *wrongly* — the class is there
@@ -231,21 +239,7 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
      * itself: the kind label, the name, the effect line and the note.
      */
     selector: '.reward',
-    why: 'Section 4 budgets an item, berry or relic reward card at 8. One call site today, screens/result.ts; D29 is whether the shop card becomes the second.',
-  },
-  {
-    id: 'shop stock card',
-    /*
-     * **A separate row because it is separate code, not because section 4
-     * wants two numbers.** Section 4 says the shop card *"Follows the reward
-     * card, plus price number"*, which is one component; `screens/shop.ts`
-     * builds `.shop__item` from scratch at lines 86 to 123 and never imports
-     * `renderRewardCard`. Two rows is what makes that visible rather than
-     * averaged, and if D29 rules the unification this row goes and `.shop__item`
-     * with it.
-     */
-    selector: '.shop__item',
-    why: 'Section 4 budgets it at 8, as the reward card plus a price. It is a second implementation of that card, which is D29.',
+    why: 'Section 4 budgets an item, berry or relic reward card at 8, and the shop stock card at 8 as "the reward card plus a price". D29 ruled them one component: screens/shop.ts mounts this, so one row measures both call sites.',
   },
   {
     id: 'map node card',

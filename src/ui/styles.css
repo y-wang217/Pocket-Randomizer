@@ -4160,6 +4160,63 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
+/*
+ * The item or berry sprite, in the fixed slot section 3 asks for. **M5.1.**
+ *
+ * A box rather than a bare icon: `itemIcon` draws one 24px cell of Showdown's
+ * sheet, and the sheet's coordinates only work at that size, so the slot is
+ * what grows and the cell stays put. Fixed dimensions either way — R1 is that
+ * an attribute sits in the same place on every surface, and an item that
+ * shifted with the length of the card beside it would not.
+ *
+ * It keeps its box when the sprite fails to load, which is the state every
+ * gallery fixture is in (the CDN is aborted so a shot cannot depend on the
+ * network). A card that collapsed without it would make every fixture measure
+ * a layout the app never renders.
+ */
+.reward__sprite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+}
+
+/*
+ * The shop's price. A bare number, which section 4's counting rule excludes —
+ * `Price: 150` would be the field label R2 exists to delete.
+ */
+.reward__price {
+  font-family: var(--font-numeral);
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+
+/*
+ * **The shelf is six cards where the reward screen is three.** M5.1 mounted
+ * the reward card here (D29) and the card's own padding, sized for a
+ * three-card decision, put the shelf 81px past the fold at 390x844.
+ *
+ * Only spacing changes. Nothing is hidden and no encoding differs between the
+ * two call sites, which is what keeps this one component rather than two —
+ * the defect D29 was filed about in the first place.
+ */
+.shop__shelf .reward {
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--density-pad));
+  padding: calc(var(--space-2) * var(--density-pad));
+  width: 100%;
+}
+
+/* The price sits at the end of the row, where the old shelf put it. */
+.shop__shelf .reward__price { margin-left: auto; }
+
+/* A chosen row is the class it always was, never a word (R3). */
+.shop__item--chosen .reward { border-color: var(--emphasis); background: var(--bg-raised-strong, var(--bg-raised)); }
+.shop__shelf .reward:disabled { opacity: 0.45; cursor: default; }
+
 .reward:hover { border-color: var(--emphasis); transform: translateY(-1px); }
 .reward:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 

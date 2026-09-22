@@ -1,6 +1,16 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 7, Sept 22, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 8, Sept 22, 2026.
+
+**Rev 8** carries two amendments, both ruled 2026-09-22. On **D36**: section
+4's reward-card and shop-card rows reach **zero** words, because section 3 —
+this document's own single source of truth for at-rest rendering — puts the
+name, the effect line and a relic's capability on inspect, and the 8 becomes
+the headroom D1 says a budget is. On **D29**: section 5's canon gains the
+reward card, the map node card and the locale card, and the party row gains the
+capture card as a call site. No rule moved in either: four surfaces that had no
+row have one, and a table that disagreed with section 3 was read the way
+section 3 claims.
 
 **Rev 7** carries one amendment, ruled 2026-09-22 on row D29: section 5's
 canon gains the **confirm band**, which R1 already named, section 4 already
@@ -200,7 +210,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Battle move button | 0 | Name |
 | Move card (reward, TM shelf, recipient, replacement, confirm) | 0 | Name |
 | Move chip (compact list form) | 0 | Name |
-| Item, berry or relic reward card | 8 | One effect line |
+| Item, berry or relic reward card | 8 | **None** — the face is the sprite; name and effect line are inspect facts (2026-09-22, D36) |
 | Recipient / teach target card | 0 | Species name |
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
@@ -214,7 +224,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
 | Map node card | 0 | Nothing |
-| Shop stock card | 8 | Follows the reward card, plus price number |
+| Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
@@ -255,6 +265,26 @@ R2 has nothing to trade the words for, exactly as it has nothing to trade the
 ability name for one row above. The alternative was a tenth family, which
 section 10.1 reserves for an amendment with an observation behind it.
 
+**The two card rows reach zero, and their 8 is headroom** (ruled 2026-09-22,
+D36). Section 3 is this document's *"single source of truth for how each
+attribute renders at rest"*, and its Held item, Berry and Relic rows put the
+name, the effect line and a relic's capability in the **inspect** column. This
+section's *words that survive* column said *"One effect line"*, and the two
+disagreed for six revisions without anything noticing, because nothing measured
+a card on its own until D30 gave the census a row for one. Section 3 wins, on
+its own claim to the at-rest question; the figures stay where they are, as the
+headroom D1 says a budget is when it is larger than the surviving words can
+reach. **A relic card is the one deviation and it is recorded rather than
+absorbed**: no relic sprite exists in the tree, so its name is the encoding —
+a proper noun, which this section's counting rule excludes, so the card still
+reads zero.
+
+**Two reward kinds have no row in this table at all**: a coins card and a
+restore card. Found by M5.1, which does not name them and left them untouched,
+and recorded here so the gap is visible rather than inferred from silence. It
+is the same shape as the battle header before D28 and the locale screen before
+D32, and it belongs to M7.2.
+
 **Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one flag per hit, and the battle screen's own budget excludes it.
 
 ---
@@ -269,15 +299,28 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
 | Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
 | Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
-| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, map rail, teach target (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21) |
+| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, map rail, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
 | Battle screen header | Node kind, opponent, AI tier (2026-09-21, D28) | Battle |
+| Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
+| Map node card | Node-type glyph, tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29) | The map screen and the map drawer |
+| Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store |
 
 A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.
+
+**Four card surfaces were budgeted and canonised nowhere** (added 2026-09-22
+under D29). Section 4 budgets a reward card, a shop stock card, a map node card
+and a locale card; this table named none of them, while its own closing line
+forbids exactly what that silence allowed. `renderRewardCard` had **one** call
+site and `screens/shop.ts` built its own `.shop__item` from scratch — one
+component existing twice, on the two surfaces section 4 says are the same
+thing. The capture card is the other half: it wears `.party__member` and
+hand-builds its contents, so it is a screen drawing a stat without the stat
+block while looking like it is not.
 
 **The confirm band was budgeted twice, bet on once, and canonised nowhere**
 (added 2026-09-22 under D29's ruling). R1 names it — *"base power is in the

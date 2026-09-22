@@ -78,8 +78,8 @@ are closed, sixteen items of twenty-four**, as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
 [#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
-`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, seventeen items of
-twenty-four**: M5.5 is closed and D29, D32, D33 and D34 were ruled 2026-09-22. One trunk per tier,
+`8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, eighteen items of
+twenty-four**: M5.5 and M5.1 are closed and every discrepancy row is ruled. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
@@ -108,8 +108,33 @@ relic card renders on any fixture in the tree**, and a relic description is 16
 words at the median, so the reward card's 8 is not the heaviest card the game
 draws — Tier 4's second finding for the third time.
 
-**M5.1 stopped and filed before it wrote a line of card code, and the row is
-D36.** Section 3 opens *"the single source of truth for how each attribute
+**M5.1 is closed, and D36 is what it built.** Section 3 — the bible's *"single
+source of truth for how each attribute renders at rest"* — puts the name, the
+effect line and a relic's capability on **inspect**, and leaves the face as a
+sprite. Section 4's *words that survive* column said "One effect line", and the
+two had disagreed for six revisions because nothing measured a card on its own
+until D30 gave the census a row for one. **Every item, berry and relic card now
+reads 0**; `shop` went 64 → 31 in Pocket less shell. The reward card's worst
+instance stays at **8** and that instance is a *heal* card — a kind M5.1 does
+not name and **section 4 has no budget row for**, the same gap D28 found on the
+battle header and D32 on the locale screen, in a third place, and an input to
+M7.2.
+
+**D29's unification had the teeth.** `renderRewardCard` had one call site while
+`src/ui/screens/shop.ts` built its own card from scratch, where section 4 has said
+since Rev 1 that a shop card *"follows the reward card"*. `src/ui/screens/shop.ts` lost **103
+lines** the moment the shelf mounted the card. **D35 paid off too**: of the 28
+relic cards the map generates, none had ever rendered, because `furnish` grants
+every relic and both resolvers collapse one already held —
+`result-relic` and `shop-relic` staged the first relic card this tree has ever
+measured.
+
+**D34 was ruled on a false premise and is moot rather than implemented.** Its
+option 1 said the capability glyph is a section 2 family. It is not: section 2
+lists nine and capability is not among them, and what the map renders is
+`capabilityChip("Requires Surf")`, a chip carrying a word. With the effect line
+on inspect there was no eight-word face to fit into, so no copy was rewritten.
+The correction is recorded at the foot of the row. Section 3 opens *"the single source of truth for how each attribute
 renders at rest"*, and its rows for held item, berry and relic put the **name,
 the effect line and a relic's capability all on inspect**, leaving the card face
 as a sprite. Section 4's *words that survive* column says *"One effect line"* at

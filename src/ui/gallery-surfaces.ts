@@ -67,7 +67,31 @@ export const OVERLAY_SURFACES = ['drawer', 'map-drawer'] as const;
  */
 export const CONFIRM_SURFACES = ['confirm-replace', 'confirm-forfeit'] as const;
 
-export const GALLERY_SURFACES = [...DECISION_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES] as const;
+/**
+ * The two surfaces that show a **relic** card. **Milestone M5.1, D35.**
+ *
+ * Decision surfaces in every respect — they gate on scroll like the rest — but
+ * listed apart so the reason they exist survives. `furnish` grants the run
+ * every relic, which is the honest worst case for the party screen and the
+ * drawer and the *best* case for anything asking what the run lacks: both
+ * `resolveOffer` and `resolveStock` collapse a relic already held, so of the
+ * 28 relic cards `SMOKE24`'s map generates, **none renders on `result` or
+ * `shop`**. The card whose copy is longest is the one nothing could measure.
+ *
+ * Rather than re-cut `furnish` under four surfaces to fix two (D35's option
+ * 2), each of these stages one map-generated relic offer against a state
+ * holding no relics. Nothing about the existing `result` and `shop` fixtures
+ * moves, so neither baseline does.
+ */
+export const RELIC_SURFACES = ['result-relic', 'shop-relic'] as const;
+
+export const GALLERY_SURFACES = [
+  ...DECISION_SURFACES,
+  ...RELIC_SURFACES,
+  ...OVERLAY_SURFACES,
+  ...CONFIRM_SURFACES,
+  ...ARCHIVE_SURFACES,
+] as const;
 
 export type GallerySurface = (typeof GALLERY_SURFACES)[number];
 

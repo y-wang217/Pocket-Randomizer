@@ -46,9 +46,9 @@ import type { OfferBadge, Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { relicById } from '../../data/relics';
-import { itemCopy, relicCopy } from '../../data/itemCopy';
 import { tierChip } from '../chip';
 import { el, moveCard } from '../scene';
+import { itemIcon } from '../slots';
 import { setProse } from '../dom';
 import { carryingLine, REWARD_COPY } from '../copy/screens';
 import { typeChip } from './starter-select';
@@ -92,7 +92,30 @@ export function offerBadge(badge: OfferBadge): HTMLElement {
  * the screen, and the cards are a section inside it. What is left here is what
  * a card *is*, which was always this file's real subject.
  */
-export function renderRewardCard(reward: Reward, state: RunState, onPick: () => void): HTMLElement {
+export interface RewardCardOptions {
+  /**
+   * The shop's price, in coins. **Milestone M5.1, discrepancy D29.**
+   *
+   * Section 4: *"Shop stock card | 8 | Follows the reward card, plus price
+   * number."* "Follows" was not true — `screens/shop.ts` built its own
+   * `.shop__item` from scratch, with its own kind label, name, detail line and
+   * its own `itemById`, `relicById` and `describeMove` reads, while
+   * `renderRewardCard` had exactly one call site. Two components doing one job
+   * is the defect section 5 closes with, and D29 ruled the unification.
+   *
+   * A number and not a label: section 4's counting rule excludes bare numbers,
+   * so the price costs nothing against the budget, and R2 is why it is not
+   * `Price: 150`.
+   */
+  price?: number;
+}
+
+export function renderRewardCard(
+  reward: Reward,
+  state: RunState,
+  onPick: () => void,
+  options: RewardCardOptions = {},
+): HTMLButtonElement {
   const tuning = state.tuning;
   const card = document.createElement('button');
   card.type = 'button';
@@ -106,14 +129,33 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
   const note = el('span', 'reward__note');
 
   switch (reward.kind) {
+    /*
+     * **The item and berry face is the sprite, and nothing else. Milestone
+     * M5.1, discrepancy D36.**
+     *
+     * Section 3, the bible's *"single source of truth for how each attribute
+     * renders at rest"*: `Held item | Item sprite in a fixed slot | Empty slot
+     * renders nothing | Name, one effect line`. The name and the line are the
+     * **last** column — what a press opens — not the first.
+     *
+     * The card used to carry four text nodes: a kind label (`Held item`), the
+     * name, the effect line and a note (`your backpack`). Section 4's budget
+     * row reads *"One effect line"* under *words that survive*, and M5.1 wrote
+     * its item text against that column. D36 is the two sections disagreeing,
+     * and CLAUDE.md settles it — the bible wins over a prompt, and section 3 is
+     * the section that claims the at-rest question.
+     *
+     * `itemIcon` is the same cell of the same Showdown sheet the party slots,
+     * the battle panel and the party row draw (M3.1, M3.2, both built against
+     * this row), so an item looks the same wherever it appears. The `item:` tip
+     * is the same one the party row's held-item slot carries, so the press
+     * opens the same panel from the same table.
+     */
     case 'item': {
-      const entry = itemById(reward.item);
-      name.textContent = entry?.name ?? reward.item;
-      // The plain-language effect line Part 5 asks for, from the item's own
-      // metadata rather than written here — `blurb` has been that field since
-      // Stage 3, so no `playerDescription` was added alongside it.
-      detail.textContent = itemCopy(reward.item);
-      setProse(note, REWARD_COPY.itemNote);
+      const slot = el('span', 'reward__sprite');
+      slot.append(itemIcon(reward.item));
+      slot.dataset['tip'] = `item:${reward.item}`;
+      card.append(slot);
       break;
     }
 
@@ -149,11 +191,35 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
      * missing from the table shows its id rather than an empty card, because a
      * blank card is exactly the failure this case exists to end.
      */
+    /*
+     * **The relic face is its name, and that is a recorded deviation from
+     * section 3. Milestone M5.1, discrepancy D36.**
+     *
+     * Section 3's Relic row asks for a *"relic sprite in the relic row"*.
+     * **There is no relic sprite in the tree** — relics are this game's own
+     * objects, not Showdown's, so `ui/slots.ts` has no cell to draw and no
+     * asset exists to add one from. Section 3 cannot be honoured literally
+     * here, and inventing a glyph for it would be a tenth family, which
+     * section 2 and section 10.3 reserve for an amendment with an observed
+     * disconfirmer behind it.
+     *
+     * So the name is the encoding, and the budget is untouched by it: a relic
+     * name is a proper noun, which section 4's counting rule excludes, and the
+     * census lexicon already carries every one of them from `RELICS`. The card
+     * reads **0 words** either way.
+     *
+     * Everything else goes where section 3 puts it. *"Name, capability it
+     * satisfies"* is the inspect column, and the `relic:` tip — the same one
+     * the party screen's relic list and the drawer's chips carry — opens the
+     * name, the capability and `RELIC_COPY`'s two sentences from one panel.
+     * The capability chip that used to sit on this card is gone with the rest:
+     * it cost a word at rest for a fact a press already gives.
+     */
     case 'relic': {
       const entry = relicById(reward.relic);
       name.textContent = entry?.name ?? reward.relic;
-      detail.textContent = relicCopy(reward.relic);
-      setProse(note, REWARD_COPY.relic);
+      name.dataset['tip'] = `relic:${reward.relic}`;
+      card.append(name);
       break;
     }
 
@@ -217,12 +283,33 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
 
   }
 
-  card.prepend(kind, name, detail);
+  /*
+   * **Currency and heal keep their words, and it is a scope line rather than
+   * an oversight.** M5.1 names *"item, berry and relic cards"* and *"TM cards
+   * mount the move card"*. A coins card and a restore card are neither, and
+   * section 4 has no budget row for either of them — the same gap D28 found on
+   * the battle header and D32 found on the locale screen, in a third place.
+   * They are recorded here and in `docs/generation.md` §66 as an input to
+   * M7.2, which is the item that measures every surface against a row.
+   */
+  if (reward.kind === 'currency' || reward.kind === 'heal') card.prepend(kind, name, detail);
   if (note.hasChildNodes()) card.append(note);
+  /*
+   * The boosted type stays, and it is the one thing on an item card besides
+   * the sprite. It is a type chip — section 2's first glyph family, zero words
+   * — and it answers the question a sprite cannot: *which* type this item is
+   * for. R3 is satisfied because nothing else on the card renders the type.
+   */
   if (reward.kind === 'item') {
     const entry = itemById(reward.item);
     if (entry?.boostsType) card.append(typeChip(entry.boostsType));
   }
+  if (options.price !== undefined) {
+    const price = el('span', 'reward__price');
+    price.textContent = String(options.price);
+    card.append(price);
+  }
+
   card.addEventListener('click', onPick);
   return card;
 }
