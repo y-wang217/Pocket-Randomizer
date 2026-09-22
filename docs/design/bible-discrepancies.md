@@ -49,14 +49,15 @@ which blocks everything.
 | D31 | M5.5's done-when | The census calls a built component absent, because no fixture opens a band | **2026-09-22**, closed inside M5.5 |
 | D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **open** |
 | D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **open** |
-| D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **open** |
+| D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **2026-09-22**, ruled on a false premise; **moot if D36 is ruled option 1** |
 | D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **open** |
+| D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **open** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Thirty-three of thirty-five rows are ruled.** D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
+**Thirty-three of thirty-six rows are ruled.** D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -2422,3 +2423,132 @@ tells three states apart: a number (it rendered; zero is a number),
 exists so the next one can be honest rather than indistinguishable).
 
 Record: [`../generation.md` §64](../generation.md).
+
+---
+
+## D36. Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card
+
+**Blocks M5.1. Filed 2026-09-22, inside the item, before any card code was
+written. It supersedes the premise D34 was ruled on — see the correction at the
+end of D34.**
+
+Section 3 opens: *"The single source of truth for how each attribute renders at
+rest. Inspect shows everything in the last column."* Its three rows for the
+objects M5.1 draws:
+
+| Attribute | At rest | Default | On inspect |
+|---|---|---|---|
+| Held item | Item sprite in a fixed slot | Empty slot renders nothing | **Name, one effect line** |
+| Berry | Berry sprite, same slot | Empty slot renders nothing | **Name, trigger condition** (the one place a sentence survives) |
+| Relic | Relic sprite in the relic row | None | **Name, capability it satisfies** |
+
+So at rest each of the three is a **sprite and nothing else**, and the effect
+line is an inspect fact.
+
+Section 4 says the opposite in its *words that survive* column: *"Item, berry or
+relic reward card | 8 | One effect line."* M5.1 follows section 4 — *"sprite in
+the fixed slot, one effect line under eight words … no name text at rest, name
+on inspect"* — which moves the **name** to inspect and keeps the **line** on the
+face. Section 3 moves both.
+
+**CLAUDE.md decides the prompt half and not the bible half.** *"Where a prompt
+and the bible disagree on how an attribute is shown, the bible wins… the prompt
+is wrong until the bible is amended."* So M5.1 loses to section 3 outright. What
+is left is an internal disagreement between two sections of the bible, and
+section 3 carries the words *single source of truth for how each attribute
+renders at rest* while section 4 carries a budget. D1 has already ruled how that
+reads when they diverge: a budget is a ceiling, and *"where a budget is larger
+than the words that survive can reach, the difference is headroom, not a
+quota."* Under section 3 the card reaches **0**, and the 8 is headroom.
+
+**Three things follow, and the third is why this is filed rather than built
+around.**
+
+1. **The eight-word rewrite is not needed for the card face.** D34 exists
+   because eight words cannot hold a relic's two sentences. On inspect there is
+   no budget: R5 says the inspect layer carries *"the full explanation"*, and
+   `ui/tooltips.ts:830` already renders `playerDescription` there today. The
+   copy still moves out of the hashed tables — that is D12, and the hash move
+   the lead designer ruled on 2026-09-22 — but it moves to be *read from a
+   different file*, not to be cut to eight words.
+2. **The card has no sprite today.** `renderRewardCard` draws a kind label, a
+   name, a detail line and a note, and calls nothing that draws an item.
+   `itemIcon` in `ui/slots.ts` exists and M3.1 and M3.2 already mount it in a
+   fixed slot on the battle panel and the party row, citing this same section 3
+   row. So the work M5.1 actually has is **mounting the component that exists**,
+   and that is what makes a zero-word face possible rather than an empty one.
+3. **Nothing in the tree is measuring the difference.** The reward card
+   censuses 8 against a budget of 8 and reads as at budget (D30). Under section
+   3 it is eight words over.
+
+**Options.**
+
+1. **Section 3 wins as written. The card face is the sprite; name, effect line
+   and a relic's capability are inspect facts.** Section 4's row is annotated to
+   say its 8 is headroom under D1 and that the surviving words are none. M5.1
+   becomes: mount `itemIcon`, move the copy per D12, route name and line to the
+   inspect layer, add the price to the shop card. **No copy is rewritten to
+   eight words at all**, and D34 is closed as moot rather than implemented.
+2. **Amend section 3 to match section 4**, putting one effect line at rest on
+   the three rows. Then D34's ruling stands and the rewrite happens. This is an
+   amendment to the table the bible calls its single source of truth, to make it
+   agree with a budget column, and section 10.1 wants a disconfirmer behind a
+   change of that size.
+3. **Split the difference: sprite plus line at rest, name on inspect**, which is
+   what M5.1 asked for, and amend section 3's three rows to say so. Same
+   amendment as option 2, narrower.
+
+**Recommendation: 1.** It is the only option that amends nothing, it takes the
+card to 0 rather than to 8, it reuses a component two milestones have already
+mounted against this very row, and it deletes an eight-word rewrite of
+forty-eight strings rather than performing one. Its one real cost is that a
+player reads an item's effect only on a long press — which is what R5 is for,
+and what section 3 has said since Rev 1.
+
+**What it does not change.** The copy still leaves `data/items.ts` and
+`data/relics.ts` per D12, and the hash still moves once for this tier per the
+ruling of 2026-09-22 — the inspect layer needs the strings from a file `core/`
+does not import exactly as the card face would have.
+
+---
+
+## D34, corrected 2026-09-22
+
+**Ruled 2026-09-22: option 1, the capability rides the glyph and the inspect
+layer takes the overflow. The ruling was made on a premise that is false, and
+the correction is recorded here rather than quietly absorbed.**
+
+**What was wrong.** The option said *"the capability glyph is already a section
+2 family and M5.2 mounts it on the map node card with its band chevron."* It is
+not a family. Section 2 lists nine — type, category, band, PP, accuracy,
+priority, effectiveness, status, stat — and capability is not among them;
+`data/glyphFamilies.ts` carries the same nine and its header says a tenth is an
+amendment. Section 3 does name a *"capability glyph plus band chevron"* on its
+map-node row, and `ui/screens/run-map.ts` renders that today — but as
+`capabilityChip("Requires Surf")`, a chip carrying a **word**. Re-encoding a
+relic's capability sentence onto it would have *added* a word to the card, not
+removed one, and taking it to a wordless glyph would have needed the tenth
+family section 10.1 reserves for an observed disconfirmer.
+
+**Why it no longer matters, and what replaces it.** D36, filed the same day
+before any card code was written, found that section 3 — *"the single source of
+truth for how each attribute renders at rest"* — puts the **name, the effect
+line and a relic's capability all on inspect**, and leaves the card face as a
+sprite. If D36 is ruled option 1 then nothing on the face has eight words to
+fit into, no copy is rewritten, and **this row is moot rather than
+implemented**: the relic's capability reaches the player through the inspect
+layer, which is where section 3 has put it since Rev 1 and where
+`ui/tooltips.ts:830` already renders it.
+
+**What survives either way.** The measurement under this row stands — 8 of 10
+relic descriptions over eight words, median 16, each two sentences doing two
+jobs — and it is what makes D36 matter rather than a formality. So does the
+correction at the foot of the row: `items.ts` has `blurb`, not
+`playerDescription`, and nothing is added to either table; the fields are
+**moved** per D12, at the one hash move ruled for this tier.
+
+**If D36 is ruled option 2 or 3**, this row wakes up and its option 1 is no
+longer available on the premise it was written on. The live choices would then
+be its option 2 (relics get their own budget) or option 3 (both sentences kept,
+the second behind inspect) — and option 3 is option 1's outcome by another
+route, which is the honest thing to notice about it.

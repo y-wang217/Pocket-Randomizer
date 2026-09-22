@@ -403,7 +403,7 @@ every string in `data/events.ts` whichever way D33 is ruled.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M5.1 Reward, shop and TM shelf cards | open | D35 (D12, **D29**, **D34** ruled) |
+| M5.1 Reward, shop and TM shelf cards | open | **D36**, D35 (D12, D29 ruled; **D34 ruled on a false premise**, moot if D36 is option 1) |
 | M5.2 Map node card | open | D35 (**D29** ruled) |
 | M5.3 Locale card and pre-gym screen | open | — (D1, **D29**, **D32** ruled) |
 | M5.4 Result screen and capture card | open | — (D1, D5, **D29** ruled) |

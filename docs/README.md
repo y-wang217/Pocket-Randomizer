@@ -103,6 +103,24 @@ relic card renders on any fixture in the tree**, and a relic description is 16
 words at the median, so the reward card's 8 is not the heaviest card the game
 draws — Tier 4's second finding for the third time.
 
+**M5.1 stopped and filed before it wrote a line of card code, and the row is
+D36.** Section 3 opens *"the single source of truth for how each attribute
+renders at rest"*, and its rows for held item, berry and relic put the **name,
+the effect line and a relic's capability all on inspect**, leaving the card face
+as a sprite. Section 4's *words that survive* column says *"One effect line"* at
+rest, and M5.1 follows section 4. Under section 3 the card reaches **0** and
+section 4's 8 is headroom, which is what D1 already ruled a budget is. Two
+things fall out: no copy needs cutting to eight words, and the real work is
+mounting `itemIcon` — which exists, and which M3.1 and M3.2 already mount
+against this same section 3 row — because `renderRewardCard` draws no sprite at
+all today.
+
+**D34 was ruled on a premise that is false, and the correction is recorded
+rather than absorbed.** Its option 1 said the capability glyph is a section 2
+family. It is not: section 2 lists nine and capability is not among them, and
+what the map renders is `capabilityChip("Requires Surf")`, a chip carrying a
+word. The row is moot if D36 is ruled option 1, and wakes up otherwise.
+
 **Tier 4's standing instruction was to check the fixture before trusting a
 number, and that nobody had looked at the other surfaces. Looking found three,
 and they are D35.** `gallery-fixtures.ts` grants the run **every relic** — the
