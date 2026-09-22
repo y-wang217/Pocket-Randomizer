@@ -103,6 +103,18 @@ relic card renders on any fixture in the tree**, and a relic description is 16
 words at the median, so the reward card's 8 is not the heaviest card the game
 draws — Tier 4's second finding for the third time.
 
+**Tier 4's standing instruction was to check the fixture before trusting a
+number, and that nobody had looked at the other surfaces. Looking found three,
+and they are D35.** `gallery-fixtures.ts` grants the run **every relic** — the
+honest worst case for the party screen and the drawer, and the best case for
+anything that asks what the run lacks. `resolveOffer` and `resolveStock`
+collapse a relic already held, so of the **28 relic cards the map generates,
+14 offers and 14 shelves, none renders**; and all six gated nodes resolve
+`known` where the same map held bare resolves `none` and `latent`. Separately,
+`wordiestEvent` hardcodes `forest`, which holds 3 of 24 events and has the
+lowest ceiling of the eight locales — the event census of 89 is nine words
+light. M5.1, M5.2 and M5.6 each carry a fixture of their own now.
+
 **D33 is the one to read.** Section 4 budgets the event screen at 40 and
 composes that row as "prompt under 30, choices under 6 each" — which is 54
 before the outcome line and before a hint exists, and the row has no line for

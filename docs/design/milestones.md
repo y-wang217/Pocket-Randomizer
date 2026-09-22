@@ -402,12 +402,12 @@ every string in `data/events.ts` whichever way D33 is ruled.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M5.1 Reward, shop and TM shelf cards | open | **D29, D34** (D12 ruled: split, no hash move) |
-| M5.2 Map node card | open | **D29** |
+| M5.1 Reward, shop and TM shelf cards | open | **D29, D34, D35** (D12 ruled: split, no hash move) |
+| M5.2 Map node card | open | **D29, D35** |
 | M5.3 Locale card and pre-gym screen | open | **D29, D32** (D1 ruled) |
 | M5.4 Result screen and capture card | open | **D29** (D1, D5 ruled: no label line) |
 | M5.5 Confirm overlays | open | **D31** (D1, D22 ruled; scope corrected, see below) |
-| M5.6 Event screen | open | **D33, D14** (D8 ruled the remedy, not the budget) |
+| M5.6 Event screen | open | **D33, D14**, D35 (D8 ruled the remedy, not the budget) |
 
 **D30 is closed**: four census component rows and a worst-instance column,
 committed with the before-numbers and before any card was touched. The column
@@ -420,6 +420,12 @@ not the heaviest card the game draws (D34).
 
 D31's band fixtures are **not** a pre-tier commit: they add gated surfaces and
 touch three test files, which is M5.5's own work.
+
+**D35 is the fixture audit Tier 4 asked for, and it lands on three items.** The
+fixture grants every relic, so all 28 relic cards on the map collapse and all
+six gated nodes read `known`; and `wordiestEvent` searches `forest` alone, which
+has the lowest ceiling of the eight locales. M5.1, M5.2 and M5.6 each build
+their own fixture rather than the shared one being re-cut under four surfaces.
 
 **M5.5 is nearly built and its item text is out of date twice over.** M2.3
 shipped the replace band with both cards; M3.3 shipped the forfeit band with

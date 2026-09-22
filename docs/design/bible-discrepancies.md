@@ -50,12 +50,13 @@ which blocks everything.
 | D32 | M5.3 | The locale *screen* has no budget row, and M5.3 pairs a card number with a screen number | **open** |
 | D33 | M5.6 | The event budget is smaller than the sum of its own row, and the row has no line for the four hints | **open** |
 | D34 | M5.1 | Eight words cannot carry what a relic description carries, and C2 forbids dropping the difference | **open** |
+| D35 | M5.1, M5.2 done-whens | The fixture's every-relic grant is the worst case for one surface and the blind spot for three | **open** |
 
 ## Rulings, 2026-09-19
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Twenty-eight of thirty-four rows are ruled.** Tier 5 filed six on 2026-09-22
+**Twenty-eight of thirty-five rows are ruled.** Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -1857,10 +1858,16 @@ making the change is worse than an honest number.
 
 ## Rows filed 2026-09-22, opening Tier 5
 
-Six rows filed against Tier 5's six items before any of them was built, from
+Seven rows filed against Tier 5's six items before any of them was built, from
 the reading in [`../handoff/4.10-tier-5-prep.md`](../handoff/4.10-tier-5-prep.md),
-which carries the measurements under each one. **None is ruled. Two close
-themselves.**
+which carries the measurements under each one. **One is closed; the rest are
+open.**
+
+**D35 was filed last and is the one Tier 4 asked for by name.** Its handoff said
+to check the fixture before trusting a number on any surface, and that nobody
+had looked at the others. Looking found three items measured on a fixture that
+cannot produce the condition they exist for, two of them from one line of
+`gallery-fixtures.ts`.
 
 D30 and D31 are instrument rows: they apply rulings that already exist — D2,
 which says the census counts per component *so that* a component budget can be
@@ -1890,6 +1897,7 @@ number as written, and it was invisible until a script counted.
 | D32 | M5.3 | A section 4 row for a screen that has none |
 | D33 | M5.6 | Either the number 40, or the four hints |
 | D34 | M5.1 | A re-encode, or a second budget on one card row |
+| D35 | M5.1, M5.2 done-whens | One fixture each, inside the item. No bible change |
 
 ---
 
@@ -2289,3 +2297,98 @@ budget row into two to avoid an encoding the bible already has a family for.
 relic card was built; `items.ts` has `blurb`, which `screens/reward.ts`
 documents as having been that field since Stage 3. Nothing is added. The fields
 are **moved**, per D12, and **shortened**, per this row.
+
+---
+
+## D35. The fixture's every-relic grant is the worst case for one surface and the blind spot for three
+
+**Blocks M5.1's and M5.2's done-whens. Filed 2026-09-22, from the fixture audit
+Tier 4's handoff asked for.**
+
+Tier 4 closed with a standing instruction: *"Check the fixture before trusting a
+number on any surface you are about to work on,"* and the note that *"other
+surfaces may have the same problem, and nobody has looked."* This row is what
+looking found. Three of Tier 5's six items are measured on a fixture that cannot
+produce the condition the item exists for, and two of the three share one cause.
+
+### The cause
+
+`gallery-fixtures.ts`'s `furnish` grants the run **every relic**:
+
+```
+relics: Array.from(RELIC_IDS),
+```
+
+It is there for the party screen and the drawer, where holding everything is
+genuinely the worst case — the relic list is longest, the backpack is at
+capacity. It is the *best* case for every surface that asks what the run does
+**not** have, and two of those are Tier 5's.
+
+### What it costs, measured on `SMOKE24`
+
+| Item | What the item needs | What the fixture produces |
+|---|---|---|
+| M5.1 | a relic reward card and a relic shop card | **28 relic cards on the map, 0 renderable** |
+| M5.2 | the capability band chevron | **`known` only; the map can be `known`, `none`, `latent`** |
+
+**M5.1.** The map generates 14 three-card offers holding a relic and 14 shop
+shelves holding one, out of 175 offers and 23 shelves. `resolveOffer` and
+`resolveStock` both collapse a relic the run already holds to its fallback —
+correctly, and by design since 4.6b. The run holds all ten. So every one of the
+28 renders as an item, a heal or a move, and **no relic card renders on any
+fixture in the tree**. That is the card kind whose copy is 16 words at the
+median against a budget of 8 (D34): the one card that most needs measuring is
+the one card the instrument is built never to show.
+
+**M5.2.** Six gated nodes in segment 0. Holding every relic, all six resolve
+`known`. The same map held bare resolves `none` on four and `latent` on two.
+M5.2's done-when is *"a test asserts the capability band chevron matches
+`resolveCapability`"* — a three-valued attribute photographed in one value.
+
+### The third one is unrelated and is its own defect
+
+`wordiestEvent` is documented as *"the generated event with the most prose"* and
+calls `generateEvent` with `'forest'` hardcoded. Forest holds **3 of the 24**
+events, and its ceiling is the **lowest of the eight locales**:
+
+| locale | heaviest event, words |
+|---|---:|
+| cave, marsh, badlands | 75 |
+| summit | 72 |
+| city | 71 |
+| shore | 68 |
+| ruins | 67 |
+| **forest** | **66** |
+
+So the fixture named for the worst case produces the best locale's worst case,
+and M5.6's budget is checked nine words light. The event surface's census of 89
+is an under-count.
+
+### Options
+
+1. **Each item fixes its own fixture, and says so in its report.** M5.1 adds a
+   relic-bearing reward and shop fixture; M5.2 adds a bare-relic map; M5.6 widens
+   `wordiestEvent` to every locale. Nothing existing changes, so no visual
+   baseline moves except the event surface's, which moves because the number it
+   was recording was wrong.
+2. **Fix `furnish` centrally**, by splitting the relic grant onto its own axis
+   beside the existing `fixture=loaded|walked`. Cleaner, and it re-records the
+   baseline for the map, the drawer, the party screen and the result screen at
+   once — four surfaces, to fix two.
+3. **Leave it and assert directly**, the way M4.1 and M4.2 did when the loaded
+   board could not produce a flag collision. Honest, and it leaves the census
+   permanently blind to a whole card kind.
+
+**Recommendation: 1.** It is the smallest change that makes each done-when
+mean what it says, it keeps every existing baseline except the one that was
+recording a wrong number, and it puts the fix in the item that needs it rather
+than in a shared fixture four surfaces read. **Option 3 is the fallback for
+M5.1 only** if a relic-bearing offer turns out to need a second played run:
+then the relic card is asserted rather than censused and the report says so.
+
+**And one thing for M7.2.** All three of these were found by hand, by one
+session, because a handoff said to look. Nothing in the tree checks that a
+fixture can produce the condition it is named for. The post-census is where a
+standing check for that belongs, and it is recorded here rather than built now
+because the check needs the vocabulary D31 asks for — `absent` against
+`unrendered` — to say anything useful.
