@@ -150,7 +150,7 @@ will be keyed from.
 | Item | Status | Blocked by |
 |---|---|---|
 | M1.1 Glyph sheet | **done** | — (42 glyphs, `npm run glyphs`, [report](../visual/reports/m1.1-glyph-sheet.md), `visual/4.10-m1.1`) |
-| M1.2 One inspect layer | **done** | — (D4 ruled; 18 mount points, archetype excepted. `visual/4.10-m1.2`) |
+| M1.2 One inspect layer | **done** | — (D4 ruled; 18 mount points, archetype excepted. `visual/4.10-m1.2`. **Patched 2026-09-22**: moving `data-tip` onto the move button handed the hover enhancement a card-sized target on a screen that re-renders every turn, and on a phone the synthesised `mouseover` behind a tap opened a panel nothing could close — [`../spec/gymrun-patch-inspect-hover-on-touch.md`](../spec/gymrun-patch-inspect-hover-on-touch.md), [`../generation.md` §64](../generation.md). The gesture itself is unchanged) |
 | M1.3 Exposure store | **done** | — (`visual/4.10-m1.3`) |
 
 ### Tier 2: the move card

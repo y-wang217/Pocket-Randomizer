@@ -270,6 +270,131 @@ describe('R5 enforcement: a long press on a move button spends no turn', () => {
   });
 });
 
+describe('a phone tap is not a hover', () => {
+  /**
+   * **The inspect-on-touch defect, as the sequence a phone actually sends.**
+   * `docs/spec/gymrun-patch-inspect-hover-on-touch.md`, 2026-09-22.
+   *
+   * Every mobile browser follows a touch with a compatibility mouse sequence —
+   * `mouseover`, `mousedown`, `mouseup`, `click`, in that order, with the
+   * `mouseover` arriving *before* the click. The layer offers hover as a
+   * desktop enhancement, and that synthesised `mouseover` walked straight into
+   * it: a tap opened inspect, opened it `transient`, and `transient` was the
+   * one state a click would not close.
+   *
+   * The three cases below are the defect end to end. The existing "does not
+   * open on a tap" case above is not a duplicate of the first: it sends
+   * `pointerdown`, `pointerup` and `click` and no `mouseover`, which is a
+   * desktop tap, and it passed throughout.
+   */
+
+  /** A tap, with the compatibility mouse events a phone browser adds to it. */
+  function touchTap(element: HTMLElement): void {
+    const down = new MouseEvent('pointerdown', { bubbles: true });
+    Object.defineProperty(down, 'pointerType', { value: 'touch' });
+    element.dispatchEvent(down);
+    const up = new MouseEvent('pointerup', { bubbles: true });
+    Object.defineProperty(up, 'pointerType', { value: 'touch' });
+    element.dispatchEvent(up);
+    element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  it('opens nothing, because the mouseover a touch synthesises is not one', () => {
+    const { host, layer, done } = mount();
+    const node = trigger(host, 'band:3');
+
+    touchTap(node);
+
+    expect(layer.root.hidden, 'a tap opened inspect').toBe(true);
+    done();
+  });
+
+  it('still chooses the move it tapped', () => {
+    const { host, done } = mount();
+
+    const button = document.createElement('button');
+    button.dataset['tip'] = 'move:flamethrower';
+    let submitted = 0;
+    button.addEventListener('click', () => {
+      submitted += 1;
+    });
+    host.append(button);
+
+    touchTap(button);
+
+    expect(submitted, 'the tap that opened no panel also spent no turn').toBe(1);
+    done();
+  });
+
+  /**
+   * The panel the report photographed: open, with its trigger gone.
+   *
+   * On the battle screen the click that opened it also spends the turn, and
+   * the turn re-renders the move bar — so the element whose `mouseout` was the
+   * only thing that closed a hover panel is no longer in the document. Nothing
+   * could dismiss it, and it covered the board.
+   *
+   * Asserted through hover rather than touch because touch no longer reaches
+   * this state at all. It is the guard on `dropStranded`: a panel whose
+   * trigger has left the document is closed at the reader's next press,
+   * whatever opened it. A hover panel over a *live* trigger is still exempt
+   * from the tap-outside dismissal, because `mouseout` closes that one — and
+   * `test/visual-density.test.ts` asserts exactly that on two screens.
+   */
+  it('closes a hover panel on a click outside, once its trigger is gone', () => {
+    const { host, layer, done } = mount();
+    const node = trigger(host, 'band:3');
+
+    node.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    expect(layer.root.hidden, 'hover should still open on a desktop').toBe(false);
+
+    // The turn resolves and the move bar is rebuilt without this button.
+    node.remove();
+
+    host.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(layer.root.hidden, 'the panel outlived every way of closing it').toBe(true);
+    done();
+  });
+
+  /**
+   * A cancelled hold emits no click, so the flag that eats one must be dropped
+   * with it. iOS cancels a pointer whenever the page starts scrolling or the
+   * system callout takes over a long press.
+   *
+   * Left armed, `suppressClick` met the player's *next* tap, measured it
+   * against the cancelled press's timestamp, found a long gap and ate it. On a
+   * move button that is the turn, lost silently.
+   */
+  it('does not eat the next tap after a hold the system cancelled', async () => {
+    const { host, done } = mount(50);
+
+    const button = document.createElement('button');
+    button.dataset['tip'] = 'move:flamethrower';
+    let submitted = 0;
+    button.addEventListener('click', () => {
+      submitted += 1;
+    });
+    host.append(button);
+
+    const down = new MouseEvent('pointerdown', { bubbles: true });
+    Object.defineProperty(down, 'timeStamp', { value: 1000 });
+    button.dispatchEvent(down);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    // The callout takes over: a cancel, and no click behind it.
+    button.dispatchEvent(new MouseEvent('pointercancel', { bubbles: true }));
+
+    // A plain tap, two seconds later.
+    const click = new MouseEvent('click', { bubbles: true });
+    Object.defineProperty(click, 'timeStamp', { value: 3000 });
+    button.dispatchEvent(click);
+
+    expect(submitted, 'a cancelled hold ate the next turn').toBe(1);
+    done();
+  });
+});
+
 describe('there is exactly one tooltip mechanism', () => {
   it('and only ui/tooltips.ts builds it', async () => {
     const { readdirSync, readFileSync, statSync } = await import('node:fs');
