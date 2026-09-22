@@ -64,8 +64,6 @@ function movePaid(move: string): EventOutcome {
 function option(archetype: EventArchetype, paid: EventOutcome): EventOption {
   return {
     archetype,
-    label: archetype,
-    hint: archetype,
     toll: null,
     outcomes: { T0: paid, T1: paid, T2: paid, T3: paid },
     tierAt: { none: 'T2', latent: 'T2', known: 'T2' },
@@ -78,7 +76,6 @@ function eventWith(paid: EventOutcome): EventInstance {
     eventId: 'test',
     locale: 'forest',
     rarity: 'common',
-    prompt: 'p',
     requires: 'cut',
     options: [option('safe', paid)],
   };

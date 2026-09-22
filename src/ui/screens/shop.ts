@@ -19,6 +19,7 @@ import { basketCost, type ShopStock } from '../../core/economy';
 import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { relicById } from '../../data/relics';
+import { itemCopy, relicCopy } from '../../data/itemCopy';
 import { itemById, BERRIES } from '../../data/items';
 import { moveCardData } from '../move-detail';
 import { el, moveCard } from '../scene';
@@ -222,7 +223,7 @@ function categoryLabel(reward: Reward): string {
 function detailOf(reward: Reward): Node {
   switch (reward.kind) {
     case 'item':
-      return document.createTextNode(itemById(reward.item)?.blurb ?? '');
+      return document.createTextNode(itemCopy(reward.item));
     case 'heal':
       return prose(SHOP_COPY.heal);
     case 'tm':
@@ -242,7 +243,7 @@ function detailOf(reward: Reward): Node {
      * inconsistency this fix created rather than one it found.
      */
     case 'relic':
-      return document.createTextNode(relicById(reward.relic)?.playerDescription ?? '');
+      return document.createTextNode(relicCopy(reward.relic));
     default:
       return document.createTextNode('');
   }

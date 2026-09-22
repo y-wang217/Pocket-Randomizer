@@ -145,6 +145,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the per-band hints and conclusions on the event screen, and the capability and band labels the map and the event screen print; read by ui/screens/event.ts, ui/screens/run-map.ts and ui/screens/party.ts only, and a reworded sentence must not move the hash',
   },
   {
+    path: 'src/data/itemCopy.ts',
+    why: "the effect line for every held item, berry and relic; read by ui/screens/reward.ts, shop.ts, party.ts and ui/tooltips.ts only, and a reworded effect line must not refuse every seed recorded before it (M5.1, D12)",
+  },
+  {
     path: 'src/data/displayTuning.ts',
     why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
   },

@@ -43,6 +43,7 @@
  * Run: `npm run copy-audit`.
  */
 import { writeFileSync } from 'node:fs';
+import { eventHook, eventLabel, eventHint } from '../src/data/eventCopy';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -58,6 +59,7 @@ import { MOVE_FACT_INFO } from '../src/data/moveFactInfo';
 import { ARCHETYPE_DISPLAY, ARCHETYPE_CAVEAT, ARCHETYPE_INTRO } from '../src/data/archetypes';
 import { RELICS } from '../src/data/relics';
 import { ITEMS } from '../src/data/items';
+import { itemCopy, relicCopy } from '../src/data/itemCopy';
 import { LOCALES } from '../src/data/locales';
 import { GYMS } from '../src/data/gyms';
 import { EVENTS } from '../src/data/events';
@@ -234,10 +236,10 @@ section({
     'Every event supplies the same nine strings. `safe`, `gamble`, `toll` and `attune` are the four '
     + 'archetypes; `attune` appears only when the run holds the relic the event requires.',
   rows: EVENTS.flatMap((event) => [
-    { key: `${event.id} · hook`, text: event.hook },
+    { key: `${event.id} · hook`, text: eventHook(event.id) },
     ...EVENT_ARCHETYPES.flatMap((archetype) => [
-      { key: `${event.id} · ${archetype} · label`, text: event.labels[archetype] },
-      { key: `${event.id} · ${archetype} · hint`, text: event.hints[archetype] },
+      { key: `${event.id} · ${archetype} · label`, text: eventLabel(event.id, archetype) },
+      { key: `${event.id} · ${archetype} · hint`, text: eventHint(event.id, archetype) },
     ]),
   ]),
 });
@@ -467,20 +469,20 @@ section({
   title: 'Held items and berries',
   where: 'The reward card, the shop shelf, and the item slot on the party screen.',
   source: 'src/data/items.ts',
-  note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the blurb is rewritable. Both are listed; the name is here to read the blurb against.',
+  note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the effect line is rewritable. Both are listed; the name is here to read the line against. The lines moved to src/data/itemCopy.ts at M5.1 so rewriting one no longer moves contentHash.',
   rows: ITEMS.flatMap((item) => [
     { key: `${item.id} · name (fixed)`, text: item.name },
-    { key: `${item.id} · blurb`, text: item.blurb },
+    { key: `${item.id} · blurb`, text: itemCopy(item.id) },
   ]),
 });
 
 section({
   title: 'Relics',
   where: 'The relic card, the party screen’s relic list, and the drawer.',
-  source: 'src/data/relics.ts',
+  source: 'src/data/itemCopy.ts',
   rows: RELICS.flatMap((relic) => [
     { key: `${relic.id} · name`, text: relic.name },
-    { key: `${relic.id} · description`, text: relic.playerDescription },
+    { key: `${relic.id} · description`, text: relicCopy(relic.id) },
   ]),
 });
 

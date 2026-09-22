@@ -29,7 +29,7 @@ which blocks everything.
 | D11 | M6.4 | "One validation cycle" and "two playtest rounds" are not defined as equal | **2026-09-19** |
 | D12 | M4.1, M5.1, M6.1 | Three items move `contentHash`, which the standing gates forbid | **2026-09-19** |
 | D13 | process | "One item, one PR" against the single 4.10 pull request | **2026-09-19** |
-| D14 | M0.3 (closed around it) | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **open** |
+| D14 | M0.3 (closed around it), then M5.6 | Two event sentences break section 8, and `data/events.ts` is inside `contentHash` | **2026-09-22**, option 2, with M5.1's half |
 | D15 | M1.2 (closed around it), then M2.1 | The `Explain` expander is a second explanation mechanism, and no item removes it | **2026-09-20** |
 | D16 | M2.1 | Pocket reaches its word count by hiding four facts, which is C2, and M2.1 does not say which modes its zero binds | **2026-09-20** |
 | D17 | M2.1 done-when, then M7.2 | The census cannot read 0 on a move face: the strip's icons and a split number are counted as words, and the status readout is a sentence the item keeps | **2026-09-20** |
@@ -57,7 +57,7 @@ which blocks everything.
 
 Eleven of thirteen closed 2026-09-19; D2 and D8 closed 2026-09-20. D15, D16 and
 D17 closed 2026-09-20 across Tier 2; D18 on 2026-09-21, opening Tier 3.
-**Thirty-three of thirty-six rows are ruled.** D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
+**Thirty-four of thirty-six rows are ruled**, and the two open are D35 and D36. D29, D32, D33 and D34 were ruled 2026-09-22 and D31 closed on M5.5's build; **D35 and D14** are what is left, and D14 is carried with D33 below. Tier 5 filed six on 2026-09-22
 before it opened — D29 to D34, below — and **D14 stops being nobody's blocker
 with them**: M5.6 reaches every string in `data/events.ts` whichever way D33 is
 ruled, which is the condition D14's own recommendation was waiting for. Tier 4 filed six: five before the tier opened, four of them
@@ -2552,3 +2552,35 @@ longer available on the premise it was written on. The live choices would then
 be its option 2 (relics get their own budget) or option 3 (both sentences kept,
 the second behind inspect) — and option 3 is option 1's outcome by another
 route, which is the honest thing to notice about it.
+
+
+---
+
+## D14, closed with the build
+
+**2026-09-22, option 2, taken with M5.1's half of the same trade. Open since
+Tier 0; the longest-running row in the register.**
+
+Its recommendation was *"split, timed to whenever something else moves the hash
+anyway, or taken on its own as a Tier 5 item beside M5.6."* Both halves of that
+arrived at once: M5.1's item and relic copy had to leave two hashed tables for
+D12's reason, M5.6's event copy for D14's, and the lead designer ruled one
+version event rather than two.
+
+`data/events.ts` keeps `id`, `locale`, `requires` and `toll`. `EVENT_HOOKS`,
+`EVENT_LABELS` and `EVENT_HINTS` are in `data/eventCopy.ts`, which was already
+excluded. **`EventInstance` stopped carrying `prompt` and `EventOption` stopped
+carrying `label` and `hint`** — without that the copy file would be imported by
+`core/` and back inside the hash by the same mechanical rule, so the refactor is
+the price of the exclusion rather than a tidy-up beside it.
+
+`contentHash` **`d4e080` → `0b2c2c`**, once, with two proofs that no generated
+output moved with it: the re-recorded baseline changed 26 lines, all of them a
+hash string, and the re-minted simulator fixture changed 2, both the hash.
+
+**The two sentences that opened this row are still unfixed, deliberately.** They
+are `KNOWN_UNFIXED` in `test/event-copy.test.ts`, asserted to be exactly those
+two so a third fails the test. Fixing them is M5.6's, with the rest of the event
+copy, and it is free now — which was the entire point of the row.
+
+Record: [`../generation.md` §65](../generation.md).

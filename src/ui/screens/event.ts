@@ -40,7 +40,7 @@ import {
 import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
 import { capabilityHolders, resolveCapability } from '../../core/capabilities';
 import type { RunState } from '../../core/run';
-import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX , eventHook, eventLabel, eventHint } from '../../data/eventCopy';
 import { capabilityBandChip, capabilityChip } from '../chip';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
@@ -98,7 +98,7 @@ export function createEventScreen(): EventScreen {
         });
         gate.append(row);
       }
-      prompt.textContent = event.prompt;
+      prompt.textContent = eventHook(event.eventId);
       result.hidden = true;
       result.replaceChildren();
 
@@ -115,9 +115,9 @@ export function createEventScreen(): EventScreen {
         button.className = 'event__choice';
 
         const label = el('span', 'event__choice-label');
-        label.textContent = choice.label;
+        label.textContent = eventLabel(event.eventId, choice.archetype);
         const hint = el('span', 'event__choice-hint');
-        hint.textContent = choice.hint;
+        hint.textContent = eventHint(event.eventId, choice.archetype);
 
         /*
          * **The attribute row, and the Part 4 carve-out it sits under.**

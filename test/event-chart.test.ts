@@ -8,6 +8,7 @@
  * options of the same archetype, or the tag stops naming a unique button.
  */
 import { describe, expect, it } from 'vitest';
+import { EVENT_HINTS, EVENT_LABELS, eventHint, eventLabel } from '../src/data/eventCopy';
 
 import { EVENTS, eventsInLocale } from '../src/data/events';
 import { EVENT_ARCHETYPES } from '../src/data/eventPools';
@@ -69,10 +70,10 @@ describe('the chart', () => {
    */
   it('supplies exactly one label and one hint per archetype, and no duplicates', () => {
     for (const event of EVENTS) {
-      const labels = EVENT_ARCHETYPES.map((archetype) => event.labels[archetype]);
-      const hints = EVENT_ARCHETYPES.map((archetype) => event.hints[archetype]);
-      expect(Object.keys(event.labels).sort(), event.id).toEqual([...EVENT_ARCHETYPES].sort());
-      expect(Object.keys(event.hints).sort(), event.id).toEqual([...EVENT_ARCHETYPES].sort());
+      const labels = EVENT_ARCHETYPES.map((archetype) => eventLabel(event.id, archetype));
+      const hints = EVENT_ARCHETYPES.map((archetype) => eventHint(event.id, archetype));
+      expect(Object.keys(EVENT_LABELS[event.id] ?? {}).sort(), event.id).toEqual([...EVENT_ARCHETYPES].sort());
+      expect(Object.keys(EVENT_HINTS[event.id] ?? {}).sort(), event.id).toEqual([...EVENT_ARCHETYPES].sort());
       expect(new Set(labels).size, `${event.id} repeats a label`).toBe(labels.length);
       expect(new Set(hints).size, `${event.id} repeats a hint`).toBe(hints.length);
     }

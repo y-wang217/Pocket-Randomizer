@@ -31,6 +31,7 @@
  *   - the segment's shop with the whole shelf (shop).
  */
 import { describeMove } from '../core/battle/driver';
+import { eventHook, eventLabel, eventHint } from '../data/eventCopy';
 import type { NodeSpec, Segment } from '../core/encounters';
 import type { ShopStock } from '../core/economy';
 import { EventPicker, generateEvent, type EventInstance } from '../core/events';
@@ -208,8 +209,12 @@ export function wordiestEvent(seed: string): EventInstance {
     );
     if (!event) continue;
     const length =
-      event.prompt.length +
-      event.options.reduce((total, option) => total + option.label.length + option.hint.length, 0);
+      eventHook(event.eventId).length +
+      event.options.reduce(
+        (total, option) =>
+          total + eventLabel(event.eventId, option.archetype).length + eventHint(event.eventId, option.archetype).length,
+        0,
+      );
     if (length > bestLength) {
       best = event;
       bestLength = length;

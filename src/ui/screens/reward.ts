@@ -46,6 +46,7 @@ import type { OfferBadge, Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { relicById } from '../../data/relics';
+import { itemCopy, relicCopy } from '../../data/itemCopy';
 import { tierChip } from '../chip';
 import { el, moveCard } from '../scene';
 import { setProse } from '../dom';
@@ -111,7 +112,7 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
       // The plain-language effect line Part 5 asks for, from the item's own
       // metadata rather than written here — `blurb` has been that field since
       // Stage 3, so no `playerDescription` was added alongside it.
-      detail.textContent = entry?.blurb ?? '';
+      detail.textContent = itemCopy(reward.item);
       setProse(note, REWARD_COPY.itemNote);
       break;
     }
@@ -151,7 +152,7 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
     case 'relic': {
       const entry = relicById(reward.relic);
       name.textContent = entry?.name ?? reward.relic;
-      detail.textContent = entry?.playerDescription ?? '';
+      detail.textContent = relicCopy(reward.relic);
       setProse(note, REWARD_COPY.relic);
       break;
     }

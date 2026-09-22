@@ -408,7 +408,7 @@ every string in `data/events.ts` whichever way D33 is ruled.
 | M5.3 Locale card and pre-gym screen | open | — (D1, **D29**, **D32** ruled) |
 | M5.4 Result screen and capture card | open | — (D1, D5, **D29** ruled) |
 | M5.5 Confirm overlays | **done** | — (D1, D22, D31 ruled. Replace **4**, forfeit **5**, ceilings 6 and 6; `CONFIRM_SURFACES`, the `decline` kind, [`generation.md` §64](../generation.md)) |
-| M5.6 Event screen | open | D35 (**D33** ruled: amend the row and name the hints; **D14** carried with it) |
+| M5.6 Event screen | open | D35 (**D33** ruled: amend the row and name the hints. **D14 closed**: the copy is split, so the rewrite is free) |
 
 **D30 is closed**: four census component rows and a worst-instance column,
 committed with the before-numbers and before any card was touched. The column

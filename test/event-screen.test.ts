@@ -20,6 +20,7 @@ import { generateEvent, concreteOutcome, describeOutcome, describeToll, outcomeF
 import { createPartyMember } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import { createRun, type RunState } from '../src/core/run';
+import { eventHint } from '../src/data/eventCopy';
 import { capabilityTypes, type Capability } from '../src/data/capabilities';
 import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../src/data/eventCopy';
 import { EVENTS } from '../src/data/events';
@@ -109,7 +110,10 @@ describe('the event screen', () => {
            * replaces it is step 8's.
            */
           expect(hints, `${event.eventId} ${band}`).toHaveLength(band === 'known' ? 4 : 3);
-          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(choice.hint);
+          // The hint left `EventOption` at M5.6's split (D14); the screen
+          // resolves it from the event id and the archetype, and this asserts
+          // the screen renders what that lookup returns.
+          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(eventHint(event.eventId, choice.archetype));
 
           const result = screen.root.querySelector<HTMLElement>('.event__result');
           expect(result?.hidden).toBe(true);

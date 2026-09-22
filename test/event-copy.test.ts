@@ -8,16 +8,23 @@
  * paying a different outcome at each capability band) the rejig replaces. See
  * `docs/generation.md` section 14.
  *
- * What replaces it is the copy that is actually live: every event now supplies
- * a hook, four option labels and four hints in `data/events.ts`, and those are
- * what a player reads. They are linted here against the same forbidden-word
- * list, because the Part 4 rule is the same rule — attributes, never verdicts.
+ * What replaces it is the copy that is actually live: every event supplies a
+ * hook, four option labels and four hints, and those are what a player reads.
+ * They are linted here against the same forbidden-word list, because the Part
+ * 4 rule is the same rule — attributes, never verdicts.
+ *
+ * **They live in `data/eventCopy.ts` now, not `data/events.ts`.** M5.6's split
+ * closed D14 on 2026-09-22: the words were inside `contentHash` and a reworded
+ * sentence refused every seed recorded before it, which is what kept the two
+ * violations below unfixed for a whole release. This file reads them through
+ * the accessors and is otherwise unchanged — it asserts the same words against
+ * the same list, from the file that now holds them.
  */
 import { describe, expect, it } from 'vitest';
 
 import { CAPABILITIES } from '../src/data/capabilities';
 import { EVENTS } from '../src/data/events';
-import { BAND_LABELS, CAPABILITY_LABELS } from '../src/data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, eventHint, eventHook, eventLabel } from '../src/data/eventCopy';
 import { EVENT_ARCHETYPES } from '../src/data/eventPools';
 import { TUTORIAL_FORBIDDEN_WORDS } from '../src/data/tutorial';
 import type { CapabilityBand } from '../src/core/capabilities';
@@ -33,10 +40,10 @@ function sentences(): { where: string; text: string }[] {
     out.push({ where: `CAPABILITY_LABELS ${capability}`, text: CAPABILITY_LABELS[capability] });
   }
   for (const event of EVENTS) {
-    out.push({ where: `${event.id} hook`, text: event.hook });
+    out.push({ where: `${event.id} hook`, text: eventHook(event.id) });
     for (const archetype of EVENT_ARCHETYPES) {
-      out.push({ where: `${event.id} ${archetype} label`, text: event.labels[archetype] });
-      out.push({ where: `${event.id} ${archetype} hint`, text: event.hints[archetype] });
+      out.push({ where: `${event.id} ${archetype} label`, text: eventLabel(event.id, archetype) });
+      out.push({ where: `${event.id} ${archetype} hint`, text: eventHint(event.id, archetype) });
     }
   }
   return out;
@@ -45,17 +52,17 @@ function sentences(): { where: string; text: string }[] {
 describe('the copy every event supplies', () => {
   it('gives every event a hook and all four labels and hints', () => {
     for (const event of EVENTS) {
-      expect(event.hook.trim().length, `${event.id} hook`).toBeGreaterThan(20);
+      expect(eventHook(event.id).trim().length, `${event.id} hook`).toBeGreaterThan(20);
       for (const archetype of EVENT_ARCHETYPES) {
-        expect(event.labels[archetype].trim().length, `${event.id} ${archetype} label`).toBeGreaterThan(3);
-        expect(event.hints[archetype].trim().length, `${event.id} ${archetype} hint`).toBeGreaterThan(20);
+        expect(eventLabel(event.id, archetype).trim().length, `${event.id} ${archetype} label`).toBeGreaterThan(3);
+        expect(eventHint(event.id, archetype).trim().length, `${event.id} ${archetype} hint`).toBeGreaterThan(20);
       }
     }
   });
 
   it('writes a different label for every archetype within one event', () => {
     for (const event of EVENTS) {
-      const labels = EVENT_ARCHETYPES.map((archetype) => event.labels[archetype]);
+      const labels = EVENT_ARCHETYPES.map((archetype) => eventLabel(event.id, archetype));
       expect(new Set(labels).size, event.id).toBe(labels.length);
     }
   });
@@ -68,7 +75,7 @@ describe('the copy every event supplies', () => {
      */
     for (const event of EVENTS) {
       for (const archetype of EVENT_ARCHETYPES) {
-        expect(event.hints[archetype], `${event.id} ${archetype}`).not.toMatch(/\d+\s*(coins?|HP|%)/i);
+        expect(eventHint(event.id, archetype), `${event.id} ${archetype}`).not.toMatch(/\d+\s*(coins?|HP|%)/i);
       }
     }
   });

@@ -46,6 +46,7 @@ import { FLAG_BLURBS, flagWord } from '../data/flagWords';
 import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
+import { itemCopy, relicCopy } from '../data/itemCopy';
 import { statInfo } from '../data/statInfo';
 import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
@@ -827,7 +828,7 @@ function renderRelic(id: string): HTMLElement | null {
   const relic = relicById(id as Parameters<typeof relicById>[0]);
   if (!relic) return null;
   const body = panel(relic.name);
-  body.append(line(relic.playerDescription, 'tip__text'));
+  body.append(line(relicCopy(relic.id), 'tip__text'));
   body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
   return body;
 }
@@ -920,7 +921,7 @@ function renderItem(id: string): HTMLElement | null {
   const item = itemById(id);
   if (!item) return null;
   const body = panel(item.name);
-  body.append(line(item.blurb, 'tip__text'));
+  body.append(line(itemCopy(id), 'tip__text'));
   return body;
 }
 

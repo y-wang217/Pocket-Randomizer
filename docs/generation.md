@@ -9721,3 +9721,97 @@ deliberately.
 the class covers both screens, but no fixture stages that band. A third
 confirm surface would measure it. Recorded rather than built: M5.5 names two
 confirms and this is a third.
+
+## 65. The one hash move, and the copy that was holding every seed hostage
+
+**M5.1 and M5.6's split, 2026-09-22.** Branch
+`claude/version-4-10-tier-5-6nhlfh`. Rows D12 and **D14, closed after being open
+since Tier 0**. `contentHash` **`d4e080` → `0b2c2c`**. `RUN_LOG_VERSION`,
+`RANDOMIZER_VERSION` and `AI_VERSION` all hold. No presentation changes in this
+commit at all: it moves strings and changes who reads them.
+
+### What was wrong
+
+Three tables inside `contentHash` carried text that only `ui/` ever read:
+
+| Was | Rows | Now |
+|---|---:|---|
+| `ItemEntry.blurb`, `data/items.ts` | 38 | `ITEM_COPY`, `data/itemCopy.ts` |
+| `Relic.playerDescription`, `data/relics.ts` | 10 | `RELIC_COPY`, same file |
+| `EventDefinition.hook`, `.labels`, `.hints`, `data/events.ts` | 24 × 9 | `EVENT_HOOKS`, `EVENT_LABELS`, `EVENT_HINTS`, `data/eventCopy.ts` |
+
+`core/` reaches all three tables, so the mechanical exclusion rule in
+`build-config/content-hash.ts` could not reach any of them, and **rewording one
+sentence refused every seed recorded before it.** D14 is the worked example:
+two words of flavour text caught by a widened lint at Tier 0, left unfixed for a
+whole release because the fix cost a version event.
+
+### Why D12's "no hash move" could not be obeyed
+
+D12 ruled the split on the `displayTuning.ts` precedent and said the hash holds.
+**M4.1 could obey that and M5.1 could not**, and the difference is worth
+recording because it will come up again: M4.1's precedence order *did not exist
+yet* — R9's enforce line said it should live in `tuning.ts` and nothing had ever
+built it there — so M4.1 created a file and edited nothing. These fields did
+exist. Lifting a field out of a hashed table is an edit to that table, and no
+arrangement of the destination changes that.
+
+Measured before deciding, rather than assumed: one added comment line in
+`data/items.ts` took the hash from `d4e080` to `f11e7a`.
+
+**Ruled 2026-09-22: pay it once, both halves in one commit.** The alternative on
+the table was leaving the old fields in place and dead, which holds the hash and
+leaves two tables reading as live while nothing reads them — D14's own position
+for two words, now proposed for two whole tables. The other was one move per
+item, which is two refusals of every shared seed across one tier.
+
+### What had to change in `core/` for the event half
+
+`EventInstance` carried `prompt` and `EventOption` carried `label` and `hint`,
+so `core/events.ts` was assembling display strings and handing them up. Both are
+gone. The instance already carried `eventId`, and an option already carried its
+`archetype`, so the screen resolves the three words from `data/eventCopy.ts`
+with a key it already had.
+
+**This is what makes the exclusion honest rather than convenient.** A copy file
+that `core/` imported would be back inside the hash by the same mechanical rule,
+and `test/content-hash.test.ts` walks the import graph to say so. The refactor
+is the price of the exclusion, not a tidy-up beside it.
+
+### Nothing was rewritten
+
+Every string moved to the character. D34 was ruled to cut the item and relic
+lines to eight words; **D36 then found that section 3 of the bible puts the
+name, the effect line and a relic's capability all on inspect**, where R5 gives
+the layer "the full explanation" and no budget applies. M5.6's rewrite against
+whatever section 4's event row says once D33 is applied is a later item. So the
+diff that lifts 48 item and relic strings and 216 event strings is one nobody
+has to read for meaning — which is the only reason a move this wide is
+reviewable.
+
+### The two proofs
+
+**The baseline.** `docs/visual/baseline/` is never regenerated, and the
+exception is a move like this one, verified rather than asserted. Re-recorded
+with `--write`: **26 lines changed, 26 of them a `contentHash` field or the bare
+digest.** Nothing else moved, which is the claim "no generated output changed"
+in a form that can be checked.
+
+**The simulator fixture.** `test/fixtures/sim-report.json` re-minted with
+`GYMRUN_WRITE_FIXTURE=1`: **2 lines changed, both the hash.**
+
+### The pin's claim was wrong, and it says so
+
+`test/ai-priority.test.ts` carried *"the display split remains the **last** time
+this number moves for a display edit"*. That was true of the mechanism it was
+about — `battleFeedbackMs` still hashes the same at 500, 750 and 1234 — and
+blind to copy that was already inside a hashed table when the rule arrived. The
+comment is rewritten to say what happened rather than amended to look right,
+and the claim it leaves is stronger and checkable: **no copy a player reads is
+inside this hash.**
+
+### What this buys
+
+Every future rewording of an item's effect line, a relic's description, an
+event hook, a label or a hint is free. That is M5.6's whole cost removed in
+advance, and it is what D14 was holding out for.

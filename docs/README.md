@@ -80,9 +80,14 @@ are closed, sixteen items of twenty-four**, as
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
 `8ecf208`. **Tier 5 is open on `claude/version-4-10-tier-5-6nhlfh`, seventeen items of
 twenty-four**: M5.5 is closed and D29, D32, D33 and D34 were ruled 2026-09-22. One trunk per tier,
-one sub-branch per item. No version axis moves in any of the sixteen:
-`contentHash` holds at `d4e080`, and the only change under `core/` is M4.1
-deleting two flag kinds the bible's R9 forbids.
+one sub-branch per item. **One version axis moved in the whole of 4.10**:
+`contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
+2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
+out of three hashed tables, with the re-recorded baseline changing 26 lines,
+all of them hash strings, and the re-minted simulator fixture changing 2.
+`RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold. Changes under
+`core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
+taking display strings off `EventInstance` so the copy file stays excludable.
 
 **Tier 5 filed six rows before it opened, and built one of them.** D29 (section
 5's canon names none of the five card surfaces section 4 budgets, and two of

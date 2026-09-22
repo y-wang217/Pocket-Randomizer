@@ -87,8 +87,20 @@ export interface ItemEntry {
   id: string;
   /** Dex name, as the engine spells it. Shown to the player. */
   name: string;
-  /** One line for the reward card. Says the effect, not the flavour. */
-  blurb: string;
+  /*
+   * `blurb` lived here and is gone. **M5.1, D12 and the hash ruling of
+   * 2026-09-22.**
+   *
+   * One line per item, read by `ui/` and by nothing under `core/` — so it was
+   * display copy holding every shared seed hostage, because this table is
+   * inside `contentHash` and a reworded line refused them all. It is
+   * `ITEM_COPY` in `data/itemCopy.ts` now, excluded by the mechanical rule in
+   * `build-config/content-hash.ts`, and rewording one is free from here on.
+   *
+   * Nothing about an item's *behaviour* left: `boostsType` and `resistsType`
+   * stay, because `itemSuitsTypes` reads them to decide which pool an item is
+   * drawn into, and that is generation rather than presentation.
+   */
   /**
    * The type this item boosts, for the type-boosting items and null otherwise.
    *
@@ -149,13 +161,13 @@ export interface ItemEntry {
   locksMove: boolean;
 }
 
-function item(id: string, name: string, blurb: string, extra: Partial<ItemEntry> = {}): ItemEntry {
-  return { id, name, blurb, boostsType: null, resistsType: null, locksMove: false, ...extra };
+function item(id: string, name: string, extra: Partial<ItemEntry> = {}): ItemEntry {
+  return { id, name, boostsType: null, resistsType: null, locksMove: false, ...extra };
 }
 
 /** A berry: the same record, with `consumable` set. */
-function berry(id: string, name: string, blurb: string, extra: Partial<ItemEntry> = {}): ItemEntry {
-  return item(id, name, blurb, { ...extra, consumable: true });
+function berry(id: string, name: string, extra: Partial<ItemEntry> = {}): ItemEntry {
+  return item(id, name, { ...extra, consumable: true });
 }
 
 /**
@@ -175,10 +187,10 @@ function berry(id: string, name: string, blurb: string, extra: Partial<ItemEntry
  * between elite and normal, and it did not.
  */
 export const PREMIUM_ITEMS: readonly ItemEntry[] = [
-  item('leftovers', 'Leftovers', 'Restores 1/16 max HP at the end of every turn.'),
-  item('lifeorb', 'Life Orb', 'Attacks do 1.3x damage. Costs 1/10 max HP per attack.'),
-  item('focussash', 'Focus Sash', 'Survive one KO at full HP with 1 HP left. Once per battle.'),
-  item('assaultvest', 'Assault Vest', 'Sp. Def 1.5x, but status moves cannot be selected.'),
+  item('leftovers', 'Leftovers'),
+  item('lifeorb', 'Life Orb'),
+  item('focussash', 'Focus Sash'),
+  item('assaultvest', 'Assault Vest'),
 ];
 
 /**
@@ -189,12 +201,12 @@ export const PREMIUM_ITEMS: readonly ItemEntry[] = [
  * the middle tier should have.
  */
 export const GOOD_ITEMS: readonly ItemEntry[] = [
-  item('rockyhelmet', 'Rocky Helmet', 'Attackers making contact lose 1/6 of their max HP.'),
-  item('expertbelt', 'Expert Belt', 'Super-effective hits do 1.2x damage.'),
-  item('shellbell', 'Shell Bell', 'Heals 1/8 of the damage the holder deals.'),
-  item('eviolite', 'Eviolite', 'Def and Sp. Def 1.5x — but only if the holder can still evolve.'),
-  item('punchingglove', 'Punching Glove', 'Punching moves do 1.1x damage and make no contact.'),
-  item('weaknesspolicy', 'Weakness Policy', 'Raises Atk and Sp. Atk two stages when hit super effectively.'),
+  item('rockyhelmet', 'Rocky Helmet'),
+  item('expertbelt', 'Expert Belt'),
+  item('shellbell', 'Shell Bell'),
+  item('eviolite', 'Eviolite'),
+  item('punchingglove', 'Punching Glove'),
+  item('weaknesspolicy', 'Weakness Policy'),
 ];
 
 /** Everything above the type items, for the shop tables and for tests. */
@@ -207,15 +219,15 @@ export const STAPLE_ITEMS: readonly ItemEntry[] = [...PREMIUM_ITEMS, ...GOOD_ITE
  * to `data/rewardPools.ts` and not a hunt through a flat list.
  */
 export const CHOICE_ITEMS: readonly ItemEntry[] = [
-  item('choiceband', 'Choice Band', 'Attack 1.5x — locked into the first move used.', { locksMove: true }),
-  item('choicespecs', 'Choice Specs', 'Sp. Atk 1.5x — locked into the first move used.', { locksMove: true }),
-  item('choicescarf', 'Choice Scarf', 'Speed 1.5x — locked into the first move used.', { locksMove: true }),
+  item('choiceband', 'Choice Band', { locksMove: true }),
+  item('choicespecs', 'Choice Specs', { locksMove: true }),
+  item('choicescarf', 'Choice Scarf', { locksMove: true }),
 ];
 
 /** The small flat boosters. Real, modest, and never a wrong pick. */
 export const MODEST_ITEMS: readonly ItemEntry[] = [
-  item('muscleband', 'Muscle Band', 'Physical attacks have 1.1x power.'),
-  item('wiseglasses', 'Wise Glasses', 'Special attacks have 1.1x power.'),
+  item('muscleband', 'Muscle Band'),
+  item('wiseglasses', 'Wise Glasses'),
 ];
 
 /**
@@ -235,14 +247,14 @@ export const MODEST_ITEMS: readonly ItemEntry[] = [
  * card say whether this particular one is a dud for this particular Pokemon.
  */
 export const TYPE_ITEMS: readonly ItemEntry[] = [
-  item('silkscarf', 'Silk Scarf', 'Normal-type moves have 1.2x power.', { boostsType: 'Normal' }),
-  item('charcoal', 'Charcoal', 'Fire-type moves have 1.2x power.', { boostsType: 'Fire' }),
-  item('mysticwater', 'Mystic Water', 'Water-type moves have 1.2x power.', { boostsType: 'Water' }),
-  item('miracleseed', 'Miracle Seed', 'Grass-type moves have 1.2x power.', { boostsType: 'Grass' }),
-  item('magnet', 'Magnet', 'Electric-type moves have 1.2x power.', { boostsType: 'Electric' }),
-  item('blackbelt', 'Black Belt', 'Fighting-type moves have 1.2x power.', { boostsType: 'Fighting' }),
-  item('twistedspoon', 'Twisted Spoon', 'Psychic-type moves have 1.2x power.', { boostsType: 'Psychic' }),
-  item('sharpbeak', 'Sharp Beak', 'Flying-type moves have 1.2x power.', { boostsType: 'Flying' }),
+  item('silkscarf', 'Silk Scarf', { boostsType: 'Normal' }),
+  item('charcoal', 'Charcoal', { boostsType: 'Fire' }),
+  item('mysticwater', 'Mystic Water', { boostsType: 'Water' }),
+  item('miracleseed', 'Miracle Seed', { boostsType: 'Grass' }),
+  item('magnet', 'Magnet', { boostsType: 'Electric' }),
+  item('blackbelt', 'Black Belt', { boostsType: 'Fighting' }),
+  item('twistedspoon', 'Twisted Spoon', { boostsType: 'Psychic' }),
+  item('sharpbeak', 'Sharp Beak', { boostsType: 'Flying' }),
 ];
 
 /**
@@ -282,25 +294,25 @@ export const TYPE_ITEMS: readonly ItemEntry[] = [
  * a run quietly runs out of, and 4.6 does not otherwise touch PP restoration.
  */
 export const BERRIES: readonly ItemEntry[] = [
-  berry('oranberry', 'Oran Berry', 'Restores 10 HP when the holder drops below half.', {
+  berry('oranberry', 'Oran Berry', {
     restores: { flat: 10 },
   }),
-  berry('sitrusberry', 'Sitrus Berry', 'Restores 1/4 max HP when the holder drops below half.', {
+  berry('sitrusberry', 'Sitrus Berry', {
     restores: { fraction: 0.25 },
   }),
-  berry('lumberry', 'Lum Berry', 'Cures any status condition, once.'),
-  berry('chestoberry', 'Chesto Berry', 'Wakes the holder from sleep, once.'),
-  berry('persimberry', 'Persim Berry', 'Cures confusion, once.'),
-  berry('leppaberry', 'Leppa Berry', 'Restores 10 PP to a move that has run out.'),
-  berry('occaberry', 'Occa Berry', 'Halves one super-effective Fire hit.', { resistsType: 'Fire' }),
-  berry('passhoberry', 'Passho Berry', 'Halves one super-effective Water hit.', { resistsType: 'Water' }),
-  berry('rindoberry', 'Rindo Berry', 'Halves one super-effective Grass hit.', { resistsType: 'Grass' }),
-  berry('wacanberry', 'Wacan Berry', 'Halves one super-effective Electric hit.', { resistsType: 'Electric' }),
-  berry('chopleberry', 'Chople Berry', 'Halves one super-effective Fighting hit.', { resistsType: 'Fighting' }),
-  berry('payapaberry', 'Payapa Berry', 'Halves one super-effective Psychic hit.', { resistsType: 'Psychic' }),
-  berry('yacheberry', 'Yache Berry', 'Halves one super-effective Ice hit.', { resistsType: 'Ice' }),
-  berry('habanberry', 'Haban Berry', 'Halves one super-effective Dragon hit.', { resistsType: 'Dragon' }),
-  berry('colburberry', 'Colbur Berry', 'Halves one super-effective Dark hit.', { resistsType: 'Dark' }),
+  berry('lumberry', 'Lum Berry'),
+  berry('chestoberry', 'Chesto Berry'),
+  berry('persimberry', 'Persim Berry'),
+  berry('leppaberry', 'Leppa Berry'),
+  berry('occaberry', 'Occa Berry', { resistsType: 'Fire' }),
+  berry('passhoberry', 'Passho Berry', { resistsType: 'Water' }),
+  berry('rindoberry', 'Rindo Berry', { resistsType: 'Grass' }),
+  berry('wacanberry', 'Wacan Berry', { resistsType: 'Electric' }),
+  berry('chopleberry', 'Chople Berry', { resistsType: 'Fighting' }),
+  berry('payapaberry', 'Payapa Berry', { resistsType: 'Psychic' }),
+  berry('yacheberry', 'Yache Berry', { resistsType: 'Ice' }),
+  berry('habanberry', 'Haban Berry', { resistsType: 'Dragon' }),
+  berry('colburberry', 'Colbur Berry', { resistsType: 'Dark' }),
 ];
 
 /**

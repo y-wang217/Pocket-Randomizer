@@ -22,6 +22,7 @@ import { renderRewardCard } from '../src/ui/screens/reward';
 import { createRun } from '../src/core/run';
 import type { Reward } from '../src/core/rewards';
 import { RELICS } from '../src/data/relics';
+import { relicCopy } from '../src/data/itemCopy';
 import { PREMIUM_ITEMS } from '../src/data/items';
 
 /**
@@ -84,7 +85,7 @@ describe('the reward card', () => {
     const relic = RELICS[0]!;
     const card = renderRewardCard(ONE_OF_EACH.relic, state, () => undefined);
     expect(card.querySelector('.reward__name')?.textContent).toBe(relic.name);
-    expect(card.querySelector('.reward__detail')?.textContent).toBe(relic.playerDescription);
+    expect(card.querySelector('.reward__detail')?.textContent).toBe(relicCopy(relic.id));
   });
 
   /*
