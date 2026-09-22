@@ -82,17 +82,17 @@ sub-branch per item. No version axis moves in any of it: `contentHash` holds at
 `d4e080`, and the only change under `core/` in sixteen items is M4.1 deleting
 two flag kinds the bible's R9 forbids.
 
-**Beside it: one playtest defect, off the trunk.**
+**Beside it, and closed: one playtest defect, off the trunk.**
 [`spec/gymrun-patch-inspect-hover-on-touch.md`](spec/gymrun-patch-inspect-hover-on-touch.md),
-on `claude/playtest-tooltips-closing-2pz254`. A tap on a phone opened an
-inspect panel and the panel could not be dismissed, because the compatibility
-`mouseover` every mobile browser synthesises after a touch was taken for a
-hover. Introduced by M1.2, which moved `data-tip` onto the move button itself
-and handed the hover enhancement a card-sized target on the one screen that
-rebuilds itself every turn. Presentation only, no version axis moves;
-[`generation.md` §64](generation.md) is the account and
-[`design/playtest-log.md`](design/playtest-log.md) carries the first row it has
-ever had.
+merged as [#66](https://github.com/y-wang217/Pocket-Randomizer/pull/66), `main`
+at `12259c3`. A tap on a phone opened an inspect panel and the panel could not
+be dismissed, because the compatibility `mouseover` every mobile browser
+synthesises after a touch was taken for a hover. Introduced by M1.2, which
+moved `data-tip` onto the move button itself and handed the hover enhancement a
+card-sized target on the one screen that rebuilds itself every turn.
+Presentation only, no version axis moves; [`generation.md` §64](generation.md)
+is the account and [`design/playtest-log.md`](design/playtest-log.md) carries
+the first row it has ever had.
 
 The design bible is at **Rev 6**. Every place the list and the bible disagreed
 is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)
