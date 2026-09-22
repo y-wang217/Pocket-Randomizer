@@ -75,7 +75,8 @@ working checklist [`design/milestones.md`](design/milestones.md), handoffs
 sixteen items of twenty-four**, as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63) and
-[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64), with Tier 4 on
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64), with Tier 4 open
+as [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65) off
 `claude/eloquent-hamilton-9ncoz8`; `main` is `ca8c3ce`. One trunk per tier, one
 sub-branch per item. No version axis moves in any of it: `contentHash` holds at
 `d4e080`, and the only change under `core/` in sixteen items is M4.1 deleting

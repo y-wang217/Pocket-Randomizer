@@ -24,7 +24,9 @@ carried Tiers 0 and 1 and shipped as
 2026-09-20; `main` is `7e0c46d`. Tier 2 was cut fresh from there and shipped as
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63), merged
 2026-09-20; `main` is `8869623`. Tier 3 is cut fresh from *that*. A merged pull
-request is finished and does not grow a second tier.
+request is finished and does not grow a second tier. Tier 3 shipped as
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and Tier 4 is open
+as [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65).
 
 ## The bible wins, and blocked items wait
 
