@@ -448,6 +448,10 @@ export function skipTutorial(): void {
  */
 export function resetTutorial(): void {
   current = { ...current, tutorial: { skipped: false, seen: [] }, exposure: { counts: {} } };
+  // The screen the player is on is a first arrival again. Without this, the
+  // families it had already counted read as counted at zero, so the replay
+  // showed no label there until the player navigated away (M6.1 review).
+  resetExposureScreen();
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }
@@ -474,30 +478,51 @@ export function tutorialFlags(): TutorialFlags {
  * arrival at whatever screen it lands on, and a set that survived one would
  * silently swallow that screen's exposure.
  */
-let exposureScreen: string | null = null;
-let countedOnScreen = new Set<GlyphFamily>();
+let exposureVisit: string | null = null;
+/** Per surface within the visit: the routed screen's own, and any overlay's. */
+let countedThisVisit = new Map<string, Set<GlyphFamily>>();
 
 /**
  * Note that a family was drawn on a screen, and count it if it is the first
  * time on this visit.
  *
  * Returns the family's count *after* any increment, so a caller that is about
- * to decide whether to render a label does not need a second read. M1.3 has no
- * such caller: nothing renders a label until M6.1.
+ * to decide whether to render a label does not need a second read.
+ *
+ * **`visit` is the routed screen, and it is what resets the count. M6.1.** An
+ * overlay (the party drawer) is drawn on top of a screen without leaving it,
+ * so it is counted as its own surface *within* that screen's visit. When the
+ * visit was the surface name, opening and closing the drawer twice in one
+ * battle counted the battle's families three times, and spent both of R7's
+ * labels without the player leaving the fight. `visit` defaults to `screen`
+ * for a caller with no overlay, which is every caller M1.3 had.
  */
-export function noteExposure(family: GlyphFamily, screen: string): number {
-  if (screen !== exposureScreen) {
-    exposureScreen = screen;
-    countedOnScreen = new Set();
-  }
-  if (countedOnScreen.has(family)) return current.exposure.counts[family] ?? 0;
-  countedOnScreen.add(family);
+export function noteExposure(family: GlyphFamily, screen: string, visit: string = screen): number {
+  enterExposureVisit(visit);
+  const counted = countedThisVisit.get(screen) ?? new Set<GlyphFamily>();
+  countedThisVisit.set(screen, counted);
+  if (counted.has(family)) return current.exposure.counts[family] ?? 0;
+  counted.add(family);
 
   const next = (current.exposure.counts[family] ?? 0) + 1;
   current = { ...current, exposure: { counts: { ...current.exposure.counts, [family]: next } } };
   saveSettings(current);
   for (const listener of listeners) listener(current);
   return next;
+}
+
+/**
+ * Arrive at a routed screen, whether or not it draws a glyph. **M6.1 review.**
+ *
+ * A visit used to change only when a family was counted, so a screen with no
+ * glyphs between two visits to the map (the summary, say) did not end the
+ * first, and the map's second arrival was read as the same visit and never
+ * counted. The label pass calls this first, every time.
+ */
+export function enterExposureVisit(visit: string): void {
+  if (visit === exposureVisit) return;
+  exposureVisit = visit;
+  countedThisVisit = new Map();
 }
 
 /** How many screens have shown this family. Zero for one never drawn. */
@@ -535,8 +560,8 @@ export function fillExposure(count: number): void {
  * without a navigation in between. Never called during a run.
  */
 export function resetExposureScreen(): void {
-  exposureScreen = null;
-  countedOnScreen = new Set();
+  exposureVisit = null;
+  countedThisVisit = new Map();
 }
 
 // ---------------------------------------------------------------------------

@@ -10908,3 +10908,33 @@ a type chip's label costs no words in the census.
 
 The first-run starter is at [`visual/m6.1-starter-first-run.png`](visual/m6.1-starter-first-run.png),
 written by `GYMRUN_RECORD=1 npx vitest run test/visual-exposure-labels.test.ts`.
+
+## 77. Four defects in M6.1, found by review before merge
+
+**2026-09-23, on [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68).**
+An independent read of the Tier 6 diff found four defects in the exposure
+labels. The suite had passed with all four in the tree, because none of them
+shows on a single gallery page. Each is fixed and has a regression case in
+`test/exposure-labels.test.ts`.
+
+1. **The drawer ended the screen's visit.** Closing an overlay toggles `hidden`,
+   the watcher re-ran on the routed screen, and `noteExposure` had seen
+   `drawer` in between, so it counted every family on that screen again. Two
+   opens and closes in one battle spent both of R7's labels. A visit is now the
+   routed screen: the drawer is counted as its own surface *within* it
+   (`noteExposure`'s `visit`, `enterExposureVisit`).
+2. **A status chip lost its accessible name.** D41 put the sheet's lettering
+   inside the chip, and `glyphNode` marks an unlabelled glyph `aria-hidden`.
+   Lettering is text and is no longer hidden.
+3. **A label outlived its reason.** Most screens keep their DOM between visits,
+   so a visit-1 label was still on screen at visit 2, and a battle panel's
+   status label stayed after the chip was hidden by a cure. Every pass now
+   removes labels for families not due on this visit, and labels whose mark is
+   no longer painted.
+4. **"Show tutorial again" silenced the current screen.** The counts reset but
+   the visit did not, so the families already counted read as counted at zero.
+   `resetTutorial` now resets the visit too.
+
+Writing the test for 3 found a fifth, older, edge case: a visit only advanced
+when a family was counted, so a screen with no glyph between two visits to the
+map did not end the first. The pass now enters the visit before counting.

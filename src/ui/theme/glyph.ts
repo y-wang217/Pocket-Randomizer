@@ -70,7 +70,9 @@ export function glyphNode(id: string, options: GlyphOptions = {}): HTMLElement |
   node.style.setProperty('--glyph-size', `${size}px`);
 
   if (label) node.setAttribute('aria-label', label);
-  else node.setAttribute('aria-hidden', 'true');
+  // Lettering is text a screen reader can read as it stands, and a status chip
+  // holds nothing else since M6.1 (D41), so hiding it left the chip unnamed.
+  else if (glyph.art.kind !== 'text') node.setAttribute('aria-hidden', 'true');
 
   if (glyph.art.kind === 'text') {
     // Section 2 specifies the status family *as* lettering — BRN is the glyph,

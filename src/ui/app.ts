@@ -374,8 +374,10 @@ export function mountApp(root: HTMLElement): void {
    * re-counting.
    */
   watchExposures(shell, () => {
-    if (drawer.isOpen()) return { screen: 'drawer', within: drawer.root };
     const name = router.current();
+    // The drawer is counted within the visit to the screen under it, so
+    // opening and closing it does not start that screen's visit again.
+    if (drawer.isOpen()) return { screen: 'drawer', within: drawer.root, ...(name ? { visit: name } : {}) };
     const screen = name ? router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`) : null;
     return name && screen ? { screen: name, within: screen } : null;
   });

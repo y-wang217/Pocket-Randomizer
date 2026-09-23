@@ -32,14 +32,15 @@
  *
  * ## Presentation only
  *
- * The labels are `aria-hidden`: every glyph already carries its word as an
- * accessible name, so a screen reader would hear it twice. Nothing here
+ * The labels are `aria-hidden`: every glyph already carries its word, as an
+ * accessible name or, for status lettering, as the text itself, so a screen
+ * reader would hear it twice. Nothing here
  * reaches `core/`, and nothing here reads a seed.
  */
 import { GLYPH_FAMILIES, isGlyphFamily, type GlyphFamily } from '../data/glyphFamilies';
 import { FAMILY_LABELS, GLYPH_LABELS } from '../data/glyphLabels';
 import { el } from './dom';
-import { noteExposure } from './settings';
+import { enterExposureVisit, noteExposure } from './settings';
 
 /** The class every label carries, so a pass can tell its own output apart. */
 export const EXPOSURE_LABEL_CLASS = 'exposure-label';
@@ -87,8 +88,13 @@ function labelAfter(host: HTMLElement, family: GlyphFamily, word: string): void 
 /**
  * Count every family painted under `root` for this visit to `screen`, and label
  * each one whose count is 1 or 3. Returns the families labelled, for a test.
+ *
+ * `visit` is the routed screen the surface sits on: the drawer passes the
+ * screen under it, so opening it does not end that screen's visit (see
+ * `noteExposure`).
  */
-export function labelExposures(screen: string, root: ParentNode): GlyphFamily[] {
+export function labelExposures(screen: string, root: ParentNode, visit: string = screen): GlyphFamily[] {
+  enterExposureVisit(visit);
   const byFamily = new Map<GlyphFamily, HTMLElement[]>();
   for (const mark of root.querySelectorAll<HTMLElement>('[data-family]')) {
     const family = mark.dataset['family'];
@@ -103,12 +109,27 @@ export function labelExposures(screen: string, root: ParentNode): GlyphFamily[] 
   for (const family of GLYPH_FAMILIES) {
     const marks = byFamily.get(family);
     if (!marks) continue;
-    if (!DUE.has(noteExposure(family, screen))) continue;
+    if (!DUE.has(noteExposure(family, screen, visit))) continue;
     labelled.push(family);
     for (const mark of marks) {
       const word = wordFor(mark, family);
       if (word) labelAfter(hostOf(mark), family, word);
     }
+  }
+
+  /*
+   * **A label lives exactly as long as its reason. M6.1 review.** Most screens
+   * keep their DOM between visits, so a label placed on visit 1 would still be
+   * there on visit 2 if nothing took it away, and a chip hidden in place (a
+   * battle panel's status after a cure) would leave its label beside nothing,
+   * through every later battle. So every pass removes the labels of families
+   * not due on this visit, and any label whose mark is no longer painted.
+   */
+  const due = new Set(labelled);
+  for (const label of root.querySelectorAll<HTMLElement>(`.${EXPOSURE_LABEL_CLASS}`)) {
+    const family = label.dataset['exposureLabel'];
+    const host = label.previousElementSibling;
+    if (!isGlyphFamily(family) || !due.has(family) || !host || !painted(host)) label.remove();
   }
   return labelled;
 }
@@ -119,24 +140,27 @@ export function labelExposures(screen: string, root: ParentNode): GlyphFamily[] 
  * null to skip; it is read at pass time so a screen swap is never counted
  * under the previous name. Returns a stop function.
  */
-export function watchExposures(root: HTMLElement, current: () => { screen: string; within: ParentNode } | null): () => void {
+export function watchExposures(
+  root: HTMLElement,
+  current: () => { screen: string; within: ParentNode; visit?: string } | null,
+): () => void {
   let queued = false;
   const run = (): void => {
     queued = false;
     const target = current();
-    if (target) labelExposures(target.screen, target.within);
+    if (target) labelExposures(target.screen, target.within, target.visit);
   };
   const observer = new MutationObserver((records) => {
     /*
      * Two things put new glyphs in front of the player: nodes added, and a
      * `hidden` toggled, which is how the router shows a screen it drew while
      * another was up. A pass's own labels are additions too, so a batch that
-     * only added labels is skipped, or every pass would schedule the next.
+     * only added or removed labels is skipped, or every pass would schedule
+     * the next.
      */
+    const isLabel = (node: Node): boolean => node instanceof HTMLElement && node.classList.contains(EXPOSURE_LABEL_CLASS);
     const relevant = records.some(
-      (record) =>
-        record.type === 'attributes' ||
-        [...record.addedNodes].some((node) => !(node instanceof HTMLElement && node.classList.contains(EXPOSURE_LABEL_CLASS))),
+      (record) => record.type === 'attributes' || [...record.addedNodes].some((node) => !isLabel(node)),
     );
     if (!relevant || queued) return;
     queued = true;

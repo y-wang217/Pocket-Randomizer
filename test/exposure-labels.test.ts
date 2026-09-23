@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { GLYPH_FAMILIES, type GlyphFamily } from '../src/data/glyphFamilies';
 import { bandChip, effectChip, statusChip } from '../src/ui/chip';
 import { EXPOSURE_LABEL_CLASS, labelExposures } from '../src/ui/exposure-labels';
-import { exposureCount, initSettings, resetExposureScreen, resetSettings } from '../src/ui/settings';
+import { exposureCount, initSettings, resetExposureScreen, resetSettings, resetTutorial } from '../src/ui/settings';
 import { glyphNode } from '../src/ui/theme/glyph';
 
 /** One mark of each family, drawn by the code the screens use. */
@@ -100,6 +100,58 @@ describe('what an exposure is (D43)', () => {
     const root = screenWith('type');
     labelExposures('battle', root);
     expect(root.querySelector(`.${EXPOSURE_LABEL_CLASS}`)?.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
+describe('the four defects the review found', () => {
+  it('does not start the screen\'s visit again when the drawer opens and closes over it', () => {
+    const screen = screenWith('category');
+    const drawer = document.createElement('div');
+    drawer.append(DRAW.type());
+    document.body.append(drawer);
+    for (let i = 0; i < 3; i++) {
+      labelExposures('battle', screen);
+      labelExposures('drawer', drawer, 'battle');
+    }
+    labelExposures('battle', screen);
+    expect(exposureCount('category'), 'one battle visit, however often the drawer opened').toBe(1);
+    expect(exposureCount('type'), 'the drawer counted once within the visit').toBe(1);
+  });
+
+  it('leaves a status chip readable, since its lettering is its only content', () => {
+    const chip = statusChip('brn');
+    expect(chip.textContent).toBe('BRN');
+    expect(chip.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('takes a label off a screen whose DOM survives into a visit where the family is not due', () => {
+    const root = screenWith('category');
+    labelExposures('map', root);
+    expect(labels(root)).toBe(1);
+    labelExposures('battle', document.createElement('div'));
+    labelExposures('map', root);
+    expect(exposureCount('category')).toBe(2);
+    expect(labels(root), 'visit 2 is not a due exposure').toBe(0);
+  });
+
+  it('takes a label away when the mark it names is hidden in place', () => {
+    const root = screenWith('status');
+    labelExposures('battle', root);
+    expect(labels(root)).toBe(1);
+    (root.querySelector('.badge--status') as HTMLElement).hidden = true;
+    labelExposures('battle', root);
+    expect(labels(root)).toBe(0);
+  });
+
+  it('labels the current screen again after "show tutorial again"', () => {
+    const root = screenWith('pp');
+    labelExposures('battle', root);
+    labelExposures('battle', root);
+    resetTutorial();
+    const fresh = screenWith('pp');
+    labelExposures('battle', fresh);
+    expect(exposureCount('pp')).toBe(1);
+    expect(labels(fresh)).toBe(1);
   });
 });
 
