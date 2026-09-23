@@ -488,6 +488,8 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
 | A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |
 
+**Retiring Simple and Detailed is open** (recorded 2026-09-23, milestone M6.3). Pocket is the default for new installs since M6.3, and an existing store keeps the mode it was showing. The R6 row above decides retirement after the validation cycle M7.1 runs, and M6.4 carries out whichever way it falls.
+
 The "three exposures" figure is a design guess with no study behind it. Everything else in this table has a precedent or a finding named in the research brief.
 
 ---

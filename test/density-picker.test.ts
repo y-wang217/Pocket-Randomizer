@@ -39,9 +39,9 @@ describe('the mode picker', () => {
     const drawer = createDrawer();
     document.body.append(drawer.root);
     const pressed = () => drawer.root.querySelector('.density__choice[aria-pressed="true"]')?.getAttribute('data-density');
-    expect(pressed()).toBe('detailed');
-    setDensity('pocket');
     expect(pressed()).toBe('pocket');
+    setDensity('detailed');
+    expect(pressed()).toBe('detailed');
   });
 
   it('writes the store on a press, and only the store', () => {

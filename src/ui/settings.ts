@@ -34,13 +34,22 @@
  * stylesheet's business (`styles.css`, "the density modes") and the shared
  * primitives' in the component layer; this file only holds the value.
  *
- * ## Detailed is the first-launch default
+ * ## Pocket is the first-launch default (milestone M6.3, 2026-09-23)
  *
- * The usual instinct is to start simple and let people opt into detail, and it
- * is wrong here. A new player does not know the help exists, so the mode that
- * hides it is the mode they never leave. Starting Detailed means the first run
- * shows the labels *and* the tooltips that explain them, and the other two are
- * something you turn on once you no longer need either.
+ * Detailed was the default from the density patch to M6.3, on the argument
+ * that a new player does not know the help exists, so the mode that hides it
+ * is the mode they never leave. The design bible's R6 answers that argument
+ * rather than overruling it: nothing is hidden in Pocket any more. Every fact
+ * is on the compact face or one press away through the one inspect layer
+ * (R5), the coach marks run on that face (M6.2), and the exposure labels (R7)
+ * are what teach the glyphs. R6 makes Pocket the default; Simple and Detailed
+ * stay for one validation cycle and M6.4 decides their retirement.
+ *
+ * **An existing store keeps what it was showing.** A store carrying a density,
+ * or a 4.7.2 `verbosity`, keeps it. So does a store that carries neither but
+ * exists at all: it was written before either field and has been shown
+ * Detailed all along. Only a store with nothing in it, a first launch, reads
+ * the new default. See `loadSettings`.
  *
  * ## Migration from `verbosity`
  *
@@ -56,7 +65,12 @@ import { INTRO_VERSION } from '../data/intro';
 
 export type Density = 'detailed' | 'simple' | 'pocket';
 
-/** Every mode, in the order the picker lists them. Detailed first: the default. */
+/**
+ * Every mode, in the order the picker lists them. Most words to fewest, which
+ * is a description of the modes and not a ranking of them. Detailed led the
+ * list when it was the default; the order is kept so a player's muscle memory
+ * of the picker survives M6.3.
+ */
 export const DENSITIES: readonly Density[] = ['detailed', 'simple', 'pocket'];
 
 /**
@@ -137,6 +151,12 @@ export const BATTLE_SPEED_SCALE: Readonly<Record<BattleSpeed, number>> = {
 const KEY = 'gymrun.settings';
 
 /**
+ * The mode every store written before M6.3 was shown when it named none.
+ * **M6.3.** Read only for a store that exists and carries no density.
+ */
+const LEGACY_DENSITY: Density = 'detailed';
+
+/**
  * The tutorial's persisted flags. Overnight Branch 3.
  *
  * In this store rather than its own because the trigger is "first launch",
@@ -198,11 +218,9 @@ export interface Settings {
 /**
  * The first-launch settings.
  *
- * Detailed, per the note above. Exported so a test asserts the default rather
- * than restating it.
- */
-/**
- * The first-launch settings.
+ * Pocket, per the note above (M6.3). Exported so a test asserts the default
+ * rather than restating it.
+ *
  *
  * `grid` for the move bar, and the argument is the opposite of the density
  * default's. Detailed is the default because the mode that hides the help is
@@ -213,7 +231,7 @@ export interface Settings {
  * is reachable from every screen of a run.
  */
 export const DEFAULT_SETTINGS: Settings = {
-  density: 'detailed',
+  density: 'pocket',
   battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
   intro: { seenVersion: 0 },
@@ -242,7 +260,12 @@ export function loadSettings(): Settings {
     const raw = globalThis.localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed: unknown = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...readSettings(parsed) };
+    /*
+     * A store that exists but names no mode was written before the density
+     * patch and has been shown Detailed, the default then. M6.3 moved the
+     * default for new installs only, so it keeps Detailed.
+     */
+    return { ...DEFAULT_SETTINGS, density: LEGACY_DENSITY, ...readSettings(parsed) };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

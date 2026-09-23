@@ -10799,3 +10799,35 @@ because M6.0 made the `moves` mark false too:
 **Marks do not teach the glyphs.** Section 7 gives that job to the exposure
 labels, so the `moves` mark says a card shows the move's kind and stops there.
 It never names the fist, the ring or the wave.
+
+## 75. Pocket for new installs, and what an existing store was showing
+
+**Milestone M6.3, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **R6** (the default face is the compact face, and Pocket becomes
+the default) and **section 9** (retiring Simple and Detailed recorded as open,
+as the item asks). No version axis moves: the store is `ui/`, never `core/`.
+
+**What changed.** `DEFAULT_SETTINGS.density` is `pocket`. The argument that
+kept Detailed as the default, *"the mode that hides the help is the mode a new
+player never leaves"*, is answered rather than overruled: after Tiers 2 to 5 and
+M6.2 nothing is hidden in Pocket. Every fact is at rest or one press away, and
+the coach marks run on the compact face.
+
+**"Existing stores keep their choice" needed one decision.** The store writes
+every field on every save, so a player who never opened the picker still has
+`density: detailed` stored, and keeps it. That is correct, since it is what
+they have been shown. A store that exists but names no mode (written before
+the density patch, with neither `density` nor `verbosity`) was also being
+shown Detailed. `loadSettings` now tells that store apart from a first launch
+and keeps it on Detailed. Only an empty store, or an unreadable one, gets
+Pocket. `test/pocket-default.test.ts` holds all five cases through
+`localStorage`.
+
+**The picker order is unchanged**, Detailed first. It lists most words to
+fewest, which describes the modes rather than ranking them. Its old comment
+said "Detailed first: the default" and now says why the order stays.
+
+**D21's drawer words are not taken here.** D21 recommended the party drawer's
+13 settings words to M6.3 "which touches the density picker anyway". M6.3 does
+not touch the picker, and M6.4 may delete two of its three options, which would
+rewrite that copy. Left for M6.4.
