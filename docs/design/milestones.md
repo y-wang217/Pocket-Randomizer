@@ -453,8 +453,8 @@ default, and section 7 was amended to say so.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M6.1 Exposure labels | open | — (D5, D12 ruled) |
-| M6.2 Coach marks re-anchored | open | — |
+| M6.1 Exposure labels | open | **D40, D41, D42, D43, D44** (filed 2026-09-23, [prep](../handoff/4.10-tier-6-prep.md)); D5, D12 ruled |
+| M6.2 Coach marks re-anchored | open | D43 (order). All 29 anchors paint in Pocket already; the item is eight marks' copy |
 | M6.3 Pocket default | open | — |
 | M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
 

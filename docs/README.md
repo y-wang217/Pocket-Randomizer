@@ -80,8 +80,10 @@ are closed, sixteen items of twenty-four**, as
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
 `8ecf208`. **Tier 5 is closed on `claude/version-4-10-tier-5-6nhlfh`, twenty-two
 items of twenty-four plus two clauses of M5.4**: M5.1, M5.2, M5.3, M5.5 and M5.6
-are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 6 is
-next. One trunk per tier,
+are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 5
+merged as [#67](https://github.com/y-wang217/Pocket-Randomizer/pull/67). **Tier 6
+is in prep**: [`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md) filed
+D40 to D44 before any code, and they wait on rulings. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
