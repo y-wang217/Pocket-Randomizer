@@ -39,9 +39,9 @@ describe('the mode picker', () => {
     const drawer = createDrawer();
     document.body.append(drawer.root);
     const pressed = () => drawer.root.querySelector('.density__choice[aria-pressed="true"]')?.getAttribute('data-density');
-    expect(pressed()).toBe('detailed');
-    setDensity('pocket');
     expect(pressed()).toBe('pocket');
+    setDensity('detailed');
+    expect(pressed()).toBe('detailed');
   });
 
   it('writes the store on a press, and only the store', () => {
@@ -51,7 +51,7 @@ describe('the mode picker', () => {
     drawer.root.querySelector<HTMLButtonElement>('.density__choice[data-density="simple"]')?.click();
     expect(getDensity()).toBe('simple');
     expect(drawer.root.querySelector('.density__choice[aria-pressed="true"]')?.getAttribute('data-density')).toBe('simple');
-    // The root is the app's guard's to write (`ui/density-guard.ts`), not the picker's.
+    // The root is the app's to write (`ui/app.ts`, `mountApp`), not the picker's.
     expect(document.documentElement.getAttribute('data-density')).toBe(before);
   });
 });

@@ -1,6 +1,18 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 11, Sept 22, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 12, Sept 23, 2026.
+
+**Rev 12** carries five amendments, all ruled 2026-09-23 on rows D40 to D44,
+filed before Tier 6 opened. R2 and R3 each gain a permit for R7's exposure label
+on exposures 1 and 3 (D42): section 1 lets the lower-numbered rule win a
+conflict, and both rules forbid exactly what R7 requires. Section 4 gains a
+**starter card** row and a sentence saying budgets bind the steady-state face
+(D40, D44). Section 5's move card serves a seventh card surface, and the
+exposure label row says every family passes through the glyph (D40, D41).
+Section 7's classroom names the families that screen can actually carry, an
+exposure is defined as a painted glyph, and the item order is written down
+(D40, D43). No rule's substance moved. Each amendment either writes down what
+a rule already assumed, or corrects a table so it agrees with the tree.
 
 **Rev 11** carries two amendments, both ruled 2026-09-22 on row D33. Section
 4's **event screen** row goes from 40 to **59**, and for the first time names
@@ -144,11 +156,12 @@ Enforce: one shared component per attribute cluster (section 5). A surface that 
 
 **R2. Numbers stay. Labels go. Sentences go.** "90" is not text load. "BP 90" is. "Physical" beside a fist glyph is.
 Forbids: field labels at rest ("Type", "BP", "PP", "BAND", "HP", "Acc"); any sentence on a card at rest; type names and category words at rest.
+Permits: R7's exposure label, on exposures 1 and 3 only (2026-09-23, D42). It is transient by R7's own terms, and section 4 budgets the steady state.
 Enforce: the text census (section 4) counts words at rest, excluding proper nouns and bare numbers. Budget breaches fail the milestone.
 
 **R3. One fact, one channel, per surface.** Never render the same attribute twice on one surface at rest.
 Forbids: type glyph plus type name; category glyph plus category word; band pips plus a band number; a stat as both bar and label where the label is a word.
-Permits: glyph plus number (a fist and a 90 are two facts, category and power).
+Permits: glyph plus number (a fist and a 90 are two facts, category and power). R7's exposure label beside its glyph, on exposures 1 and 3 only (2026-09-23, D42): R3 outranks R7, so without this line the label would be forbidden by the rule it is meant to sit under.
 Enforce: the redundancy audit in the glyph inventory (milestone M0.2) lists every double render; each one is a bug.
 
 **R4. Exception-based display.** Show a value only when it departs from the default.
@@ -264,6 +277,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
 | Locale card | 0 | Locale name plus four type chips |
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
+| Starter card | 0 plus the ability name | Species name, ability name. The moves are move cards and the stats are the stat block (2026-09-23, D40) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
@@ -272,6 +286,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
+
+**Budgets bind the steady state** (2026-09-23, D44). R7's exposure labels are on a surface for two visits per family and then never again, so the census measures every surface with every family's labels already used up, and records the first-run face in a separate column that gates nothing.
 
 **The ability is the one attribute budgeted by name rather than by count**
 (ruled 2026-09-21, D19). It has no glyph and cannot be given one — `Levitate`,
@@ -359,7 +375,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 
 | Component | Owns | Call sites today |
 |---|---|---|
-| Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (six card surfaces) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
+| Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
 | Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
 | Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
@@ -373,7 +389,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
 | Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |
-| Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store |
+| Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store. Every family's marks pass through the glyph renderer, band pips, status lettering and the effectiveness edge included, so a family cannot be drawn without reporting itself (2026-09-23, D41) |
 
 A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.
 
@@ -429,9 +445,11 @@ Three mechanisms, each with one job. A fourth is an amendment.
 - **Exposure labels** (R7) explain glyphs: what this symbol means, the first and third time you see it.
 - **Inspect** (R5) explains things: what this move, item, status or band does, on demand, forever.
 
-Starter select is the classroom: it has no clock, three full cards, and every glyph family present. On a first run every glyph on that screen carries its label. A player who reads three starter cards has seen category, type, band, PP and the six stats with words once.
+Starter select is the classroom: it has no clock, three full cards, and every glyph family a move and a stat block can carry. On a first run every glyph on that screen carries its label. A player who reads three starter cards has seen category, type, band, PP and the six stats with words once, and accuracy and priority when a starter's move departs from the default. Effectiveness, status and capability need an opponent or a map, and are labelled where they first appear. Corrected 2026-09-23 (D40): this paragraph used to say "every glyph family present", which no screen without an opponent can be.
 
-All three persist in the settings store. Coach marks force Detailed per screen today. Amended 2026-09-19 (D10): **before Pocket becomes the default**, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted, so the flip lands on marks that are already anchored to the face they will be read against.
+**An exposure is a painted glyph** (2026-09-23, D43). A screen that shows a family's word instead of its glyph, as Detailed and Simple do, does not count toward that family. A player who meets the glyphs later still gets both labels.
+
+All three persist in the settings store. Coach marks forced Detailed per screen until milestone M6.2 deleted the rule (2026-09-23); they now show in the player's own mode, and their copy explains the screen, leaving the glyphs to the exposure labels. Amended 2026-09-19 (D10): **before Pocket becomes the default**, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted, so the flip lands on marks that are already anchored to the face they will be read against. Amended 2026-09-23 (D43): exposure labels land **after** both, since while the guard stands the classroom is in Detailed on run one and paints no glyph to label. Tier 6's order is M6.0, M6.2, M6.3, M6.1.
 
 Rejected: a no-label first session (category is not guessable by a non-player); a legend button (a mechanism the player must know exists).
 
@@ -469,6 +487,8 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Reward-tier pips read as a range, not a rating (2026-09-22, D33) | A tester reads more filled pips as a recommendation, or cannot say which options can pay the same thing | The tier letters return beside the pips, and the row rises by four |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
 | A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |
+
+**Retiring Simple and Detailed is open** (recorded 2026-09-23, milestone M6.3). Pocket is the default for new installs since M6.3, and an existing store keeps the mode it was showing. The R6 row above decides retirement after the validation cycle M7.1 runs, and M6.4 carries out whichever way it falls.
 
 The "three exposures" figure is a design guess with no study behind it. Everything else in this table has a precedent or a finding named in the research brief.
 

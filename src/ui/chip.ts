@@ -20,7 +20,7 @@
  * hand any more; `test/chip.test.ts` scans for that.
  */
 import { el } from './dom';
-import { categoryGlyphId, glyphNode, typeGlyphId } from './theme/glyph';
+import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
 import {
   MAX_STAGE,
@@ -185,8 +185,16 @@ export function bandChip(band: number): HTMLElement {
   const node = build('band', `band band--${band}`, '', { tip: `band:${band}` });
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', `Band ${band} of ${BAND_PIPS}`);
+  /*
+   * **The pips are the sheet's pips. Milestone M6.1, D41.** They were CSS boxes
+   * drawn here, so the band family never reported itself and its exposure
+   * label could never fire. M1.1 had already redrawn the pair as a filled and
+   * an outlined circle, because two boxes differing only in tone separated by
+   * 0.063 at 16px against a floor of 0.12; this mounts that pair. The chip's
+   * `aria-label` names the band, so each pip stays `aria-hidden`.
+   */
   for (let i = 0; i < BAND_PIPS; i++) {
-    const pip = el('span', 'band__pip');
+    const pip = glyphNode(i < band ? 'band-pip-on' : 'band-pip-off', { extra: 'band__pip' }) ?? el('span', 'band__pip');
     if (i < band) pip.dataset['on'] = 'true';
     pip.setAttribute('aria-hidden', 'true');
     node.append(pip);
@@ -327,6 +335,17 @@ const CAPABILITY_BAND_STEPS: readonly string[] = ['none', 'latent', 'known'];
 export function statusChip(id: string, label: string = id.toUpperCase(), options: ChipOptions = {}): HTMLElement {
   const node = build('status', 'badge badge--status', label, options);
   node.dataset['status'] = id;
+  /*
+   * **The lettering is the sheet's. Milestone M6.1, D41.** Section 2 makes the
+   * status family lettering, so the six major conditions are glyphs in the
+   * sheet whose art is their three letters. Mounting that glyph in place of
+   * the same letters is what lets the family report itself. A volatile has no
+   * sheet entry (D19 put it in the family without drawing it) and a chip whose
+   * caller asked for other letters keeps them, so both are marked instead.
+   */
+  const mark = glyphNode(`status-${id}`);
+  if (mark && mark.textContent === label) node.replaceChildren(mark);
+  else markFamily(node, 'status');
   return node;
 }
 
@@ -422,6 +441,9 @@ export function categoryChip(category: string, label: string, options: ChipOptio
 export function effectChip(label: string, band: string): HTMLElement {
   const node = build('effect', 'badge badge--effect', label);
   node.dataset['band'] = band;
+  // The forecast's numeral reports its family (M6.1, D41). Section 2 draws the
+  // family as an edge and a numeral rather than a glyph, so it is marked.
+  markFamily(node, 'effectiveness');
   return node;
 }
 

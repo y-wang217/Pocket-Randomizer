@@ -2254,6 +2254,31 @@ body {
 
 .glyph > svg { display: block; width: 100%; height: 100%; }
 
+/*
+ * The exposure label. **Milestone M6.1, R7.** The word beside a glyph on its
+ * family's first and third exposure, then never again. Small and dim, since it
+ * names the mark beside it rather than being a fact of its own. It wraps rather
+ * than overflowing, because it lands in some of the narrowest slots in the game
+ * (a stat row six across, a chip in a move card's meta line) and is only there
+ * on two visits.
+ */
+.exposure-label {
+  display: inline-block;
+  margin-inline-start: var(--space-h);
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-dim);
+  /* Breaks between words, never inside one: "A c c u r a c y" down a
+     narrow fact slot was the first draft. */
+  overflow-wrap: normal;
+  flex: none;
+  vertical-align: middle;
+}
+
 /* The status family is lettering by section 2's specification: BRN *is* the
    glyph, not a label beside one. So it sizes as text rather than as a box. */
 .glyph--lettering {
@@ -2799,10 +2824,24 @@ body {
   font-size: var(--fs-sm);
 }
 
+/* Two across in Pocket, since M6.0 (D40) and D45: four cards in one column
+   made each starter about 490px, two across makes it about 305. The screen
+   scrolls either way, by D45's ruling, and this is the layout that puts the
+   whole first starter and half the second in the first screenful. */
+:root[data-density="pocket"] .starter__moves {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+/* The max HP as the HP row's glyph and a number, since M6.0 (D40). */
+.starter__hp { display: inline-flex; align-items: center; gap: var(--space-h); color: var(--text); }
+
+/* Move cards since M6.0 (D40): the list is a container, and the card owns
+   its own face. */
 .starter__moves {
   margin: 0;
   padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
   gap: calc(var(--space-1) + var(--hairline));
@@ -2810,9 +2849,6 @@ body {
   padding-top: var(--space-2);
 }
 
-.starter__move { display: flex; align-items: center; gap: var(--space-2); justify-content: space-between; }
-.starter__move-name { font-size: var(--fs-base); }
-.starter__move-stats { display: inline-flex; align-items: center; gap: var(--space-1h); }
 
 /* ---------- bands and berries ---------- */
 
@@ -2867,6 +2903,25 @@ body {
 .band__pip[data-on="true"] {
   background: var(--text-dim);
   box-shadow: none;
+}
+/* Since M6.1 (D41) a pip is the sheet's own glyph: a filled circle or an
+   outlined one, at the size the box was. The box's fill and hairline would
+   draw a second mark around the glyph's, so they go. */
+.band__pip.glyph {
+  width: 0.42em;
+  height: 0.42em;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  color: var(--text-faint);
+}
+.band__pip.glyph[data-on="true"] { color: var(--text-dim); }
+
+/* A status chip holds the sheet's lettering glyph since M6.1 (D41). The chip
+   already sets the lettering's font and size, so the glyph takes the chip's. */
+.badge--status > .glyph--lettering {
+  font: inherit;
+  letter-spacing: inherit;
 }
 
 /*

@@ -119,9 +119,7 @@ export interface Drawer {
  * Writes the setting and nothing else. Run state is not in reach of this
  * function, and `test/party-drawer.test.ts` presses every control on the
  * drawer to hold that. The root attribute is not written here either: the
- * app's guard (`ui/density-guard.ts`) hears the store and decides what the
- * root shows, which is how the tutorial keeps Detailed under its marks
- * while a Pocket choice made here waits for them to finish.
+ * app hears the store and writes the root (`ui/app.ts`, `mountApp`).
  */
 function createDensityPicker(): HTMLElement {
   return createPicker({

@@ -11,32 +11,37 @@ its reason. Read them before reading a number.
 
 ## Per surface
 
-The last column is the one section 4 budgets: the app shell renders on every
+`pocket, less shell` is the column section 4 budgets: the app shell renders on every
 surface and is not the surface, so its words are shown separately below and
 subtracted here.
 
-| Surface | detailed | simple | pocket | pocket, less shell |
-|---|---:|---:|---:|---:|
-| starter | 84 | 75 | 51 | 47 |
-| locale | 14 | 14 | 9 | 3 |
-| map | 50 | 43 | 28 | 22 |
-| battle | 36 | 36 | 13 | 7 |
-| result | 24 | 19 | 16 | 10 |
-| result-capture | 102 | 81 | 46 | 40 |
-| target | 231 | 201 | 58 | 52 |
-| replace | 40 | 33 | 21 | 15 |
-| party | 407 | 408 | 23 | 17 |
-| pre-gym | 151 | 157 | 9 | 3 |
-| shop | 56 | 40 | 31 | 25 |
-| event | 60 | 60 | 60 | 54 |
-| result-relic | 34 | 29 | 26 | 20 |
-| shop-relic | 69 | 48 | 39 | 33 |
-| drawer | 284 | 272 | 41 | 35 |
-| map-drawer | 86 | 72 | 48 | 42 |
-| confirm-replace | 51 | 44 | 25 | 19 |
-| confirm-forfeit | 243 | 213 | 66 | 60 |
-| summary | 492 | 448 | 357 | 336 |
-| log-sheet | 146 | 146 | 123 | 117 |
+Every column but the last is the steady state: every glyph family past R7's
+third exposure, which is the face section 4 budgets (D44). **The last column
+is a first launch**, Pocket less shell at a fresh store, with every exposure
+label that is due. It is recorded and never gated.
+
+| Surface | detailed | simple | pocket | pocket, less shell | first run |
+|---|---:|---:|---:|---:|---:|
+| starter | 98 | 89 | 24 | 20 | 71 |
+| locale | 14 | 14 | 9 | 3 | 8 |
+| map | 50 | 43 | 28 | 22 | 24 |
+| battle | 36 | 36 | 13 | 7 | 29 |
+| result | 24 | 19 | 16 | 10 | 12 |
+| result-capture | 102 | 81 | 46 | 40 | 45 |
+| target | 231 | 201 | 58 | 52 | 57 |
+| replace | 40 | 33 | 21 | 15 | 22 |
+| party | 407 | 408 | 23 | 17 | 19 |
+| pre-gym | 151 | 157 | 9 | 3 | 5 |
+| shop | 56 | 40 | 31 | 25 | 31 |
+| event | 60 | 60 | 60 | 54 | 54 |
+| result-relic | 34 | 29 | 26 | 20 | 24 |
+| shop-relic | 69 | 48 | 39 | 33 | 41 |
+| drawer | 284 | 272 | 41 | 35 | 37 |
+| map-drawer | 86 | 72 | 48 | 42 | 44 |
+| confirm-replace | 51 | 44 | 25 | 19 | 26 |
+| confirm-forfeit | 243 | 213 | 66 | 60 | 65 |
+| summary | 492 | 448 | 357 | 336 | 405 |
+| log-sheet | 146 | 146 | 123 | 117 | 139 |
 
 ## Per component
 
@@ -52,7 +57,7 @@ budget is 0 or the component renders once.
 | Component | detailed | simple | pocket | worst instance, pocket |
 |---|---:|---:|---:|---:|
 | battle move button | 38 | 38 | 0 | 0 |
-| move card | 585 | 585 | 0 | 0 |
+| move card | 631 | 631 | 0 | 0 |
 | move chip | 16 | 16 | 0 | 0 |
 | party row | 198 | 186 | 21 | 3 |
 | pokemon battle panel | 4 | 4 | 0 | 0 |
@@ -63,16 +68,17 @@ budget is 0 or the component renders once.
 | reward card | 65 | 40 | 40 | 8 |
 | map node card | 72 | 44 | 44 | 3 |
 | locale card | 3 | 3 | 0 | 0 |
+| starter card | 1 | 1 | 0 | 0 |
 | event choice | 40 | 40 | 40 | 13 |
 | app shell | 133 | 133 | 133 | 14 |
-| screen chrome (no component) | 1246 | 1071 | 784 | — |
+| screen chrome (no component) | 1213 | 1038 | 757 | — |
 
 ## Every word counted, in Pocket
 
 The mode the bible specifies as the face. One row per surface, so a number
 above can be argued with rather than taken on faith.
 
-- **starter** (51): `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `HP` `BP` `PP` `BP` `PP` `BP` `PP` `BP` `PP` `HP` `BP` `PP` `BP` `PP` `BP` `PP` `Status` `PP` `HP` `BP` `PP` `BP` `PP` `BP` `PP` `Status` `PP` `GYMRUN-0b2c2c-SMOKE24` `r21`
+- **starter** (24): `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **locale** (9): `GYMRUN` `Tutorial` `Map` `Party` `Choose` `a` `region` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **map** (28): `GYMRUN` `Tutorial` `Map` `Party` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `coins` `Rookie` `Trainer` `coins` `Something` `happens` `Trainer` `Trainer` `Garnet's` `Gym` `Pokemon` `Coins` `Party` `Manage` `Lead` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **battle** (13): `GYMRUN` `Tutorial` `Map` `Party` `Trainer` `battle` `Trainer's` `Rookie` `Paralysed` `Badly` `poisoned` `GYMRUN-0b2c2c-SMOKE24` `r21`

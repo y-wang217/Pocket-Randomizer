@@ -450,12 +450,15 @@ two fixtures and the number they made readable.
 
 Order confirmed by D10: M6.2 re-anchors the coach marks **before** M6.3 flips the
 default, and section 7 was amended to say so.
+D43 (2026-09-23) moves M6.1 after both, and D40 adds M6.0 in front: the order
+is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M6.1 Exposure labels | open | — (D5, D12 ruled) |
-| M6.2 Coach marks re-anchored | open | — |
-| M6.3 Pocket default | open | — |
+| M6.0 Starter move card | **done** | — (D40, D45. Starter **47 → 20** Pocket less shell, starter card **0**. [`../generation.md` §73](../generation.md)) |
+| M6.2 Coach marks re-anchored | **done** | — (guard deleted; nine marks rewritten; `test/visual-tutorial-anchors.test.ts` runs in Pocket, 29 of 29. [`../generation.md` §74](../generation.md)) |
+| M6.3 Pocket default | **done** | — (fresh store Pocket, existing stores kept; retirement recorded open in section 9. [`../generation.md` §75](../generation.md)) |
+| M6.1 Exposure labels | **done** | — (ten families, labels on exposures 1 and 3; D41 built with its family walk; starter recorded at [`../visual/m6.1-starter-first-run.png`](../visual/m6.1-starter-first-run.png). [`../generation.md` §76](../generation.md)) |
 | M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
 
 ### Tier 7: validation

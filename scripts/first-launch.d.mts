@@ -11,5 +11,8 @@
 /** Seen every greeting there will ever be. */
 export declare const SEEN_EVERY_INTRO: number;
 
+/** Every glyph family, past its third exposure in the returning store. M6.1. */
+export declare const EXPOSED_FAMILIES: readonly string[];
+
 /** The stored settings a returning player has, as a JSON string. */
 export declare function notFirstLaunch(options?: { density?: string; }): string;

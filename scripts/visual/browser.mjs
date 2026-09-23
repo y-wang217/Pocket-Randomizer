@@ -224,8 +224,8 @@ async function bulkiestStarter(page) {
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    const meta = (await cards.nth(i).locator('.starter__meta').textContent()) ?? '';
-    const hp = Number(/(\d+)\s*HP/.exec(meta)?.[1] ?? 0);
+    const meta = (await cards.nth(i).locator('.starter__hp-value').textContent()) ?? '';
+    const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;

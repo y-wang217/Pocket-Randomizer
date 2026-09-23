@@ -55,6 +55,12 @@ which blocks everything.
 | D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
 | D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
 | D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **open** |
+| D40 | M6.1's done-when | The classroom does not carry the families section 7 says it does: starter select draws its own move rows | **2026-09-23**, option 3: new item M6.0 |
+| D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **2026-09-23**, option 1 plus option 3's test, built |
+| D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **2026-09-23**, option 1 |
+| D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
+| D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
+| D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 
 ## Rulings, 2026-09-19
 
@@ -2913,3 +2919,268 @@ opening `data/glyphLabels.ts` and walking every mark on every surface, which is
 when the question *does a player know what this sign means the first time* is
 cheapest to answer. Not urgent: nothing is over budget because of it, and
 option 1 is what is shipped and is defensible on its own.
+
+---
+
+## Rulings, 2026-09-23, opening Tier 6
+
+Five rows filed against Tier 6 before any of it was built
+([`../handoff/4.10-tier-6-prep.md`](../handoff/4.10-tier-6-prep.md) carries the
+measurements). **All five were ruled as recommended.** The bible goes to Rev 12.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D40 | **Option 3.** A new item, **M6.0**, mounts the move card on starter select as its own PR before M6.1. The screen gains a section 4 row, and section 7's "every glyph family present" is corrected to what the screen can carry. | Bible sections 4, 5 and 7. New item M6.0, recorded as a deviation in `../generation.md` §72 |
+| D41 | **Option 1 plus option 3's test.** Band pips, status lettering and the effectiveness edge are drawn through `glyphNode`. A browser test walks every surface and asserts every painted family reports itself. | Bible section 5. Milestone M6.1 scope |
+| D42 | **Option 1.** R2 and R3 each permit R7's label on exposures 1 and 3. | Bible section 1 |
+| D43 | **Option 1.** An exposure is a painted glyph. The order is M6.0, M6.2, M6.3, M6.1; D10's M6.2-before-M6.3 stands. | Bible section 7. `../generation.md` §72 |
+| D44 | **Option 1.** The census pins every family to exhausted and adds a `first-run` column that gates nothing. Lands as one instrument commit before M6.1. | Bible section 4. `scripts/visual/census.ts` |
+
+---
+
+## D40. The classroom does not carry the families section 7 says it does
+
+**Filed 2026-09-23, in the Tier 6 prep. Blocks M6.1's done-when.**
+
+Section 7: *"Starter select is the classroom: it has no clock, three full
+cards, and every glyph family present. On a first run every glyph on that
+screen carries its label. A player who reads three starter cards has seen
+category, type, band, PP and the six stats with words once."* M6.1's done-when
+asks the visual bot to record *"the starter screen with all labels on a fresh
+store"*.
+
+**Measured on `f0fb37e`, Pocket, 390x844, eight seeds `S49B-1` to `-8`: the
+starter screen paints two families, `stat` and `type`, on every seed.** No
+category glyph, no band pip, no PP glyph, no accuracy or priority mark. Of the
+five families section 7 names, three are not on the screen.
+
+**The reason is section 5's closing sentence.** `screens/starter-select.ts`
+lines 98 to 113 build each move as a name, a type chip and two text spans —
+`${move.basePower} BP` or `Status`, and `${move.maxPp} PP` — rather than
+mounting the move card. That is *"a screen that draws an attribute itself"*,
+and the census has been counting it since M0.1: **34 of starter select's 51
+Pocket words are `BP`, `PP`, `Status` and `HP`**, every one a field label R2
+forbids by name. No tier ever owned the screen. Section 4 has **no starter
+row**, so no done-when on the list could have failed on it.
+
+Section 7's first sentence is also false on its own terms, independent of the
+move rows: effectiveness, status and capability cannot appear on a screen that
+has no opponent, no battle and no map, and the sentence's own last line lists
+five families, not ten.
+
+**Options.**
+
+1. **Mount the move card on starter select, and give the screen a section 4
+   row.** `moveFacts` is the call site the canon counts, and it already serves
+   six card surfaces; a seventh surface is not a third call site. The row reads
+   0 plus the ability name, like the party row. Section 7's first sentence is
+   corrected to name the five families the screen can carry. Costs one fold
+   measurement: three full cards with four move cards each at 390 wide.
+2. **Amend section 7 to what the screen shows**: type and stat only, and the
+   other three families are labelled on their first natural exposure elsewhere.
+   Leaves 34 field labels at rest on the first screen of every run.
+3. **A new item, M6.0**, that does option 1 before M6.1 opens.
+
+**Recommendation: 3**, which is option 1 as its own PR. It is a surface
+rebuild with its own fold risk and its own census delta, and M6.1 is already an
+item that touches every glyph on every screen; the two cannot be reverted
+independently if they land together. If D38's fold finding repeats here — the
+capture card could not mount the party row and stay above the fold — the
+ruling needs to say which of the three cards' move lists may fold.
+
+---
+
+## D41. Three of ten families never pass through the glyph
+
+**Filed 2026-09-23, in the Tier 6 prep. Blocks M6.1.**
+
+Section 5's canon row: *"Exposure label | The first-encounter label for a glyph
+family | Rendered by the glyph, driven by the exposure store."* `ui/theme/glyph.ts`
+writes `data-family` on every node it makes so M6.1 has something to key from.
+
+**Three families are drawn without it**, so a label rendered by the glyph never
+fires for them, and R7's forbid — *"shipping a glyph family that never gets a
+label"* — is broken by construction:
+
+| Family | Drawn by | Through `glyphNode` |
+|---|---|---|
+| Band | `bandChip`, `ui/chip.ts:184`, as bare `.band__pip` spans | no. The sheet carries `band-pip-on` and nothing mounts it |
+| Status | `statusChip`, `ui/chip.ts:327`, as lettering | no |
+| Effectiveness | the move button's coloured edge | no. The sheet's roster row is an entry with no mark |
+
+A test in R7's words — *"each family's label renders on exposure 1 and 3 and
+not on exposure 4"* — written against the exposure store would pass for all ten
+and ship three that never render. Tier 4's second finding again, one layer up:
+a unit test on the store cannot see a family the screens never report.
+
+**Options.**
+
+1. **Route all three through `glyphNode`.** Band pips mount the sheet's own
+   pip glyphs; status chips take a `data-family` from a lettering glyph, which
+   `glyph.ts` already supports (`art.kind === 'text'`); the effectiveness edge
+   gets a zero-size family marker on the button. The canon row stands as written.
+2. **Amend the canon row** to *"rendered beside the family's owning component"*,
+   and have `bandChip`, `statusChip` and the move button each mount the label.
+   Three mount sites instead of one.
+3. Both, with a test that walks every gallery surface and asserts every family
+   painted there reports itself.
+
+**Recommendation: 1, plus option 3's test.** The test is the part that closes
+the class: it is the same walk the prep used to find this (`[data-family]`,
+painted, per surface), and it would have caught D37's capability glyph too.
+
+---
+
+## D42. R2 and R3 outrank R7, and both forbid what R7 requires
+
+**Filed 2026-09-23, in the Tier 6 prep. Blocks M6.1.**
+
+Section 1: *"Rules are numbered by priority. When two conflict, the lower
+number wins."*
+
+R3 forbids *"type glyph plus type name; category glyph plus category word"* on
+one surface at rest. R2 forbids *"type names and category words at rest"*. R7
+requires *"a small label renders beside it for that screen"* on the first and
+third exposure — which is, for the type and category families, exactly a glyph
+plus its name at rest. Read by section 1's own tie-break, R7 loses to both, and
+M6.1 is an item whose whole output is forbidden.
+
+Nobody reads it that way, and section 7 plainly intends the labels. But the
+rule text does not say so, and this document's section 10.4 exists because a
+prompt overriding the bible by intention is the failure it guards against. The
+census will also count every label as a word at rest (D44), and with no
+exception written, every surface that shows one goes over budget.
+
+**Options.**
+
+1. **Add R7 to R3's Permits line and R2's**, in the same words: *"R7's
+   exposure label, on exposures 1 and 3 only."* One line each; section 4 gains a
+   sentence saying budgets bind the steady state (D44).
+2. **Renumber R7 above R2.** Moves every rule's priority and every register
+   row that cites a rule number; out of proportion.
+
+**Recommendation: 1.**
+
+---
+
+## D43. What an exposure is while two modes paint words, and the guard puts the classroom in one of them
+
+**Filed 2026-09-23, in the Tier 6 prep. Blocks M6.1 and orders M6.2.**
+
+**Measured on `f0fb37e`: Detailed paints almost no glyph at all.** Walking every
+gallery surface for painted `[data-family]` nodes, Pocket against Detailed:
+
+| Surface | Pocket | Detailed |
+|---|---|---|
+| starter | stat 18, type 17 | **none** |
+| battle | accuracy 3, category 4, pp 4, stat 3, type 17 | accuracy 3, stat 1 |
+| map | capability 9, type 13 | capability 9 |
+| result | category 1, pp 1, type 1 | **none** |
+| party, pre-gym | type 13 | accuracy 8 |
+
+D16 kept the labelled face in Detailed and Simple until M6.4, and the labelled
+face is the word *instead of* the glyph. So two questions the item text does
+not answer:
+
+**(a) Does a screen shown in Detailed count as an exposure?** If exposure means
+"the family's glyph was painted", a Detailed player's counters never move, and
+they meet every label on the day they switch to Pocket — which is when they
+first see the glyphs, and arguably right. If it means "the family's fact was on
+the screen", they burn both labelled exposures reading words, and meet bare
+glyphs in Pocket with no label ever.
+
+**(b) The classroom is always in Detailed on run one.** `ui/density-guard.ts`
+forces Detailed on any screen with unseen coach marks, and starter select has
+five. On a first launch, the exact moment section 7 calls the classroom, the
+starter screen paints **no glyph of any family**. Under reading (a)'s first
+answer, run one's starter screen shows no label at all; under its second, it
+spends exposure 1 of type and stat on words. Either way M6.1's done-when —
+*"the starter screen with all labels on a fresh store"* — cannot be recorded
+while the guard stands.
+
+**M6.2 is cheaper than its item text says**, which is what makes the reorder
+cheap. Measured on the same tree, every surface that carries marks, Pocket with
+the guard off: **all 29 anchors that are on the page in Detailed are painted in
+Pocket.** The forced-Detailed rule is protecting nothing any longer — Tiers 2 to
+5 took every fact that used to fold behind a tap and put it on the compact face.
+What M6.2 has left is copy (see the prep).
+
+**Options.**
+
+1. **Count painted glyphs only; take M6.2 before M6.1.** The guard is deleted
+   first, the classroom is in Pocket on run one, and a label is shown the first
+   time its glyph is. D10's order (M6.2 before M6.3) is kept; M6.1 moves after
+   both, so the order becomes M6.2, M6.3, M6.1, M6.4.
+2. **Count painted glyphs only; keep the order**, and have M6.1 carve an
+   exception into the guard for the starter screen. A rule M6.2 then deletes.
+3. **Count by fact, in any mode.** Simplest counter, and it strands every
+   Detailed and Simple player without labels if M6.4 retires their mode.
+
+**Recommendation: 1.** It is D10's reasoning applied once more: land each
+change on the face it will be read against.
+
+---
+
+## D44. The census has no exposure state
+
+**Filed 2026-09-23, in the Tier 6 prep. Instrument row; blocks M6.1's census and
+M7.2.**
+
+The gallery opens every surface in a fresh browser context, so the settings
+store is empty and every exposure count is zero. Once M6.1 renders labels,
+**every surface in the census counts them as words at rest** on every run of
+the script, and every decision surface that shows a glyph goes over its
+budget by one word per family on it.
+
+Neither reading is wrong, and both are needed: the first-run face is what a new
+player reads, and the steady-state face is what section 4's budgets were
+written against. M6.1's own done-when needs the first; M7.2 needs the second.
+
+**Options.**
+
+1. **The census pins exposure to exhausted (every family at 4) by default, and
+   gains a `first-run` column** at a fresh store. Budgets bind the steady
+   state; the first-run column is recorded, never gated. D42's section 4
+   sentence says so.
+2. Budget the labels: each surface's row rises by the families it shows.
+   Rewrites twenty rows for a face a player sees twice.
+
+**Recommendation: 1.** Like D30, it applies a rule that exists — section 4
+budgets what a surface shows *at rest*, and R7 says the labelled face is
+transient — rather than asking for a new one. It lands as one instrument
+commit before M6.1, the way D30 landed before M5.1.
+
+---
+
+## D45. Four move cards per starter cannot fit the Pocket gate
+
+**Filed and ruled 2026-09-23, inside M6.0. Blocked M6.0.**
+
+The Pocket gate (`test/visual-pocket.test.ts`, density modes patch, ruling 4)
+says no decision surface scrolls at 390x844, *"a hard gate, no exemptions"*.
+Starter select passed it with hand-drawn move rows. With the move card mounted
+(D40), measured on seeds `S49B-1` to `-3`:
+
+| Layout | Document height | Each starter card |
+|---|---:|---:|
+| Before M6.0, text rows | under 844 | about 210 |
+| Move cards, one column | 1626 to 1651 | 475 to 507 |
+| Move cards, two across | 1081 to 1086 | 304 to 310 |
+| Two across, fact strip hidden (a C2 breach, measured only for the floor) | 979 | 272 |
+
+No layout that keeps the facts fits. This is D38's finding on a second surface:
+the capture card could not mount the party row and stay above the fold either.
+
+**Options put.** 1. The starter screen scrolls, with moves two across, and the
+gate becomes the first starter whole above the fold. 2. Section 5's move chip
+plus PP instead of the card, which takes band, accuracy and priority off the
+classroom. 3. One starter at a time with a switcher. 4. Revert M6.0 and take
+D40's option 2.
+
+**Ruled option 1.** The gate for starter select is now *the first starter card
+ends at or above 844*. At two across that is about 445; the second starter is
+half visible, which says there is more below without a word. Every other
+decision surface keeps the hard gate. What this does not decide is D38: the
+capture card is a surface where the player compares against the party already
+on screen, and the same ruling is not assumed to carry.
+

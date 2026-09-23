@@ -34,13 +34,22 @@
  * stylesheet's business (`styles.css`, "the density modes") and the shared
  * primitives' in the component layer; this file only holds the value.
  *
- * ## Detailed is the first-launch default
+ * ## Pocket is the first-launch default (milestone M6.3, 2026-09-23)
  *
- * The usual instinct is to start simple and let people opt into detail, and it
- * is wrong here. A new player does not know the help exists, so the mode that
- * hides it is the mode they never leave. Starting Detailed means the first run
- * shows the labels *and* the tooltips that explain them, and the other two are
- * something you turn on once you no longer need either.
+ * Detailed was the default from the density patch to M6.3, on the argument
+ * that a new player does not know the help exists, so the mode that hides it
+ * is the mode they never leave. The design bible's R6 answers that argument
+ * rather than overruling it: nothing is hidden in Pocket any more. Every fact
+ * is on the compact face or one press away through the one inspect layer
+ * (R5), the coach marks run on that face (M6.2), and the exposure labels (R7)
+ * are what teach the glyphs. R6 makes Pocket the default; Simple and Detailed
+ * stay for one validation cycle and M6.4 decides their retirement.
+ *
+ * **An existing store keeps what it was showing.** A store carrying a density,
+ * or a 4.7.2 `verbosity`, keeps it. So does a store that carries neither but
+ * exists at all: it was written before either field and has been shown
+ * Detailed all along. Only a store with nothing in it, a first launch, reads
+ * the new default. See `loadSettings`.
  *
  * ## Migration from `verbosity`
  *
@@ -56,7 +65,12 @@ import { INTRO_VERSION } from '../data/intro';
 
 export type Density = 'detailed' | 'simple' | 'pocket';
 
-/** Every mode, in the order the picker lists them. Detailed first: the default. */
+/**
+ * Every mode, in the order the picker lists them. Most words to fewest, which
+ * is a description of the modes and not a ranking of them. Detailed led the
+ * list when it was the default; the order is kept so a player's muscle memory
+ * of the picker survives M6.3.
+ */
 export const DENSITIES: readonly Density[] = ['detailed', 'simple', 'pocket'];
 
 /**
@@ -137,6 +151,12 @@ export const BATTLE_SPEED_SCALE: Readonly<Record<BattleSpeed, number>> = {
 const KEY = 'gymrun.settings';
 
 /**
+ * The mode every store written before M6.3 was shown when it named none.
+ * **M6.3.** Read only for a store that exists and carries no density.
+ */
+const LEGACY_DENSITY: Density = 'detailed';
+
+/**
  * The tutorial's persisted flags. Overnight Branch 3.
  *
  * In this store rather than its own because the trigger is "first launch",
@@ -198,11 +218,9 @@ export interface Settings {
 /**
  * The first-launch settings.
  *
- * Detailed, per the note above. Exported so a test asserts the default rather
- * than restating it.
- */
-/**
- * The first-launch settings.
+ * Pocket, per the note above (M6.3). Exported so a test asserts the default
+ * rather than restating it.
+ *
  *
  * `grid` for the move bar, and the argument is the opposite of the density
  * default's. Detailed is the default because the mode that hides the help is
@@ -213,7 +231,7 @@ export interface Settings {
  * is reachable from every screen of a run.
  */
 export const DEFAULT_SETTINGS: Settings = {
-  density: 'detailed',
+  density: 'pocket',
   battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
   intro: { seenVersion: 0 },
@@ -242,7 +260,12 @@ export function loadSettings(): Settings {
     const raw = globalThis.localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed: unknown = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...readSettings(parsed) };
+    /*
+     * A store that exists but names no mode was written before the density
+     * patch and has been shown Detailed, the default then. M6.3 moved the
+     * default for new installs only, so it keeps Detailed.
+     */
+    return { ...DEFAULT_SETTINGS, density: LEGACY_DENSITY, ...readSettings(parsed) };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -425,6 +448,10 @@ export function skipTutorial(): void {
  */
 export function resetTutorial(): void {
   current = { ...current, tutorial: { skipped: false, seen: [] }, exposure: { counts: {} } };
+  // The screen the player is on is a first arrival again. Without this, the
+  // families it had already counted read as counted at zero, so the replay
+  // showed no label there until the player navigated away (M6.1 review).
+  resetExposureScreen();
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }
@@ -451,30 +478,51 @@ export function tutorialFlags(): TutorialFlags {
  * arrival at whatever screen it lands on, and a set that survived one would
  * silently swallow that screen's exposure.
  */
-let exposureScreen: string | null = null;
-let countedOnScreen = new Set<GlyphFamily>();
+let exposureVisit: string | null = null;
+/** Per surface within the visit: the routed screen's own, and any overlay's. */
+let countedThisVisit = new Map<string, Set<GlyphFamily>>();
 
 /**
  * Note that a family was drawn on a screen, and count it if it is the first
  * time on this visit.
  *
  * Returns the family's count *after* any increment, so a caller that is about
- * to decide whether to render a label does not need a second read. M1.3 has no
- * such caller: nothing renders a label until M6.1.
+ * to decide whether to render a label does not need a second read.
+ *
+ * **`visit` is the routed screen, and it is what resets the count. M6.1.** An
+ * overlay (the party drawer) is drawn on top of a screen without leaving it,
+ * so it is counted as its own surface *within* that screen's visit. When the
+ * visit was the surface name, opening and closing the drawer twice in one
+ * battle counted the battle's families three times, and spent both of R7's
+ * labels without the player leaving the fight. `visit` defaults to `screen`
+ * for a caller with no overlay, which is every caller M1.3 had.
  */
-export function noteExposure(family: GlyphFamily, screen: string): number {
-  if (screen !== exposureScreen) {
-    exposureScreen = screen;
-    countedOnScreen = new Set();
-  }
-  if (countedOnScreen.has(family)) return current.exposure.counts[family] ?? 0;
-  countedOnScreen.add(family);
+export function noteExposure(family: GlyphFamily, screen: string, visit: string = screen): number {
+  enterExposureVisit(visit);
+  const counted = countedThisVisit.get(screen) ?? new Set<GlyphFamily>();
+  countedThisVisit.set(screen, counted);
+  if (counted.has(family)) return current.exposure.counts[family] ?? 0;
+  counted.add(family);
 
   const next = (current.exposure.counts[family] ?? 0) + 1;
   current = { ...current, exposure: { counts: { ...current.exposure.counts, [family]: next } } };
   saveSettings(current);
   for (const listener of listeners) listener(current);
   return next;
+}
+
+/**
+ * Arrive at a routed screen, whether or not it draws a glyph. **M6.1 review.**
+ *
+ * A visit used to change only when a family was counted, so a screen with no
+ * glyphs between two visits to the map (the summary, say) did not end the
+ * first, and the map's second arrival was read as the same visit and never
+ * counted. The label pass calls this first, every time.
+ */
+export function enterExposureVisit(visit: string): void {
+  if (visit === exposureVisit) return;
+  exposureVisit = visit;
+  countedThisVisit = new Map();
 }
 
 /** How many screens have shown this family. Zero for one never drawn. */
@@ -490,14 +538,30 @@ export function exposureFlags(): Record<GlyphFamily, number> {
 }
 
 /**
+ * Set every family's count at once. **D44, for the gallery only.**
+ *
+ * The census measures section 4's steady state, which is every family past
+ * R7's third exposure. A fresh store is the first-run face instead, and both
+ * are wanted: the gallery's `exposure=` parameter picks one by calling this
+ * before anything draws. Never called during a run.
+ */
+export function fillExposure(count: number): void {
+  const counts: ExposureFlags['counts'] = {};
+  for (const family of GLYPH_FAMILIES) counts[family] = count;
+  current = { ...current, exposure: { counts } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+/**
  * Forget which families this screen has counted.
  *
  * For a test, and for a caller that tears the shell down and rebuilds it
  * without a navigation in between. Never called during a run.
  */
 export function resetExposureScreen(): void {
-  exposureScreen = null;
-  countedOnScreen = new Set();
+  exposureVisit = null;
+  countedThisVisit = new Map();
 }
 
 // ---------------------------------------------------------------------------

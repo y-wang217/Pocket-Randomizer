@@ -158,16 +158,16 @@ describe('the setting', () => {
     expect(DENSITIES).toEqual(['detailed', 'simple', 'pocket']);
   });
 
-  it('defaults to Detailed on a first launch', () => {
+  it('defaults to Pocket on a first launch (M6.3)', () => {
     /*
-     * The reasoning, asserted so it survives a later "simpler is friendlier"
-     * instinct: a new player does not know the help exists, so the mode that
-     * hides it is the mode they never leave. The other two are what you turn
-     * on once you no longer need the labels or the tooltips that explain them.
+     * Detailed until M6.3, on the argument that the mode hiding the help is the
+     * mode a new player never leaves. R6 makes Pocket the default once nothing
+     * is hidden in it: every fact is at rest or behind the one inspect layer,
+     * and the coach marks run on that face since M6.2.
      */
     resetSettings();
-    expect(DEFAULT_SETTINGS.density).toBe('detailed');
-    expect(getDensity()).toBe('detailed');
+    expect(DEFAULT_SETTINGS.density).toBe('pocket');
+    expect(getDensity()).toBe('pocket');
   });
 
   it('takes every value', () => {
@@ -180,9 +180,9 @@ describe('the setting', () => {
   });
 
   it('resets cleanly, so one test cannot leak into the next', () => {
-    setDensity('pocket');
+    setDensity('simple');
     resetSettings();
-    expect(getDensity()).toBe('detailed');
+    expect(getDensity()).toBe('pocket');
   });
 });
 
@@ -196,10 +196,9 @@ describe('the store migration from verbosity', () => {
     expect(readSettings({ verbosity: 'detailed' }).density).toBe('detailed');
   });
 
-  it('defaults a missing value to Detailed, unchanged from 4.5.1', () => {
+  it('reads a missing value as nothing, and leaves the answer to the loader', () => {
     expect(readSettings({}).density).toBeUndefined();
-    expect({ ...DEFAULT_SETTINGS, ...readSettings({}) }.density).toBe('detailed');
-    expect({ ...DEFAULT_SETTINGS, ...readSettings({ tutorial: { skipped: true, seen: [] } }) }.density).toBe('detailed');
+    expect(readSettings({ tutorial: { skipped: true, seen: [] } }).density).toBeUndefined();
   });
 
   it('reads every new value under the new name', () => {

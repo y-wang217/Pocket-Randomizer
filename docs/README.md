@@ -66,13 +66,15 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the 4.10 presentation milestones, Tier 5.** List
+**In flight: the 4.10 presentation milestones, Tier 6 in review ([#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68)); Tier 7 next.** List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
 [`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md) and
 [`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md), prep
-[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md). **Tiers 0 to 4
+[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md), Tier 6
+[`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md) and
+[`handoff/4.10-tier-6.md`](handoff/4.10-tier-6.md). **Tiers 0 to 4
 are closed, sixteen items of twenty-four**, as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
@@ -80,8 +82,15 @@ are closed, sixteen items of twenty-four**, as
 [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
 `8ecf208`. **Tier 5 is closed on `claude/version-4-10-tier-5-6nhlfh`, twenty-two
 items of twenty-four plus two clauses of M5.4**: M5.1, M5.2, M5.3, M5.5 and M5.6
-are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 6 is
-next. One trunk per tier,
+are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 5
+merged as [#67](https://github.com/y-wang217/Pocket-Randomizer/pull/67). **Tier 6
+is built on `claude/dazzling-faraday-tafnyp`** except M6.4, which waits on M7.1.
+The prep ([`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md)) filed
+D40 to D44 before any code; all five were ruled as recommended and the bible
+went to Rev 12. M6.0 then filed and ruled D45. The order was M6.0 (the starter
+move card, a fifth item), M6.2 (the coach-mark guard deleted), M6.3 (Pocket for
+new installs), M6.1 (exposure labels, ten families), recorded in
+[`generation.md` §72 to §76](generation.md). No version axis moved. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
@@ -1217,7 +1226,9 @@ One line each. The analysis lives where the pointer goes, not here.
    now named in the bible's section 8. Two further known gaps, neither of them
    defects until a milestone claims them: density modes still default to
    something other than Pocket (R6), and coach marks still force Detailed per
-   screen, a rule R6 deletes when Pocket lands. **Nothing here is retuned or
+   screen, a rule R6 deletes when Pocket lands. **Both closed 2026-09-23**:
+   the forced-Detailed rule by M6.2, the default by M6.3
+   ([`generation.md` §74 and §75](generation.md)). **Nothing here is retuned or
    rewritten on the bible's arrival.** Each closes in its own prompt, committed
    to `spec/` first like any other.
 

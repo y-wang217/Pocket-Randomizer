@@ -80,6 +80,7 @@ import {
   TUTORIAL_COPY,
   TUTORIAL_FORBIDDEN_WORDS,
 } from '../src/data/tutorial';
+import { FAMILY_LABELS, GLYPH_LABELS } from '../src/data/glyphLabels';
 import {
   STARTER_COPY,
   LOCALE_COPY,
@@ -342,6 +343,17 @@ section({
     { key: `${key} (${entry.icon}) · label`, text: entry.label },
     { key: `${key} (${entry.icon}) · blurb`, text: entry.blurb },
   ]),
+});
+
+section({
+  title: 'Exposure labels',
+  where: 'The small word beside a glyph, on the first and third screen that shows its family, then never. Milestone M6.1.',
+  source: 'src/data/glyphLabels.ts',
+  note: 'Type glyphs are labelled with the type\u2019s own name and are not listed. At most three words each, held by `test/glyph-labels.test.ts`.',
+  rows: [
+    ...Object.entries(GLYPH_LABELS).map(([key, value]) => ({ key, text: value })),
+    ...Object.entries(FAMILY_LABELS).map(([key, value]) => ({ key: `family · ${key}`, text: value })),
+  ],
 });
 
 section({

@@ -39,6 +39,31 @@
 export const SEEN_EVERY_INTRO = Number.MAX_SAFE_INTEGER;
 
 /**
+ * Past the third exposure of every glyph family. **Milestone M6.1.**
+ *
+ * R7's labels are the third thing that shows itself on a first launch, after
+ * the coach marks and the greeting, so they go here for the reason the header
+ * gives. A driven browser measures the steady-state face section 4 budgets
+ * (D44), and every height baseline was taken on it. The families are named
+ * rather than imported because this file cannot import TypeScript; a family
+ * added to `src/data/glyphFamilies.ts` and not here starts at zero, labels
+ * appear in every driven run, and the height gates say so on the first run.
+ */
+export const EXPOSED_FAMILIES = [
+  'type',
+  'category',
+  'band',
+  'pp',
+  'accuracy',
+  'priority',
+  'effectiveness',
+  'status',
+  'stat',
+  'capability',
+];
+const PAST_EVERY_LABEL = 1_000;
+
+/**
  * The store, as the string `localStorage.setItem` takes.
  *
  * `density` is the caller's, because a visual context sets
@@ -51,5 +76,6 @@ export function notFirstLaunch({ density = 'detailed' } = {}) {
     density,
     tutorial: { skipped: true, seen: [] },
     intro: { seenVersion: SEEN_EVERY_INTRO },
+    exposure: { counts: Object.fromEntries(EXPOSED_FAMILIES.map((family) => [family, PAST_EVERY_LABEL])) },
   });
 }

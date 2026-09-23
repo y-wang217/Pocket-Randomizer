@@ -1,6 +1,6 @@
 /**
  * No coach mark is ever silently dropped. **Density modes patch, Part 5,
- * ruling 6's assertion.**
+ * ruling 6's assertion, run in Pocket since milestone M6.2.**
  *
  * The failure the guard exists for leaves no trace: a mark whose anchor is
  * behind a fold in Pocket is not mis-placed, it is skipped, because the
@@ -12,8 +12,12 @@
  * layer's own count on its progress line. A screen where the two differ is
  * a screen where a mark went missing.
  *
- * And the guard's two edges, in the browser: Detailed on the root while the
- * marks are up, Pocket back once the last is tapped.
+ * **Formerly `visual-tutorial-guard.test.ts`.** It also asserted the guard's
+ * two edges: Detailed on the root while the marks were up, Pocket back after.
+ * M6.2 deleted the guard (section 7, D10 and D43), so the same walk now holds
+ * the opposite: the root never leaves Pocket, before, during or after the
+ * marks. This is M6.2's done-when, *"the coach-mark test runs in Pocket and
+ * every mark resolves an anchor"*.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -46,7 +50,7 @@ const SURFACES: readonly [GallerySurface, keyof typeof TUTORIAL][] = [
 ];
 
 describe.each(SURFACES)('%s in Pocket on a first launch', (surface, screen) => {
-  it('shows every mark whose anchor is on the page, in Detailed, and gives Pocket back after', async () => {
+  it('shows every mark whose anchor is on the page, and never leaves Pocket', async () => {
     const context = await harness.browser.newContext({ viewport: PHONE });
     await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
     const page = await context.newPage();
@@ -69,14 +73,14 @@ describe.each(SURFACES)('%s in Pocket on a first launch', (surface, screen) => {
 
     expect(reading.onPage, `${surface}: the fixture carries no anchor for ${screen}`).toBeGreaterThan(0);
     expect(reading.shown, `${surface}: marks on the page and marks shown differ — one was dropped without a trace`).toBe(reading.onPage);
-    expect(reading.mode, 'Detailed while the marks are up').toBe('detailed');
+    expect(reading.mode, 'Pocket while the marks are up: no guard forces Detailed').toBe('pocket');
 
     for (let i = 0; i < reading.shown; i++) {
       await page.locator('.coach .coach__next').click();
       await page.waitForTimeout(60);
     }
     expect(await page.evaluate(() => globalThis.document.querySelector<HTMLElement>('.coach')?.hidden)).toBe(true);
-    expect(await page.evaluate(() => globalThis.document.documentElement.getAttribute('data-density')), 'Pocket back once the marks are done').toBe('pocket');
+    expect(await page.evaluate(() => globalThis.document.documentElement.getAttribute('data-density')), 'still Pocket once the marks are done').toBe('pocket');
     await context.close();
   }, 180_000);
 });

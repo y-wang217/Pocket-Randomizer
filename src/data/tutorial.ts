@@ -23,13 +23,20 @@
  * a relic) and the shape of each decision (three starters, a step's options,
  * four moves, three cards), and stop there.
  *
- * ## Written against Detailed mode
+ * ## Written against the compact face (milestone M6.2)
  *
- * Detailed is the first-launch default and the mode where every abbreviation
- * is on screen to be pointed at. Marks render in every mode against the same
- * anchors; the copy is not mode-specific in this pass, and Pocket mode, when
- * it exists, is allowed to show a mark naming something that mode hides.
- * Recorded as a known gap in `docs/handoff/overnight-3-tutorial.md`.
+ * These were first written against Detailed, then the first-launch default,
+ * and a guard forced Detailed while a screen's marks were up. M6.2 deleted the
+ * guard and rewrote every mark that named something the compact face no
+ * longer draws: a stat *label*, `BP`, a category *chip*, the tier *words*, the
+ * log beneath the board, the coverage *line*, and a tap that inspects. Four of
+ * those were false in every mode, since the tree had moved under them.
+ *
+ * **A mark explains the screen, never the glyph.** Section 7 of the design
+ * bible gives the glyphs to the exposure labels (R7) and the things to inspect
+ * (R5), one job each. So a mark says a card shows a move's kind; the label
+ * beside the fist says the fist is Physical. The gesture is always "press and
+ * hold", because a tap selects.
  *
  * ## Anchors
  *
@@ -104,7 +111,7 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       id: 'stats',
       anchor: '[data-tutorial="stats"]',
       title: 'The six stats',
-      text: `${statSentences()} Tapping any of the six labels opens the same explanation later.`,
+      text: `${statSentences()} Pressing and holding any of the six opens the same explanation later.`,
     },
     {
       id: 'types',
@@ -119,8 +126,8 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       anchor: '[data-tutorial="moves"]',
       title: 'Moves',
       text:
-        'Each Pokemon knows up to four moves. A move has a type, a base power in BP, and a number of uses in PP. ' +
-        'A move marked Status has no base power: it changes something instead of dealing damage.',
+        'Each Pokemon knows up to four moves, one card each. A card shows the move’s type, its kind, its ' +
+        'power and its uses. Pressing and holding a card explains the move in full.',
     },
   ],
   locale: [
@@ -162,19 +169,19 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
     {
       id: 'tier',
       anchor: '[data-tutorial="tier"]',
-      title: 'Normal, hard, elite',
+      title: 'How hard a fight is',
       text:
-        'A fight carries a tier. Hard is a harder fight than normal and pays a larger reward; elite is harder ' +
-        'again and pays more again. The tier is shown on every step that can still be seen.',
+        'A fight carries a tier, shown as pips. Each filled pip is a harder fight that pays a larger reward. ' +
+        'The tier is shown on every step that can still be seen.',
     },
     {
       id: 'gate',
       anchor: '[data-tutorial="gate"]',
       title: 'An event’s requirement',
       text:
-        'An event names a capability it asks for and shows the party’s standing for it: known, if a relic ' +
-        'grants it; latent, if the party’s types could manage it; or none. The standing decides which of ' +
-        'the event’s outcomes applies.',
+        'An event shows the capability it asks for, and a chevron beside it shows the party’s standing: ' +
+        'known, if a relic grants it; latent, if the party’s types could manage it; or none. The standing ' +
+        'decides which of the event’s outcomes applies.',
     },
     {
       id: 'chain',
@@ -191,7 +198,7 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       anchor: '[data-tutorial="move"]',
       title: 'A move button',
       text:
-        'Each button is one move. Its type chip and its Physical, Special or Status chip say what it is: ' +
+        'Each button is one move. Its type and its kind say what it is: ' +
         'a Physical move is resolved with Attack against Defence, a Special move with Special Attack ' +
         'against Special Defence, and a Status move deals no damage.',
     },
@@ -216,15 +223,15 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       title: 'Status',
       text:
         'A condition on a Pokemon — burned, paralysed, poisoned, asleep, frozen — is shown as a chip on its ' +
-        'panel here, and tapping the chip says what it does.',
+        'panel here, and pressing and holding the chip says what it does.',
     },
     {
       id: 'flags',
       anchor: '[data-tutorial="flags"]',
       title: 'What just happened',
       text:
-        'After each turn the strip here and the log beneath the board say what happened: which side moved ' +
-        'first, what hit, whether it was super effective, a critical hit, a miss.',
+        'After each turn the strip here says what happened: which side moved first, what hit, whether it was ' +
+        'super effective, a critical hit, a miss. Every turn so far is in the battle history.',
     },
     {
       id: 'fainting',
@@ -242,7 +249,7 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       title: 'Three cards',
       text:
         'A fight that is won pays a reward: three cards, and exactly one is taken. There is no skipping ' +
-        'and no redrawing. Each card says what it is.',
+        'and no redrawing. Pressing and holding a card says what it is.',
     },
     {
       id: 'capture',
@@ -255,10 +262,10 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
     {
       id: 'coverage',
       anchor: '[data-tutorial="coverage"]',
-      title: 'The coverage line',
+      title: 'Coverage',
       text:
-        'The coverage line lists the types the party can hit for extra damage, as it stands and as it would ' +
-        'stand with this Pokemon in it.',
+        'The plus row lists the types the party could newly hit for extra damage with this Pokemon in it. ' +
+        'The minus row lists the types it would no longer hit that way.',
     },
   ],
   party: [

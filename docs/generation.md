@@ -2111,7 +2111,7 @@ not edited; the argument for each is in
     without it on the worst-case fixtures, Pocket leaves all 29 anchors
     painted. It is kept, as the prompt said it would be, because the copy
     was written against Detailed, and its assertion
-    (`test/visual-tutorial-guard.test.ts`) is what makes a future fold that
+    (`test/visual-tutorial-anchors.test.ts`, named `visual-tutorial-guard` until M6.2) is what makes a future fold that
     hides an anchor fail loudly.
 12. **The existing two-valued suites were rewritten, not deleted**, each with
     a comment naming this patch: `test/density.test.ts` (renamed from
@@ -10696,3 +10696,245 @@ can reach, which is the device every one of these measurements is taken at"*.
 It was reachable, by exactly the path the bot had disarmed for itself. The
 comment is left as written — it was true of the mechanism it described and
 wrong about the phone, and editing it would lose why the parking is there.
+
+## 72. Tier 6 opens with a fifth item and a new order
+
+**2026-09-23, opening Tier 6.** Branch `claude/dazzling-faraday-tafnyp`. Rulings
+on D40 to D44 ([`design/bible-discrepancies.md`](design/bible-discrepancies.md),
+"Rulings, 2026-09-23"); prep [`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md).
+Bible Rev 12.
+
+**Two deviations from the milestone record**, which is not edited:
+
+- **A new item, M6.0**, mounts the move card on starter select (D40). The record
+  lists four Tier 6 items and none of them owns that screen. M6.1's done-when
+  asks for starter select with every label on a fresh store, and the screen
+  painted two families of ten on every seed measured, so without M6.0 that
+  done-when could not be met.
+- **The order is M6.0, M6.2, M6.3, M6.1** (D43), where the record says M6.1,
+  M6.2, M6.3. While the coach-mark guard forces Detailed, the classroom paints no
+  glyph on run one, so the labels land after the guard is gone and Pocket is the
+  default. M6.4 stays gated on M7.1.
+
+M6.1's scope is ten families, per Rev 11. The census gains its exposure state
+(D44) as an instrument commit before M6.1.
+
+## 73. The classroom gets the move card, and the one screen allowed to scroll
+
+**Milestone M6.0, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **section 5**'s closing sentence (a screen drawing an attribute
+itself, closed on starter select), **R2** (`BP`, `PP`, `Status` and `HP` left as
+field labels), **R3** (the HP figure is a glyph and a number, the pair R3
+permits), **C2** (no fact left: the max HP stays at rest, since Pocket draws the
+stat block as bars) and **section 7** (the classroom now carries category, PP,
+band, accuracy and priority). Rulings D40 and D45. No version axis moves.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| starter, Pocket less shell | 47 | **20** | no screen row; the 20 are the title and blurb |
+| starter card, worst instance | not measured | **0** | 0 plus the ability name |
+| families painted on starter, Pocket | stat, type | stat, type, category, PP, accuracy, priority | band follows in M6.1 (D41) |
+| starter document height, Pocket | under 844 | 1081 | first card at or above 844 (D45) |
+
+### What changed
+
+- `src/ui/screens/starter-select.ts` mounts `moveCard(moveCardData(...))` per move,
+  with the starter as the holder. It is a seventh surface on the `moveFacts` call
+  site, not a third call site.
+- The HP figure keeps its number and swaps the word for the `stat-hp` glyph.
+  The first draft deleted it on the grounds that the stat block carries HP. In
+  Pocket the stat block hides its numbers, so that would have left the one fact
+  the smoke bot's own comment calls "the number the choice turns on" behind a
+  press. Caught when the visual bot, which picks the bulkiest starter by reading
+  that figure, picked a different starter and two unrelated suites went red.
+- Pocket draws the four cards two across. `test/visual-pocket.test.ts` gates
+  starter select on its first card rather than on the document (D45).
+- The census gains a `starter card` row, and reads a numeric range (`2-5`, a
+  multi-hit fact) as a bare number by D17B's reasoning. It had never been drawn
+  at rest on a fixture before.
+- `scripts/smoke.mjs` and `scripts/visual/browser.mjs` read the HP figure from
+  `.starter__hp-value`, and the smoke checks move cards instead of the deleted
+  `.starter__move` rows.
+
+### Detailed and Simple
+
+Taller, since the card keeps its labelled face there until M6.4 (D16): 2073 in
+Detailed against the Pocket 1081. No height baseline gates the starter screen
+in either mode.
+
+## 74. The guard goes, and the marks describe the face they sit on
+
+**Milestone M6.2, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **section 7** (the forced-Detailed rule deleted, as D10's
+amendment asked, and one mechanism per job: marks explain screens), **R5** (the
+gesture is press and hold everywhere a mark names it) and **R11** (no mark
+points at a log on the board). No version axis moves: `data/tutorial.ts` is in
+`EXCLUDED`.
+
+**The guard.** The density guard module and its unit test are deleted. The app
+subscribes the root to the store directly, as it does for the move bar and the
+battle speed. Measured before deleting it: every one of the 29 marks resolves a
+painted anchor in Pocket (prep, [`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md)),
+so no mark goes missing. The browser test that held the guard is renamed
+`test/visual-tutorial-anchors.test.ts`. It runs the same walk and now asserts
+the root never leaves Pocket, which is the item's done-when.
+
+**The copy.** Nine marks were rewritten, one more than the prep counted,
+because M6.0 made the `moves` mark false too:
+
+| Mark | Was | Now names |
+|---|---|---|
+| starter `stats` | tapping a label | press and hold any of the six |
+| starter `moves` | `BP`, `PP`, "marked Status" | one card per move; press and hold for the rest |
+| map `tier` | "Normal, hard, elite", words | pips; each filled pip is harder and pays more |
+| map `gate` | "names a capability" | the capability shown, the chevron for standing |
+| battle `move` | the type chip and the category chip | the move's type and kind |
+| battle `status` | tapping the chip | press and hold |
+| battle `flags` | the log beneath the board | the strip, and the battle history |
+| result `rewards` | "each card says what it is" | press and hold a card |
+| result `coverage` | the coverage line | the plus row and the minus row |
+
+**Marks do not teach the glyphs.** Section 7 gives that job to the exposure
+labels, so the `moves` mark says a card shows the move's kind and stops there.
+It never names the fist, the ring or the wave.
+
+## 75. Pocket for new installs, and what an existing store was showing
+
+**Milestone M6.3, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **R6** (the default face is the compact face, and Pocket becomes
+the default) and **section 9** (retiring Simple and Detailed recorded as open,
+as the item asks). No version axis moves: the store is `ui/`, never `core/`.
+
+**What changed.** `DEFAULT_SETTINGS.density` is `pocket`. The argument that
+kept Detailed as the default, *"the mode that hides the help is the mode a new
+player never leaves"*, is answered rather than overruled: after Tiers 2 to 5 and
+M6.2 nothing is hidden in Pocket. Every fact is at rest or one press away, and
+the coach marks run on the compact face.
+
+**"Existing stores keep their choice" needed one decision.** The store writes
+every field on every save, so a player who never opened the picker still has
+`density: detailed` stored, and keeps it. That is correct, since it is what
+they have been shown. A store that exists but names no mode (written before
+the density patch, with neither `density` nor `verbosity`) was also being
+shown Detailed. `loadSettings` now tells that store apart from a first launch
+and keeps it on Detailed. Only an empty store, or an unreadable one, gets
+Pocket. `test/pocket-default.test.ts` holds all five cases through
+`localStorage`.
+
+**The picker order is unchanged**, Detailed first. It lists most words to
+fewest, which describes the modes rather than ranking them. Its old comment
+said "Detailed first: the default" and now says why the order stays.
+
+**D21's drawer words are not taken here.** D21 recommended the party drawer's
+13 settings words to M6.3 "which touches the density picker anyway". M6.3 does
+not touch the picker, and M6.4 may delete two of its three options, which would
+rewrite that copy. Left for M6.4.
+
+## 76. The labels, and the three families that could not report themselves
+
+**Milestone M6.1, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **R7** (built, ten families), **R2 and R3** (the labels sit under
+the permits Rev 12 added, D42), **section 5**'s exposure label row (every family
+reports itself, D41), **section 7** (the classroom labels every family it
+paints, and an exposure is a painted glyph, D43) and **section 4** (budgets bind
+the steady state, D44). No version axis moves: `data/glyphLabels.ts` is in
+`EXCLUDED`.
+
+**Deviation from the item text:** ten families, not nine (Rev 11). The item
+says "copy in `data/glyphLabels.ts`" per family. It is keyed per glyph, because
+section 7's classroom promises words for the *category*, and the word a fist
+needs is `Physical`, not `Category`. Two family-level words cover the marks the
+sheet does not draw (a volatile condition, the effectiveness numeral).
+
+### What was built
+
+- **`data/glyphLabels.ts`**: one word per sheet glyph, three words at most
+  (`test/glyph-labels.test.ts`). The sheet reads its accessible names from the
+  same table, so the label and the screen reader's word cannot drift apart.
+- **D41.** Band pips are the sheet's filled and outlined circles, which M1.1
+  drew for exactly this and nothing had mounted. The six major status chips hold
+  the sheet's lettering glyph. The effectiveness numeral and a volatile chip
+  are marked with `markFamily`, the one other place that writes `data-family`.
+- **`ui/exposure-labels.ts`**: one pass per screen visit, re-run on every
+  redraw without re-counting, and one label per group (a band's five pips get
+  one). The app watches the shell; the gallery runs one pass per page.
+- **Tests.** `test/exposure-labels.test.ts` is R7's enforce clause for every
+  family: labelled on visits 1 and 3, not on 2 or 4, kept through a redraw,
+  never counted when hidden. `test/visual-exposure-labels.test.ts` is D41's
+  family walk: every painted pip, status chip and effectiveness numeral on every
+  gallery surface reports its family, all ten families are painted somewhere,
+  and the classroom labels every family it paints on a fresh store and none on
+  an exhausted one.
+
+**The driven browsers are returning players.** The first full browser run
+failed six tests: four height baselines, the move grid's fold, and the chip
+sweep, which found text inside a capability chip. All six had the same cause.
+The bot's "not a first launch" store (`scripts/first-launch.mjs`) covered the
+coach marks and the greeting but not the counts, so every driven run met the
+first-run labels. The store now puts every family past its third exposure, the
+face the baselines were taken on. A unit test holds its family list against
+`src/data/glyphFamilies.ts`.
+
+### The numbers
+
+Steady state unchanged on every surface; the census's first-run column (D44)
+is where the labels show. Pocket less shell:
+
+| Surface | Steady | First run |
+|---|---:|---:|
+| starter | 20 | 71 |
+| battle | 7 | 29 |
+| summary | 336 | 405 |
+| log-sheet | 117 | 139 |
+| shop-relic | 33 | 41 |
+
+The rest move by 2 to 7. Type names are proper nouns and are not counted, so
+a type chip's label costs no words in the census.
+
+### Three findings left open
+
+- **The battle screen is 859px tall on a first run**, against 844 at the steady
+  state. The labels on four move buttons wrap. Recorded, not gated (D44).
+- **The result screen is 418px wide on `SMOKE24`, with or without labels.** It
+  predates M6.1 (measured with the M6.1 changes stashed). No test reads the
+  result screen's `scrollWidth` on the loaded fixture. Open, and an input to
+  M7.2.
+- **D39 is not taken.** Its recommendation timed the Toll's `Costs` with M6.1.
+  It needs a section 3 row and a section 9 disconfirmer, which are amendments,
+  and a sign is not a glyph family, so an exposure label cannot carry it. It
+  stays open for its own ruling.
+
+The first-run starter is at [`visual/m6.1-starter-first-run.png`](visual/m6.1-starter-first-run.png),
+written by `GYMRUN_RECORD=1 npx vitest run test/visual-exposure-labels.test.ts`.
+
+## 77. Four defects in M6.1, found by review before merge
+
+**2026-09-23, on [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68).**
+An independent read of the Tier 6 diff found four defects in the exposure
+labels. The suite had passed with all four in the tree, because none of them
+shows on a single gallery page. Each is fixed and has a regression case in
+`test/exposure-labels.test.ts`.
+
+1. **The drawer ended the screen's visit.** Closing an overlay toggles `hidden`,
+   the watcher re-ran on the routed screen, and `noteExposure` had seen
+   `drawer` in between, so it counted every family on that screen again. Two
+   opens and closes in one battle spent both of R7's labels. A visit is now the
+   routed screen: the drawer is counted as its own surface *within* it
+   (`noteExposure`'s `visit`, `enterExposureVisit`).
+2. **A status chip lost its accessible name.** D41 put the sheet's lettering
+   inside the chip, and `glyphNode` marks an unlabelled glyph `aria-hidden`.
+   Lettering is text and is no longer hidden.
+3. **A label outlived its reason.** Most screens keep their DOM between visits,
+   so a visit-1 label was still on screen at visit 2, and a battle panel's
+   status label stayed after the chip was hidden by a cure. Every pass now
+   removes labels for families not due on this visit, and labels whose mark is
+   no longer painted.
+4. **"Show tutorial again" silenced the current screen.** The counts reset but
+   the visit did not, so the families already counted read as counted at zero.
+   `resetTutorial` now resets the visit too.
+
+Writing the test for 3 found a fifth, older, edge case: a visit only advanced
+when a family was counted, so a screen with no glyph between two visits to the
+map did not end the first. The pass now enters the visit before counting.

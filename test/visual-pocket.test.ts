@@ -7,9 +7,13 @@
  * (`ui/gallery-fixtures.ts`, ruling 3) loaded in Pocket mode on a fresh page,
  * and the assertion is the mode's whole definition:
  *
- *   - **Decision surfaces** — starter, locale, map, battle, result (both
- *     shapes), target, replace, party, pre-gym, shop, event — `scrollHeight`
- *     of the document at or under 844. A hard gate, no exemptions.
+ *   - **Decision surfaces** — locale, map, battle, result (both shapes),
+ *     target, replace, party, pre-gym, shop, event — `scrollHeight` of the
+ *     document at or under 844. A hard gate, no exemptions.
+ *   - **Starter select**, the one decision surface allowed to scroll
+ *     (2026-09-23, D45). Three full starters with four move cards each cannot
+ *     fit 844 in any layout measured, so the gate is the first starter card,
+ *     whole, above the fold: one complete option before any scroll.
  *   - **The drawer** — a fixed overlay whose sheet scrolls on its own, so the
  *     document's height cannot see it: the sheet's `scrollHeight` at or under
  *     its `clientHeight`.
@@ -65,7 +69,25 @@ describe('the surfaces are all gated', () => {
   });
 });
 
-describe.each([...DECISION_SURFACES, ...RELIC_SURFACES])('%s in Pocket', (surface) => {
+/**
+ * **The starter screen scrolls, by ruling. D45, 2026-09-23.** M6.0 mounted the
+ * move card there (D40) and the screen went from under 844 to 1667; a 2x2 grid
+ * of cards brings it to about 1081 and nothing measured got it under 844. The
+ * ruling let the classroom scroll rather than take facts off it. What stays
+ * gated is the first starter, complete, in the first screenful.
+ */
+const SCROLLING_DECISIONS: readonly GallerySurface[] = ['starter'];
+
+describe('starter in Pocket', () => {
+  it('holds the first starter card whole above 844', async () => {
+    const { page, close } = await open('starter');
+    const bottom = await page.evaluate(() => globalThis.document.querySelector('.starter')?.getBoundingClientRect().bottom ?? Infinity);
+    await close();
+    expect(bottom, `the first starter card ends at ${bottom}`).toBeLessThanOrEqual(PHONE.height);
+  }, 120_000);
+});
+
+describe.each([...DECISION_SURFACES, ...RELIC_SURFACES].filter((surface) => !SCROLLING_DECISIONS.includes(surface)))('%s in Pocket', (surface) => {
   it('does not scroll at 390x844', async () => {
     const { page, close } = await open(surface);
     const height = await page.evaluate(() => globalThis.document.documentElement.scrollHeight);

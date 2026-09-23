@@ -46,11 +46,11 @@ import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
 import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
-import { createDensityGuard } from './density-guard';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
+import { labelExposures } from './exposure-labels';
 import { createHeader } from './header';
 import { createTutorial } from './tutorial';
 import type { TutorialScreen } from '../data/tutorial';
@@ -70,7 +70,7 @@ import { createShopScreen } from './screens/shop';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
 import { createSeedBar } from './seed-bar';
-import { DENSITIES, getDensity, initSettings, onSettingsChange, setDensity, type Density } from './settings';
+import { DENSITIES, fillExposure, getDensity, initSettings, onSettingsChange, setDensity, type Density } from './settings';
 import { createStamps } from './stamps';
 import { applyDensity } from './theme/density';
 import { applyLocale } from './theme/locale';
@@ -82,6 +82,9 @@ const noop = (): void => undefined;
 function isSurface(value: string): value is GallerySurface {
   return (GALLERY_SURFACES as readonly string[]).includes(value);
 }
+
+/** A count past R7's third exposure, so no family's label is due. */
+const EXHAUSTED_EXPOSURE = 4;
 
 function isDensity(value: string | null): value is Density {
   return value !== null && (DENSITIES as readonly string[]).includes(value);
@@ -101,6 +104,14 @@ async function main(): Promise<void> {
   initSettings();
   const density = params.get('density');
   if (isDensity(density)) setDensity(density);
+  /*
+   * The exposure state, **D44**. Every family past R7's third exposure unless
+   * the URL says `exposure=fresh`, because section 4 budgets the steady state
+   * and every height, baseline and census figure was taken on a face with no
+   * exposure label on it. `fresh` is a first launch: the face the census
+   * records in its first-run column and M6.1's starter recording reads.
+   */
+  fillExposure(params.get('exposure') === 'fresh' ? 0 : EXHAUSTED_EXPOSURE);
   /*
    * `fixture=loaded` renders the constructed worst case (`ui/gallery-fixtures.ts`,
    * ruling 3) under the app's whole chrome — header, seed bar, drawer bar —
@@ -424,15 +435,31 @@ async function main(): Promise<void> {
 
   /*
    * `tutorial=fresh`: the coach marks, as a first launch would show them on
-   * this surface, through the same guard the app uses (`ui/density-guard.ts`).
-   * `test/visual-tutorial-guard.test.ts` reads how many marks the layer
-   * shows against how many have an anchor on the page: the assertion
-   * ruling 6 asked for, that no mark is ever dropped without a trace.
+   * this surface, in the page's own mode (M6.2 deleted the guard that forced
+   * Detailed under them). `test/visual-tutorial-anchors.test.ts` reads how
+   * many marks the layer shows against how many have an anchor on the page:
+   * the assertion ruling 6 asked for, that no mark is ever dropped without a
+   * trace.
    */
+  /*
+   * The exposure labels (M6.1), once, on whatever is on top: the drawer if one
+   * is open, the routed screen otherwise. The app runs the same pass on every
+   * redraw (`ui/app.ts`); a gallery page draws once. With the default
+   * `exposure=exhausted` every family is past its third exposure and nothing
+   * renders; `exposure=fresh` is the first launch.
+   */
+  const current = router.current();
+  const onTop = drawer.isOpen()
+    ? { screen: 'drawer', within: drawer.root as ParentNode }
+    : current
+      ? { screen: current, within: router.root.querySelector<HTMLElement>(`.screen[data-screen="${current}"]`) as ParentNode | null }
+      : null;
+  if (onTop?.within) labelExposures(onTop.screen, onTop.within);
+
   if (params.get('tutorial') === 'fresh') {
     const screen = TUTORIAL_SURFACE[surface];
     if (screen) {
-      const marks = createDensityGuard(createTutorial(shell));
+      const marks = createTutorial(shell);
       const within = screen === 'drawer' ? drawer.root : router.root.querySelector<HTMLElement>(`.screen[data-screen="${screen}"]`);
       if (within) marks.showFor(screen, within);
     }

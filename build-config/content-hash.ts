@@ -137,6 +137,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the nine glyph-family names of design bible section 2; read by ui/theme/glyphs.ts and ui/settings.ts only, and which symbols a player has been shown cannot change what a seed generates',
   },
   {
+    path: 'src/data/glyphLabels.ts',
+    why: 'the exposure-label word for every glyph (design bible R7, milestone M6.1); read by ui/theme/glyphs.ts and ui/exposure-labels.ts only, and rewording a label must not move the hash',
+  },
+  {
     path: 'src/data/forbiddenWords.ts',
     why: 'the hedge words no explanation may contain; read by scripts/hedge-lint.ts and its test only, and a word added to a lint cannot change what a seed generates',
   },
