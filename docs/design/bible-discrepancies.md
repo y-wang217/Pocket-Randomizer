@@ -61,6 +61,11 @@ which blocks everything.
 | D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
+| D46 | M7.1's done-when, then M6.4 | The done-when needs two rounds of testers; no session can meet it | **open** |
+| D47 | M7.1, register rows R2, R7 and move chips | Four disconfirmers need counts nothing in the tree takes, and the decision log is deleted at run end | **open** |
+| D48 | M7.1's done-when | Two register rows are measurements or design judgements, not tester observations | **open** |
+| D49 | M7.2's done-when | "Decision surface" is undefined, and the census cannot attribute a word to a section 4 row | **open** |
+| D50 | M7.2's delta | The Tier 0 baseline was counted by a different instrument | **open** |
 
 ## Rulings, 2026-09-19
 
@@ -3184,3 +3189,146 @@ decision surface keeps the hard gate. What this does not decide is D38: the
 capture card is a surface where the player compares against the party already
 on screen, and the same ruling is not assumed to carry.
 
+
+---
+
+## D46. M7.1's done-when needs testers, and no session can meet it
+
+**Filed 2026-09-23, in the Tier 7 prep. Blocks M7.1's done-when, and M6.4
+through D11.**
+
+M7.1: *"Run it on two rounds of at least three testers each, at least one with
+no Pokemon knowledge … Done when: every register row has an observed or
+not-observed entry with a date."* Every earlier item was closed by the session
+that built it. This one cannot be: a session can write the protocol and build
+what it measures, and six people have to play the game.
+
+**Options.**
+
+1. **Split it.** M7.1 is the protocol document, one session and one PR. M7.1r1
+   and M7.1r2 are the two rounds, each closed by a docs PR of playtest log rows.
+   M6.4 is gated on M7.1r2.
+2. Keep one item, left open across both rounds, and let the protocol PR merge
+   without checking the item off.
+
+**Recommendation: 1.** Standing rule *"one item, one session, one PR"* cannot
+hold for an item that takes weeks of other people's time, and a protocol that
+merges without an item to check off leaves the checklist saying nothing about
+it. The deviation is recorded in `../generation.md`; the milestone text is not
+edited.
+
+---
+
+## D47. Four disconfirmers need counts nothing in the tree takes
+
+**Filed 2026-09-23, in the Tier 7 prep. Blocks M7.1's protocol for R2, R7 and
+the move chip row.**
+
+- R2: *"open inspect on category more than twice in run two"*. No inspect open
+  is counted anywhere; `ui/tooltips.ts`'s `open()` has no hook.
+- R2: *"Special-move-on-high-Atk picks do not fall between run one and run
+  three"*. The run log records the decisions, but `ui/app.ts` calls
+  `clearRunLog()` the moment a run reaches the summary, and `Copy result`
+  shares the score, not the decisions. Run one's picks are gone before run three
+  starts.
+- R7: *"inspect rate on a family has not fallen by run three"*. The same count,
+  per family, per run.
+- Move chips: *"testers expand every chip to a full card before choosing"*.
+  Observable by eye, unreliably, on someone else's phone.
+
+**Options.**
+
+1. **A new item, M7.0: a playtest recorder behind `?playtest=1`.** `ui/` only.
+   Counts inspect opens per family and per run, keeps every finished run's
+   decision log instead of discarding it, and offers one JSON download on the
+   summary. Draws no RNG, imports nothing into `core/`, reshapes no logged
+   decision, so no version axis moves. Behind the flag, the download is not on
+   the player's face.
+2. Observers tally by hand and testers screen-record. No infrastructure, and the
+   R2 decision clause is still unreadable unless the observer writes down every
+   pick.
+3. Amend the four disconfirmers to things an observer can see. That is a
+   section 10 amendment without an observation behind it, which section 10
+   forbids.
+
+**Recommendation: 1**, built before the protocol, so the protocol can name the
+file a round collects. D30 and D44 are the precedent: the instrument lands
+before the item that reads it.
+
+---
+
+## D48. Two register rows are not tester observations
+
+**Filed 2026-09-23, in the Tier 7 prep. Blocks M7.1's done-when.**
+
+*"Event screen holds at 59"*: disconfirmed if events *"need more than two lines
+to state requirement and choice"*. That is a height on a 390px viewport, and the
+visual bot measures it. *"A confirm's two controls belong inside its budget"*
+(D22): disconfirmed by copy that *"reads as padded"* or a third control being
+needed. That is a design judgement or a design event. Neither is something a
+tester reports, and the done-when asks every row for an entry.
+
+**Options.**
+
+1. **The protocol marks both "measured, not observed"**, names the instrument
+   (the event height test; the census and the component tree), and the log
+   records a dated entry with tester count 0.
+2. Invent a tester task for each. There is no honest question that elicits
+   either.
+
+**Recommendation: 1.** The log's own rules allow any count, and a 0 says exactly
+what happened.
+
+---
+
+## D49. "Decision surface" is undefined, and the census cannot attribute a word to a row
+
+**Filed 2026-09-23, in the Tier 7 prep. Blocks M7.2's done-when.**
+
+M7.2: *"the census table shows every decision surface at or under budget"*.
+The census reports twenty surfaces; section 4 budgets components and six
+screens. D2 recorded the mismatch in Tier 0 and D30 added worst-instance
+components, but nothing maps a surface's words to the row they fall under. Read
+by hand on `6afb3bf` (the Tier 7 prep has the full crosswalk), five surfaces
+exceed a row that exists: **target** (8 words per recipient card against 0),
+**result** (10 against 6), **result-relic** (20 against 6),
+**result-capture** (40 against 6 and 0) and the **party drawer** (13 against 0
+plus ability). And nine surfaces or components carry words no row budgets:
+starter, map, replace, party and shop chrome, map-drawer, log-sheet, the coins
+and restore cards, and the app shell.
+
+**Options.**
+
+1. **One instrument commit before M7.2's census**: each counted word is tagged
+   with the section 4 row it falls under, or `unbudgeted`, and the census
+   gains a per-row table. Decision surface is defined as every census surface
+   but summary and log-sheet.
+2. M7.2 carries the crosswalk by hand, as the prep did.
+
+**Recommendation: 1.** A hand crosswalk is exactly the kind of number D30 found
+wrong for five tiers. Whether log-sheet is an archive surface like summary, or
+needs a row, is the one judgement option 1 leaves to the ruling.
+
+---
+
+## D50. The Tier 0 baseline was counted by a different instrument
+
+**Filed 2026-09-23, in the Tier 7 prep. Blocks M7.2's delta.**
+
+M7.2: *"Commit the delta against the Tier 0 baseline."* Since `78f3fdc`, D17
+changed what counts as a word on a move face, D30 added worst-instance
+components, D44 pinned exposure, and four surfaces were added that have no
+Tier 0 figure (`result-relic`, `shop-relic`, `confirm-replace`,
+`confirm-forfeit`). A plain difference of the two committed tables mixes what
+the tree changed with what the ruler changed.
+
+**Options.**
+
+1. **Report both**: against the committed Tier 0 table, as the item asks, and
+   against the Tier 0 tree re-counted with today's instrument wherever that
+   tree can still render the surface. A surface it cannot render says so.
+2. The committed table only, with a note naming the instrument changes.
+
+**Recommendation: 1**, if the Tier 0 tree renders under today's census script
+with at most a fixture shim. If it needs more than that, option 2, and the
+note says why.

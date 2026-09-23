@@ -465,8 +465,8 @@ is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M7.1 Playtest protocol | open | — |
-| M7.2 Post-census | open | — |
+| M7.1 Playtest protocol | open | D46, D47, D48 (filed in the [Tier 7 prep](../handoff/4.10-tier-7-prep.md)) |
+| M7.2 Post-census | open | D49, D50; runs after M6.4 |
 
 ## What the record says that this file does not repeat
 

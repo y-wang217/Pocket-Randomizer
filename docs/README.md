@@ -88,7 +88,9 @@ D40 to D44 before any code; all five were ruled as recommended and the bible
 went to Rev 12. M6.0 then filed and ruled D45. The order was M6.0 (the starter
 move card, a fifth item), M6.2 (the coach-mark guard deleted), M6.3 (Pocket for
 new installs), M6.1 (exposure labels, ten families), recorded in
-[`generation.md` §72 to §76](generation.md). No version axis moved. One trunk per tier,
+[`generation.md` §72 to §76](generation.md). No version axis moved. **Tier 7 is prepped**
+([`handoff/4.10-tier-7-prep.md`](handoff/4.10-tier-7-prep.md)): D46 to D50
+filed, none ruled, no code. One trunk per tier,
 one sub-branch per item. **One version axis moved in the whole of 4.10**:
 `contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
 2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
