@@ -2111,7 +2111,7 @@ not edited; the argument for each is in
     without it on the worst-case fixtures, Pocket leaves all 29 anchors
     painted. It is kept, as the prompt said it would be, because the copy
     was written against Detailed, and its assertion
-    (`test/visual-tutorial-guard.test.ts`) is what makes a future fold that
+    (`test/visual-tutorial-anchors.test.ts`, named `visual-tutorial-guard` until M6.2) is what makes a future fold that
     hides an anchor fail loudly.
 12. **The existing two-valued suites were rewritten, not deleted**, each with
     a comment naming this patch: `test/density.test.ts` (renamed from
@@ -10763,3 +10763,39 @@ band, accuracy and priority). Rulings D40 and D45. No version axis moves.
 Taller, since the card keeps its labelled face there until M6.4 (D16): 2073 in
 Detailed against the Pocket 1081. No height baseline gates the starter screen
 in either mode.
+
+## 74. The guard goes, and the marks describe the face they sit on
+
+**Milestone M6.2, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **section 7** (the forced-Detailed rule deleted, as D10's
+amendment asked, and one mechanism per job: marks explain screens), **R5** (the
+gesture is press and hold everywhere a mark names it) and **R11** (no mark
+points at a log on the board). No version axis moves: `data/tutorial.ts` is in
+`EXCLUDED`.
+
+**The guard.** The density guard module and its unit test are deleted. The app
+subscribes the root to the store directly, as it does for the move bar and the
+battle speed. Measured before deleting it: every one of the 29 marks resolves a
+painted anchor in Pocket (prep, [`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md)),
+so no mark goes missing. The browser test that held the guard is renamed
+`test/visual-tutorial-anchors.test.ts`. It runs the same walk and now asserts
+the root never leaves Pocket, which is the item's done-when.
+
+**The copy.** Nine marks were rewritten, one more than the prep counted,
+because M6.0 made the `moves` mark false too:
+
+| Mark | Was | Now names |
+|---|---|---|
+| starter `stats` | tapping a label | press and hold any of the six |
+| starter `moves` | `BP`, `PP`, "marked Status" | one card per move; press and hold for the rest |
+| map `tier` | "Normal, hard, elite", words | pips; each filled pip is harder and pays more |
+| map `gate` | "names a capability" | the capability shown, the chevron for standing |
+| battle `move` | the type chip and the category chip | the move's type and kind |
+| battle `status` | tapping the chip | press and hold |
+| battle `flags` | the log beneath the board | the strip, and the battle history |
+| result `rewards` | "each card says what it is" | press and hold a card |
+| result `coverage` | the coverage line | the plus row and the minus row |
+
+**Marks do not teach the glyphs.** Section 7 gives that job to the exposure
+labels, so the `moves` mark says a card shows the move's kind and stops there.
+It never names the fist, the ring or the wave.

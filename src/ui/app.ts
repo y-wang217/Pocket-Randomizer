@@ -42,7 +42,6 @@ import { createPending, isRunAbandoned } from './pending';
 import { initSettings, onSettingsChange, resetIntro, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
 import { createIntro } from './intro';
-import { createDensityGuard } from './density-guard';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { createTooltips } from './tooltips';
@@ -116,8 +115,8 @@ export function mountApp(root: HTMLElement): void {
    * before any screen is built, rather than the first frame rendering in the
    * default and flipping.
    *
-   * The subscription lives in the guard below (`ui/density-guard.ts`), at
-   * the shell rather than inside a run, and is unsubscribed nowhere, because
+   * The subscription is the line after this one, at the shell rather than
+   * inside a run, and is unsubscribed nowhere, because
    * the mode outlives every run: it is written onto `<html>` and read only by
    * the stylesheet, so a screen drawn before a change, after it, or while it
    * happens is correct without anything re-rendering. That is the difference
@@ -132,18 +131,15 @@ export function mountApp(root: HTMLElement): void {
    */
   const settings = initSettings();
   applyDensity(settings.density);
+  onSettingsChange((next) => applyDensity(next.density));
   /*
    * The move bar layout, once at startup and once per change.
    *
-   * Straight off the store, with no guard in front of it — unlike density,
-   * which the tutorial holds at Detailed while a screen's marks are up. The
-   * marks that name a move button anchor `data-tutorial="move"` and `"pp"`,
-   * and both attributes are on the same elements in both layouts, so there is
-   * nothing for a layout to fold away and nothing for a guard to protect.
+   * Straight off the store, like density. The marks that name a move button
+   * anchor `data-tutorial="move"` and `"pp"`, and both attributes are on the
+   * same elements in both layouts, so there is nothing for a layout to fold
+   * away.
    */
-  // The subscription itself is the tutorial's guard, created with the layer
-  // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
-  // screen's marks are up.
   /*
    * The one battle-feedback duration, from `data/displayTuning.ts` onto the
    * root, scaled by the player's chosen battle speed.
@@ -430,12 +426,18 @@ export function mountApp(root: HTMLElement): void {
    */
   const intro = createIntro(shell);
   /*
-   * Ruling 6 on the density modes patch: Detailed on the root while a
-   * screen's unseen marks are up, applied before the marks resolve their
-   * anchors, the stored mode back when they finish or Skip fires. Every
-   * `showFor` goes through the guard so no path shows a mark in Pocket.
+   * **The marks show in the player's own mode. Milestone M6.2, 2026-09-23.**
+   *
+   * Ruling 6 on the density modes patch put a guard here that forced Detailed
+   * while a screen's unseen marks were up, because in 4.7.2 a mark's anchor
+   * could be folded away in Pocket and the layer drops an unpainted anchor
+   * without a trace. Tiers 2 to 5 put every one of those facts on the compact
+   * face: measured before M6.2, all 29 anchors paint in Pocket. The guard was
+   * protecting nothing, and it put the classroom in Detailed on run one, where
+   * no glyph paints (D43). Section 7, amended under D10, asked for it deleted
+   * before Pocket became the default.
    */
-  const marks = createDensityGuard(tutorial);
+  const marks = tutorial;
   const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
   const showTutorialFor = (name: ScreenName): void => {
     if (!isTutorialScreen(name)) return;

@@ -46,7 +46,6 @@ import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
 import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
-import { createDensityGuard } from './density-guard';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
@@ -435,15 +434,16 @@ async function main(): Promise<void> {
 
   /*
    * `tutorial=fresh`: the coach marks, as a first launch would show them on
-   * this surface, through the same guard the app uses (`ui/density-guard.ts`).
-   * `test/visual-tutorial-guard.test.ts` reads how many marks the layer
-   * shows against how many have an anchor on the page: the assertion
-   * ruling 6 asked for, that no mark is ever dropped without a trace.
+   * this surface, in the page's own mode (M6.2 deleted the guard that forced
+   * Detailed under them). `test/visual-tutorial-anchors.test.ts` reads how
+   * many marks the layer shows against how many have an anchor on the page:
+   * the assertion ruling 6 asked for, that no mark is ever dropped without a
+   * trace.
    */
   if (params.get('tutorial') === 'fresh') {
     const screen = TUTORIAL_SURFACE[surface];
     if (screen) {
-      const marks = createDensityGuard(createTutorial(shell));
+      const marks = createTutorial(shell);
       const within = screen === 'drawer' ? drawer.root : router.root.querySelector<HTMLElement>(`.screen[data-screen="${screen}"]`);
       if (within) marks.showFor(screen, within);
     }

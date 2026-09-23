@@ -241,10 +241,8 @@ export function createTutorial(host: HTMLElement): TutorialLayer {
       // A screen shown while another's marks are up replaces them; the earlier
       // screen was reached, so its first visit is spent. The layer stays open
       // across the swap — the new queue is in place before the store hears
-      // the old screen is seen — so the density guard, which reads `isOpen`
-      // on every settings change, keeps Detailed under the marks about to
-      // be placed rather than swapping the mode between the two screens.
-      // Density modes patch.
+      // the old screen is seen — so nothing that reads `isOpen` on a settings
+      // change sees the layer blink closed between the two screens.
       const previous = screen && screen !== name ? screen : null;
       clearTarget();
       screen = name;

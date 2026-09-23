@@ -449,7 +449,7 @@ Starter select is the classroom: it has no clock, three full cards, and every gl
 
 **An exposure is a painted glyph** (2026-09-23, D43). A screen that shows a family's word instead of its glyph, as Detailed and Simple do, does not count toward that family. A player who meets the glyphs later still gets both labels.
 
-All three persist in the settings store. Coach marks force Detailed per screen today. Amended 2026-09-19 (D10): **before Pocket becomes the default**, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted, so the flip lands on marks that are already anchored to the face they will be read against. Amended 2026-09-23 (D43): exposure labels land **after** both, since while the guard stands the classroom is in Detailed on run one and paints no glyph to label. Tier 6's order is M6.0, M6.2, M6.3, M6.1.
+All three persist in the settings store. Coach marks forced Detailed per screen until milestone M6.2 deleted the rule (2026-09-23); they now show in the player's own mode, and their copy explains the screen, leaving the glyphs to the exposure labels. Amended 2026-09-19 (D10): **before Pocket becomes the default**, coach marks re-anchor to the Pocket face and the forced-Detailed rule is deleted, so the flip lands on marks that are already anchored to the face they will be read against. Amended 2026-09-23 (D43): exposure labels land **after** both, since while the guard stands the classroom is in Detailed on run one and paints no glyph to label. Tier 6's order is M6.0, M6.2, M6.3, M6.1.
 
 Rejected: a no-label first session (category is not guessable by a non-player); a legend button (a mechanism the player must know exists).
 
