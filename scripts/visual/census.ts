@@ -114,8 +114,18 @@ export const CENSUS_SEED = 'SMOKE24';
  * A component with no call site in the tree yet reports `absent` rather than
  * zero, because zero words and no component are different facts and only one
  * of them is done.
+ *
+ * **And a component in the tree that no fixture renders reports `unrendered`,
+ * which is a third fact again. D31, M5.5.** The confirm overlay read `absent`
+ * for four tiers while `ui/band.ts` had four call sites: a band only exists
+ * after a tap, and every fixture but the event's is a screen at rest.
+ * `absent` is a statement about the tree, and the tree was not what was
+ * missing. The two are told apart by the `built` flag on each entry below — a
+ * claim, written once, that the component exists — so a row reading
+ * `unrendered` names a fixture that has to be built rather than a component
+ * that has to be.
  */
-export const COMPONENTS: readonly { id: string; selector: string; why: string }[] = [
+export const COMPONENTS: readonly { id: string; selector: string; why: string; built?: false }[] = [
   {
     id: 'battle move button',
     /*
@@ -189,6 +199,80 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string }[
     id: 'stat block',
     selector: '.stats',
     why: 'Section 5 canonises it. Nested inside the party row, which is why attribution is nearest-ancestor.',
+  },
+  /*
+   * **The four card rows. Discrepancy D30, filed 2026-09-22 opening Tier 5.**
+   *
+   * D2 ruled that the census counts per component *so that* a per-component
+   * budget can be checked, and D21b restated it one layer down when the drawer
+   * turned out to be measured by the map screen behind it. Section 4 budgets
+   * five card surfaces and this list carried none of them, so four of Tier 5's
+   * six done-whens were written against a number nothing produced: `shop`
+   * reads 64 in Pocket less shell and that total cannot say whether any one
+   * card is over 8.
+   *
+   * These land *before* any card is touched, so the delta says which of the
+   * two moved the figure. That is D17B's rule and M4.3's.
+   *
+   * **There is no shop stock card row either, and that is D29 landing.** It
+   * had one, because `screens/shop.ts` built `.shop__item` from scratch and a
+   * second implementation needed a second number. M5.1 mounted
+   * `renderRewardCard` on the shelf, so `.reward` is now inside `.shop__item`
+   * and nearest-ancestor attribution charges the shop's cards to the row
+   * above — one component, one row, both call sites, which is what section 4
+   * meant by "follows the reward card".
+   *
+   * There is no capture-card row, and the absence is deliberate:
+   * `screens/acquisition.ts` already gives that card `.party__member`, so the
+   * party row row below counts it. It counts it *wrongly* — the class is there
+   * and the component's code is not (D29) — and the fix is M5.4's, not this
+   * list's. A second selector for the same element would double-count it.
+   */
+  {
+    id: 'reward card',
+    /*
+     * `.reward` is the root `<button>`, and the move card nested inside a TM
+     * card is `.move:not(button)`, which is listed above. Attribution stops at
+     * the *first* matching ancestor walking up from the text node, and the
+     * move card is the nearer one, so a TM card's move face stays charged to
+     * the move card and this row counts only what the reward card draws
+     * itself: the kind label, the name, the effect line and the note.
+     */
+    selector: '.reward',
+    why: 'Section 4 budgets an item, berry or relic reward card at 8, and the shop stock card at 8 as "the reward card plus a price". D29 ruled them one component: screens/shop.ts mounts this, so one row measures both call sites.',
+  },
+  {
+    id: 'map node card',
+    selector: '.node',
+    why: 'Section 4 budgets it at 0. Two call sites, the map screen and the map drawer, which is what makes it a component by section 5\'s own test.',
+  },
+  {
+    id: 'locale card',
+    /*
+     * `.locale`, not `.screen--locale`: the screen root carries
+     * `screen screen--locale` and the card carries `locale locale--<id>`, so
+     * the two do not collide. The locale *screen*'s own chrome has no budget
+     * row at all, which is D32, and until that is ruled its words fall to
+     * `screen chrome (no component)` where they can at least be seen.
+     */
+    selector: '.locale',
+    why: 'Section 4 budgets the locale card at 0. The screen around it is unbudgeted, which is D32.',
+  },
+  {
+    id: 'event choice',
+    /*
+     * **Section 5's newest row, added with D33's ruling (M5.6).** The label,
+     * the hint, the reward-tier pips and the Toll's price — the one component
+     * section 4 budgets prose on. The gate above it is not inside `.event__
+     * choice` and is not counted here: it is two marks and carries no text,
+     * which is the change M5.6 made and which the surface row is what checks.
+     *
+     * Four instances at `known` and three below, so the worst-instance column
+     * is the one a per-option budget is read against. Summing them would
+     * charge one option for another's words, which is what D30 is about.
+     */
+    selector: '.event__choice',
+    why: "Section 4 budgets a label at 4 and a hint at 6, and section 5 canonises the pair as the event choice. One call site, because there is one surface that asks this question.",
   },
   {
     id: 'app shell',
@@ -269,14 +353,26 @@ export interface Record_ {
   surface: GallerySurface;
   density: Density;
   component: string | null;
+  /**
+   * Which *instance* of that component the words belong to, on this surface
+   * in this density. `null` for chrome that belongs to no component.
+   *
+   * **D30, filed 2026-09-22.** D2 ruled the census counts "per component
+   * instance" and this script summed instances instead, which is the same
+   * number for a budget of 0 and a different one for every other budget:
+   * three reward cards summing to 22 is 8 + 8 + 6, which passes a ceiling of
+   * 8, or 14 + 4 + 4, which does not. Section 4's figures are ceilings (D1),
+   * and a ceiling is checked against the worst instance, never the total.
+   */
+  instance: string | null;
   words: string[];
 }
 
 /** Pull every visible text node on the page, attributed to its component. */
-async function readSurface(page: Page, components: readonly { id: string; selector: string }[], glyphs: readonly string[]): Promise<{ component: string | null; text: string }[]> {
+async function readSurface(page: Page, components: readonly { id: string; selector: string }[], glyphs: readonly string[]): Promise<{ component: string | null; instance: string | null; text: string }[]> {
   return page.evaluate(
     ({ components, glyphs }) => {
-      const out: { component: string | null; text: string }[] = [];
+      const out: { component: string | null; instance: string | null; text: string }[] = [];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       let node: Node | null;
       while ((node = walker.nextNode())) {
@@ -293,11 +389,19 @@ async function readSurface(page: Page, components: readonly { id: string; select
         // Nearest ancestor, not first list entry: walk up and stop at the
         // first element any component claims.
         let owner: string | null = null;
+        let instance: string | null = null;
         for (let node: Element | null = host; node && !owner; node = node.parentElement) {
           const hit = components.find(({ selector }) => node?.matches(selector));
-          if (hit) owner = hit.id;
+          if (hit) {
+            owner = hit.id;
+            // The element's ordinal among that component's instances on this
+            // page. Ordinal rather than a generated id because the census
+            // reruns and a diff of the table should not churn on identity.
+            const all = [...document.querySelectorAll(hit.selector)];
+            instance = `${hit.id}#${all.indexOf(node as Element)}`;
+          }
         }
-        out.push({ component: owner, text });
+        out.push({ component: owner, instance, text });
       }
       return out;
     },
@@ -305,9 +409,31 @@ async function readSurface(page: Page, components: readonly { id: string; select
   );
 }
 
-async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
+/**
+ * Which components put an element on this page at all. **D31, M5.5.**
+ *
+ * Separate from the text walk because the two answer different questions. The
+ * walk finds words; this finds *presence*. A component that renders correctly
+ * and draws **zero words** produces no text records, and before this it fell
+ * through to `absent` — so the table's reward for an item hitting its budget
+ * of 0 would have been a row claiming the component does not exist. Every
+ * Tier 5 budget but two is 0, so that was a trap laid directly across this
+ * tier's path.
+ */
+async function presentOn(page: Page, components: readonly { id: string; selector: string }[]): Promise<string[]> {
+  return page.evaluate(
+    (list) => list.filter(({ selector }) => document.querySelector(selector) !== null).map(({ id }) => id),
+    components.map(({ id, selector }) => ({ id, selector })),
+  );
+}
+
+async function censusAll(url: string, browser: Browser): Promise<{ records: Record_[]; present: Set<string> }> {
   const lexicon = properNouns();
   const records: Record_[] = [];
+  // Which components put an element on any surface, in any density. See
+  // `presentOn`: rendering and drawing words are different facts, and a
+  // component at 0 words is the thing most of Tier 5 is trying to build.
+  const present = new Set<string>();
   const context = await browser.newContext({ viewport: PHONE });
   // The sprite host is unreachable in this sandbox and may hang rather than
   // refuse. Sprites are fixed-size boxes and carry no text, so aborting the
@@ -329,27 +455,65 @@ async function censusAll(url: string, browser: Browser): Promise<Record_[]> {
       await page.mouse.move(0, 0);
       await page.waitForTimeout(150);
 
+      for (const id of await presentOn(page, COMPONENTS)) present.add(id);
+
       const nodes = await readSurface(page, COMPONENTS, GLYPH_SLOTS.map(({ selector }) => selector));
-      for (const { component, text } of nodes) {
+      for (const { component, instance, text } of nodes) {
         const words = tokenise(text).filter((token) => {
           if (isBareNumber(token)) return false;
           const isCapitalised = /^\p{Lu}/u.test(token);
           return !(isCapitalised && lexicon.has(token.toLowerCase()));
         });
-        if (words.length) records.push({ surface, density, component, words });
+        if (words.length) records.push({ surface, density, component, instance, words });
       }
     }
   }
 
   await context.close();
-  return records;
+  return { records, present };
 }
 
 function total(records: readonly Record_[]): number {
   return records.reduce((sum, record) => sum + record.words.length, 0);
 }
 
-export function renderTable(records: readonly Record_[]): string {
+/**
+ * The heaviest single instance of one component, across every surface it
+ * renders on, in one density. **D30.**
+ *
+ * An instance is scoped to its surface as well as its ordinal, because the
+ * same ordinal on two surfaces is two different cards — the map screen's
+ * third node and the map drawer's third node are not the same element, and
+ * summing them would invent a card heavier than any that exists.
+ */
+function worstInstance(records: readonly Record_[], component: string, density: Density): number {
+  const perInstance = new Map<string, number>();
+  for (const record of records) {
+    if (record.component !== component || record.density !== density || !record.instance) continue;
+    const key = `${record.surface}/${record.instance}`;
+    perInstance.set(key, (perInstance.get(key) ?? 0) + record.words.length);
+  }
+  return perInstance.size ? Math.max(...perInstance.values()) : 0;
+}
+
+/**
+ * `present` is the set of components that put an element on some surface, from
+ * `presentOn`. With `built` on each `COMPONENTS` entry it makes three states
+ * distinguishable where there used to be two, and the middle one is the one
+ * D31 was filed about:
+ *
+ *   - **a number** — it rendered. Zero is a number, and for most of Tier 5's
+ *     budgets zero is the *goal*, so this is the row an item earns.
+ *   - **`unrendered`** — it is in the tree and no fixture reaches it. The
+ *     confirm overlay sat here for four tiers reading `absent`.
+ *   - **`absent`** — it is not built yet. A `COMPONENTS` entry added ahead of
+ *     the item that builds it says `built: false` and lands here; no entry
+ *     needs it today, and the field exists so the next one can be honest
+ *     rather than indistinguishable.
+ *
+ * D31, M5.5.
+ */
+export function renderTable(records: readonly Record_[], present: ReadonlySet<string> = new Set()): string {
   const lines: string[] = [];
   lines.push('# Text census');
   lines.push('');
@@ -383,15 +547,28 @@ export function renderTable(records: readonly Record_[]): string {
   lines.push('Every instance on every surface, summed. A component absent from the tree says');
   lines.push('so rather than reading zero.');
   lines.push('');
-  lines.push('| Component | detailed | simple | pocket |');
-  lines.push('|---|---:|---:|---:|');
+  lines.push('**The last column is the one a budget is checked against** (D30). Section 4\'s');
+  lines.push('figures are ceilings (D1), and a ceiling binds the worst instance, not the');
+  lines.push('total: three reward cards summing to 22 is 8 + 8 + 6, which passes a ceiling');
+  lines.push('of 8, or 14 + 4 + 4, which does not. The two columns are equal only where the');
+  lines.push('budget is 0 or the component renders once.');
+  lines.push('');
+  lines.push('| Component | detailed | simple | pocket | worst instance, pocket |');
+  lines.push('|---|---:|---:|---:|---:|');
   for (const { id } of COMPONENTS) {
     const seen = records.some((r) => r.component === id);
+    // `absent` is "not built"; `unrendered` is "built, and no fixture shows
+    // it". D31: the two had been one word, and the wrong one. A component
+    // that renders but draws no words still reads as a number, because zero
+    // words at rest is what most of these budgets are asking for.
+    const inTree = COMPONENTS.find((entry) => entry.id === id)?.built !== false;
+    const missing = inTree ? 'unrendered' : 'absent';
+    const rendered = seen || present.has(id);
     const cells = DENSITIES.map((density) => total(records.filter((r) => r.component === id && r.density === density)));
-    lines.push(`| ${id} | ${seen ? cells.join(' | ') : 'absent | absent | absent'} |`);
+    lines.push(`| ${id} | ${rendered ? `${cells.join(' | ')} | ${worstInstance(records, id, 'pocket')}` : `${missing} | ${missing} | ${missing} | ${missing}`} |`);
   }
   const chrome = DENSITIES.map((density) => total(records.filter((r) => r.component === null && r.density === density)));
-  lines.push(`| screen chrome (no component) | ${chrome.join(' | ')} |`);
+  lines.push(`| screen chrome (no component) | ${chrome.join(' | ')} | — |`);
   lines.push('');
 
   lines.push('## Every word counted, in Pocket');
@@ -418,8 +595,8 @@ async function main(): Promise<void> {
   const server = await serve(out);
   const browser = await launch();
   try {
-    const records = await censusAll(server.url, browser);
-    const table = renderTable(records);
+    const { records, present } = await censusAll(server.url, browser);
+    const table = renderTable(records, present);
     if (write) {
       writeFileSync(CENSUS_PATH, table);
       console.log(`census: wrote ${CENSUS_PATH}`);

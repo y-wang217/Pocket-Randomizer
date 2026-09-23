@@ -43,6 +43,7 @@
  * Run: `npm run copy-audit`.
  */
 import { writeFileSync } from 'node:fs';
+import { eventHook, eventLabel, eventHint } from '../src/data/eventCopy';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -58,6 +59,7 @@ import { MOVE_FACT_INFO } from '../src/data/moveFactInfo';
 import { ARCHETYPE_DISPLAY, ARCHETYPE_CAVEAT, ARCHETYPE_INTRO } from '../src/data/archetypes';
 import { RELICS } from '../src/data/relics';
 import { ITEMS } from '../src/data/items';
+import { itemCopy, relicCopy } from '../src/data/itemCopy';
 import { LOCALES } from '../src/data/locales';
 import { GYMS } from '../src/data/gyms';
 import { EVENTS } from '../src/data/events';
@@ -65,6 +67,7 @@ import { EVENT_ARCHETYPES } from '../src/data/eventPools';
 import {
   CAPABILITY_LABELS,
   BAND_LABELS,
+  OUTCOME_TIER_INFO,
   RARITY_LABELS,
   TOLL_PAID_PREFIX,
 } from '../src/data/eventCopy';
@@ -229,27 +232,35 @@ section({
 section({
   title: 'Events — the situation and the four buttons',
   where: 'The event screen: one hook, four labels, four hints. Three events per region.',
-  source: 'src/data/events.ts',
+  // `eventCopy.ts`, not `events.ts`: the words left the hashed table at M5.6's
+  // split (D14), and this line said otherwise for the two commits in between.
+  source: 'src/data/eventCopy.ts',
   note:
     'Every event supplies the same nine strings. `safe`, `gamble`, `toll` and `attune` are the four '
-    + 'archetypes; `attune` appears only when the run holds the relic the event requires.',
+    + 'archetypes; `attune` appears only when the run holds the relic the event requires. '
+    + 'Budgeted at a hook of 12, labels of 4 and hints of 6 by design bible section 4 (D33, M5.6), '
+    + 'and asserted per event by `test/event-budget.test.ts`.',
   rows: EVENTS.flatMap((event) => [
-    { key: `${event.id} · hook`, text: event.hook },
+    { key: `${event.id} · hook`, text: eventHook(event.id) },
     ...EVENT_ARCHETYPES.flatMap((archetype) => [
-      { key: `${event.id} · ${archetype} · label`, text: event.labels[archetype] },
-      { key: `${event.id} · ${archetype} · hint`, text: event.hints[archetype] },
+      { key: `${event.id} · ${archetype} · label`, text: eventLabel(event.id, archetype) },
+      { key: `${event.id} · ${archetype} · hint`, text: eventHint(event.id, archetype) },
     ]),
   ]),
 });
 
 section({
   title: 'Events — labels around the choice',
-  where: 'The requirement chip, the standing chip, the rarity chip, and the price reveal.',
+  where:
+    'The inspect panels behind the requirement glyph, the band chevron and the reward pips, the '
+    + 'rarity chip, and the price reveal. The first three stopped being words at M5.6 and are '
+    + 'what a long press opens instead.',
   source: 'src/data/eventCopy.ts',
   rows: [
     ...Object.entries(CAPABILITY_LABELS).map(([key, value]) => ({ key: `capability.${key}`, text: value })),
     ...Object.entries(BAND_LABELS).map(([key, value]) => ({ key: `band.${key}`, text: value })),
     ...Object.entries(RARITY_LABELS).map(([key, value]) => ({ key: `rarity.${key}`, text: value })),
+    ...Object.entries(OUTCOME_TIER_INFO).map(([key, value]) => ({ key: `tier.${key}`, text: value })),
     { key: 'TOLL_PAID_PREFIX', text: `${TOLL_PAID_PREFIX}: <price>` },
   ],
 });
@@ -467,20 +478,20 @@ section({
   title: 'Held items and berries',
   where: 'The reward card, the shop shelf, and the item slot on the party screen.',
   source: 'src/data/items.ts',
-  note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the blurb is rewritable. Both are listed; the name is here to read the blurb against.',
+  note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the effect line is rewritable. Both are listed; the name is here to read the line against. The lines moved to src/data/itemCopy.ts at M5.1 so rewriting one no longer moves contentHash.',
   rows: ITEMS.flatMap((item) => [
     { key: `${item.id} · name (fixed)`, text: item.name },
-    { key: `${item.id} · blurb`, text: item.blurb },
+    { key: `${item.id} · blurb`, text: itemCopy(item.id) },
   ]),
 });
 
 section({
   title: 'Relics',
   where: 'The relic card, the party screen’s relic list, and the drawer.',
-  source: 'src/data/relics.ts',
+  source: 'src/data/itemCopy.ts',
   rows: RELICS.flatMap((relic) => [
     { key: `${relic.id} · name`, text: relic.name },
-    { key: `${relic.id} · description`, text: relic.playerDescription },
+    { key: `${relic.id} · description`, text: relicCopy(relic.id) },
   ]),
 });
 

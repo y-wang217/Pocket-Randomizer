@@ -207,6 +207,51 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'stat-spa', family: 'stat', label: 'Special Attack', art: RING },
   { id: 'stat-spd', family: 'stat', label: 'Special Defense', art: SHIELD_HOLLOW },
   { id: 'stat-spe', family: 'stat', label: 'Speed', art: path('M2.5 4.5l8 7.5-8 7.5zm9.5 0l8 7.5-8 7.5z') },
+
+  /*
+   * **Capability: the tenth family. D37, 2026-09-22.**
+   *
+   * Section 3 has asked for a *"capability glyph plus band chevron"* on the
+   * map node since Rev 1; section 2's roster never carried the family, and
+   * nothing noticed because the map drew a word chip. M5.2 is the item that
+   * has to make section 3 true, so the family arrives here.
+   *
+   * **Eight marks, one per capability, on the type family's pattern.** A
+   * generic "this node is gated" mark would not do: *which* capability a node
+   * asks for is what decides whether the player can take it, so C2 makes it a
+   * fact that has to be encoded rather than collapsed.
+   *
+   * Separation is measured *within* a family, so these eight are drawn for
+   * silhouette rather than for detail — a diagonal blade, a flat lens, a solid
+   * block, a T, a chevron, three bars, an arrow into a floor, a burst. Eight
+   * outlines that stay apart when every one of them is 16 pixels across.
+   */
+  { id: 'capability-cut', family: 'capability', label: 'Cut', art: path('M4.5 20.5l12-16 3 2.2-12 16z') },
+  { id: 'capability-surf', family: 'capability', label: 'Surf', art: path('M2 12c0-2.6 4.5-4.7 10-4.7s10 2.1 10 4.7-4.5 4.7-10 4.7S2 14.6 2 12z') },
+  { id: 'capability-strength', family: 'capability', label: 'Strength', art: path('M4.5 4.5h15v15h-15z') },
+  { id: 'capability-rockSmash', family: 'capability', label: 'Rock Smash', art: path('M3 3h18v5H3zm7.2 5h3.6v13h-3.6z') },
+  { id: 'capability-fly', family: 'capability', label: 'Fly', art: path('M12 3.5L22 18h-5.2L12 10.6 7.2 18H2z') },
+  { id: 'capability-waterfall', family: 'capability', label: 'Waterfall', art: path('M4 2.5h3.2v19H4zm6.4 0h3.2v19h-3.2zm6.4 0H20v19h-3.2z') },
+  { id: 'capability-dive', family: 'capability', label: 'Dive', art: path('M9.4 2.5h5.2v10h4.4L12 21 5 12.5h4.4z') },
+  { id: 'capability-flash', family: 'capability', label: 'Flash', art: path('M10.6 2h2.8v6h-2.8zm0 14h2.8v6h-2.8zM2 10.6h6v2.8H2zm14 0h6v2.8h-6zM4.6 6.6l2-2 4.2 4.2-2 2zm10.6 10.6l2-2 4.2 4.2-2 2zM4.6 17.4l4.2-4.2 2 2-4.2 4.2zm10.6-10.6l4.2-4.2 2 2-4.2 4.2z') },
+
+  /*
+   * **The band chevron, filled and hollow.** Section 3's three states — none,
+   * latent, known — are drawn as two chevrons with 0, 1 or 2 of them filled,
+   * which is the band pips' own pattern one family up rather than three more
+   * silhouettes competing inside this family.
+   *
+   * Filled against outlined for the reason the band pips were redrawn: a tone
+   * difference alone measured half the floor at 16px, and shape plus tone
+   * reads two ways instead of one.
+   */
+  { id: 'capability-band-on', family: 'capability', label: 'Reach', art: path('M12 6.5l7 9H5z') },
+  {
+    id: 'capability-band-off',
+    family: 'capability',
+    label: 'Reach',
+    art: { kind: 'markup', markup: '<path d="M12 7.6l5.6 7.2H6.4z" fill="none" stroke="currentColor" stroke-width="1.4"/>' },
+  },
 ];
 
 /** The glyphs of one family, in sheet order. */

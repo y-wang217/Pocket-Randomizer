@@ -98,7 +98,7 @@ Stage prompts and patch prompts are disposable.
 The attributes-never-verdicts bullet and the re-encoding bullet are the bible's
 C1 and C2, the two constraints that outrank everything else in it. They are
 restated here because they are invariants. Everything else the bible specifies
-(the twelve rules, the nine glyph families, the encoding table, the text
+(the twelve rules, the glyph families, the encoding table, the text
 budgets, the component canon, the battle turn grammar) is equally binding on any
 work that touches a surface, but each of those rules carries a named
 disconfirmer, so it lives there and not here.

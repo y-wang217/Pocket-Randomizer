@@ -59,11 +59,8 @@ import type { PokemonState } from '../../core/types';
 import type { GymDefinition } from '../../data/gyms';
 import { localeById, type LocaleId } from '../../data/locales';
 import { el, levelAria, levelText } from '../scene';
-import { setProse } from '../dom';
-import { LOCALE_COPY } from '../copy/screens';
 import { typeChip } from './starter-select';
 import { abilityChip, monTypeChip } from '../chip';
-import { archetypeChip } from '../archetype-chip';
 
 export interface LocaleSelect {
   root: HTMLElement;
@@ -82,8 +79,17 @@ export interface LocaleSelectView {
 export function createLocaleSelect(): LocaleSelect {
   const root = el('section', 'screen screen--locale');
   const heading = el('h2', 'screen__title');
-  const blurb = el('p', 'screen__blurb');
-  setProse(blurb, LOCALE_COPY.blurb);
+  /*
+   * **The explanation is gone from the screen. M5.3.**
+   *
+   * *"The region decides the wild Pokemon here and nothing else"* is nine
+   * words explaining a mechanism, at rest, on every visit, for the whole run.
+   * R5 says there is one explanation mechanism and it is the inspect layer;
+   * section 7 gives first-encounter teaching to the coach marks. A sentence on
+   * the screen is neither, and it is the third-largest block of words D32's
+   * audit found here.
+   */
+
   const grid = el('div', 'locales');
   grid.dataset['tutorial'] = 'regions';
 
@@ -96,8 +102,14 @@ export function createLocaleSelect(): LocaleSelect {
    */
   const rail = el('div', 'locale__gym');
   rail.dataset['tutorial'] = 'gym';
+  /*
+   * **The rail's label is gone. M5.3.** *"This segment ends at"* was four
+   * words introducing a leader name and a type chip that sit directly above
+   * the region cards, which is the position R1 says carries the meaning. The
+   * gym tip on the leader's name is unchanged, so what the label was pointing
+   * at is still one press away.
+   */
   const railLabel = el('span', 'locale__gym-label');
-  railLabel.textContent = 'This segment ends at';
   const railLeader = el('span', 'locale__gym-leader');
   const railType = el('span', 'locale__gym-type');
   rail.append(railLabel, railLeader, railType);
@@ -113,12 +125,22 @@ export function createLocaleSelect(): LocaleSelect {
    */
   const strip = el('div', 'locale__party');
 
-  root.append(heading, rail, blurb, strip, grid);
+  root.append(heading, rail, strip, grid);
 
   return {
     root,
     render(view, onPick) {
-      heading.textContent = `Segment ${view.segment + 1} — choose a region`;
+      /*
+       * **Three words, where there were four plus a number. M5.3, D32.**
+       *
+       * D32 gave this screen a budget of 4 — it had none, which is how ~30
+       * words of chrome came to sit above a card row budgeted at 0. The
+       * segment number goes because the map rail and the shell both carry it
+       * and this screen is reached from one of them; what is left is the
+       * instruction, which is the one thing here a player cannot read off
+       * anything else.
+       */
+      heading.textContent = 'Choose a region';
       railLeader.textContent = view.gym.leader;
       railType.replaceChildren(typeChip(view.gym.type));
       strip.replaceChildren(...view.party.map(renderStripMember));
@@ -149,23 +171,21 @@ function renderStripMember(member: PokemonState): HTMLElement {
   level.setAttribute('aria-label', levelAria(card.level));
 
   /*
-   * **Through `archetypeChip`, not by hand. Chip-audit patch, question 1.**
+   * **The archetype label is gone. M5.3, and section 3 asks for it twice.**
    *
-   * This row built its own `badge badge--archetype`, which is `.badge`'s
-   * metrics without `.chip`'s recipe — so it drew as bare uppercase text among
-   * siblings that all have the faint fill and the hairline outline. The V2 rule
-   * is that no screen builds a chip by hand, and `test/chip.test.ts` enforces
-   * it with a regex that lists the badge modifiers it knows about;
-   * `badge--archetype` was not among them, so this one slipped through. The
-   * modifier is added to that list in the same patch.
+   * Its own row: *"Archetype | Not rendered where the stat bars already draw
+   * it | Absent | **Not on inspect either; it is a derived label and can lie
+   * under randomization**."* This strip has no stat bars, so the first clause
+   * did not reach it and the chip survived D18 — but the sentence after the
+   * bar is unconditional about what the label is worth, and on a screen D32
+   * budgets at 4 it was spending **12 words** across six members to say
+   * something the bible says can be false.
+   *
+   * Nothing replaces it. The stat block it summarised is one tap away in the
+   * drawer, drawn as six bars and six numbers, which is the readout this label
+   * was a lossy guess at.
    */
-  row.append(
-    name,
-    level,
-    ...card.types.map(monTypeChip),
-    archetypeChip(card.baseStats),
-    abilityChip(card.ability, card.abilityId),
-  );
+  row.append(name, level, ...card.types.map(monTypeChip), abilityChip(card.ability, card.abilityId));
   return row;
 }
 
@@ -184,8 +204,37 @@ function renderCard(id: LocaleId, onPick: () => void): HTMLElement {
   // the same way every time it is offered.
   types.replaceChildren(...locale.types.map(typeChip));
 
-  const blurb = el('span', 'locale__blurb');
-  blurb.textContent = locale.blurb;
+  /*
+   * **The region's line is gone from the face. Milestone M5.3.**
+   *
+   * Section 4 budgets this card at **0** and names what survives: *"Locale name
+   * plus four type chips."* The line — "Canopy and something moving in it" —
+   * is six of them, and it is a sentence at rest on a card, which R2 forbids
+   * outright.
+   *
+   * **Nothing decision-bearing leaves with it, and that is why it is cut
+   * rather than re-encoded.** What a region decides is which wild Pokemon
+   * appear, and the four type chips beside the name are that fact in the
+   * encoding section 2 gives it. The line is atmosphere over the top of it. C2
+   * binds facts that change a decision, and this one changes none — the
+   * distinction D33 turns on for the event hints, in a case where it is
+   * unambiguous.
+   *
+   * **And it gets no tip, which is a decision rather than an omission.** The
+   * first cut put a `locale:` panel behind the card's name, and
+   * `test/tutorial-browser.test.ts` could not click a region afterwards: the
+   * panel opens on hover as well as on long press, and it landed over the card
+   * that opened it — *"`<div class="tip">` intercepts pointer events"*, sixty
+   * times in thirty seconds. Making the panel pointer-transparent was tried
+   * and backed out: `styles.css` documents `pointer-events: auto` there as
+   * deliberate, so the type wheel can be read without the tap-outside handler
+   * closing it.
+   *
+   * **A hover-opening panel does not belong on the face of a control**, and
+   * nothing is lost by leaving it off: the line changes no decision, which is
+   * why it could be cut in the first place. It stays in `data/locales.ts`,
+   * unread, for whatever wants it next.
+   */
 
   /*
    * The palette swatch. Stage V1. Three blocks, deep, mid and glow, drawn
@@ -197,7 +246,7 @@ function renderCard(id: LocaleId, onPick: () => void): HTMLElement {
   swatch.setAttribute('aria-hidden', 'true');
   for (const tone of ['deep', 'mid', 'glow']) swatch.append(el('span', `locale__swatch-${tone}`));
 
-  card.append(name, types, blurb, swatch);
+  card.append(name, types, swatch);
   card.addEventListener('click', onPick);
   return card;
 }

@@ -9596,11 +9596,960 @@ by inventing a second labelling mechanism here. Section 7 gives coach marks,
 exposure labels and inspect one job each, and a gesture affordance is the coach
 marks' job rather than a glyph family's.
 
+## 64. The confirm that could not be measured, and the answer that looked like a way out
+
+**Milestone M5.5, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **R1** (position encodes identity — the two controls keep
+their slots and the rule takes weight, not position) and **section 5's canon**,
+which gains the confirm band as a component under D29's ruling. No rule moved.
+No version axis moves; `contentHash` holds at `d4e080`.
+
+### What the item asked for, and what was already built
+
+M5.5 reads: *"Replace: 'Replace Tackle with Fire Punch?' and two full cards.
+Decline: 'Forfeit this reward?' and the two cards. Overlay cancel and flow
+decline visually distinct. Done when: census reads 6 and 4."*
+
+Three quarters of that shipped before this item opened, and the record was not
+edited to say so — per CLAUDE.md the deviation is recorded here instead.
+
+- **M2.3 built the replace band**, with both full cards side by side in
+  `ui/band.ts`'s `content` slot.
+- **M3.3 built the forfeit band** — *"Forfeit this reward?"*, `Forfeit`,
+  `Keep` — with **one** card, not two, and argued it in `src/ui/screens/item-target.ts`:
+  *"a replace trades a move for a move and a decline gives one up for nothing,
+  and drawing a second card would be inventing a thing on the other side of the
+  trade."* The record's "the two cards" is wrong for the decline and stays
+  unedited.
+- **D22 moved the decline's budget from 4 to 6** on 2026-09-21. The record's
+  "census reads 6 and 4" is superseded; the pair is **6 and 6**, and D1 already
+  made both ceilings rather than equalities.
+
+So what was left was the last line, and a number nobody could read.
+
+### The number nobody could read
+
+`docs/design/text-census.md` had printed `confirm overlay | absent | absent |
+absent` since M0.1, and the script documents `absent` as *"a component with no
+call site in the tree yet"*. `ui/band.ts` has four call sites. **Nothing was
+absent but a fixture**: a band exists only after a tap, and every gallery
+fixture is a screen at rest. The instrument was making a false statement about
+the tree in the one word it reserved for a true one. That is D31, and it is
+Tier 4's second standing finding in a third place.
+
+**Two fixtures, staged by clicking the real control.** `CONFIRM_SURFACES` is a
+third category beside the decision and overlay lists, because a band is not
+built on `ui/overlay.ts` and has no `__sheet` — the overlay gate's
+`.${surface}__sheet` query would have found nothing and passed on an absence.
+Each fixture renders its screen and then clicks the chip or the decline that
+opens the band, the way the event fixture reveals its outcome, so what is
+measured is the band `ui/band.ts` builds rather than one the gallery
+assembles. A hand-built band would have been the thing `test/band.test.ts`
+exists to forbid.
+
+**The result, Pocket, against ceilings of 6 and 6:**
+
+| Band | Words at rest | Budget |
+|---|---:|---:|
+| replace | **4** — `Replace`, `with`, `Replace`, `Keep` | 6 |
+| forfeit | **5** — `Forfeit`, `this`, `reward`, `Forfeit`, `Keep` | 6 |
+
+Both under. The component reads **9 total, worst instance 5**.
+
+### The census had a second hole, and the goal was standing in it
+
+Splitting `absent` from `unrendered` exposed one more: `renderTable` decided a
+component existed by whether it had produced **text records**. A component that
+renders correctly and draws **zero words** produces none — so the table's
+reward for an item hitting a budget of 0 would have been a row claiming the
+component does not exist. Every Tier 5 budget but two is 0. The trap was laid
+directly across this tier's path and nothing had walked into it yet only
+because every component still had words in Detailed.
+
+`presentOn` answers presence separately from words, and the table now
+distinguishes three states: a number (it rendered, and zero is a number),
+`unrendered` (in the tree, no fixture reaches it), and `absent` (not built —
+a `COMPONENTS` entry carrying `built: false`, which no entry needs today and
+which exists so the next one can be honest rather than indistinguishable).
+
+### The last line, and where it actually bites
+
+*"Overlay cancel and flow decline visually distinct."* The two are on screen
+together exactly once — while the band the decline opened is up — so that is
+the only moment the distinction has to hold, and it is the moment the fixture
+now photographs.
+
+They are different kinds of answer. **A band cancel backs out and changes
+nothing. A flow decline answers the screen's question with "none" and moves the
+run on.** Before this they were two similar-weight rectangles: the decline kept
+its raised card fill behind the dim while the band's cancel sat hollow inside
+it, so the brightest thing below the band was the control that commits.
+
+**The capture screen is where wording alone cannot carry it.** At a full party
+its decline reads `Keep my party as it is` and the release band's cancel reads
+`Keep` — two live controls beginning with the same word, on screen at the same
+time, one reversible and one not. No styling of the band fixes that from
+inside the band.
+
+So a `decline` class marks the kind on both screens, and one rule under
+`body[data-band-open]` takes its weight for as long as the band owns the
+decision — the same mechanism, one block up, that already hollows the
+primaries behind a band under the "one accent per screen" rule. **It takes
+weight, not reachability**: position, hit area and tab order are untouched,
+which is what keeps R1 true.
+
+`.target__decline` deliberately does **not** take the `button` class. `.button`
+is defined after it in `styles.css` and carries its own background and border
+at equal specificity, so adding it would have silently removed this control's
+card shape by source order alone — and the card shape is what makes it read as
+one of the answers above it.
+
+**The assertion is the item's own sentence, measured**, and it was verified by
+planting a regression: with the rule's selector changed to one nothing matches,
+`test/visual-pocket.test.ts` fails on the colour comparison.
+
+### Two things left standing, both named
+
+**The `target` fixture still passes no `allowSkip`,** so the decline control
+has never rendered on that surface and the census has never counted it. The
+`confirm-forfeit` fixture passes `true` and measures it there, which covers the
+control without moving the `target` surface's baseline. Left as it is
+deliberately.
+
+**The release band is unmeasured.** The sharpest wording collision in the game
+— `Keep` against `Keep my party as it is` — is fixed by the rule above, because
+the class covers both screens, but no fixture stages that band. A third
+confirm surface would measure it. Recorded rather than built: M5.5 names two
+confirms and this is a third.
+
+## 65. The one hash move, and the copy that was holding every seed hostage
+
+**M5.1 and M5.6's split, 2026-09-22.** Branch
+`claude/version-4-10-tier-5-6nhlfh`. Rows D12 and **D14, closed after being open
+since Tier 0**. `contentHash` **`d4e080` → `0b2c2c`**. `RUN_LOG_VERSION`,
+`RANDOMIZER_VERSION` and `AI_VERSION` all hold. No presentation changes in this
+commit at all: it moves strings and changes who reads them.
+
+### What was wrong
+
+Three tables inside `contentHash` carried text that only `ui/` ever read:
+
+| Was | Rows | Now |
+|---|---:|---|
+| `ItemEntry.blurb`, `data/items.ts` | 38 | `ITEM_COPY`, `data/itemCopy.ts` |
+| `Relic.playerDescription`, `data/relics.ts` | 10 | `RELIC_COPY`, same file |
+| `EventDefinition.hook`, `.labels`, `.hints`, `data/events.ts` | 24 × 9 | `EVENT_HOOKS`, `EVENT_LABELS`, `EVENT_HINTS`, `data/eventCopy.ts` |
+
+`core/` reaches all three tables, so the mechanical exclusion rule in
+`build-config/content-hash.ts` could not reach any of them, and **rewording one
+sentence refused every seed recorded before it.** D14 is the worked example:
+two words of flavour text caught by a widened lint at Tier 0, left unfixed for a
+whole release because the fix cost a version event.
+
+### Why D12's "no hash move" could not be obeyed
+
+D12 ruled the split on the `displayTuning.ts` precedent and said the hash holds.
+**M4.1 could obey that and M5.1 could not**, and the difference is worth
+recording because it will come up again: M4.1's precedence order *did not exist
+yet* — R9's enforce line said it should live in `tuning.ts` and nothing had ever
+built it there — so M4.1 created a file and edited nothing. These fields did
+exist. Lifting a field out of a hashed table is an edit to that table, and no
+arrangement of the destination changes that.
+
+Measured before deciding, rather than assumed: one added comment line in
+`data/items.ts` took the hash from `d4e080` to `f11e7a`.
+
+**Ruled 2026-09-22: pay it once, both halves in one commit.** The alternative on
+the table was leaving the old fields in place and dead, which holds the hash and
+leaves two tables reading as live while nothing reads them — D14's own position
+for two words, now proposed for two whole tables. The other was one move per
+item, which is two refusals of every shared seed across one tier.
+
+### What had to change in `core/` for the event half
+
+`EventInstance` carried `prompt` and `EventOption` carried `label` and `hint`,
+so `core/events.ts` was assembling display strings and handing them up. Both are
+gone. The instance already carried `eventId`, and an option already carried its
+`archetype`, so the screen resolves the three words from `data/eventCopy.ts`
+with a key it already had.
+
+**This is what makes the exclusion honest rather than convenient.** A copy file
+that `core/` imported would be back inside the hash by the same mechanical rule,
+and `test/content-hash.test.ts` walks the import graph to say so. The refactor
+is the price of the exclusion, not a tidy-up beside it.
+
+### Nothing was rewritten
+
+Every string moved to the character. D34 was ruled to cut the item and relic
+lines to eight words; **D36 then found that section 3 of the bible puts the
+name, the effect line and a relic's capability all on inspect**, where R5 gives
+the layer "the full explanation" and no budget applies. M5.6's rewrite against
+whatever section 4's event row says once D33 is applied is a later item. So the
+diff that lifts 48 item and relic strings and 216 event strings is one nobody
+has to read for meaning — which is the only reason a move this wide is
+reviewable.
+
+### The two proofs
+
+**The baseline.** `docs/visual/baseline/` is never regenerated, and the
+exception is a move like this one, verified rather than asserted. Re-recorded
+with `--write`: **26 lines changed, 26 of them a `contentHash` field or the bare
+digest.** Nothing else moved, which is the claim "no generated output changed"
+in a form that can be checked.
+
+**The simulator fixture.** `test/fixtures/sim-report.json` re-minted with
+`GYMRUN_WRITE_FIXTURE=1`: **2 lines changed, both the hash.**
+
+### The pin's claim was wrong, and it says so
+
+`test/ai-priority.test.ts` carried *"the display split remains the **last** time
+this number moves for a display edit"*. That was true of the mechanism it was
+about — `battleFeedbackMs` still hashes the same at 500, 750 and 1234 — and
+blind to copy that was already inside a hashed table when the rule arrived. The
+comment is rewritten to say what happened rather than amended to look right,
+and the claim it leaves is stronger and checkable: **no copy a player reads is
+inside this hash.**
+
+### What this buys
+
+Every future rewording of an item's effect line, a relic's description, an
+event hook, a label or a hint is free. That is M5.6's whole cost removed in
+advance, and it is what D14 was holding out for.
+
+## 66. The card face is the sprite, and the shelf stopped drawing its own
+
+**Milestone M5.1, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 3**'s Held item, Berry and Relic rows (the
+authority for what follows), **section 4**'s reward-card and shop-card rows
+(annotated to zero, Rev 8, D36), **section 5**'s canon (three rows added plus a
+call site, Rev 8, D29), **R1** (the sprite keeps a fixed slot), **R2** (labels
+and sentences go, numbers stay), **R3** (one fact, one channel), **R5** (the
+inspect layer is where the full explanation lives) and **C2** (nothing dropped;
+two facts re-encoded). No rule moved. `contentHash` holds at `0b2c2c` — §65
+moved it, and this item touches no `data/` file that is hashed.
+
+### The numbers
+
+| Surface | Before | After | Budget |
+|---|---:|---:|---:|
+| `shop`, Pocket less shell | 64 | **31** | — |
+| `result`, Pocket less shell | 46 | **38** | — |
+| reward card, worst instance | 8 | **8** | 8 |
+
+**The worst instance did not move, and the reason is the whole story of what
+this item is and is not.** Every item, berry and relic card now reads **0**. The
+8 is a *heal* card — `Restore`, `Restore HP PP and status whole party` — and a
+coins card is the same shape. M5.1 names *"item, berry and relic cards"* and
+*"TM cards mount the move card"*. **Section 4 has no budget row for a coins card
+or a restore card at all.** So they were left exactly as they were, asserted in
+`test/reward-card-kinds.test.ts` so the omission is visible rather than inferred
+from silence, and recorded in the bible and here as an input to M7.2. It is the
+same gap D28 found on the battle header and D32 on the locale screen, in a
+third place.
+
+### What the face is now, and why it is not what the item asked for
+
+M5.1: *"sprite in the fixed slot, one effect line under eight words … no name
+text at rest, name on inspect."* **D36 found that section 3 disagrees**, and
+section 3 opens by claiming this exact question: *"the single source of truth
+for how each attribute renders at rest."*
+
+| | At rest | On inspect |
+|---|---|---|
+| Held item | Item sprite in a fixed slot | Name, one effect line |
+| Berry | Berry sprite, same slot | Name, trigger condition |
+| Relic | Relic sprite in the relic row | Name, capability it satisfies |
+
+The item keeps the line on the face; section 3 moves both. CLAUDE.md settles
+it — *"where a prompt and the bible disagree on how an attribute is shown, the
+bible wins"* — and D1 settles what happens to the budget: 8 is larger than what
+the surviving words can reach, so it is headroom.
+
+**Four text nodes left the item card**: the kind label (`Held item`), the name,
+the effect line, and a note (`your backpack`). What replaces them is
+`itemIcon` — the same cell of the same Showdown sheet the party slots, the
+battle panel and the party row draw, all three built against this same section
+3 row by M3.1 and M3.2 — with the same `item:` tip those surfaces carry. The
+press opens the same panel from the same table. **No fact was removed; one
+channel replaced another, which is C2 working rather than being waived.**
+
+**The boosted type chip stays**, and it is the one thing besides the sprite. It
+is a type chip, section 2's first family, zero words, and it answers what a
+sprite cannot: which type the item is for. R3 holds because nothing else on the
+card draws the type.
+
+### The relic has no sprite, and that is recorded rather than absorbed
+
+Section 3 asks for a *"relic sprite in the relic row"*. **There is none in the
+tree**: relics are this game's own objects rather than Showdown's, `ui/slots.ts`
+has no cell to draw, and no asset exists to add one from. Inventing a glyph
+would be a tenth family, which section 2 and section 10.3 reserve for an
+amendment with an observed disconfirmer.
+
+So the relic's name is its encoding, and the budget is untouched by it: a relic
+name is a proper noun, section 4's counting rule excludes proper nouns, and the
+census lexicon already carries every one from `RELICS`. The card reads **0**.
+Everything section 3 routes to inspect — the name, the capability, and
+`RELIC_COPY`'s two sentences — is behind the `relic:` tip, the same panel the
+party screen's relic list and the drawer's chips open.
+
+**This also closes D34 as moot rather than implemented**, and the reason is
+worth keeping: D34 was ruled on the premise that the capability glyph is a
+section 2 family and could take the capability sentence. It is not one — section
+2 lists nine and capability is not among them, and what the map renders is
+`capabilityChip("Requires Surf")`, a chip carrying a *word*. Re-encoding onto it
+would have added a word to the card. The correction is at the foot of D34.
+
+### The shelf stopped building its own card
+
+Section 4 has said since Rev 1 that a shop card *"follows the reward card, plus
+price number"*. It did not. `renderRewardCard` was exported with **one** call
+site while `src/ui/screens/shop.ts` built `.shop__item` from scratch — its own kind
+label, name and detail line, its own `itemById`, `relicById` and `describeMove`
+reads, and its own copy of the move-card insertion point. The same reward drew
+two different faces depending on which screen you met it on, which is the defect
+section 5 closes with in as many words.
+
+D29 ruled the unification. **`src/ui/screens/shop.ts` lost 103 lines** — `describeStock`,
+`isMoveRow`, `categoryLabel`, `detailOf` and four imports all went dead the
+moment the shelf mounted the card, which is the cleanest proof available that
+they were a second copy rather than a second job.
+
+Three consequences worth naming:
+
+- **The card is the control.** It was already a `<button>`, so the separate
+  `Add` button is gone: two controls doing one job was the same defect one level
+  down, and its label was a word at rest on every row.
+- **Chosen is a class, never a word.** `shop__item--chosen` already existed and
+  already carried the state; `Add`/`Remove` beside it was a second channel for
+  one fact, which R3 forbids. `scripts/smoke.mjs` and `scripts/visual/browser.mjs`
+  both walk `.shop__item button:not([disabled])`, which is still exactly this
+  card, so neither walk needed an edit.
+- **The shelf is six cards where the reward screen is three**, and the card's own
+  padding put it 81px past the fold at 390x844. `.shop__shelf .reward` changes
+  spacing and nothing else — no encoding differs between the two call sites,
+  which is what keeps this one component rather than two.
+
+**The census lost a row with it.** `shop stock card` existed because a second
+implementation needed a second number; `.reward` is now inside `.shop__item` and
+nearest-ancestor attribution charges both call sites to one row.
+
+### The fixture that could not show a relic
+
+**D35, and M5.1 is the first item to pay it.** `gallery-fixtures.ts`'s `furnish`
+grants the run every relic — the honest worst case for the party screen and the
+drawer, and the *best* case for anything asking what the run lacks. Both
+`resolveOffer` and `resolveStock` collapse a relic already held, so of the 28
+relic cards `SMOKE24`'s map generates — 14 offers of 175, 14 shelves of 23 —
+**not one rendered anywhere**. The card whose copy is longest was the one the
+instrument was built never to show.
+
+`result-relic` and `shop-relic` stage a map-generated offer and shelf that
+really hold one, against a state holding none. **Nothing is fabricated**: the
+offer is the map's own, drawn by the seed at generation like every other, and
+the only constructed thing is the absence. Re-cutting `furnish` would have
+re-recorded four surfaces to fix two, which is why D35's option 1 puts the
+fixture in the item that needs it.
+
+### The tests were rewritten, not relaxed
+
+`test/reward-card-kinds.test.ts` exists because two kinds once shipped blank —
+its own header says the assertion is *"every member of the `Reward` union
+renders, driven off the union itself"*. Every assertion in it read the kind
+label, the name and the detail line, which is a contract the bible does not
+want. Each was re-expressed against the encoding that replaced it rather than
+softened:
+
+- **Every kind renders a face**, off the union, unchanged in force.
+- **Each kind is checked against its own row**: the item's sprite slot and its
+  tip, the relic's name and its tip, the three move kinds mounting a move card,
+  and no kind label on any of them.
+- **A technique is still told apart from a TM** — by the move card's *category
+  glyph*, read off `data-category`, where a sentence used to say "no damage".
+  The fact survives and the channel changed, which is C2 rather than a loss.
+- **The price is asserted to be a bare number**, and absent on a reward card.
+
+One assertion was added rather than changed: the two unbudgeted kinds keep their
+words, asserted so that leaving them is a decision on the record.
+
+## 67. The tenth family, and the word the map kept
+
+**Milestone M5.2, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 2** (a tenth family, Rev 9, D37), **section 3**'s
+Capability and Tier rows (made true rather than changed), **section 4**'s map
+node card row (0 → 3, Rev 9, D37), **R1** (the node kind is a word on both
+surfaces that carry it), **R2** (labels and sentences go, counts stay), **R3**
+(one fact, one channel — which is why there is no second pip strip) and **C2**
+(rarity re-encoded to the press, not dropped). No rule moved.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| map node card, worst instance | 12 | **3** | 3 |
+| map node card, all instances | 184 | **44** | — |
+| `map` surface, Pocket less shell | 57 | **28** | — |
+
+The three that survive are the node kind, the unit word on the payout, and the
+AI tier. Section 4's row was written **after** the measurement rather than
+before it, so the number is what the surface reaches rather than a target it
+was cut to.
+
+### The tenth family was not a tenth claim
+
+**D37.** M5.2 asks for a *"capability glyph with band chevron"*. Section 3 —
+the bible's single source of truth for at-rest rendering — has specified
+exactly that on its map-node row since **Rev 1**. Section 2's roster of nine
+families never carried it, and `data/glyphFamilies.ts` repeated the nine and
+said a tenth is an amendment.
+
+So the bible had disagreed with itself for nine revisions, and nothing caught
+it because **nothing had to draw it**: the map rendered `Requires Cut`, a word
+chip, and every item until this one left it alone. That is the distinction the
+ruling turned on, and it is worth keeping for the next family that is proposed:
+**D5 was refused** because it asked section 2 for something no other section had
+promised; **D37 was granted** because it asked section 2 to carry what section 3
+had already specified.
+
+**Eight marks, one per capability**, on the type family's pattern. A single
+"this node is gated" mark would not do — *which* capability a node asks for is
+what decides whether the player can take it, so C2 makes it a fact that has to
+be encoded rather than collapsed. The separation check passes at **0.164** for
+the family's worst pair, against a floor of 0.12, and that pair is the
+deliberate filled-against-hollow chevron rather than two capabilities being
+confusable.
+
+**The band chevron is the band pips' pattern, not three more silhouettes.**
+Three states — none, latent, known — are two chevrons with none, one or both
+filled, so the reading stays a *count*: how far along this run is. Filled
+against hollow for the reason the band pips were redrawn at M1.1, when a tone
+difference alone measured half the floor.
+
+### The node kind stayed a word, and D28 is why
+
+M5.2 also asks for a **node type glyph**. Neither section 2 nor section 3 names
+one, and **D28 ruled the same attribute the other way one day earlier**: the
+battle screen header is budgeted at 4 for three facts, the first of which is
+*"which node this is"*, on the reasoning that the nine families are attributes
+of a Pokemon or a move and a node kind is neither.
+
+M5.2's *"zero words"* and D28's *"budget it at 4"* are the same attribute
+encoded two ways on two surfaces, which is precisely what **R1** exists to
+forbid. So the kind is a word on both, the map node card is budgeted at 3
+instead of 0, and the alternative — a tenth *and eleventh* family, reopening
+D28 — was named in the row and not taken.
+
+### Three things left the face
+
+**The tier sentence.** `TIER_INFO` — *"What the segment fields, at its own level
+and band. Pays a move in its own band."* — was the longest thing on the card and
+a sentence at rest, which R2 forbids. Section 3's Tier row puts the tier
+definition in the **inspect** column, and the `tier:` tip that the chip already
+carried now hangs off the pips, so the sentence is one press away where it
+always should have been.
+
+**The tier word.** `NORMAL` and `HARD` named a bracket the player has to have
+been told about. Three pips filled to the tier say the same thing as a count,
+which is the band meter's own argument one family up.
+
+**Rarity.** A third attribute of the same gate with no row in section 3, it spent
+a word at rest on every gated node. It is on the capability panel now — C2 is
+why it moved rather than went: it scales which tier a Gamble or an Attune lands
+on, so it changes a decision.
+
+### One strip, not two, and R3 is the reason
+
+Section 3's Tier row asks for *"tier pips, reward-tier pips"*. **In this tree
+the reward tier is a pure function of the node tier** — `data/tierInfo.ts` says
+normal pays its own band, hard one up, elite two up — so a second strip would
+render one attribute twice on one surface, which R3 forbids in as many words.
+What a tier pays is in the tier definition, on inspect, where section 3's own
+last column puts it. Recorded here rather than built, and the bible is not
+amended: section 3 is right about a game where the two could differ.
+
+### D35's other half did not need a fixture
+
+The row was filed because `furnish` grants every relic, so every gated node
+resolves `known` and the census could only ever photograph one of three bands.
+**After this item the chevron carries no words at all**, and the census counts
+words — so a bare-capability map fixture would census identically to the one
+that exists and prove nothing.
+
+What M5.2's done-when actually asks is that the *mark* tracks
+`resolveCapability`, which is a claim about three states of one function.
+`test/map-node-card.test.ts` asserts it directly, against the function's own
+output rather than a hardcoded string, plus that every capability in the list
+has a glyph so a ninth cannot ship unencoded.
+
+### Three instruments moved with the surface, and one was already wrong
+
+**The heights baseline, re-recorded for the map alone.** The standing gate is
+*"heights and `decisionTop` unmoved or recorded"*, and this moved them: the map
+screen is **944.5 → 705.72** and the document **1138 → 899**, because three
+words left every node card and the tier sentences left the face. Re-recorded
+through `scripts/visual/measure.mjs --out`, which is the documented path.
+
+**Only the `map` block was rewritten, and the reason is a finding.** The
+regeneration also wanted to move `modes.*.battle` and
+`layouts.columns.*.battle` — screens M5.2 does not touch. Measured against the
+tree **without** this item's changes, those entries were already wrong:
+`modes.pocket.battle` reads 566.61 against a recorded 477.89 and
+`layouts.columns.pocket.battle` reads 566.61 against 412.28. **They have been
+stale since column mode was deleted** (D9, 2026-09-20), and nothing caught it
+because the assertion that gates these screens reads the top-level block, which
+is accurate and still matches to the pixel. Re-recording them here would have
+laundered a pre-existing staleness into a line of this item's diff, so they are
+left exactly as they are and filed as an open item instead.
+
+That the top-level `battle` still matches at **595** is also what proves the
+map's move is real: `test/visual/harness.ts` warns that `heights.json` records
+one machine's font stack and that a container can differ by ~47px on the map
+alone. A font difference would have moved both screens. Only the one this item
+touched moved.
+
+**The chip sweep lost two variants, and that is a coverage loss stated
+plainly.** `test/visual-chips.test.ts` measures a floor on text size and a floor
+on text contrast; `capability` was `Requires Cut` and is a glyph now,
+`capability-band` was `Latent` and is two chevrons. Neither has text to
+measure, so both come off the variant list the way `band` did before them, with
+the reason written where the list is. **`tier` stays**, and the reason is worth
+knowing: M5.2 turned the *map's* tier into pips while `tierChip` still draws
+`GYM` and `ELITE` as words on the reward screen — one variant name, two
+encodings, two surfaces.
+
+What is left uncovered is a *contrast* floor between a filled mark and an empty
+one. `npm run glyphs` measures **separation** between the marks of a family and
+holds this one at 0.164 against a floor of 0.12; neither instrument measures
+the other thing, and it is the open item `band` already filed.
+
+**The parallax test was betting on the map's height.** `test/visual-v3.test.ts`
+scrolled to a fixed 200 and asserted `scrollY > 100` as a sanity guard that the
+page had moved. With 239px off the map, `scrollTo(0, 200)` lands at 55 and the
+guard failed on a screen that got better. It scrolls to whatever the document
+has now and asserts there is enough of it to read a ratio from — which is what
+the 100 was standing in for, and does not need re-tuning the next time a
+surface loses a line.
+
+### One trap, found the direct way
+
+`.tier` is still the reward screen's **text chip** — `offerBadge` draws `GYM`
+and `ELITE` through `tierChip` — and that rule sets `display: inline-block`
+with padding. The pip meter wearing the same class rendered as an empty box on
+the map. It is `tier-pips` now. The lesson is the one `test/boundaries.test.ts`
+keeps teaching in another register: a shared name is a shared contract, and the
+second caller finds out at render time.
+
+## 68. The region's line, the archetype that could lie, and the route that nearly went with them
+
+**Milestone M5.3, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 4**'s new Locale screen row (Rev 10, D32),
+**section 3**'s Archetype row, **R2** (sentences and labels go), **R3** (one
+fact, one channel), **R5** (one explanation mechanism) and **C2**. No rule
+moved. `contentHash` holds at `0b2c2c`.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| locale card, worst instance | 6 | **0** | 0 |
+| locale screen, Pocket less shell | 45 | **3** | 4 (D32) |
+| pre-gym screen, Pocket less shell | 32 | **3** | 4 |
+
+M5.3's done-when is *"census reads 0 and 4"*, which D1 already made ceilings.
+Both are under.
+
+### What left the locale screen
+
+**The card's line.** *"Canopy and something moving in it"* — six words, a
+sentence at rest on a card R2 forbids sentences on. **Nothing
+decision-bearing leaves with it**, which is why it is cut rather than
+re-encoded: what a region decides is which wild Pokemon appear, and the four
+type chips beside the name are that fact in section 2's own encoding. The line
+is atmosphere over the top of it. It is still in `data/locales.ts` and behind a
+new `locale:` tip on the name, so a player who wants it presses for it.
+
+**The archetype label, and section 3 asks for this twice.** The strip drew
+`archetypeChip` on every member — **12 words across six** on a screen now
+budgeted at 4. Its row: *"Archetype | Not rendered where the stat bars already
+draw it | Absent | **Not on inspect either; it is a derived label and can lie
+under randomization**."* The first clause is conditional and this strip has no
+stat bars, which is how the chip survived D18; the sentence after the bar is
+not conditional about what the label is worth. Nothing replaces it — the stat
+block it was a lossy guess at is one tap away in the drawer, as six bars and
+six numbers.
+
+**The explanation.** *"The region decides the wild Pokemon here and nothing
+else"* — nine words explaining a mechanism, at rest, on every visit, for the
+whole run. R5 says there is one explanation mechanism and it is the inspect
+layer; section 7 gives first-encounter teaching to the coach marks. A sentence
+on the screen is neither.
+
+**The rail's label and the segment number.** *"This segment ends at"*
+introduced a leader name and a type chip sitting directly above the region
+cards, which is the position R1 says carries the meaning. The segment number
+goes because the map rail and the shell both carry it.
+
+### What left the pre-gym screen, and the one thing that nearly did
+
+**Twenty-one words on six buttons.** *"Lead with this one"* on five members and
+*"Leading"* on the sixth: the largest single block the census found in Tier 5
+outside the event screen. Two of them were also a second channel for a fact
+already on the card — `memberCardContents` is passed `isLead`, and
+`member.fainted` already reads off the HP — so *"Leading"* and *"Fainted"* were
+**R3 violations sitting under the component that made them redundant**.
+
+The card is the control now, the way M5.1 made the shop's reward card its own
+rather than pairing it with an `Add`. The two disabled states are unchanged and
+still for different reasons, and each member's three states are on the button's
+`aria-label`, which is where "nothing" has to be read aloud as something.
+
+**`Party screen (items)` nearly went, and cutting it would have been a
+regression rather than a reduction.** The first reading was that the shell's
+drawer bar reaches the party from every surface. **It does not**:
+`drawer.trigger()` opens the *drawer*, which its own blurb calls read only.
+Items are assigned on the party screen, and the map's `Manage` is the only
+other route there — and from the pre-gym screen there is no way back to the
+map. Cutting it would have removed the last route to handing out held items
+before a gym, at the moment it matters most.
+
+C2 is about facts and this is a route, but the principle reaches it: **a
+redesign that makes a decision unreachable has failed however few words it
+spends.** It reads `Items`, one word, with the destination on its
+`aria-label`.
+
+### A hover panel does not belong on the face of a control
+
+The region's line was first moved behind a `locale:` tip on the card's name,
+which is the D36 pattern that worked for the item card. **It broke the
+tutorial**: `test/tutorial-browser.test.ts` could not click a region, because
+the panel opens on hover as well as on long press and landed over the card that
+opened it — *"`<div class="tip">` intercepts pointer events"*, sixty times in
+thirty seconds.
+
+Making the panel pointer-transparent was tried and **backed out**.
+`styles.css` documents `pointer-events: auto` on it as deliberate: the type
+wheel is read there, and a transparent panel would let the tap-outside handler
+close it under the reader. A fix that trades one surface's gesture for
+another's is not a fix.
+
+So the line is cut outright and gets no panel. Nothing is lost that was not
+already being given up — it changes no decision, which is the argument that
+allowed cutting it at all — and the alternative was a hazard on a control's own
+face.
+
+**The same shape exists on the relic reward card**, where M5.1 put a `relic:`
+tip on the card's name and the card is a button too. No test points at it and
+the panel's placement may well miss the card, but the hazard is the same one
+and it is recorded in `docs/README.md` rather than guessed at here.
+
+### The deviation, and the anchor that would have gone silently
+
+**Section 4's `words that survive` column reads *"Gym leader name, type chip,
+'Choose lead'"*, and what survives is `Send … in` and `Items`.** The budget is
+4 and D1 makes it a ceiling, so the count was never the question — which four
+was. *"Who leads?"* introduced a choice that is now made by pressing a member
+card, under a primary action naming who goes in; it was labelling an affordance
+that had become self-evident. `Items` cannot go. The record is not edited.
+
+**The prompt carried the `gym-lead` coach mark**, and deleting it would have
+left the mark resolving nothing. That is the failure M6.2 exists to find —
+*"confirm no mark is silently dropped because its anchor sits behind a tap"* —
+arriving a tier early, by deletion rather than by a gesture. The anchor is on
+the row of member cards, which is the better one: the mark says which member
+leads, and that is now the thing the player presses.
+
+## 69. The coverage sentence becomes two rows, and the capture card starts mounting what it was wearing
+
+**Milestone M5.4, 2026-09-22.** Branch `claude/version-4-10-tier-5-6nhlfh`.
+Bible rules touched: **section 3**'s Coverage, Held item and PP rows,
+**section 4**'s Result screen and Capture card rows, **section 5**'s party row
+call sites (D29 added capture; this is the item that makes it true), **R1**,
+**R2**, **R3**, **R4** and **C2**. No rule moved. `contentHash` holds at
+`0b2c2c`.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| result screen, own words | 32 | **2** | 6 |
+| result screen, total less shell | 38 | 10 | — |
+| capture card | hand-built | **hand-built** — D38 | 0 |
+| `result-capture` screen, less shell | 53 | 40 | none |
+
+**The result screen's remaining 8 are the heal reward card**, which M5.1 left
+alone and recorded: M5.1 names item, berry and relic cards, and section 4 has
+no row for a coins card or a restore card. The screen's own words are the
+offer badge's two.
+
+### The coverage sentence
+
+*"Coverage if it replaces your first member: adds Dragon, Steel. Loses
+Ghost."* — eight words on a card budgeted at 0, summarising sets it never
+showed. It is two rows now: a `+` and the added type chips, a `−` and the lost
+ones, signs only, per section 3's row in all four of its clauses.
+
+**C2 was satisfied two tiers ago rather than by this item, and that is why the
+sentence could go.** M1.2 mounted the `coverage:capture` tip carrying the full
+before and after sets, and the comment that mounted it said in as many words
+that *"M5.4 is what replaces it with the two rows of type chips section 3
+specifies, and this trigger moves onto the rows when it does; mounting inspect
+here first is what lets that item delete the sentence without taking a fact
+with it."* It did, and the trigger moved.
+
+**The signs are permanent** (D5). A plus beside a row of type chips is not a
+glyph in section 2's sense, the chips already carry the type family's own
+first-encounter label, and coverage never became a family. **An empty row
+renders nothing** — R4, and section 3's middle column: a plus row with no chips
+in it would be a marker for the absence of a fact.
+
+### The capture card was wearing the party row's class and running none of its code — and still is
+
+`renderOffered` builds a `.party__member` by hand: its own header, its own HP
+text, its own move list, its own stat block. So the census attributes its words
+to a component whose code never runs on this surface, and section 4's *"Capture
+card | 0 | Follows the recipient card"* describes something that is not
+happening. **That is section 5's second closing defect** — *"a screen that draws
+a stat without the stat block"* — and the class makes it invisible.
+
+**M5.4 built the mount, measured it, and put it back. D38.** The party row
+draws four move *cards* since D21a, so at the gallery's default density the
+offered card is **655px** and `test/visual-v4.test.ts` found the screen's
+decision buttons at **2253** against a gate of 844. In Pocket the same screen
+measures 661 and passes, because the row's body is one tap behind the head
+there — and the failing mode is Detailed, which is the app's default until M6.3.
+
+Every fix reaches something ruled: a per-surface collapsed default is an R6
+question, relaxing the only Detailed fold gate in the suite is the tail wagging
+the dog, and waiting for M6.3 leaves section 5 carrying a call site that is a
+promise rather than a fact. So it is filed, `renderOffered` carries a comment
+naming the row, and **section 5's canon is aspirational about exactly one call
+site** — which D38 records so it is not mistaken for a description.
+
+### Three deletions on the result screen, each with a rule behind it
+
+**`+40 coins · 240 total` → `+40 · 240`.** `coins` and `total` are field labels,
+which R2 lists first among the things it deletes, on a screen whose budget names
+*"'+N' currency"* and nothing around it. **Both numbers stay**, which is the
+half C2 binds: the brief's own reasoning is that *"a player adding two figures
+in their head is doing arithmetic instead of deciding"*, so the running total
+is a decision fact. The sign says which is the change; R1 says the rest.
+
+**`Nobody went down.` → nothing.** R4 is exception-based display, the default
+renders nothing, and nobody fainting is the default — three words that fired on
+the majority of result screens in the game. **The non-zero case stays**, because
+that one is the exception and carries the revive rule with it. It is also a case
+the census fixture cannot produce, so the number above is measured without it
+and this says so rather than claiming the screen is at 2 in every state.
+
+**`Your party after the battle` → nothing.** A heading over the only thing it
+could be describing. Removed element and all rather than hidden — M5.3 learned
+that one item ago, and `hidden` losing to an author `display` rule is a trap
+`ui/overlay.ts` documents three times.
+
+### The twelve words R2 names by name
+
+The slot detail line read `12 / 30 HP (40%) · PP 18/24`. **`HP` and `PP` are two
+of the six field labels R2 lists explicitly**, drawn once per member, so six
+party slots spent twelve words on a screen budgeted at 6.
+
+`hpStateBare` already existed for exactly this, described in `core/hpCopy.ts` as
+*"the same without the unit, for a panel that already says HP in its heading"*.
+The heading is gone too, and what says HP is position — R1's fixed slot, the
+same one on every member, in the same order every time. **PP keeps its unit as
+the glyph**, which is section 3's encoding, so the one place the two numbers
+could be read for each other is the one place a mark is spent.
+
+### What is left on the capture screen, and it is the fifth of its kind
+
+`result-capture` reads **40** less shell, and none of it is the card: the offer
+title, the full-party line, the compare heading, six release controls and the
+decline. **The capture screen has no budget row**, exactly as the battle header
+had none before D28, the map node card before D37, the locale screen before D32,
+and the coins and restore cards still do. M5.4 names the result screen and the
+capture card and neither is this. Recorded as an input to M7.2.
+
 ---
 
-## 64. A tap was a hover, and the panel it opened had nothing left to close it
+## 70. Fifty-two words of event copy, and the two marks that paid for them
 
-**2026-09-22.** Prompt:
+**Milestone M5.6, the last of Tier 5. Discrepancies D33 (ruled), D35 (closed)
+and D8 (reread, and its remedy not taken).**
+
+M5.6 asked for *"prompt under 30 words, choices under six, outcome one line"*
+against design bible section 4's event row of **40**, with a lint at build over
+every event in `data/events.ts`. Two of those three numbers had to move before
+anything could be written, and the reason is arithmetic rather than taste.
+
+### The row could not be met by writing better copy
+
+Thirty plus four choices at six is fifty-four, before the outcome line, before
+a single hint, and the row never mentioned the four hints at all. Measured over
+the tree before any word was touched:
+
+```
+hook   {"n":24,"min":6,"p50":9,"p75":11,"p90":12,"max":12}
+label  {"n":96,"min":2,"p50":4,"p75":5,"p90":6,"max":7}
+hint   {"n":96,"min":7,"p50":10,"p75":11,"p90":13,"max":15}
+total  {"n":24,"min":62,"p50":67,"p75":71,"p90":75,"max":75}
+```
+
+**Twenty-four of twenty-four events failed the row, by a median of
+twenty-seven words.** Hooks already fit at twelve, twenty-four out of
+twenty-four. Labels fit at four in sixty-eight of ninety-six. No hint fit at
+six and none was close. So the row's own composition exceeded the row's own
+total and the overflow was the one thing the composition did not name — which
+is discrepancy **D33**, filed before Tier 5 opened and ruled option 1 on
+2026-09-22: *name the hints and re-derive the number*.
+
+The sub-budgets were derived from that table and only then written to, rather
+than guessed at and then enforced: **hook 12, label 4, hint 6**, which are the
+p90, the p50 and a number no hint reached. All ninety-six hints and twenty-eight
+of the ninety-six labels were rewritten. The widest event now spends 51 of the
+52 the composition allows.
+
+### The number the row carries is 59, not 52, and the difference is the point
+
+D33's composition comes to 52 exactly — 12 plus four fours plus four sixes —
+with nothing left over for anything else on the screen. That is the defect the
+row was filed for, one revision later, so the amended row names every part it
+budgets: the copy's 52, the Toll's price chip at 5, and the control at 2.
+**Fifty-nine, and it adds up.** `test/event-budget.test.ts` asserts each part
+and the sum, per event, counting every token rather than the census's
+proper-noun-exempt words — a label that fits only because `Reach` happens to be
+half of an ability name is not a label that fits.
+
+Census, pocket less shell: **89 → 54**, against a ceiling of 59.
+
+### Twenty-six of those words left as marks, not as cuts
+
+The copy rewrite is thirty-five of the thirty-five. The rest is R2 and section
+3, and neither is new design:
+
+- **The gate.** `Requires Strength` and `you have the relic`, five words, for
+  the attribute section 3 has encoded as *"capability glyph plus band chevron"*
+  since Rev 1 and M5.2 built five days ago for the map node card. R1 names a
+  surface that positions an attribute itself instead of mounting the component
+  as the defect. The screen mounts it now.
+- **The reward range.** `Reward: T0 to T2`, up to four words on four buttons,
+  for an attribute section 3 has called **reward-tier pips** since Rev 1 with
+  no call site anywhere in the tree. M5.2 declined to draw them on the map node
+  card and was right to: there the reward tier is a pure function of the node
+  tier, so a second strip would be R3's double render. On the event screen it
+  is a per-option fact and nothing else draws it, so this is the first render
+  rather than a second.
+- **The title.** `Something happens` sat above a hook that says what happens.
+  The phrase is not lost; it is the map node card's label for an event node,
+  which is where a player reads it before arriving.
+
+**A span, not a fill.** `tierPips` fills a ladder from the bottom because a
+node tier is a position. A reward range is a range — Gamble reaches `T0` to
+`T2`, Attune `T2` to `T3` — and a bottom-filled meter would draw those two as
+overlapping everywhere they do not. `rewardTierPips` fills the span and
+`test/event-screen.test.ts` asserts the low pips stay dark.
+
+### D8 was reread before any of this, and its remedy was not taken
+
+D8 blocks M5.6 on the item's line *"capability requirement moves to the map
+node glyph if the prompt cannot fit"*, which is the consequence section 9
+reserves for a disconfirmer observed in a playtest. It was ruled option 1 on
+2026-09-20: an event that cannot fit is reported, not moved.
+
+Nothing here takes that remedy. **The requirement did not move to the map node
+glyph; it stayed on the event screen and changed form.** The distinction is
+load-bearing: section 9's consequence is *the fact leaving this surface*, and
+what happened is the fact staying and being drawn the way section 3 already
+says to draw it. No event needed reporting either, because the number moved
+under D33 and the copy now fits it.
+
+### The two sentences D14 was filed for, finally rewritten
+
+`forest-thornwall`'s hint passed *"a grove worth passing"* and
+`marsh-leech-bed`'s hook lay over *"something worth having"*. Both broke
+section 8's forbidden-word list from the day M0.3 widened it to carry `worth`,
+and both survived a whole release because the words lived inside `contentHash`.
+The split closed that at §65. They are gone, and `KNOWN_UNFIXED` in
+`test/event-copy.test.ts` is **empty rather than shorter** — a violation has
+nowhere left to hide.
+
+### D35's last half, and the fixture that was wrong twice
+
+`wordiestEvent` drew forty events **from `forest` alone**, so the census
+photographed the wordiest of the eight events one region can produce out of
+twenty-four: three locales' copy could go over budget without the fixture ever
+rendering one of them. That is D35's open half, and it is closed here — every
+locale now.
+
+Widening it exposed the second half. **It ranked by characters, and nothing
+budgets characters.** The longest string was `forest-fallen-giant` at 52 census
+words; the most *words* is `marsh-sinkhole-pool` at 54. The census was two
+words short of the worst case for the same reason it was sixteen events short
+of it. It counts words now, and the number moved 52 → 54 when it did.
+
+### A dead inspect trigger, shipped by M5.2 and found by mounting it twice
+
+`capabilityBandChevron` ships a `capability-band:` tip. `ui/tooltips.ts` splits
+a `data-tip` on its colon and returns null for a prefix that is not in `KINDS`,
+and `capability-band` was never added — so **every band chevron on the map has
+been focusable, `aria-expanded` and silent since M5.2**, which is exactly what
+the comment above `KINDS` records happening to the flag strip in release C.
+
+The guard added the first time checks the union against the allowlist: two of
+the three places that have to agree. The third is the call sites, and
+`test/tip-kinds.test.ts` is now that check — it reads every `tip:` literal
+under `src/ui/` and fails on a prefix the allowlist does not carry. It reads
+source rather than a rendered tree on purpose: a DOM walk only sees the
+triggers a fixture happens to mount, which is the blind spot D35 is about.
+
+Both missing kinds are answered from data: the chevron's panel is
+`BAND_LABELS`, the words the chip printed until M5.2 replaced it, and the pips'
+panel is a new `OUTCOME_TIER_INFO` in `data/eventCopy.ts` — one line per tier,
+restating the table at the top of `data/eventPools.ts` rather than adding to
+it, for the reason `tierInfo.ts` gives. Outside `contentHash`, like everything
+else in that file, and linted by `test/event-copy.test.ts` with the rest.
+
+### Two counts the bible had left behind, and one prompt that now reads short
+
+D37 added the **tenth** glyph family on 2026-09-22. Section 2's table carried
+it; section 2's opening line, R7's enforce clause and section 9's register row
+all still said **nine**. R7's own forbid is *"shipping a glyph family that
+never gets a label"*, and M6.1 reads that enforce line for its scope — so at
+nine the capability glyph would ship unlabelled by a count nobody had updated.
+All three are corrected in Rev 11.
+
+**The milestone prompt is not corrected, and that is deliberate.** M1.3 and
+M6.1 both say *"nine families"* in
+`docs/spec/gymrun-presentation-milestones.md`. A prompt is a record of what was
+asked, not a description of what exists, so the deviation is recorded here:
+**M6.1's scope is ten families, not nine**, and the glyph-label table that item
+creates owes the capability family a label under three words like the other
+nine. Named without a path on purpose: the file does not exist yet, and
+`test/boundaries.test.ts` reads a backticked path as a claim that it does.
+
+### What M5.6 leaves open
+
+- **`Costs` is a label, and R2 says labels go.** It survives on the Toll's
+  price chip because C2 needs the fact *this button charges you* and no family
+  in section 2 encodes a price. The capture card's `+` and `−` rows are the
+  precedent for a sign doing that job wordlessly, and the chip has no inspect
+  tip either. Filed as **D39** rather than taken here.
+- **The revealed outcome lines are unbudgeted.** The row's 59 covers the
+  control but not `describeOutcome`, `describeCost` or the Toll-paid line,
+  which are drawn from the pools and cannot be read off the tables. The census
+  covers them on one event. An input to M7.2.
+- **The reward pips have no exposure label**, because tiers are a component
+  rather than a glyph family, so R7 does not reach them. Section 9 carries the
+  bet that a span reads as a range and not as a rating.
+
+---
+
+## 71. A tap was a hover, and the panel it opened had nothing left to close it
+
+**2026-09-22, and numbered 71 rather than 64 by the Tier 5 merge.** This patch
+and milestone M5.5 both appended a section 64, on branches that did not see
+each other. M5.5's number is cited from `src/ui/chip.ts`, two tests and three
+documents; this one from four documents, all of them updated with the merge.
+The smaller renumber is the one that moves, and the account is unchanged.
+Prompt:
 [`spec/gymrun-patch-inspect-hover-on-touch.md`](spec/gymrun-patch-inspect-hover-on-touch.md).
 Presentation only: no `core/` change, no data table, no version axis moves.
 `contentHash` unmoved at `d4e080`, which is the stamp on the screenshot the

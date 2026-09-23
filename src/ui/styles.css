@@ -1531,7 +1531,30 @@ body {
 /* The pre-gym screen's heading and its one question on one line in Pocket. */
 :root[data-density="pocket"] .pre-gym__header { display: inline-flex; margin-right: var(--space-2); }
 :root[data-density="pocket"] .pre-gym__prompt { display: inline; margin: 0; }
-:root[data-density="pocket"] .pre-gym__slot { gap: var(--space-h); }
+:root[data-density="pocket"] /*
+ * The member card as the control. **Milestone M5.3.**
+ *
+ * A bare button: no background, no border, no type scale of its own, because
+ * what it contains is a party row and the row's own typography is the one the
+ * player has learned everywhere else. The hit area is the card.
+ */
+.pre-gym__choose {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.pre-gym__choose:disabled { cursor: default; }
+.pre-gym__choose:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+
+.pre-gym__slot { gap: var(--space-h); }
 
 /* The party screen's sections in Pocket: the threat explainer is the title's
    tip, the backpack's title and count share a line. */
@@ -2846,6 +2869,40 @@ body {
   box-shadow: none;
 }
 
+/*
+ * A node's tier, as three pips. **Milestone M5.2, section 3's Tier row.**
+ *
+ * Deliberately the band meter's own pip, one block up, rather than a second
+ * shape doing the same job: both are "this is step N of a short ladder", and
+ * a player who has learned to read one has learned to read the other. R1 is
+ * about slots and this is the same idea one level down.
+ */
+.tier-pips { display: inline-flex; gap: var(--space-h); align-items: center; vertical-align: middle; }
+
+.tier-pips__pip {
+  display: block;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: var(--radius-chip);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 var(--hairline) var(--border);
+}
+
+.tier-pips__pip[data-on="true"] {
+  background: var(--text-dim);
+  box-shadow: none;
+}
+
+/*
+ * An event option's reward range, as a span of four pips. **Milestone M5.6.**
+ *
+ * The node meter's own pip, one strip wider, for the same reason `tier-pips`
+ * borrowed the band meter's: a player who has learned to read one strip has
+ * learned to read this one. Its own class only so the count can be four where
+ * the node ladder is three; every pip rule above still applies.
+ */
+.reward-tier-pips { display: inline-flex; gap: var(--space-h); align-items: center; vertical-align: middle; }
+
 /* A berry in the bag. Dashed, because the thing it marks is impermanence. */
 .badge--consumable {
   border-style: dashed;
@@ -3333,6 +3390,29 @@ body {
 
 /* The coverage line: a readout, never a verdict — so no colour that says which
    direction is better, and no arrow. Same treatment as the species card's. */
+/*
+ * The coverage change: a plus row and a minus row, signs and chips.
+ * **Milestone M5.4, section 3's coverage row.**
+ *
+ * The sign is sized and weighted to read as a sign rather than as a character
+ * of text, and it is permanent — D5 ruled it is not an exposure label, because
+ * a plus beside a row of type chips is not a glyph in section 2's sense and
+ * the chips already carry the type family's own label on first encounter.
+ */
+.acquire__coverage-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  flex-wrap: wrap;
+}
+
+.acquire__coverage-sign {
+  font-family: var(--font-numeral);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  color: var(--text-dim);
+}
+
 .acquire__coverage {
   margin: var(--space-2h) 0 0;
   font-family: var(--font-body);
@@ -3861,6 +3941,32 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 }
 
 /*
+ * **The flow decline recedes while a band is up. Milestone M5.5.**
+ *
+ * The item's last line: overlay cancel and flow decline visually distinct.
+ * They are on screen together exactly once — while the band the decline opened
+ * is up — so that is the moment the distinction has to hold, and the rule
+ * above is the mechanism that already exists for it.
+ *
+ * The two are different kinds of answer. A band cancel backs out and changes
+ * nothing. A flow decline answers the screen's question with "none" and moves
+ * the run on. The capture screen is where the wording alone cannot carry it:
+ * at a full party the decline reads `Keep my party as it is` and the release
+ * band's cancel reads `Keep`, both live, both on screen, one reversible and
+ * one not.
+ *
+ * So the decline stops looking like a live answer for as long as the band owns
+ * the decision. It keeps its position and its hit area — this takes its
+ * weight, not its reachability — and the band's own pair is the only live
+ * control on screen, which is the same rule the primaries follow one block up.
+ */
+body[data-band-open] .decline:not(.confirm-band .decline) {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+/*
  * The compact stat row on a pick screen. Item F, part 4.
  *
  * A grid rather than a flex row so the six cells line up across three stacked
@@ -4133,6 +4239,63 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
   cursor: pointer;
   transition: border-color 120ms ease, transform 120ms ease;
 }
+
+/*
+ * The item or berry sprite, in the fixed slot section 3 asks for. **M5.1.**
+ *
+ * A box rather than a bare icon: `itemIcon` draws one 24px cell of Showdown's
+ * sheet, and the sheet's coordinates only work at that size, so the slot is
+ * what grows and the cell stays put. Fixed dimensions either way — R1 is that
+ * an attribute sits in the same place on every surface, and an item that
+ * shifted with the length of the card beside it would not.
+ *
+ * It keeps its box when the sprite fails to load, which is the state every
+ * gallery fixture is in (the CDN is aborted so a shot cannot depend on the
+ * network). A card that collapsed without it would make every fixture measure
+ * a layout the app never renders.
+ */
+.reward__sprite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+}
+
+/*
+ * The shop's price. A bare number, which section 4's counting rule excludes —
+ * `Price: 150` would be the field label R2 exists to delete.
+ */
+.reward__price {
+  font-family: var(--font-numeral);
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+
+/*
+ * **The shelf is six cards where the reward screen is three.** M5.1 mounted
+ * the reward card here (D29) and the card's own padding, sized for a
+ * three-card decision, put the shelf 81px past the fold at 390x844.
+ *
+ * Only spacing changes. Nothing is hidden and no encoding differs between the
+ * two call sites, which is what keeps this one component rather than two —
+ * the defect D29 was filed about in the first place.
+ */
+.shop__shelf .reward {
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--space-2) * var(--density-pad));
+  padding: calc(var(--space-2) * var(--density-pad));
+  width: 100%;
+}
+
+/* The price sits at the end of the row, where the old shelf put it. */
+.shop__shelf .reward__price { margin-left: auto; }
+
+/* A chosen row is the class it always was, never a word (R3). */
+.shop__item--chosen .reward { border-color: var(--emphasis); background: var(--bg-raised-strong, var(--bg-raised)); }
+.shop__shelf .reward:disabled { opacity: 0.45; cursor: default; }
 
 .reward:hover { border-color: var(--emphasis); transform: translateY(-1px); }
 .reward:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
@@ -4593,8 +4756,17 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
  * and a taller or wider chip there wraps the line and moves the decision
  * point. The outline hugs the text; that is the price of the pixel.
  */
+/*
+ * The gate's two marks. **M5.2, D37.** These carried words until the
+ * capability family existed; now the first is the capability's glyph and the
+ * second is two chevrons filled to the run's band, so both are drawings and
+ * neither needs a type scale.
+ */
 .node__gate-need,
 .node__gate-band {
+  display: inline-flex;
+  gap: var(--space-h);
+  align-items: center;
   padding: 0 var(--space-h);
   border-radius: var(--radius-chip);
   font-family: var(--font-body);
@@ -4605,8 +4777,9 @@ body[data-band-open] .primary-action:not(.confirm-band .primary-action) {
 
 .node__gate-need { font-weight: 600; }
 
-/* Only the top band gets emphasis, and only because it changes what happens. */
-.node__gate--known .node__gate-band { font-weight: 600; }
+/* Only the top band gets emphasis, and only because it changes what happens.
+   The weight now lands on the chevrons rather than on a word. */
+.node__gate--known .node__gate-band { color: var(--text); }
 
 .relics {
   margin-top: calc(var(--space-5) * var(--density-gap));

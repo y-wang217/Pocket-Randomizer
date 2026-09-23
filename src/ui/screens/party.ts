@@ -52,6 +52,7 @@ import { relicById, type RelicId } from '../../data/relics';
 import { CAPABILITY_LABELS } from '../../data/eventCopy';
 import type { ItemId, ItemPlan, PokemonState, TmTeach } from '../../core/types';
 import { itemById } from '../../data/items';
+import { itemCopy, relicCopy } from '../../data/itemCopy';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
 import { neutralChip } from '../chip';
@@ -614,7 +615,7 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     const grants = neutralChip(CAPABILITY_LABELS[relic.grants], 'capability');
 
     const body = el('p', 'relics__text');
-    body.textContent = relic.playerDescription;
+    body.textContent = relicCopy(relic.id);
 
     row.append(name, grants, body);
     list.append(row);
@@ -696,8 +697,8 @@ function renderBackpack(
       // whether to carry it.
       effect.textContent = entry
         ? entry.consumable
-          ? `${entry.blurb} Used up when it fires.`
-          : entry.blurb
+          ? `${itemCopy(entry.id)} Used up when it fires.`
+          : itemCopy(entry.id)
         : '';
 
       const give = el('span', 'backpack__give');

@@ -7,9 +7,15 @@
  * The first test of this screen. Until this patch it rendered the authored
  * hint at every band and one outcome label, so a "Requires Surf" node paid
  * out without ever mentioning Surf. Three things are held here, at each of
- * the three bands: the gate chips match the map's, the hint is the band's
- * own, and the reveal opens with the band's conclusion above the outcome
- * label — and the second click, not the first, is what resolves the choice.
+ * the three bands: the gate marks match the map's, the hint is the option's
+ * own, and the reveal states the price and the payout — and the second click,
+ * not the first, is what resolves the choice.
+ *
+ * **Rewritten against M5.6's encodings, not relaxed to fit them.** The gate
+ * was two chips of words and the reward range was `Reward: T0 to T2`; both are
+ * marks now, so every assertion that read their text reads their structure
+ * instead and additionally asserts the text is gone. How many words the copy
+ * may spend is `test/event-budget.test.ts`.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -20,6 +26,7 @@ import { generateEvent, concreteOutcome, describeOutcome, describeToll, outcomeF
 import { createPartyMember } from '../src/core/party';
 import { createRng } from '../src/core/rng';
 import { createRun, type RunState } from '../src/core/run';
+import { eventHint, eventHook } from '../src/data/eventCopy';
 import { capabilityTypes, type Capability } from '../src/data/capabilities';
 import { BAND_LABELS, CAPABILITY_LABELS, TOLL_PAID_PREFIX } from '../src/data/eventCopy';
 import { EVENTS } from '../src/data/events';
@@ -28,6 +35,7 @@ import { relicsGranting } from '../src/data/relics';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { createEventScreen } from '../src/ui/screens/event';
+import { rewardTierPips } from '../src/ui/chip';
 
 const BANDS: readonly CapabilityBand[] = ['none', 'latent', 'known'];
 
@@ -89,11 +97,26 @@ describe('the event screen', () => {
           screen.render(event, state, (picked) => done.push(picked));
           document.body.append(screen.root);
 
+          /*
+           * **The gate is the map node's pair of marks, not two chips of
+           * words. M5.6.** It used to read `Requires Strength` and `neither`;
+           * section 3 gives this attribute one encoding and M5.2 built it, so
+           * the screen mounts it. Asserted as the map card's test asserts it —
+           * the glyph names the capability, the chevron fills to the band —
+           * and asserted to carry no text, because the words leaving is the
+           * budget this milestone is spending.
+           */
           const gate = screen.root.querySelector('.event__gate');
-          expect(gate?.querySelector('.node__gate-need')?.textContent, event.eventId).toBe(
-            `Requires ${CAPABILITY_LABELS[event.requires]}`,
+          const need = gate?.querySelector('.node__gate-need');
+          expect(need?.querySelector(`[data-glyph="capability-${event.requires}"]`), event.eventId).toBeTruthy();
+          expect(need?.getAttribute('aria-label'), event.eventId).toBe(CAPABILITY_LABELS[event.requires]);
+          expect(need?.textContent?.trim(), `${event.eventId} gate words`).toBe('');
+          const chevron = gate?.querySelector('.node__gate-band');
+          expect(chevron?.querySelectorAll('[data-glyph="capability-band-on"]').length, event.eventId).toBe(
+            BANDS.indexOf(band),
           );
-          expect(gate?.querySelector('.node__gate-band')?.textContent, event.eventId).toBe(BAND_LABELS[band]);
+          expect(chevron?.getAttribute('aria-label'), event.eventId).toBe(BAND_LABELS[band]);
+          expect(chevron?.textContent?.trim(), `${event.eventId} band words`).toBe('');
           /*
            * Who answers, at `latent` only. **Idle-sprites patch.** The fixture's
            * one member is the type, so one figure with its species; at `known`
@@ -109,7 +132,10 @@ describe('the event screen', () => {
            * replaces it is step 8's.
            */
           expect(hints, `${event.eventId} ${band}`).toHaveLength(band === 'known' ? 4 : 3);
-          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(choice.hint);
+          // The hint left `EventOption` at M5.6's split (D14); the screen
+          // resolves it from the event id and the archetype, and this asserts
+          // the screen renders what that lookup returns.
+          expect(hints[index], `${event.eventId} ${band} hint ${index}`).toBe(eventHint(event.eventId, choice.archetype));
 
           const result = screen.root.querySelector<HTMLElement>('.event__result');
           expect(result?.hidden).toBe(true);
@@ -191,10 +217,13 @@ describe('the attribute row', () => {
         expect(rows, `${event.eventId} ${band}`).toHaveLength(shown.length);
 
         for (const [index, option] of shown.entries()) {
-          const text = rows[index]!.textContent ?? '';
-          expect(text, `${event.eventId} ${option.archetype}`).toMatch(/Reward: T[0-3]( to T[0-3])?/);
+          const row = rows[index]!;
+          const text = row.textContent ?? '';
+          // The range is a span of pips since M5.6, so the row carries the
+          // Toll's price and nothing else in words.
+          expect(row.querySelector('.reward-tier-pips'), `${event.eventId} ${option.archetype}`).toBeTruthy();
           if (option.archetype === 'toll') expect(text).toMatch(/^Costs /);
-          else expect(text, option.archetype).not.toMatch(/Costs/);
+          else expect(text.trim(), option.archetype).toBe('');
         }
         document.body.replaceChildren();
       }
@@ -216,13 +245,46 @@ describe('the attribute row', () => {
     for (const event of everyEvent().slice(0, 6)) {
       const screen = createEventScreen();
       screen.render(event, stateAt('known', event.requires), () => undefined);
-      const text = [...screen.root.querySelectorAll('.event__choice-attributes')].map((n) => n.textContent ?? '');
-      expect(text[0], 'safe').toContain('Reward: T1');
-      expect(text[1], 'gamble').toContain('Reward: T0 to T2');
-      expect(text[2], 'toll').toContain('Reward: T2');
-      expect(text[3], `attune at ${event.rarity}`).toContain('Reward: T2 to T3');
+      const spans = [...screen.root.querySelectorAll('.event__choice-attributes .reward-tier-pips')].map(
+        (node) => node.getAttribute('data-tip') ?? '',
+      );
+      expect(spans[0], 'safe').toBe('reward-tier:T1-T1');
+      expect(spans[1], 'gamble').toBe('reward-tier:T0-T2');
+      expect(spans[2], 'toll').toBe('reward-tier:T2-T2');
+      expect(spans[3], `attune at ${event.rarity}`).toBe('reward-tier:T2-T3');
       document.body.replaceChildren();
     }
+  });
+
+  /**
+   * A span, not a prefix. **M5.6, and the reason the meter is its own strip.**
+   *
+   * `tierPips` fills a node's ladder from the bottom because a tier is a
+   * position. A reward range is a *range*: Gamble reaches `T0` to `T2` and
+   * Attune `T2` to `T3`, and a meter filled from the bottom would draw those
+   * two as overlapping everywhere. This asserts the low end is dark when it is
+   * outside the span, which is the whole of the difference.
+   */
+  it('draws the reward range as a span rather than a fill from the bottom', () => {
+    const on = (node: HTMLElement) => [...node.querySelectorAll('.reward-tier-pips__pip')].map((pip) => pip.getAttribute('data-on') === 'true');
+    expect(on(rewardTierPips('T0', 'T2', 'Reward T0 to T2'))).toEqual([true, true, true, false]);
+    expect(on(rewardTierPips('T2', 'T3', 'Reward T2 to T3'))).toEqual([false, false, true, true]);
+    expect(on(rewardTierPips('T1', 'T1', 'Reward T1'))).toEqual([false, true, false, false]);
+  });
+
+  /**
+   * **The screen has no heading, since M5.6.** `Something happens` sat above a
+   * hook that says what happens; the phrase stays on the map node card, which
+   * is where a player reads it before arriving. Asserted rather than left to
+   * the census, which reads one event on one fixture.
+   */
+  it('writes no heading above the hook', () => {
+    const event = everyEvent()[0]!;
+    const screen = createEventScreen();
+    screen.render(event, stateAt('known', event.requires), () => undefined);
+    expect(screen.root.querySelector('.screen__title')).toBeNull();
+    expect(screen.root.querySelector('h1, h2, h3')).toBeNull();
+    expect(screen.root.querySelector('.event__prompt')?.textContent).toBe(eventHook(event.eventId));
   });
 
   it('ranks nothing: no option is highlighted, ordered or marked before the pick', () => {

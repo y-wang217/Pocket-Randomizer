@@ -407,12 +407,32 @@ describe('the version axes', () => {
      * a gym member somewhere in a range instead of on one number.
      * `docs/generation.md` section 50 is the account.
      *
-     * The literal below is all nine together. The display split remains the
-     * **last** time this number moves for a display edit —
-     * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
-     * `docs/generation.md` section 22 is the account.
+     * And a tenth time, for the copy split. **This is the display edit the
+     * claim below said would never come, and it says so rather than being
+     * quietly amended.**
+     *
+     * The claim was that the display split was the *last* time this number
+     * moves for a display edit, and it was true of the mechanism it was about:
+     * `battleFeedbackMs` still hashes the same at 500, 750 and 1234, because it
+     * lives in a file `core/` does not import. What the claim did not cover is
+     * copy that was *already inside* a hashed table when the rule arrived —
+     * `ItemEntry.blurb`, `Relic.playerDescription`, and every event hook, label
+     * and hint. Getting those out is a one-time edit to three hashed files, and
+     * there is no way to reach the future where rewording them is free without
+     * paying it once.
+     *
+     * Ruled 2026-09-22: pay it once, with both halves in one commit, rather
+     * than twice across one tier. M5.1's item and relic copy went to
+     * `data/itemCopy.ts` and M5.6's event copy to `data/eventCopy.ts`, both
+     * excluded by the mechanical rule, and `EventInstance` stopped carrying
+     * display strings so that exclusion is honest. `docs/generation.md` section
+     * 65 is the account, and rows D12 and D14 carry the argument.
+     *
+     * **The claim is now: no copy a player reads is inside this hash.** That is
+     * a stronger thing than the old one and it is checkable — which is the
+     * point of replacing a promise with a property.
      */
-    expect(CONTENT_HASH).toBe('d4e080094935cd1ab001ec2af80a2b56da4e194043d5d3953213055d9297aa44');
+    expect(CONTENT_HASH).toBe('0b2c2cfe55f5867be3c25b8876e7ad5e6d4096b98d70c3b23899ddbba45284a1');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

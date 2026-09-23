@@ -71,35 +71,239 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
 [`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md) and
-[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md). **Tiers 0 to 4 are closed,
-sixteen items of twenty-four**, as
+[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md), prep
+[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md). **Tiers 0 to 4
+are closed, sixteen items of twenty-four**, as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
-[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63) and
-[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64), with Tier 4 open
-as [#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65) off
-`claude/eloquent-hamilton-9ncoz8`; `main` is `ca8c3ce`. One trunk per tier, one
-sub-branch per item. No version axis moves in any of it: `contentHash` holds at
-`d4e080`, and the only change under `core/` in sixteen items is M4.1 deleting
-two flag kinds the bible's R9 forbids.
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
+[#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
+`8ecf208`. **Tier 5 is closed on `claude/version-4-10-tier-5-6nhlfh`, twenty-two
+items of twenty-four plus two clauses of M5.4**: M5.1, M5.2, M5.3, M5.5 and M5.6
+are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 6 is
+next. One trunk per tier,
+one sub-branch per item. **One version axis moved in the whole of 4.10**:
+`contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
+2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
+out of three hashed tables, with the re-recorded baseline changing 26 lines,
+all of them hash strings, and the re-minted simulator fixture changing 2.
+`RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold. Changes under
+`core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
+taking display strings off `EventInstance` so the copy file stays excludable.
 
-**Beside it: one playtest defect, off the trunk.**
+**Tier 5 filed six rows before it opened and closed all six**, plus D14 from
+Tier 0 and D35 from Tier 4, and filed **D38** and **D39** on the way. The bible
+went Rev 6 → **Rev 11** across the tier. The one row still open is D38.
+
+**M5.6 moved a number rather than the copy, and then moved the copy too.**
+Section 4's event row said 40 and composed itself as 54; twenty-four of
+twenty-four events failed it by a median of twenty-seven words, and the four
+hints that were the whole overflow were not in the composition at all. D33
+ruled option 1: name the hints, re-derive the number. The row is **59** and it
+adds up — hook 12, four labels 4, four hints 6 (the ruling's 52), the Toll's
+price 5, the control 2. All ninety-six hints and twenty-eight labels were
+rewritten to it. Census **89 → 54**. Twenty-six of those thirty-five words left
+as marks rather than as cuts: the requirement and its band became the glyph and
+chevron M5.2 built, the reward range became the reward-tier pips section 3 has
+named since Rev 1 and nothing had ever drawn, and the screen's title went
+because the hook says what it said. [`generation.md` §70](generation.md).
+
+**D8's remedy was read and not taken.** Section 9 reserves *"requirement moves
+to the map node glyph"* for a disconfirmer observed in a playtest. The
+requirement did not move off the event screen; it stayed and changed form,
+which is R2 and section 3 doing ordinary work. The distinction is the whole of
+why M5.6 did not need D8 reopened.
+
+**A band chevron has opened nothing since M5.2, on every map.**
+`capabilityBandChevron` emits a `capability-band:` tip and `ui/tooltips.ts`
+never carried the kind, so the trigger was focusable, `aria-expanded` and
+silent — the third time this exact defect has shipped, after the flag strip in
+release C. `test/tip-kinds.test.ts` now reads every `tip:` literal under
+`src/ui/` and fails on a prefix the allowlist does not carry, which is the
+third of the three places that have to agree and the only one nothing checked.
+
+**Three counts said nine families three revisions after the tenth.** Section
+2's opening line, R7's enforce clause and section 9's register row all still
+read nine after D37. R7 forbids *"shipping a glyph family that never gets a
+label"* and M6.1 reads that enforce line for its scope, so at nine the
+capability glyph would have shipped unlabelled. Corrected in Rev 11. **The
+milestone prompt is not corrected** — a prompt records what was asked — so the
+deviation is recorded instead: **M6.1's scope is ten families**, and
+the glyph-label table M6.1 creates owes the capability family a label.
+
+**D30 is closed and it moved the instrument twice.** Four card selectors went
+in, and building them found that the per-component table had been **summing**
+instances since M0.1 — the same number as the worst instance only where the
+budget is 0, which is every budget the census had been checked against until
+now. D1 makes every section 4 figure a ceiling and a ceiling binds the worst
+instance, so the table has that column. Before-numbers, Pocket, worst instance:
+reward card **8** against 8, shop stock card **11**, map node card **12**
+against 0, locale card **6** against 0, capture card **3** against 0. **No
+relic card renders on any fixture in the tree**, and a relic description is 16
+words at the median, so the reward card's 8 is not the heaviest card the game
+draws — Tier 4's second finding for the third time.
+
+**`heights.json` has two stale blocks, and they predate Tier 5.**
+`modes.*.battle` and `layouts.columns.*.battle` measure 566.61 against recorded
+477.89 and 412.28 on a tree with no Tier 5 work in it at all — stale since
+column mode was deleted (D9). Nothing caught it because the assertion that
+gates those screens reads the top-level block, which is accurate and still
+matches to the pixel. M5.2 re-recorded the `map` block only, deliberately,
+rather than launder the rest into its own diff. Open.
+
+**A hover-opening inspect panel on the face of a control is a hazard, and one
+may still be live.** M5.3 tried moving the locale card's line behind a tip on
+the card's name; the panel opens on hover as well as on long press, landed over
+the card, and the tutorial walk could not click a region. Making `.tip`
+pointer-transparent was backed out — `styles.css` documents `pointer-events:
+auto` there so the type wheel can be read — so the line was cut outright
+instead. **M5.1 put a `relic:` tip on a reward card's name and a reward card is
+a button too**; no test points at it and the panel may well miss the card, but
+it is the same shape.
+
+**Mostly closed by #66, and the remainder is deliberate.** The inspect-on-touch
+patch landed `lastPointerType`, so a hover only opens a panel when a hovering
+device made it — which is the whole of the hazard on a phone. What it left
+taking hover is a *small* trigger inside a button, on the stated reasoning that
+a chip-sized panel does not cover the control it sits on, with `dropStranded`
+closing one whose trigger a re-render took away. M5.1's relic name and M5.6's
+reward pips are both that shape, not the card-sized shape
+`data-tip-hover="off"` exists for. M5.6's is the safer of the two: an event
+choice disables its buttons on the pick and never re-renders, so its trigger
+cannot be stranded at all.
+
+**M5.4 found the party row's class on a card running none of its code, and
+could not fix it. D38.** `renderOffered` builds a `.party__member` by hand, so
+the census charges its words to a component that never runs there. The mount
+was built and measured: the party row draws four move *cards* since D21a, so at
+the app's default density the offered card is **655px** and the screen's
+decision buttons land at **2253** against a fold gate of **844**. Pocket passes
+at 661. Every fix reaches something ruled, so it is filed and the hand-built
+card stays — **section 5's canon is aspirational about exactly one call site**
+until D38 is ruled. The coverage
+sentence became two rows of signs and chips, and **C2 was satisfied two tiers
+ago rather than by this item**: M1.2 mounted the inspect sets and said in as
+many words that M5.4 would move the trigger onto the rows. **Twelve of the
+result screen's words were `HP` and `PP`** — two of the six field labels R2
+lists by name — and `hpStateBare` had existed for exactly that since the round
+2 patch.
+
+**M5.3 found two things the row did not anticipate.** The locale strip was
+still drawing `archetypeChip` — 12 words across six members of a label section
+3 calls *"derived … and can lie under randomization"*, which survived D18
+because that row's first clause is conditional on stat bars being present. And
+`Party screen (items)` on the pre-gym screen turned out to be the **last route
+to item assignment before a gym**, not a duplicate of the shell's drawer
+button: the drawer is read only, and from the pre-gym screen there is no way
+back to the map's `Manage`. Cutting it would have been a functional regression;
+it reads `Items` now. **Locale card 6 → 0, locale screen 45 → 3 against 4,
+pre-gym 32 → 3 against 4.**
+
+**M5.2 closed on a tenth glyph family, and it was not a tenth claim.** Section
+3 has specified a *"capability glyph plus band chevron"* on its map-node row
+since Rev 1; section 2's roster of nine never carried it, and the disagreement
+survived nine revisions because nothing had to draw it — the map rendered
+`Requires Cut`, a word. That is the line between D37, granted, and D5, refused:
+D5 asked section 2 for something no other section had promised. **Worst node
+card 12 → 3**, the `map` surface 57 → 28, and the family's worst glyph pair
+separates at 0.164 against a floor of 0.12.
+
+**The node kind stayed a word, because D28 ruled it one day earlier.** M5.2
+also asked for a node type glyph; the battle header's budget of 4 covers the
+same attribute, on the reasoning that the nine families are attributes of a
+Pokemon or a move. Encoding it one way there and another here is what R1
+forbids, so section 4's map node card row went from 0 to **3** — written after
+the measurement, not before it.
+
+**M5.1 is closed, and D36 is what it built.** Section 3 — the bible's *"single
+source of truth for how each attribute renders at rest"* — puts the name, the
+effect line and a relic's capability on **inspect**, and leaves the face as a
+sprite. Section 4's *words that survive* column said "One effect line", and the
+two had disagreed for six revisions because nothing measured a card on its own
+until D30 gave the census a row for one. **Every item, berry and relic card now
+reads 0**; `shop` went 64 → 31 in Pocket less shell. The reward card's worst
+instance stays at **8** and that instance is a *heal* card — a kind M5.1 does
+not name and **section 4 has no budget row for**, the same gap D28 found on the
+battle header and D32 on the locale screen, in a third place, and an input to
+M7.2.
+
+**D29's unification had the teeth.** `renderRewardCard` had one call site while
+`src/ui/screens/shop.ts` built its own card from scratch, where section 4 has said
+since Rev 1 that a shop card *"follows the reward card"*. `src/ui/screens/shop.ts` lost **103
+lines** the moment the shelf mounted the card. **D35 paid off too**: of the 28
+relic cards the map generates, none had ever rendered, because `furnish` grants
+every relic and both resolvers collapse one already held —
+`result-relic` and `shop-relic` staged the first relic card this tree has ever
+measured.
+
+**D34 was ruled on a false premise and is moot rather than implemented.** Its
+option 1 said the capability glyph is a section 2 family. It is not: section 2
+lists nine and capability is not among them, and what the map renders is
+`capabilityChip("Requires Surf")`, a chip carrying a word. With the effect line
+on inspect there was no eight-word face to fit into, so no copy was rewritten.
+The correction is recorded at the foot of the row. Section 3 opens *"the single source of truth for how each attribute
+renders at rest"*, and its rows for held item, berry and relic put the **name,
+the effect line and a relic's capability all on inspect**, leaving the card face
+as a sprite. Section 4's *words that survive* column says *"One effect line"* at
+rest, and M5.1 follows section 4. Under section 3 the card reaches **0** and
+section 4's 8 is headroom, which is what D1 already ruled a budget is. Two
+things fall out: no copy needs cutting to eight words, and the real work is
+mounting `itemIcon` — which exists, and which M3.1 and M3.2 already mount
+against this same section 3 row — because `renderRewardCard` draws no sprite at
+all today.
+
+**D34 was ruled on a premise that is false, and the correction is recorded
+rather than absorbed.** Its option 1 said the capability glyph is a section 2
+family. It is not: section 2 lists nine and capability is not among them, and
+what the map renders is `capabilityChip("Requires Surf")`, a chip carrying a
+word. The row is moot if D36 is ruled option 1, and wakes up otherwise.
+
+**Tier 4's standing instruction was to check the fixture before trusting a
+number, and that nobody had looked at the other surfaces. Looking found three,
+and they are D35.** `gallery-fixtures.ts` grants the run **every relic** — the
+honest worst case for the party screen and the drawer, and the best case for
+anything that asks what the run lacks. `resolveOffer` and `resolveStock`
+collapse a relic already held, so of the **28 relic cards the map generates,
+14 offers and 14 shelves, none renders**; and all six gated nodes resolve
+`known` where the same map held bare resolves `none` and `latent`. Separately,
+`wordiestEvent` hardcodes `forest`, which holds 3 of 24 events and has the
+lowest ceiling of the eight locales — the event census of 89 is nine words
+light. M5.1, M5.2 and M5.6 each carry a fixture of their own now, and **D35 is
+closed**. M5.6's half found a second defect in the same function: it ranked
+candidates by **characters**, and nothing budgets characters. The longest
+string is a 52-word event; the most words is a 54-word one. It counts words
+now, and the census moved 52 → 54 when it did.
+
+**D33 was the one to read, and it is closed.** Section 4 budgeted the event
+screen at 40 and composed that row as "prompt under 30, choices under 6 each" —
+54 before the outcome line and before a hint exists, with no line at all for
+the four hints every event carries. Measured: **24 of 24 events over 40, median
+67**, while **0 of 24 hooks exceeded 30 and 1 of 96 labels exceeded 6**. The
+overflow was entirely the hints and there was nothing to tighten. Ruled option
+1 and built in M5.6: the row is 59 and names every part of the screen, the
+hints stayed, **D14 came off the shelf with it** after five tiers.
+
+**Beside it, one playtest defect, now on `main`.**
 [`spec/gymrun-patch-inspect-hover-on-touch.md`](spec/gymrun-patch-inspect-hover-on-touch.md),
-on `claude/playtest-tooltips-closing-2pz254`. A tap on a phone opened an
-inspect panel and the panel could not be dismissed, because the compatibility
-`mouseover` every mobile browser synthesises after a touch was taken for a
-hover. Introduced by M1.2, which moved `data-tip` onto the move button itself
-and handed the hover enhancement a card-sized target on the one screen that
-rebuilds itself every turn. Presentation only, no version axis moves;
-[`generation.md` §64](generation.md) is the account and
+merged as [#66](https://github.com/y-wang217/Pocket-Randomizer/pull/66). A tap
+on a phone opened an inspect panel and the panel could not be dismissed,
+because the compatibility `mouseover` every mobile browser synthesises after a
+touch was taken for a hover. Introduced by M1.2, which moved `data-tip` onto
+the move button itself and handed the hover enhancement a card-sized target on
+the one screen that rebuilds itself every turn. Presentation only, no version
+axis moves; [`generation.md` §71](generation.md) is the account and
 [`design/playtest-log.md`](design/playtest-log.md) carries the first row it has
-ever had.
+ever had. **That section is §71 and not §64 because the merge renumbered it**:
+M5.5 and this patch both appended a 64 on branches that could not see each
+other, and M5.5's number is cited from source and tests where this one is cited
+only from documents.
 
-The design bible is at **Rev 6**. Every place the list and the bible disagreed
+The design bible is at **Rev 11**. Every place the list and the bible disagreed
 is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)
-rather than something built around; twenty-eight rows, twenty-seven ruled,
-**D14 the only one open** and timed with M5.6. None of the twelve rules has
-moved: every amendment has corrected a table, an ordering or a gap where a
-surface had no row at all.
+rather than something built around; **thirty-nine rows, thirty-eight ruled,
+D38 the only one open** and it blocks one clause of M5.4. None of the twelve
+rules has moved across eleven revisions: every amendment has corrected a table,
+an ordering, a count, or a gap where a surface had no row at all.
 
 Three instruments exist now that did not: `npm run census` (words at rest, per
 surface and per component), `npm run hedge` (section 8's hedge words) and

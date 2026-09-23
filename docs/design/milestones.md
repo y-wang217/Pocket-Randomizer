@@ -150,7 +150,7 @@ will be keyed from.
 | Item | Status | Blocked by |
 |---|---|---|
 | M1.1 Glyph sheet | **done** | — (42 glyphs, `npm run glyphs`, [report](../visual/reports/m1.1-glyph-sheet.md), `visual/4.10-m1.1`) |
-| M1.2 One inspect layer | **done** | — (D4 ruled; 18 mount points, archetype excepted. `visual/4.10-m1.2`. **Patched 2026-09-22**: moving `data-tip` onto the move button handed the hover enhancement a card-sized target on a screen that re-renders every turn, and on a phone the synthesised `mouseover` behind a tap opened a panel nothing could close — [`../spec/gymrun-patch-inspect-hover-on-touch.md`](../spec/gymrun-patch-inspect-hover-on-touch.md), [`../generation.md` §64](../generation.md). The gesture itself is unchanged) |
+| M1.2 One inspect layer | **done** | — (D4 ruled; 18 mount points, archetype excepted. `visual/4.10-m1.2`. **Patched 2026-09-22**: moving `data-tip` onto the move button handed the hover enhancement a card-sized target on a screen that re-renders every turn, and on a phone the synthesised `mouseover` behind a tap opened a panel nothing could close — [`../spec/gymrun-patch-inspect-hover-on-touch.md`](../spec/gymrun-patch-inspect-hover-on-touch.md), [`../generation.md` §71](../generation.md). The gesture itself is unchanged) |
 | M1.3 Exposure store | **done** | — (`visual/4.10-m1.3`) |
 
 ### Tier 2: the move card
@@ -393,14 +393,58 @@ The bible outranks a recommendation exactly as it outranks a prompt.
 
 ### Tier 5: remaining surfaces
 
+**Closed, five items and M5.4 two clauses of three. Eleven rows filed before
+and during the tier; D38 is the one open** and it blocks M5.4's last clause
+alone, from the reading in
+[`../handoff/4.10-tier-5-prep.md`](../handoff/4.10-tier-5-prep.md). D30 and D31
+were instrument rows that applied D2 and D21b rather than asking for a new
+ruling and closed on the build; D29, D32, D33 and D34 each edited a bible table
+and were the lead designer's, and all four are ruled. **D14 stopped being
+nobody's blocker here** after five tiers, and **D35 closed across three items**.
+D39 was filed on M5.6's build and blocks nothing. The bible went Rev 6 → Rev 11
+across the tier and not one of the twelve rules moved.
+
 | Item | Status | Blocked by |
 |---|---|---|
-| M5.1 Reward, shop and TM shelf cards | open | — (D12 ruled) |
-| M5.2 Map node card | open | — |
-| M5.3 Locale card and pre-gym screen | open | — (D1 ruled) |
-| M5.4 Result screen and capture card | open | — (D1, D5 ruled: no label line) |
-| M5.5 Confirm overlays | open | — (D1 ruled) |
-| M5.6 Event screen | open | — (D8 ruled: hold at 40, report, wait for M7.1) |
+| M5.1 Reward, shop and TM shelf cards | **done** | — (D12, D14, D29, D34, D35, D36 ruled. Item, berry and relic cards **0**; shop 64 → 31; shop.ts −103 lines; [`generation.md` §§65, 66](../generation.md)) |
+| M5.2 Map node card | **done** | — (D29, D35, **D37** ruled. Worst node card **12 → 3**, budget written after the measurement; tenth family `capability`; [`generation.md` §67](../generation.md)) |
+| M5.3 Locale card and pre-gym screen | **done** | — (D1, D29, **D32** ruled. Locale card **6 → 0**, locale screen **45 → 3** against 4, pre-gym **32 → 3** against 4; [`generation.md` §68](../generation.md)) |
+| M5.4 Result screen and capture card | **two clauses of three** | **D38** (D1, D5, D29 ruled. Result screen's own words **32 → 2** against 6; coverage as two sign rows. The card does **not** mount the party row: 655px in Detailed puts the decision buttons at 2253 against a fold gate of 844) |
+| M5.5 Confirm overlays | **done** | — (D1, D22, D31 ruled. Replace **4**, forfeit **5**, ceilings 6 and 6; `CONFIRM_SURFACES`, the `decline` kind, [`generation.md` §64](../generation.md)) |
+| M5.6 Event screen | **done** | — (**D33** ruled option 1, **D14** and **D35** closed, D8 reread and its remedy not taken. Row 40 → **59** and it adds up; census **89 → 54**; 96 hints and 28 labels rewritten; requirement, band and reward tier re-encoded as marks; `test/event-budget.test.ts` is the per-event lint; [`generation.md` §70](../generation.md)) |
+
+**D30 is closed**: four census component rows and a worst-instance column,
+committed with the before-numbers and before any card was touched. The column
+is new and is the one a ceiling is read against — the table had been summing
+instances since M0.1, which is the same number only where the budget is 0.
+Worst instance in Pocket: reward card **8** against 8, shop stock card **11**,
+map node card **12** against 0, locale card **6** against 0, capture card **3**
+against 0. **No relic card renders on any fixture**, so the reward card's 8 is
+not the heaviest card the game draws (D34).
+
+D31's band fixtures landed **inside M5.5**, not as a pre-tier commit: they add
+a third gated category and touch three test files, which is the item's own
+work. `CONFIRM_SURFACES` is separate from `OVERLAY_SURFACES` because a band has
+no `__sheet` and the overlay gate would have passed on an absence.
+
+**D35 is the fixture audit Tier 4 asked for, it landed on three items, and it
+is closed.** The fixture grants every relic, so all 28 relic cards on the map
+collapse and all six gated nodes read `known`; and `wordiestEvent` searched
+`forest` alone, which holds 3 of 24 events. M5.1, M5.2 and M5.6 each built
+their own fixture rather than the shared one being re-cut under four surfaces.
+M5.6's half found a second defect in the same function — it ranked by
+**characters**, and nothing budgets characters — so the census had been two
+words short of the worst event as well as sixteen events short of it.
+
+**M5.5 was nearly built when the tier opened, and its item text was out of date
+twice over.** M2.3 shipped the replace band with both cards; M3.3 shipped the
+forfeit band with **one**, deliberately, and D22 then moved the decline budget
+from 4 to 6. The record still reads "the two cards" and "census reads 6 and 4",
+and is not edited: the deviation is
+[`../generation.md` §64](../generation.md). What the item actually built was
+its last line — overlay cancel and flow decline visually distinct, via a
+`decline` control kind and one rule under `body[data-band-open]` — plus D31's
+two fixtures and the number they made readable.
 
 ### Tier 6: onboarding and density
 

@@ -48,11 +48,11 @@ import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
 import { el, levelAria, levelText, movePower } from '../scene';
+import { statBlock } from '../stat-block';
 import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
 import { slotNumber } from '../slots';
-import { statBlock } from '../stat-block';
 import { abilityChip, monTypeChip } from '../chip';
 import { openBand } from '../band';
 import { neutralChip, statusChip } from '../chip';
@@ -105,9 +105,33 @@ export function renderCaptureOffer(
    * so, because which member goes is a choice the player has not made yet at
    * the moment they are reading this.
    */
-  const coverage = el('p', 'acquire__coverage');
+  /*
+   * **Two rows of type chips, with a sign each and no words. Milestone
+   * M5.4.**
+   *
+   * Section 3's row: *"Coverage change (capture card) | Two rows of type
+   * chips, plus row and minus row, signs only. **The signs are permanent, not
+   * an exposure label: coverage is not a glyph family** (2026-09-19, D5) |
+   * Empty row renders nothing | The full before and after sets."* All four
+   * clauses are here.
+   *
+   * The sentence it replaces — *"Coverage if it replaces your first member:
+   * adds Dragon, Steel. Loses Ghost."* — was **8 words** on a card budgeted at
+   * 0, and it was a summary of sets it never showed. The rows show the sets.
+   *
+   * **C2 is satisfied by M1.2 rather than by this item**, which is the whole
+   * reason the sentence could go: the `coverage:capture` tip was mounted two
+   * tiers ago carrying the full before and after, and the comment that did it
+   * said in as many words that M5.4 would move the trigger onto the rows. It
+   * does.
+   *
+   * **An empty row renders nothing**, which is R4 and not a convenience: a
+   * capture that adds nothing has no plus row, and a plus row with no chips in
+   * it would be a marker for the absence of a fact.
+   */
+  const coverage = el('div', 'acquire__coverage');
   coverage.dataset['tutorial'] = 'coverage';
-  coverage.textContent = captureCoverageLine(offer, party, capacity);
+  coverage.replaceChildren(...coverageRows(offer, party, capacity));
   /*
    * **Section 3's coverage row, given its inspect entry by M1.2.**
    *
@@ -138,7 +162,18 @@ export function renderCaptureOffer(
   const actions = el('div', 'acquire__actions');
   const decline = document.createElement('button');
   decline.type = 'button';
-  decline.className = 'button';
+  /*
+   * **The flow-decline kind. Milestone M5.5, and this screen is the sharp
+   * case.**
+   *
+   * At a full party this control reads `Keep my party as it is`, and the band
+   * a release opens reads `Keep`. Two controls beginning with the same word,
+   * on screen at the same time, one of which moves the run on and one of which
+   * changes nothing. The shared class is what the `body[data-band-open]` rule
+   * in `styles.css` reaches so the band's cancel is the only live "no" while
+   * the band is up.
+   */
+  decline.className = 'button decline';
   decline.textContent = full ? 'Keep my party as it is' : 'Leave it';
   decline.addEventListener('click', () => onDecide({ kind: 'decline' }));
 
@@ -159,33 +194,6 @@ export function renderCaptureOffer(
   return section;
 }
 
-/**
- * What taking it would change about the party's offensive typing, in one
- * factual sentence.
- *
- * The same reading `screens/reward.ts` prints on a species card, computed the
- * same way from the same pure function — a second implementation would be a
- * second answer to "what does this cost me", and the first divergence between
- * them would be invisible.
- */
-function captureCoverageLine(
-  offer: AcquisitionOffer,
-  party: readonly PokemonState[],
-  capacity: number,
-): string {
-  if (party.length === 0) return '';
-  const incoming = createPartyMember(offer.spec);
-  const before = offensiveCoverage(party);
-  const full = party.length >= capacity;
-  const delta = coverageDelta(before, coverageAfterSwap(party, incoming, full ? 0 : -1));
-
-  const parts: string[] = [];
-  if (delta.added.length > 0) parts.push(`adds ${delta.added.join(', ')}`);
-  if (delta.lost.length > 0) parts.push(`loses ${delta.lost.join(', ')}`);
-  const body = parts.length > 0 ? parts.join('. ') : 'unchanged';
-  const scope = full ? ' if it replaces your first member' : '';
-  return `Coverage${scope}: ${body}.`;
-}
 
 /**
  * The same two sets the line summarises, for the inspect panel.
@@ -210,6 +218,61 @@ function captureCoverageDetail(
   return lines.join('\n');
 }
 
+/**
+ * The coverage change, as section 3 draws it: a plus row and a minus row, type
+ * chips, signs only. **M5.4.**
+ *
+ * The sign is a text node rather than a glyph because D5 ruled exactly that: a
+ * plus beside a row of type chips *"is not a glyph in section 2's sense"*, the
+ * chips already carry the type family's own exposure label, and the count of
+ * families stays at nine — ten now, and for an unrelated reason (D37).
+ */
+function coverageRows(
+  offer: AcquisitionOffer,
+  party: readonly PokemonState[],
+  capacity: number,
+): HTMLElement[] {
+  if (party.length === 0) return [];
+  const incoming = createPartyMember(offer.spec);
+  const full = party.length >= capacity;
+  const delta = coverageDelta(offensiveCoverage(party), coverageAfterSwap(party, incoming, full ? 0 : -1));
+
+  const row = (sign: '+' | '\u2212', types: readonly string[], kind: string): HTMLElement | null => {
+    if (types.length === 0) return null;
+    const line = el('div', `acquire__coverage-row acquire__coverage-row--${kind}`);
+    const mark = el('span', 'acquire__coverage-sign');
+    mark.textContent = sign;
+    mark.setAttribute('aria-hidden', 'true');
+    line.append(mark, ...types.map(monTypeChip));
+    line.setAttribute('aria-label', `${kind === 'adds' ? 'Adds' : 'Loses'} ${types.join(', ')}`);
+    return line;
+  };
+
+  return [row('+', delta.added, 'adds'), row('\u2212', delta.lost, 'loses')].filter(
+    (line): line is HTMLElement => line !== null,
+  );
+}
+
+/*
+ * **This card does NOT mount the party row, and that is a filed conflict
+ * rather than an oversight. Milestone M5.4, discrepancy D38.**
+ *
+ * D29 added capture to the party row's canon call sites and section 4 says
+ * this card *"follows the recipient card"*, which mounts it. M5.4 built that —
+ * and `test/visual-v4.test.ts` refused it: the party row draws four **move
+ * cards** since D21a, so at the gallery's default density the offered card
+ * measures **655px** and the screen's decision buttons land at **2253**,
+ * against a gate that requires them above **844**.
+ *
+ * In Pocket the same screen measures 661 and passes, because the row's body is
+ * one tap behind the head there. The failing mode is Detailed, which is the
+ * app's default until M6.3 flips it, so this is not a hypothetical.
+ *
+ * The row is filed rather than worked around: the fixes available — a
+ * per-surface collapsed default, or relaxing a fold gate — each touch a rule
+ * (R6) or a gate that predates the canon, and section 10.3 makes that a
+ * stop-and-file. The hand-built card stays until it is ruled.
+ */
 /** The offered Pokemon, in the same card shape the party uses. */
 function renderOffered(spec: PokemonSpec): HTMLElement {
   const card = el('div', 'party__member party__member--offered');
@@ -295,6 +358,7 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   );
   return card;
 }
+
 
 /** One current member, with a release button when the party is full. */
 function renderExisting(

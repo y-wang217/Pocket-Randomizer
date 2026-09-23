@@ -32,6 +32,7 @@ import {
 export type ChipVariant =
   | 'type'
   | 'tier'
+  | 'reward-tier'
   | 'band'
   | 'status'
   | 'stage'
@@ -192,6 +193,135 @@ export function bandChip(band: number): HTMLElement {
   }
   return node;
 }
+
+/**
+ * A node's tier, as a meter. **Milestone M5.2, section 3's Tier row.**
+ *
+ * Section 3: *"Tier (map node) | Tier pips, reward-tier pips | None | Tier
+ * definition."* `NORMAL` and `HARD` were words naming a bracket the player has
+ * to have been told about; three pips filled to the tier say the same thing as
+ * a quantity, which is the band meter's argument one family up and the reason
+ * R2 deletes a label but keeps a count.
+ *
+ * **Only one strip, and that is R3 rather than a shortcut.** Section 3 asks for
+ * tier pips *and* reward-tier pips. In this tree the reward tier is a pure
+ * function of the node tier — `data/tierInfo.ts` says normal pays its own band,
+ * hard one up, elite two up — so a second strip would render one attribute
+ * twice on one surface, which is exactly what R3 forbids. What a tier pays is
+ * on inspect, in the tier definition, where section 3's own last column puts
+ * it. Recorded in `docs/generation.md` §67.
+ *
+ * Not a rating. A filled pip is one step of difficulty, the same fact `HARD`
+ * stated; nothing here says a higher tier is a better route, which is the
+ * editorial rule C1 binds every map surface with.
+ */
+export function tierPips(tier: string): HTMLElement {
+  const step = TIER_STEPS.indexOf(tier) + 1;
+  /*
+   * `tier-pips`, not `tier`. **`.tier` is still the reward screen's text
+   * chip** — `offerBadge` draws `GYM` and `ELITE` through `tierChip`, and that
+   * rule sets `display: inline-block` with padding, so a meter wearing the
+   * same class renders as an empty box. Found the direct way, on the map.
+   */
+  const node = build('tier', `tier-pips tier-pips--${tier}`, '', { tip: `tier:${tier}` });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', `Tier ${step} of ${TIER_STEPS.length}`);
+  for (let i = 0; i < TIER_STEPS.length; i++) {
+    const pip = el('span', 'tier-pips__pip');
+    if (i < step) pip.dataset['on'] = 'true';
+    pip.setAttribute('aria-hidden', 'true');
+    node.append(pip);
+  }
+  return node;
+}
+
+/** The tier ladder, lowest first. The order the pips count in. */
+const TIER_STEPS: readonly string[] = ['normal', 'hard', 'elite'];
+
+/**
+ * Which tiers an event option can pay, as a span of pips. **Milestone M5.6.**
+ *
+ * Section 3's Tier row has asked for *"reward-tier pips"* since Rev 1 and
+ * nothing rendered them: the event screen printed `Reward: T0 to T2`, which is
+ * a label, a ladder position and a range written out, on the one surface where
+ * every word is already spoken for. Four pips, one per outcome tier, with the
+ * ones this option draws from filled.
+ *
+ * **A span, not a fill-to-step, and that is the whole difference from
+ * `tierPips`.** A node's tier is a position on a ladder, so its meter fills
+ * from the bottom. An option's reward is a *range* — Gamble reaches from `T0`
+ * to `T2` and Attune from `T2` to `T3` — and a meter filled from the bottom
+ * would say those two overlap everywhere they do not. Where the range is one
+ * tier the span is one pip, which reads as the narrow thing it is.
+ *
+ * Not a rating, on the same footing as the tier label it replaces: it names
+ * which pool the outcome draws from, which is an attribute of the button. The
+ * carve-out is `docs/generation.md` section 14 and it is unchanged by drawing
+ * the same fact without words.
+ */
+export function rewardTierPips(low: string, high: string, label: string): HTMLElement {
+  const first = REWARD_TIER_STEPS.indexOf(low);
+  const last = REWARD_TIER_STEPS.indexOf(high);
+  const node = build('reward-tier', `reward-tier-pips reward-tier-pips--${low}-${high}`, '', {
+    tip: `reward-tier:${low}-${high}`,
+  });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  for (const [index, tier] of REWARD_TIER_STEPS.entries()) {
+    const pip = el('span', `tier-pips__pip reward-tier-pips__pip reward-tier-pips__pip--${tier}`);
+    if (index >= first && index <= last) pip.dataset['on'] = 'true';
+    pip.setAttribute('aria-hidden', 'true');
+    node.append(pip);
+  }
+  return node;
+}
+
+/** T0 to T3, lowest first. The order the reward pips are laid out in. */
+const REWARD_TIER_STEPS: readonly string[] = ['T0', 'T1', 'T2', 'T3'];
+
+/**
+ * The capability a gated node asks for, as its glyph. **M5.2, D37.**
+ *
+ * Section 3 has specified a *"capability glyph plus band chevron"* on this row
+ * since Rev 1 and section 2's roster did not carry the family until D37; what
+ * shipped in the meantime was `Requires Cut`, two words for a fact with a
+ * mark. The name and what satisfies it are the inspect column, reached by the
+ * same `capability:` tip the chip carried.
+ */
+export function capabilityGlyph(capability: string, label: string): HTMLElement {
+  const node = build('capability', 'node__gate-need', '', { tip: `capability:${capability}` });
+  const mark = glyphNode(`capability-${capability}`, { label });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * Where the run stands against that capability, as the band chevron. **M5.2.**
+ *
+ * Three states — none, latent, known — drawn as two chevrons with none, one or
+ * both filled. That is the band meter's pattern rather than three more
+ * silhouettes inside one family, and it keeps the reading a *count*: how much
+ * of the way there this run is.
+ */
+export function capabilityBandChevron(band: string, label: string): HTMLElement {
+  const filled = CAPABILITY_BAND_STEPS.indexOf(band);
+  const node = build('capability-band', 'node__gate-band', '', { tip: `capability-band:${band}` });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  for (let i = 0; i < CAPABILITY_BAND_STEPS.length - 1; i++) {
+    const mark = glyphNode(i < filled ? 'capability-band-on' : 'capability-band-off', { label });
+    if (mark) {
+      mark.setAttribute('aria-hidden', 'true');
+      node.append(mark);
+    }
+  }
+  return node;
+}
+
+/** none, latent, known: the ladder the chevrons count along. */
+const CAPABILITY_BAND_STEPS: readonly string[] = ['none', 'latent', 'known'];
 
 /** A status condition. `data-status` names it; the label is what is shown. */
 export function statusChip(id: string, label: string = id.toUpperCase(), options: ChipOptions = {}): HTMLElement {

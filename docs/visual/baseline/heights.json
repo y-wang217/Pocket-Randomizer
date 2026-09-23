@@ -91,11 +91,11 @@
     }
   },
   "map": {
-    "screenHeight": 944.5,
-    "scrollHeight": 1138,
+    "screenHeight": 705.72,
+    "scrollHeight": 899,
     "decisionCount": 2,
     "decisionTop": 558,
-    "decisionBottom": 687.56
+    "decisionBottom": 612.34
   },
   "battle": {
     "screenHeight": 595,

@@ -8,16 +8,34 @@
  * paying a different outcome at each capability band) the rejig replaces. See
  * `docs/generation.md` section 14.
  *
- * What replaces it is the copy that is actually live: every event now supplies
- * a hook, four option labels and four hints in `data/events.ts`, and those are
- * what a player reads. They are linted here against the same forbidden-word
- * list, because the Part 4 rule is the same rule — attributes, never verdicts.
+ * What replaces it is the copy that is actually live: every event supplies a
+ * hook, four option labels and four hints, and those are what a player reads.
+ * They are linted here against the same forbidden-word list, because the Part
+ * 4 rule is the same rule — attributes, never verdicts.
+ *
+ * **They live in `data/eventCopy.ts` now, not `data/events.ts`.** M5.6's split
+ * closed D14 on 2026-09-22: the words were inside `contentHash` and a reworded
+ * sentence refused every seed recorded before it, which is what kept two
+ * violations unfixed for a whole release. This file reads them through the
+ * accessors and asserts the same words against the same list, from the file
+ * that now holds them — and the exemption list it used to carry is empty.
+ *
+ * **Budgets are not here.** How many words an event may spend is
+ * `test/event-budget.test.ts`, against design bible section 4. This file is
+ * about what the words may *say*.
  */
 import { describe, expect, it } from 'vitest';
 
 import { CAPABILITIES } from '../src/data/capabilities';
 import { EVENTS } from '../src/data/events';
-import { BAND_LABELS, CAPABILITY_LABELS } from '../src/data/eventCopy';
+import {
+  BAND_LABELS,
+  CAPABILITY_LABELS,
+  OUTCOME_TIER_INFO,
+  eventHint,
+  eventHook,
+  eventLabel,
+} from '../src/data/eventCopy';
 import { EVENT_ARCHETYPES } from '../src/data/eventPools';
 import { TUTORIAL_FORBIDDEN_WORDS } from '../src/data/tutorial';
 import type { CapabilityBand } from '../src/core/capabilities';
@@ -32,11 +50,16 @@ function sentences(): { where: string; text: string }[] {
   for (const capability of CAPABILITIES) {
     out.push({ where: `CAPABILITY_LABELS ${capability}`, text: CAPABILITY_LABELS[capability] });
   }
+  // The inspect panel behind the reward pips. Written by M5.6, so it is new
+  // copy and subject to the same list as everything else here.
+  for (const [tier, text] of Object.entries(OUTCOME_TIER_INFO)) {
+    out.push({ where: `OUTCOME_TIER_INFO ${tier}`, text });
+  }
   for (const event of EVENTS) {
-    out.push({ where: `${event.id} hook`, text: event.hook });
+    out.push({ where: `${event.id} hook`, text: eventHook(event.id) });
     for (const archetype of EVENT_ARCHETYPES) {
-      out.push({ where: `${event.id} ${archetype} label`, text: event.labels[archetype] });
-      out.push({ where: `${event.id} ${archetype} hint`, text: event.hints[archetype] });
+      out.push({ where: `${event.id} ${archetype} label`, text: eventLabel(event.id, archetype) });
+      out.push({ where: `${event.id} ${archetype} hint`, text: eventHint(event.id, archetype) });
     }
   }
   return out;
@@ -45,17 +68,17 @@ function sentences(): { where: string; text: string }[] {
 describe('the copy every event supplies', () => {
   it('gives every event a hook and all four labels and hints', () => {
     for (const event of EVENTS) {
-      expect(event.hook.trim().length, `${event.id} hook`).toBeGreaterThan(20);
+      expect(eventHook(event.id).trim().length, `${event.id} hook`).toBeGreaterThan(20);
       for (const archetype of EVENT_ARCHETYPES) {
-        expect(event.labels[archetype].trim().length, `${event.id} ${archetype} label`).toBeGreaterThan(3);
-        expect(event.hints[archetype].trim().length, `${event.id} ${archetype} hint`).toBeGreaterThan(20);
+        expect(eventLabel(event.id, archetype).trim().length, `${event.id} ${archetype} label`).toBeGreaterThan(3);
+        expect(eventHint(event.id, archetype).trim().length, `${event.id} ${archetype} hint`).toBeGreaterThan(20);
       }
     }
   });
 
   it('writes a different label for every archetype within one event', () => {
     for (const event of EVENTS) {
-      const labels = EVENT_ARCHETYPES.map((archetype) => event.labels[archetype]);
+      const labels = EVENT_ARCHETYPES.map((archetype) => eventLabel(event.id, archetype));
       expect(new Set(labels).size, event.id).toBe(labels.length);
     }
   });
@@ -68,48 +91,35 @@ describe('the copy every event supplies', () => {
      */
     for (const event of EVENTS) {
       for (const archetype of EVENT_ARCHETYPES) {
-        expect(event.hints[archetype], `${event.id} ${archetype}`).not.toMatch(/\d+\s*(coins?|HP|%)/i);
+        expect(eventHint(event.id, archetype), `${event.id} ${archetype}`).not.toMatch(/\d+\s*(coins?|HP|%)/i);
       }
     }
   });
 
   /**
-   * Two sentences are known to break this and are **not** exempted quietly.
+   * **The two known violations are gone, and D14 is closed. M5.6, 2026-09-22.**
    *
-   * **M0.3, 2026-09-20.** The forbidden-word list gained `worth`, which design
-   * bible section 8 had always named and the twelve-word list shipped in
-   * `data/tutorial.ts` had never carried. Widening it made this test see two
-   * event sentences that were in violation the whole time:
+   * `forest-thornwall`'s hint passed *"a grove worth passing"* and
+   * `marsh-leech-bed`'s hook lay over *"something worth having"*. Both broke
+   * section 8's list from the day M0.3 widened it to carry `worth`, and both
+   * stayed broken for a whole release because the words lived in
+   * `data/events.ts`, which `src/core/events.ts` imports, so two words of
+   * flavour text cost a `contentHash` move and refused every seed recorded
+   * before them.
    *
-   *   `forest-thornwall` safe hint — "passes a grove worth passing"
-   *   `marsh-leech-bed`  hook      — "lying over something worth having"
-   *
-   * They are not rewritten here because they live in `data/events.ts`, which is
-   * **inside `contentHash`** (`src/core/events.ts` imports it), so two words of
-   * flavour text would move the hash, refuse every seed recorded before it, and
-   * force the visual baseline to be re-recorded. Discrepancy D12 was ruled the
-   * other way — split rather than move — and the pin in `test/ai-priority.test.ts`
-   * states in its own comment that the display split was the last time this
-   * number moves for a display edit.
-   *
-   * So the decision is the lead designer's and it is row **D14** in
-   * `docs/design/bible-discrepancies.md`. This list is the record of what is
-   * owed, it is asserted to be exactly these two, and it shrinks to nothing the
-   * moment D14 is ruled. A new violation cannot hide behind it.
+   * D14 was ruled option 2 and built with M5.1's half: the copy moved to
+   * `data/eventCopy.ts`, which `core/` never reads, and the hash moved once
+   * for the three tables together. M5.6 then rewrote all twenty-four events to
+   * section 4's budget, which is where these two sentences went. Rewording any
+   * of them is free from here on, and the list this block used to hold is
+   * empty rather than shorter — a violation has nowhere left to hide.
    */
-  const KNOWN_UNFIXED = [
-    'forest-thornwall safe hint: The detour is slow and passes a grove worth passing.',
-    'marsh-leech-bed hook: A leech bed lying over something worth having.',
-  ];
-
   it('contains no forbidden word, as whole words', () => {
     const pattern = new RegExp(`\\b(${TUTORIAL_FORBIDDEN_WORDS.join('|')})\\b`, 'i');
     const offenders = sentences()
       .filter(({ text }) => pattern.test(text))
       .map(({ where, text }) => `${where}: ${text}`);
-    // Exactly the two, neither more nor fewer: a fixed line drops off this
-    // list and fails here, which is what makes D14 impossible to forget.
-    expect(offenders).toEqual(KNOWN_UNFIXED);
+    expect(offenders).toEqual([]);
   });
 
   it('prints no empty sentence anywhere a player can reach', () => {

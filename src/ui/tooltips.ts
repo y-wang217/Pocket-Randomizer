@@ -46,7 +46,7 @@
  */
 import { abilityInfo, describeMove, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
-import { CAPABILITY_LABELS } from '../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, OUTCOME_TIER_INFO } from '../data/eventCopy';
 import { gymForSegment } from '../data/gyms';
 import { relicById } from '../data/relics';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -58,6 +58,7 @@ import { FLAG_BLURBS, flagWord } from '../data/flagWords';
 import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
+import { itemCopy, relicCopy } from '../data/itemCopy';
 import { statInfo } from '../data/statInfo';
 import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
@@ -73,6 +74,8 @@ import {
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
 import { capabilityTypes, type Capability } from '../data/capabilities';
+import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
+import type { CapabilityBand } from '../core/capabilities';
 import type { Tier } from '../core/types';
 import { typeChip } from './chip';
 import { el } from './scene';
@@ -217,7 +220,26 @@ type TipKind =
    * Section 3: "tier definition", and `data/tierInfo.ts` is where those three
    * sentences already live.
    */
-  | 'tier';
+  | 'tier'
+  /**
+   * Where the run stands against a capability. **Milestone M5.6.**
+   *
+   * **The chevron shipped in M5.2 with a `capability-band:` tip and this kind
+   * was never added, so every chevron on the map was a dead trigger** —
+   * focusable, `aria-expanded`, and opening nothing, which is exactly what the
+   * `flag` note in `KINDS` below describes happening to the flag strip. Found
+   * when M5.6 mounted the same chevron on the event screen. The body is
+   * `BAND_LABELS`, which is what the words used to say.
+   */
+  | 'capability-band'
+  /**
+   * Which tiers an event option can pay. **Milestone M5.6.**
+   *
+   * Section 3's *"tier definition"* for the reward-tier pips, which replaced
+   * `Reward: T0 to T2`. The id is the span — `T2` or `T0-T2` — and the panel
+   * carries a line per tier inside it, from `data/eventCopy.ts`.
+   */
+  | 'reward-tier';
 
 const KINDS = [
   'type',
@@ -256,7 +278,9 @@ const KINDS = [
   'pp',
   'coverage',
   'capability',
+  'capability-band',
   'tier',
+  'reward-tier',
 ] as const satisfies readonly TipKind[];
 
 /**
@@ -686,9 +710,13 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'coverage':
       return renderCoverage(trigger?.dataset['detail']);
     case 'capability':
-      return renderCapability(id);
+      return renderCapability(id, trigger?.dataset['detail']);
     case 'tier':
       return renderTier(id);
+    case 'capability-band':
+      return renderCapabilityBand(id);
+    case 'reward-tier':
+      return renderRewardTier(id);
   }
 }
 
@@ -776,12 +804,24 @@ function renderCoverage(detail?: string): HTMLElement | null {
  * so the map card can stop carrying "Requires you have the relic" in prose,
  * which is nine of the words the census found on a surface budgeted at zero.
  */
-function renderCapability(id: string): HTMLElement | null {
+function renderCapability(id: string, rarity?: string): HTMLElement | null {
   const label = CAPABILITY_LABELS[id as Capability];
   if (!label) return null;
   const body = panel(label);
   const types = capabilityTypes(id as Capability);
   if (types.length) body.append(row('Satisfied by', types, ''));
+  /*
+   * **Rarity, moved here from the card face by M5.2 and D37's ruling.**
+   *
+   * It is a third attribute of the same gate — which distribution this node's
+   * payout draws on — and section 3 gives it no row, so it spent a word at
+   * rest on every gated node on the map. C2 is why it is *here* rather than
+   * gone: it changes which tier a Gamble or an Attune lands on, so it changes
+   * a decision, and a fact that changes a decision is re-encoded rather than
+   * dropped. The press that already opens what satisfies the gate opens this
+   * too.
+   */
+  if (rarity) body.append(row('Rarity', [], rarity));
   return body;
 }
 
@@ -791,6 +831,42 @@ function renderTier(id: string): HTMLElement | null {
   if (!text) return null;
   const body = panel(id.slice(0, 1).toUpperCase() + id.slice(1));
   body.append(line(text, 'tip__text'));
+  return body;
+}
+
+/**
+ * Where this run stands against the capability the chevron counts along.
+ *
+ * **Milestone M5.6, and the panel M5.2 owed.** Nothing written here: the title
+ * is the band's own name and the body is `BAND_LABELS`, the sentence the chip
+ * printed until the chevron replaced it. What the capability *is* stays on the
+ * glyph beside it, under `capability:`, because they are two facts.
+ */
+function renderCapabilityBand(id: string): HTMLElement | null {
+  const text = BAND_LABELS[id as CapabilityBand];
+  if (!text) return null;
+  const body = panel(id.slice(0, 1).toUpperCase() + id.slice(1));
+  body.append(line(text, 'tip__text'));
+  return body;
+}
+
+/**
+ * Which tiers an option can pay, one line each. **Milestone M5.6.**
+ *
+ * The id is the span the pips draw — `T2`, or `T0-T2` — so the panel walks the
+ * tiers inside it and prints `OUTCOME_TIER_INFO` for each. A single-tier span
+ * gives one line, which is the whole of what that option can pay.
+ */
+function renderRewardTier(id: string): HTMLElement | null {
+  const [low, high = low] = id.split('-');
+  if (!low) return null;
+  const first = OUTCOME_TIERS.indexOf(low as OutcomeTier);
+  const last = OUTCOME_TIERS.indexOf(high as OutcomeTier);
+  if (first < 0 || last < 0 || last < first) return null;
+  const body = panel(low === high ? low : `${low} to ${high}`);
+  for (const tier of OUTCOME_TIERS.slice(first, last + 1)) {
+    body.append(row(tier, [], OUTCOME_TIER_INFO[tier] ?? ''));
+  }
   return body;
 }
 
@@ -918,7 +994,7 @@ function renderRelic(id: string): HTMLElement | null {
   const relic = relicById(id as Parameters<typeof relicById>[0]);
   if (!relic) return null;
   const body = panel(relic.name);
-  body.append(line(relic.playerDescription, 'tip__text'));
+  body.append(line(relicCopy(relic.id), 'tip__text'));
   body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
   return body;
 }
@@ -1011,7 +1087,7 @@ function renderItem(id: string): HTMLElement | null {
   const item = itemById(id);
   if (!item) return null;
   const body = panel(item.name);
-  body.append(line(item.blurb, 'tip__text'));
+  body.append(line(itemCopy(id), 'tip__text'));
   return body;
 }
 

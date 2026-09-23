@@ -14,16 +14,12 @@
  * save for. The disabling is a courtesy either way — `economy.applyPurchases`
  * is what actually refuses an overdraft, because a replayed log has no buttons.
  */
-import { describeMove } from '../../core/battle/driver';
 import { basketCost, type ShopStock } from '../../core/economy';
-import type { Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
-import { relicById } from '../../data/relics';
-import { itemById, BERRIES } from '../../data/items';
-import { moveCardData } from '../move-detail';
-import { el, moveCard } from '../scene';
-import { prose, setProse } from '../dom';
+import { el } from '../scene';
+import { setProse } from '../dom';
 import { SHOP_COPY } from '../copy/screens';
+import { renderRewardCard } from './reward';
 
 export interface ShopScreen {
   root: HTMLElement;
@@ -76,7 +72,6 @@ export function createShopScreen(): ShopScreen {
             // Affordable means "affordable *given what is already in the
             // basket*", which is the only version of the word that helps.
             button.disabled = !chosen && price > left;
-            button.textContent = chosen ? 'Remove' : 'Add';
           }
         }
       };
@@ -87,63 +82,43 @@ export function createShopScreen(): ShopScreen {
           row.dataset['index'] = String(index);
           row.dataset['price'] = String(item.price);
 
-          const label = el('div', 'shop__item-label');
           /*
-           * The category, printed on the row.
+           * **The shelf mounts the reward card. Milestone M5.1, D29.**
            *
-           * The shelf guarantees one of each (`data/shop.ts`), and a guarantee
-           * the player cannot see is not a guarantee they can plan around — it
-           * is a coincidence they have to infer over several visits. Read back
-           * off the resolved reward rather than carried on the row, so the
-           * label can never claim a category the row did not deliver.
+           * This file used to build `.shop__item` from scratch — a kind label,
+           * a name, a detail line, its own `itemById`, `relicById` and
+           * `describeMove` reads, and its own copy of the move-card insertion
+           * point — while `screens/reward.ts` exported `renderRewardCard` to
+           * exactly one caller. Section 4 has said since Rev 1 that a shop card
+           * *"follows the reward card, plus price number"*, and it did not:
+           * the same reward drew two different faces depending on which screen
+           * you met it on. Section 5 closes with that exact defect — *"a
+           * component that exists twice"* — and D29 ruled the unification.
            *
-           * It is an attribute and not a verdict: no ordering by it, no marker
-           * on a better one, and the rows stay in shelf order.
+           * So the card is the control. It was already a `<button>`, the price
+           * rides on it, and the separate `Add` button is gone: two controls
+           * doing one job was the same defect one level down, and its label was
+           * a word at rest on a surface budgeted at eight. **Chosen is a class,
+           * not a word** — `shop__item--chosen` already existed and already
+           * carried the state; the text beside it was a second channel for one
+           * fact, which R3 forbids.
+           *
+           * `scripts/smoke.mjs` and `scripts/visual/browser.mjs` both walk
+           * `.shop__item button:not([disabled])`, which is still exactly this
+           * card, so the two walks needed no edit.
            */
-          const kind = el('span', 'shop__item-kind');
-          kind.textContent = categoryLabel(item.reward);
-          const name = el('span', 'shop__item-name');
-          name.textContent = describeStock(item.reward);
-          const detail = el('span', 'shop__item-detail');
-          detail.replaceChildren(detailOf(item.reward));
-          label.append(kind, name, detail);
-
-          const price = el('span', 'shop__price');
-          price.textContent = `${item.price}`;
-
-          const add = document.createElement('button');
-          add.type = 'button';
-          add.className = 'button';
-          add.addEventListener('click', () => {
-            if (selected.has(index)) selected.delete(index);
-            else selected.add(index);
-            refresh();
-          });
-
-          const top = el('div', 'shop__item-row');
-          top.append(label, price, add);
-          row.append(top);
-
-          /*
-           * The move card, which closes `docs/README.md` open item 13.
-           *
-           * The shelf printed `Tutor: Flamethrower` and nothing else, while the
-           * reward screen offering the identical move printed its type, base
-           * power, band, PP, category and tags. Same decision, same move, two
-           * different amounts of information depending on which screen it was
-           * met on — and the shop is the screen where the player is also being
-           * asked to price it.
-           *
-           * The same insertion point the reward screen uses (`scene.moveCard`
-           * over `moveCardData`), so the two cannot drift. **No holder is
-           * passed**, for the reason `screens/reward.ts` gives at length: the
-           * move is unassigned until the purchase asks who learns it, so a STAB
-           * tag here would claim something not yet true.
-           */
-          if (isMoveRow(item.reward)) {
-            const facts = describeMove(item.reward.move);
-            if (facts) row.append(moveCard(moveCardData(facts, state.tuning)));
-          }
+          row.append(
+            renderRewardCard(
+              item.reward,
+              state,
+              () => {
+                if (selected.has(index)) selected.delete(index);
+                else selected.add(index);
+                refresh();
+              },
+              { price: item.price },
+            ),
+          );
 
           return row;
         }),
@@ -165,85 +140,7 @@ function coin(label: string, amount: number, tone?: 'warn'): HTMLElement {
   return box;
 }
 
-/** The shelf name. A shop sells rewards, so this mirrors the reward card. */
-function describeStock(reward: Reward): string {
-  switch (reward.kind) {
-    case 'relic':
-      return relicById(reward.relic)?.name ?? reward.relic;
-    case 'item':
-      return itemById(reward.item)?.name ?? reward.item;
-    case 'heal':
-      return reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
-    case 'tm':
-      return `TM: ${reward.move}`;
-    case 'tutor':
-      return `Tutor: ${reward.move}`;
-    case 'technique':
-      return `Technique: ${reward.move}`;
-    case 'currency':
-      return `${reward.amount} coins`;
-  }
-}
 
-/** Whether this row teaches a move, and therefore earns a card under it. */
-function isMoveRow(reward: Reward): reward is Extract<Reward, { move: string }> {
-  return reward.kind === 'tm' || reward.kind === 'tutor' || reward.kind === 'technique';
-}
 
-const BERRY_IDS = new Set(BERRIES.map((entry) => entry.id));
 
-/**
- * The category a row fills, read back off what it resolved to.
- *
- * Mirrors `ShopCategory` in `data/shop.ts` without importing the slot tables:
- * what the player is owed is one row of each category, and what this says is
- * which one they got. A berry and a held item are both `kind: 'item'` and are
- * told apart by the id, exactly as the shelf tables tell them apart.
- */
-function categoryLabel(reward: Reward): string {
-  switch (reward.kind) {
-    case 'tm':
-    case 'tutor':
-      return 'Battle move';
-    case 'technique':
-      return 'Technique';
-    case 'heal':
-      return 'Restore';
-    case 'relic':
-      return 'Relic';
-    case 'item':
-      return BERRY_IDS.has(reward.item) ? 'Berry' : 'Held item';
-    case 'currency':
-      return 'Coins';
-  }
-}
 
-/** The shelf line under a name: an item's own blurb, or the two-form copy. */
-function detailOf(reward: Reward): Node {
-  switch (reward.kind) {
-    case 'item':
-      return document.createTextNode(itemById(reward.item)?.blurb ?? '');
-    case 'heal':
-      return prose(SHOP_COPY.heal);
-    case 'tm':
-    case 'tutor':
-    case 'technique':
-      // Stage 4.5.1: the shop asks the same two questions a reward card does —
-      // who learns it, then what it displaces — so the shelf can no longer
-      // promise which move goes.
-      return prose(SHOP_COPY.teach);
-    /*
-     * **The relic's own effect text, carried over with the R19 reward-card
-     * fix.** A relic row fell through to the empty default and showed a bare
-     * name, which is the same gap the reward card had: `describeStock` reads
-     * the table for the name and nothing read it for the effect. The ruling
-     * asked for relics to say what they are on the card, and a shelf that
-     * charged 260 coins for a name the reward card now explains would be the
-     * inconsistency this fix created rather than one it found.
-     */
-    case 'relic':
-      return document.createTextNode(relicById(reward.relic)?.playerDescription ?? '');
-    default:
-      return document.createTextNode('');
-  }
-}

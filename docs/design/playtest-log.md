@@ -27,7 +27,7 @@ long press spent a turn. The cause was the hover enhancement layered over the
 gesture taking the compatibility `mouseover` every mobile browser synthesises
 after a touch, and it was fixed rather than amended —
 [`../spec/gymrun-patch-inspect-hover-on-touch.md`](../spec/gymrun-patch-inspect-hover-on-touch.md),
-[`../generation.md` §64](../generation.md).
+[`../generation.md` §71](../generation.md).
 
 The row is here anyway, because this is the first time anyone has played
 against the inspect layer and the log is where that goes. A reader asking

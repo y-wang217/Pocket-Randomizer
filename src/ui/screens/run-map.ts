@@ -52,12 +52,11 @@ import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventC
 import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
 import { GYMS } from '../../data/gyms';
-import { TIER_INFO, TIER_INFO_SHORT } from '../../data/tierInfo';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
-import { capabilityBandChip, capabilityChip, neutralChip, statusChip, tierChip } from '../chip';
+import { capabilityBandChevron, capabilityGlyph, neutralChip, statusChip, tierPips } from '../chip';
 import { hpTip } from '../member-card';
 import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
@@ -447,9 +446,16 @@ function renderNode(
    * tier and really is nullable, so it says so.
    */
   if (node.tier) {
-    const badge = tierChip(node.tier);
-    // Section 3's tier row: the definition, from `data/tierInfo.ts`. M1.2.
-    badge.dataset['tip'] = `tier:${node.tier}`;
+    /*
+     * **Pips, not the word. Milestone M5.2, section 3's Tier row.**
+     *
+     * `NORMAL` and `HARD` were two words naming a bracket; three pips filled
+     * to the tier say the same thing as a count. `tierPips` carries the same
+     * `tier:` tip the chip did, so the definition from `data/tierInfo.ts` —
+     * including what the tier *pays*, which is why there is no second strip
+     * (R3) — is one press away exactly as section 3's last column says.
+     */
+    const badge = tierPips(node.tier);
     if (phase === 'current') badge.dataset['tutorial'] = 'tier';
     label.append(document.createTextNode(' '), badge);
   }
@@ -497,8 +503,19 @@ function renderNode(
       // the battle panel, where the fight it describes is.
       parts.push(AI_TIER_LABEL[tier]);
     }
-    if (node.tier) parts.push({ long: TIER_INFO[node.tier], short: TIER_INFO_SHORT[node.tier] });
-    else parts.push(KIND_HINTS[node.kind]);
+    /*
+     * **The tier sentence is gone from the face. M5.2.**
+     *
+     * Section 3's Tier row puts the tier *definition* in the inspect column,
+     * and `TIER_INFO` is that definition — "What the segment fields, at its own
+     * level and band. Pays a move in its own band." It was the longest thing on
+     * this card and it is a sentence at rest, which R2 forbids on a card. The
+     * pips carry the fact and the `tier:` tip carries the sentence.
+     *
+     * An untiered node keeps its kind hint: it has no pips to read the fact
+     * off, and M5.2 does not name it.
+     */
+    if (!node.tier) parts.push(KIND_HINTS[node.kind]);
     if (node.kind === 'shop' && node.shop) {
       const cheapest = Math.min(...node.shop.items.map((item) => item.price));
       parts.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
@@ -551,13 +568,28 @@ function renderNode(
      * from `data/eventCopy.ts`, the types from `data/capabilities.ts` — and it
      * writes nothing of its own.
      */
-    const requirement = capabilityChip(`Requires ${CAPABILITY_LABELS[node.event.requires]}`);
-    requirement.dataset['tip'] = `capability:${node.event.requires}`;
-    gate.append(
-      requirement,
-      capabilityBandChip(BAND_LABELS[band]),
-      neutralChip(RARITY_LABELS[node.event.rarity], 'rarity'),
-    );
+    /*
+     * **The glyph and the chevron, where three word chips used to be.
+     * Milestone M5.2, discrepancy D37.**
+     *
+     * Section 3 has asked for *"capability glyph plus band chevron (none,
+     * latent, known)"* on this row since Rev 1; section 2's roster did not
+     * carry the family, so what shipped was `Requires Cut`, `Latent` and a
+     * rarity word — six words for three facts that all have marks now.
+     *
+     * **Rarity goes to inspect**, ruled with D37. It is a third attribute of
+     * the same gate and it has no row in section 3, so it rides the
+     * capability panel rather than spending a word on every gated node on the
+     * map. The fact is not dropped: C2 is satisfied by the press, which is
+     * where the tier definition beside it already lives.
+     *
+     * Still two attributes and no verdict. A glyph and a part-filled chevron
+     * say what the gate asks and how far this run is from it; neither says the
+     * node is worth the detour.
+     */
+    const requirement = capabilityGlyph(node.event.requires, CAPABILITY_LABELS[node.event.requires]);
+    requirement.dataset['detail'] = RARITY_LABELS[node.event.rarity];
+    gate.append(requirement, capabilityBandChevron(band, BAND_LABELS[band]));
     element.append(gate);
   }
 

@@ -36,8 +36,6 @@ function option(
 ): EventOption {
   return {
     archetype,
-    label: archetype,
-    hint: archetype,
     toll: null,
     // Three bands mapped onto three tiers, so `outcomeFor` can tell them apart.
     outcomes: { T0: byBand.none, T1: byBand.latent, T2: byBand.known, T3: byBand.known },
@@ -105,7 +103,9 @@ describe('draw isolation', () => {
     );
     const b = generateEvent('n1', 'shore', 2, without.rewards.at('e'), DEFAULT_TUNING, new EventPicker());
     expect(a?.eventId).toBe(b?.eventId);
-    expect(a?.prompt).toBe(b?.prompt);
+    // The prompt left `EventInstance` at M5.6's split (D14); the id is what
+    // identifies the event now, and it is asserted on the line above.
+    expect(a?.rarity).toBe(b?.rarity);
     expect(a?.requires).toBe(b?.requires);
     expect(withOffer.rewards.at('e').draws).toBe(without.rewards.at('e').draws);
   });
@@ -162,7 +162,6 @@ describe('finding the offer', () => {
         eventId: 'test',
         locale: 'shore' as const,
         rarity: 'common' as const,
-        prompt: 'p',
         requires: 'surf' as const,
         options,
       },

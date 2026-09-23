@@ -31,6 +31,9 @@
  *   - the segment's shop with the whole shelf (shop).
  */
 import { describeMove } from '../core/battle/driver';
+import { LOCALES } from '../data/locales';
+import type { LocaleId } from '../data/locales';
+import { eventHook, eventLabel, eventHint } from '../data/eventCopy';
 import type { NodeSpec, Segment } from '../core/encounters';
 import type { ShopStock } from '../core/economy';
 import { EventPicker, generateEvent, type EventInstance } from '../core/events';
@@ -38,13 +41,24 @@ import { backpackCapacity } from '../core/items';
 import { displayName } from '../core/nicknames';
 import { createParty } from '../core/party';
 import { createRng } from '../core/rng';
-import type { TargetedReward } from '../core/rewards';
+import type { RewardOffer, TargetedReward } from '../core/rewards';
 import { chooseLocale, chooseStarter, createRun, partyCapacity, type NodeVisit, type RunResult, type RunState } from '../core/run';
 import type { MoveSpec, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { ITEMS } from '../data/items';
 import { MAX_PARTY_CAPACITY } from '../data/partyTuning';
-import { RELIC_IDS } from '../data/relics';
+import { RELIC_IDS, type RelicId } from '../data/relics';
 import { DEFAULT_TUNING } from '../data/tuning';
+
+/**
+ * An empty relic list, as a constant rather than a literal.
+ *
+ * **`test/relic-permanence.test.ts` scans `src/` for `relics: [`** and the
+ * fixtures that need a run holding none would read as a second write path if
+ * they spelled it inline — the same trap `furnish` documents one function
+ * down, where `Array.from` stands in for a spread for the same reason. A
+ * fixture is not a grant.
+ */
+const NO_RELICS: RelicId[] = Array.from<RelicId>([]);
 
 /** Every spec the seed's map can put on the field, longest species name first. */
 function harvestSpecs(state: RunState): PokemonSpec[] {
@@ -193,30 +207,124 @@ export function anyShop(state: RunState): ShopStock | null {
   return null;
 }
 
-/** The generated event with the most prose across its choices, drawn from a keyed stream. */
+/**
+ * The generated event with the most prose across its choices, drawn from a
+ * keyed stream. **Widened past one locale by M5.6, discrepancy D35.**
+ *
+ * It asked `forest` for forty draws and took the wordiest of those, so the
+ * surface it gates was the wordiest of eight events out of twenty-four —
+ * three locales' worth of copy could go over budget without this fixture ever
+ * rendering one of them. The same defect D35 named on the relic offer: a
+ * fixture that looks like a worst case and is a sample. Every locale now, and
+ * the census reads the worst event in the tree rather than the worst in one
+ * region.
+ *
+ * **And it ranked by characters, which is not what anything budgets.** Section
+ * 4 counts words; picking the longest string picked `forest-fallen-giant` at
+ * 52 census words over `marsh-sinkhole-pool` at 54, so the census was two
+ * words short of the worst case for the same reason it was sixteen events
+ * short of it. It counts words now.
+ *
+ * The per-event lint in `test/event-budget.test.ts` is the other half and is
+ * the one that covers all twenty-four *and* every band. This picks the single
+ * event the screenshot and the census are taken on.
+ */
 export function wordiestEvent(seed: string): EventInstance {
   let best: EventInstance | null = null;
   let bestLength = -1;
-  for (let index = 0; index < 40; index++) {
-    const event = generateEvent(
-      'gallery',
-      'forest',
-      2,
-      createRng(`${seed}-EVT-${index}`).rewards.at('e'),
-      DEFAULT_TUNING,
-      new EventPicker(),
-    );
-    if (!event) continue;
-    const length =
-      event.prompt.length +
-      event.options.reduce((total, option) => total + option.label.length + option.hint.length, 0);
-    if (length > bestLength) {
-      best = event;
-      bestLength = length;
+  for (const locale of EVENT_LOCALES) {
+    for (let index = 0; index < 40; index++) {
+      const event = generateEvent(
+        'gallery',
+        locale,
+        2,
+        createRng(`${seed}-EVT-${locale}-${index}`).rewards.at('e'),
+        DEFAULT_TUNING,
+        new EventPicker(),
+      );
+      if (!event) continue;
+      const length =
+        words(eventHook(event.eventId)) +
+        event.options.reduce(
+          (total, option) =>
+            total +
+            words(eventLabel(event.eventId, option.archetype)) +
+            words(eventHint(event.eventId, option.archetype)),
+          0,
+        );
+      if (length > bestLength) {
+        best = event;
+        bestLength = length;
+      }
     }
   }
   if (!best) throw new Error('no event generated');
   return best;
+}
+
+/** Words, the unit section 4 budgets in. Not characters. */
+function words(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** Every locale the event table carries entries for. */
+const EVENT_LOCALES: readonly LocaleId[] = LOCALES.map((locale) => locale.id);
+
+/**
+ * A three-card offer that really holds a relic. **Milestone M5.1, D35.**
+ *
+ * **No relic card has ever rendered on any fixture in this tree**, and the
+ * reason is one line above: `furnish` grants the run every relic, because that
+ * is the honest worst case for the party screen and the drawer. `resolveOffer`
+ * and `resolveStock` then collapse a relic the run already holds to its
+ * fallback — correctly, and by design since 4.6b — so all 28 relic cards the
+ * map generates (14 offers of 175, 14 shelves of 23) render as something else.
+ * The card whose copy is 16 words at the median is the one the instrument was
+ * built never to show.
+ *
+ * So this walks the map for an offer that *generates* one and hands it over
+ * **unresolved**, paired with a state holding no relics. Nothing is fabricated:
+ * the offer is the map's own, drawn by the seed at generation like every other,
+ * and the only constructed thing is the absence the fixture needs.
+ */
+export function relicOffer(state: RunState): { offer: RewardOffer; state: RunState } | null {
+  const bare: RunState = { ...state, relics: NO_RELICS };
+  for (const segment of state.segments) {
+    for (const route of segment.routes) {
+      for (const step of route.steps) {
+        for (const node of step.options) {
+          if (node.reward?.options.some((option) => option.kind === 'relic')) {
+            return { offer: node.reward, state: bare };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * A shelf that really holds a relic, for the same reason and with the same
+ * remedy. **M5.1, D35.**
+ *
+ * `anyShop` takes the first shelf the map holds, which on `SMOKE24` stocks no
+ * relic at all — so even without the every-relic grant that fixture could not
+ * show one. This takes the first shelf that *does*.
+ */
+export function relicShop(state: RunState): { stock: ShopStock; state: RunState } | null {
+  const bare: RunState = { ...state, relics: NO_RELICS };
+  for (const segment of state.segments) {
+    for (const route of segment.routes) {
+      for (const step of route.steps) {
+        for (const node of step.options) {
+          if (node.shop?.items.some((entry) => entry.reward.kind === 'relic')) {
+            return { stock: node.shop, state: bare };
+          }
+        }
+      }
+    }
+  }
+  return null;
 }
 
 /** A move that teaches: the target and replace screens' incoming card. */
