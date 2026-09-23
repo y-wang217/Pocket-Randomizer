@@ -53,6 +53,7 @@
  */
 import { BAND_PIPS } from '../../data/bandInfo';
 import type { GlyphFamily } from '../../data/glyphFamilies';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
 
 import { TYPE_ICON_NAMES, TYPE_ICON_VIEWBOX, typeIconPath } from './typeIcons';
 
@@ -88,10 +89,17 @@ export interface Glyph {
   /** Unique across the sheet. */
   id: string;
   family: GlyphFamily;
-  /** What the first-exposure label would say, if this family's label named it. */
+  /** The exposure label and the accessible name: one word, from `data/glyphLabels.ts` (M6.1). */
   label: string;
   art: GlyphArt;
 }
+
+/**
+ * A glyph's word, from `data/glyphLabels.ts`. **M6.1.** Falls back to the id
+ * rather than to a second copy of the word, so a missing entry shows as the
+ * bug it is; `test/glyph-labels.test.ts` fails on one first.
+ */
+const labelOf = (id: string): string => GLYPH_LABELS[id] ?? id;
 
 const path = (d: string, rule?: 'evenodd'): GlyphArt => ({
   kind: 'markup',
@@ -134,9 +142,9 @@ export const GLYPHS: readonly Glyph[] = [
     art: { kind: 'markup', markup: typeIconPath(name) ?? '' },
   })),
 
-  { id: 'category-physical', family: 'category', label: 'Physical', art: FIST },
-  { id: 'category-special', family: 'category', label: 'Special', art: RING },
-  { id: 'category-status', family: 'category', label: 'Status', art: WAVE },
+  { id: 'category-physical', family: 'category', label: labelOf('category-physical'), art: FIST },
+  { id: 'category-special', family: 'category', label: labelOf('category-special'), art: RING },
+  { id: 'category-status', family: 'category', label: labelOf('category-status'), art: WAVE },
 
   /*
    * Band: a filled pip and an **outlined** one.
@@ -157,56 +165,56 @@ export const GLYPHS: readonly Glyph[] = [
    * Section 2 is unmoved by this: "one pip per band, filled to band" says what
    * a filled pip means and nothing about how an empty one is drawn.
    */
-  { id: 'band-pip-on', family: 'band', label: 'Band', art: path('M12 5.2a6.8 6.8 0 1 0 0 13.6 6.8 6.8 0 0 0 0-13.6z') },
+  { id: 'band-pip-on', family: 'band', label: labelOf('band-pip-on'), art: path('M12 5.2a6.8 6.8 0 1 0 0 13.6 6.8 6.8 0 0 0 0-13.6z') },
   {
     id: 'band-pip-off',
     family: 'band',
-    label: 'Band',
+    label: labelOf('band-pip-off'),
     art: { kind: 'markup', markup: '<circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/>' },
   },
 
   // PP: a drop. A supply that is spent, which is the fact the number beside it
   // quantifies. Distinct from every round shape in the sheet by its point.
-  { id: 'pp', family: 'pp', label: 'PP', art: path('M12 2.5c0 0 7 7.8 7 11.6A7 7 0 1 1 5 14.1C5 10.3 12 2.5 12 2.5z') },
+  { id: 'pp', family: 'pp', label: labelOf('pp'), art: path('M12 2.5c0 0 7 7.8 7 11.6A7 7 0 1 1 5 14.1C5 10.3 12 2.5 12 2.5z') },
 
   // Accuracy: a bullseye, and a dart for the move that cannot miss. Rings
   // against a solid wedge — the pair the kills-it condition is really about.
   {
     id: 'accuracy-target',
     family: 'accuracy',
-    label: 'Accuracy',
+    label: labelOf('accuracy-target'),
     art: path(
       'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 3.2a6.8 6.8 0 1 1 0 13.6 6.8 6.8 0 0 1 0-13.6zm0 3.6a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z',
       'evenodd',
     ),
   },
-  { id: 'accuracy-never-miss', family: 'accuracy', label: 'Never misses', art: path('M21.5 2.5l-8.2 19-3.1-7.7-7.7-3.1z') },
+  { id: 'accuracy-never-miss', family: 'accuracy', label: labelOf('accuracy-never-miss'), art: path('M21.5 2.5l-8.2 19-3.1-7.7-7.7-3.1z') },
 
   // Priority: two triangles. Mirror images, which is the most separable pair
   // two glyphs in one family can be.
-  { id: 'priority-up', family: 'priority', label: 'Moves first', art: path('M12 5.5l8 10.5H4z') },
-  { id: 'priority-down', family: 'priority', label: 'Moves last', art: path('M12 18.5L4 8h16z') },
+  { id: 'priority-up', family: 'priority', label: labelOf('priority-up'), art: path('M12 5.5l8 10.5H4z') },
+  { id: 'priority-down', family: 'priority', label: labelOf('priority-down'), art: path('M12 18.5L4 8h16z') },
 
   // Effectiveness: section 2 specifies an edge and a numeral, not a mark. The
   // edge is the entry.
-  { id: 'effectiveness-edge', family: 'effectiveness', label: 'Effectiveness', art: path('M3 2.5h5.5v19H3z') },
+  { id: 'effectiveness-edge', family: 'effectiveness', label: labelOf('effectiveness-edge'), art: path('M3 2.5h5.5v19H3z') },
 
   // Status: the lettering is the glyph, per section 2.
-  { id: 'status-brn', family: 'status', label: 'Burn', art: { kind: 'text', text: 'BRN' } },
-  { id: 'status-par', family: 'status', label: 'Paralysis', art: { kind: 'text', text: 'PAR' } },
-  { id: 'status-psn', family: 'status', label: 'Poison', art: { kind: 'text', text: 'PSN' } },
-  { id: 'status-tox', family: 'status', label: 'Toxic', art: { kind: 'text', text: 'TOX' } },
-  { id: 'status-slp', family: 'status', label: 'Sleep', art: { kind: 'text', text: 'SLP' } },
-  { id: 'status-frz', family: 'status', label: 'Freeze', art: { kind: 'text', text: 'FRZ' } },
+  { id: 'status-brn', family: 'status', label: labelOf('status-brn'), art: { kind: 'text', text: 'BRN' } },
+  { id: 'status-par', family: 'status', label: labelOf('status-par'), art: { kind: 'text', text: 'PAR' } },
+  { id: 'status-psn', family: 'status', label: labelOf('status-psn'), art: { kind: 'text', text: 'PSN' } },
+  { id: 'status-tox', family: 'status', label: labelOf('status-tox'), art: { kind: 'text', text: 'TOX' } },
+  { id: 'status-slp', family: 'status', label: labelOf('status-slp'), art: { kind: 'text', text: 'SLP' } },
+  { id: 'status-frz', family: 'status', label: labelOf('status-frz'), art: { kind: 'text', text: 'FRZ' } },
 
   // Stat: six rows, and two of them are the category glyphs again because
   // section 2 says the Atk and SpA rows wear the fist and the ring.
-  { id: 'stat-hp', family: 'stat', label: 'HP', art: path('M9.8 2.5h4.4v7.3h7.3v4.4h-7.3v7.3H9.8v-7.3H2.5V9.8h7.3z') },
-  { id: 'stat-atk', family: 'stat', label: 'Attack', art: FIST },
-  { id: 'stat-def', family: 'stat', label: 'Defense', art: SHIELD },
-  { id: 'stat-spa', family: 'stat', label: 'Special Attack', art: RING },
-  { id: 'stat-spd', family: 'stat', label: 'Special Defense', art: SHIELD_HOLLOW },
-  { id: 'stat-spe', family: 'stat', label: 'Speed', art: path('M2.5 4.5l8 7.5-8 7.5zm9.5 0l8 7.5-8 7.5z') },
+  { id: 'stat-hp', family: 'stat', label: labelOf('stat-hp'), art: path('M9.8 2.5h4.4v7.3h7.3v4.4h-7.3v7.3H9.8v-7.3H2.5V9.8h7.3z') },
+  { id: 'stat-atk', family: 'stat', label: labelOf('stat-atk'), art: FIST },
+  { id: 'stat-def', family: 'stat', label: labelOf('stat-def'), art: SHIELD },
+  { id: 'stat-spa', family: 'stat', label: labelOf('stat-spa'), art: RING },
+  { id: 'stat-spd', family: 'stat', label: labelOf('stat-spd'), art: SHIELD_HOLLOW },
+  { id: 'stat-spe', family: 'stat', label: labelOf('stat-spe'), art: path('M2.5 4.5l8 7.5-8 7.5zm9.5 0l8 7.5-8 7.5z') },
 
   /*
    * **Capability: the tenth family. D37, 2026-09-22.**
@@ -226,14 +234,14 @@ export const GLYPHS: readonly Glyph[] = [
    * block, a T, a chevron, three bars, an arrow into a floor, a burst. Eight
    * outlines that stay apart when every one of them is 16 pixels across.
    */
-  { id: 'capability-cut', family: 'capability', label: 'Cut', art: path('M4.5 20.5l12-16 3 2.2-12 16z') },
-  { id: 'capability-surf', family: 'capability', label: 'Surf', art: path('M2 12c0-2.6 4.5-4.7 10-4.7s10 2.1 10 4.7-4.5 4.7-10 4.7S2 14.6 2 12z') },
-  { id: 'capability-strength', family: 'capability', label: 'Strength', art: path('M4.5 4.5h15v15h-15z') },
-  { id: 'capability-rockSmash', family: 'capability', label: 'Rock Smash', art: path('M3 3h18v5H3zm7.2 5h3.6v13h-3.6z') },
-  { id: 'capability-fly', family: 'capability', label: 'Fly', art: path('M12 3.5L22 18h-5.2L12 10.6 7.2 18H2z') },
-  { id: 'capability-waterfall', family: 'capability', label: 'Waterfall', art: path('M4 2.5h3.2v19H4zm6.4 0h3.2v19h-3.2zm6.4 0H20v19h-3.2z') },
-  { id: 'capability-dive', family: 'capability', label: 'Dive', art: path('M9.4 2.5h5.2v10h4.4L12 21 5 12.5h4.4z') },
-  { id: 'capability-flash', family: 'capability', label: 'Flash', art: path('M10.6 2h2.8v6h-2.8zm0 14h2.8v6h-2.8zM2 10.6h6v2.8H2zm14 0h6v2.8h-6zM4.6 6.6l2-2 4.2 4.2-2 2zm10.6 10.6l2-2 4.2 4.2-2 2zM4.6 17.4l4.2-4.2 2 2-4.2 4.2zm10.6-10.6l4.2-4.2 2 2-4.2 4.2z') },
+  { id: 'capability-cut', family: 'capability', label: labelOf('capability-cut'), art: path('M4.5 20.5l12-16 3 2.2-12 16z') },
+  { id: 'capability-surf', family: 'capability', label: labelOf('capability-surf'), art: path('M2 12c0-2.6 4.5-4.7 10-4.7s10 2.1 10 4.7-4.5 4.7-10 4.7S2 14.6 2 12z') },
+  { id: 'capability-strength', family: 'capability', label: labelOf('capability-strength'), art: path('M4.5 4.5h15v15h-15z') },
+  { id: 'capability-rockSmash', family: 'capability', label: labelOf('capability-rockSmash'), art: path('M3 3h18v5H3zm7.2 5h3.6v13h-3.6z') },
+  { id: 'capability-fly', family: 'capability', label: labelOf('capability-fly'), art: path('M12 3.5L22 18h-5.2L12 10.6 7.2 18H2z') },
+  { id: 'capability-waterfall', family: 'capability', label: labelOf('capability-waterfall'), art: path('M4 2.5h3.2v19H4zm6.4 0h3.2v19h-3.2zm6.4 0H20v19h-3.2z') },
+  { id: 'capability-dive', family: 'capability', label: labelOf('capability-dive'), art: path('M9.4 2.5h5.2v10h4.4L12 21 5 12.5h4.4z') },
+  { id: 'capability-flash', family: 'capability', label: labelOf('capability-flash'), art: path('M10.6 2h2.8v6h-2.8zm0 14h2.8v6h-2.8zM2 10.6h6v2.8H2zm14 0h6v2.8h-6zM4.6 6.6l2-2 4.2 4.2-2 2zm10.6 10.6l2-2 4.2 4.2-2 2zM4.6 17.4l4.2-4.2 2 2-4.2 4.2zm10.6-10.6l4.2-4.2 2 2-4.2 4.2z') },
 
   /*
    * **The band chevron, filled and hollow.** Section 3's three states — none,
@@ -245,11 +253,11 @@ export const GLYPHS: readonly Glyph[] = [
    * difference alone measured half the floor at 16px, and shape plus tone
    * reads two ways instead of one.
    */
-  { id: 'capability-band-on', family: 'capability', label: 'Reach', art: path('M12 6.5l7 9H5z') },
+  { id: 'capability-band-on', family: 'capability', label: labelOf('capability-band-on'), art: path('M12 6.5l7 9H5z') },
   {
     id: 'capability-band-off',
     family: 'capability',
-    label: 'Reach',
+    label: labelOf('capability-band-off'),
     art: { kind: 'markup', markup: '<path d="M12 7.6l5.6 7.2H6.4z" fill="none" stroke="currentColor" stroke-width="1.4"/>' },
   },
 ];

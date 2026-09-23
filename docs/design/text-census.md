@@ -22,26 +22,26 @@ label that is due. It is recorded and never gated.
 
 | Surface | detailed | simple | pocket | pocket, less shell | first run |
 |---|---:|---:|---:|---:|---:|
-| starter | 98 | 89 | 24 | 20 | 20 |
-| locale | 14 | 14 | 9 | 3 | 3 |
-| map | 50 | 43 | 28 | 22 | 22 |
-| battle | 36 | 36 | 13 | 7 | 7 |
-| result | 24 | 19 | 16 | 10 | 10 |
-| result-capture | 102 | 81 | 46 | 40 | 40 |
-| target | 231 | 201 | 58 | 52 | 52 |
-| replace | 40 | 33 | 21 | 15 | 15 |
-| party | 407 | 408 | 23 | 17 | 17 |
-| pre-gym | 151 | 157 | 9 | 3 | 3 |
-| shop | 56 | 40 | 31 | 25 | 25 |
+| starter | 98 | 89 | 24 | 20 | 71 |
+| locale | 14 | 14 | 9 | 3 | 8 |
+| map | 50 | 43 | 28 | 22 | 24 |
+| battle | 36 | 36 | 13 | 7 | 29 |
+| result | 24 | 19 | 16 | 10 | 12 |
+| result-capture | 102 | 81 | 46 | 40 | 45 |
+| target | 231 | 201 | 58 | 52 | 57 |
+| replace | 40 | 33 | 21 | 15 | 22 |
+| party | 407 | 408 | 23 | 17 | 19 |
+| pre-gym | 151 | 157 | 9 | 3 | 5 |
+| shop | 56 | 40 | 31 | 25 | 31 |
 | event | 60 | 60 | 60 | 54 | 54 |
-| result-relic | 34 | 29 | 26 | 20 | 20 |
-| shop-relic | 69 | 48 | 39 | 33 | 33 |
-| drawer | 284 | 272 | 41 | 35 | 35 |
-| map-drawer | 86 | 72 | 48 | 42 | 42 |
-| confirm-replace | 51 | 44 | 25 | 19 | 19 |
-| confirm-forfeit | 243 | 213 | 66 | 60 | 60 |
-| summary | 492 | 448 | 357 | 336 | 336 |
-| log-sheet | 146 | 146 | 123 | 117 | 117 |
+| result-relic | 34 | 29 | 26 | 20 | 24 |
+| shop-relic | 69 | 48 | 39 | 33 | 41 |
+| drawer | 284 | 272 | 41 | 35 | 37 |
+| map-drawer | 86 | 72 | 48 | 42 | 44 |
+| confirm-replace | 51 | 44 | 25 | 19 | 26 |
+| confirm-forfeit | 243 | 213 | 66 | 60 | 65 |
+| summary | 492 | 448 | 357 | 336 | 405 |
+| log-sheet | 146 | 146 | 123 | 117 | 139 |
 
 ## Per component
 

@@ -56,7 +56,7 @@ which blocks everything.
 | D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
 | D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **open** |
 | D40 | M6.1's done-when | The classroom does not carry the families section 7 says it does: starter select draws its own move rows | **2026-09-23**, option 3: new item M6.0 |
-| D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **2026-09-23**, option 1 plus option 3's test |
+| D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **2026-09-23**, option 1 plus option 3's test, built |
 | D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **2026-09-23**, option 1 |
 | D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |

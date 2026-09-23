@@ -101,5 +101,23 @@ export function categoryGlyphId(category: string): string {
   return `category-${category.toLowerCase()}`;
 }
 
+/**
+ * Mark a node as the painted instance of a family that has no glyph drawn for
+ * it here. **Milestone M6.1, D41.**
+ *
+ * Section 5's canon row says the exposure label is *"rendered by the glyph"*,
+ * and `ui/exposure-labels.ts` finds a family by the `data-family` this file
+ * writes. Two marks in the game report a family without being a drawing in the
+ * sheet: the effectiveness forecast, which section 2 specifies as an edge and a
+ * numeral, and a volatile condition, which D19 put in the Status family as
+ * lettering the sheet never drew. They come through here, so the one attribute
+ * the labels key from is still written in one file. Anything the sheet does
+ * draw goes through `glyphNode` instead.
+ */
+export function markFamily(node: HTMLElement, family: GlyphFamily): HTMLElement {
+  node.dataset['family'] = family;
+  return node;
+}
+
 /** Every family, for a caller that needs to enumerate rather than name one. */
 export type { GlyphFamily };

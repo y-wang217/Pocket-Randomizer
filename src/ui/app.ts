@@ -39,6 +39,7 @@ import { DEFAULT_TUNING } from '../data/tuning';
 import { SEED_COPY } from '../data/seedCopy';
 import type { EventArchetype } from '../data/eventPools';
 import { createPending, isRunAbandoned } from './pending';
+import { watchExposures } from './exposure-labels';
 import { initSettings, onSettingsChange, resetIntro, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
 import { createIntro } from './intro';
@@ -362,6 +363,22 @@ export function mountApp(root: HTMLElement): void {
     if (drawer.isOpen()) marks.showFor('drawer', drawer.root);
   });
   root.replaceChildren(world.root, shell);
+
+  /*
+   * **The exposure labels. Milestone M6.1, R7.** One pass whenever anything in
+   * the shell is added or replaced, counted against whatever the player is
+   * looking at: the drawer while it is open, the routed screen otherwise. A
+   * screen's first draw, a battle's per-turn redraw and the drawer opening are
+   * all additions, so this one watcher covers every path without a call at
+   * each. `ui/exposure-labels.ts` says why a redraw re-labels without
+   * re-counting.
+   */
+  watchExposures(shell, () => {
+    if (drawer.isOpen()) return { screen: 'drawer', within: drawer.root };
+    const name = router.current();
+    const screen = name ? router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`) : null;
+    return name && screen ? { screen: name, within: screen } : null;
+  });
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
 
   /*

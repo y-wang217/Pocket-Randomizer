@@ -10831,3 +10831,80 @@ said "Detailed first: the default" and now says why the order stays.
 13 settings words to M6.3 "which touches the density picker anyway". M6.3 does
 not touch the picker, and M6.4 may delete two of its three options, which would
 rewrite that copy. Left for M6.4.
+
+## 76. The labels, and the three families that could not report themselves
+
+**Milestone M6.1, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **R7** (built, ten families), **R2 and R3** (the labels sit under
+the permits Rev 12 added, D42), **section 5**'s exposure label row (every family
+reports itself, D41), **section 7** (the classroom labels every family it
+paints, and an exposure is a painted glyph, D43) and **section 4** (budgets bind
+the steady state, D44). No version axis moves: `data/glyphLabels.ts` is in
+`EXCLUDED`.
+
+**Deviation from the item text:** ten families, not nine (Rev 11). The item
+says "copy in `data/glyphLabels.ts`" per family. It is keyed per glyph, because
+section 7's classroom promises words for the *category*, and the word a fist
+needs is `Physical`, not `Category`. Two family-level words cover the marks the
+sheet does not draw (a volatile condition, the effectiveness numeral).
+
+### What was built
+
+- **`data/glyphLabels.ts`**: one word per sheet glyph, three words at most
+  (`test/glyph-labels.test.ts`). The sheet reads its accessible names from the
+  same table, so the label and the screen reader's word cannot drift apart.
+- **D41.** Band pips are the sheet's filled and outlined circles, which M1.1
+  drew for exactly this and nothing had mounted. The six major status chips hold
+  the sheet's lettering glyph. The effectiveness numeral and a volatile chip
+  are marked with `markFamily`, the one other place that writes `data-family`.
+- **`ui/exposure-labels.ts`**: one pass per screen visit, re-run on every
+  redraw without re-counting, and one label per group (a band's five pips get
+  one). The app watches the shell; the gallery runs one pass per page.
+- **Tests.** `test/exposure-labels.test.ts` is R7's enforce clause for every
+  family: labelled on visits 1 and 3, not on 2 or 4, kept through a redraw,
+  never counted when hidden. `test/visual-exposure-labels.test.ts` is D41's
+  family walk: every painted pip, status chip and effectiveness numeral on every
+  gallery surface reports its family, all ten families are painted somewhere,
+  and the classroom labels every family it paints on a fresh store and none on
+  an exhausted one.
+
+**The driven browsers are returning players.** The first full browser run
+failed six tests: four height baselines, the move grid's fold, and the chip
+sweep, which found text inside a capability chip. All six had the same cause.
+The bot's "not a first launch" store (`scripts/first-launch.mjs`) covered the
+coach marks and the greeting but not the counts, so every driven run met the
+first-run labels. The store now puts every family past its third exposure, the
+face the baselines were taken on. A unit test holds its family list against
+`src/data/glyphFamilies.ts`.
+
+### The numbers
+
+Steady state unchanged on every surface; the census's first-run column (D44)
+is where the labels show. Pocket less shell:
+
+| Surface | Steady | First run |
+|---|---:|---:|
+| starter | 20 | 71 |
+| battle | 7 | 29 |
+| summary | 336 | 405 |
+| log-sheet | 117 | 139 |
+| shop-relic | 33 | 41 |
+
+The rest move by 2 to 7. Type names are proper nouns and are not counted, so
+a type chip's label costs no words in the census.
+
+### Three findings left open
+
+- **The battle screen is 859px tall on a first run**, against 844 at the steady
+  state. The labels on four move buttons wrap. Recorded, not gated (D44).
+- **The result screen is 418px wide on `SMOKE24`, with or without labels.** It
+  predates M6.1 (measured with the M6.1 changes stashed). No test reads the
+  result screen's `scrollWidth` on the loaded fixture. Open, and an input to
+  M7.2.
+- **D39 is not taken.** Its recommendation timed the Toll's `Costs` with M6.1.
+  It needs a section 3 row and a section 9 disconfirmer, which are amendments,
+  and a sign is not a glyph family, so an exposure label cannot carry it. It
+  stays open for its own ruling.
+
+The first-run starter is at [`visual/m6.1-starter-first-run.png`](visual/m6.1-starter-first-run.png),
+written by `GYMRUN_RECORD=1 npx vitest run test/visual-exposure-labels.test.ts`.

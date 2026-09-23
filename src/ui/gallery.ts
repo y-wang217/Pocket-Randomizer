@@ -50,6 +50,7 @@ import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
+import { labelExposures } from './exposure-labels';
 import { createHeader } from './header';
 import { createTutorial } from './tutorial';
 import type { TutorialScreen } from '../data/tutorial';
@@ -440,6 +441,21 @@ async function main(): Promise<void> {
    * the assertion ruling 6 asked for, that no mark is ever dropped without a
    * trace.
    */
+  /*
+   * The exposure labels (M6.1), once, on whatever is on top: the drawer if one
+   * is open, the routed screen otherwise. The app runs the same pass on every
+   * redraw (`ui/app.ts`); a gallery page draws once. With the default
+   * `exposure=exhausted` every family is past its third exposure and nothing
+   * renders; `exposure=fresh` is the first launch.
+   */
+  const current = router.current();
+  const onTop = drawer.isOpen()
+    ? { screen: 'drawer', within: drawer.root as ParentNode }
+    : current
+      ? { screen: current, within: router.root.querySelector<HTMLElement>(`.screen[data-screen="${current}"]`) as ParentNode | null }
+      : null;
+  if (onTop?.within) labelExposures(onTop.screen, onTop.within);
+
   if (params.get('tutorial') === 'fresh') {
     const screen = TUTORIAL_SURFACE[surface];
     if (screen) {
