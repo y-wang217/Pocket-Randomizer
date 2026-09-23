@@ -427,7 +427,7 @@ async function presentOn(page: Page, components: readonly { id: string; selector
   );
 }
 
-async function censusAll(url: string, browser: Browser): Promise<{ records: Record_[]; present: Set<string> }> {
+async function censusAll(url: string, browser: Browser): Promise<{ records: Record_[]; firstRun: Record_[]; present: Set<string> }> {
   const lexicon = properNouns();
   const records: Record_[] = [];
   // Which components put an element on any surface, in any density. See
@@ -440,13 +440,25 @@ async function censusAll(url: string, browser: Browser): Promise<{ records: Reco
   // request changes nothing this script counts.
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
+  const firstRun: Record_[] = [];
 
-  for (const density of DENSITIES) {
+  /*
+   * Three passes at the steady state, one per density, and a fourth in Pocket
+   * at a fresh store. **D44.** Section 4 budgets the face a player reads once
+   * R7's labels are spent, which is the gallery's default; the first-run pass
+   * is the face a new player reads, recorded beside it and gating nothing.
+   */
+  const passes: readonly { density: Density; exposure: 'exhausted' | 'fresh' }[] = [
+    ...DENSITIES.map((density) => ({ density, exposure: 'exhausted' as const })),
+    { density: 'pocket', exposure: 'fresh' },
+  ];
+  for (const { density, exposure } of passes) {
+    const into = exposure === 'fresh' ? firstRun : records;
     for (const surface of GALLERY_SURFACES) {
       // A hash-only change does not reload, and the gallery reads its state
       // once at startup: without the reload every surface returns the first
       // one measured. Found the direct way.
-      await page.goto(`${url}/gallery.html#seed=${CENSUS_SEED}&screen=${surface}&density=${density}&fixture=loaded`, { waitUntil: 'load' });
+      await page.goto(`${url}/gallery.html#seed=${CENSUS_SEED}&screen=${surface}&density=${density}&fixture=loaded&exposure=${exposure}`, { waitUntil: 'load' });
       await page.reload({ waitUntil: 'load' });
       await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
       await page.evaluate(() => document.fonts.ready);
@@ -455,7 +467,7 @@ async function censusAll(url: string, browser: Browser): Promise<{ records: Reco
       await page.mouse.move(0, 0);
       await page.waitForTimeout(150);
 
-      for (const id of await presentOn(page, COMPONENTS)) present.add(id);
+      if (exposure === 'exhausted') for (const id of await presentOn(page, COMPONENTS)) present.add(id);
 
       const nodes = await readSurface(page, COMPONENTS, GLYPH_SLOTS.map(({ selector }) => selector));
       for (const { component, instance, text } of nodes) {
@@ -464,13 +476,13 @@ async function censusAll(url: string, browser: Browser): Promise<{ records: Reco
           const isCapitalised = /^\p{Lu}/u.test(token);
           return !(isCapitalised && lexicon.has(token.toLowerCase()));
         });
-        if (words.length) records.push({ surface, density, component, instance, words });
+        if (words.length) into.push({ surface, density, component, instance, words });
       }
     }
   }
 
   await context.close();
-  return { records, present };
+  return { records, firstRun, present };
 }
 
 function total(records: readonly Record_[]): number {
@@ -513,7 +525,7 @@ function worstInstance(records: readonly Record_[], component: string, density: 
  *
  * D31, M5.5.
  */
-export function renderTable(records: readonly Record_[], present: ReadonlySet<string> = new Set()): string {
+export function renderTable(records: readonly Record_[], present: ReadonlySet<string> = new Set(), firstRun: readonly Record_[] = []): string {
   const lines: string[] = [];
   lines.push('# Text census');
   lines.push('');
@@ -529,16 +541,22 @@ export function renderTable(records: readonly Record_[], present: ReadonlySet<st
 
   lines.push('## Per surface');
   lines.push('');
-  lines.push('The last column is the one section 4 budgets: the app shell renders on every');
+  lines.push('`pocket, less shell` is the column section 4 budgets: the app shell renders on every');
   lines.push('surface and is not the surface, so its words are shown separately below and');
   lines.push('subtracted here.');
   lines.push('');
-  lines.push('| Surface | detailed | simple | pocket | pocket, less shell |');
-  lines.push('|---|---:|---:|---:|---:|');
+  lines.push('Every column but the last is the steady state: every glyph family past R7\'s');
+  lines.push('third exposure, which is the face section 4 budgets (D44). **The last column');
+  lines.push('is a first launch**, Pocket less shell at a fresh store, with every exposure');
+  lines.push('label that is due. It is recorded and never gated.');
+  lines.push('');
+  lines.push('| Surface | detailed | simple | pocket | pocket, less shell | first run |');
+  lines.push('|---|---:|---:|---:|---:|---:|');
   for (const surface of GALLERY_SURFACES) {
     const cells = DENSITIES.map((density) => total(records.filter((r) => r.surface === surface && r.density === density)));
     const bare = total(records.filter((r) => r.surface === surface && r.density === 'pocket' && r.component !== 'app shell'));
-    lines.push(`| ${surface} | ${cells.join(' | ')} | ${bare} |`);
+    const fresh = total(firstRun.filter((r) => r.surface === surface && r.component !== 'app shell'));
+    lines.push(`| ${surface} | ${cells.join(' | ')} | ${bare} | ${fresh} |`);
   }
   lines.push('');
 
@@ -595,8 +613,8 @@ async function main(): Promise<void> {
   const server = await serve(out);
   const browser = await launch();
   try {
-    const { records, present } = await censusAll(server.url, browser);
-    const table = renderTable(records, present);
+    const { records, firstRun, present } = await censusAll(server.url, browser);
+    const table = renderTable(records, present, firstRun);
     if (write) {
       writeFileSync(CENSUS_PATH, table);
       console.log(`census: wrote ${CENSUS_PATH}`);
@@ -615,7 +633,9 @@ async function main(): Promise<void> {
     console.log('census: CHANGED. Per-surface deltas, Pocket less shell:');
     const before = new Map<string, number>();
     for (const line of committed.split('\n')) {
-      const match = /^\| ([a-z-]+) \| \d+ \| \d+ \| \d+ \| (\d+) \|$/.exec(line);
+      // The first-run column is optional so a table written before D44 still
+      // reads back.
+      const match = /^\| ([a-z-]+) \| \d+ \| \d+ \| \d+ \| (\d+) \|(?: \d+ \|)?$/.exec(line);
       if (match) before.set(match[1] as string, Number(match[2]));
     }
     for (const surface of GALLERY_SURFACES) {

@@ -11,32 +11,37 @@ its reason. Read them before reading a number.
 
 ## Per surface
 
-The last column is the one section 4 budgets: the app shell renders on every
+`pocket, less shell` is the column section 4 budgets: the app shell renders on every
 surface and is not the surface, so its words are shown separately below and
 subtracted here.
 
-| Surface | detailed | simple | pocket | pocket, less shell |
-|---|---:|---:|---:|---:|
-| starter | 84 | 75 | 51 | 47 |
-| locale | 14 | 14 | 9 | 3 |
-| map | 50 | 43 | 28 | 22 |
-| battle | 36 | 36 | 13 | 7 |
-| result | 24 | 19 | 16 | 10 |
-| result-capture | 102 | 81 | 46 | 40 |
-| target | 231 | 201 | 58 | 52 |
-| replace | 40 | 33 | 21 | 15 |
-| party | 407 | 408 | 23 | 17 |
-| pre-gym | 151 | 157 | 9 | 3 |
-| shop | 56 | 40 | 31 | 25 |
-| event | 60 | 60 | 60 | 54 |
-| result-relic | 34 | 29 | 26 | 20 |
-| shop-relic | 69 | 48 | 39 | 33 |
-| drawer | 284 | 272 | 41 | 35 |
-| map-drawer | 86 | 72 | 48 | 42 |
-| confirm-replace | 51 | 44 | 25 | 19 |
-| confirm-forfeit | 243 | 213 | 66 | 60 |
-| summary | 492 | 448 | 357 | 336 |
-| log-sheet | 146 | 146 | 123 | 117 |
+Every column but the last is the steady state: every glyph family past R7's
+third exposure, which is the face section 4 budgets (D44). **The last column
+is a first launch**, Pocket less shell at a fresh store, with every exposure
+label that is due. It is recorded and never gated.
+
+| Surface | detailed | simple | pocket | pocket, less shell | first run |
+|---|---:|---:|---:|---:|---:|
+| starter | 84 | 75 | 51 | 47 | 47 |
+| locale | 14 | 14 | 9 | 3 | 3 |
+| map | 50 | 43 | 28 | 22 | 22 |
+| battle | 36 | 36 | 13 | 7 | 7 |
+| result | 24 | 19 | 16 | 10 | 10 |
+| result-capture | 102 | 81 | 46 | 40 | 40 |
+| target | 231 | 201 | 58 | 52 | 52 |
+| replace | 40 | 33 | 21 | 15 | 15 |
+| party | 407 | 408 | 23 | 17 | 17 |
+| pre-gym | 151 | 157 | 9 | 3 | 3 |
+| shop | 56 | 40 | 31 | 25 | 25 |
+| event | 60 | 60 | 60 | 54 | 54 |
+| result-relic | 34 | 29 | 26 | 20 | 20 |
+| shop-relic | 69 | 48 | 39 | 33 | 33 |
+| drawer | 284 | 272 | 41 | 35 | 35 |
+| map-drawer | 86 | 72 | 48 | 42 | 42 |
+| confirm-replace | 51 | 44 | 25 | 19 | 19 |
+| confirm-forfeit | 243 | 213 | 66 | 60 | 60 |
+| summary | 492 | 448 | 357 | 336 | 336 |
+| log-sheet | 146 | 146 | 123 | 117 | 117 |
 
 ## Per component
 

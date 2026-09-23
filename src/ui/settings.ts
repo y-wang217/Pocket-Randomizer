@@ -490,6 +490,22 @@ export function exposureFlags(): Record<GlyphFamily, number> {
 }
 
 /**
+ * Set every family's count at once. **D44, for the gallery only.**
+ *
+ * The census measures section 4's steady state, which is every family past
+ * R7's third exposure. A fresh store is the first-run face instead, and both
+ * are wanted: the gallery's `exposure=` parameter picks one by calling this
+ * before anything draws. Never called during a run.
+ */
+export function fillExposure(count: number): void {
+  const counts: ExposureFlags['counts'] = {};
+  for (const family of GLYPH_FAMILIES) counts[family] = count;
+  current = { ...current, exposure: { counts } };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+/**
  * Forget which families this screen has counted.
  *
  * For a test, and for a caller that tears the shell down and rebuilds it

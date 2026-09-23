@@ -19,6 +19,7 @@ import {
   DEFAULT_SETTINGS,
   exposureCount,
   exposureFlags,
+  fillExposure,
   initSettings,
   noteExposure,
   readSettings,
@@ -132,6 +133,17 @@ describe('the tutorial reset control', () => {
 
     resetTutorial();
     resetExposureScreen();
+    for (const family of GLYPH_FAMILIES) expect(exposureCount(family), family).toBe(0);
+  });
+});
+
+describe('fillExposure, the gallery\'s exposure state (D44)', () => {
+  it('sets every family at once, and persists', () => {
+    fillExposure(4);
+    for (const family of GLYPH_FAMILIES) expect(exposureCount(family), family).toBe(4);
+    initSettings();
+    for (const family of GLYPH_FAMILIES) expect(exposureCount(family), family).toBe(4);
+    fillExposure(0);
     for (const family of GLYPH_FAMILIES) expect(exposureCount(family), family).toBe(0);
   });
 });
