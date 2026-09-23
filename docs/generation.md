@@ -10696,3 +10696,25 @@ can reach, which is the device every one of these measurements is taken at"*.
 It was reachable, by exactly the path the bot had disarmed for itself. The
 comment is left as written — it was true of the mechanism it described and
 wrong about the phone, and editing it would lose why the parking is there.
+
+## 72. Tier 6 opens with a fifth item and a new order
+
+**2026-09-23, opening Tier 6.** Branch `claude/dazzling-faraday-tafnyp`. Rulings
+on D40 to D44 ([`design/bible-discrepancies.md`](design/bible-discrepancies.md),
+"Rulings, 2026-09-23"); prep [`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md).
+Bible Rev 12.
+
+**Two deviations from the milestone record**, which is not edited:
+
+- **A new item, M6.0**, mounts the move card on starter select (D40). The record
+  lists four Tier 6 items and none of them owns that screen. M6.1's done-when
+  asks for starter select with every label on a fresh store, and the screen
+  painted two families of ten on every seed measured, so without M6.0 that
+  done-when could not be met.
+- **The order is M6.0, M6.2, M6.3, M6.1** (D43), where the record says M6.1,
+  M6.2, M6.3. While the coach-mark guard forces Detailed, the classroom paints no
+  glyph on run one, so the labels land after the guard is gone and Pocket is the
+  default. M6.4 stays gated on M7.1.
+
+M6.1's scope is ten families, per Rev 11. The census gains its exposure state
+(D44) as an instrument commit before M6.1.

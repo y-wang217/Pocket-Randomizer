@@ -55,11 +55,11 @@ which blocks everything.
 | D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
 | D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
 | D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **open** |
-| D40 | M6.1's done-when | The classroom does not carry the families section 7 says it does: starter select draws its own move rows | **open** |
-| D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **open** |
-| D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **open** |
-| D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **open** |
-| D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **open**, self-closing |
+| D40 | M6.1's done-when | The classroom does not carry the families section 7 says it does: starter select draws its own move rows | **2026-09-23**, option 3: new item M6.0 |
+| D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **2026-09-23**, option 1 plus option 3's test |
+| D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **2026-09-23**, option 1 |
+| D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
+| D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1 |
 
 ## Rulings, 2026-09-19
 
@@ -2918,6 +2918,22 @@ opening `data/glyphLabels.ts` and walking every mark on every surface, which is
 when the question *does a player know what this sign means the first time* is
 cheapest to answer. Not urgent: nothing is over budget because of it, and
 option 1 is what is shipped and is defensible on its own.
+
+---
+
+## Rulings, 2026-09-23, opening Tier 6
+
+Five rows filed against Tier 6 before any of it was built
+([`../handoff/4.10-tier-6-prep.md`](../handoff/4.10-tier-6-prep.md) carries the
+measurements). **All five were ruled as recommended.** The bible goes to Rev 12.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D40 | **Option 3.** A new item, **M6.0**, mounts the move card on starter select as its own PR before M6.1. The screen gains a section 4 row, and section 7's "every glyph family present" is corrected to what the screen can carry. | Bible sections 4, 5 and 7. New item M6.0, recorded as a deviation in `../generation.md` §72 |
+| D41 | **Option 1 plus option 3's test.** Band pips, status lettering and the effectiveness edge are drawn through `glyphNode`. A browser test walks every surface and asserts every painted family reports itself. | Bible section 5. Milestone M6.1 scope |
+| D42 | **Option 1.** R2 and R3 each permit R7's label on exposures 1 and 3. | Bible section 1 |
+| D43 | **Option 1.** An exposure is a painted glyph. The order is M6.0, M6.2, M6.3, M6.1; D10's M6.2-before-M6.3 stands. | Bible section 7. `../generation.md` §72 |
+| D44 | **Option 1.** The census pins every family to exhausted and adds a `first-run` column that gates nothing. Lands as one instrument commit before M6.1. | Bible section 4. `scripts/visual/census.ts` |
 
 ---
 

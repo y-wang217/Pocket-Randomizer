@@ -450,12 +450,15 @@ two fixtures and the number they made readable.
 
 Order confirmed by D10: M6.2 re-anchors the coach marks **before** M6.3 flips the
 default, and section 7 was amended to say so.
+D43 (2026-09-23) moves M6.1 after both, and D40 adds M6.0 in front: the order
+is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M6.1 Exposure labels | open | **D40, D41, D42, D43, D44** (filed 2026-09-23, [prep](../handoff/4.10-tier-6-prep.md)); D5, D12 ruled |
-| M6.2 Coach marks re-anchored | open | D43 (order). All 29 anchors paint in Pocket already; the item is eight marks' copy |
-| M6.3 Pocket default | open | — |
+| M6.0 Starter move card | open | — (D40 ruled 2026-09-23: a new item, [`../generation.md` §72](../generation.md)) |
+| M6.2 Coach marks re-anchored | open | M6.0. All 29 anchors paint in Pocket already; the item is eight marks' copy |
+| M6.3 Pocket default | open | M6.2 (D10) |
+| M6.1 Exposure labels | open | M6.3 and the D44 instrument (D41, D42, D43 ruled 2026-09-23; D5, D12 ruled) |
 | M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
 
 ### Tier 7: validation
