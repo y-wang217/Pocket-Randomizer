@@ -18,10 +18,25 @@ lands.
 
 | Date | Testers | Rule or hypothesis | What was observed | Amendment |
 |---|---|---|---|---|
+| 2026-09-22 | 1 | R5, long press never submits | On an iPhone, a **tap** on a move card chose the move and also opened its inspect panel, which then could not be dismissed by tapping and covered the stage and the log for the rest of the fight. Tapping the panel opened a different move's panel. Reported as *"tooltips dont close. And clicking any movr opens a tooltip that blocks the screen"*, with a screenshot of the stranded panel | — |
 
-Empty. Rev 1 of the bible landed 2026-09-19 and nothing has been playtested
-against it yet. The first entries are expected out of the milestone M0 census
-and whatever validation cycle retires or keeps Simple and Detailed under R6.
+**The one row is not R5's disconfirmer, and the blank Amendment column is the
+point.** R5's kills-it condition is an accidental *submission during inspect*;
+what was observed is its mirror, an accidental *inspect during submission*. No
+long press spent a turn. The cause was the hover enhancement layered over the
+gesture taking the compatibility `mouseover` every mobile browser synthesises
+after a touch, and it was fixed rather than amended —
+[`../spec/gymrun-patch-inspect-hover-on-touch.md`](../spec/gymrun-patch-inspect-hover-on-touch.md),
+[`../generation.md` §71](../generation.md).
+
+The row is here anyway, because this is the first time anyone has played
+against the inspect layer and the log is where that goes. A reader asking
+later whether R5 has ever been tested should find this rather than an empty
+table.
+
+Otherwise empty. Rev 1 of the bible landed 2026-09-19. The next entries are
+expected out of the milestone M0 census and whatever validation cycle retires
+or keeps Simple and Detailed under R6.
 
 ## How to write a row
 

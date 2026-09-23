@@ -11,6 +11,18 @@
  * without it.** That constraint is the reason this stage runs before Stage 5
  * rather than after.
  *
+ * **M1.2 replaced the opening half of that: a long press opens, and a tap
+ * selects.** The rest of the sentence still holds and is still the reason the
+ * layer is shaped this way — the dismissal is a tap, and hover is the part
+ * that may be absent. The gesture section below is the authority on what
+ * opens; this paragraph is kept because it is the argument for the order, and
+ * the order did not change.
+ *
+ * **What that ordering is worth is not theoretical.** The one time hover was
+ * allowed to act like the primary interaction — 2026-09-22, when a phone's
+ * synthesised `mouseover` was taken for a real one — a tap opened a panel a
+ * tap could not close. `lastPointerType` is what keeps the two apart.
+ *
  * The practical consequence is that every trigger is a real focusable control
  * with `role="button"`, not a `title` attribute and a `:hover` rule. That also
  * makes the whole layer keyboard-reachable, which a hover implementation could
@@ -334,6 +346,33 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     return target.closest<HTMLElement>('[data-tip]');
   }
 
+  /**
+   * Close a panel whose trigger has left the document. **The inspect-on-touch
+   * patch, 2026-09-22.**
+   *
+   * A hover panel is exempt from the tap-outside dismissal in `onClick`, on
+   * the reasoning that `mouseout` will close it and needs no help. **That is
+   * true only while its trigger is still in the document.** On the battle
+   * screen it is not: the click that follows the hover spends the turn, the
+   * turn rebuilds the move bar, and the element whose `mouseout` was the only
+   * thing that would ever close the panel is gone. Nothing was left that could
+   * dismiss it, and it sat over the stage and the log for the rest of the
+   * fight — which is the screenshot the report arrived with.
+   *
+   * Called at the top of the two events that mean the reader is doing
+   * something. A stranded panel therefore lives until the next press and no
+   * longer, and clearing it eats nothing: `close` does not touch the event.
+   *
+   * It is the safety net rather than the fix. What stops the panel opening
+   * unasked is `lastPointerType` below, and on a desktop `data-tip-hover` on
+   * the two card-sized triggers; this is what makes the state unreachable
+   * rather than merely unlikely, for the chips *inside* a move button that
+   * still take hover and still vanish with it.
+   */
+  function dropStranded(): void {
+    if (openFor && !openFor.isConnected) close();
+  }
+
   /*
    * ---------------------------------------------------------------------
    * The gesture. **Milestone M1.2, design bible R5.**
@@ -383,6 +422,27 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   /** Beyond this many pixels the press is a scroll, not a hold. */
   const HOLD_SLOP = 10;
 
+  /**
+   * The kind of pointer that last pressed, and the whole of what tells a hover
+   * from a tap. **The inspect-on-touch patch, 2026-09-22.**
+   *
+   * A phone browser emits a compatibility mouse sequence after every touch —
+   * `mouseover`, `mousemove`, `mousedown`, `mouseup`, `click`, in that order,
+   * with `mouseover` arriving *before* the click. `onOver` below treated that
+   * `mouseover` as a hover and opened the panel, so on a phone a tap opened
+   * inspect, and opened it `transient`, which is the flag that told the click
+   * behind it not to close anything. On the battle screen the turn then
+   * re-rendered the move bar out from under the panel, taking with it the only
+   * element whose `mouseout` could have closed it, and the explanation sat on
+   * top of the board for the rest of the fight.
+   *
+   * `mouse` until a pointer says otherwise, because a desktop cursor can be
+   * over a trigger before it has pressed anything and that hover is real. A
+   * touch always announces itself with a `pointerdown` first, so the flag is
+   * set before the synthesised `mouseover` it will produce.
+   */
+  let lastPointerType = 'mouse';
+
   function cancelHold(): void {
     if (holdTimer !== null) clearTimeout(holdTimer);
     holdTimer = null;
@@ -391,6 +451,10 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
 
   const onPointerDown = (event: PointerEvent): void => {
     cancelHold();
+    dropStranded();
+    // Recorded for every press, trigger or not: the hover that a tap on a
+    // *non*-trigger synthesises can still land on one on its way past.
+    if (event.pointerType) lastPointerType = event.pointerType;
     const trigger = triggerFor(event.target);
     if (!trigger) return;
     holdFrom = { x: event.clientX, y: event.clientY };
@@ -425,6 +489,20 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     cancelHold();
     if (!openedByHold) return;
     openedByHold = false;
+    /*
+     * **A cancelled pointer emits no click, so the flag that eats one must go
+     * with it.** The inspect-on-touch patch.
+     *
+     * `suppressClick` is armed when the hold opens and disarmed by the click
+     * the release produces. A cancel produces no click — iOS cancels a pointer
+     * whenever the page starts scrolling or the system callout takes over a
+     * long press — so the flag survived into the player's *next* tap, and
+     * `onClick` measured that tap against the cancelled press's `holdDownAt`,
+     * found a two-second gap, and ate it. On a move button that is the turn,
+     * lost silently, which is the same cost the jank case in `onClick` exists
+     * to prevent.
+     */
+    suppressClick = false;
     close();
   };
 
@@ -436,6 +514,7 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
    * click is what R5 replaced.
    */
   const onClick = (event: MouseEvent): void => {
+    dropStranded();
     if (suppressClick) {
       suppressClick = false;
       /*
@@ -462,6 +541,8 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     }
     // A tap elsewhere dismisses a panel the keyboard opened. Clicks inside the
     // panel are exempt so a wheel can be read without closing under the finger.
+    // A hover panel is exempt because `mouseout` closes it — see `dropStranded`
+    // above for the case where that is not true.
     if (!(event.target instanceof Node) || !root.contains(event.target)) {
       if (openFor && !transient) close();
     }
@@ -492,6 +573,16 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   // Hover, strictly as an enhancement. It never opens over a panel the reader
   // opened deliberately, and it never leaves one behind.
   const onOver = (event: MouseEvent): void => {
+    /*
+     * **A hover is only a hover if a hovering device made it.** The
+     * inspect-on-touch patch; see `lastPointerType`.
+     *
+     * This is the one line that separates the two interactions on a phone. The
+     * gesture below is unchanged and so is the desktop enhancement; what is
+     * gone is the third path nobody designed, in which a tap borrowed the
+     * hover path and got a panel it had no way to dismiss.
+     */
+    if (lastPointerType !== 'mouse') return;
     const trigger = triggerFor(event.target);
     if (!trigger || (openFor && !transient)) return;
     /*

@@ -159,7 +159,18 @@ pointer-transparent was backed out — `styles.css` documents `pointer-events:
 auto` there so the type wheel can be read — so the line was cut outright
 instead. **M5.1 put a `relic:` tip on a reward card's name and a reward card is
 a button too**; no test points at it and the panel may well miss the card, but
-it is the same shape. Open.
+it is the same shape.
+
+**Mostly closed by #66, and the remainder is deliberate.** The inspect-on-touch
+patch landed `lastPointerType`, so a hover only opens a panel when a hovering
+device made it — which is the whole of the hazard on a phone. What it left
+taking hover is a *small* trigger inside a button, on the stated reasoning that
+a chip-sized panel does not cover the control it sits on, with `dropStranded`
+closing one whose trigger a re-render took away. M5.1's relic name and M5.6's
+reward pips are both that shape, not the card-sized shape
+`data-tip-hover="off"` exists for. M5.6's is the safer of the two: an event
+choice disables its buttons on the pick and never re-renders, so its trigger
+cannot be stranded at all.
 
 **M5.4 found the party row's class on a card running none of its code, and
 could not fix it. D38.** `renderOffered` builds a `.party__member` by hand, so
@@ -271,6 +282,21 @@ the four hints every event carries. Measured: **24 of 24 events over 40, median
 overflow was entirely the hints and there was nothing to tighten. Ruled option
 1 and built in M5.6: the row is 59 and names every part of the screen, the
 hints stayed, **D14 came off the shelf with it** after five tiers.
+
+**Beside it, one playtest defect, now on `main`.**
+[`spec/gymrun-patch-inspect-hover-on-touch.md`](spec/gymrun-patch-inspect-hover-on-touch.md),
+merged as [#66](https://github.com/y-wang217/Pocket-Randomizer/pull/66). A tap
+on a phone opened an inspect panel and the panel could not be dismissed,
+because the compatibility `mouseover` every mobile browser synthesises after a
+touch was taken for a hover. Introduced by M1.2, which moved `data-tip` onto
+the move button itself and handed the hover enhancement a card-sized target on
+the one screen that rebuilds itself every turn. Presentation only, no version
+axis moves; [`generation.md` §71](generation.md) is the account and
+[`design/playtest-log.md`](design/playtest-log.md) carries the first row it has
+ever had. **That section is §71 and not §64 because the merge renumbered it**:
+M5.5 and this patch both appended a 64 on branches that could not see each
+other, and M5.5's number is cited from source and tests where this one is cited
+only from documents.
 
 The design bible is at **Rev 11**. Every place the list and the bible disagreed
 is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)

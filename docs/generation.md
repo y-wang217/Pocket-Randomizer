@@ -10539,3 +10539,160 @@ nine. Named without a path on purpose: the file does not exist yet, and
 - **The reward pips have no exposure label**, because tiers are a component
   rather than a glyph family, so R7 does not reach them. Section 9 carries the
   bet that a span reads as a range and not as a rating.
+
+---
+
+## 71. A tap was a hover, and the panel it opened had nothing left to close it
+
+**2026-09-22, and numbered 71 rather than 64 by the Tier 5 merge.** This patch
+and milestone M5.5 both appended a section 64, on branches that did not see
+each other. M5.5's number is cited from `src/ui/chip.ts`, two tests and three
+documents; this one from four documents, all of them updated with the merge.
+The smaller renumber is the one that moves, and the account is unchanged.
+Prompt:
+[`spec/gymrun-patch-inspect-hover-on-touch.md`](spec/gymrun-patch-inspect-hover-on-touch.md).
+Presentation only: no `core/` change, no data table, no version axis moves.
+`contentHash` unmoved at `d4e080`, which is the stamp on the screenshot the
+report arrived with.
+
+The report is two sentences and names both symptoms: *"tooltips dont close"*,
+and *"clicking any movr opens a tooltip that blocks the screen"*. They are one
+defect with two ends.
+
+### What was actually happening
+
+Every mobile browser follows a touch with a compatibility mouse sequence, so
+that a page written before touch existed still works. On a single tap Safari
+sends `pointerdown`, `pointerup`, then **`mouseover`, `mousedown`, `mouseup`,
+`click`** — and the `mouseover` arrives *before* the click. Driven Chromium at
+`hasTouch` sends the same order, which is how this was reproduced without a
+phone:
+
+```
+pointerdown:touch -> type:Grass
+pointerup:touch   -> type:Grass
+mouseover         -> type:Grass      <- the layer opened here
+mousedown         -> type:Grass
+mouseup           -> type:Grass
+click:touch       -> type:Grass
+```
+
+`ui/tooltips.ts`'s `onOver` took that `mouseover` for a hover and opened the
+panel with `transient = true`. `transient` is the flag that told `onClick` the
+panel was not the reader's doing and to leave it alone, on the reasoning that
+a hover panel is closed by the `mouseout` behind it.
+
+**That reasoning holds only while the trigger is still in the document, and on
+the battle screen it is not.** The click behind the synthesised hover went
+through to the button — correctly; a tap selects — so the turn resolved, and
+the turn re-renders the move bar. The element whose `mouseout` was the only
+thing that would ever close that panel was gone. The panel stayed, `position:
+fixed` at `z-index: 40`, over the stage and the log, for the rest of the fight.
+Tapping it opened a *different* move's panel, because a card-sized trigger sat
+under wherever the finger landed next. That is the screenshot.
+
+### Which item introduced it, since the report does not say
+
+**M1.2**, Tier 1, the item that made inspect a long press. Before it the
+trigger on the battle bar was a `?` chip on the PP line — small, and tapping it
+spent no turn, so neither half of this could happen. M1.2 moved `data-tip` onto
+the button itself, which is right by R5 (*"long press on any card"*), and the
+hover enhancement inherited a card-sized target on the one screen that rebuilds
+itself every turn. M2.1 later found the same hazard on `moveCard` and turned
+hover off for it; the battle button is built in a different function and the
+flag never followed.
+
+### The fix, in four parts
+
+1. **A hover is only a hover if a hovering device made it.** `lastPointerType`
+   records the `pointerType` of every `pointerdown` — trigger or not, because a
+   tap on a non-trigger synthesises a hover that can still cross one — and
+   `onOver` returns unless it is `mouse`. It starts at `mouse`, because a
+   desktop cursor can be over a trigger before it has pressed anything and that
+   hover is real; a touch always announces itself with a `pointerdown` first.
+   This is the root cause and the one line that separates the two interactions.
+2. **`dropStranded`: a panel whose trigger has left the document closes at the
+   reader's next press.** The tap-outside dismissal in `onClick` exempts a
+   hover panel, on the reasoning that `mouseout` will close it — true only
+   while the trigger is still there, and on the battle screen it is not.
+   Called at the top of `onPointerDown` and `onClick`, so a stranded panel
+   lives until the next press and no longer, and clearing it eats nothing.
+
+   **The first cut of this was wider and two tests said so, correctly.** It
+   dropped the `transient` exemption outright, on the argument that a click is
+   a deliberate act and a hover panel is not. `test/visual-density.test.ts`
+   went red on both of its Pocket cases — *"Pocket folds every member card
+   together"* and *"keeps the threat counts ... behind a tap in Pocket"* —
+   because each drives a desktop mouse, and `.click()` on a chip opens the
+   panel through the `mouseover` in front of it. Closing on the click behind
+   it took away a fact those two modes deliberately put behind an inspect.
+   The narrower guard leaves that path alone and still makes the stranded
+   state unreachable. Recorded rather than quietly re-scoped, because the two
+   failures are the argument for the narrower form.
+3. **`data-tip-hover="off"` on the battle move button**, which is M2.1's flag
+   arriving at M2.1's other call site. With (1) this is desktop-only, and on a
+   desktop it is the difference between a cursor resting on the move bar and an
+   explanation covering the move bar. It does **not** cover the chips inside
+   the button — the type badge, the band pips, the PP counter, the fact strip —
+   which are chip-sized, are exactly what hover is for, and vanish with the
+   button on every turn. That is the population (2) exists for.
+4. **`pointercancel` disarms `suppressClick`.** Found while reading the gesture
+   rather than reported, and it is the same cost as the defect `onClick`'s jank
+   branch exists to prevent. The flag is armed when a hold opens and disarmed
+   by the click the release produces; a cancel produces no click, and iOS
+   cancels a pointer whenever the page starts scrolling or the system callout
+   takes over a long press. Left armed it met the player's *next* tap, measured
+   it against the cancelled press's `holdDownAt`, found a two-second gap and ate
+   it. On a move button that is the turn, lost silently.
+
+### What did not change, and why that matters
+
+R5's gesture is untouched. A long press still opens, the release still closes,
+the tap still selects, Enter and Space still open, and the click a long press
+leaves behind is still eaten. `test/inspect.test.ts`'s nine existing cases all
+passed against the defect and all pass against the fix — including *"does not
+open on a tap"*, which is not a duplicate of the new first case: it sends
+`pointerdown`, `pointerup` and `click` with no `mouseover`, which is a **desktop**
+tap, and it was green throughout. The gap was never in the gesture, it was in
+the enhancement beside it, and no test sent the events a phone sends.
+
+Four cases now do, under *"a phone tap is not a hover"*. Three of them fail
+against the pre-fix layer and the fourth is the guard that the fix did not
+break selection.
+
+### The bible
+
+**R5 is touched and not amended.** Its hypothesis register gives it one kills-it
+condition — *"any accidental submission during inspect in playtest"* → *"inspect
+moves to two-finger tap"* — and this report is the mirror of it: an accidental
+**inspect during submission**. The long press submitted nothing. Recorded in
+[`design/playtest-log.md`](design/playtest-log.md) as the row it is, with the
+Amendment column blank, because a row that fires the wrong disconfirmer is still
+the first playtest evidence the inspect layer has and the log is where evidence
+goes.
+
+C1 and C2 are untouched: no attribute was added, removed or re-encoded, and the
+panel's contents are the same rows `renderMoveRows` has printed since M1.2.
+
+### What the browser suite already knew
+
+Two things in it were shaped by this defect before anyone had named it, and
+neither is edited now.
+
+`test/visual-density.test.ts` asserts two Pocket facts by clicking a chip and
+reading the panel. **That is a desktop path and no phone has it** — the tap
+those cases stand in for opens nothing, before this patch or after it. The
+cases are about the *density* rule, the panel is the instrument, and rewriting
+them to long-press is the kind of change that belongs to whoever is holding
+R6's validation cycle rather than to a defect fix. Filed here as the one place
+the suite drives a gesture a player does not have.
+
+### The instrument this leaves behind
+
+`scripts/visual/browser.mjs` already carried the workaround. `dismissTooltip`
+presses Escape before every step and `stepOnce` parks the mouse at `0,0` after
+one, and the comment on the second says the hover state is *"a state no phone
+can reach, which is the device every one of these measurements is taken at"*.
+It was reachable, by exactly the path the bot had disarmed for itself. The
+comment is left as written — it was true of the mechanism it described and
+wrong about the phone, and editing it would lose why the parking is there.

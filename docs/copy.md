@@ -1031,8 +1031,8 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/seed-bar.ts` line 112 | New seed |  |
 | `src/ui/seed-bar.ts` line 117 | Resume saved run |  |
 | `src/ui/scene.ts` line 1129 | Moves first at this Speed |  |
-| `src/ui/scene.ts` line 2209 | BP |  |
-| `src/ui/scene.ts` line 2228 | PP |  |
+| `src/ui/scene.ts` line 2231 | BP |  |
+| `src/ui/scene.ts` line 2250 | PP |  |
 | `src/ui/drawer.ts` line 273 | Party |  |
 | `src/ui/drawer.ts` line 301 | Relics |  |
 | `src/ui/header.ts` line 22 | GYMRUN |  |
