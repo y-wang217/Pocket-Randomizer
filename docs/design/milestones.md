@@ -455,7 +455,7 @@ is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 
 | Item | Status | Blocked by |
 |---|---|---|
-| M6.0 Starter move card | open | — (D40 ruled 2026-09-23: a new item, [`../generation.md` §72](../generation.md)) |
+| M6.0 Starter move card | **done** | — (D40, D45. Starter **47 → 20** Pocket less shell, starter card **0**. [`../generation.md` §73](../generation.md)) |
 | M6.2 Coach marks re-anchored | open | M6.0. All 29 anchors paint in Pocket already; the item is eight marks' copy |
 | M6.3 Pocket default | open | M6.2 (D10) |
 | M6.1 Exposure labels | open | M6.3 and the D44 instrument (D41, D42, D43 ruled 2026-09-23; D5, D12 ruled) |

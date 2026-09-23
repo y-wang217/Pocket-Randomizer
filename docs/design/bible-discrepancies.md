@@ -60,6 +60,7 @@ which blocks everything.
 | D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **2026-09-23**, option 1 |
 | D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
+| D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 
 ## Rulings, 2026-09-19
 
@@ -3148,3 +3149,38 @@ written against. M6.1's own done-when needs the first; M7.2 needs the second.
 budgets what a surface shows *at rest*, and R7 says the labelled face is
 transient — rather than asking for a new one. It lands as one instrument
 commit before M6.1, the way D30 landed before M5.1.
+
+---
+
+## D45. Four move cards per starter cannot fit the Pocket gate
+
+**Filed and ruled 2026-09-23, inside M6.0. Blocked M6.0.**
+
+The Pocket gate (`test/visual-pocket.test.ts`, density modes patch, ruling 4)
+says no decision surface scrolls at 390x844, *"a hard gate, no exemptions"*.
+Starter select passed it with hand-drawn move rows. With the move card mounted
+(D40), measured on seeds `S49B-1` to `-3`:
+
+| Layout | Document height | Each starter card |
+|---|---:|---:|
+| Before M6.0, text rows | under 844 | about 210 |
+| Move cards, one column | 1626 to 1651 | 475 to 507 |
+| Move cards, two across | 1081 to 1086 | 304 to 310 |
+| Two across, fact strip hidden (a C2 breach, measured only for the floor) | 979 | 272 |
+
+No layout that keeps the facts fits. This is D38's finding on a second surface:
+the capture card could not mount the party row and stay above the fold either.
+
+**Options put.** 1. The starter screen scrolls, with moves two across, and the
+gate becomes the first starter whole above the fold. 2. Section 5's move chip
+plus PP instead of the card, which takes band, accuracy and priority off the
+classroom. 3. One starter at a time with a switcher. 4. Revert M6.0 and take
+D40's option 2.
+
+**Ruled option 1.** The gate for starter select is now *the first starter card
+ends at or above 844*. At two across that is about 445; the second starter is
+half visible, which says there is more below without a word. Every other
+decision surface keeps the hard gate. What this does not decide is D38: the
+capture card is a surface where the player compares against the party already
+on screen, and the same ruling is not assumed to carry.
+

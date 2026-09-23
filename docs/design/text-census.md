@@ -22,7 +22,7 @@ label that is due. It is recorded and never gated.
 
 | Surface | detailed | simple | pocket | pocket, less shell | first run |
 |---|---:|---:|---:|---:|---:|
-| starter | 84 | 75 | 51 | 47 | 47 |
+| starter | 98 | 89 | 24 | 20 | 20 |
 | locale | 14 | 14 | 9 | 3 | 3 |
 | map | 50 | 43 | 28 | 22 | 22 |
 | battle | 36 | 36 | 13 | 7 | 7 |
@@ -57,7 +57,7 @@ budget is 0 or the component renders once.
 | Component | detailed | simple | pocket | worst instance, pocket |
 |---|---:|---:|---:|---:|
 | battle move button | 38 | 38 | 0 | 0 |
-| move card | 585 | 585 | 0 | 0 |
+| move card | 631 | 631 | 0 | 0 |
 | move chip | 16 | 16 | 0 | 0 |
 | party row | 198 | 186 | 21 | 3 |
 | pokemon battle panel | 4 | 4 | 0 | 0 |
@@ -68,16 +68,17 @@ budget is 0 or the component renders once.
 | reward card | 65 | 40 | 40 | 8 |
 | map node card | 72 | 44 | 44 | 3 |
 | locale card | 3 | 3 | 0 | 0 |
+| starter card | 1 | 1 | 0 | 0 |
 | event choice | 40 | 40 | 40 | 13 |
 | app shell | 133 | 133 | 133 | 14 |
-| screen chrome (no component) | 1246 | 1071 | 784 | — |
+| screen chrome (no component) | 1213 | 1038 | 757 | — |
 
 ## Every word counted, in Pocket
 
 The mode the bible specifies as the face. One row per surface, so a number
 above can be argued with rather than taken on faith.
 
-- **starter** (51): `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `HP` `BP` `PP` `BP` `PP` `BP` `PP` `BP` `PP` `HP` `BP` `PP` `BP` `PP` `BP` `PP` `Status` `PP` `HP` `BP` `PP` `BP` `PP` `BP` `PP` `Status` `PP` `GYMRUN-0b2c2c-SMOKE24` `r21`
+- **starter** (24): `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **locale** (9): `GYMRUN` `Tutorial` `Map` `Party` `Choose` `a` `region` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **map** (28): `GYMRUN` `Tutorial` `Map` `Party` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `coins` `Rookie` `Trainer` `coins` `Something` `happens` `Trainer` `Trainer` `Garnet's` `Gym` `Pokemon` `Coins` `Party` `Manage` `Lead` `GYMRUN-0b2c2c-SMOKE24` `r21`
 - **battle** (13): `GYMRUN` `Tutorial` `Map` `Party` `Trainer` `battle` `Trainer's` `Rookie` `Paralysed` `Badly` `poisoned` `GYMRUN-0b2c2c-SMOKE24` `r21`

@@ -10718,3 +10718,48 @@ Bible Rev 12.
 
 M6.1's scope is ten families, per Rev 11. The census gains its exposure state
 (D44) as an instrument commit before M6.1.
+
+## 73. The classroom gets the move card, and the one screen allowed to scroll
+
+**Milestone M6.0, 2026-09-23.** Branch `claude/dazzling-faraday-tafnyp`. Bible
+rules touched: **section 5**'s closing sentence (a screen drawing an attribute
+itself, closed on starter select), **R2** (`BP`, `PP`, `Status` and `HP` left as
+field labels), **R3** (the HP figure is a glyph and a number, the pair R3
+permits), **C2** (no fact left: the max HP stays at rest, since Pocket draws the
+stat block as bars) and **section 7** (the classroom now carries category, PP,
+band, accuracy and priority). Rulings D40 and D45. No version axis moves.
+
+### The numbers
+
+| | Before | After | Budget |
+|---|---:|---:|---:|
+| starter, Pocket less shell | 47 | **20** | no screen row; the 20 are the title and blurb |
+| starter card, worst instance | not measured | **0** | 0 plus the ability name |
+| families painted on starter, Pocket | stat, type | stat, type, category, PP, accuracy, priority | band follows in M6.1 (D41) |
+| starter document height, Pocket | under 844 | 1081 | first card at or above 844 (D45) |
+
+### What changed
+
+- `src/ui/screens/starter-select.ts` mounts `moveCard(moveCardData(...))` per move,
+  with the starter as the holder. It is a seventh surface on the `moveFacts` call
+  site, not a third call site.
+- The HP figure keeps its number and swaps the word for the `stat-hp` glyph.
+  The first draft deleted it on the grounds that the stat block carries HP. In
+  Pocket the stat block hides its numbers, so that would have left the one fact
+  the smoke bot's own comment calls "the number the choice turns on" behind a
+  press. Caught when the visual bot, which picks the bulkiest starter by reading
+  that figure, picked a different starter and two unrelated suites went red.
+- Pocket draws the four cards two across. `test/visual-pocket.test.ts` gates
+  starter select on its first card rather than on the document (D45).
+- The census gains a `starter card` row, and reads a numeric range (`2-5`, a
+  multi-hit fact) as a bare number by D17B's reasoning. It had never been drawn
+  at rest on a fixture before.
+- `scripts/smoke.mjs` and `scripts/visual/browser.mjs` read the HP figure from
+  `.starter__hp-value`, and the smoke checks move cards instead of the deleted
+  `.starter__move` rows.
+
+### Detailed and Simple
+
+Taller, since the card keeps its labelled face there until M6.4 (D16): 2073 in
+Detailed against the Pocket 1081. No height baseline gates the starter screen
+in either mode.

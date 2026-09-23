@@ -168,7 +168,8 @@ const starterCount = await page.locator('.starter').count();
 console.log(`  ${starterCount === 3 ? 'ok  ' : 'FAIL'} three starters offered (x${starterCount})`);
 if (starterCount !== 3) problems.push(`expected 3 starters, saw ${starterCount}`);
 await check('starter types', '.starter .type');
-await check('starter movesets', '.starter__move');
+// A move card per move since M6.0 (D40); the screen drew its own rows before.
+await check('starter movesets', '.starter__moves .move--card');
 await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
@@ -648,9 +649,9 @@ async function bulkiestStarter() {
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    // The card prints "<Ability> · <N> HP"; N is the number the choice turns on.
-    const meta = (await cards.nth(i).locator('.starter__meta').textContent()) ?? '';
-    const hp = Number(/(\d+)\s*HP/.exec(meta)?.[1] ?? 0);
+    // The card prints the HP glyph and <N> since M6.0; N is the number the choice turns on.
+    const meta = (await cards.nth(i).locator('.starter__hp-value').textContent()) ?? '';
+    const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;

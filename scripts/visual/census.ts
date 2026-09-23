@@ -259,6 +259,18 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
     why: 'Section 4 budgets the locale card at 0. The screen around it is unbudgeted, which is D32.',
   },
   {
+    id: 'starter card',
+    /*
+     * **Section 4's starter card row, added with D40's ruling (M6.0).** `.starter`
+     * is the card's root `<button>`; the screen root is `screen--starter`, so the
+     * two do not collide. The move cards and the stat block inside it are listed
+     * above and are the nearer ancestors, so this row counts only what the card
+     * draws itself: the species, the level, the ability and the HP figure.
+     */
+    selector: '.starter',
+    why: 'Section 4 budgets the starter card at 0 plus the ability name (D40).',
+  },
+  {
     id: 'event choice',
     /*
      * **Section 5's newest row, added with D33's ruling (M5.6).** The label,
@@ -344,9 +356,14 @@ export function tokenise(text: string): string[] {
  * first was a bare number and the second was a word, for a number the player
  * reads as one. Section 4 excludes bare numbers and this is one; the markup it
  * arrives in is not the counting rule's business.
+ *
+ * **A range is two numbers, M6.0.** The fact strip prints a multi-hit move's
+ * hit count as `2-5`, and it read as a word the first time a fixture drew one
+ * at rest: Fury Attack on the starter card. Same reasoning as D17B, so the
+ * hyphen and the en dash join the separators between digits.
  */
 export function isBareNumber(token: string): boolean {
-  return /^[+\-−]?[.,:/]?[\d]+(?:[.,:/][\d]+)*(?:%|x|×)?$/i.test(token) || /^[¼½¾·—–-]+$/.test(token);
+  return /^[+\-−]?[.,:/]?[\d]+(?:[.,:/\-–][\d]+)*(?:%|x|×)?$/i.test(token) || /^[¼½¾·—–-]+$/.test(token);
 }
 
 export interface Record_ {

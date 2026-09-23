@@ -16,12 +16,15 @@
  */
 import { describeSpecCard } from '../../core/battle/driver';
 import type { PokemonSpec } from '../../core/types';
-import { el, levelAria, levelText } from '../scene';
+import { DEFAULT_TUNING } from '../../data/tuning';
+import { moveCardData } from '../move-detail';
+import { el, levelAria, levelText, moveCard } from '../scene';
 import { setProse } from '../dom';
 import { STARTER_COPY } from '../copy/screens';
 import { abilityChip, monTypeChip, typeChip as chip } from '../chip';
 import { spriteFigure } from '../sprites';
 import { statBlock } from '../stat-block';
+import { glyphNode } from '../theme/glyph';
 
 export interface StarterSelect {
   root: HTMLElement;
@@ -64,7 +67,7 @@ function renderCard(spec: PokemonSpec, index: number, onPick: () => void): HTMLE
   header.append(name, level, archetype, types);
 
   const meta = el('div', 'starter__meta');
-  const moves = el('ul', 'starter__moves');
+  const moves = el('div', 'starter__moves');
   moves.dataset['tutorial'] = 'moves';
 
   const detail = describeSpecCard(spec);
@@ -92,25 +95,47 @@ function renderCard(spec: PokemonSpec, index: number, onPick: () => void): HTMLE
    * it — so on the screen where a player has the least context to judge an
    * ability by, it was the only surface that offered no way to look it up.
    */
+  /*
+   * **The HP figure keeps its number and loses its word. Milestone M6.0, D40.**
+   *
+   * `${maxHp} HP` spent a field label R2 forbids by name. The number stays:
+   * Pocket draws the stat block as bars, with the numbers one press away, so
+   * this is the only max HP at rest on the screen, and C2 does not let a fact
+   * the pick turns on leave. The word becomes the HP row's own glyph, which
+   * is R3's permitted pair: a glyph and a number.
+   */
   const hp = el('span', 'starter__hp');
-  hp.textContent = `${detail.maxHp} HP`;
+  const hpMark = glyphNode('stat-hp', { label: 'HP' });
+  const hpValue = el('span', 'starter__hp-value');
+  hpValue.textContent = String(detail.maxHp);
+  hp.append(...(hpMark ? [hpMark] : []), hpValue);
   meta.replaceChildren(abilityChip(detail.ability, detail.abilityId), hp);
 
+  /*
+   * **The moves are move cards. Milestone M6.0, D40.**
+   *
+   * This list drew each move for itself: a name, a type chip, `90 BP` or
+   * `Status`, and `35 PP`. That is section 5's closing sentence, a screen
+   * drawing an attribute itself, and it cost this screen 34 of its 51 words
+   * in Pocket. It also kept category, band and PP off the one screen section
+   * 7 calls the classroom, so their exposure labels had nowhere to render on
+   * run one.
+   *
+   * Through `moveCardData` like the other card surfaces, so this is a seventh
+   * surface on the `moveFacts` call site and not a third call site. The holder
+   * is the starter, so the face's STAB reads the same as it will on the party
+   * row once this Pokemon is picked. Max PP, since nothing has been spent.
+   */
   moves.replaceChildren(
-    ...detail.moves.map((move) => {
-      const row = el('li', 'starter__move');
-      const label = el('span', 'starter__move-name');
-      label.textContent = move.name;
-      const stats = el('span', 'starter__move-stats');
-      stats.append(typeChip(move.type));
-      const power = el('span', 'move__power');
-      power.textContent = move.category === 'Status' ? 'Status' : `${move.basePower} BP`;
-      const pp = el('span', 'move__pp');
-      pp.textContent = `${move.maxPp} PP`;
-      stats.append(power, pp);
-      row.append(label, stats);
-      return row;
-    }),
+    ...detail.moves.map((move) =>
+      moveCard(
+        moveCardData(
+          { name: move.name, type: move.type, category: move.category, basePower: move.basePower, maxPp: move.maxPp },
+          DEFAULT_TUNING,
+          { types: detail.types },
+        ),
+      ),
+    ),
   );
 
   /*
