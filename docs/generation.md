@@ -10520,8 +10520,10 @@ All three are corrected in Rev 11.
 M6.1 both say *"nine families"* in
 `docs/spec/gymrun-presentation-milestones.md`. A prompt is a record of what was
 asked, not a description of what exists, so the deviation is recorded here:
-**M6.1's scope is ten families, not nine**, and `data/glyphLabels.ts` owes the
-capability family a label under three words like the other nine.
+**M6.1's scope is ten families, not nine**, and the glyph-label table that item
+creates owes the capability family a label under three words like the other
+nine. Named without a path on purpose: the file does not exist yet, and
+`test/boundaries.test.ts` reads a backticked path as a claim that it does.
 
 ### What M5.6 leaves open
 

@@ -129,7 +129,7 @@ label"* and M6.1 reads that enforce line for its scope, so at nine the
 capability glyph would have shipped unlabelled. Corrected in Rev 11. **The
 milestone prompt is not corrected** — a prompt records what was asked — so the
 deviation is recorded instead: **M6.1's scope is ten families**, and
-`data/glyphLabels.ts` owes the capability family a label.
+the glyph-label table M6.1 creates owes the capability family a label.
 
 **D30 is closed and it moved the instrument twice.** Four card selectors went
 in, and building them found that the per-component table had been **summing**
