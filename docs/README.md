@@ -66,13 +66,15 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the 4.10 presentation milestones, Tier 5.** List
+**In flight: the 4.10 presentation milestones, Tier 6 in review ([#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68)); Tier 7 next.** List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
 [`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md) and
 [`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md), prep
-[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md). **Tiers 0 to 4
+[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md), Tier 6
+[`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md) and
+[`handoff/4.10-tier-6.md`](handoff/4.10-tier-6.md). **Tiers 0 to 4
 are closed, sixteen items of twenty-four**, as
 [#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
 [#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
@@ -1224,7 +1226,9 @@ One line each. The analysis lives where the pointer goes, not here.
    now named in the bible's section 8. Two further known gaps, neither of them
    defects until a milestone claims them: density modes still default to
    something other than Pocket (R6), and coach marks still force Detailed per
-   screen, a rule R6 deletes when Pocket lands. **Nothing here is retuned or
+   screen, a rule R6 deletes when Pocket lands. **Both closed 2026-09-23**:
+   the forced-Detailed rule by M6.2, the default by M6.3
+   ([`generation.md` §74 and §75](generation.md)). **Nothing here is retuned or
    rewritten on the bible's arrival.** Each closes in its own prompt, committed
    to `spec/` first like any other.
 
