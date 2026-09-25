@@ -461,6 +461,15 @@ is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 | M6.1 Exposure labels | **done** | — (ten families, labels on exposures 1 and 3; D41 built with its family walk; starter recorded at [`../visual/m6.1-starter-first-run.png`](../visual/m6.1-starter-first-run.png). [`../generation.md` §76](../generation.md)) |
 | M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
 
+**Patch 4.10.1, between Tier 6 and Tier 7 (2026-09-25).** Not one of the
+twenty-four items: a lead-designer prompt, filed at
+[`../spec/gymrun-patch-4.10.1-map-node-icons.md`](../spec/gymrun-patch-4.10.1-map-node-icons.md),
+that the map's node kinds become marks. It reopened D37 as that row's own
+option 2 and reversed D28 as a reversal, under **D46**; the bible went to Rev
+13 and section 2 reads eleven families. Landed before M7.1 on purpose, so the
+playtest sees the face that section 9's family-size hypothesis now describes.
+Record [`../generation.md` §78](../generation.md).
+
 ### Tier 7: validation
 
 | Item | Status | Blocked by |
