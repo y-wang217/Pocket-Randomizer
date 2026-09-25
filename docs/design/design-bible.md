@@ -1,6 +1,17 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 13, Sept 25, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 14, Sept 25, 2026.
+
+**Rev 14** carries one amendment, ruled 2026-09-25 on row D47, filed inside
+patch 4.10.2 before its build. Section 4's map node card goes 2 to **0**: the
+card is the node mark, the tier pips, the reward-tier pips and the capability
+glyph with its chevron, and every fact that stood beside the mark (the
+payout, the AI tier, a shop's shelf, a gym's team size, a done node's record)
+moves to the mark's inspect panel under R5, as C2 requires. Section 3's node
+kind row lists what that panel carries. Section 2's node row reads *grass*
+where it read *bush*: the wild mark was redrawn as five blades bent by wind.
+No rule moved. R2's *numbers stay* is the one line the ruling leans on, and
+the row says so.
 
 **Rev 13** carries one amendment, ruled 2026-09-25 on row D46, filed before
 patch 4.10.1 wrote any code. Section 2 gains an eleventh family, **node**, the
@@ -234,7 +245,7 @@ Eleven glyph families (2026-09-25, D46; ten under D37, 2026-09-22). Adding a twe
 | Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
-| Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
+| Node | One glyph per node kind: a head (trainer), grass bent by wind (wild; a bush until 4.10.2), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -266,7 +277,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
-| Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
+| Node kind (map node, battle header) | Kind glyph, alone (2026-09-25, D47; D46 had the leader's name beside a gym's, which the rail and the heading carry already) | Never hidden | The kind's hint, from `KIND_HINTS`, then on the map the node's own lines: the payout, the AI tier, a shop's shelf, a gym's team size, a done node's record (2026-09-25, D47) |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
@@ -297,7 +308,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
-| Map node card | 2 | The payout's unit, AI tier; the kind is the node glyph (2026-09-25, D46; was 3 under D37, 2026-09-22) |
+| Map node card | 0 | **None** (2026-09-25, D47; was 2 under D46, 3 under D37). The mark, the pips and the gate, and every fact beside them on inspect |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
@@ -404,7 +415,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
 | Battle screen header | Node glyph at 16, opponent, AI tier (2026-09-25, D46; the kind was a word under D28, 2026-09-21) | Battle |
 | Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
-| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46) | The map screen and the map drawer |
+| Map node card | Node glyph at 24, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron. Nothing written (2026-09-22, D29; the glyph since D46 and the face reduced to it under D47, both 2026-09-25) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
 | Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |

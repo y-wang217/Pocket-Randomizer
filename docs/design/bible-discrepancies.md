@@ -62,6 +62,7 @@ which blocks everything.
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 | D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
+| D47 | Patch 4.10.2 | The map node card carries a number, a word, a line and a record beside the mark, and the prompt asks for the mark alone: section 4 reads 2, the face wants 0 | **2026-09-25**, option 1, ruled by the prompt, built |
 
 ## Rulings, 2026-09-19
 
@@ -3276,3 +3277,51 @@ its short hint on the detail line. The bible went to Rev 13. R7's exposure
 labels give the six words back on the first and third map, which is the one
 place the prompt's *labels beneath* and R2's *labels go* both hold. Record in
 [`../generation.md` §80](../generation.md).
+
+---
+
+## D47. The map node card carries four facts beside the mark, and the prompt asks for the mark alone
+
+**Filed and ruled 2026-09-25, inside patch 4.10.2. Blocked the patch until ruled.**
+
+The prompt: *"I want to change the map to even fewer words. so remove the
+things that aren't the icon, so it's even more closely resembles the sts map."*
+
+Section 4 budgets the map node card at **2** (D46): the payout's unit and the
+AI tier. What the current option's face carries, measured on `SMOKE24`:
+
+| Fact | Face today | Rule that governs it |
+|---|---|---|
+| Payout | `8 coins`: a number and a unit word | R2, numbers stay |
+| AI tier | `Rookie`, a word | Budgeted by name since D28 |
+| Shop shelf | `3 on the shelf, from 12` | Prose, inside the 2 only because the fixture's shop is never the worst card |
+| Untiered hint | `Something happens.` | Prose, kept by M5.2 as the tier's stand-in |
+| Gym | The leader's name and `· 2 Pokemon` | A proper noun (free) and a count |
+| Done node | `Pidgey · 3 turns` | A proper noun and a number |
+
+**What C2 requires.** None of these is removed. Each is a fact that changes
+a decision, and each moves to the mark's inspect panel under R5, where the
+tier definition (section 3) and rarity (D37) already live. The `node:` tip
+gains the per-node lines: the payout, the AI tier, the shelf, the team size,
+the record. The kind's own hint stays its first line.
+
+**What R2 says about the payout.** *Numbers stay.* A bare numeral beside the
+mark would be inside R2 and inside the prompt's *even fewer words*. It goes
+anyway, because the prompt says *remove the things that aren't the icon*,
+and a numeral is not the icon. This is the one line of the ruling that a
+playtest can reverse: if testers route without pressing, section 9 gets a
+row and the numeral returns.
+
+### Options
+
+1. **The mark alone, everything else to inspect.** Section 4's row goes 2 to
+   **0**. Section 3's node kind row lists what the panel carries. Section 5's
+   card row reads *node glyph, tier pips, reward-tier pips, capability glyph
+   with band chevron*, which is what D29 wrote in the first place.
+2. **The mark and a bare payout numeral.** Keeps R2's letter; the card reads
+   0 words and one number. Not what the prompt asks.
+3. **Decline; the card stays at 2.** The prompt is wrong until amended.
+
+**Ruled option 1, by the prompt.** The lead designer's instruction is the
+ruling; it is written here so the record shows the row was filed before the
+build and what it costs. The bible goes to Rev 14.
