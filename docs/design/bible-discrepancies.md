@@ -62,9 +62,9 @@ which blocks everything.
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 | D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
-| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | open, filed 2026-09-25; census 2026-09-25 |
-| D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | open, filed 2026-09-25 |
-| D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | open, filed 2026-09-25 |
+| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | **2026-09-25**, option 1, the plan's defaults taken with the census's ninth mark |
+| D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | **2026-09-25**, option 1 |
+| D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | **2026-09-25**, **option 2, against the recommendation**: C1's exception extended |
 
 ## Rulings, 2026-09-19
 
@@ -3404,3 +3404,44 @@ about the move.
 
 Whichever way it is ruled, the post-resolution side (`-activate` on a move) is
 measured first at Tier 0 and built only if the census earns it.
+
+---
+
+## D47, D48 and D49, ruled
+
+**2026-09-25, after the Tier 0 census
+([`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md)).
+The bible went to Rev 14.**
+
+**D47, option 1 as recommended.** A twelfth family, `field`, with the census's
+correction taken: nine marks, Delta Stream's Strong winds its own. The four
+defaults stand: the glyph on the header after the AI tier, turns remaining
+never shown, suppressed weather dimmed with the wash at half, Heavy rain and
+Extreme sun on the rain and sun marks. Section 6 gains step 4.
+
+**D48, option 1 as recommended.** Section 6 gains step 3, with the bound in the
+rule's own words: one keyframe for every ability, never weighted, never
+coloured. The census's 7.2% of abilities that fire through `-activate` are the
+same event and join the `ability` flag.
+
+**D49, option 2, against the recommendation.** The lead designer extended C1's
+exception: the move button's forecast multiplier folds in the field's factor
+for the move, on the reading that a weather multiplier is a fact about the
+present board exactly as a type multiplier is. **This adds scope the plan's
+section 8 declined**, and per the deviation rule the plan is not edited: the
+scope is recorded here and in the register. What it builds: the core
+effectiveness helper that feeds `typeMultiplier` on the button gains the
+field's factor for the move (rain and sun on Water and Fire, Grassy Terrain
+on Grass, and the rest the sim already applies), read off the same
+`BattleFacts.field` Tier 1 adds, so the number the button shows is the number
+the hit will use. It lands as **Tier 2b**, after the readout and before the
+wash, because a button showing 1.5 under rain with no glyph saying it is
+raining would be a number with no cause on screen. Section 9 carries the
+bet: if a tester reads the button as telling them what to pick, the factor
+comes back out and the field's part moves to inspect.
+
+**One consequence outside this file.** `CLAUDE.md` restates C1 as an
+invariant, including its *one exception* in the old wording. That file is the
+invariants register and is edited by the lead designer, not by a stage; it
+now disagrees with the bible on the exception's count until it is brought in
+line.
