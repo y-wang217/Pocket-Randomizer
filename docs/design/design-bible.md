@@ -184,9 +184,10 @@ Forbids: "Acc 100", "Priority 0", empty status slots, a neutral effectiveness ma
 Enforce: the encoding table (section 3) names the default per attribute; a test asserts the default renders no node.
 Ruling on never-miss moves: absence means "100 and applies". A move that cannot miss (Swift, Aerial Ace, Shock Wave) shows a distinct never-miss glyph, because evasion stages are visible and a 100-accuracy move can miss against them while a never-miss move cannot. This closes the carried "always-hits marker" item.
 
-**R5. One inspect gesture, one layer.** Long press on any card, chip, glyph, badge or pip opens its full explanation. Release closes. Tap still selects. There is exactly one mechanism, and it is fed by `describeMove`, `bandInfo`, `statusInfo`, `categoryInfo` and the type chart, never by copy written into a screen.
-Forbids: a type wheel, a band tooltip, a move popup, a legend screen, a help button, or a verbosity mode as a way to see an explanation. Opening inspect during battle must never submit a move.
-Enforce: a test asserts one tooltip mechanism exists; a test asserts opening inspect on a move button does not advance the turn.
+**R5. One inspect gesture, one layer.** Long press on any card, chip, glyph, badge or pip opens its full explanation, in one docked sheet at the top of the viewport. The sheet stays open on release and closes on a tap anywhere outside it, on its own close control, or on Escape. Tap still selects. There is exactly one mechanism, and it is fed by `describeMove`, `bandInfo`, `statusInfo`, `categoryInfo` and the type chart, never by copy written into a screen.
+Forbids: a type wheel, a band tooltip, a move popup, a legend screen, a help button, or a verbosity mode as a way to see an explanation. Opening inspect during battle must never submit a move, and neither must closing it. A panel positioned beside its trigger. Selectable text under a trigger.
+Enforce: a test asserts one tooltip mechanism exists; a test asserts opening inspect on a move button does not advance the turn; a test asserts the tap that closes the sheet reaches nothing under it; a test asserts the stylesheet declines selection and the touch callout.
+Amended 2026-09-25 (the docked sheet patch). The rule read *"Release closes"* and the panel opened beside its trigger, sized to its content. The author's playtest on an iPhone found the panel under the thumb and too small to read, and found that iOS took the long press as text selection, whose callout cancelled the pointer and closed the panel. **This was not a registered disconfirmer**: the R5 row in section 9 names accidental submission, and no submission happened. The author's directive amended the clause directly, and the row in [`playtest-log.md`](playtest-log.md) records the observation as the log requires. The hold, and what it eats, are unchanged.
 
 **R6. The default face is the compact face.** What a card shows at rest is the compact encoding in section 3. The full version is what inspect opens, not what a setting enables.
 Forbids: shipping two card faces; a setting that adds words to a card at rest.
@@ -498,6 +499,7 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Band pips and base power do not read as two ratings | A tester says "a 4 and a 90" as independent scores, or asks which matters | Pips move behind inspect; band rests as a single small numeral |
 | Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
+| R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
 | R6, Pocket default and retiring Simple/Detailed loses nothing | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
@@ -525,7 +527,7 @@ The "three exposures" figure is a design guess with no study behind it. Everythi
 ## 11. Glossary
 
 - **At rest**: what a surface shows with nothing pressed, hovered or expanded.
-- **Inspect**: the single long-press layer (R5).
+- **Inspect**: the single long-press layer (R5), a docked sheet since 2026-09-25.
 - **Exposure label**: the first-encounter word beside a glyph (R7).
 - **Forecast**: effectiveness shown before the choice, on the button.
 - **Feedback**: what the protocol says happened, on the target.

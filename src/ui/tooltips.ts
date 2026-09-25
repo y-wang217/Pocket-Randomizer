@@ -316,6 +316,21 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-live', 'polite');
 
+  /*
+   * The scrim: a transparent sheet over the whole viewport, under the panel,
+   * shown only while a *held* or keyboard-opened panel is up. **The docked
+   * sheet patch, 2026-09-25.**
+   *
+   * The tap that closes the panel has to land somewhere, and on the battle
+   * screen "somewhere" is a move button. Without this the dismissal would
+   * also be a submission, which is the one thing R5 says inspect must never
+   * do. The scrim takes the tap, closes the panel, and stops it there. A
+   * hover panel never shows it: `mouseout` closes that one and a scrim under
+   * a cursor would eat the click the reader was about to make.
+   */
+  const scrim = el('div', 'tip-scrim');
+  scrim.hidden = true;
+
   let openFor: HTMLElement | null = null;
   /** True when the panel was opened by hover, so leaving should close it. */
   let transient = false;
@@ -327,9 +342,18 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     transient = false;
     root.hidden = true;
     root.replaceChildren();
+    scrim.hidden = true;
   }
 
-  function open(trigger: HTMLElement, byHover: boolean): void {
+  /**
+   * Open the sheet for a trigger.
+   *
+   * The sheet is docked by CSS, never positioned from the trigger: one spot,
+   * the top of the viewport, whatever was pressed. The rationale is in the
+   * gesture section below. `armScrim` is false for the hold, which arms it on
+   * release instead — see `onPointerUp`.
+   */
+  function open(trigger: HTMLElement, byHover: boolean, armScrim = !byHover): void {
     const tip = trigger.dataset['tip'];
     if (!tip) return;
     const body = render(tip, trigger);
@@ -338,11 +362,20 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     if (openFor && openFor !== trigger) openFor.removeAttribute('aria-expanded');
     openFor = trigger;
     transient = byHover;
+    // The stylesheet takes a hover sheet out of the pointer's way.
+    root.dataset['transient'] = byHover ? 'true' : 'false';
     trigger.setAttribute('aria-expanded', 'true');
 
-    root.replaceChildren(body);
+    // Answered by `onClick`, like every other control the layer owns.
+    const dismiss = el('button', 'tip__close');
+    dismiss.type = 'button';
+    // The glyph is the stylesheet's (`.tip__close::before`): a mark, not copy,
+    // and the copy audit should not list it as a string awaiting a table.
+    dismiss.setAttribute('aria-label', 'Close');
+
+    root.replaceChildren(dismiss, body);
     root.hidden = false;
-    position(root, trigger);
+    scrim.hidden = !armScrim;
   }
 
   function triggerFor(target: EventTarget | null): HTMLElement | null {
@@ -374,7 +407,14 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
    * still take hover and still vanish with it.
    */
   function dropStranded(): void {
-    if (openFor && !openFor.isConnected) close();
+    /*
+     * Hover panels only, since the docked sheet patch. A held panel now
+     * outlives its release, and the reader may still be reading it when a
+     * re-render takes its trigger away; the sheet is docked, so nothing it
+     * covers depends on where that trigger was, and the tap that closes it
+     * is the scrim's, not the trigger's.
+     */
+    if (openFor && transient && !openFor.isConnected) close();
   }
 
   /*
@@ -395,6 +435,22 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
    * Now the press opens and the tap selects, so the button is a button
    * everywhere on its face and the explanation is deliberate. The three
    * `suppress` flags below are what keep those two from ever firing together.
+   *
+   * **The docked sheet patch, 2026-09-25, amended R5's "Release closes".**
+   * The panel used to open beside the trigger and close on release, which on
+   * a phone meant a small box under the thumb that vanished when the thumb
+   * lifted. It now opens in one fixed spot — the top of the viewport, the
+   * edge a thumb is least often on — stays open on release, and closes on a
+   * tap anywhere outside it (the scrim), on its own close control, or on
+   * Escape. The hold is unchanged and so is what it eats: the click a hold
+   * leaves behind still never submits.
+   *
+   * The same patch made every trigger unselectable (`styles.css`,
+   * `[data-tip]`). iOS reads a long press on selectable text as "select this
+   * word", raises its copy callout, and cancels the pointer — and the cancel
+   * closed the panel. That was the report's first sentence, and no amount of
+   * work in this file could fix it: the platform gesture has to be declined
+   * at the element.
    * ---------------------------------------------------------------------
    */
 
@@ -467,7 +523,8 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
       holdTimer = null;
       openedByHold = true;
       suppressClick = true;
-      open(trigger, false);
+      // The scrim waits for the release; see `onPointerUp`.
+      open(trigger, false, false);
     }, tuning.inspectHoldMs);
   };
 
@@ -481,12 +538,20 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     }
   };
 
-  /** R5's "release closes", and the only thing that ends a held panel. */
+  /**
+   * Release. Until the docked sheet patch this closed the panel; now it arms
+   * the scrim and leaves the panel up.
+   *
+   * The scrim is armed here rather than when the hold opens, because until
+   * the finger lifts the click that follows may still be the player's: the
+   * jank case in `onClick` lets a fast tap through, and a scrim already over
+   * the button would have taken that click away from it.
+   */
   const onPointerUp = (): void => {
     cancelHold();
     if (!openedByHold) return;
     openedByHold = false;
-    close();
+    if (openFor && !transient) scrim.hidden = false;
   };
 
   const onPointerCancel = (): void => {
@@ -507,7 +572,9 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
      * to prevent.
      */
     suppressClick = false;
-    close();
+    // Same as a release since the docked sheet patch: the panel stays, and
+    // the scrim is what closes it.
+    if (openFor && !transient) scrim.hidden = false;
   };
 
   /*
@@ -540,6 +607,18 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
         return;
       }
       openedByHold = false;
+      close();
+      return;
+    }
+    // The scrim takes the tap that closes a held or keyboard-opened panel,
+    // and the tap goes no further: a dismissal on the battle screen must not
+    // also be a move.
+    const dismissal =
+      event.target === scrim ||
+      (event.target instanceof Element && event.target.closest('.tip__close') !== null);
+    if (dismissal) {
+      event.preventDefault();
+      event.stopPropagation();
       close();
       return;
     }
@@ -630,7 +709,7 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   host.addEventListener('keydown', onKeyDown, true);
   host.addEventListener('mouseover', onOver);
   host.addEventListener('mouseout', onOut);
-  host.append(root);
+  host.append(scrim, root);
 
   return {
     root,
@@ -645,6 +724,7 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
       host.removeEventListener('keydown', onKeyDown, true);
       host.removeEventListener('mouseover', onOver);
       host.removeEventListener('mouseout', onOut);
+      scrim.remove();
       root.remove();
     },
   };
@@ -1273,32 +1353,3 @@ function row(label: string, types: readonly string[], band: string): HTMLElement
 // ---------------------------------------------------------------------------
 // Placement
 // ---------------------------------------------------------------------------
-
-/**
- * Put the panel near its trigger without letting it leave the viewport.
- *
- * Fixed positioning against the trigger's client rect, flipped above when there
- * is no room below and clamped horizontally. Deliberately arithmetic rather
- * than a popover library: this is the whole of the requirement, and Stage 5's
- * responsive pass will want to change the rule rather than configure someone
- * else's.
- */
-function position(panel: HTMLElement, trigger: HTMLElement): void {
-  const margin = 8;
-  const anchor = trigger.getBoundingClientRect();
-
-  // Measured after the content is in, so the flip decision uses the real size.
-  panel.style.left = '0px';
-  panel.style.top = '0px';
-  const box = panel.getBoundingClientRect();
-
-  const spaceBelow = window.innerHeight - anchor.bottom;
-  const above = spaceBelow < box.height + margin && anchor.top > box.height + margin;
-  const top = above ? anchor.top - box.height - margin : anchor.bottom + margin;
-
-  const maxLeft = window.innerWidth - box.width - margin;
-  const left = Math.max(margin, Math.min(anchor.left, maxLeft));
-
-  panel.style.left = `${left}px`;
-  panel.style.top = `${Math.max(margin, top)}px`;
-}

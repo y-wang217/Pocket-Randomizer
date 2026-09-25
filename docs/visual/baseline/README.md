@@ -18,6 +18,24 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-25, the docked inspect sheet patch** (`docs/generation.md` §81).
+  `heights.json` alone; runs, the battle protocol and the digest are untouched
+  because nothing under `core/` changed and no version axis moved.
+
+  **Every guarded screen grew by one to four pixels, in every mode**, and the
+  reason is the author's own ask in that patch: every clickable surface a
+  tenth larger. `--tap-scale: 1.1` multiplies the padding of `.button`,
+  `.button--small` and `.move` and the move bar's 44px floor, so the header's
+  two small buttons push each screen down and the move bar is taller. In
+  Detailed: map `screenHeight` 743.97 → 744.75 and `decisionTop` 558 →
+  560.34; battle `screenHeight` 585.5 → 587.88, `decisionTop` 462.5 → 464.06,
+  `decisionBottom` 698.5 → 702.44. Pocket battle `scrollHeight` holds at 844,
+  so the no-scroll gate on the phone still passes with the larger buttons,
+  and `npm run smoke` measured the move grid ending at 704 of 844. Re-recorded
+  with `node scripts/visual/measure.mjs --out` after `npm run build`, on the
+  same box as the previous recording (the map's Detailed fields matched
+  4.10.1's recording to the pixel before this patch's stylesheet was applied).
+
 - **2026-09-25, patch 4.10.1, map node icons** (D46). `heights.json` alone;
   runs, the battle protocol and the digest are untouched because nothing under
   `core/` changed and no version axis moved.

@@ -11096,3 +11096,119 @@ the separation sheet is the head against the bag at 0.281 against a floor of
 because the run log and the share text read it; the face reads the gym table.
 The event screen, which has its own glyph and chevron since M5.6. The node's
 card shape and its single border, per the V0 note in the stylesheet.
+
+
+## 81. The inspect sheet docks, the text stops being a text field, and every button grows a tenth
+
+**2026-09-25, numbered 81 rather than 79 by the merge of `main`**, which carried sections 79 and 80 from the wild patch's chip sweep and patch 4.10.1; the register row moved with it. Prompt:
+[`spec/gymrun-patch-inspect-docked-sheet.md`](spec/gymrun-patch-inspect-docked-sheet.md),
+three messages from the author, filed before any change to `src/`.
+Presentation only: no `core/` change, no data table, no version axis moves,
+`contentHash` unmoved. **The design bible's R5 is amended by this patch**, and
+the amendment is recorded in the bible, in `design/playtest-log.md` and in
+the register, in that order of authority.
+
+### What was happening
+
+Three things, and the second message put the first one first.
+
+1. **iOS took the long press for text selection.** Every trigger's text was
+   selectable, so a hold on a move card highlighted the word under the thumb
+   and raised the copy callout. The callout cancels the pointer, and
+   `ui/tooltips.ts` closed the panel on `pointercancel`. The explanation
+   appeared and the platform took it away, every time the press landed on a
+   word. `onContextMenu` already declined the context menu on a trigger; the
+   selection gesture is a different one and has to be declined at the element.
+2. **The panel opened beside the trigger**, positioned in script from the
+   trigger's box and sized to its content. On a phone that is a small box
+   under the thumb that was holding it.
+3. **Release closed it**, per R5 as written, so it could not be read with the
+   hand out of the way.
+
+### What was built
+
+- **Nothing in the game is a text field.** `body` declines selection and the
+  touch callout; `input`, `textarea` and the log sheet's body are the
+  exceptions, the last kept for bug reports. Every button and move card
+  inherits it, which is message 3's first half.
+- **One docked sheet.** `.tip` is fixed to the top of the viewport under the
+  safe area, centred, as wide as the screen allows, capped at half the height
+  and scrolling inside itself. The `position()` function is deleted. The top
+  rather than the bottom because the move bar is at the bottom of the battle
+  screen and a thumb is on the lower half of a phone far more often than the
+  upper; a chip held near the top will have the sheet open under it, and the
+  release there costs nothing because the click a hold leaves behind is
+  eaten regardless of where it lands.
+- **Stays open, closes on a tap away.** A transparent scrim (`.tip-scrim`) is
+  armed on *release*, not on open, and the delegated click handler answers a
+  click on it by closing and stopping the event. Armed on release because the
+  jank case in `onClick` lets a fast tap through to the button it was on, and
+  a scrim already over that button would have taken the click. A held panel
+  also survives `pointercancel` now; a scroll should not cost the reader the
+  sheet. The sheet has a close control (`.tip__close`, a glyph, no word) and
+  Escape still closes. Hover panels on a desktop are unchanged: no scrim,
+  `mouseout` closes them, and `dropStranded` now applies to them alone.
+- **Every clickable surface a tenth larger.** `--tap-scale: 1.1` in
+  `tokens.css` multiplies the padding of `.button`, `.button--small` and
+  `.move`, and the move bar's 44px floor. Separately, every `button` and
+  `[role="button"]` carries a `::after` that bleeds five percent past each
+  edge, so the hit area grows on controls whose padding rules this patch did
+  not touch. `:where()` keeps the specificity at zero, so the fixed stamps
+  keep their own `position`.
+
+### The slop, the same day
+
+The first push painted the `::after` bleed *over* the control's children,
+because a positioned pseudo-element with no `z-index` sits above in-flow
+content and comes last in tree order. Every chip inside a starter card, an
+event choice, a panel or a move card was covered by its parent's slop, and
+the author found the ability and type triggers unreachable within the hour.
+Hit-tested in Chromium at 390 wide on the starter and battle screens: eight
+of eight probes reached the parent before the fix and the chip after it. The
+fix is `isolation: isolate` on the control and `z-index: -1` on the bleed,
+so it sits behind the content inside the control's own stacking context; the
+five percent outside the box is still the control's.
+
+### The first CI run, and the second push
+
+Four browser tests failed on the PR's first head, all this patch's.
+
+- **Three phone tests measured the page at 391 and 392 wide.** An
+  absolutely positioned box extends the page's scrollable overflow, and five
+  percent of a full-width button at 390 is 18px, past the shell's 16px side
+  gutter. The bleed is now `max(-5%, -12px)` a side, the 12px as `--space-3` for the token rule: five percent on anything
+  under 240px wide, 12px above that, and never past the edge.
+- **The tutorial test could not click the header's replay button** because a
+  hover-opened sheet for a stat panel sat over it. Docked at the top, a hover
+  sheet now covers the header; it is also a sheet the cursor can never reach,
+  since `mouseout` closes it. So a hover sheet takes no pointer:
+  `data-transient` on the root and `pointer-events: none` for it, scoped
+  under `.shell` as well because `.shell > *:not(.screens)` forces pointer
+  events on every direct child at the same specificity. A held or
+  keyboard-opened sheet keeps its pointer, for the scroll and the close
+  control.
+
+### The heights baseline
+
+`docs/visual/baseline/heights.json` is re-recorded, with the reason in that
+directory's README: every guarded screen grew by one to four pixels in every
+mode, which is the tenth on the button families. Pocket's battle screen still
+fits in 844 with no scroll. The vertical-budget test skips under `CI`, so the
+local browser leg is where this was found.
+
+### The bible
+
+R5's *"Release closes"* clause is gone, and the rule now names the docked
+sheet, the tap-away dismissal, and two new forbids: a panel positioned beside
+its trigger, and selectable text under a trigger. The section 9 row for R5 is
+untouched and a second row is added for the sheet's own bet, that it reads as
+dismissable. **The amendment had no registered disconfirmer**, and the
+bible's note under R5 says so rather than pretending one fired.
+
+### Tests
+
+`test/inspect.test.ts`: the release test is rewritten to the new gesture; new
+cases for the close control, the scrim's tap reaching nothing under it, a
+cancelled pointer, and a stylesheet check for the selection rule, the hit
+slop and the token. The R5 enforcement block is unchanged and still passes:
+what a hold eats did not move.
