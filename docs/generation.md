@@ -10996,7 +10996,7 @@ over ace.
   wild team and brings the bump. Trainer teams are unmoved; the digest covers
   both and moves once.
 - **`test/fixtures/sim-report.json`** and **`docs/visual/baseline/`**, by
-  their own write commands. `battles/GYMRUN01.json` moved this time, where
+  their own write commands. `docs/visual/baseline/battles/GYMRUN01.json` moved this time, where
   section 35 recorded it byte-identical: that run's first fight is a wild
   encounter, and the wild column is what moved.
 
