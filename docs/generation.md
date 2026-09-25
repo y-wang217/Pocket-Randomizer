@@ -11188,6 +11188,14 @@ Four browser tests failed on the PR's first head, all this patch's.
   keyboard-opened sheet keeps its pointer, for the scroll and the close
   control.
 
+### The heights baseline
+
+`docs/visual/baseline/heights.json` is re-recorded, with the reason in that
+directory's README: every guarded screen grew by one to four pixels in every
+mode, which is the tenth on the button families. Pocket's battle screen still
+fits in 844 with no scroll. The vertical-budget test skips under `CI`, so the
+local browser leg is where this was found.
+
 ### The bible
 
 R5's *"Release closes"* clause is gone, and the rule now names the docked
