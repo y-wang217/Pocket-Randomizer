@@ -3226,6 +3226,20 @@ body {
 
 .node__label { font-weight: 600; font-size: var(--fs-base); }
 
+/*
+ * The kind is a mark. **Patch 4.10.1, D46.** The label line carries the node
+ * glyph at 24 and, on a gym, the leader's name; the tier pips have a row of
+ * their own beneath it, where the prompt asked for them. The mark inherits
+ * the label's colour and nothing else: no hue per kind, for the reason the V0
+ * note above gives.
+ */
+.node__label { display: inline-flex; align-items: center; gap: var(--space-1h); }
+.node__kind { display: inline-flex; align-items: center; line-height: 0; }
+.node__tier { display: flex; align-items: center; }
+
+/* The same mark at 16 on the battle header, beside the leader's name. */
+.battle__header .screen__title { display: inline-flex; align-items: center; gap: var(--space-1); }
+
 .node__detail {
   color: var(--text-faint);
   font-family: var(--font-body);
@@ -3652,6 +3666,22 @@ body {
   margin-top: calc(var(--space-4h) * var(--density-gap));
   font-size: var(--fs-base);
 }
+
+/* Full cream for the row's neutral chips — the ability and the archetype —
+   and this is a **legibility floor fix, not a weight change**, the same one
+   `.flags .chip` carries and for the same reason.
+
+   The owner row is the second place a chip sits on the locale-tinted stage
+   rather than on a panel. The dim recipe measured 3.75:1 for `Justified` on
+   the marsh green — under `displayTuning.minChipContrastRatio` — and the
+   pairing had never been sampled: the seed the contrast sweep walks reaches a
+   green-tinted locale's replacement screen since the wild-strength patch moved
+   the road, and did not before. `test/visual-chips.test.ts` is where it
+   surfaced, 2026-09-25.
+
+   Only the neutral chips. The type chips beside them carry their own colour
+   and lifting `--chip` on the whole row would repaint a type as cream. */
+.replace__owner .chip--neutral { --chip: var(--cream); }
 
 /* Minimum 44px of touch target, because this screen is a phone screen: four
    cards, one irreversible tap, and no undo behind it. */

@@ -62,6 +62,13 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'stat-spd': 'Special Defense',
   'stat-spe': 'Speed',
 
+  'node-wild': 'Wild',
+  'node-trainer': 'Trainer',
+  'node-rest': 'Rest',
+  'node-gym': 'Gym',
+  'node-shop': 'Shop',
+  'node-event': 'Event',
+
   'capability-cut': 'Cut',
   'capability-surf': 'Surf',
   'capability-strength': 'Strength',

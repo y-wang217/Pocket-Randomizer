@@ -61,6 +61,7 @@ which blocks everything.
 | D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
+| D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
 
 ## Rulings, 2026-09-19
 
@@ -3184,3 +3185,94 @@ decision surface keeps the hard gate. What this does not decide is D38: the
 capture card is a surface where the player compares against the party already
 on screen, and the same ruling is not assumed to carry.
 
+
+
+---
+
+## D46. The map node kind is a word by two rulings, a glyph by section 5, and patch 4.10.1 asks for the glyph
+
+**Ruled 2026-09-25, option 1, the plan's four defaults taken; built in patch 4.10.1. Filed 2026-09-25, before any code, from
+[`../spec/gymrun-patch-4.10.1-map-node-icons.md`](../spec/gymrun-patch-4.10.1-map-node-icons.md).**
+
+The patch prompt: *"convert map to icons. Trainer is a head symbol. Wild is a
+bush symbol. Shop and event we steal. The tier levels can remain as labels
+beneath."* With a drawing: round nodes, each carrying one mark, no words.
+
+### What the bible says, in three places that do not agree
+
+| Where | Says | Since |
+|---|---|---|
+| Section 5, component canon, *Map node card* | *"Node-type glyph, tier pips, reward-tier pips, capability glyph with band chevron"* | D29, 2026-09-22 |
+| Section 4, *Map node card* row and its note | Budget **3**: *"Node kind, the payout's unit, AI tier."* The note: *"there is no such glyph: section 2's families are attributes of a Pokemon or a move, and a node kind is neither"*, and the kind *"stays a word on both"* surfaces to match D28 | D37, 2026-09-22 |
+| Section 5, *Battle screen header* | *"Node kind, opponent, AI tier"*, budgeted at 4 in section 4 | D28, 2026-09-21 |
+
+Section 5 promises a node-type glyph. Section 4, one day later, says there is
+none and cannot be. Both carry a 2026-09-22 date. Nothing caught it because
+D37 was ruled option 1 and the build made section 4 true, and section 5's
+line was never corrected to match the ruling.
+
+### D37 already described this request
+
+D37's option 2, verbatim: *"Tenth and eleventh: `capability` and `node kind`.
+M5.2 as written, zero words on the card, and D28 is reopened, because the
+battle header's first budgeted word becomes a glyph too. Consistent with R1,
+and it spends the 'nine families is the right size' hypothesis that section 9
+is still betting on."* And its closing line: *"Option 2 is the one to take if
+the node kind's word on the battle header is judged the real defect, but that
+is a reversal of D28, not an extension of it, and it should be ruled as one."*
+
+So this row is D37 reopened on its own terms. It asks for one thing D37
+declined, and it is filed as a reversal of D28 because D37 said it must be.
+
+### What R1 forces if the glyph is granted
+
+R1: *"every attribute has one fixed slot on every surface where it appears."*
+The kind appears on the map node card, in the drawer (same component), and on
+the battle header. A glyph on the card and a word on the header is the shape
+D37 refused, so granting the glyph grants it on the header too. Section 4's
+battle header row goes 4 to 3 and section 5's header row is rewritten. This
+is the whole of the D28 reversal: D28's budget stands, one word lighter.
+
+### Options
+
+1. **Eleventh family `node`, on both surfaces.** Section 2 gains the row and
+   reads eleven. Section 3 gains *Node kind (map node, battle header) | Kind
+   glyph | None | The kind's hint*. Section 4: map node card 3 to **2**, battle
+   header 4 to **3**. Section 5: the header row names the glyph. Section 9's
+   hypothesis row reads eleven, and M7.1 tests it. The six marks are the
+   plan's section 2.4; the tier pips move beneath the mark, which is a slot
+   change inside one component and not a surface change.
+2. **Eleventh family on the map only, D28 untouched.** The cheapest build and
+   the one R1 forbids by name. Listed so that the refusal is on the record.
+3. **Correct section 5 to say *word*, decline the patch.** Restores the
+   bible's agreement with itself at zero cost and leaves the map as it is.
+   The prompt is then wrong until amended, by section 10.4.
+
+**Recommendation: 1.** It is what the lead designer has asked for, it is the
+option D37 wrote down as the way to ask for it, and the only rule it touches
+is R1, which it satisfies rather than bends. The price is the section 9
+hypothesis, and M7.1 is scheduled to collect it.
+
+### Four things the ruling should say, because the plan defaults them
+
+1. The rest node's mark (default: a tent). The prompt names four kinds and the
+   example draws no rest.
+2. The gym's mark (default: a badge; the example draws a skull). Either passes
+   C1.
+3. The glyph size on the card (default: 24, where `ui/theme/glyph.ts` says a
+   card face is 16). Section 5 should carry the size for this component.
+4. Whether the untiered node's short hint stays on the detail line (default:
+   yes; it stands in for a tier fact, not for the kind).
+
+---
+
+## D46, closed with the build
+
+**2026-09-25, option 1 as recommended. Patch 4.10.1.** The lead designer's
+ruling was one word, *go ahead*, on the plan as filed, so the four defaults
+stand: the rest node wears a tent, the gym a badge beside the leader's name,
+the mark is 24 on the card and 16 on the header, and the untiered node keeps
+its short hint on the detail line. The bible went to Rev 13. R7's exposure
+labels give the six words back on the first and third map, which is the one
+place the prompt's *labels beneath* and R2's *labels go* both hold. Record in
+[`../generation.md` §80](../generation.md).

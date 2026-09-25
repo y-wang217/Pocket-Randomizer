@@ -38,6 +38,7 @@ export type ChipVariant =
   | 'stage'
   | 'capability'
   | 'capability-band'
+  | 'node'
   | 'category'
   | 'effect'
   | 'flag'
@@ -299,6 +300,30 @@ const REWARD_TIER_STEPS: readonly string[] = ['T0', 'T1', 'T2', 'T3'];
 export function capabilityGlyph(capability: string, label: string): HTMLElement {
   const node = build('capability', 'node__gate-need', '', { tip: `capability:${capability}` });
   const mark = glyphNode(`capability-${capability}`, { label });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * The kind of a node, as its mark. **Patch 4.10.1, D46.**
+ *
+ * One builder for the two surfaces that carry the kind, the map node card and
+ * the battle screen header, because R1 forbids the same attribute encoded two
+ * ways: the head the player routed toward is the head the fight is under. The
+ * size is the one thing the surfaces differ on, 24 on the card where the mark
+ * is the face and 16 on the header where it sits beside text, and section 5
+ * carries both numbers.
+ *
+ * The word is the glyph's accessible name and R7's exposure label, and nothing
+ * else: `KIND_LABELS` went with the build. The hint behind the mark is the
+ * `node:` tip, fed by `KIND_HINTS`, which is the copy the detail line printed
+ * for an untiered node and the tutorial paraphrased.
+ */
+export function nodeKindGlyph(kind: string, label: string, size: 24 | 16): HTMLElement {
+  const node = build('node', 'node__kind', '', { tip: `node:${kind}` });
+  const mark = glyphNode(`node-${kind}`, { label, size });
   if (mark) node.append(mark);
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', label);

@@ -1,6 +1,7 @@
 /**
- * The glyph families of design bible section 2, as a roster. Ten since
- * 2026-09-22; see `'capability'` below for why that is not a tenth claim.
+ * The glyph families of design bible section 2, as a roster. Eleven since
+ * 2026-09-25; see `'capability'` below for why the tenth was not a new claim,
+ * and `'node'` for why the eleventh was one, and was ruled as one.
  *
  * **Moved here by M1.3, from `ui/theme/glyphs.ts` where M1.1 put them.**
  *
@@ -56,6 +57,17 @@ export const GLYPH_FAMILIES = [
    * section 10.3 reserves for an observed disconfirmer.
    */
   'capability',
+  /*
+   * **The eleventh, added 2026-09-25 under D46. Patch 4.10.1.**
+   *
+   * The node kind: a head, a bush, a tent, a badge, a bag, a question mark.
+   * Unlike the tenth this *was* a new claim — D37 had ruled the kind stays a
+   * word on the map and on the battle header, matching D28 — and D46 took
+   * D37's own option 2 and reversed D28 as a reversal, which is what D37 said
+   * the request would have to be. Section 9's "the family count is the right
+   * size" hypothesis now reads eleven, and M7.1 is the playtest that tests it.
+   */
+  'node',
 ] as const;
 
 export type GlyphFamily = (typeof GLYPH_FAMILIES)[number];

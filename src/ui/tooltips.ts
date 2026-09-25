@@ -73,6 +73,8 @@ import {
 } from '../data/archetypes';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
+import { GLYPH_LABELS } from '../data/glyphLabels';
+import { KIND_HINTS } from './copy/screens';
 import { capabilityTypes, type Capability } from '../data/capabilities';
 import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
 import type { CapabilityBand } from '../core/capabilities';
@@ -107,6 +109,7 @@ type TipKind =
    * this instance of it said.
    */
   | 'flag'
+  | 'node'
   /**
    * The six-label stat shorthand. Stage 4.7, Part 7.
    *
@@ -266,6 +269,7 @@ const KINDS = [
    * below makes the third a compile error.
    */
   'flag',
+  'node',
   'archetype',
   'stats',
   'move',
@@ -791,6 +795,8 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderCapability(id, trigger?.dataset['detail']);
     case 'tier':
       return renderTier(id);
+    case 'node':
+      return renderNodeKind(id);
     case 'capability-band':
       return renderCapabilityBand(id);
     case 'reward-tier':
@@ -909,6 +915,22 @@ function renderTier(id: string): HTMLElement | null {
   if (!text) return null;
   const body = panel(id.slice(0, 1).toUpperCase() + id.slice(1));
   body.append(line(text, 'tip__text'));
+  return body;
+}
+
+/**
+ * What a node kind is, behind its mark. **Patch 4.10.1, D46.**
+ *
+ * Section 3's node kind row sends inspect to `KIND_HINTS`, which is the copy
+ * the map's detail line printed for an untiered node and the tutorial's
+ * *What an option is* paraphrased. The title is the glyph's own word, so the
+ * panel and the exposure label cannot disagree on what to call the mark.
+ */
+function renderNodeKind(id: string): HTMLElement | null {
+  const hint = KIND_HINTS[id as keyof typeof KIND_HINTS];
+  if (!hint) return null;
+  const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
+  body.append(line(hint.long, 'tip__text'));
   return body;
 }
 

@@ -61,7 +61,8 @@ import { TYPE_ICON_NAMES, TYPE_ICON_VIEWBOX, typeIconPath } from './typeIcons';
 export const GLYPH_VIEWBOX = TYPE_ICON_VIEWBOX;
 
 /**
- * The nine families of design bible section 2. Adding a tenth is an amendment.
+ * The families of design bible section 2, eleven since D46. Adding one is an
+ * amendment.
  *
  * **The roster lives in `data/glyphFamilies.ts` since M1.3** and is re-exported
  * here, so the sheet stays the one place to ask what a family *looks* like
@@ -260,6 +261,30 @@ export const GLYPHS: readonly Glyph[] = [
     label: labelOf('capability-band-off'),
     art: { kind: 'markup', markup: '<path d="M12 7.6l5.6 7.2H6.4z" fill="none" stroke="currentColor" stroke-width="1.4"/>' },
   },
+
+  /*
+   * **Node: the eleventh family. D46, 2026-09-25. Patch 4.10.1.**
+   *
+   * One mark per node kind, where the map printed a word and the battle
+   * header printed the same word. The prompt named two of them — *"Trainer is
+   * a head symbol. Wild is a bush symbol"* — and said to take the shop and the
+   * event from what exists: the event's `?` has been the map's own mark since
+   * Stage 3, and the shop's bag is the item sheet's silhouette. The rest and
+   * the gym were the plan's defaults, a tent and an eight-pointed badge, and
+   * the ruling took them.
+   *
+   * Six silhouettes in one family, so drawn for outline rather than detail: a
+   * head on shoulders, three lobes on a stem, a triangle with a door cut
+   * even-odd, a star, a bag with a hole for the handle, and a `?` thick enough
+   * to survive 16px. The head against the bush and the tent against the badge
+   * are the pairs the separation sheet is there to catch.
+   */
+  { id: 'node-wild', family: 'node', label: labelOf('node-wild'), art: path('M12 3.5a4.2 4.2 0 0 1 4.1 3.3 4 4 0 0 1 4.4 4 4 4 0 0 1-2.4 3.7c.3 2-1.2 3.7-3.2 3.7h-1.6V21h-2.6v-2.8H9.1c-2 0-3.5-1.7-3.2-3.7A4 4 0 0 1 3.5 10.8a4 4 0 0 1 4.4-4A4.2 4.2 0 0 1 12 3.5z') },
+  { id: 'node-trainer', family: 'node', label: labelOf('node-trainer'), art: path('M12 2.5a4.6 4.6 0 0 1 4.6 4.6v1.2A4.6 4.6 0 0 1 12 12.9a4.6 4.6 0 0 1-4.6-4.6V7.1A4.6 4.6 0 0 1 12 2.5zM3 21.5c0-4.3 3.6-7.4 9-7.4s9 3.1 9 7.4z') },
+  { id: 'node-rest', family: 'node', label: labelOf('node-rest'), art: path('M12 2.5l10.5 18.5h-21zm0 9.2l-3.4 6.3h6.8z', 'evenodd') },
+  { id: 'node-gym', family: 'node', label: labelOf('node-gym'), art: path('M12 2l2.4 5.6 5.8-1.8-3.4 5.2 5.2 3.4-5.8 1.6L14.4 22 12 16.6 9.6 22l-1.8-6-5.8-1.6 5.2-3.4-3.4-5.2 5.8 1.8z') },
+  { id: 'node-shop', family: 'node', label: labelOf('node-shop'), art: path('M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5h3.2l1.3 13H4l1.3-13zm2.2 0h2.6V7a1.3 1.3 0 0 0-2.6 0z', 'evenodd') },
+  { id: 'node-event', family: 'node', label: labelOf('node-event'), art: path('M12 2.5c3.6 0 6.2 2.3 6.2 5.5 0 2.3-1.3 3.6-2.6 4.6-1.1.8-1.7 1.4-1.7 2.6v.6h-3.6v-.9c0-2.2 1-3.4 2.4-4.4 1.1-.8 1.7-1.4 1.7-2.4 0-1.2-1-2.1-2.4-2.1-1.5 0-2.5 1-2.6 2.5H5.7c.1-3.6 2.7-6 6.3-6zM10.1 17.7h3.8v3.8h-3.8z') },
 ];
 
 /** The glyphs of one family, in sheet order. */

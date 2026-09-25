@@ -11007,9 +11007,100 @@ The benchmark row is in [`balance.md`](balance.md) section 0, stamped
 `randomizer-21` · `d4e080` row on the same prefix and the same `table` AI.
 **Recorded, not chased**, per the standing policy.
 
-## 79. The inspect sheet docks, the text stops being a text field, and every button grows a tenth
+## 79. The road the wild patch moved reaches two surfaces the chip sweep had never photographed
 
-**2026-09-25.** Prompt:
+**2026-09-25**, on `claude/wild-pokemon-gym-balance-gpykz5`, after
+[#69](https://github.com/y-wang217/Pocket-Randomizer/pull/69) merged. No
+version axis moves: one CSS rule and one test.
+
+Section 78's table edit moved the road the browser suite's seeds walk, and
+`test/visual-chips.test.ts` — which samples a screen whenever a chip variant it
+has not yet seen appears on it — landed on two surfaces for the first time.
+The node suite is green either side; only the chromium sweep read them.
+
+1. **The move replacement screen's owner row, on a green locale.** The row
+   (species, level, type chips, archetype, ability) sits on the locale-tinted
+   stage rather than on a panel, and the dim neutral recipe measured
+   `Justified` at 3.75:1 on the marsh — under `displayTuning.minChipContrastRatio`.
+   The same defect `.flags .chip` fixed for the flags strip, on the second
+   surface that has it. `.replace__owner .chip--neutral` now takes full cream;
+   the type chips beside it keep their own colour. A legibility floor fix and
+   not a weight change; no bible rule on how the ability is shown moves, since
+   the chip is the same chip at the same size with the same word.
+2. **The event screen's capability cost chip.** `capabilityChip(cost)` still
+   carries text on that one surface, so the sweep — which takes any chip with
+   text — photographed a `capability` variant that the test's `VARIANTS` list
+   deliberately omits, and an equality assertion read the extra sample as a
+   failure. The sweep now counts only listed variants toward its stopping
+   condition and asserts that every listed variant was reached, not that
+   nothing else was. A sample from beyond the list is kept and asserted
+   against nothing, which is what the list's own note already says of it.
+
+## 80. Patch 4.10.1: the map's node kinds are marks, and the eleventh family
+
+**2026-09-25, on `claude/map-icons-conversion-plan-tvab5v`.** Prompt
+[`spec/gymrun-patch-4.10.1-map-node-icons.md`](spec/gymrun-patch-4.10.1-map-node-icons.md),
+five lines and a drawing, filed with its scope before any code. The scope's
+first finding was that the bible ruled against the request twice: D37 kept the
+node kind a word on the map to match D28 keeping it a word on the battle
+header, while section 5's canon had said *"node-type glyph"* since D29 the
+same day. D37 had written this request down as its option 2 and said it would
+have to be ruled as a reversal of D28. **D46** was filed on that reading and
+ruled option 1 in one word, and the bible went to **Rev 13**.
+
+**What shipped.** An eleventh family, `node`: a head (trainer), a bush (wild),
+a tent (rest), a badge (gym), a bag (shop) and a question mark (event), in
+`ui/theme/glyphs.ts`, with their words in `data/glyphLabels.ts`. The map node
+card wears the mark at 24 where `KIND_LABELS` printed a word from Stage 3 to
+here, and a gym's leader name beside its badge; the tier pips have a row of
+their own beneath the mark, which is the prompt's one instruction about the
+tier. The battle header wears the same mark at 16 through the same builder
+(`nodeKindGlyph` in `ui/chip.ts`), because R1 forbids one attribute encoded
+two ways. The `node:` tip opens `KIND_HINTS`. The `map.kinds` coach mark names
+the marks instead of the words.
+
+**Numbers.** The worst map node card **3 → 2** in Pocket, the map screen's
+chrome 22 → 17, the battle screen's 7 → 5. The node family's worst pair on
+the separation sheet is the head against the bag at 0.281 against a floor of
+0.12, the third widest family on the sheet. No version axis moved: every
+`data/` file touched is on the content-hash exclusion list with its reason.
+
+**Deviations from the plan as filed.**
+
+1. The plan drew the pips and the capability gate on one row beneath the mark.
+   The gate kept its own row with its dashed rule: it is a separate element
+   with its own metrics since 4.6c, and putting the pips inside it would have
+   made the tier a fact about the gate.
+2. The plan said the shop's mark would be an item sprite the sheet already
+   ships. The sheet's sprites are coloured pictures and every family mark is a
+   monochrome silhouette, so a bag was drawn to the sheet's own rule instead,
+   which the plan had named as the fallback.
+3. `gymLeaderName` was planned as a shared helper; it is a one-line lookup on
+   `gymForSegment` in each of the two callers, so the battle screen does not
+   import the map screen.
+4. The plan said the map screen *"gains no height: the card grows one row and
+   loses one word"*. It gains **38.25px** in every mode, the row plus the
+   difference between a 24px mark and a line of text. `decisionTop` is
+   unmoved, the Pocket no-scroll gate and the 740 line pass, and
+   `heights.json` is re-recorded with the reason in
+   [`visual/baseline/README.md`](visual/baseline/README.md), where the
+   re-recording also found its `modes` and `layouts` blocks stale from before
+   this patch.
+5. Not in the plan: the gallery's battle fixture gave its node the kind
+   `battle`, which no node has ever had. A word the fixture set itself hid it;
+   a mark looked up by kind rendered an empty title. It reads `trainer` now,
+   matching the label the fixture already carried, which is the same defect
+   D28 found in the same fixture's label a week earlier.
+
+**Untouched.** `core/encounters.ts` still labels a gym node `"<Leader>'s Gym"`,
+because the run log and the share text read it; the face reads the gym table.
+The event screen, which has its own glyph and chevron since M5.6. The node's
+card shape and its single border, per the V0 note in the stylesheet.
+
+
+## 81. The inspect sheet docks, the text stops being a text field, and every button grows a tenth
+
+**2026-09-25, numbered 81 rather than 79 by the merge of `main`**, which carried sections 79 and 80 from the wild patch's chip sweep and patch 4.10.1; the register row moved with it. Prompt:
 [`spec/gymrun-patch-inspect-docked-sheet.md`](spec/gymrun-patch-inspect-docked-sheet.md),
 three messages from the author, filed before any change to `src/`.
 Presentation only: no `core/` change, no data table, no version axis moves,
@@ -11094,4 +11185,3 @@ cases for the close control, the scrim's tap reaching nothing under it, a
 cancelled pointer, and a stylesheet check for the selection rule, the hit
 slop and the token. The R5 enforcement block is unchanged and still passes:
 what a hold eats did not move.
-

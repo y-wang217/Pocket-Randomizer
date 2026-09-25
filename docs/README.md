@@ -66,7 +66,11 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the 4.10 presentation milestones, Tier 6 in review ([#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68)); Tier 7 next.** List
+**In flight: the 4.10 presentation milestones, Tier 6 merged as [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68); patch 4.10.1 built on `claude/map-icons-conversion-plan-tvab5v`; Tier 7 next.**
+Patch 4.10.1 makes the map's node kinds marks — a head, a bush, a tent, a
+badge, a bag, a question mark — as an eleventh glyph family, ruled under D46
+as D37's option 2 and a reversal of D28, bible Rev 13;
+[`generation.md` §80](generation.md). List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
