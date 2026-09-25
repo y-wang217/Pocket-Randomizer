@@ -780,8 +780,8 @@ Source: `src/ui/copy/screens.ts` · 11 strings
 | `target.blurb` | Who learns it? You choose what it replaces next. | Who learns it? |  |
 | `target.choose` | Teach it to this one | Teach it |  |
 | `target.decline` | Don't learn it | Don't learn it |  |
-| `target.forfeitTitle` | Forfeit this reward? | Forfeit this reward? |  |
-| `target.forfeitConfirm` | Forfeit | Forfeit |  |
+| `target.forfeitTitle` | Cancel learning? | Cancel learning? |  |
+| `target.forfeitConfirm` | Cancel | Cancel |  |
 | `target.forfeitCancel` | Keep | Keep |  |
 | `replace.blurb` | Four moves already. Pick the one it replaces — this cannot be undone. | Pick the move it replaces. No undo. |  |
 | `replace.current` | Currently knows — tap one to replace | Knows — tap one to replace |  |

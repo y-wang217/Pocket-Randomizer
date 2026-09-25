@@ -162,7 +162,7 @@ describe('the decline', () => {
     control?.click();
     const band = openBandOf();
     expect(band, 'the decline opens the one confirm component').not.toBeNull();
-    expect(band?.root.querySelector('.confirm-band__title')?.textContent).toBe('Forfeit this reward?');
+    expect(band?.root.querySelector('.confirm-band__title')?.textContent).toBe('Cancel learning?');
     // The card in front of the player when the question is asked, rather than
     // remembered from the screen behind it.
     expect(band?.root.querySelector('.confirm-band__content .move--card')).not.toBeNull();
@@ -182,17 +182,18 @@ describe('the decline', () => {
 
     screen.root.querySelector<HTMLButtonElement>('.target__decline')?.click();
     const confirm = [...(openBandOf()?.root.querySelectorAll<HTMLButtonElement>('button') ?? [])].find(
-      (button) => button.textContent === 'Forfeit',
+      (button) => button.textContent === 'Cancel',
     );
     confirm?.click();
     expect(picked).toEqual([TEACH_CANCELLED]);
   });
 
   /**
-   * Section 4 budgets the decline overlay at 6 words, and it measures **5**.
+   * Section 4 budgets the decline overlay at 6 words, and it measures **4**.
    *
-   * The question is the record's, verbatim, and it counts 3 under the rule in
-   * section 4's header — `Forfeit`, `this`, `reward`. The other two are the
+   * The question counts 2 under the rule in section 4's header — `Cancel`,
+   * `learning` (it was the record's "Forfeit this reward?" until the
+   * 2026-09-25 playtest, `generation.md` section 79). The other two are the
    * band's own controls, and a confirm cannot have fewer than two.
    *
    * **The budget was 4 and D22 raised it to 6**, matching the replace overlay,
@@ -213,7 +214,7 @@ describe('the decline', () => {
    * face hides is in `textContent` here. Counting the whole subtree would be
    * measuring the card twice and measuring it in the wrong mode.
    */
-  it('spends five words, one under the ceiling D22 corrected', () => {
+  it('spends four words, under the ceiling D22 corrected', () => {
     const { screen } = render({ kind: 'tutor', move: 'Ice Beam' }, true);
     screen.root.querySelector<HTMLButtonElement>('.target__decline')?.click();
     const band = openBandOf();
@@ -225,7 +226,7 @@ describe('the decline', () => {
       .flatMap((node) => (node?.textContent ?? '').split(/\s+/))
       .map((token) => token.replace(/[^\p{L}\p{N}]/gu, ''))
       .filter((token) => token.length > 0);
-    expect(words).toEqual(['Forfeit', 'this', 'reward', 'Forfeit', 'Keep']);
+    expect(words).toEqual(['Cancel', 'learning', 'Cancel', 'Keep']);
   });
 
   it('offers no decline where the flow has none', () => {

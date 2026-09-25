@@ -104,7 +104,11 @@ export const TARGET_COPY = {
    *
    * `declineNote` stood under the control and said the same thing at rest, on
    * every render, for a control most runs never press. Section 4 budgets this
-   * overlay at 4 words and the record gives the wording: "Forfeit this reward?"
+   * overlay at 4 words and the record gave the wording: "Forfeit this reward?"
+   *
+   * **"Cancel", not "Forfeit"** (2026-09-25, playtest). The player is backing
+   * out of learning a move, not giving up a prize, and the word said the
+   * second. `generation.md` section 79.
    *
    * Both halves the same, which is the convention `decline` above already
    * follows: a confirm has one form, because the band is the compact surface
@@ -112,8 +116,8 @@ export const TARGET_COPY = {
    * the same sentence. They stay in this table rather than beside the caller
    * so `npm run copy-audit` still finds every string a player reads.
    */
-  forfeitTitle: { long: 'Forfeit this reward?', short: 'Forfeit this reward?' },
-  forfeitConfirm: { long: 'Forfeit', short: 'Forfeit' },
+  forfeitTitle: { long: 'Cancel learning?', short: 'Cancel learning?' },
+  forfeitConfirm: { long: 'Cancel', short: 'Cancel' },
   /*
    * `Keep`, the same word the replace confirm's way out uses. R1 is about
    * slots and this is the same idea one level up: the two confirms in this

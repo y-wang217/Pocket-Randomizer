@@ -11006,3 +11006,23 @@ The benchmark row is in [`balance.md`](balance.md) section 0, stamped
 `randomizer-22` · `715122`, RETUNE, 400 seeds, read against the
 `randomizer-21` · `d4e080` row on the same prefix and the same `table` AI.
 **Recorded, not chased**, per the standing policy.
+
+## 79. The learn-move decline confirm says "Cancel"
+
+2026-09-25, from a playtest note filed as
+[`spec/gymrun-patch-learn-move-cancel-wording.md`](spec/gymrun-patch-learn-move-cancel-wording.md).
+
+The band behind the teach screen's `Don't learn it` asked *"Forfeit this
+reward?"* with `Forfeit` and `Keep`. The player there is backing out of
+learning a move, and may change their mind; "forfeit" read as giving up a
+prize. The three `TARGET_COPY` strings are now `Cancel learning?`, `Cancel`
+and `Keep`. The flow is unchanged: `Keep` returns to the screen, `Cancel`
+commits `TEACH_CANCELLED`.
+
+The overlay now counts 4 words against section 4's ceiling of 6, one fewer
+than before, so D22's bet in the bible's section 9 is further from firing,
+not closer. The bible's two quotations of the old wording (the section 4
+budget row and the section 8 example) are updated as a record of the string;
+no rule of the bible changed. The `TARGET_COPY` keys keep their `forfeit`
+names and the gallery fixture stays `confirm-forfeit`: internal names, not
+copy. No version axis moves — `ui/copy/` is outside `src/data/`.

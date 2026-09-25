@@ -280,7 +280,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move cards and the stats are the stat block (2026-09-23, D40) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
-| Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
+| Confirm overlay (decline) | 6 | "Cancel learning?", and the band's two controls (2026-09-21, D22; wording 2026-09-25) |
 | Map node card | 3 | Node kind, the payout's unit, AI tier (2026-09-22, D37) |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
@@ -457,7 +457,7 @@ Rejected: a no-label first session (category is not guessable by a non-player); 
 
 ## 8. Copy rules for the words that remain
 
-- State outcomes, not advice. "Forfeit this reward?" not "Are you sure? This is usually a bad idea."
+- State outcomes, not advice. "Cancel learning?" not "Are you sure? This is usually a bad idea."
 - Item effect line: under eight words, no "Effect:" prefix, no second clause. "Heals 1/16 max HP each turn." not "Restores a small amount of HP at the end of every turn, useful for bulky Pokemon."
 - Event prompt: under 30 words, two lines on 390px. Choices under six words. Outcome under one line.
 - Never a hedge word (risky, safe, strong, weak, good, bad, worth) on any surface. Amended 2026-09-19 (D3), **closed 2026-09-20 (M0.3) at nine violations, not four and not six.** Six were found by reading: `categoryInfo.ts:48`, `statusInfo.ts:125`, `:139`, `:171`, `:242`, and `bandInfo.ts:75` (the line the original four-item list gave as `bandInfo.ts:68`, which is now a band label). Three more appeared only once **worth** was on the word list, which this sentence had asked for and the shipped lint had not carried: `statusInfo.ts:72`, `:202`, `:231`. The rule found them; the enforcement had not been built yet. The lint carries no allowlist: `statusInfo.ts:88`'s label was renamed to "Toxic", matching the TOX chip in section 2, rather than exempted. All nine are rewritten; the lint is `scripts/hedge-lint.ts`, the words are `src/data/forbiddenWords.ts`, and `test/hedge-lint.test.ts` holds it.
