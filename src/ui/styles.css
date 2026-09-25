@@ -3652,6 +3652,22 @@ body {
   font-size: var(--fs-base);
 }
 
+/* Full cream for the row's neutral chips — the ability and the archetype —
+   and this is a **legibility floor fix, not a weight change**, the same one
+   `.flags .chip` carries and for the same reason.
+
+   The owner row is the second place a chip sits on the locale-tinted stage
+   rather than on a panel. The dim recipe measured 3.75:1 for `Justified` on
+   the marsh green — under `displayTuning.minChipContrastRatio` — and the
+   pairing had never been sampled: the seed the contrast sweep walks reaches a
+   green-tinted locale's replacement screen since the wild-strength patch moved
+   the road, and did not before. `test/visual-chips.test.ts` is where it
+   surfaced, 2026-09-25.
+
+   Only the neutral chips. The type chips beside them carry their own colour
+   and lifting `--chip` on the whole row would repaint a type as cream. */
+.replace__owner .chip--neutral { --chip: var(--cream); }
+
 /* Minimum 44px of touch target, because this screen is a phone screen: four
    cards, one irreversible tap, and no undo behind it. */
 .move--victim { min-height: 44px; }

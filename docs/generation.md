@@ -11006,3 +11006,32 @@ The benchmark row is in [`balance.md`](balance.md) section 0, stamped
 `randomizer-22` · `715122`, RETUNE, 400 seeds, read against the
 `randomizer-21` · `d4e080` row on the same prefix and the same `table` AI.
 **Recorded, not chased**, per the standing policy.
+
+## 79. The road the wild patch moved reaches two surfaces the chip sweep had never photographed
+
+**2026-09-25**, on `claude/wild-pokemon-gym-balance-gpykz5`, after
+[#69](https://github.com/y-wang217/Pocket-Randomizer/pull/69) merged. No
+version axis moves: one CSS rule and one test.
+
+Section 78's table edit moved the road the browser suite's seeds walk, and
+`test/visual-chips.test.ts` — which samples a screen whenever a chip variant it
+has not yet seen appears on it — landed on two surfaces for the first time.
+The node suite is green either side; only the chromium sweep read them.
+
+1. **The move replacement screen's owner row, on a green locale.** The row
+   (species, level, type chips, archetype, ability) sits on the locale-tinted
+   stage rather than on a panel, and the dim neutral recipe measured
+   `Justified` at 3.75:1 on the marsh — under `displayTuning.minChipContrastRatio`.
+   The same defect `.flags .chip` fixed for the flags strip, on the second
+   surface that has it. `.replace__owner .chip--neutral` now takes full cream;
+   the type chips beside it keep their own colour. A legibility floor fix and
+   not a weight change; no bible rule on how the ability is shown moves, since
+   the chip is the same chip at the same size with the same word.
+2. **The event screen's capability cost chip.** `capabilityChip(cost)` still
+   carries text on that one surface, so the sweep — which takes any chip with
+   text — photographed a `capability` variant that the test's `VARIANTS` list
+   deliberately omits, and an equality assertion read the extra sample as a
+   failure. The sweep now counts only listed variants toward its stopping
+   condition and asserts that every listed variant was reached, not that
+   nothing else was. A sample from beyond the list is kept and asserted
+   against nothing, which is what the list's own note already says of it.
