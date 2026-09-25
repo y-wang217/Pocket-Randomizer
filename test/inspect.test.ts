@@ -502,6 +502,12 @@ describe('nothing on the board is a text field', () => {
     expect(css).toMatch(/body\s*\{[^}]*user-select:\s*none;[^}]*-webkit-touch-callout:\s*none;/);
     expect(css).toMatch(/input,\s*textarea,\s*\.log-sheet__body\s*\{[^}]*user-select:\s*text;/);
     expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*inset:\s*-5%;/);
+    // The slop sits *behind* the control's content, in the control's own
+    // stacking context. Painted on top it took every press meant for a chip
+    // inside a move card or a panel, and the ability and type triggers were
+    // unreachable; hit-tested in Chromium on the starter and battle screens.
+    expect(css).toMatch(/:where\(button, \[role='button'\]\)\s*\{[^}]*isolation:\s*isolate;/);
+    expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*z-index:\s*-1;/);
     expect(tokens).toMatch(/--tap-scale:\s*1\.1;/);
     expect(css).toMatch(/\.tip\s*\{[^}]*position:\s*fixed;[^}]*top:/);
   });

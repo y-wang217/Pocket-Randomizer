@@ -11065,6 +11065,19 @@ Three things, and the second message put the first one first.
   not touch. `:where()` keeps the specificity at zero, so the fixed stamps
   keep their own `position`.
 
+### The slop, the same day
+
+The first push painted the `::after` bleed *over* the control's children,
+because a positioned pseudo-element with no `z-index` sits above in-flow
+content and comes last in tree order. Every chip inside a starter card, an
+event choice, a panel or a move card was covered by its parent's slop, and
+the author found the ability and type triggers unreachable within the hour.
+Hit-tested in Chromium at 390 wide on the starter and battle screens: eight
+of eight probes reached the parent before the fix and the chip after it. The
+fix is `isolation: isolate` on the control and `z-index: -1` on the bleed,
+so it sits behind the content inside the control's own stacking context; the
+five percent outside the box is still the control's.
+
 ### The bible
 
 R5's *"Release closes"* clause is gone, and the rule now names the docked

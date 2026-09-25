@@ -4808,12 +4808,22 @@ textarea,
  * keeps the specificity at zero, so a control with its own `position` (the
  * fixed stamps) keeps it.
  */
-:where(button, [role='button']) { position: relative; }
+:where(button, [role='button']) {
+  position: relative;
+  /* A stacking context of its own, so the slop below can sit *behind* the
+     control's content with `z-index: -1` and still be inside the control.
+     Without this the bleed painted over the button's children, and a press on
+     a chip inside a move card or a panel reached the card instead of the
+     chip: the ability and type triggers were unreachable. Found in playtest,
+     the same day. */
+  isolation: isolate;
+}
 
 :where(button, [role='button'])::after {
   content: '';
   position: absolute;
   inset: -5%;
+  z-index: -1;
 }
 
 /* Anything that opens a tooltip should look like it does. */
