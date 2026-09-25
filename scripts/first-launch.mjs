@@ -60,6 +60,7 @@ export const EXPOSED_FAMILIES = [
   'status',
   'stat',
   'capability',
+  'node',
 ];
 const PAST_EVERY_LABEL = 1_000;
 

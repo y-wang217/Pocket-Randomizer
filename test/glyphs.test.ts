@@ -64,15 +64,17 @@ describe('the glyph sheet', () => {
   });
 
   /*
-   * **Ten since 2026-09-22, and the count is still the point.** D37 added
+   * **Eleven since 2026-09-25, and the count is still the point.** D37 added
    * `capability`, which section 3's map-node row had specified since Rev 1
    * while section 2's roster never carried it — a table corrected to agree
-   * with a rule, not a new claim. The assertion is unchanged in force: an
-   * eleventh family fails here, which is what makes section 10.3's
-   * stop-and-file a gate rather than a hope.
+   * with a rule, not a new claim. D46 added `node`, which *was* a new claim,
+   * and it went through section 10.3's stop-and-file: a row, a ruling, Rev
+   * 13, then this line. The assertion is unchanged in force: a twelfth family
+   * fails here, which is what makes the stop-and-file a gate rather than a
+   * hope.
    */
-  it('fills all ten families of section 2, and no eleventh', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(10);
+  it('fills all eleven families of section 2, and no twelfth', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(11);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());
@@ -94,6 +96,8 @@ describe('the glyph sheet', () => {
       'FRZ',
     ]);
     expect(glyphsOf('stat')).toHaveLength(6);
+    // Section 2's node row, D46: one mark per kind, in the map's own order.
+    expect(glyphsOf('node').map((glyph) => glyph.label)).toEqual(['Wild', 'Trainer', 'Rest', 'Gym', 'Shop', 'Event']);
   });
 
   it('wears the fist and the ring on the Atk and SpA stat rows', () => {
