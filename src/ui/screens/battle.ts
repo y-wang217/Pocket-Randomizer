@@ -31,6 +31,7 @@ import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
 import { abnormalityMarks } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 import { fieldGlyph } from '../chip';
+import { applyField } from '../theme/field';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -211,6 +212,8 @@ export function createBattleScreen(): BattleScreen {
          */
         const view = buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects);
         scene.update(view, onChoose, turns, abnormalityMarks(turns));
+        // The world behind the stage wears the same state. **Tier 3.**
+        applyField(view.field);
         /*
          * The state of the board, on the header. **Stage 4.11 Tier 2, D47.**
          *
@@ -293,9 +296,14 @@ export function createBattleScreen(): BattleScreen {
       sheet.close();
       show(session.protocolFor('p1'), false);
 
-      return session.subscribe((update) => {
+      const unsubscribe = session.subscribe((update) => {
         show(update.protocol, true);
       });
+      return () => {
+        unsubscribe();
+        // The fight is over or abandoned: the world goes back to the locale's own sky.
+        applyField(null);
+      };
     },
   };
 }

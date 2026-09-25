@@ -139,6 +139,32 @@
   --stage-up: #3fb950;
   --stage-down: #f85149;
 
+  /* ---------- the field: weather washes and terrain tints ----------
+     Stage 4.11 Tier 3, D47. Global, never per locale: `test/visual-locales`
+     holds each locale to three tokens, and eight locales times five skies is
+     forty palettes nobody would keep. Every wash on the world is a
+     `color-mix` of one of these with the locale's own three, so the art
+     recolours with the region as V1 intended and the sky is the same sky
+     everywhere. The periods are custom properties so no `animation` carries
+     a literal duration (`test/visual-tokens.test.ts` counts those). */
+  --weather-rain: #6390f0;
+  --weather-sun: #f6c453;
+  --weather-sand: #d9a54a;
+  --weather-snow: #e6f3f7;
+  --weather-wind: #b8c7d9;
+  --terrain-electric: #f7d02c;
+  --terrain-grassy: #7ac74c;
+  --terrain-misty: #f0a7d8;
+  --terrain-psychic: #f95587;
+  /* How much of the sky a wash takes, and how much of it the texture takes. */
+  --weather-wash: 0.22;
+  --weather-texture: 0.32;
+  --weather-period-rain: 1.4s;
+  --weather-period-sun: 9s;
+  --weather-period-sand: 5s;
+  --weather-period-snow: 12s;
+  --weather-period-wind: 2.6s;
+
   /* ---------- the eighteen type colours, plus Stellar ---------- */
   /* The same table the effectiveness markers and the threat readout read. It
      lived in styles.css; this is a move, not a copy. */

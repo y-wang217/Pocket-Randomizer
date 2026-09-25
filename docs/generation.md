@@ -11177,3 +11177,29 @@ the same "a number with its reason attached" rule the Levitate `0x` set. No
 version axis moved: `data/` is untouched and the run log records decisions,
 not forecasts.
 
+**Tier 3, the sky.** `ui/theme/field.ts` writes `data-weather`,
+`data-terrain` and `data-weather-suppressed` onto `<html>` from the battle
+screen's own update, by *kind* rather than by id, and clears them on detach
+and wherever `app.ts` clears the locale, so no map or summary wears the last
+fight's rain. The world gained one element, `world__weather`, between the
+near layer and the scrim: the wash is the element, a `color-mix` of one
+global token with transparency; the texture is its `::before`, twice the
+viewport tall, moved by one keyframe per kind and nothing but `transform`
+and `opacity`. Five kinds, five keyframes — rain streaks falling, sun
+breathing, sand grain drifting, snow motes falling, wind streaks crossing —
+and four terrains that tint the near layer's fill and move nothing. Nine
+colour tokens and five periods in `tokens.css`, global and never per locale,
+because `test/visual-locales.test.ts` holds each locale to three and forty
+palettes is not a thing anyone keeps. Reduced motion cancels each animation
+by its own selector and leaves the wash; a suppressed weather halves the wash
+and stills the texture. **Measured**: the loaded board's title and panel
+names clear the 4.5 floor under every sky; the faint detail line reads 7.25
+bare and 5.49 to 5.91 under the five weathers, held to the floor and to two
+thirds of its bare reading by `test/visual-field.test.ts`, which also holds
+that each sky moves in Chromium and does not under reduced motion. Forty
+shots in [`visual/reports/stage-4.11-fields/`](visual/reports/stage-4.11-fields/),
+one per locale per sky, and the report beside them. The gallery's loaded
+board takes `weather=` and `terrain=` and sets the field by the ability that
+sets it, so a screenshot of the surface is one battle's truth. No `core/`
+change; `contentHash` unmoved.
+

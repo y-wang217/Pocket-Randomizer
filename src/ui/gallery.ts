@@ -548,6 +548,17 @@ const LOADED_P2: TeamSpec = [
   { species: 'Golem', ability: 'Drizzle', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
 ];
 
+/**
+ * The field state the loaded board plays under, by the ability that sets it.
+ * **Stage 4.11 Tier 3.** `#weather=sun` puts Drought on the opponent instead
+ * of Drizzle; `#terrain=grassy` puts Grassy Surge on the player's lead. Real
+ * abilities on a real battle rather than attributes poked onto `<html>`, so
+ * the header glyph, the button's factor and the world all agree, which is
+ * what a screenshot of the surface is for. `none` clears the weather.
+ */
+const WEATHER_SETTERS: Record<string, string> = { rain: 'Drizzle', sun: 'Drought', sand: 'Sand Stream', snow: 'Snow Warning', wind: 'Delta Stream', none: 'Sturdy' };
+const TERRAIN_SETTERS: Record<string, string> = { electric: 'Electric Surge', grassy: 'Grassy Surge', misty: 'Misty Surge', psychic: 'Psychic Surge' };
+
 function mountLoadedBattle(
   battle: ReturnType<typeof createBattleScreen>,
   seed: string,
@@ -555,7 +566,12 @@ function mountLoadedBattle(
   options: { history: boolean },
 ): void {
   const bench = party.slice(1).map((member) => member.spec);
-  const session = createBattle({ teams: { p1: [...LOADED_LEAD, ...bench], p2: LOADED_P2 }, seed });
+  const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
+  const weather = WEATHER_SETTERS[params.get('weather') ?? ''];
+  const terrain = TERRAIN_SETTERS[params.get('terrain') ?? ''];
+  const lead = LOADED_LEAD.map((mon, index) => (index === 0 && terrain ? { ...mon, ability: terrain } : mon));
+  const foe = LOADED_P2.map((mon, index) => (index === 0 && weather ? { ...mon, ability: weather } : mon));
+  const session = createBattle({ teams: { p1: [...lead, ...bench], p2: foe }, seed });
 
   /*
    * **The node the census measures, and it is the run's own wording now.**

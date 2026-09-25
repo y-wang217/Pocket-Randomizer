@@ -2741,8 +2741,17 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
   const far = el('div', 'world__layer world__layer--far');
   const mid = el('div', 'world__layer world__layer--mid');
   const near = el('div', 'world__layer world__layer--near');
+  /*
+   * The weather, over the art and under the scrim. **Stage 4.11 Tier 3.**
+   * One element, empty: the stylesheet paints it from `<html data-weather>`,
+   * a wash on the element and a moving texture on its `::before`. Under the
+   * scrim so the text column keeps the protection V3.5 measured for it,
+   * whatever the sky is doing. The terrain has no element: it tints the near
+   * layer's fill, because the ground changing colour is what a terrain is.
+   */
+  const weather = el('div', 'world__weather');
   const scrim = el('div', 'world__scrim');
-  root.append(far, mid, near, scrim);
+  root.append(far, mid, near, weather, scrim);
 
   let locale: LocaleId | null = null;
   let reduced = prefersReducedMotion();
