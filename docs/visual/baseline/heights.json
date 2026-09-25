@@ -7,11 +7,11 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 695.91,
-        "scrollHeight": 858,
+        "screenHeight": 671.06,
+        "scrollHeight": 844,
         "decisionCount": 2,
         "decisionTop": 513.44,
-        "decisionBottom": 576.16
+        "decisionBottom": 559.31
       },
       "battle": {
         "screenHeight": 570.5,
@@ -23,11 +23,11 @@
     },
     "pocket": {
       "map": {
-        "screenHeight": 513.44,
+        "screenHeight": 496.59,
         "scrollHeight": 844,
         "decisionCount": 2,
         "decisionTop": 286.97,
-        "decisionBottom": 345.69
+        "decisionBottom": 328.84
       },
       "battle": {
         "screenHeight": 562.22,
@@ -42,11 +42,11 @@
     "columns": {
       "detailed": {
         "map": {
-          "screenHeight": 743.97,
-          "scrollHeight": 937,
+          "screenHeight": 719.13,
+          "scrollHeight": 912,
           "decisionCount": 2,
           "decisionTop": 558,
-          "decisionBottom": 624.72
+          "decisionBottom": 607.88
         },
         "battle": {
           "screenHeight": 585.5,
@@ -58,11 +58,11 @@
       },
       "simple": {
         "map": {
-          "screenHeight": 695.91,
-          "scrollHeight": 858,
+          "screenHeight": 671.06,
+          "scrollHeight": 844,
           "decisionCount": 2,
           "decisionTop": 513.44,
-          "decisionBottom": 576.16
+          "decisionBottom": 559.31
         },
         "battle": {
           "screenHeight": 570.5,
@@ -74,11 +74,11 @@
       },
       "pocket": {
         "map": {
-          "screenHeight": 513.44,
+          "screenHeight": 496.59,
           "scrollHeight": 844,
           "decisionCount": 2,
           "decisionTop": 286.97,
-          "decisionBottom": 345.69
+          "decisionBottom": 328.84
         },
         "battle": {
           "screenHeight": 562.22,
@@ -91,11 +91,11 @@
     }
   },
   "map": {
-    "screenHeight": 743.97,
-    "scrollHeight": 937,
+    "screenHeight": 719.13,
+    "scrollHeight": 912,
     "decisionCount": 2,
     "decisionTop": 558,
-    "decisionBottom": 624.72
+    "decisionBottom": 607.88
   },
   "battle": {
     "screenHeight": 585.5,

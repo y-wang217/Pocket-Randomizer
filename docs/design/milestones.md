@@ -470,6 +470,12 @@ option 2 and reversed D28 as a reversal, under **D46**; the bible went to Rev
 playtest sees the face that section 9's family-size hypothesis now describes.
 Record [`../generation.md` §80](../generation.md).
 
+**Patch 4.10.2, the same day (D47).** The wild mark redrawn as wind-bent
+grass, and the node card reduced to the mark: the payout, the AI tier, a
+shop's shelf, a gym's team size and a done node's record move to the mark's
+inspect panel. Section 4's map node card reads **0**. Bible Rev 14. Record
+[`../generation.md` §81](../generation.md).
+
 ### Tier 7: validation
 
 | Item | Status | Blocked by |

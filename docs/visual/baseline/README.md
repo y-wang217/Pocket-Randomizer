@@ -18,6 +18,13 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-25, patch 4.10.2, the node card is the mark** (D47). `heights.json`
+  alone. **The map fell 24.84px in Detailed** (743.97 → 719.13, scroll 937 →
+  912) with `decisionBottom` following (624.72 → 607.88): the current step's
+  detail line, which carried the payout and the AI tier, is gone from the face
+  and on the mark's tip. `decisionTop` is unmoved at 558. The battle screen
+  did not move. Pocket's map row fell by the same line.
+
 - **2026-09-25, patch 4.10.1, map node icons** (D46). `heights.json` alone;
   runs, the battle protocol and the digest are untouched because nothing under
   `core/` changed and no version axis moved.

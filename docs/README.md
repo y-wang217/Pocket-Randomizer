@@ -70,7 +70,10 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 Patch 4.10.1 makes the map's node kinds marks — a head, a bush, a tent, a
 badge, a bag, a question mark — as an eleventh glyph family, ruled under D46
 as D37's option 2 and a reversal of D28, bible Rev 13;
-[`generation.md` §80](generation.md). List
+[`generation.md` §80](generation.md); **patch 4.10.2** on
+`claude/map-icon-only-nodes-grass` redraws the wild mark as grass and reduces
+the node card to the mark, D47, bible Rev 14,
+[`generation.md` §81](generation.md). List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),

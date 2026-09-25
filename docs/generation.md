@@ -11096,3 +11096,41 @@ the separation sheet is the head against the bag at 0.281 against a floor of
 because the run log and the share text read it; the face reads the gym table.
 The event screen, which has its own glyph and chevron since M5.6. The node's
 card shape and its single border, per the V0 note in the stylesheet.
+
+## 81. Patch 4.10.2: the grass, and the node card is the mark
+
+**2026-09-25, on `claude/map-icon-only-nodes-grass`, on top of merged #71.**
+Prompt [`spec/gymrun-patch-4.10.2-grass-and-icon-only-nodes.md`](spec/gymrun-patch-4.10.2-grass-and-icon-only-nodes.md),
+two items in one message, filed before any code.
+
+**The grass.** The wild mark was three lobes on a stem, and the prompt asked
+for *"curved grass that's slightly bent from the wind"*, crown shaped. It is
+five tapered blades from one base, each leaning right, the middle tallest.
+Section 2's node row reads *grass*. The separation sheet is unmoved on the
+family's worst pair, the head against the bag at 0.281.
+
+**The face is the mark.** Filed as **D47** and ruled by the prompt, bible
+**Rev 14**. The node card carried, beside the mark, the payout with its unit,
+the AI tier, a shop's shelf line, an untiered node's short hint, a gym's
+leader name and team size, and a done node's record. All of it is now on the
+mark's `node:` tip, one line per fact, written by `screens/run-map.ts` onto
+the trigger as `data-detail` and printed by `ui/tooltips.ts` under the kind's
+hint. The leader's name is on the rail and in the heading already and is not
+repeated; `restored` on a done rest node is gone with nothing behind it,
+because a done rest node says it. Section 4's map node card reads **0**, the
+number M5.2 assumed for it three tiers ago.
+
+**The payout is one press away on every step, not only the current one.** The
+detail line printed it on the current step alone; the tip carries it on
+upcoming nodes too, for the reason the pips are on every step: routing toward
+a payout two steps ahead is only a plan if it can be read.
+
+**Numbers.** Map screen in Pocket 17 → **11**, map drawer 32 → **20**, map
+node card 2 → **0** in every mode. The map fell **24.84px** in Detailed
+(743.97 → 719.13); `decisionTop` unmoved. No version axis moved; no change
+under `core/`.
+
+**What this leans on.** R2's *numbers stay*: a bare payout numeral beside the
+mark would have been inside the rule and outside the prompt. It went. If a
+playtest finds players routing without pressing, section 9 gets a row and the
+numeral returns beside the mark; the D47 row says so.
