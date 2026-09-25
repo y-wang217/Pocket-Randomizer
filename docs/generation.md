@@ -11135,3 +11135,22 @@ and an effect line. Not narrowed by the reveal policy: weather is public.
 `contentHash` unmoved; no version axis moved; the simulator fixture byte
 identical.
 
+**Tier 2, the readout.** A twelfth glyph family, `field`, nine marks in
+`ui/theme/glyphs.ts`: five weathers that float (a cloud with drops, a sun,
+a dune, a snowflake, three wind lines) and four terrains that stand on a
+ground bar (a bolt, blades, banked mist, an eye), with their words in
+`data/glyphLabels.ts`. The separation sheet's worst pair in the family is
+electric against grassy at 0.297 against a floor of 0.12, the third widest
+family on the sheet. The battle header's detail line gained a slot after the
+AI tier, `battle__field`, redrawn from `BattleUiView.field` on every update:
+weather then terrain, nothing when nothing is set, the weather mark in the
+stage's dim ink while an ability suppresses it. `fieldGlyph` in `ui/chip.ts`
+is the one builder, keyed by the sim id so Extreme sun and Harsh sunlight wear
+one mark and open two panels through the new `field:` tip, which prints the
+name and the effect line from `fieldCopy.ts` and adds the suppressed line when
+the mark is dimmed. The gallery's loaded board plays under Drizzle now, so
+D41's family walk finds the family painted; rain changes nothing that fixture
+measures. The header's budget of 3 holds: a glyph is not a word.
+`test/field-readout.test.ts` is the new file, nine cases through the screen's
+own `attach`. No `core/` change; `contentHash` unmoved.
+

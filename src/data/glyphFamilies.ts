@@ -68,6 +68,8 @@ export const GLYPH_FAMILIES = [
    * size" hypothesis now reads eleven, and M7.1 is the playtest that tests it.
    */
   'node',
+  /** The state of the board: weather and terrain. Stage 4.11, D47. */
+  'field',
 ] as const;
 
 export type GlyphFamily = (typeof GLYPH_FAMILIES)[number];

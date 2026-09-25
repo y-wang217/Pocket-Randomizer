@@ -536,8 +536,16 @@ async function harvestOffers(seed: string): Promise<{
 const LOADED_LEAD: TeamSpec = [
   { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Toxic', 'Body Slam', 'Rest'], level: 100 },
 ];
+/*
+ * Drizzle, since Stage 4.11 Tier 2, so the loaded board is played under rain
+ * and the header wears the field glyph: D41's family walk needs every family
+ * painted on some gallery surface, and this is the one surface with a board.
+ * Rain changes nothing this fixture measures — none of the eight moves is
+ * Water or Fire, and rain deals no chip damage — so the loop that loads both
+ * panels is untouched.
+ */
 const LOADED_P2: TeamSpec = [
-  { species: 'Golem', ability: 'Sturdy', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
+  { species: 'Golem', ability: 'Drizzle', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
 ];
 
 function mountLoadedBattle(

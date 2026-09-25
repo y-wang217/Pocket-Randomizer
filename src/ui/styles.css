@@ -3239,6 +3239,18 @@ body {
 /* The same mark at 16 on the battle header, beside the leader's name. */
 .battle__header .screen__title { display: inline-flex; align-items: center; gap: var(--space-1); }
 
+/* The field, after the AI tier on the detail line. **Stage 4.11 Tier 2, D47.**
+
+   Empty when nothing is set, and an empty inline-flex takes no room, so the
+   line is byte-for-byte the D46 line until weather arrives. Weather then
+   terrain, one gap apart. A suppressed weather is drawn in the stage's own dim
+   ink rather than faded by opacity: the fact is still on the board and the
+   mark still has to clear the contrast floor. */
+.battle__field { display: inline-flex; align-items: center; gap: var(--space-1); vertical-align: middle; }
+.battle__field:not(:empty) { margin-left: var(--space-1h); }
+.battle__field-mark { display: inline-flex; align-items: center; line-height: 0; }
+.battle__field-mark[data-suppressed='true'] { color: var(--text-dim); }
+
 .node__detail {
   color: var(--text-faint);
   font-family: var(--font-body);

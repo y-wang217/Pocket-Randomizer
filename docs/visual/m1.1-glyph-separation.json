@@ -51,6 +51,13 @@
    "score": 0.28125
   },
   {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.296875
+  },
+  {
    "family": "category",
    "a": "category-physical",
    "b": "category-status",
@@ -7541,6 +7548,1014 @@
    "b": "node-event",
    "simulation": "tritanopia",
    "score": 0.4609375
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sun",
+   "simulation": "none",
+   "score": 0.50390625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sand",
+   "simulation": "none",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-snow",
+   "simulation": "none",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-wind",
+   "simulation": "none",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-electric",
+   "simulation": "none",
+   "score": 0.515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-sand",
+   "simulation": "none",
+   "score": 0.42578125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-snow",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-wind",
+   "simulation": "none",
+   "score": 0.54296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-electric",
+   "simulation": "none",
+   "score": 0.4296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.53125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-snow",
+   "simulation": "none",
+   "score": 0.4921875
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-wind",
+   "simulation": "none",
+   "score": 0.47265625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-electric",
+   "simulation": "none",
+   "score": 0.4609375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.44140625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.5078125
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-wind",
+   "simulation": "none",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-electric",
+   "simulation": "none",
+   "score": 0.5546875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.52734375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-electric",
+   "simulation": "none",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.56640625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.6015625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.625
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-grassy",
+   "simulation": "none",
+   "score": 0.296875
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.3359375
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.34765625
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-misty",
+   "simulation": "none",
+   "score": 0.3828125
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.3671875
+  },
+  {
+   "family": "field",
+   "a": "field-misty",
+   "b": "field-psychic",
+   "simulation": "none",
+   "score": 0.3515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sun",
+   "simulation": "protanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sand",
+   "simulation": "protanopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-snow",
+   "simulation": "protanopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-wind",
+   "simulation": "protanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-electric",
+   "simulation": "protanopia",
+   "score": 0.515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-grassy",
+   "simulation": "protanopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-sand",
+   "simulation": "protanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-snow",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-wind",
+   "simulation": "protanopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-electric",
+   "simulation": "protanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-grassy",
+   "simulation": "protanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-snow",
+   "simulation": "protanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-wind",
+   "simulation": "protanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-electric",
+   "simulation": "protanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-grassy",
+   "simulation": "protanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-wind",
+   "simulation": "protanopia",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-electric",
+   "simulation": "protanopia",
+   "score": 0.5546875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-grassy",
+   "simulation": "protanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-electric",
+   "simulation": "protanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-grassy",
+   "simulation": "protanopia",
+   "score": 0.56640625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.6015625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.625
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-grassy",
+   "simulation": "protanopia",
+   "score": 0.296875
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-misty",
+   "simulation": "protanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "field",
+   "a": "field-misty",
+   "b": "field-psychic",
+   "simulation": "protanopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sun",
+   "simulation": "deuteranopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sand",
+   "simulation": "deuteranopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-snow",
+   "simulation": "deuteranopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-wind",
+   "simulation": "deuteranopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-electric",
+   "simulation": "deuteranopia",
+   "score": 0.515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-grassy",
+   "simulation": "deuteranopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-sand",
+   "simulation": "deuteranopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-snow",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-wind",
+   "simulation": "deuteranopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-electric",
+   "simulation": "deuteranopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-grassy",
+   "simulation": "deuteranopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.53125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-snow",
+   "simulation": "deuteranopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-wind",
+   "simulation": "deuteranopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-electric",
+   "simulation": "deuteranopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-grassy",
+   "simulation": "deuteranopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-wind",
+   "simulation": "deuteranopia",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-electric",
+   "simulation": "deuteranopia",
+   "score": 0.5546875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-grassy",
+   "simulation": "deuteranopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-electric",
+   "simulation": "deuteranopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-grassy",
+   "simulation": "deuteranopia",
+   "score": 0.56640625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.6015625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.625
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-grassy",
+   "simulation": "deuteranopia",
+   "score": 0.296875
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-misty",
+   "simulation": "deuteranopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "field",
+   "a": "field-misty",
+   "b": "field-psychic",
+   "simulation": "deuteranopia",
+   "score": 0.3515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sun",
+   "simulation": "tritanopia",
+   "score": 0.50390625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-sand",
+   "simulation": "tritanopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-snow",
+   "simulation": "tritanopia",
+   "score": 0.51953125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-wind",
+   "simulation": "tritanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-electric",
+   "simulation": "tritanopia",
+   "score": 0.515625
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-grassy",
+   "simulation": "tritanopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-rain",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-sand",
+   "simulation": "tritanopia",
+   "score": 0.42578125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-snow",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-wind",
+   "simulation": "tritanopia",
+   "score": 0.54296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-electric",
+   "simulation": "tritanopia",
+   "score": 0.4296875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-grassy",
+   "simulation": "tritanopia",
+   "score": 0.48046875
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "field",
+   "a": "field-sun",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-snow",
+   "simulation": "tritanopia",
+   "score": 0.4921875
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-wind",
+   "simulation": "tritanopia",
+   "score": 0.47265625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-electric",
+   "simulation": "tritanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-grassy",
+   "simulation": "tritanopia",
+   "score": 0.44140625
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "field",
+   "a": "field-sand",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-wind",
+   "simulation": "tritanopia",
+   "score": 0.57421875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-electric",
+   "simulation": "tritanopia",
+   "score": 0.5546875
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-grassy",
+   "simulation": "tritanopia",
+   "score": 0.55859375
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.58203125
+  },
+  {
+   "family": "field",
+   "a": "field-snow",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.52734375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-electric",
+   "simulation": "tritanopia",
+   "score": 0.5234375
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-grassy",
+   "simulation": "tritanopia",
+   "score": 0.56640625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.6015625
+  },
+  {
+   "family": "field",
+   "a": "field-wind",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.625
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-grassy",
+   "simulation": "tritanopia",
+   "score": 0.296875
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.3359375
+  },
+  {
+   "family": "field",
+   "a": "field-electric",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.34765625
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-misty",
+   "simulation": "tritanopia",
+   "score": 0.3828125
+  },
+  {
+   "family": "field",
+   "a": "field-grassy",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.3671875
+  },
+  {
+   "family": "field",
+   "a": "field-misty",
+   "b": "field-psychic",
+   "simulation": "tritanopia",
+   "score": 0.3515625
   }
  ]
 }

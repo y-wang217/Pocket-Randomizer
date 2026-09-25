@@ -30,6 +30,7 @@ import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
 import { abnormalityMarks } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
+import { fieldGlyph } from '../chip';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -87,6 +88,15 @@ export function createBattleScreen(): BattleScreen {
   const header = el('div', 'battle__header');
   const title = el('h2', 'screen__title');
   const detail = el('p', 'screen__blurb');
+  /*
+   * The detail line is two things: the words (who is in the fight, how it
+   * plays) and, after them, the field. **Stage 4.11 Tier 2, D47.** The field
+   * has a slot of its own so that a turn can redraw it without touching the
+   * words, and so the words are set once at attach and never rebuilt.
+   */
+  const detailText = el('span', 'battle__detail-text');
+  const field = el('span', 'battle__field');
+  detail.append(detailText, field);
   header.append(title, detail);
 
   const board = el('div', 'board');
@@ -176,12 +186,13 @@ export function createBattleScreen(): BattleScreen {
        * it does not rate the fight.
        */
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
-      detail.textContent = [
+      detailText.textContent = [
         node.encounter?.opponent ?? '',
         ...(tier ? [AI_TIER_LABEL[tier]] : []),
       ]
         .filter((part) => part.length > 0)
         .join(' · ');
+      field.replaceChildren();
 
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one
@@ -198,11 +209,24 @@ export function createBattleScreen(): BattleScreen {
          * and the strip already get, so the rule at the top of this file still
          * holds: one reading of the protocol, now three consumers.
          */
-        scene.update(
-          buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects),
-          onChoose,
-          turns,
-          abnormalityMarks(turns),
+        const view = buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects);
+        scene.update(view, onChoose, turns, abnormalityMarks(turns));
+        /*
+         * The state of the board, on the header. **Stage 4.11 Tier 2, D47.**
+         *
+         * Redrawn from the view on every update, the same way the panels are,
+         * because weather begins and ends on the engine's schedule and not on
+         * the player's. Nothing renders when nothing is set (R4): the locale's
+         * own sky is the default, and an empty slot is how the header says so.
+         * Weather before terrain, always — one fixed order is R1's slot rule
+         * for a family with two members on one surface.
+         */
+        field.replaceChildren(
+          ...[view.field.weather, view.field.terrain].flatMap((effect, index) => {
+            if (!effect?.kind) return [];
+            const suppressed = index === 0 && view.field.suppressed;
+            return [fieldGlyph(effect.kind, effect.id, GLYPH_LABELS[`field-${effect.kind}`] ?? effect.kind, suppressed)];
+          }),
         );
       };
 

@@ -605,7 +605,7 @@ Source: `src/data/moveFactInfo.ts` · 18 strings
 
 The small word beside a glyph, on the first and third screen that shows its family, then never. Milestone M6.1.
 
-Source: `src/data/glyphLabels.ts` · 35 strings
+Source: `src/data/glyphLabels.ts` · 44 strings
 
 > Type glyphs are labelled with the type’s own name and are not listed. At most three words each, held by `test/glyph-labels.test.ts`.
 
@@ -646,6 +646,15 @@ Source: `src/data/glyphLabels.ts` · 35 strings
 | `capability-band-off` | Reach |  |
 | `family · status` | Condition |  |
 | `family · effectiveness` | Effectiveness |  |
+| `field-rain` | Rain |  |
+| `field-sun` | Sun |  |
+| `field-sand` | Sand |  |
+| `field-snow` | Snow |  |
+| `field-wind` | Wind |  |
+| `field-electric` | Electric |  |
+| `field-grassy` | Grassy |  |
+| `field-misty` | Misty |  |
+| `field-psychic` | Psychic |  |
 
 ### 18. Battle — move base-power bands
 
@@ -1115,7 +1124,7 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 
 ### 26. Battle — the field
 
-Long-pressing the field glyph on the battle screen header. **Stage 4.11, Tier 1**: the strings exist and nothing mounts them until Tier 2.
+Long-pressing the field glyph on the battle screen header. **Stage 4.11, Tier 2** mounts them; the strings landed at Tier 1.
 
 Source: `src/data/fieldCopy.ts` · 27 strings
 

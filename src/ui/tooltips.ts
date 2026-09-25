@@ -75,6 +75,7 @@ import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
 import { GLYPH_LABELS } from '../data/glyphLabels';
 import { KIND_HINTS } from './copy/screens';
+import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
 import { capabilityTypes, type Capability } from '../data/capabilities';
 import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
 import type { CapabilityBand } from '../core/capabilities';
@@ -110,6 +111,8 @@ type TipKind =
    */
   | 'flag'
   | 'node'
+  /** The field glyph on the battle header: weather or terrain. Stage 4.11 Tier 2, D47. */
+  | 'field'
   /**
    * The six-label stat shorthand. Stage 4.7, Part 7.
    *
@@ -270,6 +273,7 @@ const KINDS = [
    */
   'flag',
   'node',
+  'field',
   'archetype',
   'stats',
   'move',
@@ -719,6 +723,8 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderTier(id);
     case 'node':
       return renderNodeKind(id);
+    case 'field':
+      return renderField(id, trigger?.dataset['suppressed'] === 'true');
     case 'capability-band':
       return renderCapabilityBand(id);
     case 'reward-tier':
@@ -853,6 +859,24 @@ function renderNodeKind(id: string): HTMLElement | null {
   if (!hint) return null;
   const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
   body.append(line(hint.long, 'tip__text'));
+  return body;
+}
+
+/**
+ * What the board is doing, behind the field glyph. **Stage 4.11 Tier 2, D47.**
+ *
+ * Section 3's field state row sends inspect to `fieldCopy`: the name in full,
+ * which is where Extreme sun and Harsh sunlight part ways under one mark, and
+ * one effect line restating what the engine does. A suppressed weather adds
+ * the line saying so, because the mark is dimmed and a dimmed mark is a
+ * question.
+ */
+function renderField(id: string, suppressed: boolean): HTMLElement | null {
+  const effect = fieldEffect(id);
+  if (!effect) return null;
+  const body = panel(fieldName(id));
+  body.append(line(effect, 'tip__text'));
+  if (suppressed) body.append(line(FIELD_SUPPRESSED, 'tip__text'));
   return body;
 }
 
