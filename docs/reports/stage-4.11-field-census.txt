@@ -1,0 +1,368 @@
+
+150 runs, 982 battles, prefix FIELD
+
+line                                     lines  battles  % of battles
+---------------------------------------------------------------------
+-supereffective *                         2205      767         78.1%
+-crit *                                    577      347         35.3%
+-resisted *                                885      346         35.2%
+-ability                                   469      309         31.5%
+-unboost|spe                               303      180         18.3%
+-enditem *                                 137      111         11.3%
+-unboost|atk                               155      104         10.6%
+-weather                                   405      100         10.2%
+-status *                                  111       98         10.0%
+-miss *                                    125       95          9.7%
+-boost|spe                                 163       91          9.3%
+-unboost|spa                               121       87          8.9%
+-boost|spa                                  98       78          7.9%
+-boost|def                                  89       77          7.8%
+-fieldstart                                 75       68          6.9%
+-fail                                      219       67          6.8%
+cant                                       115       65          6.6%
+-sidestart                                  70       57          5.8%
+-unboost|def                                69       51          5.2%
+-boost|atk                                  54       44          4.5%
+-immune *                                   51       33          3.4%
+-start|move: Heal Block                     42       28          2.9%
+-hint                                       90       27          2.7%
+-start|confusion                            27       26          2.6%
+-unboost|spd                                29       25          2.5%
+-activate|confusion                         42       24          2.4%
+-start|typechange                           28       23          2.3%
+-item                                       22       22          2.2%
+-transform                                  19       18          1.8%
+-fieldend                                   17       17          1.7%
+-end|move: Heal Block                       17       14          1.4%
+-start|Syrup Bomb                           15       14          1.4%
+-activate|move: Whirlpool                   14       14          1.4%
+-immune|[from] ability: Wonder Guard *     114       13          1.3%
+-activate|ability: Lingering Aroma          16       13          1.3%
+-activate|ability: Emergency Exit           14       13          1.3%
+-start|ability: Slow Start                  13       13          1.3%
+-activate|Skill Swap                        18       12          1.2%
+-activate|ability: Quick Draw               18       11          1.1%
+-start|Salt Cure                            12       11          1.1%
+-end|Protosynthesis                         12       11          1.1%
+-activate|ability: Toxic Debris             14        9          0.9%
+-end|Slow Start                             10        9          0.9%
+-end|ability: Neutralizing Gas              10        9          0.9%
+-activate|ability: Mummy                    10        9          0.9%
+-activate|move: Fire Spin                    9        9          0.9%
+-curestatus                                  9        9          0.9%
+-boost|spd                                   9        9          0.9%
+-unboost|accuracy                           17        8          0.8%
+-start|Charge                               11        8          0.8%
+-clearboost                                 15        7          0.7%
+-end|Quark Drive                             7        7          0.7%
+-start|perish3                              13        6          0.6%
+-end|Syrup Bomb                              7        6          0.6%
+-activate|ability: Forewarn                  6        6          0.6%
+-start|perish2                               8        5          0.5%
+-activate|move: Sand Tomb                    6        5          0.5%
+-start|perish1                               6        5          0.5%
+-activate|Orichalcum Pulse                   6        5          0.5%
+-start|Disable                               5        5          0.5%
+replace                                      5        5          0.5%
+-end|Illusion                                5        5          0.5%
+-activate|ability: Supreme Overlord          5        5          0.5%
+-singleturn|Protect                          9        4          0.4%
+-activate|move: Protect                      9        4          0.4%
+-fail|move: Hyperspace Fury                  8        4          0.4%
+-start|Uproar                                7        4          0.4%
+-end|confusion                               4        4          0.4%
+-unboost|evasion                             4        4          0.4%
+-activate|ability: Wimp Out                  4        4          0.4%
+-start|fallen1                               4        4          0.4%
+-activate|move: Magma Storm                  4        4          0.4%
+-fail|move: Aura Wheel                       5        3          0.3%
+-activate|trapped                            4        3          0.3%
+-fail|Surging Strikes                        3        3          0.3%
+-activate|move: Infestation                  3        3          0.3%
+-start|move: Yawn                            3        3          0.3%
+-activate|move: Bind                         3        3          0.3%
+-boost|accuracy                              3        3          0.3%
+-end|fallen1                                 3        3          0.3%
+-immune|[from] ability: Bulletproof *        3        3          0.3%
+-end|Magma Storm                             3        3          0.3%
+-start|move: Future Sight                    3        3          0.3%
+-end|move: Future Sight                      3        3          0.3%
+-immune|[from] ability: Volt Absorb *        5        2          0.2%
+-fail|Temper Flare                           5        2          0.2%
+-start|Smack Down                            2        2          0.2%
+-end|Whirlpool                               2        2          0.2%
+-end|fallenundefined                         2        2          0.2%
+-immune|[from] ability: Motor Drive *       14        1          0.1%
+-fail|Chilling Water                         5        1          0.1%
+-fail|Water Pulse                            4        1          0.1%
+-fail|Jet Punch                              2        1          0.1%
+-fail|Aqua Jet                               2        1          0.1%
+-fieldactivate                               2        1          0.1%
+-start|perish0                               2        1          0.1%
+-activate|move: Eerie Spell                  1        1          0.1%
+-end|Infestation                             1        1          0.1%
+-end|move: Yawn                              1        1          0.1%
+-start|Throat Chop                           1        1          0.1%
+-activate|ability: Guard Dog                 1        1          0.1%
+-fail|Origin Pulse                           1        1          0.1%
+-end|Fire Spin                               1        1          0.1%
+-end|Bind                                    1        1          0.1%
+-activate|ability: Synchronize               1        1          0.1%
+-end|Charge                                  1        1          0.1%
+-fail|unboost                                1        1          0.1%
+-fail|tox                                    1        1          0.1%
+-end|Sand Tomb                               1        1          0.1%
+-activate|move: Thunder Cage                 1        1          0.1%
+-end|Thunder Cage                            1        1          0.1%
+-fail|Water Gun                              1        1          0.1%
+-singleturn|move: Beak Blast                 1        1          0.1%
+-start|fallen2                               1        1          0.1%
+-end|fallen2                                 1        1          0.1%
+-fail|Brine                                  1        1          0.1%
+-activate|move: Fickle Beam                  1        1          0.1%
+-fail|Incinerate                             1        1          0.1%
+-sideend                                     1        1          0.1%
+-start|move: Leech Seed                      1        1          0.1%
+-activate|item: Leppa Berry                  1        1          0.1%
+-fail|Fire Spin                              1        1          0.1%
+
+
+By class, counted as the union per battle
+class                               battles  % of battles
+---------------------------------------------------------
+state change (stat stages)              517         52.6%
+trait fired (ability/item)              381         38.8%
+prevented (cant/fail/block)             142         14.5%
+volatile (start/end/activate)           301         30.7%
+field (weather/terrain/side)            211         21.5%
+identity (typechange/forme)              41          4.2%
+damage shape (recoil/drain)               0          0.0%
+
+
+Stage 4.11: the field and the triggers, per battle as a union
+
+ability lines, by ability
+-----------------------------------------------------
+Dauntless Shield                     44          4.5%
+Aura Break                           36          3.7%
+Unnerve                              27          2.7%
+As One                               23          2.3%
+Beads of Ruin                        18          1.8%
+Berserk                              16          1.6%
+Intimidate                           15          1.5%
+Sword of Ruin                        13          1.3%
+Fairy Aura                           12          1.2%
+Teravolt                             11          1.1%
+Mold Breaker                         10          1.0%
+Stamina                               9          0.9%
+Neutralizing Gas                      9          0.9%
+Tangling Hair                         8          0.8%
+Cotton Down                           7          0.7%
+Comatose                              7          0.7%
+Perish Body                           7          0.7%
+Intrepid Sword                        7          0.7%
+Download                              7          0.7%
+Vessel of Ruin                        6          0.6%
+Sap Sipper                            6          0.6%
+Weak Armor                            6          0.6%
+Speed Boost                           6          0.6%
+Turboblaze                            5          0.5%
+Supersweet Syrup                      5          0.5%
+Chilling Neigh                        5          0.5%
+Cloud Nine                            5          0.5%
+Gooey                                 5          0.5%
+Tablets of Ruin                       5          0.5%
+Air Lock                              4          0.4%
+Anticipation                          4          0.4%
+Anger Shell                           4          0.4%
+Grim Neigh                            3          0.3%
+Pressure                              3          0.3%
+Motor Drive                           2          0.2%
+Drought                               2          0.2%
+Storm Drain                           2          0.2%
+Opportunist                           2          0.2%
+Sturdy                                2          0.2%
+Dark Aura                             2          0.2%
+Thermal Exchange                      1          0.1%
+Analytic                              1          0.1%
+Desolate Land                         1          0.1%
+Steadfast                             1          0.1%
+Soul-Heart                            1          0.1%
+Moxie                                 1          0.1%
+Beast Boost                           1          0.1%
+Adaptability                          1          0.1%
+Competitive                           1          0.1%
+Rattled                               1          0.1%
+Justified                             1          0.1%
+Mirror Armor                          1          0.1%
+Steam Engine                          1          0.1%
+Sand Stream                           1          0.1%
+Moody                                 1          0.1%
+
+ability lines, by timing
+-----------------------------------------------------
+turn 1 or later                     181         18.4%
+before turn 1                       158         16.1%
+
+weather starts, by kind
+-----------------------------------------------------
+DesolateLand                         32          3.3%
+Sandstorm                            26          2.6%
+SunnyDay                             14          1.4%
+RainDance                            10          1.0%
+DeltaStream                           9          0.9%
+PrimordialSea                         9          0.9%
+Snowscape                             2          0.2%
+
+weather starts, by source
+----------------------------------------------------------------
+DesolateLand <- ability:Desolate Land           32          3.3%
+Sandstorm <- ability:Sand Stream                14          1.4%
+Sandstorm <- ability:Sand Spit                  12          1.2%
+RainDance <- ability:Drizzle                    10          1.0%
+DeltaStream <- ability:Delta Stream              9          0.9%
+SunnyDay <- ability:Drought                      9          0.9%
+PrimordialSea <- ability:Primordial Sea          9          0.9%
+SunnyDay <- ability:Orichalcum Pulse             5          0.5%
+Snowscape <- ability:Snow Warning                2          0.2%
+
+weather starts, by timing
+-----------------------------------------------------
+before turn 1                        56          5.7%
+turn 1 or later                      51          5.2%
+
+field starts, by timing
+-----------------------------------------------------
+before turn 1                       102         10.4%
+turn 1 or later                      75          7.6%
+
+weather starts, as a union
+-----------------------------------------------------
+standard                             51          5.2%
+primal                               49          5.0%
+
+weather upkeep lines
+-----------------------------------------------------
+DesolateLand                         26          2.6%
+Sandstorm                            25          2.5%
+SunnyDay                             11          1.1%
+PrimordialSea                         9          0.9%
+DeltaStream                           8          0.8%
+RainDance                             7          0.7%
+Snowscape                             2          0.2%
+
+side conditions
+-----------------------------------------------------
+Stealth Rock                         36          3.7%
+Spikes                               11          1.1%
+Toxic Spikes                          9          0.9%
+Safeguard                             2          0.2%
+Reflect                               1          0.1%
+Tailwind                              1          0.1%
+
+activate lines, by effect
+-----------------------------------------------------
+confusion                            24          2.4%
+move: Whirlpool                      14          1.4%
+ability: Emergency Exit              13          1.3%
+ability: Lingering Aroma             13          1.3%
+Skill Swap                           12          1.2%
+ability: Quick Draw                  11          1.1%
+move: Fire Spin                       9          0.9%
+ability: Toxic Debris                 9          0.9%
+ability: Mummy                        9          0.9%
+ability: Forewarn                     6          0.6%
+move: Sand Tomb                       5          0.5%
+Orichalcum Pulse                      5          0.5%
+ability: Supreme Overlord             5          0.5%
+move: Protect                         4          0.4%
+ability: Wimp Out                     4          0.4%
+move: Magma Storm                     4          0.4%
+trapped                               3          0.3%
+move: Infestation                     3          0.3%
+move: Bind                            3          0.3%
+move: Eerie Spell                     1          0.1%
+ability: Guard Dog                    1          0.1%
+ability: Synchronize                  1          0.1%
+move: Thunder Cage                    1          0.1%
+move: Fickle Beam                     1          0.1%
+item: Leppa Berry                     1          0.1%
+
+activate lines, as a union
+-----------------------------------------------------
+ability:*                            71          7.2%
+move:*                               45          4.6%
+other                                45          4.6%
+
+field ends
+-----------------------------------------------------
+weather none                         44          4.5%
+fieldend Electric Terrain             8          0.8%
+fieldend Grassy Terrain               5          0.5%
+fieldend Psychic Terrain              2          0.2%
+fieldend Misty Terrain                2          0.2%
+
+enditem lines, by item
+-----------------------------------------------------
+Sitrus Berry                         33          3.4%
+Oran Berry                           25          2.5%
+Lum Berry                             8          0.8%
+Payapa Berry                          7          0.7%
+Haban Berry                           7          0.7%
+Wacan Berry                           5          0.5%
+Persim Berry                          5          0.5%
+Chople Berry                          5          0.5%
+Rindo Berry                           4          0.4%
+Passho Berry                          4          0.4%
+Yache Berry                           2          0.2%
+Occa Berry                            2          0.2%
+Chesto Berry                          2          0.2%
+Colbur Berry                          2          0.2%
+Leppa Berry                           2          0.2%
+Mystic Water                          1          0.1%
+Leftovers                             1          0.1%
+Muscle Band                           1          0.1%
+Weakness Policy                       1          0.1%
+Punching Glove                        1          0.1%
+Twisted Spoon                         1          0.1%
+Silk Scarf                            1          0.1%
+
+terrain and room starts, by kind
+-----------------------------------------------------
+Electric Terrain                     32          3.3%
+Grassy Terrain                       21          2.1%
+Psychic Terrain                       9          0.9%
+Misty Terrain                         6          0.6%
+
+terrain and room starts, by source
+-------------------------------------------------------------------
+Electric Terrain <- ability:Hadron Engine          16          1.6%
+Electric Terrain <- ability:Electric Surge         16          1.6%
+Grassy Terrain <- ability:Grassy Surge             15          1.5%
+Psychic Terrain <- ability:Psychic Surge            9          0.9%
+Grassy Terrain <- ability:Seed Sower                6          0.6%
+Misty Terrain <- ability:Misty Surge                6          0.6%
+
+item lines (held, revealed)
+-----------------------------------------------------
+Black Belt                            4          0.4%
+Sitrus Berry                          3          0.3%
+Occa Berry                            2          0.2%
+Muscle Band                           1          0.1%
+Chople Berry                          1          0.1%
+Assault Vest                          1          0.1%
+Leppa Berry                           1          0.1%
+Haban Berry                           1          0.1%
+Charcoal                              1          0.1%
+Wacan Berry                           1          0.1%
+Punching Glove                        1          0.1%
+Chesto Berry                          1          0.1%
+Persim Berry                          1          0.1%
+Twisted Spoon                         1          0.1%
+Oran Berry                            1          0.1%
+Silk Scarf                            1          0.1%
+
+(982 battles)
+
+* already has a flag in core/battle/flags.ts
+Battles cut off at TURN_LIMIT under-count residual lines; a marginal class is marginal or better.

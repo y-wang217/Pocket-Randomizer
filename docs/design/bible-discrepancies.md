@@ -62,7 +62,7 @@ which blocks everything.
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 | D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
-| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field` | open, filed 2026-09-25 |
+| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | open, filed 2026-09-25; census 2026-09-25 |
 | D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | open, filed 2026-09-25 |
 | D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | open, filed 2026-09-25 |
 
@@ -3333,7 +3333,12 @@ the screen. The census put the field class on 23.2% of battles.
 - Suppressed weather (Cloud Nine, Air Lock): glyph dimmed, wash at half
   (open question 3).
 - The three primal weathers and Strong winds reuse the base mark and differ
-  on inspect (open question 5).
+  on inspect (open question 5). **Corrected by the Tier 0 census, 2026-09-25**
+  ([`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md)):
+  the primals are 5.0% of battles against 5.2% for all standard weather, and
+  Desolate Land is the single most common weather in the game. Extreme sun and
+  Heavy rain still share the sun and rain marks and differ on inspect; **Delta
+  Stream's Strong winds has no base and is a ninth mark.**
 
 ---
 
