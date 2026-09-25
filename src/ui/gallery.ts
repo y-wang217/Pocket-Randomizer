@@ -336,7 +336,8 @@ async function main(): Promise<void> {
       targetScreen.root.querySelector<HTMLElement>('.target__decline')?.click();
       break;
     }
-    case 'party': {
+    case 'party':
+    case 'party-mons': {
       const state = lateState(seed);
       partyScreen.render(
         {
@@ -357,6 +358,8 @@ async function main(): Promise<void> {
       applyLocale(localeOf(state));
       stamp(state);
       show('party');
+      // The list tab, pressed as a player would press it.
+      if (surface === 'party-mons') partyScreen.root.querySelector<HTMLElement>('.party__tab[data-tab="mons"]')?.click();
       break;
     }
     case 'pre-gym': {

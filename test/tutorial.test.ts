@@ -247,7 +247,10 @@ describe('every mark resolves to an anchor on its screen', () => {
       // region. The result fixture carries a capture, which hides the cards,
       // so its `rewards` mark waits for the fixture below.
       const showable = TUTORIAL[screen].filter((mark) => root.querySelector(mark.anchor)?.closest('[hidden]') === null);
-      expect(showable.length, screen).toBeGreaterThanOrEqual(TUTORIAL[screen].length - 1);
+      // The party screen lands on one member's card (the tabbed prototype,
+      // generation.md section 80): the backpack and relics anchors are on
+      // other tabs, so only the held-item mark shows on entry.
+      expect(showable.length, screen).toBeGreaterThanOrEqual(screen === 'party' ? 1 : TUTORIAL[screen].length - 1);
       expect(layer.showFor(screen, root)).toBe(showable.length);
     });
   }

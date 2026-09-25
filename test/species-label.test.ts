@@ -184,7 +184,10 @@ describe('the party surfaces', () => {
       { party: party(), backpack: ['oranberry'], tms: [], teachable: new Set([]), relics: [], tuning: DEFAULT_TUNING, slots: partyCapacityAfter(0), plan: null },
       { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onTeach: () => undefined, onDone: () => undefined },
     );
-    expect(texts(screen.root, '.panel__name')).toEqual(['Snorlax', 'Gengar']);
+    // The tabbed prototype (generation.md section 80): the list is rows of
+    // species, and the one card on screen is the lead's.
+    expect(texts(screen.root, '.party__mon-name')).toEqual(['Snorlax', 'Gengar']);
+    expect(texts(screen.root, '.panel__name')).toEqual(['Snorlax']);
     expect(texts(screen.root, '.slot__label').slice(0, 2)).toEqual(['Snorlax', 'Gengar']);
     noNickname(screen.root, 'the party screen');
     (screen.root.querySelector('.party__release') as HTMLButtonElement | null)?.click();

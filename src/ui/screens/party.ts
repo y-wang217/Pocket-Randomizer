@@ -61,6 +61,9 @@ import { el } from '../scene';
 import { setProse } from '../dom';
 import { PARTY_COPY } from '../copy/screens';
 import { renderSlots, slotNumber } from '../slots';
+import { spriteFigure } from '../sprites';
+import { levelText } from '../scene';
+import { FAINTED, hpState } from '../../core/hpCopy';
 
 import { createThreatReadout } from './threats';
 
@@ -172,7 +175,19 @@ export function createPartyScreen(): PartyScreen {
   // its member's slot. Stage V2. Above the cards, which carry the same
   // numbers, so the two read as one collection seen at two sizes.
   const partySlots = el('div', 'party__slots');
-  const list = el('div', 'party party--manage');
+  /*
+   * **The tabbed layout. A prototype, 2026-09-25**, `generation.md` section 80.
+   *
+   * One long page — six cards, the bag, the shelf, the relics — was the
+   * screen a thumb had to scroll on a phone. This splits it into four panels
+   * under one title, switched by a bar along the bottom, each panel scrolling
+   * inside itself so the document never does. `mons` is the list; `detail` is
+   * one member's full card, reached by tapping a row; `items` is the bag and
+   * the relics; `tms` is the shelf. The renderers below are unchanged: only
+   * where they mount moved.
+   */
+  const list = el('div', 'party party--manage party__list');
+  const detail = el('div', 'party party--manage party__detail');
   const bag = el('section', 'backpack');
   const tmPanel = el('section', 'tms');
   const relics = el('section', 'relics');
@@ -183,9 +198,76 @@ export function createPartyScreen(): PartyScreen {
   // One word, from the copy table: the screen has two entrances and the label
   // used to name one of them, wrongly, after the other had been used
   // (generation.md section 80). `onDone` does the navigating.
-  setProse(done, PARTY_COPY.done);
+  done.textContent = PARTY_COPY.done.short;
 
-  root.append(title, blurb, threats.root, partySlots, list, bag, tmPanel, relics, done);
+  type Panel = 'mons' | 'detail' | 'items' | 'tms';
+  const panel = (name: Panel, children: HTMLElement[]): HTMLElement => {
+    const host = el('section', 'party__panel');
+    host.dataset['panel'] = name;
+    host.append(...children);
+    return host;
+  };
+  const toList = document.createElement('button');
+  toList.type = 'button';
+  toList.className = 'button button--small party__to-list';
+  toList.textContent = 'All Pokemon';
+  const panels: Record<Panel, HTMLElement> = {
+    mons: panel('mons', [blurb, partySlots, list]),
+    detail: panel('detail', [toList, detail]),
+    items: panel('items', [bag, relics]),
+    tms: panel('tms', [tmPanel]),
+  };
+  const host = el('div', 'party__panels');
+  host.append(panels.mons, panels.detail, panels.items, panels.tms);
+
+  const tabs = el('nav', 'party__tabs');
+  const tab = (label: string, target: Panel): HTMLButtonElement => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button party__tab';
+    button.textContent = label;
+    button.dataset['tab'] = target;
+    button.addEventListener('click', () => show(target));
+    return button;
+  };
+  const tabButtons = [tab('Mons', 'mons'), tab('Items', 'items'), tab('TMs', 'tms')];
+  tabs.append(...tabButtons, done);
+
+  let detailSlot = 0;
+  const show = (next: Panel): void => {
+    for (const [name, element] of Object.entries(panels)) element.hidden = name !== next;
+    // The list and one member of it are one tab.
+    const lit = next === 'detail' ? 'mons' : next;
+    for (const button of tabButtons) {
+      if (button.dataset['tab'] === lit) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
+    }
+    panels[next].scrollTop = 0;
+  };
+  toList.addEventListener('click', () => show('mons'));
+
+  // The threat readout under the title on every tab: one line about the
+  // whole party, read before any of it, as it was above the cards.
+  root.append(title, threats.root, host, tabs);
+
+  /*
+   * Clamp the screen to what is left of the viewport below it, so the panels
+   * scroll and the document does not. Measured rather than written in CSS
+   * because the shell's chrome above and below this screen differs by
+   * density and by surface, and a guessed number was 33px wrong on a phone.
+   * Runs a frame after render, once the router has shown the screen, and on
+   * every resize. A hidden screen measures zero and is skipped.
+   */
+  const fit = (): void => {
+    if (root.hidden || root.offsetParent === null) return;
+    root.style.height = '';
+    const rect = root.getBoundingClientRect();
+    const top = rect.top + window.scrollY;
+    const below = document.documentElement.scrollHeight - (rect.bottom + window.scrollY);
+    const height = window.innerHeight - top - Math.max(0, below);
+    if (height > 0) root.style.height = `${Math.floor(height)}px`;
+  };
+  window.addEventListener('resize', fit);
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -252,6 +334,12 @@ export function createPartyScreen(): PartyScreen {
         carried = [...view.tms];
       }
 
+      // Land on the lead, or on the shelf when the screen was opened to spend
+      // a TM: that is the one act the boundary is waiting on.
+      detailSlot = 0;
+      show(view.teachable.size > 0 ? 'tms' : 'detail');
+      requestAnimationFrame(fit);
+
       const draw = (): void => {
         /*
          * **What the plan has already done to the party, drawn as done.**
@@ -291,8 +379,43 @@ export function createPartyScreen(): PartyScreen {
             view.slots,
           ),
         );
+        /*
+         * The list: one row per member, in slot order — a position, not a
+         * ranking. A row is the head facts (slot, species, level, HP, what it
+         * holds) and a tap; the card with everything else is the detail panel.
+         */
         list.replaceChildren(
-          ...shown.map((member, index) =>
+          ...shown.map((member, index) => {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'party__mon-row';
+            row.dataset['slot'] = String(index);
+            const name = el('span', 'party__mon-name');
+            name.textContent = member.spec.species;
+            const facts = el('span', 'party__mon-facts');
+            const holding = held[index] ?? null;
+            facts.textContent = `${levelText(member.spec.level, member.spec.gender)} · ${
+              member.fainted ? FAINTED : hpState(member.hp, member.maxHp)
+            }${holding ? ` · ${itemById(holding)?.name ?? holding}` : ''}`;
+            // The figure in the row's corner, phased by slot like the card's.
+            row.append(spriteFigure(member.spec.species, { phase: index }), slotNumber(index), name, facts);
+            row.addEventListener('click', () => {
+              detailSlot = index;
+              drawDetail();
+              show('detail');
+            });
+            return row;
+          }),
+        );
+        const drawDetail = (): void => {
+          if (detailSlot >= shown.length) detailSlot = 0;
+          const index = detailSlot;
+          const member = shown[index];
+          if (!member) {
+            detail.replaceChildren();
+            return;
+          }
+          detail.replaceChildren(
             renderManaged(member, index, shown.length, held[index] ?? null, view.tuning, {
               ...handlers,
               onUnequip: () => {
@@ -303,8 +426,9 @@ export function createPartyScreen(): PartyScreen {
                 commit();
               },
             }),
-          ),
-        );
+          );
+        };
+        drawDetail();
         renderRelics(relics, view.relics);
         renderTms(tmPanel, view, carried, teaches, {
           onTeach: (move) => {

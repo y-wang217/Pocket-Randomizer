@@ -71,8 +71,10 @@ describe('the party screen', () => {
     const partySlots = [...screen.root.querySelectorAll('.slots--party .slot')];
     expect(partySlots[0]?.querySelector('.slot__icon')?.getAttribute('aria-label')).toBe('Leftovers');
     expect(partySlots[1]?.querySelector('.slot__icon')).toBeNull();
-    // The cards beneath carry the same numbers in the same order.
-    expect([...screen.root.querySelectorAll('.party--manage .party__member .slot__number')].map((n) => n.textContent)).toEqual(['1', '2', '3']);
+    // The rows beneath carry the same numbers in the same order (the tabbed
+    // prototype, generation.md section 80: the list is rows, the lead's card
+    // is on the detail panel).
+    expect([...screen.root.querySelectorAll('.party__list .party__mon-row .slot__number')].map((n) => n.textContent)).toEqual(['1', '2', '3']);
 
     const backpackSlots = [...screen.root.querySelectorAll('.slots--backpack .slot')];
     expect(backpackSlots).toHaveLength(backpackCapacity(THREE_UP, DEFAULT_TUNING));

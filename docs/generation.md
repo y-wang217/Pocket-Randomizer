@@ -11026,3 +11026,88 @@ budget row and the section 8 example) are updated as a record of the string;
 no rule of the bible changed. The `TARGET_COPY` keys keep their `forfeit`
 names and the gallery fixture stays `confirm-forfeit`: internal names, not
 copy. No version axis moves — `ui/copy/` is outside `src/data/`.
+
+## 80. The party screen: "Return", and the tabbed prototype
+
+2026-09-25, from a playtest note filed as
+[`spec/gymrun-patch-party-return-and-tab-nav.md`](spec/gymrun-patch-party-return-and-tab-nav.md).
+Two things on one screen. The second is a **prototype**, built to be felt on
+a phone and revised, not a finished surface.
+
+### The way out says "Return"
+
+The button read *"Back to the gym"* or *"Back to the map"*, chosen in
+`app.ts` from `partyReturn` — which is written only when the screen is
+opened from the map or the pre-gym screen and never reset. After one pre-gym
+visit it stayed `'pre-gym'`, so the teach boundary (a rest, a shop, the gym's
+own move) and every Teach round trip through the target screen printed the
+gym label with no gym behind it. The routing was right: `onDone` commits the
+plan first and only then navigates. The promise was wrong.
+
+The label is now `Return`, one word from `PARTY_COPY.done`, and the `backTo`
+prop is gone from `PartyView`: the screen has one way out and it names no
+destination. The two old strings were passed in as a prop and so never
+reached `docs/copy.md`; the one new string does. `partyReturn` and the
+routing are untouched — the stale value still picks the right screen to go
+back to, which is the part that mattered.
+
+### The tabbed layout
+
+**What was wrong.** The screen was one page: title, blurb, threat readout,
+hotbar, six full member cards, the backpack, the TM shelf, the relics, the
+way out. On a phone that is a long scroll to reach anything below the second
+card, and the Pocket gate in `test/visual-pocket.test.ts` only held because
+Pocket folds every card body behind a toggle.
+
+**What is built.** `createPartyScreen` keeps its working-copy model, its
+`draw`/`commit` cycle, and every renderer — `renderManaged`, `renderBackpack`,
+`renderTms`, `renderRelics` — unchanged. What changed is where they mount:
+
+- A title, a panel host, and a bar of four buttons along the bottom:
+  `Mons`, `Items`, `TMs`, `Return`.
+- **`detail`** — one member's full card, `renderManaged` as before, with
+  Lead / Release / To bag. Manage lands here, on the lead.
+- **`mons`** — the blurb, the threat readout, the hotbar, and one row per
+  member in slot order: slot number, species, level and gender, HP, held item.
+  A tap opens that member's card. An `All Pokemon` button on the card goes
+  back to the list.
+- **`items`** — the backpack, then the relics.
+- **`tms`** — the shelf. When the screen opens at a teach boundary
+  (`view.teachable` non-empty) it lands here rather than on the lead: that
+  is the one act the boundary is waiting on.
+- The screen clamps to what is left of the viewport below it and each panel
+  scrolls inside itself, so the document never scrolls. The height is
+  measured in `fit` a frame after render and on resize, rather than written
+  in CSS: the chrome above and below the screen differs by density and a
+  guessed number was 33px wrong on a phone. A first CSS attempt with
+  `flex-basis: 0` collapsed the panels to 0px under an indefinite height and
+  measured the screen at 101px; the basis is `auto` with `min-height: 0`.
+
+**Deviations, recorded not hidden.**
+
+- A reorder, a release or a Teach round trip re-renders through `showParty`
+  and lands on the lead's card again, whatever tab was open. Acceptable for
+  feeling the nav; a finished version would keep the tab.
+- The tutorial's `backpack` and `relics` marks are on tabs the screen does
+  not land on, so the first-run coach shows only the held-item mark on
+  entry. `test/tutorial.test.ts` reads the party screen's showable count as
+  at least 1 for that reason.
+- `scripts/visual/browser.mjs` and `scripts/smoke.mjs` open the `TMs` tab
+  before pressing Teach; the shelf is otherwise hidden and the click waited
+  30 seconds on a hidden button.
+- The rows on `mons` are a new element (`.party__mon-row`), not the member
+  card's head. Species, level, HP and the held item are the head's own
+  facts, in the head's own order, and nothing on a row says one member is
+  better than another. If the row outlives the prototype it should mount
+  the head rather than restate it — that is R1 and section 5's canon, and
+  this is the one place the prototype restates a fact rather than mounting
+  the component that carries it.
+
+**Bible rules touched.** R1 and section 5: the member card, the hotbar, the
+backpack rows and the shelf are mounted unchanged, none forked; the list
+row is the restatement named above. C1: the list is slot order, no marker
+ranks a member. Section 4: the party screen has no prose row; the blurb
+moved to the `mons` tab and no sentence was added. No rule amended.
+
+**Axes.** None move. `ui/` is outside `src/data/`; no decision is reshaped;
+no draw changes.

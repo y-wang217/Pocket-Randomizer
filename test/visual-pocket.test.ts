@@ -30,7 +30,7 @@ import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PHONE } from '../scripts/visual/browser.mjs';
-import { ARCHIVE_SURFACES, CONFIRM_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, RELIC_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
+import { ARCHIVE_SURFACES, CONFIRM_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, RELIC_SURFACES, STAGED_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -64,7 +64,7 @@ describe('the surfaces are all gated', () => {
     // map overlay: the list below is generated from the same constant, so a new
     // overlay is gated by adding it in one place instead of two.
     expect(
-      [...DECISION_SURFACES, ...RELIC_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES].sort(),
+      [...DECISION_SURFACES, ...RELIC_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES, ...STAGED_SURFACES].sort(),
     ).toEqual([...GALLERY_SURFACES].sort());
   });
 });
@@ -87,7 +87,8 @@ describe('starter in Pocket', () => {
   }, 120_000);
 });
 
-describe.each([...DECISION_SURFACES, ...RELIC_SURFACES].filter((surface) => !SCROLLING_DECISIONS.includes(surface)))('%s in Pocket', (surface) => {
+// The staged party list is a decision surface's other tab and holds to the same gate.
+describe.each([...DECISION_SURFACES, ...RELIC_SURFACES, ...STAGED_SURFACES].filter((surface) => !SCROLLING_DECISIONS.includes(surface)))('%s in Pocket', (surface) => {
   it('does not scroll at 390x844', async () => {
     const { page, close } = await open(surface);
     const height = await page.evaluate(() => globalThis.document.documentElement.scrollHeight);

@@ -135,8 +135,11 @@ describe('the idle bob', () => {
   });
 
   it('runs on every figure of the party screen, phased by slot, out of the flow', async () => {
-    const { page, close } = await open(harness.browser, 'party', 'detailed');
-    const figures = await readFigures(page);
+    // The list tab (`party-mons`): the screen lands on one card, and the
+    // figures phased by slot are the rows'. The hidden card's figure is not
+    // painted and is left out (generation.md section 80).
+    const { page, close } = await open(harness.browser, 'party-mons', 'detailed');
+    const figures = (await readFigures(page)).filter((figure) => figure.size > 0);
     await close();
     expect(figures.length).toBeGreaterThanOrEqual(2);
     for (const figure of figures) {
@@ -150,8 +153,8 @@ describe('the idle bob', () => {
   });
 
   it('is smaller on a member card in Pocket, where the head is the whole card', async () => {
-    const { page, close } = await open(harness.browser, 'party', 'pocket');
-    const figures = await readFigures(page);
+    const { page, close } = await open(harness.browser, 'party-mons', 'pocket');
+    const figures = (await readFigures(page)).filter((figure) => figure.size > 0);
     await close();
     expect(figures.length).toBeGreaterThanOrEqual(2);
     for (const figure of figures) expect(figure.size).toBe(24);

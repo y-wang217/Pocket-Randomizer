@@ -544,6 +544,10 @@ async function stepOnceUnparked(page, expected) {
        */
       const teach = page.locator(`${visible('party')} .tms__item .button--small`).first();
       if ((await teach.count()) && (await teach.textContent()) === 'Teach') {
+        // The shelf is one tab of the party screen (the tabbed prototype,
+        // generation.md section 80): open it before pressing a button on it.
+        const shelf = page.locator(`${visible('party')} .party__tab[data-tab="tms"]`);
+        if (await shelf.count()) await shelf.click();
         await teach.click();
         return screen;
       }

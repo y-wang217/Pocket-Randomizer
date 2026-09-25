@@ -85,12 +85,21 @@ export const CONFIRM_SURFACES = ['confirm-replace', 'confirm-forfeit'] as const;
  */
 export const RELIC_SURFACES = ['result-relic', 'shop-relic'] as const;
 
+/**
+ * A screen with one of its own controls pressed after render. `party-mons` is
+ * the party screen on its list tab (the tabbed prototype, generation.md
+ * section 80): the surface the sprite and card measurements read, because
+ * the screen lands on one card and the list is a tap away.
+ */
+export const STAGED_SURFACES = ['party-mons'] as const;
+
 export const GALLERY_SURFACES = [
   ...DECISION_SURFACES,
   ...RELIC_SURFACES,
   ...OVERLAY_SURFACES,
   ...CONFIRM_SURFACES,
   ...ARCHIVE_SURFACES,
+  ...STAGED_SURFACES,
 ] as const;
 
 export type GallerySurface = (typeof GALLERY_SURFACES)[number];
