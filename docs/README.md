@@ -104,6 +104,15 @@ all of them hash strings, and the re-minted simulator fixture changing 2.
 `core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
 taking display strings off `EventInstance` so the copy file stays excludable.
 
+**Planned, not started: Stage 4.11, weather, terrain and trigger visuals**, on
+`claude/dazzling-archimedes-wc1frw`. The prompt and its tiered plan are in
+[`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
+the handoff in [`handoff/4.11-prep.md`](handoff/4.11-prep.md). The finding: the
+logic is the sim's and always was, the tree reads weather as an event and never
+as a state, and every weather in the game is set by an ability on switch-in,
+the one batch the battle screen never animates. Tier 0 is a hard stop on three
+rows, D47 to D49. No `src/` change yet and no version axis moves at any tier.
+
 **Tier 5 filed six rows before it opened and closed all six**, plus D14 from
 Tier 0 and D35 from Tier 4, and filed **D38** and **D39** on the way. The bible
 went Rev 6 → **Rev 11** across the tier. The one row still open is D38.
