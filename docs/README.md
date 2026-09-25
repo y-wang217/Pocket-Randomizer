@@ -354,6 +354,23 @@ condition an item exists for cannot measure that item**, which is why M4.1 and
 M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
 
+**In flight: wild encounters below the curve, and gyms 1 to 3 one level
+lower.** Branch `claude/wild-pokemon-gym-balance-gpykz5`, prompt
+[`spec/gymrun-patch-wild-strength-and-early-gym-levels.md`](spec/gymrun-patch-wild-strength-and-early-gym-levels.md),
+record [`generation.md`](generation.md) section 78, measurement
+[`balance.md`](balance.md) section 0. Two columns of `data/scaling.ts` and no
+logic. `RANDOMIZER_VERSION` to `-22` with `contentHash` to `715122`;
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+- **A wild encounter draws two levels lower at every segment.** The level rather
+  than a band, because a capture keeps the species and moveset it was fought
+  with and re-levels to the party: a lower band is a weaker catch for the rest
+  of the run, a lower level is the same catch fought at a discount.
+- **Gyms 1 to 3 draw one level lower at both ends of their spread.** The ace
+  sits one under the party; the shape holds. The parity pin in
+  `test/generation.test.ts` relaxes from `max === 0` to `max <= 0`, which is
+  the rule the Speed argument was always about.
+
 **In flight: teaching a move at the node that paid it, and a level spread for
 gyms.** Branch `claude/great-curie-99l9fm`, prompt
 [`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),

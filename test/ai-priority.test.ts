@@ -431,8 +431,13 @@ describe('the version axes', () => {
      * **The claim is now: no copy a player reads is inside this hash.** That is
      * a stronger thing than the old one and it is checkable — which is the
      * point of replacing a promise with a property.
+     *
+     * The wild-strength and early-gym-levels patch moved it from `0b2c2c`, the
+     * ordinary case: two columns of `data/scaling.ts`, and `gymrun-randomizer-22`
+     * arrives beside it because the level a seed draws moved.
+     * `docs/generation.md` section 78.
      */
-    expect(CONTENT_HASH).toBe('0b2c2cfe55f5867be3c25b8876e7ad5e6d4096b98d70c3b23899ddbba45284a1');
+    expect(CONTENT_HASH).toBe('7151221289a1ea991d5186775e58b13ab17dbf2205de94c751df78dd186c7c79');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

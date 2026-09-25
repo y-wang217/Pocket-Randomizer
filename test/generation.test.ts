@@ -292,16 +292,19 @@ describe('generation rules', () => {
   it('fields a gym at or below the player level, never above', () => {
     for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
       const row = segmentScaling(segment);
-      // The rule. A gym is never above the party, at any segment.
-      expect(row.levelOffset.gym.max).toBe(0);
-      // The spread. Below parity at every segment, and deepening with it.
-      expect(row.levelOffset.gym.min).toBeLessThan(0);
+      // The rule. A gym is never above the party, at any segment. Exact parity
+      // was the pin until 2026-09-25; gyms 1 to 3 now sit one under it, which
+      // is inside the rule, so the pin is the ceiling the argument was about.
+      expect(row.levelOffset.gym.max).toBeLessThanOrEqual(0);
+      // The spread. Below the ceiling at every segment, and never shallower
+      // than the segment before it.
+      expect(row.levelOffset.gym.min).toBeLessThan(row.levelOffset.gym.max);
       if (segment > 0) {
-        expect(row.levelOffset.gym.min).toBeLessThan(segmentScaling(segment - 1).levelOffset.gym.min);
+        expect(row.levelOffset.gym.min).toBeLessThanOrEqual(segmentScaling(segment - 1).levelOffset.gym.min);
       }
       for (const tier of ['normal', 'hard', 'elite'] as const) {
         const level = opponentLevel('gym', segment, tier);
-        expect(level.max).toBe(playerLevel(segment));
+        expect(level.max).toBeLessThanOrEqual(playerLevel(segment));
         expect(level.min).toBeLessThan(playerLevel(segment));
       }
     }
