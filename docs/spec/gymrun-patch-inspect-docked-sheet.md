@@ -26,6 +26,11 @@ Message 2:
 > mean? On ios it highlights and once i highlight the text, it exits the menu
 > bc it opens the hightlight text tooltip for copy etc
 
+Message 3, while the first two were being built:
+
+> Do that for all buttons. Even the moves or other things. And make clickable
+> surfaces a little bigger? Like 10% bigger if possible
+
 ---
 
 ## What the report is
@@ -42,6 +47,9 @@ Three things, and message 2 puts the first one first:
 3. **Release closes**, so the panel cannot be read with the hand out of the
    way. The author asks for the opposite: a fixed spot, stays open, a tap
    anywhere else closes it.
+
+4. **Every button, not only the inspect triggers, should decline text
+   selection**, and clickable surfaces should be about a tenth larger.
 
 Item 3 touches R5's *"Release closes"* and is an amendment, not a fix; the
 bible's own process is followed in the same PR. Items 1 and 2 are

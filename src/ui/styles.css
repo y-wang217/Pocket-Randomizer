@@ -177,7 +177,7 @@ body {
 }
 
 .button {
-  padding: calc(var(--space-1h) + var(--hairline)) var(--space-3h);
+  padding: calc((var(--space-1h) + var(--hairline)) * var(--tap-scale)) calc(var(--space-3h) * var(--tap-scale));
   background: var(--bg-sunken);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
@@ -2046,11 +2046,12 @@ body {
 
 .moves .move {
   gap: var(--space-h);
-  padding-top: calc(var(--space-1h) * var(--density-pad));
-  padding-bottom: calc(var(--space-1h) * var(--density-pad));
+  padding-top: calc(var(--space-1h) * var(--density-pad) * var(--tap-scale));
+  padding-bottom: calc(var(--space-1h) * var(--density-pad) * var(--tap-scale));
   /* M2.2: the touch floor, stated rather than arrived at. A button that the
-     content happens to make tall enough is a button one copy change shortens. */
-  min-height: 44px;
+     content happens to make tall enough is a button one copy change shortens.
+     Scaled by `--tap-scale` since the docked sheet patch. */
+  min-height: calc(44px * var(--tap-scale));
 }
 
 /*
@@ -2094,7 +2095,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: calc(calc(var(--space-1) + var(--hairline)) * var(--density-pad));
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  padding: calc(var(--space-2h) * var(--density-pad) * var(--tap-scale)) calc(var(--space-3) * var(--density-pad) * var(--tap-scale));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
@@ -3710,7 +3711,7 @@ body {
   word-break: break-all;
 }
 
-.button--small { padding: var(--space-1) var(--space-2h); font-size: var(--fs-sm); }
+.button--small { padding: calc(var(--space-1) * var(--tap-scale)) calc(var(--space-2h) * var(--tap-scale)); font-size: var(--fs-sm); }
 
 .summary__progress {
   display: flex;
@@ -4602,7 +4603,15 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 /* ---------- tooltips and the type wheel ---------- */
 
 /*
- * One panel, positioned in script.
+ * One panel, docked. **The docked sheet patch, 2026-09-25.**
+ *
+ * Until this patch the panel was positioned in script beside its trigger,
+ * which on a phone put a content-sized box under the thumb that was holding
+ * it. Now it has one spot, the top of the viewport, under the safe area,
+ * centred and as wide as the screen allows: the edge a thumb is least often
+ * on, and the same place every time so the eye learns where to look. It
+ * scrolls inside itself past a fixed height rather than growing over the
+ * board.
  *
  * Fixed rather than absolute so it escapes the screen's overflow contexts —
  * the battle log scrolls, and a tooltip opened from a badge beside it must not
@@ -4612,8 +4621,14 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .tip {
   position: fixed;
   z-index: 40;
-  max-width: min(420px, calc(100vw - 16px));
-  padding: var(--space-2h) var(--space-3);
+  top: calc(var(--space-2) + env(safe-area-inset-top, var(--space-0)));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 16px));
+  max-height: min(48vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2h) var(--space-6) var(--space-2h) var(--space-3);
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
@@ -4621,6 +4636,52 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   font-size: var(--fs-md);
   line-height: 1.5;
 }
+
+/* `hidden` is a UA style and `position: fixed` with a transform does not beat
+   it on its own, but a later rule with `display` would: stated so it cannot be. */
+.tip[hidden] { display: none; }
+
+/* The sheet's own close control, top right, a glyph and no word. The scrim
+   and Escape close it too; this is for the reader whose thumb is already on
+   the sheet. */
+.tip__close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tip__close::before { content: '\00d7'; }
+
+.tip__close:hover,
+.tip__close:focus-visible { color: var(--text); }
+
+/*
+ * The scrim under a held or keyboard-opened sheet. Transparent on purpose:
+ * the board stays readable behind the explanation, and what the scrim is for
+ * is the *tap*, not the look. It sits over everything the shell draws, so the
+ * tap that closes the sheet lands here and nowhere else — on the battle
+ * screen "elsewhere" is a move button, and a dismissal that was also a
+ * submission is the thing R5 forbids.
+ */
+.tip-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: transparent;
+  cursor: default;
+}
+
+.tip-scrim[hidden] { display: none; }
 
 .tip__title {
   margin: 0 0 var(--space-1h);
@@ -4709,6 +4770,51 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 }
 
 .tip__rows--stats .tip__row-value { font-family: var(--font-numeral); }
+
+/*
+ * Nothing in the game is a text field. **The docked sheet patch, 2026-09-25.**
+ *
+ * iOS reads a long press on selectable text as "select this word": it
+ * highlights the word, raises the copy callout, and cancels the pointer — and
+ * the cancel closed the inspect sheet the press had just opened. The author's
+ * report put this first. The whole UI declines selection, buttons and move
+ * cards included, and the two places a player types or copies from are the
+ * exceptions: the inputs, and the log sheet's body, which is kept for bug
+ * reports.
+ *
+ * `-webkit-touch-callout` is the callout itself, separately from selection,
+ * and is inherited; `user-select: none` on an ancestor resolves every
+ * descendant's `auto` to none.
+ */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+.log-sheet__body {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/*
+ * Every clickable surface is a tenth larger than it draws. The same patch.
+ *
+ * The visible growth is `--tap-scale` on the button families below. This is
+ * the invisible half: a pseudo-element bleeding five percent past each edge,
+ * so a press that lands just off a control still lands on it. `:where()`
+ * keeps the specificity at zero, so a control with its own `position` (the
+ * fixed stamps) keeps it.
+ */
+:where(button, [role='button']) { position: relative; }
+
+:where(button, [role='button'])::after {
+  content: '';
+  position: absolute;
+  inset: -5%;
+}
 
 /* Anything that opens a tooltip should look like it does. */
 [data-tip] { cursor: help; }

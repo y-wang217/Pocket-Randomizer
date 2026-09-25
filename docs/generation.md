@@ -11006,3 +11006,79 @@ The benchmark row is in [`balance.md`](balance.md) section 0, stamped
 `randomizer-22` · `715122`, RETUNE, 400 seeds, read against the
 `randomizer-21` · `d4e080` row on the same prefix and the same `table` AI.
 **Recorded, not chased**, per the standing policy.
+
+## 79. The inspect sheet docks, the text stops being a text field, and every button grows a tenth
+
+**2026-09-25.** Prompt:
+[`spec/gymrun-patch-inspect-docked-sheet.md`](spec/gymrun-patch-inspect-docked-sheet.md),
+three messages from the author, filed before any change to `src/`.
+Presentation only: no `core/` change, no data table, no version axis moves,
+`contentHash` unmoved. **The design bible's R5 is amended by this patch**, and
+the amendment is recorded in the bible, in `design/playtest-log.md` and in
+the register, in that order of authority.
+
+### What was happening
+
+Three things, and the second message put the first one first.
+
+1. **iOS took the long press for text selection.** Every trigger's text was
+   selectable, so a hold on a move card highlighted the word under the thumb
+   and raised the copy callout. The callout cancels the pointer, and
+   `ui/tooltips.ts` closed the panel on `pointercancel`. The explanation
+   appeared and the platform took it away, every time the press landed on a
+   word. `onContextMenu` already declined the context menu on a trigger; the
+   selection gesture is a different one and has to be declined at the element.
+2. **The panel opened beside the trigger**, positioned in script from the
+   trigger's box and sized to its content. On a phone that is a small box
+   under the thumb that was holding it.
+3. **Release closed it**, per R5 as written, so it could not be read with the
+   hand out of the way.
+
+### What was built
+
+- **Nothing in the game is a text field.** `body` declines selection and the
+  touch callout; `input`, `textarea` and the log sheet's body are the
+  exceptions, the last kept for bug reports. Every button and move card
+  inherits it, which is message 3's first half.
+- **One docked sheet.** `.tip` is fixed to the top of the viewport under the
+  safe area, centred, as wide as the screen allows, capped at half the height
+  and scrolling inside itself. The `position()` function is deleted. The top
+  rather than the bottom because the move bar is at the bottom of the battle
+  screen and a thumb is on the lower half of a phone far more often than the
+  upper; a chip held near the top will have the sheet open under it, and the
+  release there costs nothing because the click a hold leaves behind is
+  eaten regardless of where it lands.
+- **Stays open, closes on a tap away.** A transparent scrim (`.tip-scrim`) is
+  armed on *release*, not on open, and the delegated click handler answers a
+  click on it by closing and stopping the event. Armed on release because the
+  jank case in `onClick` lets a fast tap through to the button it was on, and
+  a scrim already over that button would have taken the click. A held panel
+  also survives `pointercancel` now; a scroll should not cost the reader the
+  sheet. The sheet has a close control (`.tip__close`, a glyph, no word) and
+  Escape still closes. Hover panels on a desktop are unchanged: no scrim,
+  `mouseout` closes them, and `dropStranded` now applies to them alone.
+- **Every clickable surface a tenth larger.** `--tap-scale: 1.1` in
+  `tokens.css` multiplies the padding of `.button`, `.button--small` and
+  `.move`, and the move bar's 44px floor. Separately, every `button` and
+  `[role="button"]` carries a `::after` that bleeds five percent past each
+  edge, so the hit area grows on controls whose padding rules this patch did
+  not touch. `:where()` keeps the specificity at zero, so the fixed stamps
+  keep their own `position`.
+
+### The bible
+
+R5's *"Release closes"* clause is gone, and the rule now names the docked
+sheet, the tap-away dismissal, and two new forbids: a panel positioned beside
+its trigger, and selectable text under a trigger. The section 9 row for R5 is
+untouched and a second row is added for the sheet's own bet, that it reads as
+dismissable. **The amendment had no registered disconfirmer**, and the
+bible's note under R5 says so rather than pretending one fired.
+
+### Tests
+
+`test/inspect.test.ts`: the release test is rewritten to the new gesture; new
+cases for the close control, the scrim's tap reaching nothing under it, a
+cancelled pointer, and a stylesheet check for the selection rule, the hit
+slop and the token. The R5 enforcement block is unchanged and still passes:
+what a hold eats did not move.
+
