@@ -157,7 +157,7 @@ describe('the version axes this patch moved', () => {
      * the same key lands a gym member somewhere in a range instead of on one
      * number.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
   });
 });
 

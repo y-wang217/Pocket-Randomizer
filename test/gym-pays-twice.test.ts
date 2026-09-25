@@ -80,7 +80,7 @@ describe('the run log version', () => {
      * and left `RUN_LOG_VERSION` alone — the same separation again, from the
      * data-table side this time.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-21');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

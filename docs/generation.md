@@ -10939,7 +10939,104 @@ Writing the test for 3 found a fifth, older, edge case: a visit only advanced
 when a family was counted, so a screen with no glyph between two visits to the
 map did not end the first. The pass now enters the visit before counting.
 
-## 78. Patch 4.10.1: the map's node kinds are marks, and the eleventh family
+## 78. Wild encounters two levels lower, and gyms 1 to 3 one level lower
+
+**2026-09-25**, on `claude/wild-pokemon-gym-balance-gpykz5`. Prompt
+[`spec/gymrun-patch-wild-strength-and-early-gym-levels.md`](spec/gymrun-patch-wild-strength-and-early-gym-levels.md).
+Moves `RANDOMIZER_VERSION` to `-22` and `contentHash` from `0b2c2c` to
+`715122`; `RUN_LOG_VERSION` holds at `-20` and `AI_VERSION` holds.
+
+A playtest brief in one message: wild encounters read as too strong, and gyms
+1 to 3 should sit one level lower. Both are one column of `SEGMENTS` in
+`src/data/scaling.ts` and nothing else moved.
+
+### Wild: the level, not the band
+
+`levelOffset.wild` moves down by two at both ends of every row, from
+`-3..-2` to `-5..-4` at segment 0 through `-17..-12` to `-19..-14` at
+segment 7. The trainer column is untouched.
+
+The lever was chosen for what a capture keeps. `core/acquisition.ts` records
+that a caught Pokemon arrives with the species, moveset, ability and item it
+was fought with and only its level moves, to the party's. So a wild drawn one
+*band* lower would be a weaker catch for the rest of the run, while a wild
+drawn two *levels* lower is the same catch met at a discount. The brief asked
+for weaker wild fights, not weaker captures, and the level column is the one
+that does the first without the second.
+
+### Gyms 1 to 3: the ace one under the party
+
+`levelOffset.gym` at segments 0, 1 and 2 moves down by one at both ends:
+`-3..0` to `-4..-1`, `-4..0` to `-5..-1`, `-5..0` to `-6..-1`. Segments 3 to
+7 keep their ceiling at parity. The spread keeps its shape, so the team mean
+still sits near 0.91 of the ace; the ace is now one level under the party at
+those three gyms rather than at it.
+
+The rule the column carries, section 50's *a gym is never above the player*,
+is untouched: a ceiling of `-1` is inside it. What changed is the pin.
+`test/generation.test.ts` asserted `max === 0`, exact parity, and the argument
+behind that pin was entirely about a gym *above* the party taking every speed
+tie. Exact parity was the tightest reading of it, not the rule itself, so the
+pin is now `max <= 0` and the spread's floor is asserted below the ceiling
+rather than below zero. The monotone-deepening assertion on `min` relaxes to
+non-strict, because segment 2's floor now meets segment 3's at `-6`.
+`test/gym-level-spread.test.ts` reads its 0.91 against the ceiling rather than
+the player's level, which is what the reference ratio was always to: team mean
+over ace.
+
+### What re-recorded, and why each was owed
+
+- **`RANDOMIZER_VERSION` to `-22`.** No draw added, removed or moved; the same
+  float resolves to a lower level, and the stage gate that reads `level.min`
+  admits a different species list. The reason sections 35 and 50 gave.
+- **`contentHash` to `715122`.** The table moved.
+- **`test/gym-held-items.test.ts`'s wild-and-trainer digest**, from
+  `68f5b8e9ec48a07f` to `8acd0cd19c67dc7c`. That digest exists to demand a
+  version bump from any change that moves a wild team; this change moves every
+  wild team and brings the bump. Trainer teams are unmoved; the digest covers
+  both and moves once.
+- **`test/fixtures/sim-report.json`** and **`docs/visual/baseline/`**, by
+  their own write commands. `docs/visual/baseline/battles/GYMRUN01.json` moved this time, where
+  section 35 recorded it byte-identical: that run's first fight is a wild
+  encounter, and the wild column is what moved.
+
+### What it measured
+
+The benchmark row is in [`balance.md`](balance.md) section 0, stamped
+`randomizer-22` · `715122`, RETUNE, 400 seeds, read against the
+`randomizer-21` · `d4e080` row on the same prefix and the same `table` AI.
+**Recorded, not chased**, per the standing policy.
+
+## 79. The road the wild patch moved reaches two surfaces the chip sweep had never photographed
+
+**2026-09-25**, on `claude/wild-pokemon-gym-balance-gpykz5`, after
+[#69](https://github.com/y-wang217/Pocket-Randomizer/pull/69) merged. No
+version axis moves: one CSS rule and one test.
+
+Section 78's table edit moved the road the browser suite's seeds walk, and
+`test/visual-chips.test.ts` — which samples a screen whenever a chip variant it
+has not yet seen appears on it — landed on two surfaces for the first time.
+The node suite is green either side; only the chromium sweep read them.
+
+1. **The move replacement screen's owner row, on a green locale.** The row
+   (species, level, type chips, archetype, ability) sits on the locale-tinted
+   stage rather than on a panel, and the dim neutral recipe measured
+   `Justified` at 3.75:1 on the marsh — under `displayTuning.minChipContrastRatio`.
+   The same defect `.flags .chip` fixed for the flags strip, on the second
+   surface that has it. `.replace__owner .chip--neutral` now takes full cream;
+   the type chips beside it keep their own colour. A legibility floor fix and
+   not a weight change; no bible rule on how the ability is shown moves, since
+   the chip is the same chip at the same size with the same word.
+2. **The event screen's capability cost chip.** `capabilityChip(cost)` still
+   carries text on that one surface, so the sweep — which takes any chip with
+   text — photographed a `capability` variant that the test's `VARIANTS` list
+   deliberately omits, and an equality assertion read the extra sample as a
+   failure. The sweep now counts only listed variants toward its stopping
+   condition and asserts that every listed variant was reached, not that
+   nothing else was. A sample from beyond the list is kept and asserted
+   against nothing, which is what the list's own note already says of it.
+
+## 80. Patch 4.10.1: the map's node kinds are marks, and the eleventh family
 
 **2026-09-25, on `claude/map-icons-conversion-plan-tvab5v`.** Prompt
 [`spec/gymrun-patch-4.10.1-map-node-icons.md`](spec/gymrun-patch-4.10.1-map-node-icons.md),

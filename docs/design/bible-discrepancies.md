@@ -3275,4 +3275,4 @@ the mark is 24 on the card and 16 on the header, and the untiered node keeps
 its short hint on the detail line. The bible went to Rev 13. R7's exposure
 labels give the six words back on the first and third map, which is the one
 place the prompt's *labels beneath* and R2's *labels go* both hold. Record in
-[`../generation.md` §78](../generation.md).
+[`../generation.md` §80](../generation.md).

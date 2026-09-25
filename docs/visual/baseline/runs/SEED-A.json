@@ -2,8 +2,8 @@
   "seed": "SEED-A",
   "versions": {
     "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "0b2c2cfe55f5867be3c25b8876e7ad5e6d4096b98d70c3b23899ddbba45284a1",
-    "randomizer": "gymrun-randomizer-21",
+    "contentHash": "7151221289a1ea991d5186775e58b13ab17dbf2205de94c751df78dd186c7c79",
+    "randomizer": "gymrun-randomizer-22",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -12,13 +12,13 @@
   "causeOfDeath": {
     "segment": 1,
     "leader": "Marina",
-    "kind": "wild",
-    "species": "Brook",
-    "bySpecies": "Kabuto",
-    "byMove": "Water Gun",
+    "kind": "trainer",
+    "species": "Elder",
+    "bySpecies": "Pansage",
+    "byMove": "Giga Drain",
     "indirect": null
   },
-  "currency": 105,
+  "currency": 210,
   "backpack": [],
   "relics": [
     "woodsmans-hatchet"
@@ -29,7 +29,7 @@
       "level": 20,
       "ability": "Supreme Overlord",
       "moves": [
-        "Flame Wheel 40/40",
+        "Flame Wheel 39/40",
         "Ancient Power 4/8",
         "Crush Claw 14/16",
         "Mystical Fire 16/16"
@@ -44,12 +44,26 @@
       "ability": "Pure Power",
       "moves": [
         "Pay Day 31/32",
-        "Fairy Wind 48/48",
+        "Fairy Wind 43/48",
         "Snore 24/24",
         "Acid Armor 32/32"
       ],
-      "item": null,
+      "item": "blackbelt",
       "hp": "0/64",
+      "fainted": true
+    },
+    {
+      "species": "Kabuto",
+      "level": 20,
+      "ability": "Dancer",
+      "moves": [
+        "Rock Throw 22/24",
+        "Water Gun 40/40",
+        "Fire Spin 24/24",
+        "Salt Cure 23/24"
+      ],
+      "item": null,
+      "hp": "0/48",
       "fainted": true
     }
   ],
@@ -104,20 +118,10 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Mantyke",
-      "turns": 5,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 11,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Ivy",
-          "level": 15,
-          "species": "Skwovet",
-          "bySpecies": "Mantyke",
-          "byMove": "Brine",
-          "indirect": null
-        }
-      ]
+      "hpAfter": 55,
+      "casualties": []
     },
     {
       "segment": 0,
@@ -127,7 +131,7 @@
       "opponent": "Garnet (Rock)",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 27,
+      "hpAfter": 47,
       "casualties": []
     },
     {
@@ -136,26 +140,68 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Kabuto",
-      "turns": 9,
+      "turns": 5,
+      "winner": "p1",
+      "hpAfter": 98,
+      "casualties": []
+    },
+    {
+      "segment": 1,
+      "kind": "wild",
+      "label": "Wild encounter",
+      "tier": "normal",
+      "opponent": "Wild Mudkip",
+      "turns": 10,
+      "winner": "p1",
+      "hpAfter": 45,
+      "casualties": []
+    },
+    {
+      "segment": 1,
+      "kind": "event",
+      "label": "Something happens",
+      "tier": null,
+      "opponent": null,
+      "turns": null,
+      "winner": null,
+      "hpAfter": 45,
+      "casualties": []
+    },
+    {
+      "segment": 1,
+      "kind": "trainer",
+      "label": "Trainer battle",
+      "tier": "normal",
+      "opponent": "Trainer (2)",
+      "turns": 5,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
-          "name": "Ivy",
+          "name": "Brook",
           "level": 20,
-          "species": "Skwovet",
-          "bySpecies": "Wartortle",
-          "byMove": "Brine",
+          "species": "Mankey",
+          "bySpecies": "Pansage",
+          "byMove": "Giga Drain",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Brook",
+          "name": "Ivy",
           "level": 20,
-          "species": "Mankey",
-          "bySpecies": "Kabuto",
-          "byMove": "Water Gun",
+          "species": "Skwovet",
+          "bySpecies": "Pansage",
+          "byMove": "Giga Drain",
+          "indirect": null
+        },
+        {
+          "side": "p1",
+          "name": "Elder",
+          "level": 20,
+          "species": "Kabuto",
+          "bySpecies": "Pansage",
+          "byMove": "Giga Drain",
           "indirect": null
         }
       ]
@@ -165,9 +211,9 @@
     "seed": "SEED-A",
     "versions": {
       "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "0b2c2cfe55f5867be3c25b8876e7ad5e6d4096b98d70c3b23899ddbba45284a1",
+      "contentHash": "7151221289a1ea991d5186775e58b13ab17dbf2205de94c751df78dd186c7c79",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-21"
+      "randomizerVersion": "gymrun-randomizer-22"
     },
     "decisions": [
       {
@@ -355,27 +401,6 @@
         }
       },
       {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
         "kind": "acquisition",
         "decision": {
           "kind": "decline"
@@ -467,8 +492,52 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "accept"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
       },
       {
         "kind": "battle",
@@ -488,6 +557,121 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [
+            {
+              "slot": 1,
+              "item": "blackbelt"
+            }
+          ],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "event",
+        "archetype": "safe"
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
           "slot": 1
         }
       },
@@ -502,6 +686,13 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 3
         }
       },
@@ -509,21 +700,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
+          "slot": 1
         }
       }
     ]

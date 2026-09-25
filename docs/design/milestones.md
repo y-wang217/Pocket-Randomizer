@@ -468,7 +468,7 @@ that the map's node kinds become marks. It reopened D37 as that row's own
 option 2 and reversed D28 as a reversal, under **D46**; the bible went to Rev
 13 and section 2 reads eleven families. Landed before M7.1 on purpose, so the
 playtest sees the face that section 9's family-size hypothesis now describes.
-Record [`../generation.md` §78](../generation.md).
+Record [`../generation.md` §80](../generation.md).
 
 ### Tier 7: validation
 

@@ -337,7 +337,18 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * practical harm was nil — `contentHash` moved, so no seed replayed silently —
  * but the axis was the wrong one. `docs/generation.md` section 50.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-21';
+/*
+ * ## `-22`: wild two levels lower, gyms 1 to 3 one level lower
+ *
+ * One column each of `SEGMENTS`, and no draw added, removed or moved. The same
+ * `inRange` float off the same key resolves to a lower level, and the stage
+ * gate that reads `level.min` admits a different species list, so a recorded
+ * seed fields different wild and early-gym teams. Same reason `-19` and `-21`
+ * gave; `contentHash` moves beside it for the table.
+ * `docs/spec/gymrun-patch-wild-strength-and-early-gym-levels.md`,
+ * `docs/generation.md` section 78.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
