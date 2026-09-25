@@ -73,8 +73,20 @@ describe('the world', () => {
             if (box.width === 0 || box.bottom < 0 || box.top > globalThis.innerHeight) continue;
             // A point inside the visible part of the box: a tall control's
             // centre can sit below the fold, where nothing is hit-testable.
-            const top = Math.max(box.top, 0);
-            const bottom = Math.min(box.bottom, globalThis.innerHeight);
+            // The fold is the viewport and any scrolling ancestor: the party
+            // screen's panels scroll inside themselves (generation.md
+            // section 80), and a card half under a panel's edge is clipped
+            // there, not at the viewport.
+            let top = Math.max(box.top, 0);
+            let bottom = Math.min(box.bottom, globalThis.innerHeight);
+            for (let node = control.parentElement; node; node = node.parentElement) {
+              const overflow = globalThis.getComputedStyle(node).overflowY;
+              if (overflow !== 'auto' && overflow !== 'scroll' && overflow !== 'hidden') continue;
+              const clip = node.getBoundingClientRect();
+              top = Math.max(top, clip.top);
+              bottom = Math.min(bottom, clip.bottom);
+            }
+            if (bottom <= top) continue;
             const hit = globalThis.document.elementFromPoint(box.left + box.width / 2, (top + bottom) / 2);
             if (!hit || !control.contains(hit)) out.push(`${control.tagName}.${control.className.split(' ')[0]} "${control.textContent?.trim().slice(0, 20)}" hit ${hit?.className}`);
           }
