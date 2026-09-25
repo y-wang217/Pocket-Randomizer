@@ -96,6 +96,7 @@ function facts(overrides: Partial<BattleFacts> = {}): BattleFacts {
     trapped: false,
     awaitingChoice: true,
     invertedSpeed: false,
+    field: { weather: null, terrain: null, suppressed: false },
     // A lone opponent, which is what every hand-built view in this file is
     // about. The roster readout has its own file.
     opponentRoster: { standing: 1, total: 1 },

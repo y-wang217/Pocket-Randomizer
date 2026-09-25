@@ -11096,3 +11096,42 @@ the separation sheet is the head against the bag at 0.281 against a floor of
 because the run log and the share text read it; the face reads the gym table.
 The event screen, which has its own glyph and chevron since M5.6. The node's
 card shape and its single border, per the V0 note in the stylesheet.
+
+## 81. Stage 4.11: weather, terrain and trigger visuals
+
+**2026-09-25, on `claude/dazzling-archimedes-wc1frw`.** Prompt
+[`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
+four lines, filed with its investigation and a six-tier plan before any code.
+Handoff [`handoff/4.11-prep.md`](handoff/4.11-prep.md). This section grows a
+paragraph per tier.
+
+**Tier 0, the census and the rulings.** `scripts/protocol-census.ts` gained a
+second section keyed by weather kind, source, timing against `|turn|1`, field
+ends, abilities and items by name, and `-activate` by effect;
+[`reports/stage-4.11-field-census.md`](reports/stage-4.11-field-census.md)
+over 982 battles, prefix `FIELD`. Every weather and terrain start came from an
+ability, 58% of them before turn 1. D47, D48 and D49 were ruled the same day
+and the bible went to Rev 14. **Three deviations from the plan as filed, none
+by editing it:** the field family is nine marks, not eight, because the
+primal weathers are half of all weather and Delta Stream has no base; the
+`ability` flag gains a second pattern at Tier 4 for the 7.2% of abilities
+that fire through `-activate`; and the move half of Tier 4 is not built, on
+4.6% of the trapping moves the panel already shows. **One addition by
+ruling:** D49 went against the recommendation, so C1 has two exceptions and
+the plan gains a Tier 2b, the field factor folded into the move button's
+forecast multiplier. `CLAUDE.md` restates C1 with the old count and is the
+lead designer's to bring in line.
+
+**Tier 1, the state, headless.** `BattleFacts.field` and `BattleUiView.field`
+in `core/battle/view.ts`, read off the sim's `Field` in `driver.buildFacts`
+beside `invertedSpeed`, which was the precedent: the weather and terrain ids
+and whether an ability is suppressing the weather, by the sim's own
+`suppressingWeather()`. Duration is deliberately not carried (D47). Nine
+`FieldKind`s and `fieldKindOf` give each id its mark and no word; the words
+are `data/fieldCopy.ts`, read by nothing under `core/` and on the
+`contentHash` exclusion list with that reason. `test/field-facts.test.ts`
+walks the dex's weathers and terrains and holds that each has a mark, a name
+and an effect line. Not narrowed by the reveal policy: weather is public.
+`contentHash` unmoved; no version axis moved; the simulator fixture byte
+identical.
+

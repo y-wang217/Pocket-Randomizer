@@ -1070,6 +1070,19 @@ export function createBattle(options: BattleOptions): BattleSession {
       // Trick Room inverts the comparison rather than the numbers, which is why
       // it is a flag on the facts rather than a modifier folded into a speed.
       invertedSpeed: 'trickroom' in battle.field.pseudoWeather,
+      /*
+       * The board's weather and terrain, off the sim's `Field`. **Stage 4.11,
+       * Tier 1.** The ids are the engine's; `suppressingWeather()` is its own
+       * answer to whether Cloud Nine or Air Lock is on the board, asked here
+       * rather than re-derived from the two abilities' names so that a third
+       * suppressor the dex adds is read for free. Remaining duration is on
+       * `weatherState` and deliberately not carried: the games never show it.
+       */
+      field: {
+        weather: battle.field.weather || null,
+        terrain: battle.field.terrain || null,
+        suppressed: Boolean(battle.field.weather) && battle.field.suppressingWeather(),
+      },
       opponentRoster: rosterCount(opposingSide(side)),
     };
   }

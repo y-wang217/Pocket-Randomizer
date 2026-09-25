@@ -1113,3 +1113,27 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/summary.ts` line 220 | Copy result |  |
 | `src/ui/screens/starter-select.ts` line 37 | Choose your starter |  |
 
+### 26. Battle — the field
+
+Long-pressing the field glyph on the battle screen header. **Stage 4.11, Tier 1**: the strings exist and nothing mounts them until Tier 2.
+
+Source: `src/data/fieldCopy.ts` · 27 strings
+
+> `FIELD_NAMES` is the state of the board as a word, present tense — the strip's `FIELD_WORDS` in `flagWords.ts` is the same vocabulary in the past tense, and the two tables are deliberately not one. `FIELD_EFFECTS` is one line each, restating what the engine does and never whether it is good.
+
+| Key | Text | Rewrite |
+|---|---|---|
+| `raindance` | Rain — Water moves 1.5x, Fire moves 0.5x. Thunder and Hurricane never miss. Swift Swim doubles Speed. |  |
+| `primordialsea` | Heavy rain — Water moves 1.5x. Fire moves fail outright. Cannot be replaced by ordinary weather. |  |
+| `sunnyday` | Harsh sunlight — Fire moves 1.5x, Water moves 0.5x. Solar Beam fires in one turn. Chlorophyll doubles Speed. |  |
+| `desolateland` | Extreme sun — Fire moves 1.5x. Water moves fail outright. Cannot be replaced by ordinary weather. |  |
+| `sandstorm` | Sandstorm — Every Pokemon that is not Rock, Ground or Steel loses 1/16 of its HP each turn. Rock types have 1.5x Sp. Def. Sand Rush doubles Speed. |  |
+| `hail` | Hail — Every Pokemon that is not Ice loses 1/16 of its HP each turn. Blizzard never misses. Slush Rush doubles Speed. |  |
+| `snow`, `snowscape` | Snow — Ice types have 1.5x Defense. Blizzard never misses. Slush Rush doubles Speed. |  |
+| `deltastream` | Strong winds — Moves that would be super effective against Flying types do normal damage instead. Cannot be replaced by ordinary weather. |  |
+| `electricterrain` | Electric Terrain — Electric moves 1.3x for grounded Pokemon. Grounded Pokemon cannot fall asleep. |  |
+| `grassyterrain` | Grassy Terrain — Grass moves 1.3x for grounded Pokemon. Grounded Pokemon recover 1/16 of their HP each turn. Earthquake, Bulldoze and Magnitude do 0.5x. |  |
+| `mistyterrain` | Misty Terrain — Dragon moves 0.5x against grounded Pokemon. Grounded Pokemon cannot be given a status condition. |  |
+| `psychicterrain` | Psychic Terrain — Psychic moves 1.3x for grounded Pokemon. Grounded Pokemon cannot be hit by priority moves. |  |
+| `FIELD_SUPPRESSED` | An ability on the field is holding this weather off. It does nothing until that Pokemon leaves. |  |
+
