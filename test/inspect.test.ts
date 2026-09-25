@@ -97,6 +97,8 @@ const SECTION_3_ROWS: { row: string; tip: string; data?: Record<string, string> 
   { row: 'Coverage change', tip: 'coverage:capture', data: { detail: '+Dragon\tSteel\n-Ghost' } },
   { row: 'Capability requirement', tip: 'capability:surf' },
   { row: 'Tier (map node)', tip: 'tier:hard' },
+  // Stage 4.11 Tier 2, D47: the state of the board, keyed by the sim id.
+  { row: 'Field state (weather, terrain)', tip: 'field:raindance' },
 ];
 
 describe('inspect opens on every row of the encoding table', () => {
@@ -118,8 +120,8 @@ describe('inspect opens on every row of the encoding table', () => {
 
   it('is one row short of the encoding table, and the short one is archetype', () => {
     // A guard on the list above, so a row added to section 3 and not to this
-    // file is noticed. Nineteen rows in the table, archetype excluded by D4.
-    expect(SECTION_3_ROWS).toHaveLength(19 - 1);
+    // file is noticed. Twenty rows in the table since D47, archetype excluded by D4.
+    expect(SECTION_3_ROWS).toHaveLength(20 - 1);
     expect(SECTION_3_ROWS.some((entry) => entry.row.toLowerCase().includes('archetype'))).toBe(false);
   });
 });

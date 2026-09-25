@@ -536,9 +536,28 @@ async function harvestOffers(seed: string): Promise<{
 const LOADED_LEAD: TeamSpec = [
   { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Toxic', 'Body Slam', 'Rest'], level: 100 },
 ];
+/*
+ * Drizzle, since Stage 4.11 Tier 2, so the loaded board is played under rain
+ * and the header wears the field glyph: D41's family walk needs every family
+ * painted on some gallery surface, and this is the one surface with a board.
+ * Rain changes nothing this fixture measures — none of the eight moves is
+ * Water or Fire, and rain deals no chip damage — so the loop that loads both
+ * panels is untouched.
+ */
 const LOADED_P2: TeamSpec = [
-  { species: 'Golem', ability: 'Sturdy', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
+  { species: 'Golem', ability: 'Drizzle', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
 ];
+
+/**
+ * The field state the loaded board plays under, by the ability that sets it.
+ * **Stage 4.11 Tier 3.** `#weather=sun` puts Drought on the opponent instead
+ * of Drizzle; `#terrain=grassy` puts Grassy Surge on the player's lead. Real
+ * abilities on a real battle rather than attributes poked onto `<html>`, so
+ * the header glyph, the button's factor and the world all agree, which is
+ * what a screenshot of the surface is for. `none` clears the weather.
+ */
+const WEATHER_SETTERS: Record<string, string> = { rain: 'Drizzle', sun: 'Drought', sand: 'Sand Stream', snow: 'Snow Warning', wind: 'Delta Stream', none: 'Sturdy' };
+const TERRAIN_SETTERS: Record<string, string> = { electric: 'Electric Surge', grassy: 'Grassy Surge', misty: 'Misty Surge', psychic: 'Psychic Surge' };
 
 function mountLoadedBattle(
   battle: ReturnType<typeof createBattleScreen>,
@@ -547,7 +566,12 @@ function mountLoadedBattle(
   options: { history: boolean },
 ): void {
   const bench = party.slice(1).map((member) => member.spec);
-  const session = createBattle({ teams: { p1: [...LOADED_LEAD, ...bench], p2: LOADED_P2 }, seed });
+  const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
+  const weather = WEATHER_SETTERS[params.get('weather') ?? ''];
+  const terrain = TERRAIN_SETTERS[params.get('terrain') ?? ''];
+  const lead = LOADED_LEAD.map((mon, index) => (index === 0 && terrain ? { ...mon, ability: terrain } : mon));
+  const foe = LOADED_P2.map((mon, index) => (index === 0 && weather ? { ...mon, ability: weather } : mon));
+  const session = createBattle({ teams: { p1: [...lead, ...bench], p2: foe }, seed });
 
   /*
    * **The node the census measures, and it is the run's own wording now.**

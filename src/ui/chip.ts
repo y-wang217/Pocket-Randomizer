@@ -19,6 +19,7 @@
  * existing tests are untouched. What changed is that no screen builds one by
  * hand any more; `test/chip.test.ts` scans for that.
  */
+import type { FieldKind } from '../core/battle/view';
 import { el } from './dom';
 import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
@@ -31,6 +32,8 @@ import {
 
 export type ChipVariant =
   | 'type'
+  /** The field glyph on the battle header. Stage 4.11 Tier 2, D47. */
+  | 'field'
   | 'tier'
   | 'reward-tier'
   | 'band'
@@ -327,6 +330,28 @@ export function nodeKindGlyph(kind: string, label: string, size: 24 | 16): HTMLE
   if (mark) node.append(mark);
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * The state of the board, as its mark. **Stage 4.11 Tier 2, D47.**
+ *
+ * One builder for the weather and the terrain, because they are one family
+ * and one slot: the battle header, after the AI tier, at 16. `id` is the sim's
+ * own (`raindance`, `desolateland`) and it is what the tip is keyed by, so
+ * Extreme sun and Harsh sunlight wear one mark and open two panels — which is
+ * the D47 ruling on the primal weathers. `suppressed` is the second fact the
+ * mark can carry: the weather is set and an ability is holding it off, drawn
+ * dimmed rather than absent because the rain returns the moment that Pokemon
+ * leaves.
+ */
+export function fieldGlyph(kind: FieldKind, id: string, label: string, suppressed = false): HTMLElement {
+  const node = build('field', 'battle__field-mark', '', { tip: `field:${id}` });
+  const mark = glyphNode(`field-${kind}`, { label, size: 16 });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  if (suppressed) node.dataset['suppressed'] = 'true';
   return node;
 }
 

@@ -45,6 +45,7 @@ import { createTutorial } from './tutorial';
 import { createIntro } from './intro';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
+import { applyField } from './theme/field';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el, type OutroKind } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
@@ -493,6 +494,7 @@ export function mountApp(root: HTMLElement): void {
     writeSeedToLocation(seed);
     // A new run starts in no region; the first state with a locale sets one.
     applyLocale(null);
+    applyField(null);
     stamps.update({ locale: null, segment: null, segments: 0, seed });
 
     const starterPick = createPending<number>();
@@ -1421,6 +1423,7 @@ export function mountApp(root: HTMLElement): void {
       summaryScreen.render(result);
       // The summary is locale neutral, and its stamps say so too.
       applyLocale(null);
+      applyField(null);
       stamps.update({
         locale: null,
         segment: result.state.currentSegment + 1,

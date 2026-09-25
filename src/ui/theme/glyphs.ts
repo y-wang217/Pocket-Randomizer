@@ -61,7 +61,7 @@ import { TYPE_ICON_NAMES, TYPE_ICON_VIEWBOX, typeIconPath } from './typeIcons';
 export const GLYPH_VIEWBOX = TYPE_ICON_VIEWBOX;
 
 /**
- * The families of design bible section 2, eleven since D46. Adding one is an
+ * The families of design bible section 2, twelve since D47, eleven under D46. Adding one is an
  * amendment.
  *
  * **The roster lives in `data/glyphFamilies.ts` since M1.3** and is re-exported
@@ -285,6 +285,33 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'node-gym', family: 'node', label: labelOf('node-gym'), art: path('M12 2l2.4 5.6 5.8-1.8-3.4 5.2 5.2 3.4-5.8 1.6L14.4 22 12 16.6 9.6 22l-1.8-6-5.8-1.6 5.2-3.4-3.4-5.2 5.8 1.8z') },
   { id: 'node-shop', family: 'node', label: labelOf('node-shop'), art: path('M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5h3.2l1.3 13H4l1.3-13zm2.2 0h2.6V7a1.3 1.3 0 0 0-2.6 0z', 'evenodd') },
   { id: 'node-event', family: 'node', label: labelOf('node-event'), art: path('M12 2.5c3.6 0 6.2 2.3 6.2 5.5 0 2.3-1.3 3.6-2.6 4.6-1.1.8-1.7 1.4-1.7 2.6v.6h-3.6v-.9c0-2.2 1-3.4 2.4-4.4 1.1-.8 1.7-1.4 1.7-2.4 0-1.2-1-2.1-2.4-2.1-1.5 0-2.5 1-2.6 2.5H5.7c.1-3.6 2.7-6 6.3-6zM10.1 17.7h3.8v3.8h-3.8z') },
+
+  /*
+   * The field family. **Stage 4.11 Tier 2, D47.** Nine marks for the state of
+   * the board: what the sky is doing, and what the ground is doing.
+   *
+   * Two shapes on purpose. The five weathers float, each a silhouette of the
+   * thing itself. The four terrains all stand on a ground bar along the
+   * bottom, which is the family's own cue that this is the ground and not the
+   * sky, and the mark above the bar is the type the terrain favours: a bolt,
+   * blades, a bank of mist, an eye. Heavy rain wears the rain mark and Extreme
+   * sun the sun mark, by the ruling; inspect tells them apart.
+   *
+   * The pairs to watch on the separation sheet: sand against wind (both
+   * horizontal), misty against sand (both banded), and grassy against
+   * electric (both spikes on a bar). Sand is a filled dune, wind is three
+   * stroked lines, mist is three stacked bars of unequal width, and the bolt
+   * is one shape where the blades are three.
+   */
+  { id: 'field-rain', family: 'field', label: labelOf('field-rain'), art: path('M7 12.5a4.2 4.2 0 0 1-.4-8.4A5.5 5.5 0 0 1 17.2 5a3.8 3.8 0 0 1 .3 7.5zM7.2 15l-2 4.2h2.2l2-4.2zm4.4 0l-2 4.2h2.2l2-4.2zm4.4 0l-2 4.2h2.2l2-4.2z') },
+  { id: 'field-sun', family: 'field', label: labelOf('field-sun'), art: path('M12 7.2a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6zM11 1.5h2v3.4h-2zm0 17.6h2v3.4h-2zM1.5 11h3.4v2H1.5zm17.6 0h3.4v2h-3.4zM4.2 5.6l1.4-1.4 2.4 2.4-1.4 1.4zm12.8 12.8l1.4-1.4 2.4 2.4-1.4 1.4zM4.2 18.4l2.4-2.4 1.4 1.4-2.4 2.4zM17 6.6l2.4-2.4 1.4 1.4-2.4 2.4z') },
+  { id: 'field-sand', family: 'field', label: labelOf('field-sand'), art: path('M2 19.5c2.4-5.6 5.2-8.4 8.4-8.4 2.3 0 3.6 1.4 5 3.2 1.4 1.8 2.9 3.4 6.6 3.4v1.8zM5.5 6.5h2v2h-2zm5-3h2v2h-2zm5.5 2h2v2h-2zM8 10.2h2v2H8zm8.5-1.4h2v2h-2z') },
+  { id: 'field-snow', family: 'field', label: labelOf('field-snow'), art: path('M11 2h2v20h-2zM2 11h20v2H2zM4.6 6l1.4-1.4L19.4 18 18 19.4zM4.6 18L18 4.6 19.4 6 6 19.4zM9.2 3.8L12 6.6l2.8-2.8 1.4 1.4L12 9.4 7.8 5.2zm0 16.4L12 17.4l2.8 2.8 1.4-1.4L12 14.6l-4.2 4.2zM3.8 9.2L6.6 12l-2.8 2.8 1.4 1.4L9.4 12 5.2 7.8zm16.4 0L17.4 12l2.8 2.8-1.4 1.4L14.6 12l4.2-4.2z') },
+  { id: 'field-wind', family: 'field', label: labelOf('field-wind'), art: path('M2 6.5h11.5a2.8 2.8 0 1 0-2.6-3.7l1.9.6a.8.8 0 1 1 .7 1.1H2zm0 5h16.2a3.3 3.3 0 1 0-3.1-4.4l1.9.7a1.3 1.3 0 1 1 1.2 1.7H2zm0 5h12.4a2.8 2.8 0 1 1-2.6 3.7l1.9-.6a.8.8 0 1 0 .7-1.1H2z') },
+  { id: 'field-electric', family: 'field', label: labelOf('field-electric'), art: path('M13.5 2L5.5 12.5h5l-1.6 6.2 8-10.2h-5zM2 20.5h20v2H2z') },
+  { id: 'field-grassy', family: 'field', label: labelOf('field-grassy'), art: path('M6.5 18.5c-.8-4.6.2-9.4 2-13.5.9 3.8 1 8.5.4 13.5zm5.2 0c-1-5.2-.2-10.6 2.3-15.5.5 4.7 0 10.4-.6 15.5zm4.9 0c-.6-3.8.3-7.8 1.9-11.2.6 3.2.5 7.4-.2 11.2zM2 20.5h20v2H2z') },
+  { id: 'field-misty', family: 'field', label: labelOf('field-misty'), art: path('M4 5.5h12v2.4H4zm4 4.6h14v2.4H8zM2 14.7h13v2.4H2zM2 20.5h20v2H2z') },
+  { id: 'field-psychic', family: 'field', label: labelOf('field-psychic'), art: path('M12 5.5c4.6 0 8.2 3 9.7 6-1.5 3-5.1 6-9.7 6s-8.2-3-9.7-6c1.5-3 5.1-6 9.7-6zm0 2.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm0 1.8a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6zM2 20.5h20v2H2z') },
 ];
 
 /** The glyphs of one family, in sheet order. */

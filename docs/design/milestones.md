@@ -470,6 +470,20 @@ option 2 and reversed D28 as a reversal, under **D46**; the bible went to Rev
 playtest sees the face that section 9's family-size hypothesis now describes.
 Record [`../generation.md` §80](../generation.md).
 
+**Stage 4.11, between patch 4.10.1 and Tier 7 (2026-09-25).** Not one of
+the twenty-four items either: a lead-designer prompt, filed at
+[`../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md)
+with its investigation and a six-tier plan, that the weather and terrain on
+the board become a state the player can see and that an ability firing is
+marked where its name sits. Ruled under **D47**, **D48** and **D49** (the
+third against the recommendation), bible Rev 14, section 2 reads twelve
+families and section 6 gains two steps. Tiers 0 to 4 built in one session:
+the census, the state headless, the `field` glyph on the header, the field's
+factor on the move button, the wash and the tint on the world, and the
+triggers. Landed before M7.1 for 4.10.1's reason: the playtest should see the
+twelve-family face. Record [`../generation.md` §82](../generation.md), handoff
+[`../handoff/4.11-prep.md`](../handoff/4.11-prep.md).
+
 ### Tier 7: validation
 
 | Item | Status | Blocked by |

@@ -11097,7 +11097,6 @@ because the run log and the share text read it; the face reads the gym table.
 The event screen, which has its own glyph and chevron since M5.6. The node's
 card shape and its single border, per the V0 note in the stylesheet.
 
-
 ## 81. The inspect sheet docks, the text stops being a text field, and every button grows a tenth
 
 **2026-09-25, numbered 81 rather than 79 by the merge of `main`**, which carried sections 79 and 80 from the wild patch's chip sweep and patch 4.10.1; the register row moved with it. Prompt:
@@ -11212,3 +11211,174 @@ cases for the close control, the scrim's tap reaching nothing under it, a
 cancelled pointer, and a stylesheet check for the selection rule, the hit
 slop and the token. The R5 enforcement block is unchanged and still passes:
 what a hold eats did not move.
+
+## 82. Stage 4.11: weather, terrain and trigger visuals
+
+**2026-09-25, on `claude/dazzling-archimedes-wc1frw`.** Prompt
+[`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
+four lines, filed with its investigation and a six-tier plan before any code.
+Handoff [`handoff/4.11-prep.md`](handoff/4.11-prep.md). This section grows a
+paragraph per tier.
+
+**Tier 0, the census and the rulings.** `scripts/protocol-census.ts` gained a
+second section keyed by weather kind, source, timing against `|turn|1`, field
+ends, abilities and items by name, and `-activate` by effect;
+[`reports/stage-4.11-field-census.md`](reports/stage-4.11-field-census.md)
+over 982 battles, prefix `FIELD`. Every weather and terrain start came from an
+ability, 58% of them before turn 1. D47, D48 and D49 were ruled the same day
+and the bible went to Rev 14. **Three deviations from the plan as filed, none
+by editing it:** the field family is nine marks, not eight, because the
+primal weathers are half of all weather and Delta Stream has no base; the
+`ability` flag gains a second pattern at Tier 4 for the 7.2% of abilities
+that fire through `-activate`; and the move half of Tier 4 is not built, on
+4.6% of the trapping moves the panel already shows. **One addition by
+ruling:** D49 went against the recommendation, so C1 has two exceptions and
+the plan gains a Tier 2b, the field factor folded into the move button's
+forecast multiplier. `CLAUDE.md` restates C1 with the old count and is the
+lead designer's to bring in line.
+
+**Tier 1, the state, headless.** `BattleFacts.field` and `BattleUiView.field`
+in `core/battle/view.ts`, read off the sim's `Field` in `driver.buildFacts`
+beside `invertedSpeed`, which was the precedent: the weather and terrain ids
+and whether an ability is suppressing the weather, by the sim's own
+`suppressingWeather()`. Duration is deliberately not carried (D47). Nine
+`FieldKind`s and `fieldKindOf` give each id its mark and no word; the words
+are `data/fieldCopy.ts`, read by nothing under `core/` and on the
+`contentHash` exclusion list with that reason. `test/field-facts.test.ts`
+walks the dex's weathers and terrains and holds that each has a mark, a name
+and an effect line. Not narrowed by the reveal policy: weather is public.
+`contentHash` unmoved; no version axis moved; the simulator fixture byte
+identical.
+
+**Tier 2, the readout.** A twelfth glyph family, `field`, nine marks in
+`ui/theme/glyphs.ts`: five weathers that float (a cloud with drops, a sun,
+a dune, a snowflake, three wind lines) and four terrains that stand on a
+ground bar (a bolt, blades, banked mist, an eye), with their words in
+`data/glyphLabels.ts`. The separation sheet's worst pair in the family is
+electric against grassy at 0.297 against a floor of 0.12, the third widest
+family on the sheet. The battle header's detail line gained a slot after the
+AI tier, `battle__field`, redrawn from `BattleUiView.field` on every update:
+weather then terrain, nothing when nothing is set, the weather mark in the
+stage's dim ink while an ability suppresses it. `fieldGlyph` in `ui/chip.ts`
+is the one builder, keyed by the sim id so Extreme sun and Harsh sunlight wear
+one mark and open two panels through the new `field:` tip, which prints the
+name and the effect line from `fieldCopy.ts` and adds the suppressed line when
+the mark is dimmed. The gallery's loaded board plays under Drizzle now, so
+D41's family walk finds the family painted; rain changes nothing that fixture
+measures. The header's budget of 3 holds: a glyph is not a word.
+`test/field-readout.test.ts` is the new file, nine cases through the screen's
+own `attach`. No `core/` change; `contentHash` unmoved.
+
+**Tier 2b, the field on the button.** D49's scope, ruled against the plan's
+recommendation and built as ruled. `core/battle/effectiveness.ts` gained
+`fieldFactor`, the board's own multiplier for a move as the engine applies it:
+rain and sun on Water and Fire, the primal weathers' outright refusal, Strong
+winds taking the Flying weakness off, and the four terrains on a grounded
+attacker or target, with Grassy Terrain's three halved moves by name.
+Sandstorm's and snow's stat-side boosts are not a number on the move and stay
+on the field glyph's inspect. `moveEffectiveness` folds the factor in last,
+after the ability, so a visible immunity stays 0 whatever the sky says; the
+result carries `fieldFactor` and `fieldCause`, the sim id that moved it.
+`ActiveFacts.grounded` is the engine's `isGrounded()`, and the projection
+hands the defender's grounding over only while its ability is visible — with
+it hidden the typing alone decides, the `visibleSpeed` rule again, so a hidden
+Levitate leaks through neither the immunity nor the terrain. `MoveFacts`
+gained `flyingMultiplier`, the chart against Flying alone, because the
+projection's chart closure is a constant and Strong winds needs one more
+number from the dex. On the button the badge prints the folded number
+(`effectivenessFraction` learned ¾ and rounds to two places, so a terrain's
+2.6 is 2.6) and, where no ability explains it, points its tip at the field:
+the same "a number with its reason attached" rule the Levitate `0x` set. No
+version axis moved: `data/` is untouched and the run log records decisions,
+not forecasts.
+
+**Tier 3, the sky.** `ui/theme/field.ts` writes `data-weather`,
+`data-terrain` and `data-weather-suppressed` onto `<html>` from the battle
+screen's own update, by *kind* rather than by id, and clears them on detach
+and wherever `app.ts` clears the locale, so no map or summary wears the last
+fight's rain. The world gained one element, `world__weather`, between the
+near layer and the scrim: the wash is the element, a `color-mix` of one
+global token with transparency; the texture is its `::before`, twice the
+viewport tall, moved by one keyframe per kind and nothing but `transform`
+and `opacity`. Five kinds, five keyframes — rain streaks falling, sun
+breathing, sand grain drifting, snow motes falling, wind streaks crossing —
+and four terrains that tint the near layer's fill and move nothing. Nine
+colour tokens and five periods in `tokens.css`, global and never per locale,
+because `test/visual-locales.test.ts` holds each locale to three and forty
+palettes is not a thing anyone keeps. Reduced motion cancels each animation
+by its own selector and leaves the wash; a suppressed weather halves the wash
+and stills the texture. **Measured**: the loaded board's title and panel
+names clear the 4.5 floor under every sky; the faint detail line reads 7.25
+bare and 5.49 to 5.91 under the five weathers, held to the floor and to two
+thirds of its bare reading by `test/visual-field.test.ts`, which also holds
+that each sky moves in Chromium and does not under reduced motion. Forty
+shots in [`visual/reports/stage-4.11-fields/`](visual/reports/stage-4.11-fields/),
+one per locale per sky, and the report beside them. The gallery's loaded
+board takes `weather=` and `terrain=` and sets the field by the ability that
+sets it, so a screenshot of the surface is one battle's truth. No `core/`
+change; `contentHash` unmoved.
+
+**The chip legibility sweep on this box, recorded so the next session does
+not re-derive it.** `test/visual-chips.test.ts`'s `sweep()` walks a real run
+(`STAT49-298`, up to 600 steps with a DOM-quiet settle per step) and its
+`beforeAll` is capped at 900 seconds. On the session box that built Tiers 1
+to 3 it hit that cap on every run: three times in the full browser suite,
+once alone on HEAD, and **once alone on `6581860`, the pre-4.11 `main`, to the
+same second** (905.67s against 905.76s). Same tree shape, same number, before
+and after every 4.11 change, so it is the machine's walk speed and not this
+stage; the register's note on the `main` check patch already records that
+this container is not the box CI runs on. Every other browser file passed
+here, `visual-field` included, and the sweep's own contrast question for the
+wash is answered by `visual-field.test.ts` on the gallery's loaded board
+rather than by the walk. **The sweep's verdict on this stage is CI's to give**,
+on the pull request's `check` run, and a red there is this stage's to fix.
+
+**Tier 4, the triggers.** Three defects from the Tier 0 census and one step
+from the bible, and the move half not built, as the census said. **The
+opening batch is shown when it did something**: `ui/screens/battle.ts` used to
+show the opening protocol with `animate=false`, nothing on the strip and no
+marks, and 58% of field starts and 47% of ability announcements land there.
+Now the marks, the panel pulses and the strip run on that batch when it
+carries a flag, and stay silent on a plain start; the turn itself — lunge,
+order, chunk — still does not run, because nothing was chosen. **The reader
+names the setter**: a field line's `[from] ability:` tag becomes an
+`ability` flag after the `field` flag, so Drizzle is no longer the one
+ability firing with no flag, and the strip's one second-channel word still
+reads the board while the cause rides the log and the panel. **And the
+activation-line abilities** (`-activate|…|ability: X`, 7.2% of battles)
+join the same flag with the same word; a move's activation line earns
+nothing, since the panel's *Bound* chip already has it. **The panel pulses
+(D48, section 6 step 3)**: `ui/abnormality.ts` gained `firedTraits`, a
+second reduction beside the marks rather than a sixth class inside them,
+because the actor's ring and the panel's slot are different elements and a
+Drizzle lead earns both — the `field` sweep on the body and the pulse on the
+name. The scene is handed the list and reads no flag; `test/boundaries.test.ts` is
+untouched. One keyframe, `trait-fired`, for every ability, on the beat's own
+slot delay, cancelled by selector under reduced motion. **The berry pop
+(section 6 step 7) was not built and is now**: the slot redraws empty the
+moment the engine says the berry is gone, so the panel gained an item ghost
+that takes the sprite before the redraw, pops it to nothing, and is emptied
+at the next update; under reduced motion the ghost is not shown at all.
+`test/trait-fired.test.ts` drives all of it, the opening batch through the
+screen's own `attach`. No `core/` change beyond the two reader patterns;
+`contentHash` unmoved.
+
+**Tier 5, the closeout.** `npm run census` re-recorded
+[`design/text-census.md`](design/text-census.md): **the battle screen holds
+at 34, 34, 11 and 5 across Detailed, Simple, Pocket and Pocket less shell,
+the header at 3, the panel at 0 and the strip at 6 and 3** — the field glyph
+is a glyph and the wash carries no text. Two rows moved by twenty words each
+and both are the gallery's fixture rather than a surface: the log sheet (144
+to 164) and the screen chrome it is counted under, because the loaded board
+plays under Drizzle since Tier 2 and the log now carries the rain's own
+lines, which R11 keeps behind the pull and section 4 leaves unbudgeted. The
+stage is recorded in [`design/milestones.md`](design/milestones.md) beside
+patch 4.10.1, in the README's current state with two open items it leaves
+behind (the AI's ignorance of the weather it now shows, and `CLAUDE.md`'s
+restatement of C1), in the register, and D47 to D49 are closed with the
+build in [`design/bible-discrepancies.md`](design/bible-discrepancies.md).
+**Across the whole stage no version axis moved and `contentHash` held at
+`715122`**: every `data/` file touched is on the exclusion list with its
+reason, and the two reads in `core/` report what the sim already decided.
+The chip legibility sweep is the one gate this box cannot run, on any
+commit, and is CI's to give.

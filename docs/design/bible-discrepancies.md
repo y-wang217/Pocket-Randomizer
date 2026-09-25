@@ -62,6 +62,9 @@ which blocks everything.
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 | D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
+| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | **2026-09-25**, option 1, the plan's defaults taken with the census's ninth mark; **built** (Tiers 1 to 3) |
+| D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | **2026-09-25**, option 1; **built** (Tier 4) |
+| D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | **2026-09-25**, **option 2, against the recommendation**: C1's exception extended; **built** (Tier 2b) |
 
 ## Rulings, 2026-09-19
 
@@ -3276,3 +3279,186 @@ its short hint on the detail line. The bible went to Rev 13. R7's exposure
 labels give the six words back on the first and third map, which is the one
 place the prompt's *labels beneath* and R2's *labels go* both hold. Record in
 [`../generation.md` §80](../generation.md).
+
+---
+
+## D47. Weather and terrain are a board state the bible does not encode
+
+**Filed 2026-09-25, before any code, from
+[`../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md).
+Blocks Stage 4.11 Tiers 1 to 3.**
+
+The stage prompt: *"weather that changes the background. have a css show
+weather and terrain effects."*
+
+### What the bible says
+
+| Where | Says | Gap |
+|---|---|---|
+| Section 2 | Eleven glyph families. *"Adding a twelfth is an amendment."* | Weather and terrain are in no family |
+| Section 3, encoding table | One row per attribute at rest | No row for weather or terrain. `Volatile condition` and `Status` are the nearest, and both are facts about one Pokemon; the field is a fact about neither |
+| Section 4 | Battle screen header budgeted at 3 | Holds: a glyph is not a word |
+| Section 5, component canon | Pokemon panel, flag strip, battle screen header | No component owns the world behind the stage, though `createWorldScene` has drawn it since V3 |
+| Section 6, turn grammar | Seven steps | No step for a field effect beginning or an ability firing, though `mark-sweep` and `mark-pulse` have shipped since Branch 3B |
+| D23 | A weather change is a second-channel *event* | Correct and unchanged. The event has a channel; the *state* has none |
+
+### Why it is a state and not only an event
+
+`flagWords.ts` draws the line for status: the panel's `BRN` is present tense,
+the strip's *Burned* is past tense, *"one table cannot hold both"*. The tree
+has the past tense of weather (the `field` flag, start only) and no present
+tense. A sandstorm chips both bodies every turn for five turns and the only
+place that fact lives is the log sheet, behind a pull, in prose R11 keeps off
+the screen. The census put the field class on 23.2% of battles.
+
+### Options
+
+1. **A twelfth family, `field`, plus a section 3 row, a section 5 row and two
+   section 6 steps.** Eight marks (rain, sun, sand, snow, four terrains), at
+   16 in a fixed slot on the battle header, with the world behind the stage
+   carrying the same state as a wash and a tint. Glyph primary, colour
+   secondary, as section 2's type row already rules. R7 labels the family.
+   Inspect opens the effect line. **Recommended.**
+2. **The wash alone, no glyph.** Fails the bible's own colour-secondary rule
+   and leaves a colour-blind or reduced-motion player without the fact.
+3. **The glyph in the Status family**, the way D19 put volatiles there. Wrong
+   by D19's own argument: a volatile *"is a thing happening to this Pokemon
+   right now"*, and the field is happening to neither.
+
+### Four things the ruling should say, because the plan defaults them
+
+- The glyph's slot: the header, after the AI tier (plan's open question 1).
+- Turns remaining: not shown anywhere (open question 2). Once drawn it is a
+  decision-relevant fact C2 never lets us remove.
+- Suppressed weather (Cloud Nine, Air Lock): glyph dimmed, wash at half
+  (open question 3).
+- The three primal weathers and Strong winds reuse the base mark and differ
+  on inspect (open question 5). **Corrected by the Tier 0 census, 2026-09-25**
+  ([`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md)):
+  the primals are 5.0% of battles against 5.2% for all standard weather, and
+  Desolate Land is the single most common weather in the game. Extreme sun and
+  Heavy rain still share the sun and rain marks and differ on inspect; **Delta
+  Stream's Strong winds has no base and is a ninth mark.**
+
+---
+
+## D48. The ability-fired pulse against C1's "no conditional emphasis"
+
+**Filed 2026-09-25, before any code, from the same prompt. Blocks Stage 4.11
+Tier 4.**
+
+The prompt: *"highlight when a move or ability is triggered."*
+
+C1 forbids *"conditional emphasis"*. A pulse on the panel's ability name the
+beat an `-ability` line lands is conditional on exactly one thing, the
+protocol saying it fired, which is the same footing as section 6 step 4 (*the
+status chip appears on the panel the moment it is inflicted*) and step 5 (*berry
+fires: sprite pops*). The `trait` mark already does this on the actor and its
+stylesheet comment carries the rule that keeps it an attribute: no colour, no
+weight, one keyframe for every ability.
+
+The gap is that section 6 does not say it, and a reader of C1 alone could read
+a pulse as emphasis. The plan asks section 6 to gain the step and to state the
+bound.
+
+### Options
+
+1. **Section 6 gains a step: *an ability fires: the ability name pulses on its
+   panel, one keyframe for every ability, never weighted*.** Intimidate and
+   Drizzle are drawn identically. **Recommended.**
+2. **No pulse; the `trait` mark on the actor is enough.** Then the ability
+   name is the one panel attribute whose change is never marked where it sits,
+   and the prompt's request goes unbuilt.
+
+Two facts the ruling should know: the opening batch animates nothing today, so
+every lead ability is currently invisible outside the log, and the reader
+drops the `[from] ability:` tag on weather lines, so Drizzle never produces an
+`ability` flag at all. Both are defects the plan fixes at Tier 4 whichever way
+this is ruled.
+
+---
+
+## D49. A "boosted under this weather" marker on the move button
+
+**Filed 2026-09-25, before any code, from the same prompt. Declines a scope
+rather than blocking one.**
+
+The prompt's *"highlight when a move ... is triggered"* has a forecast reading:
+mark Surf as boosted while it rains, Solar Beam as one-turn under sun. That is
+a marker on the move button about the present board. C1's one exception is
+*"live type effectiveness against the Pokemon currently on the field"*, and
+it is worded as narrowly as it is on purpose: a weather multiplier is a fact
+about the board, but a marker saying *this move is better now* is a verdict
+about the move.
+
+### Options
+
+1. **Declined.** The field glyph and the wash say it is raining; the move
+   card's inspect (R5) already says what the move does; the player does the
+   multiplication, which is the game. **Recommended.**
+2. **Extend C1's exception to weather and terrain multipliers on the button,
+   the same edge-colour family as effectiveness.** A larger amendment than it
+   looks: it is the first marker that changes with something other than the
+   opponent's body, and the first time the forecast helper would read the
+   field.
+
+Whichever way it is ruled, the post-resolution side (`-activate` on a move) is
+measured first at Tier 0 and built only if the census earns it.
+
+---
+
+## D47, D48 and D49, ruled
+
+**2026-09-25, after the Tier 0 census
+([`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md)).
+The bible went to Rev 14.**
+
+**D47, option 1 as recommended.** A twelfth family, `field`, with the census's
+correction taken: nine marks, Delta Stream's Strong winds its own. The four
+defaults stand: the glyph on the header after the AI tier, turns remaining
+never shown, suppressed weather dimmed with the wash at half, Heavy rain and
+Extreme sun on the rain and sun marks. Section 6 gains step 4.
+
+**D48, option 1 as recommended.** Section 6 gains step 3, with the bound in the
+rule's own words: one keyframe for every ability, never weighted, never
+coloured. The census's 7.2% of abilities that fire through `-activate` are the
+same event and join the `ability` flag.
+
+**D49, option 2, against the recommendation.** The lead designer extended C1's
+exception: the move button's forecast multiplier folds in the field's factor
+for the move, on the reading that a weather multiplier is a fact about the
+present board exactly as a type multiplier is. **This adds scope the plan's
+section 8 declined**, and per the deviation rule the plan is not edited: the
+scope is recorded here and in the register. What it builds: the core
+effectiveness helper that feeds `typeMultiplier` on the button gains the
+field's factor for the move (rain and sun on Water and Fire, Grassy Terrain
+on Grass, and the rest the sim already applies), read off the same
+`BattleFacts.field` Tier 1 adds, so the number the button shows is the number
+the hit will use. It lands as **Tier 2b**, after the readout and before the
+wash, because a button showing 1.5 under rain with no glyph saying it is
+raining would be a number with no cause on screen. Section 9 carries the
+bet: if a tester reads the button as telling them what to pick, the factor
+comes back out and the field's part moves to inspect.
+
+**One consequence outside this file.** `CLAUDE.md` restates C1 as an
+invariant, including its *one exception* in the old wording. That file is the
+invariants register and is edited by the lead designer, not by a stage; it
+now disagrees with the bible on the exception's count until it is brought in
+line.
+
+---
+
+## D47, D48 and D49, closed with the build
+
+**2026-09-25, Stage 4.11 Tiers 1 to 4.** D47 as ruled: `FieldFacts` off the
+sim, nine marks in the `field` family, the glyph on the header after the AI
+tier, inspect through `fieldCopy`, the wash and the tint on the world with
+the glyph primary and the colour secondary; turns remaining never shown,
+suppressed weather dimmed and halved, Heavy rain and Extreme sun on the rain
+and sun marks. D48 as ruled: the ability name pulses in its slot on one
+keyframe for every ability, the activation-line abilities included, and the
+opening batch shows it. D49 as ruled: the button's multiplier folds in the
+field's factor and points its tip at the field when no ability explains it.
+Record in [`../generation.md` §82](../generation.md). One item is open
+outside this file: `CLAUDE.md`'s restatement of C1.
+

@@ -1,6 +1,23 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 13, Sept 25, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 14, Sept 25, 2026.
+
+**Rev 14** carries three amendments, ruled 2026-09-25 on rows D47 to D49,
+filed with the Stage 4.11 plan before it wrote any code and ruled after its
+Tier 0 census. **D47**: section 2 gains a twelfth family, **field**, nine
+marks for the weather and terrain on the board, and its opening line reads
+twelve; section 3 gains a *Field state* row; section 5 gains a *World* row and
+the header row names the glyph; section 6 gains a step for a field effect
+beginning and ending. **D48**: section 6 gains a step for an ability firing,
+with the bound that keeps it an attribute: one keyframe for every ability,
+never weighted. **D49, ruled against the recommendation**: C1's one exception
+becomes two. The move button's forecast multiplier folds in the field's own
+factor for that move, on the reading that a weather multiplier is a fact about
+the present board exactly as a type multiplier is. R8's enforce line says the
+forecast helper reads the field. Section 9 carries the bet: if a tester reads
+the button as telling them what to pick, the factor comes back out. The
+census that these rulings followed is
+[`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md).
 
 **Rev 13** carries one amendment, ruled 2026-09-25 on row D46, filed before
 patch 4.10.1 wrote any code. Section 2 gains an eleventh family, **node**, the
@@ -152,7 +169,7 @@ Every rule below is a hypothesis with a named disconfirmer in section 9. A rule 
 
 ## 0. The two constraints that outrank everything
 
-**C1. The UI presents attributes, never verdicts.** No recommendation, no score, no "best" marker, no conditional emphasis, no sort that implies rank, no effectiveness against content not yet reached. One exception: live type effectiveness against the Pokemon currently on the field. (Inherited from Stage 4.5.1 Part 4. Unchanged.)
+**C1. The UI presents attributes, never verdicts.** No recommendation, no score, no "best" marker, no conditional emphasis, no sort that implies rank, no effectiveness against content not yet reached. Two exceptions, both facts about the present board and neither a hint about a future decision: live type effectiveness against the Pokemon currently on the field, and the field multiplier the weather or terrain on the board applies to the move on the button (2026-09-25, D49). (Inherited from Stage 4.5.1 Part 4; the second exception amended 2026-09-25.)
 
 **C2. No fact that changes a decision is removed. It is re-encoded.** A redesign that drops a decision-relevant fact has failed even if it hits every text budget. The density-modes rule "no mode removes a fact" is a special case of this.
 
@@ -200,7 +217,7 @@ Enforce: ten glyph families are tracked (type, category, band, PP, accuracy, pri
 
 **R8. Forecast on the button, feedback on the target, same vocabulary, never the same place.** Pre-selection effectiveness sits on the move button (the C1 exception). Post-resolution outcomes appear on the Pokemon that was hit, in resolution order.
 Forbids: rendering post-resolution flags on move buttons; rendering the forecast on the opponent panel; deriving one from the other.
-Enforce: the forecast comes from the core effectiveness helper; feedback comes from the protocol-to-flags mapper. They share a colour family and a glyph family and nothing else.
+Enforce: the forecast comes from the core effectiveness helper, which reads the field since D49 (2026-09-25); feedback comes from the protocol-to-flags mapper. They share a colour family and a glyph family and nothing else.
 
 **R9. One flag per hit.** After resolution, at most one flag appears on a target, by fixed precedence: no effect, miss, super effective or not very effective, critical, status inflicted, berry fired, stat stage changed. STAB and contact are causes, not outcomes, and never get a flag.
 Forbids: stacking flags on one hit; a flag for a cause.
@@ -221,7 +238,7 @@ Enforce: the amendment process. A proposed sentence at rest is an amendment, not
 
 ## 2. Canonical vocabulary
 
-Eleven glyph families (2026-09-25, D46; ten under D37, 2026-09-22). Adding a twelfth is an amendment.
+Twelve glyph families (2026-09-25, D47; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a thirteenth is an amendment.
 
 | Family | Glyphs | Colour |
 |---|---|---|
@@ -236,6 +253,7 @@ Eleven glyph families (2026-09-25, D46; ten under D37, 2026-09-22). Adding a twe
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
 | Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
+| Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The world behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47) | Neutral glyph; the wash and tint are global tokens mixed into the locale's own three |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -254,7 +272,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Band | Pip strip | None | Band definition line from `bandInfo` |
 | Accuracy | Number beside target glyph | 100 | Accuracy, evasion interaction |
 | Priority | Chevron | 0 | Bracket value |
-| Effectiveness (forecast) | Edge colour plus multiplier on the button | Neutral | Full type interaction |
+| Effectiveness (forecast) | Edge colour plus multiplier on the button. The multiplier folds in the field's factor for the move: Surf under rain reads its type factor times 1.5 (2026-09-25, D49) | Neutral, with the field folded in | Full type interaction, and the field's part of it |
 | Effectiveness (feedback) | One word on the target, edge colour family | Neutral | Log sheet entry |
 | Status | Three-letter chip | None | Full name, effect |
 | Volatile condition | Three-letter chip, same family and same slot rule as Status, one per condition | None | Full name, effect, from `statusInfo` (2026-09-21, D19) |
@@ -267,6 +285,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
+| Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the world's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47) | None: the locale's own world, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
 | Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
@@ -288,7 +307,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
 | Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
-| Battle screen header | 3 | Opponent, AI tier; the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21) |
+| Battle screen header | 3 | Opponent, AI tier; the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
+| World behind the stage | 0 | None. The field state is a wash and a tint, never a word (2026-09-25, D47) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
@@ -403,7 +423,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
-| Battle screen header | Node glyph at 16, opponent, AI tier (2026-09-25, D46; the kind was a word under D28, 2026-09-21) | Battle |
+| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21) | Battle |
+| World | The locale's three layers and drift, and during a battle the field state as a weather wash and a terrain tint, global tokens mixed into the locale's own (2026-09-25, D47) | Every screen, mounted once by `app.ts`; the field state on the battle screen only |
 | Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
@@ -447,11 +468,15 @@ In resolution order, on a 390x844 phone. Timings are the numbers already in `dat
 
 1. Turn header replaces itself in place. "Turn 4". No scroll.
 2. First actor jiggles. If a bracket decided the order, the priority chevron flashes on that panel. Same-bracket turns are unmarked, matching the log rule.
-3. Hit lands. HP drops as a chunk with the fading shadow. A damage number rises. One flag by R9 precedence.
-4. Status chip appears on the panel the moment it is inflicted. Nothing written.
-5. Berry fires: sprite pops, flag names it, sprite disappears.
-6. Second actor. Steps 2 to 5.
-7. Stat stage change: ladder moves with a short pulse. No words.
+3. An ability fires: the ability name pulses on its panel, one keyframe for every ability, never weighted, never coloured. Intimidate and Drizzle are drawn identically. An ability that announces itself through an activation line is the same event (2026-09-25, D48).
+4. A field effect begins: the world takes the weather's wash or the terrain's tint and the field glyph appears on the header. When it ends, both leave. No words. The event flag and the sweep on the causing actor are the *event*; the wash and the glyph are the *state*, the same split as the status chip and the *Burned* flag (2026-09-25, D47).
+5. Hit lands. HP drops as a chunk with the fading shadow. A damage number rises. One flag by R9 precedence.
+6. Status chip appears on the panel the moment it is inflicted. Nothing written.
+7. Berry fires: sprite pops, flag names it, sprite disappears.
+8. Second actor. Steps 2 to 7.
+9. Stat stage change: ladder moves with a short pulse. No words.
+
+Steps 3 and 4 run on the opening batch too, before "Turn 1": over half of all field starts and nearly half of all ability announcements land there (2026-09-25, D47 and D48, from the Tier 0 census).
 
 The log sheet records all of it for the player who pulls it down and for bug reports.
 
@@ -504,8 +529,9 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
-| Eleven glyph families is the right size (2026-09-25, D46; ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| Twelve glyph families is the right size (2026-09-25, D47; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
 | Reward-tier pips read as a range, not a rating (2026-09-22, D33) | A tester reads more filled pips as a recommendation, or cannot say which options can pay the same thing | The tier letters return beside the pips, and the row rises by four |
+| The field factor on the button reads as a fact, not a hint (2026-09-25, D49) | A tester says the button is telling them what to pick, or picks a field-boosted move into an immunity and says the number sent them | The multiplier returns to the plain type factor and the field's part of it moves to inspect |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
 | A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |
 

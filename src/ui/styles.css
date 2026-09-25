@@ -2702,6 +2702,39 @@ body {
   100% { opacity: 0; transform: translateX(var(--mark-travel)) scaleX(0.6); }
 }
 
+/* ---------- the panel's own beats: a trait fired ----------
+   Stage 4.11 Tier 4, section 6 steps 3 and 7, D48.
+
+   **One keyframe for every ability, never weighted, never coloured.** The
+   name pulses in its own slot when the engine says it fired — Intimidate
+   and Drizzle identically — and the slot delay is the beat's, so a fire
+   rides the lunge or hit it accompanies and the turn gains no time. A berry
+   pops in the item slot's ghost, which holds the sprite the redraw took, and
+   ends at nothing: the slot is empty now and the pop says why. */
+.panel__traits[data-fired] .badge--ability {
+  animation: trait-fired var(--motion-beat) ease-out both;
+}
+.panel__traits[data-fired-slot="2"] .badge--ability { animation-delay: calc(var(--motion-beat) * 2); }
+@keyframes trait-fired {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.panel__item-ghost { display: none; }
+.panel__item-ghost[data-fired] {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-1h);
+  animation: item-fired var(--motion-beat) ease-out both;
+}
+.panel__item-ghost[data-fired-slot="2"] { animation-delay: calc(var(--motion-beat) * 2); }
+@keyframes item-fired {
+  0% { transform: scale(1); opacity: 1; }
+  45% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
 /* ---------- screens ---------- */
 
 /*
@@ -3239,6 +3272,18 @@ body {
 
 /* The same mark at 16 on the battle header, beside the leader's name. */
 .battle__header .screen__title { display: inline-flex; align-items: center; gap: var(--space-1); }
+
+/* The field, after the AI tier on the detail line. **Stage 4.11 Tier 2, D47.**
+
+   Empty when nothing is set, and an empty inline-flex takes no room, so the
+   line is byte-for-byte the D46 line until weather arrives. Weather then
+   terrain, one gap apart. A suppressed weather is drawn in the stage's own dim
+   ink rather than faded by opacity: the fact is still on the board and the
+   mark still has to clear the contrast floor. */
+.battle__field { display: inline-flex; align-items: center; gap: var(--space-1); vertical-align: middle; }
+.battle__field:not(:empty) { margin-left: var(--space-1h); }
+.battle__field-mark { display: inline-flex; align-items: center; line-height: 0; }
+.battle__field-mark[data-suppressed='true'] { color: var(--text-dim); }
 
 .node__detail {
   color: var(--text-faint);
@@ -4225,6 +4270,14 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   .stage__actor[data-abnormal="volatile"] .stage__mark,
   .stage__actor[data-abnormal="field"] .stage__mark,
   .stage__actor[data-abnormal-slot="2"] .stage__mark { animation: none; }
+
+  /* The panel's own beats. **Stage 4.11 Tier 4.** The name stays, unmoved;
+     the berry's ghost is not shown at all, since a sprite that neither pops
+     nor leaves is a stale item on the panel. */
+  .panel__traits[data-fired] .badge--ability,
+  .panel__traits[data-fired-slot="2"] .badge--ability { animation: none; }
+  .panel__item-ghost[data-fired],
+  .panel__item-ghost[data-fired-slot="2"] { display: none; }
 
   /*
    * The priority chevron's flash. **M4.2.**
@@ -5648,9 +5701,141 @@ textarea,
   to { transform: scale(1.6); opacity: 0; }
 }
 
+/* ---------- the field: weather over the art, terrain in the ground ----------
+   Stage 4.11 Tier 3, D47. Keyed on `<html data-weather>` and `<html
+   data-terrain>`, written by `ui/theme/field.ts` from the battle screen's
+   own update and cleared with the locale.
+
+   The wash is the element: a tint of the locale's glow toward the weather's
+   token, at `--weather-wash`. The texture is its `::before`: a repeating
+   gradient twice the viewport tall, translated by one keyframe per kind and
+   never anything but `transform` and `opacity`, so it runs on the compositor
+   and costs the page no layout. The scrim above it keeps the text column's
+   measured protection whatever the sky does.
+
+   Colour is secondary to the glyph (section 2): every kind is also a shape —
+   diagonal streaks, a breathing wash, drifting grain, falling motes, level
+   streaks — so a player who cannot tell the tints apart still has the sky.
+
+   Nothing renders when nothing is set (R4). The element is there, empty and
+   transparent, and the locale's own sky shows through it. */
+.world__weather {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.world__weather::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -100%;
+  height: 200%;
+  opacity: var(--weather-texture);
+  will-change: transform;
+}
+
+:root[data-weather] .world__weather { opacity: 1; }
+
+/* rain — a cool wash and diagonal streaks falling fast. */
+:root[data-weather='rain'] .world__weather {
+  background: color-mix(in srgb, var(--weather-rain) calc(var(--weather-wash) * 100%), transparent);
+}
+:root[data-weather='rain'] .world__weather::before {
+  background-image: repeating-linear-gradient(112deg, transparent 0 16px, var(--weather-rain) 16px 17px);
+  animation: weather-rain var(--weather-period-rain) linear infinite;
+}
+@keyframes weather-rain {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-6%, 50%, 0); }
+}
+
+/* sun — a warm wash that breathes, and no texture: harsh sunlight is light. */
+:root[data-weather='sun'] .world__weather {
+  background: color-mix(in srgb, var(--weather-sun) calc(var(--weather-wash) * 100%), transparent);
+  animation: weather-sun var(--weather-period-sun) ease-in-out infinite;
+}
+@keyframes weather-sun {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* sand — a tan wash and grain drifting sideways. */
+:root[data-weather='sand'] .world__weather {
+  background: color-mix(in srgb, var(--weather-sand) calc(var(--weather-wash) * 100%), transparent);
+}
+:root[data-weather='sand'] .world__weather::before {
+  background-image:
+    radial-gradient(circle, var(--weather-sand) 1px, transparent 1.5px),
+    radial-gradient(circle, var(--weather-sand) 1px, transparent 1.5px);
+  background-size: 23px 19px, 37px 29px;
+  background-position: 0 0, 11px 7px;
+  animation: weather-sand var(--weather-period-sand) linear infinite;
+}
+@keyframes weather-sand {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-37px, 4%, 0); }
+}
+
+/* snow — a pale wash and sparse motes falling slowly, the firefly's trick. */
+:root[data-weather='snow'] .world__weather {
+  background: color-mix(in srgb, var(--weather-snow) calc(var(--weather-wash) * 60%), transparent);
+}
+:root[data-weather='snow'] .world__weather::before {
+  background-image:
+    radial-gradient(circle, var(--weather-snow) 1.5px, transparent 2.5px),
+    radial-gradient(circle, var(--weather-snow) 1px, transparent 2px);
+  background-size: 41px 53px, 67px 71px;
+  background-position: 0 0, 23px 31px;
+  animation: weather-snow var(--weather-period-snow) linear infinite;
+}
+@keyframes weather-snow {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(3%, 50%, 0); }
+}
+
+/* wind — a grey wash and level streaks crossing fast. Strong winds. */
+:root[data-weather='wind'] .world__weather {
+  background: color-mix(in srgb, var(--weather-wind) calc(var(--weather-wash) * 70%), transparent);
+}
+:root[data-weather='wind'] .world__weather::before {
+  left: -100%;
+  right: auto;
+  width: 300%;
+  top: 0;
+  height: 100%;
+  background-image: repeating-linear-gradient(176deg, transparent 0 29px, var(--weather-wind) 29px 30px, transparent 30px 61px);
+  animation: weather-wind var(--weather-period-wind) linear infinite;
+}
+@keyframes weather-wind {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(33%, 0, 0); }
+}
+
+/* A weather an ability is holding off: half the wash, and the texture still.
+   The fact stays on the board; nothing is happening under it. */
+:root[data-weather-suppressed='true'] .world__weather { opacity: 0.5; }
+:root[data-weather-suppressed='true'] .world__weather::before { animation: none; }
+
+/* terrain — the ground changes colour and the sky does not. The near layer's
+   fill takes a third of the terrain's token; no motion, ever. */
+:root[data-terrain='electric'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-electric) 32%, var(--locale-deep)); }
+:root[data-terrain='grassy'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-grassy) 32%, var(--locale-deep)); }
+:root[data-terrain='misty'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-misty) 32%, var(--locale-deep)); }
+:root[data-terrain='psychic'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-psychic) 32%, var(--locale-deep)); }
+
 @media (prefers-reduced-motion: reduce) {
   .world__drift { display: none; }
   .world__layer { transform: none !important; }
+  /* The wash stays: the fact survives, the motion does not. Each selector
+     named as the rule that starts it, for `test/reduced-motion-specificity`. */
+  :root[data-weather='rain'] .world__weather::before { animation: none; }
+  :root[data-weather='sun'] .world__weather { animation: none; }
+  :root[data-weather='sand'] .world__weather::before { animation: none; }
+  :root[data-weather='snow'] .world__weather::before { animation: none; }
+  :root[data-weather='wind'] .world__weather::before { animation: none; }
 }
 
 /* ==========================================================================

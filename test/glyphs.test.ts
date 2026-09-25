@@ -73,8 +73,8 @@ describe('the glyph sheet', () => {
    * fails here, which is what makes the stop-and-file a gate rather than a
    * hope.
    */
-  it('fills all eleven families of section 2, and no twelfth', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(11);
+  it('fills all twelve families of section 2, and no thirteenth', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(12);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());
@@ -98,6 +98,8 @@ describe('the glyph sheet', () => {
     expect(glyphsOf('stat')).toHaveLength(6);
     // Section 2's node row, D46: one mark per kind, in the map's own order.
     expect(glyphsOf('node').map((glyph) => glyph.label)).toEqual(['Wild', 'Trainer', 'Rest', 'Gym', 'Shop', 'Event']);
+    // Section 2's field row, D47: five weathers then four terrains, nine marks.
+    expect(glyphsOf('field').map((glyph) => glyph.label)).toEqual(['Rain', 'Sun', 'Sand', 'Snow', 'Wind', 'Electric', 'Grassy', 'Misty', 'Psychic']);
   });
 
   it('wears the fist and the ring on the Atk and SpA stat rows', () => {

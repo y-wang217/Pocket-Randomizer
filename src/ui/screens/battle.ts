@@ -28,8 +28,10 @@ import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
-import { abnormalityMarks } from '../abnormality';
+import { abnormalityMarks, firedTraits } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
+import { fieldGlyph } from '../chip';
+import { applyField } from '../theme/field';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -87,6 +89,15 @@ export function createBattleScreen(): BattleScreen {
   const header = el('div', 'battle__header');
   const title = el('h2', 'screen__title');
   const detail = el('p', 'screen__blurb');
+  /*
+   * The detail line is two things: the words (who is in the fight, how it
+   * plays) and, after them, the field. **Stage 4.11 Tier 2, D47.** The field
+   * has a slot of its own so that a turn can redraw it without touching the
+   * words, and so the words are set once at attach and never rebuilt.
+   */
+  const detailText = el('span', 'battle__detail-text');
+  const field = el('span', 'battle__field');
+  detail.append(detailText, field);
   header.append(title, detail);
 
   const board = el('div', 'board');
@@ -176,17 +187,18 @@ export function createBattleScreen(): BattleScreen {
        * it does not rate the fight.
        */
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
-      detail.textContent = [
+      detailText.textContent = [
         node.encounter?.opponent ?? '',
         ...(tier ? [AI_TIER_LABEL[tier]] : []),
       ]
         .filter((part) => part.length > 0)
         .join(' · ');
+      field.replaceChildren();
 
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one
       // alive and wondering which turn it describes.
-      const draw = (turns?: readonly FlaggedTurn[]): void => {
+      const draw = (turns: readonly FlaggedTurn[] | undefined, batch: readonly FlaggedTurn[]): void => {
         /*
          * The third consumer of the one reading. **Branch 3B.**
          *
@@ -198,11 +210,26 @@ export function createBattleScreen(): BattleScreen {
          * and the strip already get, so the rule at the top of this file still
          * holds: one reading of the protocol, now three consumers.
          */
-        scene.update(
-          buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects),
-          onChoose,
-          turns,
-          abnormalityMarks(turns),
+        const view = buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects);
+        scene.update(view, onChoose, turns, abnormalityMarks(batch), firedTraits(batch));
+        // The world behind the stage wears the same state. **Tier 3.**
+        applyField(view.field);
+        /*
+         * The state of the board, on the header. **Stage 4.11 Tier 2, D47.**
+         *
+         * Redrawn from the view on every update, the same way the panels are,
+         * because weather begins and ends on the engine's schedule and not on
+         * the player's. Nothing renders when nothing is set (R4): the locale's
+         * own sky is the default, and an empty slot is how the header says so.
+         * Weather before terrain, always — one fixed order is R1's slot rule
+         * for a family with two members on one surface.
+         */
+        field.replaceChildren(
+          ...[view.field.weather, view.field.terrain].flatMap((effect, index) => {
+            if (!effect?.kind) return [];
+            const suppressed = index === 0 && view.field.suppressed;
+            return [fieldGlyph(effect.kind, effect.id, GLYPH_LABELS[`field-${effect.kind}`] ?? effect.kind, suppressed)];
+          }),
         );
       };
 
@@ -241,13 +268,23 @@ export function createBattleScreen(): BattleScreen {
         });
         const turns = readFlags(protocol, FLAGS);
         log.append(protocol, turns);
-        // The strip reports the turn that just resolved, so it is silent on
-        // the opening replay for the same reason the jiggle is: nothing has
-        // resolved yet.
-        if (animate) flags.show(turns);
-        // The opening replay is a catch-up, not a turn that just happened.
-        // Animating it would nudge both panels at the start of every battle.
-        draw(animate ? turns : undefined);
+        /*
+         * **The opening batch is shown when it did something.** Stage 4.11
+         * Tier 4, from the Tier 0 census: 58% of field starts and 47% of
+         * ability announcements land before `|turn|1`, in this batch, which
+         * the screen used to show with nothing animated and nothing on the
+         * strip. A lead Sand Stream was invisible outside the log.
+         *
+         * What stays off the opening batch is the *turn*: no lunge, no order,
+         * no chunk, because nothing was chosen and a nudge at the start of
+         * every battle was the reason this was silent. The marks, the panel
+         * pulses and the strip run when the batch carries a flag, and stay
+         * silent on a plain start, so a battle that opens with nothing to say
+         * still says nothing.
+         */
+        const eventful = turns.some((turn) => turn.actions.some((each) => each.flags.length > 0) || turn.residual.length > 0);
+        if (animate || eventful) flags.show(turns);
+        draw(animate ? turns : undefined, turns);
       };
 
       log.clear();
@@ -269,9 +306,14 @@ export function createBattleScreen(): BattleScreen {
       sheet.close();
       show(session.protocolFor('p1'), false);
 
-      return session.subscribe((update) => {
+      const unsubscribe = session.subscribe((update) => {
         show(update.protocol, true);
       });
+      return () => {
+        unsubscribe();
+        // The fight is over or abandoned: the world goes back to the locale's own sky.
+        applyField(null);
+      };
     },
   };
 }
