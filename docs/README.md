@@ -104,14 +104,21 @@ all of them hash strings, and the re-minted simulator fixture changing 2.
 `core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
 taking display strings off `EventInstance` so the copy file stays excludable.
 
-**Planned, not started: Stage 4.11, weather, terrain and trigger visuals**, on
-`claude/dazzling-archimedes-wc1frw`. The prompt and its tiered plan are in
+**Built, on `claude/dazzling-archimedes-wc1frw`: Stage 4.11, weather, terrain
+and trigger visuals**, six tiers in one session. The prompt and its plan are in
 [`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
-the handoff in [`handoff/4.11-prep.md`](handoff/4.11-prep.md). The finding: the
-logic is the sim's and always was, the tree reads weather as an event and never
-as a state, and every weather in the game is set by an ability on switch-in,
-the one batch the battle screen never animates. Tier 0 is a hard stop on three
-rows, D47 to D49. No `src/` change yet and no version axis moves at any tier.
+the handoff in [`handoff/4.11-prep.md`](handoff/4.11-prep.md), the record in
+[`generation.md` §81](generation.md). The finding that shaped it: the logic is
+the sim's and always was, the tree read weather as an event and never as a
+state, and every weather in the game is set by an ability on switch-in, the
+one batch the battle screen never animated. The board's weather and terrain
+are now a fact on `BattleFacts`, a twelfth glyph family on the battle header,
+a factor folded into the move button's forecast (D49, ruled against the plan's
+recommendation), and a wash and a tint on the world behind the stage; an
+ability firing pulses its name and a berry pops its sprite; the opening batch
+is shown when it did something. D47 to D49 ruled, bible **Rev 14**. **No
+version axis moved**; `contentHash` holds at `715122`. The chip legibility
+sweep cannot run on the session box on any commit and is read off CI.
 
 **Tier 5 filed six rows before it opened and closed all six**, plus D14 from
 Tier 0 and D35 from Tier 4, and filed **D38** and **D39** on the way. The bible
@@ -1261,6 +1268,19 @@ One line each. The analysis lives where the pointer goes, not here.
    ([`generation.md` §74 and §75](generation.md)). **Nothing here is retuned or
    rewritten on the bible's arrival.** Each closes in its own prompt, committed
    to `spec/` first like any other.
+
+0. **The AI does not know about the weather it now shows the player.**
+   `core/battle/ai.ts` calls `@smogon/calc` with no `Field`, so its damage
+   estimates ignore rain, sun and terrain while the button's forecast folds
+   them in since Stage 4.11 (D49). A balance lever, not a presentation one:
+   it goes through `balance.md`'s queue with a benchmark row, not through a
+   patch to the UI. Named by the 4.11 plan's section 8.
+
+0. **`CLAUDE.md` restates C1 with one exception and the bible has two.**
+   D49 (2026-09-25) extended C1's exception to the field multiplier on the
+   move button. `CLAUDE.md` is the invariants register and is the lead
+   designer's to bring in line; until then it disagrees with the bible on the
+   exception's count. Recorded in `bible-discrepancies.md` under D49.
 
 0. **The baseline may be making itself worse with every move it takes.**
    `greedyMoveToReplace` (`scripts/sim.ts`) and `defaultMoveReplacement`

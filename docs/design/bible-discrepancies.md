@@ -62,9 +62,9 @@ which blocks everything.
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
 | D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
-| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | **2026-09-25**, option 1, the plan's defaults taken with the census's ninth mark |
-| D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | **2026-09-25**, option 1 |
-| D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | **2026-09-25**, **option 2, against the recommendation**: C1's exception extended |
+| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | **2026-09-25**, option 1, the plan's defaults taken with the census's ninth mark; **built** (Tiers 1 to 3) |
+| D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | **2026-09-25**, option 1; **built** (Tier 4) |
+| D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | **2026-09-25**, **option 2, against the recommendation**: C1's exception extended; **built** (Tier 2b) |
 
 ## Rulings, 2026-09-19
 
@@ -3445,3 +3445,20 @@ invariant, including its *one exception* in the old wording. That file is the
 invariants register and is edited by the lead designer, not by a stage; it
 now disagrees with the bible on the exception's count until it is brought in
 line.
+
+---
+
+## D47, D48 and D49, closed with the build
+
+**2026-09-25, Stage 4.11 Tiers 1 to 4.** D47 as ruled: `FieldFacts` off the
+sim, nine marks in the `field` family, the glyph on the header after the AI
+tier, inspect through `fieldCopy`, the wash and the tint on the world with
+the glyph primary and the colour secondary; turns remaining never shown,
+suppressed weather dimmed and halved, Heavy rain and Extreme sun on the rain
+and sun marks. D48 as ruled: the ability name pulses in its slot on one
+keyframe for every ability, the activation-line abilities included, and the
+opening batch shows it. D49 as ruled: the button's multiplier folds in the
+field's factor and points its tip at the field when no ability explains it.
+Record in [`../generation.md` §81](../generation.md). One item is open
+outside this file: `CLAUDE.md`'s restatement of C1.
+

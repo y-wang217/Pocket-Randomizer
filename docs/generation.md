@@ -11220,7 +11220,7 @@ on the pull request's `check` run, and a red there is this stage's to fix.
 
 **Tier 4, the triggers.** Three defects from the Tier 0 census and one step
 from the bible, and the move half not built, as the census said. **The
-opening batch is shown when it did something**: `screens/battle.ts` used to
+opening batch is shown when it did something**: `ui/screens/battle.ts` used to
 show the opening protocol with `animate=false`, nothing on the strip and no
 marks, and 58% of field starts and 47% of ability announcements land there.
 Now the marks, the panel pulses and the strip run on that batch when it
@@ -11237,7 +11237,7 @@ nothing, since the panel's *Bound* chip already has it. **The panel pulses
 second reduction beside the marks rather than a sixth class inside them,
 because the actor's ring and the panel's slot are different elements and a
 Drizzle lead earns both — the `field` sweep on the body and the pulse on the
-name. The scene is handed the list and reads no flag; `test/boundaries` is
+name. The scene is handed the list and reads no flag; `test/boundaries.test.ts` is
 untouched. One keyframe, `trait-fired`, for every ability, on the beat's own
 slot delay, cancelled by selector under reduced motion. **The berry pop
 (section 6 step 7) was not built and is now**: the slot redraws empty the
@@ -11247,4 +11247,24 @@ at the next update; under reduced motion the ghost is not shown at all.
 `test/trait-fired.test.ts` drives all of it, the opening batch through the
 screen's own `attach`. No `core/` change beyond the two reader patterns;
 `contentHash` unmoved.
+
+**Tier 5, the closeout.** `npm run census` re-recorded
+[`design/text-census.md`](design/text-census.md): **the battle screen holds
+at 34, 34, 11 and 5 across Detailed, Simple, Pocket and Pocket less shell,
+the header at 3, the panel at 0 and the strip at 6 and 3** — the field glyph
+is a glyph and the wash carries no text. Two rows moved by twenty words each
+and both are the gallery's fixture rather than a surface: the log sheet (144
+to 164) and the screen chrome it is counted under, because the loaded board
+plays under Drizzle since Tier 2 and the log now carries the rain's own
+lines, which R11 keeps behind the pull and section 4 leaves unbudgeted. The
+stage is recorded in [`design/milestones.md`](design/milestones.md) beside
+patch 4.10.1, in the README's current state with two open items it leaves
+behind (the AI's ignorance of the weather it now shows, and `CLAUDE.md`'s
+restatement of C1), in the register, and D47 to D49 are closed with the
+build in [`design/bible-discrepancies.md`](design/bible-discrepancies.md).
+**Across the whole stage no version axis moved and `contentHash` held at
+`715122`**: every `data/` file touched is on the exclusion list with its
+reason, and the two reads in `core/` report what the sim already decided.
+The chip legibility sweep is the one gate this box cannot run, on any
+commit, and is CI's to give.
 
